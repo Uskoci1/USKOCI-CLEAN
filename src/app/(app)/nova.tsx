@@ -11,7 +11,7 @@ import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
-import { lazniIzvor as izvor } from '../../data/lazniIzvor';
+import { useIzvor } from '../../store/uloga';
 import type {
   Cinjenica, KljucCinjenice, NacrtPotrebeProjekcija, PorukaRazgovora,
 } from '../../contracts/projections';
@@ -37,6 +37,7 @@ const REDOSLED: KljucCinjenice[] = [
 ];
 
 export default function NovaPotreba() {
+  const izvor = useIzvor();
   const [razgovorId, setRazgovorId] = useState<string | null>(null);
   const [poruke, setPoruke] = useState<PorukaRazgovora[]>([]);
   const [nacrt, setNacrt] = useState<NacrtPotrebeProjekcija | null>(null);

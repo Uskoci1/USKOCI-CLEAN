@@ -11,7 +11,7 @@ import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
-import { lazniIzvor as izvor } from '../../data/lazniIzvor';
+import { useIzvor } from '../../store/uloga';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 
 const naUredjaju = Platform.OS !== 'web';
@@ -28,6 +28,7 @@ type Prikaz = 'lista' | 'mapa' | 'kombinovano';
  * Sirov matcher procenat ovde ne postoji: `PrilikaProjekcija` ga nema kao polje.
  */
 export default function Prilike() {
+  const izvor = useIzvor();
   const [prikaz, setPrikaz] = useState<Prikaz>('kombinovano');
   const [prilike, setPrilike] = useState<PrilikaProjekcija[]>([]);
 

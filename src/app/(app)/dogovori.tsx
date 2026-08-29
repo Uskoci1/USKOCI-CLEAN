@@ -9,12 +9,13 @@ import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion } from '../../theme/tokens';
-import { lazniIzvor as izvor } from '../../data/lazniIzvor';
+import { useIzvor } from '../../store/uloga';
 import type { DogovorProjekcija } from '../../contracts/projections';
 
 const naUredjaju = Platform.OS !== 'web';
 
 export default function Dogovori() {
+  const izvor = useIzvor();
   const [dogovori, setDogovori] = useState<DogovorProjekcija[]>([]);
   const [ucitavanje, setUcitavanje] = useState(true);
 

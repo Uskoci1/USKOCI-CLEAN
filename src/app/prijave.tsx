@@ -17,7 +17,7 @@ import { T } from '../ui/Text';
 import { Press } from '../ui/Press';
 import { Card } from '../ui/Button';
 import { palette, space, radius, elevation, motion, touch } from '../theme/tokens';
-import { lazniIzvor as izvor } from '../data/lazniIzvor';
+import { useIzvor } from '../store/uloga';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../contracts/projections';
 
 const naUredjaju = Platform.OS !== 'web';
@@ -28,6 +28,7 @@ function noviZahtevId(prijavaId: string) {
 }
 
 export default function Prijave() {
+  const izvor = useIzvor();
   const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
   const [kandidati, setKandidati] = useState<KandidatProjekcija[]>([]);
   const [ucitavanje, setUcitavanje] = useState(true);

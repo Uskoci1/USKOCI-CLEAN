@@ -12,7 +12,7 @@ import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
-import { lazniIzvor as izvor } from '../../data/lazniIzvor';
+import { useIzvor } from '../../store/uloga';
 import type { DogovorProjekcija, PorukaProjekcija } from '../../contracts/projections';
 import { useUloga } from '../../store/uloga';
 
@@ -26,6 +26,7 @@ function rokTekst(iso: string | null): string {
 }
 
 export default function Dogovor() {
+  const izvor = useIzvor();
   const { id } = useLocalSearchParams<{ id: string }>();
   const uloga = useUloga();
   const jaSamUskocer = uloga === 'uskocer';

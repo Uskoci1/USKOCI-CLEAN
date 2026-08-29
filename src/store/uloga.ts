@@ -1,18 +1,10 @@
-/**
- * Uloga aktivnog prostora.
- *
- * Kanon: jedan nalog može koristiti oba prostora. Ovo NIJE dva naloga —
- * to je jedan korisnik koji gleda isti Dogovor sa druge strane.
- *
- * Zato je uloga stanje aplikacije, a projekcije su vezane za nju:
- * isti Dogovor daje različit `viSte`, različite dozvoljene akcije i
- * različit ekran, bez ijedne grane `if (uloga)` u komponenti.
- */
-
-import { useSyncExternalStore } from 'react';
+﻿import { useSyncExternalStore } from 'react';
 import type { Uloga } from '../contracts/projections';
+import { izvor as defaultIzvor } from '../data';
+import type { Izvor } from '../data/ports';
 
 let trenutna: Uloga = 'narucilac';
+let trenutniIzvor: Izvor = defaultIzvor;
 const pretplatnici = new Set<() => void>();
 
 function obavesti() {
@@ -29,9 +21,19 @@ export function promeniProstor() {
   postaviUlogu(trenutna === 'narucilac' ? 'uskocer' : 'narucilac');
 }
 
-/** Za slojeve van Reacta — izvor podataka je čita ovako. */
+export function postaviIzvor(i: Izvor) {
+  if (trenutniIzvor === i) return;
+  trenutniIzvor = i;
+  obavesti();
+}
+
+/** Za slojeve van Reacta ?" izvor podataka je ?ita ovako. */
 export function ulogaSada(): Uloga {
   return trenutna;
+}
+
+export function izvorSada(): Izvor {
+  return trenutniIzvor;
 }
 
 export function useUloga(): Uloga {
@@ -42,6 +44,17 @@ export function useUloga(): Uloga {
     },
     ulogaSada,
     ulogaSada,
+  );
+}
+
+export function useIzvor(): Izvor {
+  return useSyncExternalStore(
+    (f) => {
+      pretplatnici.add(f);
+      return () => pretplatnici.delete(f);
+    },
+    izvorSada,
+    izvorSada,
   );
 }
 

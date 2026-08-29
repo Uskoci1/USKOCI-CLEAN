@@ -9,12 +9,13 @@ import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
-import { lazniIzvor as izvor } from '../../data/lazniIzvor';
+import { useIzvor } from '../../store/uloga';
 import type { DogovorProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 
 const naUredjaju = Platform.OS !== 'web';
 
 export default function Pocetna() {
+  const izvor = useIzvor();
   const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
   const [dogovori, setDogovori] = useState<DogovorProjekcija[]>([]);
 
