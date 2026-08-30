@@ -1,14 +1,7 @@
+﻿
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-
-// Klijent se pravi LENJO, pri prvoj upotrebi.
-//
-// Ranije se pravio pri importu, pa je svaki modul koji ga makar posredno uvuce
-// pucao ako env nije postavljen. To je rusilo ceo test suite: lazniIzvor ->
-// uloga -> data/index -> supabaseIzvor -> supabaseClient -> createClient throw.
-//
-// Fail-closed: ako konfiguracija nedostaje, bacamo jasnu gresku. NIKAD se ne
-// pada tiho na lazni izvor — to bi znacilo da produkcija radi na izmisljenim
-// podacima a da niko ne primeti.
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 
 let klijent: SupabaseClient | null = null;
 
@@ -27,12 +20,26 @@ export function supabaseKlijent(): SupabaseClient {
     );
   }
 
-  // NAPOMENA: persistSession je false jer u projektu nema storage adaptera
-  // (@react-native-async-storage/async-storage nije instaliran). Posledica je da
-  // se prijava ne pamti izmedju pokretanja. To je zaseban zadatak, ne menja se
-  // ovde naslepo.
   klijent = createClient(url, anon, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
   });
+  
   return klijent;
 }
+
+// React Native requires telling Supabase Auth when the app comes to foreground or goes to background
+// to properly manage the token refresh timers.
+AppState.addEventListener('change', (state) => {
+  if (!klijent) return;
+  if (state === 'active') {
+    klijent.auth.startAutoRefresh();
+  } else {
+    klijent.auth.stopAutoRefresh();
+  }
+});
+

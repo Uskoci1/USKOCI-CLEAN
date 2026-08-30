@@ -1,7 +1,11 @@
 import { View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowsLeftRight, User, Star, Gear, CaretRight } from 'phosphor-react-native';
+
+import { ArrowsLeftRight, User, Star, Gear, CaretRight, SignIn, SignOut } from 'phosphor-react-native';
+import { useSesija } from '../../store/sesija';
+import { supabaseKlijent } from '../../data/supabaseClient';
+
 
 import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
