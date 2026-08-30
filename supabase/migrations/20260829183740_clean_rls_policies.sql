@@ -1,5 +1,5 @@
 -- Podrazumevano NISTA nije vidljivo. Svaka vidljivost je izricita.
--- Ovo je jedino mesto gde se privatnost stvarno sprovodi ΓÇö ekran nije zastita.
+-- Ovo je jedino mesto gde se privatnost stvarno sprovodi — ekran nije zastita.
 
 alter table public.needs                         enable row level security;
 alter table public.need_sensitive                enable row level security;

@@ -1,5 +1,5 @@
 -- REBUILD, ne KEEP.
--- Donorov private_access_grants ima JEDAN grant po (agreement, version) ΓÇö
+-- Donorov private_access_grants ima JEDAN grant po (agreement, version) —
 -- combined reveal koji M10 ukida. Kanon trazi odvojene i USMERENE dozvole.
 -- Donorova tabela se ne brise; ovde se prosto ne prenosi.
 

@@ -171,4 +171,4 @@ $fn$;
 revoke all on function public.rpc_tick_auto_completion() from public, anon, authenticated;
 
 comment on function public.rpc_tick_auto_completion is
-  'M07: serverski tick. Namerno bez granta korisnicima ΓÇö poziva ga scheduler servisnim kljucem, ne otvoren ekran.';
+  'M07: serverski tick. Namerno bez granta korisnicima — poziva ga scheduler servisnim kljucem, ne otvoren ekran.';
