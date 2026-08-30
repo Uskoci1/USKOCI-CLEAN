@@ -54,7 +54,7 @@ export const supabaseIzvor: Izvor = {
     const { data, error } = await supabase.from('needs')
       .select(`
         *,
-        agreements(status, marketplace_responses(covered_slots)),
+        need_selections(status, covered_slots),
         marketplace_responses(id)
       `)
       .eq('requester_account_id', user.user.id)
@@ -64,9 +64,9 @@ export const supabaseIzvor: Izvor = {
     
     return data.map((r: any) => {
       let popunjeno = 0;
-      for (const a of r.agreements || []) {
-        if (['CONFIRMED','SUPERSEDED','COMPLETED'].includes(a.status)) {
-           popunjeno += a.marketplace_responses?.covered_slots || 0;
+      for (const s of r.need_selections || []) {
+        if (s.status === 'SELECTED') {
+           popunjeno += s.covered_slots || 0;
         }
       }
       return {
@@ -86,14 +86,14 @@ export const supabaseIzvor: Izvor = {
 
   async potreba(id: string) {
     const { data, error } = await supabase.from('needs')
-      .select(`*, agreements(status, marketplace_responses(covered_slots)), marketplace_responses(id)`)
+      .select(`*, need_selections(status, covered_slots), marketplace_responses(id)`)
       .eq('id', id).maybeSingle();
     if (error || !data) return null;
     
     let popunjeno = 0;
-    for (const a of data.agreements || []) {
-      if (['CONFIRMED','SUPERSEDED','COMPLETED'].includes(a.status)) {
-         popunjeno += a.marketplace_responses?.covered_slots || 0;
+    for (const s of data.need_selections || []) {
+      if (s.status === 'SELECTED') {
+         popunjeno += s.covered_slots || 0;
       }
     }
     return {
@@ -112,16 +112,16 @@ export const supabaseIzvor: Izvor = {
 
   async otvorenePrilike() {
     const { data, error } = await supabase.from('needs')
-      .select(`*, agreements(status, marketplace_responses(covered_slots)), app_profiles!requester_profile_id(display_name)`)
+      .select(`*, need_selections(status, covered_slots), app_profiles!requester_profile_id(display_name)`)
       .in('status', ['PUBLISHED', 'SELECTION', 'ACTIVE'])
       .order('created_at', { ascending: false });
     if (error || !data) return [];
     
     return data.map((r: any) => {
       let popunjeno = 0;
-      for (const a of r.agreements || []) {
-        if (['CONFIRMED','SUPERSEDED','COMPLETED'].includes(a.status)) {
-           popunjeno += a.marketplace_responses?.covered_slots || 0;
+      for (const s of r.need_selections || []) {
+        if (s.status === 'SELECTED') {
+           popunjeno += s.covered_slots || 0;
         }
       }
       return {
@@ -141,14 +141,14 @@ export const supabaseIzvor: Izvor = {
 
   async prilika(id: string) {
     const { data, error } = await supabase.from('needs')
-      .select(`*, agreements(status, marketplace_responses(covered_slots)), app_profiles!requester_profile_id(display_name)`)
+      .select(`*, need_selections(status, covered_slots), app_profiles!requester_profile_id(display_name)`)
       .eq('id', id).maybeSingle();
     if (error || !data) return null;
     
     let popunjeno = 0;
-    for (const a of data.agreements || []) {
-      if (['CONFIRMED','SUPERSEDED','COMPLETED'].includes(a.status)) {
-         popunjeno += a.marketplace_responses?.covered_slots || 0;
+    for (const s of data.need_selections || []) {
+      if (s.status === 'SELECTED') {
+         popunjeno += s.covered_slots || 0;
       }
     }
     return {
