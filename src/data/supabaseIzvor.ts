@@ -51,10 +51,13 @@ export const supabaseIzvor: Izvor = {
   async mojePotrebe() {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) return [];
+    
+    // Explicit tight projection. Using computed column covered_slots.
     const { data, error } = await supabase.from('needs')
       .select(`
-        *,
-        need_selections(status, covered_slots),
+        id, revision, title, description, status, starts_at, approximate_area, approximate_city,
+        required_slots, required_skills, required_tools, required_vehicles,
+        covered_slots,
         marketplace_responses(id)
       `)
       .eq('requester_account_id', user.user.id)
@@ -62,47 +65,38 @@ export const supabaseIzvor: Izvor = {
     
     if (error || !data) return [];
     
-    return data.map((r: any) => {
-      let popunjeno = 0;
-      for (const s of r.need_selections || []) {
-        if (s.status === 'SELECTED') {
-           popunjeno += s.covered_slots || 0;
-        }
-      }
-      return {
-        id: r.id,
-        revizija: r.revision,
-        naslov: r.title,
-        opis: r.description,
-        stanje: r.status,
-        pokrivenost: pokrivenost(r.required_slots || 1, popunjeno),
-        vremeTekst: fTime(r.starts_at),
-        podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
-        uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
-        brojPrijava: r.marketplace_responses?.length || 0,
-      };
-    });
+    return data.map((r: any) => ({
+      id: r.id,
+      revizija: r.revision,
+      naslov: r.title,
+      opis: r.description,
+      stanje: r.status,
+      pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
+      vremeTekst: fTime(r.starts_at),
+      podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
+      uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
+      brojPrijava: r.marketplace_responses?.length || 0,
+    }));
   },
 
   async potreba(id: string) {
     const { data, error } = await supabase.from('needs')
-      .select(`*, need_selections(status, covered_slots), marketplace_responses(id)`)
+      .select(`
+        id, revision, title, description, status, starts_at, approximate_area, approximate_city,
+        required_slots, required_skills, required_tools, required_vehicles,
+        covered_slots,
+        marketplace_responses(id)
+      `)
       .eq('id', id).maybeSingle();
     if (error || !data) return null;
     
-    let popunjeno = 0;
-    for (const s of data.need_selections || []) {
-      if (s.status === 'SELECTED') {
-         popunjeno += s.covered_slots || 0;
-      }
-    }
     return {
       id: data.id,
       revizija: data.revision,
       naslov: data.title,
       opis: data.description,
       stanje: data.status,
-      pokrivenost: pokrivenost(data.required_slots || 1, popunjeno),
+      pokrivenost: pokrivenost(data.required_slots || 1, data.covered_slots || 0),
       vremeTekst: fTime(data.starts_at),
       podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
       uslovi: [...(data.required_skills||[]), ...(data.required_tools||[]), ...(data.required_vehicles||[])],
@@ -111,53 +105,52 @@ export const supabaseIzvor: Izvor = {
   },
 
   async otvorenePrilike() {
+    // Explicit public-safe projection
     const { data, error } = await supabase.from('needs')
-      .select(`*, need_selections(status, covered_slots), app_profiles!requester_profile_id(display_name)`)
-      .in('status', ['PUBLISHED', 'SELECTION', 'ACTIVE'])
+      .select(`
+        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
+        required_slots, required_skills, required_tools, required_vehicles,
+        covered_slots,
+        app_profiles!requester_profile_id(display_name)
+      `)
+      .in('status', ['PUBLISHED', 'SELECTION'])
       .order('created_at', { ascending: false });
+      
     if (error || !data) return [];
     
-    return data.map((r: any) => {
-      let popunjeno = 0;
-      for (const s of r.need_selections || []) {
-        if (s.status === 'SELECTED') {
-           popunjeno += s.covered_slots || 0;
-        }
-      }
-      return {
-        id: r.id,
-        naslov: r.title,
-        statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
-        podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
-        vremeTekst: fTime(r.starts_at),
-        pokrivenost: pokrivenost(r.required_slots || 1, popunjeno),
-        uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
-        narucilacIme: r.app_profiles?.display_name || '',
-        narucilacOcena: null,
-        priblizno: r.approximate_lat ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
-      };
-    });
+    return data.map((r: any) => ({
+      id: r.id,
+      naslov: r.title,
+      statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
+      podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
+      vremeTekst: fTime(r.starts_at),
+      pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
+      uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
+      narucilacIme: r.app_profiles?.display_name || '',
+      narucilacOcena: null,
+      priblizno: r.approximate_lat ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
+    }));
   },
 
   async prilika(id: string) {
     const { data, error } = await supabase.from('needs')
-      .select(`*, need_selections(status, covered_slots), app_profiles!requester_profile_id(display_name)`)
+      .select(`
+        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
+        required_slots, required_skills, required_tools, required_vehicles,
+        covered_slots,
+        app_profiles!requester_profile_id(display_name)
+      `)
       .eq('id', id).maybeSingle();
+      
     if (error || !data) return null;
     
-    let popunjeno = 0;
-    for (const s of data.need_selections || []) {
-      if (s.status === 'SELECTED') {
-         popunjeno += s.covered_slots || 0;
-      }
-    }
     return {
       id: data.id,
       naslov: data.title,
       statusTekst: data.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
       podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
       vremeTekst: fTime(data.starts_at),
-      pokrivenost: pokrivenost(data.required_slots || 1, popunjeno),
+      pokrivenost: pokrivenost(data.required_slots || 1, data.covered_slots || 0),
       uslovi: [...(data.required_skills||[]), ...(data.required_tools||[]), ...(data.required_vehicles||[])],
       narucilacIme: data.app_profiles?.display_name || '',
       narucilacOcena: null,
@@ -167,8 +160,13 @@ export const supabaseIzvor: Izvor = {
 
   async prijaveZaPotrebu(potrebaId: string) {
     const { data, error } = await supabase.from('marketplace_responses')
-      .select(`*, app_profiles!worker_profile_id(display_name), marketplace_response_versions(version, content_hash)`)
+      .select(`
+        id, current_version, price_rsd, covered_slots, proposed_start_at, status,
+        app_profiles!worker_profile_id(display_name),
+        marketplace_response_versions(version, content_hash)
+      `)
       .eq('need_id', potrebaId);
+      
     if (error || !data) return [];
     
     return data.map((r: any) => {
@@ -197,7 +195,7 @@ export const supabaseIzvor: Izvor = {
     
     const { data, error } = await supabase.from('agreements')
       .select(`
-        *,
+        id, current_version, status, terms, requester_account_id, created_at,
         needs(title, approximate_area, approximate_city, required_slots, starts_at),
         worker:app_profiles!worker_profile_id(display_name, account_id),
         requester:app_profiles!requester_profile_id(display_name, account_id),
@@ -246,7 +244,7 @@ export const supabaseIzvor: Izvor = {
     
     const { data, error } = await supabase.from('agreements')
       .select(`
-        *,
+        id, current_version, status, terms, requester_account_id, created_at,
         needs(title, approximate_area, approximate_city, required_slots, starts_at),
         worker:app_profiles!worker_profile_id(display_name, account_id),
         requester:app_profiles!requester_profile_id(display_name, account_id),
@@ -269,7 +267,7 @@ export const supabaseIzvor: Izvor = {
     for (const g of r.access_grants || []) {
       if (g.channel === 'PHONE' && g.status === 'GRANTED') {
          if (g.granted_by_account_id === uid) mojTelPodeljen = true;
-         if (g.granted_to_account_id === uid) njihovTel = 'Dostupan u bazi'; // Placeholder for actual phone if we join it
+         if (g.granted_to_account_id === uid) njihovTel = 'Dostupan u bazi';
       }
     }
     
@@ -303,7 +301,7 @@ export const supabaseIzvor: Izvor = {
   async poruke(dogovorId: string) {
     const { data: user } = await supabase.auth.getUser();
     const { data, error } = await supabase.from('agreement_messages')
-      .select(`*`)
+      .select(`id, sender_account_id, body, created_at`)
       .eq('agreement_id', dogovorId)
       .order('created_at', { ascending: true });
       
@@ -315,7 +313,7 @@ export const supabaseIzvor: Izvor = {
       moja: r.sender_account_id === user?.user?.id,
       telo: r.body,
       vremeTekst: fTime(r.created_at),
-      procitano: true, // naive for now
+      procitano: true,
     }));
   },
 
