@@ -302,3 +302,21 @@ Redosled je izabran tako da svaki sledeći paket zavisi od prethodnog:
 
 Čeka odluku vlasnika: **G18** (složene Potrebe u V1?), **RC2 pravni blok**
 (pre javnog lansiranja), **multilingual** (V1 srpski?).
+
+---
+
+# Dopuna 30.08 — paket B (scoped contact reveal)
+
+Novi capability koji nije bio u originalnoj G-listi, ali pripada privatnosti.
+Detalji: [PACKAGE_B_CONTACT_REVEAL_EVIDENCE.md](PACKAGE_B_CONTACT_REVEAL_EVIDENCE.md)
+
+| stavka | status |
+|---|---|
+| directional PHONE reveal | `AUTHENTICATED_RUNTIME_PROVEN` |
+| directional EXACT_LOCATION reveal | `AUTHENTICATED_RUNTIME_PROVEN` |
+| latentna rupa u izdavanju granta | zatvorena, `AUTHENTICATED_RUNTIME_PROVEN` |
+| lifecycle granta (opoziv, istek) | `AUTHENTICATED_RUNTIME_PROVEN` |
+| klijentski put do reveal-a | **nije dodirnut** — paket A |
+
+Utiče i na G10/privatnost: `need_sensitive` politika više se ne oslanja na
+ugnežđenu RLS `agreements` kao slučajnu odbranu.
