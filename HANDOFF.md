@@ -266,3 +266,26 @@ eeds_owner_all policy split/removed to prevent direct destructive DELETE of PUBL
 - Implementing backend support for AI Safety gates (ALLOW/CLARIFY/REVIEW/BLOCK).
 - Implementing storage.objects cleanup triggers.
 - Repairing pc_report_problem to store the narrative.
+
+## 11. CHECKPOINT: CLOSURE - SERVER AUTHORITATIVE MUTATION BOUNDARY (30.08.2026)
+
+**New Migrations:** 
+- 20260830174000_clean_repair_authority_boundary (Repairs premature C-package constraints, restricts Profile/WMP/Needs metadata, enforces AI transitions)
+- 20260830174500_clean_ai_insert_authority_closure (Revokes client INSERT on AI tables)
+
+**Live Migration Count:** 41
+
+### Final Authority Enforcements
+- **Agreement FKs:** Restored to ON DELETE RESTRICT (to be safely addressed in upcoming Privacy/Anonymization package).
+- **Profiles:** skills, 	ools, licenses, ehicles, years_experience, 	eam_capacity verified as SELF_DECLARED. Only profile_status, ccount_type, and ratings are securely SERVER_DERIVED and reject client forgery.
+- **Worker Match Preferences:** worker_profile_id and worker_account_id statically locked against caller identity on both INSERT and UPDATE.
+- **Needs & HITNO:** urgent*, published_at, esponse_deadline fully shielded from direct client update.
+- **AI Security:** Complete transition to authoritative Edge logic. i_structured_facts and i_action_proposals block direct client INSERT. Immutable fields are locked. Status transitions accurately record server-derived confirmed_at, decided_at, and confirmed_by_user_id.
+
+**Authenticated Test Harness (adversarial_test.js):** 11 / 11 PASSED.
+
+### Remaining OPEN Findings
+- **STILL_OPEN:** pc_report_problem discards narrative.
+- **STILL_OPEN:** AI safety (ALLOW/CLARIFY/REVIEW/BLOCK) missing on backend.
+- **STILL_OPEN:** Client Role-Switch Cache Leak (uloga.ts).
+- **STILL_OPEN:** Storage Orphan Leak (Deleting rows does not trigger storage.objects deletion).
