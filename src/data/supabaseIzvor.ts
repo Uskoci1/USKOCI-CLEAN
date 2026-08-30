@@ -1,5 +1,10 @@
 import { Izvor, Ishod, IzborKomanda, IzmenaKomanda } from './ports';
-import { supabase } from './supabaseClient';
+import { supabaseKlijent } from './supabaseClient';
+
+// Lenji pristup: klijent se pravi tek kad neka metoda stvarno pozove Supabase.
+const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
+  get: (_t, prop) => (supabaseKlijent() as never)[prop],
+});
 
 function handleRpcError<T>(error: any, defaultCode: string, defaultMessage: string): Ishod<T> {
   console.error('[Supabase RPC Error]', error);

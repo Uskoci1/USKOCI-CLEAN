@@ -159,26 +159,38 @@ Ne preskači nivoe. Primeri iz ovog projekta:
 
 ## 7. Gde sam stao i šta je sledeće
 
-Zatvoreno i dokazano: G3 (dispatch), G9 (rok za prijave), paket B (scoped
-contact reveal), lanac otkazivanja (forever-grant curenje, starvation zamene,
-ghost notifikacije).
+**Ažurirano 30.08. posle live audit reconciliation-a.**
+
+Zatvoreno i dokazano (`AUTHENTICATED_RUNTIME_PROVEN`, nikad `service_role`):
+
+| oznaka | šta | migracija |
+|---|---|---|
+| G3 | dispatch motor, 7 invarijanti | 0021–0025 |
+| G9 | rok za prijave gasi Potrebu | `..._need_response_deadline_expiry` |
+| B (paket) | scoped PHONE/LOCATION reveal | `..._scoped_contact_reveal` |
+| — | forever-grant curenje, starvation zamene, ghost notifikacije | `..._cancellation_privacy_and_wakeup` |
+| A,D,E | publish bypass, revizija, account↔profile | `..._need_lifecycle_integrity` |
+| B,C | sposobnosti i rok u trenutku izbora | `..._selection_eligibility_and_deadline` |
+| F | atomsko slanje prijave + verzije | `..._authoritative_response_submit` |
 
 **Sledeće, redom:**
 
 1. `rpc_cancel_need` i `rpc_withdraw_response` — ne postoje; korisnici su
-   zarobljeni (Naručilac ne može da otkaže Potrebu pre izbora, Uskoćer ne može
-   da povuče prijavu).
-2. Capability race: `rpc_select_response` ne proverava sposobnosti u trenutku
-   izbora — radnik može da skloni kombi iz profila i i dalje bude izabran.
-3. **Paket A:** kompletan diff `src/data/ports.ts` ↔ `src/data/supabaseIzvor.ts`
-   + traversal svih 11 ekrana i svih CTA. Ceo adapter je neauditovan.
-4. `agreements` ima `ON DELETE RESTRICT` → nalog se ne može obrisati.
-5. Nema trigera za brisanje `storage.objects`.
-6. `supabase/tests/` ne postoji.
-7. Edge funkcije: **0 deployovanih** → nema push provajdera i nema serverske AI
-   safety kapije (kapija postoji samo u `lazniAi.ts`, dakle u klijentu).
+   zarobljeni. `marketplace_responses` UPDATE je privremeno ostavljen otvoren
+   baš zato — zatvoriti ga kad `withdraw` stigne.
+2. `rpc_report_problem` — `p_narrative` se validira ali se **ne čuva**.
+3. AI safety: `ALLOW/CLARIFY/REVIEW/BLOCK` postoji samo u `lazniAi.ts`, dakle u
+   klijentu. Serverske kapije nema. Edge funkcija: **0 deployovanih**.
+4. **Paket A:** kompletan diff `ports.ts` ↔ `supabaseIzvor.ts`. READ metode su
+   stubovane (`return []`, `return null`). Traversal 11 ekrana i CTA.
+5. `agreements` `ON DELETE RESTRICT` → nalog se ne može obrisati.
+6. Nema trigera za brisanje `storage.objects`; nema media projekcije za tuđe
+   avatare.
+7. `supabase/tests/` ne postoji.
 
-Puna lista sa statusima: `supabase/G1_G18_COVERAGE_MATRIX.md`.
+**Poznat defekt koji nisam dirao naslepo:** `supabaseClient.ts` ima
+`persistSession: false` jer `@react-native-async-storage/async-storage` nije
+instaliran — prijava se ne pamti između pokretanja. Traži zasebnu odluku.
 
 ## 8. Prvo što uradi kad preuzmeš
 
