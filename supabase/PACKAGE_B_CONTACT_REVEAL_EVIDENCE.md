@@ -142,3 +142,47 @@ kanonski.
 
 Test fixture (3 naloga, Potreba, Dogovor, grantovi) **obrisan posle merenja**;
 baza je vraćena na nulu redova.
+
+---
+
+# Dopuna: Antigravity artefakti su ipak pronađeni
+
+Ranija oznaka `ANTIGRAVITY_ARTIFACT_NOT_LOCALLY_AVAILABLE` je **povučena**.
+Fajlovi su nastali u 09:28/09:34, posle moje prve provere:
+`USKOCI_ANTIGRAVITY_INDEPENDENT_DEEP_AUDIT.md`, `USKOCI_FINDINGS_FOR_CLAUDE.md`,
+`USKOCI_CAPABILITY_MATRIX.csv`.
+
+Pročitani su i svaki nalaz je proveren protiv žive baze.
+
+## Nalazi iz artefakata — klasifikacija
+
+| nalaz | klasifikacija | dokaz |
+|---|---|---|
+| Forever Grant: `need_sensitive` ne proverava status Dogovora | **CONFIRMED_CURRENT_GAP** | politika nije sadržala `a.status`; preživeo je i moju prvu ispravku |
+| `rpc_cancel_agreement` ne opoziva grantove | **CONFIRMED_CURRENT_GAP** | funkcija nije referisala `access_grants` |
+| Multi-seat starvation: motor se ne budi | **CONFIRMED_CURRENT_GAP** | funkcija nije referisala `enqueue_dispatch` |
+| Ghost notifikacije posle otkazivanja | **CONFIRMED_CURRENT_GAP** | funkcija nije referisala `notification*` |
+| Nema `rpc_cancel_need` | **CONFIRMED_CURRENT_GAP** | ne postoji |
+| Nema `rpc_withdraw_response` | **CONFIRMED_CURRENT_GAP** | ne postoji |
+| Capability race pri izboru | **CONFIRMED_CURRENT_GAP** | `rpc_select_response` ne zove `match_detail` |
+| Broken Phone Privacy | **ALREADY_FIXED** | zatvoreno ranije u ovom paketu |
+| `app_accounts` own-only blokira reveal | **CONFIRMED** — ali rešeno RPC-om, ne olabavljivanjem RLS-a | |
+
+**Zasluga gde pripada:** „Forever Grant" je nalaz koji moja forenzika **nije**
+uhvatila. Moja prva verzija politike dodala je proveru vlasnika granta i smera,
+ali ne i to da otkazan Dogovor gasi pristup. Bez tog nalaza rupa bi ostala.
+
+## Zatvoreno migracijom `clean_cancellation_privacy_and_wakeup`
+
+Runtime dokaz, jedan prolaz, izvršilac kao stvarno prijavljen nalog:
+
+| trenutak | RLS `need_sensitive` | `rpc_reveal_contact` |
+|---|---|---|
+| pre otkazivanja | **1 red** (vidi adresu) | vraća adresu |
+| posle otkazivanja | **0 redova** | **odbija** |
+
+Stanje posle otkazivanja: Dogovor `CANCELLED`, grantovi `REVOKED`, Potreba
+`SELECTION`, pokrivenost `0`, **red za zamenu = 1** — motor je probuđen iako
+status nije promenjen.
+
+Nivo dokaza: `AUTHENTICATED_RUNTIME_PROVEN`.
