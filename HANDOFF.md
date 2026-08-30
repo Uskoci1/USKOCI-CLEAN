@@ -244,3 +244,25 @@ eeds_owner_all policy split/removed to prevent direct destructive DELETE of PUBL
 ### Next Package
 **SERVER_AUTHORITATIVE_MUTATION_BOUNDARY**
 - Resolving pp_profiles (status, ratings, trust) and matcher inputs (skills, licenses, vehicles) to be strictly server-owned or verified, eliminating self-reactivation and spoofed reputation.
+
+## 10. CHECKPOINT: PACKAGE C - SERVER AUTHORITATIVE MUTATION BOUNDARY (30.08.2026)
+
+**New Migration:** 20260830173000_clean_authoritative_mutation_boundary
+**Live Migration Count:** 39
+
+### Package C Changes & Fixed Findings
+- **FIXED_AND_PROVEN:** pp_profiles mutation lock. Client updates to profile_status, 	eam_capacity, ccount_type, ating_requester, ating_worker, and years_experience are silently ignored/overridden via private.guard_profile_write() trigger.
+- **FIXED_AND_PROVEN:** AI facts mutation lock. Client updates to i_structured_facts and i_action_proposals can only modify status and confirmed_* fields, preventing spoofed act_value or ction_type.
+- **FIXED_AND_PROVEN:** Account Deletion Lock-In. Modified greements foreign keys from ON DELETE RESTRICT to ON DELETE SET NULL, allowing safe uth.users deletion.
+
+### Remaining OPEN Findings
+- **STILL_OPEN:** pc_report_problem discards narrative.
+- **STILL_OPEN:** AI safety (ALLOW/CLARIFY/REVIEW/BLOCK) missing on backend.
+- **STILL_OPEN:** Client Role-Switch Cache Leak (uloga.ts).
+- **STILL_OPEN:** Storage Orphan Leak (Deleting rows does not trigger storage.objects deletion).
+
+### Next Package
+**AI_SAFETY_AND_STORAGE_CLEANUP**
+- Implementing backend support for AI Safety gates (ALLOW/CLARIFY/REVIEW/BLOCK).
+- Implementing storage.objects cleanup triggers.
+- Repairing pc_report_problem to store the narrative.
