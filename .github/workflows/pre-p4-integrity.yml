@@ -1,0 +1,48 @@
+name: PRE-P4 integrity
+
+on:
+  push:
+    branches:
+      - clean-alpha-backend
+  pull_request:
+    branches:
+      - clean-alpha-backend
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pre-p4-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-p4-integrity:
+    name: pre-p4-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout canonical tree
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify migration bytes and provenance
+        run: sh supabase/migrations/check_md5.sh
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+
+      - name: Regression tests
+        run: npm test -- --runInBand

@@ -1,0 +1,282 @@
+{
+  "format_version": 1,
+  "generated_at_utc": "2026-08-30T20:27:33Z",
+  "canonical_repository": "Uskoci1/USKOCI-CLEAN",
+  "canonical_branch": "clean-alpha-backend",
+  "repository_base_head": "a30092fd21205a331834ab61abc3efa65f6f9417",
+  "live_project_ref": "leqcwgzvjsxugfgzdmth",
+  "checksum_contract": {
+    "algorithm": "MD5",
+    "scope": "raw physical migration file bytes",
+    "newline_policy": "LF enforced for canonical text files by .gitattributes",
+    "statement": "MD5_MANIFEST.txt verifies repository bytes only. It does not claim that reconstructed files equal lost original bytes."
+  },
+  "live_history_snapshot": {
+    "migration_count": 44,
+    "last": {
+      "name": "clean_pre_p4_provenance_reconciliation",
+      "version": "20260830202733"
+    },
+    "entries": [
+      {
+        "name": "cloud_profile_foundation_1_3b",
+        "version": "20260825115040"
+      },
+      {
+        "name": "lock_down_auth_trigger_functions_1_3b",
+        "version": "20260825115602"
+      },
+      {
+        "name": "clean_security_hardening",
+        "version": "20260829183528"
+      },
+      {
+        "name": "clean_need_foundation",
+        "version": "20260829183551"
+      },
+      {
+        "name": "clean_response_foundation",
+        "version": "20260829183609"
+      },
+      {
+        "name": "clean_agreement_foundation",
+        "version": "20260829183633"
+      },
+      {
+        "name": "clean_directional_access_grants",
+        "version": "20260829183651"
+      },
+      {
+        "name": "clean_ai_persistence",
+        "version": "20260829183711"
+      },
+      {
+        "name": "clean_rls_policies",
+        "version": "20260829183740"
+      },
+      {
+        "name": "clean_rpc_selection",
+        "version": "20260829183816"
+      },
+      {
+        "name": "clean_rpc_agreement_lifecycle",
+        "version": "20260829183947"
+      },
+      {
+        "name": "clean_rpc_ai_intake",
+        "version": "20260829184024"
+      },
+      {
+        "name": "clean_revoke_public_execute",
+        "version": "20260829184132"
+      },
+      {
+        "name": "clean_revoke_helper_execute_from_authenticated",
+        "version": "20260829184203"
+      },
+      {
+        "name": "clean_updated_at_triggers",
+        "version": "20260829185334"
+      },
+      {
+        "name": "clean_need_selection_completeness",
+        "version": "20260829185354"
+      },
+      {
+        "name": "clean_selection_rpc_alignment",
+        "version": "20260829185434"
+      },
+      {
+        "name": "clean_events_and_notifications",
+        "version": "20260829210453"
+      },
+      {
+        "name": "clean_emit_event_engine",
+        "version": "20260829210536"
+      },
+      {
+        "name": "clean_needs_schema_completion",
+        "version": "20260829210602"
+      },
+      {
+        "name": "clean_geo_foundation",
+        "version": "20260829210650"
+      },
+      {
+        "name": "clean_geo_foundation_repair",
+        "version": "20260829211203"
+      },
+      {
+        "name": "clean_dispatch_foundation",
+        "version": "20260829211420"
+      },
+      {
+        "name": "clean_dispatch_engine",
+        "version": "20260829211632"
+      },
+      {
+        "name": "clean_dispatch_wave",
+        "version": "20260829211737"
+      },
+      {
+        "name": "clean_urgency_projection",
+        "version": "20260829211904"
+      },
+      {
+        "name": "clean_urgent_min_choice_floor",
+        "version": "20260829211956"
+      },
+      {
+        "name": "clean_scheduled_lifecycle",
+        "version": "20260829212146"
+      },
+      {
+        "name": "clean_cron_schedule",
+        "version": "20260829212158"
+      },
+      {
+        "name": "clean_advisor_hardening",
+        "version": "20260829212807"
+      },
+      {
+        "name": "clean_need_response_deadline_expiry",
+        "version": "20260830070448"
+      },
+      {
+        "name": "clean_scoped_contact_reveal",
+        "version": "20260830072818"
+      },
+      {
+        "name": "clean_grant_policy_inline",
+        "version": "20260830072920"
+      },
+      {
+        "name": "clean_cancellation_privacy_and_wakeup",
+        "version": "20260830073615"
+      },
+      {
+        "name": "clean_need_lifecycle_integrity",
+        "version": "20260830080947"
+      },
+      {
+        "name": "clean_selection_eligibility_and_deadline",
+        "version": "20260830081035"
+      },
+      {
+        "name": "clean_authoritative_response_submit",
+        "version": "20260830081300"
+      },
+      {
+        "name": "clean_p1_cancel_withdraw_closure",
+        "version": "20260830172000"
+      },
+      {
+        "name": "clean_authoritative_mutation_boundary",
+        "version": "20260830173000"
+      },
+      {
+        "name": "clean_repair_authority_boundary",
+        "version": "20260830174000"
+      },
+      {
+        "name": "clean_ai_insert_authority_closure",
+        "version": "20260830174500"
+      },
+      {
+        "name": "clean_p0_authoritative_fixes",
+        "version": "20260830191500"
+      },
+      {
+        "name": "clean_p2_read_layer_repair",
+        "version": "20260830194000"
+      },
+      {
+        "name": "clean_pre_p4_provenance_reconciliation",
+        "version": "20260830202733"
+      }
+    ]
+  },
+  "reconstructions": [
+    {
+      "version": "20260830191500",
+      "name": "clean_p0_authoritative_fixes",
+      "file": "20260830191500_clean_p0_authoritative_fixes.sql",
+      "classification": "RECORDED_STATEMENT_RECONSTRUCTION",
+      "exact_byte_mirror": false,
+      "source": "live supabase_migrations.schema_migrations.statements",
+      "recorded_statement_count": 7,
+      "recorded_statement_utf8_bytes": [
+        697,
+        1613,
+        77,
+        79,
+        4347,
+        78,
+        80
+      ],
+      "recorded_statement_md5": [
+        "2d246635406c038407e3e189b2da7d44",
+        "8a03fd2e586858bc08d024bffae3e4b0",
+        "b8c5b95729c9392a9321086887d38d80",
+        "1bee6691ad3e506f9ecdf3b061ea5baf",
+        "72fb1e59fbcb6903ab099b319bcf65e5",
+        "b395800de2307148160e8b68f8a561a6",
+        "708e9a4861f1fb958edec0413e711bf0"
+      ],
+      "legacy_manifest_md5": "c4f62aa4521410dd3f85934bb98474a7",
+      "canonical_reconstruction_raw_md5": "95eaf115b60f4ff1fb477c1697264cf5",
+      "reconstruction_method": "explicit provenance warning header, followed by the seven recorded statements in order; statements are separated by semicolon plus two LF and terminated by semicolon plus LF",
+      "byte_search_proof": [
+        "24,576 leading/boundary/final separator candidates tested; no legacy MD5 match",
+        "2,352,980 BOM/leading-LF/per-boundary-LF/final-semicolon candidates tested; no legacy MD5 match"
+      ],
+      "applied_history_action": "UNCHANGED",
+      "caveat": "Original file bytes remain unknown; the legacy checksum is preserved as historical evidence only."
+    }
+  ],
+  "legacy_manifest_drift": [
+    {
+      "file": "20260830172000_clean_p1_cancel_withdraw_closure.sql",
+      "legacy_md5": "91377603c8e0e979aefd6ee0bfb98e42",
+      "canonical_raw_md5": "8ca930f55f18b6789ee32231db424a4d",
+      "cause": "UNKNOWN",
+      "action": "manifest now tracks canonical raw bytes; legacy value retained here"
+    },
+    {
+      "file": "20260830173000_clean_authoritative_mutation_boundary.sql",
+      "legacy_md5": "e678a6da70027b323443a168d6b2dfa4",
+      "canonical_raw_md5": "29e2d85dede9a8b7a8715098bd913405",
+      "cause": "UNKNOWN",
+      "action": "manifest now tracks canonical raw bytes; legacy value retained here"
+    },
+    {
+      "file": "20260830194000_clean_p2_read_layer_repair.sql",
+      "legacy_md5": "061fcb7b761b979b8bef6f3bcf2bebce",
+      "canonical_raw_md5": "a21c51c359baf86f2b3881da12d46b82",
+      "cause": "legacy value matches CRLF serialization while canonical Git blob is LF",
+      "action": "manifest now tracks canonical raw bytes"
+    }
+  ],
+  "undocumented_live_delta": {
+    "object": "public.rpc_ai_publish_need(uuid,uuid)",
+    "recorded_191500_terminal_conversation_status": "PUBLISHED",
+    "observed_pre_repair_terminal_conversation_status": "COMPLETED",
+    "changed_by_migration_20260830194000": false,
+    "actor": "UNKNOWN",
+    "occurred_at": "UNKNOWN",
+    "classification": "UNDOCUMENTED_OR_DIRECT_DDL",
+    "closure_migration": "20260830202733_clean_pre_p4_provenance_reconciliation.sql"
+  },
+  "forward_closure": {
+    "version": "20260830202733",
+    "name": "clean_pre_p4_provenance_reconciliation",
+    "file": "20260830202733_clean_pre_p4_provenance_reconciliation.sql",
+    "raw_md5": "b5dfc44bba815eb6f51f88254b1e187e",
+    "predecessor_assertion": [
+      "recorded PUBLISHED variant",
+      "observed live COMPLETED variant"
+    ],
+    "resulting_contract": "authenticated fail-closed PACKAGE_4_NOT_READY; anon has no EXECUTE; no business-row mutation",
+    "rollback_implication": "Any rollback must be another forward migration; restoring either unsafe predecessor is forbidden."
+  }
+}
