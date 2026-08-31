@@ -82,6 +82,7 @@ type Stanje = {
   idempotencija: Map<string, string>;
   poruke: Record<string, PorukaProjekcija[]>;
   brojac: number;
+  profil: import('../contracts/projections').RadnikProfilProjekcija;
 };
 
 const POCETNO: Stanje = {
@@ -94,6 +95,18 @@ const POCETNO: Stanje = {
   idempotencija: new Map(),
   poruke: {},
   brojac: 0,
+  profil: {
+    id: 'moj-profil-1',
+    ime: 'Uskočer (Vi)',
+    grad: 'Beograd',
+    biografija: 'Ja sam majstor',
+    vestine: [],
+    alati: [],
+    vozila: [],
+    stanje: 'DRAFT',
+    dostupanOdmah: false,
+    radijusKm: 10,
+  },
 };
 
 let stanje: Stanje = struktuiraj(POCETNO);
@@ -109,6 +122,7 @@ function struktuiraj(s: Stanje): Stanje {
     idempotencija: new Map(s.idempotencija),
     poruke: { ...s.poruke },
     brojac: s.brojac,
+    profil: JSON.parse(JSON.stringify(s.profil)),
   };
 }
 
@@ -568,6 +582,25 @@ export const lazniIzvor: Izvor = {
     const d = deljenjeZa(dogovorId);
     stanje.deljenje[dogovorId] = { ...d, lokacijaOtkrivena: true };
     return { ok: true, podatak: { adresa: 'Bulevar oslobođenja 76, 4. sprat' } };
+  },
+
+  async mojRadnikProfil() {
+    await kasnjenje();
+    return stanje.profil;
+  },
+
+  async azurirajRadnikProfil(k) {
+    await kasnjenje();
+    if (k.ime !== undefined) stanje.profil.ime = k.ime;
+    if (k.grad !== undefined) stanje.profil.grad = k.grad;
+    if (k.biografija !== undefined) stanje.profil.biografija = k.biografija;
+    if (k.vestine !== undefined) stanje.profil.vestine = k.vestine;
+    if (k.alati !== undefined) stanje.profil.alati = k.alati;
+    if (k.vozila !== undefined) stanje.profil.vozila = k.vozila;
+    if (k.radijusKm !== undefined) stanje.profil.radijusKm = k.radijusKm;
+    if (k.dostupanOdmah !== undefined) stanje.profil.dostupanOdmah = k.dostupanOdmah;
+    if (k.zavrsi) stanje.profil.stanje = 'ACTIVE';
+    return { ok: true, podatak: null };
   },
 };
 

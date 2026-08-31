@@ -73,6 +73,21 @@ export type PrilikaProjekcija = {
 
 /* ---------------------------------------------------------------- Prijava */
 
+export type StanjeProfila = 'DRAFT' | 'ACTIVE' | 'SUSPENDED';
+
+export type RadnikProfilProjekcija = {
+  id: string;
+  ime: string;
+  grad: string;
+  biografija: string;
+  vestine: string[];
+  alati: string[];
+  vozila: string[];
+  stanje: StanjeProfila;
+  dostupanOdmah: boolean;
+  radijusKm: number;
+};
+
 export type StanjePrijave =
   | 'IZBORNA'
   | 'IZABRANA'

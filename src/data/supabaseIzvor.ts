@@ -417,6 +417,87 @@ export const supabaseIzvor: Izvor = {
     return { ok: true, podatak: null };
   },
   
+  async otkrijTacnuLokaciju(dogovorId: string) {
+    const { error } = await supabase.rpc('rpc_r24_reveal_exact_location', { p_agreement_id: dogovorId });
+    if (error) return handleRpcError(error, 'LOCATION_ERROR', 'Greška pri otkrivanju lokacije.');
+    return { ok: true, podatak: { adresa: 'Preuzeto sa servera' } };
+  },
+
+  async mojRadnikProfil() {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from('app_profiles')
+      .select('*')
+      .eq('account_id', user.id)
+      .eq('kind', 'WORKER')
+      .maybeSingle();
+      
+    if (error || !data) return null;
+    return {
+      id: data.id,
+      ime: data.display_name || '',
+      grad: data.city || '',
+      biografija: data.bio || '',
+      vestine: data.skills || [],
+      alati: data.tools || [],
+      vozila: data.vehicles || [],
+      stanje: data.profile_status as any,
+      dostupanOdmah: data.available_now || false,
+      radijusKm: data.radius_km || 15,
+    };
+  },
+
+  async azurirajRadnikProfil(k: any) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return { ok: false, kod: 'UNAUTHORIZED', poruka: 'Niste ulogovani.' };
+    
+    // First, get the profile ID
+    const profil = await this.mojRadnikProfil();
+    let profileId = profil?.id;
+    
+    if (!profileId) {
+      // Create if it doesn't exist
+      const { data: inserted, error: insertError } = await supabase
+        .from('app_profiles')
+        .insert({
+          account_id: user.id,
+          kind: 'WORKER',
+          display_name: k.ime ?? '',
+          city: k.grad ?? '',
+          bio: k.biografija ?? '',
+          profile_status: k.zavrsi ? 'ACTIVE' : 'DRAFT',
+          available_now: k.dostupanOdmah ?? false,
+          radius_km: k.radijusKm ?? 15,
+        })
+        .select('id')
+        .single();
+        
+      if (insertError) return handleRpcError(insertError, 'INSERT_ERROR', 'Greška pri kreiranju profila.');
+      profileId = inserted.id;
+    } else {
+      // Update
+      const patch: any = {};
+      if (k.ime !== undefined) patch.display_name = k.ime;
+      if (k.grad !== undefined) patch.city = k.grad;
+      if (k.biografija !== undefined) patch.bio = k.biografija;
+      if (k.vestine !== undefined) patch.skills = k.vestine;
+      if (k.alati !== undefined) patch.tools = k.alati;
+      if (k.vozila !== undefined) patch.vehicles = k.vozila;
+      if (k.dostupanOdmah !== undefined) patch.available_now = k.dostupanOdmah;
+      if (k.radijusKm !== undefined) patch.radius_km = k.radijusKm;
+      if (k.zavrsi) patch.profile_status = 'ACTIVE';
+      
+      const { error: updateError } = await supabase
+        .from('app_profiles')
+        .update(patch)
+        .eq('id', profileId);
+        
+      if (updateError) return handleRpcError(updateError, 'UPDATE_ERROR', 'Greška pri ažuriranju profila.');
+    }
+    return { ok: true, podatak: null };
+  },
+  
   async prijaviProblem(dogovorId: string, opis: string) {
     const { data, error } = await supabase.rpc('rpc_report_problem', { p_agreement_id: dogovorId, p_description: opis });
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
@@ -425,7 +506,6 @@ export const supabaseIzvor: Izvor = {
   
   async podeliTelefon(dogovorId: string) { return { ok: true, podatak: null }; },
   async opoziviTelefon(dogovorId: string) { return { ok: true, podatak: null }; },
-  async otkrijTacnuLokaciju(dogovorId: string) { return { ok: true, podatak: { adresa: '' } }; },
 
   async otvoriRazgovor() {
     const { data, error } = await supabase.rpc('rpc_ai_open_conversation', { p_purpose: 'NEW_NEED' });

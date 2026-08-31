@@ -188,8 +188,30 @@ export interface AiIntake {
   objaviPotrebu(razgovorId: string): Promise<Ishod<{ potrebaId: string }>>;
 }
 
+/* ----------------------------------------------------- Profil */
+
+export interface ProfilCitanje {
+  mojRadnikProfil(): Promise<import('../contracts/projections').RadnikProfilProjekcija | null>;
+}
+
+export type AzurirajProfilKomanda = {
+  ime?: string;
+  grad?: string;
+  biografija?: string;
+  vestine?: string[];
+  alati?: string[];
+  vozila?: string[];
+  dostupanOdmah?: boolean;
+  radijusKm?: number;
+  zavrsi?: boolean; // Setuje DRAFT u ACTIVE
+};
+
+export interface ProfilKomande {
+  azurirajRadnikProfil(k: AzurirajProfilKomanda): Promise<Ishod<null>>;
+}
+
 /** Sve na jednom mestu — jedan objekat koji ekrani dobijaju. */
-export interface Izvor extends PotrebeCitanje, PrijaveCitanje, DogovoriCitanje, Komande, AiIntake {
+export interface Izvor extends PotrebeCitanje, PrijaveCitanje, DogovoriCitanje, Komande, AiIntake, ProfilCitanje, ProfilKomande {
   /** 'lazni' dok ne odobrimo Supabase; kasnije 'supabase'. */
   readonly poreklo: 'lazni' | 'supabase';
 }

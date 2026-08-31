@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, TextInput, Alert } from "react-native";
+import { View, ScrollView, TextInput, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { T } from "../../../../ui/Text";
@@ -7,7 +7,7 @@ import { Button } from "../../../../ui/Button";
 import { palette, space, radius } from "../../../../theme/tokens";
 import { useIzvor } from "../../../../store/uloga";
 import { noviZahtevId } from "../../../../lib/idempotencija";
-import type { PotrebaProjekcija, PrilikaProjekcija } from "../../../../contracts/projections";
+import type { PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from "../../../../contracts/projections";
 
 export default function PrijavaEkran() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,25 +16,46 @@ export default function PrijavaEkran() {
   
   const [prilika, setPrilika] = useState<PrilikaProjekcija | null>(null);
   const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
+  const [profil, setProfil] = useState<RadnikProfilProjekcija | null>(null);
+  const [ucitavam, setUcitavam] = useState(true);
+  
   const [cena, setCena] = useState("");
   const [napomena, setNapomena] = useState("");
   const [saljem, setSaljem] = useState(false);
 
   useEffect(() => {
     let ziv = true;
-    if (id) {
-      izvor.prilika(id).then((p) => {
-        if (ziv) setPrilika(p);
-      });
-      izvor.potreba(id).then((p) => {
-        if (ziv) setPotreba(p);
-      });
+    
+    async function ucitajSve() {
+      if (!id) return;
+      try {
+        const [p, pot, prof] = await Promise.all([
+          izvor.prilika(id),
+          izvor.potreba(id),
+          izvor.mojRadnikProfil()
+        ]);
+        if (ziv) {
+          setPrilika(p);
+          setPotreba(pot);
+          setProfil(prof);
+          
+          if (!prof || prof.stanje !== 'ACTIVE') {
+             Alert.alert("Profil nije popunjen", "Morate popuniti svoj radnički profil pre nego što podnesete prijavu.");
+             router.replace("/profil/radnik" as any);
+          }
+        }
+      } finally {
+        if (ziv) setUcitavam(false);
+      }
     }
+    
+    ucitajSve();
+    
     return () => { ziv = false; };
   }, [id, izvor]);
 
   const podnesi = async () => {
-    if (!potreba || !prilika) {
+    if (!potreba || !prilika || !profil) {
       Alert.alert("Greška", "Podaci o prilici nisu učitani. Pokušajte ponovo.");
       return;
     }
@@ -49,7 +70,7 @@ export default function PrijavaEkran() {
       clientRequestId: noviZahtevId("prijava"),
       potrebaId: potreba.id,
       potrebaRevizija: potreba.revizija,
-      radnikProfilId: "", // resolved canonically by backend/izvor from authenticated profile
+      radnikProfilId: profil.id, // resolved canonically by backend/izvor from authenticated profile, passing it anyway
       pokrivenaMesta: 1,
       cenaRsd: cenaBroj,
       predlozeniPocetak: null,
@@ -61,18 +82,24 @@ export default function PrijavaEkran() {
     setSaljem(false);
     if (ishod.ok) {
       Alert.alert("Uspeh", "Prijava je uspešno podneta!");
-      router.replace("/moje-prijave");
+      router.replace("/moje-prijave" as any);
     } else {
       Alert.alert(ishod.naslov || "Greška pri slanju", ishod.poruka);
     }
   };
 
-  if (!prilika) {
+  if (ucitavam) {
     return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground, padding: space.base }}>
-        <T variant="meta" tone="muted">Učitavam...</T>
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground, padding: space.base, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={palette.forest700} />
+        <T variant="meta" tone="muted" style={{ marginTop: space.sm }}>Učitavam...</T>
       </SafeAreaView>
     );
+  }
+
+  if (!prilika || !profil || profil.stanje !== 'ACTIVE') {
+    // If not active, the useEffect redirect will trigger shortly, just return empty
+    return null;
   }
 
   return (
