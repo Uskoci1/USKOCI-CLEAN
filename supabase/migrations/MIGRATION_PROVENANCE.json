@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-08-31T11:07:01Z",
+  "generated_at_utc": "2026-08-31T14:25:49Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "a30092fd21205a331834ab61abc3efa65f6f9417",
+  "repository_base_head": "8766b8a9f02fb639f5890a7614f92f789fcb12f8",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,200 +12,60 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes only. It does not claim that reconstructed files equal lost original bytes."
   },
   "live_history_snapshot": {
-    "migration_count": 47,
+    "migration_count": 48,
     "last": {
-      "name": "clean_pre_p4_participant_rls_authenticated_proof",
-      "version": "20260831114338"
+      "name": "clean_pre_p4_ai_confirmation_provenance",
+      "version": "20260831120157"
     },
     "entries": [
-      {
-        "name": "cloud_profile_foundation_1_3b",
-        "version": "20260825115040"
-      },
-      {
-        "name": "lock_down_auth_trigger_functions_1_3b",
-        "version": "20260825115602"
-      },
-      {
-        "name": "clean_security_hardening",
-        "version": "20260829183528"
-      },
-      {
-        "name": "clean_need_foundation",
-        "version": "20260829183551"
-      },
-      {
-        "name": "clean_response_foundation",
-        "version": "20260829183609"
-      },
-      {
-        "name": "clean_agreement_foundation",
-        "version": "20260829183633"
-      },
-      {
-        "name": "clean_directional_access_grants",
-        "version": "20260829183651"
-      },
-      {
-        "name": "clean_ai_persistence",
-        "version": "20260829183711"
-      },
-      {
-        "name": "clean_rls_policies",
-        "version": "20260829183740"
-      },
-      {
-        "name": "clean_rpc_selection",
-        "version": "20260829183816"
-      },
-      {
-        "name": "clean_rpc_agreement_lifecycle",
-        "version": "20260829183947"
-      },
-      {
-        "name": "clean_rpc_ai_intake",
-        "version": "20260829184024"
-      },
-      {
-        "name": "clean_revoke_public_execute",
-        "version": "20260829184132"
-      },
-      {
-        "name": "clean_revoke_helper_execute_from_authenticated",
-        "version": "20260829184203"
-      },
-      {
-        "name": "clean_updated_at_triggers",
-        "version": "20260829185334"
-      },
-      {
-        "name": "clean_need_selection_completeness",
-        "version": "20260829185354"
-      },
-      {
-        "name": "clean_selection_rpc_alignment",
-        "version": "20260829185434"
-      },
-      {
-        "name": "clean_events_and_notifications",
-        "version": "20260829210453"
-      },
-      {
-        "name": "clean_emit_event_engine",
-        "version": "20260829210536"
-      },
-      {
-        "name": "clean_needs_schema_completion",
-        "version": "20260829210602"
-      },
-      {
-        "name": "clean_geo_foundation",
-        "version": "20260829210650"
-      },
-      {
-        "name": "clean_geo_foundation_repair",
-        "version": "20260829211203"
-      },
-      {
-        "name": "clean_dispatch_foundation",
-        "version": "20260829211420"
-      },
-      {
-        "name": "clean_dispatch_engine",
-        "version": "20260829211632"
-      },
-      {
-        "name": "clean_dispatch_wave",
-        "version": "20260829211737"
-      },
-      {
-        "name": "clean_urgency_projection",
-        "version": "20260829211904"
-      },
-      {
-        "name": "clean_urgent_min_choice_floor",
-        "version": "20260829211956"
-      },
-      {
-        "name": "clean_scheduled_lifecycle",
-        "version": "20260829212146"
-      },
-      {
-        "name": "clean_cron_schedule",
-        "version": "20260829212158"
-      },
-      {
-        "name": "clean_advisor_hardening",
-        "version": "20260829212807"
-      },
-      {
-        "name": "clean_need_response_deadline_expiry",
-        "version": "20260830070448"
-      },
-      {
-        "name": "clean_scoped_contact_reveal",
-        "version": "20260830072818"
-      },
-      {
-        "name": "clean_grant_policy_inline",
-        "version": "20260830072920"
-      },
-      {
-        "name": "clean_cancellation_privacy_and_wakeup",
-        "version": "20260830073615"
-      },
-      {
-        "name": "clean_need_lifecycle_integrity",
-        "version": "20260830080947"
-      },
-      {
-        "name": "clean_selection_eligibility_and_deadline",
-        "version": "20260830081035"
-      },
-      {
-        "name": "clean_authoritative_response_submit",
-        "version": "20260830081300"
-      },
-      {
-        "name": "clean_p1_cancel_withdraw_closure",
-        "version": "20260830172000"
-      },
-      {
-        "name": "clean_authoritative_mutation_boundary",
-        "version": "20260830173000"
-      },
-      {
-        "name": "clean_repair_authority_boundary",
-        "version": "20260830174000"
-      },
-      {
-        "name": "clean_ai_insert_authority_closure",
-        "version": "20260830174500"
-      },
-      {
-        "name": "clean_p0_authoritative_fixes",
-        "version": "20260830191500"
-      },
-      {
-        "name": "clean_p2_read_layer_repair",
-        "version": "20260830194000"
-      },
-      {
-        "name": "clean_pre_p4_provenance_reconciliation",
-        "version": "20260830202733"
-      },
-      {
-        "name": "clean_pre_p4_participant_rls_repair",
-        "version": "20260831110153"
-      },
-      {
-        "name": "clean_pre_p4_participant_rls_execution_contract",
-        "version": "20260831110701"
-      },
-      {
-        "name": "clean_pre_p4_participant_rls_authenticated_proof",
-        "version": "20260831114338"
-      }
+      {"name": "cloud_profile_foundation_1_3b", "version": "20260825115040"},
+      {"name": "lock_down_auth_trigger_functions_1_3b", "version": "20260825115602"},
+      {"name": "clean_security_hardening", "version": "20260829183528"},
+      {"name": "clean_need_foundation", "version": "20260829183551"},
+      {"name": "clean_response_foundation", "version": "20260829183609"},
+      {"name": "clean_agreement_foundation", "version": "20260829183633"},
+      {"name": "clean_directional_access_grants", "version": "20260829183651"},
+      {"name": "clean_ai_persistence", "version": "20260829183711"},
+      {"name": "clean_rls_policies", "version": "20260829183740"},
+      {"name": "clean_rpc_selection", "version": "20260829183816"},
+      {"name": "clean_rpc_agreement_lifecycle", "version": "20260829183947"},
+      {"name": "clean_rpc_ai_intake", "version": "20260829184024"},
+      {"name": "clean_revoke_public_execute", "version": "20260829184132"},
+      {"name": "clean_revoke_helper_execute_from_authenticated", "version": "20260829184203"},
+      {"name": "clean_updated_at_triggers", "version": "20260829185334"},
+      {"name": "clean_need_selection_completeness", "version": "20260829185354"},
+      {"name": "clean_selection_rpc_alignment", "version": "20260829185434"},
+      {"name": "clean_events_and_notifications", "version": "20260829210453"},
+      {"name": "clean_emit_event_engine", "version": "20260829210536"},
+      {"name": "clean_needs_schema_completion", "version": "20260829210602"},
+      {"name": "clean_geo_foundation", "version": "20260829210650"},
+      {"name": "clean_geo_foundation_repair", "version": "20260829211203"},
+      {"name": "clean_dispatch_foundation", "version": "20260829211420"},
+      {"name": "clean_dispatch_engine", "version": "20260829211632"},
+      {"name": "clean_dispatch_wave", "version": "20260829211737"},
+      {"name": "clean_urgency_projection", "version": "20260829211904"},
+      {"name": "clean_urgent_min_choice_floor", "version": "20260829211956"},
+      {"name": "clean_scheduled_lifecycle", "version": "20260829212146"},
+      {"name": "clean_cron_schedule", "version": "20260829212158"},
+      {"name": "clean_advisor_hardening", "version": "20260829212807"},
+      {"name": "clean_need_response_deadline_expiry", "version": "20260830070448"},
+      {"name": "clean_scoped_contact_reveal", "version": "20260830072818"},
+      {"name": "clean_grant_policy_inline", "version": "20260830072920"},
+      {"name": "clean_cancellation_privacy_and_wakeup", "version": "20260830073615"},
+      {"name": "clean_need_lifecycle_integrity", "version": "20260830080947"},
+      {"name": "clean_selection_eligibility_and_deadline", "version": "20260830081035"},
+      {"name": "clean_authoritative_response_submit", "version": "20260830081300"},
+      {"name": "clean_p1_cancel_withdraw_closure", "version": "20260830172000"},
+      {"name": "clean_authoritative_mutation_boundary", "version": "20260830173000"},
+      {"name": "clean_repair_authority_boundary", "version": "20260830174000"},
+      {"name": "clean_ai_insert_authority_closure", "version": "20260830174500"},
+      {"name": "clean_p0_authoritative_fixes", "version": "20260830191500"},
+      {"name": "clean_p2_read_layer_repair", "version": "20260830194000"},
+      {"name": "clean_pre_p4_provenance_reconciliation", "version": "20260830202733"},
+      {"name": "clean_pre_p4_participant_rls_repair", "version": "20260831110153"},
+      {"name": "clean_pre_p4_participant_rls_execution_contract", "version": "20260831110701"},
+      {"name": "clean_pre_p4_participant_rls_authenticated_proof", "version": "20260831114338"},
+      {"name": "clean_pre_p4_ai_confirmation_provenance", "version": "20260831120157"}
     ]
   },
   "reconstructions": [
@@ -217,15 +77,7 @@
       "exact_byte_mirror": false,
       "source": "live supabase_migrations.schema_migrations.statements",
       "recorded_statement_count": 7,
-      "recorded_statement_utf8_bytes": [
-        697,
-        1613,
-        77,
-        79,
-        4347,
-        78,
-        80
-      ],
+      "recorded_statement_utf8_bytes": [697, 1613, 77, 79, 4347, 78, 80],
       "recorded_statement_md5": [
         "2d246635406c038407e3e189b2da7d44",
         "8a03fd2e586858bc08d024bffae3e4b0",
@@ -284,10 +136,7 @@
     "name": "clean_pre_p4_provenance_reconciliation",
     "file": "20260830202733_clean_pre_p4_provenance_reconciliation.sql",
     "raw_md5": "b5dfc44bba815eb6f51f88254b1e187e",
-    "predecessor_assertion": [
-      "recorded PUBLISHED variant",
-      "observed live COMPLETED variant"
-    ],
+    "predecessor_assertion": ["recorded PUBLISHED variant", "observed live COMPLETED variant"],
     "resulting_contract": "authenticated fail-closed PACKAGE_4_NOT_READY; anon has no EXECUTE; no business-row mutation",
     "rollback_implication": "Any rollback must be another forward migration; restoring either unsafe predecessor is forbidden."
   },
@@ -332,6 +181,21 @@
       "authenticated_runtime_proof": "PASS: the applied migration executed SET LOCAL ROLE authenticated. An existing Agreement worker read its ACTIVE Need, the existing requester read the owned Need, a generated unrelated JWT subject read zero ACTIVE Needs, and that subject read exactly all four PUBLISHED/SELECTION discovery rows. Any mismatch would have raised and rolled back the migration.",
       "business_row_proof": "Before and after: 6 Needs, 4 Responses, 2 Agreements, 4 Profiles, 2 auth users; no fixture or business-row mutation was performed.",
       "rollback_implication": "Rollback requires a new forward migration. Restoring the exposed public helper or either ambiguous 194000 predicate is forbidden."
+    },
+    {
+      "version": "20260831120157",
+      "name": "clean_pre_p4_ai_confirmation_provenance",
+      "file": "20260831120157_clean_pre_p4_ai_confirmation_provenance.sql",
+      "classification": "FORWARD_REPAIR",
+      "raw_md5": "0739626857f34b31b4aef489def947f0",
+      "applied_statement_md5": "9f9bdc28adbd03fa14f8c2e247bf4a9f",
+      "exact_applied_statement_mirror": "Canonical file equals the single recorded UTF-8 statement plus one terminal LF, matching the established migration mirror convention.",
+      "affected_invariant": "Human confirmation preserves immutable AI fact source provenance while server authority derives confirmation metadata and direct authenticated UPDATE/DELETE remain closed.",
+      "predecessor_defect": "The predecessor rpc_ai_confirm_fact rewrote source to EXPLICIT_USER_ANSWER and authenticated still had direct UPDATE/DELETE grants despite the provenance guard.",
+      "live_definition_proof": "rpc_ai_confirm_fact is owner-only and replay-idempotent; it changes only status. private.guard_ai_fact_write preserves source and derives confirmed_by_user_id/confirmed_at on the allowed confirmation transition. authenticated has SELECT but no INSERT/UPDATE/DELETE on ai_structured_facts and retains EXECUTE on rpc_ai_confirm_fact.",
+      "authenticated_runtime_proof": "PASS: the applied migration executed as SET LOCAL ROLE authenticated, preserved AI_INFERENCE and evidence, derived confirmation metadata, proved replay idempotency, denied direct UPDATE, denied direct DELETE, denied wrong-owner confirmation, and rolled back on any mismatch.",
+      "business_row_proof": "The transactional proof created a temporary conversation/fact probe and deleted it before commit; post-apply verification found zero __pre_p4_provenance_probe__ facts.",
+      "rollback_implication": "Rollback requires another forward migration. Restoring source rewriting or direct authenticated fact UPDATE/DELETE is forbidden."
     }
   ]
 }
