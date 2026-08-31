@@ -54,6 +54,18 @@ export interface DogovoriCitanje {
 
 /* --------------------------------------------------------------- komande */
 
+export type PodnesiPrijavuKomanda = Idempotentno & {
+  potrebaId: string;
+  potrebaRevizija: number;
+  radnikProfilId: string;
+  pokrivenaMesta: number;
+  cenaRsd: number;
+  predlozeniPocetak: string | null;
+  predlozeniKraj: string | null;
+  napomena: string | null;
+};
+
+
 /**
  * M02 — atomski tačan izbor.
  *
@@ -87,6 +99,10 @@ export type IzmenaKomanda = Idempotentno & {
 };
 
 export interface Komande {
+
+  /** rpc_submit_response */
+  podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>>;
+
   /** rpc_r24_select_response → rpc_r24_confirm_agreement, atomski */
   izaberiPrijavu(k: IzborKomanda): Promise<Ishod<{ dogovorId: string }>>;
 
