@@ -52,9 +52,15 @@ Canonical Git source is restored by mirroring the already-recorded live migratio
 updating `MD5_MANIFEST.txt`, and updating `MIGRATION_PROVENANCE.json`. No Supabase DDL
 or re-application of migration `20260831120157` is part of this reconciliation.
 
+## Runner proof
+
+PRE-P4 integrity run `33402828213` completed successfully on the reconciliation PR head.
+Its migration-bytes/provenance check, TypeScript contract check, and regression tests all
+passed before the final governance-only status update.
+
 ## Gate classification
 
 - `REPAIR_3_LIVE = PASS / AUTHENTICATED_DATABASE_RUNTIME_PROVEN`
-- `REPAIR_3_SOURCE_MIRROR = PENDING_INTEGRITY_WORKFLOW`
-- `SOURCE_LIVE_ALIGNMENT = PENDING_INTEGRITY_WORKFLOW`
+- `REPAIR_3_SOURCE_MIRROR = PASS / RUNNER_PROVEN`
+- `SOURCE_LIVE_ALIGNMENT = READY_TO_MERGE_CANONICAL`
 - `PACKAGE_4 = NOT STARTED`
