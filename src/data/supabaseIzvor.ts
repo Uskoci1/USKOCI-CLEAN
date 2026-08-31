@@ -149,7 +149,7 @@ export const supabaseIzvor: Izvor = {
       .select(`
         id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots,
+        covered_slots, mode, requester_price_rsd,
         app_profiles!requester_profile_id(display_name)
       `)
       .eq('id', id).maybeSingle();
@@ -169,6 +169,8 @@ export const supabaseIzvor: Izvor = {
       narucilacIme: narucilac?.display_name || '',
       narucilacOcena: null,
       priblizno: data.approximate_lat ? { lat: data.approximate_lat, lng: data.approximate_lng } : null,
+      rezimCene: data.mode as any,
+      ponudjenaCena: data.requester_price_rsd,
     };
   },
 
@@ -470,7 +472,7 @@ export const supabaseIzvor: Izvor = {
           display_name: k.ime ?? '',
           city: k.grad ?? '',
           bio: k.biografija ?? '',
-          profile_status: k.zavrsi ? 'ACTIVE' : 'DRAFT',
+          profile_status: k.zavrsi ? undefined : 'DRAFT',
           available_now: k.dostupanOdmah ?? false,
           radius_km: k.radijusKm ?? 15,
         })
@@ -490,15 +492,21 @@ export const supabaseIzvor: Izvor = {
       if (k.vozila !== undefined) patch.vehicles = k.vozila;
       if (k.dostupanOdmah !== undefined) patch.available_now = k.dostupanOdmah;
       if (k.radijusKm !== undefined) patch.radius_km = k.radijusKm;
-      if (k.zavrsi) patch.profile_status = 'ACTIVE';
       
       const { error: updateError } = await supabase
         .from('app_profiles')
         .update(patch)
         .eq('id', profileId);
         
-      if (updateError) return handleRpcError(updateError, 'UPDATE_ERROR', 'Greška pri ažuriranju profila.');
+      if (updateError) return handleRpcError(updateError, 'UPDATE_ERROR', 'Greška pri izmeni profila.');
     }
+    
+    // If completing the profile, call the RPC instead of direct DB update
+    if (k.zavrsi) {
+      const { error: rpcError } = await supabase.rpc('rpc_complete_worker_profile');
+      if (rpcError) return handleRpcError(rpcError, 'RPC_ERROR', 'Greška pri kompletiranju profila.');
+    }
+    
     return { ok: true, podatak: null };
   },
   

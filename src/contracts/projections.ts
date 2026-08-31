@@ -36,7 +36,7 @@ export type StanjePotrebe =
   | 'POPUNJENA'
   | 'ZATVORENA';
 
-export type RezimCene = 'FASTEST' | 'MY_PRICE' | 'OFFERS';
+export type RezimCene = 'MY_PRICE' | 'OFFERS';
 
 export type PotrebaProjekcija = {
   id: string;
