@@ -45,7 +45,10 @@ Package 4 completion claim.
   `33384410530`, job `99463676151`, executed every step successfully
 - `REPAIR_2 = PASS / AUTHENTICATED_DATABASE_RUNTIME_PROVEN` through forward migration
   `20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql`
-- `READY_FOR_REPAIR_3 = YES` only after its canonical Git mirror and runner-backed
-  PRE-P4 workflow are both green
+- `REPAIR_3_LIVE = PASS / AUTHENTICATED_DATABASE_RUNTIME_PROVEN` through forward
+  migration `20260831120157_clean_pre_p4_ai_confirmation_provenance.sql`
+- `REPAIR_3_SOURCE_MIRROR = PENDING_INTEGRITY_WORKFLOW` until the canonical mirror,
+  manifest and provenance reconciliation pass the runner-backed PRE-P4 workflow
+- `SOURCE_LIVE_ALIGNMENT = PENDING_INTEGRITY_WORKFLOW`
 - `PACKAGE_4 = NOT STARTED`
 - AI publish = fail-closed `PACKAGE_4_NOT_READY`
