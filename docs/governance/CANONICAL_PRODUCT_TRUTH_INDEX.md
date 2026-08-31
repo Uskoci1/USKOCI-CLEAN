@@ -47,8 +47,8 @@ Package 4 completion claim.
   `20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql`
 - `REPAIR_3_LIVE = PASS / AUTHENTICATED_DATABASE_RUNTIME_PROVEN` through forward
   migration `20260831120157_clean_pre_p4_ai_confirmation_provenance.sql`
-- `REPAIR_3_SOURCE_MIRROR = PENDING_INTEGRITY_WORKFLOW` until the canonical mirror,
-  manifest and provenance reconciliation pass the runner-backed PRE-P4 workflow
-- `SOURCE_LIVE_ALIGNMENT = PENDING_INTEGRITY_WORKFLOW`
+- `REPAIR_3_SOURCE_MIRROR = PASS / RUNNER_PROVEN`; PRE-P4 reconciliation run
+  `33402828213` passed migration bytes/provenance, TypeScript and regression tests
+- `SOURCE_LIVE_ALIGNMENT = READY_TO_MERGE_CANONICAL`
 - `PACKAGE_4 = NOT STARTED`
 - AI publish = fail-closed `PACKAGE_4_NOT_READY`
