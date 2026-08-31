@@ -36,6 +36,8 @@ export type StanjePotrebe =
   | 'POPUNJENA'
   | 'ZATVORENA';
 
+export type RezimCene = 'FASTEST' | 'MY_PRICE' | 'OFFERS';
+
 export type PotrebaProjekcija = {
   id: string;
   /** Tačna revizija. Izbor mora da se veže za nju. */
@@ -49,13 +51,15 @@ export type PotrebaProjekcija = {
   podrucjeTekst: string;
   uslovi: string[];
   brojPrijava: number;
+  rezimCene?: RezimCene;
+  ponudjenaCena?: Novac;
 };
 
 /* --------------------------------------------------------------- Prilika */
 
 /**
- * M09: jedan javno bezbedan skup podataka napaja Lista | Mapa | Kombinovano.
- * Sirov matcher skor ovde NE POSTOJI i ne sme da postoji.
+ * Prilika je Potreba kako je vidi Uskočer.
+ * Očišćena od PII, bez pravog broja prijava (da ne obeshrabruje).
  */
 export type PrilikaProjekcija = {
   id: string;
@@ -69,6 +73,8 @@ export type PrilikaProjekcija = {
   narucilacOcena: string | null;
   /** Približna tačka za mapu. Tačna lokacija se otkriva tek po pravilima Dogovora. */
   priblizno: { lat: number; lng: number } | null;
+  rezimCene?: RezimCene;
+  ponudjenaCena?: Novac;
 };
 
 /* ---------------------------------------------------------------- Prijava */

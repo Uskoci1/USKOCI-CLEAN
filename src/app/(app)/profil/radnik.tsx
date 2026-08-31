@@ -19,6 +19,10 @@ export default function ProfilRadnikEkran() {
   const [ime, setIme] = useState("");
   const [grad, setGrad] = useState("");
   const [biografija, setBiografija] = useState("");
+  const [vestineStr, setVestineStr] = useState("");
+  const [alatiStr, setAlatiStr] = useState("");
+  const [vozilaStr, setVozilaStr] = useState("");
+  const [radijusStr, setRadijusStr] = useState("15");
   const [dostupanOdmah, setDostupanOdmah] = useState(false);
   
   useEffect(() => {
@@ -32,6 +36,10 @@ export default function ProfilRadnikEkran() {
             setIme(p.ime);
             setGrad(p.grad);
             setBiografija(p.biografija);
+            setVestineStr(p.vestine?.join(", ") || "");
+            setAlatiStr(p.alati?.join(", ") || "");
+            setVozilaStr(p.vozila?.join(", ") || "");
+            setRadijusStr(p.radijusKm ? String(p.radijusKm) : "15");
             setDostupanOdmah(p.dostupanOdmah);
           }
         }
@@ -54,6 +62,10 @@ export default function ProfilRadnikEkran() {
       ime: ime.trim(),
       grad: grad.trim(),
       biografija: biografija.trim(),
+      vestine: vestineStr.split(',').map(s => s.trim()).filter(Boolean),
+      alati: alatiStr.split(',').map(s => s.trim()).filter(Boolean),
+      vozila: vozilaStr.split(',').map(s => s.trim()).filter(Boolean),
+      radijusKm: parseInt(radijusStr, 10) || 15,
       dostupanOdmah,
       zavrsi
     });
@@ -128,6 +140,59 @@ export default function ProfilRadnikEkran() {
             style={{ 
               borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
               padding: space.sm, fontSize: 16, color: palette.ink, minHeight: 80, textAlignVertical: "top"
+            }}
+          />
+        </View>
+
+        <View style={{ gap: space.xs }}>
+          <T variant="label">Veštine (odvojene zarezom)</T>
+          <TextInput 
+            value={vestineStr}
+            onChangeText={setVestineStr}
+            placeholder="Npr. Vodoinstalater, Keramičar"
+            style={{ 
+              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
+              padding: space.sm, fontSize: 16, color: palette.ink 
+            }}
+          />
+        </View>
+
+        <View style={{ gap: space.xs }}>
+          <T variant="label">Alati (odvojeni zarezom)</T>
+          <TextInput 
+            value={alatiStr}
+            onChangeText={setAlatiStr}
+            placeholder="Npr. Bušilica, Merdevine"
+            style={{ 
+              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
+              padding: space.sm, fontSize: 16, color: palette.ink 
+            }}
+          />
+        </View>
+
+        <View style={{ gap: space.xs }}>
+          <T variant="label">Vozila (odvojena zarezom)</T>
+          <TextInput 
+            value={vozilaStr}
+            onChangeText={setVozilaStr}
+            placeholder="Npr. Kombi"
+            style={{ 
+              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
+              padding: space.sm, fontSize: 16, color: palette.ink 
+            }}
+          />
+        </View>
+
+        <View style={{ gap: space.xs }}>
+          <T variant="label">Radijus kretanja (km)</T>
+          <TextInput 
+            value={radijusStr}
+            onChangeText={setRadijusStr}
+            keyboardType="numeric"
+            placeholder="Npr. 15"
+            style={{ 
+              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
+              padding: space.sm, fontSize: 16, color: palette.ink 
             }}
           />
         </View>

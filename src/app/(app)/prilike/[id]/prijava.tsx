@@ -20,6 +20,7 @@ export default function PrijavaEkran() {
   const [ucitavam, setUcitavam] = useState(true);
   
   const [cena, setCena] = useState("");
+  const [pokrivenaMesta, setPokrivenaMesta] = useState("1");
   const [napomena, setNapomena] = useState("");
   const [saljem, setSaljem] = useState(false);
 
@@ -38,6 +39,10 @@ export default function PrijavaEkran() {
           setPrilika(p);
           setPotreba(pot);
           setProfil(prof);
+          
+          if (p?.rezimCene === 'MY_PRICE' && p.ponudjenaCena) {
+             setCena(String(p.ponudjenaCena.iznos));
+          }
           
           if (!prof || prof.stanje !== 'ACTIVE') {
              Alert.alert("Profil nije popunjen", "Morate popuniti svoj radnički profil pre nego što podnesete prijavu.");
@@ -64,14 +69,19 @@ export default function PrijavaEkran() {
       Alert.alert("Greška", "Unesite ispravnu cenu u RSD.");
       return;
     }
+    const mestaBroj = parseInt(pokrivenaMesta, 10);
+    if (isNaN(mestaBroj) || mestaBroj < 1 || mestaBroj > potreba.pokrivenost.ukupno) {
+      Alert.alert("Greška", "Unesite ispravan broj ljudi koje pokrivate.");
+      return;
+    }
 
     setSaljem(true);
     const k = {
       clientRequestId: noviZahtevId("prijava"),
       potrebaId: potreba.id,
       potrebaRevizija: potreba.revizija,
-      radnikProfilId: profil.id, // resolved canonically by backend/izvor from authenticated profile, passing it anyway
-      pokrivenaMesta: 1,
+      radnikProfilId: profil.id,
+      pokrivenaMesta: mestaBroj,
       cenaRsd: cenaBroj,
       predlozeniPocetak: null,
       predlozeniKraj: null,
@@ -113,17 +123,36 @@ export default function PrijavaEkran() {
            <T variant="meta" tone="muted">{prilika.naslov}</T>
            <T variant="meta" tone="muted">{prilika.podrucjeTekst} • {prilika.vremeTekst}</T>
         </View>
+
+        {potreba?.pokrivenost && potreba.pokrivenost.ukupno > 1 && (
+          <View style={{ gap: space.xs, marginTop: space.sm }}>
+            <T variant="label">Koliko ljudi pokrivate? (Max {potreba.pokrivenost.ukupno})</T>
+            <TextInput 
+              value={pokrivenaMesta}
+              onChangeText={setPokrivenaMesta}
+              keyboardType="numeric"
+              style={{ 
+                borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
+                padding: space.sm, fontSize: 16, color: palette.ink 
+              }}
+            />
+          </View>
+        )}
         
         <View style={{ gap: space.xs, marginTop: space.md }}>
-          <T variant="label">Vaša cena (RSD)</T>
+          <T variant="label">
+             {prilika.rezimCene === 'MY_PRICE' ? 'Fiksna cena naručioca (RSD)' : 'Vaša cena (RSD)'}
+          </T>
           <TextInput 
             value={cena}
             onChangeText={setCena}
             keyboardType="numeric"
             placeholder="Npr. 5000"
+            editable={prilika.rezimCene !== 'MY_PRICE'}
             style={{ 
               borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink 
+              padding: space.sm, fontSize: 16, color: prilika.rezimCene === 'MY_PRICE' ? palette.ink500 : palette.ink,
+              backgroundColor: prilika.rezimCene === 'MY_PRICE' ? palette.cream050 : 'transparent'
             }}
           />
         </View>
@@ -147,7 +176,7 @@ export default function PrijavaEkran() {
       <View style={{ padding: space.base, borderTopWidth: 1, borderTopColor: palette.line100, backgroundColor: palette.ground }}>
          <Button 
            label={saljem ? "Šaljem..." : "Pošalji prijavu"} 
-           disabled={saljem || !cena}
+           disabled={saljem || !cena || !pokrivenaMesta}
            onPress={podnesi} 
          />
       </View>

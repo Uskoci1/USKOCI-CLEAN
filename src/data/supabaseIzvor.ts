@@ -89,7 +89,7 @@ export const supabaseIzvor: Izvor = {
       .select(`
         id, revision, title, description, status, starts_at, approximate_area, approximate_city,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots,
+        covered_slots, mode, requester_price_rsd,
         marketplace_responses(id)
       `)
       .eq('id', id).maybeSingle();
@@ -106,6 +106,8 @@ export const supabaseIzvor: Izvor = {
       podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
       uslovi: [...(data.required_skills||[]), ...(data.required_tools||[]), ...(data.required_vehicles||[])],
       brojPrijava: data.marketplace_responses?.length || 0,
+      rezimCene: data.mode,
+      ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
     };
   },
 
@@ -115,7 +117,7 @@ export const supabaseIzvor: Izvor = {
       .select(`
         id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots,
+        covered_slots, mode, requester_price_rsd,
         app_profiles!requester_profile_id(display_name)
       `)
       .in('status', ['PUBLISHED', 'SELECTION'])
@@ -135,7 +137,9 @@ export const supabaseIzvor: Izvor = {
         uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
         narucilacIme: narucilac?.display_name || '',
         narucilacOcena: null,
-        priblizno: r.approximate_lat ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
+        priblizno: (r.approximate_lat && r.approximate_lng) ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
+        rezimCene: r.mode,
+        ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
       };
     });
   },
