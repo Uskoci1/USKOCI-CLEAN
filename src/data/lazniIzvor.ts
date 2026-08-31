@@ -19,7 +19,7 @@ import type {
   PotrebaProjekcija,
   PrilikaProjekcija,
 } from '../contracts/projections';
-import type { Ishod, IzborKomanda, IzmenaKomanda, Izvor } from './ports';
+import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, Izvor } from './ports';
 import { ulogaSada } from '../store/uloga';
 import { lazniAi, resetujAi } from './lazniAi';
 
@@ -339,6 +339,51 @@ export const lazniIzvor: Izvor = {
   },
 
   /* ------------------------------------------------------------ komande */
+
+  
+  async podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>> {
+    await kasnjenje();
+    if (k.potrebaRevizija !== stanje.potrebaRevizija) {
+      return {
+        ok: false,
+        kod: "STALE_REVIEW_REQUIRED",
+        naslov: "Potreba je izmenjena",
+        poruka: "Potreba je promenjena. Osvežite pregled prilike.",
+      };
+    }
+    if (k.cenaRsd <= 0) {
+      return {
+        ok: false,
+        kod: "INVALID_PRICE",
+        naslov: "Neispravna cena",
+        poruka: "Cena mora biti veća od 0 RSD.",
+      };
+    }
+    const prijavaId = `prijava-${stanje.brojac + 1}`;
+    stanje.brojac += 1;
+    const hash = `hash_${prijavaId}_v1`;
+    KANDIDATI.push({
+      prijavaId,
+      verzija: 1,
+      hash,
+      ime: "Uskočer (Vi)",
+      inicijali: "VI",
+      ocenaTekst: "Novo",
+      recenzijeTekst: "Nema ocena",
+      cena: { iznos: k.cenaRsd, valuta: "RSD", prikaz: `${k.cenaRsd} RSD` },
+      pokrivaMesta: k.pokrivenaMesta,
+      dolazakTekst: k.predlozeniPocetak ? new Date(k.predlozeniPocetak).toLocaleString("sr-Latn-RS") : "Dogovor",
+      prevozTekst: "Dogovor",
+    });
+    return {
+      ok: true,
+      podatak: {
+        prijavaId,
+        verzija: 1,
+        hash,
+      },
+    };
+  },
 
   async izaberiPrijavu(k: IzborKomanda): Promise<Ishod<{ dogovorId: string }>> {
     await kasnjenje();

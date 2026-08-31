@@ -2,23 +2,26 @@ import React, { useState, useEffect } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { T } from "@/ui/Text";
-import { Button } from "@/ui/Button";
-import { palette, space, radius, touch, elevation } from "@/ui/osnova";
-import { koristiStanje } from "@/store/stanje";
+import { T } from "../../../ui/Text";
+import { Button } from "../../../ui/Button";
+import { palette, space, radius } from "../../../theme/tokens";
+import { useIzvor } from "../../../store/uloga";
+import type { PrilikaProjekcija } from "../../../contracts/projections";
 
 export default function PrilikaDetaljiEkran() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const izvor = koristiStanje((s) => s.izvor);
+  const izvor = useIzvor();
   
-  const [prilika, setPrilika] = useState<any>(null);
+  const [prilika, setPrilika] = useState<PrilikaProjekcija | null>(null);
 
   useEffect(() => {
     let ziv = true;
-    izvor.prilika(id as string).then((p) => {
-      if (ziv) setPrilika(p);
-    });
+    if (id) {
+      izvor.prilika(id).then((p) => {
+        if (ziv) setPrilika(p);
+      });
+    }
     return () => { ziv = false; };
   }, [id, izvor]);
 
@@ -41,12 +44,14 @@ export default function PrilikaDetaljiEkran() {
         <View style={{ backgroundColor: palette.cream050, padding: space.md, borderRadius: radius.md, gap: space.sm }}>
           <T variant="meta" style={{ fontWeight: "700" }}>{prilika.podrucjeTekst}</T>
           <T variant="meta" tone="muted">{prilika.vremeTekst}</T>
-          <T variant="meta" tone="muted">Mesta: {prilika.pokrivenost?.popunjeno || 0}/{prilika.pokrivenost?.ukupno || 1}</T>
+          <T variant="meta" tone="muted">
+            Mesta: {prilika.pokrivenost.popunjeno}/{prilika.pokrivenost.ukupno}
+          </T>
         </View>
 
         <View style={{ gap: space.xs }}>
           <T variant="meta" style={{ fontWeight: "700" }}>Uslovi:</T>
-          {prilika.uslovi?.map((u: string) => (
+          {prilika.uslovi.map((u) => (
              <T key={u} variant="meta" tone="muted">• {u}</T>
           ))}
         </View>

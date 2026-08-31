@@ -3,50 +3,62 @@ import { View, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { T } from "../../../../ui/Text";
-import { Button } from "../../../../ui/Button";
-import { Card } from "../../../../ui/Button";
-import { palette, space, radius, elevation } from "../../../../theme/tokens";
+import { Button, Card } from "../../../../ui/Button";
+import { palette, space, elevation } from "../../../../theme/tokens";
 import { useIzvor } from "../../../../store/uloga";
+import { noviZahtevId } from "../../../../lib/idempotencija";
+import type { KandidatProjekcija, PotrebaProjekcija } from "../../../../contracts/projections";
 
 export default function KandidatiEkran() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const izvor = useIzvor();
   
-  const [kandidati, setKandidati] = useState<any[]>([]);
-  const [potreba, setPotreba] = useState<any>(null);
+  const [kandidati, setKandidati] = useState<KandidatProjekcija[]>([]);
+  const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
   const [bira, setBira] = useState<string | null>(null);
 
   useEffect(() => {
     let ziv = true;
-    // We assume izvor.prijaveZaPotrebu(id) exists, as seen in ports.ts
-    izvor.prijaveZaPotrebu(id as string).then((k) => {
-      if (ziv) setKandidati(k);
-    });
-    // For expectedRevision we might need the need itself
+    if (id) {
+      izvor.prijaveZaPotrebu(id).then((k) => {
+        if (ziv) setKandidati(k);
+      });
+      izvor.potreba(id).then((p) => {
+        if (ziv) setPotreba(p);
+      });
+    }
     return () => { ziv = false; };
   }, [id, izvor]);
 
-  const izaberi = async (prijava: any) => {
+  const izaberi = async (prijava: KandidatProjekcija) => {
+    if (!potreba) {
+      Alert.alert("Greška", "Podaci o potrebi nisu učitani. Pokušajte ponovo.");
+      return;
+    }
+    if (!prijava.prijavaId || typeof prijava.verzija !== "number" || !prijava.hash) {
+      Alert.alert("Bezbednosna greška", "Podaci o prijavi su nepotpuni. Izbor se prekida.");
+      return;
+    }
+
     setBira(prijava.prijavaId);
     const k = {
-      clientRequestId: Math.random().toString(36).substring(7),
-      potrebaId: id as string,
-      potrebaRevizija: prijava.potrebaRevizija || 1, // Fallback if projection missing
+      clientRequestId: noviZahtevId("izbor"),
+      potrebaId: potreba.id,
+      potrebaRevizija: potreba.revizija,
       prijavaId: prijava.prijavaId,
-      prijavaVerzija: prijava.verzija || 1,
-      prijavaHash: prijava.hash || "abc",
-      mesta: prijava.pokrivenaMesta || 1
+      prijavaVerzija: prijava.verzija,
+      prijavaHash: prijava.hash,
+      mesta: prijava.pokrivaMesta,
     };
     
     const ishod = await izvor.izaberiPrijavu(k);
     setBira(null);
     if (ishod.ok) {
-      Alert.alert("Bravo", "Dogovor je sklopljen!");
-      // router.replace(`/dogovori/${ishod.podatak.dogovorId}`);
+      Alert.alert("Uspeh", "Dogovor je uspešno sklopljen!");
       router.back();
     } else {
-      Alert.alert("Greška (Stale Review / Race)", ishod.greska?.poruka || "Prijava je izmenjena u međuvremenu.");
+      Alert.alert(ishod.naslov || "Greška pri izboru", ishod.poruka);
     }
   };
 
@@ -59,16 +71,16 @@ export default function KandidatiEkran() {
           <T variant="meta" tone="muted">Trenutno nema prijava.</T>
         )}
 
-        {kandidati.map((k, i) => (
-          <Card key={k.prijavaId || i} style={elevation.card}>
+        {kandidati.map((k) => (
+          <Card key={k.prijavaId} style={elevation.card}>
              <View style={{ padding: space.base, gap: space.md }}>
-                <T variant="meta" style={{ fontWeight: "800" }}>{k.radnikIme || "Kandidat"}</T>
-                <T variant="heading" tone="ink">{k.cenaRsd} RSD</T>
-                {k.napomena ? <T variant="meta" tone="muted">"{k.napomena}"</T> : null}
+                <T variant="meta" style={{ fontWeight: "800" }}>{k.ime || "Kandidat"}</T>
+                <T variant="heading" tone="ink">{k.cena.prikaz}</T>
+                <T variant="meta" tone="muted">Mesta: {k.pokrivaMesta} • {k.dolazakTekst}</T>
                 
                 <Button 
                   label={bira === k.prijavaId ? "Sklapanje..." : "Izaberi & Dogovor"} 
-                  disabled={bira !== null}
+                  disabled={bira !== null || k.stanje !== "IZBORNA"}
                   onPress={() => izaberi(k)}
                 />
              </View>

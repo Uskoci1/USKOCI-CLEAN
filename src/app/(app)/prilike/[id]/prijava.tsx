@@ -1,53 +1,69 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, TextInput, Alert, Platform } from "react-native";
+import { View, ScrollView, TextInput, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { T } from "../../../../ui/Text";
 import { Button } from "../../../../ui/Button";
 import { palette, space, radius } from "../../../../theme/tokens";
 import { useIzvor } from "../../../../store/uloga";
+import { noviZahtevId } from "../../../../lib/idempotencija";
+import type { PotrebaProjekcija, PrilikaProjekcija } from "../../../../contracts/projections";
 
 export default function PrijavaEkran() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const izvor = useIzvor();
   
-  const [prilika, setPrilika] = useState<any>(null);
+  const [prilika, setPrilika] = useState<PrilikaProjekcija | null>(null);
+  const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
   const [cena, setCena] = useState("");
   const [napomena, setNapomena] = useState("");
   const [saljem, setSaljem] = useState(false);
 
   useEffect(() => {
     let ziv = true;
-    izvor.prilika(id as string).then((p) => {
-      if (ziv) setPrilika(p);
-    });
+    if (id) {
+      izvor.prilika(id).then((p) => {
+        if (ziv) setPrilika(p);
+      });
+      izvor.potreba(id).then((p) => {
+        if (ziv) setPotreba(p);
+      });
+    }
     return () => { ziv = false; };
   }, [id, izvor]);
 
   const podnesi = async () => {
-    if (!prilika || !cena) return;
+    if (!potreba || !prilika) {
+      Alert.alert("Greška", "Podaci o prilici nisu učitani. Pokušajte ponovo.");
+      return;
+    }
+    const cenaBroj = parseInt(cena, 10);
+    if (isNaN(cenaBroj) || cenaBroj <= 0) {
+      Alert.alert("Greška", "Unesite ispravnu cenu u RSD.");
+      return;
+    }
+
     setSaljem(true);
     const k = {
-      clientRequestId: Math.random().toString(36).substring(7),
-      potrebaId: prilika.id,
-      potrebaRevizija: prilika.revizija || 1,
-      radnikProfilId: "00000000-0000-0000-0000-000000000000", // The real one is resolved by backend auth.uid() usually, or we can fetch it. For now, assuming backend ignores it or uses auth.uid.
+      clientRequestId: noviZahtevId("prijava"),
+      potrebaId: potreba.id,
+      potrebaRevizija: potreba.revizija,
+      radnikProfilId: "", // resolved canonically by backend/izvor from authenticated profile
       pokrivenaMesta: 1,
-      cenaRsd: parseInt(cena, 10),
+      cenaRsd: cenaBroj,
       predlozeniPocetak: null,
       predlozeniKraj: null,
-      napomena: napomena || null
+      napomena: napomena.trim() ? napomena.trim() : null,
     };
     
-    // We added podnesiPrijavu in ports
-    const ishod = await (izvor as any).podnesiPrijavu(k);
+    const ishod = await izvor.podnesiPrijavu(k);
     setSaljem(false);
     if (ishod.ok) {
       Alert.alert("Uspeh", "Prijava je uspešno podneta!");
       router.replace("/moje-prijave");
     } else {
-      Alert.alert("Greška", ishod.greska?.poruka || "Došlo je do greške.");
+      Alert.alert(ishod.naslov || "Greška pri slanju", ishod.poruka);
     }
   };
 
