@@ -43,7 +43,9 @@ Package 4 completion claim.
 - `REPAIR_1 = PASS`
 - `CONTROL_0 = PASS` on the repository's current PUBLIC execution plane; PRE-P4 run
   `33384410530`, job `99463676151`, executed every step successfully
-- `REPAIR_2 = DB_PROVEN / AUTHENTICATED_RUNTIME_PROOF_REQUIRED`
-- `READY_FOR_REPAIR_3 = NO` until the Repair 2 authenticated RLS matrix is executed
+- `REPAIR_2 = PASS / AUTHENTICATED_DATABASE_RUNTIME_PROVEN` through forward migration
+  `20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql`
+- `READY_FOR_REPAIR_3 = YES` only after its canonical Git mirror and runner-backed
+  PRE-P4 workflow are both green
 - `PACKAGE_4 = NOT STARTED`
 - AI publish = fail-closed `PACKAGE_4_NOT_READY`

@@ -15,7 +15,7 @@ PROVENANCE = ROOT / "MIGRATION_PROVENANCE.json"
 NAME_RE = re.compile(r"^(\d{14})_([a-z0-9_]+)\.sql$")
 LINE_RE = re.compile(r"^([0-9a-f]{32})  (\d{14}_[a-z0-9_]+\.sql)$")
 PARTICIPANT_CONTRACT_FILE = (
-    "20260831110701_clean_pre_p4_participant_rls_execution_contract.sql"
+    "20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql"
 )
 
 
@@ -126,16 +126,28 @@ def main() -> None:
         encoding="utf-8"
     )
     participant_requirements = (
-        "function public.fn_need_participant_can_read(p_need_id uuid)",
+        "create schema if not exists rls_private authorization postgres;",
+        "revoke all on schema rls_private from public, anon, authenticated;",
+        "grant usage on schema rls_private to authenticated;",
+        "function rls_private.need_participant_can_read(p_need_id uuid)",
         "a.need_id = p_need_id",
         "a.worker_account_id = auth.uid()",
         "a.status in ('CONFIRMED', 'COMPLETED')",
         "s.need_id = p_need_id",
         "s.worker_account_id = auth.uid()",
         "s.status = 'SELECTED'",
-        "grant execute on function public.fn_need_participant_can_read(uuid)\n"
+        "grant execute on function rls_private.need_participant_can_read(uuid)\n"
         "  to authenticated;",
-        "using (public.fn_need_participant_can_read(public.needs.id));",
+        "using (rls_private.need_participant_can_read(public.needs.id));",
+        "drop function public.fn_need_participant_can_read(uuid);",
+        "agreements_need_worker_participant_idx",
+        "need_selections_need_worker_selected_idx",
+        "set local role authenticated;",
+        "participant worker expected 1 row",
+        "requester expected 1 owned row",
+        "unrelated subject saw % ACTIVE rows",
+        "discovery expected %, got %",
+        "reset role;",
     )
     for requirement in participant_requirements:
         if requirement not in participant_contract:
@@ -146,7 +158,7 @@ def main() -> None:
         later_sql = (ROOT / later_file).read_text(encoding="utf-8").lower()
         if (
             "needs_participant_read" in later_sql
-            or "fn_need_participant_can_read" in later_sql
+            or "need_participant_can_read" in later_sql
         ):
             fail(
                 "participant RLS contract is superseded without updating its "

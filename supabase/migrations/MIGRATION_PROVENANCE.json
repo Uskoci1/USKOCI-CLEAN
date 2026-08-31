@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes only. It does not claim that reconstructed files equal lost original bytes."
   },
   "live_history_snapshot": {
-    "migration_count": 46,
+    "migration_count": 47,
     "last": {
-      "name": "clean_pre_p4_participant_rls_execution_contract",
-      "version": "20260831110701"
+      "name": "clean_pre_p4_participant_rls_authenticated_proof",
+      "version": "20260831114338"
     },
     "entries": [
       {
@@ -201,6 +201,10 @@
       {
         "name": "clean_pre_p4_participant_rls_execution_contract",
         "version": "20260831110701"
+      },
+      {
+        "name": "clean_pre_p4_participant_rls_authenticated_proof",
+        "version": "20260831114338"
       }
     ]
   },
@@ -311,7 +315,23 @@
       "predecessor_defect": "The private helper was not executable by authenticated and the private schema had no authenticated USAGE, creating a legitimate-reader denial risk.",
       "live_definition_proof": "needs_participant_read calls public.fn_need_participant_can_read(id); authenticated has EXECUTE; anon and PUBLIC do not; the private helper is removed.",
       "authenticated_runtime_proof": "PENDING: the read-only database connector has BYPASSRLS and cannot SET ROLE authenticated; no PASS is claimed from that connector.",
-      "rollback_implication": "Rollback requires a new forward migration; never edit or remove either applied Repair 2 migration."
+      "rollback_implication": "Rollback requires a new forward migration; never edit or remove either applied Repair 2 migration.",
+      "superseded_by": "20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql"
+    },
+    {
+      "version": "20260831114338",
+      "name": "clean_pre_p4_participant_rls_authenticated_proof",
+      "file": "20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql",
+      "classification": "FORWARD_REPAIR",
+      "raw_md5": "501ec1a8d1087dd3410e5000ae55795d",
+      "applied_statement_md5": "484281d9c786d62dbfdb7d9f35b3049a",
+      "exact_applied_statement_mirror": "Canonical file equals the single recorded UTF-8 statement plus one terminal LF, matching the established migration mirror convention.",
+      "affected_invariant": "Participant visibility is outer-Need-correlated, caller-bound to auth.uid(), executable only by authenticated, and implemented by a helper outside PostgREST-exposed schemas.",
+      "predecessor_defect": "The public SECURITY DEFINER helper was directly RPC-exposed and authenticated runtime behavior had not been executed under a non-BYPASSRLS role.",
+      "live_definition_proof": "needs_participant_read calls rls_private.need_participant_can_read(id); authenticated has schema USAGE and function EXECUTE but no schema CREATE; anon and PUBLIC have neither; the public helper is absent; both participant lookup indexes exist.",
+      "authenticated_runtime_proof": "PASS: the applied migration executed SET LOCAL ROLE authenticated. An existing Agreement worker read its ACTIVE Need, the existing requester read the owned Need, a generated unrelated JWT subject read zero ACTIVE Needs, and that subject read exactly all four PUBLISHED/SELECTION discovery rows. Any mismatch would have raised and rolled back the migration.",
+      "business_row_proof": "Before and after: 6 Needs, 4 Responses, 2 Agreements, 4 Profiles, 2 auth users; no fixture or business-row mutation was performed.",
+      "rollback_implication": "Rollback requires a new forward migration. Restoring the exposed public helper or either ambiguous 194000 predicate is forbidden."
     }
   ]
 }
