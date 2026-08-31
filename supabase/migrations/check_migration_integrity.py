@@ -55,7 +55,7 @@ def main() -> None:
         extra = sorted(set(disk_names) - set(manifest_names))
         fail(f"manifest/file mismatch missing={missing} extra={extra}")
 
-    manifest_map = dict(manifest_entries)
+    manifest_map = {filename: checksum for checksum, filename in manifest_entries}
     for filename in disk_names:
         raw = (ROOT / filename).read_bytes()
         if b"\r" in raw:
