@@ -14,6 +14,9 @@ MANIFEST = ROOT / "MD5_MANIFEST.txt"
 PROVENANCE = ROOT / "MIGRATION_PROVENANCE.json"
 NAME_RE = re.compile(r"^(\d{14})_([a-z0-9_]+)\.sql$")
 LINE_RE = re.compile(r"^([0-9a-f]{32})  (\d{14}_[a-z0-9_]+\.sql)$")
+PARTICIPANT_CONTRACT_FILE = (
+    "20260831110701_clean_pre_p4_participant_rls_execution_contract.sql"
+)
 
 
 def fail(message: str) -> None:
@@ -104,15 +107,59 @@ def main() -> None:
     closure_file = closure.get("file")
     if closure.get("raw_md5") != manifest_map.get(closure_file):
         fail("forward closure checksum does not match raw manifest")
-    if history_names[-1] != closure_file:
-        fail("forward closure is not the final live history snapshot entry")
+    if closure_file not in history_names:
+        fail("forward closure is absent from the live history snapshot")
+    if history_names.index(closure_file) <= history_names.index(reconstruction_file):
+        fail("forward closure does not follow the 191500 reconstruction")
+
+    forward_repairs = metadata.get("forward_repairs", [])
+    for repair in forward_repairs:
+        repair_file = repair.get("file")
+        if repair.get("classification") != "FORWARD_REPAIR":
+            fail(f"invalid forward repair classification: {repair_file}")
+        if repair_file not in history_names:
+            fail(f"forward repair is absent from live history: {repair_file}")
+        if repair.get("raw_md5") != manifest_map.get(repair_file):
+            fail(f"forward repair checksum does not match raw manifest: {repair_file}")
+
+    participant_contract = (ROOT / PARTICIPANT_CONTRACT_FILE).read_text(
+        encoding="utf-8"
+    )
+    participant_requirements = (
+        "function public.fn_need_participant_can_read(p_need_id uuid)",
+        "a.need_id = p_need_id",
+        "a.worker_account_id = auth.uid()",
+        "a.status in ('CONFIRMED', 'COMPLETED')",
+        "s.need_id = p_need_id",
+        "s.worker_account_id = auth.uid()",
+        "s.status = 'SELECTED'",
+        "grant execute on function public.fn_need_participant_can_read(uuid)\n"
+        "  to authenticated;",
+        "using (public.fn_need_participant_can_read(public.needs.id));",
+    )
+    for requirement in participant_requirements:
+        if requirement not in participant_contract:
+            fail(f"participant RLS contract missing: {requirement!r}")
+
+    participant_index = history_names.index(PARTICIPANT_CONTRACT_FILE)
+    for later_file in history_names[participant_index + 1:]:
+        later_sql = (ROOT / later_file).read_text(encoding="utf-8").lower()
+        if (
+            "needs_participant_read" in later_sql
+            or "fn_need_participant_can_read" in later_sql
+        ):
+            fail(
+                "participant RLS contract is superseded without updating its "
+                f"integrity assertion: {later_file}"
+            )
 
     print(
         "PASS migration_integrity "
         f"files={len(disk_names)} "
         f"live_snapshot={len(history_entries)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
-        "exact_byte_mirror=false"
+        "exact_byte_mirror=false "
+        "participant_contract=PASS"
     )
 
 

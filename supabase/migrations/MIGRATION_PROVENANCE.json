@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-08-30T20:27:33Z",
+  "generated_at_utc": "2026-08-31T11:07:01Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "repository_base_head": "a30092fd21205a331834ab61abc3efa65f6f9417",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes only. It does not claim that reconstructed files equal lost original bytes."
   },
   "live_history_snapshot": {
-    "migration_count": 44,
+    "migration_count": 46,
     "last": {
-      "name": "clean_pre_p4_provenance_reconciliation",
-      "version": "20260830202733"
+      "name": "clean_pre_p4_participant_rls_execution_contract",
+      "version": "20260831110701"
     },
     "entries": [
       {
@@ -193,6 +193,14 @@
       {
         "name": "clean_pre_p4_provenance_reconciliation",
         "version": "20260830202733"
+      },
+      {
+        "name": "clean_pre_p4_participant_rls_repair",
+        "version": "20260831110153"
+      },
+      {
+        "name": "clean_pre_p4_participant_rls_execution_contract",
+        "version": "20260831110701"
       }
     ]
   },
@@ -278,5 +286,32 @@
     ],
     "resulting_contract": "authenticated fail-closed PACKAGE_4_NOT_READY; anon has no EXECUTE; no business-row mutation",
     "rollback_implication": "Any rollback must be another forward migration; restoring either unsafe predecessor is forbidden."
-  }
+  },
+  "forward_repairs": [
+    {
+      "version": "20260831110153",
+      "name": "clean_pre_p4_participant_rls_repair",
+      "file": "20260831110153_clean_pre_p4_participant_rls_repair.sql",
+      "classification": "FORWARD_REPAIR",
+      "raw_md5": "39fed81b6b721ed9909d5b85929d5828",
+      "affected_invariant": "Participant visibility is correlated to the outer Need and limited to current selected or confirmed/completed Agreement workers.",
+      "predecessor_defect": "Migration 20260830194000 was parsed as a.need_id = a.id and s.need_id = s.id.",
+      "live_definition_proof": "Historical intermediate state: needs_participant_read delegated the outer Need id to private.need_participant_can_read(uuid).",
+      "authenticated_runtime_proof": "PENDING: the read-only database connector has BYPASSRLS and cannot SET ROLE authenticated; no PASS is claimed from that connector.",
+      "rollback_implication": "Rollback requires a new forward migration; never edit or remove this applied migration.",
+      "superseded_by": "20260831110701_clean_pre_p4_participant_rls_execution_contract.sql"
+    },
+    {
+      "version": "20260831110701",
+      "name": "clean_pre_p4_participant_rls_execution_contract",
+      "file": "20260831110701_clean_pre_p4_participant_rls_execution_contract.sql",
+      "classification": "FORWARD_REPAIR",
+      "raw_md5": "feadcb9119bd6797f9b5ea086126dbaf",
+      "affected_invariant": "The participant RLS predicate is executable by authenticated callers while remaining bound exclusively to auth.uid().",
+      "predecessor_defect": "The private helper was not executable by authenticated and the private schema had no authenticated USAGE, creating a legitimate-reader denial risk.",
+      "live_definition_proof": "needs_participant_read calls public.fn_need_participant_can_read(id); authenticated has EXECUTE; anon and PUBLIC do not; the private helper is removed.",
+      "authenticated_runtime_proof": "PENDING: the read-only database connector has BYPASSRLS and cannot SET ROLE authenticated; no PASS is claimed from that connector.",
+      "rollback_implication": "Rollback requires a new forward migration; never edit or remove either applied Repair 2 migration."
+    }
+  ]
 }

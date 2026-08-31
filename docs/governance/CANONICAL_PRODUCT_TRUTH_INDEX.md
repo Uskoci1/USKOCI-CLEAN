@@ -41,7 +41,9 @@ Package 4 completion claim.
 ## Current gate locks
 
 - `REPAIR_1 = PASS`
-- `CONTROL_0 = BLOCKER` until the recovery commit passes the complete PRE-P4 workflow
-- `READY_FOR_REPAIR_2 = NO` until CONTROL 0 passes
+- `CONTROL_0 = PASS` on the repository's current PUBLIC execution plane; PRE-P4 run
+  `33384410530`, job `99463676151`, executed every step successfully
+- `REPAIR_2 = DB_PROVEN / AUTHENTICATED_RUNTIME_PROOF_REQUIRED`
+- `READY_FOR_REPAIR_3 = NO` until the Repair 2 authenticated RLS matrix is executed
 - `PACKAGE_4 = NOT STARTED`
 - AI publish = fail-closed `PACKAGE_4_NOT_READY`
