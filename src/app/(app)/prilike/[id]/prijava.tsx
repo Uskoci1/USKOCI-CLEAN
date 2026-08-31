@@ -151,7 +151,7 @@ export default function PrijavaEkran() {
             editable={prilika.rezimCene !== 'MY_PRICE'}
             style={{ 
               borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: prilika.rezimCene === 'MY_PRICE' ? palette.ink500 : palette.ink,
+              padding: space.sm, fontSize: 16, color: prilika.rezimCene === 'MY_PRICE' ? palette.inkMuted : palette.ink,
               backgroundColor: prilika.rezimCene === 'MY_PRICE' ? palette.cream050 : 'transparent'
             }}
           />
