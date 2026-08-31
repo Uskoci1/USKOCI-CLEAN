@@ -45,6 +45,11 @@ function fLoc(area: string, city: string) {
   return area ? `${area}, ${city}` : city;
 }
 
+function jednaRelacija<T>(vrednost: T | T[] | null | undefined): T | null {
+  if (Array.isArray(vrednost)) return vrednost[0] ?? null;
+  return vrednost ?? null;
+}
+
 export const supabaseIzvor: Izvor = {
   poreklo: 'supabase',
 
@@ -118,18 +123,21 @@ export const supabaseIzvor: Izvor = {
       
     if (error || !data) return [];
     
-    return data.map((r: any) => ({
-      id: r.id,
-      naslov: r.title,
-      statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
-      podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
-      vremeTekst: fTime(r.starts_at),
-      pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
-      uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
-      narucilacIme: r.app_profiles?.display_name || '',
-      narucilacOcena: null,
-      priblizno: r.approximate_lat ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
-    }));
+    return data.map((r: any) => {
+      const narucilac = jednaRelacija(r.app_profiles);
+      return {
+        id: r.id,
+        naslov: r.title,
+        statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
+        podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
+        vremeTekst: fTime(r.starts_at),
+        pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
+        uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
+        narucilacIme: narucilac?.display_name || '',
+        narucilacOcena: null,
+        priblizno: r.approximate_lat ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
+      };
+    });
   },
 
   async prilika(id: string) {
@@ -144,6 +152,8 @@ export const supabaseIzvor: Izvor = {
       
     if (error || !data) return null;
     
+    const narucilac = jednaRelacija(data.app_profiles);
+
     return {
       id: data.id,
       naslov: data.title,
@@ -152,7 +162,7 @@ export const supabaseIzvor: Izvor = {
       vremeTekst: fTime(data.starts_at),
       pokrivenost: pokrivenost(data.required_slots || 1, data.covered_slots || 0),
       uslovi: [...(data.required_skills||[]), ...(data.required_tools||[]), ...(data.required_vehicles||[])],
-      narucilacIme: data.app_profiles?.display_name || '',
+      narucilacIme: narucilac?.display_name || '',
       narucilacOcena: null,
       priblizno: data.approximate_lat ? { lat: data.approximate_lat, lng: data.approximate_lng } : null,
     };
@@ -171,12 +181,13 @@ export const supabaseIzvor: Izvor = {
     
     return data.map((r: any) => {
       const ver = r.marketplace_response_versions?.find((v: any) => v.version === r.current_version);
+      const radnik = jednaRelacija(r.app_profiles);
       return {
         prijavaId: r.id,
         verzija: r.current_version,
         hash: ver?.content_hash || '',
-        ime: r.app_profiles?.display_name || '',
-        inicijali: (r.app_profiles?.display_name || '?').substring(0, 2).toUpperCase(),
+        ime: radnik?.display_name || '',
+        inicijali: (radnik?.display_name || '?').substring(0, 2).toUpperCase(),
         ocenaTekst: 'Novo',
         recenzijeTekst: 'Nema ocena',
         cena: rsd(r.price_rsd || 0),
@@ -207,31 +218,34 @@ export const supabaseIzvor: Izvor = {
     
     return data.map((r: any) => {
       const isReq = r.requester_account_id === user.user?.id;
-      const me = isReq ? r.requester : r.worker;
-      const other = isReq ? r.worker : r.requester;
+      const requester = jednaRelacija(r.requester);
+      const worker = jednaRelacija(r.worker);
+      const need = jednaRelacija(r.needs);
+      const me = isReq ? requester : worker;
+      const other = isReq ? worker : requester;
       
       const ucesnici: UcesnikProjekcija[] = [
         { id: me?.account_id||'', ime: me?.display_name||'', inicijali: (me?.display_name||'?').substring(0,2).toUpperCase(), uloga: isReq ? 'narucilac' : 'uskocer', mesta: null, viSte: true, telefon: null },
         { id: other?.account_id||'', ime: other?.display_name||'', inicijali: (other?.display_name||'?').substring(0,2).toUpperCase(), uloga: isReq ? 'uskocer' : 'narucilac', mesta: null, viSte: false, telefon: null },
       ];
       
-      const exec = r.agreement_execution?.[0] || {};
+      const exec = jednaRelacija(r.agreement_execution);
       
       return {
         id: r.id,
         verzija: r.current_version,
-        naslov: r.needs?.title || '',
+        naslov: need?.title || '',
         stanje: r.status,
         cena: rsd(r.terms?.price_rsd || 0),
-        vremeTekst: fTime(r.needs?.starts_at),
-        putanjaTekst: fLoc(r.needs?.approximate_area, r.needs?.approximate_city),
-        pokrivenost: pokrivenost(r.needs?.required_slots || 1, r.terms?.covered_slots || 1),
+        vremeTekst: fTime(need?.starts_at),
+        putanjaTekst: fLoc(need?.approximate_area, need?.approximate_city),
+        pokrivenost: pokrivenost(need?.required_slots || 1, r.terms?.covered_slots || 1),
         ucesnici,
-        rezim: exec.mode === 'PHYSICAL' ? 'FIZICKI' : exec.mode === 'REMOTE' ? 'DALJINSKI' : 'PREUZIMANJE_DOSTAVA',
-        kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: exec.mode === 'PHYSICAL', tacnaLokacija: null, emailNijeDeljen: true },
+        rezim: exec?.mode === 'PHYSICAL' ? 'FIZICKI' : exec?.mode === 'REMOTE' ? 'DALJINSKI' : 'PREUZIMANJE_DOSTAVA',
+        kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: exec?.mode === 'PHYSICAL', tacnaLokacija: null, emailNijeDeljen: true },
         chatDostupan: true,
-        rokPotvrdeIso: exec.requester_deadline_at || null,
-        problemOtvoren: !!exec.problem_opened_at,
+        rokPotvrdeIso: exec?.requester_deadline_at || null,
+        problemOtvoren: !!exec?.problem_opened_at,
         ocenaMoguca: r.status === 'COMPLETED',
         hronologija: [{ vremeTekst: fTime(r.created_at), tekst: 'Dogovor kreiran' }]
       };
@@ -257,8 +271,11 @@ export const supabaseIzvor: Izvor = {
     
     const r = data;
     const isReq = r.requester_account_id === user.user?.id;
-    const me = isReq ? r.requester : r.worker;
-    const other = isReq ? r.worker : r.requester;
+    const requester = jednaRelacija(r.requester);
+    const worker = jednaRelacija(r.worker);
+    const need = jednaRelacija(r.needs);
+    const me = isReq ? requester : worker;
+    const other = isReq ? worker : requester;
     const uid = user.user?.id;
     
     let mojTelPodeljen = false;
@@ -276,23 +293,23 @@ export const supabaseIzvor: Izvor = {
       { id: other?.account_id||'', ime: other?.display_name||'', inicijali: (other?.display_name||'?').substring(0,2).toUpperCase(), uloga: isReq ? 'uskocer' : 'narucilac', mesta: null, viSte: false, telefon: njihovTel },
     ];
     
-    const exec = r.agreement_execution?.[0] || {};
+    const exec = jednaRelacija(r.agreement_execution);
     
     return {
       id: r.id,
       verzija: r.current_version,
-      naslov: r.needs?.title || '',
+      naslov: need?.title || '',
       stanje: r.status,
       cena: rsd(r.terms?.price_rsd || 0),
-      vremeTekst: fTime(r.needs?.starts_at),
-      putanjaTekst: fLoc(r.needs?.approximate_area, r.needs?.approximate_city),
-      pokrivenost: pokrivenost(r.needs?.required_slots || 1, r.terms?.covered_slots || 1),
+      vremeTekst: fTime(need?.starts_at),
+      putanjaTekst: fLoc(need?.approximate_area, need?.approximate_city),
+      pokrivenost: pokrivenost(need?.required_slots || 1, r.terms?.covered_slots || 1),
       ucesnici,
-      rezim: exec.mode === 'PHYSICAL' ? 'FIZICKI' : exec.mode === 'REMOTE' ? 'DALJINSKI' : 'PREUZIMANJE_DOSTAVA',
-      kontakt: { mojTelefonPodeljen: mojTelPodeljen, njihovTelefon: njihovTel, lokacijaPostoji: exec.mode === 'PHYSICAL', tacnaLokacija: null, emailNijeDeljen: true },
+      rezim: exec?.mode === 'PHYSICAL' ? 'FIZICKI' : exec?.mode === 'REMOTE' ? 'DALJINSKI' : 'PREUZIMANJE_DOSTAVA',
+      kontakt: { mojTelefonPodeljen: mojTelPodeljen, njihovTelefon: njihovTel, lokacijaPostoji: exec?.mode === 'PHYSICAL', tacnaLokacija: null, emailNijeDeljen: true },
       chatDostupan: true,
-      rokPotvrdeIso: exec.requester_deadline_at || null,
-      problemOtvoren: !!exec.problem_opened_at,
+      rokPotvrdeIso: exec?.requester_deadline_at || null,
+      problemOtvoren: !!exec?.problem_opened_at,
       ocenaMoguca: r.status === 'COMPLETED',
       hronologija: [{ vremeTekst: fTime(r.created_at), tekst: 'Dogovor kreiran' }]
     };
