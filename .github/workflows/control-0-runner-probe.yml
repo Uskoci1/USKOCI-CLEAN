@@ -1,0 +1,19 @@
+name: CONTROL-0 runner probe
+
+on:
+  push:
+    branches:
+      - clean-alpha-backend
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: control-0-runner-probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Execute runner probe
+        run: echo CONTROL_0_RUNNER_OK
