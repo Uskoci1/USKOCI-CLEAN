@@ -1,7 +1,7 @@
 // @ts-nocheck
 // USKOCI server-side AI intake boundary.
 // Secrets live only in Supabase Edge Function environment. Never expose
-// OPENAI_API_KEY / OPENAI_MODEL to Expo, EXPO_PUBLIC_*, source or logs.
+// OPENAI_API_KEY / OPENAI_MODEL / SUPABASE_SERVICE_ROLE_KEY to Expo, source or logs.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,16 +10,8 @@ const corsHeaders = {
 };
 
 const FACT_KEYS = [
-  'naslov',
-  'opis',
-  'kategorija',
-  'datum',
-  'vreme',
-  'polaziste',
-  'odrediste',
-  'osoba',
-  'vozilo',
-  'uslovi',
+  'naslov', 'opis', 'kategorija', 'datum', 'vreme',
+  'polaziste', 'odrediste', 'osoba', 'vozilo', 'uslovi',
 ] as const;
 
 const factKeySet = new Set<string>(FACT_KEYS);
@@ -48,7 +40,7 @@ function outputText(payload: any): string | null {
 
 async function postgrest(
   url: string,
-  anonKey: string,
+  apiKey: string,
   authorization: string,
   path: string,
   init: RequestInit = {},
@@ -56,7 +48,7 @@ async function postgrest(
   return fetch(`${url}/rest/v1/${path}`, {
     ...init,
     headers: {
-      apikey: anonKey,
+      apikey: apiKey,
       Authorization: authorization,
       'Content-Type': 'application/json',
       ...(init.headers ?? {}),
@@ -65,9 +57,7 @@ async function postgrest(
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') {
     return response(405, { code: 'METHOD_NOT_ALLOWED', message: 'Koristite POST.' });
   }
@@ -98,18 +88,20 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-  if (!supabaseUrl || !anonKey) {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
     console.error('AI_EDGE_SUPABASE_ENV_MISSING');
     return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
   }
 
-  // Ownership + purpose are checked through the caller JWT and RLS before any
-  // provider call. A user cannot spend AI capacity against somebody else's draft.
+  // Caller JWT + RLS proves ownership before provider spend. The account id
+  // returned by this caller-scoped query is the only identity passed to the
+  // service-role atomic writer later in the request.
   const conversationQuery = await postgrest(
     supabaseUrl,
     anonKey,
     authorization,
-    `ai_conversations?id=eq.${encodeURIComponent(conversationId)}&purpose=eq.NEED_INTAKE&status=eq.OPEN&select=id&limit=1`,
+    `ai_conversations?id=eq.${encodeURIComponent(conversationId)}&purpose=eq.NEED_INTAKE&status=eq.OPEN&select=id,account_id&limit=1`,
     { method: 'GET' },
   );
   if (!conversationQuery.ok) {
@@ -120,10 +112,15 @@ Deno.serve(async (req: Request) => {
   if (!Array.isArray(conversations) || conversations.length !== 1) {
     return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
   }
+  const accountId = typeof conversations[0]?.account_id === 'string' ? conversations[0].account_id : '';
+  if (!uuidPattern.test(accountId)) {
+    console.error('AI_EDGE_ACCOUNT_ID_INVALID');
+    return response(500, { code: 'SERVER_IDENTITY_ERROR', message: 'Serverski identitet nije mogao da se potvrdi.' });
+  }
 
-  const apiKey = Deno.env.get('OPENAI_API_KEY') ?? '';
+  const openaiKey = Deno.env.get('OPENAI_API_KEY') ?? '';
   const model = Deno.env.get('OPENAI_MODEL') ?? '';
-  if (!apiKey || !model) {
+  if (!openaiKey || !model) {
     return response(503, {
       code: 'AI_PROVIDER_NOT_CONFIGURED',
       message: 'AI obrada još nije aktivirana na serveru.',
@@ -133,7 +130,7 @@ Deno.serve(async (req: Request) => {
   const openaiResponse = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${openaiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -148,6 +145,7 @@ Deno.serve(async (req: Request) => {
         'evidence mora biti kratak doslovan isečak korisnikove poruke koji podržava predlog.',
         'Ako je zahtev nejasan, postavite jedno kratko sledeće pitanje u assistantMessage.',
         'Ako zahtev deluje zabranjeno ili rizično, postavite safety na REVIEW ili BLOCK i ne predlažite rizične činjenice.',
+        'assistantMessage mora uvek sadržati korisnu, kratku poruku za korisnika.',
       ].join(' '),
       input: [{
         role: 'user',
@@ -213,56 +211,62 @@ Deno.serve(async (req: Request) => {
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
     ? parsed.assistantMessage.trim().slice(0, 1000)
     : '';
+  if (!assistantMessage) {
+    console.error('OPENAI_ASSISTANT_MESSAGE_MISSING');
+    return response(502, { code: 'AI_OUTPUT_INVALID', message: 'AI odgovor nije mogao da se obradi.' });
+  }
 
-  if (safety === 'BLOCK') {
-    return response(422, {
-      code: 'AI_SAFETY_BLOCK',
-      message: assistantMessage || 'Ovaj zahtev ne može da se obradi kroz USKOČI.',
-      safety,
-      predlozeno: 0,
+  const proposals: Array<{ key: string; value: string; confidence: number; evidence: string }> = [];
+  if (safety !== 'BLOCK') {
+    for (const fact of Array.isArray(parsed?.facts) ? parsed.facts : []) {
+      const key = typeof fact?.key === 'string' ? fact.key : '';
+      const value = typeof fact?.value === 'string' ? fact.value.trim().slice(0, 2000) : '';
+      const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim().slice(0, 500) : '';
+      const confidence = Number(fact?.confidence);
+      if (!factKeySet.has(key) || !value || !evidence || !Number.isFinite(confidence)) continue;
+      proposals.push({
+        key,
+        value,
+        confidence: Math.max(0, Math.min(1, confidence)),
+        evidence,
+      });
+    }
+  }
+
+  // One service-role-only RPC is the entire persistence boundary. If any fact or
+  // message is invalid, PostgreSQL rolls the whole turn back; partial AI state
+  // cannot survive.
+  const persist = await postgrest(
+    supabaseUrl,
+    serviceRoleKey,
+    `Bearer ${serviceRoleKey}`,
+    'rpc/rpc_ai_apply_interview_turn_service',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        p_account_id: accountId,
+        p_conversation_id: conversationId,
+        p_user_message: text,
+        p_assistant_message: assistantMessage,
+        p_safety: safety,
+        p_proposals: proposals,
+      }),
+    },
+  );
+  if (!persist.ok) {
+    console.error('AI_TURN_PERSIST_FAILED', persist.status);
+    return response(502, {
+      code: 'AI_TURN_PERSIST_FAILED',
+      message: 'AI odgovor nije mogao bezbedno da se sačuva.',
     });
   }
 
-  const facts = Array.isArray(parsed?.facts) ? parsed.facts : [];
-  let proposed = 0;
-  for (const fact of facts) {
-    const key = typeof fact?.key === 'string' ? fact.key : '';
-    const value = typeof fact?.value === 'string' ? fact.value.trim() : '';
-    const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim().slice(0, 500) : '';
-    const confidence = Number(fact?.confidence);
-    if (!factKeySet.has(key) || !value || !evidence || !Number.isFinite(confidence)) continue;
-
-    const rpc = await postgrest(
-      supabaseUrl,
-      anonKey,
-      authorization,
-      'rpc/rpc_ai_propose_fact',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          p_conversation_id: conversationId,
-          p_fact_key: key,
-          p_fact_value: value,
-          p_source: 'AI_INFERENCE',
-          p_scope: 'NEED_DRAFT',
-          p_confidence: Math.max(0, Math.min(1, confidence)),
-          p_evidence: evidence,
-        }),
-      },
-    );
-    if (!rpc.ok) {
-      console.error('AI_FACT_PROPOSAL_FAILED', rpc.status, key);
-      return response(502, {
-        code: 'AI_FACT_PERSIST_FAILED',
-        message: 'AI predlog nije mogao bezbedno da se sačuva.',
-      });
-    }
-    proposed += 1;
-  }
-
+  const persisted = await persist.json();
+  const proposedCount = Number(persisted?.proposedCount ?? persisted?.proposed_count ?? proposals.length);
   return response(200, {
-    predlozeno: proposed,
+    predlozeno: Number.isFinite(proposedCount) ? Math.max(0, Math.trunc(proposedCount)) : proposals.length,
     assistantMessage,
     safety,
+    blocked: safety === 'BLOCK',
   });
 });
