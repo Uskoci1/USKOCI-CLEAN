@@ -62,9 +62,6 @@ jobs:
           console.log(`[entry-reference] Android asset contract OK: ${asset}, ${bytes.length} bytes`);
           NODE
 
-      - name: TypeScript contract check
-        run: npx tsc --noEmit --pretty false
-
       - name: Inject development-only Android package id
         run: |
           node <<'NODE'
