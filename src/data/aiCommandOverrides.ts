@@ -5,7 +5,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type AiCommandOverrides = Partial<Pick<Izvor, 'posaljiKorisnikovuPoruku'>>;
+type AiCommandOverrides = Partial<Pick<Izvor, 'posaljiKorisnikovuPoruku' | 'ispraviCinjenicu'>>;
 
 async function edgeFailure(error: any) {
   let payload: any = null;
@@ -51,5 +51,26 @@ export const aiCommandOverrides: AiCommandOverrides = {
     }
 
     return { ok: true, podatak: { predlozeno: Math.max(0, Math.trunc(data.predlozeno)) } };
+  },
+
+  async ispraviCinjenicu(cinjenicaId, novaVrednost) {
+    const value = novaVrednost.trim();
+    if (!value) return { ok: false, kod: 'FACT_VALUE_REQUIRED', poruka: 'Unesite vrednost.' };
+    if (value.length > 2000) {
+      return { ok: false, kod: 'FACT_VALUE_TOO_LONG', poruka: 'Vrednost može imati najviše 2000 znakova.' };
+    }
+
+    const { data, error } = await supabase.rpc('rpc_ai_correct_fact', {
+      p_fact_id: cinjenicaId,
+      p_value: value,
+    });
+    if (error || typeof data !== 'string' || !data) {
+      return {
+        ok: false,
+        kod: error?.code || error?.message || 'AI_FACT_CORRECTION_FAILED',
+        poruka: error?.message || 'Ispravka nije mogla bezbedno da se sačuva.',
+      };
+    }
+    return { ok: true, podatak: { novaCinjenicaId: data } };
   },
 };
