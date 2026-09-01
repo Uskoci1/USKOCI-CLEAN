@@ -59,38 +59,18 @@ export const productionAuthorityOverrides: CommandOverrides = {
     };
   },
 
+  // Keep even the lower-precedence compatibility override on the authoritative
+  // RPC path. If adapter composition changes later, chat must never silently
+  // regress to direct table INSERT authority.
   async posaljiPoruku(dogovorId, telo) {
-    const trimmed = telo.trim();
-    if (!trimmed) {
-      return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
-    }
-
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) {
-      return { ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se da biste poslali poruku.' };
-    }
-
-    const { data: agreement, error: agreementError } = await supabase
-      .from('agreements')
-      .select('current_version')
-      .eq('id', dogovorId)
-      .single();
-    if (agreementError || !agreement) {
-      return rpcFailure(agreementError, 'AGREEMENT_NOT_FOUND', 'Dogovor nije dostupan.');
-    }
-
-    const { data, error } = await supabase
-      .from('agreement_messages')
-      .insert({
-        agreement_id: dogovorId,
-        agreement_version: agreement.current_version,
-        sender_account_id: userData.user.id,
-        body: trimmed,
-      })
-      .select('id')
-      .single();
+    const body = telo.trim();
+    if (!body) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
+    const { data, error } = await supabase.rpc('rpc_send_agreement_message', {
+      p_agreement_id: dogovorId,
+      p_body: body,
+    });
     if (error || !data) return rpcFailure(error, 'MESSAGE_SEND_FAILED', 'Poruka nije poslata.');
-    return { ok: true, podatak: { porukaId: data.id } };
+    return { ok: true, podatak: { porukaId: data } };
   },
 
   async oznaciZavrsetak(dogovorId) {
