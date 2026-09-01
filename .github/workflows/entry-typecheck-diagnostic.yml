@@ -33,76 +33,48 @@ jobs:
           echo "TSC_EXIT=$?" >> "$GITHUB_ENV"
           set -e
 
-      - name: Auth file clean
+      - name: Auth 261-360 clean
+        if: always()
+        run: '! grep -E -q "src/app/auth.tsx\\((26[1-9]|2[7-9][0-9]|3[0-5][0-9]|360)," tsc-errors.txt'
+
+      - name: Auth 361-460 clean
+        if: always()
+        run: '! grep -E -q "src/app/auth.tsx\\((36[1-9]|3[7-9][0-9]|4[0-5][0-9]|460)," tsc-errors.txt'
+
+      - name: Auth 461-560 clean
+        if: always()
+        run: '! grep -E -q "src/app/auth.tsx\\((46[1-9]|4[7-9][0-9]|5[0-5][0-9]|560)," tsc-errors.txt'
+
+      - name: Auth 561-660 clean
+        if: always()
+        run: '! grep -E -q "src/app/auth.tsx\\((56[1-9]|5[7-9][0-9]|6[0-5][0-9]|660)," tsc-errors.txt'
+
+      - name: Auth 661-760 clean
+        if: always()
+        run: '! grep -E -q "src/app/auth.tsx\\((66[1-9]|6[7-9][0-9]|7[0-5][0-9]|760)," tsc-errors.txt'
+
+      - name: Auth 761-plus clean
+        if: always()
+        run: '! grep -E -q "src/app/auth.tsx\\((76[1-9]|7[7-9][0-9]|[89][0-9][0-9]|[1-9][0-9]{3,})," tsc-errors.txt'
+
+      - name: Entry 221-300 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((22[1-9]|2[3-9][0-9]|300)," tsc-errors.txt'
+
+      - name: Entry 301-360 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((30[1-9]|3[1-5][0-9]|360)," tsc-errors.txt'
+
+      - name: Entry 361-440 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((36[1-9]|3[7-9][0-9]|4[0-3][0-9]|440)," tsc-errors.txt'
+
+      - name: TS2322 only expected
         if: always()
         shell: bash
-        run: '! grep -q "src/app/auth.tsx" tsc-errors.txt'
-
-      - name: Entry hero clean
-        if: always()
-        shell: bash
-        run: '! grep -q "src/ui/referenceEntry/ReferenceEntryHero.tsx" tsc-errors.txt'
-
-      - name: Generated entry data clean
-        if: always()
-        shell: bash
-        run: '! grep -q "src/ui/referenceEntry/entryReferenceData.ts" tsc-errors.txt'
-
-      - name: Auth lines 1-260 clean
-        if: always()
-        shell: bash
-        run: '! grep -E -q "src/app/auth.tsx\\(([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-5][0-9]|260)," tsc-errors.txt'
-
-      - name: Auth lines 261-600 clean
-        if: always()
-        shell: bash
-        run: '! grep -E -q "src/app/auth.tsx\\((26[1-9]|2[7-9][0-9]|[3-5][0-9][0-9]|600)," tsc-errors.txt'
-
-      - name: Auth lines 601-plus clean
-        if: always()
-        shell: bash
-        run: '! grep -E -q "src/app/auth.tsx\\(([6-9][0-9][0-9]|[1-9][0-9]{3,})," tsc-errors.txt'
-
-      - name: Entry lines 1-220 clean
-        if: always()
-        shell: bash
-        run: '! grep -E -q "ReferenceEntryHero.tsx\\(([1-9]|[1-9][0-9]|1[0-9][0-9]|20[0-9]|21[0-9]|220)," tsc-errors.txt'
-
-      - name: Entry lines 221-440 clean
-        if: always()
-        shell: bash
-        run: '! grep -E -q "ReferenceEntryHero.tsx\\((22[1-9]|2[3-9][0-9]|3[0-9][0-9]|4[0-3][0-9]|440)," tsc-errors.txt'
-
-      - name: Entry lines 441-plus clean
-        if: always()
-        shell: bash
-        run: '! grep -E -q "ReferenceEntryHero.tsx\\(([4][4-9][1-9]|[5-9][0-9][0-9]|[1-9][0-9]{3,})," tsc-errors.txt'
-
-      - name: TS2304 clean
-        if: always()
-        run: '! grep -q "TS2304" tsc-errors.txt'
-
-      - name: TS2322 clean
-        if: always()
-        run: '! grep -q "TS2322" tsc-errors.txt'
-
-      - name: TS2339 clean
-        if: always()
-        run: '! grep -q "TS2339" tsc-errors.txt'
-
-      - name: TS2345 clean
-        if: always()
-        run: '! grep -q "TS2345" tsc-errors.txt'
-
-      - name: TS2352 clean
-        if: always()
-        run: '! grep -q "TS2352" tsc-errors.txt'
-
-      - name: TS2769 clean
-        if: always()
-        run: '! grep -q "TS2769" tsc-errors.txt'
+        run: |
+          test -z "$(grep -o 'TS[0-9][0-9]*' tsc-errors.txt | sort -u | grep -v '^TS2322$')"
 
       - name: TypeScript overall
         if: always()
-        shell: bash
         run: test "$TSC_EXIT" = "0"
