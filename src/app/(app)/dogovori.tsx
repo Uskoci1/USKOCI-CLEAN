@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { CaretRight, Clock, User, Handshake } from 'phosphor-react-native';
+import { CaretRight, Clock, User, Handshake, WarningCircle } from 'phosphor-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { T } from '../../ui/Text';
@@ -18,20 +18,33 @@ export default function Dogovori() {
   const izvor = useIzvor();
   const [dogovori, setDogovori] = useState<DogovorProjekcija[]>([]);
   const [ucitavanje, setUcitavanje] = useState(true);
+  const [greska, setGreska] = useState<string | null>(null);
+
+  const ucitaj = useCallback(async (ziv?: () => boolean) => {
+    setUcitavanje(true);
+    setGreska(null);
+    try {
+      const rezultat = await izvor.mojiDogovori();
+      if (ziv && !ziv()) return;
+      setDogovori(rezultat);
+    } catch (error) {
+      if (ziv && !ziv()) return;
+      setDogovori([]);
+      setGreska(error instanceof Error ? error.message : 'Dogovori trenutno ne mogu da se učitaju.');
+    } finally {
+      if (!ziv || ziv()) setUcitavanje(false);
+    }
+  }, [izvor]);
 
   // Vraćanje na tab mora da pokaže sveže stanje — izbor je mogao da napravi Dogovor.
   useFocusEffect(
     useCallback(() => {
-      let ziv = true;
-      izvor.mojiDogovori().then((d) => {
-        if (!ziv) return;
-        setDogovori(d);
-        setUcitavanje(false);
-      });
+      let aktivan = true;
+      void ucitaj(() => aktivan);
       return () => {
-        ziv = false;
+        aktivan = false;
       };
-    }, []),
+    }, [ucitaj]),
   );
 
   return (
@@ -44,7 +57,33 @@ export default function Dogovori() {
 
         {ucitavanje && <ActivityIndicator color={palette.teal500} style={{ marginTop: space.xl }} />}
 
-        {!ucitavanje && dogovori.length === 0 && (
+        {!ucitavanje && greska && (
+          <Card>
+            <View style={{ padding: space.base, gap: space.md, alignItems: 'center' }}>
+              <WarningCircle size={26} color={palette.danger} />
+              <T variant="heading">Dogovori nisu učitani</T>
+              <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>{greska}</T>
+              <Press
+                accessibilityRole="button"
+                accessibilityLabel="Pokušaj ponovo"
+                haptic="light"
+                onPress={() => void ucitaj()}
+                style={{
+                  minHeight: 44,
+                  paddingHorizontal: space.lg,
+                  borderRadius: radius.md,
+                  backgroundColor: palette.orange,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <T variant="action" tone="onOrange">Pokušaj ponovo</T>
+              </Press>
+            </View>
+          </Card>
+        )}
+
+        {!ucitavanje && !greska && dogovori.length === 0 && (
           <View style={{ alignItems: 'center', gap: space.md, paddingVertical: space.huge }}>
             <View
               style={{
@@ -74,11 +113,11 @@ export default function Dogovori() {
           </View>
         )}
 
-        {!ucitavanje && dogovori.length > 0 && (
+        {!ucitavanje && !greska && dogovori.length > 0 && (
           <T variant="label" tone="muted">AKTIVNI</T>
         )}
 
-        {dogovori.map((d, i) => {
+        {!greska && dogovori.map((d, i) => {
           const drugi = d.ucesnici.find((u) => !u.viSte);
           return (
             <Animated.View
