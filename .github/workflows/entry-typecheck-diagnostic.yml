@@ -1,4 +1,4 @@
-name: Entry typecheck diagnostic
+name: Entry typecheck repair
 
 on:
   push:
@@ -6,21 +6,56 @@ on:
       - clean-alpha-backend
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  repair:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: clean-alpha-backend
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
+
       - name: Install
         run: npm ci
-      - name: TypeScript diagnostics
+
+      - name: Apply exact StatusBar compatibility repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          old='<StatusBar style="light" translucent backgroundColor="transparent" />'
+          new='<StatusBar style="light" backgroundColor="transparent" />'
+          grep -Fq "$old" src/app/auth.tsx
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/app/auth.tsx')
+          text = p.read_text()
+          old = '<StatusBar style="light" translucent backgroundColor="transparent" />'
+          new = '<StatusBar style="light" backgroundColor="transparent" />'
+          assert text.count(old) == 1, f'expected exactly one StatusBar target, got {text.count(old)}'
+          p.write_text(text.replace(old, new))
+          PY
+          git diff --check
+          git diff -- src/app/auth.tsx
+
+      - name: TypeScript contract check
         run: npx tsc --noEmit --pretty false
+
+      - name: Commit exact repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'USKOCI CI Repair'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/app/auth.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: align Expo StatusBar props'
+          git push origin HEAD:clean-alpha-backend
