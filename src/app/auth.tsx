@@ -402,7 +402,7 @@ export default function AuthScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <StatusBar style="light" />
       <ReferenceEntryHero
         onSignIn={() => otvori('default')}
         onRequester={() => otvori('requester')}
