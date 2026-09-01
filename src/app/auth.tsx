@@ -40,6 +40,13 @@ type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'VERIFY_EMAIL';
 type Kontekst = 'default' | 'requester' | 'worker';
 
 const EASE = Easing.bezier(0.16, 1, 0.3, 1);
+const ABSOLUTE_FILL = {
+  position: 'absolute' as const,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+};
 
 function AuthSheetBackground() {
   return (
@@ -680,7 +687,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E3D37',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...ABSOLUTE_FILL,
     zIndex: 310,
     backgroundColor: 'rgba(1,20,18,0.68)',
   },
