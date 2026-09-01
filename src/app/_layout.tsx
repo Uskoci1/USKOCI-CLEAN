@@ -1,9 +1,8 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import * as Linking from 'expo-linking';
 import { palette } from '../theme/tokens';
 import { useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
@@ -13,42 +12,43 @@ export default function RootLayout() {
   const { isLoaded, session } = useSesija();
   const router = useRouter();
   const segments = useSegments();
-  const [initialUrlHandled, setInitialUrlHandled] = useState(false);
+  const naAuth = segments[0] === 'auth';
 
-  // Deep linking & Intent resolution
+  // Protected-route authority: unauthenticated users never remain inside the
+  // marketplace shell. Auth is one screen in the same app, not a second app.
   useEffect(() => {
-    async function handleIntent() {
-      if (!isLoaded) return;
-      
-      const pending = await povratniCilj.snapshot();
-      if (session) {
-        // Authenticated: Resolve intent if it exists
-        if (pending && pending.status === 'PENDING') {
-          await povratniCilj.markCompleted(session.user.id, pending.intent);
-          if (pending.intent.intent === 'WORKER') postaviUlogu('uskocer');
-          else postaviUlogu('narucilac');
-          
-          if ((pending.intent as any).returnTarget?.kind === 'DEEP_LINK') {
-             const path = (pending.intent as any).returnTarget.path;
-             if (path) router.replace(path);
-          }
-        }
-      } else {
-        // Unauthenticated: Record deep link intent if app opened via URL
-        if (!initialUrlHandled) {
-          const url = await Linking.getInitialURL();
-          if (url) {
-            const path = url.split('uskoci://')[1] || url.split('exp://')[1];
-            if (path && !pending) {
-              await povratniCilj.prepare({ intent: 'REQUESTER', returnTarget: { kind: 'DEEP_LINK', path } } as any);
-            }
-          }
-          setInitialUrlHandled(true);
-        }
-      }
+    if (!isLoaded) return;
+    if (!session && !naAuth) {
+      router.replace('/auth');
+      return;
     }
-    handleIntent();
-  }, [isLoaded, session, initialUrlHandled]);
+    if (session && naAuth) {
+      router.replace('/');
+    }
+  }, [isLoaded, session, naAuth, router]);
+
+  // Consume a completed pre-auth intent exactly once after a real session has
+  // been restored/created. The store itself guards which user completed it.
+  useEffect(() => {
+    if (!isLoaded || !session) return;
+    let aktivan = true;
+    void povratniCilj.consumeCompleted(session.user.id).then((record) => {
+      if (!aktivan || !record) return;
+      if (record.intent.intent === 'WORKER') postaviUlogu('uskocer');
+      else postaviUlogu('narucilac');
+
+      const target = record.intent.returnTarget;
+      if (!target || target.kind === 'NONE') return;
+      if (target.kind === 'NEED') {
+        router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: target.needId } });
+      } else if (target.kind === 'DOGOVOR') {
+        router.replace({ pathname: '/dogovor/[id]', params: { id: target.agreementId } });
+      }
+    });
+    return () => {
+      aktivan = false;
+    };
+  }, [isLoaded, session, router]);
 
   if (!isLoaded) {
     return (
