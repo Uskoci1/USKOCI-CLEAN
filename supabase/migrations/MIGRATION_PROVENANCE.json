@@ -1,72 +1,70 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-01T09:57:00Z",
+  "generated_at_utc": "2026-09-01T10:12:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "bddab3a18a70824ae64135da63813f5dba489464",
+  "repository_base_head": "049d302ae7b736513826dc09958a2bca722d9a89",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
     "scope": "raw physical migration file bytes",
     "newline_policy": "LF enforced for canonical text files by .gitattributes",
-    "statement": "MD5_MANIFEST.txt verifies repository bytes only. It does not claim that reconstructed files equal lost original bytes."
+    "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only."
   },
   "live_history_snapshot": {
-    "migration_count": 49,
-    "last": {
-      "name": "client_command_authority_closure",
-      "version": "20260901091438"
-    },
+    "migration_count": 50,
+    "last": {"name": "client_agreement_workspace_closure", "version": "20260901101056"},
     "entries": [
-      {"name": "cloud_profile_foundation_1_3b", "version": "20260825115040"},
-      {"name": "lock_down_auth_trigger_functions_1_3b", "version": "20260825115602"},
-      {"name": "clean_security_hardening", "version": "20260829183528"},
-      {"name": "clean_need_foundation", "version": "20260829183551"},
-      {"name": "clean_response_foundation", "version": "20260829183609"},
-      {"name": "clean_agreement_foundation", "version": "20260829183633"},
-      {"name": "clean_directional_access_grants", "version": "20260829183651"},
-      {"name": "clean_ai_persistence", "version": "20260829183711"},
-      {"name": "clean_rls_policies", "version": "20260829183740"},
-      {"name": "clean_rpc_selection", "version": "20260829183816"},
-      {"name": "clean_rpc_agreement_lifecycle", "version": "20260829183947"},
-      {"name": "clean_rpc_ai_intake", "version": "20260829184024"},
-      {"name": "clean_revoke_public_execute", "version": "20260829184132"},
-      {"name": "clean_revoke_helper_execute_from_authenticated", "version": "20260829184203"},
-      {"name": "clean_updated_at_triggers", "version": "20260829185334"},
-      {"name": "clean_need_selection_completeness", "version": "20260829185354"},
-      {"name": "clean_selection_rpc_alignment", "version": "20260829185434"},
-      {"name": "clean_events_and_notifications", "version": "20260829210453"},
-      {"name": "clean_emit_event_engine", "version": "20260829210536"},
-      {"name": "clean_needs_schema_completion", "version": "20260829210602"},
-      {"name": "clean_geo_foundation", "version": "20260829210650"},
-      {"name": "clean_geo_foundation_repair", "version": "20260829211203"},
-      {"name": "clean_dispatch_foundation", "version": "20260829211420"},
-      {"name": "clean_dispatch_engine", "version": "20260829211632"},
-      {"name": "clean_dispatch_wave", "version": "20260829211737"},
-      {"name": "clean_urgency_projection", "version": "20260829211904"},
-      {"name": "clean_urgent_min_choice_floor", "version": "20260829211956"},
-      {"name": "clean_scheduled_lifecycle", "version": "20260829212146"},
-      {"name": "clean_cron_schedule", "version": "20260829212158"},
-      {"name": "clean_advisor_hardening", "version": "20260829212807"},
-      {"name": "clean_need_response_deadline_expiry", "version": "20260830070448"},
-      {"name": "clean_scoped_contact_reveal", "version": "20260830072818"},
-      {"name": "clean_grant_policy_inline", "version": "20260830072920"},
-      {"name": "clean_cancellation_privacy_and_wakeup", "version": "20260830073615"},
-      {"name": "clean_need_lifecycle_integrity", "version": "20260830080947"},
-      {"name": "clean_selection_eligibility_and_deadline", "version": "20260830081035"},
-      {"name": "clean_authoritative_response_submit", "version": "20260830081300"},
-      {"name": "clean_p1_cancel_withdraw_closure", "version": "20260830172000"},
-      {"name": "clean_authoritative_mutation_boundary", "version": "20260830173000"},
-      {"name": "clean_repair_authority_boundary", "version": "20260830174000"},
-      {"name": "clean_ai_insert_authority_closure", "version": "20260830174500"},
-      {"name": "clean_p0_authoritative_fixes", "version": "20260830191500"},
-      {"name": "clean_p2_read_layer_repair", "version": "20260830194000"},
-      {"name": "clean_pre_p4_provenance_reconciliation", "version": "20260830202733"},
-      {"name": "clean_pre_p4_participant_rls_repair", "version": "20260831110153"},
-      {"name": "clean_pre_p4_participant_rls_execution_contract", "version": "20260831110701"},
-      {"name": "clean_pre_p4_participant_rls_authenticated_proof", "version": "20260831114338"},
-      {"name": "clean_pre_p4_ai_confirmation_provenance", "version": "20260831120157"},
-      {"name": "client_command_authority_closure", "version": "20260901091438"}
+      {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
+      {"name":"lock_down_auth_trigger_functions_1_3b","version":"20260825115602"},
+      {"name":"clean_security_hardening","version":"20260829183528"},
+      {"name":"clean_need_foundation","version":"20260829183551"},
+      {"name":"clean_response_foundation","version":"20260829183609"},
+      {"name":"clean_agreement_foundation","version":"20260829183633"},
+      {"name":"clean_directional_access_grants","version":"20260829183651"},
+      {"name":"clean_ai_persistence","version":"20260829183711"},
+      {"name":"clean_rls_policies","version":"20260829183740"},
+      {"name":"clean_rpc_selection","version":"20260829183816"},
+      {"name":"clean_rpc_agreement_lifecycle","version":"20260829183947"},
+      {"name":"clean_rpc_ai_intake","version":"20260829184024"},
+      {"name":"clean_revoke_public_execute","version":"20260829184132"},
+      {"name":"clean_revoke_helper_execute_from_authenticated","version":"20260829184203"},
+      {"name":"clean_updated_at_triggers","version":"20260829185334"},
+      {"name":"clean_need_selection_completeness","version":"20260829185354"},
+      {"name":"clean_selection_rpc_alignment","version":"20260829185434"},
+      {"name":"clean_events_and_notifications","version":"20260829210453"},
+      {"name":"clean_emit_event_engine","version":"20260829210536"},
+      {"name":"clean_needs_schema_completion","version":"20260829210602"},
+      {"name":"clean_geo_foundation","version":"20260829210650"},
+      {"name":"clean_geo_foundation_repair","version":"20260829211203"},
+      {"name":"clean_dispatch_foundation","version":"20260829211420"},
+      {"name":"clean_dispatch_engine","version":"20260829211632"},
+      {"name":"clean_dispatch_wave","version":"20260829211737"},
+      {"name":"clean_urgency_projection","version":"20260829211904"},
+      {"name":"clean_urgent_min_choice_floor","version":"20260829211956"},
+      {"name":"clean_scheduled_lifecycle","version":"20260829212146"},
+      {"name":"clean_cron_schedule","version":"20260829212158"},
+      {"name":"clean_advisor_hardening","version":"20260829212807"},
+      {"name":"clean_need_response_deadline_expiry","version":"20260830070448"},
+      {"name":"clean_scoped_contact_reveal","version":"20260830072818"},
+      {"name":"clean_grant_policy_inline","version":"20260830072920"},
+      {"name":"clean_cancellation_privacy_and_wakeup","version":"20260830073615"},
+      {"name":"clean_need_lifecycle_integrity","version":"20260830080947"},
+      {"name":"clean_selection_eligibility_and_deadline","version":"20260830081035"},
+      {"name":"clean_authoritative_response_submit","version":"20260830081300"},
+      {"name":"clean_p1_cancel_withdraw_closure","version":"20260830172000"},
+      {"name":"clean_authoritative_mutation_boundary","version":"20260830173000"},
+      {"name":"clean_repair_authority_boundary","version":"20260830174000"},
+      {"name":"clean_ai_insert_authority_closure","version":"20260830174500"},
+      {"name":"clean_p0_authoritative_fixes","version":"20260830191500"},
+      {"name":"clean_p2_read_layer_repair","version":"20260830194000"},
+      {"name":"clean_pre_p4_provenance_reconciliation","version":"20260830202733"},
+      {"name":"clean_pre_p4_participant_rls_repair","version":"20260831110153"},
+      {"name":"clean_pre_p4_participant_rls_execution_contract","version":"20260831110701"},
+      {"name":"clean_pre_p4_participant_rls_authenticated_proof","version":"20260831114338"},
+      {"name":"clean_pre_p4_ai_confirmation_provenance","version":"20260831120157"},
+      {"name":"client_command_authority_closure","version":"20260901091438"},
+      {"name":"client_agreement_workspace_closure","version":"20260901101056"}
     ]
   },
   "reconstructions": [
@@ -77,8 +75,6 @@
       "classification": "RECORDED_STATEMENT_RECONSTRUCTION",
       "exact_byte_mirror": false,
       "source": "live supabase_migrations.schema_migrations.statements",
-      "recorded_statement_count": 7,
-      "recorded_statement_utf8_bytes": [697, 1613, 77, 79, 4347, 78, 80],
       "recorded_statement_md5": [
         "2d246635406c038407e3e189b2da7d44",
         "8a03fd2e586858bc08d024bffae3e4b0",
@@ -90,128 +86,36 @@
       ],
       "legacy_manifest_md5": "c4f62aa4521410dd3f85934bb98474a7",
       "canonical_reconstruction_raw_md5": "95eaf115b60f4ff1fb477c1697264cf5",
-      "reconstruction_method": "explicit provenance warning header, followed by the seven recorded statements in order; statements are separated by semicolon plus two LF and terminated by semicolon plus LF",
-      "byte_search_proof": [
-        "24,576 leading/boundary/final separator candidates tested; no legacy MD5 match",
-        "2,352,980 BOM/leading-LF/per-boundary-LF/final-semicolon candidates tested; no legacy MD5 match"
-      ],
-      "applied_history_action": "UNCHANGED",
-      "caveat": "Original file bytes remain unknown; the legacy checksum is preserved as historical evidence only."
+      "caveat": "Original pre-reconstruction file bytes remain unknown; applied history was not rewritten."
     }
   ],
-  "legacy_manifest_drift": [
-    {
-      "file": "20260830172000_clean_p1_cancel_withdraw_closure.sql",
-      "legacy_md5": "91377603c8e0e979aefd6ee0bfb98e42",
-      "canonical_raw_md5": "8ca930f55f18b6789ee32231db424a4d",
-      "cause": "UNKNOWN",
-      "action": "manifest now tracks canonical raw bytes; legacy value retained here"
-    },
-    {
-      "file": "20260830173000_clean_authoritative_mutation_boundary.sql",
-      "legacy_md5": "e678a6da70027b323443a168d6b2dfa4",
-      "canonical_raw_md5": "29e2d85dede9a8b7a8715098bd913405",
-      "cause": "UNKNOWN",
-      "action": "manifest now tracks canonical raw bytes; legacy value retained here"
-    },
-    {
-      "file": "20260830194000_clean_p2_read_layer_repair.sql",
-      "legacy_md5": "061fcb7b761b979b8bef6f3bcf2bebce",
-      "canonical_raw_md5": "a21c51c359baf86f2b3881da12d46b82",
-      "cause": "legacy value matches CRLF serialization while canonical Git blob is LF",
-      "action": "manifest now tracks canonical raw bytes"
-    }
-  ],
-  "undocumented_live_delta": {
-    "object": "public.rpc_ai_publish_need(uuid,uuid)",
-    "recorded_191500_terminal_conversation_status": "PUBLISHED",
-    "observed_pre_repair_terminal_conversation_status": "COMPLETED",
-    "changed_by_migration_20260830194000": false,
-    "actor": "UNKNOWN",
-    "occurred_at": "UNKNOWN",
-    "classification": "UNDOCUMENTED_OR_DIRECT_DDL",
-    "closure_migration": "20260830202733_clean_pre_p4_provenance_reconciliation.sql"
-  },
   "forward_closure": {
     "version": "20260830202733",
     "name": "clean_pre_p4_provenance_reconciliation",
     "file": "20260830202733_clean_pre_p4_provenance_reconciliation.sql",
     "raw_md5": "b5dfc44bba815eb6f51f88254b1e187e",
-    "predecessor_assertion": ["recorded PUBLISHED variant", "observed live COMPLETED variant"],
-    "resulting_contract": "authenticated fail-closed PACKAGE_4_NOT_READY; anon has no EXECUTE; no business-row mutation",
-    "rollback_implication": "Any rollback must be another forward migration; restoring either unsafe predecessor is forbidden."
+    "resulting_contract": "AI publish remained fail-closed until a later forward implementation could prove human review and safety."
   },
   "forward_repairs": [
     {
-      "version": "20260831110153",
-      "name": "clean_pre_p4_participant_rls_repair",
-      "file": "20260831110153_clean_pre_p4_participant_rls_repair.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "39fed81b6b721ed9909d5b85929d5828",
-      "affected_invariant": "Participant visibility is correlated to the outer Need and limited to current selected or confirmed/completed Agreement workers.",
-      "predecessor_defect": "Migration 20260830194000 was parsed as a.need_id = a.id and s.need_id = s.id.",
-      "live_definition_proof": "Historical intermediate state: needs_participant_read delegated the outer Need id to private.need_participant_can_read(uuid).",
-      "authenticated_runtime_proof": "PENDING: the read-only database connector has BYPASSRLS and cannot SET ROLE authenticated; no PASS is claimed from that connector.",
-      "rollback_implication": "Rollback requires a new forward migration; never edit or remove this applied migration.",
-      "superseded_by": "20260831110701_clean_pre_p4_participant_rls_execution_contract.sql"
+      "version":"20260831110153","name":"clean_pre_p4_participant_rls_repair","file":"20260831110153_clean_pre_p4_participant_rls_repair.sql","classification":"FORWARD_REPAIR","raw_md5":"39fed81b6b721ed9909d5b85929d5828"
     },
     {
-      "version": "20260831110701",
-      "name": "clean_pre_p4_participant_rls_execution_contract",
-      "file": "20260831110701_clean_pre_p4_participant_rls_execution_contract.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "feadcb9119bd6797f9b5ea086126dbaf",
-      "affected_invariant": "The participant RLS predicate is executable by authenticated callers while remaining bound exclusively to auth.uid().",
-      "predecessor_defect": "The private helper was not executable by authenticated and the private schema had no authenticated USAGE, creating a legitimate-reader denial risk.",
-      "live_definition_proof": "needs_participant_read calls public.fn_need_participant_can_read(id); authenticated has EXECUTE; anon and PUBLIC do not; the private helper is removed.",
-      "authenticated_runtime_proof": "PENDING: the read-only database connector has BYPASSRLS and cannot SET ROLE authenticated; no PASS is claimed from that connector.",
-      "rollback_implication": "Rollback requires a new forward migration; never edit or remove either applied Repair 2 migration.",
-      "superseded_by": "20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql"
+      "version":"20260831110701","name":"clean_pre_p4_participant_rls_execution_contract","file":"20260831110701_clean_pre_p4_participant_rls_execution_contract.sql","classification":"FORWARD_REPAIR","raw_md5":"feadcb9119bd6797f9b5ea086126dbaf"
     },
     {
-      "version": "20260831114338",
-      "name": "clean_pre_p4_participant_rls_authenticated_proof",
-      "file": "20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "501ec1a8d1087dd3410e5000ae55795d",
-      "applied_statement_md5": "484281d9c786d62dbfdb7d9f35b3049a",
-      "exact_applied_statement_mirror": "Canonical file equals the single recorded UTF-8 statement plus one terminal LF, matching the established migration mirror convention.",
-      "affected_invariant": "Participant visibility is outer-Need-correlated, caller-bound to auth.uid(), executable only by authenticated, and implemented by a helper outside PostgREST-exposed schemas.",
-      "predecessor_defect": "The public SECURITY DEFINER helper was directly RPC-exposed and authenticated runtime behavior had not been executed under a non-BYPASSRLS role.",
-      "live_definition_proof": "needs_participant_read calls rls_private.need_participant_can_read(id); authenticated has schema USAGE and function EXECUTE but no schema CREATE; anon and PUBLIC have neither; the public helper is absent; both participant lookup indexes exist.",
-      "authenticated_runtime_proof": "PASS: the applied migration executed SET LOCAL ROLE authenticated. An existing Agreement worker read its ACTIVE Need, the existing requester read the owned Need, a generated unrelated JWT subject read zero ACTIVE Needs, and that subject read exactly all four PUBLISHED/SELECTION discovery rows. Any mismatch would have raised and rolled back the migration.",
-      "business_row_proof": "Before and after: 6 Needs, 4 Responses, 2 Agreements, 4 Profiles, 2 auth users; no fixture or business-row mutation was performed.",
-      "rollback_implication": "Rollback requires a new forward migration. Restoring the exposed public helper or either ambiguous 194000 predicate is forbidden."
+      "version":"20260831114338","name":"clean_pre_p4_participant_rls_authenticated_proof","file":"20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"501ec1a8d1087dd3410e5000ae55795d","authenticated_runtime_proof":"PASS: migration-contained SET LOCAL ROLE authenticated proof covered participant/requester/outsider discovery invariants without retained fixture rows."
     },
     {
-      "version": "20260831120157",
-      "name": "clean_pre_p4_ai_confirmation_provenance",
-      "file": "20260831120157_clean_pre_p4_ai_confirmation_provenance.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "0739626857f34b31b4aef489def947f0",
-      "applied_statement_md5": "9f9bdc28adbd03fa14f8c2e247bf4a9f",
-      "exact_applied_statement_mirror": "Canonical file equals the single recorded UTF-8 statement plus one terminal LF, matching the established migration mirror convention.",
-      "affected_invariant": "Human confirmation preserves immutable AI fact source provenance while server authority derives confirmation metadata and direct authenticated UPDATE/DELETE remain closed.",
-      "predecessor_defect": "The predecessor rpc_ai_confirm_fact rewrote source to EXPLICIT_USER_ANSWER and authenticated still had direct UPDATE/DELETE grants despite the provenance guard.",
-      "live_definition_proof": "rpc_ai_confirm_fact is owner-only and replay-idempotent; it changes only status. private.guard_ai_fact_write preserves source and derives confirmed_by_user_id/confirmed_at on the allowed confirmation transition. authenticated has SELECT but no INSERT/UPDATE/DELETE on ai_structured_facts and retains EXECUTE on rpc_ai_confirm_fact.",
-      "authenticated_runtime_proof": "PASS: the applied migration executed as SET LOCAL ROLE authenticated, preserved AI_INFERENCE and evidence, derived confirmation metadata, proved replay idempotency, denied direct UPDATE, denied direct DELETE, denied wrong-owner confirmation, and rolled back on any mismatch.",
-      "business_row_proof": "The transactional proof created a temporary conversation/fact probe and deleted it before commit; post-apply verification found zero __pre_p4_provenance_probe__ facts.",
-      "rollback_implication": "Rollback requires another forward migration. Restoring source rewriting or direct authenticated fact UPDATE/DELETE is forbidden."
+      "version":"20260831120157","name":"clean_pre_p4_ai_confirmation_provenance","file":"20260831120157_clean_pre_p4_ai_confirmation_provenance.sql","classification":"FORWARD_REPAIR","raw_md5":"0739626857f34b31b4aef489def947f0","authenticated_runtime_proof":"PASS: migration-contained authenticated proof preserved AI source provenance and denied direct UPDATE/DELETE/wrong-owner confirmation."
     }
   ],
   "live_source_reconciliations": [
     {
-      "version": "20260901091438",
-      "name": "client_command_authority_closure",
-      "file": "20260901091438_client_command_authority_closure.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "source": "live supabase_migrations.schema_migrations.statements",
-      "recorded_statement_count": 1,
-      "recorded_statement_utf8_bytes": 7642,
-      "recorded_statement_md5": "012a54e35d2f90bf22978a98b79efee0",
-      "canonical_raw_md5": "4155ccc6a9e0e450dd7be95dcb8d326c",
-      "mirror_contract": "single recorded UTF-8 statement plus one terminal LF",
-      "applied_history_action": "UNCHANGED"
+      "version":"20260901091438","name":"client_command_authority_closure","file":"20260901091438_client_command_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7642,"recorded_statement_md5":"012a54e35d2f90bf22978a98b79efee0","canonical_raw_md5":"4155ccc6a9e0e450dd7be95dcb8d326c","applied_history_action":"UNCHANGED"
+    },
+    {
+      "version":"20260901101056","name":"client_agreement_workspace_closure","file":"20260901101056_client_agreement_workspace_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":15909,"recorded_statement_md5":"b93617c7ffa40cb2dcd7d4318bc75bd2","canonical_raw_md5":"1d88a954fab7737c5d7d9e019a93bff2","applied_history_action":"UNCHANGED"
     }
   ]
 }
