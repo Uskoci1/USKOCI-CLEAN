@@ -14,23 +14,39 @@ const dataPath = path.join(dataDir, 'entryReferenceData.ts');
 
 const html = fs.readFileSync(htmlPath, 'utf8');
 
-function extractBase64(pattern, label) {
+function requireMatch(pattern, label) {
   const match = html.match(pattern);
-  if (!match?.[1]) {
+  if (!match) {
     throw new Error(`[entry-reference] ${label} not found in canonical HTML`);
   }
-  return Buffer.from(match[1], 'base64');
+  return match;
 }
 
-function extractText(pattern, label) {
-  const match = html.match(pattern);
-  if (!match?.[1]) {
-    throw new Error(`[entry-reference] ${label} not found in canonical HTML`);
+function extractBase64(pattern, label, group = 1) {
+  const match = requireMatch(pattern, label);
+  if (!match[group]) {
+    throw new Error(`[entry-reference] ${label} payload missing in canonical HTML`);
   }
-  return match[1];
+  return Buffer.from(match[group], 'base64');
 }
 
-const city = extractBase64(/<img alt="" class="bg" src="data:image\/png;base64,([^"]+)"/, 'city PNG');
+function extractText(pattern, label, group = 1) {
+  const match = requireMatch(pattern, label);
+  if (!match[group]) {
+    throw new Error(`[entry-reference] ${label} payload missing in canonical HTML`);
+  }
+  return match[group];
+}
+
+// The accepted HTML currently carries the S01/S02 city artwork as WebP.
+// Keep the extractor format-tolerant so the canonical HTML remains the visual owner
+// instead of forcing the native build to assume a particular embedded image codec.
+const cityMatch = requireMatch(
+  /<img\s+alt=""\s+class="bg"\s+src="data:image\/(png|webp|jpeg);base64,([^"]+)"/i,
+  'city background image',
+);
+const cityMime = cityMatch[1].toLowerCase();
+const city = Buffer.from(cityMatch[2], 'base64');
 const font = extractBase64(/font-family:'UskociRounded';\s*src:url\(data:font\/ttf;base64,([^)]+)\)/s, 'UskociRounded TTF');
 const logo = extractText(/const ZNAK=(\{.*?\});\s*const PROZORI=/s, 'ZNAK animation data');
 const windows = extractText(/const PROZORI=(\[.*?\]);\s*const phone=/s, 'PROZORI animation data');
@@ -60,6 +76,6 @@ fs.writeFileSync(
 );
 
 const sha = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
-console.log(`[entry-reference] city ${city.length} bytes sha256=${sha(city)}`);
+console.log(`[entry-reference] city ${city.length} bytes mime=image/${cityMime} sha256=${sha(city)}`);
 console.log(`[entry-reference] font ${font.length} bytes sha256=${sha(font)}`);
-console.log(`[entry-reference] animation data generated from canonical HTML`);
+console.log('[entry-reference] animation data generated from canonical HTML');
