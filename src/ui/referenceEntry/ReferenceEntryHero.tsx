@@ -29,7 +29,7 @@ import Svg, {
 
 import { ENTRY_LOGO, ENTRY_TIMING, ENTRY_WINDOWS } from './entryReferenceData';
 
-const CITY_IMAGE = require('../../../assets/generated/uskoci-entry-city.png');
+const CITY_IMAGE = require('../../../assets/generated/uskoci-entry-city.webp');
 const AnimatedG = Animated.createAnimatedComponent(G);
 const ABSOLUTE_FILL = {
   position: 'absolute' as const,

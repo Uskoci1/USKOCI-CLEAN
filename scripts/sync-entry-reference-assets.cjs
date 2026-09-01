@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 const htmlPath = path.join(root, 'docs', 'reference', 'USKOCI_HTML_REFERENCA_IZGLEDA_APP.html');
 const outDir = path.join(root, 'assets', 'generated');
 const dataDir = path.join(root, 'src', 'ui', 'referenceEntry');
-const cityPath = path.join(outDir, 'uskoci-entry-city.png');
+const cityPath = path.join(outDir, 'uskoci-entry-city.webp');
 const fontPath = path.join(outDir, 'uskoci-rounded.ttf');
 const dataPath = path.join(dataDir, 'entryReferenceData.ts');
 
@@ -46,6 +46,9 @@ const cityMatch = requireMatch(
   'city background image',
 );
 const cityMime = cityMatch[1].toLowerCase();
+if (cityMime !== 'webp') {
+  throw new Error(`[entry-reference] canonical city image must be WebP for native binding, got image/${cityMime}`);
+}
 const city = Buffer.from(cityMatch[2], 'base64');
 const font = extractBase64(/font-family:'UskociRounded';\s*src:url\(data:font\/ttf;base64,([^)]+)\)/s, 'UskociRounded TTF');
 const logo = extractText(/const ZNAK=(\{.*?\});\s*const PROZORI=/s, 'ZNAK animation data');
