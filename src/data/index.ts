@@ -1,4 +1,5 @@
 import { lazniIzvor } from './lazniIzvor';
+import { productionAuthorityOverrides } from './productionAuthorityOverrides';
 import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
 import { Izvor } from './ports';
@@ -23,4 +24,13 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
   );
 }
 
-export const izvor: Izvor = koristiLazniIzvor ? lazniIzvor : supabaseIzvor;
+// Keep the existing read/projection adapter, but replace known unsafe or fake
+// command paths with the live server-authority contract. Spreading here keeps
+// the change additive and makes the remaining legacy adapter debt explicit.
+const produkcijskiIzvor: Izvor = {
+  ...supabaseIzvor,
+  ...productionAuthorityOverrides,
+  poreklo: 'supabase',
+};
+
+export const izvor: Izvor = koristiLazniIzvor ? lazniIzvor : produkcijskiIzvor;
