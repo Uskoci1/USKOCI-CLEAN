@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Intentional sideload checkpoint trigger: canonical native entry/Home/Auth transfer.
+# Intentional sideload checkpoint trigger: SafeArea startup-crash fix for native Home/Auth entry.
 on:
   workflow_dispatch:
   push:
