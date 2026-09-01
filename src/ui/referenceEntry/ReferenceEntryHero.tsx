@@ -31,6 +31,13 @@ import { ENTRY_LOGO, ENTRY_TIMING, ENTRY_WINDOWS } from './entryReferenceData';
 
 const CITY_IMAGE = require('../../../assets/generated/uskoci-entry-city.png');
 const AnimatedG = Animated.createAnimatedComponent(G);
+const ABSOLUTE_FILL = {
+  position: 'absolute' as const,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+};
 
 type Keyframe = {
   readonly t: number;
@@ -305,7 +312,7 @@ export function ReferenceEntryHero({
 
   return (
     <View style={styles.root}>
-      <Image source={CITY_IMAGE} resizeMode="cover" style={StyleSheet.absoluteFillObject} />
+      <Image source={CITY_IMAGE} resizeMode="cover" style={ABSOLUTE_FILL} />
 
       <Svg
         pointerEvents="none"
@@ -421,7 +428,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E3D37',
   },
   home: {
-    ...StyleSheet.absoluteFillObject,
+    ...ABSOLUTE_FILL,
     zIndex: 10,
   },
   topbar: {
