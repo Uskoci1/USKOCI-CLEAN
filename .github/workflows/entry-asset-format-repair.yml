@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - clean-alpha-backend
+    paths:
+      - '.github/workflows/entry-asset-format-repair.yml'
 
 permissions:
   contents: write
@@ -18,7 +20,7 @@ jobs:
         with:
           ref: clean-alpha-backend
 
-      - name: Patch canonical asset generator and native binding
+      - name: Patch canonical WebP asset contract
         shell: bash
         run: |
           set -euo pipefail
@@ -28,41 +30,25 @@ jobs:
           generator = Path('scripts/sync-entry-reference-assets.cjs')
           text = generator.read_text()
           old = "const cityPath = path.join(outDir, 'uskoci-entry-city.png');\n"
-          new = "const cityAssetModulePath = path.join(dataDir, 'entryCityImage.ts');\n"
-          assert text.count(old) == 1, f'generator cityPath target count={text.count(old)}'
+          new = "const cityPath = path.join(outDir, 'uskoci-entry-city.webp');\n"
+          assert text.count(old) == 1, f'generator city path target count={text.count(old)}'
           text = text.replace(old, new)
 
-          old = "const cityMime = cityMatch[1].toLowerCase();\nconst city = Buffer.from(cityMatch[2], 'base64');\n"
-          new = "const cityMime = cityMatch[1].toLowerCase();\nconst cityExtension = cityMime === 'jpeg' ? 'jpg' : cityMime;\nconst cityFilename = `uskoci-entry-city.${cityExtension}`;\nconst cityPath = path.join(outDir, cityFilename);\nconst city = Buffer.from(cityMatch[2], 'base64');\n"
-          assert text.count(old) == 1, 'generator MIME target missing'
-          text = text.replace(old, new)
-
-          old = "fs.mkdirSync(outDir, { recursive: true });\nfs.mkdirSync(dataDir, { recursive: true });\nfs.writeFileSync(cityPath, city);\n"
-          new = "fs.mkdirSync(outDir, { recursive: true });\nfs.mkdirSync(dataDir, { recursive: true });\nfor (const extension of ['png', 'webp', 'jpg', 'jpeg']) {\n  const stalePath = path.join(outDir, `uskoci-entry-city.${extension}`);\n  if (stalePath !== cityPath) fs.rmSync(stalePath, { force: true });\n}\nfs.writeFileSync(cityPath, city);\nfs.writeFileSync(\n  cityAssetModulePath,\n  `// GENERATED FROM docs/reference/USKOCI_HTML_REFERENCA_IZGLEDA_APP.html\\n` +\n    `// Native asset binding follows the embedded canonical image MIME.\\n\\n` +\n    `export const ENTRY_CITY_MIME = 'image/${cityMime}' as const;\\n` +\n    `export const ENTRY_CITY_FILENAME = '${cityFilename}' as const;\\n` +\n    `export const ENTRY_CITY_IMAGE = require('../../../assets/generated/${cityFilename}');\\n`,\n  'utf8',\n);\n"
-          assert text.count(old) == 1, 'generator write target missing'
+          marker = "const cityMime = cityMatch[1].toLowerCase();\n"
+          guard = "const cityMime = cityMatch[1].toLowerCase();\nif (cityMime !== 'webp') {\n  throw new Error(`[entry-reference] canonical city image must be WebP for native binding, got image/${cityMime}`);\n}\n"
+          assert text.count(marker) == 1, 'generator MIME marker missing'
+          text = text.replace(marker, guard)
           generator.write_text(text)
 
           hero = Path('src/ui/referenceEntry/ReferenceEntryHero.tsx')
           text = hero.read_text()
-          old = "import { ENTRY_LOGO, ENTRY_TIMING, ENTRY_WINDOWS } from './entryReferenceData';\n\nconst CITY_IMAGE = require('../../../assets/generated/uskoci-entry-city.png');\n"
-          new = "import { ENTRY_CITY_IMAGE } from './entryCityImage';\nimport { ENTRY_LOGO, ENTRY_TIMING, ENTRY_WINDOWS } from './entryReferenceData';\n"
-          assert text.count(old) == 1, f'hero binding target count={text.count(old)}'
-          text = text.replace(old, new)
-          assert text.count('source={CITY_IMAGE}') == 1, 'hero source target missing'
-          text = text.replace('source={CITY_IMAGE}', 'source={ENTRY_CITY_IMAGE}')
-          hero.write_text(text)
-
-          ignore = Path('.gitignore')
-          text = ignore.read_text()
-          marker = '/src/ui/referenceEntry/entryReferenceData.ts\n'
-          addition = '/src/ui/referenceEntry/entryCityImage.ts\n'
-          assert marker in text, '.gitignore entryReferenceData marker missing'
-          if addition not in text:
-              text = text.replace(marker, marker + addition)
-          ignore.write_text(text)
+          old = "const CITY_IMAGE = require('../../../assets/generated/uskoci-entry-city.png');"
+          new = "const CITY_IMAGE = require('../../../assets/generated/uskoci-entry-city.webp');"
+          assert text.count(old) == 1, f'hero city require target count={text.count(old)}'
+          hero.write_text(text.replace(old, new))
           PY
           git diff --check
-          git diff -- scripts/sync-entry-reference-assets.cjs src/ui/referenceEntry/ReferenceEntryHero.tsx .gitignore
+          git diff -- scripts/sync-entry-reference-assets.cjs src/ui/referenceEntry/ReferenceEntryHero.tsx
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -70,32 +56,22 @@ jobs:
           node-version: '24'
           cache: npm
 
-      - name: Generate canonical artifacts with patched generator
+      - name: Install and generate canonical artifacts
         run: npm ci
 
-      - name: Verify canonical city asset contract
+      - name: Verify generated WebP bytes
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('fs');
-          const path = require('path');
-          const dir = path.join('assets', 'generated');
-          const files = fs.readdirSync(dir).filter((name) => name.startsWith('uskoci-entry-city.'));
-          if (files.length !== 1) throw new Error(`expected exactly one city asset, found: ${files.join(', ')}`);
-          const name = files[0];
-          const b = fs.readFileSync(path.join(dir, name));
+          const p = 'assets/generated/uskoci-entry-city.webp';
+          if (!fs.existsSync(p)) throw new Error(`missing ${p}`);
+          const b = fs.readFileSync(p);
           const isWebp = b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP';
-          const isPng = b.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
-          const isJpeg = b[0] === 0xff && b[1] === 0xd8 && b[b.length - 2] === 0xff && b[b.length - 1] === 0xd9;
-          const ext = path.extname(name).toLowerCase();
-          if ((ext === '.webp' && !isWebp) || (ext === '.png' && !isPng) || ((ext === '.jpg' || ext === '.jpeg') && !isJpeg)) {
-            throw new Error(`city asset bytes do not match extension: ${name}`);
-          }
-          console.log(`[entry-reference] verified ${name} bytes=${b.length}`);
+          if (!isWebp) throw new Error('generated city asset is not WebP bytes');
+          console.log(`[entry-reference] verified WebP ${b.length} bytes`);
           NODE
-          test -f src/ui/referenceEntry/entryCityImage.ts
-          grep -Fq "uskoci-entry-city.webp" src/ui/referenceEntry/entryCityImage.ts
 
       - name: TypeScript contract check
         run: npx tsc --noEmit --pretty false
@@ -109,7 +85,7 @@ jobs:
           set -euo pipefail
           git config user.name 'USKOCI CI Repair'
           git config user.email 'actions@users.noreply.github.com'
-          git add scripts/sync-entry-reference-assets.cjs src/ui/referenceEntry/ReferenceEntryHero.tsx .gitignore
+          git add scripts/sync-entry-reference-assets.cjs src/ui/referenceEntry/ReferenceEntryHero.tsx
           git diff --cached --quiet && exit 0
-          git commit -m 'fix: preserve canonical entry image format'
+          git commit -m 'fix: align canonical city asset WebP extension'
           git push origin HEAD:clean-alpha-backend
