@@ -1,5 +1,6 @@
 import { agreementProductionOverrides } from './agreementProductionOverrides';
 import { lazniIzvor } from './lazniIzvor';
+import { needProductionOverrides } from './needProductionOverrides';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
 import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
@@ -25,13 +26,14 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
   );
 }
 
-// Existing adapter remains the read baseline while canonical closures replace
-// known unsafe/incorrect paths. Agreement overrides are last because they also
-// supersede the earlier fail-closed change/chat placeholders once migration 50
-// is present.
+// Existing adapter remains the baseline while strict canonical closures replace
+// known unsafe/incorrect paths. Need reads intentionally stop masking backend
+// failures as empty states. Agreement overrides stay last because they own the
+// migration-50 workspace projection and command semantics.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
+  ...needProductionOverrides,
   ...agreementProductionOverrides,
   poreklo: 'supabase',
 };
