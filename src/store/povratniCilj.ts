@@ -3,9 +3,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const AUTH_RETURN_TARGET_STORAGE_VERSION = 2 as const;
 export const AUTH_RETURN_TARGET_KEY = 'uskoci.auth.pending-intent.v2';
 
+export type GuestReturnTarget =
+  | { kind: 'NONE' }
+  | { kind: 'REQUESTER_DRAFT'; draftKey: string }
+  | { kind: 'NEED'; needId: string }
+  | { kind: 'DOGOVOR'; agreementId: string };
+
 export type GuestSessionIntent = {
   intent: 'REQUESTER' | 'WORKER';
-  returnTarget?: { kind: 'NONE' } | { kind: 'NEED'; needId: string } | { kind: 'DOGOVOR'; agreementId: string };
+  returnTarget?: GuestReturnTarget;
 };
 
 export type AuthReturnTargetRecordV2 = {
