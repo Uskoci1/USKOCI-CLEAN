@@ -42,6 +42,10 @@ example
 /ios
 /android
 
+# canonical HTML-derived native entry artifacts
+/assets/generated/
+/src/ui/referenceEntry/entryReferenceData.ts
+
 # lokalni env (anon key je public-by-design, ali ne ide u git)
 .env
 
