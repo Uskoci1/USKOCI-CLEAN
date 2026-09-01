@@ -27,19 +27,16 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Apply exact StatusBar compatibility repair
+      - name: Apply exact Expo StatusBar compatibility repair
         shell: bash
         run: |
           set -euo pipefail
-          old='<StatusBar style="light" translucent backgroundColor="transparent" />'
-          new='<StatusBar style="light" backgroundColor="transparent" />'
-          grep -Fq "$old" src/app/auth.tsx
           python - <<'PY'
           from pathlib import Path
           p = Path('src/app/auth.tsx')
           text = p.read_text()
           old = '<StatusBar style="light" translucent backgroundColor="transparent" />'
-          new = '<StatusBar style="light" backgroundColor="transparent" />'
+          new = '<StatusBar style="light" />'
           assert text.count(old) == 1, f'expected exactly one StatusBar target, got {text.count(old)}'
           p.write_text(text.replace(old, new))
           PY
