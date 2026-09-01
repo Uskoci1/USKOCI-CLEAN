@@ -54,6 +54,14 @@ const font = extractBase64(/font-family:'UskociRounded';\s*src:url\(data:font\/t
 const logo = extractText(/const ZNAK=(\{.*?\});\s*const PROZORI=/s, 'ZNAK animation data');
 const windows = extractText(/const PROZORI=(\[.*?\]);\s*const phone=/s, 'PROZORI animation data');
 
+const fontTag = font.subarray(0, 4);
+const sfnt100 = fontTag.equals(Buffer.from([0x00, 0x01, 0x00, 0x00]));
+const otto = fontTag.toString('ascii') === 'OTTO';
+const trueTypeApple = fontTag.toString('ascii') === 'true';
+if (!sfnt100 && !otto && !trueTypeApple) {
+  throw new Error(`[entry-reference] canonical UskociRounded payload is not a supported sfnt/TTF font; header=${fontTag.toString('hex')}`);
+}
+
 fs.mkdirSync(outDir, { recursive: true });
 fs.mkdirSync(dataDir, { recursive: true });
 fs.writeFileSync(cityPath, city);
@@ -80,5 +88,5 @@ fs.writeFileSync(
 
 const sha = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
 console.log(`[entry-reference] city ${city.length} bytes mime=image/${cityMime} sha256=${sha(city)}`);
-console.log(`[entry-reference] font ${font.length} bytes sha256=${sha(font)}`);
+console.log(`[entry-reference] font ${font.length} bytes header=${fontTag.toString('hex')} sha256=${sha(font)}`);
 console.log('[entry-reference] animation data generated from canonical HTML');
