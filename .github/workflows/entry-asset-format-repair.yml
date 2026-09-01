@@ -1,0 +1,115 @@
+name: Entry asset format repair
+
+on:
+  push:
+    branches:
+      - clean-alpha-backend
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout canonical branch
+        uses: actions/checkout@v4
+        with:
+          ref: clean-alpha-backend
+
+      - name: Patch canonical asset generator and native binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          generator = Path('scripts/sync-entry-reference-assets.cjs')
+          text = generator.read_text()
+          old = "const cityPath = path.join(outDir, 'uskoci-entry-city.png');\n"
+          new = "const cityAssetModulePath = path.join(dataDir, 'entryCityImage.ts');\n"
+          assert text.count(old) == 1, f'generator cityPath target count={text.count(old)}'
+          text = text.replace(old, new)
+
+          old = "const cityMime = cityMatch[1].toLowerCase();\nconst city = Buffer.from(cityMatch[2], 'base64');\n"
+          new = "const cityMime = cityMatch[1].toLowerCase();\nconst cityExtension = cityMime === 'jpeg' ? 'jpg' : cityMime;\nconst cityFilename = `uskoci-entry-city.${cityExtension}`;\nconst cityPath = path.join(outDir, cityFilename);\nconst city = Buffer.from(cityMatch[2], 'base64');\n"
+          assert text.count(old) == 1, 'generator MIME target missing'
+          text = text.replace(old, new)
+
+          old = "fs.mkdirSync(outDir, { recursive: true });\nfs.mkdirSync(dataDir, { recursive: true });\nfs.writeFileSync(cityPath, city);\n"
+          new = "fs.mkdirSync(outDir, { recursive: true });\nfs.mkdirSync(dataDir, { recursive: true });\nfor (const extension of ['png', 'webp', 'jpg', 'jpeg']) {\n  const stalePath = path.join(outDir, `uskoci-entry-city.${extension}`);\n  if (stalePath !== cityPath) fs.rmSync(stalePath, { force: true });\n}\nfs.writeFileSync(cityPath, city);\nfs.writeFileSync(\n  cityAssetModulePath,\n  `// GENERATED FROM docs/reference/USKOCI_HTML_REFERENCA_IZGLEDA_APP.html\\n` +\n    `// Native asset binding follows the embedded canonical image MIME.\\n\\n` +\n    `export const ENTRY_CITY_MIME = 'image/${cityMime}' as const;\\n` +\n    `export const ENTRY_CITY_FILENAME = '${cityFilename}' as const;\\n` +\n    `export const ENTRY_CITY_IMAGE = require('../../../assets/generated/${cityFilename}');\\n`,\n  'utf8',\n);\n"
+          assert text.count(old) == 1, 'generator write target missing'
+          generator.write_text(text)
+
+          hero = Path('src/ui/referenceEntry/ReferenceEntryHero.tsx')
+          text = hero.read_text()
+          old = "import { ENTRY_LOGO, ENTRY_TIMING, ENTRY_WINDOWS } from './entryReferenceData';\n\nconst CITY_IMAGE = require('../../../assets/generated/uskoci-entry-city.png');\n"
+          new = "import { ENTRY_CITY_IMAGE } from './entryCityImage';\nimport { ENTRY_LOGO, ENTRY_TIMING, ENTRY_WINDOWS } from './entryReferenceData';\n"
+          assert text.count(old) == 1, f'hero binding target count={text.count(old)}'
+          text = text.replace(old, new)
+          assert text.count('source={CITY_IMAGE}') == 1, 'hero source target missing'
+          text = text.replace('source={CITY_IMAGE}', 'source={ENTRY_CITY_IMAGE}')
+          hero.write_text(text)
+
+          ignore = Path('.gitignore')
+          text = ignore.read_text()
+          marker = '/src/ui/referenceEntry/entryReferenceData.ts\n'
+          addition = '/src/ui/referenceEntry/entryCityImage.ts\n'
+          assert marker in text, '.gitignore entryReferenceData marker missing'
+          if addition not in text:
+              text = text.replace(marker, marker + addition)
+          ignore.write_text(text)
+          PY
+          git diff --check
+          git diff -- scripts/sync-entry-reference-assets.cjs src/ui/referenceEntry/ReferenceEntryHero.tsx .gitignore
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Generate canonical artifacts with patched generator
+        run: npm ci
+
+      - name: Verify canonical city asset contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const dir = path.join('assets', 'generated');
+          const files = fs.readdirSync(dir).filter((name) => name.startsWith('uskoci-entry-city.'));
+          if (files.length !== 1) throw new Error(`expected exactly one city asset, found: ${files.join(', ')}`);
+          const name = files[0];
+          const b = fs.readFileSync(path.join(dir, name));
+          const isWebp = b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP';
+          const isPng = b.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
+          const isJpeg = b[0] === 0xff && b[1] === 0xd8 && b[b.length - 2] === 0xff && b[b.length - 1] === 0xd9;
+          const ext = path.extname(name).toLowerCase();
+          if ((ext === '.webp' && !isWebp) || (ext === '.png' && !isPng) || ((ext === '.jpg' || ext === '.jpeg') && !isJpeg)) {
+            throw new Error(`city asset bytes do not match extension: ${name}`);
+          }
+          console.log(`[entry-reference] verified ${name} bytes=${b.length}`);
+          NODE
+          test -f src/ui/referenceEntry/entryCityImage.ts
+          grep -Fq "uskoci-entry-city.webp" src/ui/referenceEntry/entryCityImage.ts
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit --pretty false
+
+      - name: Regression tests
+        run: npm test -- --runInBand
+
+      - name: Commit persistent source repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'USKOCI CI Repair'
+          git config user.email 'actions@users.noreply.github.com'
+          git add scripts/sync-entry-reference-assets.cjs src/ui/referenceEntry/ReferenceEntryHero.tsx .gitignore
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: preserve canonical entry image format'
+          git push origin HEAD:clean-alpha-backend
