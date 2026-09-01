@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-01T11:27:00Z",
+  "generated_at_utc": "2026-09-01T11:35:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "8612ca3d86cf0722eef6f0835fd31970c7881505",
+  "repository_base_head": "3962ce2c4fd3f70132b65c4d1c25447fab76d7d3",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,8 +12,8 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only."
   },
   "live_history_snapshot": {
-    "migration_count": 54,
-    "last": {"name":"clean_ai_interview_turn_persistence","version":"20260901112607"},
+    "migration_count": 55,
+    "last": {"name":"clean_ai_interview_turn_authenticated_proof","version":"20260901113333"},
     "entries": [
       {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
       {"name":"lock_down_auth_trigger_functions_1_3b","version":"20260825115602"},
@@ -68,7 +68,8 @@
       {"name":"clean_parent_need_completion_closure","version":"20260901104722"},
       {"name":"clean_single_writer_authority_closure","version":"20260901105209"},
       {"name":"clean_completion_and_writer_authenticated_proof","version":"20260901105922"},
-      {"name":"clean_ai_interview_turn_persistence","version":"20260901112607"}
+      {"name":"clean_ai_interview_turn_persistence","version":"20260901112607"},
+      {"name":"clean_ai_interview_turn_authenticated_proof","version":"20260901113333"}
     ]
   },
   "reconstructions": [
@@ -108,7 +109,8 @@
     {"version":"20260901104722","name":"clean_parent_need_completion_closure","file":"20260901104722_clean_parent_need_completion_closure.sql","classification":"FORWARD_REPAIR","raw_md5":"a5c698120fe8b4dd8d43bfb92cb42e80","contract":"Completed Agreement seat coverage is aggregated server-side; only full completed SELECTED coverage may transition parent Need to COMPLETED."},
     {"version":"20260901105209","name":"clean_single_writer_authority_closure","file":"20260901105209_clean_single_writer_authority_closure.sql","classification":"FORWARD_REPAIR","raw_md5":"c3b045f3c6f77e573c7dbec0e8699e88","contract":"Authenticated clients retain RLS-governed reads but no direct DML authority on access_grants or agreement_messages; mutations are RPC-only."},
     {"version":"20260901105922","name":"clean_completion_and_writer_authenticated_proof","file":"20260901105922_clean_completion_and_writer_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"8c81ab60da89bc7bd83c42417b4b258f","authenticated_runtime_proof":"PASS: direct Agreement/grant writes denied; authoritative RPC paths and parent Need completion proved in rollback-only runtime test; zero proof rows retained."},
-    {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"FORWARD_REPAIR","raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","contract":"Persistent NEED_INTAKE USER/ASSISTANT history is own-read only; authenticated direct writes and service-turn execution are denied; service_role alone atomically persists one AI turn plus AI_INFERENCE NEEDS_CONFIRMATION facts."}
+    {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"FORWARD_REPAIR","raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","contract":"Persistent NEED_INTAKE USER/ASSISTANT history is own-read only; authenticated direct writes and service-turn execution are denied; service_role alone atomically persists one AI turn plus AI_INFERENCE NEEDS_CONFIRMATION facts."},
+    {"version":"20260901113333","name":"clean_ai_interview_turn_authenticated_proof","file":"20260901113333_clean_ai_interview_turn_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","authenticated_runtime_proof":"PASS: authenticated direct ai_messages INSERT and service-turn EXECUTE denied; service_role atomically persisted USER+ASSISTANT+AI_INFERENCE fact inside rollback-only subtransaction; zero proof rows retained."}
   ],
   "live_source_reconciliations": [
     {"version":"20260901091438","name":"client_command_authority_closure","file":"20260901091438_client_command_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7642,"recorded_statement_md5":"012a54e35d2f90bf22978a98b79efee0","canonical_raw_md5":"4155ccc6a9e0e450dd7be95dcb8d326c","applied_history_action":"UNCHANGED"},
@@ -116,6 +118,7 @@
     {"version":"20260901104722","name":"clean_parent_need_completion_closure","file":"20260901104722_clean_parent_need_completion_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":9875,"recorded_statement_md5":"a5c698120fe8b4dd8d43bfb92cb42e80","canonical_raw_md5":"a5c698120fe8b4dd8d43bfb92cb42e80","applied_history_action":"UNCHANGED"},
     {"version":"20260901105209","name":"clean_single_writer_authority_closure","file":"20260901105209_clean_single_writer_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":1188,"recorded_statement_md5":"c3b045f3c6f77e573c7dbec0e8699e88","canonical_raw_md5":"c3b045f3c6f77e573c7dbec0e8699e88","applied_history_action":"UNCHANGED"},
     {"version":"20260901105922","name":"clean_completion_and_writer_authenticated_proof","file":"20260901105922_clean_completion_and_writer_authenticated_proof.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7630,"recorded_statement_md5":"8c81ab60da89bc7bd83c42417b4b258f","canonical_raw_md5":"8c81ab60da89bc7bd83c42417b4b258f","applied_history_action":"UNCHANGED"},
-    {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7293,"recorded_statement_md5":"ef8003c346fd7bbd51102ee6cfc9a811","canonical_raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"}
+    {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7293,"recorded_statement_md5":"ef8003c346fd7bbd51102ee6cfc9a811","canonical_raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","applied_history_action":"UNCHANGED"},
+    {"version":"20260901113333","name":"clean_ai_interview_turn_authenticated_proof","file":"20260901113333_clean_ai_interview_turn_authenticated_proof.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":6130,"recorded_statement_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","canonical_raw_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"}
   ]
 }
