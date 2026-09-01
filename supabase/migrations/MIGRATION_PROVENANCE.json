@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-08-31T14:25:49Z",
+  "generated_at_utc": "2026-09-01T09:57:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "8766b8a9f02fb639f5890a7614f92f789fcb12f8",
+  "repository_base_head": "bddab3a18a70824ae64135da63813f5dba489464",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes only. It does not claim that reconstructed files equal lost original bytes."
   },
   "live_history_snapshot": {
-    "migration_count": 48,
+    "migration_count": 49,
     "last": {
-      "name": "clean_pre_p4_ai_confirmation_provenance",
-      "version": "20260831120157"
+      "name": "client_command_authority_closure",
+      "version": "20260901091438"
     },
     "entries": [
       {"name": "cloud_profile_foundation_1_3b", "version": "20260825115040"},
@@ -65,7 +65,8 @@
       {"name": "clean_pre_p4_participant_rls_repair", "version": "20260831110153"},
       {"name": "clean_pre_p4_participant_rls_execution_contract", "version": "20260831110701"},
       {"name": "clean_pre_p4_participant_rls_authenticated_proof", "version": "20260831114338"},
-      {"name": "clean_pre_p4_ai_confirmation_provenance", "version": "20260831120157"}
+      {"name": "clean_pre_p4_ai_confirmation_provenance", "version": "20260831120157"},
+      {"name": "client_command_authority_closure", "version": "20260901091438"}
     ]
   },
   "reconstructions": [
@@ -196,6 +197,21 @@
       "authenticated_runtime_proof": "PASS: the applied migration executed as SET LOCAL ROLE authenticated, preserved AI_INFERENCE and evidence, derived confirmation metadata, proved replay idempotency, denied direct UPDATE, denied direct DELETE, denied wrong-owner confirmation, and rolled back on any mismatch.",
       "business_row_proof": "The transactional proof created a temporary conversation/fact probe and deleted it before commit; post-apply verification found zero __pre_p4_provenance_probe__ facts.",
       "rollback_implication": "Rollback requires another forward migration. Restoring source rewriting or direct authenticated fact UPDATE/DELETE is forbidden."
+    }
+  ],
+  "live_source_reconciliations": [
+    {
+      "version": "20260901091438",
+      "name": "client_command_authority_closure",
+      "file": "20260901091438_client_command_authority_closure.sql",
+      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
+      "source": "live supabase_migrations.schema_migrations.statements",
+      "recorded_statement_count": 1,
+      "recorded_statement_utf8_bytes": 7642,
+      "recorded_statement_md5": "012a54e35d2f90bf22978a98b79efee0",
+      "canonical_raw_md5": "4155ccc6a9e0e450dd7be95dcb8d326c",
+      "mirror_contract": "single recorded UTF-8 statement plus one terminal LF",
+      "applied_history_action": "UNCHANGED"
     }
   ]
 }
