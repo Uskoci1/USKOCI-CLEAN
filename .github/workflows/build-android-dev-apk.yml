@@ -1,5 +1,6 @@
 name: Build Android development APK
 
+# Intentional sideload checkpoint trigger: canonical native entry/Home/Auth transfer.
 on:
   workflow_dispatch:
   push:
