@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, ScrollView, TextInput, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   PaperPlaneTilt, Check, Sparkle, PencilSimple, Warning, Info, ShieldCheck,
 } from 'phosphor-react-native';
@@ -38,6 +38,8 @@ const REDOSLED: KljucCinjenice[] = [
 
 export default function NovaPotreba() {
   const izvor = useIzvor();
+  const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
+  const resumeId = Array.isArray(params.conversationId) ? params.conversationId[0] : params.conversationId;
   const [razgovorId, setRazgovorId] = useState<string | null>(null);
   const [poruke, setPoruke] = useState<PorukaRazgovora[]>([]);
   const [nacrt, setNacrt] = useState<NacrtPotrebeProjekcija | null>(null);
@@ -48,47 +50,90 @@ export default function NovaPotreba() {
   const skrol = useRef<ScrollView>(null);
 
   const osvezi = useCallback(async (id: string) => {
-    const s = await izvor.razgovor(id);
-    if (!s) return;
-    setPoruke(s.poruke);
-    setNacrt(s.nacrt);
-  }, []);
+    try {
+      const s = await izvor.razgovor(id);
+      if (!s) {
+        setGreska('Sačuvani nacrt nije dostupan ovom nalogu.');
+        return false;
+      }
+      setPoruke(s.poruke);
+      setNacrt(s.nacrt);
+      return true;
+    } catch (error: any) {
+      setGreska(error?.message || 'Nacrt nije mogao da se učita.');
+      return false;
+    }
+  }, [izvor]);
 
   useEffect(() => {
-    izvor.otvoriRazgovor().then((o) => {
-      if (!o.ok) return;
+    let ziv = true;
+    async function inicijalizuj() {
+      setGreska(null);
+
+      if (resumeId) {
+        setRazgovorId(resumeId);
+        await osvezi(resumeId);
+        return;
+      }
+
+      const o = await izvor.otvoriRazgovor();
+      if (!ziv) return;
+      if (!o.ok) {
+        setGreska(o.poruka);
+        return;
+      }
       setRazgovorId(o.podatak.razgovorId);
-      osvezi(o.podatak.razgovorId);
-    });
-  }, [osvezi]);
+      await osvezi(o.podatak.razgovorId);
+    }
+
+    void inicijalizuj();
+    return () => {
+      ziv = false;
+    };
+  }, [izvor, osvezi, resumeId]);
 
   const posalji = useCallback(async () => {
     const telo = unos.trim();
     if (!telo || !razgovorId || radi) return;
     setUnos('');
     setRadi(true);
-    await izvor.posaljiKorisnikovuPoruku(razgovorId, telo);
-    await osvezi(razgovorId);
-    setRadi(false);
-    requestAnimationFrame(() => skrol.current?.scrollToEnd({ animated: true }));
-  }, [unos, razgovorId, radi, osvezi]);
+    setGreska(null);
+    try {
+      const ishod = await izvor.posaljiKorisnikovuPoruku(razgovorId, telo);
+      if (!ishod.ok) {
+        setGreska(ishod.poruka);
+        setUnos(telo);
+        return;
+      }
+      await osvezi(razgovorId);
+      requestAnimationFrame(() => skrol.current?.scrollToEnd({ animated: true }));
+    } finally {
+      setRadi(false);
+    }
+  }, [unos, razgovorId, radi, izvor, osvezi]);
 
   const potvrdi = useCallback(
     async (c: Cinjenica) => {
       if (!razgovorId) return;
+      setGreska(null);
       const i = await izvor.potvrdiCinjenicu(c.id);
       if (!i.ok) setGreska(i.poruka);
       await osvezi(razgovorId);
     },
-    [razgovorId, osvezi],
+    [razgovorId, izvor, osvezi],
   );
 
   const sacuvajIspravku = useCallback(async () => {
     if (!ispravka || !razgovorId) return;
-    await izvor.ispraviCinjenicu(ispravka.id, ispravka.tekst);
+    setGreska(null);
+    const ishod = await izvor.ispraviCinjenicu(ispravka.id, ispravka.tekst);
+    if (!ishod.ok) {
+      setGreska(ishod.poruka);
+      return;
+    }
     setIspravka(null);
     await osvezi(razgovorId);
-  }, [ispravka, razgovorId, osvezi]);
+  }, [ispravka, razgovorId, izvor, osvezi]);
 
   const objavi = useCallback(async () => {
     if (!razgovorId) return;
@@ -98,12 +143,28 @@ export default function NovaPotreba() {
       return;
     }
     router.replace('/potrebe');
-  }, [razgovorId]);
+  }, [razgovorId, izvor]);
 
   if (!nacrt) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center' }}>
-        <ActivityIndicator color={palette.teal500} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', padding: space.xl }}>
+        {greska ? (
+          <View style={{ gap: space.base, alignItems: 'center' }}>
+            <Warning size={28} color={palette.danger} weight="fill" />
+            <T variant="body" tone="danger" style={{ textAlign: 'center' }}>{greska}</T>
+            <Press
+              accessibilityRole="button"
+              accessibilityLabel="Otvori novi nacrt"
+              haptic="light"
+              onPress={() => router.replace('/nova')}
+              style={{ minHeight: touch.min, paddingHorizontal: space.lg, borderRadius: radius.md, backgroundColor: palette.orange, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <T variant="action" tone="onOrange">Otvori novi nacrt</T>
+            </Press>
+          </View>
+        ) : (
+          <ActivityIndicator color={palette.teal500} />
+        )}
       </SafeAreaView>
     );
   }
