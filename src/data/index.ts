@@ -1,4 +1,5 @@
 import { agreementProductionOverrides } from './agreementProductionOverrides';
+import { aiProductionOverrides } from './aiProductionOverrides';
 import { lazniIzvor } from './lazniIzvor';
 import { needProductionOverrides } from './needProductionOverrides';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
@@ -28,12 +29,14 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 
 // Existing adapter remains the baseline while strict canonical closures replace
 // known unsafe/incorrect paths. Need reads intentionally stop masking backend
-// failures as empty states. Agreement overrides stay last because they own the
-// migration-50 workspace projection and command semantics.
+// failures as empty states. AI overrides align the live NEED_INTAKE contract and
+// expose only persisted facts; provider commands remain fail-closed. Agreement
+// overrides stay last because they own the migration-50 workspace semantics.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
   ...needProductionOverrides,
+  ...aiProductionOverrides,
   ...agreementProductionOverrides,
   poreklo: 'supabase',
 };
