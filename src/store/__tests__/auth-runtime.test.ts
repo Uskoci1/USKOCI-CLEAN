@@ -1,8 +1,6 @@
-﻿
 import { povratniCilj } from '../povratniCilj';
 import { postaviUlogu, ulogaSada, resetujUlogu } from '../uloga';
 
-// Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => {
   let store: Record<string, string> = {};
   return {
@@ -19,46 +17,66 @@ describe('Auth Runtime & Role Continuity', () => {
     await povratniCilj.clear();
   });
 
-  it('preserves guest draft intent and resolves to correct workspace (REQUESTER)', async () => {
-    // 1. Guest creates draft
-    await povratniCilj.prepare({ intent: 'REQUESTER', returnTarget: { kind: 'REQUESTER_DRAFT', draftKey: '123' } } as any);
-    
-    // 2. Auth transition (Auth is successful, layout calls resolution)
+  it('preserves typed requester draft and same conversation through Auth', async () => {
+    await povratniCilj.prepare({
+      intent: 'REQUESTER',
+      returnTarget: { kind: 'REQUESTER_DRAFT', draftKey: 'conversation-123' },
+    });
+
     const pending = await povratniCilj.snapshot();
     expect(pending?.status).toBe('PENDING');
-    
+    expect(pending?.intent.returnTarget).toEqual({
+      kind: 'REQUESTER_DRAFT',
+      draftKey: 'conversation-123',
+    });
+
     if (pending) {
       await povratniCilj.markCompleted('user-1', pending.intent);
       if (pending.intent.intent === 'WORKER') postaviUlogu('uskocer');
       else postaviUlogu('narucilac');
     }
-    
-    // 3. Verify
+
     expect(ulogaSada()).toBe('narucilac');
     const completed = await povratniCilj.snapshot();
     expect(completed?.status).toBe('COMPLETED');
+    expect(completed?.completedByUserId).toBe('user-1');
+    expect(completed?.intent.returnTarget).toEqual({
+      kind: 'REQUESTER_DRAFT',
+      draftKey: 'conversation-123',
+    });
+
+    const consumed = await povratniCilj.consumeCompleted('user-1');
+    expect(consumed?.intent.returnTarget).toEqual({
+      kind: 'REQUESTER_DRAFT',
+      draftKey: 'conversation-123',
+    });
+    expect(await povratniCilj.snapshot()).toBeNull();
+  });
+
+  it('does not hand a completed return target to a different user', async () => {
+    await povratniCilj.markCompleted('user-1', {
+      intent: 'REQUESTER',
+      returnTarget: { kind: 'REQUESTER_DRAFT', draftKey: 'conversation-123' },
+    });
+
+    expect(await povratniCilj.consumeCompleted('user-2')).toBeNull();
+    expect(await povratniCilj.snapshot()).toBeNull();
   });
 
   it('WORKER intent -> Auth -> Worker workspace without losing Requester capability', async () => {
-    // 1. Guest wants to see opportunities
-    await povratniCilj.prepare({ intent: 'WORKER' } as any);
-    
-    // 2. Auth transition
+    await povratniCilj.prepare({ intent: 'WORKER' });
+
     const pending = await povratniCilj.snapshot();
     expect(pending?.status).toBe('PENDING');
-    
+
     if (pending) {
       await povratniCilj.markCompleted('user-1', pending.intent);
       if (pending.intent.intent === 'WORKER') postaviUlogu('uskocer');
       else postaviUlogu('narucilac');
     }
-    
-    // 3. Verify role changed locally
+
     expect(ulogaSada()).toBe('uskocer');
-    
-    // 4. Verify Requester capability is NOT lost (they can switch back instantly)
     postaviUlogu('narucilac');
     expect(ulogaSada()).toBe('narucilac');
   });
 });
-
