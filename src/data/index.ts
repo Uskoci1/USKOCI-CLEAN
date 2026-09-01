@@ -1,3 +1,4 @@
+import { agreementProductionOverrides } from './agreementProductionOverrides';
 import { lazniIzvor } from './lazniIzvor';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
 import { supabaseIzvor } from './supabaseIzvor';
@@ -24,12 +25,14 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
   );
 }
 
-// Keep the existing read/projection adapter, but replace known unsafe or fake
-// command paths with the live server-authority contract. Spreading here keeps
-// the change additive and makes the remaining legacy adapter debt explicit.
+// Existing adapter remains the read baseline while canonical closures replace
+// known unsafe/incorrect paths. Agreement overrides are last because they also
+// supersede the earlier fail-closed change/chat placeholders once migration 50
+// is present.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
+  ...agreementProductionOverrides,
   poreklo: 'supabase',
 };
 
