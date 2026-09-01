@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-01T10:12:00Z",
+  "generated_at_utc": "2026-09-01T10:16:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "049d302ae7b736513826dc09958a2bca722d9a89",
+  "repository_base_head": "65e6fe83d349f9e25d56c9bc4576240be890c1ce",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -97,25 +97,13 @@
     "resulting_contract": "AI publish remained fail-closed until a later forward implementation could prove human review and safety."
   },
   "forward_repairs": [
-    {
-      "version":"20260831110153","name":"clean_pre_p4_participant_rls_repair","file":"20260831110153_clean_pre_p4_participant_rls_repair.sql","classification":"FORWARD_REPAIR","raw_md5":"39fed81b6b721ed9909d5b85929d5828"
-    },
-    {
-      "version":"20260831110701","name":"clean_pre_p4_participant_rls_execution_contract","file":"20260831110701_clean_pre_p4_participant_rls_execution_contract.sql","classification":"FORWARD_REPAIR","raw_md5":"feadcb9119bd6797f9b5ea086126dbaf"
-    },
-    {
-      "version":"20260831114338","name":"clean_pre_p4_participant_rls_authenticated_proof","file":"20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"501ec1a8d1087dd3410e5000ae55795d","authenticated_runtime_proof":"PASS: migration-contained SET LOCAL ROLE authenticated proof covered participant/requester/outsider discovery invariants without retained fixture rows."
-    },
-    {
-      "version":"20260831120157","name":"clean_pre_p4_ai_confirmation_provenance","file":"20260831120157_clean_pre_p4_ai_confirmation_provenance.sql","classification":"FORWARD_REPAIR","raw_md5":"0739626857f34b31b4aef489def947f0","authenticated_runtime_proof":"PASS: migration-contained authenticated proof preserved AI source provenance and denied direct UPDATE/DELETE/wrong-owner confirmation."
-    }
+    {"version":"20260831110153","name":"clean_pre_p4_participant_rls_repair","file":"20260831110153_clean_pre_p4_participant_rls_repair.sql","classification":"FORWARD_REPAIR","raw_md5":"39fed81b6b721ed9909d5b85929d5828"},
+    {"version":"20260831110701","name":"clean_pre_p4_participant_rls_execution_contract","file":"20260831110701_clean_pre_p4_participant_rls_execution_contract.sql","classification":"FORWARD_REPAIR","raw_md5":"feadcb9119bd6797f9b5ea086126dbaf"},
+    {"version":"20260831114338","name":"clean_pre_p4_participant_rls_authenticated_proof","file":"20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"501ec1a8d1087dd3410e5000ae55795d","authenticated_runtime_proof":"PASS: migration-contained SET LOCAL ROLE authenticated proof covered participant/requester/outsider discovery invariants without retained fixture rows."},
+    {"version":"20260831120157","name":"clean_pre_p4_ai_confirmation_provenance","file":"20260831120157_clean_pre_p4_ai_confirmation_provenance.sql","classification":"FORWARD_REPAIR","raw_md5":"0739626857f34b31b4aef489def947f0","authenticated_runtime_proof":"PASS: migration-contained authenticated proof preserved AI source provenance and denied direct UPDATE/DELETE/wrong-owner confirmation."}
   ],
   "live_source_reconciliations": [
-    {
-      "version":"20260901091438","name":"client_command_authority_closure","file":"20260901091438_client_command_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7642,"recorded_statement_md5":"012a54e35d2f90bf22978a98b79efee0","canonical_raw_md5":"4155ccc6a9e0e450dd7be95dcb8d326c","applied_history_action":"UNCHANGED"
-    },
-    {
-      "version":"20260901101056","name":"client_agreement_workspace_closure","file":"20260901101056_client_agreement_workspace_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":15909,"recorded_statement_md5":"b93617c7ffa40cb2dcd7d4318bc75bd2","canonical_raw_md5":"1d88a954fab7737c5d7d9e019a93bff2","applied_history_action":"UNCHANGED"
-    }
+    {"version":"20260901091438","name":"client_command_authority_closure","file":"20260901091438_client_command_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7642,"recorded_statement_md5":"012a54e35d2f90bf22978a98b79efee0","canonical_raw_md5":"4155ccc6a9e0e450dd7be95dcb8d326c","applied_history_action":"UNCHANGED"},
+    {"version":"20260901101056","name":"client_agreement_workspace_closure","file":"20260901101056_client_agreement_workspace_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":15909,"recorded_statement_md5":"b93617c7ffa40cb2dcd7d4318bc75bd2","canonical_raw_md5":"b93617c7ffa40cb2dcd7d4318bc75bd2","mirror_contract":"canonical file is the exact recorded UTF-8 statement, with no synthetic terminal byte","applied_history_action":"UNCHANGED"}
   ]
 }
