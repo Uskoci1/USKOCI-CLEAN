@@ -6,13 +6,13 @@ Canonical physical reference path:
 `docs/reference/USKOCI_HTML_REFERENCA_IZGLEDA_APP.html`
 
 Prepared replacement SHA-256:
-`5ada3a73ef9585a2fe29832e530c59d2f21804518b09b8ec0a2f8c3b1e78dad2`
+`8cc0d6810dc53f0cfb3cd34a3182cbfd3defcc93cd144c6a6bad7ca0556e7a5c`
 
 ## Added reference coverage
 
 Wave CQ closes the following visible product-entry gaps without redesigning the existing HTML direction:
 
-1. `HITNO` toggle during requester AI Need creation and review.
+1. AI-derived urgency during requester Need creation: **no separate HITNO toggle/button**. AI infers urgency from natural-language input; if the wording is ambiguous, production AI should ask a short confirmation before canonical save.
 2. Rich Worker resources editor: vehicle type, carrying/cargo capacity, seats, team size and tools.
 3. `Obaveštavaj me za ove filtere` action in Worker marketplace discovery.
 4. Separate `Prijavi korisnika` safety flow.
@@ -26,16 +26,15 @@ Wave CQ closes the following visible product-entry gaps without redesigning the 
 The prepared HTML replacement was checked as follows:
 
 - all inline JavaScript blocks pass `node --check`;
-- loaded in headless Chromium using DevTools `Page.setDocumentContent`;
-- R02 HITNO control rendered and toggled state;
-- W03 saved-opportunity-alert control rendered and toggled state;
-- W08 expanded resources sheet opened and saved values;
-- W04 user-report flow opened and recorded a report state;
-- S07 account/data-rights group rendered and export-data flow opened;
-- D03 photo attachment flow opened and added a reference message;
-- D02 native-navigation entry and user-safety actions rendered;
-- existing Auth layer remained present;
-- observed JavaScript runtime exceptions: **0**.
+- explicit `Označi kao HITNO` UI and CQ urgency toggle are absent;
+- urgency inference is modeled as an AI-derived fact from requester language, with negation handling (`nije hitno`, `ne mora odmah`, etc.);
+- W03 saved-opportunity-alert control is retained;
+- W08 expanded resources sheet is retained;
+- W04 user-report flow is retained;
+- S07 account/data-rights group is retained;
+- D03 photo attachment entry is retained;
+- D02 native-navigation entry and user-safety actions are retained;
+- existing Auth layer remains untouched by this correction.
 
 ## Important
 
