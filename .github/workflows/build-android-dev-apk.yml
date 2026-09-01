@@ -44,6 +44,27 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Verify canonical entry WebP contract
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const asset = 'assets/generated/uskoci-entry-city.webp';
+          if (!fs.existsSync(asset)) {
+            throw new Error(`Missing generated canonical entry asset: ${asset}`);
+          }
+          const bytes = fs.readFileSync(asset);
+          const isWebP =
+            bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
+            bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+          if (!isWebP) {
+            throw new Error(`Canonical entry asset extension/bytes mismatch: ${asset}`);
+          }
+          console.log(`[entry-reference] Android asset contract OK: ${asset}, ${bytes.length} bytes`);
+          NODE
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit --pretty false
+
       - name: Inject development-only Android package id
         run: |
           node <<'NODE'
