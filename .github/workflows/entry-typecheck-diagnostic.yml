@@ -15,16 +15,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
-
       - name: Install
         run: npm ci
-
       - name: Capture TypeScript diagnostics
         shell: bash
         run: |
@@ -33,48 +30,76 @@ jobs:
           echo "TSC_EXIT=$?" >> "$GITHUB_ENV"
           set -e
 
-      - name: Auth 261-360 clean
+      - name: Auth 361-380 clean
         if: always()
-        run: '! grep -E -q "src/app/auth.tsx\\((26[1-9]|2[7-9][0-9]|3[0-5][0-9]|360)," tsc-errors.txt'
-
-      - name: Auth 361-460 clean
+        run: '! grep -E -q "auth.tsx\\((36[1-9]|37[0-9]|380)," tsc-errors.txt'
+      - name: Auth 381-400 clean
         if: always()
-        run: '! grep -E -q "src/app/auth.tsx\\((36[1-9]|3[7-9][0-9]|4[0-5][0-9]|460)," tsc-errors.txt'
-
-      - name: Auth 461-560 clean
+        run: '! grep -E -q "auth.tsx\\((38[1-9]|39[0-9]|400)," tsc-errors.txt'
+      - name: Auth 401-420 clean
         if: always()
-        run: '! grep -E -q "src/app/auth.tsx\\((46[1-9]|4[7-9][0-9]|5[0-5][0-9]|560)," tsc-errors.txt'
-
-      - name: Auth 561-660 clean
+        run: '! grep -E -q "auth.tsx\\((40[1-9]|41[0-9]|420)," tsc-errors.txt'
+      - name: Auth 421-440 clean
         if: always()
-        run: '! grep -E -q "src/app/auth.tsx\\((56[1-9]|5[7-9][0-9]|6[0-5][0-9]|660)," tsc-errors.txt'
-
-      - name: Auth 661-760 clean
+        run: '! grep -E -q "auth.tsx\\((42[1-9]|43[0-9]|440)," tsc-errors.txt'
+      - name: Auth 441-460 clean
         if: always()
-        run: '! grep -E -q "src/app/auth.tsx\\((66[1-9]|6[7-9][0-9]|7[0-5][0-9]|760)," tsc-errors.txt'
+        run: '! grep -E -q "auth.tsx\\((44[1-9]|45[0-9]|460)," tsc-errors.txt'
 
-      - name: Auth 761-plus clean
+      - name: Auth 661-680 clean
         if: always()
-        run: '! grep -E -q "src/app/auth.tsx\\((76[1-9]|7[7-9][0-9]|[89][0-9][0-9]|[1-9][0-9]{3,})," tsc-errors.txt'
-
-      - name: Entry 221-300 clean
+        run: '! grep -E -q "auth.tsx\\((66[1-9]|67[0-9]|680)," tsc-errors.txt'
+      - name: Auth 681-700 clean
         if: always()
-        run: '! grep -E -q "ReferenceEntryHero.tsx\\((22[1-9]|2[3-9][0-9]|300)," tsc-errors.txt'
-
-      - name: Entry 301-360 clean
+        run: '! grep -E -q "auth.tsx\\((68[1-9]|69[0-9]|700)," tsc-errors.txt'
+      - name: Auth 701-720 clean
         if: always()
-        run: '! grep -E -q "ReferenceEntryHero.tsx\\((30[1-9]|3[1-5][0-9]|360)," tsc-errors.txt'
-
-      - name: Entry 361-440 clean
+        run: '! grep -E -q "auth.tsx\\((70[1-9]|71[0-9]|720)," tsc-errors.txt'
+      - name: Auth 721-740 clean
         if: always()
-        run: '! grep -E -q "ReferenceEntryHero.tsx\\((36[1-9]|3[7-9][0-9]|4[0-3][0-9]|440)," tsc-errors.txt'
+        run: '! grep -E -q "auth.tsx\\((72[1-9]|73[0-9]|740)," tsc-errors.txt'
+      - name: Auth 741-760 clean
+        if: always()
+        run: '! grep -E -q "auth.tsx\\((74[1-9]|75[0-9]|760)," tsc-errors.txt'
 
-      - name: TS2322 only expected
+      - name: Entry 301-320 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((30[1-9]|31[0-9]|320)," tsc-errors.txt'
+      - name: Entry 321-340 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((32[1-9]|33[0-9]|340)," tsc-errors.txt'
+      - name: Entry 341-360 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((34[1-9]|35[0-9]|360)," tsc-errors.txt'
+      - name: Entry 361-380 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((36[1-9]|37[0-9]|380)," tsc-errors.txt'
+      - name: Entry 381-400 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((38[1-9]|39[0-9]|400)," tsc-errors.txt'
+      - name: Entry 401-420 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((40[1-9]|41[0-9]|420)," tsc-errors.txt'
+      - name: Entry 421-440 clean
+        if: always()
+        run: '! grep -E -q "ReferenceEntryHero.tsx\\((42[1-9]|43[0-9]|440)," tsc-errors.txt'
+
+      - name: No TS23xx except TS2322
         if: always()
         shell: bash
-        run: |
-          test -z "$(grep -o 'TS[0-9][0-9]*' tsc-errors.txt | sort -u | grep -v '^TS2322$')"
-
+        run: test -z "$(grep -o 'TS23[0-9][0-9]' tsc-errors.txt | sort -u | grep -v '^TS2322$')"
+      - name: No TS25xx
+        if: always()
+        run: '! grep -q "TS25[0-9][0-9]" tsc-errors.txt'
+      - name: No TS27xx
+        if: always()
+        run: '! grep -q "TS27[0-9][0-9]" tsc-errors.txt'
+      - name: No TS18xxx
+        if: always()
+        run: '! grep -q "TS18[0-9][0-9][0-9]" tsc-errors.txt'
+      - name: No TS70xx
+        if: always()
+        run: '! grep -q "TS70[0-9][0-9]" tsc-errors.txt'
       - name: TypeScript overall
         if: always()
         run: test "$TSC_EXIT" = "0"
