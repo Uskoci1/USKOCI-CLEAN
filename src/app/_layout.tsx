@@ -39,7 +39,9 @@ export default function RootLayout() {
 
       const target = record.intent.returnTarget;
       if (!target || target.kind === 'NONE') return;
-      if (target.kind === 'NEED') {
+      if (target.kind === 'REQUESTER_DRAFT') {
+        router.replace({ pathname: '/nova', params: { conversationId: target.draftKey } });
+      } else if (target.kind === 'NEED') {
         router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: target.needId } });
       } else if (target.kind === 'DOGOVOR') {
         router.replace({ pathname: '/dogovor/[id]', params: { id: target.agreementId } });
