@@ -51,7 +51,7 @@ begin
     'public.rpc_complete_worker_profile(uuid)'::regprocedure
   );
   if position('SKILL_REQUIRED' in v_rpc) = 0
-     or position('set profile_status = ''ACTIVE''' in lower(v_rpc)) = 0
+     or position('set profile_status = ''active''' in lower(v_rpc)) = 0
      or position('uskoci.profile_mutation' in v_rpc) > 0 then
     raise exception 'RU1_PREDECESSOR_MISMATCH: worker completion RPC drift';
   end if;
