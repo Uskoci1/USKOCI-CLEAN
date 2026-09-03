@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-03T18:19:00+02:00",
+  "updated_at": "2026-09-03T20:22:00+02:00",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -21,59 +21,69 @@
     "live_apply": {
       "version": "20260903160812",
       "name": "clean_ru0_authority_closure",
-      "statement_count": 1,
-      "recorded_statement_md5": "4c0d630d93f8fdfc6e683dcfd8a9895a",
-      "recorded_statement_chars": 21495,
-      "exact_byte_identity_with_staged_source": false,
-      "note": "Supabase assigned the live migration timestamp. The deployment payload preserved the executable RU-0 authority contract but omitted non-executable section comments, so raw-byte identity is not claimed."
+      "exact_byte_identity_with_staged_source": false
     },
     "disposable_runtime_proof": {
-      "branch": "proof/ru0-disposable-ci-20260903",
-      "head": "6496065940dea7310152cdae23d3766a617398e7",
       "github_actions_run": 33769629283,
       "result": "PASS",
       "owner_attacker_service": "PASS",
       "zero_residue": "PASS"
-    },
-    "live_post_apply": {
-      "public_security_definer": 32,
-      "private_security_definer": 23,
-      "authenticated_public_security_definer": 25,
-      "private_api_executable_security_definer": 0,
-      "retired_rpc_exposure": 0,
-      "service_ai_writer_service_role_execute": true,
-      "service_ai_writer_authenticated_execute": false,
-      "agreement_v2_propose_authenticated_execute": true,
-      "agreement_v2_respond_authenticated_execute": true,
-      "forbidden_mutation_policies": 0,
-      "needs_draft_update_policy_present": true,
-      "checked_business_rows_before_after": {
-        "ai_conversations": [15, 15],
-        "ai_action_proposals": [2, 2],
-        "ai_structured_facts": [82, 82],
-        "needs": [6, 6],
-        "notification_deliveries": [0, 0],
-        "agreements": [2, 2],
-        "agreement_versions": [2, 2]
-      },
-      "edge": {
-        "slug": "uskoci-ai-interview",
-        "status": "ACTIVE",
-        "version": 4,
-        "verify_jwt": true,
-        "changed_by_ru0": false
-      }
     }
+  },
+  "ru1": {
+    "status": "SOURCE_STAGED_RUNTIME_PROVEN",
+    "staged_source": {
+      "commit": "5e586c63783b7743687224e3cc670e7ed52e4e48",
+      "version": "20260903165700",
+      "name": "clean_ru1_worker_readiness",
+      "file": "supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql",
+      "raw_md5": "f80e2e721365ee07316a9c0e84ab593f",
+      "sha256": "71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0",
+      "bytes": 13591
+    },
+    "predecessor_live_state": {
+      "migration_count": 57,
+      "head": "20260903160812"
+    },
+    "disposable_runtime_proof": {
+      "branch": "proof/ru1-disposable-ci-20260903",
+      "source_head": "339e08017e56ac01c5cbfa8e91e89db8233e97d8",
+      "github_actions_run": 33790306570,
+      "result": "PASS",
+      "db_apply": "PASS",
+      "owner_attacker_replay": "PASS",
+      "forced_insert_derives_draft": "PASS",
+      "missing_skill_denied": "PASS",
+      "historical_active_worker_preserved": "PASS",
+      "zero_residue": "PASS"
+    },
+    "checksum_proof": {
+      "github_actions_run": 33790742908,
+      "result": "PASS"
+    },
+    "promotion_integrity": {
+      "branch": "promotion/ru1-worker-readiness-20260903",
+      "github_actions_run": 33791044226,
+      "result": "PASS"
+    },
+    "live_applied": false
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_57",
+    "state": "LIVE_57_WITH_ONE_PROVEN_PENDING_FORWARD_MIGRATION",
     "live_version_alias": {
       "live_version": "20260903160812",
       "source_version": "20260903130355",
       "source_file": "20260903130355_clean_ru0_authority_closure.sql"
     },
-    "pending_forward_migrations": 0
+    "pending_forward_migrations": 1,
+    "pending": [
+      {
+        "version": "20260903165700",
+        "name": "clean_ru1_worker_readiness",
+        "live_applied": false
+      }
+    ]
   },
-  "next_allowed_action": "Fresh read-only GitHub/Supabase preflight, then read governing master dependency order and begin RU-1 only if physical state matches this checkpoint."
+  "next_allowed_action": "Finish clean canonical RU-1 source promotion, fresh read-only verify GitHub and live Supabase still 57/20260903160812, then obtain explicit owner approval before live apply."
 }
