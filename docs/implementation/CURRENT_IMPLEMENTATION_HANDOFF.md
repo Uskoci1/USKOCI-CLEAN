@@ -1,149 +1,122 @@
 # USKOČI — CURRENT IMPLEMENTATION HANDOFF
 
-Checkpoint time: 2026-09-03 20:52 Europe/Belgrade
+Checkpoint time: 2026-09-03 23:20 Europe/Belgrade
 
 ## Canonical identity
 
 - Repo: `Uskoci1/USKOCI-CLEAN`
-- Branch: `clean-alpha-backend`
+- Canonical branch: `clean-alpha-backend`
 - Supabase project: `leqcwgzvjsxugfgzdmth`
 - Production migration count/head: `58 / 20260903184545_clean_ru1_worker_readiness`
-- Edge: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`, unchanged
+- Production Edge: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`
+- RU-0: `CLOSED` — do not reapply
+- RU-1: `CLOSED` — do not reapply
 
-## Last fully completed unit
+## Current unit
 
-`RU-1 — Worker Readiness`
+`RU-2 — Need V2 + R02/R07 canonical DRAFT`
 
-State: `CLOSED`
+State: `LIVE_PENDING`
 
-Canonical DB source:
-- migration implementation commit: `5e586c63783b7743687224e3cc670e7ed52e4e48`
-- migration: `supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql`
-- raw bytes: `13591`
-- MD5: `f80e2e721365ee07316a9c0e84ab593f`
-- SHA-256: `71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0`
+No RU-2 production migration has been applied and Edge v5 has not been deployed at this checkpoint.
 
-RN readiness alignment:
-- commit: `ebabc6a48a9712ea34043b63dd7f6867e88691a2`
-- file: `src/app/(app)/profil/radnik.tsx`
-- activation UI now requires name + city + at least one skill, matching the server contract.
+## RU-2 proven source
 
-Live Supabase recording:
-- live version: `20260903184545`
-- live name: `clean_ru1_worker_readiness`
-- statement count: `1`
-- recorded UTF-8 bytes: `13591`
-- recorded statement MD5: `f80e2e721365ee07316a9c0e84ab593f`
-- exact-byte identity with canonical migration: `true`
+Exact combined proof head:
+`d7eb80b3403e5549a78cec18b1c8c87f42d9cf99`
 
-## RU-1 contract now live
+Pending physical migrations:
+- `supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql`
+  - raw MD5 `f95fadda53d8d803faac4498d860c31b`
+- `supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql`
+  - raw MD5 `95145c601b6366f1a98e8566b3307515`
 
-1. Existing profile/business rows are not rewritten by the migration.
-2. New REQUESTER profiles derive `ACTIVE`.
-3. New WORKER profiles derive `DRAFT`.
-4. `app_profiles.profile_status` default is `DRAFT`.
-5. `account_id` and `kind` are immutable through the profile guard.
-6. Direct client WORKER `DRAFT -> ACTIVE` is denied fail-closed.
-7. Only owner `rpc_complete_worker_profile(uuid)` may perform WORKER `DRAFT -> ACTIVE`.
-8. Completion requires display name, city and at least one skill.
-9. Repeating completion on an already ACTIVE Worker is idempotent.
-10. Authenticated direct DELETE on `app_profiles` is revoked; SELECT/INSERT/UPDATE remain RLS-governed.
-11. Existing ACTIVE Workers remain ACTIVE; there was no mass downgrade.
+Raw hashes were calculated by GitHub Actions run `33807334733` from the exact proof bytes.
 
-## RU-1 proof
+## RU-2 combined proof
 
-Disposable runtime proof:
-- branch `proof/ru1-disposable-ci-20260903`
-- final proof source head `339e08017e56ac01c5cbfa8e91e89db8233e97d8`
-- GitHub Actions run `33790306570`
-- DB apply PASS
-- owner/attacker/replay PASS
-- direct activation denial PASS
-- identity mutation denial PASS
-- missing-skill denial PASS
-- forced ACTIVE insert derives DRAFT PASS
-- authenticated DELETE denial PASS
-- historical ACTIVE Worker preservation PASS
-- zero residue PASS
+Proof branch: `proof/ru2-need-v2-r07-20260903`
+Proof head: `d7eb80b3403e5549a78cec18b1c8c87f42d9cf99`
+Combined run: `33806989549` — PASS.
 
-Checksum proof:
-- run `33790742908`
-- bytes `13591`
-- MD5 `f80e2e721365ee07316a9c0e84ab593f`
-- SHA-256 `71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0`
+The single run proved:
+- real predecessor reconstruction `56 -> RU-0 57 -> RU-1 58`;
+- exact RU-2 core apply to disposable `59/20260903190000`;
+- exact RU-2 guard apply to disposable `60/20260903190100`;
+- static authority/grant invariants;
+- owner / attacker / service behavior;
+- typed human correction;
+- R07 Human Review;
+- missing-required DRAFT denial;
+- idempotent canonical DRAFT materialization;
+- legacy/V2 coexistence;
+- public coarse vs private exact geography;
+- repeated V2 same-key service supersession with one-live-fact invariant;
+- service cannot bind a fact to a Need outside the Human Review materializer;
+- rollback / zero residue;
+- RN TypeScript PASS;
+- Deno Edge module check PASS;
+- Jest `40/40` PASS;
+- R02/R07 source contains no legacy direct-publish path.
 
-Promotion integrity:
-- runs `33791044226` and `33791592988`: PASS
+Earlier source-only run `33806867873` also passed TypeScript, Deno, Jest and static R02/R07 contract on the same implementation family.
 
-Live post-apply structural proof:
-- migration state `58 / 20260903184545`
-- profile default `'DRAFT'::text`
-- fail-closed `IS DISTINCT FROM` token guard present
-- REQUESTER insert derives ACTIVE
-- WORKER insert derives DRAFT
-- profile identity immutability guard present
-- completion RPC contract present
-- anon completion RPC EXECUTE `false`
-- authenticated completion RPC EXECUTE `true`
-- service-role completion RPC EXECUTE `true`
-- private guard API EXECUTE anon/auth/service `false/false/false`
-- anon app_profiles SELECT `false`
-- authenticated app_profiles SELECT/INSERT/UPDATE `true/true/true`
-- authenticated app_profiles DELETE `false`
-- service-role app_profiles DELETE `true`
-- guard trigger present
-- profile rows preserved: total `6`; REQUESTER ACTIVE `3`; WORKER ACTIVE `3`; WORKER DRAFT `0`; WORKER other `0`
-- embedded migration postconditions also verified preserved auth-creation helper definitions before commit.
+## Critical RU-2 bugs caught before production
 
-## Important bug caught before production
+1. The first R07 materializer attempted to bind `subject_need_id`, while the existing AI fact guard correctly treated that field as immutable. Runtime proof caught the conflict. The fix is a narrow forward guard contract; the guard was not disabled.
+2. The first Edge v5 prompt used schedule/price enum names that did not match PostgreSQL authority. Before promotion, Edge was aligned to the exact DB values (`FASTEST/MY_PRICE/OFFERS` and the six canonical schedule kinds) and Deno/source proofs passed.
 
-An earlier RU-1 candidate used nullable SQL boolean logic around the mutation token. With a NULL token, PostgreSQL could yield NULL instead of a positive denial condition. Disposable proof caught this before live promotion. The final live guard uses explicit `IS DISTINCT FROM`, so absent/wrong tokens fail closed.
+Neither faulty candidate reached production.
 
-## RU-0 remains closed
+## RU-2 product/runtime contract
 
-- RU-0 live version: `20260903160812_clean_ru0_authority_closure`
-- RU-0 disposable proof run: `33769629283`
-- RU-0 is not to be reapplied or redesigned.
-- Edge v4 was not changed by RU-1.
+New path:
+`R02 AI conversation -> R07 Human Review -> rpc_save_need_draft_from_review -> canonical Need DRAFT`
+
+There is no direct publish from R02 or R07.
+
+V2 fact registry has 20 typed fields, including public task geography and separate private exact address/access notes. AI proposals remain proposals; users confirm or correct before canonical save.
+
+New Edge source is dual-mode:
+- existing `LEGACY_TEXT_V1` conversations keep legacy writer compatibility;
+- new `NEED_FACT_V2` conversations use the typed service writer;
+- Gemini remains preferred when configured, OpenAI fallback remains server-side;
+- no provider/service secret is placed in Expo/source/mobile bundle.
+
+R02 source: `src/app/(app)/nova.tsx`
+R07 source: `src/app/(app)/pregled-nacrta.tsx`
+Typed adapter: `src/data/aiNeedV2Production.ts`
+Shared registry: `src/contracts/needFactsV2.ts`
 
 ## Migration provenance
 
-`supabase/migrations/MIGRATION_PROVENANCE.json` is reconciled to live `58 / 20260903184545`.
+`supabase/migrations/MIGRATION_PROVENANCE.json` remains normalized to the actual live production state `58 / 20260903184545` and records two RU-2 migrations as pending forward candidates only.
 
-RU-1 staged source version `20260903165700` maps to live Supabase version `20260903184545`; exact byte identity is proven by equal UTF-8 byte count and MD5.
+`supabase/migrations/MD5_MANIFEST.txt` contains both raw source hashes.
 
-Pending forward migrations after RU-1 closure: `0`.
+Do not invent live versions for RU-2. Connected Supabase apply may assign different live timestamps; if so, capture explicit source->live aliases exactly as done for RU-0/RU-1.
 
-## Current status
+## Next allowed action
 
-- Edge source reconciliation: DONE — DO NOT REDO
-- RU-0: CLOSED — DO NOT REAPPLY
-- RU-1 DB source: CANONICAL
-- RU-1 disposable runtime proof: PASS
-- RU-1 production apply: APPLIED
-- RU-1 live structural proof: PASS
-- RU-1 RN readiness alignment: COMMITTED
-- RU-1 migration provenance: RECONCILED
-- RU-1 overall: CLOSED
-
-## Next allowed unit
-
-1. Fresh read-only GitHub/Supabase preflight against this checkpoint.
-2. Read the governing master RU-2 dependency contract from the actual canonical/governing materials; do not infer it from quarantine/history.
-3. If physical state matches `58 / 20260903184545`, begin RU-2 exactly in governing order.
-4. Continue proof-before-live and update all durable tracking after each unit.
+1. Run migration integrity + TypeScript/tests on the exact promotion-staging head.
+2. If green, promote that exact source state to `clean-alpha-backend` and mark source committed / live pending.
+3. Immediately perform fresh read-only GitHub + live Supabase preflight.
+4. Required live predecessor: exactly `58 / 20260903184545_clean_ru1_worker_readiness`; Edge must still be v4.
+5. If any drift exists: STOP writes and reconcile actual state first.
+6. If clean: apply RU-2 core, verify; apply RU-2 guard, verify; capture actual live timestamps/statements/provenance.
+7. Only after DB V2 authority exists live, deploy Edge v5.
+8. Fresh live structural/authority readback; update all durable tracking and provenance; then close RU-2.
 
 ## DO NOT REDO / QUARANTINE
 
 - DO NOT REAPPLY RU-0 or RU-1.
-- Do not redo RU-1 disposable proof unless RU-1 source bytes change.
-- Do not redeploy Edge for RU-1.
-- `repair/ru0-ru1-backend-20260902` remains QUARANTINE: no merge/cherry-pick/apply.
+- Do not deploy Edge v5 before RU-2 DB authority exists live.
+- Do not use `repair/ru0-ru1-backend-20260902`.
 - Do not copy donor 184 migrations as a stack.
-- Do not expose secrets in GitHub, source, logs or mobile bundle.
+- Do not expose secrets.
+- Do not claim RU-2 live until production readback proves it.
 
-## Continuity rule
-
+Continuity rule:
 `READ GOVERNING MASTER -> READ THIS HANDOFF -> READ LIVE NETWORK -> READ LEDGER -> READ LIVE_MIGRATION_STATE -> FRESH READ-ONLY GITHUB/SUPABASE VERIFY -> COMPARE -> CONTINUE OR RECONCILE`
 
 **AI agent is replaceable. Canonical project state is not.**
