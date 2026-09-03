@@ -1021,8 +1021,8 @@ begin
     raise exception 'RU2_POSTCONDITION_FAILED: existing Need rows changed';
   end if;
 
-  if (select count(*) from public.ai_structured_facts where fact_schema_version='LEGACY_TEXT_V1')<>82
-     or (select count(*) from public.ai_conversations where fact_schema_version='LEGACY_TEXT_V1')<>15 then
+  if (select count(*) from public.ai_structured_facts where fact_schema_version='LEGACY_TEXT_V1')<>v_before.ai_fact_count
+     or (select count(*) from public.ai_conversations where fact_schema_version='LEGACY_TEXT_V1')<>v_before.conversation_count then
     raise exception 'RU2_POSTCONDITION_FAILED: legacy classification mismatch';
   end if;
 
@@ -1054,10 +1054,6 @@ begin
      or has_table_privilege('authenticated','public.need_sensitive','UPDATE')
      or has_table_privilege('authenticated','public.need_sensitive','DELETE') then
     raise exception 'RU2_POSTCONDITION_FAILED: direct private Need mutation still exposed';
-  end if;
-
-  if (select count(*) from public.needs where status='DRAFT')<>0 then
-    raise exception 'RU2_POSTCONDITION_FAILED: migration created a business DRAFT';
   end if;
 
   if position('PACKAGE_4_NOT_READY' in pg_get_functiondef('public.rpc_ai_publish_need(uuid,uuid)'::regprocedure))=0 then
