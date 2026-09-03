@@ -1,0 +1,98 @@
+name: RU-2 DB apply proof
+
+on:
+  push:
+    branches:
+      - proof/ru2-need-v2-r07-20260903
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru2-db-apply-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ru2-db-apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Prepare full canonical predecessor with live aliases
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/uskoci-ru2-proof
+          mkdir -p /tmp/uskoci-ru2-proof
+          cd /tmp/uskoci-ru2-proof
+          supabase init
+          rm -rf supabase/migrations
+          mkdir -p supabase/migrations
+
+          for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
+            b="$(basename "$f")"
+            case "$b" in
+              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql)
+                ;;
+              *) cp "$f" "supabase/migrations/$b" ;;
+            esac
+          done
+          cp "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql" \
+             supabase/migrations/20260903160812_clean_ru0_authority_closure.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql" \
+             supabase/migrations/20260903184545_clean_ru1_worker_readiness.sql
+
+          supabase db start
+          supabase db reset --local
+
+      - name: Verify exact predecessor
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "predecessor=$actual"
+          test "$actual" = "58/20260903184545"
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.ai_structured_facts;')" = "82"
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.ai_conversations;')" = "15"
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.needs;')" = "6"
+
+      - name: Apply RU-2 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903190000','clean_ru2_need_v2_draft');"
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "post_ru2=$actual"
+          test "$actual" = "59/20260903190000"
+
+      - name: Verify static RU-2 invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_structured_facts where fact_schema_version='LEGACY_TEXT_V1';")" = "82"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_conversations where fact_schema_version='LEGACY_TEXT_V1';")" = "15"
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_fact_registry;')" = "20"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "f"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('service_role','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "t"
+          test "$(psql "$DB_URL" -Atc "select has_table_privilege('authenticated','public.need_sensitive','UPDATE');")" = "f"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where status='DRAFT';")" = "0"
+
+      - name: Stop disposable stack
+        if: always()
+        shell: bash
+        working-directory: /tmp/uskoci-ru2-proof
+        run: |
+          supabase stop --no-backup || true
