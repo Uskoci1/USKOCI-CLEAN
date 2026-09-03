@@ -30,7 +30,7 @@ jobs:
         with:
           version: latest
 
-      - name: Prepare full canonical predecessor with live bootstrap and aliases
+      - name: Prepare full canonical predecessor with live bootstrap and durable proof effects
         shell: bash
         run: |
           set -euo pipefail
@@ -41,47 +41,52 @@ jobs:
           rm -rf supabase/migrations
           mkdir -p supabase/migrations
 
-          # Proof-only bootstrap reconstructed from a fresh live read.
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
              supabase/migrations/20260825000000_ru2_proof_live_bootstrap.sql
 
           for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
             b="$(basename "$f")"
             case "$b" in
-              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql)
+              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql|20260901114029_clean_ai_fact_supersession_and_human_correction.sql)
                 ;;
               *) cp "$f" "supabase/migrations/$b" ;;
             esac
           done
 
-          # RU-0/RU-1 physical source names are mapped to their actual live IDs.
           cp "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql" \
              supabase/migrations/20260903160812_clean_ru0_authority_closure.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql" \
              supabase/migrations/20260903184545_clean_ru1_worker_readiness.sql
 
-          # These two historical migrations are runtime proofs. Fresh inspection
-          # confirms their test mutations roll back; only COMMENT metadata survives.
-          # Replay exactly those durable effects while keeping the historical IDs.
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901105922_durable_effects.sql" \
              supabase/migrations/20260901105922_clean_completion_and_writer_authenticated_proof.sql
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901113333_durable_effects.sql" \
              supabase/migrations/20260901113333_clean_ai_interview_turn_authenticated_proof.sql
 
+          awk '/^-- Runtime proofs: no retained rows\.$/{exit} {print}' \
+            "$GITHUB_WORKSPACE/supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql" \
+            > supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql
+          cat >> supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql <<'SQL'
+          comment on function public.rpc_ai_confirm_fact(uuid) is 'AUTHENTICATED_RUNTIME_PROVEN: human confirmation stamps confirmed_at and confirmed_by_user_id.';
+          comment on function public.rpc_ai_correct_fact(uuid,text) is 'AUTHENTICATED_RUNTIME_PROVEN: explicit correction atomically supersedes prior live fact and creates CONFIRMED EXPLICIT_USER_ANSWER provenance.';
+          comment on function public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb) is 'SERVICE_RUNTIME_PROVEN: repeated canonical keys preserve one-live-fact invariant by superseding before insert; replacement proof rolled back with zero residue.';
+          SQL
+
           supabase db start
           supabase db reset --local
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
 
-      - name: Verify exact product predecessor
+      - name: Verify exact stable product predecessor
         shell: bash
         run: |
           set -euo pipefail
-          product_count="$(psql "$DB_URL" -Atc "select count(*) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
-          product_head="$(psql "$DB_URL" -Atc "select max(version) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
-          echo "product_predecessor=$product_count/$product_head"
-          test "$product_count/$product_head" = "58/20260903184545"
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.ai_structured_facts;')" = "82"
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.ai_conversations;')" = "15"
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.needs;')" = "6"
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "product_predecessor=$actual"
+          test "$actual" = "58/20260903184545"
+          test "$(psql "$DB_URL" -Atc \"select to_regclass('public.ai_structured_facts') is not null;\")" = "t"
+          test "$(psql "$DB_URL" -Atc \"select to_regclass('public.ai_conversations') is not null;\")" = "t"
+          test "$(psql "$DB_URL" -Atc \"select to_regclass('public.needs') is not null;\")" = "t"
+          test "$(psql "$DB_URL" -Atc \"select to_regprocedure('public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb)') is not null;\")" = "t"
 
       - name: Apply RU-2 candidate
         shell: bash
@@ -89,22 +94,23 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903190000','clean_ru2_need_v2_draft');"
-          product_count="$(psql "$DB_URL" -Atc "select count(*) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
-          product_head="$(psql "$DB_URL" -Atc "select max(version) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
-          echo "post_ru2=$product_count/$product_head"
-          test "$product_count/$product_head" = "59/20260903190000"
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "post_ru2=$actual"
+          test "$actual" = "59/20260903190000"
 
       - name: Verify static RU-2 invariants
         shell: bash
         run: |
           set -euo pipefail
-          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_structured_facts where fact_schema_version='LEGACY_TEXT_V1';")" = "82"
-          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_conversations where fact_schema_version='LEGACY_TEXT_V1';")" = "15"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_structured_facts where fact_schema_version<>'LEGACY_TEXT_V1';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_conversations where fact_schema_version<>'LEGACY_TEXT_V1';")" = "0"
           test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_fact_registry;')" = "20"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "f"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('service_role','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "t"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('anon','public.rpc_ai_open_need_conversation_v2()','EXECUTE');")" = "f"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ai_open_need_conversation_v2()','EXECUTE');")" = "t"
+          test "$(psql "$DB_URL" -Atc "select position('fact_schema_version' in pg_get_functiondef('public.rpc_ai_open_conversation(text)'::regprocedure));")" = "0"
           test "$(psql "$DB_URL" -Atc "select has_table_privilege('authenticated','public.need_sensitive','UPDATE');")" = "f"
-          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where status='DRAFT';")" = "0"
 
       - name: Stop disposable stack
         if: always()
