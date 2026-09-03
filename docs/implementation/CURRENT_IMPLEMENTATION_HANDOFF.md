@@ -1,16 +1,17 @@
 # USKOČI — CURRENT IMPLEMENTATION HANDOFF
 
-Checkpoint time: 2026-09-03 18:19 Europe/Belgrade
+Checkpoint time: 2026-09-03 20:22 Europe/Belgrade
 
 ## Canonical identity
 
 - Repo: `Uskoci1/USKOCI-CLEAN`
-- Branch: `clean-alpha-backend`
+- Canonical branch: `clean-alpha-backend`
 - Supabase project: `leqcwgzvjsxugfgzdmth`
 - Production migration count/head: `57 / 20260903160812_clean_ru0_authority_closure`
 - Edge: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`, unchanged
+- Canonical HEAD before RU-1 source promotion: `1846fcbaaf50ef76b7e9686ff1f5d6cbd222ee83`
 
-## Last fully completed unit
+## Last fully completed live unit
 
 `RU-0 — Authority Closure`
 
@@ -25,61 +26,106 @@ Physical source migration:
 Live Supabase version:
 `20260903160812_clean_ru0_authority_closure`
 
-Version mapping is intentional and durably recorded. The connected Supabase deployment action assigned the live version. Raw-byte identity between live recorded statement and staged source is not claimed because the deployment payload omitted non-executable section comments; the executable RU-0 contract was preserved and passed embedded live postconditions.
+RU-0 is closed and must not be reapplied.
 
-## RU-0 proof
+## Current unit — RU-1 Worker Readiness
 
-Disposable runtime proof:
-- branch `proof/ru0-disposable-ci-20260903`
-- head `6496065940dea7310152cdae23d3766a617398e7`
-- GitHub Actions run `33769629283`
-- owner/attacker/service PASS
-- zero residue PASS
+State: `SOURCE_STAGED_RUNTIME_PROVEN`
 
-Live post-apply proof:
-- migration count/head `57 / 20260903160812`
-- public SECURITY DEFINER `32`
-- private SECURITY DEFINER `23`
-- authenticated public SECURITY DEFINER allowlist `25`
-- private API-executable SECURITY DEFINER `0`
-- retired RPC exposure `0`
-- service AI writer service-role EXECUTE `true`
-- service AI writer authenticated EXECUTE `false`
-- Agreement v2 propose/respond authenticated EXECUTE `true / true`
-- forbidden mutation policies on AI conversations/proposals/deliveries `0`
-- DRAFT-only owner raw Need UPDATE present
-- checked business rows unchanged `15 / 2 / 82 / 6 / 0 / 2 / 2`
-- Edge unchanged ACTIVE v4 / JWT on
+Production applied: `NO`
 
-Production `execute_sql` is connector-enforced read-only, so rollback-only fixture INSERTs cannot be repeated live. The runtime authority scenarios were already proven before promotion in disposable Supabase/Postgres. This limitation does not reopen RU-0.
+Exact staged source:
+- source migration commit: `5e586c63783b7743687224e3cc670e7ed52e4e48`
+- migration: `supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql`
+- raw bytes: `13591`
+- MD5: `f80e2e721365ee07316a9c0e84ab593f`
+- SHA-256: `71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0`
+- provenance classification: `PENDING_FORWARD_MIGRATION`
+- predecessor: `57 / 20260903160812`
+
+RU-1 contract:
+1. Existing profile/business rows are not rewritten.
+2. New REQUESTER profiles derive `ACTIVE`.
+3. New WORKER profiles derive `DRAFT`.
+4. `app_profiles.profile_status` default becomes `DRAFT`.
+5. `account_id` and `kind` are immutable profile identity.
+6. Direct client status activation is blocked.
+7. Only owner `rpc_complete_worker_profile(uuid)` may perform WORKER `DRAFT -> ACTIVE`.
+8. Completion requires display name, city and at least one skill.
+9. Completion is replay-idempotent for already ACTIVE workers.
+10. Authenticated direct DELETE on `app_profiles` is removed; owner read/insert/update stays RLS-governed.
+11. Existing ACTIVE workers remain ACTIVE; no mass downgrade or business-row rewrite.
+
+## RU-1 proof
+
+Disposable proof branch:
+`proof/ru1-disposable-ci-20260903`
+
+Final full proof source head:
+`339e08017e56ac01c5cbfa8e91e89db8233e97d8`
+
+GitHub Actions full proof run:
+`33790306570`
+
+Result: `PASS`
+
+Proved:
+- predecessor fixture `57 / 20260903160812`;
+- exact RU-1 DB apply;
+- owner auth context;
+- direct `DRAFT -> ACTIVE` denial;
+- profile kind mutation denial;
+- owner-only RPC activation;
+- replay/idempotency;
+- missing-skill denial leaving Worker DRAFT;
+- client insert requesting ACTIVE is derived back to DRAFT;
+- attacker cannot update victim Worker;
+- direct authenticated profile DELETE denied;
+- historical ACTIVE Worker preserved;
+- zero proof residue;
+- source checks PASS.
+
+Durable rollback-only proof files:
+- `supabase/proofs/ru1_targeted_predecessor_fixture.sql`
+- `supabase/proofs/ru1_worker_readiness_runtime_proof.sql`
+
+Exact source checksum was independently recorded by GitHub Actions run `33790742908`.
+
+### Important bug caught before production
+
+Disposable proof found a real nullable-SQL authorization bug in an earlier RU-1 candidate: `NOT(NULL)` does not become `TRUE`, so a NULL mutation token could fail open. The final proven guard is explicitly fail-closed with `IS DISTINCT FROM` checks. Production was never exposed to the faulty candidate.
 
 ## Migration provenance
 
-`supabase/migrations/MIGRATION_PROVENANCE.json` is normalized to the 57-migration live state and contains the explicit staged-source→live-version alias.
+`supabase/migrations/MIGRATION_PROVENANCE.json` remains normalized to the live 57-migration production state and now records RU-1 as one pending forward migration with `live_applied=false`.
 
-`supabase/migrations/check_migration_integrity.py` supports explicit physical `file` aliases on live history entries so GitHub does not need a duplicate migration file and RU-0 cannot be accidentally replayed.
-
-`docs/implementation/LIVE_MIGRATION_STATE.json` is the compact current machine-readable live migration checkpoint.
+`supabase/migrations/MD5_MANIFEST.txt` contains the exact RU-1 raw MD5. Existing migration-integrity checker passed on the promotion branch after pending metadata was registered.
 
 ## Current status
 
 - Edge source reconciliation: DONE — DO NOT REDO
 - RU-0: CLOSED — DO NOT REAPPLY
-- RU-1: READY_NOT_STARTED
+- RU-1 source: STAGED
+- RU-1 disposable DB apply: PASS
+- RU-1 owner/attacker/replay proof: PASS
+- RU-1 zero-residue proof: PASS
+- RU-1 production apply: NO
+- Production state: still `57 / 20260903160812`
 
-## Next allowed unit
+## Next allowed action
 
-1. Fresh read-only GitHub/Supabase preflight.
-2. Read the governing master dependency order for RU-1 from the actual governing package/current canonical materials.
-3. Do not infer RU-1 from `repair/ru0-ru1-backend-20260902`; that branch remains quarantine.
-4. If preflight matches `57 / 20260903160812`, begin RU-1 exactly in governing order.
-5. Prove before live promotion and update all implementation tracking afterward.
+1. Finish clean source promotion from `promotion/ru1-worker-readiness-20260903` to canonical `clean-alpha-backend` only after branch diff/integrity verification.
+2. Fresh read-only verify canonical GitHub HEAD and live Supabase still `57 / 20260903160812`.
+3. STOP at the live boundary and obtain explicit owner approval before applying RU-1 to production.
+4. If approved, apply exactly the proven RU-1 migration content, then fresh live structural/read-only proof.
+5. Reconcile live-assigned migration version if Supabase assigns a different timestamp, and update handoff/network/ledger/migration-state.
 
 ## DO NOT REDO / QUARANTINE
 
 - DO NOT REAPPLY RU-0.
+- Do not redo RU-1 disposable proof unless RU-1 source bytes change.
 - Do not redo Edge reconciliation.
-- Do not redeploy Edge for RU-0.
+- Do not redeploy Edge for RU-1; RU-1 is DB profile-readiness authority only.
 - `repair/ru0-ru1-backend-20260902` remains QUARANTINE: no merge/cherry-pick/apply.
 - Do not copy donor 184 migrations as a stack.
 - Do not expose secrets in GitHub, source, logs or mobile bundle.
