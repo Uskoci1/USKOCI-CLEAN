@@ -41,24 +41,32 @@ jobs:
           rm -rf supabase/migrations
           mkdir -p supabase/migrations
 
-          # The physical CLEAN migration directory starts after one pre-existing
-          # production bootstrap object. Restore its fresh-read live definition
-          # as a proof-only earliest migration; this file is never product source.
+          # Proof-only bootstrap reconstructed from a fresh live read.
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
              supabase/migrations/20260825000000_ru2_proof_live_bootstrap.sql
 
           for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
             b="$(basename "$f")"
             case "$b" in
-              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql)
+              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql)
                 ;;
               *) cp "$f" "supabase/migrations/$b" ;;
             esac
           done
+
+          # RU-0/RU-1 physical source names are mapped to their actual live IDs.
           cp "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql" \
              supabase/migrations/20260903160812_clean_ru0_authority_closure.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql" \
              supabase/migrations/20260903184545_clean_ru1_worker_readiness.sql
+
+          # These two historical migrations are runtime proofs. Fresh inspection
+          # confirms their test mutations roll back; only COMMENT metadata survives.
+          # Replay exactly those durable effects while keeping the historical IDs.
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901105922_durable_effects.sql" \
+             supabase/migrations/20260901105922_clean_completion_and_writer_authenticated_proof.sql
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901113333_durable_effects.sql" \
+             supabase/migrations/20260901113333_clean_ai_interview_turn_authenticated_proof.sql
 
           supabase db start
           supabase db reset --local
