@@ -30,7 +30,7 @@ jobs:
         with:
           version: latest
 
-      - name: Prepare full canonical predecessor with live aliases
+      - name: Prepare full canonical predecessor with live bootstrap and aliases
         shell: bash
         run: |
           set -euo pipefail
@@ -40,6 +40,12 @@ jobs:
           supabase init
           rm -rf supabase/migrations
           mkdir -p supabase/migrations
+
+          # The physical CLEAN migration directory starts after one pre-existing
+          # production bootstrap object. Restore its fresh-read live definition
+          # as a proof-only earliest migration; this file is never product source.
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
+             supabase/migrations/20260825000000_ru2_proof_live_bootstrap.sql
 
           for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
             b="$(basename "$f")"
@@ -57,13 +63,14 @@ jobs:
           supabase db start
           supabase db reset --local
 
-      - name: Verify exact predecessor
+      - name: Verify exact product predecessor
         shell: bash
         run: |
           set -euo pipefail
-          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
-          echo "predecessor=$actual"
-          test "$actual" = "58/20260903184545"
+          product_count="$(psql "$DB_URL" -Atc "select count(*) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
+          product_head="$(psql "$DB_URL" -Atc "select max(version) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
+          echo "product_predecessor=$product_count/$product_head"
+          test "$product_count/$product_head" = "58/20260903184545"
           test "$(psql "$DB_URL" -Atc 'select count(*) from public.ai_structured_facts;')" = "82"
           test "$(psql "$DB_URL" -Atc 'select count(*) from public.ai_conversations;')" = "15"
           test "$(psql "$DB_URL" -Atc 'select count(*) from public.needs;')" = "6"
@@ -74,9 +81,10 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903190000','clean_ru2_need_v2_draft');"
-          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
-          echo "post_ru2=$actual"
-          test "$actual" = "59/20260903190000"
+          product_count="$(psql "$DB_URL" -Atc "select count(*) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
+          product_head="$(psql "$DB_URL" -Atc "select max(version) from supabase_migrations.schema_migrations where version <> '20260825000000';")"
+          echo "post_ru2=$product_count/$product_head"
+          test "$product_count/$product_head" = "59/20260903190000"
 
       - name: Verify static RU-2 invariants
         shell: bash
