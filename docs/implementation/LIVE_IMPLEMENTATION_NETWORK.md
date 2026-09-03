@@ -1,6 +1,6 @@
 # USKOČI — LIVE IMPLEMENTATION NETWORK
 
-Last updated: 2026-09-03 20:52 Europe/Belgrade
+Last updated: 2026-09-03 23:20 Europe/Belgrade
 Authority: governing master + fresh physical GitHub/Supabase reads
 
 ## Canonical physical baseline
@@ -9,150 +9,115 @@ Authority: governing master + fresh physical GitHub/Supabase reads
 - Canonical branch: `clean-alpha-backend`
 - Canonical Supabase project: `leqcwgzvjsxugfgzdmth`
 - Live production migrations: `58`
-- Live production migration head: `20260903184545_clean_ru1_worker_readiness`
-- Live Edge Function: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`, unchanged by RU-1
+- Live production head: `20260903184545_clean_ru1_worker_readiness`
+- Live Edge: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`
 
-## RU-0 — Authority Closure
+RU-0 and RU-1 are CLOSED. Do not reapply them.
 
-State: `CLOSED`
+## RU-2 — Need V2 + R02/R07 canonical DRAFT
 
-Network intent:
-`authenticated client -> narrow RPC/read projection -> RLS/grants -> server authority -> canonical reread`
+State: `LIVE_PENDING`
 
-Live version: `20260903160812_clean_ru0_authority_closure`
-
-Proof:
-- disposable owner/attacker/service run `33769629283`: PASS
-- live structural proof: PASS
-- migration provenance: RECONCILED
-
-DO NOT REAPPLY RU-0.
-
-## RU-1 — Worker Readiness
-
-State: `CLOSED`
+Exact proven implementation head:
+`d7eb80b3403e5549a78cec18b1c8c87f42d9cf99`
 
 Network intent:
-`auth user creation -> REQUESTER ACTIVE + WORKER DRAFT -> owner edits under RLS -> rpc_complete_worker_profile -> server readiness checks -> narrow tokenized DRAFT-to-ACTIVE -> canonical reread`
+`authenticated R02 -> V2 conversation -> Edge server provider -> service-only typed proposal writer -> user R07 confirm/correct -> server Human Review -> idempotent canonical Need DRAFT -> R04; publish/admission remains a later authority boundary`
 
-Canonical DB source:
-- implementation commit: `5e586c63783b7743687224e3cc670e7ed52e4e48`
-- migration: `supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql`
-- bytes: `13591`
-- MD5: `f80e2e721365ee07316a9c0e84ab593f`
-- SHA-256: `71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0`
+### Pending DB sources
 
-RN consumer alignment:
-- commit: `ebabc6a48a9712ea34043b63dd7f6867e88691a2`
-- `src/app/(app)/profil/radnik.tsx`
-- UI requires name + city + at least one skill before activation, matching server readiness.
+1. `20260903190000_clean_ru2_need_v2_draft.sql`
+   - MD5 `f95fadda53d8d803faac4498d860c31b`
+   - creates/extends typed V2 registry and Human Review/DRAFT authority while preserving legacy data and flows.
+2. `20260903190100_clean_ru2_ai_fact_transition_guard.sql`
+   - MD5 `95145c601b6366f1a98e8566b3307515`
+   - narrows AI fact transitions and permits only the legitimate V2 supersession/confirmation/DRAFT-binding contracts; no broad ambient bypass.
 
-Live Supabase recording:
-- live version: `20260903184545`
-- live name: `clean_ru1_worker_readiness`
-- statement count: `1`
-- recorded UTF-8 bytes: `13591`
-- recorded MD5: `f80e2e721365ee07316a9c0e84ab593f`
-- exact byte identity with canonical source: `true`
+Neither is live yet.
 
-RU-1 live effects:
-1. New REQUESTER profiles derive `ACTIVE`.
-2. New WORKER profiles derive `DRAFT`.
-3. `profile_status` default is `DRAFT`.
-4. Direct client status activation fails closed.
-5. `account_id` and `kind` are immutable through the guard.
-6. Owner-only completion RPC is `rpc_complete_worker_profile(uuid)`.
-7. Completion requires display name, city and >=1 skill.
-8. Already ACTIVE replay is idempotent.
-9. Authenticated direct DELETE on `app_profiles` is revoked.
-10. Existing ACTIVE Workers were preserved; no mass downgrade occurred.
+### V2 fact authority
 
-### Fail-closed bug caught before production
+The V2 registry contains 20 typed facts. Required-for-DRAFT facts include title, description, category, price mode, schedule kind, people needed and task geography. Conditional server checks cover MY_PRICE amount and FIXED_WINDOW timestamps.
 
-Disposable proof found an earlier nullable-token SQL bug where a NULL boolean expression could avoid an intended denial. The final live guard uses explicit `IS DISTINCT FROM`, so absent/wrong mutation tokens fail closed. The faulty candidate was never applied to production.
+Fact truth remains:
+`AI proposal -> HUMAN_CONFIRMED/corrected -> CANONICAL_SAVED`
 
-## RU-1 proof
+Public task geography and private exact address/access notes remain separate. REMOTE does not fabricate a physical location.
 
-Disposable runtime proof:
-- branch `proof/ru1-disposable-ci-20260903`
-- source head `339e08017e56ac01c5cbfa8e91e89db8233e97d8`
-- run `33790306570`: PASS
-- DB apply PASS
-- owner/attacker/replay PASS
-- direct activation denial PASS
-- identity mutation denial PASS
-- missing-skill denial PASS
-- forced ACTIVE insert -> DRAFT PASS
-- authenticated DELETE denial PASS
-- historical ACTIVE Worker preserved PASS
-- zero residue PASS
+### Edge v5 target
 
-Checksum proof:
-- run `33790742908`: PASS
-- bytes `13591`
-- MD5 `f80e2e721365ee07316a9c0e84ab593f`
-- SHA-256 `71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0`
+Source: `supabase/functions/uskoci-ai-interview/index.ts`
 
-Promotion integrity:
-- run `33791044226`: PASS
-- minimal-provenance run `33791592988`: PASS
+Target behavior:
+- `LEGACY_TEXT_V1` -> existing legacy writer;
+- `NEED_FACT_V2` -> typed V2 service writer;
+- caller JWT/RLS verifies ownership before provider work;
+- service role only persists server output;
+- Gemini preferred when configured, OpenAI fallback;
+- secrets remain server-side;
+- PostgreSQL remains final type/enum/range authority.
 
-Fresh production post-apply proof:
-- migration state `58 / 20260903184545`
-- profile default `'DRAFT'::text`
-- fail-closed token guard present
-- REQUESTER→ACTIVE insert derivation present
-- WORKER→DRAFT insert derivation present
-- identity immutability guard present
-- completion RPC contract present
-- completion RPC EXECUTE anon/auth/service `false/true/true`
-- private guard EXECUTE anon/auth/service `false/false/false`
-- anon `app_profiles` SELECT `false`
-- authenticated `app_profiles` SELECT/INSERT/UPDATE/DELETE `true/true/true/false`
-- service-role DELETE `true`
-- guard trigger present
-- profile counts before/after preserved: total `6`; REQUESTER ACTIVE `3`; WORKER ACTIVE `3`; WORKER DRAFT `0`; WORKER other `0`
-- embedded migration postconditions passed before commit.
+Live is still v4. Edge v5 must not deploy before the RU-2 DB functions exist live.
 
-## Migration provenance
+### RN path
 
-`supabase/migrations/MIGRATION_PROVENANCE.json` is normalized to the live state:
-- live snapshot count `58`
-- live last `20260903184545_clean_ru1_worker_readiness`
-- RU-1 source version `20260903165700` maps to live version `20260903184545`
-- exact byte identity `true`
-- pending forward migrations `0`
+- R02: `src/app/(app)/nova.tsx`
+- R07: `src/app/(app)/pregled-nacrta.tsx`
+- typed adapter: `src/data/aiNeedV2Production.ts`
+- shared contract: `src/contracts/needFactsV2.ts`
+
+R02 does not publish. R07 final action is `Sačuvajte DRAFT`; it calls `rpc_save_need_draft_from_review`. If a conversation is already bound to a DRAFT, R07 reopens that DRAFT instead of making another.
+
+## RU-2 proof
+
+Combined disposable proof run `33806989549`: PASS.
+
+Same-head proof includes:
+- predecessor reconstruction through live-equivalent RU-1 58;
+- RU-2 core + guard apply;
+- owner/attacker/service;
+- typed correction;
+- Human Review and missing-required denial;
+- idempotent DRAFT save;
+- legacy/V2 coexistence;
+- geography privacy;
+- repeated-key V2 service supersession;
+- service cannot bypass Human Review to bind a Need;
+- rollback/zero residue;
+- TypeScript;
+- Deno Edge check;
+- Jest 40/40;
+- R02/R07 draft-only static contract.
+
+Source proof run `33806867873`: PASS.
+Raw migration checksum run `33807334733`: PASS.
 
 ## Current state
 
 | Layer | State |
 |---|---|
 | Edge source reconciliation | DONE |
-| RU-0 overall | CLOSED |
-| RU-1 DB source | CANONICAL |
-| RU-1 disposable DB apply | PASS |
-| RU-1 owner/attacker/replay proof | PASS |
-| RU-1 zero-residue proof | PASS |
-| RU-1 production apply | APPLIED |
-| RU-1 production structural proof | PASS |
-| RU-1 RN readiness alignment | COMMITTED |
-| RU-1 migration provenance | RECONCILED |
-| RU-1 overall | CLOSED |
+| RU-0 | CLOSED |
+| RU-1 | CLOSED |
+| RU-2 DB source | PROVEN / LIVE_PENDING |
+| RU-2 owner-attacker-service | PASS |
+| RU-2 zero residue | PASS |
+| RU-2 Edge v5 source | DENO_PROVEN / NOT_DEPLOYED |
+| RU-2 R02 -> R07 source | TSC+JEST_PROVEN |
+| RU-2 production apply | NOT_APPLIED |
+| RU-2 live structural proof | PENDING |
+| RU-2 provenance | LIVE_58 + TWO_PENDING_FORWARD |
 
 ## Next allowed action
 
-1. Fresh read-only GitHub + Supabase preflight against `58 / 20260903184545`.
-2. Read the governing master RU-2 dependency contract from current canonical/governing materials.
-3. If physical state matches, begin RU-2 exactly in dependency order.
-4. Proof before live promotion; update network, ledger, migration state and handoff after the unit.
+Run promotion integrity on the exact staging source. If green, promote exact source to canonical and immediately fresh-read GitHub + Supabase. Live writes are allowed only if production is still exactly `58 / 20260903184545` and live Edge remains v4. Any mismatch stops writes and requires reconciliation.
 
 ## DO NOT REDO / DO NOT TOUCH
 
-- DO NOT REAPPLY RU-0 or RU-1.
-- Do not redo RU-1 proof unless its source bytes change.
-- Do not redeploy Edge v4 for RU-1.
-- Do not merge/cherry-pick/apply `repair/ru0-ru1-backend-20260902`.
-- Do not copy donor 184 migrations as a stack.
+- Do not reapply RU-0/RU-1.
+- Do not deploy Edge v5 before RU-2 DB authority.
+- Do not use quarantine branch `repair/ru0-ru1-backend-20260902`.
+- Do not copy donor migrations blindly.
 - Do not expose provider/service secrets.
 
 Principle: **AI agent is replaceable. Canonical project state is not.**
