@@ -20,16 +20,14 @@ jobs:
         with:
           ref: proof/ru2-need-v2-r07-20260903
           fetch-depth: 0
-      - name: Apply stable predecessor/replay repair
+      - name: Apply stable predecessor guard repair
         run: python supabase/proofs/ru2_fix_replay_and_guard.py
-      - name: Commit repair
+      - name: Commit only product migration repair
         run: |
           set -euo pipefail
-          rm .github/workflows/ru2-stable-guard-repair.yml
-          rm supabase/proofs/ru2_fix_replay_and_guard.py
           git config user.name uskoci-ci
           git config user.email actions@users.noreply.github.com
-          git add -A
+          git add supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql
           git diff --cached --check
           git commit -m "fix(db): make RU-2 predecessor guard stable"
           git push origin HEAD:proof/ru2-need-v2-r07-20260903
