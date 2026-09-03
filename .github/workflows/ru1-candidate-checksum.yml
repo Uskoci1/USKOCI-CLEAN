@@ -1,0 +1,24 @@
+name: RU-1 candidate checksum
+
+on:
+  push:
+    branches:
+      - proof/ru1-disposable-ci-20260903
+    paths:
+      - '.github/workflows/ru1-candidate-checksum.yml'
+      - 'supabase/proofs/ru1_worker_readiness_candidate.sql'
+
+permissions:
+  contents: read
+
+jobs:
+  checksum:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print exact candidate checksum
+        run: |
+          set -euo pipefail
+          wc -c supabase/proofs/ru1_worker_readiness_candidate.sql
+          md5sum supabase/proofs/ru1_worker_readiness_candidate.sql
+          sha256sum supabase/proofs/ru1_worker_readiness_candidate.sql
