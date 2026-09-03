@@ -3,19 +3,33 @@
 // Provider secrets live only in Supabase Edge Function environment. Never expose
 // GEMINI_API_KEY / OPENAI_API_KEY / SUPABASE_SERVICE_ROLE_KEY to Expo, source or logs.
 
+import {
+  LEGACY_FACT_SCHEMA_V1,
+  NEED_FACT_SCHEMA_V2,
+  NEED_FACT_V2_DEFINITIONS,
+  NEED_FACT_V2_KEYS,
+  isNeedFactV2Key,
+} from '../../../src/contracts/needFactsV2.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const FACT_KEYS = [
+const LEGACY_FACT_KEYS = [
   'naslov', 'opis', 'kategorija', 'datum', 'vreme',
   'polaziste', 'odrediste', 'osoba', 'vozilo', 'uslovi',
 ] as const;
-
-const factKeySet = new Set<string>(FACT_KEYS);
+const legacyFactKeySet = new Set<string>(LEGACY_FACT_KEYS);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type FactSchemaVersion = typeof LEGACY_FACT_SCHEMA_V1 | typeof NEED_FACT_SCHEMA_V2;
+type ParsedTurn = {
+  safety: 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
+  assistantMessage: string;
+  proposals: Array<Record<string, unknown>>;
+};
 
 function response(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -25,14 +39,10 @@ function response(status: number, body: Record<string, unknown>) {
 }
 
 function outputText(payload: any): string | null {
-  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) {
-    return payload.output_text;
-  }
+  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) return payload.output_text;
   for (const item of payload?.output ?? []) {
     for (const part of item?.content ?? []) {
-      if (part?.type === 'output_text' && typeof part.text === 'string' && part.text.trim()) {
-        return part.text;
-      }
+      if (part?.type === 'output_text' && typeof part.text === 'string' && part.text.trim()) return part.text;
     }
   }
   return null;
@@ -65,7 +75,7 @@ async function postgrest(
   });
 }
 
-function providerSchema() {
+function legacyProviderSchema() {
   return {
     type: 'OBJECT',
     additionalProperties: false,
@@ -79,7 +89,7 @@ function providerSchema() {
           type: 'OBJECT',
           additionalProperties: false,
           properties: {
-            key: { type: 'STRING', enum: FACT_KEYS },
+            key: { type: 'STRING', enum: LEGACY_FACT_KEYS },
             value: { type: 'STRING' },
             confidence: { type: 'NUMBER', minimum: 0, maximum: 1 },
             evidence: { type: 'STRING' },
@@ -92,51 +102,155 @@ function providerSchema() {
   };
 }
 
-function systemInstruction(activeFacts: any[]) {
+function v2ProviderSchema() {
+  return {
+    type: 'OBJECT',
+    additionalProperties: false,
+    properties: {
+      safety: { type: 'STRING', enum: ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'] },
+      assistantMessage: { type: 'STRING' },
+      facts: {
+        type: 'ARRAY',
+        maxItems: 20,
+        items: {
+          type: 'OBJECT',
+          additionalProperties: false,
+          properties: {
+            key: { type: 'STRING', enum: NEED_FACT_V2_KEYS },
+            // JSON encoded as a string keeps Gemini/OpenAI structured-output
+            // contracts provider-neutral. Edge parses it back to real JSON and
+            // PostgreSQL remains the final type/range/enum authority.
+            valueJson: { type: 'STRING' },
+            displayValue: { type: 'STRING' },
+            confidence: { type: 'NUMBER', minimum: 0, maximum: 1 },
+            evidence: { type: 'STRING' },
+          },
+          required: ['key', 'valueJson', 'displayValue', 'confidence', 'evidence'],
+        },
+      },
+    },
+    required: ['safety', 'assistantMessage', 'facts'],
+  };
+}
+
+function openAiSchema(schemaVersion: FactSchemaVersion) {
+  const src = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2ProviderSchema() : legacyProviderSchema();
+  const convert = (node: any): any => {
+    if (Array.isArray(node)) return node.map(convert);
+    if (!node || typeof node !== 'object') return node;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(node)) {
+      if (key === 'type' && typeof value === 'string') out[key] = value.toLowerCase();
+      else out[key] = convert(value);
+    }
+    return out;
+  };
+  return convert(src);
+}
+
+function commonInstruction(activeFacts: any[]) {
   const known = activeFacts.map((fact) => ({
     key: fact.fact_key,
     value: fact.fact_value,
+    displayValue: fact.display_value ?? null,
     status: fact.status,
   }));
-
   return [
-    'Vi ste USKOČI razgovorni AI asistent koji vodi Naručioca kroz unos jedne Potrebe na marketplace-u.',
-    'Odgovarajte prirodno na srpskom latinicom, kratko i ljudski.',
-    'Ovo je pravi višekoračni razgovor, a ne formular. Ne govorite "Razumeo sam ovako" posle svake poruke.',
-    'Koristite istoriju razgovora i već poznate činjenice; nikada ne pitajte ponovo ono što je već jasno.',
-    'Ako nešto važno nedostaje ili je nejasno, postavite jedno najkorisnije sledeće pitanje, najviše dva usko povezana pitanja.',
-    'Pitanja prilagodite poslu. Za selidbu/prevoz možete pitati polazište, odredište, sprat, lift, dimenzije, rastavljanje, potreban broj ljudi, vozilo i vreme samo kada je relevantno i nije već poznato.',
-    'Ako korisnik u jednoj poruci već kaže više podataka, izvucite sve podržane podatke i ne tražite ih ponovo.',
-    'Iz korisnikove NAJNOVIJE poruke izdvojite samo činjenice koje su stvarno podržane tom porukom. Ne izmišljajte adresu, cenu, datum, vreme, vozilo, broj ljudi ili uslove.',
-    'Ako korisnik ispravlja raniji podatak, predložite novu vrednost tog istog ključa. Server će bezbedno potisnuti staru aktivnu vrednost.',
-    'Svaka AI činjenica je samo predlog NEEDS_CONFIRMATION i korisnik je kasnije potvrđuje ili ispravlja.',
-    'evidence mora biti kratak doslovan isečak najnovije korisnikove poruke koji podržava predlog.',
-    'assistantMessage mora uvek biti korisna naredna poruka korisniku. Sažetak koristite samo kada stvarno pomaže ili pred završnu proveru.',
-    'Ako zahtev deluje zabranjeno ili rizično, stavite safety REVIEW ili BLOCK i ne predlažite rizične činjenice.',
-    `Aktuelne server-side činjenice (mogu biti AI predlozi ili potvrđene): ${JSON.stringify(known).slice(0, 6000)}`,
+    'Odgovarajte prirodno na srpskom latinicom, kratko, jasno i ljudski.',
+    'Ovo je višekoračni razgovor, ne formular. Ne ponavljajte pitanja za podatke koji su već poznati i važeći.',
+    'Ako nešto materijalno nedostaje ili je kontradiktorno, postavite jedno najvažnije sledeće pitanje; najviše dva usko povezana samo kada je prirodno.',
+    'Ako korisnik ispravlja raniji podatak, predložite novu vrednost istog ključa. Server čuva supersession istoriju.',
+    'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
+    'AI predlog nikada nije ljudska potvrda i nikada nije dozvola za objavu.',
+    'Safety je samo razgovorni signal. Ne tvrdite da je nešto zakonski dozvoljeno na osnovu sopstvene memorije. Ako je pravno/policy nejasno ili regulisano, koristite REVIEW; ako se bezbedno pitanje može razjasniti, CLARIFY.',
+    `Aktuelne server-side činjenice: ${JSON.stringify(known).slice(0, 8000)}`,
+  ];
+}
+
+function legacyInstruction(activeFacts: any[]) {
+  return [
+    'Vi ste USKOČI razgovorni AI asistent koji vodi korisnika kroz unos jednog Zadatka.',
+    ...commonInstruction(activeFacts),
+    'Iz NAJNOVIJE poruke izdvojite samo podržane legacy činjenice.',
+    'evidence mora biti kratak doslovan isečak najnovije korisnikove poruke.',
   ].join(' ');
 }
 
-function parseProviderOutput(parsed: any) {
-  const safety = ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed?.safety)
-    ? parsed.safety
+function v2Instruction(activeFacts: any[]) {
+  const registry = NEED_FACT_V2_KEYS.map((key) => ({ key, ...NEED_FACT_V2_DEFINITIONS[key] }));
+  return [
+    'Vi ste USKOČI AI kopilot za sastavljanje kvalitetnog Zadatka iz prirodnog razgovora.',
+    ...commonInstruction(activeFacts),
+    'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
+    'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
+    'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
+    'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
+    'need.schedule_kind može biti FIXED, WINDOW, FLEXIBLE ili ASAP. FIXED zahteva starts_at; WINDOW zahteva starts_at i ends_at.',
+    'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. REMOTE nema fizičke tačke. Javna geography tačka sme imati samo label/city/area. Tačnu adresu stavljajte isključivo u need.exact_address.',
+    'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis.',
+    `Jedini podržani V2 fact registry: ${JSON.stringify(registry)}`,
+  ].join(' ');
+}
+
+function parseSafety(value: unknown): ParsedTurn['safety'] {
+  return ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(String(value))
+    ? String(value) as ParsedTurn['safety']
     : 'REVIEW';
+}
+
+function parseLegacyOutput(parsed: any): ParsedTurn {
+  const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
-    ? parsed.assistantMessage.trim().slice(0, 1000)
+    ? parsed.assistantMessage.trim().slice(0, 1200)
     : '';
   if (!assistantMessage) throw new Error('ASSISTANT_MESSAGE_MISSING');
-
-  const proposals: Array<{ key: string; value: string; confidence: number; evidence: string }> = [];
+  const proposals: Array<Record<string, unknown>> = [];
   if (safety !== 'BLOCK') {
     for (const fact of Array.isArray(parsed?.facts) ? parsed.facts : []) {
       const key = typeof fact?.key === 'string' ? fact.key : '';
       const value = typeof fact?.value === 'string' ? fact.value.trim().slice(0, 2000) : '';
       const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim().slice(0, 500) : '';
       const confidence = Number(fact?.confidence);
-      if (!factKeySet.has(key) || !value || !evidence || !Number.isFinite(confidence)) continue;
+      if (!legacyFactKeySet.has(key) || !value || !evidence || !Number.isFinite(confidence)) continue;
+      proposals.push({ key, value, confidence: Math.max(0, Math.min(1, confidence)), evidence });
+    }
+  }
+  return { safety, assistantMessage, proposals };
+}
+
+function valueMatchesType(valueType: string, value: unknown): boolean {
+  if (valueType === 'TEXT' || valueType === 'ENUM' || valueType === 'TIMESTAMPTZ') return typeof value === 'string' && value.trim().length > 0;
+  if (valueType === 'INTEGER') return typeof value === 'number' && Number.isInteger(value);
+  if (valueType === 'BOOLEAN') return typeof value === 'boolean';
+  if (valueType === 'TEXT_ARRAY') return Array.isArray(value) && value.every((x) => typeof x === 'string' && x.trim().length > 0);
+  if (valueType === 'OBJECT') return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  return false;
+}
+
+function parseV2Output(parsed: any): ParsedTurn {
+  const safety = parseSafety(parsed?.safety);
+  const assistantMessage = typeof parsed?.assistantMessage === 'string'
+    ? parsed.assistantMessage.trim().slice(0, 1200)
+    : '';
+  if (!assistantMessage) throw new Error('ASSISTANT_MESSAGE_MISSING');
+  const proposals: Array<Record<string, unknown>> = [];
+  if (safety !== 'BLOCK') {
+    const seen = new Set<string>();
+    for (const fact of Array.isArray(parsed?.facts) ? parsed.facts : []) {
+      const key = typeof fact?.key === 'string' ? fact.key : '';
+      if (!isNeedFactV2Key(key) || seen.has(key)) continue;
+      let value: unknown;
+      try { value = JSON.parse(String(fact?.valueJson ?? '')); } catch { continue; }
+      if (!valueMatchesType(NEED_FACT_V2_DEFINITIONS[key].valueType, value)) continue;
+      const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim().slice(0, 1000) : '';
+      const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim().slice(0, 500) : '';
+      const confidence = Number(fact?.confidence);
+      if (!displayValue || !evidence || !Number.isFinite(confidence)) continue;
+      seen.add(key);
       proposals.push({
         key,
         value,
+        displayValue,
         confidence: Math.max(0, Math.min(1, confidence)),
         evidence,
       });
@@ -148,6 +262,7 @@ function parseProviderOutput(parsed: any) {
 async function callGemini(
   key: string,
   model: string,
+  schemaVersion: FactSchemaVersion,
   history: any[],
   activeFacts: any[],
   text: string,
@@ -157,60 +272,42 @@ async function callGemini(
     parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
   }));
   contents.push({ role: 'user', parts: [{ text }] });
-
   const providerResponse = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
       method: 'POST',
-      headers: {
-        'x-goog-api-key': key,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemInstruction(activeFacts) }] },
+        systemInstruction: { parts: [{ text: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts) : legacyInstruction(activeFacts) }] },
         contents,
         generationConfig: {
-          temperature: 0.25,
+          temperature: 0.2,
           responseMimeType: 'application/json',
-          responseSchema: providerSchema(),
+          responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2ProviderSchema() : legacyProviderSchema(),
         },
       }),
     },
   );
-
   if (!providerResponse.ok) {
     console.error('GEMINI_GENERATE_FAILED', providerResponse.status);
     throw new Error('PROVIDER_HTTP_FAILED');
   }
-
   const payload = await providerResponse.json();
   const raw = geminiText(payload);
   if (!raw) {
     const blocked = Boolean(payload?.promptFeedback?.blockReason)
-      || (payload?.candidates ?? []).some((candidate: any) =>
-        ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(candidate?.finishReason));
-    if (blocked) {
-      return {
-        safety: 'BLOCK',
-        assistantMessage: 'Ne mogu da pomognem sa tim zahtevom.',
-        proposals: [],
-      };
-    }
-    console.error('GEMINI_STRUCTURED_OUTPUT_MISSING');
+      || (payload?.candidates ?? []).some((candidate: any) => ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(candidate?.finishReason));
+    if (blocked) return { safety: 'BLOCK', assistantMessage: 'Ne mogu da pomognem sa tim zahtevom.', proposals: [] };
     throw new Error('PROVIDER_OUTPUT_MISSING');
   }
-
-  try {
-    return parseProviderOutput(JSON.parse(raw));
-  } catch {
-    console.error('GEMINI_STRUCTURED_OUTPUT_INVALID');
-    throw new Error('PROVIDER_OUTPUT_INVALID');
-  }
+  const parsed = JSON.parse(raw);
+  return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseV2Output(parsed) : parseLegacyOutput(parsed);
 }
 
 async function callOpenAI(
   key: string,
   model: string,
+  schemaVersion: FactSchemaVersion,
   history: any[],
   activeFacts: any[],
   text: string,
@@ -220,99 +317,49 @@ async function callOpenAI(
     content: [{ type: row.role === 'ASSISTANT' ? 'output_text' : 'input_text', text: String(row.body ?? '').slice(0, 4000) }],
   }));
   transcript.push({ role: 'user', content: [{ type: 'input_text', text }] });
-
   const providerResponse = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model,
       store: false,
-      instructions: systemInstruction(activeFacts),
+      instructions: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts) : legacyInstruction(activeFacts),
       input: transcript,
       text: {
         format: {
           type: 'json_schema',
-          name: 'uskoci_need_intake',
+          name: schemaVersion === NEED_FACT_SCHEMA_V2 ? 'uskoci_need_intake_v2' : 'uskoci_need_intake_legacy',
           strict: true,
-          schema: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              safety: { type: 'string', enum: ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'] },
-              assistantMessage: { type: 'string' },
-              facts: {
-                type: 'array',
-                maxItems: 10,
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    key: { type: 'string', enum: FACT_KEYS },
-                    value: { type: 'string' },
-                    confidence: { type: 'number', minimum: 0, maximum: 1 },
-                    evidence: { type: 'string' },
-                  },
-                  required: ['key', 'value', 'confidence', 'evidence'],
-                },
-              },
-            },
-            required: ['safety', 'assistantMessage', 'facts'],
-          },
+          schema: openAiSchema(schemaVersion),
         },
       },
     }),
   });
-
   if (!providerResponse.ok) {
     console.error('OPENAI_RESPONSES_FAILED', providerResponse.status);
     throw new Error('PROVIDER_HTTP_FAILED');
   }
   const payload = await providerResponse.json();
   const raw = outputText(payload);
-  if (!raw) {
-    console.error('OPENAI_STRUCTURED_OUTPUT_MISSING');
-    throw new Error('PROVIDER_OUTPUT_MISSING');
-  }
-  try {
-    return parseProviderOutput(JSON.parse(raw));
-  } catch {
-    console.error('OPENAI_STRUCTURED_OUTPUT_INVALID');
-    throw new Error('PROVIDER_OUTPUT_INVALID');
-  }
+  if (!raw) throw new Error('PROVIDER_OUTPUT_MISSING');
+  const parsed = JSON.parse(raw);
+  return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseV2Output(parsed) : parseLegacyOutput(parsed);
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') {
-    return response(405, { code: 'METHOD_NOT_ALLOWED', message: 'Koristite POST.' });
-  }
+  if (req.method !== 'POST') return response(405, { code: 'METHOD_NOT_ALLOWED', message: 'Koristite POST.' });
 
   const authorization = req.headers.get('Authorization') ?? '';
-  if (!authorization.startsWith('Bearer ')) {
-    return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
-  }
+  if (!authorization.startsWith('Bearer ')) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
 
   let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' });
-  }
+  try { body = await req.json(); } catch { return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' }); }
 
   const conversationId = typeof body?.conversationId === 'string' ? body.conversationId.trim() : '';
   const text = typeof body?.text === 'string' ? body.text.trim() : '';
-  if (!uuidPattern.test(conversationId)) {
-    return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Potrebe nije ispravan.' });
-  }
-  if (!text || text.length > 4000) {
-    return response(400, {
-      code: 'MESSAGE_INVALID',
-      message: text ? 'Poruka može imati najviše 4000 znakova.' : 'Unesite poruku.',
-    });
-  }
+  if (!uuidPattern.test(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
+  if (!text || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: text ? 'Poruka može imati najviše 4000 znakova.' : 'Unesite poruku.' });
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -322,12 +369,11 @@ Deno.serve(async (req: Request) => {
     return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
   }
 
-  // Caller JWT + RLS proves ownership before any provider spend.
   const conversationQuery = await postgrest(
     supabaseUrl,
     anonKey,
     authorization,
-    `ai_conversations?id=eq.${encodeURIComponent(conversationId)}&purpose=eq.NEED_INTAKE&status=eq.OPEN&select=id,account_id&limit=1`,
+    `ai_conversations?id=eq.${encodeURIComponent(conversationId)}&purpose=eq.NEED_INTAKE&status=eq.OPEN&select=id,account_id,fact_schema_version&limit=1`,
     { method: 'GET' },
   );
   if (!conversationQuery.ok) {
@@ -335,30 +381,23 @@ Deno.serve(async (req: Request) => {
     return response(502, { code: 'CONVERSATION_READ_FAILED', message: 'Nacrt nije mogao da se proveri.' });
   }
   const conversations = await conversationQuery.json();
-  if (!Array.isArray(conversations) || conversations.length !== 1) {
-    return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
-  }
-  const accountId = typeof conversations[0]?.account_id === 'string' ? conversations[0].account_id : '';
-  if (!uuidPattern.test(accountId)) {
-    console.error('AI_EDGE_ACCOUNT_ID_INVALID');
-    return response(500, { code: 'SERVER_IDENTITY_ERROR', message: 'Serverski identitet nije mogao da se potvrdi.' });
-  }
+  if (!Array.isArray(conversations) || conversations.length !== 1) return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
 
-  // Read server history + active facts with caller JWT/RLS. Provider sees the
-  // same conversation state the authenticated user is allowed to see.
+  const accountId = typeof conversations[0]?.account_id === 'string' ? conversations[0].account_id : '';
+  if (!uuidPattern.test(accountId)) return response(500, { code: 'SERVER_IDENTITY_ERROR', message: 'Serverski identitet nije mogao da se potvrdi.' });
+  const schemaVersion: FactSchemaVersion = conversations[0]?.fact_schema_version === NEED_FACT_SCHEMA_V2
+    ? NEED_FACT_SCHEMA_V2
+    : LEGACY_FACT_SCHEMA_V1;
+
   const [historyResponse, factsResponse] = await Promise.all([
     postgrest(
-      supabaseUrl,
-      anonKey,
-      authorization,
+      supabaseUrl, anonKey, authorization,
       `ai_messages?conversation_id=eq.${encodeURIComponent(conversationId)}&select=role,body,sequence_no&order=sequence_no.asc&limit=40`,
       { method: 'GET' },
     ),
     postgrest(
-      supabaseUrl,
-      anonKey,
-      authorization,
-      `ai_structured_facts?conversation_id=eq.${encodeURIComponent(conversationId)}&superseded_at=is.null&select=fact_key,fact_value,status,source,created_at&order=created_at.asc`,
+      supabaseUrl, anonKey, authorization,
+      `ai_structured_facts?conversation_id=eq.${encodeURIComponent(conversationId)}&superseded_at=is.null&select=fact_key,fact_value,value_type,display_value,fact_schema_version,status,source,created_at&order=created_at.asc`,
       { method: 'GET' },
     ),
   ]);
@@ -374,33 +413,31 @@ Deno.serve(async (req: Request) => {
   const openaiKey = Deno.env.get('OPENAI_API_KEY') ?? '';
   const openaiModel = Deno.env.get('OPENAI_MODEL') ?? '';
 
-  let aiTurn: { safety: string; assistantMessage: string; proposals: Array<{ key: string; value: string; confidence: number; evidence: string }> };
+  let aiTurn: ParsedTurn;
   let provider = '';
   try {
     if (geminiKey && geminiModel) {
       provider = 'gemini';
-      aiTurn = await callGemini(geminiKey, geminiModel, Array.isArray(history) ? history : [], Array.isArray(activeFacts) ? activeFacts : [], text);
+      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, Array.isArray(history) ? history : [], Array.isArray(activeFacts) ? activeFacts : [], text);
     } else if (openaiKey && openaiModel) {
       provider = 'openai';
-      aiTurn = await callOpenAI(openaiKey, openaiModel, Array.isArray(history) ? history : [], Array.isArray(activeFacts) ? activeFacts : [], text);
+      aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, Array.isArray(history) ? history : [], Array.isArray(activeFacts) ? activeFacts : [], text);
     } else {
-      return response(503, {
-        code: 'AI_PROVIDER_NOT_CONFIGURED',
-        message: 'AI obrada još nije aktivirana na serveru.',
-      });
+      return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
     }
-  } catch {
+  } catch (error) {
+    console.error('AI_PROVIDER_FAILED', error instanceof Error ? error.message : 'unknown');
     return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela.' });
   }
 
-  // One service-role-only RPC is the entire persistence boundary. If any fact or
-  // message is invalid, PostgreSQL rolls the whole turn back; partial AI state
-  // cannot survive.
+  const rpc = schemaVersion === NEED_FACT_SCHEMA_V2
+    ? 'rpc/rpc_ai_apply_interview_turn_v2_service'
+    : 'rpc/rpc_ai_apply_interview_turn_service';
   const persist = await postgrest(
     supabaseUrl,
     serviceRoleKey,
     `Bearer ${serviceRoleKey}`,
-    'rpc/rpc_ai_apply_interview_turn_service',
+    rpc,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -414,11 +451,8 @@ Deno.serve(async (req: Request) => {
     },
   );
   if (!persist.ok) {
-    console.error('AI_TURN_PERSIST_FAILED', persist.status);
-    return response(502, {
-      code: 'AI_TURN_PERSIST_FAILED',
-      message: 'AI odgovor nije mogao bezbedno da se sačuva.',
-    });
+    console.error('AI_TURN_PERSIST_FAILED', persist.status, schemaVersion);
+    return response(502, { code: 'AI_TURN_PERSIST_FAILED', message: 'AI odgovor nije mogao bezbedno da se sačuva.' });
   }
 
   const persisted = await persist.json();
@@ -428,6 +462,7 @@ Deno.serve(async (req: Request) => {
     assistantMessage: aiTurn.assistantMessage,
     safety: aiTurn.safety,
     blocked: aiTurn.safety === 'BLOCK',
+    schemaVersion,
     provider,
   });
 });
