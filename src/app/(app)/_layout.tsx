@@ -77,6 +77,10 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="pregled-nacrta"
+        options={{ href: null }}
+      />
 
       {/* Uskočer */}
       <Tabs.Screen
