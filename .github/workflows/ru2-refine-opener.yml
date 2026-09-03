@@ -20,89 +20,13 @@ jobs:
         with:
           ref: proof/ru2-need-v2-r07-20260903
           fetch-depth: 0
-      - name: Replace opener cutover with additive V2 opener
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql')
-          s = p.read_text()
-          old = '''create or replace function public.rpc_ai_open_conversation(p_purpose text)
-          returns uuid
-          language plpgsql
-          security definer
-          set search_path to 'pg_catalog'
-          as $function$
-          declare
-            v_uid uuid:=auth.uid();
-            v_id uuid;
-            v_schema text;
-          begin
-            if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
-            if p_purpose not in ('NEED_INTAKE','APPLICATION','PROFILE') then
-              raise exception 'BAD_PURPOSE' using errcode='P0001';
-            end if;
-
-            v_schema:=case when p_purpose='NEED_INTAKE' then 'NEED_FACT_V2' else 'LEGACY_TEXT_V1' end;
-
-            insert into public.ai_conversations(account_id,purpose,fact_schema_version)
-            values(v_uid,p_purpose,v_schema)
-            returning id into v_id;
-
-            return v_id;
-          end
-          $function$;
-
-          revoke all on function public.rpc_ai_open_conversation(text) from public, anon, authenticated, service_role;
-          grant execute on function public.rpc_ai_open_conversation(text) to authenticated, service_role;'''
-          new = '''create or replace function public.rpc_ai_open_need_conversation_v2()
-          returns uuid
-          language plpgsql
-          security definer
-          set search_path to 'pg_catalog'
-          as $function$
-          declare
-            v_uid uuid:=auth.uid();
-            v_id uuid;
-          begin
-            if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
-
-            insert into public.ai_conversations(account_id,purpose,fact_schema_version)
-            values(v_uid,'NEED_INTAKE','NEED_FACT_V2')
-            returning id into v_id;
-
-            return v_id;
-          end
-          $function$;
-
-          revoke all on function public.rpc_ai_open_need_conversation_v2()
-          from public, anon, authenticated, service_role;
-          grant execute on function public.rpc_ai_open_need_conversation_v2()
-          to authenticated;'''
-          if old not in s:
-              raise SystemExit('legacy opener replacement block not found')
-          s = s.replace(old, new, 1)
-
-          needle = "  if not has_function_privilege('authenticated','public.rpc_ai_correct_fact_v2(uuid,jsonb,text)','EXECUTE')\n"
-          insert = """  if has_function_privilege('anon','public.rpc_ai_open_need_conversation_v2()','EXECUTE')
-             or not has_function_privilege('authenticated','public.rpc_ai_open_need_conversation_v2()','EXECUTE')
-             or position('fact_schema_version' in pg_get_functiondef('public.rpc_ai_open_conversation(text)'::regprocedure)) > 0 then
-            raise exception 'RU2_POSTCONDITION_FAILED: backward-compatible V2 opener mismatch';
-          end if;
-
-"""
-          if needle not in s:
-              raise SystemExit('postcondition insertion point not found')
-          s = s.replace(needle, insert + needle, 1)
-          p.write_text(s)
-          PY
-          git diff --check
-      - name: Commit refinement and remove helper workflow
-        shell: bash
+      - name: Apply additive V2 opener refinement
+        run: python supabase/proofs/ru2_refine_opener.py
+      - name: Commit refinement
         run: |
           set -euo pipefail
           rm .github/workflows/ru2-refine-opener.yml
+          rm supabase/proofs/ru2_refine_opener.py
           git config user.name uskoci-ci
           git config user.email actions@users.noreply.github.com
           git add -A
