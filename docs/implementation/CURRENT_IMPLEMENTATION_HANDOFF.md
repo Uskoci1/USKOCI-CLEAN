@@ -1,6 +1,6 @@
 # USKOČI — CURRENT IMPLEMENTATION HANDOFF
 
-Checkpoint time: 2026-09-03 20:22 Europe/Belgrade
+Checkpoint time: 2026-09-03 20:40 Europe/Belgrade
 
 ## Canonical identity
 
@@ -9,7 +9,7 @@ Checkpoint time: 2026-09-03 20:22 Europe/Belgrade
 - Supabase project: `leqcwgzvjsxugfgzdmth`
 - Production migration count/head: `57 / 20260903160812_clean_ru0_authority_closure`
 - Edge: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`, unchanged
-- Canonical HEAD before RU-1 source promotion: `1846fcbaaf50ef76b7e9686ff1f5d6cbd222ee83`
+- RU-1 canonical source promotion checkpoint: `e99876189ba4625e00a887ee7771da8d3b7ec1c1`
 
 ## Last fully completed live unit
 
@@ -56,12 +56,15 @@ Production `execute_sql` is connector-enforced read-only, so rollback-only fixtu
 
 ## Current unit — RU-1 Worker Readiness
 
-State: `SOURCE_STAGED_RUNTIME_PROVEN`
+State: `SOURCE_CANONICAL_RUNTIME_PROVEN`
+
+Canonical source promoted: `YES`
 
 Production applied: `NO`
 
-Exact staged source:
-- source migration commit: `5e586c63783b7743687224e3cc670e7ed52e4e48`
+Exact canonical source:
+- migration implementation commit: `5e586c63783b7743687224e3cc670e7ed52e4e48`
+- canonical promotion checkpoint: `e99876189ba4625e00a887ee7771da8d3b7ec1c1`
 - migration: `supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql`
 - raw bytes: `13591`
 - MD5: `f80e2e721365ee07316a9c0e84ab593f`
@@ -122,9 +125,11 @@ Exact checksum proof:
 - SHA-256 `71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0`
 
 Promotion-integrity proof:
-- branch `promotion/ru1-worker-readiness-20260903`
-- GitHub Actions run `33791044226`
-- migration-integrity PASS with live snapshot 57 + one pending RU-1 forward migration
+- promotion branch `promotion/ru1-worker-readiness-20260903`
+- GitHub Actions run `33791044226`: PASS
+- minimal-provenance integrity run `33791592988`: PASS
+- final promotion diff contained only RU-1 migration, MD5/provenance, two proof files and four implementation tracking files
+- temporary helper workflows are absent from canonical diff
 
 ### Important bug caught before production
 
@@ -136,23 +141,23 @@ Disposable proof found a real nullable-SQL authorization bug in an earlier candi
 
 `supabase/migrations/MD5_MANIFEST.txt` contains the exact RU-1 raw MD5. Existing migration-integrity checks passed after the RU-1 pending registration.
 
-`docs/implementation/LIVE_MIGRATION_STATE.json` remains the compact machine-readable physical checkpoint and now carries a separate RU-1 staged/proven block without changing the live 57-migration head.
+`docs/implementation/LIVE_MIGRATION_STATE.json` carries RU-1 as canonical-source/runtime-proven while keeping the production head at 57 migrations.
 
 ## Current status
 
 - Edge source reconciliation: DONE — DO NOT REDO
 - RU-0: CLOSED — DO NOT REAPPLY
-- RU-1 source: STAGED
+- RU-1 source: CANONICAL
 - RU-1 disposable DB apply: PASS
 - RU-1 owner/attacker/replay runtime proof: PASS
 - RU-1 zero-residue proof: PASS
 - RU-1 production apply: NO
-- Production state: still `57 / 20260903160812`
+- Production state: still expected `57 / 20260903160812` pending final read-only boundary verification
 
 ## Next allowed unit
 
-1. Finish clean source promotion from `promotion/ru1-worker-readiness-20260903` to canonical `clean-alpha-backend` only after final diff/integrity verification.
-2. Fresh read-only verify canonical GitHub HEAD and live Supabase still `57 / 20260903160812`.
+1. Fresh read-only verify final canonical GitHub HEAD and live Supabase migration state.
+2. Confirm canonical contains the exact proven RU-1 bytes and production remains `57 / 20260903160812`.
 3. STOP at the live boundary and obtain explicit owner approval before applying RU-1 to production.
 4. If approved, apply exactly the proven RU-1 migration content, then fresh live structural/read-only proof.
 5. Reconcile the live-assigned migration version if Supabase assigns a different timestamp, then update handoff/network/ledger/migration-state.
