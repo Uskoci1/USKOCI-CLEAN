@@ -1,0 +1,63 @@
+name: RU-2 promotion integrity proof
+
+on:
+  push:
+    branches:
+      - proof/ru2-promotion-integrity-20260904b
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru2-promotion-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promotion-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Verify migration bytes and provenance
+        run: sh supabase/migrations/check_md5.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Deno Edge v5
+        run: deno check supabase/functions/uskoci-ai-interview/index.ts
+
+      - name: Regression tests
+        run: npm test -- --runInBand
+
+      - name: Verify RU-2 promotion contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "f95fadda53d8d803faac4498d860c31b  20260903190000_clean_ru2_need_v2_draft.sql" supabase/migrations/MD5_MANIFEST.txt
+          grep -F "95145c601b6366f1a98e8566b3307515  20260903190100_clean_ru2_ai_fact_transition_guard.sql" supabase/migrations/MD5_MANIFEST.txt
+          grep -F '"version":"20260903190000"' supabase/migrations/MIGRATION_PROVENANCE.json
+          grep -F '"version":"20260903190100"' supabase/migrations/MIGRATION_PROVENANCE.json
+          grep -F "rpc_save_need_draft_from_review" src/data/aiNeedV2Production.ts
+          if grep -F "rpc_ai_publish_need" 'src/app/(app)/nova.tsx' 'src/app/(app)/pregled-nacrta.tsx' src/data/aiNeedV2Production.ts; then
+            echo "RU2_PROMOTION_FAIL: V2 flow references legacy publish" >&2
+            exit 1
+          fi
+          echo "PASS RU2_PROMOTION_INTEGRITY md5 provenance typescript deno jest draft_only"
