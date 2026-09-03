@@ -25,9 +25,17 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub',current_setting('uskoci.ru1_ready_user'),true);
 select set_config('request.jwt.claims','',true);
 do $ready_worker$
-declare uid uuid:=current_setting('uskoci.ru1_ready_user')::uuid; pid uuid; denied boolean; s text;
+declare uid uuid:=current_setting('uskoci.ru1_ready_user')::uuid; pid uuid; denied boolean; s text; token text;
 begin
+  if auth.uid() is distinct from uid then
+    raise exception 'RU1_PROOF_AUTH_CONTEXT_MISMATCH' using detail=format('auth.uid=%s expected=%s',coalesce(auth.uid()::text,'NULL'),uid::text);
+  end if;
+  token:=nullif(current_setting('uskoci.profile_mutation',true),'');
+  if token is not null then
+    raise exception 'RU1_PROOF_MUTATION_TOKEN_LEAK' using detail=token;
+  end if;
   select id into pid from public.app_profiles where account_id=uid and kind='WORKER';
+  if pid is null then raise exception 'RU1_PROOF_READY_WORKER_NOT_VISIBLE_TO_OWNER'; end if;
   denied:=false; begin update public.app_profiles set profile_status='ACTIVE' where id=pid; exception when insufficient_privilege then denied:=true; end;
   if not denied then raise exception 'RU1_PROOF_DIRECT_STATUS_ACTIVATION_ALLOWED'; end if;
   denied:=false; begin update public.app_profiles set kind='REQUESTER' where id=pid; exception when insufficient_privilege then denied:=true; when unique_violation then denied:=true; end;
@@ -44,7 +52,9 @@ select set_config('request.jwt.claim.sub',current_setting('uskoci.ru1_no_skill_u
 do $no_skill$
 declare uid uuid:=current_setting('uskoci.ru1_no_skill_user')::uuid; pid uuid; denied boolean:=false; s text;
 begin
+  if auth.uid() is distinct from uid then raise exception 'RU1_PROOF_NO_SKILL_AUTH_CONTEXT_MISMATCH'; end if;
   select id into pid from public.app_profiles where account_id=uid and kind='WORKER';
+  if pid is null then raise exception 'RU1_PROOF_NO_SKILL_WORKER_NOT_VISIBLE'; end if;
   begin perform public.rpc_complete_worker_profile(pid); exception when sqlstate 'P0001' then if sqlerrm='SKILL_REQUIRED' then denied:=true; else raise; end if; end;
   if not denied then raise exception 'RU1_PROOF_MISSING_SKILL_ACTIVATION_ALLOWED'; end if;
   select profile_status into s from public.app_profiles where id=pid; if s<>'DRAFT' then raise exception 'RU1_PROOF_MISSING_SKILL_LEFT_DRAFT'; end if;
@@ -54,14 +64,16 @@ select set_config('request.jwt.claim.sub',current_setting('uskoci.ru1_insert_use
 do $insert_force$
 declare uid uuid:=current_setting('uskoci.ru1_insert_user')::uuid; pid uuid; s text;
 begin
+  if auth.uid() is distinct from uid then raise exception 'RU1_PROOF_INSERT_AUTH_CONTEXT_MISMATCH'; end if;
   insert into public.app_profiles(account_id,kind,display_name,city,skills,profile_status) values(uid,'WORKER','RU1 Insert Worker','Novi Sad',array['proof-skill'],'ACTIVE') returning id into pid;
   select profile_status into s from public.app_profiles where id=pid; if s<>'DRAFT' then raise exception 'RU1_PROOF_CLIENT_INSERT_FORCED_ACTIVE'; end if;
 end $insert_force$;
 
 select set_config('request.jwt.claim.sub',current_setting('uskoci.ru1_attacker_user'),true);
 do $attacker$
-declare victim uuid:=current_setting('uskoci.ru1_ready_user')::uuid; touched integer;
+declare victim uuid:=current_setting('uskoci.ru1_ready_user')::uuid; attacker uuid:=current_setting('uskoci.ru1_attacker_user')::uuid; touched integer;
 begin
+  if auth.uid() is distinct from attacker then raise exception 'RU1_PROOF_ATTACKER_AUTH_CONTEXT_MISMATCH'; end if;
   update public.app_profiles set city='Attacker City' where account_id=victim and kind='WORKER'; get diagnostics touched=row_count;
   if touched<>0 then raise exception 'RU1_PROOF_ATTACKER_UPDATED_VICTIM'; end if;
 end $attacker$;
