@@ -1,0 +1,329 @@
+name: RU-2 live closure staging
+
+on:
+  push:
+    branches:
+      - stage/ru2-live-closure-20260904
+
+permissions:
+  contents: write
+
+jobs:
+  close-ru2:
+    if: github.event.head_commit.message == 'chore(ru2): stage live closure automation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage/ru2-live-closure-20260904
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Reconcile RU-2 live tracking
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          ROOT = Path('.')
+          source_head = '47ce475030cc1ab5908f014d6d7398a0e2cb7754'
+          core_source_version = '20260903190000'
+          core_live_version = '20260903222139'
+          core_name = 'clean_ru2_need_v2_draft'
+          core_file = '20260903190000_clean_ru2_need_v2_draft.sql'
+          core_md5 = 'f95fadda53d8d803faac4498d860c31b'
+          core_bytes = 47143
+          guard_source_version = '20260903190100'
+          guard_live_version = '20260903222333'
+          guard_name = 'clean_ru2_ai_fact_transition_guard'
+          guard_file = '20260903190100_clean_ru2_ai_fact_transition_guard.sql'
+          guard_md5 = '95145c601b6366f1a98e8566b3307515'
+          guard_bytes = 9438
+          edge_version = 5
+          edge_sha = '5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca'
+          now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+
+          # Migration provenance: live 60 with explicit source->live aliases.
+          prov_path = ROOT / 'supabase/migrations/MIGRATION_PROVENANCE.json'
+          prov = json.loads(prov_path.read_text(encoding='utf-8'))
+          prov['generated_at_utc'] = now
+          prov['repository_base_head'] = source_head
+          snap = prov['live_history_snapshot']
+          entries = [e for e in snap['entries'] if e.get('name') not in {core_name, guard_name}]
+          entries.extend([
+              {
+                  'name': core_name,
+                  'version': core_live_version,
+                  'file': core_file,
+                  'source_version': core_source_version,
+                  'exact_byte_mirror': True,
+                  'live_recorded_statement_md5': core_md5,
+                  'recorded_statement_utf8_bytes': core_bytes,
+              },
+              {
+                  'name': guard_name,
+                  'version': guard_live_version,
+                  'file': guard_file,
+                  'source_version': guard_source_version,
+                  'exact_byte_mirror': True,
+                  'live_recorded_statement_md5': guard_md5,
+                  'recorded_statement_utf8_bytes': guard_bytes,
+              },
+          ])
+          snap['entries'] = entries
+          snap['migration_count'] = 60
+          snap['last'] = {'name': guard_name, 'version': guard_live_version}
+          prov['pending_forward_migrations'] = []
+          repairs = [r for r in prov.get('forward_repairs', []) if r.get('name') not in {core_name, guard_name}]
+          repairs.extend([
+              {
+                  'version': core_live_version,
+                  'source_version': core_source_version,
+                  'name': core_name,
+                  'file': core_file,
+                  'classification': 'FORWARD_REPAIR',
+                  'raw_md5': core_md5,
+                  'exact_byte_mirror': True,
+                  'live_recorded_statement_md5': core_md5,
+                  'recorded_statement_utf8_bytes': core_bytes,
+                  'disposable_runtime_proof': 'PASS: combined GitHub Actions run 33806989549 proved DB apply, owner/attacker/service, typed correction, Human Review, DRAFT idempotency, privacy, legacy/V2 coexistence and zero residue.',
+                  'live_structural_proof': 'PASS: live registry 20; V2 opener/review/correct/save grants correct; service writer service-only; legacy rows preserved; need_sensitive authenticated writes revoked; legacy publish remains fail-closed.'
+              },
+              {
+                  'version': guard_live_version,
+                  'source_version': guard_source_version,
+                  'name': guard_name,
+                  'file': guard_file,
+                  'classification': 'FORWARD_REPAIR',
+                  'raw_md5': guard_md5,
+                  'exact_byte_mirror': True,
+                  'live_recorded_statement_md5': guard_md5,
+                  'recorded_statement_utf8_bytes': guard_bytes,
+                  'disposable_runtime_proof': 'PASS: run 33806989549 proved owner/service supersession, canonical DRAFT binding and zero residue.',
+                  'live_structural_proof': 'PASS: authenticated direct fact UPDATE false; private guard API execute false; ambient uskoci.ai_mutation bypass absent; explicit subject/supersession/schema guards present.'
+              },
+          ])
+          prov['forward_repairs'] = repairs
+          prov_path.write_text(json.dumps(prov, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          # Machine-readable live state. Preserve RU-0/RU-1 history and append RU-2.
+          state_path = ROOT / 'docs/implementation/LIVE_MIGRATION_STATE.json'
+          state = json.loads(state_path.read_text(encoding='utf-8'))
+          state['updated_at'] = now
+          state['live_migration_count'] = 60
+          state['live_head'] = {'version': guard_live_version, 'name': guard_name}
+          state['ru2'] = {
+              'status': 'CLOSED',
+              'canonical_source_head': source_head,
+              'source_migrations': [
+                  {'version': core_source_version, 'name': core_name, 'file': f'supabase/migrations/{core_file}', 'raw_md5': core_md5},
+                  {'version': guard_source_version, 'name': guard_name, 'file': f'supabase/migrations/{guard_file}', 'raw_md5': guard_md5},
+              ],
+              'live_apply': [
+                  {'version': core_live_version, 'name': core_name, 'source_version': core_source_version, 'recorded_statement_utf8_bytes': core_bytes, 'recorded_statement_md5': core_md5, 'exact_byte_identity_with_source': True},
+                  {'version': guard_live_version, 'name': guard_name, 'source_version': guard_source_version, 'recorded_statement_utf8_bytes': guard_bytes, 'recorded_statement_md5': guard_md5, 'exact_byte_identity_with_source': True},
+              ],
+              'edge': {'slug': 'uskoci-ai-interview', 'version': edge_version, 'status': 'ACTIVE', 'verify_jwt': True, 'ezbr_sha256': edge_sha},
+              'proof': {
+                  'combined_disposable_run': 33806989549,
+                  'promotion_integrity_run': 33811732899,
+                  'canonical_integrity_run': 33812075892,
+                  'result': 'PASS',
+                  'zero_residue': 'PASS',
+                  'live_structural': 'PASS'
+              },
+              'business_rows_preserved': {'ai_structured_facts': 82, 'ai_conversations': 15, 'needs': 6, 'app_profiles': 6},
+              'publish_admission': 'FAIL_CLOSED_FOR_NEXT_UNIT'
+          }
+          state['provenance'] = {
+              'file': 'supabase/migrations/MIGRATION_PROVENANCE.json',
+              'state': 'NORMALIZED_TO_LIVE_60',
+              'pending_forward_migrations': 0,
+              'ru2_live_version_aliases': [
+                  {'live_version': core_live_version, 'source_version': core_source_version, 'source_file': core_file, 'exact_byte_identity': True},
+                  {'live_version': guard_live_version, 'source_version': guard_source_version, 'source_file': guard_file, 'exact_byte_identity': True},
+              ]
+          }
+          state['next_allowed_action'] = 'Fresh read-only GitHub/Supabase preflight against live 60/20260903222333 and Edge v5; then read governing master and begin the next dependency-ordered unit. Do not redo RU-0/RU-1/RU-2.'
+          state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          handoff = f'''# USKOČI — CURRENT IMPLEMENTATION HANDOFF
+
+Checkpoint: {now}
+
+## Canonical identity
+
+- Repo: `Uskoci1/USKOCI-CLEAN`
+- Branch: `clean-alpha-backend`
+- RU-2 canonical source promotion head: `{source_head}`
+- Supabase project: `leqcwgzvjsxugfgzdmth`
+- Production migration state: `60 / {guard_live_version}_{guard_name}`
+- Edge: `uskoci-ai-interview` ACTIVE v{edge_version}, `verify_jwt=true`, EZBR SHA-256 `{edge_sha}`
+
+## Last fully completed unit
+
+`RU-2 — Need V2 + R02/R07 canonical DRAFT`
+
+State: `CLOSED`
+
+Canonical source migrations:
+- `{core_file}` — MD5 `{core_md5}`
+- `{guard_file}` — MD5 `{guard_md5}`
+
+Live Supabase aliases:
+- source `{core_source_version}` -> live `{core_live_version}_{core_name}`; 1 statement; {core_bytes} UTF-8 bytes; MD5 `{core_md5}`; exact byte identity `true`
+- source `{guard_source_version}` -> live `{guard_live_version}_{guard_name}`; 1 statement; {guard_bytes} UTF-8 bytes; MD5 `{guard_md5}`; exact byte identity `true`
+
+## RU-2 contract now live
+
+`R02 AI conversation -> R07 Human Review -> canonical DRAFT`
+
+- 20-key server-owned typed Need fact registry is live.
+- AI V2 turn persistence is service-role only; authenticated/anon cannot execute it.
+- Owner typed correction and Human Review are live.
+- `rpc_save_need_draft_from_review` materializes an idempotent owner DRAFT only.
+- Exact/private address/access remains separate from public/coarse task geography.
+- Authenticated direct write to `need_sensitive` is revoked.
+- AI fact transition guard has no ambient `uskoci.ai_mutation` bypass; it explicitly permits only owner confirmation, owner/service supersession and the one-time owner V2 NULL->DRAFT Need binding.
+- Legacy conversations/facts remain classified `LEGACY_TEXT_V1`.
+- Legacy AI publish remains fail-closed (`PACKAGE_4_NOT_READY`). RU-2 does not authorize public publish/admission.
+
+## Proof
+
+- Combined disposable DB + Edge + RN run `33806989549`: PASS, including owner/attacker/service, Human Review, DRAFT idempotency, privacy, repeated-key supersession, zero residue, TypeScript, Deno and Jest.
+- Promotion integrity run `33811732899`: PASS — MD5/provenance + TS + Deno + Jest + draft-only source contract.
+- Canonical PRE-P4 run `33812075892` on source head `{source_head}`: PASS.
+- Fresh production preflight before write matched exactly `58 / 20260903184545`, Edge v4 and preserved row fingerprints.
+- Live DB post-apply: `60 / {guard_live_version}`, registry 20, grants/guards correct, business rows preserved: AI facts 82, conversations 15, Needs 6, profiles 6.
+- Live Edge v{edge_version}: ACTIVE, `verify_jwt=true`, deployed from the Deno-proven canonical v5 source plus `src/contracts/needFactsV2.ts`.
+
+## Closed units — DO NOT REDO
+
+- Edge source reconciliation: DONE
+- RU-0 Authority Closure: CLOSED — live `20260903160812_clean_ru0_authority_closure`
+- RU-1 Worker Readiness: CLOSED — live `20260903184545_clean_ru1_worker_readiness`
+- RU-2 Need V2 + R02/R07 DRAFT: CLOSED — live head `{guard_live_version}_{guard_name}`, Edge v{edge_version}
+
+Quarantine remains quarantine: `repair/ru0-ru1-backend-20260902` — no merge/cherry-pick/apply.
+
+## Next allowed action
+
+Fresh read-only GitHub/Supabase preflight against this checkpoint. If physical state matches `60 / {guard_live_version}` and Edge v{edge_version}, read the governing master for the next dependency-ordered implementation unit. Do not infer publish/admission semantics from RU-2 and do not reapply RU-0/RU-1/RU-2.
+
+Continuity rule:
+`READ MASTER -> HANDOFF -> LIVE NETWORK -> LEDGER -> LIVE MIGRATION STATE -> FRESH PHYSICAL READ -> CONTINUE OR RECONCILE`
+
+**AI agent is replaceable. Canonical project state is not.**
+'''
+          (ROOT / 'docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md').write_text(handoff, encoding='utf-8')
+
+          network = f'''# USKOČI — LIVE IMPLEMENTATION NETWORK
+
+Last updated: {now}
+Authority: governing master + fresh physical GitHub/Supabase reads
+
+## Canonical physical baseline
+
+- Repository: `Uskoci1/USKOCI-CLEAN`
+- Branch: `clean-alpha-backend`
+- Canonical source promotion head: `{source_head}`
+- Supabase: `leqcwgzvjsxugfgzdmth`
+- Live migrations: `60`
+- Live head: `{guard_live_version}_{guard_name}`
+- Edge: `uskoci-ai-interview` ACTIVE v{edge_version}, `verify_jwt=true`, EZBR `{edge_sha}`
+
+## Closed dependency chain
+
+`RU-0 Authority Closure -> RU-1 Worker Readiness -> RU-2 Need V2 + R02/R07 canonical DRAFT`
+
+RU-0: CLOSED, do not reapply. Live `20260903160812_clean_ru0_authority_closure`.
+
+RU-1: CLOSED, do not reapply. Live `20260903184545_clean_ru1_worker_readiness`.
+
+RU-2: CLOSED.
+
+RU-2 network:
+`authenticated R02 -> V2 conversation -> Edge v5 provider-neutral extraction -> service-only typed writer -> owner confirmation/correction -> R07 Human Review -> idempotent server materializer -> DRAFT -> canonical reread`
+
+RU-2 live invariants:
+- fact registry 20;
+- V2 service writer executable only by service_role;
+- owner opener/review/correct/save RPCs exposed narrowly;
+- direct authenticated `ai_structured_facts` UPDATE false;
+- private guard API execute false;
+- no ambient `uskoci.ai_mutation` bypass;
+- exact/private Need mutation server-owned;
+- existing 82 facts + 15 conversations + 6 Needs + 6 profiles preserved;
+- all preexisting AI facts/conversations remain `LEGACY_TEXT_V1`;
+- public publish/admission remains fail-closed for the next governing unit.
+
+Live migration aliases:
+- `{core_source_version}` -> `{core_live_version}` `{core_name}`, MD5 `{core_md5}`, {core_bytes} bytes, exact-byte `true`.
+- `{guard_source_version}` -> `{guard_live_version}` `{guard_name}`, MD5 `{guard_md5}`, {guard_bytes} bytes, exact-byte `true`.
+
+Proof chain:
+- combined disposable run `33806989549`: PASS;
+- promotion integrity `33811732899`: PASS;
+- canonical PRE-P4 `33812075892`: PASS;
+- fresh production preflight: PASS;
+- live structural post-apply: PASS;
+- Edge v{edge_version} ACTIVE/verify_jwt=true: PASS.
+
+## Next allowed action
+
+Fresh read-only physical preflight. If state remains `60 / {guard_live_version}` + Edge v{edge_version}, read governing master and begin the next dependency-ordered unit. Do not reopen RU-0/RU-1/RU-2.
+
+Principle: **AI agent is replaceable. Canonical project state is not.**
+'''
+          (ROOT / 'docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md').write_text(network, encoding='utf-8')
+
+          ledger_path = ROOT / 'docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv'
+          with ledger_path.open(newline='', encoding='utf-8') as f:
+              reader = csv.DictReader(f)
+              fieldnames = reader.fieldnames
+              rows = list(reader)
+          unit = 'RU-2_NEED_V2_R07_DRAFT'
+          rows = [r for r in rows if r.get('unit') != unit]
+          row = {
+              'unit': unit,
+              'status': 'CLOSED',
+              'source_git_sha': source_head,
+              'migration': f'staged={core_source_version}_{core_name}+{guard_source_version}_{guard_name};live={core_live_version}_{core_name}+{guard_live_version}_{guard_name}',
+              'backend_owner': 'Typed Need V2 registry + Human Review DRAFT materializer + explicit AI fact transition guard + Edge v5',
+              'rn_consumer': 'R02 nova.tsx -> R07 pregled-nacrta.tsx',
+              'proof_artifact': 'runs 33806989549 + 33811732899 + 33812075892 + live structural proof + Edge v5 deployment',
+              'proof_level': 'DISPOSABLE_RUNTIME_PROVEN+ZERO_RESIDUE_PROVEN+LIVE_STRUCTURAL_PROVEN+EDGE_DEPLOYED+PROVENANCE_RECONCILED',
+              'live_applied': 'YES',
+              'blocker': 'NONE',
+              'next_action': f'Fresh preflight against 60/{guard_live_version} + Edge v5; read governing master next unit; DO_NOT_REAPPLY_RU2',
+          }
+          rows.append({k: row.get(k, '') for k in fieldnames})
+          with ledger_path.open('w', newline='', encoding='utf-8') as f:
+              writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator='\n')
+              writer.writeheader()
+              writer.writerows(rows)
+          PY
+
+          sh supabase/migrations/check_md5.sh
+
+      - name: Commit durable closure checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'uskoci-ci'
+          git config user.email 'uskoci-ci@users.noreply.github.com'
+          git add supabase/migrations/MIGRATION_PROVENANCE.json \
+                  docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md \
+                  docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md \
+                  docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv \
+                  docs/implementation/LIVE_MIGRATION_STATE.json
+          git diff --cached --check
+          git commit -m 'docs(implementation): close RU-2 live state'
+          git push origin HEAD:stage/ru2-live-closure-20260904
