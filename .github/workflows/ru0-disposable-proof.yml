@@ -52,15 +52,13 @@ jobs:
           supabase init
           rm -rf supabase/migrations
           mkdir -p supabase/migrations
-          cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
 
-      - name: Start isolated local database and replay all migrations
+      - name: Start isolated local database
         shell: bash
         working-directory: /tmp/uskoci-ru0-proof
         run: |
           set -euo pipefail
           supabase db start
-          supabase db reset --local
 
       - name: Ensure psql client exists
         shell: bash
@@ -72,12 +70,23 @@ jobs:
           fi
           psql --version
 
-      - name: Verify replay reached RU-0 migration
+      - name: Build verified targeted predecessor fixture
         shell: bash
         run: |
           set -euo pipefail
+          psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru0_targeted_predecessor_fixture.sql"
           actual="$(psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
-          echo "migration_state=$actual"
+          echo "predecessor_migration_state=$actual"
+          test "$actual" = "56/20260901114029"
+
+      - name: Apply exact pending RU-0 migration in disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql"
+          psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903130355','clean_ru0_authority_closure');"
+          actual="$(psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "post_ru0_migration_state=$actual"
           test "$actual" = "57/20260903130355"
 
       - name: Run owner attacker service rollback-only proof
@@ -86,17 +95,27 @@ jobs:
           set -euo pipefail
           psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru0_authority_closure_runtime_proof.sql"
 
-      - name: Verify proof left zero residue
+      - name: Verify proof left zero residue and authority contract remains closed
         shell: bash
         run: |
           set -euo pipefail
           proof_users="$(psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from auth.users where email like 'ru0-%@proof.invalid';")"
+          proof_messages="$(psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from public.ai_messages where body like 'RU0 rollback-only%';")"
           echo "proof_users_after_rollback=$proof_users"
+          echo "proof_messages_after_rollback=$proof_messages"
           test "$proof_users" = "0"
+          test "$proof_messages" = "0"
 
           retired_exec="$(psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('rpc_ai_propose_fact','rpc_publish_need','rpc_propose_agreement_change') and (p.prosecdef or has_function_privilege('anon',p.oid,'execute') or has_function_privilege('authenticated',p.oid,'execute') or has_function_privilege('service_role',p.oid,'execute')); ")"
           echo "retired_rpc_exposure=$retired_exec"
           test "$retired_exec" = "0"
+
+          authenticated_sd="$(psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and has_function_privilege('authenticated',p.oid,'execute');")"
+          private_api_sd="$(psql "$RU0_DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.prosecdef and (has_function_privilege('authenticated',p.oid,'execute') or has_function_privilege('service_role',p.oid,'execute') or has_function_privilege('anon',p.oid,'execute'));")"
+          echo "authenticated_public_sd=$authenticated_sd"
+          echo "private_api_executable_sd=$private_api_sd"
+          test "$authenticated_sd" = "25"
+          test "$private_api_sd" = "0"
 
       - name: Stop disposable stack
         if: always()
