@@ -1,105 +1,119 @@
 # USKOČI — CURRENT IMPLEMENTATION HANDOFF
 
-Checkpoint time: 2026-09-03 17:42 Europe/Belgrade
+Checkpoint time: 2026-09-03 18:12 Europe/Belgrade
 
 ## Canonical identity
 
 - Repo: `Uskoci1/USKOCI-CLEAN`
 - Branch: `clean-alpha-backend`
-- RU-0 source baseline commit: `ec8c5396d6aaa009f2979143bd41d311f5feaef0`
+- RU-0 source commit: `ec8c5396d6aaa009f2979143bd41d311f5feaef0`
+- Pre-closure tracking parent: `a96cf9a198fe732aa5ab0d2e01507f79238c1361`
 - Supabase project: `leqcwgzvjsxugfgzdmth`
-- Production migration count/head at checkpoint: `56 / 20260901114029_clean_ai_fact_supersession_and_human_correction`
+- Production migration count/head at checkpoint: `57 / 20260903160812_clean_ru0_authority_closure`
+- Edge: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`, unchanged
 
 ## Last fully completed unit
 
-Edge source reconciliation is complete and must not be redone.
-Canonical reconciliation commit: `25808ac2c0cb78450168e35548c6fc8d36a2ac05`.
-No Edge redeploy was needed because deployed v4 already matched the target source semantics.
-
-## Current partial unit
-
 `RU-0 — Authority Closure`
 
-State: `PROOF_PASS_LIVE_PENDING`
+State: `CLOSED`
 
-Source commit:
-`ec8c5396d6aaa009f2979143bd41d311f5feaef0`
-
-Primary migration:
+Staged source migration:
 `supabase/migrations/20260903130355_clean_ru0_authority_closure.sql`
 
-Primary intended effects:
-- own-read only for authenticated `ai_conversations` and `ai_action_proposals`
-- own-read only for authenticated `notification_deliveries`
-- raw owner `needs` UPDATE restricted to DRAFT
-- retire legacy `rpc_ai_propose_fact`
-- retire legacy `rpc_publish_need`
-- retire unilateral legacy `rpc_propose_agreement_change`
-- enforce SECURITY DEFINER execution manifest
-- preserve service AI writer
-- preserve Agreement v2 propose/respond
+Staged source raw MD5:
+`23a60f86bdb952f1dbf62990f2f800cc`
+
+Actual live Supabase migration recording:
+- version: `20260903160812`
+- name: `clean_ru0_authority_closure`
+- statement count: `1`
+- recorded statement MD5: `4c0d630d93f8fdfc6e683dcfd8a9895a`
+- recorded statement chars: `21495`
+
+The connected migration action assigned the live timestamp and the deployment payload was not byte-identical to the staged file because non-executable section comments were omitted. Do not claim exact-byte identity. The executable RU-0 authority contract was preserved. Current mapping is recorded in `docs/implementation/LIVE_MIGRATION_STATE.json`.
+
+## What RU-0 now enforces live
+
+- authenticated `ai_conversations`: own SELECT only; mutation server-owned
+- authenticated `ai_action_proposals`: own SELECT only; mutation server-owned
+- authenticated `notification_deliveries`: own SELECT only; mutation server-owned
+- raw owner `needs` UPDATE: DRAFT only
+- legacy `rpc_ai_propose_fact`: retired / no API-role execution
+- legacy `rpc_publish_need`: retired / no API-role execution
+- legacy unilateral `rpc_propose_agreement_change`: retired / no API-role execution
+- explicit SECURITY DEFINER execution allowlist
+- service-owned AI interview writer preserved
+- Agreement v2 propose/respond preserved
 - no business-row rewrite
 
-## Runtime proof already completed
+## Proof completed
 
-Disposable proof branch:
-`proof/ru0-disposable-ci-20260903`
+Disposable proof:
+- branch: `proof/ru0-disposable-ci-20260903`
+- proof head: `6496065940dea7310152cdae23d3766a617398e7`
+- GitHub Actions run: `33769629283`
+- result: PASS
+- owner/attacker/service rollback-only scenarios: PASS
+- zero proof residue: PASS
 
-Proof head:
-`6496065940dea7310152cdae23d3766a617398e7`
+Fresh production preflight immediately before apply:
+- `56 / 20260901114029`
+- public SECURITY DEFINER `35`
+- private SECURITY DEFINER `23`
+- expected predecessor broad policies present
+- checked business rows: conversations `15`, proposals `2`, facts `82`, Needs `6`, deliveries `0`, Agreements `2`, Agreement versions `2`
 
-GitHub Actions run:
-`33769629283`
+Fresh production post-apply proof:
+- `57 / 20260903160812_clean_ru0_authority_closure`
+- public SECURITY DEFINER `32`
+- private SECURITY DEFINER `23`
+- authenticated public SECURITY DEFINER allowlist `25`
+- private API-executable SECURITY DEFINER `0`
+- retired RPC exposure `0`
+- service AI writer service-role EXECUTE `true`
+- service AI writer authenticated EXECUTE `false`
+- Agreement v2 propose/respond authenticated EXECUTE `true / true`
+- forbidden mutation policies on AI conversations/proposals/deliveries `0`
+- DRAFT-only raw Need UPDATE policy present
+- checked business rows unchanged: `15 / 2 / 82 / 6 / 0 / 2 / 2`
+- Edge remains ACTIVE v4/JWT on
 
-Result: `PASS`
+Production `execute_sql` is connector-enforced read-only, so rollback-only fixture INSERTs cannot be repeated live. That is a connector limitation, not an RU-0 failure. Runtime owner/attacker/service behavior was proven before promotion in disposable Supabase/Postgres, while the live migration committed only after its own embedded predecessor/postcondition assertions passed.
 
-Proof demonstrated:
-- migration applied successfully to isolated Supabase/Postgres predecessor harness
-- predecessor ledger `56/20260901114029`
-- disposable post-apply ledger `57/20260903130355`
-- owner/attacker/service rollback-only scenarios passed
-- retired legacy RPC exposure = 0
-- authenticated public SECURITY DEFINER allowlist count = 25
-- private API-executable SECURITY DEFINER count = 0
-- proof users after rollback = 0
-- proof messages after rollback = 0
-- disposable stack stopped cleanly
+## Important migration provenance reconciliation
 
-## Production state
+`supabase/migrations/MIGRATION_PROVENANCE.json` still reflects the pre-live 56-migration snapshot and staged RU-0 as pending. That file is stale for current RU-0 live status.
 
-RU-0 has NOT been applied to production.
-Production is still at 56 migrations / head `20260901114029`.
-Do not claim RU-0 CLOSED yet.
+For current truth use, in order:
+1. this `CURRENT_IMPLEMENTATION_HANDOFF.md`
+2. `LIVE_IMPLEMENTATION_NETWORK.md`
+3. `IMPLEMENTATION_STATUS_LEDGER.csv`
+4. `LIVE_MIGRATION_STATE.json`
+5. fresh physical Supabase/GitHub read
 
-## Current blocker
-
-The available connected migration deployment action may record a generated migration timestamp rather than the exact repository filename version `20260903130355`.
-Do not create avoidable GitHub ↔ Supabase migration-head drift.
-
-A $0 temporary Supabase project was considered for a deployment-mechanism test, but creation in the canonical organization was denied by connector permissions. No temporary project was created and no charge occurred.
+Before creating the next forward migration, normalize `MIGRATION_PROVENANCE.json` to the live 57-migration state. This is metadata-only and MUST NOT reapply RU-0 or mutate production.
 
 ## Next allowed unit
 
-1. Fresh read-only production preflight.
-2. Establish a migration apply/recording method that preserves a durable, reconcilable relation between repository migration `20260903130355_clean_ru0_authority_closure.sql` and live Supabase history.
-3. Apply RU-0 only after that is resolved.
-4. Run fresh post-apply read-only/live proof.
-5. Update `LIVE_IMPLEMENTATION_NETWORK.md`, `IMPLEMENTATION_STATUS_LEDGER.csv`, and this handoff with the new canonical Git SHA and live migration head.
-6. Mark RU-0 CLOSED only when production proof is PASS.
-7. Then begin RU-1.
+1. Normalize migration provenance metadata to `57 / 20260903160812` and record the staged→live version mapping.
+2. Commit/push that metadata-only reconciliation.
+3. Fresh read-only GitHub + live Supabase preflight.
+4. If clean, read governing dependency order and begin RU-1.
+5. After every unit update LIVE network, ledger and this handoff.
 
 ## DO NOT REDO / QUARANTINE
 
+- **DO NOT REAPPLY RU-0.**
 - Do not redo Edge reconciliation.
 - Do not redeploy Edge as part of RU-0.
 - `repair/ru0-ru1-backend-20260902` remains QUARANTINE: no merge, cherry-pick or apply.
 - Do not copy donor 184 migrations as a stack.
-- Do not test unproven SQL first on production.
 - Do not expose secrets in GitHub, source, logs or mobile bundle.
 
 ## Continuity rule
 
 On every new agent/session:
-`READ GOVERNING MASTER -> READ THIS HANDOFF -> READ LIVE NETWORK -> READ LEDGER -> FRESH READ-ONLY GITHUB/SUPABASE VERIFY -> COMPARE -> CONTINUE OR RECONCILE`
+`READ GOVERNING MASTER -> READ THIS HANDOFF -> READ LIVE NETWORK -> READ LEDGER -> READ LIVE_MIGRATION_STATE -> FRESH READ-ONLY GITHUB/SUPABASE VERIFY -> COMPARE -> CONTINUE OR RECONCILE`
 
 **AI agent is replaceable. Canonical project state is not.**
