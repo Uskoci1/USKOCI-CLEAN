@@ -111,7 +111,7 @@ function systemInstruction(activeFacts: any[]) {
     'Ako korisnik ispravlja raniji podatak, predložite novu vrednost tog istog ključa. Server će bezbedno potisnuti staru aktivnu vrednost.',
     'Svaka AI činjenica je samo predlog NEEDS_CONFIRMATION i korisnik je kasnije potvrđuje ili ispravlja.',
     'evidence mora biti kratak doslovan isečak najnovije korisnikove poruke koji podržava predlog.',
-    'assistantMessage mora uvek biti korisna naredna poruka korisniku. Sažetak koristite samo kada стварно помаже или пред завршну проверу.',
+    'assistantMessage mora uvek biti korisna naredna poruka korisniku. Sažetak koristite samo kada stvarno pomaže ili pred završnu proveru.',
     'Ako zahtev deluje zabranjeno ili rizično, stavite safety REVIEW ili BLOCK i ne predlažite rizične činjenice.',
     `Aktuelne server-side činjenice (mogu biti AI predlozi ili potvrđene): ${JSON.stringify(known).slice(0, 6000)}`,
   ].join(' ');
