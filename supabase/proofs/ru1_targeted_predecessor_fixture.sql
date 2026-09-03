@@ -93,7 +93,9 @@ declare v_uid uuid := auth.uid(); v_profile public.app_profiles%rowtype; begin
   if char_length(btrim(v_profile.display_name))<2 then raise exception 'DISPLAY_NAME_REQUIRED' using errcode='P0001'; end if;
   if char_length(btrim(v_profile.city))<2 then raise exception 'CITY_REQUIRED' using errcode='P0001'; end if;
   if cardinality(v_profile.skills)<1 then raise exception 'SKILL_REQUIRED' using errcode='P0001'; end if;
-  update public.app_profiles set profile_status='ACTIVE' where id=p_profile_id;
+  update public.app_profiles
+     set profile_status = 'ACTIVE'
+   where id=p_profile_id;
 end; $function$;
 revoke all on function public.rpc_complete_worker_profile(uuid) from public, anon, authenticated, service_role;
 grant execute on function public.rpc_complete_worker_profile(uuid) to authenticated, service_role;
