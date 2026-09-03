@@ -32,6 +32,7 @@ export type AiNeedMessage = {
 export type AiNeedV2Review = {
   conversationId: string;
   schemaVersion: 'NEED_FACT_V2';
+  boundNeedId: string | null;
   canSaveDraft: boolean;
   missingRequired: NeedFactV2Key[];
   facts: AiNeedV2Fact[];
