@@ -1,6 +1,6 @@
 # USKOČI — LIVE IMPLEMENTATION NETWORK
 
-Last updated: 2026-09-03 20:22 Europe/Belgrade
+Last updated: 2026-09-03 20:40 Europe/Belgrade
 Authority: governing master + fresh physical GitHub/Supabase reads
 
 ## Canonical physical baseline
@@ -11,7 +11,7 @@ Authority: governing master + fresh physical GitHub/Supabase reads
 - Live production migrations: `57`
 - Live production migration head: `20260903160812_clean_ru0_authority_closure`
 - Live Edge Function: `uskoci-ai-interview` ACTIVE v4, `verify_jwt=true`, unchanged by RU-0/RU-1 source work
-- Canonical HEAD before RU-1 source promotion: `1846fcbaaf50ef76b7e9686ff1f5d6cbd222ee83`
+- RU-1 canonical source promotion checkpoint: `e99876189ba4625e00a887ee7771da8d3b7ec1c1`
 
 ## RU-0 — Authority Closure
 
@@ -81,7 +81,9 @@ Production `execute_sql` is connector-enforced read-only, so the rollback-only f
 
 ## RU-1 — Worker Readiness
 
-State: `SOURCE_STAGED_RUNTIME_PROVEN`
+State: `SOURCE_CANONICAL_RUNTIME_PROVEN`
+
+Canonical source promoted: `YES`
 
 Production applied: `NO`
 
@@ -89,9 +91,10 @@ Network intent:
 
 `auth user creation -> REQUESTER ACTIVE + WORKER DRAFT -> owner edits Worker under RLS -> rpc_complete_worker_profile -> server readiness checks -> narrow tokenized DRAFT-to-ACTIVE -> canonical reread`
 
-Exact staged source:
+Exact canonical source:
 
-- source migration commit: `5e586c63783b7743687224e3cc670e7ed52e4e48`
+- migration implementation commit: `5e586c63783b7743687224e3cc670e7ed52e4e48`
+- canonical promotion checkpoint: `e99876189ba4625e00a887ee7771da8d3b7ec1c1`
 - source migration: `supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql`
 - source raw bytes: `13591`
 - source raw MD5: `f80e2e721365ee07316a9c0e84ab593f`
@@ -100,7 +103,7 @@ Exact staged source:
 - provenance classification: `PENDING_FORWARD_MIGRATION`
 - `live_applied=false`
 
-RU-1 staged effects when eventually applied:
+RU-1 canonical effects when eventually applied:
 
 1. New REQUESTER profiles derive `ACTIVE`.
 2. New WORKER profiles derive `DRAFT`.
@@ -149,11 +152,11 @@ Exact checksum proof:
 - SHA-256 `71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0`
 
 Promotion integrity proof:
-- branch `promotion/ru1-worker-readiness-20260903`
-- GitHub Actions run `33791044226`
-- existing migration-integrity checker PASS
-- live snapshot remains `57`
-- pending forward migrations becomes `1` (RU-1 only)
+- promotion branch `promotion/ru1-worker-readiness-20260903`
+- GitHub Actions run `33791044226`: PASS
+- minimal-provenance integrity run `33791592988`: PASS
+- final promotion diff contained only one RU-1 migration, MD5/provenance, two proof files and four implementation tracking files
+- temporary promotion helper workflows were removed before canonical fast-forward
 
 ## Migration provenance
 
@@ -183,23 +186,21 @@ Promotion integrity proof:
 | RU-0 production business-row preservation | PASS |
 | RU-0 migration provenance | RECONCILED |
 | RU-0 overall | CLOSED |
-| RU-1 source | STAGED |
+| RU-1 source | CANONICAL |
 | RU-1 disposable DB apply | PASS |
 | RU-1 owner/attacker/replay runtime proof | PASS |
 | RU-1 zero-residue proof | PASS |
 | RU-1 migration integrity | PASS |
-| RU-1 canonical source promotion | IN_PROGRESS |
+| RU-1 canonical source promotion | DONE |
 | RU-1 production apply | NOT_APPLIED |
-| Production current migration state | `57 / 20260903160812` |
+| Production expected migration state before final boundary read | `57 / 20260903160812` |
 
 ## Next allowed action
 
-1. Finish final clean diff/integrity audit of `promotion/ru1-worker-readiness-20260903`.
-2. Fast-forward only canonical Git source to the final clean promotion head; do not change live Supabase yet.
-3. Fresh read-only GitHub + live Supabase verification after source promotion.
-4. Confirm live remains `57 / 20260903160812` and RU-1 remains pending.
-5. Obtain explicit owner approval before applying the single RU-1 production migration.
-6. If approved, apply exact proven RU-1 bytes, perform fresh live structural/read-only proof, reconcile any live-assigned migration version and update all tracking.
+1. Fresh read-only verify final canonical GitHub HEAD and live Supabase migration state after source promotion.
+2. Confirm canonical contains the exact proven RU-1 bytes and live remains `57 / 20260903160812`.
+3. STOP at the live boundary and obtain explicit owner approval before applying the single RU-1 production migration.
+4. If approved, apply exact proven RU-1 bytes, perform fresh live structural/read-only proof, reconcile any live-assigned migration version and update all tracking.
 
 ## DO NOT REDO / DO NOT TOUCH
 
