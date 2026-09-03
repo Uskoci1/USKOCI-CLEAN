@@ -1,0 +1,46 @@
+name: RU-1 live provenance reconciliation
+on:
+  push:
+    paths:
+      - '.github/workflows/ru1-live-provenance.yml'
+permissions:
+  contents: write
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: clean-alpha-backend
+          fetch-depth: 0
+      - name: Reconcile RU-1 live migration metadata
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          s = p.read_text()
+          s = s.replace('"generated_at_utc": "2026-09-03T16:18:00Z"', '"generated_at_utc": "2026-09-03T18:49:00Z"', 1)
+          s = s.replace('"migration_count": 57', '"migration_count": 58', 1)
+          s = s.replace('"last": {"name":"clean_ru0_authority_closure","version":"20260903160812"}', '"last": {"name":"clean_ru1_worker_readiness","version":"20260903184545"}', 1)
+          ru0_hist = '{"name":"clean_ru0_authority_closure","version":"20260903160812","file":"20260903130355_clean_ru0_authority_closure.sql","source_version":"20260903130355","exact_byte_mirror":false,"live_recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a"}'
+          ru1_hist = '{"name":"clean_ru1_worker_readiness","version":"20260903184545","file":"20260903165700_clean_ru1_worker_readiness.sql","source_version":"20260903165700","exact_byte_mirror":true,"live_recorded_statement_md5":"f80e2e721365ee07316a9c0e84ab593f","recorded_statement_utf8_bytes":13591}'
+          if ru1_hist not in s:
+              s = s.replace(ru0_hist + '\n    ]', ru0_hist + ',\n      ' + ru1_hist + '\n    ]', 1)
+          start = s.index('  "pending_forward_migrations": [')
+          end = s.index('  "reconstructions": [', start)
+          s = s[:start] + '  "pending_forward_migrations": [],\n' + s[end:]
+          ru0_repair = '{"version":"20260903160812","source_version":"20260903130355","name":"clean_ru0_authority_closure","file":"20260903130355_clean_ru0_authority_closure.sql","classification":"FORWARD_REPAIR","raw_md5":"23a60f86bdb952f1dbf62990f2f800cc","exact_byte_mirror":false,"live_recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a","disposable_runtime_proof":"PASS: GitHub Actions run 33769629283 proved owner/attacker/service and zero residue.","live_structural_proof":"PASS: live 57 migration state, retired RPC exposure 0, authenticated public SD 25, private API-executable SD 0, preserved service/v2 paths, checked business rows unchanged."}'
+          ru1_repair = '{"version":"20260903184545","source_version":"20260903165700","name":"clean_ru1_worker_readiness","file":"20260903165700_clean_ru1_worker_readiness.sql","classification":"FORWARD_REPAIR","raw_md5":"f80e2e721365ee07316a9c0e84ab593f","exact_byte_mirror":true,"live_recorded_statement_md5":"f80e2e721365ee07316a9c0e84ab593f","recorded_statement_utf8_bytes":13591,"disposable_runtime_proof":"PASS: GitHub Actions run 33790306570 proved DB apply, owner/attacker/replay, missing-skill denial and zero residue.","live_structural_proof":"PASS: live 58/20260903184545; DRAFT default; fail-closed token guard; owner RPC grants; authenticated DELETE revoked; existing profile counts preserved 6/3 requester ACTIVE/3 worker ACTIVE/0 worker DRAFT."}'
+          if ru1_repair not in s:
+              s = s.replace(ru0_repair + '\n  ],', ru0_repair + ',\n    ' + ru1_repair + '\n  ],', 1)
+          p.write_text(s)
+          PY
+          sh supabase/migrations/check_md5.sh
+      - name: Commit reconciliation
+        run: |
+          git config user.name uskoci-ci
+          git config user.email actions@users.noreply.github.com
+          git add supabase/migrations/MIGRATION_PROVENANCE.json
+          git diff --cached --quiet && exit 0
+          git commit -m "docs(db): reconcile RU-1 live migration provenance"
+          git push origin HEAD:clean-alpha-backend
