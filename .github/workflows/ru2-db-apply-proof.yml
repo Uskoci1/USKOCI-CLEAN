@@ -154,6 +154,15 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title in ('Prenos frižidera u Novom Sadu','Drugi proof zadatak');")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from private.need_draft_save_commands where client_request_id like 'ru2-proof-%';")" = "0"
 
+      - name: Run RU-2 repeated V2 service supersession proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru2_v2_service_supersession_runtime_proof.sql" | tee /tmp/ru2-service-proof.log
+          grep -F "PASS RU2_V2_SERVICE_SUPERSESSION repeated_key one_live_fact service_cannot_bind_need zero_residue" /tmp/ru2-service-proof.log
+          test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where email like 'ru2-service-proof-%@proof.invalid';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_messages where body like 'RU2_SERVICE_%';")" = "0"
+
       - name: Stop disposable stack
         if: always()
         shell: bash
