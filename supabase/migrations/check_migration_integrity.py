@@ -82,10 +82,31 @@ def main() -> None:
     ]
     if history.get("migration_count") != len(history_entries):
         fail("live history count does not match entry count")
-    if history_names != disk_names:
-        fail("live history snapshot does not exactly match canonical migration files")
     if history.get("last") != history_entries[-1]:
         fail("live history last entry is inconsistent")
+
+    pending = metadata.get("pending_forward_migrations", [])
+    pending_names = [
+        f"{item['version']}_{item['name']}.sql" for item in pending
+    ]
+    if history_names + pending_names != disk_names:
+        fail(
+            "live history plus pending forward migrations do not exactly match "
+            "canonical migration files"
+        )
+    for item, filename in zip(pending, pending_names):
+        if item.get("classification") != "PENDING_FORWARD_MIGRATION":
+            fail(f"invalid pending migration classification: {filename}")
+        if item.get("file") != filename:
+            fail(f"pending migration filename mismatch: {filename}")
+        if item.get("raw_md5") != manifest_map.get(filename):
+            fail(f"pending migration checksum mismatch: {filename}")
+        if item.get("live_applied") is not False:
+            fail(f"pending migration incorrectly claims live apply: {filename}")
+        if item.get("predecessor_live_migration_count") != history.get("migration_count"):
+            fail(f"pending migration predecessor count mismatch: {filename}")
+        if item.get("predecessor_live_head") != history["last"]["version"]:
+            fail(f"pending migration predecessor head mismatch: {filename}")
 
     reconstructions = metadata.get("reconstructions", [])
     if len(reconstructions) != 1:
@@ -154,7 +175,7 @@ def main() -> None:
             fail(f"participant RLS contract missing: {requirement!r}")
 
     participant_index = history_names.index(PARTICIPANT_CONTRACT_FILE)
-    for later_file in history_names[participant_index + 1:]:
+    for later_file in disk_names[participant_index + 1:]:
         later_sql = (ROOT / later_file).read_text(encoding="utf-8").lower()
         if (
             "needs_participant_read" in later_sql
@@ -169,6 +190,7 @@ def main() -> None:
         "PASS migration_integrity "
         f"files={len(disk_names)} "
         f"live_snapshot={len(history_entries)} "
+        f"pending={len(pending_names)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
         "exact_byte_mirror=false "
         "participant_contract=PASS"

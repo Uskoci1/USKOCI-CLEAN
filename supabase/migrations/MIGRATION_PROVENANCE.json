@@ -73,6 +73,22 @@
       {"name":"clean_ai_fact_supersession_and_human_correction","version":"20260901114029"}
     ]
   },
+  "pending_forward_migrations": [
+    {
+      "version": "20260903130355",
+      "name": "clean_ru0_authority_closure",
+      "file": "20260903130355_clean_ru0_authority_closure.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "23a60f86bdb952f1dbf62990f2f800cc",
+      "predecessor_live_migration_count": 56,
+      "predecessor_live_head": "20260901114029",
+      "live_applied": false,
+      "proof_level": "SOURCE_STATIC",
+      "runtime_proof_artifact": "../proofs/ru0_authority_closure_runtime_proof.sql",
+      "runtime_blocker": "Supabase development branching requires Pro; execute_sql is enforced READ ONLY; no disposable PostgreSQL runtime is currently available.",
+      "next_allowed_action": "Run the rollback-only proof in a disposable PostgreSQL/Supabase environment; do not apply to live and do not begin RU-1 before PASS."
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
