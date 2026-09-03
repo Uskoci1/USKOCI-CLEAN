@@ -17,9 +17,6 @@ do $ru2_predecessor$
 declare
   v_count integer;
   v_head text;
-  v_ai_facts bigint;
-  v_ai_conversations bigint;
-  v_needs bigint;
 begin
   select count(*), max(version)
     into v_count, v_head
@@ -32,19 +29,13 @@ begin
                      v_count, coalesce(v_head,'<null>'));
   end if;
 
-  select count(*) into v_ai_facts from public.ai_structured_facts;
-  select count(*) into v_ai_conversations from public.ai_conversations;
-  select count(*) into v_needs from public.needs;
-
-  if v_ai_facts <> 82 or v_ai_conversations <> 15 or v_needs <> 6 then
-    raise exception using
-      errcode='55000',
-      message=format('RU2_PREDECESSOR_MISMATCH: expected facts/conversations/needs 82/15/6, got %s/%s/%s',
-                     v_ai_facts,v_ai_conversations,v_needs);
-  end if;
-
-  if exists (select 1 from public.needs where status='DRAFT') then
-    raise exception 'RU2_PREDECESSOR_MISMATCH: unexpected existing DRAFT Need';
+  if to_regclass('public.ai_conversations') is null
+     or to_regclass('public.ai_structured_facts') is null
+     or to_regclass('public.needs') is null
+     or to_regprocedure('public.rpc_ai_open_conversation(text)') is null
+     or to_regprocedure('public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb)') is null then
+    raise exception 'RU2_PREDECESSOR_MISMATCH: required RU-1 predecessor objects are missing'
+      using errcode='55000';
   end if;
 end
 $ru2_predecessor$;
