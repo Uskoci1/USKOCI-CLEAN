@@ -69,6 +69,7 @@ function mapReview(raw: any): AiNeedV2Review | null {
   return {
     conversationId: String(raw.conversationId),
     schemaVersion: NEED_FACT_SCHEMA_V2,
+    boundNeedId: typeof raw.boundNeedId === 'string' && raw.boundNeedId ? raw.boundNeedId : null,
     canSaveDraft: Boolean(raw.canSaveDraft),
     missingRequired,
     facts,
