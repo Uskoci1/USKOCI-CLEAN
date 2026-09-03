@@ -41,18 +41,13 @@ jobs:
           rm -rf supabase/migrations
           mkdir -p supabase/migrations
 
-          # Proof-only bootstrap reconstructs the pre-existing DDL event-trigger
-          # object that predates the physical CLEAN migration directory.
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
              supabase/migrations/20260825000000_ru2_proof_live_bootstrap.sql
 
-          # Reset must stop at the real 56-migration predecessor. RU0/RU1 are
-          # intentionally excluded here and applied manually after the synthetic
-          # bootstrap ledger row is removed.
           for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
             b="$(basename "$f")"
             case "$b" in
-              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql|20260901114029_clean_ai_fact_supersession_and_human_correction.sql)
+              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260903190100_clean_ru2_ai_fact_transition_guard.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql|20260901114029_clean_ai_fact_supersession_and_human_correction.sql)
                 ;;
               *) cp "$f" "supabase/migrations/$b" ;;
             esac
@@ -63,9 +58,6 @@ jobs:
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901113333_durable_effects.sql" \
              supabase/migrations/20260901113333_clean_ai_interview_turn_authenticated_proof.sql
 
-          # Keep the exact durable function/grant changes from 20260901114029,
-          # omit only its fixture-dependent rollback proof, and preserve its
-          # durable comments.
           awk '/^-- Runtime proofs: no retained rows\.$/{exit} {print}' \
             "$GITHUB_WORKSPACE/supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql" \
             > supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql
@@ -77,9 +69,6 @@ jobs:
 
           supabase db start
           supabase db reset --local
-
-          # Remove only the synthetic bootstrap ledger marker. The bootstrap
-          # object itself stays in the DB, matching production predecessor state.
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
 
           actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
@@ -118,15 +107,25 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select to_regclass('public.needs') is not null;")" = "t"
           test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb)') is not null;")" = "t"
 
-      - name: Apply RU-2 candidate
+      - name: Apply RU-2 typed Need candidate
         shell: bash
         run: |
           set -euo pipefail
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903190000','clean_ru2_need_v2_draft');"
           actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
-          echo "post_ru2=$actual"
+          echo "post_ru2_core=$actual"
           test "$actual" = "59/20260903190000"
+
+      - name: Apply RU-2 explicit AI fact transition guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903190100','clean_ru2_ai_fact_transition_guard');"
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "post_ru2_guard=$actual"
+          test "$actual" = "60/20260903190100"
 
       - name: Verify static RU-2 invariants
         shell: bash
@@ -140,6 +139,8 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('anon','public.rpc_ai_open_need_conversation_v2()','EXECUTE');")" = "f"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ai_open_need_conversation_v2()','EXECUTE');")" = "t"
           test "$(psql "$DB_URL" -Atc "select position('fact_schema_version' in pg_get_functiondef('public.rpc_ai_open_conversation(text)'::regprocedure));")" = "0"
+          test "$(psql "$DB_URL" -Atc "select position('uskoci.ai_mutation' in pg_get_functiondef('private.guard_ai_fact_write()'::regprocedure));")" = "0"
+          test "$(psql "$DB_URL" -Atc "select has_table_privilege('authenticated','public.ai_structured_facts','UPDATE');")" = "f"
           test "$(psql "$DB_URL" -Atc "select has_table_privilege('authenticated','public.need_sensitive','UPDATE');")" = "f"
 
       - name: Run RU-2 owner attacker service runtime proof
