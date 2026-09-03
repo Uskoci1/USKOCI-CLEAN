@@ -1,5 +1,6 @@
 import { agreementProductionOverrides } from './agreementProductionOverrides';
 import { aiCommandOverrides } from './aiCommandOverrides';
+import { aiNeedV2Production } from './aiNeedV2Production';
 import { aiProductionOverrides } from './aiProductionOverrides';
 import { lazniIzvor } from './lazniIzvor';
 import { needProductionOverrides } from './needProductionOverrides';
@@ -44,3 +45,8 @@ const produkcijskiIzvor: Izvor = {
 };
 
 export const izvor: Izvor = koristiLazniIzvor ? lazniIzvor : produkcijskiIzvor;
+
+// RU-2 R02→R07 is deliberately a separate typed boundary while legacy AI
+// remains available for older clients. New mobile surfaces use only this V2
+// source and therefore cannot accidentally call rpc_ai_publish_need.
+export const aiNeedV2Izvor = aiNeedV2Production;
