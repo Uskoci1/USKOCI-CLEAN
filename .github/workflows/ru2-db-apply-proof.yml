@@ -30,7 +30,7 @@ jobs:
         with:
           version: latest
 
-      - name: Prepare full canonical predecessor with live bootstrap and durable proof effects
+      - name: Replay canonical predecessor through pre-RU0 head
         shell: bash
         run: |
           set -euo pipefail
@@ -41,9 +41,14 @@ jobs:
           rm -rf supabase/migrations
           mkdir -p supabase/migrations
 
+          # Proof-only bootstrap reconstructs the pre-existing DDL event-trigger
+          # object that predates the physical CLEAN migration directory.
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
              supabase/migrations/20260825000000_ru2_proof_live_bootstrap.sql
 
+          # Reset must stop at the real 56-migration predecessor. RU0/RU1 are
+          # intentionally excluded here and applied manually after the synthetic
+          # bootstrap ledger row is removed.
           for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
             b="$(basename "$f")"
             case "$b" in
@@ -53,16 +58,14 @@ jobs:
             esac
           done
 
-          cp "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql" \
-             supabase/migrations/20260903160812_clean_ru0_authority_closure.sql
-          cp "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql" \
-             supabase/migrations/20260903184545_clean_ru1_worker_readiness.sql
-
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901105922_durable_effects.sql" \
              supabase/migrations/20260901105922_clean_completion_and_writer_authenticated_proof.sql
           cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901113333_durable_effects.sql" \
              supabase/migrations/20260901113333_clean_ai_interview_turn_authenticated_proof.sql
 
+          # Keep the exact durable function/grant changes from 20260901114029,
+          # omit only its fixture-dependent rollback proof, and preserve its
+          # durable comments.
           awk '/^-- Runtime proofs: no retained rows\.$/{exit} {print}' \
             "$GITHUB_WORKSPACE/supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql" \
             > supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql
@@ -74,9 +77,36 @@ jobs:
 
           supabase db start
           supabase db reset --local
+
+          # Remove only the synthetic bootstrap ledger marker. The bootstrap
+          # object itself stays in the DB, matching production predecessor state.
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
 
-      - name: Verify exact stable product predecessor
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "pre_ru0=$actual"
+          test "$actual" = "56/20260901114029"
+
+      - name: Apply exact RU-0 source at live version identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903160812','clean_ru0_authority_closure');"
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "post_ru0=$actual"
+          test "$actual" = "57/20260903160812"
+
+      - name: Apply exact RU-1 source at live version identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903184545','clean_ru1_worker_readiness');"
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "post_ru1=$actual"
+          test "$actual" = "58/20260903184545"
+
+      - name: Verify exact stable RU-2 predecessor
         shell: bash
         run: |
           set -euo pipefail
