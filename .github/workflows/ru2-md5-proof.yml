@@ -1,0 +1,23 @@
+name: RU-2 migration raw md5
+
+on:
+  push:
+    branches:
+      - tmp/ru2-md5-20260903
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  md5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Calculate exact raw MD5
+        shell: bash
+        run: |
+          set -euo pipefail
+          md5sum \
+            supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql \
+            supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql
