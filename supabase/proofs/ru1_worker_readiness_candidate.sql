@@ -142,12 +142,10 @@ begin
   end if;
 
   if new.profile_status is distinct from old.profile_status then
-    if not (
-      token = 'COMPLETE_WORKER_PROFILE'
-      and old.kind = 'WORKER'
-      and old.profile_status = 'DRAFT'
-      and new.profile_status = 'ACTIVE'
-    ) then
+    if token is distinct from 'COMPLETE_WORKER_PROFILE'
+       or old.kind is distinct from 'WORKER'
+       or old.profile_status is distinct from 'DRAFT'
+       or new.profile_status is distinct from 'ACTIVE' then
       raise exception 'PROFILE_STATUS_IS_SERVER_DERIVED'
         using errcode = '42501';
     end if;
@@ -312,6 +310,7 @@ begin
   v_guard := pg_get_functiondef('private.guard_profile_write()'::regprocedure);
   if position('COMPLETE_WORKER_PROFILE' in v_guard) = 0
      or position('PROFILE_IDENTITY_IMMUTABLE' in v_guard) = 0
+     or position('token IS DISTINCT FROM ''COMPLETE_WORKER_PROFILE''' in v_guard) = 0
      or position('when new.kind = ''REQUESTER'' then ''ACTIVE''' in v_guard) = 0
      or position('when new.kind = ''WORKER'' then ''DRAFT''' in v_guard) = 0 then
     raise exception 'RU1_POSTCONDITION_FAILED: guard contract mismatch';
