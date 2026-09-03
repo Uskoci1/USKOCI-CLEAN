@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-03T20:52:00+02:00",
+  "updated_at": "2026-09-03T23:20:00+02:00",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -11,104 +11,71 @@
   },
   "ru0": {
     "status": "CLOSED",
-    "staged_source": {
-      "commit": "ec8c5396d6aaa009f2979143bd41d311f5feaef0",
-      "version": "20260903130355",
-      "name": "clean_ru0_authority_closure",
-      "file": "supabase/migrations/20260903130355_clean_ru0_authority_closure.sql",
-      "raw_md5": "23a60f86bdb952f1dbf62990f2f800cc"
-    },
-    "live_apply": {
-      "version": "20260903160812",
-      "name": "clean_ru0_authority_closure",
-      "exact_byte_identity_with_staged_source": false
-    },
-    "disposable_runtime_proof": {
-      "github_actions_run": 33769629283,
-      "result": "PASS",
-      "owner_attacker_service": "PASS",
-      "zero_residue": "PASS"
-    }
+    "live_version": "20260903160812",
+    "source_version": "20260903130355",
+    "disposable_runtime_proof_run": 33769629283
   },
   "ru1": {
     "status": "CLOSED",
-    "staged_source": {
-      "commit": "5e586c63783b7743687224e3cc670e7ed52e4e48",
-      "version": "20260903165700",
-      "name": "clean_ru1_worker_readiness",
-      "file": "supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql",
-      "raw_md5": "f80e2e721365ee07316a9c0e84ab593f",
-      "sha256": "71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0",
-      "bytes": 13591
-    },
-    "rn_alignment": {
-      "commit": "ebabc6a48a9712ea34043b63dd7f6867e88691a2",
-      "file": "src/app/(app)/profil/radnik.tsx",
-      "contract": "Activation UI requires name, city and at least one skill."
-    },
-    "disposable_runtime_proof": {
-      "branch": "proof/ru1-disposable-ci-20260903",
-      "source_head": "339e08017e56ac01c5cbfa8e91e89db8233e97d8",
-      "github_actions_run": 33790306570,
+    "live_version": "20260903184545",
+    "source_version": "20260903165700",
+    "source_raw_md5": "f80e2e721365ee07316a9c0e84ab593f",
+    "disposable_runtime_proof_run": 33790306570
+  },
+  "ru2": {
+    "status": "LIVE_PENDING",
+    "proof_head": "d7eb80b3403e5549a78cec18b1c8c87f42d9cf99",
+    "combined_disposable_proof": {
+      "github_actions_run": 33806989549,
       "result": "PASS",
-      "db_apply": "PASS",
-      "owner_attacker_replay": "PASS",
-      "forced_insert_derives_draft": "PASS",
-      "missing_skill_denied": "PASS",
-      "historical_active_worker_preserved": "PASS",
-      "zero_residue": "PASS"
+      "predecessor": "58/20260903184545",
+      "core_disposable_state": "59/20260903190000",
+      "guard_disposable_state": "60/20260903190100",
+      "owner_attacker_service": "PASS",
+      "typed_correction": "PASS",
+      "human_review_draft": "PASS",
+      "idempotency": "PASS",
+      "legacy_v2_coexistence": "PASS",
+      "public_private_geography": "PASS",
+      "repeated_v2_supersession": "PASS",
+      "zero_residue": "PASS",
+      "rn_typescript": "PASS",
+      "jest": "40/40 PASS",
+      "deno_edge": "PASS",
+      "r02_r07_draft_only": "PASS"
     },
-    "live_apply": {
-      "version": "20260903184545",
-      "name": "clean_ru1_worker_readiness",
-      "statement_count": 1,
-      "recorded_statement_utf8_bytes": 13591,
-      "recorded_statement_md5": "f80e2e721365ee07316a9c0e84ab593f",
-      "exact_byte_identity_with_staged_source": true
-    },
-    "live_post_apply": {
-      "profile_status_default": "DRAFT",
-      "guard_fail_closed_token": true,
-      "requester_insert_active": true,
-      "worker_insert_draft": true,
-      "identity_immutable": true,
-      "rpc_contract_present": true,
-      "rpc_execute": {
-        "anon": false,
-        "authenticated": true,
-        "service_role": true
+    "pending_source_migrations": [
+      {
+        "version": "20260903190000",
+        "name": "clean_ru2_need_v2_draft",
+        "file": "supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql",
+        "raw_md5": "f95fadda53d8d803faac4498d860c31b",
+        "live_applied": false
       },
-      "private_guard_execute": {
-        "anon": false,
-        "authenticated": false,
-        "service_role": false
-      },
-      "authenticated_profile_privileges": {
-        "select": true,
-        "insert": true,
-        "update": true,
-        "delete": false
-      },
-      "guard_trigger_present": true,
-      "profiles_before_after_preserved": {
-        "total": 6,
-        "requester_active": 3,
-        "worker_active": 3,
-        "worker_draft": 0,
-        "worker_other": 0
+      {
+        "version": "20260903190100",
+        "name": "clean_ru2_ai_fact_transition_guard",
+        "file": "supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql",
+        "raw_md5": "95145c601b6366f1a98e8566b3307515",
+        "live_applied": false
       }
+    ],
+    "edge": {
+      "source_target": "v5 dual-mode LEGACY_TEXT_V1 + NEED_FACT_V2",
+      "source_proof_run": 33806867873,
+      "live_before_apply": "v4",
+      "deployed": false
+    },
+    "rn": {
+      "r02": "src/app/(app)/nova.tsx",
+      "r07": "src/app/(app)/pregled-nacrta.tsx",
+      "contract": "AI conversation -> Human Review -> canonical DRAFT only; no direct publish"
     }
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_58",
-    "ru1_live_version_alias": {
-      "live_version": "20260903184545",
-      "source_version": "20260903165700",
-      "source_file": "20260903165700_clean_ru1_worker_readiness.sql",
-      "exact_byte_identity": true
-    },
-    "pending_forward_migrations": 0
+    "state": "LIVE_58_WITH_2_PENDING_RU2_FORWARD_MIGRATIONS",
+    "pending_forward_migrations": 2
   },
-  "next_allowed_action": "Fresh read-only GitHub/Supabase preflight; read governing master RU-2 contract; begin RU-2 only if physical state matches 58/20260903184545."
+  "next_allowed_action": "Run promotion integrity on the exact RU-2 staging head. If green, promote source to clean-alpha-backend, then fresh read-only GitHub/Supabase preflight. Live writes remain forbidden unless production is still exactly 58/20260903184545 and Edge is still v4."
 }
