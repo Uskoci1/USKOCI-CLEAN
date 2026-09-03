@@ -52,8 +52,10 @@ export default function ProfilRadnikEkran() {
   }, [izvor]);
 
   const sacuvaj = async (zavrsi: boolean) => {
-    if (zavrsi && (!ime.trim() || !grad.trim())) {
-      Alert.alert("Nedostaju podaci", "Unesite ime i grad pre završetka profila.");
+    const vestine = vestineStr.split(',').map(s => s.trim()).filter(Boolean);
+
+    if (zavrsi && (!ime.trim() || !grad.trim() || vestine.length < 1)) {
+      Alert.alert("Nedostaju podaci", "Unesite ime, grad i bar jednu veštinu pre završetka profila.");
       return;
     }
 
@@ -62,7 +64,7 @@ export default function ProfilRadnikEkran() {
       ime: ime.trim(),
       grad: grad.trim(),
       biografija: biografija.trim(),
-      vestine: vestineStr.split(',').map(s => s.trim()).filter(Boolean),
+      vestine,
       alati: alatiStr.split(',').map(s => s.trim()).filter(Boolean),
       vozila: vozilaStr.split(',').map(s => s.trim()).filter(Boolean),
       radijusKm: parseInt(radijusStr, 10) || 15,
@@ -92,6 +94,7 @@ export default function ProfilRadnikEkran() {
   }
 
   const isNovi = !profil || profil.stanje !== 'ACTIVE';
+  const imaVestinu = vestineStr.split(',').some(s => s.trim().length > 0);
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground }}>
@@ -100,7 +103,7 @@ export default function ProfilRadnikEkran() {
         
         {isNovi && (
           <View style={{ backgroundColor: palette.cream050, padding: space.md, borderRadius: radius.md }}>
-            <T variant="meta" tone="muted">Morate popuniti osnovne podatke da biste se prijavljivali na poslove.</T>
+            <T variant="meta" tone="muted">Unesite ime, grad i bar jednu veštinu da biste aktivirali profil i prijavljivali se na poslove.</T>
           </View>
         )}
         
@@ -210,7 +213,7 @@ export default function ProfilRadnikEkran() {
       <View style={{ padding: space.base, borderTopWidth: 1, borderTopColor: palette.line100, backgroundColor: palette.ground, gap: space.sm }}>
          <Button 
            label={isNovi ? "Završi profil" : "Sačuvaj izmene"} 
-           disabled={snimam || !ime.trim() || !grad.trim()}
+           disabled={snimam || !ime.trim() || !grad.trim() || (isNovi && !imaVestinu)}
            onPress={() => sacuvaj(isNovi)} 
          />
          {!isNovi && (
