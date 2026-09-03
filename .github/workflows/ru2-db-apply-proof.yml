@@ -113,10 +113,10 @@ jobs:
           actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
           echo "product_predecessor=$actual"
           test "$actual" = "58/20260903184545"
-          test "$(psql "$DB_URL" -Atc \"select to_regclass('public.ai_structured_facts') is not null;\")" = "t"
-          test "$(psql "$DB_URL" -Atc \"select to_regclass('public.ai_conversations') is not null;\")" = "t"
-          test "$(psql "$DB_URL" -Atc \"select to_regclass('public.needs') is not null;\")" = "t"
-          test "$(psql "$DB_URL" -Atc \"select to_regprocedure('public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb)') is not null;\")" = "t"
+          test "$(psql "$DB_URL" -Atc "select to_regclass('public.ai_structured_facts') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select to_regclass('public.ai_conversations') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select to_regclass('public.needs') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb)') is not null;")" = "t"
 
       - name: Apply RU-2 candidate
         shell: bash
@@ -134,7 +134,7 @@ jobs:
           set -euo pipefail
           test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_structured_facts where fact_schema_version<>'LEGACY_TEXT_V1';")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_conversations where fact_schema_version<>'LEGACY_TEXT_V1';")" = "0"
-          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_fact_registry;')" = "20"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_fact_registry;")" = "20"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "f"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('service_role','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "t"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('anon','public.rpc_ai_open_need_conversation_v2()','EXECUTE');")" = "f"
