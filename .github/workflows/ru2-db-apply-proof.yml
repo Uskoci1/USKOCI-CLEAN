@@ -142,6 +142,17 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select position('fact_schema_version' in pg_get_functiondef('public.rpc_ai_open_conversation(text)'::regprocedure));")" = "0"
           test "$(psql "$DB_URL" -Atc "select has_table_privilege('authenticated','public.need_sensitive','UPDATE');")" = "f"
 
+      - name: Run RU-2 owner attacker service runtime proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru2_need_v2_runtime_proof.sql" | tee /tmp/ru2-runtime-proof.log
+          grep -F "PASS RU2_RUNTIME owner_attacker_service typed_correction review draft idempotency legacy_coexistence privacy zero_residue" /tmp/ru2-runtime-proof.log
+          test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where email like 'ru2-proof-%@proof.invalid';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_messages where body like 'RU2_PROOF_%';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title in ('Prenos frižidera u Novom Sadu','Drugi proof zadatak');")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_draft_save_commands where client_request_id like 'ru2-proof-%';")" = "0"
+
       - name: Stop disposable stack
         if: always()
         shell: bash
