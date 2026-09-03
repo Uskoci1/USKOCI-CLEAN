@@ -23,6 +23,16 @@ const LEGACY_FACT_KEYS = [
 ] as const;
 const legacyFactKeySet = new Set<string>(LEGACY_FACT_KEYS);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PRICE_MODES = new Set(['FASTEST', 'MY_PRICE', 'OFFERS']);
+const SCHEDULE_KINDS = new Set([
+  'FIXED_WINDOW',
+  'FLEXIBLE',
+  'REMOTE_ANYTIME',
+  'TODAY_FLEXIBLE',
+  'TOMORROW_FLEXIBLE',
+  'WEEK_FLEXIBLE',
+]);
+const GEOGRAPHY_MODES = new Set(['STATIONARY', 'POINT_TO_POINT', 'MULTI_STOP', 'AREA_BASED', 'REMOTE']);
 
 type FactSchemaVersion = typeof LEGACY_FACT_SCHEMA_V1 | typeof NEED_FACT_SCHEMA_V2;
 type ParsedTurn = {
@@ -184,9 +194,9 @@ function v2Instruction(activeFacts: any[]) {
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
-    'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
-    'need.schedule_kind može biti FIXED, WINDOW, FLEXIBLE ili ASAP. FIXED zahteva starts_at; WINDOW zahteva starts_at i ends_at.',
-    'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. REMOTE nema fizičke tačke. Javna geography tačka sme imati samo label/city/area. Tačnu adresu stavljajte isključivo u need.exact_address.',
+    'need.price_mode može biti samo FASTEST, MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
+    'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva i starts_at i ends_at, sa krajem posle početka.',
+    'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. Objekat sme imati samo mode/start/end/waypoints/serviceArea; lokacijske tačke samo label/city/area. REMOTE nema fizičke tačke. AREA_BASED koristi start ili serviceArea. Tačnu adresu stavljajte isključivo u need.exact_address.',
     'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis.',
     `Jedini podržani V2 fact registry: ${JSON.stringify(registry)}`,
   ].join(' ');
@@ -222,9 +232,63 @@ function valueMatchesType(valueType: string, value: unknown): boolean {
   if (valueType === 'TEXT' || valueType === 'ENUM' || valueType === 'TIMESTAMPTZ') return typeof value === 'string' && value.trim().length > 0;
   if (valueType === 'INTEGER') return typeof value === 'number' && Number.isInteger(value);
   if (valueType === 'BOOLEAN') return typeof value === 'boolean';
-  if (valueType === 'TEXT_ARRAY') return Array.isArray(value) && value.every((x) => typeof x === 'string' && x.trim().length > 0);
+  if (valueType === 'TEXT_ARRAY') {
+    return Array.isArray(value)
+      && value.length <= 50
+      && value.every((x) => typeof x === 'string' && x.trim().length > 0 && x.length <= 500);
+  }
   if (valueType === 'OBJECT') return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   return false;
+}
+
+function locationRefValid(value: unknown): boolean {
+  if (value == null) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).some((key) => !['label', 'city', 'area'].includes(key))) return false;
+  const values = ['label', 'city', 'area'].map((key) => typeof record[key] === 'string' ? record[key].trim() : '');
+  if (!values.some(Boolean)) return false;
+  return values[0].length <= 240 && values[1].length <= 160 && values[2].length <= 160;
+}
+
+function geographyValid(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const geo = value as Record<string, unknown>;
+  if (Object.keys(geo).some((key) => !['mode', 'start', 'end', 'waypoints', 'serviceArea'].includes(key))) return false;
+  const mode = typeof geo.mode === 'string' ? geo.mode : '';
+  if (!GEOGRAPHY_MODES.has(mode)) return false;
+  const start = geo.start ?? null;
+  const end = geo.end ?? null;
+  const serviceArea = geo.serviceArea ?? null;
+  const waypoints = geo.waypoints ?? [];
+  if (!Array.isArray(waypoints) || waypoints.length > 20) return false;
+  if (!locationRefValid(start) || !locationRefValid(end) || !locationRefValid(serviceArea) || !waypoints.every(locationRefValid)) return false;
+
+  if (mode === 'REMOTE') return start == null && end == null && serviceArea == null && waypoints.length === 0;
+  if (mode === 'STATIONARY') return start != null && end == null && serviceArea == null && waypoints.length === 0;
+  if (mode === 'POINT_TO_POINT') return start != null && end != null && serviceArea == null && waypoints.length === 0;
+  if (mode === 'MULTI_STOP') return start != null && serviceArea == null && (end != null || waypoints.length > 0);
+  if (mode === 'AREA_BASED') return end == null && waypoints.length === 0 && (start != null || serviceArea != null);
+  return false;
+}
+
+function valueMatchesContract(key: string, value: unknown): boolean {
+  if (!isNeedFactV2Key(key)) return false;
+  const definition = NEED_FACT_V2_DEFINITIONS[key];
+  if (!valueMatchesType(definition.valueType, value)) return false;
+
+  if (key === 'need.title') return (value as string).trim().length <= 140;
+  if (key === 'need.description') return (value as string).trim().length <= 6000;
+  if (key === 'need.category') return (value as string).trim().length <= 120;
+  if (key === 'need.price_mode') return PRICE_MODES.has(String(value));
+  if (key === 'need.price_rsd') return Number(value) >= 1 && Number(value) <= 100000000;
+  if (key === 'need.schedule_kind') return SCHEDULE_KINDS.has(String(value));
+  if (key === 'need.people_needed') return Number(value) >= 1 && Number(value) <= 50;
+  if (key === 'need.minimum_experience_years') return Number(value) >= 0 && Number(value) <= 60;
+  if (key === 'need.exact_address') return (value as string).trim().length <= 1000;
+  if (key === 'need.access_notes') return (value as string).trim().length <= 2000;
+  if (key === 'need.task_geography') return geographyValid(value);
+  return true;
 }
 
 function parseV2Output(parsed: any): ParsedTurn {
@@ -241,7 +305,7 @@ function parseV2Output(parsed: any): ParsedTurn {
       if (!isNeedFactV2Key(key) || seen.has(key)) continue;
       let value: unknown;
       try { value = JSON.parse(String(fact?.valueJson ?? '')); } catch { continue; }
-      if (!valueMatchesType(NEED_FACT_V2_DEFINITIONS[key].valueType, value)) continue;
+      if (!valueMatchesContract(key, value)) continue;
       const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim().slice(0, 1000) : '';
       const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim().slice(0, 500) : '';
       const confidence = Number(fact?.confidence);
