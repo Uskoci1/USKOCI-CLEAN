@@ -64,6 +64,7 @@ export type NeedTaskGeography = {
   start?: NeedTaskGeographyPoint;
   end?: NeedTaskGeographyPoint;
   waypoints?: NeedTaskGeographyPoint[];
+  serviceArea?: NeedTaskGeographyPoint;
 };
 
 export type NeedFactV2Value = string | number | boolean | string[] | NeedTaskGeography;
