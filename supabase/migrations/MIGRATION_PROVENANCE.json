@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-03T18:49:00Z",
+  "generated_at_utc": "2026-09-03T21:20:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "1c14e9ba79e3fa25f302be8400a37d16ef946d69",
+  "repository_base_head": "d7eb80b3403e5549a78cec18b1c8c87f42d9cf99",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -75,7 +75,10 @@
       {"name":"clean_ru1_worker_readiness","version":"20260903184545","file":"20260903165700_clean_ru1_worker_readiness.sql","source_version":"20260903165700","exact_byte_mirror":true,"live_recorded_statement_md5":"f80e2e721365ee07316a9c0e84ab593f","recorded_statement_utf8_bytes":13591}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {"version":"20260903190000","name":"clean_ru2_need_v2_draft","file":"20260903190000_clean_ru2_need_v2_draft.sql","classification":"FORWARD_CANDIDATE","raw_md5":"f95fadda53d8d803faac4498d860c31b","predecessor_live_count":58,"predecessor_live_version":"20260903184545","disposable_runtime_proof":"PASS: combined GitHub Actions run 33806989549 proved DB apply, owner/attacker/service, typed correction, Human Review, DRAFT idempotency, privacy, legacy/V2 coexistence, zero residue, RN TypeScript/Jest and Deno Edge checks on one head.","live_applied":false},
+    {"version":"20260903190100","name":"clean_ru2_ai_fact_transition_guard","file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","classification":"FORWARD_CANDIDATE","raw_md5":"95145c601b6366f1a98e8566b3307515","predecessor_source_version":"20260903190000","disposable_runtime_proof":"PASS: run 33806989549 plus prior repeated-key service supersession proof; broad ambient ai_mutation bypass removed from the resulting guard and service cannot bind a fact to a Need outside the Human Review materializer.","live_applied":false}
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
