@@ -1,108 +1,98 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, ScrollView, TextInput, Platform, ActivityIndicator } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-  PaperPlaneTilt, Check, Sparkle, PencilSimple, Warning, Info, ShieldCheck,
+  ArrowRight,
+  CheckCircle,
+  PaperPlaneTilt,
+  ShieldCheck,
+  Sparkle,
+  Warning,
 } from 'phosphor-react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { T } from '../../ui/Text';
+import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
+import { aiNeedV2Izvor } from '../../data';
+import { factLabel, safetyMessage, sortFacts } from '../../data/aiNeedV2Ui';
+import { palette, radius, space, touch } from '../../theme/tokens';
+import { Button, Card } from '../../ui/Button';
 import { Press } from '../../ui/Press';
-import { Card } from '../../ui/Button';
-import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
-import { useIzvor } from '../../store/uloga';
-import type {
-  Cinjenica, KljucCinjenice, NacrtPotrebeProjekcija, PorukaRazgovora,
-} from '../../contracts/projections';
+import { T } from '../../ui/Text';
 
-const naUredjaju = Platform.OS !== 'web';
-
-const NAZIV: Record<KljucCinjenice, string> = {
-  naslov: 'Naslov',
-  opis: 'Opis',
-  kategorija: 'Kategorija',
-  datum: 'Datum',
-  vreme: 'Vreme',
-  polaziste: 'Polazište',
-  odrediste: 'Odredište',
-  osoba: 'Ljudi',
-  vozilo: 'Vozilo',
-  uslovi: 'Uslovi',
-};
-
-/** Redosled u kartici je fiksan, da se podaci ne premeštaju dok razgovor teče. */
-const REDOSLED: KljucCinjenice[] = [
-  'naslov', 'kategorija', 'datum', 'vreme', 'polaziste', 'odrediste', 'osoba', 'vozilo', 'uslovi', 'opis',
-];
-
-export default function NovaPotreba() {
-  const izvor = useIzvor();
+export default function NovaPotrebaV2() {
   const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
   const resumeId = Array.isArray(params.conversationId) ? params.conversationId[0] : params.conversationId;
   const [razgovorId, setRazgovorId] = useState<string | null>(null);
-  const [poruke, setPoruke] = useState<PorukaRazgovora[]>([]);
-  const [nacrt, setNacrt] = useState<NacrtPotrebeProjekcija | null>(null);
+  const [stanje, setStanje] = useState<AiNeedV2Conversation | null>(null);
   const [unos, setUnos] = useState('');
   const [radi, setRadi] = useState(false);
-  const [ispravka, setIspravka] = useState<{ id: string; tekst: string } | null>(null);
   const [greska, setGreska] = useState<string | null>(null);
   const skrol = useRef<ScrollView>(null);
 
   const osvezi = useCallback(async (id: string) => {
     try {
-      const s = await izvor.razgovor(id);
-      if (!s) {
-        setGreska('Sačuvani nacrt nije dostupan ovom nalogu.');
+      const next = await aiNeedV2Izvor.loadConversation(id);
+      if (!next) {
+        setGreska('Ovaj nacrt nije dostupan u novom unosu. Otvorite novi Zadatak.');
+        setStanje(null);
         return false;
       }
-      setPoruke(s.poruke);
-      setNacrt(s.nacrt);
+      setStanje(next);
       return true;
     } catch (error: any) {
-      setGreska(error?.message || 'Nacrt nije mogao da se učita.');
+      setGreska(error?.message || 'Nacrt trenutno nije mogao da se učita.');
       return false;
     }
-  }, [izvor]);
+  }, []);
+
+  const otvoriNovi = useCallback(async () => {
+    setGreska(null);
+    setStanje(null);
+    const result = await aiNeedV2Izvor.openConversation();
+    if (!result.ok) {
+      setGreska(result.poruka);
+      return;
+    }
+    setRazgovorId(result.podatak.conversationId);
+    await osvezi(result.podatak.conversationId);
+  }, [osvezi]);
 
   useEffect(() => {
     let ziv = true;
-    async function inicijalizuj() {
-      setGreska(null);
-
+    async function start() {
       if (resumeId) {
         setRazgovorId(resumeId);
-        await osvezi(resumeId);
+        if (ziv) await osvezi(resumeId);
         return;
       }
-
-      const o = await izvor.otvoriRazgovor();
       if (!ziv) return;
-      if (!o.ok) {
-        setGreska(o.poruka);
-        return;
-      }
-      setRazgovorId(o.podatak.razgovorId);
-      await osvezi(o.podatak.razgovorId);
+      await otvoriNovi();
     }
-
-    void inicijalizuj();
+    void start();
     return () => {
       ziv = false;
     };
-  }, [izvor, osvezi, resumeId]);
+  }, [osvezi, otvoriNovi, resumeId]);
 
   const posalji = useCallback(async () => {
-    const telo = unos.trim();
-    if (!telo || !razgovorId || radi) return;
-    setUnos('');
+    const body = unos.trim();
+    if (!body || !razgovorId || radi) return;
     setRadi(true);
     setGreska(null);
+    setUnos('');
     try {
-      const ishod = await izvor.posaljiKorisnikovuPoruku(razgovorId, telo);
-      if (!ishod.ok) {
-        setGreska(ishod.poruka);
-        setUnos(telo);
+      const result = await aiNeedV2Izvor.sendMessage(razgovorId, body);
+      if (!result.ok) {
+        setGreska(result.poruka);
+        setUnos(body);
         return;
       }
       await osvezi(razgovorId);
@@ -110,57 +100,16 @@ export default function NovaPotreba() {
     } finally {
       setRadi(false);
     }
-  }, [unos, razgovorId, radi, izvor, osvezi]);
+  }, [unos, razgovorId, radi, osvezi]);
 
-  const potvrdi = useCallback(
-    async (c: Cinjenica) => {
-      if (!razgovorId) return;
-      setGreska(null);
-      const i = await izvor.potvrdiCinjenicu(c.id);
-      if (!i.ok) setGreska(i.poruka);
-      await osvezi(razgovorId);
-    },
-    [razgovorId, izvor, osvezi],
-  );
-
-  const sacuvajIspravku = useCallback(async () => {
-    if (!ispravka || !razgovorId) return;
-    setGreska(null);
-    const ishod = await izvor.ispraviCinjenicu(ispravka.id, ispravka.tekst);
-    if (!ishod.ok) {
-      setGreska(ishod.poruka);
-      return;
-    }
-    setIspravka(null);
-    await osvezi(razgovorId);
-  }, [ispravka, razgovorId, izvor, osvezi]);
-
-  const objavi = useCallback(async () => {
-    if (!razgovorId) return;
-    const i = await izvor.objaviPotrebu(razgovorId);
-    if (!i.ok) {
-      setGreska(i.poruka);
-      return;
-    }
-    router.replace('/potrebe');
-  }, [razgovorId, izvor]);
-
-  if (!nacrt) {
+  if (!stanje) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', padding: space.xl }}>
         {greska ? (
           <View style={{ gap: space.base, alignItems: 'center' }}>
-            <Warning size={28} color={palette.danger} weight="fill" />
+            <Warning size={30} color={palette.danger} weight="fill" />
             <T variant="body" tone="danger" style={{ textAlign: 'center' }}>{greska}</T>
-            <Press
-              accessibilityRole="button"
-              accessibilityLabel="Otvori novi nacrt"
-              haptic="light"
-              onPress={() => router.replace('/nova')}
-              style={{ minHeight: touch.min, paddingHorizontal: space.lg, borderRadius: radius.md, backgroundColor: palette.orange, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <T variant="action" tone="onOrange">Otvori novi nacrt</T>
-            </Press>
+            <Button label="Otvorite novi Zadatak" onPress={otvoriNovi} />
           </View>
         ) : (
           <ActivityIndicator color={palette.teal500} />
@@ -169,284 +118,221 @@ export default function NovaPotreba() {
     );
   }
 
-  const poKljucu = new Map(nacrt.cinjenice.map((c) => [c.kljuc, c]));
-  const vidljive = REDOSLED.map((k) => poKljucu.get(k)).filter(Boolean) as Cinjenica[];
-  const zaPotvrdu = vidljive.filter((c) => c.status !== 'POTVRDJENO').length;
+  const facts = sortFacts(stanje.facts);
+  const confirmed = facts.filter((fact) => fact.status === 'CONFIRMED').length;
+  const pending = facts.length - confirmed;
+  const safetyCopy = safetyMessage(stanje.safety);
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      {/*
-        LIVE KARTICA.
-        Ovo nije poseban state — ovo je druga projekcija istog nacrta koji
-        vidi i chat. Zato ispravka u razgovoru odmah menja i ovo.
-      */}
-      <View style={{ paddingHorizontal: space.base, paddingTop: space.sm, paddingBottom: space.md }}>
-        <Card style={elevation.card}>
-          <View style={{ padding: space.base, gap: space.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-              <T variant="label" tone="muted" style={{ flex: 1 }}>
-                {nacrt.cinjenice.length === 0 ? 'POTREBA SE POPUNJAVA' : 'OVAKO ĆE POTREBA IZGLEDATI'}
-              </T>
-              {zaPotvrdu > 0 && (
-                <View
-                  style={{
-                    backgroundColor: palette.orangeSoft, borderRadius: radius.pill,
-                    paddingHorizontal: space.md, paddingVertical: 3,
-                  }}
-                >
-                  <T variant="meta" tone="orange" style={{ fontWeight: '800' }}>
-                    {zaPotvrdu} za potvrdu
-                  </T>
-                </View>
-              )}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={8}
+      >
+        <View style={{ paddingHorizontal: space.base, paddingTop: space.md, gap: space.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+            <View style={{ flex: 1 }}>
+              <T variant="label" tone="orange">NOVI ZADATAK</T>
+              <T variant="title" balance>Recite šta Vam treba</T>
             </View>
-
-            {vidljive.length === 0 ? (
-              <T variant="meta" tone="muted">
-                Recite šta Vam treba — podaci će se pojaviti ovde dok razgovaramo.
-              </T>
-            ) : (
-              <View style={{ gap: space.sm }}>
-                {vidljive.map((c) => {
-                  const potvrdjena = c.status === 'POTVRDJENO';
-                  const aiPredlog = c.izvor === 'AI_ZAKLJUCAK';
-                  return (
-                    <Animated.View
-                      key={c.id}
-                      entering={naUredjaju ? FadeIn.duration(motion.enter) : undefined}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}
-                    >
-                      <T variant="meta" tone="muted" style={{ width: 78 }}>
-                        {NAZIV[c.kljuc]}
-                      </T>
-
-                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <T
-                          variant="meta"
-                          style={{ fontWeight: potvrdjena ? '800' : '600' }}
-                          numberOfLines={1}
-                        >
-                          {c.prikaz}
-                        </T>
-                        {aiPredlog && !potvrdjena && (
-                          <Sparkle size={12} color={palette.orangeInk} weight="fill" />
-                        )}
-                      </View>
-
-                      {potvrdjena ? (
-                        <Check size={16} color={palette.success} weight="bold" />
-                      ) : (
-                        <View style={{ flexDirection: 'row', gap: 4 }}>
-                          <Press
-                            accessibilityRole="button"
-                            accessibilityLabel={`Izmeni ${NAZIV[c.kljuc]}`}
-                            haptic="select"
-                            onPress={() => setIspravka({ id: c.id, tekst: c.prikaz })}
-                            style={{
-                              width: 34, height: 34, borderRadius: radius.sm,
-                              borderWidth: 1, borderColor: palette.line100,
-                              alignItems: 'center', justifyContent: 'center',
-                            }}
-                          >
-                            <PencilSimple size={14} color={palette.inkMuted} />
-                          </Press>
-                          <Press
-                            accessibilityRole="button"
-                            accessibilityLabel={`Potvrdi ${NAZIV[c.kljuc]}`}
-                            haptic="light"
-                            onPress={() => potvrdi(c)}
-                            style={{
-                              width: 34, height: 34, borderRadius: radius.sm,
-                              backgroundColor: palette.successBg,
-                              alignItems: 'center', justifyContent: 'center',
-                            }}
-                          >
-                            <Check size={15} color={palette.success} weight="bold" />
-                          </Press>
-                        </View>
-                      )}
-                    </Animated.View>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* Ishod safety gate-a — bez internog obrazloženja. */}
-            {nacrt.bezbednost !== 'ALLOW' && nacrt.bezbednostPoruka && (
-              <View
-                style={{
-                  flexDirection: 'row', alignItems: 'center', gap: space.sm,
-                  backgroundColor: nacrt.bezbednost === 'BLOCK' ? palette.dangerBg : palette.warnBg,
-                  borderRadius: radius.md, padding: space.md,
-                }}
-              >
-                {nacrt.bezbednost === 'BLOCK' ? (
-                  <Warning size={16} color={palette.danger} weight="fill" />
-                ) : nacrt.bezbednost === 'REVIEW' ? (
-                  <ShieldCheck size={16} color={palette.warn} weight="fill" />
-                ) : (
-                  <Info size={16} color={palette.warn} />
-                )}
-                <T variant="meta" tone={nacrt.bezbednost === 'BLOCK' ? 'danger' : 'muted'} style={{ flex: 1 }}>
-                  {nacrt.bezbednostPoruka}
-                </T>
-              </View>
-            )}
-
-            <Press
-              accessibilityRole="button"
-              accessibilityLabel="Objavi Potrebu"
-              accessibilityState={{ disabled: !nacrt.spremnoZaObjavu }}
-              disabled={!nacrt.spremnoZaObjavu}
-              haptic="success"
-              onPress={objavi}
+            <View
               style={{
-                minHeight: touch.min, borderRadius: radius.md,
-                alignItems: 'center', justifyContent: 'center',
-                backgroundColor: nacrt.spremnoZaObjavu ? palette.orange : palette.cream050,
+                width: 44,
+                height: 44,
+                borderRadius: radius.md,
+                backgroundColor: palette.orangeSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <T variant="action" tone={nacrt.spremnoZaObjavu ? 'onOrange' : 'muted'}>
-                {nacrt.spremnoZaObjavu
-                  ? 'Objavite Potrebu'
-                  : nacrt.nedostaje.length > 0
-                    ? `Još ${nacrt.nedostaje.length} ${nacrt.nedostaje.length === 1 ? 'podatak' : 'podatka'}`
-                    : 'Potvrdite podatke'}
-              </T>
-            </Press>
+              <Sparkle size={22} color={palette.orangeInk} weight="fill" />
+            </View>
           </View>
-        </Card>
-      </View>
 
-      {/* RAZGOVOR — druga projekcija istog nacrta. */}
-      <ScrollView
-        ref={skrol}
-        contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.base, gap: space.sm }}
-        showsVerticalScrollIndicator={false}
-      >
-        {poruke.map((m) => (
-          <Animated.View
-            key={m.id}
-            entering={naUredjaju ? FadeInDown.duration(motion.enter) : undefined}
-            style={{
-              alignSelf: m.odAI ? 'flex-start' : 'flex-end',
-              maxWidth: '86%',
-              backgroundColor: m.odAI ? palette.surface : palette.forest800,
-              borderWidth: m.odAI ? 1 : 0,
-              borderColor: palette.line100,
-              borderRadius: radius.lg,
-              paddingVertical: space.md, paddingHorizontal: space.base,
-              gap: 4,
-            }}
-          >
-            <T variant="body" tone={m.odAI ? 'ink' : 'onDark'}>{m.telo}</T>
-            {m.predlozene.length > 0 && (
-              <T variant="meta" tone="onDarkMuted" style={{ fontSize: 12 }}>
-                Popunjeno {m.predlozene.length} {m.predlozene.length === 1 ? 'podatak' : 'podataka'} sa strane
+          <Card>
+            <View style={{ padding: space.base, gap: space.md }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                <View style={{ flex: 1 }}>
+                  <T variant="label" tone="muted">NACRT UŽIVO</T>
+                  <T variant="heading">
+                    {facts.length ? `${confirmed} potvrđeno · ${pending} za pregled` : 'Popunjava se kroz razgovor'}
+                  </T>
+                </View>
+                <CheckCircle
+                  size={24}
+                  color={stanje.review.canSaveDraft ? palette.success : palette.sage300}
+                  weight={stanje.review.canSaveDraft ? 'fill' : 'regular'}
+                />
+              </View>
+
+              {facts.length > 0 ? (
+                <View style={{ gap: space.sm }}>
+                  {facts.slice(0, 6).map((fact) => (
+                    <View key={fact.id} style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
+                      <T variant="meta" tone="muted" style={{ width: 86 }}>{factLabel(fact.key)}</T>
+                      <T variant="meta" style={{ flex: 1, fontWeight: '700' }} numberOfLines={1}>
+                        {fact.displayValue}
+                      </T>
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: fact.status === 'CONFIRMED' ? palette.success : palette.orange,
+                        }}
+                      />
+                    </View>
+                  ))}
+                  {facts.length > 6 ? (
+                    <T variant="meta" tone="muted">+ još {facts.length - 6} podataka</T>
+                  ) : null}
+                </View>
+              ) : (
+                <T variant="meta" tone="muted">
+                  Napišite zahtev prirodno. AI će izdvojiti podatke, ali Vi ih potvrđujete pre čuvanja.
+                </T>
+              )}
+
+              <Button
+                label="Pregledajte nacrt"
+                meta={stanje.review.missingRequired.length ? `${stanje.review.missingRequired.length} obaveznih` : 'spreman za proveru'}
+                full
+                disabled={!razgovorId || facts.length === 0}
+                icon={<ArrowRight size={18} color={palette.onOrange} weight="bold" />}
+                onPress={() => {
+                  if (!razgovorId) return;
+                  router.push({ pathname: '/pregled-nacrta', params: { conversationId: razgovorId } });
+                }}
+              />
+            </View>
+          </Card>
+
+          {safetyCopy ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: space.sm,
+                alignItems: 'center',
+                backgroundColor: stanje.safety === 'BLOCK' ? palette.dangerBg : palette.warnBg,
+                padding: space.md,
+                borderRadius: radius.md,
+              }}
+            >
+              <ShieldCheck size={18} color={stanje.safety === 'BLOCK' ? palette.danger : palette.warn} weight="fill" />
+              <T variant="meta" tone={stanje.safety === 'BLOCK' ? 'danger' : 'muted'} style={{ flex: 1 }}>
+                {safetyCopy}
               </T>
-            )}
-          </Animated.View>
-        ))}
-        {radi && <ActivityIndicator color={palette.teal500} style={{ alignSelf: 'flex-start' }} />}
-      </ScrollView>
-
-      {greska && (
-        <View style={{ paddingHorizontal: space.base, paddingBottom: space.sm }}>
-          <T variant="meta" tone="danger">{greska}</T>
+            </View>
+          ) : null}
         </View>
-      )}
 
-      {/* Ispravka jednog podatka — potiskuje stari, ne prepisuje ga. */}
-      {ispravka ? (
-        <View
-          style={{
-            flexDirection: 'row', alignItems: 'center', gap: space.sm,
-            margin: space.base, padding: space.sm, paddingLeft: space.base,
-            backgroundColor: palette.raised, borderRadius: radius.lg,
-            borderWidth: 1.5, borderColor: palette.orange,
-          }}
+        <ScrollView
+          ref={skrol}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: space.base, gap: space.sm, paddingBottom: space.xl }}
+          showsVerticalScrollIndicator={false}
         >
-          <TextInput
-            value={ispravka.tekst}
-            onChangeText={(t) => setIspravka({ ...ispravka, tekst: t })}
-            autoFocus
-            accessibilityLabel="Nova vrednost"
-            onSubmitEditing={sacuvajIspravku}
-            returnKeyType="done"
-            style={{ flex: 1, fontSize: 16, color: palette.ink, paddingVertical: 6 }}
-          />
-          <Press
-            accessibilityRole="button"
-            accessibilityLabel="Odustani od izmene"
-            haptic="select"
-            onPress={() => setIspravka(null)}
-            style={{ minHeight: 40, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <T variant="meta" tone="muted">Odustani</T>
-          </Press>
-          <Press
-            accessibilityRole="button"
-            accessibilityLabel="Sačuvaj izmenu"
-            haptic="light"
-            onPress={sacuvajIspravku}
-            style={{
-              minHeight: 40, paddingHorizontal: space.base, borderRadius: radius.md,
-              backgroundColor: palette.orange, alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <T variant="meta" tone="onOrange" style={{ fontWeight: '800' }}>Sačuvaj</T>
-          </Press>
-        </View>
-      ) : (
+          {stanje.messages.length === 0 ? (
+            <Animated.View
+              entering={FadeInDown.duration(220)}
+              style={{
+                alignSelf: 'flex-start',
+                maxWidth: '88%',
+                backgroundColor: palette.surface,
+                borderWidth: 1,
+                borderColor: palette.line100,
+                borderRadius: radius.lg,
+                padding: space.base,
+              }}
+            >
+              <T variant="body">Šta treba da se uradi? Možete napisati sve odjednom, kao da objašnjavate osobi.</T>
+            </Animated.View>
+          ) : null}
+
+          {stanje.messages.map((message) => (
+            <Animated.View
+              key={message.id}
+              entering={FadeInDown.duration(220)}
+              style={{
+                alignSelf: message.fromAi ? 'flex-start' : 'flex-end',
+                maxWidth: '88%',
+                backgroundColor: message.fromAi ? palette.surface : palette.forest800,
+                borderWidth: message.fromAi ? 1 : 0,
+                borderColor: palette.line100,
+                borderRadius: radius.lg,
+                paddingVertical: space.md,
+                paddingHorizontal: space.base,
+              }}
+            >
+              <T variant="body" tone={message.fromAi ? 'ink' : 'onDark'}>{message.body}</T>
+            </Animated.View>
+          ))}
+          {radi ? <ActivityIndicator color={palette.teal500} style={{ alignSelf: 'flex-start' }} /> : null}
+        </ScrollView>
+
+        {greska ? (
+          <View style={{ paddingHorizontal: space.base, paddingBottom: space.sm }}>
+            <T variant="meta" tone="danger">{greska}</T>
+          </View>
+        ) : null}
+
         <View
           style={{
-            flexDirection: 'row', alignItems: 'center', gap: space.sm,
-            margin: space.base, paddingLeft: space.base, paddingRight: space.sm, paddingVertical: space.sm,
-            backgroundColor: palette.surface, borderRadius: radius.lg,
-            borderWidth: 1, borderColor: palette.line100,
+            paddingHorizontal: space.base,
+            paddingTop: space.sm,
+            paddingBottom: space.md,
+            backgroundColor: palette.surface,
+            borderTopWidth: 1,
+            borderTopColor: palette.line100,
+            flexDirection: 'row',
+            gap: space.sm,
+            alignItems: 'flex-end',
           }}
         >
           <TextInput
             value={unos}
             onChangeText={setUnos}
-            placeholder="Šta Vam treba?"
+            editable={!radi && stanje.safety !== 'BLOCK'}
+            placeholder="Npr. treba mi prevoz frižidera sutra..."
             placeholderTextColor={palette.inkMuted}
-            accessibilityLabel="Opišite šta Vam treba"
-            onSubmitEditing={posalji}
-            returnKeyType="send"
             multiline
-            blurOnSubmit
-            // Na webu multiline guta Enter, pa se poruka nikad ne pošalje.
-            // Shift+Enter i dalje pravi novi red.
-            onKeyPress={(e: any) => {
-              if (Platform.OS === 'web' && e?.nativeEvent?.key === 'Enter' && !e?.nativeEvent?.shiftKey) {
-                e.preventDefault?.();
-                posalji();
-              }
+            maxLength={4000}
+            style={{
+              flex: 1,
+              minHeight: touch.min,
+              maxHeight: 112,
+              borderWidth: 1,
+              borderColor: palette.line100,
+              backgroundColor: palette.raised,
+              color: palette.ink,
+              borderRadius: radius.md,
+              paddingHorizontal: space.md,
+              paddingVertical: 10,
+              fontSize: 16,
+              lineHeight: 22,
             }}
-            style={{ flex: 1, fontSize: 16, color: palette.ink, paddingVertical: 6, maxHeight: 90 }}
           />
           <Press
             accessibilityRole="button"
-            accessibilityLabel="Pošalji"
-            accessibilityState={{ disabled: !unos.trim() }}
-            disabled={!unos.trim()}
+            accessibilityLabel="Pošalji poruku"
+            accessibilityState={{ disabled: !unos.trim() || radi || stanje.safety === 'BLOCK' }}
+            disabled={!unos.trim() || radi || stanje.safety === 'BLOCK'}
             haptic="light"
             onPress={posalji}
             style={{
-              width: touch.min, height: touch.min, borderRadius: radius.md,
-              alignItems: 'center', justifyContent: 'center',
-              backgroundColor: unos.trim() ? palette.orange : palette.cream050,
+              width: touch.min,
+              height: touch.min,
+              borderRadius: radius.md,
+              backgroundColor: unos.trim() && !radi && stanje.safety !== 'BLOCK' ? palette.orange : palette.cream050,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <PaperPlaneTilt
-              size={19}
-              color={unos.trim() ? palette.onOrange : palette.inkMuted}
-              weight="fill"
-            />
+            <PaperPlaneTilt size={20} color={palette.onOrange} weight="fill" />
           </Press>
         </View>
-      )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
