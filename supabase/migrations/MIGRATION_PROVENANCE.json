@@ -1,19 +1,19 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-01T12:20:00Z",
+  "generated_at_utc": "2026-09-03T16:18:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "542265f8a7143596ad848dbcc1d85030ec148e38",
+  "repository_base_head": "1c14e9ba79e3fa25f302be8400a37d16ef946d69",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
     "scope": "raw physical migration file bytes",
     "newline_policy": "LF enforced for canonical text files by .gitattributes",
-    "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only."
+    "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 56,
-    "last": {"name":"clean_ai_fact_supersession_and_human_correction","version":"20260901114029"},
+    "migration_count": 57,
+    "last": {"name":"clean_ru0_authority_closure","version":"20260903160812"},
     "entries": [
       {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
       {"name":"lock_down_auth_trigger_functions_1_3b","version":"20260825115602"},
@@ -70,25 +70,11 @@
       {"name":"clean_completion_and_writer_authenticated_proof","version":"20260901105922"},
       {"name":"clean_ai_interview_turn_persistence","version":"20260901112607"},
       {"name":"clean_ai_interview_turn_authenticated_proof","version":"20260901113333"},
-      {"name":"clean_ai_fact_supersession_and_human_correction","version":"20260901114029"}
+      {"name":"clean_ai_fact_supersession_and_human_correction","version":"20260901114029"},
+      {"name":"clean_ru0_authority_closure","version":"20260903160812","file":"20260903130355_clean_ru0_authority_closure.sql","source_version":"20260903130355","exact_byte_mirror":false,"live_recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a"}
     ]
   },
-  "pending_forward_migrations": [
-    {
-      "version": "20260903130355",
-      "name": "clean_ru0_authority_closure",
-      "file": "20260903130355_clean_ru0_authority_closure.sql",
-      "classification": "PENDING_FORWARD_MIGRATION",
-      "raw_md5": "23a60f86bdb952f1dbf62990f2f800cc",
-      "predecessor_live_migration_count": 56,
-      "predecessor_live_head": "20260901114029",
-      "live_applied": false,
-      "proof_level": "SOURCE_STATIC",
-      "runtime_proof_artifact": "../proofs/ru0_authority_closure_runtime_proof.sql",
-      "runtime_blocker": "Supabase development branching requires Pro; execute_sql is enforced READ ONLY; no disposable PostgreSQL runtime is currently available.",
-      "next_allowed_action": "Run the rollback-only proof in a disposable PostgreSQL/Supabase environment; do not apply to live and do not begin RU-1 before PASS."
-    }
-  ],
+  "pending_forward_migrations": [],
   "reconstructions": [
     {
       "version": "20260830191500",
@@ -128,7 +114,8 @@
     {"version":"20260901105922","name":"clean_completion_and_writer_authenticated_proof","file":"20260901105922_clean_completion_and_writer_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"8c81ab60da89bc7bd83c42417b4b258f","authenticated_runtime_proof":"PASS: direct Agreement/grant writes denied; authoritative RPC paths and parent Need completion proved in rollback-only runtime test; zero proof rows retained."},
     {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"FORWARD_REPAIR","raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","contract":"Persistent NEED_INTAKE USER/ASSISTANT history is own-read only; authenticated direct writes and service-turn execution are denied; service_role alone atomically persists one AI turn plus AI_INFERENCE NEEDS_CONFIRMATION facts."},
     {"version":"20260901113333","name":"clean_ai_interview_turn_authenticated_proof","file":"20260901113333_clean_ai_interview_turn_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","authenticated_runtime_proof":"PASS: authenticated direct ai_messages INSERT and service-turn EXECUTE denied; service_role atomically persisted USER+ASSISTANT+AI_INFERENCE fact inside rollback-only subtransaction; zero proof rows retained."},
-    {"version":"20260901114029","name":"clean_ai_fact_supersession_and_human_correction","file":"20260901114029_clean_ai_fact_supersession_and_human_correction.sql","classification":"FORWARD_REPAIR","raw_md5":"777a5ed9f25163c66bfe9070ee0a2844","authenticated_runtime_proof":"PASS: human confirm stamps server provenance; explicit correction safely supersedes prior live fact; repeated-key service writer preserves one-live-fact invariant; all proof writes rolled back with zero residue."}
+    {"version":"20260901114029","name":"clean_ai_fact_supersession_and_human_correction","file":"20260901114029_clean_ai_fact_supersession_and_human_correction.sql","classification":"FORWARD_REPAIR","raw_md5":"777a5ed9f25163c66bfe9070ee0a2844","authenticated_runtime_proof":"PASS: human confirm stamps server provenance; explicit correction safely supersedes prior live fact; repeated-key service writer preserves one-live-fact invariant; all proof writes rolled back with zero residue."},
+    {"version":"20260903160812","source_version":"20260903130355","name":"clean_ru0_authority_closure","file":"20260903130355_clean_ru0_authority_closure.sql","classification":"FORWARD_REPAIR","raw_md5":"23a60f86bdb952f1dbf62990f2f800cc","exact_byte_mirror":false,"live_recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a","disposable_runtime_proof":"PASS: GitHub Actions run 33769629283 proved owner/attacker/service and zero residue.","live_structural_proof":"PASS: live 57 migration state, retired RPC exposure 0, authenticated public SD 25, private API-executable SD 0, preserved service/v2 paths, checked business rows unchanged."}
   ],
   "live_source_reconciliations": [
     {"version":"20260901091438","name":"client_command_authority_closure","file":"20260901091438_client_command_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7642,"recorded_statement_md5":"012a54e35d2f90bf22978a98b79efee0","canonical_raw_md5":"4155ccc6a9e0e450dd7be95dcb8d326c","applied_history_action":"UNCHANGED"},
@@ -138,6 +125,7 @@
     {"version":"20260901105922","name":"clean_completion_and_writer_authenticated_proof","file":"20260901105922_clean_completion_and_writer_authenticated_proof.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7630,"recorded_statement_md5":"8c81ab60da89bc7bd83c42417b4b258f","canonical_raw_md5":"8c81ab60da89bc7bd83c42417b4b258f","applied_history_action":"UNCHANGED"},
     {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7293,"recorded_statement_md5":"ef8003c346fd7bbd51102ee6cfc9a811","canonical_raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","applied_history_action":"UNCHANGED"},
     {"version":"20260901113333","name":"clean_ai_interview_turn_authenticated_proof","file":"20260901113333_clean_ai_interview_turn_authenticated_proof.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":6130,"recorded_statement_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","canonical_raw_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"},
-    {"version":"20260901114029","name":"clean_ai_fact_supersession_and_human_correction","file":"20260901114029_clean_ai_fact_supersession_and_human_correction.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":14428,"recorded_statement_md5":"777a5ed9f25163c66bfe9070ee0a2844","canonical_raw_md5":"777a5ed9f25163c66bfe9070ee0a2844","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"}
+    {"version":"20260901114029","name":"clean_ai_fact_supersession_and_human_correction","file":"20260901114029_clean_ai_fact_supersession_and_human_correction.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":14428,"recorded_statement_md5":"777a5ed9f25163c66bfe9070ee0a2844","canonical_raw_md5":"777a5ed9f25163c66bfe9070ee0a2844","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"},
+    {"version":"20260903160812","source_version":"20260903130355","name":"clean_ru0_authority_closure","file":"20260903130355_clean_ru0_authority_closure.sql","classification":"SEMANTIC_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_chars":21495,"recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a","canonical_raw_md5":"23a60f86bdb952f1dbf62990f2f800cc","exact_byte_mirror":false,"difference":"Supabase assigned the live timestamp and the connected deployment payload omitted non-executable section comments. Executable RU-0 contract preserved; raw-byte identity not claimed.","applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"}
   ]
 }

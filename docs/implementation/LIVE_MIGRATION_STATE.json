@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-03T18:12:00+02:00",
+  "updated_at": "2026-09-03T18:19:00+02:00",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -65,9 +65,15 @@
       }
     }
   },
-  "provenance_override": {
+  "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "PRE_LIVE_SNAPSHOT_STALE_FOR_RU0_STATUS",
-    "instruction": "Do not infer that RU-0 is pending and do not reapply RU-0. Normalize that historical provenance snapshot to the 57-migration live state before creating the next forward migration."
-  }
+    "state": "NORMALIZED_TO_LIVE_57",
+    "live_version_alias": {
+      "live_version": "20260903160812",
+      "source_version": "20260903130355",
+      "source_file": "20260903130355_clean_ru0_authority_closure.sql"
+    },
+    "pending_forward_migrations": 0
+  },
+  "next_allowed_action": "Fresh read-only GitHub/Supabase preflight, then read governing master dependency order and begin RU-1 only if physical state matches this checkpoint."
 }

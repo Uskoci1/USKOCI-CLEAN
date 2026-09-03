@@ -78,11 +78,16 @@ def main() -> None:
     history = metadata.get("live_history_snapshot", {})
     history_entries = history.get("entries", [])
     history_names = [
-        f"{item['version']}_{item['name']}.sql" for item in history_entries
+        item.get("file", f"{item['version']}_{item['name']}.sql")
+        for item in history_entries
     ]
     if history.get("migration_count") != len(history_entries):
         fail("live history count does not match entry count")
-    if history.get("last") != history_entries[-1]:
+    last = history.get("last", {})
+    if not history_entries or (
+        last.get("version") != history_entries[-1].get("version")
+        or last.get("name") != history_entries[-1].get("name")
+    ):
         fail("live history last entry is inconsistent")
 
     pending = metadata.get("pending_forward_migrations", [])
