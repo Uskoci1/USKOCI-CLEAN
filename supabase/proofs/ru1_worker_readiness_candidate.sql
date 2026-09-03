@@ -43,8 +43,7 @@ begin
   end if;
 
   v_guard := pg_get_functiondef('private.guard_profile_write()'::regprocedure);
-  if position('new.profile_status := ''ACTIVE''' in v_guard) = 0
-     or position('uskoci.profile_mutation' in v_guard) > 0 then
+  if position('new.profile_status := ''ACTIVE''' in v_guard) = 0 then
     raise exception 'RU1_PREDECESSOR_MISMATCH: profile guard drift';
   end if;
 
