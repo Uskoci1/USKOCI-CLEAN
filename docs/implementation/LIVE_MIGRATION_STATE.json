@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-03T20:22:00+02:00",
+  "updated_at": "2026-09-03T20:40:00+02:00",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -66,7 +66,11 @@
     }
   },
   "ru1": {
-    "status": "SOURCE_STAGED_RUNTIME_PROVEN",
+    "status": "SOURCE_CANONICAL_RUNTIME_PROVEN",
+    "canonical_source_promotion": {
+      "checkpoint_head": "e99876189ba4625e00a887ee7771da8d3b7ec1c1",
+      "status": "PROMOTED"
+    },
     "staged_source": {
       "commit": "5e586c63783b7743687224e3cc670e7ed52e4e48",
       "version": "20260903165700",
@@ -98,7 +102,7 @@
     },
     "promotion_integrity": {
       "branch": "promotion/ru1-worker-readiness-20260903",
-      "github_actions_run": 33791044226,
+      "github_actions_runs": [33791044226, 33791592988],
       "result": "PASS"
     },
     "live_applied": false
@@ -120,5 +124,5 @@
       }
     ]
   },
-  "next_allowed_action": "Finish clean canonical RU-1 source promotion, fresh read-only verify GitHub and live Supabase still 57/20260903160812, then obtain explicit owner approval before live apply."
+  "next_allowed_action": "Fresh read-only verify final canonical GitHub and live Supabase; if live remains 57/20260903160812 and source bytes match, obtain explicit owner approval before the single RU-1 live migration apply."
 }
