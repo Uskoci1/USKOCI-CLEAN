@@ -1,13 +1,13 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-03T20:40:00+02:00",
+  "updated_at": "2026-09-03T20:52:00+02:00",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
-  "live_migration_count": 57,
+  "live_migration_count": 58,
   "live_head": {
-    "version": "20260903160812",
-    "name": "clean_ru0_authority_closure"
+    "version": "20260903184545",
+    "name": "clean_ru1_worker_readiness"
   },
   "ru0": {
     "status": "CLOSED",
@@ -21,56 +21,17 @@
     "live_apply": {
       "version": "20260903160812",
       "name": "clean_ru0_authority_closure",
-      "statement_count": 1,
-      "recorded_statement_md5": "4c0d630d93f8fdfc6e683dcfd8a9895a",
-      "recorded_statement_chars": 21495,
-      "exact_byte_identity_with_staged_source": false,
-      "note": "Supabase assigned the live migration timestamp. The deployment payload preserved the executable RU-0 authority contract but omitted non-executable section comments, so raw-byte identity is not claimed."
+      "exact_byte_identity_with_staged_source": false
     },
     "disposable_runtime_proof": {
-      "branch": "proof/ru0-disposable-ci-20260903",
-      "head": "6496065940dea7310152cdae23d3766a617398e7",
       "github_actions_run": 33769629283,
       "result": "PASS",
       "owner_attacker_service": "PASS",
       "zero_residue": "PASS"
-    },
-    "live_post_apply": {
-      "public_security_definer": 32,
-      "private_security_definer": 23,
-      "authenticated_public_security_definer": 25,
-      "private_api_executable_security_definer": 0,
-      "retired_rpc_exposure": 0,
-      "service_ai_writer_service_role_execute": true,
-      "service_ai_writer_authenticated_execute": false,
-      "agreement_v2_propose_authenticated_execute": true,
-      "agreement_v2_respond_authenticated_execute": true,
-      "forbidden_mutation_policies": 0,
-      "needs_draft_update_policy_present": true,
-      "checked_business_rows_before_after": {
-        "ai_conversations": [15, 15],
-        "ai_action_proposals": [2, 2],
-        "ai_structured_facts": [82, 82],
-        "needs": [6, 6],
-        "notification_deliveries": [0, 0],
-        "agreements": [2, 2],
-        "agreement_versions": [2, 2]
-      },
-      "edge": {
-        "slug": "uskoci-ai-interview",
-        "status": "ACTIVE",
-        "version": 4,
-        "verify_jwt": true,
-        "changed_by_ru0": false
-      }
     }
   },
   "ru1": {
-    "status": "SOURCE_CANONICAL_RUNTIME_PROVEN",
-    "canonical_source_promotion": {
-      "checkpoint_head": "e99876189ba4625e00a887ee7771da8d3b7ec1c1",
-      "status": "PROMOTED"
-    },
+    "status": "CLOSED",
     "staged_source": {
       "commit": "5e586c63783b7743687224e3cc670e7ed52e4e48",
       "version": "20260903165700",
@@ -80,9 +41,10 @@
       "sha256": "71c2ec459e4cb986698856194017c71661769c236434fbbc2505ae5aed3190a0",
       "bytes": 13591
     },
-    "predecessor_live_state": {
-      "migration_count": 57,
-      "head": "20260903160812"
+    "rn_alignment": {
+      "commit": "ebabc6a48a9712ea34043b63dd7f6867e88691a2",
+      "file": "src/app/(app)/profil/radnik.tsx",
+      "contract": "Activation UI requires name, city and at least one skill."
     },
     "disposable_runtime_proof": {
       "branch": "proof/ru1-disposable-ci-20260903",
@@ -96,33 +58,57 @@
       "historical_active_worker_preserved": "PASS",
       "zero_residue": "PASS"
     },
-    "checksum_proof": {
-      "github_actions_run": 33790742908,
-      "result": "PASS"
+    "live_apply": {
+      "version": "20260903184545",
+      "name": "clean_ru1_worker_readiness",
+      "statement_count": 1,
+      "recorded_statement_utf8_bytes": 13591,
+      "recorded_statement_md5": "f80e2e721365ee07316a9c0e84ab593f",
+      "exact_byte_identity_with_staged_source": true
     },
-    "promotion_integrity": {
-      "branch": "promotion/ru1-worker-readiness-20260903",
-      "github_actions_runs": [33791044226, 33791592988],
-      "result": "PASS"
-    },
-    "live_applied": false
+    "live_post_apply": {
+      "profile_status_default": "DRAFT",
+      "guard_fail_closed_token": true,
+      "requester_insert_active": true,
+      "worker_insert_draft": true,
+      "identity_immutable": true,
+      "rpc_contract_present": true,
+      "rpc_execute": {
+        "anon": false,
+        "authenticated": true,
+        "service_role": true
+      },
+      "private_guard_execute": {
+        "anon": false,
+        "authenticated": false,
+        "service_role": false
+      },
+      "authenticated_profile_privileges": {
+        "select": true,
+        "insert": true,
+        "update": true,
+        "delete": false
+      },
+      "guard_trigger_present": true,
+      "profiles_before_after_preserved": {
+        "total": 6,
+        "requester_active": 3,
+        "worker_active": 3,
+        "worker_draft": 0,
+        "worker_other": 0
+      }
+    }
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "LIVE_57_WITH_ONE_PROVEN_PENDING_FORWARD_MIGRATION",
-    "live_version_alias": {
-      "live_version": "20260903160812",
-      "source_version": "20260903130355",
-      "source_file": "20260903130355_clean_ru0_authority_closure.sql"
+    "state": "NORMALIZED_TO_LIVE_58",
+    "ru1_live_version_alias": {
+      "live_version": "20260903184545",
+      "source_version": "20260903165700",
+      "source_file": "20260903165700_clean_ru1_worker_readiness.sql",
+      "exact_byte_identity": true
     },
-    "pending_forward_migrations": 1,
-    "pending": [
-      {
-        "version": "20260903165700",
-        "name": "clean_ru1_worker_readiness",
-        "live_applied": false
-      }
-    ]
+    "pending_forward_migrations": 0
   },
-  "next_allowed_action": "Fresh read-only verify final canonical GitHub and live Supabase; if live remains 57/20260903160812 and source bytes match, obtain explicit owner approval before the single RU-1 live migration apply."
+  "next_allowed_action": "Fresh read-only GitHub/Supabase preflight; read governing master RU-2 contract; begin RU-2 only if physical state matches 58/20260903184545."
 }
