@@ -1,0 +1,119 @@
+name: RU-1 disposable proof
+
+on:
+  push:
+    branches:
+      - proof/ru1-disposable-ci-20260903
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru1-disposable-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ru1-disposable-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      RU1_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify canonical baseline integrity
+        run: sh supabase/migrations/check_md5.sh
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Prepare isolated local Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/uskoci-ru1-proof
+          mkdir -p /tmp/uskoci-ru1-proof
+          cd /tmp/uskoci-ru1-proof
+          supabase init
+          rm -rf supabase/migrations
+          mkdir -p supabase/migrations
+          supabase db start
+
+      - name: Ensure psql
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+          psql --version
+
+      - name: Build verified RU-1 predecessor fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$RU1_DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru1_targeted_predecessor_fixture.sql"
+          actual="$(psql "$RU1_DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "predecessor_migration_state=$actual"
+          test "$actual" = "57/20260903160812"
+
+      - name: Apply exact RU-1 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$RU1_DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru1_worker_readiness_candidate.sql"
+          psql "$RU1_DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903165700','clean_ru1_worker_readiness');"
+          actual="$(psql "$RU1_DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "post_ru1_migration_state=$actual"
+          test "$actual" = "58/20260903165700"
+
+      - name: Run authenticated rollback-only proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$RU1_DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru1_worker_readiness_runtime_proof.sql"
+
+      - name: Verify zero residue and preserved historical Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof_users="$(psql "$RU1_DB_URL" -Atc "select count(*) from auth.users where email like 'ru1-%@proof.invalid';")"
+          existing_active="$(psql "$RU1_DB_URL" -Atc "select count(*) from public.app_profiles p join auth.users u on u.id=p.account_id where u.email like 'ru1-existing-%@fixture.invalid' and p.kind='WORKER' and p.profile_status='ACTIVE';")"
+          default_value="$(psql "$RU1_DB_URL" -Atc "select pg_get_expr(d.adbin,d.adrelid) from pg_attrdef d join pg_attribute a on a.attrelid=d.adrelid and a.attnum=d.adnum where d.adrelid='public.app_profiles'::regclass and a.attname='profile_status';")"
+          auth_delete="$(psql "$RU1_DB_URL" -Atc "select has_table_privilege('authenticated','public.app_profiles','DELETE');")"
+          anon_select="$(psql "$RU1_DB_URL" -Atc "select has_table_privilege('anon','public.app_profiles','SELECT');")"
+          guard_api="$(psql "$RU1_DB_URL" -Atc "select has_function_privilege('authenticated','private.guard_profile_write()','EXECUTE') or has_function_privilege('service_role','private.guard_profile_write()','EXECUTE') or has_function_privilege('anon','private.guard_profile_write()','EXECUTE');")"
+          echo "proof_users_after_rollback=$proof_users"
+          echo "existing_worker_active=$existing_active"
+          echo "profile_status_default=$default_value"
+          echo "authenticated_delete=$auth_delete"
+          echo "anon_select=$anon_select"
+          echo "private_guard_api_executable=$guard_api"
+          test "$proof_users" = "0"
+          test "$existing_active" = "1"
+          test "$default_value" = "'DRAFT'::text"
+          test "$auth_delete" = "f"
+          test "$anon_select" = "f"
+          test "$guard_api" = "f"
+
+      - name: Source checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npx tsc --noEmit
+          npm test -- --runInBand
+
+      - name: Stop disposable stack
+        if: always()
+        shell: bash
+        working-directory: /tmp/uskoci-ru1-proof
+        run: |
+          supabase stop --no-backup || true
