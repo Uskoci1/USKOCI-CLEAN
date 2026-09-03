@@ -435,7 +435,7 @@ before insert or update of conversation_id,fact_key,fact_value,fact_schema_versi
 on public.ai_structured_facts
 for each row execute function private.guard_ai_fact_schema();
 
-create or replace function public.rpc_ai_open_conversation(p_purpose text)
+create or replace function public.rpc_ai_open_need_conversation_v2()
 returns uuid
 language plpgsql
 security definer
@@ -444,25 +444,21 @@ as $function$
 declare
   v_uid uuid:=auth.uid();
   v_id uuid;
-  v_schema text;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
-  if p_purpose not in ('NEED_INTAKE','APPLICATION','PROFILE') then
-    raise exception 'BAD_PURPOSE' using errcode='P0001';
-  end if;
-
-  v_schema:=case when p_purpose='NEED_INTAKE' then 'NEED_FACT_V2' else 'LEGACY_TEXT_V1' end;
 
   insert into public.ai_conversations(account_id,purpose,fact_schema_version)
-  values(v_uid,p_purpose,v_schema)
+  values(v_uid,'NEED_INTAKE','NEED_FACT_V2')
   returning id into v_id;
 
   return v_id;
 end
 $function$;
 
-revoke all on function public.rpc_ai_open_conversation(text) from public, anon, authenticated, service_role;
-grant execute on function public.rpc_ai_open_conversation(text) to authenticated, service_role;
+revoke all on function public.rpc_ai_open_need_conversation_v2()
+from public, anon, authenticated, service_role;
+grant execute on function public.rpc_ai_open_need_conversation_v2()
+to authenticated;
 
 create or replace function public.rpc_ai_apply_interview_turn_v2_service(
   p_account_id uuid,
@@ -1049,6 +1045,12 @@ begin
      or not has_function_privilege('service_role',
        'public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE') then
     raise exception 'RU2_POSTCONDITION_FAILED: V2 service writer grants mismatch';
+  end if;
+
+  if has_function_privilege('anon','public.rpc_ai_open_need_conversation_v2()','EXECUTE')
+     or not has_function_privilege('authenticated','public.rpc_ai_open_need_conversation_v2()','EXECUTE')
+     or position('fact_schema_version' in pg_get_functiondef('public.rpc_ai_open_conversation(text)'::regprocedure)) > 0 then
+    raise exception 'RU2_POSTCONDITION_FAILED: backward-compatible V2 opener mismatch';
   end if;
 
   if not has_function_privilege('authenticated','public.rpc_ai_correct_fact_v2(uuid,jsonb,text)','EXECUTE')
