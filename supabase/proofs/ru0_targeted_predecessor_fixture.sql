@@ -16,6 +16,19 @@ create schema public authorization postgres;
 create schema private authorization postgres;
 grant usage on schema public to anon, authenticated, service_role;
 
+-- A completely empty local Supabase project has no migration ledger until the
+-- CLI applies its first migration. The canonical live ledger shape was verified
+-- read-only before this harness was built, so recreate that shape explicitly.
+create schema if not exists supabase_migrations;
+create table if not exists supabase_migrations.schema_migrations (
+  version text primary key,
+  statements text[],
+  name text,
+  created_by text,
+  idempotency_key text unique,
+  rollback text[]
+);
+
 -- Recreate the predecessor migration ledger contract: exactly 56 entries with
 -- the verified live head 20260901114029. These rows are disposable proof-only.
 truncate table supabase_migrations.schema_migrations;
