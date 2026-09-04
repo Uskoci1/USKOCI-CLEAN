@@ -11,7 +11,7 @@ declare
   requester_profile uuid;
   worker_a_profile uuid;
   worker_b_profile uuid;
-  need_id uuid;
+  fixture_need_id uuid;
   response_selected uuid;
   response_pending uuid;
   selection_id uuid;
@@ -49,14 +49,14 @@ begin
     requester, requester_profile, 'PUBLISHED', 'RU4 close task', 'Three people, close remaining after two selected', 'proof',
     'Novi Sad', 'Centar', 'FLEXIBLE', 3, 'MY_PRICE',
     5000, array['proof'], 'REMOTE', 1, statement_timestamp(), statement_timestamp()+interval '2 days'
-  ) returning id into need_id;
+  ) returning id into fixture_need_id;
   perform set_config('uskoci.need_lifecycle','',true);
 
   insert into public.marketplace_responses(
     need_id,worker_account_id,worker_profile_id,response_kind,status,
     submitted_against_need_revision,current_version,covered_slots,price_rsd,scope_note,submitted_at
   ) values (
-    need_id,worker_a,worker_a_profile,'OFFER','SELECTED',1,1,2,5000,'selected two slots',statement_timestamp()
+    fixture_need_id,worker_a,worker_a_profile,'OFFER','SELECTED',1,1,2,5000,'selected two slots',statement_timestamp()
   ) returning id into response_selected;
   insert into public.marketplace_response_versions(response_id,version,need_revision,price_rsd,covered_slots,scope_note,content_hash)
   values(response_selected,1,1,5000,2,'selected two slots',repeat('a',64));
@@ -65,7 +65,7 @@ begin
     need_id,worker_account_id,worker_profile_id,response_kind,status,
     submitted_against_need_revision,current_version,covered_slots,price_rsd,scope_note,submitted_at
   ) values (
-    need_id,worker_b,worker_b_profile,'OFFER','SUBMITTED',1,1,1,5000,'pending final slot',statement_timestamp()
+    fixture_need_id,worker_b,worker_b_profile,'OFFER','SUBMITTED',1,1,1,5000,'pending final slot',statement_timestamp()
   ) returning id into response_pending;
   insert into public.marketplace_response_versions(response_id,version,need_revision,price_rsd,covered_slots,scope_note,content_hash)
   values(response_pending,1,1,5000,1,'pending final slot',repeat('b',64));
@@ -74,7 +74,7 @@ begin
     need_id,need_revision,selected_by_account_id,client_request_id,covered_slots,response_id,
     worker_account_id,worker_profile_id,selection_mode,status
   ) values (
-    need_id,1,requester,'ru4-close-selection-a',2,response_selected,
+    fixture_need_id,1,requester,'ru4-close-selection-a',2,response_selected,
     worker_a,worker_a_profile,'REQUESTER_SELECTS','SELECTED'
   ) returning id into selection_id;
 
@@ -82,18 +82,18 @@ begin
     need_id,selection_id,selected_response_id,requester_account_id,requester_profile_id,
     worker_account_id,worker_profile_id,current_version,status
   ) values (
-    need_id,selection_id,response_selected,requester,requester_profile,
+    fixture_need_id,selection_id,response_selected,requester,requester_profile,
     worker_a,worker_a_profile,1,'CONFIRMED'
   ) returning id into agreement_id;
   insert into public.agreement_versions(agreement_id,version,status,terms,content_hash,created_by_account_id)
   values(agreement_id,1,'CONFIRMED',jsonb_build_object('needRevision',1,'priceRsd',5000,'coveredSlots',2),repeat('d',64),requester);
 
   perform set_config('uskoci.need_lifecycle','SELECT',true);
-  update public.needs set status='SELECTION' where id=need_id;
+  update public.needs set status='SELECTION' where id=fixture_need_id;
   perform set_config('uskoci.need_lifecycle','',true);
 
   insert into private.dispatch_schedule(need_id,next_run_at)
-  values(need_id,statement_timestamp())
+  values(fixture_need_id,statement_timestamp())
   on conflict (need_id) do update set next_run_at=excluded.next_run_at;
 
   perform set_config('uskoci.ru4_close_requester',requester::text,true);
@@ -101,7 +101,7 @@ begin
   perform set_config('uskoci.ru4_close_worker_b',worker_b::text,true);
   perform set_config('uskoci.ru4_close_attacker',attacker::text,true);
   perform set_config('uskoci.ru4_close_worker_b_profile',worker_b_profile::text,true);
-  perform set_config('uskoci.ru4_close_need',need_id::text,true);
+  perform set_config('uskoci.ru4_close_need',fixture_need_id::text,true);
   perform set_config('uskoci.ru4_close_pending_response',response_pending::text,true);
   perform set_config('uskoci.ru4_close_agreement',agreement_id::text,true);
 end
