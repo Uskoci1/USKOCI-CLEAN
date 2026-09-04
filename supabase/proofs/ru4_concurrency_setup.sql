@@ -10,6 +10,7 @@ declare
   need_b constant uuid := '00000000-0000-4000-8000-00000000c4b1'::uuid;
   need_c constant uuid := '00000000-0000-4000-8000-00000000c4c1'::uuid;
   requester_profile uuid;
+  queued integer;
 begin
   insert into auth.users(id,aud,role,email,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
     (requester,'authenticated','authenticated','ru4-concurrency-requester@proof.invalid',
@@ -36,10 +37,15 @@ begin
     (need_c,requester,requester_profile,'PUBLISHED','RU4 CONCURRENCY C','different key same need','proof','FLEXIBLE',1,'MY_PRICE',6000,1,statement_timestamp());
   perform set_config('uskoci.need_lifecycle','',true);
 
-  insert into private.dispatch_schedule(need_id,next_run_at) values
-    (need_a,statement_timestamp()),(need_b,statement_timestamp()),(need_c,statement_timestamp());
+  -- Canonical PUBLISHED enqueue trigger must already have scheduled all three.
+  select count(*) into queued
+    from private.dispatch_schedule
+   where need_id in (need_a,need_b,need_c);
+  if queued <> 3 then
+    raise exception 'RU4_CONCURRENCY_SETUP_DISPATCH_MISSING' using detail=queued::text;
+  end if;
 end
 $setup$;
 
 commit;
-select 'PASS RU4_CONCURRENCY_SETUP bounded=3' as result;
+select 'PASS RU4_CONCURRENCY_SETUP bounded=3 dispatch_seeded_by_canonical_trigger' as result;
