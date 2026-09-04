@@ -618,10 +618,8 @@ begin
      or (v_first->>'idempotentReplay')::boolean then
     raise exception 'RU3_B07_PROOF: successful publish result invalid';
   end if;
-  if (select status from public.needs where id=v_need) <> 'PUBLISHED'
-     or (select count(*) from private.dispatch_schedule where need_id=v_need) <> 1
-     or (select count(*) from private.need_publish_commands where need_id=v_need) <> 1 then
-    raise exception 'RU3_B07_PROOF: publish did not create exact state/schedule/receipt';
+  if (select status from public.needs where id=v_need) <> 'PUBLISHED' then
+    raise exception 'RU3_B07_PROOF: authenticated caller did not observe PUBLISHED Need';
   end if;
 
   v_replay := public.rpc_publish_need_canonical(
@@ -630,10 +628,6 @@ begin
   if not (v_replay->>'idempotentReplay')::boolean
      or (v_replay - 'idempotentReplay') is distinct from (v_first - 'idempotentReplay') then
     raise exception 'RU3_B07_PROOF: same-key same-payload replay changed result';
-  end if;
-  if (select count(*) from private.dispatch_schedule where need_id=v_need) <> 1
-     or (select count(*) from private.need_publish_commands where need_id=v_need) <> 1 then
-    raise exception 'RU3_B07_PROOF: replay duplicated durable side effects';
   end if;
 
   v_denied := false;
@@ -659,6 +653,32 @@ end
 $success_and_replay$;
 
 reset role;
+
+do $success_private_postconditions$
+declare
+  v_need uuid := current_setting('uskoci.ru3_b07_need')::uuid;
+  v_seq bigint := current_setting('uskoci.ru3_b07_final_allow')::bigint;
+begin
+  if (select status from public.needs where id=v_need) <> 'PUBLISHED' then
+    raise exception 'RU3_B07_PROOF: publish did not persist PUBLISHED state';
+  end if;
+  if (select count(*) from private.dispatch_schedule where need_id=v_need) <> 1 then
+    raise exception 'RU3_B07_PROOF: publish/replay did not leave exactly one dispatch schedule';
+  end if;
+  if (select count(*) from private.need_publish_commands where need_id=v_need) <> 1 then
+    raise exception 'RU3_B07_PROOF: publish/replay did not leave exactly one command receipt';
+  end if;
+  if not exists (
+    select 1
+      from private.need_publish_commands c
+     where c.need_id=v_need
+       and c.decision_sequence=v_seq
+       and c.client_request_id='ru3-b07-publish-0001'
+  ) then
+    raise exception 'RU3_B07_PROOF: durable receipt not bound to exact final ALLOW decision';
+  end if;
+end
+$success_private_postconditions$;
 
 -- Proof fixtures, including synthetic policy/ALLOW, must leave no rows.
 rollback;
