@@ -109,7 +109,7 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 \
             -f "$GITHUB_WORKSPACE/supabase/staging/ru4/20260904214500_clean_ru4_owner_edit_lock.sql"
 
-      - name: Normalize rollback proof fixture variable
+      - name: Normalize rollback proof fixture
         shell: bash
         run: |
           set -euo pipefail
@@ -130,6 +130,17 @@ jobs:
               if old not in s:
                   raise SystemExit(f'expected proof fixture text missing: {old!r}')
               s = s.replace(old, new, 1)
+
+          stale_assert = "  if cnt<>3 then raise exception 'RU4_LOCK_PRIOR_APPLICATIONS_NOT_ALL_STALE'; end if;\n"
+          dispatch_assert = stale_assert + "  if exists(select 1 from private.dispatch_schedule where need_id=nid) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n"
+          if stale_assert not in s:
+              raise SystemExit('stale assertion anchor missing')
+          s = s.replace(stale_assert, dispatch_assert, 1)
+
+          late_bad = "  if exists(select 1 from private.dispatch_schedule where need_id=nid and current_setting('uskoci.ru4_requester')<>'' ) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n"
+          if late_bad not in s:
+              raise SystemExit('late dispatch assertion missing')
+          s = s.replace(late_bad, '', 1)
           p.write_text(s)
           PY
 
