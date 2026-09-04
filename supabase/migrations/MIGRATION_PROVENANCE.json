@@ -297,7 +297,23 @@
       }
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260904111500",
+      "name": "clean_ru3_canonical_publish",
+      "file": "20260904111500_clean_ru3_canonical_publish.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "17468983d28cddfe4948c3866a96e813",
+      "live_applied": false,
+      "predecessor_live_migration_count": 62,
+      "predecessor_live_head": "20260904102429",
+      "unit": "RU-3/B07",
+      "proof_branch": "proof/ru3-b07-canonical-publish-20260904",
+      "proof_head": "7351198577685641ab9a7c08cb753a1094c41ea1",
+      "proof_run": 33903129202,
+      "contract": "Fail-closed canonical DRAFT->PUBLISHED transaction requiring exact latest ALLOW decision, exact current reviewed active policy bundle/fingerprint/rule provenance, semantic idempotency, owner authorization and atomic dispatch schedule. Seeds no policy content and creates no ALLOW decision."
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
