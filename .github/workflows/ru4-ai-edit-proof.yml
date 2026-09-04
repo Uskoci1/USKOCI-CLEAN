@@ -1,0 +1,130 @@
+name: RU-4 AI edit authority proof
+
+on:
+  push:
+    branches:
+      - proof/ru4-owner-edit-lock-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru4-ai-edit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ru4-ai-edit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify canonical migration integrity
+        run: sh supabase/migrations/check_md5.sh
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Replay physical live predecessor through RU-3/B07
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/uskoci-ru4-ai
+          mkdir -p /tmp/uskoci-ru4-ai
+          cd /tmp/uskoci-ru4-ai
+          supabase init
+          rm -rf supabase/migrations
+          mkdir -p supabase/migrations
+
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
+             supabase/migrations/20260825000000_ru4_ai_proof_live_bootstrap.sql
+
+          for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
+            b="$(basename "$f")"
+            case "$b" in
+              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260903190100_clean_ru2_ai_fact_transition_guard.sql|20260904090000_clean_ru3_policy_bundle_foundation.sql|20260904103000_clean_ru3_need_publication_decision.sql|20260904111500_clean_ru3_canonical_publish.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql|20260901114029_clean_ai_fact_supersession_and_human_correction.sql)
+                ;;
+              *) cp "$f" "supabase/migrations/$b" ;;
+            esac
+          done
+
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901105922_durable_effects.sql" \
+             supabase/migrations/20260901105922_clean_completion_and_writer_authenticated_proof.sql
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901113333_durable_effects.sql" \
+             supabase/migrations/20260901113333_clean_ai_interview_turn_authenticated_proof.sql
+
+          awk '/^-- Runtime proofs: no retained rows\.$/{exit} {print}' \
+            "$GITHUB_WORKSPACE/supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql" \
+            > supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql
+          cat >> supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql <<'SQL'
+          comment on function public.rpc_ai_confirm_fact(uuid) is 'AUTHENTICATED_RUNTIME_PROVEN: human confirmation stamps confirmed_at and confirmed_by_user_id.';
+          comment on function public.rpc_ai_correct_fact(uuid,text) is 'AUTHENTICATED_RUNTIME_PROVEN: explicit correction atomically supersedes prior live fact and creates CONFIRMED EXPLICIT_USER_ANSWER provenance.';
+          comment on function public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb) is 'SERVICE_RUNTIME_PROVEN: repeated canonical keys preserve one-live-fact invariant by superseding before insert; replacement proof rolled back with zero residue.';
+          SQL
+
+          supabase db start
+          supabase db reset --local
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
+
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          test "$actual" = "56/20260901114029"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903160812','clean_ru0_authority_closure');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903184545','clean_ru1_worker_readiness');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903222139','clean_ru2_need_v2_draft');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903222333','clean_ru2_ai_fact_transition_guard');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260904090147','clean_ru3_policy_bundle_foundation');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260904103000_clean_ru3_need_publication_decision.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260904102429','clean_ru3_need_publication_decision');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260904182402','clean_ru3_canonical_publish');"
+
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "ru4_ai_predecessor=$actual"
+          test "$actual" = "63/20260904182402"
+
+      - name: Apply RU-4 owner edit lock candidate
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/ru4/20260904214500_clean_ru4_owner_edit_lock.sql
+
+      - name: Apply RU-4 close remaining search candidate
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/ru4/20260904223000_clean_ru4_close_remaining_search.sql
+
+      - name: Apply RU-4 AI edit authority candidate
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/ru4/20260904230000_clean_ru4_ai_edit_conversation.sql
+
+      - name: Apply RU-4 AI replay boundary candidate
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/ru4/20260904230500_clean_ru4_ai_edit_replay_boundary.sql
+
+      - name: Run RU-4 AI edit authenticated proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/proofs/ru4_ai_edit_conversation_runtime_proof.sql | tee /tmp/ru4-ai-edit.log
+          grep -F "PASS RU4_AI_EDIT prefilled_current_task open_is_readonly ai_changes_only_proposed_key human_confirm_required critical_only_change_counts draft_rev2 prior_application_stale first_dogovor_lock exact_replay key_reuse_rejected" /tmp/ru4-ai-edit.log
+
+      - name: Verify RU-4 AI proof zero residue
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_edit_commands;")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_revision_events;")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title like 'RU4 AI % task';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where email like 'ru4-ai-%@proof.invalid';")" = "0"
+          echo "PASS RU4_AI_EDIT_ZERO_RESIDUE"
+
+      - name: Destroy disposable stack with no backup
+        if: always()
+        working-directory: /tmp/uskoci-ru4-ai
+        run: supabase stop --no-backup || true
