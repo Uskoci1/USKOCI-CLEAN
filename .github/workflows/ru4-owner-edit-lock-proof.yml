@@ -109,6 +109,13 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 \
             -f "$GITHUB_WORKSPACE/supabase/staging/ru4/20260904214500_clean_ru4_owner_edit_lock.sql"
 
+      - name: Apply RU-4 close remaining search candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -f "$GITHUB_WORKSPACE/supabase/staging/ru4/20260904223000_clean_ru4_close_remaining_search.sql"
+
       - name: Create disposable dispatch proof helper
         shell: bash
         run: |
@@ -180,6 +187,24 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select count(*) from private.response_revision_resolution_commands;")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title like 'RU4 %task';")" = "0"
           echo "PASS RU4_OWNER_EDIT_LOCK_ZERO_RESIDUE"
+
+      - name: Run RU-4 close remaining search proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -f "$GITHUB_WORKSPACE/supabase/proofs/ru4_close_remaining_search_runtime_proof.sql" \
+            | tee /tmp/ru4-close-remaining-search.log
+          grep -F "PASS RU4_CLOSE_REMAINING_SEARCH owner_only keeps_required_slots_revision_and_dogovor expires_pending stops_dispatch blocks_new_application idempotent" \
+            /tmp/ru4-close-remaining-search.log
+
+      - name: Verify remaining-search proof zero residue
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.remaining_search_close_commands;")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title='RU4 close task';")" = "0"
+          echo "PASS RU4_CLOSE_REMAINING_SEARCH_ZERO_RESIDUE"
 
       - name: Run RU-4 true concurrency proof
         shell: bash
