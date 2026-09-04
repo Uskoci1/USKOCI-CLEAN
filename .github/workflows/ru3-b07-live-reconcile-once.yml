@@ -1,0 +1,171 @@
+name: RU-3 B07 live continuity reconcile once
+
+on:
+  push:
+    branches:
+      - docs/ru3-b07-live-reconcile-20260904
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/ru3-b07-live-reconcile-20260904
+          fetch-depth: 0
+
+      - name: Reconcile B07 live provenance and continuity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          import io
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          CANONICAL_HEAD = 'd2c077d90c6410dc0737916df13b257389c6cb3b'
+          LIVE_VERSION = '20260904182402'
+          SOURCE_VERSION = '20260904111500'
+          NAME = 'clean_ru3_canonical_publish'
+          FILE = '20260904111500_clean_ru3_canonical_publish.sql'
+          RAW_MD5 = '17468983d28cddfe4948c3866a96e813'
+          PROOF_HEAD = '7351198577685641ab9a7c08cb753a1094c41ea1'
+          PROOF_RUN = 33903129202
+          PROMOTION_RUN = 33905242409
+          CANONICAL_RUN = 33905436213
+
+          # Migration provenance: move B07 from pending into the observed live history.
+          p = Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          data['generated_at_utc'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          data['repository_base_head'] = CANONICAL_HEAD
+          hist = data['live_history_snapshot']
+          entries = hist['entries']
+          if not any(e.get('name') == NAME and e.get('version') == LIVE_VERSION for e in entries):
+              entries.append({
+                  'name': NAME,
+                  'version': LIVE_VERSION,
+                  'file': FILE,
+                  'source_version': SOURCE_VERSION,
+                  'exact_byte_mirror': False,
+                  'canonical_raw_md5': RAW_MD5
+              })
+          hist['migration_count'] = 63
+          hist['last'] = {'name': NAME, 'version': LIVE_VERSION}
+          data['pending_forward_migrations'] = []
+          repairs = data.setdefault('forward_repairs', [])
+          if not any(r.get('name') == NAME for r in repairs):
+              repairs.append({
+                  'version': LIVE_VERSION,
+                  'source_version': SOURCE_VERSION,
+                  'name': NAME,
+                  'file': FILE,
+                  'classification': 'FORWARD_REPAIR',
+                  'raw_md5': RAW_MD5,
+                  'exact_byte_mirror': False,
+                  'disposable_runtime_proof': f'PASS: GitHub Actions run {PROOF_RUN} proved authenticated fail-closed publish behavior, semantic idempotency, true concurrency and no duplicate publish/dispatch on a disposable stack.',
+                  'promotion_integrity_proof': f'PASS: PR integrity run {PROMOTION_RUN}; canonical push integrity run {CANONICAL_RUN}.',
+                  'live_structural_proof': 'PASS: live 63 migration state; private.need_publish_commands exists with forced RLS and zero rows; authenticated canonical publish execute only; anon/service_role denied; legacy publish remains closed; B06 ALLOW writer remains disabled; zero policy bundles/rules/decisions; business counts preserved 6 Needs / 6 app_profiles / 15 AI conversations / 82 AI facts.'
+              })
+          p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
+
+          # Structured continuity state.
+          p = Path('docs/implementation/LIVE_MIGRATION_STATE.json')
+          state = json.loads(p.read_text(encoding='utf-8'))
+          state['updated_at'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          state['continuity_reconciliation']['canonical_base_observed_before_docs_reconciliation'] = CANONICAL_HEAD
+          state['live_migration_count'] = 63
+          state['live_head'] = {'version': LIVE_VERSION, 'name': NAME}
+          state['provenance']['state'] = 'NORMALIZED_TO_LIVE_63'
+          state['provenance']['pending_forward_migrations'] = 0
+          state['provenance']['ru3_b07_live_alias'] = {
+              'live_version': LIVE_VERSION,
+              'source_version': SOURCE_VERSION,
+              'source_file': FILE,
+              'exact_byte_identity': False,
+              'source_raw_md5': RAW_MD5
+          }
+          ru3 = state['ru3']
+          ru3['status'] = 'OPEN_B05_B06_B07_LIVE_POLICY_DEFERRED'
+          ru3['full_ru3_closed'] = False
+          ru3['b07'] = {
+              'status': 'LIVE_STRUCTURAL_PROVEN',
+              'canonical_source_head': CANONICAL_HEAD,
+              'source_version': SOURCE_VERSION,
+              'source_file': 'supabase/migrations/' + FILE,
+              'source_raw_md5': RAW_MD5,
+              'live_version': LIVE_VERSION,
+              'proof_branch': 'proof/ru3-b07-canonical-publish-20260904',
+              'proof_head': PROOF_HEAD,
+              'true_concurrency_proof_run': PROOF_RUN,
+              'promotion_integrity_run': PROMOTION_RUN,
+              'canonical_integrity_run': CANONICAL_RUN,
+              'live_applied': True,
+              'publish_command_rows': 0,
+              'policy_bundle_rows': 0,
+              'policy_rule_rows': 0,
+              'publication_decision_rows': 0,
+              'allow_enabled': False,
+              'production_publish': 'FAIL_CLOSED',
+              'business_rows_preserved': {
+                  'ai_structured_facts': 82,
+                  'ai_conversations': 15,
+                  'needs': 6,
+                  'app_profiles': 6
+              }
+          }
+          ru3['activation_blocker'] = 'No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.'
+          ru3['production_publish'] = 'FAIL_CLOSED'
+          state['next_allowed_action'] = 'Fresh physical preflight from live 63 / 20260904182402 clean_ru3_canonical_publish; begin RU-4 Material Revision / Re-admission on an isolated branch; keep production D-0140 policy activation fail-closed/deferred.'
+          p.write_text(json.dumps(state, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
+
+          marker = '<!-- RU3_B07_LIVE_CHECKPOINT_20260904 -->'
+          block = f'''{marker}\n## LATEST PHYSICAL CHECKPOINT — RU-3/B07 LIVE\n\nThis block supersedes older B07 proof-only/concurrency-pending cursor text below.\n\n- canonical source promotion: `{CANONICAL_HEAD}`\n- B07 source: `supabase/migrations/{FILE}` (`{RAW_MD5}` raw MD5)\n- true concurrency/idempotency proof: GitHub Actions `{PROOF_RUN}` — PASS\n- clean promotion integrity: `{PROMOTION_RUN}` — PASS\n- canonical push integrity: `{CANONICAL_RUN}` — PASS\n- live Supabase migration: `{LIVE_VERSION}_{NAME}`\n- live migration count: `63`\n- live structural proof: PASS; zero publish-command rows; zero policy bundles/rules/publication decisions; business counts preserved\n- production publication remains `FAIL_CLOSED`; no reviewed Serbia policy/evaluator activation and B06 production ALLOW writer remains disabled\n- RU-3/B05, B06 and B07 infrastructure are live/structurally proven; RU-3 overall remains OPEN only for deferred production policy/evaluator/release activation\n- exact next implementation cursor: **RU-4 Material Revision / Re-admission** after a fresh physical preflight\n\n'''
+          for name in [
+              'HANDOFF.md',
+              'AGENTS.md',
+              'docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md',
+              'docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md',
+          ]:
+              q = Path(name)
+              text = q.read_text(encoding='utf-8')
+              if marker not in text:
+                  q.write_text(block + text, encoding='utf-8', newline='\n')
+
+          # Append an authoritative newer B07 ledger row; older proof-only row is retained as history.
+          p = Path('docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv')
+          text = p.read_text(encoding='utf-8')
+          if 'RU-3_B07_CANONICAL_PUBLISH,LIVE_STRUCTURAL_PROVEN' not in text:
+              row = [
+                  'RU-3_B07_CANONICAL_PUBLISH',
+                  'LIVE_STRUCTURAL_PROVEN',
+                  CANONICAL_HEAD,
+                  f'source={SOURCE_VERSION}_{NAME};live={LIVE_VERSION}_{NAME}',
+                  'owner-only canonical publish RPC + private semantic idempotency receipts + atomic dispatch requirement',
+                  'publish client later; production ALLOW remains fail-closed',
+                  f'concurrency={PROOF_RUN};promotion={PROMOTION_RUN};canonical={CANONICAL_RUN};live structural proof PASS',
+                  'TRUE_CONCURRENCY_PROVEN+PROMOTION_INTEGRITY_PROVEN+LIVE_STRUCTURAL_PROVEN+ZERO_RESIDUE',
+                  'YES',
+                  'Production Serbia policy/evaluator activation deferred; ALLOW writer disabled',
+                  'RU-4_MATERIAL_REVISION_RE_ADMISSION'
+              ]
+              buf = io.StringIO()
+              csv.writer(buf, lineterminator='\n').writerow(row)
+              p.write_text(text.rstrip('\n') + '\n' + buf.getvalue(), encoding='utf-8', newline='\n')
+          PY
+
+          sh supabase/migrations/check_md5.sh
+
+      - name: Persist continuity and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/ru3-b07-live-reconcile-once.yml
+          git add HANDOFF.md AGENTS.md docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md docs/implementation/LIVE_MIGRATION_STATE.json docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv supabase/migrations/MIGRATION_PROVENANCE.json
+          git commit -m "docs(ru3): reconcile B07 live state and advance cursor to RU4"
+          git push origin HEAD:docs/ru3-b07-live-reconcile-20260904
