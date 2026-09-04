@@ -41,7 +41,7 @@ seed_need_and_conversation() {
   local title="$2"
   psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 -v need="$need" -v title="$title" -v req="$REQ" -v profile="$PROFILE" <<'SQL'
 begin;
-select set_config('uskoci.need_lifecycle','PUBLISH',true);
+select set_config('uskoci.need_lifecycle','PUBLISH',true) as lifecycle \gset
 insert into public.needs(
   id,requester_account_id,requester_profile_id,status,title,description,category,
   approximate_city,approximate_area,schedule_kind,required_slots,mode,requester_price_rsd,
@@ -53,9 +53,9 @@ insert into public.needs(
   array['prenošenje'],array[]::text[],array[]::text[],array[]::text[],0,false,'REMOTE',1,
   statement_timestamp(),statement_timestamp()+interval '2 days'
 );
-select set_config('uskoci.need_lifecycle','',true);
+select set_config('uskoci.need_lifecycle','',true) as lifecycle \gset
 set local role authenticated;
-select set_config('request.jwt.claim.sub',:'req',true);
+select set_config('request.jwt.claim.sub',:'req',true) as jwt_sub \gset
 select (public.rpc_ai_open_need_edit_conversation_v2(:'need'::uuid)->>'conversationId')::uuid;
 commit;
 SQL
