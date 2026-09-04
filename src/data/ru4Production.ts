@@ -52,6 +52,17 @@ function podrucje(area: string | null | undefined, city: string | null | undefin
 }
 
 export const ru4Production = {
+  async remainingSearchState(needId: string): Promise<{ closed: boolean; closedAt: string | null }> {
+    const { data, error } = await supabase
+      .from('needs')
+      .select('remaining_search_closed_at')
+      .eq('id', needId)
+      .maybeSingle();
+    if (error) throw new Error(error.message || 'REMAINING_SEARCH_STATE_READ_FAILED');
+    const closedAt = typeof data?.remaining_search_closed_at === 'string' ? data.remaining_search_closed_at : null;
+    return { closed: !!closedAt, closedAt };
+  },
+
   async closeRemainingSearch(
     needId: string,
     expectedRevision: number,
