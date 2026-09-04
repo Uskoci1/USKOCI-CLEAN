@@ -1,3 +1,25 @@
+<!-- RU4_OWNER_LOCK_20260904 -->
+## LATEST OWNER PRODUCT LOCK — RU-4 V1 ZADATAK EDIT
+
+This block supersedes older RU-4/COV-028 interpretations wherever they allowed parent-Zadatak content editing after the first Dogovor.
+
+Canonical owner-lock document:
+
+`docs/implementation/ru4/RU4_OWNER_LOCK_V1.md`
+
+Current V1 rule:
+
+- Zadatak may be edited only while no Dogovor has ever been formed from it.
+- Before first Dogovor, a confirmed content/terms edit creates a new revision; every existing unselected Prijava becomes `STALE_REVIEW_REQUIRED`, disappears from the current selectable candidate set, and returns only after that worker explicitly accepts the changed Zadatak revision or submits a revised Prijava.
+- Old Prijave are preserved as history; they are not silently deleted or silently reconfirmed.
+- Once the first Dogovor is formed, ordinary `Izmeni Zadatak` is locked for V1 permanently for that Zadatak, including after later cancellation/replacement.
+- Partial coverage stays on the same locked terms, e.g. `Dogovoreno 2/3 · traži se još 1`.
+- `Ne traži više nikoga` is a lifecycle/coverage close action, not a rewrite of historical Zadatak terms.
+- Materially different remaining work becomes a new Zadatak; changes affecting already-selected participants go through the governed Dogovor-change path.
+- Existing `proof/ru4-material-revision-20260904` work is proof history only until reconciled to this new lock; do not promote its older post-Dogovor edit semantics.
+
+Exact next cursor: rebuild/reconcile RU-4 proof to this owner lock, preserving useful pre-Dogovor revision + stale/reconfirm mechanics and removing post-Dogovor parent-edit behavior.
+
 <!-- RU3_B07_LIVE_CHECKPOINT_20260904 -->
 ## LATEST PHYSICAL CHECKPOINT — RU-3/B07 LIVE
 
