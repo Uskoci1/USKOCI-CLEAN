@@ -3,6 +3,11 @@ from pathlib import Path
 path = Path('supabase/proofs/ru3_b07_canonical_publish_runtime_proof.sql')
 text = path.read_text(encoding='utf-8')
 
+patched_marker = '$success_private_postconditions$'
+if patched_marker in text:
+    print('PASS patch_ru3_b07_proof_runtime already_patched')
+    raise SystemExit(0)
+
 old_first = """  if (select status from public.needs where id=v_need) <> 'PUBLISHED'\n     or (select count(*) from private.dispatch_schedule where need_id=v_need) <> 1\n     or (select count(*) from private.need_publish_commands where need_id=v_need) <> 1 then\n    raise exception 'RU3_B07_PROOF: publish did not create exact state/schedule/receipt';\n  end if;\n"""
 new_first = """  if (select status from public.needs where id=v_need) <> 'PUBLISHED' then\n    raise exception 'RU3_B07_PROOF: authenticated caller did not observe PUBLISHED Need';\n  end if;\n"""
 
