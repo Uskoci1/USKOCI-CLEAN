@@ -149,12 +149,14 @@ begin
 end
 $direct_edit$;
 
--- Owner PUBLISHED -> DRAFT: exact +1 revision, stale unselected response, no dispatch.
+-- Owner PUBLISHED -> DRAFT: exact +1 revision and stale unselected response.
+-- Private dispatch/audit assertions run after RESET ROLE so the proof itself does
+-- not weaken the intended private-schema boundary.
 do $published$
 declare
   nid uuid:=current_setting('uskoci.ru4_need_a')::uuid;
   rid uuid:=current_setting('uskoci.ru4_response_a')::uuid;
-  r jsonb; r2 jsonb; s text; rev integer; cnt integer;
+  r jsonb; r2 jsonb; s text; rev integer;
 begin
   r := public.rpc_revise_need_to_draft(nid,1,'ru4-published-key','owner edits task');
   if r->>'status' <> 'DRAFT' or (r->>'revision')::integer <> 2
@@ -165,10 +167,6 @@ begin
   if s<>'DRAFT' or rev<>2 then raise exception 'RU4_PROOF_PUBLISHED_NOT_DRAFT_REV2'; end if;
   select status into s from public.marketplace_responses where id=rid;
   if s<>'STALE_REVIEW_REQUIRED' then raise exception 'RU4_PROOF_OPEN_RESPONSE_NOT_STALE_REVIEW'; end if;
-  select count(*) into cnt from private.dispatch_schedule where need_id=nid;
-  if cnt<>0 then raise exception 'RU4_PROOF_DISPATCH_NOT_STOPPED'; end if;
-  select count(*) into cnt from private.need_revision_events where need_id=nid and from_revision=1 and to_revision=2;
-  if cnt<>1 then raise exception 'RU4_PROOF_REVISION_EVENT_MISSING'; end if;
 
   r2 := public.rpc_revise_need_to_draft(nid,1,'ru4-published-key','owner edits task');
   if not coalesce((r2->>'idempotentReplay')::boolean,false)
@@ -212,8 +210,6 @@ begin
   if cnt<>1 then raise exception 'RU4_PROOF_AGREEMENT_MUTATED'; end if;
   select content_hash into h from public.agreement_versions where agreement_id=aid and version=1;
   if h<>repeat('d',64) then raise exception 'RU4_PROOF_AGREEMENT_VERSION_MUTATED'; end if;
-  select count(*) into cnt from private.dispatch_schedule where need_id=nid;
-  if cnt<>0 then raise exception 'RU4_PROOF_PARTIAL_DISPATCH_NOT_STOPPED'; end if;
 end
 $partial$;
 
@@ -230,6 +226,40 @@ $draft_edit$;
 
 reset role;
 
+-- Internal invariants are checked only after leaving the authenticated role.
+-- This proves the server did the private work without granting the client access.
+do $internal$
+declare
+  need_a uuid:=current_setting('uskoci.ru4_need_a')::uuid;
+  need_b uuid:=current_setting('uskoci.ru4_need_b')::uuid;
+  requester uuid:=current_setting('uskoci.ru4_requester')::uuid;
+  cnt integer;
+begin
+  select count(*) into cnt from private.dispatch_schedule where need_id in (need_a,need_b);
+  if cnt<>0 then raise exception 'RU4_PROOF_DISPATCH_NOT_STOPPED'; end if;
+
+  select count(*) into cnt
+    from private.need_revision_events
+   where need_id in (need_a,need_b)
+     and from_revision=1 and to_revision=2;
+  if cnt<>2 then raise exception 'RU4_PROOF_REVISION_EVENTS_MISSING' using detail=cnt::text; end if;
+
+  select count(*) into cnt
+    from private.need_revision_commands
+   where requester_account_id=requester
+     and client_request_id in ('ru4-published-key','ru4-partial-key');
+  if cnt<>2 then raise exception 'RU4_PROOF_COMMAND_LEDGER_MISSING' using detail=cnt::text; end if;
+
+  select count(*) into cnt
+    from private.marketplace_audit_log
+   where actor_user_id=requester
+     and event_type='NEED_REVISE_TO_DRAFT'
+     and entity_type='NEED'
+     and entity_id in (need_a,need_b);
+  if cnt<>2 then raise exception 'RU4_PROOF_PRIVATE_AUDIT_MISSING' using detail=cnt::text; end if;
+end
+$internal$;
+
 -- Structural authority checks outside authenticated role.
 do $authority$
 begin
@@ -239,7 +269,8 @@ begin
     raise exception 'RU4_PROOF_RPC_GRANTS_WRONG';
   end if;
   if has_table_privilege('authenticated','private.need_revision_events','SELECT')
-     or has_table_privilege('authenticated','private.need_revision_commands','SELECT') then
+     or has_table_privilege('authenticated','private.need_revision_commands','SELECT')
+     or has_table_privilege('authenticated','private.dispatch_schedule','SELECT') then
     raise exception 'RU4_PROOF_PRIVATE_TABLE_EXPOSURE';
   end if;
 end
