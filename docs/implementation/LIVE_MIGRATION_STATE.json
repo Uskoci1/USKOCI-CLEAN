@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-04T18:00:00Z",
+  "updated_at": "2026-09-04T18:26:45Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,13 +9,13 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "7d2ad4ad774eab29acafc0deac623744a691628d",
+    "canonical_base_observed_before_docs_reconciliation": "d2c077d90c6410dc0737916df13b257389c6cb3b",
     "note": "Resolve current Git HEAD physically before every write; this field is the observed pre-reconciliation base, not a self-updating HEAD."
   },
-  "live_migration_count": 62,
+  "live_migration_count": 63,
   "live_head": {
-    "version": "20260904102429",
-    "name": "clean_ru3_need_publication_decision"
+    "version": "20260904182402",
+    "name": "clean_ru3_canonical_publish"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
@@ -89,7 +89,7 @@
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_62",
+    "state": "NORMALIZED_TO_LIVE_63",
     "pending_forward_migrations": 0,
     "ru2_live_version_aliases": [
       {
@@ -121,6 +121,13 @@
       "recorded_statement_md5": "693e3c31a5647b8a63932f3b1ab13eb0",
       "recorded_statement_utf8_bytes": 19746,
       "source_raw_md5": "3974c57c159f3c7c9262db4b296729c3"
+    },
+    "ru3_b07_live_alias": {
+      "live_version": "20260904182402",
+      "source_version": "20260904111500",
+      "source_file": "20260904111500_clean_ru3_canonical_publish.sql",
+      "exact_byte_identity": false,
+      "source_raw_md5": "17468983d28cddfe4948c3866a96e813"
     }
   },
   "d0140_minimum_owner_policy": {
@@ -131,12 +138,18 @@
     "machine_readable_commit": "a92b0b50040ada72dd3b6503a81a420d2aead8f8",
     "public_inventory_type": "REQUESTED_ZADATAK_ONLY",
     "service_offer_listing_supported": false,
-    "publishable_outcomes": ["ALLOW"],
-    "non_publishable_outcomes": ["CLARIFY", "REVIEW", "BLOCK"],
+    "publishable_outcomes": [
+      "ALLOW"
+    ],
+    "non_publishable_outcomes": [
+      "CLARIFY",
+      "REVIEW",
+      "BLOCK"
+    ],
     "broader_46_rule_candidate_authority": "RESEARCH_PROOF_ONLY_NOT_PRODUCTION_AUTHORITY"
   },
   "ru3": {
-    "status": "OPEN_B05_B06_LIVE_B07_PROOF_ONLY",
+    "status": "OPEN_B05_B06_B07_LIVE_POLICY_DEFERRED",
     "full_ru3_closed": false,
     "b05": {
       "status": "LIVE_STRUCTURAL_PROVEN",
@@ -178,22 +191,33 @@
       }
     },
     "b07": {
-      "status": "PROOF_ONLY_CONCURRENCY_PENDING",
-      "branch": "proof/ru3-b07-canonical-publish-20260904",
-      "proof_head": "33d688eb41d081ae1e9491001e16fda1974b5bf4",
-      "candidate_file": "supabase/staging/ru3/20260904111500_clean_ru3_canonical_publish.sql",
-      "runtime_proof_run": 33870266770,
-      "persistence_proof_run": 33870598378,
-      "canonical": false,
-      "live_applied": false,
-      "remaining_proof": [
-        "same-key/same-payload true concurrent replay",
-        "same-key/different-payload true concurrent rejection",
-        "different-key/same-Zadatak no duplicate publish/dispatch"
-      ]
+      "status": "LIVE_STRUCTURAL_PROVEN",
+      "canonical_source_head": "d2c077d90c6410dc0737916df13b257389c6cb3b",
+      "source_version": "20260904111500",
+      "source_file": "supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql",
+      "source_raw_md5": "17468983d28cddfe4948c3866a96e813",
+      "live_version": "20260904182402",
+      "proof_branch": "proof/ru3-b07-canonical-publish-20260904",
+      "proof_head": "7351198577685641ab9a7c08cb753a1094c41ea1",
+      "true_concurrency_proof_run": 33903129202,
+      "promotion_integrity_run": 33905242409,
+      "canonical_integrity_run": 33905436213,
+      "live_applied": true,
+      "publish_command_rows": 0,
+      "policy_bundle_rows": 0,
+      "policy_rule_rows": 0,
+      "publication_decision_rows": 0,
+      "allow_enabled": false,
+      "production_publish": "FAIL_CLOSED",
+      "business_rows_preserved": {
+        "ai_structured_facts": 82,
+        "ai_conversations": 15,
+        "needs": 6,
+        "app_profiles": 6
+      }
     },
-    "activation_blocker": "No reviewed/current/applicable production Serbia policy bundle is activated; production ALLOW remains disabled.",
+    "activation_blocker": "No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish": "FAIL_CLOSED"
   },
-  "next_allowed_action": "Fresh physical preflight; finish B07 true concurrency/idempotency proof on proof/ru3-b07-canonical-publish-20260904; if fully green promote intended B07 artifacts only and rebaseline; keep production D-0140 activation fail-closed; then continue RU-4 material revision/re-admission."
+  "next_allowed_action": "Fresh physical preflight from live 63 / 20260904182402 clean_ru3_canonical_publish; begin RU-4 Material Revision / Re-admission on an isolated branch; keep production D-0140 policy activation fail-closed/deferred."
 }

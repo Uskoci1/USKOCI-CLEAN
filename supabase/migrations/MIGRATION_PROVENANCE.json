@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-04T10:29:18Z",
+  "generated_at_utc": "2026-09-04T18:26:45Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "4d735390e32c530a323b24dad95ddaa0422bd493",
+  "repository_base_head": "d2c077d90c6410dc0737916df13b257389c6cb3b",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 62,
+    "migration_count": 63,
     "last": {
-      "name": "clean_ru3_need_publication_decision",
-      "version": "20260904102429"
+      "name": "clean_ru3_canonical_publish",
+      "version": "20260904182402"
     },
     "entries": [
       {
@@ -294,26 +294,18 @@
         "exact_byte_mirror": false,
         "live_recorded_statement_md5": "693e3c31a5647b8a63932f3b1ab13eb0",
         "recorded_statement_utf8_bytes": 19746
+      },
+      {
+        "name": "clean_ru3_canonical_publish",
+        "version": "20260904182402",
+        "file": "20260904111500_clean_ru3_canonical_publish.sql",
+        "source_version": "20260904111500",
+        "exact_byte_mirror": false,
+        "canonical_raw_md5": "17468983d28cddfe4948c3866a96e813"
       }
     ]
   },
-  "pending_forward_migrations": [
-    {
-      "version": "20260904111500",
-      "name": "clean_ru3_canonical_publish",
-      "file": "20260904111500_clean_ru3_canonical_publish.sql",
-      "classification": "PENDING_FORWARD_MIGRATION",
-      "raw_md5": "17468983d28cddfe4948c3866a96e813",
-      "live_applied": false,
-      "predecessor_live_migration_count": 62,
-      "predecessor_live_head": "20260904102429",
-      "unit": "RU-3/B07",
-      "proof_branch": "proof/ru3-b07-canonical-publish-20260904",
-      "proof_head": "7351198577685641ab9a7c08cb753a1094c41ea1",
-      "proof_run": 33903129202,
-      "contract": "Fail-closed canonical DRAFT->PUBLISHED transaction requiring exact latest ALLOW decision, exact current reviewed active policy bundle/fingerprint/rule provenance, semantic idempotency, owner authorization and atomic dispatch schedule. Seeds no policy content and creates no ALLOW decision."
-    }
-  ],
+  "pending_forward_migrations": [],
   "reconstructions": [
     {
       "version": "20260830191500",
@@ -485,6 +477,18 @@
       "recorded_statement_utf8_bytes": 8506,
       "disposable_runtime_proof": "PASS: GitHub Actions run 33854188735 proved fail-closed bundle readiness, unreviewed/incomplete denial, jurisdiction isolation, one-active constraint, legacy publish closure and zero residue.",
       "live_structural_proof": "PASS: live 61/20260904090147; policy tables exist with RLS; zero bundle/rule rows; anon/authenticated/service_role direct table access denied; private helper EXECUTE denied; legacy publish remains fail-closed; business rows preserved 82 facts/15 conversations/6 Needs/6 profiles."
+    },
+    {
+      "version": "20260904182402",
+      "source_version": "20260904111500",
+      "name": "clean_ru3_canonical_publish",
+      "file": "20260904111500_clean_ru3_canonical_publish.sql",
+      "classification": "FORWARD_REPAIR",
+      "raw_md5": "17468983d28cddfe4948c3866a96e813",
+      "exact_byte_mirror": false,
+      "disposable_runtime_proof": "PASS: GitHub Actions run 33903129202 proved authenticated fail-closed publish behavior, semantic idempotency, true concurrency and no duplicate publish/dispatch on a disposable stack.",
+      "promotion_integrity_proof": "PASS: PR integrity run 33905242409; canonical push integrity run 33905436213.",
+      "live_structural_proof": "PASS: live 63 migration state; private.need_publish_commands exists with forced RLS and zero rows; authenticated canonical publish execute only; anon/service_role denied; legacy publish remains closed; B06 ALLOW writer remains disabled; zero policy bundles/rules/decisions; business counts preserved 6 Needs / 6 app_profiles / 15 AI conversations / 82 AI facts."
     }
   ],
   "live_source_reconciliations": [
