@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Proof-branch helper only; removed after the migration bytes are patched.
 p = Path('supabase/migrations/20260904061000_clean_ru3_fail_closed_admission_infrastructure.sql')
 s = p.read_text(encoding='utf-8')
 
