@@ -1,13 +1,13 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-03T23:20:00+02:00",
+  "updated_at": "2026-09-04T05:51:50Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
-  "live_migration_count": 58,
+  "live_migration_count": 60,
   "live_head": {
-    "version": "20260903184545",
-    "name": "clean_ru1_worker_readiness"
+    "version": "20260903222333",
+    "name": "clean_ru2_ai_fact_transition_guard"
   },
   "ru0": {
     "status": "CLOSED",
@@ -23,59 +23,81 @@
     "disposable_runtime_proof_run": 33790306570
   },
   "ru2": {
-    "status": "LIVE_PENDING",
-    "proof_head": "d7eb80b3403e5549a78cec18b1c8c87f42d9cf99",
-    "combined_disposable_proof": {
-      "github_actions_run": 33806989549,
-      "result": "PASS",
-      "predecessor": "58/20260903184545",
-      "core_disposable_state": "59/20260903190000",
-      "guard_disposable_state": "60/20260903190100",
-      "owner_attacker_service": "PASS",
-      "typed_correction": "PASS",
-      "human_review_draft": "PASS",
-      "idempotency": "PASS",
-      "legacy_v2_coexistence": "PASS",
-      "public_private_geography": "PASS",
-      "repeated_v2_supersession": "PASS",
-      "zero_residue": "PASS",
-      "rn_typescript": "PASS",
-      "jest": "40/40 PASS",
-      "deno_edge": "PASS",
-      "r02_r07_draft_only": "PASS"
-    },
-    "pending_source_migrations": [
+    "status": "CLOSED",
+    "canonical_source_head": "47ce475030cc1ab5908f014d6d7398a0e2cb7754",
+    "source_migrations": [
       {
         "version": "20260903190000",
         "name": "clean_ru2_need_v2_draft",
         "file": "supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql",
-        "raw_md5": "f95fadda53d8d803faac4498d860c31b",
-        "live_applied": false
+        "raw_md5": "f95fadda53d8d803faac4498d860c31b"
       },
       {
         "version": "20260903190100",
         "name": "clean_ru2_ai_fact_transition_guard",
         "file": "supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql",
-        "raw_md5": "95145c601b6366f1a98e8566b3307515",
-        "live_applied": false
+        "raw_md5": "95145c601b6366f1a98e8566b3307515"
+      }
+    ],
+    "live_apply": [
+      {
+        "version": "20260903222139",
+        "name": "clean_ru2_need_v2_draft",
+        "source_version": "20260903190000",
+        "recorded_statement_utf8_bytes": 47143,
+        "recorded_statement_md5": "f95fadda53d8d803faac4498d860c31b",
+        "exact_byte_identity_with_source": true
+      },
+      {
+        "version": "20260903222333",
+        "name": "clean_ru2_ai_fact_transition_guard",
+        "source_version": "20260903190100",
+        "recorded_statement_utf8_bytes": 9438,
+        "recorded_statement_md5": "95145c601b6366f1a98e8566b3307515",
+        "exact_byte_identity_with_source": true
       }
     ],
     "edge": {
-      "source_target": "v5 dual-mode LEGACY_TEXT_V1 + NEED_FACT_V2",
-      "source_proof_run": 33806867873,
-      "live_before_apply": "v4",
-      "deployed": false
+      "slug": "uskoci-ai-interview",
+      "version": 5,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca"
     },
-    "rn": {
-      "r02": "src/app/(app)/nova.tsx",
-      "r07": "src/app/(app)/pregled-nacrta.tsx",
-      "contract": "AI conversation -> Human Review -> canonical DRAFT only; no direct publish"
-    }
+    "proof": {
+      "combined_disposable_run": 33806989549,
+      "promotion_integrity_run": 33811732899,
+      "canonical_integrity_run": 33812075892,
+      "result": "PASS",
+      "zero_residue": "PASS",
+      "live_structural": "PASS"
+    },
+    "business_rows_preserved": {
+      "ai_structured_facts": 82,
+      "ai_conversations": 15,
+      "needs": 6,
+      "app_profiles": 6
+    },
+    "publish_admission": "FAIL_CLOSED_FOR_NEXT_UNIT"
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "LIVE_58_WITH_2_PENDING_RU2_FORWARD_MIGRATIONS",
-    "pending_forward_migrations": 2
+    "state": "NORMALIZED_TO_LIVE_60",
+    "pending_forward_migrations": 0,
+    "ru2_live_version_aliases": [
+      {
+        "live_version": "20260903222139",
+        "source_version": "20260903190000",
+        "source_file": "20260903190000_clean_ru2_need_v2_draft.sql",
+        "exact_byte_identity": true
+      },
+      {
+        "live_version": "20260903222333",
+        "source_version": "20260903190100",
+        "source_file": "20260903190100_clean_ru2_ai_fact_transition_guard.sql",
+        "exact_byte_identity": true
+      }
+    ]
   },
-  "next_allowed_action": "Run promotion integrity on the exact RU-2 staging head. If green, promote source to clean-alpha-backend, then fresh read-only GitHub/Supabase preflight. Live writes remain forbidden unless production is still exactly 58/20260903184545 and Edge is still v4."
+  "next_allowed_action": "Fresh read-only GitHub/Supabase preflight against live 60/20260903222333 and Edge v5; then read governing master and begin the next dependency-ordered unit. Do not redo RU-0/RU-1/RU-2."
 }
