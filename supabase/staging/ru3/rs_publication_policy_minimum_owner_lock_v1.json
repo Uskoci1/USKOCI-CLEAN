@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "USKOCI_PUBLICATION_POLICY_MINIMUM_OWNER_LOCK_V1",
+  "policyId": "USKOCI_PUBLICATION_MINIMUM",
+  "jurisdiction": "RS",
+  "status": "OWNER_LOCKED_MINIMUM_NOT_PRODUCTION_ACTIVATED",
+  "publishableOutcomes": ["ALLOW"],
+  "nonPublishableOutcomes": ["CLARIFY", "REVIEW", "BLOCK"],
+  "rules": [
+    {"id":"RS-MIN-001","domain":"TASK_BOUNDARY","match":"clear_concrete_requested_task_no_basic_prohibited_or_unresolved_high_risk_signal","outcome":"ALLOW","authority":"OWNER_PLATFORM_POLICY","reasonCode":"VALID_REQUESTED_TASK"},
+    {"id":"RS-MIN-002","domain":"SERVICE_OFFER","match":"self_advertised_service_offer_not_requested_task","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"SERVICE_OFFER_LISTING_NOT_SUPPORTED"},
+    {"id":"RS-MIN-003","domain":"CLASSIFIED","match":"sale_rental_or_classified_listing","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"CLASSIFIED_NOT_SUPPORTED"},
+    {"id":"RS-MIN-004","domain":"PROMOTION","match":"spam_promotion_referral_affiliate_or_unrelated_advertising","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"PROMOTION_NOT_SUPPORTED"},
+    {"id":"RS-MIN-005","domain":"PUBLIC_LANGUAGE","match":"profanity_or_vulgarity_without_targeted_abuse","outcome":"CLARIFY","authority":"OWNER_PLATFORM_POLICY","reasonCode":"PUBLIC_TEXT_CLEANUP_REQUIRED"},
+    {"id":"RS-MIN-006","domain":"HARASSMENT_HATE","match":"targeted_insult_harassment_humiliation_hateful_or_discriminatory_abuse","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"HARASSMENT_OR_HATEFUL_ABUSE"},
+    {"id":"RS-MIN-007","domain":"VIOLENCE","match":"threat_intimidation_violence_or_harm_objective","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"THREAT_OR_VIOLENCE"},
+    {"id":"RS-MIN-008","domain":"ILLEGAL_CIRCUMVENTION","match":"theft_fraud_forgery_deceptive_impersonation_tax_evasion_or_explicit_law_bypass","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"ILLEGAL_OR_EVASIVE_OBJECTIVE"},
+    {"id":"RS-MIN-009","domain":"PRIVACY_ABUSE","match":"stalking_surveillance_abuse_doxxing_or_private_data_targeting","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"STALKING_OR_DOXXING"},
+    {"id":"RS-MIN-010","domain":"SEXUAL_EXPLOITATION","match":"sexual_exploitation_trafficking_paid_sexual_service_or_minor_sexual_content","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"SEXUAL_OR_EXPLOITATIVE_CONTENT"},
+    {"id":"RS-MIN-011","domain":"DRUGS_WEAPONS_PYRO","match":"illegal_drugs_controlled_substance_bypass_weapons_harmful_procurement_or_pyrotechnics","outcome":"BLOCK","authority":"OWNER_PLATFORM_POLICY","reasonCode":"PROHIBITED_DANGEROUS_GOODS_OR_OBJECTIVE"},
+    {"id":"RS-MIN-012","domain":"PUBLIC_PRIVACY","match":"public_phone_email_exact_home_address_qr_identity_document_or_private_data","outcome":"CLARIFY","authority":"OWNER_PLATFORM_POLICY","reasonCode":"PUBLIC_PRIVATE_DATA"},
+    {"id":"RS-MIN-013","domain":"COMPLETENESS","match":"task_objective_or_material_fact_unclear","outcome":"CLARIFY","authority":"OWNER_PLATFORM_POLICY","reasonCode":"MATERIAL_FACT_MISSING"},
+    {"id":"RS-MIN-014","domain":"DEFERRED_REGULATED","match":"clearly_high_risk_or_regulated_category_without_reviewed_specific_rule","outcome":"REVIEW","authority":"D0140_DEFERRED_POLICY_GATE","reasonCode":"REVIEWED_RULE_REQUIRED"},
+    {"id":"RS-MIN-015","domain":"META_URGENT","match":"urgent_flag_true","outcome":"NO_OVERRIDE","authority":"OWNER_PLATFORM_POLICY","reasonCode":"URGENT_NEVER_BYPASSES_POLICY"},
+    {"id":"RS-MIN-016","domain":"META_FAIL_CLOSED","match":"policy_or_evaluator_missing_stale_conflicting_or_not_applicable","outcome":"REVIEW","authority":"D0140_SYSTEM_RULE","reasonCode":"POLICY_CHECK_UNAVAILABLE"}
+  ],
+  "precedence": [
+    "specific BLOCK beats ALLOW",
+    "specific REVIEW beats ordinary ALLOW",
+    "CLARIFY must be resolved before ALLOW",
+    "urgent never overrides policy",
+    "missing stale conflicting or unsupported policy fails closed"
+  ]
+}
