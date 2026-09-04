@@ -8,20 +8,18 @@ NEED_A="00000000-0000-4000-8000-00000000a411"
 NEED_B="00000000-0000-4000-8000-00000000a412"
 NEED_C="00000000-0000-4000-8000-00000000a413"
 
-PROFILE="$(psql "$DB_URL" -Atv ON_ERROR_STOP=1 <<SQL
+psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 <<SQL
 insert into auth.users(id,aud,role,email,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
 values ('$REQ','authenticated','authenticated','ru4-concurrency@proof.invalid','{"provider":"email","providers":["email"]}'::jsonb,jsonb_build_object('full_name','RU4 Concurrency Requester','city','Novi Sad'),statement_timestamp(),statement_timestamp())
 on conflict (id) do nothing;
-select id from public.app_profiles where account_id='$REQ' and kind='REQUESTER' limit 1;
 SQL
-)"
-
+PROFILE="$(psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 -c "select id from public.app_profiles where account_id='$REQ' and kind='REQUESTER' limit 1;")"
 test -n "$PROFILE"
 
 seed_need() {
   local need="$1"
   local title="$2"
-  psql "$DB_URL" -v ON_ERROR_STOP=1 <<SQL >/dev/null
+  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 <<SQL
 select set_config('uskoci.need_lifecycle','PUBLISH',false);
 insert into public.needs(
   id,requester_account_id,requester_profile_id,status,title,description,category,
@@ -44,7 +42,7 @@ call_edit() {
   local errfile="$5"
   local material
   material="{\"title\":\"$title\",\"description\":\"Changed concurrency terms\",\"category\":\"proof\",\"requiredSlots\":2,\"mode\":\"MY_PRICE\",\"requesterPriceRsd\":5500,\"requiredSkills\":[\"proof\"],\"requiredTools\":[],\"requiredVehicles\":[],\"requiredLicenses\":[],\"minimumExperienceYears\":0,\"verifiedIdentityRequired\":false,\"scheduleKind\":\"FLEXIBLE\",\"startsAt\":null,\"endsAt\":null,\"executionLocationMode\":\"REMOTE\",\"approximateLat\":null,\"approximateLng\":null,\"approximateCity\":\"Novi Sad\",\"approximateArea\":\"Centar\",\"publicPhotoPaths\":[],\"privateLocation\":null}"
-  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -v actor="$REQ" -v need="$need" -v reqkey="$key" -v material="$material" >"$outfile" 2>"$errfile" <<'SQL'
+  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -v actor="$REQ" -v need="$need" -v reqkey="$key" -v material="$material" >"$outfile" 2>"$errfile" <<'SQL'
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', :'actor', true);
@@ -66,7 +64,7 @@ if ! { { [ "$r1" -eq 0 ] && [ "$r2" -ne 0 ]; } || { [ "$r2" -eq 0 ] && [ "$r1" -
   cat /tmp/ru4-a1.err /tmp/ru4-a2.err >&2 || true
   exit 1
 fi
-psql "$DB_URL" -Atv ON_ERROR_STOP=1 <<SQL | grep -Fx '2/1/1'
+psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 <<SQL | grep -Fx '2/1/1'
 select revision::text || '/' ||
        (select count(*) from private.need_revision_events where need_id='$NEED_A')::text || '/' ||
        (select count(*) from private.need_edit_commands where result->>'needId'='$NEED_A')::text
@@ -88,7 +86,7 @@ if [ "$r1" -ne 0 ] || [ "$r2" -ne 0 ]; then
 fi
 grep -q '"revision": 2' /tmp/ru4-b1.out
 grep -q '"revision": 2' /tmp/ru4-b2.out
-psql "$DB_URL" -Atv ON_ERROR_STOP=1 <<SQL | grep -Fx '2/1/1'
+psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 <<SQL | grep -Fx '2/1/1'
 select revision::text || '/' ||
        (select count(*) from private.need_revision_events where need_id='$NEED_B')::text || '/' ||
        (select count(*) from private.need_edit_commands where result->>'needId'='$NEED_B')::text
@@ -109,7 +107,7 @@ if ! { { [ "$r1" -eq 0 ] && [ "$r2" -ne 0 ]; } || { [ "$r2" -eq 0 ] && [ "$r1" -
   exit 1
 fi
 cat /tmp/ru4-c1.err /tmp/ru4-c2.err | grep -q 'IDEMPOTENCY_KEY_REUSED'
-psql "$DB_URL" -Atv ON_ERROR_STOP=1 <<SQL | grep -Fx '2/1/1'
+psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 <<SQL | grep -Fx '2/1/1'
 select revision::text || '/' ||
        (select count(*) from private.need_revision_events where need_id='$NEED_C')::text || '/' ||
        (select count(*) from private.need_edit_commands where result->>'needId'='$NEED_C')::text
