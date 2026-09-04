@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Insert authoritative base-concurrency cleanup and remove patcher
+      - name: Insert base concurrency cleanup and remove patcher
         shell: bash
         run: |
           set -euo pipefail
@@ -21,64 +21,35 @@ jobs:
           from pathlib import Path
           p = Path('.github/workflows/ru4-clean-promotion-proof.yml')
           s = p.read_text()
-          anchor = """      - name: Prove base RU-4 true concurrency
-        shell: bash
-        run: bash supabase/proofs/ru4_owner_edit_lock_concurrency.sh
-
-"""
-          cleanup = """      - name: Clean base concurrency fixtures and prove zero residue
-        shell: bash
-        run: |
-          set -euo pipefail
-          psql \"$DB_URL\" -X -q -v ON_ERROR_STOP=1 <<'SQL'
-          begin;
-          delete from private.need_edit_commands
-           where requester_account_id='00000000-0000-4000-8000-00000000a401';
-          delete from private.need_revision_events
-           where created_by_account_id='00000000-0000-4000-8000-00000000a401';
-          delete from private.dispatch_schedule
-           where need_id in (
-             '00000000-0000-4000-8000-00000000a411',
-             '00000000-0000-4000-8000-00000000a412',
-             '00000000-0000-4000-8000-00000000a413'
-           );
-          delete from public.need_sensitive
-           where need_id in (
-             '00000000-0000-4000-8000-00000000a411',
-             '00000000-0000-4000-8000-00000000a412',
-             '00000000-0000-4000-8000-00000000a413'
-           );
-          delete from public.need_requirement_details
-           where need_id in (
-             '00000000-0000-4000-8000-00000000a411',
-             '00000000-0000-4000-8000-00000000a412',
-             '00000000-0000-4000-8000-00000000a413'
-           );
-          delete from public.need_geography
-           where need_id in (
-             '00000000-0000-4000-8000-00000000a411',
-             '00000000-0000-4000-8000-00000000a412',
-             '00000000-0000-4000-8000-00000000a413'
-           );
-          delete from public.needs
-           where id in (
-             '00000000-0000-4000-8000-00000000a411',
-             '00000000-0000-4000-8000-00000000a412',
-             '00000000-0000-4000-8000-00000000a413'
-           );
-          delete from public.app_profiles
-           where account_id='00000000-0000-4000-8000-00000000a401';
-          delete from auth.users
-           where id='00000000-0000-4000-8000-00000000a401';
-          commit;
-          SQL
-          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from private.need_edit_commands where requester_account_id='00000000-0000-4000-8000-00000000a401';\")\" = 0
-          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from private.need_revision_events where created_by_account_id='00000000-0000-4000-8000-00000000a401';\")\" = 0
-          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from public.needs where id in ('00000000-0000-4000-8000-00000000a411','00000000-0000-4000-8000-00000000a412','00000000-0000-4000-8000-00000000a413');\")\" = 0
-          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from auth.users where id='00000000-0000-4000-8000-00000000a401';\")\" = 0
-          echo 'PASS RU4_BASE_CONCURRENCY_ZERO_RESIDUE'
-
-"""
+          anchor = (
+              "      - name: Prove base RU-4 true concurrency\n"
+              "        shell: bash\n"
+              "        run: bash supabase/proofs/ru4_owner_edit_lock_concurrency.sh\n\n"
+          )
+          cleanup = (
+              "      - name: Clean base concurrency fixtures and prove zero residue\n"
+              "        shell: bash\n"
+              "        run: |\n"
+              "          set -euo pipefail\n"
+              "          psql \"$DB_URL\" -X -q -v ON_ERROR_STOP=1 <<'SQL'\n"
+              "          begin;\n"
+              "          delete from private.need_edit_commands where requester_account_id='00000000-0000-4000-8000-00000000a401';\n"
+              "          delete from private.need_revision_events where created_by_account_id='00000000-0000-4000-8000-00000000a401';\n"
+              "          delete from private.dispatch_schedule where need_id in ('00000000-0000-4000-8000-00000000a411','00000000-0000-4000-8000-00000000a412','00000000-0000-4000-8000-00000000a413');\n"
+              "          delete from public.need_sensitive where need_id in ('00000000-0000-4000-8000-00000000a411','00000000-0000-4000-8000-00000000a412','00000000-0000-4000-8000-00000000a413');\n"
+              "          delete from public.need_requirement_details where need_id in ('00000000-0000-4000-8000-00000000a411','00000000-0000-4000-8000-00000000a412','00000000-0000-4000-8000-00000000a413');\n"
+              "          delete from public.need_geography where need_id in ('00000000-0000-4000-8000-00000000a411','00000000-0000-4000-8000-00000000a412','00000000-0000-4000-8000-00000000a413');\n"
+              "          delete from public.needs where id in ('00000000-0000-4000-8000-00000000a411','00000000-0000-4000-8000-00000000a412','00000000-0000-4000-8000-00000000a413');\n"
+              "          delete from public.app_profiles where account_id='00000000-0000-4000-8000-00000000a401';\n"
+              "          delete from auth.users where id='00000000-0000-4000-8000-00000000a401';\n"
+              "          commit;\n"
+              "          SQL\n"
+              "          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from private.need_edit_commands where requester_account_id='00000000-0000-4000-8000-00000000a401';\")\" = 0\n"
+              "          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from private.need_revision_events where created_by_account_id='00000000-0000-4000-8000-00000000a401';\")\" = 0\n"
+              "          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from public.needs where id in ('00000000-0000-4000-8000-00000000a411','00000000-0000-4000-8000-00000000a412','00000000-0000-4000-8000-00000000a413');\")\" = 0\n"
+              "          test \"$(psql \"$DB_URL\" -Atc \"select count(*) from auth.users where id='00000000-0000-4000-8000-00000000a401';\")\" = 0\n"
+              "          echo 'PASS RU4_BASE_CONCURRENCY_ZERO_RESIDUE'\n\n"
+          )
           if anchor not in s:
               raise SystemExit('base concurrency anchor missing or already patched')
           p.write_text(s.replace(anchor, anchor + cleanup, 1))
