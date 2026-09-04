@@ -2,11 +2,25 @@
 
 Status: `CANDIDATE / NO LIVE EFFECT`
 
+## 0. Owner correction — task-only marketplace inventory
+
+USKOČI V1 has only one public Marketplace inventory type: **requested Zadaci**.
+
+A person in `JA MOGU` mode does not publish a service-offer listing. Their skills, tools, vehicles, experience, availability, work radius and descriptive capabilities live in **Radni profil** and may support matching/profile detail. They do not become map pins, Opportunity cards or separate service advertisements.
+
+Therefore:
+- map pins = Zadaci;
+- compact Marketplace/Opportunity cards = Zadaci;
+- provider/service offers such as "Nudim krečenje" or "Radim selidbe" are not valid Zadaci;
+- detailed performer capability information belongs to Radni profil detail, not the small Zadatak card;
+- D-0140 is the publication gate for Zadaci only; profile-content moderation is a separate concern.
+
 ## A. Owner-lockable platform/publication rules
 
 These can be locked as USKOČI platform rules without claiming that every underlying activity is illegal under Serbian law:
 
-- ordinary clear service Need is supported;
+- ordinary clear requested Zadatak is supported;
+- provider/service-offer listings are not USKOČI inventory;
 - classified sale/rental listings are not USKOČI inventory;
 - spam, promotion, referral and unrelated advertising are not USKOČI inventory;
 - financial/investment/credit/crypto solicitation is not USKOČI inventory;
@@ -47,7 +61,7 @@ Current candidate outcome is `REVIEW`, which means **no publication in V1** unti
 - passenger transport for compensation;
 - systematic courier/postal service pattern;
 - medical/health procedures;
-- regulated professional services whose admission rule is not closed;
+- regulated professional tasks whose admission rule is not closed;
 - childcare/vulnerable-person care beyond ordinary adult accompaniment;
 - private security/guarding;
 - employment/staffing patterns;
@@ -56,10 +70,16 @@ Current candidate outcome is `REVIEW`, which means **no publication in V1** unti
 
 `REVIEW` must not promise that a human will review the case. Until a real queue/authority/audit exists, it means fail-closed/not publishable.
 
-## D. Important distinctions preserved from the archive
+## D. Important distinctions preserved from the archive and owner correction
+
+### ZADATAK != WORKER SERVICE OFFER
+A valid public inventory item is a request: "Treba mi neko da okreči sobu." A provider self-advertisement such as "Nudim krečenje" is not a Zadatak and must not become Marketplace inventory. The person describes what they can do in Radni profil.
+
+### MAP/CARD != RADNI PROFIL
+Map pins and small Marketplace/Opportunity cards project Zadatak facts. They do not become worker cards or mini service catalogues. Detailed capabilities belong to Radni profil detail and contextual candidate/profile surfaces.
 
 ### MOVE_ITEM != DISCARD_ITEM
-Moving a television to another address can be an ordinary service Need. Discarding e-waste activates the waste boundary.
+Moving a television to another address can be an ordinary requested Zadatak. Discarding e-waste activates the waste boundary.
 
 ### One-off errand != courier product
 A one-off handoff of an ordinary lawful item/key/document can be allowed. A standardized shipment-intake/tracking/SLA/COD/delivery product activates postal/courier review.
@@ -76,5 +96,10 @@ Publication policy decides whether the Zadatak may appear on USKOČI. It does no
 ## E. Immediate technical consequence
 
 The current B05 schema stores bundle metadata and rule references only. Before activation we still need a versioned rule-content registry/evaluator contract that can deterministically map structured Need facts to the rule IDs in `rs_publication_policy_v1_candidate.json`.
+
+The evaluator must explicitly distinguish:
+- requester-created task objective -> continue policy evaluation;
+- provider/service-offer objective -> `BLOCK / SERVICE_OFFER_LISTING_NOT_SUPPORTED`;
+- profile capability text -> outside D-0140 Zadatak publication admission.
 
 No production bundle should be activated and no production ALLOW should be issued from this candidate until that evaluator contract and review gates are proven.
