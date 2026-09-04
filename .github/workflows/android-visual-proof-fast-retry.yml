@@ -1,0 +1,84 @@
+name: Android visual proof fast retry
+
+on:
+  push:
+    branches:
+      - proof/android-visual-proof-20260905
+    paths:
+      - '.github/workflows/android-visual-proof-fast-retry.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CI: '1'
+
+jobs:
+  android-visual-proof-fast-retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout isolated proof branch
+        uses: actions/checkout@v4
+
+      - name: Reuse proven current-head APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p seed-proof visual-proof
+          gh run download 33925204491 --repo "$GITHUB_REPOSITORY" --name USKOCI-ANDROID-VISUAL-PROOF --dir seed-proof
+          test -f seed-proof/USKOCI-VISUAL-PROOF.apk
+          cp seed-proof/USKOCI-VISUAL-PROOF.apk visual-proof/USKOCI-VISUAL-PROOF.apk
+          sha256sum visual-proof/USKOCI-VISUAL-PROOF.apk > visual-proof/USKOCI-VISUAL-PROOF.apk.sha256
+
+      - name: Enable KVM acceleration
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            ls -l /dev/kvm
+          fi
+
+      - name: Boot Android emulator and capture real app screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            set -eu
+            adb install -r visual-proof/USKOCI-VISUAL-PROOF.apk
+            adb shell wm size 1080x2400
+            adb shell wm density 420
+            adb shell monkey -p rs.uskoci.visualproof -c android.intent.category.LAUNCHER 1
+            sleep 12
+            adb exec-out screencap -p > visual-proof/01-launch.png
+            adb shell uiautomator dump /sdcard/window-launch.xml || true
+            adb pull /sdcard/window-launch.xml visual-proof/window-launch.xml || true
+            adb shell am start -W -a android.intent.action.VIEW -d 'uskociapp://auth' rs.uskoci.visualproof || true
+            sleep 6
+            adb exec-out screencap -p > visual-proof/02-auth.png
+            adb shell uiautomator dump /sdcard/window-auth.xml || true
+            adb pull /sdcard/window-auth.xml visual-proof/window-auth.xml || true
+            adb shell dumpsys window > visual-proof/window-dumpsys.txt || true
+            adb logcat -d > visual-proof/logcat.txt || true
+
+      - name: Verify screenshots
+        if: always()
+        run: |
+          ls -lah visual-proof || true
+          test -s visual-proof/01-launch.png
+          test -s visual-proof/02-auth.png
+
+      - name: Upload visual proof artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-ANDROID-VISUAL-PROOF-FAST
+          path: visual-proof/
+          if-no-files-found: error
+          retention-days: 14
