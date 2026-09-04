@@ -1,0 +1,102 @@
+name: RU-3 B06 clean promotion
+
+on:
+  push:
+    branches:
+      - automation/ru3-b06-promote-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ru3-b06-promote-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Build clean promotion branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='ee0a089bec9141c3fd5d9c2bc2314b7245e69c46'
+          SOURCE='origin/proof/ru3-b06-decision-20260904'
+          PROMO='promotion/ru3-b06-decision-20260904'
+          MIG='20260904103000_clean_ru3_need_publication_decision.sql'
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin proof/ru3-b06-decision-20260904
+          git checkout -B "$PROMO" "$BASE"
+
+          git show "$SOURCE:supabase/staging/ru3/$MIG" > "supabase/migrations/$MIG"
+          git show "$SOURCE:supabase/proofs/ru3_b06_publication_decision_runtime_proof.sql" > "supabase/proofs/ru3_b06_publication_decision_runtime_proof.sql"
+
+          RAW_MD5="$(md5sum "supabase/migrations/$MIG" | awk '{print $1}')"
+          echo "B06_RAW_MD5=$RAW_MD5"
+
+          python - "$MIG" "$RAW_MD5" "$BASE" <<'PY'
+          import json, sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          mig, raw_md5, base = sys.argv[1:]
+          manifest = Path('supabase/migrations/MD5_MANIFEST.txt')
+          lines = [ln for ln in manifest.read_text(encoding='utf-8').splitlines() if not ln.endswith('  ' + mig)]
+          lines.append(f'{raw_md5}  {mig}')
+          manifest.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+
+          p = Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          pending = data.get('pending_forward_migrations', [])
+          if pending:
+              raise SystemExit(f'expected no pre-existing pending migration, found: {pending}')
+          data['generated_at_utc'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          data['repository_base_head'] = base
+          data['pending_forward_migrations'] = [{
+              'version': '20260904103000',
+              'name': 'clean_ru3_need_publication_decision',
+              'file': mig,
+              'classification': 'PENDING_FORWARD_MIGRATION',
+              'raw_md5': raw_md5,
+              'live_applied': False,
+              'predecessor_live_migration_count': 61,
+              'predecessor_live_head': '20260904090147'
+          }]
+          p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+          PY
+
+          python supabase/migrations/check_migration_integrity.py
+          git diff --check
+          git status --short
+
+          git add \
+            "supabase/migrations/$MIG" \
+            supabase/migrations/MD5_MANIFEST.txt \
+            supabase/migrations/MIGRATION_PROVENANCE.json \
+            supabase/proofs/ru3_b06_publication_decision_runtime_proof.sql
+
+          test "$(git diff --cached --name-only | wc -l)" -eq 4
+          git commit -m 'feat(ru3): promote fail-closed B06 publication decision'
+          git push origin "$PROMO"
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+
+      - name: Regression tests
+        run: npm test -- --runInBand
