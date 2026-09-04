@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-04T08:44:20Z",
+  "generated_at_utc": "2026-09-04T09:06:24Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "60afa008e5608a4479b06817eb7f78ecb7f4b015",
+  "repository_base_head": "ac70e1e66375a9e1be602808a3d4d3a2735f1b3b",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 60,
+    "migration_count": 61,
     "last": {
-      "name": "clean_ru2_ai_fact_transition_guard",
-      "version": "20260903222333"
+      "name": "clean_ru3_policy_bundle_foundation",
+      "version": "20260904090147"
     },
     "entries": [
       {
@@ -276,21 +276,19 @@
         "exact_byte_mirror": true,
         "live_recorded_statement_md5": "95145c601b6366f1a98e8566b3307515",
         "recorded_statement_utf8_bytes": 9438
+      },
+      {
+        "name": "clean_ru3_policy_bundle_foundation",
+        "version": "20260904090147",
+        "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
+        "source_version": "20260904090000",
+        "exact_byte_mirror": false,
+        "live_recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
+        "recorded_statement_utf8_bytes": 8506
       }
     ]
   },
-  "pending_forward_migrations": [
-    {
-      "version": "20260904090000",
-      "name": "clean_ru3_policy_bundle_foundation",
-      "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
-      "classification": "PENDING_FORWARD_MIGRATION",
-      "raw_md5": "e65a1d1658938ffdca07c88c246e660c",
-      "live_applied": false,
-      "predecessor_live_migration_count": 60,
-      "predecessor_live_head": "20260903222333"
-    }
-  ],
+  "pending_forward_migrations": [],
   "reconstructions": [
     {
       "version": "20260830191500",
@@ -449,6 +447,19 @@
       "recorded_statement_utf8_bytes": 9438,
       "disposable_runtime_proof": "PASS: run 33806989549 proved owner/service supersession, canonical DRAFT binding and zero residue.",
       "live_structural_proof": "PASS: authenticated direct fact UPDATE false; private guard API execute false; ambient uskoci.ai_mutation bypass absent; explicit subject/supersession/schema guards present."
+    },
+    {
+      "version": "20260904090147",
+      "source_version": "20260904090000",
+      "name": "clean_ru3_policy_bundle_foundation",
+      "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
+      "classification": "FORWARD_REPAIR",
+      "raw_md5": "e65a1d1658938ffdca07c88c246e660c",
+      "exact_byte_mirror": false,
+      "live_recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
+      "recorded_statement_utf8_bytes": 8506,
+      "disposable_runtime_proof": "PASS: GitHub Actions run 33854188735 proved fail-closed bundle readiness, unreviewed/incomplete denial, jurisdiction isolation, one-active constraint, legacy publish closure and zero residue.",
+      "live_structural_proof": "PASS: live 61/20260904090147; policy tables exist with RLS; zero bundle/rule rows; anon/authenticated/service_role direct table access denied; private helper EXECUTE denied; legacy publish remains fail-closed; business rows preserved 82 facts/15 conversations/6 Needs/6 profiles."
     }
   ],
   "live_source_reconciliations": [
@@ -545,6 +556,19 @@
       "canonical_raw_md5": "23a60f86bdb952f1dbf62990f2f800cc",
       "exact_byte_mirror": false,
       "difference": "Supabase assigned the live timestamp and the connected deployment payload omitted non-executable section comments. Executable RU-0 contract preserved; raw-byte identity not claimed.",
+      "applied_history_action": "LIVE_VERSION_ALIAS_RECORDED"
+    },
+    {
+      "version": "20260904090147",
+      "source_version": "20260904090000",
+      "name": "clean_ru3_policy_bundle_foundation",
+      "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
+      "classification": "SEMANTIC_RECORDED_STATEMENT_RECONCILIATION",
+      "recorded_statement_utf8_bytes": 8506,
+      "recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
+      "canonical_raw_md5": "e65a1d1658938ffdca07c88c246e660c",
+      "exact_byte_mirror": false,
+      "difference": "Connected Supabase migration recording is not byte-identical to the canonical raw file representation. Executable B05 contract and live structural postconditions match; raw-byte identity is not claimed.",
       "applied_history_action": "LIVE_VERSION_ALIAS_RECORDED"
     }
   ]

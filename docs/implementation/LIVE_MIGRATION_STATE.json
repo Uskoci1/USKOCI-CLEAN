@@ -1,13 +1,13 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-04T05:51:50Z",
+  "updated_at": "2026-09-04T09:06:24Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
-  "live_migration_count": 60,
+  "live_migration_count": 61,
   "live_head": {
-    "version": "20260903222333",
-    "name": "clean_ru2_ai_fact_transition_guard"
+    "version": "20260904090147",
+    "name": "clean_ru3_policy_bundle_foundation"
   },
   "ru0": {
     "status": "CLOSED",
@@ -82,7 +82,7 @@
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_60",
+    "state": "NORMALIZED_TO_LIVE_61",
     "pending_forward_migrations": 0,
     "ru2_live_version_aliases": [
       {
@@ -97,7 +97,36 @@
         "source_file": "20260903190100_clean_ru2_ai_fact_transition_guard.sql",
         "exact_byte_identity": true
       }
-    ]
+    ],
+    "ru3_b05_live_alias": {
+      "live_version": "20260904090147",
+      "source_version": "20260904090000",
+      "source_file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
+      "exact_byte_identity": false,
+      "recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
+      "source_raw_md5": "e65a1d1658938ffdca07c88c246e660c"
+    }
   },
-  "next_allowed_action": "Fresh read-only GitHub/Supabase preflight against live 60/20260903222333 and Edge v5; then read governing master and begin the next dependency-ordered unit. Do not redo RU-0/RU-1/RU-2."
+  "next_allowed_action": "Fresh read-only preflight against live 61/20260904090147 and Edge v5; then implement B06 immutable admission/publication decision + canonical input fingerprint as a fail-closed structural unit. Do not activate publish or invent policy content.",
+  "ru3": {
+    "status": "OPEN_B05_LIVE_STRUCTURAL_PROVEN",
+    "full_ru3_closed": false,
+    "b05": {
+      "status": "LIVE_STRUCTURAL_PROVEN",
+      "canonical_source_head": "ac70e1e66375a9e1be602808a3d4d3a2735f1b3b",
+      "source_version": "20260904090000",
+      "source_file": "supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql",
+      "source_raw_md5": "e65a1d1658938ffdca07c88c246e660c",
+      "live_version": "20260904090147",
+      "recorded_statement_utf8_bytes": 8506,
+      "recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
+      "exact_byte_identity_with_source": false,
+      "disposable_runtime_proof_run": 33854188735,
+      "canonical_integrity_run": 33855138395,
+      "zero_policy_rows": true,
+      "publish_admission": "FAIL_CLOSED"
+    },
+    "next_dependency": "B06_IMMUTABLE_ADMISSION_DECISION_AND_CANONICAL_FINGERPRINT",
+    "activation_blocker": "No reviewed/versioned/applicable D-0140 policy content exists yet; missing or incomplete policy must not produce ALLOW."
+  }
 }
