@@ -1,0 +1,30 @@
+name: RU-4 promotion MD5 capture
+
+on:
+  push:
+    branches:
+      - proof/ru4-promotion-metadata-20260905
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  md5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture exact RU-4 migration bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          md5sum \
+            supabase/staging/ru4/20260904214500_clean_ru4_owner_edit_lock.sql \
+            supabase/staging/ru4/20260904223000_clean_ru4_close_remaining_search.sql \
+            supabase/staging/ru4/20260904230000_clean_ru4_ai_edit_conversation.sql \
+            supabase/staging/ru4/20260904230500_clean_ru4_ai_edit_replay_boundary.sql
+          sha256sum \
+            supabase/staging/ru4/20260904214500_clean_ru4_owner_edit_lock.sql \
+            supabase/staging/ru4/20260904223000_clean_ru4_close_remaining_search.sql \
+            supabase/staging/ru4/20260904230000_clean_ru4_ai_edit_conversation.sql \
+            supabase/staging/ru4/20260904230500_clean_ru4_ai_edit_replay_boundary.sql
