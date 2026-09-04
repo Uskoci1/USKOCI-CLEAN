@@ -118,21 +118,40 @@ jobs:
             | tee /tmp/ru4-proof.log
           grep -F "PASS RU4 material_revision owner_attacker revise_to_draft exact_revision stale_unselected preserve_selected_agreement idempotent no_public_window no_dispatch private_audit" /tmp/ru4-proof.log
 
-      - name: Verify disposable post-proof zero residue
+      - name: Verify rollback proof zero residue before concurrency fixtures
         shell: bash
         run: |
           set -euo pipefail
           test "$(psql "$DB_URL" -Atc "select count(*) from private.need_revision_commands;")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from private.need_revision_events;")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title like 'RU4 proof%';")" = "0"
-          echo "PASS RU4_ZERO_RESIDUE"
+          echo "PASS RU4_ROLLBACK_ZERO_RESIDUE"
 
-      - name: Destroy disposable RU-4 stack
+      - name: Run RU-4 true concurrency proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/.github/scripts/ru4_true_concurrency_proof.sh" \
+            | tee /tmp/ru4-concurrency.log
+          grep -F "PASS RU4_TRUE_CONCURRENCY_PROVEN waiters_observed=2x3 no_double_revision no_duplicate_command no_dispatch" \
+            /tmp/ru4-concurrency.log
+
+      - name: Verify concurrency fixtures are bounded
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where id in ('00000000-0000-4000-8000-00000000c4a1','00000000-0000-4000-8000-00000000c4b1','00000000-0000-4000-8000-00000000c4c1');")" = "3"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_revision_commands where need_id in ('00000000-0000-4000-8000-00000000c4a1','00000000-0000-4000-8000-00000000c4b1','00000000-0000-4000-8000-00000000c4c1');")" = "3"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_revision_events where need_id in ('00000000-0000-4000-8000-00000000c4a1','00000000-0000-4000-8000-00000000c4b1','00000000-0000-4000-8000-00000000c4c1');")" = "3"
+          echo "PASS RU4_CONCURRENCY_FIXTURES_BOUNDED"
+
+      - name: Destroy disposable RU-4 stack with no backup
         if: always()
         shell: bash
         working-directory: /tmp/uskoci-ru4
         run: |
           supabase stop --no-backup || true
+          echo "PASS RU4_DISPOSABLE_ZERO_RESIDUE immutable_concurrency_rows_destroyed_with_disposable_database"
 
       - name: Install exact app dependencies
         run: npm ci
