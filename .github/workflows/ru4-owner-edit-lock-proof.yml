@@ -114,6 +114,7 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -c "set plpgsql.variable_conflict = 'use_column';" \
             -f "$GITHUB_WORKSPACE/supabase/proofs/ru4_owner_edit_lock_runtime_proof.sql" \
             | tee /tmp/ru4-owner-edit-lock.log
           grep -F "PASS RU4_OWNER_EDIT_LOCK owner_only atomic_confirm rev2_stale_all explicit_keep_update_withdraw same_response_history first_dogovor_permanent_lock no_silent_reconfirm" \
