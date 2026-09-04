@@ -1,13 +1,13 @@
 {
   "format_version": 1,
-  "updated_at": "2026-09-04T09:06:24Z",
+  "updated_at": "2026-09-04T10:29:18Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
-  "live_migration_count": 61,
+  "live_migration_count": 62,
   "live_head": {
-    "version": "20260904090147",
-    "name": "clean_ru3_policy_bundle_foundation"
+    "version": "20260904102429",
+    "name": "clean_ru3_need_publication_decision"
   },
   "ru0": {
     "status": "CLOSED",
@@ -82,7 +82,7 @@
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_61",
+    "state": "NORMALIZED_TO_LIVE_62",
     "pending_forward_migrations": 0,
     "ru2_live_version_aliases": [
       {
@@ -105,11 +105,20 @@
       "exact_byte_identity": false,
       "recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
       "source_raw_md5": "e65a1d1658938ffdca07c88c246e660c"
+    },
+    "ru3_b06_live_alias": {
+      "live_version": "20260904102429",
+      "source_version": "20260904103000",
+      "source_file": "20260904103000_clean_ru3_need_publication_decision.sql",
+      "exact_byte_identity": false,
+      "recorded_statement_md5": "693e3c31a5647b8a63932f3b1ab13eb0",
+      "recorded_statement_utf8_bytes": 19746,
+      "source_raw_md5": "3974c57c159f3c7c9262db4b296729c3"
     }
   },
-  "next_allowed_action": "Fresh read-only preflight against live 61/20260904090147 and Edge v5; then implement B06 immutable admission/publication decision + canonical input fingerprint as a fail-closed structural unit. Do not activate publish or invent policy content.",
+  "next_allowed_action": "Fresh physical preflight against live 62/20260904102429 and Edge v5. Continue RU-3 only with fail-closed structural work or authoritative reviewed D-0140 policy/evaluator content. Do not activate canonical publish or invent policy rules.",
   "ru3": {
-    "status": "OPEN_B05_LIVE_STRUCTURAL_PROVEN",
+    "status": "OPEN_B05_B06_LIVE_STRUCTURAL_PROVEN",
     "full_ru3_closed": false,
     "b05": {
       "status": "LIVE_STRUCTURAL_PROVEN",
@@ -126,7 +135,31 @@
       "zero_policy_rows": true,
       "publish_admission": "FAIL_CLOSED"
     },
-    "next_dependency": "B06_IMMUTABLE_ADMISSION_DECISION_AND_CANONICAL_FINGERPRINT",
-    "activation_blocker": "No reviewed/versioned/applicable D-0140 policy content exists yet; missing or incomplete policy must not produce ALLOW."
+    "next_dependency": "REVIEWED_VERSIONED_APPLICABLE_D0140_POLICY_CONTENT_AND_EVALUATOR_BEFORE_CANONICAL_PUBLISH",
+    "activation_blocker": "No reviewed/versioned/applicable D-0140 policy content exists yet; B06 intentionally refuses ALLOW and canonical publish must remain disabled.",
+    "b06": {
+      "status": "LIVE_STRUCTURAL_PROVEN",
+      "canonical_source_head": "4d735390e32c530a323b24dad95ddaa0422bd493",
+      "source_version": "20260904103000",
+      "source_file": "supabase/migrations/20260904103000_clean_ru3_need_publication_decision.sql",
+      "source_raw_md5": "3974c57c159f3c7c9262db4b296729c3",
+      "live_version": "20260904102429",
+      "recorded_statement_utf8_bytes": 19746,
+      "recorded_statement_md5": "693e3c31a5647b8a63932f3b1ab13eb0",
+      "exact_byte_identity_with_source": false,
+      "disposable_runtime_proof_run": 33857742442,
+      "clean_promotion_run": 33862361633,
+      "canonical_integrity_run": 33862478205,
+      "zero_decision_rows": true,
+      "allow_enabled": false,
+      "legacy_publish_closed": true,
+      "ai_publish_fail_closed": true,
+      "business_rows_preserved": {
+        "ai_structured_facts": 82,
+        "ai_conversations": 15,
+        "needs": 6,
+        "app_profiles": 6
+      }
+    }
   }
 }

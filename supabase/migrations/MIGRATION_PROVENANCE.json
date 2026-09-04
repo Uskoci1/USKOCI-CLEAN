@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-04T10:15:41Z",
+  "generated_at_utc": "2026-09-04T10:29:18Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "ee0a089bec9141c3fd5d9c2bc2314b7245e69c46",
+  "repository_base_head": "4d735390e32c530a323b24dad95ddaa0422bd493",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 61,
+    "migration_count": 62,
     "last": {
-      "name": "clean_ru3_policy_bundle_foundation",
-      "version": "20260904090147"
+      "name": "clean_ru3_need_publication_decision",
+      "version": "20260904102429"
     },
     "entries": [
       {
@@ -285,21 +285,19 @@
         "exact_byte_mirror": false,
         "live_recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
         "recorded_statement_utf8_bytes": 8506
+      },
+      {
+        "name": "clean_ru3_need_publication_decision",
+        "version": "20260904102429",
+        "file": "20260904103000_clean_ru3_need_publication_decision.sql",
+        "source_version": "20260904103000",
+        "exact_byte_mirror": false,
+        "live_recorded_statement_md5": "693e3c31a5647b8a63932f3b1ab13eb0",
+        "recorded_statement_utf8_bytes": 19746
       }
     ]
   },
-  "pending_forward_migrations": [
-    {
-      "version": "20260904103000",
-      "name": "clean_ru3_need_publication_decision",
-      "file": "20260904103000_clean_ru3_need_publication_decision.sql",
-      "classification": "PENDING_FORWARD_MIGRATION",
-      "raw_md5": "3974c57c159f3c7c9262db4b296729c3",
-      "live_applied": false,
-      "predecessor_live_migration_count": 61,
-      "predecessor_live_head": "20260904090147"
-    }
-  ],
+  "pending_forward_migrations": [],
   "reconstructions": [
     {
       "version": "20260830191500",
