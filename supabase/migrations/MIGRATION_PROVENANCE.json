@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-04T05:51:50Z",
+  "generated_at_utc": "2026-09-04T08:44:20Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "47ce475030cc1ab5908f014d6d7398a0e2cb7754",
+  "repository_base_head": "60afa008e5608a4479b06817eb7f78ecb7f4b015",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -279,7 +279,18 @@
       }
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260904090000",
+      "name": "clean_ru3_policy_bundle_foundation",
+      "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "e65a1d1658938ffdca07c88c246e660c",
+      "live_applied": false,
+      "predecessor_live_migration_count": 60,
+      "predecessor_live_head": "20260903222333"
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
