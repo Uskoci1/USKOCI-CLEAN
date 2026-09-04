@@ -181,6 +181,12 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title like 'RU4 %task';")" = "0"
           echo "PASS RU4_OWNER_EDIT_LOCK_ZERO_RESIDUE"
 
+      - name: Run RU-4 true concurrency proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/supabase/proofs/ru4_owner_edit_lock_concurrency.sh"
+
       - name: Destroy disposable stack with no backup
         if: always()
         shell: bash
