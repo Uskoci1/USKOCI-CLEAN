@@ -109,6 +109,23 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 \
             -f "$GITHUB_WORKSPACE/supabase/staging/ru4/20260904214500_clean_ru4_owner_edit_lock.sql"
 
+      - name: Create disposable dispatch proof helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          create or replace function public._proof_ru4_dispatch_exists(p_need_id uuid)
+          returns boolean
+          language sql
+          security definer
+          set search_path to 'pg_catalog'
+          as $$
+            select exists(select 1 from private.dispatch_schedule where need_id = p_need_id)
+          $$;
+          revoke all on function public._proof_ru4_dispatch_exists(uuid) from public, anon;
+          grant execute on function public._proof_ru4_dispatch_exists(uuid) to authenticated;
+          SQL
+
       - name: Normalize rollback proof fixture
         shell: bash
         run: |
@@ -131,11 +148,11 @@ jobs:
                   raise SystemExit(f'expected proof fixture text missing: {old!r}')
               s = s.replace(old, new, 1)
 
-          root_anchor = "reset role;\n-- Proof-only republish fixture: this is not a production D-0140 decision. It exists only inside the rollback transaction.\n"
-          root_assert = "reset role;\ndo $dispatch_stopped$\ndeclare nid uuid:=current_setting('uskoci.ru4_need')::uuid;\nbegin\n  if exists(select 1 from private.dispatch_schedule where need_id=nid) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\nend\n$dispatch_stopped$;\n-- Proof-only republish fixture: this is not a production D-0140 decision. It exists only inside the rollback transaction.\n"
-          if root_anchor not in s:
-              raise SystemExit('root dispatch assertion anchor missing')
-          s = s.replace(root_anchor, root_assert, 1)
+          stale_anchor = "  if cnt<>3 then raise exception 'RU4_LOCK_PRIOR_APPLICATIONS_NOT_ALL_STALE'; end if;\n"
+          dispatch_assert = stale_anchor + "  if public._proof_ru4_dispatch_exists(nid) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n"
+          if stale_anchor not in s:
+              raise SystemExit('dispatch assertion anchor missing')
+          s = s.replace(stale_anchor, dispatch_assert, 1)
 
           late_bad = "  if exists(select 1 from private.dispatch_schedule where need_id=nid and current_setting('uskoci.ru4_requester')<>'' ) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n"
           if late_bad not in s:
