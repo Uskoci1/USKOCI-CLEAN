@@ -5,6 +5,7 @@ import { aiProductionOverrides } from './aiProductionOverrides';
 import { lazniIzvor } from './lazniIzvor';
 import { needProductionOverrides } from './needProductionOverrides';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
+import { ru4FakeSource, ru4ProductionSource } from './ru4Source';
 import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
 import { Izvor } from './ports';
@@ -50,3 +51,8 @@ export const izvor: Izvor = koristiLazniIzvor ? lazniIzvor : produkcijskiIzvor;
 // remains available for older clients. New mobile surfaces use only this V2
 // source and therefore cannot accidentally call rpc_ai_publish_need.
 export const aiNeedV2Izvor = aiNeedV2Production;
+
+// RU-4 is also an isolated typed cutover. It owns only public→DRAFT revision,
+// editing that private DRAFT, and the Worker stale-review projection. Keeping it
+// outside legacy Izvor prevents old direct-public-edit paths from reappearing.
+export const ru4Izvor = koristiLazniIzvor ? ru4FakeSource : ru4ProductionSource;
