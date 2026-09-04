@@ -1,23 +1,25 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CaretRight, Clock, MapPin, Users } from 'phosphor-react-native';
+import { ArrowLeft, CaretRight, Clock, MapPin, PencilSimple, Users } from 'phosphor-react-native';
 
 import type { PotrebaProjekcija, StanjePotrebe } from '../../../../contracts/projections';
+import { ru4Izvor } from '../../../../data';
+import { mozeIzmenaJavnogZadatka } from '../../../../data/ru4Source';
 import { useIzvor } from '../../../../store/uloga';
 import { palette, space, radius, elevation, touch } from '../../../../theme/tokens';
-import { Card } from '../../../../ui/Button';
+import { Button, Card } from '../../../../ui/Button';
 import { Press } from '../../../../ui/Press';
 import { T } from '../../../../ui/Text';
 
 const STATUS: Record<StanjePotrebe, string> = {
   NACRT: 'Nacrt',
-  OBJAVLJENA: 'Objavljena',
+  OBJAVLJENA: 'Objavljen',
   CEKA_PRIJAVE: 'Čeka prijave',
-  DELIMICNO_POPUNJENA: 'Delimično popunjena',
-  POPUNJENA: 'Popunjena',
-  ZATVORENA: 'Zatvorena',
+  DELIMICNO_POPUNJENA: 'Delimično popunjen',
+  POPUNJENA: 'Popunjen',
+  ZATVORENA: 'Zatvoren',
 };
 
 export default function PregledPotrebe() {
@@ -26,11 +28,14 @@ export default function PregledPotrebe() {
   const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
   const [ucitava, setUcitava] = useState(true);
   const [greska, setGreska] = useState<string | null>(null);
+  const [akcijaGreska, setAkcijaGreska] = useState<string | null>(null);
+  const [pripremaIzmenu, setPripremaIzmenu] = useState(false);
+  const reviseRequestId = useRef(`ru4-revise-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
 
   const ucitaj = useCallback(() => {
     let ziv = true;
     if (!id) {
-      setGreska('Potreba nije navedena.');
+      setGreska('Zadatak nije naveden.');
       setUcitava(false);
       return () => {
         ziv = false;
@@ -44,11 +49,11 @@ export default function PregledPotrebe() {
       .then((rezultat) => {
         if (!ziv) return;
         setPotreba(rezultat);
-        if (!rezultat) setGreska('Potreba nije pronađena ili više nije dostupna.');
+        if (!rezultat) setGreska('Zadatak nije pronađen ili više nije dostupan.');
       })
       .catch((error: unknown) => {
         if (!ziv) return;
-        setGreska(error instanceof Error ? error.message : 'Potreba nije mogla da se učita.');
+        setGreska(error instanceof Error ? error.message : 'Zadatak nije mogao da se učita.');
       })
       .finally(() => {
         if (ziv) setUcitava(false);
@@ -60,6 +65,38 @@ export default function PregledPotrebe() {
   }, [id, izvor]);
 
   useFocusEffect(ucitaj);
+
+  const pripremiBezbednuIzmenu = useCallback(async () => {
+    if (!potreba || pripremaIzmenu) return;
+    setPripremaIzmenu(true);
+    setAkcijaGreska(null);
+    try {
+      const rezultat = await ru4Izvor.pripremiIzmenu({
+        zadatakId: potreba.id,
+        ocekivanaRevizija: potreba.revizija,
+        clientRequestId: reviseRequestId.current,
+        razlog: 'REQUESTER_EDIT_FROM_R04',
+      });
+      if (!rezultat.ok) {
+        setAkcijaGreska(rezultat.poruka);
+        return;
+      }
+      router.push({ pathname: '/potrebe/[id]/izmeni', params: { id: rezultat.podatak.zadatakId } });
+    } finally {
+      setPripremaIzmenu(false);
+    }
+  }, [potreba, pripremaIzmenu]);
+
+  const potvrdiIzmenu = useCallback(() => {
+    Alert.alert(
+      'Izmeniti Zadatak?',
+      'Zadatak će prvo biti sklonjen iz javnosti. Neizabrane Prijave će morati ponovo da se pregledaju, a postojeći Dogovori ostaju nepromenjeni.',
+      [
+        { text: 'Odustani', style: 'cancel' },
+        { text: 'Nastavi', onPress: () => void pripremiBezbednuIzmenu() },
+      ],
+    );
+  }, [pripremiBezbednuIzmenu]);
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
@@ -87,7 +124,7 @@ export default function PregledPotrebe() {
         >
           <ArrowLeft size={21} color={palette.ink} />
         </Press>
-        <T variant="title" style={{ flex: 1 }}>Pregled Potrebe</T>
+        <T variant="title" style={{ flex: 1 }}>Pregled Zadatka</T>
       </View>
 
       {ucitava ? (
@@ -96,7 +133,7 @@ export default function PregledPotrebe() {
         </View>
       ) : greska || !potreba ? (
         <View style={{ flex: 1, padding: space.base, justifyContent: 'center', gap: space.md }}>
-          <T variant="heading">Potreba nije dostupna</T>
+          <T variant="heading">Zadatak nije dostupan</T>
           <T variant="body" tone="muted">{greska ?? 'Pokušajte ponovo.'}</T>
           <Press
             accessibilityRole="button"
@@ -126,7 +163,7 @@ export default function PregledPotrebe() {
             <View style={{ padding: space.base, gap: space.md }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                 <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: palette.orange }} />
-                <T variant="label" tone="muted" style={{ flex: 1 }}>POTREBA</T>
+                <T variant="label" tone="muted" style={{ flex: 1 }}>ZADATAK</T>
                 <T variant="meta" tone="orange" style={{ fontWeight: '800' }}>
                   {STATUS[potreba.stanje]}
                 </T>
@@ -210,6 +247,33 @@ export default function PregledPotrebe() {
             </View>
           </Card>
 
+          {akcijaGreska ? (
+            <Card>
+              <View style={{ padding: space.md }}>
+                <T variant="body" tone="danger">{akcijaGreska}</T>
+              </View>
+            </Card>
+          ) : null}
+
+          {mozeIzmenaJavnogZadatka(potreba.stanje) ? (
+            <Card>
+              <View style={{ padding: space.base, gap: space.sm }}>
+                <T variant="heading">Potrebna je izmena?</T>
+                <T variant="meta" tone="muted">
+                  Pre izmene Zadatak se bezbedno sklanja iz javnosti. Izabrani Dogovori se ne menjaju.
+                </T>
+                <Button
+                  label={pripremaIzmenu ? 'Pripremam izmenu…' : 'Izmeni Zadatak'}
+                  kind="secondary"
+                  full
+                  disabled={pripremaIzmenu}
+                  icon={<PencilSimple size={18} color={palette.ink} />}
+                  onPress={potvrdiIzmenu}
+                />
+              </View>
+            </Card>
+          ) : null}
+
           <Press
             accessibilityRole="button"
             accessibilityLabel={`Otvori prijave, ukupno ${potreba.brojPrijava}`}
@@ -232,7 +296,7 @@ export default function PregledPotrebe() {
                   <T variant="heading">Prijave</T>
                   <T variant="meta" tone="muted">
                     {potreba.brojPrijava === 0
-                      ? 'Još nema kandidata za ovu Potrebu.'
+                      ? 'Još nema kandidata za ovaj Zadatak.'
                       : `${potreba.brojPrijava} ${potreba.brojPrijava === 1 ? 'kandidat' : 'kandidata'} za pregled`}
                   </T>
                 </View>
@@ -242,7 +306,7 @@ export default function PregledPotrebe() {
           </Press>
 
           <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>
-            Revizija {potreba.revizija}. Izbor kandidata se vezuje za ovu autoritativnu verziju Potrebe.
+            Revizija {potreba.revizija}. Izbor kandidata se vezuje za ovu autoritativnu verziju Zadatka.
           </T>
         </ScrollView>
       )}
