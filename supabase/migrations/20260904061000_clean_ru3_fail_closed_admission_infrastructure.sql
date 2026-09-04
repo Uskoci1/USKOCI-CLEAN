@@ -93,8 +93,8 @@ create table private.publication_policy_bundles (
   unique(jurisdiction,bundle_version)
 );
 
-create unique index publication_policy_one_active_per_jurisdiction
-  on private.publication_policy_bundles(jurisdiction)
+create unique index publication_policy_single_active_bundle
+  on private.publication_policy_bundles((status))
   where status='ACTIVE';
 
 alter table private.publication_policy_bundles enable row level security;
@@ -206,6 +206,7 @@ revoke all on function private.need_publication_fingerprint(uuid) from public,an
 -- ---------------------------------------------------------------------------
 create table private.need_publication_decisions (
   id uuid primary key default extensions.gen_random_uuid(),
+  decision_seq bigint generated always as identity unique,
   need_id uuid not null references public.needs(id) on delete cascade,
   need_revision integer not null check (need_revision>=1),
   need_fingerprint text not null check (need_fingerprint ~ '^[0-9a-f]{64}$'),
@@ -226,7 +227,7 @@ create table private.need_publication_decisions (
 
 create index need_publication_decision_current_idx
   on private.need_publication_decisions
-  (need_id,need_revision,need_fingerprint,bundle_id,created_at desc,id desc);
+  (need_id,need_revision,need_fingerprint,bundle_id,decision_seq desc);
 
 alter table private.need_publication_decisions enable row level security;
 alter table private.need_publication_decisions force row level security;
@@ -304,7 +305,7 @@ begin
     raise exception 'PUBLICATION_DECISION_EVIDENCE_REQUIRED' using errcode='22023';
   end if;
 
-  select * into n from public.needs where id=p_need_id for share;
+  select * into n from public.needs where id=p_need_id for update;
   if not found then raise exception 'NEED_NOT_FOUND' using errcode='P0002'; end if;
   if n.status<>'DRAFT' or n.revision<>p_expected_revision then
     raise exception 'NEED_NOT_CURRENT_DRAFT' using errcode='P0001';
@@ -424,7 +425,7 @@ begin
      and x.need_revision=n.revision
      and x.need_fingerprint=v_fp
      and x.bundle_id=b.id
-   order by x.created_at desc,x.id desc
+   order by x.decision_seq desc
    limit 1;
 
   if not found then
@@ -542,7 +543,7 @@ begin
      and x.need_revision=n.revision
      and x.need_fingerprint=v_fp
      and x.bundle_id=b.id
-   order by x.created_at desc,x.id desc
+   order by x.decision_seq desc
    limit 1;
   if not found then raise exception 'ADMISSION_REQUIRED_OR_STALE' using errcode='P0001'; end if;
   if d.outcome<>'ALLOW' then
