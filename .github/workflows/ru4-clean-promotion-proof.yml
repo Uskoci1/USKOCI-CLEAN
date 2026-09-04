@@ -1,0 +1,229 @@
+name: RU-4 clean promotion proof
+
+on:
+  push:
+    branches:
+      - proof/ru4-clean-promotion-20260905
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove-clean-promotion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Verify exact clean promotion shape and migration integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh supabase/migrations/check_md5.sh | tee /tmp/integrity.log
+          grep -F 'files=67 live_snapshot=63 pending=4' /tmp/integrity.log
+          echo '10b57d64ab0d58e6e96b7e09cbd3c748  supabase/migrations/20260904214500_clean_ru4_owner_edit_lock.sql' | md5sum -c -
+          echo '4e4e27d9e71be5f51ef5d892884b63a7  supabase/migrations/20260904223000_clean_ru4_close_remaining_search.sql' | md5sum -c -
+          echo 'b976f1ccc2c329d7f2fe0bc43ef36606  supabase/migrations/20260904230000_clean_ru4_ai_edit_conversation.sql' | md5sum -c -
+          echo '2a1fdea9f612394709afc44cc6f6b1b9  supabase/migrations/20260904230500_clean_ru4_ai_edit_replay_boundary.sql' | md5sum -c -
+
+      - name: Fetch exact green proof harness only
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROOF=eeb8a29036cdcbd9ee008ae789334e55c9cbfbea
+          git fetch --no-tags --depth=1 origin proof/ru4-owner-edit-lock-20260904
+          test "$(git rev-parse FETCH_HEAD)" = "$PROOF"
+          for p in \
+            supabase/proofs/ru4_owner_edit_lock_runtime_proof.sql \
+            supabase/proofs/ru4_close_remaining_search_runtime_proof.sql \
+            supabase/proofs/ru4_owner_edit_lock_concurrency.sh \
+            supabase/proofs/ru4_ai_edit_conversation_runtime_proof.sql \
+            supabase/proofs/ru4_ai_edit_concurrency.sh; do
+            git show "$PROOF:$p" > "$p"
+          done
+          echo "PASS exact_proof_harness=$PROOF"
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Replay physical live predecessor 63
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/uskoci-ru4-clean-promotion
+          mkdir -p /tmp/uskoci-ru4-clean-promotion
+          cd /tmp/uskoci-ru4-clean-promotion
+          supabase init
+          rm -rf supabase/migrations
+          mkdir -p supabase/migrations
+
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
+             supabase/migrations/20260825000000_ru4_clean_promotion_live_bootstrap.sql
+
+          for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
+            b="$(basename "$f")"
+            case "$b" in
+              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260903190100_clean_ru2_ai_fact_transition_guard.sql|20260904090000_clean_ru3_policy_bundle_foundation.sql|20260904103000_clean_ru3_need_publication_decision.sql|20260904111500_clean_ru3_canonical_publish.sql|20260904214500_clean_ru4_owner_edit_lock.sql|20260904223000_clean_ru4_close_remaining_search.sql|20260904230000_clean_ru4_ai_edit_conversation.sql|20260904230500_clean_ru4_ai_edit_replay_boundary.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql|20260901114029_clean_ai_fact_supersession_and_human_correction.sql)
+                ;;
+              *) cp "$f" "supabase/migrations/$b" ;;
+            esac
+          done
+
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901105922_durable_effects.sql" \
+             supabase/migrations/20260901105922_clean_completion_and_writer_authenticated_proof.sql
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901113333_durable_effects.sql" \
+             supabase/migrations/20260901113333_clean_ai_interview_turn_authenticated_proof.sql
+
+          awk '/^-- Runtime proofs: no retained rows\.$/{exit} {print}' \
+            "$GITHUB_WORKSPACE/supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql" \
+            > supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql
+          cat >> supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql <<'SQL'
+          comment on function public.rpc_ai_confirm_fact(uuid) is 'AUTHENTICATED_RUNTIME_PROVEN: human confirmation stamps confirmed_at and confirmed_by_user_id.';
+          comment on function public.rpc_ai_correct_fact(uuid,text) is 'AUTHENTICATED_RUNTIME_PROVEN: explicit correction atomically supersedes prior live fact and creates CONFIRMED EXPLICIT_USER_ANSWER provenance.';
+          comment on function public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb) is 'SERVICE_RUNTIME_PROVEN: repeated canonical keys preserve one-live-fact invariant by superseding before insert; replacement proof rolled back with zero residue.';
+          SQL
+
+          supabase db start
+          supabase db reset --local
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
+          test "$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")" = "56/20260901114029"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903160812','clean_ru0_authority_closure');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903184545','clean_ru1_worker_readiness');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903222139','clean_ru2_need_v2_draft');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903222333','clean_ru2_ai_fact_transition_guard');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260904090147','clean_ru3_policy_bundle_foundation');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260904103000_clean_ru3_need_publication_decision.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260904102429','clean_ru3_need_publication_decision');"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260904182402','clean_ru3_canonical_publish');"
+          test "$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")" = "63/20260904182402"
+          echo 'PASS physical_live_predecessor=63/20260904182402'
+
+      - name: Apply exact clean RU-4 migration payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            20260904214500_clean_ru4_owner_edit_lock.sql \
+            20260904223000_clean_ru4_close_remaining_search.sql \
+            20260904230000_clean_ru4_ai_edit_conversation.sql \
+            20260904230500_clean_ru4_ai_edit_replay_boundary.sql; do
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/$f"
+          done
+          echo 'PASS exact_clean_ru4_migrations_apply'
+
+      - name: Create disposable dispatch proof helper and normalize owner fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          create or replace function public._proof_ru4_dispatch_exists(p_need_id uuid)
+          returns boolean
+          language sql
+          security definer
+          set search_path to 'pg_catalog'
+          as $$ select exists(select 1 from private.dispatch_schedule where need_id = p_need_id) $$;
+          revoke all on function public._proof_ru4_dispatch_exists(uuid) from public, anon;
+          grant execute on function public._proof_ru4_dispatch_exists(uuid) to authenticated;
+          SQL
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('supabase/proofs/ru4_owner_edit_lock_runtime_proof.sql')
+          s=p.read_text()
+          replacements=[
+            ('  need_id uuid;\n','  fixture_need_id uuid;\n'),
+            ('  ) returning id into need_id;\n','  ) returning id into fixture_need_id;\n'),
+            ('    (need_id,worker_a,','    (fixture_need_id,worker_a,'),
+            ('    (need_id,worker_b,','    (fixture_need_id,worker_b,'),
+            ('    (need_id,worker_c,','    (fixture_need_id,worker_c,'),
+            ('  values(need_id,statement_timestamp())\n','  values(fixture_need_id,statement_timestamp())\n'),
+            ("  perform set_config('uskoci.ru4_need',need_id::text,true);\n", "  perform set_config('uskoci.ru4_need',fixture_need_id::text,true);\n"),
+          ]
+          for old,new in replacements:
+            if old not in s: raise SystemExit(f'missing owner proof fixture anchor: {old!r}')
+            s=s.replace(old,new,1)
+          anchor="  if cnt<>3 then raise exception 'RU4_LOCK_PRIOR_APPLICATIONS_NOT_ALL_STALE'; end if;\n"
+          if anchor not in s: raise SystemExit('missing dispatch assertion anchor')
+          s=s.replace(anchor,anchor+"  if public._proof_ru4_dispatch_exists(nid) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n",1)
+          late="  if exists(select 1 from private.dispatch_schedule where need_id=nid and current_setting('uskoci.ru4_requester')<>'' ) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n"
+          if late not in s: raise SystemExit('missing late dispatch assertion')
+          p.write_text(s.replace(late,'',1))
+          PY
+
+      - name: Prove owner edit lock, stale Applications and first-Dogovor lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/proofs/ru4_owner_edit_lock_runtime_proof.sql | tee /tmp/owner.log
+          grep -F 'PASS RU4_OWNER_EDIT_LOCK owner_only atomic_confirm rev2_stale_all explicit_keep_update_withdraw same_response_history first_dogovor_permanent_lock no_silent_reconfirm' /tmp/owner.log
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_edit_commands;')" = 0
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_revision_events;')" = 0
+
+      - name: Prove close remaining search
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/proofs/ru4_close_remaining_search_runtime_proof.sql | tee /tmp/close.log
+          grep -F 'PASS RU4_CLOSE_REMAINING_SEARCH owner_only keeps_required_slots_revision_and_dogovor expires_pending stops_dispatch blocks_new_application idempotent' /tmp/close.log
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.remaining_search_close_commands;')" = 0
+
+      - name: Prove base RU-4 true concurrency
+        shell: bash
+        run: bash supabase/proofs/ru4_owner_edit_lock_concurrency.sh
+
+      - name: Prove AI edit authority and zero residue
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/proofs/ru4_ai_edit_conversation_runtime_proof.sql | tee /tmp/ai.log
+          grep -F 'PASS RU4_AI_EDIT prefilled_current_task open_is_readonly ai_changes_only_proposed_key human_confirm_required critical_only_change_counts draft_rev2 prior_application_stale first_dogovor_lock exact_replay key_reuse_rejected' /tmp/ai.log
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_edit_commands;')" = 0
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_revision_events;')" = 0
+
+      - name: Prove AI edit true concurrency and zero residue
+        shell: bash
+        run: bash supabase/proofs/ru4_ai_edit_concurrency.sh
+
+      - name: Final disposable residue and D0140 fail-closed checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_edit_commands;')" = 0
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_revision_events;')" = 0
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.remaining_search_close_commands;')" = 0
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.publication_policy_bundles;')" = 0
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.publication_policy_rule_refs;')" = 0
+          test "$(psql "$DB_URL" -Atc 'select count(*) from private.need_publication_decisions;')" = 0
+          echo 'PASS clean_promotion_zero_residue_and_D0140_fail_closed'
+
+      - name: Destroy disposable stack with no backup
+        if: always()
+        working-directory: /tmp/uskoci-ru4-clean-promotion
+        run: supabase stop --no-backup || true
+
+      - name: Install exact app dependencies
+        run: npm ci
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+
+      - name: Regression tests
+        run: npm test -- --runInBand
