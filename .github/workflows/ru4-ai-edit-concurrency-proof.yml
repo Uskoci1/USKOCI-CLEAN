@@ -115,9 +115,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where email='ru4-ai-concurrency@proof.invalid';")" = "0"
-          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where id in ('00000000-0000-4000-8000-00000000b411','00000000-0000-4000-8000-00000000b412');")" = "0"
-          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_edit_commands where requester_account_id='00000000-0000-4000-8000-00000000b401';")" = "0"
+          users="$(psql "$DB_URL" -Atc "select count(*) from auth.users where email='ru4-ai-concurrency@proof.invalid';")"
+          needs="$(psql "$DB_URL" -Atc "select count(*) from public.needs where id in ('00000000-0000-4000-8000-00000000b411','00000000-0000-4000-8000-00000000b412');")"
+          commands="$(psql "$DB_URL" -Atc "select count(*) from private.need_edit_commands where requester_account_id='00000000-0000-4000-8000-00000000b401';")"
+          revisions="$(psql "$DB_URL" -Atc "select count(*) from private.need_revision_events where created_by_account_id='00000000-0000-4000-8000-00000000b401';")"
+          conversations="$(psql "$DB_URL" -Atc "select count(*) from public.ai_conversations where account_id='00000000-0000-4000-8000-00000000b401';")"
+          echo "RU4_AI_CLEANUP_RESIDUE users=$users needs=$needs commands=$commands revisions=$revisions conversations=$conversations"
+          test "$users/$needs/$commands/$revisions/$conversations" = "0/0/0/0/0"
           echo "PASS RU4_AI_EDIT_CONCURRENCY_ZERO_RESIDUE"
 
       - name: Destroy disposable stack with no backup
