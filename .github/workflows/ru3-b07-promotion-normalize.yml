@@ -1,0 +1,76 @@
+name: RU-3 B07 promotion normalize
+
+on:
+  push:
+    branches:
+      - promote/ru3-b07-canonical-publish-20260904
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: promote/ru3-b07-canonical-publish-20260904
+          fetch-depth: 0
+
+      - name: Normalize migration manifest and provenance
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest_path = Path('supabase/migrations/MD5_MANIFEST.txt')
+          provenance_path = Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          filename = '20260904111500_clean_ru3_canonical_publish.sql'
+          raw_md5 = '17468983d28cddfe4948c3866a96e813'
+
+          lines = manifest_path.read_text(encoding='utf-8').splitlines()
+          target = f'{raw_md5}  {filename}'
+          replaced = False
+          out = []
+          for line in lines:
+              if line.endswith('  ' + filename):
+                  out.append(target)
+                  replaced = True
+              else:
+                  out.append(line)
+          if not replaced:
+              out.append(target)
+          out = sorted(out, key=lambda s: s.split('  ', 1)[1])
+          manifest_path.write_text('\n'.join(out) + '\n', encoding='utf-8', newline='\n')
+
+          data = json.loads(provenance_path.read_text(encoding='utf-8'))
+          data['pending_forward_migrations'] = [{
+              'version': '20260904111500',
+              'name': 'clean_ru3_canonical_publish',
+              'file': filename,
+              'classification': 'PENDING_FORWARD_MIGRATION',
+              'raw_md5': raw_md5,
+              'live_applied': False,
+              'predecessor_live_migration_count': 62,
+              'predecessor_live_head': '20260904102429',
+              'unit': 'RU-3/B07',
+              'proof_branch': 'proof/ru3-b07-canonical-publish-20260904',
+              'proof_head': '7351198577685641ab9a7c08cb753a1094c41ea1',
+              'proof_run': 33903129202,
+              'contract': 'Fail-closed canonical DRAFT->PUBLISHED transaction requiring exact latest ALLOW decision, exact current reviewed active policy bundle/fingerprint/rule provenance, semantic idempotency, owner authorization and atomic dispatch schedule. Seeds no policy content and creates no ALLOW decision.'
+          }]
+          provenance_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
+          PY
+
+          sh supabase/migrations/check_md5.sh
+
+      - name: Persist normalization and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/ru3-b07-promotion-normalize.yml
+          git add supabase/migrations/MD5_MANIFEST.txt supabase/migrations/MIGRATION_PROVENANCE.json
+          git commit -m "chore(ru3): normalize B07 migration provenance"
+          git push origin HEAD:promote/ru3-b07-canonical-publish-20260904
