@@ -109,12 +109,35 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 \
             -f "$GITHUB_WORKSPACE/supabase/staging/ru4/20260904214500_clean_ru4_owner_edit_lock.sql"
 
+      - name: Normalize rollback proof fixture variable
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('supabase/proofs/ru4_owner_edit_lock_runtime_proof.sql')
+          s = p.read_text()
+          replacements = [
+              ('  need_id uuid;\n', '  fixture_need_id uuid;\n'),
+              ('  ) returning id into need_id;\n', '  ) returning id into fixture_need_id;\n'),
+              ('    (need_id,worker_a,', '    (fixture_need_id,worker_a,'),
+              ('    (need_id,worker_b,', '    (fixture_need_id,worker_b,'),
+              ('    (need_id,worker_c,', '    (fixture_need_id,worker_c,'),
+              ('  values(need_id,statement_timestamp())\n', '  values(fixture_need_id,statement_timestamp())\n'),
+              ("  perform set_config('uskoci.ru4_need',need_id::text,true);\n", "  perform set_config('uskoci.ru4_need',fixture_need_id::text,true);\n"),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'expected proof fixture text missing: {old!r}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
       - name: Run RU-4 authenticated owner/edit/Application proof
         shell: bash
         run: |
           set -euo pipefail
           psql "$DB_URL" -v ON_ERROR_STOP=1 \
-            -c "set plpgsql.variable_conflict = 'use_column';" \
             -f "$GITHUB_WORKSPACE/supabase/proofs/ru4_owner_edit_lock_runtime_proof.sql" \
             | tee /tmp/ru4-owner-edit-lock.log
           grep -F "PASS RU4_OWNER_EDIT_LOCK owner_only atomic_confirm rev2_stale_all explicit_keep_update_withdraw same_response_history first_dogovor_permanent_lock no_silent_reconfirm" \
