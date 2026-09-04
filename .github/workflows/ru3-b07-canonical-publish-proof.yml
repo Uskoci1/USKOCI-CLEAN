@@ -130,6 +130,26 @@ jobs:
           grep -F "PASS RU3_B07 auth_owner two_account exact_allow current_decision exact_fingerprint current_policy rule_provenance outcome_fail_closed idempotent dispatch_atomic zero_residue no_policy_activation" \
             /tmp/ru3-b07-proof.log
 
+      - name: Run RU-3 B07 true concurrency proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/.github/scripts/ru3_b07_true_concurrency_proof.sh" \
+            | tee /tmp/ru3-b07-concurrency.log
+          grep -F "PASS RU3_B07_TRUE_CONCURRENCY_PROVEN waiters_observed=2x3 no_duplicate_publish no_duplicate_dispatch" \
+            /tmp/ru3-b07-concurrency.log
+
+      - name: Cleanup RU-3 B07 concurrency fixtures
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -f "$GITHUB_WORKSPACE/supabase/proofs/ru3_b07_concurrency_cleanup.sql" \
+            | tee /tmp/ru3-b07-concurrency-cleanup.log
+          grep -F "PASS RU3_B07_CONCURRENCY_ZERO_RESIDUE" \
+            /tmp/ru3-b07-concurrency-cleanup.log
+
       - name: Verify B05 B06 and legacy fail-closed contracts remain intact
         shell: bash
         run: |
