@@ -275,7 +275,7 @@ export default function MojePrijave() {
                           accessibilityRole="button"
                           accessibilityLabel="Povuci prijavu"
                           disabled={!!uToku}
-                          haptic="warning"
+                          haptic="medium"
                           onPress={() => {
                             Alert.alert('Povući Prijavu?', 'Ova Prijava više neće biti aktivna za izmenjeni Zadatak.', [
                               { text: 'Odustani', style: 'cancel' },
