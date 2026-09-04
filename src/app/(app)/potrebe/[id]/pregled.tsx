@@ -303,7 +303,7 @@ export default function PregledPotrebe() {
               accessibilityLabel="Ne traži više nikoga"
               accessibilityState={{ disabled: akcijaUToku }}
               disabled={akcijaUToku}
-              haptic="warning"
+              haptic="medium"
               onPress={zatvoriPreostaluPotragu}
               style={{
                 minHeight: touch.min,
