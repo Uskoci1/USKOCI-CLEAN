@@ -1,0 +1,106 @@
+name: RU-3 B05 prepare canonical promotion
+
+on:
+  push:
+    branches:
+      - automation/ru3-b05-promote-20260904
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-promotion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact proven source and canonical base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin clean-alpha-backend
+          test "$(git rev-parse origin/clean-alpha-backend)" = "60afa008e5608a4479b06817eb7f78ecb7f4b015"
+          test "$(md5sum supabase/staging/ru3/20260904090000_clean_ru3_policy_bundle_foundation.sql | awk '{print $1}')" = "e65a1d1658938ffdca07c88c246e660c"
+          cp supabase/staging/ru3/20260904090000_clean_ru3_policy_bundle_foundation.sql /tmp/ru3_b05.sql
+          cp supabase/proofs/ru3_b05_policy_bundle_runtime_proof.sql /tmp/ru3_b05_proof.sql
+
+      - name: Build clean promotion branch from canonical
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "msljivic031"
+          git config user.email "msljivic031@gmail.com"
+          git switch -c promotion/ru3-b05-policy-bundle-20260904 origin/clean-alpha-backend
+          cp /tmp/ru3_b05.sql supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql
+          cp /tmp/ru3_b05_proof.sql supabase/proofs/ru3_b05_policy_bundle_runtime_proof.sql
+
+          python3 - <<'PY'
+          from __future__ import annotations
+          import hashlib
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          root = Path('.')
+          migration = root / 'supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql'
+          manifest = root / 'supabase/migrations/MD5_MANIFEST.txt'
+          provenance = root / 'supabase/migrations/MIGRATION_PROVENANCE.json'
+          expected = 'e65a1d1658938ffdca07c88c246e660c'
+          actual = hashlib.md5(migration.read_bytes()).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'RU3_B05_PROMOTION_MD5_MISMATCH expected={expected} actual={actual}')
+
+          lines = [line for line in manifest.read_text(encoding='utf-8').splitlines() if line.strip()]
+          filename = migration.name
+          if any(line.endswith(f'  {filename}') for line in lines):
+              raise SystemExit('RU3_B05_PROMOTION_DUPLICATE_MANIFEST')
+          lines.append(f'{expected}  {filename}')
+          lines.sort(key=lambda line: line.split('  ', 1)[1])
+          manifest.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+          data = json.loads(provenance.read_text(encoding='utf-8'))
+          history = data['live_history_snapshot']
+          if history.get('migration_count') != 60:
+              raise SystemExit(f"RU3_B05_PROMOTION_LIVE_COUNT_DRIFT {history.get('migration_count')}")
+          last = history.get('last', {})
+          if last.get('version') != '20260903222333' or last.get('name') != 'clean_ru2_ai_fact_transition_guard':
+              raise SystemExit(f'RU3_B05_PROMOTION_LIVE_HEAD_DRIFT {last}')
+          if data.get('pending_forward_migrations'):
+              raise SystemExit(f"RU3_B05_PROMOTION_UNEXPECTED_PENDING {data.get('pending_forward_migrations')}")
+
+          data['generated_at_utc'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+          data['repository_base_head'] = '60afa008e5608a4479b06817eb7f78ecb7f4b015'
+          data['pending_forward_migrations'] = [{
+              'version': '20260904090000',
+              'name': 'clean_ru3_policy_bundle_foundation',
+              'file': filename,
+              'classification': 'PENDING_FORWARD_MIGRATION',
+              'raw_md5': expected,
+              'live_applied': False,
+              'predecessor_live_migration_count': 60,
+              'predecessor_live_head': '20260903222333',
+          }]
+          provenance.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          python3 supabase/migrations/check_migration_integrity.py
+          git diff --check
+          git status --short
+          git add supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql \
+                  supabase/migrations/MD5_MANIFEST.txt \
+                  supabase/migrations/MIGRATION_PROVENANCE.json \
+                  supabase/proofs/ru3_b05_policy_bundle_runtime_proof.sql
+          git commit -m "feat(ru3): promote fail-closed B05 policy bundle foundation"
+          git push origin promotion/ru3-b05-policy-bundle-20260904
+
+      - name: Report promotion head
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PROMOTION_HEAD=$(git rev-parse HEAD)"
+          echo "PROMOTION_PARENT=$(git rev-parse HEAD^)"
+          test "$(git rev-parse HEAD^)" = "60afa008e5608a4479b06817eb7f78ecb7f4b015"
