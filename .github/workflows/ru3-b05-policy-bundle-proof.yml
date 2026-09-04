@@ -1,0 +1,139 @@
+name: RU-3 B05 policy bundle proof
+
+on:
+  push:
+    branches:
+      - proof/ru3-b05-policy-bundle-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru3-b05-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ru3-b05:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Replay canonical predecessor through live RU-2
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/uskoci-ru3-b05
+          mkdir -p /tmp/uskoci-ru3-b05
+          cd /tmp/uskoci-ru3-b05
+          supabase init
+          rm -rf supabase/migrations
+          mkdir -p supabase/migrations
+
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
+             supabase/migrations/20260825000000_ru3_b05_proof_live_bootstrap.sql
+
+          for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
+            b="$(basename "$f")"
+            case "$b" in
+              20260903130355_clean_ru0_authority_closure.sql|20260903165700_clean_ru1_worker_readiness.sql|20260903190000_clean_ru2_need_v2_draft.sql|20260903190100_clean_ru2_ai_fact_transition_guard.sql|20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql|20260901114029_clean_ai_fact_supersession_and_human_correction.sql)
+                ;;
+              *) cp "$f" "supabase/migrations/$b" ;;
+            esac
+          done
+
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901105922_durable_effects.sql" \
+             supabase/migrations/20260901105922_clean_completion_and_writer_authenticated_proof.sql
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_replay_20260901113333_durable_effects.sql" \
+             supabase/migrations/20260901113333_clean_ai_interview_turn_authenticated_proof.sql
+
+          awk '/^-- Runtime proofs: no retained rows\.$/{exit} {print}' \
+            "$GITHUB_WORKSPACE/supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql" \
+            > supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql
+          cat >> supabase/migrations/20260901114029_clean_ai_fact_supersession_and_human_correction.sql <<'SQL'
+          comment on function public.rpc_ai_confirm_fact(uuid) is 'AUTHENTICATED_RUNTIME_PROVEN: human confirmation stamps confirmed_at and confirmed_by_user_id.';
+          comment on function public.rpc_ai_correct_fact(uuid,text) is 'AUTHENTICATED_RUNTIME_PROVEN: explicit correction atomically supersedes prior live fact and creates CONFIRMED EXPLICIT_USER_ANSWER provenance.';
+          comment on function public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb) is 'SERVICE_RUNTIME_PROVEN: repeated canonical keys preserve one-live-fact invariant by superseding before insert; replacement proof rolled back with zero residue.';
+          SQL
+
+          supabase db start
+          supabase db reset --local
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
+
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "pre_ru0=$actual"
+          test "$actual" = "56/20260901114029"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903130355_clean_ru0_authority_closure.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903160812','clean_ru0_authority_closure');"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903165700_clean_ru1_worker_readiness.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903184545','clean_ru1_worker_readiness');"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903222139','clean_ru2_need_v2_draft');"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260903190100_clean_ru2_ai_fact_transition_guard.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260903222333','clean_ru2_ai_fact_transition_guard');"
+
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "ru2_predecessor=$actual"
+          test "$actual" = "60/20260903222333"
+
+      - name: Apply exact RU-3 B05 structural candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -f "$GITHUB_WORKSPACE/supabase/staging/ru3/20260904090000_clean_ru3_policy_bundle_foundation.sql"
+
+      - name: Run RU-3 B05 structural/runtime proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -f "$GITHUB_WORKSPACE/supabase/proofs/ru3_b05_policy_bundle_runtime_proof.sql" \
+            | tee /tmp/ru3-b05-proof.log
+          grep -F "PASS RU3_B05 structural_fail_closed no_seed no_client_write activation_gate exact_current_selector zero_residue legacy_publish_still_closed" \
+            /tmp/ru3-b05-proof.log
+
+      - name: Verify RU-2 business contract remains intact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_fact_registry;")" = "20"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "f"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('service_role','public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)','EXECUTE');")" = "t"
+          test "$(psql "$DB_URL" -Atc "select has_table_privilege('authenticated','public.need_sensitive','UPDATE');")" = "f"
+          test "$(psql "$DB_URL" -Atc "select position('PACKAGE_4_NOT_READY' in pg_get_functiondef('public.rpc_ai_publish_need(uuid,uuid)'::regprocedure));")" != "0"
+
+      - name: Stop disposable stack before app regression
+        if: always()
+        shell: bash
+        working-directory: /tmp/uskoci-ru3-b05
+        run: supabase stop --no-backup || true
+
+      - name: Install exact app dependencies
+        run: npm ci
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+
+      - name: Regression tests
+        run: npm test -- --runInBand
