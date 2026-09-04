@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   close-ru2:
-    if: ${{ startsWith(github.event.head_commit.message, 'fix(ru2): run live closure staging') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
