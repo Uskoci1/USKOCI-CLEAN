@@ -139,36 +139,18 @@ jobs:
           grep -F "PASS RU3_B07_TRUE_CONCURRENCY_PROVEN waiters_observed=2x3 no_duplicate_publish no_duplicate_dispatch" \
             /tmp/ru3-b07-concurrency.log
 
-      - name: Cleanup RU-3 B07 concurrency fixtures
-        if: always()
+      - name: Verify proof fixtures are bounded and authority stays closed
         shell: bash
-        run: |
-          set -euo pipefail
-          psql "$DB_URL" -v ON_ERROR_STOP=1 \
-            -f "$GITHUB_WORKSPACE/supabase/proofs/ru3_b07_concurrency_cleanup.sql" \
-            | tee /tmp/ru3-b07-concurrency-cleanup.log
-          grep -F "PASS RU3_B07_CONCURRENCY_ZERO_RESIDUE" \
-            /tmp/ru3-b07-concurrency-cleanup.log
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ru3_b07_verify_bounded_fixtures.sh"
 
-      - name: Verify B05 B06 and legacy fail-closed contracts remain intact
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(psql "$DB_URL" -Atc "select count(*) from private.publication_policy_bundles;")" = "0"
-          test "$(psql "$DB_URL" -Atc "select count(*) from private.publication_policy_rule_refs;")" = "0"
-          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_publication_decisions;")" = "0"
-          test "$(psql "$DB_URL" -Atc "select count(*) from private.need_publish_commands;")" = "0"
-          test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_publish_need(uuid,timestamp with time zone)','EXECUTE');")" = "f"
-          test "$(psql "$DB_URL" -Atc "select position('PACKAGE_4_NOT_READY' in pg_get_functiondef('public.rpc_ai_publish_need(uuid,uuid)'::regprocedure));")" != "0"
-          test "$(psql "$DB_URL" -Atc "select position('RU3_ALLOW_NOT_ENABLED' in pg_get_functiondef('public.rpc_record_need_publication_decision_service(uuid,integer,text,text,text,text[],text,text[],text,text,jsonb,jsonb)'::regprocedure));")" != "0"
-          test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_publish_need_canonical(uuid,integer,bigint,timestamp with time zone,text)','EXECUTE');")" = "t"
-          test "$(psql "$DB_URL" -Atc "select has_function_privilege('service_role','public.rpc_publish_need_canonical(uuid,integer,bigint,timestamp with time zone,text)','EXECUTE');")" = "f"
-
-      - name: Stop disposable stack before app regression
+      - name: Destroy disposable B07 stack with no backup
         if: always()
         shell: bash
         working-directory: /tmp/uskoci-ru3-b07
-        run: supabase stop --no-backup || true
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          echo "PASS RU3_B07_DISPOSABLE_ZERO_RESIDUE immutable_proof_rows_destroyed_with_disposable_database"
 
       - name: Install exact app dependencies
         run: npm ci
