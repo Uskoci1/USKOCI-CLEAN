@@ -104,3 +104,5 @@ jobs:
           echo "PROMOTION_HEAD=$(git rev-parse HEAD)"
           echo "PROMOTION_PARENT=$(git rev-parse HEAD^)"
           test "$(git rev-parse HEAD^)" = "60afa008e5608a4479b06817eb7f78ecb7f4b015"
+
+# Git-data update trigger after disposable proof success.
