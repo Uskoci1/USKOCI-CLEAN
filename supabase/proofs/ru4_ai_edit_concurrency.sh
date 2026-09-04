@@ -15,7 +15,6 @@ delete from private.need_revision_events where created_by_account_id='$REQ';
 delete from private.dispatch_schedule where need_id in ('$NEED_A','$NEED_B');
 delete from public.ai_messages where account_id='$REQ';
 delete from public.ai_structured_facts where account_id='$REQ';
-delete from public.action_proposals where account_id='$REQ';
 delete from public.ai_conversations where account_id='$REQ';
 delete from public.need_sensitive where need_id in ('$NEED_A','$NEED_B');
 delete from public.need_requirement_details where need_id in ('$NEED_A','$NEED_B');
