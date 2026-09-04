@@ -1,3 +1,20 @@
+<!-- RU3_B07_LIVE_CHECKPOINT_20260904 -->
+## LATEST PHYSICAL CHECKPOINT — RU-3/B07 LIVE
+
+This block supersedes older B07 proof-only/concurrency-pending cursor text below.
+
+- canonical source promotion: `d2c077d90c6410dc0737916df13b257389c6cb3b`
+- B07 source: `supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql` (`17468983d28cddfe4948c3866a96e813` raw MD5)
+- true concurrency/idempotency proof: GitHub Actions `33903129202` — PASS
+- clean promotion integrity: `33905242409` — PASS
+- canonical push integrity: `33905436213` — PASS
+- live Supabase migration: `20260904182402_clean_ru3_canonical_publish`
+- live migration count: `63`
+- live structural proof: PASS; zero publish-command rows; zero policy bundles/rules/publication decisions; business counts preserved
+- production publication remains `FAIL_CLOSED`; no reviewed Serbia policy/evaluator activation and B06 production ALLOW writer remains disabled
+- RU-3/B05, B06 and B07 infrastructure are live/structurally proven; RU-3 overall remains OPEN only for deferred production policy/evaluator/release activation
+- exact next implementation cursor: **RU-4 Material Revision / Re-admission** after a fresh physical preflight
+
 # USKOČI — CURRENT IMPLEMENTATION HANDOFF
 
 Checkpoint: 2026-09-04 continuity reconciliation after B07 proof work + minimum D-0140 owner lock.
