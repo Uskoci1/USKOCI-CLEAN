@@ -35,7 +35,7 @@ function Polje({
         multiline={multiline}
         keyboardType={keyboardType ?? 'default'}
         placeholder={placeholder}
-        placeholderTextColor={palette.muted}
+        placeholderTextColor={palette.inkMuted}
         style={{
           minHeight: multiline ? 132 : touch.min,
           borderWidth: 1,
