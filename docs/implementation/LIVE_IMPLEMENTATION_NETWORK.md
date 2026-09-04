@@ -1,3 +1,18 @@
+<!-- RU4_OWNER_LOCK_20260904 -->
+## CURRENT RU-4 OWNER LOCK — PRODUCT TARGET, NOT LIVE MIGRATION
+
+Canonical decision: `docs/implementation/ru4/RU4_OWNER_LOCK_V1.md`.
+
+This owner lock supersedes older RU-4/COV-028 semantics wherever they allowed one parent Zadatak to carry materially changed terms after the first Dogovor.
+
+Target network:
+
+`no Dogovor yet -> owner may edit -> confirmed content/terms change creates new Need revision -> all old unselected Prijave = STALE_REVIEW_REQUIRED/non-selectable -> each Worker must explicitly accept/revise/withdraw -> accepted/rebased Prijava may become current again`
+
+`first Dogovor formed -> parent Zadatak content edit LOCKED for V1 -> remaining capacity continues on same terms -> Ne traži više nikoga may close remaining search -> different remaining terms require a new Zadatak -> already-selected participant term changes go through Dogovor change`
+
+No live RU-4 migration has been applied. Existing `proof/ru4-material-revision-20260904` work must be reconciled because its post-Dogovor parent-edit semantics are now superseded.
+
 <!-- RU3_B07_LIVE_CHECKPOINT_20260904 -->
 ## LATEST PHYSICAL CHECKPOINT — RU-3/B07 LIVE
 
@@ -129,10 +144,11 @@ Disposable TEST_ONLY fixtures are allowed only in isolated proof environments an
 ## Next allowed action
 
 1. Fresh read-only physical preflight.
-2. Finish B07 true concurrency/idempotency proof on the existing proof branch.
-3. Promote only intended B07 artifacts after exact proof; exclude proof-only helpers.
-4. Rebaseline before any live migration.
-5. Keep production policy activation fail-closed.
-6. Continue RU-4 material revision/re-admission after B07 structural promotion.
+2. Reconcile RU-4 implementation/proofs to `RU4_OWNER_LOCK_V1.md`.
+3. Preserve pre-Dogovor revision + stale/reconfirmation mechanics.
+4. Remove/supersede post-Dogovor parent-Zadatak edit behavior.
+5. Prove old Prijave stay non-selectable until each Worker explicitly accepts/revises the exact current revision.
+6. Prove first Dogovor locks parent edit, partial capacity stays on unchanged terms, and remaining-search closure does not rewrite historical terms.
+7. Keep production policy activation fail-closed.
 
 Principle: **AI agent is replaceable. Canonical project state is not.**
