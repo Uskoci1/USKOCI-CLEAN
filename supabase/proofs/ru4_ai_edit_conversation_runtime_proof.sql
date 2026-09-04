@@ -67,7 +67,9 @@ begin
   returning id into response_id;
   insert into public.marketplace_response_versions(response_id,version,need_revision,price_rsd,covered_slots,scope_note,content_hash)
   values(response_id,1,1,5000,1,'Mogu da pomognem',repeat('a',64));
-  insert into private.dispatch_schedule(need_id,next_run_at) values(editable_need,statement_timestamp());
+  if not exists(select 1 from private.dispatch_schedule where need_id=editable_need) then
+    insert into private.dispatch_schedule(need_id,next_run_at) values(editable_need,statement_timestamp());
+  end if;
 
   insert into public.marketplace_responses(
     need_id,worker_account_id,worker_profile_id,response_kind,status,submitted_against_need_revision,current_version,
