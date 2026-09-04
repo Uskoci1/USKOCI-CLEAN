@@ -131,11 +131,11 @@ jobs:
                   raise SystemExit(f'expected proof fixture text missing: {old!r}')
               s = s.replace(old, new, 1)
 
-          stale_assert = "  if cnt<>3 then raise exception 'RU4_LOCK_PRIOR_APPLICATIONS_NOT_ALL_STALE'; end if;\n"
-          dispatch_assert = stale_assert + "  if exists(select 1 from private.dispatch_schedule where need_id=nid) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n"
-          if stale_assert not in s:
-              raise SystemExit('stale assertion anchor missing')
-          s = s.replace(stale_assert, dispatch_assert, 1)
+          root_anchor = "reset role;\n-- Proof-only republish fixture: this is not a production D-0140 decision. It exists only inside the rollback transaction.\n"
+          root_assert = "reset role;\ndo $dispatch_stopped$\ndeclare nid uuid:=current_setting('uskoci.ru4_need')::uuid;\nbegin\n  if exists(select 1 from private.dispatch_schedule where need_id=nid) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\nend\n$dispatch_stopped$;\n-- Proof-only republish fixture: this is not a production D-0140 decision. It exists only inside the rollback transaction.\n"
+          if root_anchor not in s:
+              raise SystemExit('root dispatch assertion anchor missing')
+          s = s.replace(root_anchor, root_assert, 1)
 
           late_bad = "  if exists(select 1 from private.dispatch_schedule where need_id=nid and current_setting('uskoci.ru4_requester')<>'' ) then\n    raise exception 'RU4_LOCK_OLD_DISPATCH_SCHEDULE_SURVIVED_EDIT';\n  end if;\n"
           if late_bad not in s:
