@@ -1,0 +1,42 @@
+name: RU-4 TypeScript diagnostic
+
+on:
+  push:
+    branches:
+      - proof/ru4-owner-edit-lock-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ru4-ts-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact app dependencies
+        run: npm ci
+      - name: Capture TypeScript diagnostics
+        shell: bash
+        run: |
+          set +e
+          npx tsc --noEmit > /tmp/ru4-tsc.txt 2>&1
+          code=$?
+          echo "$code" > /tmp/ru4-tsc.exit
+          cat /tmp/ru4-tsc.txt
+          exit 0
+      - name: Upload TypeScript diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ru4-tsc-diagnostic
+          path: /tmp/ru4-tsc.txt
+          if-no-files-found: error
+      - name: Preserve TypeScript gate
+        shell: bash
+        run: exit "$(cat /tmp/ru4-tsc.exit)"
