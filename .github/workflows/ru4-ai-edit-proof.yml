@@ -107,14 +107,29 @@ jobs:
       - name: Apply RU-4 AI replay boundary candidate
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/ru4/20260904230500_clean_ru4_ai_edit_replay_boundary.sql
 
-      - name: Run RU-4 AI edit authenticated proof
+      - name: Capture RU-4 AI edit authenticated proof
         shell: bash
         run: |
-          set -euo pipefail
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/proofs/ru4_ai_edit_conversation_runtime_proof.sql | tee /tmp/ru4-ai-edit.log
-          grep -F "PASS RU4_AI_EDIT prefilled_current_task open_is_readonly ai_changes_only_proposed_key human_confirm_required critical_only_change_counts draft_rev2 prior_application_stale first_dogovor_lock exact_replay key_reuse_rejected" /tmp/ru4-ai-edit.log
+          set +e
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/proofs/ru4_ai_edit_conversation_runtime_proof.sql 2>&1 | tee /tmp/ru4-ai-edit.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -eq 0 ]; then
+            grep -F "PASS RU4_AI_EDIT prefilled_current_task open_is_readonly ai_changes_only_proposed_key human_confirm_required critical_only_change_counts draft_rev2 prior_application_stale first_dogovor_lock exact_replay key_reuse_rejected" /tmp/ru4-ai-edit.log || code=$?
+          fi
+          echo "$code" > /tmp/ru4-ai-edit.exit
+          exit 0
+
+      - name: Upload RU-4 AI edit proof diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ru4-ai-edit-proof-log
+          path: /tmp/ru4-ai-edit.log
+          if-no-files-found: error
 
       - name: Verify RU-4 AI proof zero residue
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
@@ -123,6 +138,11 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where title like 'RU4 AI % task';")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where email like 'ru4-ai-%@proof.invalid';")" = "0"
           echo "PASS RU4_AI_EDIT_ZERO_RESIDUE"
+
+      - name: Preserve RU-4 AI edit proof gate
+        if: always()
+        shell: bash
+        run: exit "$(cat /tmp/ru4-ai-edit.exit)"
 
       - name: Destroy disposable stack with no backup
         if: always()
