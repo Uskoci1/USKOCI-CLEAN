@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-04T18:26:45Z",
+  "generated_at_utc": "2026-09-04T22:33:03Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "d2c077d90c6410dc0737916df13b257389c6cb3b",
+  "repository_base_head": "1f5e112b692aa709d18d1ad4794ac8e8ce9860b9",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -305,7 +305,48 @@
       }
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260904214500",
+      "name": "clean_ru4_owner_edit_lock",
+      "file": "20260904214500_clean_ru4_owner_edit_lock.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "10b57d64ab0d58e6e96b7e09cbd3c748",
+      "live_applied": false,
+      "predecessor_live_migration_count": 63,
+      "predecessor_live_head": "20260904182402"
+    },
+    {
+      "version": "20260904223000",
+      "name": "clean_ru4_close_remaining_search",
+      "file": "20260904223000_clean_ru4_close_remaining_search.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "4e4e27d9e71be5f51ef5d892884b63a7",
+      "live_applied": false,
+      "predecessor_live_migration_count": 63,
+      "predecessor_live_head": "20260904182402"
+    },
+    {
+      "version": "20260904230000",
+      "name": "clean_ru4_ai_edit_conversation",
+      "file": "20260904230000_clean_ru4_ai_edit_conversation.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "b976f1ccc2c329d7f2fe0bc43ef36606",
+      "live_applied": false,
+      "predecessor_live_migration_count": 63,
+      "predecessor_live_head": "20260904182402"
+    },
+    {
+      "version": "20260904230500",
+      "name": "clean_ru4_ai_edit_replay_boundary",
+      "file": "20260904230500_clean_ru4_ai_edit_replay_boundary.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "2a1fdea9f612394709afc44cc6f6b1b9",
+      "live_applied": false,
+      "predecessor_live_migration_count": 63,
+      "predecessor_live_head": "20260904182402"
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
