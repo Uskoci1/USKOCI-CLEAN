@@ -8,7 +8,7 @@ NEED_A="00000000-0000-4000-8000-00000000b411"
 NEED_B="00000000-0000-4000-8000-00000000b412"
 
 cleanup() {
-  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 <<SQL >/dev/null 2>&1 || true
+  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 <<SQL
 begin;
 delete from private.need_edit_commands where requester_account_id='$REQ';
 delete from private.need_revision_events where created_by_account_id='$REQ';
@@ -26,7 +26,7 @@ delete from auth.users where id='$REQ';
 commit;
 SQL
 }
-trap cleanup EXIT
+trap 'cleanup || true' EXIT
 cleanup
 
 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 <<SQL
@@ -152,4 +152,7 @@ select n.revision::text || '/' ||
 from public.needs n where n.id='$NEED_B';
 SQL
 
-echo "PASS RU4_AI_EDIT_CONCURRENCY same_key_same_review_converges different_keys_one_winner single_revision_single_receipt"
+cleanup
+trap - EXIT
+
+echo "PASS RU4_AI_EDIT_CONCURRENCY same_key_same_review_converges different_keys_one_winner single_revision_single_receipt zero_residue"
