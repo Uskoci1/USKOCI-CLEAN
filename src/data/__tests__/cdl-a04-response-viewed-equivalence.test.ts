@@ -1,10 +1,13 @@
 /**
- * CDL-A04 — response-viewed command, pre-deletion equivalence proof.
+ * CDL-A04 — canonical response-viewed command contract.
  *
- * The existing active productionAuthorityOverrides implementation and the new
- * responseClientService are executed against the same mocked Supabase RPC.
- * Deletion is allowed only after this test and the full PRE-P4 gate are green.
+ * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33956936388.
+ * After deletion, these tests lock the canonical RPC/error contract and prove
+ * the migrated command has one physical production owner.
  */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
   const mockRpc = jest.fn();
@@ -16,40 +19,40 @@ jest.mock('../supabaseClient', () => {
   };
 });
 
-import { productionAuthorityOverrides } from '../productionAuthorityOverrides';
 import { responseClientService } from '../responseClientService';
 
 const { mockRpc } = (jest.requireMock('../supabaseClient') as {
   __testMocks: { mockRpc: jest.Mock };
 }).__testMocks;
 
-async function capture(run: () => Promise<unknown>, rpcResult: unknown) {
+function resetRpc(result: unknown) {
   mockRpc.mockReset();
-  mockRpc.mockResolvedValue(rpcResult);
-
-  const value = await run();
-  return {
-    value,
-    calls: mockRpc.mock.calls.map((args) => [...args]),
-  };
+  mockRpc.mockResolvedValue(result);
 }
 
-describe('CDL-A04 — response viewed equivalence before deletion', () => {
-  it('preserves exact RPC name, params and success result', async () => {
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.oznaciPrijavuVidjenom!('response-1'),
-      { data: null, error: null },
-    );
-    const newOwner = await capture(
-      () => responseClientService.oznaciPrijavuVidjenom('response-1'),
-      { data: null, error: null },
-    );
+describe('CDL-A04 — canonical response viewed contract', () => {
+  it('physically eliminates the transitional response-viewed owners', () => {
+    const dataDir = join(__dirname, '..');
+    const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
+    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
+    const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls).toEqual([
+    expect(indexSource).toContain("import { responseClientService } from './responseClientService'");
+    expect(indexSource).toContain('...responseClientService');
+    expect(authoritySource).not.toContain('oznaciPrijavuVidjenom');
+    expect(baselineSource).not.toContain('async oznaciPrijavuVidjenom(');
+    expect(baselineSource).toContain("'oznaciPrijavuVidjenom'");
+  });
+
+  it('preserves exact RPC name, params and success result', async () => {
+    resetRpc({ data: null, error: null });
+
+    const result = await responseClientService.oznaciPrijavuVidjenom('response-1');
+
+    expect(mockRpc.mock.calls).toEqual([
       ['rpc_mark_response_viewed', { p_response_id: 'response-1' }],
     ]);
-    expect(newOwner.value).toEqual({ ok: true, podatak: null });
+    expect(result).toEqual({ ok: true, podatak: null });
   });
 
   it.each([
@@ -74,19 +77,13 @@ describe('CDL-A04 — response viewed equivalence before deletion', () => {
       },
     ],
   ])('preserves active error mapping %#', async (rpcResult, expected) => {
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.oznaciPrijavuVidjenom!('response-2'),
-      rpcResult,
-    );
-    const newOwner = await capture(
-      () => responseClientService.oznaciPrijavuVidjenom('response-2'),
-      rpcResult,
-    );
+    resetRpc(rpcResult);
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls).toEqual([
+    const result = await responseClientService.oznaciPrijavuVidjenom('response-2');
+
+    expect(mockRpc.mock.calls).toEqual([
       ['rpc_mark_response_viewed', { p_response_id: 'response-2' }],
     ]);
-    expect(newOwner.value).toEqual(expected);
+    expect(result).toEqual(expected);
   });
 });
