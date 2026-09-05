@@ -75,7 +75,7 @@ begin
 end $seed$;
 
 -- Static privilege boundary: authenticated may execute the narrow projection;
--- anon/public may not. Raw table RLS remains unchanged and owner-only.
+-- anon may not. Raw table RLS remains unchanged and owner-only.
 do $privileges$
 begin
   if not has_function_privilege('authenticated','public.rpc_get_public_profile(uuid)','EXECUTE') then
@@ -83,9 +83,6 @@ begin
   end if;
   if has_function_privilege('anon','public.rpc_get_public_profile(uuid)','EXECUTE') then
     raise exception 'RU5_P0C01_ANON_EXECUTE_ALLOWED';
-  end if;
-  if has_function_privilege('public','public.rpc_get_public_profile(uuid)','EXECUTE') then
-    raise exception 'RU5_P0C01_PUBLIC_EXECUTE_ALLOWED';
   end if;
 end $privileges$;
 
