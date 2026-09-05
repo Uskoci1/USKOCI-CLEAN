@@ -1,3 +1,21 @@
+<!-- CDL_CLOSED_RU5_POINTER_20260905 -->
+## CURRENT ROOT POINTER — CDL CLOSED / MASTER RE-ADMISSION → RU-5 P0C-01
+
+This top pointer supersedes every older `Exact next cursor` below. Historical text remains provenance only.
+
+- primary living continuation document: `docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md`
+- canonical code checkpoint after final client cleanup: `40afb2ed654c9987f82e7cd3c120a5b60ccbcf11`
+- CDL-A11 promotion: `1be672dc649fee102a66c826c86b0e5609a43315`; proofs `33966439120` + `33966556555` PASS
+- CDL-A12 promotion: `40afb2ed654c9987f82e7cd3c120a5b60ccbcf11`; proofs `33967095683`, `33967215611`, final merge candidate `33967294217` PASS
+- Client Data Layer Consolidation / Overrides Elimination: **CLOSED / CANONICAL**; no comparable high-risk production shadow remains; do not invent CDL-A13
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- Edge remains `uskoci-ai-interview` ACTIVE v5 / `verify_jwt=true` / EZBR `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**; its policy/rate/block/materiality activation blockers are explicitly deferred while RU-5 foundation proceeds and MUST NOT be invented
+- production D0140 remains **FAIL_CLOSED**; monetization remains **FREE / 0 RSD**
+- governing master re-admission selects **RU-5 / P0C-01 PUBLIC-SAFE PROFILE PROJECTION** as the next admissible unit
+- exact next cursor: **FRESH READ-ONLY RU-5/P0C-01 PREFLIGHT → inspect live `app_profiles` schema/RLS/grants/public profile projections + canonical W03/W04/R05/R06 consumers → smallest proof branch → no live Supabase write before disposable/authenticated proof**
+
 <!-- CDL_A10_ROOT_POINTER_20260905 -->
 ## CURRENT ROOT POINTER — CDL-A10 CLOSED / POST-A10 INVENTORY
 
