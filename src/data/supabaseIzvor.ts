@@ -1,4 +1,4 @@
-import { Izvor, Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda } from './ports';
+import { Izvor, Ishod, IzborKomanda, PodnesiPrijavuKomanda } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import type { 
   DogovorProjekcija, 
@@ -50,7 +50,10 @@ function jednaRelacija<T>(vrednost: T | T[] | null | undefined): T | null {
   return vrednost ?? null;
 }
 
-type SupabaseIzvor = Omit<Izvor, 'mojiDogovori' | 'dogovor'>;
+type SupabaseIzvor = Omit<
+  Izvor,
+  'mojiDogovori' | 'dogovor' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'posaljiPoruku'
+>;
 
 export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
@@ -277,20 +280,6 @@ export const supabaseIzvor: SupabaseIzvor = {
   },
   
   async oznaciPrijavuVidjenom(prijavaId: string) { return { ok: true, podatak: null }; },
-  
-  async predloziIzmenu(k: IzmenaKomanda) {
-    const { data, error } = await supabase.rpc('rpc_propose_agreement_change', {
-      p_agreement_id: k.dogovorId, p_expected_version: k.ocekivanaVerzija, p_reason: k.razlog,
-      p_amount: k.izmena.cenaIznos, p_currency: k.izmena.cenaValuta, p_start_time: k.izmena.pocetakIso,
-      p_end_time: k.izmena.krajIso, p_scope: k.izmena.obim, p_idempotency_key: k.clientRequestId
-    });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
-    return { ok: true, podatak: { predlogId: data } };
-  },
-  
-  async odgovoriNaIzmenu(predlogId: string, prihvatam: boolean) { return { ok: true, podatak: null }; },
-  
-  async posaljiPoruku(dogovorId: string, telo: string) { return { ok: true, podatak: { porukaId: '' } }; },
   
   async otkaziDogovor(dogovorId: string, razlog: string) {
     const { data, error } = await supabase.rpc('rpc_cancel_agreement', { p_agreement_id: dogovorId, p_reason: razlog });
