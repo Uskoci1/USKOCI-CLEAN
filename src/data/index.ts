@@ -2,6 +2,7 @@ import { agreementClientService } from './agreementClientService';
 import { aiCommandOverrides } from './aiCommandOverrides';
 import { aiNeedV2Production } from './aiNeedV2Production';
 import { aiProductionOverrides } from './aiProductionOverrides';
+import { contactClientService } from './contactClientService';
 import { lazniIzvor } from './lazniIzvor';
 import { needClientService } from './needClientService';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
@@ -31,11 +32,11 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 }
 
 // Existing adapter remains the baseline while strict canonical closures replace
-// known unsafe/incorrect paths. CDL-A03 physically removes the legacy Need read
-// implementations, so needClientService is the only production owner for
-// mojePotrebe/potreba and keeps their fail-loud projection semantics explicit.
-// CDL-A04 routes oznaciPrijavuVidjenom through an explicit response service while
-// the old owner remains temporarily present only for equivalence proof.
+// known unsafe/incorrect paths. CDL-A03 physically removed legacy Need reads;
+// needClientService is their only production owner. CDL-A04 physically removed
+// both lower response-viewed owners; responseClientService is its only owner.
+// CDL-A05 temporarily places PHONE grant/revoke behind contactClientService while
+// the old active owner remains only for equivalence proof until the gate is green.
 // AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
 // CDL-A01/A02 physically removed the five migrated Agreement methods from
@@ -44,6 +45,7 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
+  ...contactClientService,
   ...responseClientService,
   ...needClientService,
   ...aiProductionOverrides,
