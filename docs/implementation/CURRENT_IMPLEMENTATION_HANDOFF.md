@@ -1,3 +1,91 @@
+<!-- CDL_CLOSURE_MASTER_READMISSION_20260905 -->
+## LATEST CHECKPOINT — CLIENT DATA LAYER CONSOLIDATION CLOSED / MASTER RE-ADMISSION → RU-5
+
+- date: `2026-09-05`
+- governing frozen package re-verified from Library: `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip`
+- governing SHA-256 re-verified: `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`
+- canonical pre-continuity-reconciliation SHA after final cleanup promotion: `40afb2ed654c9987f82e7cd3c120a5b60ccbcf11`
+- live Supabase fresh post-A12 state: `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- Edge fresh post-A12 state: `uskoci-ai-interview` ACTIVE v5, `verify_jwt=true`, EZBR SHA-256 `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
+
+### CDL-A11 — AI conversation open/read shadows — CLOSED / CANONICAL
+
+- pre-change canonical: `b0c3772bb1c22a27dfa8bcf59119864f3afc3079`
+- proof branch/head: `proof/client-data-ai-conversation-shadow-20260905 @ 53441d831e4035fb1bf86756e1887b1443a1a6fe`
+- PR: `#14`
+- promoted canonical code SHA: `1be672dc649fee102a66c826c86b0e5609a43315`
+- canonical owner: `src/data/aiProductionOverrides.ts` for `otvoriRazgovor` + `razgovor`
+- physically removed from `src/data/supabaseIzvor.ts`: stale `p_purpose='NEW_NEED'` conversation opener and `razgovor(...)->null` read shadow
+- live authority proof established `rpc_ai_open_conversation` accepts `NEED_INTAKE | APPLICATION | PROFILE`; the removed `NEW_NEED` path was behavior-breaking if it ever won precedence
+- surviving owner type strengthened from optional `Partial<Pick<...>>` to required `Pick<...>`; runtime implementation body/behavior preserved
+- pre-deletion proof `33966439120` — PASS
+- final post-deletion proof `33966556555` — PASS (migration integrity, TypeScript, full regression)
+- no Supabase migration/write and no Edge change
+
+### CDL-A12 — legacy AI publish shadow — CLOSED / CANONICAL
+
+- pre-change canonical: `1be672dc649fee102a66c826c86b0e5609a43315`
+- proof branch/final merge-candidate head: `proof/client-data-ai-publish-shadow-20260905 @ 2d57f41259d0da5f832ee25db6bc99ab2c63e9ba`
+- PR: `#15`
+- promoted canonical code SHA: `40afb2ed654c9987f82e7cd3c120a5b60ccbcf11`
+- canonical owner: `src/data/productionAuthorityOverrides.ts` for legacy fail-closed `objaviPotrebu`
+- fresh live authority proof: `public.rpc_ai_publish_need(uuid,uuid)` requires `p_conversation_id` + `p_profile_id`, authenticated-only, anon denied, and intentionally raises `PACKAGE_4_NOT_READY`
+- physically removed from `src/data/supabaseIzvor.ts`: lower-precedence `objaviPotrebu` shadow that omitted required `p_profile_id`
+- surviving owner type strengthened from optional `Partial<Pick<...>>` to required `Pick<...>`; fail-closed runtime body/behavior preserved
+- pre-deletion proof `33967095683` — PASS
+- post-deletion proof `33967215611` — PASS
+- exact final 3-file merge-candidate proof after proof-only docs removal `33967294217` — PASS (migration integrity, TypeScript, full regression)
+- exact canonical A12 diff: `src/data/__tests__/cdl-a12-ai-publish-shadow-equivalence.test.ts`, `src/data/productionAuthorityOverrides.ts`, `src/data/supabaseIzvor.ts`
+- no Supabase migration/write, no Edge change, no D0140 activation and no publication semantic change
+
+### FINAL POST-A12 SHADOW INVENTORY / STOP DECISION
+
+`src/data/index.ts` production composition remains explicit. Specialized production owners now use disjoint required `Pick<Izvor,...>` sets:
+
+- `agreementClientService`: `mojiDogovori`, `dogovor`, `posaljiPoruku`, `predloziIzmenu`, `odgovoriNaIzmenu`, `prijaviProblem`, `oznaciZavrsetak`
+- `contactClientService`: `podeliTelefon`, `opoziviTelefon`, `otkrijTacnuLokaciju`
+- `responseClientService`: `oznaciPrijavuVidjenom`
+- `needClientService`: `mojePotrebe`, `potreba`
+- `aiProductionOverrides`: `otvoriRazgovor`, `razgovor`
+- `aiCommandOverrides`: `posaljiKorisnikovuPoruku`, `ispraviCinjenicu`
+- `workerProfileClientService`: `azurirajRadnikProfil`
+- `productionAuthorityOverrides`: legacy fail-closed `objaviPotrebu`
+
+`supabaseIzvor` explicitly `Omit`s the union of those migrated methods. Remaining baseline methods such as Opportunity/Application/selection/lifecycle reads or commands have one current production owner and belong to governing RU-5/RU-6/RU-7 work; they are not spread-shadow cleanup targets.
+
+`EXPO_PUBLIC_USE_FAKE_SOURCE=1` remains an explicit DEV/test switch only. Production with missing Supabase config fails loudly; there is no implicit fake fallback. `aiNeedV2Izvor` remains an explicit V2 boundary; new Need surfaces do not accidentally route through legacy AI publish.
+
+**STOP CLIENT CLEANUP.** No comparable high-risk production shadow remains. Do not invent CDL-A13 for aesthetics.
+
+Client Data Layer Consolidation / Overrides Elimination track verdict: **CLOSED / CANONICAL / BEHAVIOR-PRESERVING**.
+
+### MASTER RE-ADMISSION
+
+Fresh governing re-read confirms dependency order `RU-0 → RU-1 → RU-2 → RU-3 → RU-4 → RU-4B → RU-5 → RU-5B → RU-6A → RU-6B → RU-7 → RU-8`.
+
+Re-admitted status matrix:
+
+- RU-0 — **CLOSED / LIVE / DO NOT REDO**
+- RU-1 — **CLOSED / LIVE / DO NOT REDO**
+- RU-2 — **CLOSED / LIVE / DO NOT REDO**
+- RU-3 admission/publish infrastructure — **LIVE_FOUNDATION / ACTIVATION_BLOCKED-DEFERRED**; production Serbia D0140 ALLOW remains off
+- RU-4 — **CLOSED / LIVE / DO NOT REDO**
+- RU-4B public preselection Q&A — **LIVE_FOUNDATION / ACTIVATION_BLOCKED / DEFERRED USER-FACING ACTIVATION**
+- Client Data Layer Consolidation — **CLOSED / CANONICAL**
+- RU-5 Application Integrity + public-safe profile/candidate projections — **OPEN / NEXT ADMISSIBLE GOVERNING UNIT**
+- RU-5B Application AI — **NOT_STARTED / gated by proven manual canonical Prijava contract**
+- RU-6A — **FOUNDATION_ONLY / governing closure not started; gated by RU-5**
+- RU-6B — **NOT_STARTED / gated by RU-6A**
+- RU-7 — **FOUNDATION_ONLY / governing closure gated by RU-6A/RU-6B**
+- RU-8 — **NOT_STARTED / mandatory proof track before release closure**
+- PP/release tracks — **NOT_STARTED or DEFERRED according to their governing plans**
+
+RU-4B activation blockers remain explicit and MUST NOT be invented: account-block authority, owner-approved numeric Q&A rate policy, reviewed/current `PRESELECTION_QA` production ALLOW policy, production-trusted materiality authority. Governing baseline states RU-5 is `GO_AFTER_RU2/4 dependencies`; therefore these RU-4B user-facing activation blockers may remain deferred while RU-5 foundation/integrity work proceeds. They are not permission to activate Q&A.
+
+Production D0140 publication remains **FAIL_CLOSED**. V1 monetization remains **FREE / 0 RSD**.
+
+**EXACT NEXT CURSOR: RU-5 / P0C-01 PUBLIC-SAFE PROFILE PROJECTION — FRESH READ-ONLY PHYSICAL PREFLIGHT → inspect current app_profiles/RLS/public projection state + W03/W04/R05/R06 consumers → smallest proof branch; no live write before disposable/authenticated proof.**
+
 <!-- CDL_A10_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A10 AI COMMAND SHADOW ELIMINATION CLOSED / CANONICAL
 
