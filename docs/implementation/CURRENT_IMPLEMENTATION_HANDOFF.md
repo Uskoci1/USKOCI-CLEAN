@@ -1,3 +1,24 @@
+<!-- CDL_A01_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A01 AGREEMENT WORKSPACE READS CLOSED / CANONICAL
+
+- canonical code promotion: `5e387aa7890a35d87fcb1844b16f9e4943967595`
+- continuity ledger commit after promotion: `fa6ad9685cdaca1d55637ab4a6796230e73b66e0`
+- proof branch/head: `proof/client-data-agreement-read-20260905 @ 0b84c3b4f792fe228d263762df9514cc277afa34`
+- proof PR: `#4`, squash-promoted only after deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33952203946` — PASS
+- post-owner migration proof: `33952346007` — PASS
+- final physical-deletion proof: `33952603276` — PASS (migration integrity, TypeScript, full regression)
+- `mojiDogovori` and `dogovor` now have one canonical production owner: `src/data/agreementClientService.ts`
+- exact backend authority remains `rpc_list_my_agreements()` and `rpc_get_agreement_workspace(p_agreement_id)`
+- old direct-table Agreement read implementations were physically removed from `src/data/supabaseIzvor.ts`
+- `src/data/agreementProductionOverrides.ts` no longer owns Agreement reads; it retains only Agreement mutations
+- no Supabase migration/write, Edge change, RU-4/RU-4B semantic change, D0140 activation or monetization change
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **CDL-A02 — AGREEMENT MUTATION OVERRIDES (`posaljiPoruku`, `predloziIzmenu`, `odgovoriNaIzmenu`) / PROOF-FIRST / NO BACKEND WRITE**
+
 <!-- RU4B_LIVE_FOUNDATION_CHECKPOINT_20260905 -->
 ## LATEST PHYSICAL CHECKPOINT — RU-4B PRESELECTION Q&A FOUNDATION LIVE / ACTIVATION BLOCKED
 
