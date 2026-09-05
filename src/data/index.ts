@@ -9,6 +9,7 @@ import { productionAuthorityOverrides } from './productionAuthorityOverrides';
 import { responseClientService } from './responseClientService';
 import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
+import { workerProfileClientService } from './workerProfileClientService';
 import { Izvor } from './ports';
 
 // Eksplicitna kompoziciona granica.
@@ -35,17 +36,17 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // known unsafe/incorrect paths. CDL-A03 physically removed legacy Need reads;
 // needClientService is their only production owner. CDL-A04 physically removed
 // both lower response-viewed owners; responseClientService is its only owner.
-// CDL-A05 consolidated PHONE grants and CDL-A08 consolidates exact-location reveal;
-// contactClientService is now the canonical contact/privacy owner for those paths.
-// CDL-A06 moved Agreement problem reporting into agreementClientService. CDL-A07
-// moved Agreement completion marking there too, preserving the server deadline.
+// CDL-A05 consolidated PHONE grants and CDL-A08 exact-location reveal;
+// contactClientService is the canonical contact/privacy owner for those paths.
+// CDL-A09 stages Worker profile mutation behind workerProfileClientService while
+// the prior active owner remains temporarily for equivalence proof.
+// CDL-A06/A07 moved problem reporting and completion marking into Agreement service.
 // AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
-// CDL-A01/A02 physically removed the first five migrated Agreement methods from
-// legacy/override layers; agreementClientService remains their canonical owner.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
+  ...workerProfileClientService,
   ...contactClientService,
   ...responseClientService,
   ...needClientService,
