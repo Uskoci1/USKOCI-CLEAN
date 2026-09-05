@@ -48,15 +48,6 @@ function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): 
   });
 }
 
-function formatPublicReviews(profile: JavniProfilProjekcija | null | undefined): string {
-  if (!profile?.poverenje.recenzijeDostupne || profile.poverenje.brojRecenzija === null) {
-    return 'Ocene nisu dostupne';
-  }
-  const count = profile.poverenje.brojRecenzija;
-  if (count === 0) return 'Nema recenzija';
-  return `${count} ${count === 1 ? 'recenzija' : 'recenzija'}`;
-}
-
 /**
  * One narrow RPC per distinct profile id. A profile projection failure must not
  * erase otherwise-public Need/Application rows, so marketplace list consumers
@@ -87,6 +78,7 @@ type SupabaseIzvor = Omit<
   | 'posaljiPoruku'
   | 'mojePotrebe'
   | 'potreba'
+  | 'prijaveZaPotrebu'
   | 'oznaciPrijavuVidjenom'
   | 'podeliTelefon'
   | 'opoziviTelefon'
@@ -170,41 +162,6 @@ export const supabaseIzvor: SupabaseIzvor = {
       rezimCene: data.mode as any,
       ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
     };
-  },
-
-  async prijaveZaPotrebu(potrebaId: string) {
-    const { data, error } = await supabase.from('marketplace_responses')
-      .select(`
-        id, current_version, price_rsd, covered_slots, proposed_start_at, status, worker_profile_id,
-        marketplace_response_versions(version, content_hash)
-      `)
-      .eq('need_id', potrebaId);
-
-    if (error || !data) return [];
-
-    const profiles = await safePublicProfiles(data.map((r: any) => r.worker_profile_id));
-
-    return data.map((r: any) => {
-      const ver = r.marketplace_response_versions?.find((v: any) => v.version === r.current_version);
-      const radnik = profiles.get(r.worker_profile_id) ?? null;
-      const ime = radnik?.ime || '';
-      return {
-        prijavaId: r.id,
-        radnikProfilId: r.worker_profile_id,
-        verzija: r.current_version,
-        hash: ver?.content_hash || '',
-        ime,
-        inicijali: (ime || '?').substring(0, 2).toUpperCase(),
-        ocenaTekst: formatPublicRating(radnik) ?? '—',
-        recenzijeTekst: formatPublicReviews(radnik),
-        cena: rsd(r.price_rsd || 0),
-        pokrivaMesta: r.covered_slots || 1,
-        dolazakTekst: fTime(r.proposed_start_at),
-        prevozTekst: 'Dogovor',
-        stanje: r.status,
-        razlogPreporuke: null,
-      };
-    });
   },
 
   async poruke(dogovorId: string) {

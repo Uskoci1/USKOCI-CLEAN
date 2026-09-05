@@ -63,7 +63,7 @@ export default function Prijave() {
 
   const izaberi = useCallback(
     async (k: KandidatProjekcija) => {
-      if (!potreba || uToku) return;
+      if (!potreba || uToku || !k.mozeIzabrati || k.stanje !== 'SELECTABLE') return;
       setUToku(k.prijavaId);
       setGreska(null);
 
@@ -110,8 +110,8 @@ export default function Prijave() {
   }
 
   const p = potreba.pokrivenost;
-  const izabrani = kandidati.filter((k) => k.stanje === 'IZABRANA');
-  const slobodni = kandidati.filter((k) => k.stanje !== 'IZABRANA');
+  const izabrani = kandidati.filter((k) => k.stanje === 'SELECTED');
+  const slobodni = kandidati.filter((k) => k.stanje !== 'SELECTED');
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
@@ -228,6 +228,7 @@ export default function Prijave() {
           slobodni.map((k, i) => {
             const preporucen = !!k.razlogPreporuke;
             const radi = uToku === k.prijavaId;
+            const dostupna = k.mozeIzabrati && k.stanje === 'SELECTABLE';
 
             return (
               <Animated.View
@@ -305,6 +306,20 @@ export default function Prijave() {
                       </View>
                     </View>
 
+                    {!dostupna && (
+                      <T variant="meta" tone="muted">
+                        {k.stanje === 'OVERFILL'
+                          ? `Pokriva ${k.pokrivaMesta}, a ostalo je ${k.preostaloMesta}.`
+                          : k.stanje === 'STALE'
+                            ? 'Prijavu treba ponovo proveriti.'
+                            : k.stanje === 'WITHDRAWN'
+                              ? 'Prijava je povučena.'
+                              : k.stanje === 'FULL'
+                                ? 'Sva mesta su već popunjena.'
+                                : 'Prijava više nije dostupna za izbor.'}
+                      </T>
+                    )}
+
                     <View style={{ flexDirection: 'row', gap: space.sm }}>
                       <Press
                         accessibilityRole="button"
@@ -322,8 +337,8 @@ export default function Prijave() {
                       <Press
                         accessibilityRole="button"
                         accessibilityLabel={`Izaberi: ${k.ime}`}
-                        accessibilityState={{ disabled: !!uToku }}
-                        disabled={!!uToku}
+                        accessibilityState={{ disabled: !!uToku || !dostupna }}
+                        disabled={!!uToku || !dostupna}
                         haptic="success"
                         onPress={() => izaberi(k)}
                         style={{
@@ -332,7 +347,7 @@ export default function Prijave() {
                           backgroundColor: preporucen ? palette.orange : 'transparent',
                           borderWidth: preporucen ? 0 : 1.5,
                           borderColor: palette.ink,
-                          opacity: uToku && !radi ? 0.45 : 1,
+                          opacity: (!dostupna || (uToku && !radi)) ? 0.45 : 1,
                         }}
                       >
                         {radi ? (

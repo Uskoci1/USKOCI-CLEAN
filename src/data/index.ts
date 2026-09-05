@@ -3,6 +3,7 @@ import { applicationClientService } from './applicationClientService';
 import { aiCommandOverrides } from './aiCommandOverrides';
 import { aiNeedV2Production } from './aiNeedV2Production';
 import { aiProductionOverrides } from './aiProductionOverrides';
+import { candidateClientService } from './candidateClientService';
 import { contactClientService } from './contactClientService';
 import { lazniIzvor } from './lazniIzvor';
 import { needClientService } from './needClientService';
@@ -47,9 +48,12 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
 // RU-5 P0C-01 owns cross-account profile reads through a narrow public RPC;
 // raw app_profiles remains owner-only and is never opened for marketplace cards.
+// RU-5 P0D-01 makes candidateClientService the sole Requester candidate-list
+// owner; raw response/version reads do not feed R05 directly anymore.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...applicationClientService,
+  ...candidateClientService,
   ...productionAuthorityOverrides,
   ...workerProfileClientService,
   ...publicProfileClientService,
