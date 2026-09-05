@@ -1,3 +1,23 @@
+<!-- CDL_A03_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A03 NEED READS CLOSED / CANONICAL
+
+- canonical code promotion: `76b34791d4f372e2d0613377274f7b1038b82e9f`
+- proof branch/head: `proof/client-data-need-reads-20260905 @ 0aeed66de8cb7b16b0a527fbf3ccad56ac985383`
+- proof PR: `#6`, squash-promoted only after pre-deletion and post-deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33954247260` — PASS
+- final post-deletion proof: GitHub Actions `33954495080` — PASS (migration integrity, TypeScript, full regression)
+- `src/data/needClientService.ts` is now the single production owner for `mojePotrebe` and `potreba`
+- live backend authority remains server-side in `public.needs` RLS SELECT policies; no client authority was added
+- old `src/data/needProductionOverrides.ts` layer is physically gone (Git recognizes its replacement as the new Need service)
+- lower-precedence legacy Need read implementations were physically removed from `src/data/supabaseIzvor.ts`
+- preserved exactly: auth fail-loud behavior, SELECT projection, requester filter, order, ID trim/null behavior, status mapping, price/mode mapping and backend/projection errors
+- no Supabase migration/write, Edge change, RU-4/RU-4B semantic change, D0140 activation or monetization change
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **FRESH POST-A03 SHADOW INVENTORY → SELECT CDL-A04 BY LOWEST-RISK PROVEN SLICE**
+
 <!-- CDL_A02_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A02 AGREEMENT MUTATIONS CLOSED / CANONICAL
 
