@@ -297,5 +297,5 @@ end
 $selection_binding$;
 reset role;
 
-raise notice 'PASS RU5_P0D01 requester_owner selectable_exact stale overfill full selected withdrawn closed draft_excluded public_safe snapshot_v1 legacy_unproven projection_read_only selection_binding rollback_only';
+\echo PASS RU5_P0D01 requester_owner selectable_exact stale overfill full selected withdrawn closed draft_excluded public_safe snapshot_v1 legacy_unproven projection_read_only selection_binding rollback_only
 rollback;
