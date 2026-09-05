@@ -11,6 +11,7 @@
 
 import type {
   DogovorProjekcija,
+  JavniProfilProjekcija,
   KontaktProjekcija,
   RezimIzvrsenja,
   KandidatProjekcija,
@@ -35,15 +36,16 @@ function pokrivenost(ukupno: number, popunjeno: number) {
 }
 
 const UKUPNO_MESTA = 2;
+const NARUCILAC_PROFIL_ID = 'narucilac-milos';
 
 type Kandidat = Omit<KandidatProjekcija, 'stanje' | 'razlogPreporuke'>;
 
 const KANDIDATI: Kandidat[] = [
-  { prijavaId: 'p-marko', verzija: 2, hash: 'h-marko-2', ime: 'Marko Ilić', inicijali: 'MI', ocenaTekst: '5,0', recenzijeTekst: '11 recenzija', cena: rsd(5200), pokrivaMesta: 2, dolazakTekst: 'Sutra · 17:00', prevozTekst: 'Kombi' },
-  { prijavaId: 'p-jelena', verzija: 1, hash: 'h-jelena-1', ime: 'Jelena Marković', inicijali: 'JM', ocenaTekst: '4,9', recenzijeTekst: '32 recenzije', cena: rsd(4800), pokrivaMesta: 2, dolazakTekst: 'Sutra · 16:30', prevozTekst: 'Kombi' },
-  { prijavaId: 'p-nikola', verzija: 1, hash: 'h-nikola-1', ime: 'Nikola Petrović', inicijali: 'NP', ocenaTekst: '—', recenzijeTekst: 'Nov Uskočer', cena: rsd(4500), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Kombi' },
-  { prijavaId: 'p-ivana', verzija: 1, hash: 'h-ivana-1', ime: 'Ivana Kostić', inicijali: 'IK', ocenaTekst: '4,9', recenzijeTekst: '27 recenzija', cena: rsd(2300), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Bez vozila' },
-  { prijavaId: 'p-ana', verzija: 1, hash: 'h-ana-1', ime: 'Ana Vasić', inicijali: 'AV', ocenaTekst: '4,8', recenzijeTekst: '19 recenzija', cena: rsd(4600), pokrivaMesta: 1, dolazakTekst: 'Sutra · 16:00', prevozTekst: 'Automobil' },
+  { prijavaId: 'p-marko', radnikProfilId: 'radnik-marko', verzija: 2, hash: 'h-marko-2', ime: 'Marko Ilić', inicijali: 'MI', ocenaTekst: '5,0', recenzijeTekst: '11 recenzija', cena: rsd(5200), pokrivaMesta: 2, dolazakTekst: 'Sutra · 17:00', prevozTekst: 'Kombi' },
+  { prijavaId: 'p-jelena', radnikProfilId: 'radnik-jelena', verzija: 1, hash: 'h-jelena-1', ime: 'Jelena Marković', inicijali: 'JM', ocenaTekst: '4,9', recenzijeTekst: '32 recenzije', cena: rsd(4800), pokrivaMesta: 2, dolazakTekst: 'Sutra · 16:30', prevozTekst: 'Kombi' },
+  { prijavaId: 'p-nikola', radnikProfilId: 'radnik-nikola', verzija: 1, hash: 'h-nikola-1', ime: 'Nikola Petrović', inicijali: 'NP', ocenaTekst: '—', recenzijeTekst: 'Nov Uskočer', cena: rsd(4500), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Kombi' },
+  { prijavaId: 'p-ivana', radnikProfilId: 'radnik-ivana', verzija: 1, hash: 'h-ivana-1', ime: 'Ivana Kostić', inicijali: 'IK', ocenaTekst: '4,9', recenzijeTekst: '27 recenzija', cena: rsd(2300), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Bez vozila' },
+  { prijavaId: 'p-ana', radnikProfilId: 'radnik-ana', verzija: 1, hash: 'h-ana-1', ime: 'Ana Vasić', inicijali: 'AV', ocenaTekst: '4,8', recenzijeTekst: '19 recenzija', cena: rsd(4600), pokrivaMesta: 1, dolazakTekst: 'Sutra · 16:00', prevozTekst: 'Automobil' },
 ];
 
 /* -------------------------------------------------------------- stanje */
@@ -273,6 +275,51 @@ async function potrebaProjekcija(): Promise<PotrebaProjekcija> {
   };
 }
 
+function fakePublicProfile(profileId: string): JavniProfilProjekcija | null {
+  if (profileId === NARUCILAC_PROFIL_ID) {
+    return {
+      profilId: profileId,
+      uloga: 'narucilac',
+      ime: 'Miloš',
+      avatarPutanja: null,
+      grad: 'Novi Sad',
+      naslov: null,
+      biografija: null,
+      poverenje: {
+        ocenaProsek: 4.9,
+        brojRecenzija: 18,
+        zavrseniBroj: 7,
+        identitetVerifikovan: false,
+        ocenaDostupna: true,
+        recenzijeDostupne: true,
+        verifikacijaIdentitetaDostupna: false,
+      },
+    };
+  }
+
+  const kandidat = KANDIDATI.find((k) => k.radnikProfilId === profileId);
+  if (!kandidat && profileId !== stanje.profil.id) return null;
+  const ime = kandidat?.ime ?? stanje.profil.ime;
+  return {
+    profilId: profileId,
+    uloga: 'uskocer',
+    ime,
+    avatarPutanja: null,
+    grad: kandidat ? 'Novi Sad' : stanje.profil.grad,
+    naslov: null,
+    biografija: kandidat ? null : stanje.profil.biografija,
+    poverenje: {
+      ocenaProsek: null,
+      brojRecenzija: null,
+      zavrseniBroj: 0,
+      identitetVerifikovan: false,
+      ocenaDostupna: false,
+      recenzijeDostupne: false,
+      verifikacijaIdentitetaDostupna: false,
+    },
+  };
+}
+
 /* --------------------------------------------------------------- izvor */
 
 export const lazniIzvor: Izvor = {
@@ -307,6 +354,7 @@ export const lazniIzvor: Izvor = {
         vremeTekst: 'Sutra · posle 15h',
         pokrivenost: pokrivenost(UKUPNO_MESTA, popunjeno()),
         uslovi: ['Kombi', '4. sprat', 'Nema lifta'],
+        narucilacProfilId: NARUCILAC_PROFIL_ID,
         narucilacIme: 'Miloš',
         narucilacOcena: '4,9',
         priblizno: { lat: 45.2396, lng: 19.8227 },
@@ -354,7 +402,6 @@ export const lazniIzvor: Izvor = {
 
   /* ------------------------------------------------------------ komande */
 
-  
   async podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>> {
     await kasnjenje();
     if (k.potrebaRevizija !== stanje.potrebaRevizija) {
@@ -378,6 +425,7 @@ export const lazniIzvor: Izvor = {
     const hash = `hash_${prijavaId}_v1`;
     KANDIDATI.push({
       prijavaId,
+      radnikProfilId: stanje.profil.id,
       verzija: 1,
       hash,
       ime: "Uskočer (Vi)",
@@ -587,6 +635,11 @@ export const lazniIzvor: Izvor = {
   async mojRadnikProfil() {
     await kasnjenje();
     return stanje.profil;
+  },
+
+  async javniProfil(profileId) {
+    await kasnjenje();
+    return fakePublicProfile(profileId.trim());
   },
 
   async azurirajRadnikProfil(k) {
