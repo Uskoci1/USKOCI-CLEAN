@@ -5,7 +5,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type AiCommandOverrides = Partial<Pick<Izvor, 'posaljiKorisnikovuPoruku' | 'ispraviCinjenicu'>>;
+type AiCommandOverrides = Pick<Izvor, 'posaljiKorisnikovuPoruku' | 'ispraviCinjenicu'>;
 
 async function edgeFailure(error: any) {
   let payload: any = null;
