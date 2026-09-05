@@ -8,7 +8,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 type CommandOverrides = Partial<Pick<
   Izvor,
   | 'oznaciZavrsetak'
-  | 'prijaviProblem'
   | 'otkrijTacnuLokaciju'
   | 'azurirajRadnikProfil'
   | 'posaljiKorisnikovuPoruku'
@@ -31,17 +30,6 @@ export const productionAuthorityOverrides: CommandOverrides = {
     });
     if (error || !data) return rpcFailure(error, 'COMPLETION_FAILED', 'Završetak nije mogao da se označi.');
     return { ok: true, podatak: { rokPotvrdeIso: data } };
-  },
-
-  async prijaviProblem(dogovorId, opis) {
-    const narrative = opis.trim();
-    if (!narrative) return { ok: false, kod: 'NARRATIVE_REQUIRED', poruka: 'Opišite problem.' };
-    const { error } = await supabase.rpc('rpc_report_problem', {
-      p_agreement_id: dogovorId,
-      p_narrative: narrative,
-    });
-    if (error) return rpcFailure(error, 'PROBLEM_REPORT_FAILED', 'Problem nije mogao da se sačuva.');
-    return { ok: true, podatak: null };
   },
 
   async otkrijTacnuLokaciju(dogovorId) {

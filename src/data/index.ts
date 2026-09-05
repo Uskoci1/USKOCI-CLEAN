@@ -35,13 +35,13 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // known unsafe/incorrect paths. CDL-A03 physically removed legacy Need reads;
 // needClientService is their only production owner. CDL-A04 physically removed
 // both lower response-viewed owners; responseClientService is its only owner.
-// CDL-A05 temporarily places PHONE grant/revoke behind contactClientService while
-// the old active owner remains only for equivalence proof until the gate is green.
+// CDL-A05 physically removed PHONE grant/revoke duplicates; contactClientService
+// is their only production owner. CDL-A06 moves Agreement problem reporting into
+// agreementClientService and physically removes both lower-precedence duplicates.
 // AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
-// CDL-A01/A02 physically removed the five migrated Agreement methods from
-// legacy/override layers, so agreementClientService is their only production
-// owner with no runtime spread shadowing.
+// CDL-A01/A02 physically removed the first five migrated Agreement methods from
+// legacy/override layers; agreementClientService remains their canonical owner.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
