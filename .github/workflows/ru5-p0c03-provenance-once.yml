@@ -1,0 +1,88 @@
+name: RU-5 P0C-03 provenance once
+
+on:
+  push:
+    branches:
+      - proof/ru5-p0c03-my-applications-20260905
+
+permissions:
+  contents: write
+
+jobs:
+  update-provenance:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add P0C-03 checksum and pending provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          md5 = '868ef30987d3a62b84b41e93efeed047'
+          filename = '20260905211500_clean_ru5_my_applications_projection.sql'
+
+          manifest_path = Path('supabase/migrations/MD5_MANIFEST.txt')
+          manifest = manifest_path.read_text(encoding='utf-8')
+          line = f'{md5}  {filename}'
+          if line not in manifest.splitlines():
+              if manifest and not manifest.endswith('\n'):
+                  manifest += '\n'
+              manifest += line + '\n'
+          manifest_path.write_text(manifest, encoding='utf-8', newline='\n')
+
+          prov_path = Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          data = json.loads(prov_path.read_text(encoding='utf-8'))
+          if data.get('live_history_snapshot', {}).get('migration_count') != 73:
+              raise SystemExit('unexpected live predecessor count')
+          last = data.get('live_history_snapshot', {}).get('last', {})
+          if last.get('version') != '20260905190040' or last.get('name') != 'clean_ru5_atomic_application_submit':
+              raise SystemExit('unexpected live predecessor head')
+
+          pending = data.get('pending_forward_migrations')
+          if pending not in ([], None):
+              existing = [x for x in pending if x.get('file') == filename]
+              if len(existing) != 1:
+                  raise SystemExit('unexpected pending migrations already present')
+          data['pending_forward_migrations'] = [{
+              'version': '20260905211500',
+              'name': 'clean_ru5_my_applications_projection',
+              'file': filename,
+              'raw_md5': md5,
+              'canonical_utf8_bytes': 6353,
+              'classification': 'PENDING_FORWARD_MIGRATION',
+              'live_applied': False,
+              'predecessor_live_migration_count': 73,
+              'predecessor_live_head': '20260905190040',
+              'rationale': 'RU-5 P0C-03 own-Worker My Applications projection and client withdraw binding. Projection is read-only, maps canonical Worker-facing lifecycle states, returns selected Agreement link, preserves existing rpc_withdraw_response authority and leaves RU-4 stale resolution separate. No response row rewrite, D0140/RU-4B/monetization/calendar/note-policy activation.'
+          }]
+          prov_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+          PY
+
+      - name: Verify provenance integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m json.tool supabase/migrations/MIGRATION_PROVENANCE.json >/dev/null
+          sh supabase/migrations/check_md5.sh
+          git diff --check
+          grep -F '868ef30987d3a62b84b41e93efeed047  20260905211500_clean_ru5_my_applications_projection.sql' supabase/migrations/MD5_MANIFEST.txt
+          grep -F '"name": "clean_ru5_my_applications_projection"' supabase/migrations/MIGRATION_PROVENANCE.json
+          grep -F '"live_applied": false' supabase/migrations/MIGRATION_PROVENANCE.json
+
+      - name: Commit provenance metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/migrations/MD5_MANIFEST.txt supabase/migrations/MIGRATION_PROVENANCE.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore(ru5): record P0C03 pending provenance'
+          git push origin HEAD:proof/ru5-p0c03-my-applications-20260905
