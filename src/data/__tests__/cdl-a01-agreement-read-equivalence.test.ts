@@ -3,11 +3,11 @@
  *
  * The pre-deletion commit proved old-owner/new-owner equivalence in CI.
  * After migration, these tests lock the canonical RPC/auth/mapping/error
- * contract and verify that the transitional Agreement override and legacy
- * baseline no longer own either read operation.
+ * contract and verify that legacy/transitional Agreement read ownership
+ * does not reappear.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
@@ -25,7 +25,6 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { agreementClientService } from '../agreementClientService';
-import { agreementProductionOverrides } from '../agreementProductionOverrides';
 
 const { mockGetUser, mockRpc } = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
@@ -74,9 +73,8 @@ function resetHappyAuth() {
 describe('CDL-A01 — canonical Agreement read contract', () => {
   beforeEach(() => resetHappyAuth());
 
-  it('transitional Agreement override no longer owns migrated reads', () => {
-    expect(agreementProductionOverrides).not.toHaveProperty('mojiDogovori');
-    expect(agreementProductionOverrides).not.toHaveProperty('dogovor');
+  it('transitional Agreement override file is physically absent after A02 cleanup', () => {
+    expect(existsSync(join(__dirname, '..', 'agreementProductionOverrides.ts'))).toBe(false);
   });
 
   it('legacy baseline physically excludes migrated reads and production has one owner', () => {
@@ -88,9 +86,9 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
 
     expect(baselineSource).not.toContain('async mojiDogovori(');
     expect(baselineSource).not.toContain('async dogovor(');
-    expect(baselineSource).toContain("type SupabaseIzvor = Omit<Izvor, 'mojiDogovori' | 'dogovor'>;");
     expect(productionComposition).toContain('...supabaseIzvor');
     expect(productionComposition).toContain('...agreementClientService');
+    expect(productionComposition).not.toContain('agreementProductionOverrides');
   });
 
   it('mojiDogovori uses only canonical list RPC and preserves projection mapping', async () => {
