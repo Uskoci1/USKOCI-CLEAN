@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T10:15:00Z",
+  "updated_at": "2026-09-05T10:49:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,8 +9,8 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "ff052c43cd26841f396f86942594163b9f08b1b7",
-    "note": "CDL-A06 Agreement problem reporting is canonical and closed. agreementClientService is the single production owner for prijaviProblem; rpc_report_problem(p_agreement_id, p_narrative) remains backend authority and the stale p_description shadow is physically removed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. Completion, exact-location, worker-profile and AI paths were not changed. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
+    "canonical_base_observed_before_docs_reconciliation": "fb59f44e4af3a2a9fce36b4ecdb910c790ff51d8",
+    "note": "CDL-A07 Agreement completion marking is canonical and closed. agreementClientService is the single production owner for oznaciZavrsetak; rpc_mark_work_done(p_agreement_id) remains backend authority and the server-returned requester deadline is preserved exactly. The stale local new Date().toISOString() shadow is physically removed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. Confirm-completion, exact-location, worker-profile and AI paths were not changed. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
   },
   "live_migration_count": 71,
   "live_head": {
@@ -122,7 +122,27 @@
       "supabase_write": false,
       "edge_change": false
     },
-    "next_cursor": "FRESH_POST_A06_SHADOW_INVENTORY"
+    "cdl_a07": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "fb59f44e4af3a2a9fce36b4ecdb910c790ff51d8",
+      "proof_branch": "proof/client-data-completion-mark-20260905",
+      "proof_head": "43e7c95c790423a21876bd5bbff9de65dfb74c6f",
+      "pre_deletion_equivalence_run": 33961448582,
+      "final_post_deletion_run": 33961594981,
+      "methods": ["oznaciZavrsetak"],
+      "canonical_owner": "src/data/agreementClientService.ts",
+      "backend_authority": ["rpc_mark_work_done"],
+      "active_duplicate_deleted": true,
+      "stale_local_deadline_shadow_deleted": true,
+      "server_deadline_preserved": true,
+      "confirm_completion_unchanged": true,
+      "exact_location_unchanged": true,
+      "worker_profile_unchanged": true,
+      "ai_unchanged": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "next_cursor": "FRESH_POST_A07_SHADOW_INVENTORY"
   },
   "ru0": {
     "status": "CLOSED",
@@ -192,11 +212,11 @@
     "full_ru3_closed":false,
     "b05":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"ac70e1e66375a9e1be602808a3d4d3a2735f1b3b","source_version":"20260904090000","source_file":"supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql","source_raw_md5":"e65a1d1658938ffdca07c88c246e660c","live_version":"20260904090147","recorded_statement_utf8_bytes":8506,"recorded_statement_md5":"6ca4db41a4c23dd9bd85fc2e76ea2af8","exact_byte_identity_with_source":false,"disposable_runtime_proof_run":33854188735,"canonical_integrity_run":33855138395,"zero_policy_rows":true,"publish_admission":"FAIL_CLOSED"},
     "b06":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"4d735390e32c530a323b24dad95ddaa0422bd493","source_version":"20260904103000","source_file":"supabase/migrations/20260904103000_clean_ru3_need_publication_decision.sql","source_raw_md5":"3974c57c159f3c7c9262db4b296729c3","live_version":"20260904102429","recorded_statement_utf8_bytes":19746,"recorded_statement_md5":"693e3c31a5647b8a63932f3b1ab13eb0","exact_byte_identity_with_source":false,"disposable_runtime_proof_run":33857742442,"clean_promotion_run":33862361633,"canonical_integrity_run":33862478205,"zero_decision_rows":true,"allow_enabled":false,"legacy_publish_closed":true,"ai_publish_fail_closed":true,"business_rows_preserved":{"ai_structured_facts":82,"ai_conversations":15,"needs":6,"app_profiles":6}},
-    "b07":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"d2c077d90c6410dc0737916df13b257389c6cb3b","source_version":"20260904111500","source_file":"supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql","source_raw_md5":"17468983d28cddfe4948c3866a96e813","live_version":"20260904182402","proof_branch":"proof/ru3-b07-canonical-publish-20260904","proof_head":"7351198577685641ab9a7c08cb753a1094c41ea1","true_concurrency_proof_run":33903129202,"promotion_integrity_run":33905242409,"canonical_integrity_run":33905436213,"live_applied":true,"publish_command_rows":0,"policy_bundle_rows":0,"policy_rule_rows":0,"publication_decision_rows":0,"allow_enabled":false,"production_publish":"FAIL_CLOSED","business_rows_preserved":{"ai_structured_facts":82,"ai_conversations":15,"needs":6,"app_profiles":6}},
+    "b07":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"d2c077d90c6410dc0737916df13b257389c6cb3b","source_version":"20260904111500","source_file":"20260904111500_clean_ru3_canonical_publish.sql","source_raw_md5":"17468983d28cddfe4948c3866a96e813","live_version":"20260904182402","proof_branch":"proof/ru3-b07-canonical-publish-20260904","proof_head":"7351198577685641ab9a7c08cb753a1094c41ea1","true_concurrency_proof_run":33903129202,"promotion_integrity_run":33905242409,"canonical_integrity_run":33905436213,"live_applied":true,"publish_command_rows":0,"policy_bundle_rows":0,"policy_rule_rows":0,"publication_decision_rows":0,"allow_enabled":false,"production_publish":"FAIL_CLOSED","business_rows_preserved":{"ai_structured_facts":82,"ai_conversations":15,"needs":6,"app_profiles":6}},
     "activation_blocker":"No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish":"FAIL_CLOSED"
   },
-  "next_allowed_action":"Fresh post-A06 shadow inventory; select CDL-A07 from current canonical composition by lowest-risk high-value slice; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
+  "next_allowed_action":"Fresh post-A07 shadow inventory; select CDL-A08 only if a high-value proven risk remains; otherwise stop cleanup and return to the governing MASTER implementation track. No backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
   "ru4": {
     "status":"CLOSED_LIVE_STRUCTURAL_PROVEN",
     "functional_canonical_source_head":"a271d6084b4648e757d2230d0a208f558c802a14",
@@ -230,6 +250,6 @@
     "activation_blockers":["BLOCK_AUTHORITY_NOT_READY","NUMERIC_RATE_POLICY_NOT_OWNER_APPROVED","PRESELECTION_QA_PRODUCTION_ALLOW_NOT_ACTIVATED","TRUSTED_MATERIALITY_AUTHORITY_NOT_ACTIVATED"],
     "public_qa":"FAIL_CLOSED",
     "d0140_publish":"FAIL_CLOSED",
-    "next_track":"FRESH_POST_A06_SHADOW_INVENTORY"
+    "next_track":"FRESH_POST_A07_SHADOW_INVENTORY"
   }
 }
