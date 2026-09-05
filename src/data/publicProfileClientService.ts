@@ -1,12 +1,9 @@
-import type { JavniProfilProjekcija } from '../contracts/projections';
-import type { Izvor } from './ports';
+import type { JavniProfilProjekcija, PublicProfileCitanje } from './publicProfilePort';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
-
-type PublicProfileService = Pick<Izvor, 'javniProfil'>;
 
 function mapPublicProfile(raw: any): JavniProfilProjekcija {
   if (!raw || typeof raw !== 'object') throw new Error('PUBLIC_PROFILE_INVALID_PROJECTION');
@@ -47,7 +44,7 @@ function mapPublicProfile(raw: any): JavniProfilProjekcija {
 }
 
 /** RU-5/P0C-01 canonical client boundary for public-safe profile reads. */
-export const publicProfileClientService: PublicProfileService = {
+export const publicProfileClientService: PublicProfileCitanje = {
   async javniProfil(profileId) {
     const id = profileId.trim();
     if (!id) return null;
