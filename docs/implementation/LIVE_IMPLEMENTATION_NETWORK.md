@@ -1,3 +1,32 @@
+<!-- CDL_CLOSURE_MASTER_READMISSION_20260905 -->
+## LATEST NETWORK CHECKPOINT — CDL CLOSED / RU-5 ADMITTED
+
+- canonical pre-doc reconciliation after A12: `40afb2ed654c9987f82e7cd3c120a5b60ccbcf11`
+- governing master re-verified: `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip` / SHA-256 `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`
+- live Supabase: `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- Edge: `uskoci-ai-interview` ACTIVE v5 / `verify_jwt=true` / EZBR `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
+- CDL-A11 canonical promotion: `1be672dc649fee102a66c826c86b0e5609a43315`; proofs `33966439120` + `33966556555` PASS; `aiProductionOverrides` sole owner of `otvoriRazgovor` + `razgovor`; stale `NEW_NEED` + null-read shadows deleted
+- CDL-A12 canonical promotion: `40afb2ed654c9987f82e7cd3c120a5b60ccbcf11`; proofs `33967095683`, `33967215611`, exact final merge candidate `33967294217` PASS; `productionAuthorityOverrides` sole owner of legacy fail-closed `objaviPotrebu`; stale lower incomplete-parameter shadow deleted
+- live `rpc_ai_publish_need(uuid,uuid)` remains authenticated-only/anon-denied and fail-closed with `PACKAGE_4_NOT_READY`; D0140 production ALLOW remains OFF
+- final `Izvor` production composition has disjoint required specialized `Pick` owner sets; `supabaseIzvor` explicitly Omits their union; no comparable high-risk production spread shadow remains
+- explicit fake source stays DEV/test only; missing production Supabase config fails loudly; no implicit fake fallback
+- explicit `aiNeedV2Izvor` boundary remains; no legacy-publish authority gain
+- Client Data Layer Consolidation / Overrides Elimination: **CLOSED / CANONICAL**; no CDL-A13
+- RU-0: **CLOSED / LIVE**
+- RU-1: **CLOSED / LIVE**
+- RU-2: **CLOSED / LIVE**
+- RU-3: **LIVE_FOUNDATION / ACTIVATION_BLOCKED-DEFERRED**
+- RU-4: **CLOSED / LIVE / DO NOT REDO**
+- RU-4B: **LIVE_FOUNDATION / ACTIVATION_BLOCKED / USER-FACING ACTIVATION DEFERRED**
+- RU-5: **OPEN / NEXT ADMISSIBLE GOVERNING UNIT**
+- RU-5B: **NOT_STARTED / gated by manual canonical Application proof**
+- RU-6A: **FOUNDATION_ONLY / gated by RU-5**
+- RU-6B: **NOT_STARTED / gated by RU-6A**
+- RU-7: **FOUNDATION_ONLY / gated by RU-6A/RU-6B**
+- RU-8: **NOT_STARTED / mandatory proof track**
+- governing baseline permits RU-5 after RU-2/RU-4 dependencies; RU-4B activation blockers remain explicit/deferred and MUST NOT be invented
+- exact next cursor: **RU-5 / P0C-01 PUBLIC-SAFE PROFILE PROJECTION — fresh read-only physical preflight; inspect app_profiles/RLS/current projections and W03/W04/R05/R06 consumers; proof branch before any live write**
+
 <!-- CDL_A10_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A10 AI COMMAND SHADOW ELIMINATION CLOSED / CANONICAL
 
@@ -175,7 +204,7 @@ This block supersedes CDL-A02 next-cursor text for the consolidation track.
 This block supersedes CDL-A01 next-cursor text for the consolidation track.
 
 - canonical code promotion: `603617d46059331641f445f32e515551a79da474`
-- proof branch/head: `proof/client-data-agreement-mutations-20260905 @ de8d4af7f7be4c1cda1e02911ec0fe2436fab94`
+- proof branch/head: `proof/client-data-agreement-mutations-20260905 @ de8d4af7f7fbe4c1cda1e02911ec0fe2436fab94`
 - pre-deletion equivalence run: `33953071145` — PASS
 - final post-deletion run: `33953836136` — PASS
 - canonical Agreement client owner: `src/data/agreementClientService.ts`
@@ -417,7 +446,7 @@ Disposable TEST_ONLY fixtures are allowed only in isolated proof environments an
 3. Preserve pre-Dogovor revision + stale/reconfirmation mechanics.
 4. Remove/supersede post-Dogovor parent-Zadatak edit behavior.
 5. Prove old Prijave stay non-selectable until each Worker explicitly accepts/revises the exact current revision.
-6. Prove first Dogovor locks parent edit, partial capacity stays on unchanged terms, and remaining-search closure does not rewrite historical terms.
+6. Prove first Dogovor locks parent edit, partial capacity stays same terms, and remaining-search closure does not rewrite historical terms.
 7. Keep production policy activation fail-closed.
 
 Principle: **AI agent is replaceable. Canonical project state is not.**
