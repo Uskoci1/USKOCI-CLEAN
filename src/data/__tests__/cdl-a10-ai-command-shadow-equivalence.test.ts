@@ -1,10 +1,9 @@
 /**
- * CDL-A10 — AI command shadow elimination, pre-deletion proof.
+ * CDL-A10 — canonical AI command contract after shadow deletion.
  *
- * This test locks the currently active aiCommandOverrides behavior and proves
- * that two lower-precedence production shadows still physically exist before
- * deletion. The cleanup may remove only those shadows; the active owner and
- * its Edge/RPC request, validation and error semantics must remain unchanged.
+ * Pre-deletion equivalence was proven by PRE-P4 run 33965614404 while both
+ * lower-precedence shadows still existed. These tests now lock the same active
+ * aiCommandOverrides behavior and prove both lower production owners are gone.
  */
 
 import { readFileSync } from 'node:fs';
@@ -37,10 +36,10 @@ function reset() {
   mockRpc.mockReset();
 }
 
-describe('CDL-A10 — active AI command owner before shadow deletion', () => {
+describe('CDL-A10 — canonical AI command owner after shadow deletion', () => {
   beforeEach(reset);
 
-  it('proves spread precedence and the two lower production shadows that are being targeted', () => {
+  it('physically eliminates both lower production owners and preserves the winner', () => {
     const dataDir = join(__dirname, '..');
     const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
     const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
@@ -50,15 +49,18 @@ describe('CDL-A10 — active AI command owner before shadow deletion', () => {
     expect(indexSource.indexOf('...aiCommandOverrides')).toBeGreaterThan(indexSource.indexOf('...supabaseIzvor'));
     expect(indexSource.indexOf('...aiCommandOverrides')).toBeGreaterThan(indexSource.indexOf('...productionAuthorityOverrides'));
 
-    expect(baselineSource).toContain('async posaljiKorisnikovuPoruku(');
-    expect(baselineSource).toContain('async ispraviCinjenicu(');
-    expect(baselineSource).toContain('predlozeno: 0');
-    expect(baselineSource).toContain("novaCinjenicaId: ''");
+    expect(baselineSource).not.toContain('async posaljiKorisnikovuPoruku(');
+    expect(baselineSource).not.toContain('async ispraviCinjenicu(');
+    expect(baselineSource).not.toContain('predlozeno: 0');
+    expect(baselineSource).not.toContain("novaCinjenicaId: ''");
+    expect(baselineSource).toContain("'posaljiKorisnikovuPoruku'");
+    expect(baselineSource).toContain("'ispraviCinjenicu'");
 
-    expect(authoritySource).toContain('async posaljiKorisnikovuPoruku()');
-    expect(authoritySource).toContain('async ispraviCinjenicu()');
-    expect(authoritySource).toContain('AI_PROVIDER_NOT_CONFIGURED');
-    expect(authoritySource).toContain('AI_FACT_REVISION_NOT_READY');
+    expect(authoritySource).not.toContain('posaljiKorisnikovuPoruku');
+    expect(authoritySource).not.toContain('ispraviCinjenicu');
+    expect(authoritySource).not.toContain('AI_PROVIDER_NOT_CONFIGURED');
+    expect(authoritySource).not.toContain('AI_FACT_REVISION_NOT_READY');
+    expect(authoritySource).toContain("'objaviPotrebu'");
 
     expect(winnerSource).toContain('async posaljiKorisnikovuPoruku(razgovorId, telo)');
     expect(winnerSource).toContain("supabase.functions.invoke('uskoci-ai-interview'");
