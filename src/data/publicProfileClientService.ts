@@ -1,29 +1,12 @@
+import type { JavniProfilProjekcija } from '../contracts/projections';
+import type { Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-export type JavniProfilPoverenje = {
-  ocenaProsek: number | null;
-  brojRecenzija: number | null;
-  zavrseniBroj: number;
-  identitetVerifikovan: boolean;
-  ocenaDostupna: boolean;
-  recenzijeDostupne: boolean;
-  verifikacijaIdentitetaDostupna: boolean;
-};
-
-export type JavniProfilProjekcija = {
-  profilId: string;
-  uloga: 'narucilac' | 'uskocer';
-  ime: string | null;
-  avatarPutanja: string | null;
-  grad: string | null;
-  naslov: string | null;
-  biografija: string | null;
-  poverenje: JavniProfilPoverenje;
-};
+type PublicProfileService = Pick<Izvor, 'javniProfil'>;
 
 function mapPublicProfile(raw: any): JavniProfilProjekcija {
   if (!raw || typeof raw !== 'object') throw new Error('PUBLIC_PROFILE_INVALID_PROJECTION');
@@ -65,8 +48,8 @@ function mapPublicProfile(raw: any): JavniProfilProjekcija {
  * account's raw app_profiles row and never reconstructs rating, review,
  * verification, completed-work, availability, radius, tool or vehicle truth.
  */
-export const publicProfileClientService = {
-  async javniProfil(profileId: string): Promise<JavniProfilProjekcija | null> {
+export const publicProfileClientService: PublicProfileService = {
+  async javniProfil(profileId) {
     const id = profileId.trim();
     if (!id) return null;
 
