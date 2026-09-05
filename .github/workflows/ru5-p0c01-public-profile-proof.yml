@@ -1,0 +1,93 @@
+name: RU-5 P0C-01 public profile proof
+
+on:
+  push:
+    branches:
+      - proof/ru5-p0c01-public-profile-20260905
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru5-p0c01-public-profile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ru5-p0c01-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Replay current canonical source predecessor
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db start
+          supabase db reset --local
+          test "$(psql "$DB_URL" -Atc "select to_regclass('public.app_profiles') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select to_regclass('public.agreements') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_complete_worker_profile(uuid)') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_ru4b_public_preselection_qa(uuid)') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select count(*) from pg_policies where schemaname='public' and tablename='app_profiles' and policyname='app_profiles_select_own' and cmd='SELECT';")" = "1"
+
+      - name: Apply isolated P0C-01 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/staging/ru5/20260905133000_clean_ru5_public_profile_projection.sql"
+          test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_get_public_profile(uuid)') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_get_public_profile(uuid)','EXECUTE');")" = "t"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('anon','public.rpc_get_public_profile(uuid)','EXECUTE');")" = "f"
+
+      - name: Verify projection function excludes private and operational authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          def="$(psql "$DB_URL" -Atc "select pg_get_functiondef('public.rpc_get_public_profile(uuid)'::regprocedure);")"
+          for forbidden in email phone radius_km available_now team_capacity tools licenses vehicles exclusions minimum_fee_rsd rating_requester rating_worker matcher_score; do
+            if printf '%s' "$def" | grep -F "$forbidden"; then
+              echo "RU5_P0C01_FAIL: function references forbidden authority $forbidden" >&2
+              exit 1
+            fi
+          done
+          printf '%s' "$def" | grep -F "profile_status = 'ACTIVE'"
+          printf '%s' "$def" | grep -F "status = 'COMPLETED'"
+
+      - name: Run authenticated unrelated-user privacy proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru5_p0c01_public_profile_runtime_proof.sql" | tee /tmp/ru5-p0c01.log
+          grep -F "PASS RU5_P0C01 public_profile authenticated_unrelated_safe raw_rls_preserved draft_hidden completed_role_scoped trust_fail_closed no_private_operational_leak zero_residue" /tmp/ru5-p0c01.log
+          test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where email like 'ru5-p0c01-%@proof.invalid';")" = "0"
+
+      - name: Stop disposable DB before client checks
+        if: always()
+        shell: bash
+        run: supabase stop --no-backup || true
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+
+      - name: Regression tests
+        run: npm test -- --runInBand
