@@ -1,0 +1,65 @@
+name: Android requester home recapture
+
+on:
+  push:
+    branches:
+      - proof/android-visual-proof-20260905
+    paths:
+      - '.github/workflows/android-requester-home-recapture.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  requester-home-recapture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated proof branch
+        uses: actions/checkout@v4
+
+      - name: Reuse proven full-crawl APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p seed home-recapture
+          gh run download 33947798180 --repo "$GITHUB_REPOSITORY" --name USKOCI-ANDROID-ALL-SCREENS --dir seed
+          test -f seed/USKOCI-ALL-SCREENS.apk
+          cp seed/USKOCI-ALL-SCREENS.apk home-recapture/USKOCI-ALL-SCREENS.apk
+
+      - name: Enable KVM acceleration
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+          fi
+
+      - name: Boot emulator and recapture requester home
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            set -eu
+            adb install -r home-recapture/USKOCI-ALL-SCREENS.apk
+            adb shell wm size 1080x2400
+            adb shell wm density 420
+            adb shell monkey -p rs.uskoci.visualproofall -c android.intent.category.LAUNCHER 1
+            sleep 18
+            adb exec-out screencap -p > home-recapture/01-requester-home.png
+            adb shell uiautomator dump /sdcard/requester-home.xml >/dev/null 2>&1 || true
+            adb pull /sdcard/requester-home.xml home-recapture/requester-home.xml >/dev/null 2>&1 || true
+
+      - name: Verify home screenshot
+        run: test -s home-recapture/01-requester-home.png
+
+      - name: Upload requester home recapture
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-REQUESTER-HOME-RECAPTURE
+          path: home-recapture/
+          retention-days: 14
