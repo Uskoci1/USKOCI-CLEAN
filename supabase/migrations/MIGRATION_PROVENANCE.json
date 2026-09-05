@@ -94,7 +94,20 @@
       {"name":"clean_ru5_my_applications_projection","version":"20260905200133","file":"20260905211500_clean_ru5_my_applications_projection.sql","source_version":"20260905211500","exact_byte_mirror":true,"canonical_raw_md5":"868ef30987d3a62b84b41e93efeed047","live_recorded_statement_md5":"868ef30987d3a62b84b41e93efeed047","recorded_statement_utf8_bytes":6353}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260905223000",
+      "name": "clean_ru5_candidate_projection",
+      "file": "20260905223000_clean_ru5_candidate_projection.sql",
+      "raw_md5": "e69c6037c876ca4c0fb48409ab68ab45",
+      "canonical_utf8_bytes": 8246,
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 74,
+      "predecessor_live_head": "20260905200133",
+      "rationale": "RU-5 P0D-01 requester-owner candidate projection: exact current Application version/hash and Need revision binding, canonical SELECTABLE/STALE/OVERFILL/SELECTED/WITHDRAWN/CLOSED/FULL states, P0C-01 public-safe Worker profile plus APPLICATION_V1_SELF_DECLARED or LEGACY_UNPROVEN evidence; response/Selection/Agreement/calendar/Povezivanje/monetization mutation excluded."
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
