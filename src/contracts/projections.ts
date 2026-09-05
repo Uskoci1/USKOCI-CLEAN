@@ -155,6 +155,36 @@ export type KandidatProjekcija = {
   razlogPreporuke: string | null;
 };
 
+export type StanjeMojePrijave =
+  | 'SUBMITTED'
+  | 'VIEWED'
+  | 'SHORTLISTED'
+  | 'STALE_REVIEW_REQUIRED'
+  | 'WITHDRAWN'
+  | 'SELECTED'
+  | 'CLOSED';
+
+/** RU-5 / P0C-03 — Worker-facing own Application lifecycle DTO. */
+export type MojaPrijavaProjekcija = {
+  prijavaId: string;
+  potrebaId: string;
+  potrebaRevizija: number;
+  prijavaRevizija: number;
+  prijavaVerzija: number;
+  stanje: StanjeMojePrijave;
+  naslov: string;
+  opis: string;
+  cena: Novac;
+  pokrivaMesta: number;
+  napomena: string;
+  podrucjeTekst: string;
+  vremeTekst: string;
+  dogovorId: string | null;
+  promenjenaPotreba: boolean;
+  mozePovuci: boolean;
+  traziPaznju: boolean;
+};
+
 /* --------------------------------------------------------------- Dogovor */
 
 /** M07: merdevine Krenuo/Stigao su penzionisane. Ovo je ceo skup. */

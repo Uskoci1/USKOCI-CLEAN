@@ -16,11 +16,12 @@ import type {
   RezimIzvrsenja,
   KandidatProjekcija,
   Novac,
+  MojaPrijavaProjekcija,
   PorukaProjekcija,
   PotrebaProjekcija,
   PrilikaProjekcija,
 } from '../contracts/projections';
-import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, Izvor } from './ports';
+import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
 import { ulogaSada } from '../store/uloga';
 import { lazniAi, resetujAi } from './lazniAi';
 
@@ -82,6 +83,9 @@ type Stanje = {
   alokacije: Alokacija[];
   dogovorVerzija: Record<string, number>;
   idempotencija: Map<string, string>;
+  povlacenja: Map<string, string>;
+  povucenePrijave: Set<string>;
+  prijavaRevizije: Record<string, number>;
   poruke: Record<string, PorukaProjekcija[]>;
   brojac: number;
   profil: import('../contracts/projections').RadnikProfilProjekcija;
@@ -95,6 +99,9 @@ const POCETNO: Stanje = {
   alokacije: [],
   dogovorVerzija: {},
   idempotencija: new Map(),
+  povlacenja: new Map(),
+  povucenePrijave: new Set(),
+  prijavaRevizije: {},
   poruke: {},
   brojac: 0,
   profil: {
@@ -122,6 +129,9 @@ function struktuiraj(s: Stanje): Stanje {
     alokacije: [...s.alokacije],
     dogovorVerzija: { ...s.dogovorVerzija },
     idempotencija: new Map(s.idempotencija),
+    povlacenja: new Map(s.povlacenja),
+    povucenePrijave: new Set(s.povucenePrijave),
+    prijavaRevizije: { ...s.prijavaRevizije },
     poruke: { ...s.poruke },
     brojac: s.brojac,
     profil: JSON.parse(JSON.stringify(s.profil)),
@@ -384,6 +394,38 @@ export const lazniIzvor: Izvor = {
     });
   },
 
+  async mojePrijave(): Promise<MojaPrijavaProjekcija[]> {
+    await kasnjenje();
+    return KANDIDATI
+      .filter((k) => k.radnikProfilId === stanje.profil.id)
+      .map((k) => {
+        const allocation = stanje.alokacije.find((a) => a.prijavaId === k.prijavaId);
+        const submittedRevision = stanje.prijavaRevizije[k.prijavaId] ?? stanje.potrebaRevizija;
+        const withdrawn = stanje.povucenePrijave.has(k.prijavaId);
+        const stale = !allocation && !withdrawn && submittedRevision !== stanje.potrebaRevizija;
+        const stanjePrijave = allocation ? 'SELECTED' : withdrawn ? 'WITHDRAWN' : stale ? 'STALE_REVIEW_REQUIRED' : 'SUBMITTED';
+        return {
+          prijavaId: k.prijavaId,
+          potrebaId: 'ormar',
+          potrebaRevizija: stanje.potrebaRevizija,
+          prijavaRevizija: submittedRevision,
+          prijavaVerzija: k.verzija,
+          stanje: stanjePrijave,
+          naslov: 'Prenos ormara sa Limana na Detelinaru',
+          opis: 'Prenos ormara',
+          cena: k.cena,
+          pokrivaMesta: k.pokrivaMesta,
+          napomena: '',
+          podrucjeTekst: 'Liman, Novi Sad',
+          vremeTekst: k.dolazakTekst,
+          dogovorId: allocation?.dogovorId ?? null,
+          promenjenaPotreba: stale,
+          mozePovuci: !allocation && !withdrawn && !stale,
+          traziPaznju: !!allocation || stale,
+        } satisfies MojaPrijavaProjekcija;
+      });
+  },
+
   async mojiDogovori() {
     await kasnjenje();
     return stanje.alokacije.map(dogovorIz);
@@ -423,6 +465,7 @@ export const lazniIzvor: Izvor = {
     const prijavaId = `prijava-${stanje.brojac + 1}`;
     stanje.brojac += 1;
     const hash = `hash_${prijavaId}_v1`;
+    stanje.prijavaRevizije[prijavaId] = k.potrebaRevizija;
     KANDIDATI.push({
       prijavaId,
       radnikProfilId: stanje.profil.id,
@@ -445,6 +488,26 @@ export const lazniIzvor: Izvor = {
         hash,
       },
     };
+  },
+
+  async povuciPrijavu(k: PovuciPrijavuKomanda): Promise<Ishod<{ stanje: 'WITHDRAWN'; verzija: number }>> {
+    await kasnjenje();
+    const signature = `${k.prijavaId}|${k.potrebaRevizija}|${k.prijavaVerzija}|${k.razlog ?? ''}`;
+    const previous = stanje.povlacenja.get(k.clientRequestId);
+    if (previous && previous !== signature) {
+      return { ok: false, kod: 'IDEMPOTENCY_KEY_REUSED', poruka: 'Isti zahtev ne može da se koristi za drugačije povlačenje.' };
+    }
+    const kandidat = KANDIDATI.find((x) => x.prijavaId === k.prijavaId && x.radnikProfilId === stanje.profil.id);
+    if (!kandidat) return { ok: false, kod: 'RESPONSE_NOT_FOUND', poruka: 'Prijava ne postoji.' };
+    if (stanje.alokacije.some((a) => a.prijavaId === k.prijavaId)) {
+      return { ok: false, kod: 'RESPONSE_ALREADY_SELECTED', poruka: 'Izabrana Prijava se više ne može povući.' };
+    }
+    if ((stanje.prijavaRevizije[k.prijavaId] ?? stanje.potrebaRevizija) !== k.potrebaRevizija || kandidat.verzija !== k.prijavaVerzija) {
+      return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Prijava ili Potreba su promenjene. Osvežite pregled.' };
+    }
+    stanje.povlacenja.set(k.clientRequestId, signature);
+    stanje.povucenePrijave.add(k.prijavaId);
+    return { ok: true, podatak: { stanje: 'WITHDRAWN', verzija: kandidat.verzija } };
   },
 
   async izaberiPrijavu(k: IzborKomanda): Promise<Ishod<{ dogovorId: string }>> {

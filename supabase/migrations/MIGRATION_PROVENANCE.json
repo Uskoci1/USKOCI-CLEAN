@@ -93,7 +93,20 @@
       {"name":"clean_ru5_atomic_application_submit","version":"20260905190040","file":"20260905190000_clean_ru5_atomic_application_submit.sql","source_version":"20260905190000","exact_byte_mirror":false,"canonical_raw_md5":"1a397f893deb3109b8984035c19111bb","canonical_utf8_bytes":18107,"live_recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761","recorded_statement_utf8_bytes":18106,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb","normalized_terminal_lf_bytes":18107}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260905211500",
+      "name": "clean_ru5_my_applications_projection",
+      "file": "20260905211500_clean_ru5_my_applications_projection.sql",
+      "raw_md5": "868ef30987d3a62b84b41e93efeed047",
+      "canonical_utf8_bytes": 6353,
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 73,
+      "predecessor_live_head": "20260905190040",
+      "rationale": "RU-5 P0C-03 own-Worker My Applications projection and client withdraw binding. Projection is read-only, maps canonical Worker-facing lifecycle states, returns selected Agreement link, preserves existing rpc_withdraw_response authority and leaves RU-4 stale resolution separate. No response row rewrite, D0140/RU-4B/monetization/calendar/note-policy activation."
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",

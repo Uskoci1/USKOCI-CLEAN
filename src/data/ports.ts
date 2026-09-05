@@ -12,6 +12,7 @@
 import type {
   DogovorProjekcija,
   JavniProfilProjekcija,
+  MojaPrijavaProjekcija,
   KandidatProjekcija,
   PorukaProjekcija,
   PotrebaProjekcija,
@@ -25,8 +26,8 @@ export type Ishod<T> =
   | { ok: false; kod: string; poruka: string; naslov?: string };
 
 /**
- * Idempotencija nije opcija. Server odbija ponovljen clientRequestId,
- * pa dupli tap ne pravi drugi Dogovor.
+ * Idempotencija nije opcija. Isti key + isti semantički payload vraća isti
+ * rezultat; isti key + drugačiji payload server odbija.
  */
 export type Idempotentno = { clientRequestId: string };
 
@@ -46,6 +47,8 @@ export interface PotrebeCitanje {
 export interface PrijaveCitanje {
   /** R05 — vlasnik kompletne liste prijava i kandidata. */
   prijaveZaPotrebu(potrebaId: string): Promise<KandidatProjekcija[]>;
+  /** W06 / P0C-03 — kanonska projekcija sopstvenih Prijava. */
+  mojePrijave(): Promise<MojaPrijavaProjekcija[]>;
 }
 
 export interface DogovoriCitanje {
@@ -76,6 +79,13 @@ export type PodnesiPrijavuKomanda = Idempotentno & {
  *
  * Uspeh atomski pravi CONFIRMED Dogovor. Nema treće potvrde.
  */
+export type PovuciPrijavuKomanda = Idempotentno & {
+  prijavaId: string;
+  potrebaRevizija: number;
+  prijavaVerzija: number;
+  razlog?: string | null;
+};
+
 export type IzborKomanda = Idempotentno & {
   potrebaId: string;
   potrebaRevizija: number;
@@ -102,6 +112,9 @@ export type IzmenaKomanda = Idempotentno & {
 export interface Komande {
   /** rpc_submit_response */
   podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>>;
+
+  /** P0C-03 — rpc_withdraw_response; stale-revision odluke ostaju RU-4 authority. */
+  povuciPrijavu(k: PovuciPrijavuKomanda): Promise<Ishod<{ stanje: 'WITHDRAWN'; verzija: number }>>;
 
   /** rpc_r24_select_response → rpc_r24_confirm_agreement, atomski */
   izaberiPrijavu(k: IzborKomanda): Promise<Ishod<{ dogovorId: string }>>;
