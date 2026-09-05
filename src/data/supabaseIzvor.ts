@@ -206,121 +206,6 @@ export const supabaseIzvor: Izvor = {
     });
   },
 
-  async mojiDogovori() {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return [];
-    
-    const { data, error } = await supabase.from('agreements')
-      .select(`
-        id, current_version, status, terms, requester_account_id, created_at,
-        needs(title, approximate_area, approximate_city, required_slots, starts_at),
-        worker:app_profiles!worker_profile_id(display_name, account_id),
-        requester:app_profiles!requester_profile_id(display_name, account_id),
-        agreement_execution(state, mode, requester_deadline_at, problem_opened_at)
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (error || !data) return [];
-    
-    return data.map((r: any) => {
-      const isReq = r.requester_account_id === user.user?.id;
-      const requester = jednaRelacija(r.requester);
-      const worker = jednaRelacija(r.worker);
-      const need = jednaRelacija(r.needs);
-      const me = isReq ? requester : worker;
-      const other = isReq ? worker : requester;
-      
-      const ucesnici: UcesnikProjekcija[] = [
-        { id: me?.account_id||'', ime: me?.display_name||'', inicijali: (me?.display_name||'?').substring(0,2).toUpperCase(), uloga: isReq ? 'narucilac' : 'uskocer', mesta: null, viSte: true, telefon: null },
-        { id: other?.account_id||'', ime: other?.display_name||'', inicijali: (other?.display_name||'?').substring(0,2).toUpperCase(), uloga: isReq ? 'uskocer' : 'narucilac', mesta: null, viSte: false, telefon: null },
-      ];
-      
-      const exec = jednaRelacija(r.agreement_execution);
-      
-      return {
-        id: r.id,
-        verzija: r.current_version,
-        naslov: need?.title || '',
-        stanje: r.status,
-        cena: rsd(r.terms?.price_rsd || 0),
-        vremeTekst: fTime(need?.starts_at),
-        putanjaTekst: fLoc(need?.approximate_area, need?.approximate_city),
-        pokrivenost: pokrivenost(need?.required_slots || 1, r.terms?.covered_slots || 1),
-        ucesnici,
-        rezim: exec?.mode === 'PHYSICAL' ? 'FIZICKI' : exec?.mode === 'REMOTE' ? 'DALJINSKI' : 'PREUZIMANJE_DOSTAVA',
-        kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: exec?.mode === 'PHYSICAL', tacnaLokacija: null, emailNijeDeljen: true },
-        chatDostupan: true,
-        rokPotvrdeIso: exec?.requester_deadline_at || null,
-        problemOtvoren: !!exec?.problem_opened_at,
-        ocenaMoguca: r.status === 'COMPLETED',
-        hronologija: [{ vremeTekst: fTime(r.created_at), tekst: 'Dogovor kreiran' }]
-      };
-    });
-  },
-
-  async dogovor(id: string) {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return null;
-    
-    const { data, error } = await supabase.from('agreements')
-      .select(`
-        id, current_version, status, terms, requester_account_id, created_at,
-        needs(title, approximate_area, approximate_city, required_slots, starts_at),
-        worker:app_profiles!worker_profile_id(display_name, account_id),
-        requester:app_profiles!requester_profile_id(display_name, account_id),
-        agreement_execution(state, mode, requester_deadline_at, problem_opened_at),
-        access_grants(channel, granted_by_account_id, granted_to_account_id, status)
-      `)
-      .eq('id', id).maybeSingle();
-      
-    if (error || !data) return null;
-    
-    const r = data;
-    const isReq = r.requester_account_id === user.user?.id;
-    const requester = jednaRelacija(r.requester);
-    const worker = jednaRelacija(r.worker);
-    const need = jednaRelacija(r.needs);
-    const me = isReq ? requester : worker;
-    const other = isReq ? worker : requester;
-    const uid = user.user?.id;
-    
-    let mojTelPodeljen = false;
-    let njihovTel = null;
-    
-    for (const g of r.access_grants || []) {
-      if (g.channel === 'PHONE' && g.status === 'GRANTED') {
-         if (g.granted_by_account_id === uid) mojTelPodeljen = true;
-         if (g.granted_to_account_id === uid) njihovTel = 'Dostupan u bazi';
-      }
-    }
-    
-    const ucesnici: UcesnikProjekcija[] = [
-      { id: me?.account_id||'', ime: me?.display_name||'', inicijali: (me?.display_name||'?').substring(0,2).toUpperCase(), uloga: isReq ? 'narucilac' : 'uskocer', mesta: null, viSte: true, telefon: null },
-      { id: other?.account_id||'', ime: other?.display_name||'', inicijali: (other?.display_name||'?').substring(0,2).toUpperCase(), uloga: isReq ? 'uskocer' : 'narucilac', mesta: null, viSte: false, telefon: njihovTel },
-    ];
-    
-    const exec = jednaRelacija(r.agreement_execution);
-    
-    return {
-      id: r.id,
-      verzija: r.current_version,
-      naslov: need?.title || '',
-      stanje: r.status,
-      cena: rsd(r.terms?.price_rsd || 0),
-      vremeTekst: fTime(need?.starts_at),
-      putanjaTekst: fLoc(need?.approximate_area, need?.approximate_city),
-      pokrivenost: pokrivenost(need?.required_slots || 1, r.terms?.covered_slots || 1),
-      ucesnici,
-      rezim: exec?.mode === 'PHYSICAL' ? 'FIZICKI' : exec?.mode === 'REMOTE' ? 'DALJINSKI' : 'PREUZIMANJE_DOSTAVA',
-      kontakt: { mojTelefonPodeljen: mojTelPodeljen, njihovTelefon: njihovTel, lokacijaPostoji: exec?.mode === 'PHYSICAL', tacnaLokacija: null, emailNijeDeljen: true },
-      chatDostupan: true,
-      rokPotvrdeIso: exec?.requester_deadline_at || null,
-      problemOtvoren: !!exec?.problem_opened_at,
-      ocenaMoguca: r.status === 'COMPLETED',
-      hronologija: [{ vremeTekst: fTime(r.created_at), tekst: 'Dogovor kreiran' }]
-    };
-  },
-
   async poruke(dogovorId: string) {
     const { data: user } = await supabase.auth.getUser();
     const { data, error } = await supabase.from('agreement_messages')
@@ -497,7 +382,7 @@ export const supabaseIzvor: Izvor = {
         .from('app_profiles')
         .update(patch)
         .eq('id', profileId);
-        
+      
       if (updateError) return handleRpcError(updateError, 'UPDATE_ERROR', 'Greška pri izmeni profila.');
     }
     
