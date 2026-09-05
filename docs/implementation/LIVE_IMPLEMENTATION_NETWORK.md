@@ -1,3 +1,27 @@
+<!-- CDL_A01_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A01 AGREEMENT WORKSPACE READS CLOSED / CANONICAL
+
+This block supersedes older generic next-track text for client data-layer consolidation.
+
+- canonical code promotion: `5e387aa7890a35d87fcb1844b16f9e4943967595`
+- proof branch/head: `proof/client-data-agreement-read-20260905 @ 0b84c3b4f792fe228d263762df9514cc277afa34`
+- proof PR: `#4`, squash-promoted after all deletion gates were green
+- pre-deletion equivalence run: `33952203946` — PASS
+- post-owner run: `33952346007` — PASS
+- final physical-deletion run: `33952603276` — PASS
+- canonical read owner: `src/data/agreementClientService.ts`
+- methods: `mojiDogovori`, `dogovor`
+- backend authority preserved exactly: `rpc_list_my_agreements()` + `rpc_get_agreement_workspace(p_agreement_id)`
+- shadowed direct-table Agreement reads are physically removed from `src/data/supabaseIzvor.ts`
+- `agreementProductionOverrides` now retains Agreement mutations only
+- production composition has one owner for these reads; no spread-shadow winner remains for them
+- no backend migration or Edge deployment occurred in CDL-A01
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **CDL-A02 — Agreement mutations: `posaljiPoruku`, `predloziIzmenu`, `odgovoriNaIzmenu`; proof-first, no backend write**
+
 <!-- RU4B_LIVE_FOUNDATION_CHECKPOINT_20260905 -->
 ## LATEST PHYSICAL CHECKPOINT — RU-4B PRESELECTION Q&A FOUNDATION LIVE / ACTIVATION BLOCKED
 
