@@ -60,6 +60,8 @@ type SupabaseIzvor = Omit<
   | 'mojePotrebe'
   | 'potreba'
   | 'oznaciPrijavuVidjenom'
+  | 'podeliTelefon'
+  | 'opoziviTelefon'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -338,9 +340,6 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
     return { ok: true, podatak: null };
   },
-  
-  async podeliTelefon(dogovorId: string) { return { ok: true, podatak: null }; },
-  async opoziviTelefon(dogovorId: string) { return { ok: true, podatak: null }; },
 
   async otvoriRazgovor() {
     const { data, error } = await supabase.rpc('rpc_ai_open_conversation', { p_purpose: 'NEW_NEED' });
