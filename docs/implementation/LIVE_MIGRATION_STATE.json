@@ -10,8 +10,8 @@
   },
   "canonical_code_checkpoint_before_continuity_docs": "366561e74a088d55d816d3795cba5f2299e3283c",
   "live": {
-    "migration_count": 72,
-    "head": "20260905163927_clean_ru5_public_profile_projection",
+    "migration_count": 73,
+    "head": "20260905190040_clean_ru5_atomic_application_submit",
     "pending_forward_migrations": 0
   },
   "edge": {
@@ -23,7 +23,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_72_RU5_P0C01",
+    "state": "NORMALIZED_TO_LIVE_73_RU5_P0C02",
     "ru2_live_aliases": [
       {"live_version":"20260903222139","source_version":"20260903190000","source_file":"20260903190000_clean_ru2_need_v2_draft.sql","exact_byte_identity":true},
       {"live_version":"20260903222333","source_version":"20260903190100","source_file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","exact_byte_identity":true}
@@ -56,6 +56,23 @@
       "proof_run":33978292187,
       "canonical_pre_p4_run":33978451146,
       "canonical_codeql_run":33978450975
+    },
+    "ru5_p0c02_live_alias": {
+      "name":"clean_ru5_atomic_application_submit",
+      "live_version":"20260905190040",
+      "source_version":"20260905190000",
+      "source_file":"20260905190000_clean_ru5_atomic_application_submit.sql",
+      "exact_byte_identity":false,
+      "canonical_raw_md5":"1a397f893deb3109b8984035c19111bb",
+      "canonical_utf8_bytes":18107,
+      "recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761",
+      "recorded_statement_utf8_bytes":18106,
+      "transport_deviation":"terminal LF omitted only",
+      "normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb",
+      "canonical_promotion_sha":"bc784f3ed65d3a053195789740fae17e4df235d3",
+      "proof_run":33982216558,
+      "canonical_pre_p4_run":33985675818,
+      "canonical_codeql_run":33985675330
     }
   },
   "client_data_layer": {
@@ -78,7 +95,7 @@
       {"id":"CDL-A11","status":"CLOSED_CANONICAL","sha":"1be672dc649fee102a66c826c86b0e5609a43315","owner":"aiProductionOverrides","methods":["otvoriRazgovor","razgovor"],"proof":[33966439120,33966556555],"deleted":["NEW_NEED lower shadow","null conversation-read shadow"]},
       {"id":"CDL-A12","status":"CLOSED_CANONICAL","sha":"40afb2ed654c9987f82e7cd3c120a5b60ccbcf11","owner":"productionAuthorityOverrides","methods":["objaviPotrebu"],"proof":[33967095683,33967215611,33967294217],"deleted":["incomplete p_profile_id lower shadow"],"fail_closed":"PACKAGE_4_NOT_READY"}
     ],
-    "next_cursor": "RU5_P0C02_ATOMIC_APPLICATION_SUBMIT_PREFLIGHT"
+    "next_cursor": "RU5_P0C03_MY_APPLICATIONS_PREFLIGHT"
   },
   "ru5": {
     "status":"IN_PROGRESS",
@@ -88,7 +105,19 @@
       "canonical_sha":"366561e74a088d55d816d3795cba5f2299e3283c",
       "live_migration":"20260905163927_clean_ru5_public_profile_projection",
       "raw_profile_rls":"OWNER_ONLY_UNCHANGED",
-      "next":"P0C-02_ATOMIC_APPLICATION_SUBMIT"
+      "next":"P0C-02_CLOSED_LIVE"
+    },
+    "p0c02": {
+      "status":"CLOSED_LIVE",
+      "contract":"ATOMIC_APPLICATION_SUBMIT",
+      "canonical_sha":"bc784f3ed65d3a053195789740fae17e4df235d3",
+      "live_migration":"20260905190040_clean_ru5_atomic_application_submit",
+      "historical_snapshot_backfill":false,
+      "next":"P0C-03_MY_APPLICATIONS_PROJECTION_WITHDRAW"
+    },
+    "p0c03": {
+      "status":"NEXT_READ_ONLY_PREFLIGHT",
+      "contract":"MY_APPLICATIONS_PROJECTION_AND_WITHDRAW_PORT"
     }
   },
   "status": {
@@ -99,7 +128,7 @@
     "RU-4":"CLOSED_LIVE_DO_NOT_REDO",
     "RU-4B":"LIVE_FOUNDATION_ACTIVATION_BLOCKED_DEFERRED",
     "CDL":"CLOSED_CANONICAL",
-    "RU-5":"IN_PROGRESS_P0C01_CLOSED_LIVE_P0C02_NEXT",
+    "RU-5":"IN_PROGRESS_P0C01_P0C02_CLOSED_LIVE_P0C03_NEXT",
     "RU-5B":"NOT_STARTED_GATED_BY_RU5",
     "RU-6A":"FOUNDATION_ONLY_GATED_BY_RU5",
     "RU-6B":"NOT_STARTED_GATED_BY_RU6A",
@@ -118,5 +147,5 @@
     "service_offer_listing_supported":false
   },
   "monetization":"FREE_0_RSD",
-  "next_allowed_action":"RU-5/P0C-02 atomic Application submit: fresh read-only physical preflight of current podnesiPrijavu/rpc_submit_response, response schema/RLS/idempotency and W05 consumer; proof branch before any new live write."
+  "next_allowed_action":"RU-5/P0C-03 My Applications projection + withdraw port: fresh read-only physical preflight of own Application projection, rpc_withdraw_response, response/version lifecycle, RLS/idempotency and W06 consumer; proof branch before any new live write."
 }

@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 72,
+    "migration_count": 73,
     "last": {
-      "name": "clean_ru5_public_profile_projection",
-      "version": "20260905163927"
+      "name": "clean_ru5_atomic_application_submit",
+      "version": "20260905190040"
     },
     "entries": [
       {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
@@ -89,22 +89,11 @@
       {"name":"clean_ru4b_preselection_qa_foundation","version":"20260905070010","file":"20260905060000_clean_ru4b_preselection_qa_foundation.sql","source_version":"20260905060000","exact_byte_mirror":true,"canonical_raw_md5":"4f7df9ffed48a9cfd35592706e8175c1","live_recorded_statement_md5":"4f7df9ffed48a9cfd35592706e8175c1","recorded_statement_utf8_bytes":29116},
       {"name":"clean_ru4b_service_boundary","version":"20260905070029","file":"20260905060100_clean_ru4b_service_boundary.sql","source_version":"20260905060100","exact_byte_mirror":true,"canonical_raw_md5":"ee041bed805dbcdc016e8f9e0ab85f74","live_recorded_statement_md5":"ee041bed805dbcdc016e8f9e0ab85f74","recorded_statement_utf8_bytes":2408},
       {"name":"clean_ru4b_inbox_event_contract","version":"20260905070046","file":"20260905060200_clean_ru4b_inbox_event_contract.sql","source_version":"20260905060200","exact_byte_mirror":true,"canonical_raw_md5":"9182fb1c347ac1abc889cc6e0554cc2b","live_recorded_statement_md5":"9182fb1c347ac1abc889cc6e0554cc2b","recorded_statement_utf8_bytes":2201},
-      {"name":"clean_ru5_public_profile_projection","version":"20260905163927","file":"20260905133000_clean_ru5_public_profile_projection.sql","source_version":"20260905133000","exact_byte_mirror":true,"canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","live_recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","recorded_statement_utf8_bytes":2458}
+      {"name":"clean_ru5_public_profile_projection","version":"20260905163927","file":"20260905133000_clean_ru5_public_profile_projection.sql","source_version":"20260905133000","exact_byte_mirror":true,"canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","live_recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","recorded_statement_utf8_bytes":2458},
+      {"name":"clean_ru5_atomic_application_submit","version":"20260905190040","file":"20260905190000_clean_ru5_atomic_application_submit.sql","source_version":"20260905190000","exact_byte_mirror":false,"canonical_raw_md5":"1a397f893deb3109b8984035c19111bb","canonical_utf8_bytes":18107,"live_recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761","recorded_statement_utf8_bytes":18106,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb","normalized_terminal_lf_bytes":18107}
     ]
   },
-  "pending_forward_migrations": [
-    {
-      "version": "20260905190000",
-      "name": "clean_ru5_atomic_application_submit",
-      "file": "20260905190000_clean_ru5_atomic_application_submit.sql",
-      "raw_md5": "1a397f893deb3109b8984035c19111bb",
-      "classification": "PENDING_FORWARD_MIGRATION",
-      "live_applied": false,
-      "predecessor_live_migration_count": 72,
-      "predecessor_live_head": "20260905163927",
-      "rationale": "RU-5 P0C-02 targeted atomic Application submit hardening: current RU-1 readiness, team/remaining capacity, MY_PRICE equality, private per-version self-declared snapshot and deduplicated RESPONSE_RECEIVED event; existing historical rows preserved; D0140/RU-4B/monetization/calendar/note-policy activation excluded."
-    }
-  ],
+  "pending_forward_migrations": [],
   "reconstructions": [
     {
       "version": "20260830191500",
@@ -167,7 +156,7 @@
     "transport_incident": {"affected_live_version":"20260905052336","historical_record_preserved":true,"canonical_raw_md5":"b976f1ccc2c329d7f2fe0bc43ef36606","live_recorded_statement_md5":"d3fb1fe33fffcd3c7314a9fa2238de3","repair_live_version":"20260905052651","repair_source_version":"20260904230200","repair_source_file":"20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql","repair_raw_md5":"6be6134441a81a4550710969cac89d85"},
     "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"need_edit_commands":0,"need_revision_events":0,"response_revision_resolution_commands":0,"remaining_search_close_commands":0,"policy_bundles":0,"policy_rule_refs":0,"publication_decisions":0,"d0140_production_publish":"FAIL_CLOSED"}
   },
-  "next_allowed_action": "RU-5 / P0C-02 ATOMIC APPLICATION SUBMIT — fresh read-only physical preflight of marketplace_responses, rpc_submit_response, response command ledger, Need eligibility, covered_slots/team_capacity semantics and W05/R05/R06 consumers; proof branch before any live write.",
+  "next_allowed_action": "RU-5 / P0C-03 MY APPLICATIONS PROJECTION + WITHDRAW PORT — fresh read-only physical preflight of own Application projection, rpc_withdraw_response, response/version lifecycle, RLS/idempotency and W06 consumer; proof branch before any live write.",
   "ru5_p0c01_live_reconciliation": {
     "status": "CLOSED_LIVE",
     "canonical_promotion_sha": "366561e74a088d55d816d3795cba5f2299e3283c",
@@ -188,6 +177,32 @@
     "d0140_production_publish": "FAIL_CLOSED",
     "ru4b_public_qa": "ACTIVATION_BLOCKED",
     "monetization": "FREE_0_RSD"
+  },
+  "ru5_p0c02_live_reconciliation": {
+    "status": "CLOSED_LIVE",
+    "proof_sha": "2d6b1a64d9760bddcca1e4751945fdccc8a5e6ba",
+    "canonical_promotion_sha": "bc784f3ed65d3a053195789740fae17e4df235d3",
+    "source_version": "20260905190000",
+    "source_file": "20260905190000_clean_ru5_atomic_application_submit.sql",
+    "live_version": "20260905190040",
+    "live_name": "clean_ru5_atomic_application_submit",
+    "exact_byte_identity": false,
+    "canonical_raw_md5": "1a397f893deb3109b8984035c19111bb",
+    "canonical_utf8_bytes": 18107,
+    "live_recorded_statement_md5": "e573341dad8ed303d4c72f234e11b761",
+    "recorded_statement_utf8_bytes": 18106,
+    "transport_deviation": "terminal LF omitted only",
+    "normalized_terminal_lf_md5": "1a397f893deb3109b8984035c19111bb",
+    "proof_run": 33982216558,
+    "pr_pre_p4_run": 33982373215,
+    "pr_codeql_run": 33982372198,
+    "canonical_pre_p4_run": 33985675818,
+    "canonical_codeql_run": 33985675330,
+    "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"application_snapshot_rows":0,"publication_policy_bundles":0,"publication_policy_rule_refs":0,"need_publication_decisions":0,"preselection_questions":0,"preselection_answer_versions":0,"preselection_policy_decisions":0,"preselection_materiality_decisions":0,"preselection_commands":0},
+    "d0140_production_publish": "FAIL_CLOSED",
+    "ru4b_public_qa": "ACTIVATION_BLOCKED",
+    "monetization": "FREE_0_RSD",
+    "explicit_non_claims": ["bounded_note_policy","calendar_hard_conflict_authority","historical_snapshot_backfill","application_ai"]
   },
   "ru4b": {
     "status": "LIVE_FOUNDATION_ACTIVATION_BLOCKED",
