@@ -1,0 +1,92 @@
+name: RU-5 C01 promotion builder
+
+on:
+  push:
+    branches:
+      - proof/ru5-c01-public-profile-20260905
+    paths:
+      - .github/workflows/ru5-c01-promotion-builder.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-canonical-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: proof/ru5-c01-public-profile-20260905
+          fetch-depth: 0
+
+      - name: Promote exact staged bytes and update provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="supabase/staging/ru5/20260905144500_clean_ru5_public_profile_projection.sql"
+          dst="supabase/migrations/20260905144500_clean_ru5_public_profile_projection.sql"
+          test -f "$src"
+          test ! -e "$dst"
+          cp "$src" "$dst"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          root = Path('supabase/migrations')
+          filename = '20260905144500_clean_ru5_public_profile_projection.sql'
+          version = '20260905144500'
+          name = 'clean_ru5_public_profile_projection'
+          raw = (root / filename).read_bytes()
+          if b'\r' in raw:
+              raise SystemExit('CR byte in RU5 C01 candidate')
+          md5 = hashlib.md5(raw).hexdigest()
+
+          manifest_path = root / 'MD5_MANIFEST.txt'
+          lines = manifest_path.read_text(encoding='utf-8').splitlines()
+          if any(filename in line for line in lines):
+              raise SystemExit('RU5 C01 already in manifest')
+          lines.append(f'{md5}  {filename}')
+          lines.sort(key=lambda line: line.split('  ',1)[1])
+          manifest_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+          provenance_path = root / 'MIGRATION_PROVENANCE.json'
+          data = json.loads(provenance_path.read_text(encoding='utf-8'))
+          history = data['live_history_snapshot']
+          if history.get('migration_count') != 71:
+              raise SystemExit(f"unexpected live history count: {history.get('migration_count')}")
+          if history.get('last',{}).get('version') != '20260905070046':
+              raise SystemExit(f"unexpected live head: {history.get('last')}")
+          pending = data.get('pending_forward_migrations', [])
+          if pending:
+              raise SystemExit(f'unexpected pre-existing pending migrations: {pending}')
+          data['pending_forward_migrations'] = [{
+              'version': version,
+              'name': name,
+              'classification': 'PENDING_FORWARD_MIGRATION',
+              'file': filename,
+              'raw_md5': md5,
+              'live_applied': False,
+              'predecessor_live_migration_count': 71,
+              'predecessor_live_head': '20260905070046'
+          }]
+          provenance_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          print(f'RU5_C01_RAW_MD5={md5}')
+          PY
+
+          cmp -s "$src" "$dst"
+          sh supabase/migrations/check_md5.sh
+
+      - name: Commit exact canonical candidate and remove one-shot builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/ru5-c01-promotion-builder.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/migrations/20260905144500_clean_ru5_public_profile_projection.sql \
+                  supabase/migrations/MD5_MANIFEST.txt \
+                  supabase/migrations/MIGRATION_PROVENANCE.json \
+                  .github/workflows/ru5-c01-promotion-builder.yml
+          git commit -m "build(ru5): promote C01 canonical migration candidate"
+          git push origin HEAD:proof/ru5-c01-public-profile-20260905
