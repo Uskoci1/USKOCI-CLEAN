@@ -7,7 +7,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type CommandOverrides = Partial<Pick<
   Izvor,
-  | 'otkrijTacnuLokaciju'
   | 'azurirajRadnikProfil'
   | 'posaljiKorisnikovuPoruku'
   | 'ispraviCinjenicu'
@@ -23,19 +22,6 @@ function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string
 }
 
 export const productionAuthorityOverrides: CommandOverrides = {
-  async otkrijTacnuLokaciju(dogovorId) {
-    const { data, error } = await supabase.rpc('rpc_reveal_contact', {
-      p_agreement_id: dogovorId,
-      p_channel: 'EXACT_LOCATION',
-    });
-    if (error) return rpcFailure(error, 'LOCATION_REVEAL_FAILED', 'Tačna lokacija nije dostupna.');
-    const address = data?.exactAddress;
-    if (typeof address !== 'string' || !address.trim()) {
-      return { ok: false, kod: 'LOCATION_NOT_SET', poruka: 'Tačna lokacija nije postavljena.' };
-    }
-    return { ok: true, podatak: { adresa: address } };
-  },
-
   async azurirajRadnikProfil(k: AzurirajProfilKomanda) {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {

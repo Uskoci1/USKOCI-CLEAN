@@ -64,6 +64,7 @@ type SupabaseIzvor = Omit<
   | 'opoziviTelefon'
   | 'prijaviProblem'
   | 'oznaciZavrsetak'
+  | 'otkrijTacnuLokaciju'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -242,12 +243,6 @@ export const supabaseIzvor: SupabaseIzvor = {
     const { data, error } = await supabase.rpc('rpc_confirm_completion', { p_agreement_id: dogovorId });
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
     return { ok: true, podatak: null };
-  },
-  
-  async otkrijTacnuLokaciju(dogovorId: string) {
-    const { error } = await supabase.rpc('rpc_r24_reveal_exact_location', { p_agreement_id: dogovorId });
-    if (error) return handleRpcError(error, 'LOCATION_ERROR', 'Greška pri otkrivanju lokacije.');
-    return { ok: true, podatak: { adresa: 'Preuzeto sa servera' } };
   },
 
   async mojRadnikProfil() {
