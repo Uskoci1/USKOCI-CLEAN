@@ -1,3 +1,25 @@
+<!-- CDL_A05_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A05 PHONE GRANTS CLOSED / CANONICAL
+
+This block supersedes CDL-A04 next-cursor text for the consolidation track.
+
+- canonical code promotion: `d14ee1c9e451c6a462b174082e1b06a0fde35a88`
+- proof branch/head: `proof/client-data-phone-grants-20260905 @ f95631d4d45f803efc70e098f922238d13b42fb4`
+- pre-deletion equivalence run: `33957532925` — PASS
+- final post-deletion run: `33957660880` — PASS
+- canonical contact client owner: `src/data/contactClientService.ts`
+- methods now owned there: `podeliTelefon`, `opoziviTelefon`
+- exact backend authority remains `rpc_set_contact_grant(p_agreement_id, p_channel='PHONE', p_granted)`
+- fake-success/no-op legacy methods are physically removed from `supabaseIzvor.ts`
+- duplicate active methods are physically removed from `productionAuthorityOverrides.ts`
+- exact-location path was not changed in CDL-A05
+- no backend migration or Edge deployment occurred in CDL-A05
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **fresh post-A05 shadow inventory, then select CDL-A06 by lowest-risk proven slice**
+
 <!-- CDL_A04_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A04 RESPONSE VIEWED CLOSED / CANONICAL
 
