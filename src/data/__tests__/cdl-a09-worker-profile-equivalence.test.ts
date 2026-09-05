@@ -1,10 +1,13 @@
 /**
- * CDL-A09 — Worker profile mutation, pre-deletion equivalence proof.
+ * CDL-A09 — canonical Worker profile mutation contract.
  *
- * Current active productionAuthorityOverrides and the canonical
- * workerProfileClientService are executed against the same mocked Supabase
- * client. No legacy owner may be deleted until this and PRE-P4 are green.
+ * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33962358107.
+ * After deletion these tests lock the canonical auth/read/create/update/activation
+ * contract and prove azurirajRadnikProfil has one physical production owner.
  */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
@@ -21,7 +24,6 @@ jest.mock('../supabaseClient', () => {
   };
 });
 
-import { productionAuthorityOverrides } from '../productionAuthorityOverrides';
 import { workerProfileClientService } from '../workerProfileClientService';
 
 const { mockGetUser, mockFrom, mockRpc } = (jest.requireMock('../supabaseClient') as {
@@ -103,28 +105,30 @@ function configure(s: Scenario) {
   return trace;
 }
 
-async function capture(run: () => Promise<unknown>, scenario: Scenario) {
+async function run(k: any, scenario: Scenario) {
   const trace = configure(scenario);
-  const value = await run();
+  const value = await workerProfileClientService.azurirajRadnikProfil(k);
   return { value, trace };
 }
 
-async function compare(k: any, scenario: Scenario) {
-  const oldOwner = await capture(
-    () => productionAuthorityOverrides.azurirajRadnikProfil!(k),
-    scenario,
-  );
-  const newOwner = await capture(
-    () => workerProfileClientService.azurirajRadnikProfil(k),
-    scenario,
-  );
-  expect(newOwner).toEqual(oldOwner);
-  return newOwner;
-}
+describe('CDL-A09 — canonical Worker profile mutation contract', () => {
+  it('physically eliminates both lower-precedence Worker profile mutation owners', () => {
+    const dataDir = join(__dirname, '..');
+    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
+    const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
+    const canonicalSource = readFileSync(join(dataDir, 'workerProfileClientService.ts'), 'utf8');
 
-describe('CDL-A09 — Worker profile mutation equivalence before deletion', () => {
+    expect(authoritySource).not.toContain('azurirajRadnikProfil');
+    expect(baselineSource).not.toContain('async azurirajRadnikProfil(');
+    expect(baselineSource).toContain("'azurirajRadnikProfil'");
+    expect(canonicalSource).toContain('async azurirajRadnikProfil(');
+    expect(canonicalSource).toContain("supabase.rpc('rpc_complete_worker_profile'");
+    expect(canonicalSource).toContain('p_profile_id: profileId');
+    expect(canonicalSource).toContain("profile_status: 'DRAFT'");
+  });
+
   it('preserves auth-required behavior before any profile access', async () => {
-    const result = await compare(
+    const result = await run(
       { ime: 'Miloš' },
       { userResult: { data: { user: null }, error: { message: 'session missing' } } },
     );
@@ -138,7 +142,7 @@ describe('CDL-A09 — Worker profile mutation equivalence before deletion', () =
   });
 
   it('preserves exact existing-profile patch and activation with required profile id', async () => {
-    const result = await compare(
+    const result = await run(
       {
         ime: 'Miloš',
         grad: 'Novi Sad',
@@ -176,7 +180,7 @@ describe('CDL-A09 — Worker profile mutation equivalence before deletion', () =
   });
 
   it('preserves exact DRAFT create payload and activates the returned profile id', async () => {
-    const result = await compare(
+    const result = await run(
       {
         ime: 'Ana',
         grad: 'Novi Sad',
@@ -212,7 +216,7 @@ describe('CDL-A09 — Worker profile mutation equivalence before deletion', () =
   });
 
   it('does not issue update or activation when existing profile has no patch and zavrsi is false', async () => {
-    const result = await compare(
+    const result = await run(
       {},
       { existingResult: { data: { id: 'profile-quiet' }, error: null } },
     );
@@ -248,7 +252,7 @@ describe('CDL-A09 — Worker profile mutation equivalence before deletion', () =
       { ok: false, kod: 'SKILL_REQUIRED', poruka: 'Profil još ne ispunjava uslove za aktivaciju.' },
     ],
   ])('preserves active failure mapping for %s', async (_label, scenario, k, expected) => {
-    const result = await compare(k, scenario as Scenario);
+    const result = await run(k, scenario as Scenario);
     expect(result.value).toEqual(expected);
   });
 });
