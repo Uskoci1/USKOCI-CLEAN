@@ -1,0 +1,95 @@
+name: RU-4B promotion builder
+
+on:
+  push:
+    branches:
+      - promotion/ru4b-foundation-20260905
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: promotion/ru4b-foundation-20260905
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Build pending migration metadata
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          root=Path('supabase/migrations')
+          files=[
+            '20260905060000_clean_ru4b_preselection_qa_foundation.sql',
+            '20260905060100_clean_ru4b_service_boundary.sql',
+            '20260905060200_clean_ru4b_inbox_event_contract.sql',
+          ]
+
+          manifest=root/'MD5_MANIFEST.txt'
+          rows={}
+          for line in manifest.read_text().splitlines():
+              md5,name=line.split('  ',1)
+              rows[name]=md5
+          for name in files:
+              raw=(root/name).read_bytes()
+              if b'\r' in raw:
+                  raise SystemExit(f'CR byte in {name}')
+              rows[name]=hashlib.md5(raw).hexdigest()
+          manifest.write_text(''.join(f"{rows[name]}  {name}\n" for name in sorted(rows)))
+
+          prov_path=root/'MIGRATION_PROVENANCE.json'
+          prov=json.loads(prov_path.read_text())
+          pending=prov.get('pending_forward_migrations',[])
+          existing={x['file'] for x in pending}
+          for name in files:
+              if name in existing:
+                  continue
+              version,rest=name[:-4].split('_',1)
+              pending.append({
+                  'version': version,
+                  'name': rest,
+                  'file': name,
+                  'classification': 'PENDING_FORWARD_MIGRATION',
+                  'raw_md5': rows[name],
+                  'live_applied': False,
+                  'predecessor_live_migration_count': 68,
+                  'predecessor_live_head': '20260905052713',
+                  'scope': 'RU-4B fail-closed preselection Q&A foundation; activation remains blocked by block/rate/policy authority'
+              })
+          pending.sort(key=lambda x:x['file'])
+          prov['pending_forward_migrations']=pending
+          prov_path.write_text(json.dumps(prov,indent=2,ensure_ascii=False)+'\n')
+          PY
+
+      - name: Verify migration integrity
+        run: sh supabase/migrations/check_md5.sh
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Regression
+        run: npm test -- --runInBand
+
+      - name: Commit built metadata
+        run: |
+          set -euo pipefail
+          git config user.name "USKOCI proof builder"
+          git config user.email "proof-builder@users.noreply.github.com"
+          git add supabase/migrations/MD5_MANIFEST.txt supabase/migrations/MIGRATION_PROVENANCE.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(ru4b): record pending promotion provenance"
+          git push origin HEAD:promotion/ru4b-foundation-20260905
