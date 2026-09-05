@@ -1,3 +1,31 @@
+<!-- RU4B_LIVE_FOUNDATION_CHECKPOINT_20260905 -->
+## LATEST PHYSICAL CHECKPOINT — RU-4B PRESELECTION Q&A FOUNDATION LIVE / ACTIVATION BLOCKED
+
+This block supersedes older next-cursor text that pointed directly from RU-4 to an unresolved next unit.
+
+- canonical foundation promotion: `240e5b2e06f9bef2d4c4d0c6effb1d971efd55b7`
+- proof branch/head: `proof/ru4b-public-preselection-qa-20260905 @ bb3677d8fbb2775ade2d02195769954366fb4e33`
+- exhaustive disposable proof: GitHub Actions `33950965667` — PASS (live-68 replay, fail-closed dependency gates, active Worker, owner-only answer, anonymous asker/no identity leak, exact policy/materiality gates, MATERIAL -> RU-4, append-only answer history, edited marker, ignore/report nonpublic, PII floor, idempotency, Inbox events, zero residue, TypeScript, regression)
+- clean promotion builder: `33951166457` — PASS
+- canonical post-push integrity: `33951231623` — PASS
+- live Supabase project: `leqcwgzvjsxugfgzdmth`
+- live migration count: `71`
+- live head: `20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4B live applies, all exact-byte MD5 mirrors:
+  - `20260905070010_clean_ru4b_preselection_qa_foundation` <- source `20260905060000`, MD5 `4f7df9ffed48a9cfd35592706e8175c1`
+  - `20260905070029_clean_ru4b_service_boundary` <- source `20260905060100`, MD5 `ee041bed805dbcdc016e8f9e0ab85f74`
+  - `20260905070046_clean_ru4b_inbox_event_contract` <- source `20260905060200`, MD5 `9182fb1c347ac1abc889cc6e0554cc2b`
+- post-live business rows preserved: `needs=6`, `marketplace_responses=4`, `agreements=2`, `app_profiles=6`
+- RU-4B runtime ledgers remain zero: questions `0`, answer versions `0`, policy decisions `0`, materiality decisions `0`, commands `0`
+- D-0140 production rows remain zero; production Need publication remains `FAIL_CLOSED`
+- service decision/materiality wrappers are service-role only; authenticated/anon cannot execute the service policy writer
+- Inbox event contract now admits `CLARIFICATION_CREATED`, `CLARIFICATION_ANSWERED` and entity `CLARIFICATION` while preserving all prior event/entity values
+- public Q&A activation remains intentionally blocked. Missing governed dependencies: account-block authority, owner-approved numeric Q&A rate policy, reviewed/current PRESELECTION_QA production ALLOW policy and production-trusted materiality authority.
+- no placeholder ALLOW, rate number or block behavior was invented.
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**.
+- RU-4B verdict: **LIVE_FOUNDATION / ACTIVATION_BLOCKED / NOT CLOSED AS USER-FACING FEATURE**.
+- planned next engineering track after this reconciled checkpoint: **CLIENT DATA LAYER CONSOLIDATION / OVERRIDES ELIMINATION**, in a fresh chat, with no behavior reinterpretation and no big-bang rewrite.
+
 <!-- RU4_LIVE_CHECKPOINT_20260905 -->
 ## LATEST PHYSICAL CHECKPOINT — RU-4 OWNER EDIT LOCK LIVE / RECONCILED
 
