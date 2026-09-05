@@ -1,3 +1,28 @@
+<!-- RU4_LIVE_CHECKPOINT_20260905 -->
+## LATEST PHYSICAL CHECKPOINT — RU-4 OWNER EDIT LOCK LIVE / RECONCILED
+
+This block supersedes all older RU-4 target/proof-only/no-live cursor text below.
+
+- functional canonical source promotion: `a271d6084b4648e757d2230d0a208f558c802a14`
+- exact clean production proof: GitHub Actions `33946688625` — PASS (live-63 replay, owner edit authority, stale/reconfirm, first-Dogovor lock, close remaining search, AI authority, true concurrency, zero residue, D0140 fail-closed, TypeScript, regression)
+- live Supabase project: `leqcwgzvjsxugfgzdmth`
+- live migration count: `68`
+- live head: `20260905052713_clean_ru4_ai_edit_replay_boundary`
+- RU-4 live applies:
+  - `20260905052130_clean_ru4_owner_edit_lock` <- canonical `20260904214500_clean_ru4_owner_edit_lock.sql` (MD5 exact)
+  - `20260905052224_clean_ru4_close_remaining_search` <- canonical `20260904223000_clean_ru4_close_remaining_search.sql` (MD5 exact)
+  - `20260905052336_clean_ru4_ai_edit_conversation` <- canonical source had one live-transport identifier deviation; historical live migration preserved
+  - `20260905052651_clean_ru4_ai_edit_conversation_live_transfer_reconcile` <- canonical `20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql`, forward-only reconciliation, proof `33947156991` PASS, MD5 exact
+  - `20260905052713_clean_ru4_ai_edit_replay_boundary` <- canonical `20260904230500_clean_ru4_ai_edit_replay_boundary.sql` (MD5 exact)
+- post-live structural/auth proof: PASS
+- business rows preserved: `needs=6`, `marketplace_responses=4`, `agreements=2`, `app_profiles=6`
+- RU-4 command/revision ledgers after deployment: all `0`
+- D-0140 production rows: policy bundles `0`, policy rule refs `0`, publication decisions `0`; production publication remains `FAIL_CLOSED`
+- authenticated owner boundaries are exposed only where intended; anon is denied; inner AI writer is not authenticated-executable and replay-safe v2 wrapper is the public authenticated boundary
+- owner contract now live: edit only before first Dogovor; explicit confirmation -> next DRAFT revision; old unselected Prijave -> `STALE_REVIEW_REQUIRED`; explicit KEEP/UPDATE/WITHDRAW; no auto-republish; first Dogovor permanently locks ordinary parent-Zadatak edit; `Ne traži više nikoga` closes remaining search without rewriting terms
+- RU-4 verdict: **CLOSED / LIVE_STRUCTURAL_PROVEN / DO NOT REDO**
+- exact next cursor: fresh physical preflight from live `68 / 20260905052713`; resolve the next implementation unit from the governing master/current network; keep D-0140 production policy activation deferred/fail-closed.
+
 <!-- RU4_OWNER_LOCK_20260904 -->
 ## CURRENT RU-4 OWNER LOCK — PRODUCT TARGET, NOT LIVE MIGRATION
 

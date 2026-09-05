@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-04T18:26:45Z",
+  "updated_at": "2026-09-05T05:34:53Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,13 +9,13 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "d2c077d90c6410dc0737916df13b257389c6cb3b",
-    "note": "Resolve current Git HEAD physically before every write; this field is the observed pre-reconciliation base, not a self-updating HEAD."
+    "canonical_base_observed_before_docs_reconciliation": "a271d6084b4648e757d2230d0a208f558c802a14",
+    "note": "RU-4 functional source was promoted first; this continuity reconciliation records physical live 68 including the forward-only transfer reconciliation. Resolve current Git HEAD physically before every write."
   },
-  "live_migration_count": 63,
+  "live_migration_count": 68,
   "live_head": {
-    "version": "20260904182402",
-    "name": "clean_ru3_canonical_publish"
+    "version": "20260905052713",
+    "name": "clean_ru4_ai_edit_replay_boundary"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
@@ -89,7 +89,7 @@
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_63",
+    "state": "NORMALIZED_TO_LIVE_68_RU4_RECONCILED",
     "pending_forward_migrations": 0,
     "ru2_live_version_aliases": [
       {
@@ -128,7 +128,57 @@
       "source_file": "20260904111500_clean_ru3_canonical_publish.sql",
       "exact_byte_identity": false,
       "source_raw_md5": "17468983d28cddfe4948c3866a96e813"
-    }
+    },
+    "ru4_live_aliases": [
+      {
+        "name": "clean_ru4_owner_edit_lock",
+        "version": "20260905052130",
+        "file": "20260904214500_clean_ru4_owner_edit_lock.sql",
+        "source_version": "20260904214500",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "10b57d64ab0d58e6e96b7e09cbd3c748",
+        "live_recorded_statement_md5": "10b57d64ab0d58e6e96b7e09cbd3c748"
+      },
+      {
+        "name": "clean_ru4_close_remaining_search",
+        "version": "20260905052224",
+        "file": "20260904223000_clean_ru4_close_remaining_search.sql",
+        "source_version": "20260904223000",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "4e4e27d9e71be5f51ef5d892884b63a7",
+        "live_recorded_statement_md5": "4e4e27d9e71be5f51ef5d892884b63a7"
+      },
+      {
+        "name": "clean_ru4_ai_edit_conversation",
+        "version": "20260905052336",
+        "file": "20260904230000_clean_ru4_ai_edit_conversation.sql",
+        "source_version": "20260904230000",
+        "exact_byte_mirror": false,
+        "canonical_raw_md5": "b976f1ccc2c329d7f2fe0bc43ef36606",
+        "live_recorded_statement_md5": "d3fb1fe33fffcd3c7314a9fa2238de3",
+        "transport_deviation": "one identifier arrived as requester_rsd instead of canonical requester_price_rsd",
+        "forward_reconciled_by_live_version": "20260905052651"
+      },
+      {
+        "name": "clean_ru4_ai_edit_conversation_live_transfer_reconcile",
+        "version": "20260905052651",
+        "file": "20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql",
+        "source_version": "20260904230200",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "6be6134441a81a4550710969cac89d85",
+        "live_recorded_statement_md5": "6be6134441a81a4550710969cac89d85",
+        "proof_run_id": 33947156991
+      },
+      {
+        "name": "clean_ru4_ai_edit_replay_boundary",
+        "version": "20260905052713",
+        "file": "20260904230500_clean_ru4_ai_edit_replay_boundary.sql",
+        "source_version": "20260904230500",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "2a1fdea9f612394709afc44cc6f6b1b9",
+        "live_recorded_statement_md5": "2a1fdea9f612394709afc44cc6f6b1b9"
+      }
+    ]
   },
   "d0140_minimum_owner_policy": {
     "status": "OWNER_LOCKED_MINIMUM_NOT_PRODUCTION_ACTIVATED",
@@ -219,5 +269,97 @@
     "activation_blocker": "No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish": "FAIL_CLOSED"
   },
-  "next_allowed_action": "Fresh physical preflight from live 63 / 20260904182402 clean_ru3_canonical_publish; begin RU-4 Material Revision / Re-admission on an isolated branch; keep production D-0140 policy activation fail-closed/deferred."
+  "next_allowed_action": "Fresh physical preflight from live 68 / 20260905052713 clean_ru4_ai_edit_replay_boundary; RU-4 is CLOSED/DO_NOT_REDO; resolve the next implementation unit from governing master/current network; keep production D-0140 activation fail-closed/deferred.",
+  "ru4": {
+    "status": "CLOSED_LIVE_STRUCTURAL_PROVEN",
+    "functional_canonical_source_head": "a271d6084b4648e757d2230d0a208f558c802a14",
+    "owner_lock_document": "docs/implementation/ru4/RU4_OWNER_LOCK_V1.md",
+    "clean_production_proof_run": 33946688625,
+    "live_transfer_reconciliation_proof_run": 33947156991,
+    "live_apply": [
+      {
+        "name": "clean_ru4_owner_edit_lock",
+        "version": "20260905052130",
+        "file": "20260904214500_clean_ru4_owner_edit_lock.sql",
+        "source_version": "20260904214500",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "10b57d64ab0d58e6e96b7e09cbd3c748",
+        "live_recorded_statement_md5": "10b57d64ab0d58e6e96b7e09cbd3c748"
+      },
+      {
+        "name": "clean_ru4_close_remaining_search",
+        "version": "20260905052224",
+        "file": "20260904223000_clean_ru4_close_remaining_search.sql",
+        "source_version": "20260904223000",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "4e4e27d9e71be5f51ef5d892884b63a7",
+        "live_recorded_statement_md5": "4e4e27d9e71be5f51ef5d892884b63a7"
+      },
+      {
+        "name": "clean_ru4_ai_edit_conversation",
+        "version": "20260905052336",
+        "file": "20260904230000_clean_ru4_ai_edit_conversation.sql",
+        "source_version": "20260904230000",
+        "exact_byte_mirror": false,
+        "canonical_raw_md5": "b976f1ccc2c329d7f2fe0bc43ef36606",
+        "live_recorded_statement_md5": "d3fb1fe33fffcd3c7314a9fa2238de3",
+        "transport_deviation": "one identifier arrived as requester_rsd instead of canonical requester_price_rsd",
+        "forward_reconciled_by_live_version": "20260905052651"
+      },
+      {
+        "name": "clean_ru4_ai_edit_conversation_live_transfer_reconcile",
+        "version": "20260905052651",
+        "file": "20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql",
+        "source_version": "20260904230200",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "6be6134441a81a4550710969cac89d85",
+        "live_recorded_statement_md5": "6be6134441a81a4550710969cac89d85",
+        "proof_run_id": 33947156991
+      },
+      {
+        "name": "clean_ru4_ai_edit_replay_boundary",
+        "version": "20260905052713",
+        "file": "20260904230500_clean_ru4_ai_edit_replay_boundary.sql",
+        "source_version": "20260904230500",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "2a1fdea9f612394709afc44cc6f6b1b9",
+        "live_recorded_statement_md5": "2a1fdea9f612394709afc44cc6f6b1b9"
+      }
+    ],
+    "post_live": {
+      "needs": 6,
+      "marketplace_responses": 4,
+      "agreements": 2,
+      "app_profiles": 6,
+      "need_edit_commands": 0,
+      "need_revision_events": 0,
+      "response_revision_resolution_commands": 0,
+      "remaining_search_close_commands": 0,
+      "policy_bundles": 0,
+      "policy_rule_refs": 0,
+      "publication_decisions": 0,
+      "d0140_production_publish": "FAIL_CLOSED"
+    },
+    "auth_boundary": {
+      "confirm_need_edit_authenticated": true,
+      "confirm_need_edit_anon": false,
+      "close_remaining_search_authenticated": true,
+      "close_remaining_search_anon": false,
+      "ai_open_edit_authenticated": true,
+      "ai_open_edit_anon": false,
+      "inner_ai_writer_authenticated": false,
+      "replay_safe_ai_wrapper_authenticated": true,
+      "replay_safe_ai_wrapper_anon": false
+    },
+    "transport_reconciliation": {
+      "affected_live_version": "20260905052336",
+      "historical_record_preserved": true,
+      "canonical_raw_md5": "b976f1ccc2c329d7f2fe0bc43ef36606",
+      "live_recorded_statement_md5": "d3fb1fe33fffcd3c7314a9fa2238de3",
+      "repair_live_version": "20260905052651",
+      "repair_source_version": "20260904230200",
+      "repair_source_file": "20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql",
+      "repair_raw_md5": "6be6134441a81a4550710969cac89d85"
+    }
+  }
 }
