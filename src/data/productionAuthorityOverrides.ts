@@ -5,10 +5,10 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type CommandOverrides = Partial<Pick<
+type CommandOverrides = Pick<
   Izvor,
   | 'objaviPotrebu'
->>;
+>;
 
 function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string): Ishod<T> {
   return {
