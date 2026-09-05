@@ -39,8 +39,8 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install locked dependencies
-        run: npm ci
+      - name: Install locked dependencies including proof types
+        run: npm ci --include=dev
 
       - name: Prepare proof-only authenticated fixtures
         run: python3 .github/visual-proof/prepare-all-screens.py
@@ -128,11 +128,14 @@ jobs:
         if: always()
         run: |
           set -eu
+          mkdir -p visual-all
           ls -lah visual-all || true
           printf 'file\tbytes\tsha256\n' > visual-all/screenshots-manifest.tsv
           count=0
           for f in visual-all/[0-9][0-9]-*.png; do
-            test -s "$f"
+            if [ ! -s "$f" ]; then
+              continue
+            fi
             bytes=$(wc -c < "$f")
             sha=$(sha256sum "$f" | awk '{print $1}')
             printf '%s\t%s\t%s\n' "$(basename "$f")" "$bytes" "$sha" >> visual-all/screenshots-manifest.tsv
