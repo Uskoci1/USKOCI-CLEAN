@@ -18,393 +18,79 @@
       "version": "20260905190040"
     },
     "entries": [
-      {
-        "name": "cloud_profile_foundation_1_3b",
-        "version": "20260825115040"
-      },
-      {
-        "name": "lock_down_auth_trigger_functions_1_3b",
-        "version": "20260825115602"
-      },
-      {
-        "name": "clean_security_hardening",
-        "version": "20260829183528"
-      },
-      {
-        "name": "clean_need_foundation",
-        "version": "20260829183551"
-      },
-      {
-        "name": "clean_response_foundation",
-        "version": "20260829183609"
-      },
-      {
-        "name": "clean_agreement_foundation",
-        "version": "20260829183633"
-      },
-      {
-        "name": "clean_directional_access_grants",
-        "version": "20260829183651"
-      },
-      {
-        "name": "clean_ai_persistence",
-        "version": "20260829183711"
-      },
-      {
-        "name": "clean_rls_policies",
-        "version": "20260829183740"
-      },
-      {
-        "name": "clean_rpc_selection",
-        "version": "20260829183816"
-      },
-      {
-        "name": "clean_rpc_agreement_lifecycle",
-        "version": "20260829183947"
-      },
-      {
-        "name": "clean_rpc_ai_intake",
-        "version": "20260829184024"
-      },
-      {
-        "name": "clean_revoke_public_execute",
-        "version": "20260829184132"
-      },
-      {
-        "name": "clean_revoke_helper_execute_from_authenticated",
-        "version": "20260829184203"
-      },
-      {
-        "name": "clean_updated_at_triggers",
-        "version": "20260829185334"
-      },
-      {
-        "name": "clean_need_selection_completeness",
-        "version": "20260829185354"
-      },
-      {
-        "name": "clean_selection_rpc_alignment",
-        "version": "20260829185434"
-      },
-      {
-        "name": "clean_events_and_notifications",
-        "version": "20260829210453"
-      },
-      {
-        "name": "clean_emit_event_engine",
-        "version": "20260829210536"
-      },
-      {
-        "name": "clean_needs_schema_completion",
-        "version": "20260829210602"
-      },
-      {
-        "name": "clean_geo_foundation",
-        "version": "20260829210650"
-      },
-      {
-        "name": "clean_geo_foundation_repair",
-        "version": "20260829211203"
-      },
-      {
-        "name": "clean_dispatch_foundation",
-        "version": "20260829211420"
-      },
-      {
-        "name": "clean_dispatch_engine",
-        "version": "20260829211632"
-      },
-      {
-        "name": "clean_dispatch_wave",
-        "version": "20260829211737"
-      },
-      {
-        "name": "clean_urgency_projection",
-        "version": "20260829211904"
-      },
-      {
-        "name": "clean_urgent_min_choice_floor",
-        "version": "20260829211956"
-      },
-      {
-        "name": "clean_scheduled_lifecycle",
-        "version": "20260829212146"
-      },
-      {
-        "name": "clean_cron_schedule",
-        "version": "20260829212158"
-      },
-      {
-        "name": "clean_advisor_hardening",
-        "version": "20260829212807"
-      },
-      {
-        "name": "clean_need_response_deadline_expiry",
-        "version": "20260830070448"
-      },
-      {
-        "name": "clean_scoped_contact_reveal",
-        "version": "20260830072818"
-      },
-      {
-        "name": "clean_grant_policy_inline",
-        "version": "20260830072920"
-      },
-      {
-        "name": "clean_cancellation_privacy_and_wakeup",
-        "version": "20260830073615"
-      },
-      {
-        "name": "clean_need_lifecycle_integrity",
-        "version": "20260830080947"
-      },
-      {
-        "name": "clean_selection_eligibility_and_deadline",
-        "version": "20260830081035"
-      },
-      {
-        "name": "clean_authoritative_response_submit",
-        "version": "20260830081300"
-      },
-      {
-        "name": "clean_p1_cancel_withdraw_closure",
-        "version": "20260830172000"
-      },
-      {
-        "name": "clean_authoritative_mutation_boundary",
-        "version": "20260830173000"
-      },
-      {
-        "name": "clean_repair_authority_boundary",
-        "version": "20260830174000"
-      },
-      {
-        "name": "clean_ai_insert_authority_closure",
-        "version": "20260830174500"
-      },
-      {
-        "name": "clean_p0_authoritative_fixes",
-        "version": "20260830191500"
-      },
-      {
-        "name": "clean_p2_read_layer_repair",
-        "version": "20260830194000"
-      },
-      {
-        "name": "clean_pre_p4_provenance_reconciliation",
-        "version": "20260830202733"
-      },
-      {
-        "name": "clean_pre_p4_participant_rls_repair",
-        "version": "20260831110153"
-      },
-      {
-        "name": "clean_pre_p4_participant_rls_execution_contract",
-        "version": "20260831110701"
-      },
-      {
-        "name": "clean_pre_p4_participant_rls_authenticated_proof",
-        "version": "20260831114338"
-      },
-      {
-        "name": "clean_pre_p4_ai_confirmation_provenance",
-        "version": "20260831120157"
-      },
-      {
-        "name": "client_command_authority_closure",
-        "version": "20260901091438"
-      },
-      {
-        "name": "client_agreement_workspace_closure",
-        "version": "20260901101056"
-      },
-      {
-        "name": "clean_parent_need_completion_closure",
-        "version": "20260901104722"
-      },
-      {
-        "name": "clean_single_writer_authority_closure",
-        "version": "20260901105209"
-      },
-      {
-        "name": "clean_completion_and_writer_authenticated_proof",
-        "version": "20260901105922"
-      },
-      {
-        "name": "clean_ai_interview_turn_persistence",
-        "version": "20260901112607"
-      },
-      {
-        "name": "clean_ai_interview_turn_authenticated_proof",
-        "version": "20260901113333"
-      },
-      {
-        "name": "clean_ai_fact_supersession_and_human_correction",
-        "version": "20260901114029"
-      },
-      {
-        "name": "clean_ru0_authority_closure",
-        "version": "20260903160812",
-        "file": "20260903130355_clean_ru0_authority_closure.sql",
-        "source_version": "20260903130355",
-        "exact_byte_mirror": false,
-        "live_recorded_statement_md5": "4c0d630d93f8fdfc6e683dcfd8a9895a"
-      },
-      {
-        "name": "clean_ru1_worker_readiness",
-        "version": "20260903184545",
-        "file": "20260903165700_clean_ru1_worker_readiness.sql",
-        "source_version": "20260903165700",
-        "exact_byte_mirror": true,
-        "live_recorded_statement_md5": "f80e2e721365ee07316a9c0e84ab593f",
-        "recorded_statement_utf8_bytes": 13591
-      },
-      {
-        "name": "clean_ru2_need_v2_draft",
-        "version": "20260903222139",
-        "file": "20260903190000_clean_ru2_need_v2_draft.sql",
-        "source_version": "20260903190000",
-        "exact_byte_mirror": true,
-        "live_recorded_statement_md5": "f95fadda53d8d803faac4498d860c31b",
-        "recorded_statement_utf8_bytes": 47143
-      },
-      {
-        "name": "clean_ru2_ai_fact_transition_guard",
-        "version": "20260903222333",
-        "file": "20260903190100_clean_ru2_ai_fact_transition_guard.sql",
-        "source_version": "20260903190100",
-        "exact_byte_mirror": true,
-        "live_recorded_statement_md5": "95145c601b6366f1a98e8566b3307515",
-        "recorded_statement_utf8_bytes": 9438
-      },
-      {
-        "name": "clean_ru3_policy_bundle_foundation",
-        "version": "20260904090147",
-        "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
-        "source_version": "20260904090000",
-        "exact_byte_mirror": false,
-        "live_recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
-        "recorded_statement_utf8_bytes": 8506
-      },
-      {
-        "name": "clean_ru3_need_publication_decision",
-        "version": "20260904102429",
-        "file": "20260904103000_clean_ru3_need_publication_decision.sql",
-        "source_version": "20260904103000",
-        "exact_byte_mirror": false,
-        "live_recorded_statement_md5": "693e3c31a5647b8a63932f3b1ab13eb0",
-        "recorded_statement_utf8_bytes": 19746
-      },
-      {
-        "name": "clean_ru3_canonical_publish",
-        "version": "20260904182402",
-        "file": "20260904111500_clean_ru3_canonical_publish.sql",
-        "source_version": "20260904111500",
-        "exact_byte_mirror": false,
-        "canonical_raw_md5": "17468983d28cddfe4948c3866a96e813"
-      },
-      {
-        "name": "clean_ru4_owner_edit_lock",
-        "version": "20260905052130",
-        "file": "20260904214500_clean_ru4_owner_edit_lock.sql",
-        "source_version": "20260904214500",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "10b57d64ab0d58e6e96b7e09cbd3c748",
-        "live_recorded_statement_md5": "10b57d64ab0d58e6e96b7e09cbd3c748"
-      },
-      {
-        "name": "clean_ru4_close_remaining_search",
-        "version": "20260905052224",
-        "file": "20260904223000_clean_ru4_close_remaining_search.sql",
-        "source_version": "20260904223000",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "4e4e27d9e71be5f51ef5d892884b63a7",
-        "live_recorded_statement_md5": "4e4e27d9e71be5f51ef5d892884b63a7"
-      },
-      {
-        "name": "clean_ru4_ai_edit_conversation",
-        "version": "20260905052336",
-        "file": "20260904230000_clean_ru4_ai_edit_conversation.sql",
-        "source_version": "20260904230000",
-        "exact_byte_mirror": false,
-        "canonical_raw_md5": "b976f1ccc2c329d7f2fe0bc43ef36606",
-        "live_recorded_statement_md5": "d3fb1fe33fffcd3c7314a9fa2238de3",
-        "transport_deviation": "one identifier arrived as requester_rsd instead of canonical requester_price_rsd",
-        "forward_reconciled_by_live_version": "20260905052651"
-      },
-      {
-        "name": "clean_ru4_ai_edit_conversation_live_transfer_reconcile",
-        "version": "20260905052651",
-        "file": "20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql",
-        "source_version": "20260904230200",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "6be6134441a81a4550710969cac89d85",
-        "live_recorded_statement_md5": "6be6134441a81a4550710969cac89d85",
-        "proof_run_id": 33947156991
-      },
-      {
-        "name": "clean_ru4_ai_edit_replay_boundary",
-        "version": "20260905052713",
-        "file": "20260904230500_clean_ru4_ai_edit_replay_boundary.sql",
-        "source_version": "20260904230500",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "2a1fdea9f612394709afc44cc6f6b1b9",
-        "live_recorded_statement_md5": "2a1fdea9f612394709afc44cc6f6b1b9"
-      },
-      {
-        "name": "clean_ru4b_preselection_qa_foundation",
-        "version": "20260905070010",
-        "file": "20260905060000_clean_ru4b_preselection_qa_foundation.sql",
-        "source_version": "20260905060000",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "4f7df9ffed48a9cfd35592706e8175c1",
-        "live_recorded_statement_md5": "4f7df9ffed48a9cfd35592706e8175c1",
-        "recorded_statement_utf8_bytes": 29116
-      },
-      {
-        "name": "clean_ru4b_service_boundary",
-        "version": "20260905070029",
-        "file": "20260905060100_clean_ru4b_service_boundary.sql",
-        "source_version": "20260905060100",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "ee041bed805dbcdc016e8f9e0ab85f74",
-        "live_recorded_statement_md5": "ee041bed805dbcdc016e8f9e0ab85f74",
-        "recorded_statement_utf8_bytes": 2408
-      },
-      {
-        "name": "clean_ru4b_inbox_event_contract",
-        "version": "20260905070046",
-        "file": "20260905060200_clean_ru4b_inbox_event_contract.sql",
-        "source_version": "20260905060200",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "9182fb1c347ac1abc889cc6e0554cc2b",
-        "live_recorded_statement_md5": "9182fb1c347ac1abc889cc6e0554cc2b",
-        "recorded_statement_utf8_bytes": 2201
-      },
-      {
-        "name": "clean_ru5_public_profile_projection",
-        "version": "20260905163927",
-        "file": "20260905133000_clean_ru5_public_profile_projection.sql",
-        "source_version": "20260905133000",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "6fe4a4f013debb262700fbbe2e76c33e",
-        "live_recorded_statement_md5": "6fe4a4f013debb262700fbbe2e76c33e",
-        "recorded_statement_utf8_bytes": 2458
-      },
-      {
-        "name": "clean_ru5_atomic_application_submit",
-        "version": "20260905190040",
-        "file": "20260905190000_clean_ru5_atomic_application_submit.sql",
-        "source_version": "20260905190000",
-        "exact_byte_mirror": false,
-        "canonical_raw_md5": "1a397f893deb3109b8984035c19111bb",
-        "canonical_utf8_bytes": 18107,
-        "live_recorded_statement_md5": "e573341dad8ed303d4c72f234e11b761",
-        "recorded_statement_utf8_bytes": 18106,
-        "transport_deviation": "connected migration transport omitted only the terminal LF",
-        "normalized_terminal_lf_md5": "1a397f893deb3109b8984035c19111bb",
-        "normalized_terminal_lf_bytes": 18107
-      }
+      {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
+      {"name":"lock_down_auth_trigger_functions_1_3b","version":"20260825115602"},
+      {"name":"clean_security_hardening","version":"20260829183528"},
+      {"name":"clean_need_foundation","version":"20260829183551"},
+      {"name":"clean_response_foundation","version":"20260829183609"},
+      {"name":"clean_agreement_foundation","version":"20260829183633"},
+      {"name":"clean_directional_access_grants","version":"20260829183651"},
+      {"name":"clean_ai_persistence","version":"20260829183711"},
+      {"name":"clean_rls_policies","version":"20260829183740"},
+      {"name":"clean_rpc_selection","version":"20260829183816"},
+      {"name":"clean_rpc_agreement_lifecycle","version":"20260829183947"},
+      {"name":"clean_rpc_ai_intake","version":"20260829184024"},
+      {"name":"clean_revoke_public_execute","version":"20260829184132"},
+      {"name":"clean_revoke_helper_execute_from_authenticated","version":"20260829184203"},
+      {"name":"clean_updated_at_triggers","version":"20260829185334"},
+      {"name":"clean_need_selection_completeness","version":"20260829185354"},
+      {"name":"clean_selection_rpc_alignment","version":"20260829185434"},
+      {"name":"clean_events_and_notifications","version":"20260829210453"},
+      {"name":"clean_emit_event_engine","version":"20260829210536"},
+      {"name":"clean_needs_schema_completion","version":"20260829210602"},
+      {"name":"clean_geo_foundation","version":"20260829210650"},
+      {"name":"clean_geo_foundation_repair","version":"20260829211203"},
+      {"name":"clean_dispatch_foundation","version":"20260829211420"},
+      {"name":"clean_dispatch_engine","version":"20260829211632"},
+      {"name":"clean_dispatch_wave","version":"20260829211737"},
+      {"name":"clean_urgency_projection","version":"20260829211904"},
+      {"name":"clean_urgent_min_choice_floor","version":"20260829211956"},
+      {"name":"clean_scheduled_lifecycle","version":"20260829212146"},
+      {"name":"clean_cron_schedule","version":"20260829212158"},
+      {"name":"clean_advisor_hardening","version":"20260829212807"},
+      {"name":"clean_need_response_deadline_expiry","version":"20260830070448"},
+      {"name":"clean_scoped_contact_reveal","version":"20260830072818"},
+      {"name":"clean_grant_policy_inline","version":"20260830072920"},
+      {"name":"clean_cancellation_privacy_and_wakeup","version":"20260830073615"},
+      {"name":"clean_need_lifecycle_integrity","version":"20260830080947"},
+      {"name":"clean_selection_eligibility_and_deadline","version":"20260830081035"},
+      {"name":"clean_authoritative_response_submit","version":"20260830081300"},
+      {"name":"clean_p1_cancel_withdraw_closure","version":"20260830172000"},
+      {"name":"clean_authoritative_mutation_boundary","version":"20260830173000"},
+      {"name":"clean_repair_authority_boundary","version":"20260830174000"},
+      {"name":"clean_ai_insert_authority_closure","version":"20260830174500"},
+      {"name":"clean_p0_authoritative_fixes","version":"20260830191500"},
+      {"name":"clean_p2_read_layer_repair","version":"20260830194000"},
+      {"name":"clean_pre_p4_provenance_reconciliation","version":"20260830202733"},
+      {"name":"clean_pre_p4_participant_rls_repair","version":"20260831110153"},
+      {"name":"clean_pre_p4_participant_rls_execution_contract","version":"20260831110701"},
+      {"name":"clean_pre_p4_participant_rls_authenticated_proof","version":"20260831114338"},
+      {"name":"clean_pre_p4_ai_confirmation_provenance","version":"20260831120157"},
+      {"name":"client_command_authority_closure","version":"20260901091438"},
+      {"name":"client_agreement_workspace_closure","version":"20260901101056"},
+      {"name":"clean_parent_need_completion_closure","version":"20260901104722"},
+      {"name":"clean_single_writer_authority_closure","version":"20260901105209"},
+      {"name":"clean_completion_and_writer_authenticated_proof","version":"20260901105922"},
+      {"name":"clean_ai_interview_turn_persistence","version":"20260901112607"},
+      {"name":"clean_ai_interview_turn_authenticated_proof","version":"20260901113333"},
+      {"name":"clean_ai_fact_supersession_and_human_correction","version":"20260901114029"},
+      {"name":"clean_ru0_authority_closure","version":"20260903160812","file":"20260903130355_clean_ru0_authority_closure.sql","source_version":"20260903130355","exact_byte_mirror":false,"live_recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a"},
+      {"name":"clean_ru1_worker_readiness","version":"20260903184545","file":"20260903165700_clean_ru1_worker_readiness.sql","source_version":"20260903165700","exact_byte_mirror":true,"live_recorded_statement_md5":"f80e2e721365ee07316a9c0e84ab593f","recorded_statement_utf8_bytes":13591},
+      {"name":"clean_ru2_need_v2_draft","version":"20260903222139","file":"20260903190000_clean_ru2_need_v2_draft.sql","source_version":"20260903190000","exact_byte_mirror":true,"live_recorded_statement_md5":"f95fadda53d8d803faac4498d860c31b","recorded_statement_utf8_bytes":47143},
+      {"name":"clean_ru2_ai_fact_transition_guard","version":"20260903222333","file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","source_version":"20260903190100","exact_byte_mirror":true,"live_recorded_statement_md5":"95145c601b6366f1a98e8566b3307515","recorded_statement_utf8_bytes":9438},
+      {"name":"clean_ru3_policy_bundle_foundation","version":"20260904090147","file":"20260904090000_clean_ru3_policy_bundle_foundation.sql","source_version":"20260904090000","exact_byte_mirror":false,"live_recorded_statement_md5":"6ca4db41a4c23dd9bd85fc2e76ea2af8","recorded_statement_utf8_bytes":8506},
+      {"name":"clean_ru3_need_publication_decision","version":"20260904102429","file":"20260904103000_clean_ru3_need_publication_decision.sql","source_version":"20260904103000","exact_byte_mirror":false,"live_recorded_statement_md5":"693e3c31a5647b8a63932f3b1ab13eb0","recorded_statement_utf8_bytes":19746},
+      {"name":"clean_ru3_canonical_publish","version":"20260904182402","file":"20260904111500_clean_ru3_canonical_publish.sql","source_version":"20260904111500","exact_byte_mirror":false,"canonical_raw_md5":"17468983d28cddfe4948c3866a96e813"},
+      {"name":"clean_ru4_owner_edit_lock","version":"20260905052130","file":"20260904214500_clean_ru4_owner_edit_lock.sql","source_version":"20260904214500","exact_byte_mirror":true,"canonical_raw_md5":"10b57d64ab0d58e6e96b7e09cbd3c748","live_recorded_statement_md5":"10b57d64ab0d58e6e96b7e09cbd3c748"},
+      {"name":"clean_ru4_close_remaining_search","version":"20260905052224","file":"20260904223000_clean_ru4_close_remaining_search.sql","source_version":"20260904223000","exact_byte_mirror":true,"canonical_raw_md5":"4e4e27d9e71be5f51ef5d892884b63a7","live_recorded_statement_md5":"4e4e27d9e71be5f51ef5d892884b63a7"},
+      {"name":"clean_ru4_ai_edit_conversation","version":"20260905052336","file":"20260904230000_clean_ru4_ai_edit_conversation.sql","source_version":"20260904230000","exact_byte_mirror":false,"canonical_raw_md5":"b976f1ccc2c329d7f2fe0bc43ef36606","live_recorded_statement_md5":"d3fb1fe33fffcd3c7314a9fa2238de3","transport_deviation":"one identifier arrived as requester_rsd instead of canonical requester_price_rsd","forward_reconciled_by_live_version":"20260905052651"},
+      {"name":"clean_ru4_ai_edit_conversation_live_transfer_reconcile","version":"20260905052651","file":"20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql","source_version":"20260904230200","exact_byte_mirror":true,"canonical_raw_md5":"6be6134441a81a4550710969cac89d85","live_recorded_statement_md5":"6be6134441a81a4550710969cac89d85","proof_run_id":33947156991},
+      {"name":"clean_ru4_ai_edit_replay_boundary","version":"20260905052713","file":"20260904230500_clean_ru4_ai_edit_replay_boundary.sql","source_version":"20260904230500","exact_byte_mirror":true,"canonical_raw_md5":"2a1fdea9f612394709afc44cc6f6b1b9","live_recorded_statement_md5":"2a1fdea9f612394709afc44cc6f6b1b9"},
+      {"name":"clean_ru4b_preselection_qa_foundation","version":"20260905070010","file":"20260905060000_clean_ru4b_preselection_qa_foundation.sql","source_version":"20260905060000","exact_byte_mirror":true,"canonical_raw_md5":"4f7df9ffed48a9cfd35592706e8175c1","live_recorded_statement_md5":"4f7df9ffed48a9cfd35592706e8175c1","recorded_statement_utf8_bytes":29116},
+      {"name":"clean_ru4b_service_boundary","version":"20260905070029","file":"20260905060100_clean_ru4b_service_boundary.sql","source_version":"20260905060100","exact_byte_mirror":true,"canonical_raw_md5":"ee041bed805dbcdc016e8f9e0ab85f74","live_recorded_statement_md5":"ee041bed805dbcdc016e8f9e0ab85f74","recorded_statement_utf8_bytes":2408},
+      {"name":"clean_ru4b_inbox_event_contract","version":"20260905070046","file":"20260905060200_clean_ru4b_inbox_event_contract.sql","source_version":"20260905060200","exact_byte_mirror":true,"canonical_raw_md5":"9182fb1c347ac1abc889cc6e0554cc2b","live_recorded_statement_md5":"9182fb1c347ac1abc889cc6e0554cc2b","recorded_statement_utf8_bytes":2201},
+      {"name":"clean_ru5_public_profile_projection","version":"20260905163927","file":"20260905133000_clean_ru5_public_profile_projection.sql","source_version":"20260905133000","exact_byte_mirror":true,"canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","live_recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","recorded_statement_utf8_bytes":2458},
+      {"name":"clean_ru5_atomic_application_submit","version":"20260905190040","file":"20260905190000_clean_ru5_atomic_application_submit.sql","source_version":"20260905190000","exact_byte_mirror":false,"canonical_raw_md5":"1a397f893deb3109b8984035c19111bb","canonical_utf8_bytes":18107,"live_recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761","recorded_statement_utf8_bytes":18106,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb","normalized_terminal_lf_bytes":18107}
     ]
   },
   "pending_forward_migrations": [
@@ -429,15 +115,7 @@
       "classification": "RECORDED_STATEMENT_RECONSTRUCTION",
       "exact_byte_mirror": false,
       "source": "live supabase_migrations.schema_migrations.statements",
-      "recorded_statement_md5": [
-        "2d246635406c038407e3e189b2da7d44",
-        "8a03fd2e586858bc08d024bffae3e4b0",
-        "b8c5b95729c9392a9321086887d38d80",
-        "1bee6691ad3e506f9ecdf3b061ea5baf",
-        "72fb1e59fbcb6903ab099b319bcf65e5",
-        "b395800de2307148160e8b68f8a561a6",
-        "708e9a4861f1fb958edec0413e711bf0"
-      ],
+      "recorded_statement_md5": ["2d246635406c038407e3e189b2da7d44","8a03fd2e586858bc08d024bffae3e4b0","b8c5b95729c9392a9321086887d38d80","1bee6691ad3e506f9ecdf3b061ea5baf","72fb1e59fbcb6903ab099b319bcf65e5","b395800de2307148160e8b68f8a561a6","708e9a4861f1fb958edec0413e711bf0"],
       "legacy_manifest_md5": "c4f62aa4521410dd3f85934bb98474a7",
       "canonical_reconstruction_raw_md5": "95eaf115b60f4ff1fb477c1697264cf5",
       "caveat": "Original pre-reconstruction file bytes remain unknown; applied history was not rewritten."
@@ -451,282 +129,35 @@
     "resulting_contract": "AI publish remained fail-closed until a later forward implementation could prove human review and safety."
   },
   "forward_repairs": [
-    {
-      "version": "20260831110153",
-      "name": "clean_pre_p4_participant_rls_repair",
-      "file": "20260831110153_clean_pre_p4_participant_rls_repair.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "39fed81b6b721ed9909d5b85929d5828"
-    },
-    {
-      "version": "20260831110701",
-      "name": "clean_pre_p4_participant_rls_execution_contract",
-      "file": "20260831110701_clean_pre_p4_participant_rls_execution_contract.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "feadcb9119bd6797f9b5ea086126dbaf"
-    },
-    {
-      "version": "20260831114338",
-      "name": "clean_pre_p4_participant_rls_authenticated_proof",
-      "file": "20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "501ec1a8d1087dd3410e5000ae55795d",
-      "authenticated_runtime_proof": "PASS: participant/requester/outsider discovery invariants proved under authenticated role with no retained fixture rows."
-    },
-    {
-      "version": "20260831120157",
-      "name": "clean_pre_p4_ai_confirmation_provenance",
-      "file": "20260831120157_clean_pre_p4_ai_confirmation_provenance.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "0739626857f34b31b4aef489def947f0",
-      "authenticated_runtime_proof": "PASS: AI source provenance preserved and direct/wrong-owner confirmation mutations denied."
-    },
-    {
-      "version": "20260901104722",
-      "name": "clean_parent_need_completion_closure",
-      "file": "20260901104722_clean_parent_need_completion_closure.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "a5c698120fe8b4dd8d43bfb92cb42e80",
-      "contract": "Completed Agreement seat coverage is aggregated server-side; only full completed SELECTED coverage may transition parent Need to COMPLETED."
-    },
-    {
-      "version": "20260901105209",
-      "name": "clean_single_writer_authority_closure",
-      "file": "20260901105209_clean_single_writer_authority_closure.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "c3b045f3c6f77e573c7dbec0e8699e88",
-      "contract": "Authenticated clients retain RLS-governed reads but no direct DML authority on access_grants or agreement_messages; mutations are RPC-only."
-    },
-    {
-      "version": "20260901105922",
-      "name": "clean_completion_and_writer_authenticated_proof",
-      "file": "20260901105922_clean_completion_and_writer_authenticated_proof.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "8c81ab60da89bc7bd83c42417b4b258f",
-      "authenticated_runtime_proof": "PASS: direct Agreement/grant writes denied; authoritative RPC paths and parent Need completion proved in rollback-only runtime test; zero proof rows retained."
-    },
-    {
-      "version": "20260901112607",
-      "name": "clean_ai_interview_turn_persistence",
-      "file": "20260901112607_clean_ai_interview_turn_persistence.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "ef8003c346fd7bbd51102ee6cfc9a811",
-      "contract": "Persistent NEED_INTAKE USER/ASSISTANT history is own-read only; authenticated direct writes and service-turn execution are denied; service_role alone atomically persists one AI turn plus AI_INFERENCE NEEDS_CONFIRMATION facts."
-    },
-    {
-      "version": "20260901113333",
-      "name": "clean_ai_interview_turn_authenticated_proof",
-      "file": "20260901113333_clean_ai_interview_turn_authenticated_proof.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "fa310d3c0e5ad508ee8cb04b3c4c6aac",
-      "authenticated_runtime_proof": "PASS: authenticated direct ai_messages INSERT and service-turn EXECUTE denied; service_role atomically persisted USER+ASSISTANT+AI_INFERENCE fact inside rollback-only subtransaction; zero proof rows retained."
-    },
-    {
-      "version": "20260901114029",
-      "name": "clean_ai_fact_supersession_and_human_correction",
-      "file": "20260901114029_clean_ai_fact_supersession_and_human_correction.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "777a5ed9f25163c66bfe9070ee0a2844",
-      "authenticated_runtime_proof": "PASS: human confirm stamps server provenance; explicit correction safely supersedes prior live fact; repeated-key service writer preserves one-live-fact invariant; all proof writes rolled back with zero residue."
-    },
-    {
-      "version": "20260903160812",
-      "source_version": "20260903130355",
-      "name": "clean_ru0_authority_closure",
-      "file": "20260903130355_clean_ru0_authority_closure.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "23a60f86bdb952f1dbf62990f2f800cc",
-      "exact_byte_mirror": false,
-      "live_recorded_statement_md5": "4c0d630d93f8fdfc6e683dcfd8a9895a",
-      "disposable_runtime_proof": "PASS: GitHub Actions run 33769629283 proved owner/attacker/service and zero residue.",
-      "live_structural_proof": "PASS: live 57 migration state, retired RPC exposure 0, authenticated public SD 25, private API-executable SD 0, preserved service/v2 paths, checked business rows unchanged."
-    },
-    {
-      "version": "20260903184545",
-      "source_version": "20260903165700",
-      "name": "clean_ru1_worker_readiness",
-      "file": "20260903165700_clean_ru1_worker_readiness.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "f80e2e721365ee07316a9c0e84ab593f",
-      "exact_byte_mirror": true,
-      "live_recorded_statement_md5": "f80e2e721365ee07316a9c0e84ab593f",
-      "recorded_statement_utf8_bytes": 13591,
-      "disposable_runtime_proof": "PASS: GitHub Actions run 33790306570 proved DB apply, owner/attacker/replay, missing-skill denial and zero residue.",
-      "live_structural_proof": "PASS: live 58/20260903184545; DRAFT default; fail-closed token guard; owner RPC grants; authenticated DELETE revoked; existing profile counts preserved 6/3 requester ACTIVE/3 worker ACTIVE/0 worker DRAFT."
-    },
-    {
-      "version": "20260903222139",
-      "source_version": "20260903190000",
-      "name": "clean_ru2_need_v2_draft",
-      "file": "20260903190000_clean_ru2_need_v2_draft.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "f95fadda53d8d803faac4498d860c31b",
-      "exact_byte_mirror": true,
-      "live_recorded_statement_md5": "f95fadda53d8d803faac4498d860c31b",
-      "recorded_statement_utf8_bytes": 47143,
-      "disposable_runtime_proof": "PASS: combined GitHub Actions run 33806989549 proved DB apply, owner/attacker/service, typed correction, Human Review, DRAFT idempotency, privacy, legacy/V2 coexistence and zero residue.",
-      "live_structural_proof": "PASS: live registry 20; V2 opener/review/correct/save grants correct; service writer service-only; legacy rows preserved; need_sensitive authenticated writes revoked; legacy publish remains fail-closed."
-    },
-    {
-      "version": "20260903222333",
-      "source_version": "20260903190100",
-      "name": "clean_ru2_ai_fact_transition_guard",
-      "file": "20260903190100_clean_ru2_ai_fact_transition_guard.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "95145c601b6366f1a98e8566b3307515",
-      "exact_byte_mirror": true,
-      "live_recorded_statement_md5": "95145c601b6366f1a98e8566b3307515",
-      "recorded_statement_utf8_bytes": 9438,
-      "disposable_runtime_proof": "PASS: run 33806989549 proved owner/service supersession, canonical DRAFT binding and zero residue.",
-      "live_structural_proof": "PASS: authenticated direct fact UPDATE false; private guard API execute false; ambient uskoci.ai_mutation bypass absent; explicit subject/supersession/schema guards present."
-    },
-    {
-      "version": "20260904090147",
-      "source_version": "20260904090000",
-      "name": "clean_ru3_policy_bundle_foundation",
-      "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "e65a1d1658938ffdca07c88c246e660c",
-      "exact_byte_mirror": false,
-      "live_recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
-      "recorded_statement_utf8_bytes": 8506,
-      "disposable_runtime_proof": "PASS: GitHub Actions run 33854188735 proved fail-closed bundle readiness, unreviewed/incomplete denial, jurisdiction isolation, one-active constraint, legacy publish closure and zero residue.",
-      "live_structural_proof": "PASS: live 61/20260904090147; policy tables exist with RLS; zero bundle/rule rows; anon/authenticated/service_role direct table access denied; private helper EXECUTE denied; legacy publish remains fail-closed; business rows preserved 82 facts/15 conversations/6 Needs/6 profiles."
-    },
-    {
-      "version": "20260904182402",
-      "source_version": "20260904111500",
-      "name": "clean_ru3_canonical_publish",
-      "file": "20260904111500_clean_ru3_canonical_publish.sql",
-      "classification": "FORWARD_REPAIR",
-      "raw_md5": "17468983d28cddfe4948c3866a96e813",
-      "exact_byte_mirror": false,
-      "disposable_runtime_proof": "PASS: GitHub Actions run 33903129202 proved authenticated fail-closed publish behavior, semantic idempotency, true concurrency and no duplicate publish/dispatch on a disposable stack.",
-      "promotion_integrity_proof": "PASS: PR integrity run 33905242409; canonical push integrity run 33905436213.",
-      "live_structural_proof": "PASS: live 63 migration state; private.need_publish_commands exists with forced RLS and zero rows; authenticated canonical publish execute only; anon/service_role denied; legacy publish remains closed; B06 ALLOW writer remains disabled; zero policy bundles/rules/decisions; business counts preserved 6 Needs / 6 app_profiles / 15 AI conversations / 82 AI facts."
-    }
+    {"version":"20260831110153","name":"clean_pre_p4_participant_rls_repair","file":"20260831110153_clean_pre_p4_participant_rls_repair.sql","classification":"FORWARD_REPAIR","raw_md5":"39fed81b6b721ed9909d5b85929d5828"},
+    {"version":"20260831110701","name":"clean_pre_p4_participant_rls_execution_contract","file":"20260831110701_clean_pre_p4_participant_rls_execution_contract.sql","classification":"FORWARD_REPAIR","raw_md5":"feadcb9119bd6797f9b5ea086126dbaf"},
+    {"version":"20260831114338","name":"clean_pre_p4_participant_rls_authenticated_proof","file":"20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"501ec1a8d1087dd3410e5000ae55795d","authenticated_runtime_proof":"PASS: participant/requester/outsider discovery invariants proved under authenticated role with no retained fixture rows."},
+    {"version":"20260831120157","name":"clean_pre_p4_ai_confirmation_provenance","file":"20260831120157_clean_pre_p4_ai_confirmation_provenance.sql","classification":"FORWARD_REPAIR","raw_md5":"0739626857f34b31b4aef489def947f0","authenticated_runtime_proof":"PASS: AI source provenance preserved and direct/wrong-owner confirmation mutations denied."},
+    {"version":"20260901104722","name":"clean_parent_need_completion_closure","file":"20260901104722_clean_parent_need_completion_closure.sql","classification":"FORWARD_REPAIR","raw_md5":"a5c698120fe8b4dd8d43bfb92cb42e80","contract":"Completed Agreement seat coverage is aggregated server-side; only full completed SELECTED coverage may transition parent Need to COMPLETED."},
+    {"version":"20260901105209","name":"clean_single_writer_authority_closure","file":"20260901105209_clean_single_writer_authority_closure.sql","classification":"FORWARD_REPAIR","raw_md5":"c3b045f3c6f77e573c7dbec0e8699e88","contract":"Authenticated clients retain RLS-governed reads but no direct DML authority on access_grants or agreement_messages; mutations are RPC-only."},
+    {"version":"20260901105922","name":"clean_completion_and_writer_authenticated_proof","file":"20260901105922_clean_completion_and_writer_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"8c81ab60da89bc7bd83c42417b4b258f","authenticated_runtime_proof":"PASS: direct Agreement/grant writes denied; authoritative RPC paths and parent Need completion proved in rollback-only runtime test; zero proof rows retained."},
+    {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"FORWARD_REPAIR","raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","contract":"Persistent NEED_INTAKE USER/ASSISTANT history is own-read only; authenticated direct writes and service-turn execution are denied; service_role alone atomically persists one AI turn plus AI_INFERENCE NEEDS_CONFIRMATION facts."},
+    {"version":"20260901113333","name":"clean_ai_interview_turn_authenticated_proof","file":"20260901113333_clean_ai_interview_turn_authenticated_proof.sql","classification":"FORWARD_REPAIR","raw_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","authenticated_runtime_proof":"PASS: authenticated direct ai_messages INSERT and service-turn EXECUTE denied; service_role atomically persisted USER+ASSISTANT+AI_INFERENCE fact inside rollback-only subtransaction; zero proof rows retained."},
+    {"version":"20260901114029","name":"clean_ai_fact_supersession_and_human_correction","file":"20260901114029_clean_ai_fact_supersession_and_human_correction.sql","classification":"FORWARD_REPAIR","raw_md5":"777a5ed9f25163c66bfe9070ee0a2844","authenticated_runtime_proof":"PASS: human confirm stamps server provenance; explicit correction safely supersedes prior live fact; repeated-key service writer preserves one-live-fact invariant; all proof writes rolled back with zero residue."},
+    {"version":"20260903160812","source_version":"20260903130355","name":"clean_ru0_authority_closure","file":"20260903130355_clean_ru0_authority_closure.sql","classification":"FORWARD_REPAIR","raw_md5":"23a60f86bdb952f1dbf62990f2f800cc","exact_byte_mirror":false,"live_recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a","disposable_runtime_proof":"PASS: GitHub Actions run 33769629283 proved owner/attacker/service and zero residue.","live_structural_proof":"PASS: live 57 migration state, retired RPC exposure 0, authenticated public SD 25, private API-executable SD 0, preserved service/v2 paths, checked business rows unchanged."},
+    {"version":"20260903184545","source_version":"20260903165700","name":"clean_ru1_worker_readiness","file":"20260903165700_clean_ru1_worker_readiness.sql","classification":"FORWARD_REPAIR","raw_md5":"f80e2e721365ee07316a9c0e84ab593f","exact_byte_mirror":true,"live_recorded_statement_md5":"f80e2e721365ee07316a9c0e84ab593f","recorded_statement_utf8_bytes":13591,"disposable_runtime_proof":"PASS: GitHub Actions run 33790306570 proved DB apply, owner/attacker/replay, missing-skill denial and zero residue.","live_structural_proof":"PASS: live 58/20260903184545; DRAFT default; fail-closed token guard; owner RPC grants; authenticated DELETE revoked; existing profile counts preserved 6/3 requester ACTIVE/3 worker ACTIVE/0 worker DRAFT."},
+    {"version":"20260903222139","source_version":"20260903190000","name":"clean_ru2_need_v2_draft","file":"20260903190000_clean_ru2_need_v2_draft.sql","classification":"FORWARD_REPAIR","raw_md5":"f95fadda53d8d803faac4498d860c31b","exact_byte_mirror":true,"live_recorded_statement_md5":"f95fadda53d8d803faac4498d860c31b","recorded_statement_utf8_bytes":47143,"disposable_runtime_proof":"PASS: combined GitHub Actions run 33806989549 proved DB apply, owner/attacker/service, typed correction, Human Review, DRAFT idempotency, privacy, legacy/V2 coexistence and zero residue.","live_structural_proof":"PASS: live registry 20; V2 opener/review/correct/save grants correct; service writer service-only; legacy rows preserved; need_sensitive authenticated writes revoked; legacy publish remains fail-closed."},
+    {"version":"20260903222333","source_version":"20260903190100","name":"clean_ru2_ai_fact_transition_guard","file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","classification":"FORWARD_REPAIR","raw_md5":"95145c601b6366f1a98e8566b3307515","exact_byte_mirror":true,"live_recorded_statement_md5":"95145c601b6366f1a98e8566b3307515","recorded_statement_utf8_bytes":9438,"disposable_runtime_proof":"PASS: run 33806989549 proved owner/service supersession, canonical DRAFT binding and zero residue.","live_structural_proof":"PASS: authenticated direct fact UPDATE false; private guard API execute false; ambient uskoci.ai_mutation bypass absent; explicit subject/supersession/schema guards present."},
+    {"version":"20260904090147","source_version":"20260904090000","name":"clean_ru3_policy_bundle_foundation","file":"20260904090000_clean_ru3_policy_bundle_foundation.sql","classification":"FORWARD_REPAIR","raw_md5":"e65a1d1658938ffdca07c88c246e660c","exact_byte_mirror":false,"live_recorded_statement_md5":"6ca4db41a4c23dd9bd85fc2e76ea2af8","recorded_statement_utf8_bytes":8506,"disposable_runtime_proof":"PASS: GitHub Actions run 33854188735 proved fail-closed bundle readiness, unreviewed/incomplete denial, jurisdiction isolation, one-active constraint, legacy publish closure and zero residue.","live_structural_proof":"PASS: live 61/20260904090147; policy tables exist with RLS; zero bundle/rule rows; anon/authenticated/service_role direct table access denied; private helper EXECUTE denied; legacy publish remains fail-closed; business rows preserved 82 facts/15 conversations/6 Needs/6 profiles."},
+    {"version":"20260904182402","source_version":"20260904111500","name":"clean_ru3_canonical_publish","file":"20260904111500_clean_ru3_canonical_publish.sql","classification":"FORWARD_REPAIR","raw_md5":"17468983d28cddfe4948c3866a96e813","exact_byte_mirror":false,"disposable_runtime_proof":"PASS: GitHub Actions run 33903129202 proved authenticated fail-closed publish behavior, semantic idempotency, true concurrency and no duplicate publish/dispatch on a disposable stack.","promotion_integrity_proof":"PASS: PR integrity run 33905242409; canonical push integrity run 33905436213.","live_structural_proof":"PASS: live 63 migration state; private.need_publish_commands exists with forced RLS and zero rows; authenticated canonical publish execute only; anon/service_role denied; legacy publish remains closed; B06 ALLOW writer remains disabled; zero policy bundles/rules/decisions; business counts preserved 6 Needs / 6 app_profiles / 15 AI conversations / 82 AI facts."}
   ],
   "live_source_reconciliations": [
-    {
-      "version": "20260901091438",
-      "name": "client_command_authority_closure",
-      "file": "20260901091438_client_command_authority_closure.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 7642,
-      "recorded_statement_md5": "012a54e35d2f90bf22978a98b79efee0",
-      "canonical_raw_md5": "4155ccc6a9e0e450dd7be95dcb8d326c",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260901101056",
-      "name": "client_agreement_workspace_closure",
-      "file": "20260901101056_client_agreement_workspace_closure.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 15909,
-      "recorded_statement_md5": "b93617c7ffa40cb2dcd7d4318bc75bd2",
-      "canonical_raw_md5": "b93617c7ffa40cb2dcd7d4318bc75bd2",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260901104722",
-      "name": "clean_parent_need_completion_closure",
-      "file": "20260901104722_clean_parent_need_completion_closure.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 9875,
-      "recorded_statement_md5": "a5c698120fe8b4dd8d43bfb92cb42e80",
-      "canonical_raw_md5": "a5c698120fe8b4dd8d43bfb92cb42e80",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260901105209",
-      "name": "clean_single_writer_authority_closure",
-      "file": "20260901105209_clean_single_writer_authority_closure.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 1188,
-      "recorded_statement_md5": "c3b045f3c6f77e573c7dbec0e8699e88",
-      "canonical_raw_md5": "c3b045f3c6f77e573c7dbec0e8699e88",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260901105922",
-      "name": "clean_completion_and_writer_authenticated_proof",
-      "file": "20260901105922_clean_completion_and_writer_authenticated_proof.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 7630,
-      "recorded_statement_md5": "8c81ab60da89bc7bd83c42417b4b258f",
-      "canonical_raw_md5": "8c81ab60da89bc7bd83c42417b4b258f",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260901112607",
-      "name": "clean_ai_interview_turn_persistence",
-      "file": "20260901112607_clean_ai_interview_turn_persistence.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 7293,
-      "recorded_statement_md5": "ef8003c346fd7bbd51102ee6cfc9a811",
-      "canonical_raw_md5": "ef8003c346fd7bbd51102ee6cfc9a811",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260901113333",
-      "name": "clean_ai_interview_turn_authenticated_proof",
-      "file": "20260901113333_clean_ai_interview_turn_authenticated_proof.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 6130,
-      "recorded_statement_md5": "fa310d3c0e5ad508ee8cb04b3c4c6aac",
-      "canonical_raw_md5": "fa310d3c0e5ad508ee8cb04b3c4c6aac",
-      "mirror_contract": "canonical file mirrors the exact single recorded UTF-8 migration statement",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260901114029",
-      "name": "clean_ai_fact_supersession_and_human_correction",
-      "file": "20260901114029_clean_ai_fact_supersession_and_human_correction.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 14428,
-      "recorded_statement_md5": "777a5ed9f25163c66bfe9070ee0a2844",
-      "canonical_raw_md5": "777a5ed9f25163c66bfe9070ee0a2844",
-      "mirror_contract": "canonical file mirrors the exact single recorded UTF-8 migration statement",
-      "applied_history_action": "UNCHANGED"
-    },
-    {
-      "version": "20260903160812",
-      "source_version": "20260903130355",
-      "name": "clean_ru0_authority_closure",
-      "file": "20260903130355_clean_ru0_authority_closure.sql",
-      "classification": "SEMANTIC_RECORDED_STATEMENT_RECONCILIATION",
-      "recorded_statement_chars": 21495,
-      "recorded_statement_md5": "4c0d630d93f8fdfc6e683dcfd8a9895a",
-      "canonical_raw_md5": "23a60f86bdb952f1dbf62990f2f800cc",
-      "exact_byte_mirror": false,
-      "difference": "Supabase assigned the live timestamp and the connected deployment payload omitted non-executable section comments. Executable RU-0 contract preserved; raw-byte identity not claimed.",
-      "applied_history_action": "LIVE_VERSION_ALIAS_RECORDED"
-    },
-    {
-      "version": "20260904090147",
-      "source_version": "20260904090000",
-      "name": "clean_ru3_policy_bundle_foundation",
-      "file": "20260904090000_clean_ru3_policy_bundle_foundation.sql",
-      "classification": "SEMANTIC_RECORDED_STATEMENT_RECONCILIATION",
-      "recorded_statement_utf8_bytes": 8506,
-      "recorded_statement_md5": "6ca4db41a4c23dd9bd85fc2e76ea2af8",
-      "canonical_raw_md5": "e65a1d1658938ffdca07c88c246e660c",
-      "exact_byte_mirror": false,
-      "difference": "Connected Supabase migration recording is not byte-identical to the canonical raw file representation. Executable B05 contract and live structural postconditions match; raw-byte identity is not claimed.",
-      "applied_history_action": "LIVE_VERSION_ALIAS_RECORDED"
-    },
-    {
-      "version": "20260905163927",
-      "source_version": "20260905133000",
-      "name": "clean_ru5_public_profile_projection",
-      "file": "20260905133000_clean_ru5_public_profile_projection.sql",
-      "classification": "EXACT_RECORDED_STATEMENT_MIRROR",
-      "recorded_statement_utf8_bytes": 2458,
-      "recorded_statement_md5": "6fe4a4f013debb262700fbbe2e76c33e",
-      "canonical_raw_md5": "6fe4a4f013debb262700fbbe2e76c33e",
-      "exact_byte_mirror": true,
-      "applied_history_action": "LIVE_VERSION_ALIAS_RECORDED"
-    }
+    {"version":"20260901091438","name":"client_command_authority_closure","file":"20260901091438_client_command_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7642,"recorded_statement_md5":"012a54e35d2f90bf22978a98b79efee0","canonical_raw_md5":"4155ccc6a9e0e450dd7be95dcb8d326c","applied_history_action":"UNCHANGED"},
+    {"version":"20260901101056","name":"client_agreement_workspace_closure","file":"20260901101056_client_agreement_workspace_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":15909,"recorded_statement_md5":"b93617c7ffa40cb2dcd7d4318bc75bd2","canonical_raw_md5":"b93617c7ffa40cb2dcd7d4318bc75bd2","applied_history_action":"UNCHANGED"},
+    {"version":"20260901104722","name":"clean_parent_need_completion_closure","file":"20260901104722_clean_parent_need_completion_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":9875,"recorded_statement_md5":"a5c698120fe8b4dd8d43bfb92cb42e80","canonical_raw_md5":"a5c698120fe8b4dd8d43bfb92cb42e80","applied_history_action":"UNCHANGED"},
+    {"version":"20260901105209","name":"clean_single_writer_authority_closure","file":"20260901105209_clean_single_writer_authority_closure.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":1188,"recorded_statement_md5":"c3b045f3c6f77e573c7dbec0e8699e88","canonical_raw_md5":"c3b045f3c6f77e573c7dbec0e8699e88","applied_history_action":"UNCHANGED"},
+    {"version":"20260901105922","name":"clean_completion_and_writer_authenticated_proof","file":"20260901105922_clean_completion_and_writer_authenticated_proof.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7630,"recorded_statement_md5":"8c81ab60da89bc7bd83c42417b4b258f","canonical_raw_md5":"8c81ab60da89bc7bd83c42417b4b258f","applied_history_action":"UNCHANGED"},
+    {"version":"20260901112607","name":"clean_ai_interview_turn_persistence","file":"20260901112607_clean_ai_interview_turn_persistence.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":7293,"recorded_statement_md5":"ef8003c346fd7bbd51102ee6cfc9a811","canonical_raw_md5":"ef8003c346fd7bbd51102ee6cfc9a811","applied_history_action":"UNCHANGED"},
+    {"version":"20260901113333","name":"clean_ai_interview_turn_authenticated_proof","file":"20260901113333_clean_ai_interview_turn_authenticated_proof.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":6130,"recorded_statement_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","canonical_raw_md5":"fa310d3c0e5ad508ee8cb04b3c4c6aac","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"},
+    {"version":"20260901114029","name":"clean_ai_fact_supersession_and_human_correction","file":"20260901114029_clean_ai_fact_supersession_and_human_correction.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":14428,"recorded_statement_md5":"777a5ed9f25163c66bfe9070ee0a2844","canonical_raw_md5":"777a5ed9f25163c66bfe9070ee0a2844","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"},
+    {"version":"20260903160812","source_version":"20260903130355","name":"clean_ru0_authority_closure","file":"20260903130355_clean_ru0_authority_closure.sql","classification":"SEMANTIC_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_chars":21495,"recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a","canonical_raw_md5":"23a60f86bdb952f1dbf62990f2f800cc","exact_byte_mirror":false,"difference":"Supabase assigned the live timestamp and the connected deployment payload omitted non-executable section comments. Executable RU-0 contract preserved; raw-byte identity not claimed.","applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
+    {"version":"20260904090147","source_version":"20260904090000","name":"clean_ru3_policy_bundle_foundation","file":"20260904090000_clean_ru3_policy_bundle_foundation.sql","classification":"SEMANTIC_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_utf8_bytes":8506,"recorded_statement_md5":"6ca4db41a4c23dd9bd85fc2e76ea2af8","canonical_raw_md5":"e65a1d1658938ffdca07c88c246e660c","exact_byte_mirror":false,"difference":"Connected Supabase migration recording is not byte-identical to the canonical raw file representation. Executable B05 contract and live structural postconditions match; raw-byte identity is not claimed.","applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
+    {"version":"20260905163927","source_version":"20260905133000","name":"clean_ru5_public_profile_projection","file":"20260905133000_clean_ru5_public_profile_projection.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":2458,"recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","exact_byte_mirror":true,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"}
   ],
   "ru4_live_reconciliation": {
     "status": "CLOSED_LIVE_STRUCTURAL_PROVEN",
@@ -734,34 +165,9 @@
     "clean_production_proof_run": 33946688625,
     "live_transfer_reconciliation_proof_run": 33947156991,
     "live_migration_count": 68,
-    "live_head": {
-      "version": "20260905052713",
-      "name": "clean_ru4_ai_edit_replay_boundary"
-    },
-    "transport_incident": {
-      "affected_live_version": "20260905052336",
-      "historical_record_preserved": true,
-      "canonical_raw_md5": "b976f1ccc2c329d7f2fe0bc43ef36606",
-      "live_recorded_statement_md5": "d3fb1fe33fffcd3c7314a9fa2238de3",
-      "repair_live_version": "20260905052651",
-      "repair_source_version": "20260904230200",
-      "repair_source_file": "20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql",
-      "repair_raw_md5": "6be6134441a81a4550710969cac89d85"
-    },
-    "post_live": {
-      "needs": 6,
-      "marketplace_responses": 4,
-      "agreements": 2,
-      "app_profiles": 6,
-      "need_edit_commands": 0,
-      "need_revision_events": 0,
-      "response_revision_resolution_commands": 0,
-      "remaining_search_close_commands": 0,
-      "policy_bundles": 0,
-      "policy_rule_refs": 0,
-      "publication_decisions": 0,
-      "d0140_production_publish": "FAIL_CLOSED"
-    }
+    "live_head": {"version":"20260905052713","name":"clean_ru4_ai_edit_replay_boundary"},
+    "transport_incident": {"affected_live_version":"20260905052336","historical_record_preserved":true,"canonical_raw_md5":"b976f1ccc2c329d7f2fe0bc43ef36606","live_recorded_statement_md5":"d3fb1fe33fffcd3c7314a9fa2238de3","repair_live_version":"20260905052651","repair_source_version":"20260904230200","repair_source_file":"20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql","repair_raw_md5":"6be6134441a81a4550710969cac89d85"},
+    "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"need_edit_commands":0,"need_revision_events":0,"response_revision_resolution_commands":0,"remaining_search_close_commands":0,"policy_bundles":0,"policy_rule_refs":0,"publication_decisions":0,"d0140_production_publish":"FAIL_CLOSED"}
   },
   "next_allowed_action": "RU-5 / P0C-03 MY APPLICATIONS PROJECTION + WITHDRAW PORT — fresh read-only physical preflight of own Application projection, rpc_withdraw_response, response/version lifecycle, RLS/idempotency and W06 consumer; proof branch before any live write.",
   "ru5_p0c01_live_reconciliation": {
@@ -779,20 +185,7 @@
     "proof_run": 33978292187,
     "canonical_pre_p4_run": 33978451146,
     "canonical_codeql_run": 33978450975,
-    "post_live": {
-      "needs": 6,
-      "marketplace_responses": 4,
-      "agreements": 2,
-      "app_profiles": 6,
-      "publication_policy_bundles": 0,
-      "publication_policy_rule_refs": 0,
-      "need_publication_decisions": 0,
-      "preselection_questions": 0,
-      "preselection_answers": 0,
-      "preselection_policy_decisions": 0,
-      "preselection_materiality_decisions": 0,
-      "preselection_commands": 0
-    },
+    "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"publication_policy_bundles":0,"publication_policy_rule_refs":0,"need_publication_decisions":0,"preselection_questions":0,"preselection_answers":0,"preselection_policy_decisions":0,"preselection_materiality_decisions":0,"preselection_commands":0},
     "raw_app_profiles_rls": "OWNER_ONLY_UNCHANGED",
     "d0140_production_publish": "FAIL_CLOSED",
     "ru4b_public_qa": "ACTIVATION_BLOCKED",
@@ -818,30 +211,11 @@
     "pr_codeql_run": 33982372198,
     "canonical_pre_p4_run": 33985675818,
     "canonical_codeql_run": 33985675330,
-    "post_live": {
-      "needs": 6,
-      "marketplace_responses": 4,
-      "agreements": 2,
-      "app_profiles": 6,
-      "application_snapshot_rows": 0,
-      "publication_policy_bundles": 0,
-      "publication_policy_rule_refs": 0,
-      "need_publication_decisions": 0,
-      "preselection_questions": 0,
-      "preselection_answer_versions": 0,
-      "preselection_policy_decisions": 0,
-      "preselection_materiality_decisions": 0,
-      "preselection_commands": 0
-    },
+    "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"application_snapshot_rows":0,"publication_policy_bundles":0,"publication_policy_rule_refs":0,"need_publication_decisions":0,"preselection_questions":0,"preselection_answer_versions":0,"preselection_policy_decisions":0,"preselection_materiality_decisions":0,"preselection_commands":0},
     "d0140_production_publish": "FAIL_CLOSED",
     "ru4b_public_qa": "ACTIVATION_BLOCKED",
     "monetization": "FREE_0_RSD",
-    "explicit_non_claims": [
-      "bounded_note_policy",
-      "calendar_hard_conflict_authority",
-      "historical_snapshot_backfill",
-      "application_ai"
-    ]
+    "explicit_non_claims": ["bounded_note_policy","calendar_hard_conflict_authority","historical_snapshot_backfill","application_ai"]
   },
   "ru4b": {
     "status": "LIVE_FOUNDATION_ACTIVATION_BLOCKED",
@@ -852,61 +226,14 @@
     "promotion_builder_run": 33951166457,
     "canonical_integrity_run": 33951231623,
     "live_migration_count": 71,
-    "live_head": {
-      "version": "20260905070046",
-      "name": "clean_ru4b_inbox_event_contract"
-    },
+    "live_head": {"version":"20260905070046","name":"clean_ru4b_inbox_event_contract"},
     "live_apply": [
-      {
-        "name": "clean_ru4b_preselection_qa_foundation",
-        "version": "20260905070010",
-        "file": "20260905060000_clean_ru4b_preselection_qa_foundation.sql",
-        "source_version": "20260905060000",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "4f7df9ffed48a9cfd35592706e8175c1",
-        "live_recorded_statement_md5": "4f7df9ffed48a9cfd35592706e8175c1",
-        "recorded_statement_utf8_bytes": 29116
-      },
-      {
-        "name": "clean_ru4b_service_boundary",
-        "version": "20260905070029",
-        "file": "20260905060100_clean_ru4b_service_boundary.sql",
-        "source_version": "20260905060100",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "ee041bed805dbcdc016e8f9e0ab85f74",
-        "live_recorded_statement_md5": "ee041bed805dbcdc016e8f9e0ab85f74",
-        "recorded_statement_utf8_bytes": 2408
-      },
-      {
-        "name": "clean_ru4b_inbox_event_contract",
-        "version": "20260905070046",
-        "file": "20260905060200_clean_ru4b_inbox_event_contract.sql",
-        "source_version": "20260905060200",
-        "exact_byte_mirror": true,
-        "canonical_raw_md5": "9182fb1c347ac1abc889cc6e0554cc2b",
-        "live_recorded_statement_md5": "9182fb1c347ac1abc889cc6e0554cc2b",
-        "recorded_statement_utf8_bytes": 2201
-      }
+      {"name":"clean_ru4b_preselection_qa_foundation","version":"20260905070010","file":"20260905060000_clean_ru4b_preselection_qa_foundation.sql","source_version":"20260905060000","exact_byte_mirror":true,"canonical_raw_md5":"4f7df9ffed48a9cfd35592706e8175c1","live_recorded_statement_md5":"4f7df9ffed48a9cfd35592706e8175c1","recorded_statement_utf8_bytes":29116},
+      {"name":"clean_ru4b_service_boundary","version":"20260905070029","file":"20260905060100_clean_ru4b_service_boundary.sql","source_version":"20260905060100","exact_byte_mirror":true,"canonical_raw_md5":"ee041bed805dbcdc016e8f9e0ab85f74","live_recorded_statement_md5":"ee041bed805dbcdc016e8f9e0ab85f74","recorded_statement_utf8_bytes":2408},
+      {"name":"clean_ru4b_inbox_event_contract","version":"20260905070046","file":"20260905060200_clean_ru4b_inbox_event_contract.sql","source_version":"20260905060200","exact_byte_mirror":true,"canonical_raw_md5":"9182fb1c347ac1abc889cc6e0554cc2b","live_recorded_statement_md5":"9182fb1c347ac1abc889cc6e0554cc2b","recorded_statement_utf8_bytes":2201}
     ],
-    "post_live": {
-      "needs": 6,
-      "marketplace_responses": 4,
-      "agreements": 2,
-      "app_profiles": 6,
-      "questions": 0,
-      "answer_versions": 0,
-      "policy_decisions": 0,
-      "materiality_decisions": 0,
-      "commands": 0,
-      "publication_policy_bundles": 0,
-      "need_publication_decisions": 0
-    },
-    "activation_blockers": [
-      "governed account-block authority is not implemented",
-      "owner-approved numeric PRESELECTION_QA rate policy is not defined",
-      "reviewed/current PRESELECTION_QA production policy ALLOW is not activated",
-      "trusted materiality decision authority is not production-activated"
-    ],
+    "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"questions":0,"answer_versions":0,"policy_decisions":0,"materiality_decisions":0,"commands":0,"publication_policy_bundles":0,"need_publication_decisions":0},
+    "activation_blockers": ["governed account-block authority is not implemented","owner-approved numeric PRESELECTION_QA rate policy is not defined","reviewed/current PRESELECTION_QA production policy ALLOW is not activated","trusted materiality decision authority is not production-activated"],
     "production_public_qa": "FAIL_CLOSED",
     "d0140_production_publish": "FAIL_CLOSED"
   }
