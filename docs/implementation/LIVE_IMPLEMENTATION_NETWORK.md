@@ -1,3 +1,28 @@
+<!-- CDL_A10_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A10 AI COMMAND SHADOW ELIMINATION CLOSED / CANONICAL
+
+This block supersedes CDL-A09 next-cursor text for the consolidation track.
+
+- pre-change canonical SHA: `11deb70fe8ebd92e7ebf0e9bbea4f20a90504db2`
+- canonical code promotion: `24a08d6c6d90daa1dd88217ea4a4d0f82a5eaf5d`
+- proof branch/head: `proof/client-data-ai-command-shadow-20260905 @ e85017b31c9f798829e00239242c4ed1ffb1e86c`
+- proof PR: `#13`
+- pre-deletion equivalence run: `33965614404` — PASS
+- final post-deletion run: `33965807723` — PASS
+- canonical AI command owner: `src/data/aiCommandOverrides.ts`
+- methods now solely owned there: `posaljiKorisnikovuPoruku`, `ispraviCinjenicu`
+- lower fake-success implementations are physically removed from `src/data/supabaseIzvor.ts`
+- stale fail-only implementations are physically removed from `src/data/productionAuthorityOverrides.ts`
+- surviving owner type is structurally complete (`Pick`, not optional `Partial<Pick>`); runtime Edge/RPC behavior is unchanged
+- exact active authorities remain `uskoci-ai-interview` and `rpc_ai_correct_fact(p_fact_id,p_value)`
+- no backend migration or Edge deployment occurred in CDL-A10
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- Edge remains `uskoci-ai-interview` ACTIVE v5 / `verify_jwt=true` / EZBR `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **fresh post-A10 shadow inventory; evaluate remaining AI read/open and legacy publish shadows; continue cleanup only for another comparable high-risk production shadow**
+
 <!-- CDL_A09_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A09 WORKER PROFILE MUTATION CLOSED / CANONICAL
 
@@ -150,7 +175,7 @@ This block supersedes CDL-A02 next-cursor text for the consolidation track.
 This block supersedes CDL-A01 next-cursor text for the consolidation track.
 
 - canonical code promotion: `603617d46059331641f445f32e515551a79da474`
-- proof branch/head: `proof/client-data-agreement-mutations-20260905 @ de8d4af7f7fbe4c1cda1e02911ec0fe2436fab94`
+- proof branch/head: `proof/client-data-agreement-mutations-20260905 @ de8d4af7f7be4c1cda1e02911ec0fe2436fab94`
 - pre-deletion equivalence run: `33953071145` — PASS
 - final post-deletion run: `33953836136` — PASS
 - canonical Agreement client owner: `src/data/agreementClientService.ts`
