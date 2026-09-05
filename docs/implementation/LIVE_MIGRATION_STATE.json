@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T09:26:00Z",
+  "updated_at": "2026-09-05T10:15:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,8 +9,8 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "d14ee1c9e451c6a462b174082e1b06a0fde35a88",
-    "note": "CDL-A05 PHONE grant/revoke is canonical and closed. contactClientService is the single production owner for podeliTelefon/opoziviTelefon; rpc_set_contact_grant remains backend authority. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. Exact-location was not changed. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
+    "canonical_base_observed_before_docs_reconciliation": "ff052c43cd26841f396f86942594163b9f08b1b7",
+    "note": "CDL-A06 Agreement problem reporting is canonical and closed. agreementClientService is the single production owner for prijaviProblem; rpc_report_problem(p_agreement_id, p_narrative) remains backend authority and the stale p_description shadow is physically removed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. Completion, exact-location, worker-profile and AI paths were not changed. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
   },
   "live_migration_count": 71,
   "live_head": {
@@ -103,7 +103,26 @@
       "supabase_write": false,
       "edge_change": false
     },
-    "next_cursor": "FRESH_POST_A05_SHADOW_INVENTORY"
+    "cdl_a06": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "ff052c43cd26841f396f86942594163b9f08b1b7",
+      "proof_branch": "proof/client-data-problem-report-20260905",
+      "proof_head": "9952ab02d8b53d244e2501b4b7f1de6d41098bd2",
+      "pre_deletion_equivalence_run": 33959818756,
+      "final_post_deletion_run": 33959946664,
+      "methods": ["prijaviProblem"],
+      "canonical_owner": "src/data/agreementClientService.ts",
+      "backend_authority": ["rpc_report_problem"],
+      "active_duplicate_deleted": true,
+      "stale_p_description_shadow_deleted": true,
+      "completion_unchanged": true,
+      "exact_location_unchanged": true,
+      "worker_profile_unchanged": true,
+      "ai_unchanged": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "next_cursor": "FRESH_POST_A06_SHADOW_INVENTORY"
   },
   "ru0": {
     "status": "CLOSED",
@@ -177,7 +196,7 @@
     "activation_blocker":"No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish":"FAIL_CLOSED"
   },
-  "next_allowed_action":"Fresh post-A05 shadow inventory; select CDL-A06 from current canonical composition by lowest-risk proven slice; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
+  "next_allowed_action":"Fresh post-A06 shadow inventory; select CDL-A07 from current canonical composition by lowest-risk high-value slice; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
   "ru4": {
     "status":"CLOSED_LIVE_STRUCTURAL_PROVEN",
     "functional_canonical_source_head":"a271d6084b4648e757d2230d0a208f558c802a14",
@@ -211,6 +230,6 @@
     "activation_blockers":["BLOCK_AUTHORITY_NOT_READY","NUMERIC_RATE_POLICY_NOT_OWNER_APPROVED","PRESELECTION_QA_PRODUCTION_ALLOW_NOT_ACTIVATED","TRUSTED_MATERIALITY_AUTHORITY_NOT_ACTIVATED"],
     "public_qa":"FAIL_CLOSED",
     "d0140_publish":"FAIL_CLOSED",
-    "next_track":"FRESH_POST_A05_SHADOW_INVENTORY"
+    "next_track":"FRESH_POST_A06_SHADOW_INVENTORY"
   }
 }
