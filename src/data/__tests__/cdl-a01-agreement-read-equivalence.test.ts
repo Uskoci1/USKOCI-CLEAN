@@ -4,7 +4,7 @@
  * The pre-deletion commit proved old-owner/new-owner equivalence in CI.
  * After migration, these tests lock the canonical RPC/auth/mapping/error
  * contract and verify that the transitional Agreement override and legacy
- * baseline can no longer own either read operation at runtime.
+ * baseline no longer own either read operation.
  */
 
 import { readFileSync } from 'node:fs';
@@ -79,17 +79,18 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
     expect(agreementProductionOverrides).not.toHaveProperty('dogovor');
   });
 
-  it('production composition excludes legacy baseline reads from runtime ownership', () => {
-    const source = readFileSync(join(__dirname, '..', 'index.ts'), 'utf8');
-    const productionStart = source.indexOf('const produkcijskiIzvor');
-    const productionEnd = source.indexOf('export const izvor');
-    const productionComposition = source.slice(productionStart, productionEnd);
+  it('legacy baseline physically excludes migrated reads and production has one owner', () => {
+    const indexSource = readFileSync(join(__dirname, '..', 'index.ts'), 'utf8');
+    const baselineSource = readFileSync(join(__dirname, '..', 'supabaseIzvor.ts'), 'utf8');
+    const productionStart = indexSource.indexOf('const produkcijskiIzvor');
+    const productionEnd = indexSource.indexOf('export const izvor');
+    const productionComposition = indexSource.slice(productionStart, productionEnd);
 
-    expect(source).toContain('mojiDogovori: legacyMojiDogovori');
-    expect(source).toContain('dogovor: legacyDogovor');
-    expect(productionComposition).toContain('...supabaseBaseline');
+    expect(baselineSource).not.toContain('async mojiDogovori(');
+    expect(baselineSource).not.toContain('async dogovor(');
+    expect(baselineSource).toContain("type SupabaseIzvor = Omit<Izvor, 'mojiDogovori' | 'dogovor'>;");
+    expect(productionComposition).toContain('...supabaseIzvor');
     expect(productionComposition).toContain('...agreementClientService');
-    expect(productionComposition).not.toContain('...supabaseIzvor');
   });
 
   it('mojiDogovori uses only canonical list RPC and preserves projection mapping', async () => {
