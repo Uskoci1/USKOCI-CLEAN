@@ -70,6 +70,7 @@ type SupabaseIzvor = Omit<
   | 'ispraviCinjenicu'
   | 'otvoriRazgovor'
   | 'razgovor'
+  | 'objaviPotrebu'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -278,11 +279,5 @@ export const supabaseIzvor: SupabaseIzvor = {
     const { data, error } = await supabase.rpc('rpc_ai_confirm_fact', { p_fact_id: cinjenicaId });
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
     return { ok: true, podatak: null };
-  },
-  
-  async objaviPotrebu(razgovorId: string) {
-    const { data, error } = await supabase.rpc('rpc_ai_publish_need', { p_conversation_id: razgovorId });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
-    return { ok: true, podatak: { potrebaId: data } };
   }
 };
