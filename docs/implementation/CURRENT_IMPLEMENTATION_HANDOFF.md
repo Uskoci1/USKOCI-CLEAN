@@ -1,3 +1,24 @@
+<!-- CDL_A06_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A06 AGREEMENT PROBLEM REPORT CLOSED / CANONICAL
+
+- canonical code promotion: `ff052c43cd26841f396f86942594163b9f08b1b7`
+- proof branch/head: `proof/client-data-problem-report-20260905 @ 9952ab02d8b53d244e2501b4b7f1de6d41098bd2`
+- proof PR: `#9`, squash-promoted only after pre-deletion and post-deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33959818756` — PASS
+- final post-deletion proof: GitHub Actions `33959946664` — PASS (migration integrity, TypeScript, full regression)
+- `src/data/agreementClientService.ts` is now the single production owner for `prijaviProblem`
+- exact backend authority preserved: `rpc_report_problem(p_agreement_id, p_narrative)`
+- exact validation preserved: narrative is trimmed and blank input fails with `NARRATIVE_REQUIRED` before RPC
+- duplicate active implementation was physically removed from `src/data/productionAuthorityOverrides.ts`
+- stale lower-precedence `p_description` implementation was physically removed from `src/data/supabaseIzvor.ts`
+- completion, exact-location, worker-profile and AI paths were not changed in CDL-A06
+- no Supabase migration/write, Edge change, RU-4/RU-4B semantic change, D0140 activation or monetization change
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **FRESH POST-A06 SHADOW INVENTORY → SELECT CDL-A07 BY LOWEST-RISK HIGH-VALUE SLICE**
+
 <!-- CDL_A05_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A05 PHONE GRANTS CLOSED / CANONICAL
 
