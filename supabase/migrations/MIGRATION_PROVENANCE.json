@@ -353,7 +353,41 @@
       }
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260905060000",
+      "name": "clean_ru4b_preselection_qa_foundation",
+      "file": "20260905060000_clean_ru4b_preselection_qa_foundation.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "4f7df9ffed48a9cfd35592706e8175c1",
+      "live_applied": false,
+      "predecessor_live_migration_count": 68,
+      "predecessor_live_head": "20260905052713",
+      "scope": "RU-4B fail-closed preselection Q&A foundation; activation remains blocked by block/rate/policy authority"
+    },
+    {
+      "version": "20260905060100",
+      "name": "clean_ru4b_service_boundary",
+      "file": "20260905060100_clean_ru4b_service_boundary.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "ee041bed805dbcdc016e8f9e0ab85f74",
+      "live_applied": false,
+      "predecessor_live_migration_count": 68,
+      "predecessor_live_head": "20260905052713",
+      "scope": "RU-4B fail-closed preselection Q&A foundation; activation remains blocked by block/rate/policy authority"
+    },
+    {
+      "version": "20260905060200",
+      "name": "clean_ru4b_inbox_event_contract",
+      "file": "20260905060200_clean_ru4b_inbox_event_contract.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "9182fb1c347ac1abc889cc6e0554cc2b",
+      "live_applied": false,
+      "predecessor_live_migration_count": 68,
+      "predecessor_live_head": "20260905052713",
+      "scope": "RU-4B fail-closed preselection Q&A foundation; activation remains blocked by block/rate/policy authority"
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
