@@ -59,6 +59,7 @@ type SupabaseIzvor = Omit<
   | 'posaljiPoruku'
   | 'mojePotrebe'
   | 'potreba'
+  | 'oznaciPrijavuVidjenom'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -226,8 +227,6 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška pri izboru.');
     return { ok: true, podatak: { dogovorId: data } };
   },
-  
-  async oznaciPrijavuVidjenom(prijavaId: string) { return { ok: true, podatak: null }; },
   
   async otkaziDogovor(dogovorId: string, razlog: string) {
     const { data, error } = await supabase.rpc('rpc_cancel_agreement', { p_agreement_id: dogovorId, p_reason: razlog });

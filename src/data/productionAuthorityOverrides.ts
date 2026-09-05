@@ -7,7 +7,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type CommandOverrides = Partial<Pick<
   Izvor,
-  | 'oznaciPrijavuVidjenom'
   | 'oznaciZavrsetak'
   | 'prijaviProblem'
   | 'podeliTelefon'
@@ -28,14 +27,6 @@ function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string
 }
 
 export const productionAuthorityOverrides: CommandOverrides = {
-  async oznaciPrijavuVidjenom(prijavaId) {
-    const { error } = await supabase.rpc('rpc_mark_response_viewed', {
-      p_response_id: prijavaId,
-    });
-    if (error) return rpcFailure(error, 'RESPONSE_VIEW_FAILED', 'Prijava nije mogla da se označi kao pregledana.');
-    return { ok: true, podatak: null };
-  },
-
   async oznaciZavrsetak(dogovorId) {
     const { data, error } = await supabase.rpc('rpc_mark_work_done', {
       p_agreement_id: dogovorId,
