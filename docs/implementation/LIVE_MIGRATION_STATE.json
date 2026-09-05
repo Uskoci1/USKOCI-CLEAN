@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T07:31:09Z",
+  "updated_at": "2026-09-05T07:56:51Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,8 +9,8 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "5e387aa7890a35d87fcb1844b16f9e4943967595",
-    "note": "CDL-A01 Agreement workspace reads are canonical and closed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
+    "canonical_base_observed_before_docs_reconciliation": "603617d46059331641f445f32e515551a79da474",
+    "note": "CDL-A02 Agreement mutations are canonical and closed. agreementClientService is the single production owner for Agreement reads and the three migrated mutations. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
   },
   "live_migration_count": 71,
   "live_head": {
@@ -47,7 +47,30 @@
       "supabase_write": false,
       "edge_change": false
     },
-    "next_cursor": "CDL-A02_AGREEMENT_MUTATION_OVERRIDES"
+    "cdl_a02": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "603617d46059331641f445f32e515551a79da474",
+      "proof_branch": "proof/client-data-agreement-mutations-20260905",
+      "proof_head": "de8d4af7f7fbe4c1cda1e02911ec0fe2436fab94",
+      "pre_deletion_equivalence_run": 33953071145,
+      "final_post_deletion_run": 33953836136,
+      "methods": [
+        "posaljiPoruku",
+        "predloziIzmenu",
+        "odgovoriNaIzmenu"
+      ],
+      "canonical_owner": "src/data/agreementClientService.ts",
+      "backend_authority": [
+        "rpc_send_agreement_message",
+        "rpc_propose_agreement_change_v2",
+        "rpc_respond_agreement_change"
+      ],
+      "transitional_override_deleted": true,
+      "lower_precedence_duplicates_deleted": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "next_cursor": "CDL-A03_NEED_READS"
   },
   "ru0": {
     "status": "CLOSED",
@@ -326,7 +349,7 @@
     "activation_blocker": "No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish": "FAIL_CLOSED"
   },
-  "next_allowed_action": "CDL-A02 Agreement mutation override consolidation for posaljiPoruku/predloziIzmenu/odgovoriNaIzmenu; prove exact active behavior first; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
+  "next_allowed_action": "CDL-A03 Need read consolidation for mojePotrebe/potreba; prove exact active behavior first; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
   "ru4": {
     "status": "CLOSED_LIVE_STRUCTURAL_PROVEN",
     "functional_canonical_source_head": "a271d6084b4648e757d2230d0a208f558c802a14",
@@ -477,6 +500,6 @@
     ],
     "public_qa": "FAIL_CLOSED",
     "d0140_publish": "FAIL_CLOSED",
-    "next_track": "CDL-A02_AGREEMENT_MUTATION_OVERRIDES"
+    "next_track": "CDL-A03_NEED_READS"
   }
 }
