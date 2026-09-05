@@ -71,11 +71,11 @@ begin
       case
         when o.agreement_id is not null or o.raw_response_status = 'SELECTED'
           then 'SELECTED'
+        when o.raw_response_status = 'WITHDRAWN'
+          then 'WITHDRAWN'
         when o.raw_response_status in ('STALE','STALE_REVIEW_REQUIRED')
              or o.submitted_against_need_revision is distinct from o.current_need_revision
           then 'STALE_REVIEW_REQUIRED'
-        when o.raw_response_status = 'WITHDRAWN'
-          then 'WITHDRAWN'
         when o.raw_response_status in ('NOT_SELECTED','EXPIRED')
              or o.raw_need_status not in ('PUBLISHED','SELECTION')
           then 'CLOSED'
