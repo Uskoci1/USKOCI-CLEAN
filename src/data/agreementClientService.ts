@@ -1,12 +1,19 @@
 import type { DogovorProjekcija, UcesnikProjekcija } from '../contracts/projections';
-import type { Izvor } from './ports';
+import type { Ishod, IzmenaKomanda, Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type AgreementReadService = Pick<Izvor, 'mojiDogovori' | 'dogovor'>;
+type AgreementService = Pick<
+  Izvor,
+  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu'
+>;
+
+function fail<T>(error: any, code: string, message: string): Ishod<T> {
+  return { ok: false, kod: error?.message || error?.code || code, poruka: error?.message || message };
+}
 
 function novac(iznos: number, valuta = 'RSD') {
   return {
@@ -94,12 +101,11 @@ async function userId() {
 }
 
 /**
- * Canonical production client boundary for Agreement read operations.
- * This intentionally preserves the exact active behavior previously owned by
- * agreementProductionOverrides. Backend authority remains in the canonical
- * Agreement RPC projections; this service only maps them to the Izvor contract.
+ * Canonical production client boundary for Agreement operations migrated so far.
+ * Backend authority remains in canonical Agreement RPCs; this service preserves
+ * the existing Izvor request, validation, mapping and error semantics exactly.
  */
-export const agreementClientService: AgreementReadService = {
+export const agreementClientService: AgreementService = {
   async mojiDogovori() {
     const uid = await userId();
     const { data, error } = await supabase.rpc('rpc_list_my_agreements');
@@ -116,5 +122,48 @@ export const agreementClientService: AgreementReadService = {
     if (error) throw new Error(error.message || 'AGREEMENT_READ_FAILED');
     if (!data) return null;
     return mapAgreement(data, uid);
+  },
+
+  async posaljiPoruku(dogovorId, telo) {
+    const body = telo.trim();
+    if (!body) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
+    const { data, error } = await supabase.rpc('rpc_send_agreement_message', {
+      p_agreement_id: dogovorId,
+      p_body: body,
+    });
+    if (error || !data) return fail(error, 'MESSAGE_SEND_FAILED', 'Poruka nije poslata.');
+    return { ok: true, podatak: { porukaId: data } };
+  },
+
+  async predloziIzmenu(k: IzmenaKomanda) {
+    const patch: Record<string, unknown> = {};
+    if (k.izmena.cenaIznos !== undefined) patch.price_rsd = k.izmena.cenaIznos;
+    if (k.izmena.cenaValuta !== undefined) patch.currency = k.izmena.cenaValuta;
+    if (k.izmena.pocetakIso !== undefined) patch.proposed_start_at = k.izmena.pocetakIso;
+    if (k.izmena.krajIso !== undefined) patch.proposed_end_at = k.izmena.krajIso;
+    if (k.izmena.obim !== undefined) patch.scope_note = k.izmena.obim;
+
+    if (!Object.keys(patch).length) {
+      return { ok: false, kod: 'CHANGE_PATCH_REQUIRED', poruka: 'Izmenite bar jedno polje Dogovora.' };
+    }
+
+    const { data, error } = await supabase.rpc('rpc_propose_agreement_change_v2', {
+      p_agreement_id: k.dogovorId,
+      p_expected_version: k.ocekivanaVerzija,
+      p_patch: patch,
+      p_reason: k.razlog ?? null,
+      p_client_request_id: k.clientRequestId,
+    });
+    if (error || !data) return fail(error, 'CHANGE_PROPOSAL_FAILED', 'Predlog izmene nije sačuvan.');
+    return { ok: true, podatak: { predlogId: data } };
+  },
+
+  async odgovoriNaIzmenu(predlogId, prihvatam) {
+    const { error } = await supabase.rpc('rpc_respond_agreement_change', {
+      p_proposal_id: predlogId,
+      p_accept: prihvatam,
+    });
+    if (error) return fail(error, 'CHANGE_RESPONSE_FAILED', 'Odgovor na izmenu nije sačuvan.');
+    return { ok: true, podatak: null };
   },
 };

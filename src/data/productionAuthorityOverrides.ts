@@ -8,9 +8,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 type CommandOverrides = Partial<Pick<
   Izvor,
   | 'oznaciPrijavuVidjenom'
-  | 'predloziIzmenu'
-  | 'odgovoriNaIzmenu'
-  | 'posaljiPoruku'
   | 'oznaciZavrsetak'
   | 'prijaviProblem'
   | 'podeliTelefon'
@@ -37,40 +34,6 @@ export const productionAuthorityOverrides: CommandOverrides = {
     });
     if (error) return rpcFailure(error, 'RESPONSE_VIEW_FAILED', 'Prijava nije mogla da se označi kao pregledana.');
     return { ok: true, podatak: null };
-  },
-
-  // Current live rpc_propose_agreement_change immediately supersedes the active
-  // version. Canon says proposal -> counterparty review -> accept/reject, so the
-  // production client must not call that obsolete semantic path as if it were a
-  // pending proposal.
-  async predloziIzmenu() {
-    return {
-      ok: false,
-      kod: 'AGREEMENT_CHANGE_FLOW_NOT_READY',
-      poruka: 'Izmene Dogovora su privremeno zaključane dok serverski predlog i prihvatanje ne budu usaglašeni.',
-    };
-  },
-
-  async odgovoriNaIzmenu() {
-    return {
-      ok: false,
-      kod: 'AGREEMENT_CHANGE_RESPONSE_NOT_READY',
-      poruka: 'Odgovor na izmenu nije dostupan dok serverski tok predloga ne bude zatvoren.',
-    };
-  },
-
-  // Keep even the lower-precedence compatibility override on the authoritative
-  // RPC path. If adapter composition changes later, chat must never silently
-  // regress to direct table INSERT authority.
-  async posaljiPoruku(dogovorId, telo) {
-    const body = telo.trim();
-    if (!body) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
-    const { data, error } = await supabase.rpc('rpc_send_agreement_message', {
-      p_agreement_id: dogovorId,
-      p_body: body,
-    });
-    if (error || !data) return rpcFailure(error, 'MESSAGE_SEND_FAILED', 'Poruka nije poslata.');
-    return { ok: true, podatak: { porukaId: data } };
   },
 
   async oznaciZavrsetak(dogovorId) {
