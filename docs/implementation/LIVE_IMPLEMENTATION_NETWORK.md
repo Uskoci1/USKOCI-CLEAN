@@ -1,3 +1,39 @@
+<!-- CDL_A09_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A09 WORKER PROFILE MUTATION CLOSED / CANONICAL
+
+This block supersedes CDL-A08/A07 next-cursor text for the consolidation track.
+
+- canonical code promotion: `ccdc5d75a9dcd11afc817f59905cb32f44579022`
+- proof branch/head: `proof/client-data-worker-profile-20260905 @ ca941c4e9a6c7bb4885fb99d56860dbcbe03ea20`
+- pre-deletion equivalence run: `33962358107` — PASS
+- final post-deletion run: `33962499445` — PASS
+- canonical Worker profile mutation owner: `src/data/workerProfileClientService.ts`
+- method now owned there: `azurirajRadnikProfil`
+- active auth/profile read/create/update behavior is preserved exactly
+- new Worker profiles remain DRAFT; completion authority remains `rpc_complete_worker_profile(p_profile_id)` with the actual profile id
+- old active duplicate is physically removed from `productionAuthorityOverrides.ts`
+- stale lower-precedence mutation is physically removed from `supabaseIzvor.ts`, including its broken no-id activation RPC call
+- Worker profile read projection and AI paths were not changed
+- no backend migration or Edge deployment occurred in CDL-A09
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **fresh post-A09 shadow inventory; stop cleanup unless another comparable high-risk production shadow remains; otherwise return to governing MASTER implementation track**
+
+<!-- CDL_A08_CANONICAL_CHECKPOINT_20260905 -->
+## CLIENT DATA LAYER CHECKPOINT — CDL-A08 EXACT-LOCATION REVEAL CLOSED / CANONICAL
+
+- canonical code promotion: `5997459306165e9e79fb8a6dff1ebce015904c86`
+- proof branch/head: `proof/client-data-exact-location-20260905 @ f940ffb55c8ebc7316fe74e1963c2d9dd1586bfc`
+- pre-deletion equivalence run: `33961961032` — PASS
+- final post-deletion run: `33962093949` — PASS
+- canonical contact/privacy owner: `src/data/contactClientService.ts`
+- method added there: `otkrijTacnuLokaciju`
+- exact authority remains `rpc_reveal_contact(p_agreement_id, p_channel='EXACT_LOCATION')`
+- dead `rpc_r24_reveal_exact_location` path and fake generic address are physically removed
+- no backend migration or Edge deployment occurred in CDL-A08
+
 <!-- CDL_A07_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A07 AGREEMENT COMPLETION MARK CLOSED / CANONICAL
 
