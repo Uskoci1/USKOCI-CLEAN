@@ -43,7 +43,9 @@ jobs:
         run: npm ci --include=dev
 
       - name: Prepare proof-only authenticated fixtures
-        run: python3 .github/visual-proof/prepare-all-screens.py
+        run: |
+          python3 .github/visual-proof/prepare-all-screens.py
+          python3 .github/visual-proof/activate-worker-for-crawl.py
 
       - name: TypeScript proof preflight
         run: npx tsc --noEmit
