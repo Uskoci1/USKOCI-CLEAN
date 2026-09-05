@@ -7,8 +7,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type CommandOverrides = Partial<Pick<
   Izvor,
-  | 'posaljiKorisnikovuPoruku'
-  | 'ispraviCinjenicu'
   | 'objaviPotrebu'
 >>;
 
@@ -21,24 +19,6 @@ function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string
 }
 
 export const productionAuthorityOverrides: CommandOverrides = {
-  // There is currently no deployed Edge Function on the canonical Supabase
-  // project. Never pretend an AI message was processed when no provider ran.
-  async posaljiKorisnikovuPoruku() {
-    return {
-      ok: false,
-      kod: 'AI_PROVIDER_NOT_CONFIGURED',
-      poruka: 'AI obrada trenutno nije povezana sa serverskim providerom.',
-    };
-  },
-
-  async ispraviCinjenicu() {
-    return {
-      ok: false,
-      kod: 'AI_FACT_REVISION_NOT_READY',
-      poruka: 'Ispravka AI činjenice još nema autoritativan serverski put.',
-    };
-  },
-
   async objaviPotrebu(razgovorId) {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
