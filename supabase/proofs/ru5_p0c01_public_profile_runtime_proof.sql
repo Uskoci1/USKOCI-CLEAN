@@ -46,8 +46,7 @@ begin
       licenses=array['RU5_PRIVATE_LICENSE'],
       vehicles=array['RU5_PRIVATE_VEHICLE'],
       exclusions=array['RU5_PRIVATE_EXCLUSION'],
-      minimum_fee_rsd=99999,
-      rating_requester=4.9
+      minimum_fee_rsd=99999
   where id=requester_pid;
 
   update public.app_profiles
@@ -64,8 +63,7 @@ begin
       licenses=array['RU5_PRIVATE_WORKER_LICENSE'],
       vehicles=array['RU5_PRIVATE_WORKER_VEHICLE'],
       exclusions=array['RU5_PRIVATE_WORKER_EXCLUSION'],
-      minimum_fee_rsd=88888,
-      rating_worker=5.0
+      minimum_fee_rsd=88888
   where id=worker_pid;
 
   perform set_config('uskoci.ru5_victim',victim::text,true);
@@ -73,6 +71,33 @@ begin
   perform set_config('uskoci.ru5_requester_pid',requester_pid::text,true);
   perform set_config('uskoci.ru5_worker_pid',worker_pid::text,true);
 end $seed$;
+
+-- Cached rating columns are server-derived and the normal RU-1 profile guard
+-- correctly rejects direct client mutation. For this disposable proof only,
+-- seed non-null cached values under postgres while the guard trigger is briefly
+-- disabled, then re-enable it BEFORE any authenticated/RPC assertions. This
+-- proves P0C-01 ignores legacy caches without weakening production authority.
+alter table public.app_profiles disable trigger guard_profile_write_trg;
+update public.app_profiles
+   set rating_requester=4.9
+ where id=current_setting('uskoci.ru5_requester_pid')::uuid;
+update public.app_profiles
+   set rating_worker=5.0
+ where id=current_setting('uskoci.ru5_worker_pid')::uuid;
+alter table public.app_profiles enable trigger guard_profile_write_trg;
+
+do $guard_restored$
+begin
+  if not exists (
+    select 1
+      from pg_trigger
+     where tgrelid='public.app_profiles'::regclass
+       and tgname='guard_profile_write_trg'
+       and tgenabled='O'
+  ) then
+    raise exception 'RU5_P0C01_PROFILE_GUARD_NOT_RESTORED';
+  end if;
+end $guard_restored$;
 
 -- Static privilege boundary: authenticated may execute the narrow projection;
 -- anon may not. Raw table RLS remains unchanged and owner-only.
