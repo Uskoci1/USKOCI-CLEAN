@@ -5,7 +5,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type ContactClientService = Pick<Izvor, 'podeliTelefon' | 'opoziviTelefon'>;
+type ContactClientService = Pick<Izvor, 'podeliTelefon' | 'opoziviTelefon' | 'otkrijTacnuLokaciju'>;
 
 function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string): Ishod<T> {
   return {
@@ -16,9 +16,9 @@ function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string
 }
 
 /**
- * CDL-A05 — canonical production boundary for PHONE contact grants.
- * Backend authority remains rpc_set_contact_grant; this service preserves the
- * already-active request/error contract without adding client-side authority.
+ * Canonical production boundary for contact/privacy operations migrated so far.
+ * Backend authority remains in canonical grant/reveal RPCs; this service preserves
+ * the already-active request/error contract without adding client-side authority.
  */
 export const contactClientService: ContactClientService = {
   async podeliTelefon(dogovorId) {
@@ -39,5 +39,18 @@ export const contactClientService: ContactClientService = {
     });
     if (error) return rpcFailure(error, 'PHONE_REVOKE_FAILED', 'Deljenje telefona nije opozvano.');
     return { ok: true, podatak: null };
+  },
+
+  async otkrijTacnuLokaciju(dogovorId) {
+    const { data, error } = await supabase.rpc('rpc_reveal_contact', {
+      p_agreement_id: dogovorId,
+      p_channel: 'EXACT_LOCATION',
+    });
+    if (error) return rpcFailure(error, 'LOCATION_REVEAL_FAILED', 'Tačna lokacija nije dostupna.');
+    const address = data?.exactAddress;
+    if (typeof address !== 'string' || !address.trim()) {
+      return { ok: false, kod: 'LOCATION_NOT_SET', poruka: 'Tačna lokacija nije postavljena.' };
+    }
+    return { ok: true, podatak: { adresa: address } };
   },
 };
