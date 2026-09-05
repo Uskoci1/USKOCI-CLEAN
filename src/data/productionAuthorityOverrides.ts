@@ -7,7 +7,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type CommandOverrides = Partial<Pick<
   Izvor,
-  | 'oznaciZavrsetak'
   | 'otkrijTacnuLokaciju'
   | 'azurirajRadnikProfil'
   | 'posaljiKorisnikovuPoruku'
@@ -24,14 +23,6 @@ function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string
 }
 
 export const productionAuthorityOverrides: CommandOverrides = {
-  async oznaciZavrsetak(dogovorId) {
-    const { data, error } = await supabase.rpc('rpc_mark_work_done', {
-      p_agreement_id: dogovorId,
-    });
-    if (error || !data) return rpcFailure(error, 'COMPLETION_FAILED', 'Završetak nije mogao da se označi.');
-    return { ok: true, podatak: { rokPotvrdeIso: data } };
-  },
-
   async otkrijTacnuLokaciju(dogovorId) {
     const { data, error } = await supabase.rpc('rpc_reveal_contact', {
       p_agreement_id: dogovorId,
