@@ -8,10 +8,10 @@
     "name": "USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip",
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
-  "canonical_code_checkpoint_before_continuity_docs": "40afb2ed654c9987f82e7cd3c120a5b60ccbcf11",
+  "canonical_code_checkpoint_before_continuity_docs": "366561e74a088d55d816d3795cba5f2299e3283c",
   "live": {
-    "migration_count": 71,
-    "head": "20260905070046_clean_ru4b_inbox_event_contract",
+    "migration_count": 72,
+    "head": "20260905163927_clean_ru5_public_profile_projection",
     "pending_forward_migrations": 0
   },
   "edge": {
@@ -23,7 +23,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_71_RU4B_FOUNDATION",
+    "state": "NORMALIZED_TO_LIVE_72_RU5_P0C01",
     "ru2_live_aliases": [
       {"live_version":"20260903222139","source_version":"20260903190000","source_file":"20260903190000_clean_ru2_need_v2_draft.sql","exact_byte_identity":true},
       {"live_version":"20260903222333","source_version":"20260903190100","source_file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","exact_byte_identity":true}
@@ -42,7 +42,21 @@
       {"name":"clean_ru4b_preselection_qa_foundation","live_version":"20260905070010","source_version":"20260905060000","source_file":"20260905060000_clean_ru4b_preselection_qa_foundation.sql","exact_byte_identity":true,"recorded_statement_md5":"4f7df9ffed48a9cfd35592706e8175c1","recorded_statement_utf8_bytes":29116,"source_raw_md5":"4f7df9ffed48a9cfd35592706e8175c1"},
       {"name":"clean_ru4b_service_boundary","live_version":"20260905070029","source_version":"20260905060100","source_file":"20260905060100_clean_ru4b_service_boundary.sql","exact_byte_identity":true,"recorded_statement_md5":"ee041bed805dbcdc016e8f9e0ab85f74","recorded_statement_utf8_bytes":2408,"source_raw_md5":"ee041bed805dbcdc016e8f9e0ab85f74"},
       {"name":"clean_ru4b_inbox_event_contract","live_version":"20260905070046","source_version":"20260905060200","source_file":"20260905060200_clean_ru4b_inbox_event_contract.sql","exact_byte_identity":true,"recorded_statement_md5":"9182fb1c347ac1abc889cc6e0554cc2b","recorded_statement_utf8_bytes":2201,"source_raw_md5":"9182fb1c347ac1abc889cc6e0554cc2b"}
-    ]
+    ],
+    "ru5_p0c01_live_alias": {
+      "name":"clean_ru5_public_profile_projection",
+      "live_version":"20260905163927",
+      "source_version":"20260905133000",
+      "source_file":"20260905133000_clean_ru5_public_profile_projection.sql",
+      "exact_byte_identity":true,
+      "recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e",
+      "recorded_statement_utf8_bytes":2458,
+      "source_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e",
+      "canonical_promotion_sha":"366561e74a088d55d816d3795cba5f2299e3283c",
+      "proof_run":33978292187,
+      "canonical_pre_p4_run":33978451146,
+      "canonical_codeql_run":33978450975
+    }
   },
   "client_data_layer": {
     "status": "CLOSED_CANONICAL",
@@ -64,7 +78,18 @@
       {"id":"CDL-A11","status":"CLOSED_CANONICAL","sha":"1be672dc649fee102a66c826c86b0e5609a43315","owner":"aiProductionOverrides","methods":["otvoriRazgovor","razgovor"],"proof":[33966439120,33966556555],"deleted":["NEW_NEED lower shadow","null conversation-read shadow"]},
       {"id":"CDL-A12","status":"CLOSED_CANONICAL","sha":"40afb2ed654c9987f82e7cd3c120a5b60ccbcf11","owner":"productionAuthorityOverrides","methods":["objaviPotrebu"],"proof":[33967095683,33967215611,33967294217],"deleted":["incomplete p_profile_id lower shadow"],"fail_closed":"PACKAGE_4_NOT_READY"}
     ],
-    "next_cursor": "RU5_P0C01_PUBLIC_SAFE_PROFILE_PREFLIGHT"
+    "next_cursor": "RU5_P0C02_ATOMIC_APPLICATION_SUBMIT_PREFLIGHT"
+  },
+  "ru5": {
+    "status":"IN_PROGRESS",
+    "p0c01": {
+      "status":"CLOSED_LIVE",
+      "contract":"PUBLIC_SAFE_PROFILE_PROJECTION",
+      "canonical_sha":"366561e74a088d55d816d3795cba5f2299e3283c",
+      "live_migration":"20260905163927_clean_ru5_public_profile_projection",
+      "raw_profile_rls":"OWNER_ONLY_UNCHANGED",
+      "next":"P0C-02_ATOMIC_APPLICATION_SUBMIT"
+    }
   },
   "status": {
     "RU-0":"CLOSED_LIVE",
@@ -74,7 +99,7 @@
     "RU-4":"CLOSED_LIVE_DO_NOT_REDO",
     "RU-4B":"LIVE_FOUNDATION_ACTIVATION_BLOCKED_DEFERRED",
     "CDL":"CLOSED_CANONICAL",
-    "RU-5":"OPEN_NEXT_ADMISSIBLE",
+    "RU-5":"IN_PROGRESS_P0C01_CLOSED_LIVE_P0C02_NEXT",
     "RU-5B":"NOT_STARTED_GATED_BY_RU5",
     "RU-6A":"FOUNDATION_ONLY_GATED_BY_RU5",
     "RU-6B":"NOT_STARTED_GATED_BY_RU6A",
@@ -93,5 +118,5 @@
     "service_offer_listing_supported":false
   },
   "monetization":"FREE_0_RSD",
-  "next_allowed_action":"RU-5/P0C-01 public-safe profile projection: fresh read-only preflight of app_profiles/RLS/public projections and W03/W04/R05/R06 consumers; proof branch before any live write."
+  "next_allowed_action":"RU-5/P0C-02 atomic Application submit: fresh read-only physical preflight of current podnesiPrijavu/rpc_submit_response, response schema/RLS/idempotency and W05 consumer; proof branch before any new live write."
 }
