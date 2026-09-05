@@ -6,6 +6,7 @@ on:
       - proof/android-visual-proof-20260905
     paths:
       - '.github/workflows/android-full-screen-crawl.yml'
+      - '.github/visual-proof/**'
   workflow_dispatch:
 
 permissions:
@@ -41,177 +42,8 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Inject proof-only session and deterministic data
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          # 1) Proof-only authenticated session. This never calls Supabase Auth.
-          p = Path('src/store/sesija.ts')
-          s = p.read_text(encoding='utf-8-sig')
-          old = """let trenutna: SesijaStanje = {
-            isLoaded: false,
-            session: null,
-            user: null,
-          };"""
-          new = """const visualProof = process.env.EXPO_PUBLIC_VISUAL_PROOF === '1';
-          const visualUser = ({
-            id: 'visual-proof-user',
-            email: 'visual-proof@uskoci.local',
-            aud: 'authenticated',
-            role: 'authenticated',
-            app_metadata: {},
-            user_metadata: { full_name: 'Miloš Visual Proof' },
-            created_at: '2026-09-05T00:00:00.000Z',
-          } as unknown) as User;
-          const visualSession = ({
-            access_token: 'visual-proof-access-token',
-            refresh_token: 'visual-proof-refresh-token',
-            token_type: 'bearer',
-            expires_in: 3600,
-            expires_at: 4102444800,
-            user: visualUser,
-          } as unknown) as Session;
-
-          let trenutna: SesijaStanje = visualProof
-            ? { isLoaded: true, session: visualSession, user: visualUser }
-            : { isLoaded: false, session: null, user: null };"""
-          if old not in s:
-              raise SystemExit('session initial state marker not found')
-          s = s.replace(old, new, 1)
-          marker = """export function inicijalizujSesiju() {
-            if (initialized) return;"""
-          replacement = """export function inicijalizujSesiju() {
-            if (visualProof) {
-              initialized = true;
-              return;
-            }
-            if (initialized) return;"""
-          if marker not in s:
-              raise SystemExit('session init marker not found')
-          s = s.replace(marker, replacement, 1)
-          p.write_text(s, encoding='utf-8')
-
-          # 2) Seed one deterministic fake Dogovor so list/detail/chat surfaces exist.
-          p = Path('src/data/lazniIzvor.ts')
-          s = p.read_text(encoding='utf-8-sig')
-          s = s.replace(
-              """  alokacije: [],
-            dogovorVerzija: {},""",
-              """  alokacije: [
-              { dogovorId: 'd-1', prijavaId: 'p-marko', mesta: 1, povezivanjeIznos: 0 },
-            ],
-            dogovorVerzija: { 'd-1': 1 },""",
-              1,
-          )
-          s = s.replace('  brojac: 0,', '  brojac: 1,', 1)
-          p.write_text(s, encoding='utf-8')
-
-          # 3) Deterministic V2 AI adapter used only by this fake visual build.
-          Path('src/data/aiNeedV2VisualProof.ts').write_text(r'''import type { AiNeedV2Conversation, AiNeedV2Fact } from '../contracts/aiNeedV2';
-import type { NeedFactV2Key, NeedFactValueType, NeedFactPrivacyClass } from '../contracts/needFactsV2';
-
-const fact = (
-  id: string,
-  key: NeedFactV2Key,
-  value: unknown,
-  displayValue: string,
-  valueType: NeedFactValueType,
-  privacyClass: NeedFactPrivacyClass = 'PUBLIC',
-  requiredForDraft = true,
-): AiNeedV2Fact => ({
-  id, key, value, displayValue, valueType, privacyClass, requiredForDraft,
-  status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: displayValue,
-});
-
-let facts: AiNeedV2Fact[] = [
-  fact('vf-1', 'need.title', 'Prenos ormara sa Limana na Detelinaru', 'Prenos ormara sa Limana na Detelinaru', 'TEXT'),
-  fact('vf-2', 'need.description', 'Preuzeti, preneti i uneti veliki ormar na drugoj lokaciji.', 'Preuzeti, preneti i uneti veliki ormar na drugoj lokaciji.', 'TEXT'),
-  fact('vf-3', 'need.category', 'Selidbe i prevoz', 'Selidbe i prevoz', 'TEXT'),
-  fact('vf-4', 'need.price_mode', 'MY_PRICE', 'Moja cena', 'ENUM'),
-  fact('vf-5', 'need.price_rsd', 5200, '5.200 RSD', 'INTEGER', 'PUBLIC', false),
-  fact('vf-6', 'need.schedule_kind', 'TOMORROW_FLEXIBLE', 'Sutra · posle 15h', 'ENUM'),
-  fact('vf-7', 'need.people_needed', 2, '2 osobe', 'INTEGER'),
-  fact('vf-8', 'need.task_geography', {
-    mode: 'POINT_TO_POINT',
-    start: { city: 'Novi Sad', area: 'Liman' },
-    end: { city: 'Novi Sad', area: 'Detelinara' },
-  }, 'Liman → Detelinara', 'OBJECT'),
-  fact('vf-9', 'need.required_vehicles', ['Kombi'], 'Kombi', 'TEXT_ARRAY', 'PUBLIC', false),
-];
-
-function snapshot(): AiNeedV2Conversation {
-  return {
-    conversationId: 'visual-proof-conversation',
-    schemaVersion: 'NEED_FACT_V2',
-    messages: [
-      { id: 'vm-1', fromAi: false, body: 'Treba mi prevoz velikog ormara sa Limana na Detelinaru sutra posle 15h. Trebaju dve osobe i kombi.', safety: null, proposedFactIds: [] },
-      { id: 'vm-2', fromAi: true, body: 'Razumem. Izdvojio sam lokaciju, termin, broj ljudi, vozilo i cenu. Pregledajte podatke pre čuvanja.', safety: 'ALLOW', proposedFactIds: facts.map((f) => f.id) },
-    ],
-    facts: facts.map((f) => ({ ...f })),
-    review: {
-      conversationId: 'visual-proof-conversation',
-      schemaVersion: 'NEED_FACT_V2',
-      boundNeedId: null,
-      canSaveDraft: true,
-      missingRequired: [],
-      facts: facts.map((f) => ({ ...f })),
-    },
-    safety: 'ALLOW',
-  };
-}
-
-export const aiNeedV2VisualProof = {
-  async openConversation() {
-    return { ok: true as const, podatak: { conversationId: 'visual-proof-conversation' } };
-  },
-  async loadConversation(_conversationId: string) {
-    return snapshot();
-  },
-  async sendMessage(_conversationId: string, _body: string) {
-    return { ok: true as const, podatak: { proposed: facts.length } };
-  },
-  async confirmFact(factId: string) {
-    facts = facts.map((f) => f.id === factId ? { ...f, status: 'CONFIRMED' as const } : f);
-    return { ok: true as const, podatak: null };
-  },
-  async correctFact(factId: string, value: unknown, displayValue: string) {
-    const old = facts.find((f) => f.id === factId);
-    if (!old) return { ok: false as const, kod: 'NOT_FOUND', poruka: 'Podatak ne postoji.' };
-    const newFactId = `${factId}-corrected`;
-    facts = facts.map((f) => f.id === factId ? { ...f, id: newFactId, value, displayValue, status: 'CONFIRMED' as const } : f);
-    return { ok: true as const, podatak: { newFactId } };
-  },
-  async saveDraft(_conversationId: string, _clientRequestId: string) {
-    return { ok: true as const, podatak: { needId: 'ormar' } };
-  },
-};
-''', encoding='utf-8')
-
-          p = Path('src/data/index.ts')
-          s = p.read_text(encoding='utf-8')
-          import_marker = "import { aiNeedV2Production } from './aiNeedV2Production';"
-          if import_marker not in s:
-              raise SystemExit('AI import marker not found')
-          s = s.replace(import_marker, import_marker + "\nimport { aiNeedV2VisualProof } from './aiNeedV2VisualProof';", 1)
-          export_marker = 'export const aiNeedV2Izvor = aiNeedV2Production;'
-          if export_marker not in s:
-              raise SystemExit('AI export marker not found')
-          s = s.replace(export_marker, 'export const aiNeedV2Izvor = koristiLazniIzvor ? aiNeedV2VisualProof : aiNeedV2Production;', 1)
-          p.write_text(s, encoding='utf-8')
-          PY
-
-      - name: Inject proof-only Android identity
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = 'app.json';
-          const app = JSON.parse(fs.readFileSync(path, 'utf8'));
-          app.expo.android = app.expo.android || {};
-          app.expo.android.package = 'rs.uskoci.visualproofall';
-          app.expo.name = 'USKOČI VISUAL CRAWL';
-          fs.writeFileSync(path, JSON.stringify(app, null, 2) + '\n');
-          NODE
+      - name: Prepare proof-only authenticated fixtures
+        run: python3 .github/visual-proof/prepare-all-screens.py
 
       - name: TypeScript proof preflight
         run: npx tsc --noEmit
@@ -221,27 +53,27 @@ export const aiNeedV2VisualProof = {
 
       - name: Tune Gradle for x86_64 proof
         run: |
-          python3 <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
-          p = Path('android/gradle.properties')
-          s = p.read_text()
-          def set_prop(key, value):
-              global s
-              lines = s.splitlines()
-              found = False
-              out = []
-              for line in lines:
-                  if line.startswith(key + '='):
-                      out.append(f'{key}={value}')
-                      found = True
-                  else:
-                      out.append(line)
-              if not found:
+          path = Path('android/gradle.properties')
+          lines = path.read_text().splitlines()
+          values = {
+              'org.gradle.jvmargs': '-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8',
+              'reactNativeArchitectures': 'x86_64',
+          }
+          seen = set()
+          out = []
+          for line in lines:
+              key = line.split('=', 1)[0] if '=' in line else None
+              if key in values:
+                  out.append(f'{key}={values[key]}')
+                  seen.add(key)
+              else:
+                  out.append(line)
+          for key, value in values.items():
+              if key not in seen:
                   out.append(f'{key}={value}')
-              s = '\n'.join(out) + '\n'
-          set_prop('org.gradle.jvmargs', '-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8')
-          set_prop('reactNativeArchitectures', 'x86_64')
-          p.write_text(s)
+          path.write_text('\n'.join(out) + '\n')
           PY
 
       - name: Build standalone proof APK
@@ -253,28 +85,26 @@ export const aiNeedV2VisualProof = {
           mkdir -p visual-all
           cp android/app/build/outputs/apk/release/app-release.apk visual-all/USKOCI-ALL-SCREENS.apk
           sha256sum visual-all/USKOCI-ALL-SCREENS.apk > visual-all/USKOCI-ALL-SCREENS.apk.sha256
-          cat > visual-all/routes.tsv <<'EOF'
-          order	role	name	uri
-          01	requester	Početna	uskociapp:///
-          02	requester	Potrebe	uskociapp:///potrebe
-          03	requester	Novi Zadatak AI	uskociapp:///nova
-          04	requester	Pregled nacrta	uskociapp:///pregled-nacrta?conversationId=visual-proof-conversation
-          05	requester	Prijave kandidata	uskociapp:///prijave
-          06	requester	Zadatak pregled	uskociapp:///potrebe/ormar/pregled
-          07	requester	Kandidati	uskociapp:///potrebe/ormar/kandidati
-          08	requester	Dogovori	uskociapp:///dogovori
-          09	requester	Dogovor detalj	uskociapp:///dogovor/d-1
-          10	requester	Profil	uskociapp:///profil
-          11	worker	Početna	uskociapp:///
-          12	worker	Moje prijave	uskociapp:///moje-prijave
-          13	worker	Prilike	uskociapp:///prilike
-          14	worker	Prilika detalj	uskociapp:///prilike/ormar
-          15	worker	Prijava na priliku	uskociapp:///prilike/ormar/prijava
-          16	worker	Profil radnika	uskociapp:///profil/radnik
-          17	worker	Dogovori	uskociapp:///dogovori
-          18	worker	Dogovor detalj	uskociapp:///dogovor/d-1
-          19	worker	Profil	uskociapp:///profil
-          EOF
+          printf '%s\n' \
+            '01 requester Početna' \
+            '02 requester Potrebe' \
+            '03 requester Novi-Zadatak-AI' \
+            '04 requester Pregled-nacrta' \
+            '05 requester Prijave-kandidata' \
+            '06 requester Zadatak-pregled' \
+            '07 requester Kandidati' \
+            '08 requester Dogovori' \
+            '09 requester Dogovor-detalj' \
+            '10 requester Profil' \
+            '11 worker Početna' \
+            '12 worker Moje-prijave' \
+            '13 worker Prilike' \
+            '14 worker Prilika-detalj' \
+            '15 worker Prijava-na-priliku' \
+            '16 worker Profil-radnika' \
+            '17 worker Dogovori' \
+            '18 worker Dogovor-detalj' \
+            '19 worker Profil' > visual-all/routes.txt
 
       - name: Enable KVM acceleration
         run: |
@@ -292,76 +122,7 @@ export const aiNeedV2VisualProof = {
           profile: pixel_6
           disable-animations: true
           emulator-boot-timeout: 600
-          script: |
-            set -eu
-            PKG='rs.uskoci.visualproofall'
-            mkdir -p visual-all
-            adb install -r visual-all/USKOCI-ALL-SCREENS.apk
-            adb shell wm size 1080x2400
-            adb shell wm density 420
-
-            shot() {
-              name="$1"
-              uri="$2"
-              echo "=== $name :: $uri ===" | tee -a visual-all/crawl.log
-              adb shell am start -W -a android.intent.action.VIEW -d "$uri" "$PKG" >> visual-all/crawl.log 2>&1 || true
-              sleep 4
-              adb exec-out screencap -p > "visual-all/${name}.png"
-              adb shell uiautomator dump "/sdcard/${name}.xml" >/dev/null 2>&1 || true
-              adb pull "/sdcard/${name}.xml" "visual-all/${name}.xml" >/dev/null 2>&1 || true
-              adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | tail -4 >> visual-all/crawl.log 2>&1 || true
-            }
-
-            shot '01-requester-home' 'uskociapp:///'
-            shot '02-potrebe' 'uskociapp:///potrebe'
-            shot '03-nova-ai' 'uskociapp:///nova'
-            shot '04-pregled-nacrta' 'uskociapp:///pregled-nacrta?conversationId=visual-proof-conversation'
-            shot '05-prijave-kandidata' 'uskociapp:///prijave'
-            shot '06-potreba-pregled' 'uskociapp:///potrebe/ormar/pregled'
-            shot '07-kandidati' 'uskociapp:///potrebe/ormar/kandidati'
-            shot '08-dogovori-requester' 'uskociapp:///dogovori'
-            shot '09-dogovor-requester' 'uskociapp:///dogovor/d-1'
-            shot '10-profil-requester' 'uskociapp:///profil'
-
-            # Switch to JA MOGU using the real UI control, preserving in-memory role.
-            adb shell uiautomator dump /sdcard/profile-switch.xml >/dev/null 2>&1 || true
-            adb pull /sdcard/profile-switch.xml visual-all/profile-switch.xml >/dev/null 2>&1 || true
-            python3 <<'PY'
-            import re, subprocess, sys, xml.etree.ElementTree as ET
-            path = 'visual-all/profile-switch.xml'
-            root = ET.parse(path).getroot()
-            match = None
-            for node in root.iter('node'):
-                hay = (node.attrib.get('content-desc','') + ' ' + node.attrib.get('text','')).strip()
-                if 'Pređi u prostor Uskočera' in hay or 'Predji u prostor Uskocera' in hay:
-                    match = node
-                    break
-            if match is None:
-                print('ROLE_SWITCH_NODE_NOT_FOUND', file=sys.stderr)
-                sys.exit(2)
-            m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', match.attrib.get('bounds',''))
-            if not m:
-                print('ROLE_SWITCH_BOUNDS_INVALID', file=sys.stderr)
-                sys.exit(3)
-            x1,y1,x2,y2 = map(int, m.groups())
-            subprocess.check_call(['adb','shell','input','tap',str((x1+x2)//2),str((y1+y2)//2)])
-            PY
-            sleep 4
-            adb exec-out screencap -p > visual-all/11-worker-home.png
-            adb shell uiautomator dump /sdcard/11-worker-home.xml >/dev/null 2>&1 || true
-            adb pull /sdcard/11-worker-home.xml visual-all/11-worker-home.xml >/dev/null 2>&1 || true
-
-            shot '12-moje-prijave' 'uskociapp:///moje-prijave'
-            shot '13-prilike' 'uskociapp:///prilike'
-            shot '14-prilika-detalj' 'uskociapp:///prilike/ormar'
-            shot '15-prijava-na-priliku' 'uskociapp:///prilike/ormar/prijava'
-            shot '16-profil-radnika' 'uskociapp:///profil/radnik'
-            shot '17-dogovori-worker' 'uskociapp:///dogovori'
-            shot '18-dogovor-worker' 'uskociapp:///dogovor/d-1'
-            shot '19-profil-worker' 'uskociapp:///profil'
-
-            adb logcat -d > visual-all/logcat.txt || true
-            adb shell dumpsys window > visual-all/window-dumpsys.txt || true
+          script: bash .github/visual-proof/crawl-all-screens.sh
 
       - name: Verify crawl outputs
         if: always()
@@ -386,5 +147,5 @@ export const aiNeedV2VisualProof = {
         with:
           name: USKOCI-ANDROID-ALL-SCREENS
           path: visual-all/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
