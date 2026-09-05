@@ -1,3 +1,30 @@
+<!-- CDL_A10_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A10 AI COMMAND SHADOW ELIMINATION CLOSED / CANONICAL
+
+- date: `2026-09-05`
+- pre-change canonical SHA: `11deb70fe8ebd92e7ebf0e9bbea4f20a90504db2`
+- proof branch/head: `proof/client-data-ai-command-shadow-20260905 @ e85017b31c9f798829e00239242c4ed1ffb1e86c`
+- proof PR: `#13`
+- promoted canonical SHA: `24a08d6c6d90daa1dd88217ea4a4d0f82a5eaf5d`
+- changed files: `src/data/aiCommandOverrides.ts`, `src/data/productionAuthorityOverrides.ts`, `src/data/supabaseIzvor.ts`, `src/data/__tests__/cdl-a10-ai-command-shadow-equivalence.test.ts`
+- canonical production owner: `src/data/aiCommandOverrides.ts` for `posaljiKorisnikovuPoruku` and `ispraviCinjenicu`
+- physically removed from `src/data/supabaseIzvor.ts`: fake-success `posaljiKorisnikovuPoruku(...)->{predlozeno:0}` and fake-success `ispraviCinjenicu(...)->{novaCinjenicaId:''}`; both methods are now explicit `Omit` boundaries there
+- physically removed from `src/data/productionAuthorityOverrides.ts`: stale fail-only `AI_PROVIDER_NOT_CONFIGURED` and `AI_FACT_REVISION_NOT_READY` implementations; that layer now retains only the legacy fail-closed `objaviPotrebu` boundary
+- `aiCommandOverrides` runtime implementation was preserved; its type was strengthened from `Partial<Pick<...>>` to `Pick<...>` only so the now-sole owner is structurally complete for `Izvor`
+- behavior invariants preserved: message trim/4000 limit, Edge `uskoci-ai-interview` invocation and fail-closed response validation; fact trim/2000 limit, exact `rpc_ai_correct_fact(p_fact_id,p_value)` contract and server error propagation
+- pre-deletion equivalence/source proof: GitHub Actions `33965614404` — PASS (migration integrity, TypeScript, full regression) while lower shadows still physically existed
+- intermediate post-deletion gate `33965736027` — FAILED at TypeScript only because the surviving owner type was still optional; no promotion occurred from that state
+- final post-deletion proof: GitHub Actions `33965807723` — PASS (migration integrity, TypeScript, full regression)
+- fresh post-promotion GitHub read: canonical `clean-alpha-backend @ 24a08d6c6d90daa1dd88217ea4a4d0f82a5eaf5d`
+- fresh post-promotion live Supabase reread: `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- Edge unchanged: `uskoci-ai-interview` ACTIVE v5, `verify_jwt=true`, EZBR SHA-256 `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
+- no Supabase migration/write, no Edge deploy/source change, no UI redesign, no RU-4/RU-4B semantic change, no D0140 activation and no monetization change
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- CDL-A10 status: **CLOSED / CANONICAL**
+- exact next cursor: **FRESH POST-A10 SHADOW INVENTORY → EVALUATE REMAINING AI READ/PUBLISH SHADOWS; CONTINUE CLEANUP ONLY FOR ANOTHER COMPARABLE HIGH-RISK SHADOW**
+
 <!-- CDL_A09_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A09 WORKER PROFILE MUTATION CLOSED / CANONICAL
 
