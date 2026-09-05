@@ -103,6 +103,12 @@ export default function PrijavaEkran() {
       Alert.alert("Uspeh", "Prijava je uspešno podneta!");
       router.replace("/moje-prijave" as any);
     } else {
+      // A known server rejection means this semantic command definitely did not
+      // commit, so a corrected payload gets a fresh key. RPC_ERROR is the
+      // transport/unknown-outcome fallback and deliberately keeps the old key.
+      if (ishod.kod !== 'RPC_ERROR') {
+        clientRequestIdRef.current = null;
+      }
       Alert.alert(ishod.naslov || "Greška pri slanju", ishod.poruka);
     }
   };
