@@ -36,8 +36,9 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // needClientService is their only production owner. CDL-A04 physically removed
 // both lower response-viewed owners; responseClientService is its only owner.
 // CDL-A05 physically removed PHONE grant/revoke duplicates; contactClientService
-// is their only production owner. CDL-A06 moves Agreement problem reporting into
-// agreementClientService and physically removes both lower-precedence duplicates.
+// is their only production owner. CDL-A06 moved Agreement problem reporting into
+// agreementClientService. CDL-A07 moves Agreement completion marking there too,
+// preserving the server-authoritative requester deadline and removing local-time shadowing.
 // AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
 // CDL-A01/A02 physically removed the first five migrated Agreement methods from
