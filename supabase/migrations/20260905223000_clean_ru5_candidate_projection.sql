@@ -108,7 +108,10 @@ begin
         when c.has_agreement or c.raw_response_status = 'SELECTED' then 'SELECTED'
         when c.raw_response_status = 'WITHDRAWN' then 'WITHDRAWN'
         when c.raw_response_status in ('NOT_SELECTED','EXPIRED') then 'CLOSED'
-        when coalesce(v_need.status,'') not in ('PUBLISHED','SELECTION') then 'CLOSED'
+        -- ACTIVE is the existing full-capacity execution state produced by
+        -- rpc_select_response. It is not a terminal candidate lifecycle state;
+        -- non-selected Applications under a full ACTIVE Need project as FULL.
+        when coalesce(v_need.status,'') in ('DRAFT','COMPLETED','CANCELLED','EXPIRED','ARCHIVED') then 'CLOSED'
         when v_need.response_deadline is not null
              and v_need.response_deadline <= statement_timestamp() then 'CLOSED'
         when c.raw_response_status in ('STALE','STALE_REVIEW_REQUIRED')
