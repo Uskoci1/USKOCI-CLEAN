@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   stage-provenance:
-    if: github.event.head_commit.message == 'chore(ru5): stage p0c02 provenance updater'
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
