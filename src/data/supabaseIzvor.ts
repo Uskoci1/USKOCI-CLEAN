@@ -50,7 +50,9 @@ function jednaRelacija<T>(vrednost: T | T[] | null | undefined): T | null {
   return vrednost ?? null;
 }
 
-export const supabaseIzvor: Izvor = {
+type SupabaseIzvor = Omit<Izvor, 'mojiDogovori' | 'dogovor'>;
+
+export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
 
   async mojePotrebe() {
@@ -382,7 +384,7 @@ export const supabaseIzvor: Izvor = {
         .from('app_profiles')
         .update(patch)
         .eq('id', profileId);
-      
+        
       if (updateError) return handleRpcError(updateError, 'UPDATE_ERROR', 'Greška pri izmeni profila.');
     }
     
