@@ -1,3 +1,26 @@
+<!-- CDL_A07_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A07 AGREEMENT COMPLETION MARK CLOSED / CANONICAL
+
+This block supersedes CDL-A06 next-cursor text for the consolidation track.
+
+- canonical code promotion: `fb59f44e4af3a2a9fce36b4ecdb910c790ff51d8`
+- proof branch/head: `proof/client-data-completion-mark-20260905 @ 43e7c95c790423a21876bd5bbff9de65dfb74c6f`
+- pre-deletion equivalence run: `33961448582` — PASS
+- final post-deletion run: `33961594981` — PASS
+- canonical Agreement owner: `src/data/agreementClientService.ts`
+- method now owned there: `oznaciZavrsetak`
+- exact backend authority remains `rpc_mark_work_done(p_agreement_id)`
+- server-returned requester deadline remains authoritative and is returned unchanged to the client
+- stale lower-precedence local `new Date().toISOString()` deadline path is physically removed from `supabaseIzvor.ts`
+- duplicate active implementation is physically removed from `productionAuthorityOverrides.ts`
+- `potvrdiZavrsetak`, exact-location, worker-profile and AI paths were not changed
+- no backend migration or Edge deployment occurred in CDL-A07
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **fresh post-A07 shadow inventory, then select CDL-A08 only if a high-value risk remains**
+
 <!-- CDL_A06_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A06 AGREEMENT PROBLEM REPORT CLOSED / CANONICAL
 
