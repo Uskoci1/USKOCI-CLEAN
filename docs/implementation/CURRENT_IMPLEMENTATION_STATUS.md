@@ -1,21 +1,23 @@
 # USKOČI current implementation status
 
-Authoritative current status as of `2026-09-05`, after RU-5 P0C-03 canonical promotion, live apply and exact-byte structural postflight.
+Authoritative current status as of `2026-09-06`, after RU-5 P0D-01 canonical promotion, live apply and exact-byte structural postflight.
 
 ## Current platform checkpoint
 
 - canonical repo: `Uskoci1/USKOCI-CLEAN`
 - canonical branch: `clean-alpha-backend`
-- RU-5 P0C-03 canonical merge: `3fe3768f1dde3aa32340c6bd60167fd9aa610c47`
-- final P0C-03 proof SHA: `bffc533996a7f629846eaf51de231320df41e09b`
+- RU-5 P0D-01 canonical merge: `de3e25ce248d745d5a908fe1edf0a3e7b44d53c1`
+- final P0D-01 proof SHA: `bc4dacbd853ca506845e8bf0253b91cd55f6629a`
+- final P0D-01 proof run: `33993116261` — PASS
 - live Supabase project: `leqcwgzvjsxugfgzdmth`
-- live migrations: `74`
-- live head: `20260905200133_clean_ru5_my_applications_projection`
-- P0C-03 source migration: `20260905211500_clean_ru5_my_applications_projection.sql`
-- canonical/live recorded MD5: `868ef30987d3a62b84b41e93efeed047`
-- canonical/live recorded UTF-8 bytes: `6353`
+- live migrations: `75`
+- live head: `20260905230326_clean_ru5_candidate_projection`
+- P0D-01 source migration: `20260905223000_clean_ru5_candidate_projection.sql`
+- canonical/live recorded MD5: `e69c6037c876ca4c0fb48409ab68ab45`
+- canonical/live recorded UTF-8 bytes: `8246`
 - byte identity: `TRUE`
 - business counts after live postflight: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
+- P0C-02 Application snapshot rows remain `0`; no historical backfill was performed
 
 ## Current locks
 
@@ -27,7 +29,9 @@ Authoritative current status as of `2026-09-05`, after RU-5 P0C-03 canonical pro
 - production fake source fallback: forbidden
 - bounded preselection-note policy: unresolved / separate governed work
 - hard calendar-conflict authority: unresolved / separate governed work
-- candidate selection semantics: unchanged by P0C-03
+- Selection semantic repair and legacy over-capacity revalidation: unresolved / separate governed work
+- Povezivanje activation: not activated
+- Application AI: gated by remaining manual RU-5 dependencies
 
 ## RU status summary
 
@@ -42,27 +46,31 @@ Authoritative current status as of `2026-09-05`, after RU-5 P0C-03 canonical pro
 - RU-5 P0C-01 — `CLOSED / LIVE / DO NOT REDO`
 - RU-5 P0C-02 — `CLOSED / LIVE / DO NOT REDO`
 - RU-5 P0C-03 — `CLOSED / LIVE / DO NOT REDO`
-- RU-5 P0D-01 — `NEXT: READ-ONLY PHYSICAL PREFLIGHT`
+- RU-5 P0D-01 — `CLOSED / LIVE / DO NOT REDO`
 - RU-5B — `NOT STARTED / GATED BY MANUAL RU-5`
 - RU-6A — `FOUNDATION ONLY / GATED BY RU-5`
 - RU-6B — `NOT STARTED / GATED BY RU-6A`
 - RU-7 — `FOUNDATION ONLY / GATED BY RU-6A/RU-6B`
 - RU-8 — `NOT STARTED / MANDATORY PROOF TRACK`
 
-## P0C-03 proof and promotion evidence
+## P0D-01 proof and promotion evidence
 
-- final security-pinned disposable proof workflow: `33988582621` — live-73 predecessor replay, checksum, projection-only guard, authenticated own-only lifecycle proof, withdrawal replay/denial proof, rollback/zero residue, TypeScript and full regression PASS on `bffc5339...`
-- PR PRE-P4: `33988584895` — PASS
-- PR CodeQL: `33988582873` — JavaScript/TypeScript, Python and Actions PASS
-- canonical push PRE-P4: `33988758024` — PASS
-- canonical push CodeQL: `33988757345` — JavaScript/TypeScript, Python and Actions PASS
-- canonical Control-0: `33988758119` — PASS
-- live postflight: 74 migration state, authenticated-only projection execute, direct response writes still denied, exact source/live MD5 and byte identity, business counts unchanged, D0140/RU-4B inventories still zero
+- final proof SHA: `bc4dacbd853ca506845e8bf0253b91cd55f6629a`
+- final security-pinned disposable proof workflow: `33993116261` — migration/provenance integrity, live-74 predecessor replay, exact checksum, projection-only guard, authenticated Requester ownership/privacy proof, canonical candidate-state mapping, V1/legacy evidence proof, exact version/hash Selection binding, rollback/zero residue, TypeScript and full regression PASS
+- PR #22 PRE-P4: `33993284041` — PASS
+- PR #22 CodeQL: `33993283308` — JavaScript/TypeScript, Python and Actions PASS
+- canonical merge: `de3e25ce248d745d5a908fe1edf0a3e7b44d53c1`
+- canonical push PRE-P4: `33997533070` — PASS
+- canonical push CodeQL: `33997532816` — JavaScript/TypeScript, Python and Actions PASS
+- canonical Control-0: `33997533227` — PASS
+- live postflight: 75 migration state, authenticated Requester-owner projection execute only, direct response writes still denied, exact source/live MD5 and byte identity, business counts unchanged, D0140/RU-4B inventories still zero
+- existing `rpc_select_response` definition MD5 remains `90332c500eb8fe9f1b7379fa382af3b6`
+- live candidate function definition MD5: `3ae7a217d0a7901b31edb75501fa6d5a`
 
 ## Exact next action
 
-Open only `RU-5 / P0D-01 — CANDIDATE PROJECTION` and begin with fresh read-only physical reconciliation of the current Requester-facing candidate list, Application/version binding, public-safe Worker evidence, ranking/order fields actually present, selection prerequisites and privacy boundaries. Do not change `rpc_select_response`, Agreement creation, capacity/calendar authority or product semantics until a concrete P0D-01 gap is physically proven.
+Begin only a **fresh read-only physical reconciliation of the remaining manual Selection gaps after P0D-01**. Inspect the current `rpc_select_response` implementation and its consumers, legacy over-capacity revalidation, exact Agreement creation/binding behavior and calendar dependencies. Do not assign a new numbered P0D unit, change Selection semantics, add calendar authority or write live state until a concrete physical gap and governing scope are proven.
 
-P0C-03 is closed and must not be redone. Bounded-note policy, calendar hard-conflict authority, D0140, RU-4B, monetization and Application AI remain separate governed work.
+P0D-01 is closed and must not be redone. Bounded-note policy, calendar hard-conflict authority, D0140, RU-4B, monetization, Povezivanje activation and Application AI remain separate governed work.
 
-Historical handoff/network sections that show live `71`, `72`, `73`, P0C-01/P0C-02/P0C-03 next are retained as historical checkpoints, not current authority. Current authority is this file plus `IMPLEMENTATION_CONTINUITY.md`, `RU_STATUS.md`, `LIVE_MIGRATION_STATE.json`, canonical GitHub state, governing master/owner decisions and fresh live Supabase reads.
+Historical handoff/network sections that show live `71`, `72`, `73`, `74`, or P0C/P0D-01-next states are retained as historical checkpoints, not current authority. Current authority is this file plus `IMPLEMENTATION_CONTINUITY.md`, `RU_STATUS.md`, `LIVE_MIGRATION_STATE.json`, canonical GitHub state, governing master/owner decisions and fresh live Supabase reads.
