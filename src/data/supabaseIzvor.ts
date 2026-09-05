@@ -65,6 +65,7 @@ type SupabaseIzvor = Omit<
   | 'prijaviProblem'
   | 'oznaciZavrsetak'
   | 'otkrijTacnuLokaciju'
+  | 'azurirajRadnikProfil'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -184,7 +185,6 @@ export const supabaseIzvor: SupabaseIzvor = {
     }));
   },
 
-  
   async podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>> {
     const { data: user } = await supabase.auth.getUser();
     if (!user?.user) return { ok: false, kod: "AUTH_REQUIRED", poruka: "Prijavite se pre slanja ponude." };
@@ -268,62 +268,6 @@ export const supabaseIzvor: SupabaseIzvor = {
       dostupanOdmah: data.available_now || false,
       radijusKm: data.radius_km || 15,
     };
-  },
-
-  async azurirajRadnikProfil(k: any) {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return { ok: false, kod: 'UNAUTHORIZED', poruka: 'Niste ulogovani.' };
-    
-    // First, get the profile ID
-    const profil = await this.mojRadnikProfil();
-    let profileId = profil?.id;
-    
-    if (!profileId) {
-      // Create if it doesn't exist
-      const { data: inserted, error: insertError } = await supabase
-        .from('app_profiles')
-        .insert({
-          account_id: user.id,
-          kind: 'WORKER',
-          display_name: k.ime ?? '',
-          city: k.grad ?? '',
-          bio: k.biografija ?? '',
-          profile_status: k.zavrsi ? undefined : 'DRAFT',
-          available_now: k.dostupanOdmah ?? false,
-          radius_km: k.radijusKm ?? 15,
-        })
-        .select('id')
-        .single();
-        
-      if (insertError) return handleRpcError(insertError, 'INSERT_ERROR', 'Greška pri kreiranju profila.');
-      profileId = inserted.id;
-    } else {
-      // Update
-      const patch: any = {};
-      if (k.ime !== undefined) patch.display_name = k.ime;
-      if (k.grad !== undefined) patch.city = k.grad;
-      if (k.biografija !== undefined) patch.bio = k.biografija;
-      if (k.vestine !== undefined) patch.skills = k.vestine;
-      if (k.alati !== undefined) patch.tools = k.alati;
-      if (k.vozila !== undefined) patch.vehicles = k.vozila;
-      if (k.dostupanOdmah !== undefined) patch.available_now = k.dostupanOdmah;
-      if (k.radijusKm !== undefined) patch.radius_km = k.radijusKm;
-      
-      const { error: updateError } = await supabase
-        .from('app_profiles')
-        .update(patch)
-        .eq('id', profileId);
-      
-      if (updateError) return handleRpcError(updateError, 'UPDATE_ERROR', 'Greška pri izmeni profila.');
-    }
-    
-    // If completing the profile, call the RPC instead of direct DB update
-    if (k.zavrsi) {
-      const { error: rpcError } = await supabase.rpc('rpc_complete_worker_profile');
-      if (rpcError) return handleRpcError(rpcError, 'RPC_ERROR', 'Greška pri kompletiranju profila.');
-    }
-    
-    return { ok: true, podatak: null };
   },
 
   async otvoriRazgovor() {
