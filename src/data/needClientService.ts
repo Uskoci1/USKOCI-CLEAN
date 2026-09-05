@@ -6,7 +6,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type NeedOverrides = Partial<Pick<Izvor, 'mojePotrebe' | 'potreba'>>;
+type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'potreba'>;
 
 function vreme(iso: string | null | undefined) {
   return iso ? new Date(iso).toLocaleString('sr-Latn-RS') : 'Fleksibilno';
@@ -91,7 +91,13 @@ const NEED_SELECT = `
   marketplace_responses(id)
 `;
 
-export const needProductionOverrides: NeedOverrides = {
+/**
+ * Canonical production client boundary for Need read operations.
+ * This intentionally preserves the exact active behavior previously owned by
+ * needProductionOverrides. Database authority remains in live RLS; this service
+ * only performs approved reads and maps them to the Izvor projection contract.
+ */
+export const needClientService: NeedReadService = {
   async mojePotrebe() {
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError) throw new Error(authError.message || 'AUTH_READ_FAILED');

@@ -63,9 +63,8 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
     for (const method of ['predloziIzmenu', 'odgovoriNaIzmenu', 'posaljiPoruku']) {
       expect(authoritySource).not.toContain(`async ${method}(`);
       expect(baselineSource).not.toContain(`async ${method}(`);
+      expect(baselineSource).toContain(`'${method}'`);
     }
-
-    expect(baselineSource).toContain("'predloziIzmenu' | 'odgovoriNaIzmenu' | 'posaljiPoruku'");
   });
 
   it('posaljiPoruku preserves trim, exact RPC and success result', async () => {

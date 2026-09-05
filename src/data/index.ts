@@ -3,7 +3,7 @@ import { aiCommandOverrides } from './aiCommandOverrides';
 import { aiNeedV2Production } from './aiNeedV2Production';
 import { aiProductionOverrides } from './aiProductionOverrides';
 import { lazniIzvor } from './lazniIzvor';
-import { needProductionOverrides } from './needProductionOverrides';
+import { needClientService } from './needClientService';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
 import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
@@ -30,16 +30,18 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 }
 
 // Existing adapter remains the baseline while strict canonical closures replace
-// known unsafe/incorrect paths. Need reads intentionally stop masking backend
-// failures as empty states. AI read overrides align NEED_INTAKE with persisted
-// facts; AI command overrides call the JWT-protected Edge boundary and preserve
-// fail-closed HTTP errors. CDL-A01/A02 physically removed the five migrated
-// Agreement methods from legacy/override layers, so agreementClientService is
-// their only production owner with no runtime spread shadowing.
+// known unsafe/incorrect paths. CDL-A03 physically removes the legacy Need read
+// implementations, so needClientService is the only production owner for
+// mojePotrebe/potreba and keeps their fail-loud projection semantics explicit.
+// AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
+// call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
+// CDL-A01/A02 physically removed the five migrated Agreement methods from
+// legacy/override layers, so agreementClientService is their only production
+// owner with no runtime spread shadowing.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
-  ...needProductionOverrides,
+  ...needClientService,
   ...aiProductionOverrides,
   ...aiCommandOverrides,
   ...agreementClientService,

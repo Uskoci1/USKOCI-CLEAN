@@ -52,69 +52,17 @@ function jednaRelacija<T>(vrednost: T | T[] | null | undefined): T | null {
 
 type SupabaseIzvor = Omit<
   Izvor,
-  'mojiDogovori' | 'dogovor' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'posaljiPoruku'
+  | 'mojiDogovori'
+  | 'dogovor'
+  | 'predloziIzmenu'
+  | 'odgovoriNaIzmenu'
+  | 'posaljiPoruku'
+  | 'mojePotrebe'
+  | 'potreba'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
-
-  async mojePotrebe() {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return [];
-    
-    // Explicit tight projection. Using computed column covered_slots.
-    const { data, error } = await supabase.from('needs')
-      .select(`
-        id, revision, title, description, status, starts_at, approximate_area, approximate_city,
-        required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots,
-        marketplace_responses(id)
-      `)
-      .eq('requester_account_id', user.user.id)
-      .order('created_at', { ascending: false });
-    
-    if (error || !data) return [];
-    
-    return data.map((r: any) => ({
-      id: r.id,
-      revizija: r.revision,
-      naslov: r.title,
-      opis: r.description,
-      stanje: r.status,
-      pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
-      vremeTekst: fTime(r.starts_at),
-      podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
-      uslovi: [...(r.required_skills||[]), ...(r.required_tools||[]), ...(r.required_vehicles||[])],
-      brojPrijava: r.marketplace_responses?.length || 0,
-    }));
-  },
-
-  async potreba(id: string) {
-    const { data, error } = await supabase.from('needs')
-      .select(`
-        id, revision, title, description, status, starts_at, approximate_area, approximate_city,
-        required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd,
-        marketplace_responses(id)
-      `)
-      .eq('id', id).maybeSingle();
-    if (error || !data) return null;
-    
-    return {
-      id: data.id,
-      revizija: data.revision,
-      naslov: data.title,
-      opis: data.description,
-      stanje: data.status,
-      pokrivenost: pokrivenost(data.required_slots || 1, data.covered_slots || 0),
-      vremeTekst: fTime(data.starts_at),
-      podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
-      uslovi: [...(data.required_skills||[]), ...(data.required_tools||[]), ...(data.required_vehicles||[])],
-      brojPrijava: data.marketplace_responses?.length || 0,
-      rezimCene: data.mode,
-      ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
-    };
-  },
 
   async otvorenePrilike() {
     // Explicit public-safe projection
