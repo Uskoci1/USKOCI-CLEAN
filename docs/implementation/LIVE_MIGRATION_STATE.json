@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T05:34:53Z",
+  "updated_at": "2026-09-05T07:01:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,13 +9,13 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "a271d6084b4648e757d2230d0a208f558c802a14",
-    "note": "RU-4 functional source was promoted first; this continuity reconciliation records physical live 68 including the forward-only transfer reconciliation. Resolve current Git HEAD physically before every write."
+    "canonical_base_observed_before_docs_reconciliation": "240e5b2e06f9bef2d4c4d0c6effb1d971efd55b7",
+    "note": "RU-4B fail-closed foundation is live at 71 with exact-byte live aliases. Resolve current Git HEAD physically before every write. RU-4 remains closed; RU-4B activation remains blocked by governed dependencies."
   },
-  "live_migration_count": 68,
+  "live_migration_count": 71,
   "live_head": {
-    "version": "20260905052713",
-    "name": "clean_ru4_ai_edit_replay_boundary"
+    "version": "20260905070046",
+    "name": "clean_ru4b_inbox_event_contract"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
@@ -89,7 +89,7 @@
   },
   "provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_68_RU4_RECONCILED",
+    "state": "NORMALIZED_TO_LIVE_71_RU4B_FOUNDATION",
     "pending_forward_migrations": 0,
     "ru2_live_version_aliases": [
       {
@@ -177,6 +177,38 @@
         "exact_byte_mirror": true,
         "canonical_raw_md5": "2a1fdea9f612394709afc44cc6f6b1b9",
         "live_recorded_statement_md5": "2a1fdea9f612394709afc44cc6f6b1b9"
+      }
+    ],
+    "ru4b_live_aliases": [
+      {
+        "name": "clean_ru4b_preselection_qa_foundation",
+        "live_version": "20260905070010",
+        "source_version": "20260905060000",
+        "source_file": "20260905060000_clean_ru4b_preselection_qa_foundation.sql",
+        "exact_byte_identity": true,
+        "recorded_statement_md5": "4f7df9ffed48a9cfd35592706e8175c1",
+        "recorded_statement_utf8_bytes": 29116,
+        "source_raw_md5": "4f7df9ffed48a9cfd35592706e8175c1"
+      },
+      {
+        "name": "clean_ru4b_service_boundary",
+        "live_version": "20260905070029",
+        "source_version": "20260905060100",
+        "source_file": "20260905060100_clean_ru4b_service_boundary.sql",
+        "exact_byte_identity": true,
+        "recorded_statement_md5": "ee041bed805dbcdc016e8f9e0ab85f74",
+        "recorded_statement_utf8_bytes": 2408,
+        "source_raw_md5": "ee041bed805dbcdc016e8f9e0ab85f74"
+      },
+      {
+        "name": "clean_ru4b_inbox_event_contract",
+        "live_version": "20260905070046",
+        "source_version": "20260905060200",
+        "source_file": "20260905060200_clean_ru4b_inbox_event_contract.sql",
+        "exact_byte_identity": true,
+        "recorded_statement_md5": "9182fb1c347ac1abc889cc6e0554cc2b",
+        "recorded_statement_utf8_bytes": 2201,
+        "source_raw_md5": "9182fb1c347ac1abc889cc6e0554cc2b"
       }
     ]
   },
@@ -361,5 +393,65 @@
       "repair_source_file": "20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql",
       "repair_raw_md5": "6be6134441a81a4550710969cac89d85"
     }
+  },
+  "ru4b": {
+    "status": "LIVE_FOUNDATION_ACTIVATION_BLOCKED",
+    "canonical_foundation_head": "240e5b2e06f9bef2d4c4d0c6effb1d971efd55b7",
+    "proof_head": "bb3677d8fbb2775ade2d02195769954366fb4e33",
+    "proof_run": 33950965667,
+    "promotion_builder_run": 33951166457,
+    "canonical_integrity_run": 33951231623,
+    "live_apply": [
+      {
+        "name": "clean_ru4b_preselection_qa_foundation",
+        "live_version": "20260905070010",
+        "source_version": "20260905060000",
+        "source_file": "20260905060000_clean_ru4b_preselection_qa_foundation.sql",
+        "exact_byte_identity": true,
+        "recorded_statement_md5": "4f7df9ffed48a9cfd35592706e8175c1",
+        "recorded_statement_utf8_bytes": 29116,
+        "source_raw_md5": "4f7df9ffed48a9cfd35592706e8175c1"
+      },
+      {
+        "name": "clean_ru4b_service_boundary",
+        "live_version": "20260905070029",
+        "source_version": "20260905060100",
+        "source_file": "20260905060100_clean_ru4b_service_boundary.sql",
+        "exact_byte_identity": true,
+        "recorded_statement_md5": "ee041bed805dbcdc016e8f9e0ab85f74",
+        "recorded_statement_utf8_bytes": 2408,
+        "source_raw_md5": "ee041bed805dbcdc016e8f9e0ab85f74"
+      },
+      {
+        "name": "clean_ru4b_inbox_event_contract",
+        "live_version": "20260905070046",
+        "source_version": "20260905060200",
+        "source_file": "20260905060200_clean_ru4b_inbox_event_contract.sql",
+        "exact_byte_identity": true,
+        "recorded_statement_md5": "9182fb1c347ac1abc889cc6e0554cc2b",
+        "recorded_statement_utf8_bytes": 2201,
+        "source_raw_md5": "9182fb1c347ac1abc889cc6e0554cc2b"
+      }
+    ],
+    "post_live": {
+      "needs": 6,
+      "marketplace_responses": 4,
+      "agreements": 2,
+      "app_profiles": 6,
+      "questions": 0,
+      "answer_versions": 0,
+      "policy_decisions": 0,
+      "materiality_decisions": 0,
+      "commands": 0
+    },
+    "activation_blockers": [
+      "BLOCK_AUTHORITY_NOT_READY",
+      "NUMERIC_RATE_POLICY_NOT_OWNER_APPROVED",
+      "PRESELECTION_QA_PRODUCTION_ALLOW_NOT_ACTIVATED",
+      "TRUSTED_MATERIALITY_AUTHORITY_NOT_ACTIVATED"
+    ],
+    "public_qa": "FAIL_CLOSED",
+    "d0140_publish": "FAIL_CLOSED",
+    "next_track": "CLIENT_DATA_LAYER_CONSOLIDATION_OVERRIDES_ELIMINATION"
   }
 }
