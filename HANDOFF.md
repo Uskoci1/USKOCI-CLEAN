@@ -1,3 +1,21 @@
+<!-- CDL_A10_ROOT_POINTER_20260905 -->
+## CURRENT ROOT POINTER — CDL-A10 CLOSED / POST-A10 INVENTORY
+
+This top pointer supersedes every older `Exact next cursor` below. Historical text is retained for provenance only.
+
+- primary living continuation document: `docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md`
+- latest canonical code unit: CDL-A10 AI command shadow elimination
+- CDL-A10 canonical code promotion: `24a08d6c6d90daa1dd88217ea4a4d0f82a5eaf5d`
+- proof PR: `#13`
+- pre-deletion proof: `33965614404` — PASS
+- final post-deletion proof: `33965807723` — PASS
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- Edge remains `uskoci-ai-interview` ACTIVE v5 / `verify_jwt=true` / EZBR `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **FRESH POST-A10 SHADOW INVENTORY → continue client cleanup only if another comparable HIGH-RISK production shadow is physically proven; otherwise formal cleanup closure + governing MASTER re-admission**
+
 <!-- RU3_B07_LIVE_CHECKPOINT_20260904 -->
 ## LATEST PHYSICAL CHECKPOINT — RU-3/B07 LIVE
 
