@@ -30,26 +30,16 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
   );
 }
 
-// CDL-A01: Agreement workspace reads are no longer admitted from the legacy
-// baseline at runtime. The physical legacy methods remain temporarily only as
-// deletion candidates until the safe whole-file cleanup step; they cannot win
-// or be invoked through the production composition below.
-const {
-  mojiDogovori: legacyMojiDogovori,
-  dogovor: legacyDogovor,
-  ...supabaseBaseline
-} = supabaseIzvor;
-void legacyMojiDogovori;
-void legacyDogovor;
-
 // Existing adapter remains the baseline while strict canonical closures replace
 // known unsafe/incorrect paths. Need reads intentionally stop masking backend
 // failures as empty states. AI read overrides align NEED_INTAKE with persisted
 // facts; AI command overrides call the JWT-protected Edge boundary and preserve
-// fail-closed HTTP errors. Agreement mutation overrides remain transitional,
-// while Agreement reads have one explicit canonical client-service owner.
+// fail-closed HTTP errors. Agreement mutation overrides remain transitional.
+// CDL-A01 physically removed Agreement workspace reads from the baseline, so
+// agreementClientService is their only production owner and no spread shadowing
+// is involved for mojiDogovori/dogovor.
 const produkcijskiIzvor: Izvor = {
-  ...supabaseBaseline,
+  ...supabaseIzvor,
   ...productionAuthorityOverrides,
   ...needProductionOverrides,
   ...aiProductionOverrides,
