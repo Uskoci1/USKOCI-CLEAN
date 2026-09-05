@@ -1,9 +1,10 @@
 /**
  * CDL-A01 — Agreement workspace read consolidation
  *
- * Proof goal: the new explicit Agreement read service must be behaviorally
- * identical to the currently active agreementProductionOverrides owner before
- * either legacy implementation is deleted.
+ * The pre-deletion commit proved old-owner/new-owner equivalence in CI.
+ * After migration, these tests lock the canonical RPC/auth/mapping/error
+ * contract and verify that the transitional Agreement override no longer owns
+ * either read operation.
  */
 
 jest.mock('../supabaseClient', () => {
@@ -67,145 +68,101 @@ function resetHappyAuth() {
   });
 }
 
-async function capture<T>(run: () => Promise<T>, rpcResult: unknown) {
-  resetHappyAuth();
-  mockRpc.mockResolvedValue(rpcResult);
-  const result = await run();
-  return {
-    result,
-    rpcCalls: mockRpc.mock.calls.map((call: unknown[]) => [...call]),
-    authCalls: mockGetUser.mock.calls.length,
-  };
-}
+describe('CDL-A01 — canonical Agreement read contract', () => {
+  beforeEach(() => resetHappyAuth());
 
-async function captureFailure(run: () => Promise<unknown>, rpcResult?: unknown) {
-  resetHappyAuth();
-  if (rpcResult !== undefined) mockRpc.mockResolvedValue(rpcResult);
-
-  let message = '';
-  try {
-    await run();
-  } catch (error) {
-    message = error instanceof Error ? error.message : String(error);
-  }
-
-  return {
-    message,
-    rpcCalls: mockRpc.mock.calls.map((call: unknown[]) => [...call]),
-    authCalls: mockGetUser.mock.calls.length,
-  };
-}
-
-describe('CDL-A01 — Agreement read equivalence', () => {
-  it('mojiDogovori preserves RPC, auth, projection and mapping exactly', async () => {
-    const oldOwner = await capture(
-      () => agreementProductionOverrides.mojiDogovori!(),
-      { data: [rawAgreement], error: null },
-    );
-    const newOwner = await capture(
-      () => agreementClientService.mojiDogovori(),
-      { data: [rawAgreement], error: null },
-    );
-
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.rpcCalls).toEqual([['rpc_list_my_agreements']]);
-    expect(newOwner.authCalls).toBe(1);
+  it('transitional Agreement override no longer owns migrated reads', () => {
+    expect(agreementProductionOverrides).not.toHaveProperty('mojiDogovori');
+    expect(agreementProductionOverrides).not.toHaveProperty('dogovor');
   });
 
-  it('dogovor preserves RPC name/params and mapped result exactly', async () => {
-    const oldOwner = await capture(
-      () => agreementProductionOverrides.dogovor!('agr-1'),
-      { data: rawAgreement, error: null },
-    );
-    const newOwner = await capture(
-      () => agreementClientService.dogovor('agr-1'),
-      { data: rawAgreement, error: null },
-    );
+  it('mojiDogovori uses only canonical list RPC and preserves projection mapping', async () => {
+    mockRpc.mockResolvedValue({ data: [rawAgreement], error: null });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.rpcCalls).toEqual([
+    const result = await agreementClientService.mojiDogovori();
+
+    expect(mockGetUser).toHaveBeenCalledTimes(1);
+    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements']]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'agr-1',
+      verzija: 4,
+      naslov: 'Preuzmi paket',
+      stanje: 'ACTIVE',
+      cena: { iznos: 2400, valuta: 'RSD' },
+      putanjaTekst: 'Centar, Novi Sad',
+      pokrivenost: { ukupno: 3, popunjeno: 2, preostalo: 1, udeo: 2 / 3 },
+      rezim: 'PREUZIMANJE_DOSTAVA',
+      kontakt: {
+        mojTelefonPodeljen: true,
+        njihovTelefon: '+38160111222',
+        lokacijaPostoji: true,
+        tacnaLokacija: null,
+        emailNijeDeljen: true,
+      },
+      chatDostupan: true,
+      rokPotvrdeIso: '2026-09-06T08:00:00.000Z',
+      problemOtvoren: false,
+      ocenaMoguca: false,
+    });
+    expect(result[0].ucesnici).toEqual([
+      expect.objectContaining({ id: 'requester-1', ime: 'Miloš', uloga: 'narucilac', viSte: true }),
+      expect.objectContaining({ id: 'worker-1', ime: 'Ana', uloga: 'uskocer', viSte: false, mesta: 2 }),
+    ]);
+  });
+
+  it('dogovor uses exact canonical workspace RPC params and mapping', async () => {
+    mockRpc.mockResolvedValue({ data: rawAgreement, error: null });
+
+    const result = await agreementClientService.dogovor('agr-1');
+
+    expect(mockGetUser).toHaveBeenCalledTimes(1);
+    expect(mockRpc.mock.calls).toEqual([
       ['rpc_get_agreement_workspace', { p_agreement_id: 'agr-1' }],
     ]);
-    expect(newOwner.authCalls).toBe(1);
+    expect(result).toMatchObject({
+      id: 'agr-1',
+      verzija: 4,
+      naslov: 'Preuzmi paket',
+      stanje: 'ACTIVE',
+      rezim: 'PREUZIMANJE_DOSTAVA',
+    });
   });
 
-  it('mojiDogovori preserves backend error propagation exactly', async () => {
-    const rpcResult = { data: null, error: { message: 'LIST_DENIED' } };
-    const oldOwner = await captureFailure(
-      () => agreementProductionOverrides.mojiDogovori!(),
-      rpcResult,
-    );
-    const newOwner = await captureFailure(
-      () => agreementClientService.mojiDogovori(),
-      rpcResult,
-    );
+  it('mojiDogovori remains fail-loud on backend error', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'LIST_DENIED' } });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.message).toBe('LIST_DENIED');
+    await expect(agreementClientService.mojiDogovori()).rejects.toThrow('LIST_DENIED');
+    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements']]);
   });
 
-  it('mojiDogovori preserves invalid projection fail-loud behavior exactly', async () => {
-    const rpcResult = { data: { unexpected: true }, error: null };
-    const oldOwner = await captureFailure(
-      () => agreementProductionOverrides.mojiDogovori!(),
-      rpcResult,
-    );
-    const newOwner = await captureFailure(
-      () => agreementClientService.mojiDogovori(),
-      rpcResult,
-    );
+  it('mojiDogovori remains fail-loud on invalid projection', async () => {
+    mockRpc.mockResolvedValue({ data: { unexpected: true }, error: null });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.message).toBe('AGREEMENT_LIST_INVALID_PROJECTION');
+    await expect(agreementClientService.mojiDogovori()).rejects.toThrow(
+      'AGREEMENT_LIST_INVALID_PROJECTION',
+    );
   });
 
-  it('dogovor preserves null workspace semantics exactly', async () => {
-    const oldOwner = await capture(
-      () => agreementProductionOverrides.dogovor!('missing'),
-      { data: null, error: null },
-    );
-    const newOwner = await capture(
-      () => agreementClientService.dogovor('missing'),
-      { data: null, error: null },
-    );
+  it('dogovor preserves null workspace semantics', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: null });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.result).toBeNull();
+    await expect(agreementClientService.dogovor('missing')).resolves.toBeNull();
+    expect(mockRpc.mock.calls).toEqual([
+      ['rpc_get_agreement_workspace', { p_agreement_id: 'missing' }],
+    ]);
   });
 
-  it('dogovor preserves backend error propagation exactly', async () => {
-    const rpcResult = { data: null, error: { message: 'WORKSPACE_DENIED' } };
-    const oldOwner = await captureFailure(
-      () => agreementProductionOverrides.dogovor!('agr-1'),
-      rpcResult,
-    );
-    const newOwner = await captureFailure(
-      () => agreementClientService.dogovor('agr-1'),
-      rpcResult,
-    );
+  it('dogovor remains fail-loud on backend error', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'WORKSPACE_DENIED' } });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.message).toBe('WORKSPACE_DENIED');
+    await expect(agreementClientService.dogovor('agr-1')).rejects.toThrow('WORKSPACE_DENIED');
   });
 
-  it('both owners preserve AUTH_REQUIRED and make no RPC call', async () => {
-    const runOld = async () => {
-      mockGetUser.mockReset();
-      mockRpc.mockReset();
-      mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
-      await expect(agreementProductionOverrides.mojiDogovori!()).rejects.toThrow('AUTH_REQUIRED');
-      return mockRpc.mock.calls.length;
-    };
+  it('AUTH_REQUIRED is preserved and prevents RPC execution', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
 
-    const runNew = async () => {
-      mockGetUser.mockReset();
-      mockRpc.mockReset();
-      mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
-      await expect(agreementClientService.mojiDogovori()).rejects.toThrow('AUTH_REQUIRED');
-      return mockRpc.mock.calls.length;
-    };
-
-    expect(await runNew()).toBe(await runOld());
+    await expect(agreementClientService.mojiDogovori()).rejects.toThrow('AUTH_REQUIRED');
     expect(mockRpc).not.toHaveBeenCalled();
   });
 });
