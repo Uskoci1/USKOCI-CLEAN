@@ -69,6 +69,8 @@ export type PrilikaProjekcija = {
   vremeTekst: string;
   pokrivenost: Pokrivenost;
   uslovi: string[];
+  /** Bezbedan profile id za P0C-01 public-profile RPC/deep link; nije account id. */
+  narucilacProfilId: string;
   narucilacIme: string;
   narucilacOcena: string | null;
   /** Približna tačka za mapu. Tačna lokacija se otkriva tek po pravilima Dogovora. */
@@ -94,6 +96,33 @@ export type RadnikProfilProjekcija = {
   radijusKm: number;
 };
 
+/**
+ * RU-5 / P0C-01 global public profile is deliberately compact.
+ * It is NOT the internal Worker matching profile and must never grow by copying
+ * operational fields from app_profiles. Task-relevant capability evidence
+ * belongs to the concrete Application/snapshot authority.
+ */
+export type JavniProfilPoverenje = {
+  ocenaProsek: number | null;
+  brojRecenzija: number | null;
+  zavrseniBroj: number;
+  identitetVerifikovan: boolean;
+  ocenaDostupna: boolean;
+  recenzijeDostupne: boolean;
+  verifikacijaIdentitetaDostupna: boolean;
+};
+
+export type JavniProfilProjekcija = {
+  profilId: string;
+  uloga: Uloga;
+  ime: string | null;
+  avatarPutanja: string | null;
+  grad: string | null;
+  naslov: string | null;
+  biografija: string | null;
+  poverenje: JavniProfilPoverenje;
+};
+
 export type StanjePrijave =
   | 'IZBORNA'
   | 'IZABRANA'
@@ -105,6 +134,8 @@ export type StanjePrijave =
 export type KandidatProjekcija = {
   /** Id prijave, ne id osobe. Izbor bira prijavu. */
   prijavaId: string;
+  /** Bezbedan profile id za javni profil; nikada auth/account id. */
+  radnikProfilId: string;
   /** Tačna verzija prijave. Izbor je veže; bez nje izbor nije atomski. */
   verzija: number;
   hash: string;
