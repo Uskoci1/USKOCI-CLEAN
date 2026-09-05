@@ -123,7 +123,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/staging/ru5/20260905133000_clean_ru5_public_profile_projection.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260905133000_clean_ru5_public_profile_projection.sql"
           test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_get_public_profile(uuid)') is not null;")" = "t"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_get_public_profile(uuid)','EXECUTE');")" = "t"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('anon','public.rpc_get_public_profile(uuid)','EXECUTE');")" = "f"
