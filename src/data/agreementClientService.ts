@@ -8,7 +8,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type AgreementService = Pick<
   Izvor,
-  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem'
+  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak'
 >;
 
 function fail<T>(error: any, code: string, message: string): Ishod<T> {
@@ -176,5 +176,13 @@ export const agreementClientService: AgreementService = {
     });
     if (error) return fail(error, 'PROBLEM_REPORT_FAILED', 'Problem nije mogao da se sačuva.');
     return { ok: true, podatak: null };
+  },
+
+  async oznaciZavrsetak(dogovorId) {
+    const { data, error } = await supabase.rpc('rpc_mark_work_done', {
+      p_agreement_id: dogovorId,
+    });
+    if (error || !data) return fail(error, 'COMPLETION_FAILED', 'Završetak nije mogao da se označi.');
+    return { ok: true, podatak: { rokPotvrdeIso: data } };
   },
 };
