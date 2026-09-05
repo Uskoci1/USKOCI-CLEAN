@@ -1,0 +1,64 @@
+name: RU-4 live transfer reconciliation proof
+
+on:
+  push:
+    branches:
+      - proof/ru4-live-transfer-reconcile-20260905
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove-reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/uskoci-ru4-reconcile
+          mkdir -p /tmp/uskoci-ru4-reconcile
+          cd /tmp/uskoci-ru4-reconcile
+          supabase init
+          supabase db start
+      - name: Seed exact transport defect shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          create or replace function public.rpc_ai_open_need_edit_conversation_v2(p_need_id uuid)
+          returns jsonb
+          language plpgsql
+          as $$
+          declare
+            v_need record;
+          begin
+            return to_jsonb(v_need.requester_rsd::text);
+          end;
+          $$;
+          SQL
+          test "$(psql "$DB_URL" -Atc "select position('v_need.requester_rsd::text' in pg_get_functiondef('public.rpc_ai_open_need_edit_conversation_v2(uuid)'::regprocedure));")" -gt 0
+      - name: Apply exact forward-only reconciliation twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/ru4/20260905053000_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/staging/ru4/20260905053000_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql
+          test "$(psql "$DB_URL" -Atc "select position('v_need.requester_rsd::text' in pg_get_functiondef('public.rpc_ai_open_need_edit_conversation_v2(uuid)'::regprocedure));")" = 0
+          test "$(psql "$DB_URL" -Atc "select position('v_need.requester_price_rsd::text' in pg_get_functiondef('public.rpc_ai_open_need_edit_conversation_v2(uuid)'::regprocedure));")" -gt 0
+          echo 'PASS RU4_LIVE_TRANSFER_RECONCILE forward_only exact_identifier idempotent'
+      - name: Destroy disposable database
+        if: always()
+        working-directory: /tmp/uskoci-ru4-reconcile
+        run: supabase stop --no-backup || true
