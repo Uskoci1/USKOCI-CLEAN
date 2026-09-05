@@ -383,7 +383,18 @@
       }
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260905144500",
+      "name": "clean_ru5_public_profile_projection",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "file": "20260905144500_clean_ru5_public_profile_projection.sql",
+      "raw_md5": "3f7a24e185036b86a1b096aa9dd0a3a2",
+      "live_applied": false,
+      "predecessor_live_migration_count": 71,
+      "predecessor_live_head": "20260905070046"
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
