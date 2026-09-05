@@ -1,6 +1,6 @@
 # USKOČI RU status
 
-Current authoritative RU matrix after RU-5 P0C-03 live closure.
+Current authoritative RU matrix after RU-5 P0D-01 live closure.
 
 | Unit | Status | Current rule |
 |---|---|---|
@@ -14,9 +14,9 @@ Current authoritative RU matrix after RU-5 P0C-03 live closure.
 | RU-5 | IN PROGRESS | Continue unit-by-unit. |
 | RU-5 P0C-01 | CLOSED / LIVE | Public-safe profile projection is canonical; raw app_profiles remains owner-only. |
 | RU-5 P0C-02 | CLOSED / LIVE | Atomic Application submit is canonical/live; historical Applications remain unbackfilled. |
-| RU-5 P0C-03 | CLOSED / LIVE | Own-Worker My Applications projection + existing withdrawal authority are canonical/live; selected withdrawal denial and stale RU-4 path are proven. |
-| RU-5 P0D-01 | NEXT | Candidate Projection: fresh read-only physical preflight before any proof branch or live write. |
-| RU-5B | NOT STARTED / GATED | Manual canonical Application lifecycle dependencies must be proven first. |
+| RU-5 P0C-03 | CLOSED / LIVE | Own-Worker My Applications projection + existing withdrawal authority are canonical/live. |
+| RU-5 P0D-01 | CLOSED / LIVE | Requester Candidate Projection is canonical/live; exact Application version/hash binding is exposed without changing Selection semantics. |
+| RU-5B | NOT STARTED / GATED | Manual canonical Application/Selection lifecycle dependencies must be proven first. |
 | RU-6A | FOUNDATION ONLY / GATED BY RU-5 | Do not advance before RU-5 dependency is satisfied. |
 | RU-6B | NOT STARTED / GATED BY RU-6A | Deferred. |
 | RU-7 | FOUNDATION ONLY / GATED BY RU-6A/RU-6B | Deferred. |
@@ -24,21 +24,25 @@ Current authoritative RU matrix after RU-5 P0C-03 live closure.
 
 ## Live checkpoint
 
-- Supabase: `74 / 20260905200133_clean_ru5_my_applications_projection`
-- P0C-03 source: `20260905211500_clean_ru5_my_applications_projection.sql`
-- canonical/live recorded MD5: `868ef30987d3a62b84b41e93efeed047`
-- canonical/live recorded bytes: `6353`
+- Supabase: `75 / 20260905230326_clean_ru5_candidate_projection`
+- P0D-01 source: `20260905223000_clean_ru5_candidate_projection.sql`
+- canonical/live recorded MD5: `e69c6037c876ca4c0fb48409ab68ab45`
+- canonical/live recorded bytes: `8246`
 - exact-byte identity: `TRUE`
+- canonical promotion SHA: `de3e25ce248d745d5a908fe1edf0a3e7b44d53c1`
+- proof SHA: `bc4dacbd853ca506845e8bf0253b91cd55f6629a`
 - business counts after live apply: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
-- authenticated-only `rpc_list_my_applications()` exists; anon/service execute remain denied
-- authenticated direct response INSERT/UPDATE remains denied
+- Application snapshot rows remain `0`; no historical backfill was performed
+- authenticated-only `rpc_list_need_candidates(uuid)` exists; anon/service execute remain denied
+- authenticated direct response INSERT/UPDATE and response-version INSERT remain denied
+- existing `rpc_select_response` definition MD5 remains `90332c500eb8fe9f1b7379fa382af3b6`
 - D0140 rows: `0 / 0 / 0`
 - RU-4B governed inventory rows: all `0`
 - monetization: `FREE / 0 RSD`
 
-## P0C-03 explicit non-claims
+## P0D-01 explicit non-claims
 
-P0C-03 did **not** change Selection/Agreement semantics, repair legacy over-capacity Applications, activate calendar hard-conflict authority, bounded-note policy, D0140, RU-4B, monetization or Application AI. Those remain separate governed work.
+P0D-01 did **not** change Selection semantics, repair legacy over-capacity selection behavior, redesign Agreement creation/snapshots, activate calendar hard-conflict authority, Povezivanje, bounded-note policy, D0140, RU-4B, monetization or Application AI. Those remain separate governed work.
 
 ## RU-4B activation blockers
 
@@ -51,4 +55,6 @@ These blockers do not block RU-5 foundation/integrity work and do not authorize 
 
 ## Exact next cursor
 
-`RU-5 / P0D-01 — CANDIDATE PROJECTION — FRESH READ-ONLY PHYSICAL PREFLIGHT`
+`RU-5 — REMAINING MANUAL SELECTION GAPS — FRESH READ-ONLY PHYSICAL RECONCILIATION`
+
+Do not invent a new numbered P0D unit from this status file. Fresh-read the current `rpc_select_response` revalidation, legacy over-capacity behavior, Agreement binding and calendar dependencies first; admit the smallest next unit only after a concrete gap and governing scope are physically proven.
