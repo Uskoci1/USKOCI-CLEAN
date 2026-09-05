@@ -1,10 +1,13 @@
 /**
- * CDL-A06 — Agreement problem-report, pre-deletion equivalence proof.
+ * CDL-A06 — canonical Agreement problem-report contract.
  *
- * Current active productionAuthorityOverrides and the canonical
- * agreementClientService are executed against the same mocked Supabase RPC.
- * No legacy owner may be deleted until this and the full PRE-P4 gate are green.
+ * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33959818756.
+ * After deletion these tests lock the canonical RPC/validation/error contract
+ * and prove prijaviProblem has one physical production owner.
  */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
   const mockRpc = jest.fn();
@@ -16,54 +19,52 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { agreementClientService } from '../agreementClientService';
-import { productionAuthorityOverrides } from '../productionAuthorityOverrides';
 
 const { mockRpc } = (jest.requireMock('../supabaseClient') as {
   __testMocks: { mockRpc: jest.Mock };
 }).__testMocks;
 
-async function capture(run: () => Promise<unknown>, rpcResult: unknown) {
+function resetRpc(result: unknown) {
   mockRpc.mockReset();
-  mockRpc.mockResolvedValue(rpcResult);
-  const value = await run();
-  return { value, calls: mockRpc.mock.calls.map((args) => [...args]) };
+  mockRpc.mockResolvedValue(result);
 }
 
-describe('CDL-A06 — problem report equivalence before deletion', () => {
-  it('trims narrative and preserves exact rpc_report_problem params/success', async () => {
-    const rpcResult = { data: null, error: null };
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.prijaviProblem!('agr-1', '  Oštećen ormar.  '),
-      rpcResult,
-    );
-    const newOwner = await capture(
-      () => agreementClientService.prijaviProblem('agr-1', '  Oštećen ormar.  '),
-      rpcResult,
-    );
+describe('CDL-A06 — canonical problem-report contract', () => {
+  it('physically eliminates both lower-precedence problem-report owners', () => {
+    const dataDir = join(__dirname, '..');
+    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
+    const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
+    const canonicalSource = readFileSync(join(dataDir, 'agreementClientService.ts'), 'utf8');
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls).toEqual([
+    expect(authoritySource).not.toContain('prijaviProblem');
+    expect(baselineSource).not.toContain('async prijaviProblem(');
+    expect(baselineSource).not.toContain('p_description');
+    expect(baselineSource).toContain("'prijaviProblem'");
+    expect(canonicalSource).toContain('async prijaviProblem(');
+    expect(canonicalSource).toContain("p_narrative: narrative");
+  });
+
+  it('trims narrative and preserves exact rpc_report_problem params/success', async () => {
+    resetRpc({ data: null, error: null });
+
+    const result = await agreementClientService.prijaviProblem('agr-1', '  Oštećen ormar.  ');
+
+    expect(mockRpc.mock.calls).toEqual([
       ['rpc_report_problem', {
         p_agreement_id: 'agr-1',
         p_narrative: 'Oštećen ormar.',
       }],
     ]);
-    expect(newOwner.value).toEqual({ ok: true, podatak: null });
+    expect(result).toEqual({ ok: true, podatak: null });
   });
 
   it('rejects blank narrative before any RPC', async () => {
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.prijaviProblem!('agr-blank', '   '),
-      { data: null, error: null },
-    );
-    const newOwner = await capture(
-      () => agreementClientService.prijaviProblem('agr-blank', '   '),
-      { data: null, error: null },
-    );
+    resetRpc({ data: null, error: null });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls).toEqual([]);
-    expect(newOwner.value).toEqual({
+    const result = await agreementClientService.prijaviProblem('agr-blank', '   ');
+
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(result).toEqual({
       ok: false,
       kod: 'NARRATIVE_REQUIRED',
       poruka: 'Opišite problem.',
@@ -75,16 +76,10 @@ describe('CDL-A06 — problem report equivalence before deletion', () => {
     ['code fallback', { code: '42501' }, { ok: false, kod: '42501', poruka: 'Problem nije mogao da se sačuva.' }],
     ['full fallback', {}, { ok: false, kod: 'PROBLEM_REPORT_FAILED', poruka: 'Problem nije mogao da se sačuva.' }],
   ])('preserves active error mapping: %s', async (_label, error, expected) => {
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.prijaviProblem!('agr-error', 'Problem'),
-      { data: null, error },
-    );
-    const newOwner = await capture(
-      () => agreementClientService.prijaviProblem('agr-error', 'Problem'),
-      { data: null, error },
-    );
+    resetRpc({ data: null, error });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.value).toEqual(expected);
+    const result = await agreementClientService.prijaviProblem('agr-error', 'Problem');
+
+    expect(result).toEqual(expected);
   });
 });
