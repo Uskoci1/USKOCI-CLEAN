@@ -96,7 +96,7 @@ describe('RU-5 P0C-01 public-safe profile projection', () => {
 
   it('locks the SQL projection against private and operational profile leakage', () => {
     const sql = readFileSync(
-      join(__dirname, '../../..', 'supabase/staging/ru5/20260905133000_clean_ru5_public_profile_projection.sql'),
+      join(__dirname, '../../..', 'supabase/migrations/20260905133000_clean_ru5_public_profile_projection.sql'),
       'utf8',
     );
 
