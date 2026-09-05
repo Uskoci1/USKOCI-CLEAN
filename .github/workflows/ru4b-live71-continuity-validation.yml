@@ -1,0 +1,41 @@
+name: RU-4B live71 continuity validation
+on:
+  push:
+    branches:
+      - continuity/ru4b-live71-20260905
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Verify migration provenance
+        run: sh supabase/migrations/check_md5.sh
+      - name: Verify continuity JSON and ledger shape
+        run: |
+          python3 - <<'PY'
+          import csv,json
+          from pathlib import Path
+          json.loads(Path('supabase/migrations/MIGRATION_PROVENANCE.json').read_text())
+          s=json.loads(Path('docs/implementation/LIVE_MIGRATION_STATE.json').read_text())
+          assert s['live_migration_count']==71
+          assert s['live_head']['version']=='20260905070046'
+          with Path('docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv').open(newline='') as f:
+              rows=list(csv.reader(f))
+          width=len(rows[0])
+          bad=[(i+1,len(r)) for i,r in enumerate(rows) if len(r)!=width]
+          assert not bad, bad
+          assert any(r and r[0]=='RU-4B_PRESELECTION_QA' for r in rows)
+          PY
+      - name: Install
+        run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Regression
+        run: npm test -- --runInBand
