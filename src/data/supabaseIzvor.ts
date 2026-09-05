@@ -63,6 +63,7 @@ type SupabaseIzvor = Omit<
   | 'podeliTelefon'
   | 'opoziviTelefon'
   | 'prijaviProblem'
+  | 'oznaciZavrsetak'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -235,12 +236,6 @@ export const supabaseIzvor: SupabaseIzvor = {
     const { data, error } = await supabase.rpc('rpc_cancel_agreement', { p_agreement_id: dogovorId, p_reason: razlog });
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
     return { ok: true, podatak: null };
-  },
-  
-  async oznaciZavrsetak(dogovorId: string) {
-    const { data, error } = await supabase.rpc('rpc_mark_work_done', { p_agreement_id: dogovorId });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
-    return { ok: true, podatak: { rokPotvrdeIso: new Date().toISOString() } };
   },
   
   async potvrdiZavrsetak(dogovorId: string) {
