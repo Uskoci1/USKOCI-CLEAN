@@ -1,3 +1,24 @@
+<!-- CDL_A02_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A02 AGREEMENT MUTATIONS CLOSED / CANONICAL
+
+This block supersedes CDL-A01 next-cursor text for the consolidation track.
+
+- canonical code promotion: `603617d46059331641f445f32e515551a79da474`
+- proof branch/head: `proof/client-data-agreement-mutations-20260905 @ de8d4af7f7fbe4c1cda1e02911ec0fe2436fab94`
+- pre-deletion equivalence run: `33953071145` — PASS
+- final post-deletion run: `33953836136` — PASS
+- canonical Agreement client owner: `src/data/agreementClientService.ts`
+- methods now owned there: `mojiDogovori`, `dogovor`, `posaljiPoruku`, `predloziIzmenu`, `odgovoriNaIzmenu`
+- exact mutation authority remains `rpc_send_agreement_message`, `rpc_propose_agreement_change_v2`, `rpc_respond_agreement_change`
+- `agreementProductionOverrides.ts` is physically deleted
+- duplicate Agreement mutations are physically removed from `productionAuthorityOverrides.ts` and `supabaseIzvor.ts`
+- no backend migration or Edge deployment occurred in CDL-A02
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **CDL-A03 — Need reads: `mojePotrebe`, `potreba`; equivalence-first, no backend write**
+
 <!-- CDL_A01_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A01 AGREEMENT WORKSPACE READS CLOSED / CANONICAL
 
