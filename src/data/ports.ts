@@ -11,10 +11,12 @@
 
 import type {
   DogovorProjekcija,
+  JavniProfilProjekcija,
   KandidatProjekcija,
   PorukaProjekcija,
   PotrebaProjekcija,
   PrilikaProjekcija,
+  RadnikProfilProjekcija,
 } from '../contracts/projections';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
@@ -65,7 +67,6 @@ export type PodnesiPrijavuKomanda = Idempotentno & {
   napomena: string | null;
 };
 
-
 /**
  * M02 — atomski tačan izbor.
  *
@@ -99,7 +100,6 @@ export type IzmenaKomanda = Idempotentno & {
 };
 
 export interface Komande {
-
   /** rpc_submit_response */
   podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>>;
 
@@ -173,7 +173,7 @@ export interface AiIntake {
   posaljiKorisnikovuPoruku(
     razgovorId: string,
     telo: string,
-  ): Promise<Ishod<{ predlozeno: number }>>;
+  ): Promise<Ishod<{ predlozeno: number }> >;
 
   /** rpc_ai_confirm_fact — HUMAN_CONFIRMED korak. Bez njega nema objave. */
   potvrdiCinjenicu(cinjenicaId: string): Promise<Ishod<null>>;
@@ -191,7 +191,9 @@ export interface AiIntake {
 /* ----------------------------------------------------- Profil */
 
 export interface ProfilCitanje {
-  mojRadnikProfil(): Promise<import('../contracts/projections').RadnikProfilProjekcija | null>;
+  mojRadnikProfil(): Promise<RadnikProfilProjekcija | null>;
+  /** RU-5 P0C-01 — strogo public-safe drugi profil; nikad raw app_profiles row. */
+  javniProfil(profileId: string): Promise<JavniProfilProjekcija | null>;
 }
 
 export type AzurirajProfilKomanda = {
