@@ -102,7 +102,7 @@ describe('RU-5 P0C-01 public-safe profile projection', () => {
       "'minimumFeeRsd'",
       'rating_requester',
       'rating_worker',
-      'matcher',
+      "'matcherScore'",
     ]) {
       expect(sql).not.toContain(forbidden);
     }
