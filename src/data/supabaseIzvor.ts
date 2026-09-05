@@ -66,6 +66,8 @@ type SupabaseIzvor = Omit<
   | 'oznaciZavrsetak'
   | 'otkrijTacnuLokaciju'
   | 'azurirajRadnikProfil'
+  | 'posaljiKorisnikovuPoruku'
+  | 'ispraviCinjenicu'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -277,15 +279,12 @@ export const supabaseIzvor: SupabaseIzvor = {
   },
   
   async razgovor(razgovorId: string) { return null; },
-  async posaljiKorisnikovuPoruku(razgovorId: string, telo: string) { return { ok: true, podatak: { predlozeno: 0 } }; },
   
   async potvrdiCinjenicu(cinjenicaId: string) {
     const { data, error } = await supabase.rpc('rpc_ai_confirm_fact', { p_fact_id: cinjenicaId });
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
     return { ok: true, podatak: null };
   },
-  
-  async ispraviCinjenicu(cinjenicaId: string, novaVrednost: string) { return { ok: true, podatak: { novaCinjenicaId: '' } }; },
   
   async objaviPotrebu(razgovorId: string) {
     const { data, error } = await supabase.rpc('rpc_ai_publish_need', { p_conversation_id: razgovorId });
