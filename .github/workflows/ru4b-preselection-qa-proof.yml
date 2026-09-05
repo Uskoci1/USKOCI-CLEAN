@@ -138,6 +138,7 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/staging/ru4b/20260905060000_clean_ru4b_preselection_qa_foundation.sql"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/staging/ru4b/20260905060100_clean_ru4b_service_boundary.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/staging/ru4b/20260905060200_clean_ru4b_inbox_event_contract.sql"
 
       - name: Verify production-default fail-closed structure
         shell: bash
@@ -152,7 +153,17 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('service_role','public.rpc_ru4b_record_policy_decision_service(text,uuid,integer,uuid,text,uuid,text,text[],text,jsonb)','EXECUTE');")" = "t"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ru4b_record_policy_decision_service(text,uuid,integer,uuid,text,uuid,text,text[],text,jsonb)','EXECUTE');")" = "f"
           test "$(psql "$DB_URL" -Atc "select has_function_privilege('anon','public.rpc_ru4b_record_policy_decision_service(text,uuid,integer,uuid,text,uuid,text,text[],text,jsonb)','EXECUTE');")" = "f"
-          echo "PASS RU4B_FAIL_CLOSED_ZERO_SEED_SERVICE_BOUNDARY"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          insert into public.user_activity_events(recipient_user_id,recipient_role,event_type,entity_type,entity_id,entity_version,urgency,payload,dedupe_key)
+          select id,'REQUESTER','CLARIFICATION_CREATED','CLARIFICATION',extensions.gen_random_uuid(),1,'NORMAL','{}'::jsonb,'ru4b-contract-created'
+          from auth.users limit 1;
+          insert into public.user_activity_events(recipient_user_id,recipient_role,event_type,entity_type,entity_id,entity_version,urgency,payload,dedupe_key)
+          select id,'WORKER','CLARIFICATION_ANSWERED','CLARIFICATION',extensions.gen_random_uuid(),1,'NORMAL','{}'::jsonb,'ru4b-contract-answered'
+          from auth.users limit 1;
+          rollback;
+          SQL
+          echo "PASS RU4B_FAIL_CLOSED_ZERO_SEED_SERVICE_BOUNDARY_EVENT_CONTRACT"
 
       - name: Prove service ALLOW remains disabled
         shell: bash
