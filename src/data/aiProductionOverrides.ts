@@ -14,7 +14,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type AiOverrides = Partial<Pick<Izvor, 'otvoriRazgovor' | 'razgovor'>>;
+type AiOverrides = Pick<Izvor, 'otvoriRazgovor' | 'razgovor'>;
 
 const PODRZANI_KLJUCEVI = new Set<KljucCinjenice>([
   'naslov', 'opis', 'kategorija', 'datum', 'vreme',
