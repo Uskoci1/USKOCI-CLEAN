@@ -1,3 +1,4 @@
+import { agreementClientService } from './agreementClientService';
 import { agreementProductionOverrides } from './agreementProductionOverrides';
 import { aiCommandOverrides } from './aiCommandOverrides';
 import { aiNeedV2Production } from './aiNeedV2Production';
@@ -33,7 +34,10 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // known unsafe/incorrect paths. Need reads intentionally stop masking backend
 // failures as empty states. AI read overrides align NEED_INTAKE with persisted
 // facts; AI command overrides call the JWT-protected Edge boundary and preserve
-// fail-closed HTTP errors. Agreement overrides own workspace semantics.
+// fail-closed HTTP errors. Agreement mutation overrides remain transitional.
+// CDL-A01 physically removed Agreement workspace reads from the baseline, so
+// agreementClientService is their only production owner and no spread shadowing
+// is involved for mojiDogovori/dogovor.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
@@ -41,6 +45,7 @@ const produkcijskiIzvor: Izvor = {
   ...aiProductionOverrides,
   ...aiCommandOverrides,
   ...agreementProductionOverrides,
+  ...agreementClientService,
   poreklo: 'supabase',
 };
 
