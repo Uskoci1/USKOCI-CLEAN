@@ -1,10 +1,13 @@
 /**
- * CDL-A03 — Need read consolidation, pre-deletion equivalence proof.
+ * CDL-A03 — canonical Need read contract after deletion.
  *
- * The old active owner and the new explicit service are executed against the
- * same mocked Supabase contract. Only after this test and the full PRE-P4 gate
- * are green may the old Need read implementations be removed.
+ * Pre-deletion equivalence was proven by PRE-P4 run 33954247260. These tests
+ * now lock the canonical request/mapping/error behavior and prove the old Need
+ * read owners are physically absent.
  */
+
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
@@ -43,7 +46,6 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { needClientService } from '../needClientService';
-import { needProductionOverrides } from '../needProductionOverrides';
 
 const mocks = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
@@ -56,50 +58,14 @@ const mocks = (jest.requireMock('../supabaseClient') as {
   };
 }).__testMocks;
 
-type Config = {
-  auth?: unknown;
-  list?: unknown;
-  single?: unknown;
-};
-
-function reset(config: Config = {}) {
+function reset() {
   Object.values(mocks).forEach((mock) => mock.mockClear());
-  mocks.mockGetUser.mockResolvedValue(
-    config.auth ?? { data: { user: { id: 'requester-1' } }, error: null },
-  );
-  mocks.mockOrder.mockResolvedValue(
-    config.list ?? { data: [], error: null },
-  );
-  mocks.mockMaybeSingle.mockResolvedValue(
-    config.single ?? { data: null, error: null },
-  );
-}
-
-function calls() {
-  return {
-    auth: mocks.mockGetUser.mock.calls.map((args) => [...args]),
-    from: mocks.mockFrom.mock.calls.map((args) => [...args]),
-    select: mocks.mockSelect.mock.calls.map((args) => [...args]),
-    eq: mocks.mockEq.mock.calls.map((args) => [...args]),
-    order: mocks.mockOrder.mock.calls.map((args) => [...args]),
-    maybeSingle: mocks.mockMaybeSingle.mock.calls.map((args) => [...args]),
-  };
-}
-
-async function capture<T>(run: () => Promise<T>, config: Config = {}) {
-  reset(config);
-  try {
-    const value = await run();
-    return { outcome: { kind: 'value' as const, value }, calls: calls() };
-  } catch (error) {
-    return {
-      outcome: {
-        kind: 'error' as const,
-        message: error instanceof Error ? error.message : String(error),
-      },
-      calls: calls(),
-    };
-  }
+  mocks.mockGetUser.mockResolvedValue({
+    data: { user: { id: 'requester-1' } },
+    error: null,
+  });
+  mocks.mockOrder.mockResolvedValue({ data: [], error: null });
+  mocks.mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 }
 
 const rawNeed = {
@@ -121,135 +87,108 @@ const rawNeed = {
   marketplace_responses: [{ id: 'response-1' }],
 };
 
-describe('CDL-A03 — Need read equivalence before deletion', () => {
+describe('CDL-A03 — canonical Need read contract', () => {
+  beforeEach(reset);
+
+  it('transitional Need override is deleted and baseline no longer owns migrated reads', () => {
+    const dataDir = join(__dirname, '..');
+    const baseline = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
+    const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
+    const productionStart = indexSource.indexOf('const produkcijskiIzvor');
+    const productionEnd = indexSource.indexOf('export const izvor');
+    const composition = indexSource.slice(productionStart, productionEnd);
+
+    expect(existsSync(join(dataDir, 'needProductionOverrides.ts'))).toBe(false);
+    expect(baseline).not.toContain('async mojePotrebe(');
+    expect(baseline).not.toContain('async potreba(');
+    expect(composition).toContain('...needClientService');
+    expect(composition).not.toContain('needProductionOverrides');
+  });
+
   it('mojePotrebe preserves auth, exact query chain and mapped projection', async () => {
-    const config = { list: { data: [rawNeed], error: null } };
-    const oldOwner = await capture(
-      () => needProductionOverrides.mojePotrebe!(),
-      config,
-    );
-    const newOwner = await capture(
-      () => needClientService.mojePotrebe(),
-      config,
-    );
+    mocks.mockOrder.mockResolvedValue({ data: [rawNeed], error: null });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls.from).toEqual([['needs']]);
-    expect(newOwner.calls.eq).toEqual([['requester_account_id', 'requester-1']]);
-    expect(newOwner.calls.order).toEqual([['created_at', { ascending: false }]]);
-    expect(newOwner.calls.select).toHaveLength(1);
-    expect(String(newOwner.calls.select[0][0])).toContain('marketplace_responses(id)');
-    expect(newOwner.outcome).toEqual({
-      kind: 'value',
-      value: [
-        expect.objectContaining({
-          id: 'need-1',
-          revizija: 4,
-          naslov: 'Preuzmi paket',
-          stanje: 'CEKA_PRIJAVE',
-          pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 },
-          podrucjeTekst: 'Centar, Novi Sad',
-          uslovi: ['dostava', 'kolica', 'automobil'],
-          brojPrijava: 1,
-          rezimCene: 'MY_PRICE',
-          ponudjenaCena: expect.objectContaining({ iznos: 2500, valuta: 'RSD' }),
-        }),
-      ],
-    });
-  });
+    const result = await needClientService.mojePotrebe();
 
-  it.each([
-    [
-      { data: { user: null }, error: { message: 'AUTH_BROKEN' } },
-      'AUTH_BROKEN',
-    ],
-    [
-      { data: { user: null }, error: null },
-      'AUTH_REQUIRED',
-    ],
-  ])('mojePotrebe preserves auth failure semantics %#', async (auth, message) => {
-    const config = { auth };
-    const oldOwner = await capture(() => needProductionOverrides.mojePotrebe!(), config);
-    const newOwner = await capture(() => needClientService.mojePotrebe(), config);
-
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.outcome).toEqual({ kind: 'error', message });
-    expect(newOwner.calls.from).toEqual([]);
-  });
-
-  it.each([
-    [{ data: null, error: { message: 'NEEDS_DENIED' } }, 'NEEDS_DENIED'],
-    [{ data: { invalid: true }, error: null }, 'NEED_LIST_INVALID_PROJECTION'],
-  ])('mojePotrebe preserves backend/projection failure semantics %#', async (list, message) => {
-    const config = { list };
-    const oldOwner = await capture(() => needProductionOverrides.mojePotrebe!(), config);
-    const newOwner = await capture(() => needClientService.mojePotrebe(), config);
-
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.outcome).toEqual({ kind: 'error', message });
-  });
-
-  it('mojePotrebe preserves unsupported-status fail-loud behavior', async () => {
-    const config = { list: { data: [{ ...rawNeed, status: 'UNKNOWN_STATE' }], error: null } };
-    const oldOwner = await capture(() => needProductionOverrides.mojePotrebe!(), config);
-    const newOwner = await capture(() => needClientService.mojePotrebe(), config);
-
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.outcome).toEqual({
-      kind: 'error',
-      message: 'NEED_STATUS_UNSUPPORTED:UNKNOWN_STATE',
-    });
-  });
-
-  it('potreba preserves trim, exact query chain and mapped projection', async () => {
-    const config = { single: { data: { ...rawNeed, status: 'SELECTION' }, error: null } };
-    const oldOwner = await capture(
-      () => needProductionOverrides.potreba!('  need-1  '),
-      config,
-    );
-    const newOwner = await capture(
-      () => needClientService.potreba('  need-1  '),
-      config,
-    );
-
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls.from).toEqual([['needs']]);
-    expect(newOwner.calls.eq).toEqual([['id', 'need-1']]);
-    expect(newOwner.calls.maybeSingle).toEqual([[]]);
-    expect(newOwner.outcome).toEqual({
-      kind: 'value',
-      value: expect.objectContaining({
+    expect(mocks.mockGetUser).toHaveBeenCalledTimes(1);
+    expect(mocks.mockFrom.mock.calls).toEqual([['needs']]);
+    expect(mocks.mockEq.mock.calls).toEqual([['requester_account_id', 'requester-1']]);
+    expect(mocks.mockOrder.mock.calls).toEqual([['created_at', { ascending: false }]]);
+    expect(mocks.mockSelect).toHaveBeenCalledTimes(1);
+    expect(String(mocks.mockSelect.mock.calls[0][0])).toContain('marketplace_responses(id)');
+    expect(result).toEqual([
+      expect.objectContaining({
         id: 'need-1',
-        stanje: 'DELIMICNO_POPUNJENA',
+        revizija: 4,
+        naslov: 'Preuzmi paket',
+        stanje: 'CEKA_PRIJAVE',
         pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 },
+        podrucjeTekst: 'Centar, Novi Sad',
+        uslovi: ['dostava', 'kolica', 'automobil'],
+        brojPrijava: 1,
+        rezimCene: 'MY_PRICE',
+        ponudjenaCena: expect.objectContaining({ iznos: 2500, valuta: 'RSD' }),
       }),
+    ]);
+  });
+
+  it('mojePotrebe remains fail-loud for auth error and unauthenticated state', async () => {
+    mocks.mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'AUTH_BROKEN' } });
+    await expect(needClientService.mojePotrebe()).rejects.toThrow('AUTH_BROKEN');
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
+
+    reset();
+    mocks.mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    await expect(needClientService.mojePotrebe()).rejects.toThrow('AUTH_REQUIRED');
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('mojePotrebe remains fail-loud for backend, invalid projection and unsupported status', async () => {
+    mocks.mockOrder.mockResolvedValue({ data: null, error: { message: 'NEEDS_DENIED' } });
+    await expect(needClientService.mojePotrebe()).rejects.toThrow('NEEDS_DENIED');
+
+    reset();
+    mocks.mockOrder.mockResolvedValue({ data: { invalid: true }, error: null });
+    await expect(needClientService.mojePotrebe()).rejects.toThrow('NEED_LIST_INVALID_PROJECTION');
+
+    reset();
+    mocks.mockOrder.mockResolvedValue({
+      data: [{ ...rawNeed, status: 'UNKNOWN_STATE' }],
+      error: null,
     });
+    await expect(needClientService.mojePotrebe()).rejects.toThrow(
+      'NEED_STATUS_UNSUPPORTED:UNKNOWN_STATE',
+    );
   });
 
-  it('potreba preserves blank-id null behavior without a database read', async () => {
-    const oldOwner = await capture(() => needProductionOverrides.potreba!('   '));
-    const newOwner = await capture(() => needClientService.potreba('   '));
+  it('potreba preserves trim, exact query and mapped projection', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({
+      data: { ...rawNeed, status: 'SELECTION' },
+      error: null,
+    });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.outcome).toEqual({ kind: 'value', value: null });
-    expect(newOwner.calls.from).toEqual([]);
+    const result = await needClientService.potreba('  need-1  ');
+
+    expect(mocks.mockFrom.mock.calls).toEqual([['needs']]);
+    expect(mocks.mockEq.mock.calls).toEqual([['id', 'need-1']]);
+    expect(mocks.mockMaybeSingle.mock.calls).toEqual([[]]);
+    expect(result).toEqual(expect.objectContaining({
+      id: 'need-1',
+      stanje: 'DELIMICNO_POPUNJENA',
+      pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 },
+    }));
   });
 
-  it('potreba preserves missing-row null semantics', async () => {
-    const config = { single: { data: null, error: null } };
-    const oldOwner = await capture(() => needProductionOverrides.potreba!('missing'), config);
-    const newOwner = await capture(() => needClientService.potreba('missing'), config);
+  it('potreba preserves blank-id, missing-row and backend-error semantics', async () => {
+    await expect(needClientService.potreba('   ')).resolves.toBeNull();
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.outcome).toEqual({ kind: 'value', value: null });
-  });
+    reset();
+    mocks.mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    await expect(needClientService.potreba('missing')).resolves.toBeNull();
 
-  it('potreba preserves backend failure semantics', async () => {
-    const config = { single: { data: null, error: { message: 'NEED_DENIED' } } };
-    const oldOwner = await capture(() => needProductionOverrides.potreba!('need-1'), config);
-    const newOwner = await capture(() => needClientService.potreba('need-1'), config);
-
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.outcome).toEqual({ kind: 'error', message: 'NEED_DENIED' });
+    reset();
+    mocks.mockMaybeSingle.mockResolvedValue({ data: null, error: { message: 'NEED_DENIED' } });
+    await expect(needClientService.potreba('need-1')).rejects.toThrow('NEED_DENIED');
   });
 });
