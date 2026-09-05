@@ -218,15 +218,20 @@ $edit_allow$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub',current_setting('uskoci.ru4b_requester'),true);
 do $edit$
-declare r jsonb; cnt int; latest int;
+declare r jsonb;
 begin
   r:=public.rpc_ru4b_answer_preselection_question(current_setting('uskoci.ru4b_question')::uuid,'Može, rastavlja se na dva dela.',extensions.gen_random_uuid());
   if (r->>'answerVersion')::int<>2 or not (r->>'edited')::boolean then raise exception 'RU4B_EDIT_MARKER_BAD'; end if;
-  select count(*),max(answer_version) into cnt,latest from private.preselection_qa_answer_versions where question_id=current_setting('uskoci.ru4b_question')::uuid;
-  if cnt<>2 or latest<>2 then raise exception 'RU4B_ANSWER_HISTORY_NOT_APPEND_ONLY'; end if;
 end
 $edit$;
 reset role;
+do $edit_history$
+declare cnt int; latest int;
+begin
+  select count(*),max(answer_version) into cnt,latest from private.preselection_qa_answer_versions where question_id=current_setting('uskoci.ru4b_question')::uuid;
+  if cnt<>2 or latest<>2 then raise exception 'RU4B_ANSWER_HISTORY_NOT_APPEND_ONLY'; end if;
+end
+$edit_history$;
 
 -- MATERIAL answer may not become public; it must route through RU-4 edit/readmission.
 do $material_seed$
@@ -240,7 +245,7 @@ $material_seed$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub',current_setting('uskoci.ru4b_requester'),true);
 do $material$
-declare denied boolean:=false; cnt int;
+declare denied boolean:=false;
 begin
   begin
     perform public.rpc_ru4b_answer_preselection_question(current_setting('uskoci.ru4b_question')::uuid,'Nova cena je 9000 i termin je sutra.',extensions.gen_random_uuid());
@@ -248,10 +253,16 @@ begin
     if sqlerrm='RU4B_MATERIAL_REQUIRES_RU4_EDIT' then denied:=true; else raise; end if;
   end;
   if not denied then raise exception 'RU4B_MATERIAL_ANSWER_PUBLISHED'; end if;
+end
+$material$;
+reset role;
+do $material_side_effect$
+declare cnt int;
+begin
   select count(*) into cnt from private.preselection_qa_answer_versions where question_id=current_setting('uskoci.ru4b_question')::uuid;
   if cnt<>2 then raise exception 'RU4B_MATERIAL_ANSWER_LEFT_SIDE_EFFECT'; end if;
 end
-$material$;
+$material_side_effect$;
 
 -- Contact/PII floor is deterministic and cannot be bypassed by absent policy.
 select set_config('request.jwt.claim.sub',current_setting('uskoci.ru4b_worker'),true);
