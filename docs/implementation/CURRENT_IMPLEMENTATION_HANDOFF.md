@@ -1,3 +1,40 @@
+<!-- CDL_A09_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A09 WORKER PROFILE MUTATION CLOSED / CANONICAL
+
+- canonical code promotion: `ccdc5d75a9dcd11afc817f59905cb32f44579022`
+- proof branch/head: `proof/client-data-worker-profile-20260905 @ ca941c4e9a6c7bb4885fb99d56860dbcbe03ea20`
+- proof PR: `#12`, squash-promoted only after pre-deletion and post-deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33962358107` — PASS
+- final post-deletion proof: GitHub Actions `33962499445` — PASS (migration integrity, TypeScript, full regression)
+- `src/data/workerProfileClientService.ts` is now the single production owner for `azurirajRadnikProfil`
+- exact active auth/profile-read/create/update semantics are preserved
+- new Worker profile creation remains `DRAFT` and carries the same fields/defaults as the proven active path
+- activation authority remains `rpc_complete_worker_profile(p_profile_id)` with the actual existing/inserted profile ID
+- duplicate active implementation was physically removed from `src/data/productionAuthorityOverrides.ts`
+- stale lower-precedence mutation path was physically removed from `src/data/supabaseIzvor.ts`, including its broken no-argument `rpc_complete_worker_profile` call
+- Worker profile read projection `mojRadnikProfil`, AI paths and completion confirmation were not changed in CDL-A09
+- no Supabase migration/write, Edge change, RU-4/RU-4B semantic change, D0140 activation or monetization change
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **FRESH POST-A09 SHADOW INVENTORY → STOP CLEANUP UNLESS ANOTHER COMPARABLE HIGH-RISK SHADOW EXISTS → OTHERWISE RETURN TO GOVERNING MASTER**
+
+<!-- CDL_A08_CANONICAL_CHECKPOINT_20260905 -->
+## CLIENT DATA LAYER CHECKPOINT — CDL-A08 EXACT-LOCATION REVEAL CLOSED / CANONICAL
+
+- canonical code promotion: `5997459306165e9e79fb8a6dff1ebce015904c86`
+- proof branch/head: `proof/client-data-exact-location-20260905 @ f940ffb55c8ebc7316fe74e1963c2d9dd1586bfc`
+- proof PR: `#11`, squash-promoted only after pre-deletion and post-deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33961961032` — PASS
+- final post-deletion proof: GitHub Actions `33962093949` — PASS (migration integrity, TypeScript, full regression)
+- `src/data/contactClientService.ts` is the single production owner for `otkrijTacnuLokaciju`
+- exact backend authority preserved: `rpc_reveal_contact(p_agreement_id, p_channel='EXACT_LOCATION')`
+- authoritative `exactAddress` mapping and `LOCATION_NOT_SET` behavior preserved
+- duplicate active implementation was physically removed from `productionAuthorityOverrides.ts`
+- dead lower-precedence `rpc_r24_reveal_exact_location` path and fake `Preuzeto sa servera` address were physically removed from `supabaseIzvor.ts`
+- no Supabase migration/write or Edge change occurred in CDL-A08
+
 <!-- CDL_A07_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A07 AGREEMENT COMPLETION MARK CLOSED / CANONICAL
 
@@ -273,7 +310,7 @@ Quarantine remains quarantine: `repair/ru0-ru1-backend-20260902` — no merge/ch
 
 ## RU-3/B05 live contract
 
-- private policy bundle metadata + rule-reference structure exists;
+- private policy-bundle metadata + rule-reference structure exists;
 - fail-closed readiness/current helpers exist;
 - no production policy bundle/rule content was seeded by B05;
 - B05 is infrastructure only.
