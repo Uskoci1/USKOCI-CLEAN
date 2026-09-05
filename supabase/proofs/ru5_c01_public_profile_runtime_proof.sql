@@ -8,6 +8,8 @@ declare
   attacker uuid := extensions.gen_random_uuid();
   requester_profile uuid;
   worker_profile uuid;
+  completed_profile uuid;
+  completed_agreement uuid;
 begin
   insert into auth.users(id,aud,role,email,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
   (victim,'authenticated','authenticated','ru5-c01-victim-'||victim::text||'@proof.invalid','{"provider":"email","providers":["email"]}'::jsonb,jsonb_build_object('full_name','RU5 Public Victim','city','Novi Sad','skills',jsonb_build_array('Selidbe')),statement_timestamp(),statement_timestamp()),
@@ -22,10 +24,24 @@ begin
          tools=array['PRIVATE_TOOL'], vehicles=array['PRIVATE_VEHICLE'], exclusions=array['PRIVATE_EXCLUSION'], minimum_fee_rsd=7777
    where account_id=victim;
 
+  -- Positive aggregate proof uses an existing canonical Agreement and marks only
+  -- its execution completed inside this rollback-only transaction. No historical
+  -- business row survives the proof.
+  select a.worker_profile_id, a.id
+    into completed_profile, completed_agreement
+    from public.agreements a
+    join public.agreement_execution e on e.agreement_id=a.id
+   join public.app_profiles p on p.id=a.worker_profile_id and p.profile_status='ACTIVE'
+   order by a.created_at
+   limit 1;
+  if completed_profile is null or completed_agreement is null then raise exception 'RU5_C01_PROOF_NO_EXISTING_AGREEMENT_FOR_AGGREGATE'; end if;
+  update public.agreement_execution set completed_at=statement_timestamp() where agreement_id=completed_agreement;
+
   perform set_config('uskoci.ru5_c01_victim',victim::text,true);
   perform set_config('uskoci.ru5_c01_attacker',attacker::text,true);
   perform set_config('uskoci.ru5_c01_requester_profile',requester_profile::text,true);
   perform set_config('uskoci.ru5_c01_worker_profile',worker_profile::text,true);
+  perform set_config('uskoci.ru5_c01_completed_profile',completed_profile::text,true);
 end $seed$;
 
 set local role authenticated;
@@ -48,6 +64,7 @@ declare
   victim uuid:=current_setting('uskoci.ru5_c01_victim')::uuid;
   requester_profile uuid:=current_setting('uskoci.ru5_c01_requester_profile')::uuid;
   worker_profile uuid:=current_setting('uskoci.ru5_c01_worker_profile')::uuid;
+  completed_profile uuid:=current_setting('uskoci.ru5_c01_completed_profile')::uuid;
   dto jsonb;
   raw_count integer;
 begin
@@ -59,7 +76,7 @@ begin
   if dto->>'role' <> 'REQUESTER' then raise exception 'RU5_C01_PROOF_REQUESTER_ROLE_WRONG'; end if;
   if dto->>'displayName' <> 'RU5 Public Victim' or dto->>'city' <> 'Novi Sad' then raise exception 'RU5_C01_PROOF_PUBLIC_IDENTITY_WRONG'; end if;
   if dto->>'headline' <> 'Kratak javni naslov' or dto->>'bio' <> 'Kratak javni opis' then raise exception 'RU5_C01_PROOF_PUBLIC_BIO_WRONG'; end if;
-  if (dto->>'completedWorkCount')::integer <> 0 then raise exception 'RU5_C01_PROOF_COMPLETED_COUNT_WRONG'; end if;
+  if (dto->>'completedWorkCount')::integer <> 0 then raise exception 'RU5_C01_PROOF_COMPLETED_ZERO_WRONG'; end if;
   if coalesce((dto#>>'{reputation,available}')::boolean,true) then raise exception 'RU5_C01_PROOF_REPUTATION_FABRICATED'; end if;
   if dto#>'{reputation,ratingAverage}' <> 'null'::jsonb or dto#>'{reputation,reviewCount}' <> 'null'::jsonb then raise exception 'RU5_C01_PROOF_REPUTATION_NOT_UNKNOWN'; end if;
   if coalesce((dto->>'identityVerified')::boolean,true) then raise exception 'RU5_C01_PROOF_IDENTITY_BADGE_FABRICATED'; end if;
@@ -72,6 +89,10 @@ begin
 
   dto := public.rpc_public_profile(worker_profile);
   if dto is null or dto->>'role' <> 'WORKER' then raise exception 'RU5_C01_PROOF_WORKER_DTO_MISSING'; end if;
+
+  dto := public.rpc_public_profile(completed_profile);
+  if dto is null then raise exception 'RU5_C01_PROOF_COMPLETED_PROFILE_DTO_MISSING'; end if;
+  if (dto->>'completedWorkCount')::integer < 1 then raise exception 'RU5_C01_PROOF_COMPLETED_POSITIVE_NOT_DERIVED'; end if;
 end $unrelated_user$;
 
 reset role;
