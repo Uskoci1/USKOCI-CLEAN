@@ -62,6 +62,7 @@ type SupabaseIzvor = Omit<
   | 'oznaciPrijavuVidjenom'
   | 'podeliTelefon'
   | 'opoziviTelefon'
+  | 'prijaviProblem'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -322,7 +323,7 @@ export const supabaseIzvor: SupabaseIzvor = {
         .from('app_profiles')
         .update(patch)
         .eq('id', profileId);
-        
+      
       if (updateError) return handleRpcError(updateError, 'UPDATE_ERROR', 'Greška pri izmeni profila.');
     }
     
@@ -332,12 +333,6 @@ export const supabaseIzvor: SupabaseIzvor = {
       if (rpcError) return handleRpcError(rpcError, 'RPC_ERROR', 'Greška pri kompletiranju profila.');
     }
     
-    return { ok: true, podatak: null };
-  },
-  
-  async prijaviProblem(dogovorId: string, opis: string) {
-    const { data, error } = await supabase.rpc('rpc_report_problem', { p_agreement_id: dogovorId, p_description: opis });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
     return { ok: true, podatak: null };
   },
 
