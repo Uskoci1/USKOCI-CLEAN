@@ -92,7 +92,19 @@
       {"name":"clean_ru5_public_profile_projection","version":"20260905163927","file":"20260905133000_clean_ru5_public_profile_projection.sql","source_version":"20260905133000","exact_byte_mirror":true,"canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","live_recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","recorded_statement_utf8_bytes":2458}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260905190000",
+      "name": "clean_ru5_atomic_application_submit",
+      "file": "20260905190000_clean_ru5_atomic_application_submit.sql",
+      "raw_md5": "1a397f893deb3109b8984035c19111bb",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 72,
+      "predecessor_live_head": "20260905163927",
+      "rationale": "RU-5 P0C-02 targeted atomic Application submit hardening: current RU-1 readiness, team/remaining capacity, MY_PRICE equality, private per-version self-declared snapshot and deduplicated RESPONSE_RECEIVED event; existing historical rows preserved; D0140/RU-4B/monetization/calendar/note-policy activation excluded."
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",

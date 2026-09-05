@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, ScrollView, TextInput, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -23,6 +23,10 @@ export default function PrijavaEkran() {
   const [pokrivenaMesta, setPokrivenaMesta] = useState("1");
   const [napomena, setNapomena] = useState("");
   const [saljem, setSaljem] = useState(false);
+  // One screen submission attempt keeps one semantic key. If the server commits
+  // and the response is lost, a retry must replay that exact command rather
+  // than silently creating a new Application version.
+  const clientRequestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let ziv = true;
@@ -70,14 +74,19 @@ export default function PrijavaEkran() {
       return;
     }
     const mestaBroj = parseInt(pokrivenaMesta, 10);
-    if (isNaN(mestaBroj) || mestaBroj < 1 || mestaBroj > potreba.pokrivenost.ukupno) {
-      Alert.alert("Greška", "Unesite ispravan broj ljudi koje pokrivate.");
+    const preostalaMesta = Math.max(0, potreba.pokrivenost.preostalo);
+    if (isNaN(mestaBroj) || mestaBroj < 1 || mestaBroj > preostalaMesta) {
+      Alert.alert("Greška", "Broj ljudi mora biti u okviru trenutno preostalih mesta.");
       return;
+    }
+
+    if (!clientRequestIdRef.current) {
+      clientRequestIdRef.current = noviZahtevId("prijava");
     }
 
     setSaljem(true);
     const k = {
-      clientRequestId: noviZahtevId("prijava"),
+      clientRequestId: clientRequestIdRef.current,
       potrebaId: potreba.id,
       potrebaRevizija: potreba.revizija,
       radnikProfilId: profil.id,
@@ -94,6 +103,12 @@ export default function PrijavaEkran() {
       Alert.alert("Uspeh", "Prijava je uspešno podneta!");
       router.replace("/moje-prijave" as any);
     } else {
+      // A known server rejection means this semantic command definitely did not
+      // commit, so a corrected payload gets a fresh key. RPC_ERROR is the
+      // transport/unknown-outcome fallback and deliberately keeps the old key.
+      if (ishod.kod !== 'RPC_ERROR') {
+        clientRequestIdRef.current = null;
+      }
       Alert.alert(ishod.naslov || "Greška pri slanju", ishod.poruka);
     }
   };
@@ -126,7 +141,7 @@ export default function PrijavaEkran() {
 
         {potreba?.pokrivenost && potreba.pokrivenost.ukupno > 1 && (
           <View style={{ gap: space.xs, marginTop: space.sm }}>
-            <T variant="label">Koliko ljudi pokrivate? (Max {potreba.pokrivenost.ukupno})</T>
+            <T variant="label">Koliko ljudi pokrivate? (Preostalo {potreba.pokrivenost.preostalo})</T>
             <TextInput 
               value={pokrivenaMesta}
               onChangeText={setPokrivenaMesta}
