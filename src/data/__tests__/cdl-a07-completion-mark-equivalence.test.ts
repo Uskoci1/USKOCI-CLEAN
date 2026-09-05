@@ -1,10 +1,13 @@
 /**
- * CDL-A07 — Agreement completion mark, pre-deletion equivalence proof.
+ * CDL-A07 — canonical Agreement completion-mark contract.
  *
- * Current active productionAuthorityOverrides and the canonical
- * agreementClientService are executed against the same mocked Supabase RPC.
- * No legacy owner may be deleted until this and the full PRE-P4 gate are green.
+ * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33961448582.
+ * After deletion these tests lock the canonical RPC/result/error contract and
+ * prove oznaciZavrsetak has one physical production owner.
  */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
   const mockRpc = jest.fn();
@@ -16,38 +19,42 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { agreementClientService } from '../agreementClientService';
-import { productionAuthorityOverrides } from '../productionAuthorityOverrides';
 
 const { mockRpc } = (jest.requireMock('../supabaseClient') as {
   __testMocks: { mockRpc: jest.Mock };
 }).__testMocks;
 
-async function capture(run: () => Promise<unknown>, rpcResult: unknown) {
+function resetRpc(result: unknown) {
   mockRpc.mockReset();
-  mockRpc.mockResolvedValue(rpcResult);
-  const value = await run();
-  return { value, calls: mockRpc.mock.calls.map((args) => [...args]) };
+  mockRpc.mockResolvedValue(result);
 }
 
-describe('CDL-A07 — completion mark equivalence before deletion', () => {
+describe('CDL-A07 — canonical completion-mark contract', () => {
+  it('physically eliminates both lower-precedence completion-mark owners', () => {
+    const dataDir = join(__dirname, '..');
+    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
+    const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
+    const canonicalSource = readFileSync(join(dataDir, 'agreementClientService.ts'), 'utf8');
+
+    expect(authoritySource).not.toContain('oznaciZavrsetak');
+    expect(baselineSource).not.toContain('async oznaciZavrsetak(');
+    expect(baselineSource).not.toContain('rokPotvrdeIso: new Date().toISOString()');
+    expect(baselineSource).toContain("'oznaciZavrsetak'");
+    expect(canonicalSource).toContain('async oznaciZavrsetak(');
+    expect(canonicalSource).toContain("supabase.rpc('rpc_mark_work_done'");
+    expect(canonicalSource).toContain('rokPotvrdeIso: data');
+  });
+
   it('preserves exact rpc_mark_work_done params and server deadline result', async () => {
     const deadline = '2026-09-07T10:00:00.000Z';
-    const rpcResult = { data: deadline, error: null };
+    resetRpc({ data: deadline, error: null });
 
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.oznaciZavrsetak!('agr-1'),
-      rpcResult,
-    );
-    const newOwner = await capture(
-      () => agreementClientService.oznaciZavrsetak('agr-1'),
-      rpcResult,
-    );
+    const result = await agreementClientService.oznaciZavrsetak('agr-1');
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls).toEqual([
+    expect(mockRpc.mock.calls).toEqual([
       ['rpc_mark_work_done', { p_agreement_id: 'agr-1' }],
     ]);
-    expect(newOwner.value).toEqual({
+    expect(result).toEqual({
       ok: true,
       podatak: { rokPotvrdeIso: deadline },
     });
@@ -58,32 +65,19 @@ describe('CDL-A07 — completion mark equivalence before deletion', () => {
     ['code fallback', { code: '42501' }, { ok: false, kod: '42501', poruka: 'Završetak nije mogao da se označi.' }],
     ['full fallback', {}, { ok: false, kod: 'COMPLETION_FAILED', poruka: 'Završetak nije mogao da se označi.' }],
   ])('preserves active error mapping: %s', async (_label, error, expected) => {
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.oznaciZavrsetak!('agr-error'),
-      { data: null, error },
-    );
-    const newOwner = await capture(
-      () => agreementClientService.oznaciZavrsetak('agr-error'),
-      { data: null, error },
-    );
+    resetRpc({ data: null, error });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.value).toEqual(expected);
+    const result = await agreementClientService.oznaciZavrsetak('agr-error');
+
+    expect(result).toEqual(expected);
   });
 
   it('preserves fail-closed behavior when RPC returns no deadline and no error', async () => {
-    const rpcResult = { data: null, error: null };
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.oznaciZavrsetak!('agr-no-data'),
-      rpcResult,
-    );
-    const newOwner = await capture(
-      () => agreementClientService.oznaciZavrsetak('agr-no-data'),
-      rpcResult,
-    );
+    resetRpc({ data: null, error: null });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.value).toEqual({
+    const result = await agreementClientService.oznaciZavrsetak('agr-no-data');
+
+    expect(result).toEqual({
       ok: false,
       kod: 'COMPLETION_FAILED',
       poruka: 'Završetak nije mogao da se označi.',
