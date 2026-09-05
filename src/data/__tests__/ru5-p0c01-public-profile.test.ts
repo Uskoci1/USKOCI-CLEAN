@@ -74,6 +74,26 @@ describe('RU-5 P0C-01 public-safe profile projection', () => {
     await expect(publicProfileClientService.javniProfil('p')).rejects.toThrow('PUBLIC_PROFILE_COMPLETED_COUNT_INVALID');
   });
 
+  it('locks marketplace consumers to profile ids plus the public-profile RPC, never raw cross-account joins', () => {
+    const root = join(__dirname, '../../..');
+    const source = readFileSync(join(root, 'src/data/supabaseIzvor.ts'), 'utf8');
+    const ports = readFileSync(join(root, 'src/data/ports.ts'), 'utf8');
+    const index = readFileSync(join(root, 'src/data/index.ts'), 'utf8');
+    const projections = readFileSync(join(root, 'src/contracts/projections.ts'), 'utf8');
+
+    expect(source).not.toContain('app_profiles!requester_profile_id');
+    expect(source).not.toContain('app_profiles!worker_profile_id');
+    expect(source).toContain('requester_profile_id');
+    expect(source).toContain('worker_profile_id');
+    expect(source).toContain('publicProfileClientService.javniProfil');
+    expect(source).toContain("| 'javniProfil'");
+
+    expect(ports).toContain('javniProfil(profileId: string)');
+    expect(index).toContain('...publicProfileClientService');
+    expect(projections).toContain('narucilacProfilId: string');
+    expect(projections).toContain('radnikProfilId: string');
+  });
+
   it('locks the SQL projection against private and operational profile leakage', () => {
     const sql = readFileSync(
       join(__dirname, '../../..', 'supabase/staging/ru5/20260905133000_clean_ru5_public_profile_projection.sql'),
