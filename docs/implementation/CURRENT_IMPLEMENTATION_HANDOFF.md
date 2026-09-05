@@ -1,3 +1,22 @@
+<!-- CDL_A02_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A02 AGREEMENT MUTATIONS CLOSED / CANONICAL
+
+- canonical code promotion: `603617d46059331641f445f32e515551a79da474`
+- proof branch/head: `proof/client-data-agreement-mutations-20260905 @ de8d4af7f7fbe4c1cda1e02911ec0fe2436fab94`
+- proof PR: `#5`, squash-promoted only after pre-deletion and post-deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33953071145` — PASS
+- final post-deletion proof: GitHub Actions `33953836136` — PASS (migration integrity, TypeScript, full regression)
+- `src/data/agreementClientService.ts` is now the single production owner for `mojiDogovori`, `dogovor`, `posaljiPoruku`, `predloziIzmenu`, `odgovoriNaIzmenu`
+- exact mutation backend authority preserved: `rpc_send_agreement_message`, `rpc_propose_agreement_change_v2`, `rpc_respond_agreement_change`
+- `src/data/agreementProductionOverrides.ts` was physically deleted
+- lower-precedence Agreement mutation duplicates were physically removed from `productionAuthorityOverrides.ts` and `supabaseIzvor.ts`
+- no Supabase migration/write, Edge change, RU-4/RU-4B semantic change, D0140 activation or monetization change
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **CDL-A03 — NEED READ CONSOLIDATION (`mojePotrebe`, `potreba`) / EQUIVALENCE-FIRST / NO BACKEND WRITE**
+
 <!-- CDL_A01_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A01 AGREEMENT WORKSPACE READS CLOSED / CANONICAL
 
@@ -197,7 +216,6 @@ Critical boundary:
 The broader earlier 46-rule candidate remains research/proof material and is NOT current production authority.
 
 ## RU-3/B07 — canonical publish proof work
-
 State: `PROOF_ONLY / NOT_CANONICAL / NOT_LIVE`.
 
 Branch:
