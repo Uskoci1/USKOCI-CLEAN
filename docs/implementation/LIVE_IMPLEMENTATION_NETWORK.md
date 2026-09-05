@@ -1,3 +1,24 @@
+<!-- CDL_A03_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A03 NEED READS CLOSED / CANONICAL
+
+This block supersedes CDL-A02 next-cursor text for the consolidation track.
+
+- canonical code promotion: `76b34791d4f372e2d0613377274f7b1038b82e9f`
+- proof branch/head: `proof/client-data-need-reads-20260905 @ 0aeed66de8cb7b16b0a527fbf3ccad56ac985383`
+- pre-deletion equivalence run: `33954247260` — PASS
+- final post-deletion run: `33954495080` — PASS
+- canonical Need client owner: `src/data/needClientService.ts`
+- methods now owned there: `mojePotrebe`, `potreba`
+- live database authority remains in `public.needs` RLS SELECT policies; no client authority gain
+- old `needProductionOverrides` layer is physically gone and legacy Need reads are physically removed from `supabaseIzvor.ts`
+- auth/error/query/mapping behavior preserved exactly; fail-loud backend and unsupported-status behavior retained
+- no backend migration or Edge deployment occurred in CDL-A03
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **fresh post-A03 shadow inventory, then select CDL-A04 by lowest-risk proven slice**
+
 <!-- CDL_A02_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A02 AGREEMENT MUTATIONS CLOSED / CANONICAL
 
