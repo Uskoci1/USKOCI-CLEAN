@@ -8,6 +8,14 @@ declare
   attacker uuid := extensions.gen_random_uuid();
   requester_pid uuid;
   worker_pid uuid;
+  attacker_requester_pid uuid;
+  attacker_worker_pid uuid;
+  requester_need_id uuid := extensions.gen_random_uuid();
+  worker_need_id uuid := extensions.gen_random_uuid();
+  requester_response_id uuid := extensions.gen_random_uuid();
+  worker_response_id uuid := extensions.gen_random_uuid();
+  requester_selection_id uuid := extensions.gen_random_uuid();
+  worker_selection_id uuid := extensions.gen_random_uuid();
 begin
   insert into auth.users(
     id,aud,role,email,raw_app_meta_data,raw_user_meta_data,created_at,updated_at
@@ -29,7 +37,10 @@ begin
 
   select id into requester_pid from public.app_profiles where account_id=victim and kind='REQUESTER';
   select id into worker_pid from public.app_profiles where account_id=victim and kind='WORKER';
-  if requester_pid is null or worker_pid is null then
+  select id into attacker_requester_pid from public.app_profiles where account_id=attacker and kind='REQUESTER';
+  select id into attacker_worker_pid from public.app_profiles where account_id=attacker and kind='WORKER';
+  if requester_pid is null or worker_pid is null
+     or attacker_requester_pid is null or attacker_worker_pid is null then
     raise exception 'RU5_P0C01_PROOF_PROFILE_SEED_FAILED';
   end if;
 
@@ -65,6 +76,68 @@ begin
       exclusions=array['RU5_PRIVATE_WORKER_EXCLUSION'],
       minimum_fee_rsd=88888
   where id=worker_pid;
+
+  -- Projection-only trust fixtures. These rows are inserted as postgres inside
+  -- this rollback-only proof and satisfy the real FK/check contract. They do
+  -- not claim to re-prove Agreement writer/lifecycle authority, which has its
+  -- own authenticated runtime proof. Their sole purpose is to prove that the
+  -- public profile count is positive and role-scoped.
+  insert into public.needs(
+    id, requester_account_id, requester_profile_id,
+    title, description, category, mode, required_slots
+  ) values
+  (
+    requester_need_id, victim, requester_pid,
+    'RU5 requester completed-count proof', 'Projection proof fixture', 'PROOF', 'OFFERS', 1
+  ),
+  (
+    worker_need_id, attacker, attacker_requester_pid,
+    'RU5 worker completed-count proof', 'Projection proof fixture', 'PROOF', 'OFFERS', 1
+  );
+
+  insert into public.marketplace_responses(
+    id, need_id, worker_account_id, worker_profile_id,
+    response_kind, status, submitted_against_need_revision,
+    covered_slots, price_rsd
+  ) values
+  (
+    requester_response_id, requester_need_id, attacker, attacker_worker_pid,
+    'APPLICATION', 'SELECTED', 1, 1, 1000
+  ),
+  (
+    worker_response_id, worker_need_id, victim, worker_pid,
+    'APPLICATION', 'SELECTED', 1, 1, 1000
+  );
+
+  insert into public.need_selections(
+    id, need_id, need_revision, selected_by_account_id,
+    client_request_id, covered_slots, response_id,
+    worker_account_id, worker_profile_id, selection_mode, status
+  ) values
+  (
+    requester_selection_id, requester_need_id, 1, victim,
+    'ru5-p0c01-requester-count', 1, requester_response_id,
+    attacker, attacker_worker_pid, 'REQUESTER_SELECTS', 'SELECTED'
+  ),
+  (
+    worker_selection_id, worker_need_id, 1, attacker,
+    'ru5-p0c01-worker-count', 1, worker_response_id,
+    victim, worker_pid, 'REQUESTER_SELECTS', 'SELECTED'
+  );
+
+  insert into public.agreements(
+    need_id, selection_id, selected_response_id,
+    requester_account_id, requester_profile_id,
+    worker_account_id, worker_profile_id, status
+  ) values
+  (
+    requester_need_id, requester_selection_id, requester_response_id,
+    victim, requester_pid, attacker, attacker_worker_pid, 'COMPLETED'
+  ),
+  (
+    worker_need_id, worker_selection_id, worker_response_id,
+    attacker, attacker_requester_pid, victim, worker_pid, 'COMPLETED'
+  );
 
   perform set_config('uskoci.ru5_victim',victim::text,true);
   perform set_config('uskoci.ru5_attacker',attacker::text,true);
@@ -133,7 +206,7 @@ begin
   if dto->>'city' <> 'Novi Sad' then raise exception 'RU5_P0C01_REQUESTER_CITY_WRONG'; end if;
   if dto->'publicSummary'->'headline' <> 'null'::jsonb then raise exception 'RU5_P0C01_REQUESTER_HEADLINE_LEAK'; end if;
   if dto->'publicSummary'->'bio' <> 'null'::jsonb then raise exception 'RU5_P0C01_REQUESTER_BIO_LEAK'; end if;
-  if (dto->'trust'->>'completedCount')::integer <> 0 then raise exception 'RU5_P0C01_REQUESTER_COMPLETED_NOT_ZERO'; end if;
+  if (dto->'trust'->>'completedCount')::integer <> 1 then raise exception 'RU5_P0C01_REQUESTER_COMPLETED_NOT_ROLE_SCOPED'; end if;
   if dto->'trust'->'ratingAverage' <> 'null'::jsonb then raise exception 'RU5_P0C01_CACHED_REQUESTER_RATING_LEAK'; end if;
   if dto->'trust'->'reviewCount' <> 'null'::jsonb then raise exception 'RU5_P0C01_FAKE_REVIEW_COUNT'; end if;
   if (dto->'trust'->>'identityVerified')::boolean then raise exception 'RU5_P0C01_FAKE_IDENTITY_BADGE'; end if;
@@ -194,7 +267,7 @@ begin
   if dto->>'displayName' <> 'RU5 Public Worker' then raise exception 'RU5_P0C01_WORKER_NAME_WRONG'; end if;
   if dto->'publicSummary'->>'headline' <> 'Selidbe i montaža' then raise exception 'RU5_P0C01_WORKER_HEADLINE_WRONG'; end if;
   if dto->'publicSummary'->>'bio' <> 'Radim pažljivo i uredno.' then raise exception 'RU5_P0C01_WORKER_BIO_WRONG'; end if;
-  if (dto->'trust'->>'completedCount')::integer <> 0 then raise exception 'RU5_P0C01_WORKER_COMPLETED_NOT_ZERO'; end if;
+  if (dto->'trust'->>'completedCount')::integer <> 1 then raise exception 'RU5_P0C01_WORKER_COMPLETED_NOT_ROLE_SCOPED'; end if;
   if dto->'trust'->'ratingAverage' <> 'null'::jsonb then raise exception 'RU5_P0C01_CACHED_WORKER_RATING_LEAK'; end if;
   if dto::text like '%RU5_PRIVATE_WORKER_TOOL%'
      or dto::text like '%RU5_PRIVATE_WORKER_LICENSE%'
