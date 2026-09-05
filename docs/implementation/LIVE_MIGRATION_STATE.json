@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T11:20:00Z",
+  "updated_at": "2026-09-05T12:23:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,8 +9,8 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "ccdc5d75a9dcd11afc817f59905cb32f44579022",
-    "note": "CDL-A08 exact-location reveal and CDL-A09 Worker profile mutation are canonical and closed. contactClientService is the single production owner for exact-location reveal via rpc_reveal_contact(EXACT_LOCATION), with the dead rpc_r24 path and fake address removed. workerProfileClientService is the single production owner for azurirajRadnikProfil; DRAFT creation and rpc_complete_worker_profile(p_profile_id) activation are preserved, and the stale no-id activation shadow is removed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
+    "canonical_base_observed_before_docs_reconciliation": "24a08d6c6d90daa1dd88217ea4a4d0f82a5eaf5d",
+    "note": "CDL-A10 is canonical and closed. aiCommandOverrides is the single production owner for posaljiKorisnikovuPoruku and ispraviCinjenicu. Lower fake-success implementations were removed from supabaseIzvor and stale fail-only implementations were removed from productionAuthorityOverrides. Runtime Edge/RPC behavior is unchanged; only the surviving owner type was strengthened from optional Partial<Pick> to Pick. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
   },
   "live_migration_count": 71,
   "live_head": {
@@ -178,7 +178,26 @@
       "supabase_write": false,
       "edge_change": false
     },
-    "next_cursor": "FRESH_POST_A09_SHADOW_INVENTORY_STOP_OR_MASTER"
+    "cdl_a10": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "24a08d6c6d90daa1dd88217ea4a4d0f82a5eaf5d",
+      "proof_branch": "proof/client-data-ai-command-shadow-20260905",
+      "proof_head": "e85017b31c9f798829e00239242c4ed1ffb1e86c",
+      "proof_pr": 13,
+      "pre_deletion_equivalence_run": 33965614404,
+      "intermediate_failed_typecheck_run": 33965736027,
+      "final_post_deletion_run": 33965807723,
+      "methods": ["posaljiKorisnikovuPoruku", "ispraviCinjenicu"],
+      "canonical_owner": "src/data/aiCommandOverrides.ts",
+      "backend_authority": ["uskoci-ai-interview", "rpc_ai_correct_fact"],
+      "lower_fake_success_shadows_deleted": true,
+      "stale_fail_only_shadows_deleted": true,
+      "runtime_behavior_preserved": true,
+      "owner_type_structurally_complete": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "next_cursor": "FRESH_POST_A10_SHADOW_INVENTORY_STOP_OR_ONE_MORE_HIGH_RISK_SLICE"
   },
   "ru0": {
     "status": "CLOSED",
@@ -252,7 +271,7 @@
     "activation_blocker":"No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish":"FAIL_CLOSED"
   },
-  "next_allowed_action":"Fresh post-A09 shadow inventory. Stop the consolidation cleanup unless another comparable high-risk production shadow is physically proven; otherwise return to the governing MASTER implementation track. No backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
+  "next_allowed_action":"Fresh post-A10 shadow inventory. Continue consolidation only if another comparable high-risk production shadow is physically proven; otherwise formally close the cleanup track and return to governing MASTER re-admission. No backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
   "ru4": {
     "status":"CLOSED_LIVE_STRUCTURAL_PROVEN",
     "functional_canonical_source_head":"a271d6084b4648e757d2230d0a208f558c802a14",
@@ -286,6 +305,6 @@
     "activation_blockers":["BLOCK_AUTHORITY_NOT_READY","NUMERIC_RATE_POLICY_NOT_OWNER_APPROVED","PRESELECTION_QA_PRODUCTION_ALLOW_NOT_ACTIVATED","TRUSTED_MATERIALITY_AUTHORITY_NOT_ACTIVATED"],
     "public_qa":"FAIL_CLOSED",
     "d0140_publish":"FAIL_CLOSED",
-    "next_track":"FRESH_POST_A09_SHADOW_INVENTORY_STOP_OR_MASTER"
+    "next_track":"FRESH_POST_A10_SHADOW_INVENTORY_STOP_OR_ONE_MORE_HIGH_RISK_SLICE"
   }
 }
