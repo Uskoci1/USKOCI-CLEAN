@@ -6,6 +6,7 @@ import { contactClientService } from './contactClientService';
 import { lazniIzvor } from './lazniIzvor';
 import { needClientService } from './needClientService';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
+import { publicProfileClientService } from './publicProfileClientService';
 import { responseClientService } from './responseClientService';
 import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
@@ -43,10 +44,13 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // CDL-A06/A07 moved problem reporting and completion marking into Agreement service.
 // AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
+// RU-5 P0C-01 owns cross-account profile reads through a narrow public RPC;
+// raw app_profiles remains owner-only and is never opened for marketplace cards.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
   ...workerProfileClientService,
+  ...publicProfileClientService,
   ...contactClientService,
   ...responseClientService,
   ...needClientService,
