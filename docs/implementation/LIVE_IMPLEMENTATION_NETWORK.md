@@ -1,3 +1,24 @@
+<!-- CDL_A04_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A04 RESPONSE VIEWED CLOSED / CANONICAL
+
+This block supersedes CDL-A03 next-cursor text for the consolidation track.
+
+- canonical code promotion: `36eaeefb5c053df051cfed445e106ca0663e36cc`
+- proof branch/head: `proof/client-data-response-viewed-20260905 @ ecf7e7709c05d41481a9cc674a2b58042fedf1fa`
+- pre-deletion equivalence run: `33956936388` — PASS
+- final post-deletion run: `33957121385` — PASS
+- canonical response command owner: `src/data/responseClientService.ts`
+- method now owned there: `oznaciPrijavuVidjenom`
+- exact backend authority remains `rpc_mark_response_viewed(p_response_id)`
+- fake-success/no-op legacy method is physically removed from `supabaseIzvor.ts`
+- duplicate active implementation is physically removed from `productionAuthorityOverrides.ts`
+- no backend migration or Edge deployment occurred in CDL-A04
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **fresh post-A04 shadow inventory, then select CDL-A05 by lowest-risk proven slice**
+
 <!-- CDL_A03_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A03 NEED READS CLOSED / CANONICAL
 
