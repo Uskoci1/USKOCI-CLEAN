@@ -1,5 +1,5 @@
--- USKOCI RU-5 / P0C-01 + P0C-05
--- Public-safe profile + Requester Candidate DTO candidate. PROOF BRANCH ONLY.
+-- USKOCI RU-5 / P0C-01 + P0C-03 + P0C-05
+-- Public-safe profile + own-Application + Requester Candidate DTO candidate. PROOF BRANCH ONLY.
 -- Raw requester reads of Application rows/versions are removed; Worker own reads remain.
 
 begin;
@@ -102,6 +102,58 @@ revoke all on function public.rpc_visible_need_response_counts(uuid[])
 grant execute on function public.rpc_visible_need_response_counts(uuid[])
   to anon, authenticated;
 
+create or replace function public.rpc_list_my_applications()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog
+as $function$
+declare
+  v_uid uuid := auth.uid();
+  v_rows jsonb;
+begin
+  if v_uid is null then
+    raise exception 'AUTH_REQUIRED' using errcode = '28000';
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'responseId', r.id,
+    'needId', r.need_id,
+    'title', n.title,
+    'description', n.description,
+    'needRevision', n.revision,
+    'submittedNeedRevision', r.submitted_against_need_revision,
+    'version', r.current_version,
+    'status', r.status,
+    'changedNeed', (r.status in ('STALE','STALE_REVIEW_REQUIRED') or n.revision <> r.submitted_against_need_revision),
+    'priceRsd', r.price_rsd,
+    'coveredSlots', r.covered_slots,
+    'note', nullif(btrim(r.scope_note), ''),
+    'area', n.approximate_area,
+    'city', n.approximate_city,
+    'startsAt', n.starts_at,
+    'remainingSearchClosedAt', n.remaining_search_closed_at,
+    'snapshotSchema', coalesce(v.snapshot_schema, 'LEGACY_UNPROVEN'),
+    'snapshotHash', case when v.snapshot_schema = 'RU5_WORKER_CONTEXT_V1' then v.snapshot_hash else null end,
+    'authoritative', true
+  ) order by r.submitted_at desc nulls last, r.id desc), '[]'::jsonb)
+  into v_rows
+  from public.marketplace_responses r
+  join public.needs n on n.id = r.need_id
+  left join public.marketplace_response_versions v
+    on v.response_id = r.id and v.version = r.current_version
+  where r.worker_account_id = v_uid;
+
+  return v_rows;
+end;
+$function$;
+
+revoke all on function public.rpc_list_my_applications()
+  from public, anon, authenticated, service_role;
+grant execute on function public.rpc_list_my_applications()
+  to authenticated;
+
 create or replace function public.rpc_list_requester_candidates(p_need_id uuid)
 returns jsonb
 language plpgsql
@@ -167,7 +219,7 @@ begin
     join public.app_profiles p on p.id = r.worker_profile_id
     where r.need_id = p_need_id
       and r.status <> 'DRAFT'
-    order by r.submitted_at asc nulls last, r.created_at asc, r.id asc
+    order by r.submitted_at asc nulls last, r.id asc
   loop
     v_match := private.match_detail(p_need_id, rec.worker_profile_id);
     v_schema := coalesce(rec.snapshot_schema, 'LEGACY_UNPROVEN');
@@ -264,6 +316,7 @@ grant execute on function public.rpc_list_requester_candidates(uuid)
 drop policy if exists responses_requester_read on public.marketplace_responses;
 
 drop policy if exists response_versions_read on public.marketplace_response_versions;
+drop policy if exists response_versions_worker_read on public.marketplace_response_versions;
 create policy response_versions_worker_read
 on public.marketplace_response_versions
 for select
@@ -279,6 +332,8 @@ using (
 
 comment on function public.rpc_get_public_profile(uuid) is
   'RU-5 P0C-01 public-safe ACTIVE role profile DTO. No raw app_profiles RLS broadening; no private storage path/contact/evidence.';
+comment on function public.rpc_list_my_applications() is
+  'RU-5 P0C-03 authenticated Worker own-Application DTO preserving RU-4 stale lifecycle while removing client-side raw joins.';
 comment on function public.rpc_list_requester_candidates(uuid) is
   'RU-5 P0C-05 Requester-owned Need candidate DTO with canonical SELECTABLE state and LEGACY_UNPROVEN snapshot handling.';
 comment on function public.rpc_visible_need_response_counts(uuid[]) is
