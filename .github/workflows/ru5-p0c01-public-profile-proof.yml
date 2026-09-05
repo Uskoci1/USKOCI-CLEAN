@@ -82,33 +82,42 @@ jobs:
           echo "stable_pre_ru0=$actual"
           test "$actual" = "56/20260901114029"
 
-          for f in \
-            20260903130355_clean_ru0_authority_closure.sql \
-            20260903165700_clean_ru1_worker_readiness.sql \
-            20260903190000_clean_ru2_need_v2_draft.sql \
-            20260903190100_clean_ru2_ai_fact_transition_guard.sql \
-            20260904090000_clean_ru3_policy_bundle_foundation.sql \
-            20260904103000_clean_ru3_need_publication_decision.sql \
-            20260904111500_clean_ru3_canonical_publish.sql \
-            20260904214500_clean_ru4_owner_edit_lock.sql \
-            20260904223000_clean_ru4_close_remaining_search.sql \
-            20260904230000_clean_ru4_ai_edit_conversation.sql \
-            20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql \
-            20260904230500_clean_ru4_ai_edit_replay_boundary.sql \
-            20260905060000_clean_ru4b_preselection_qa_foundation.sql \
-            20260905060100_clean_ru4b_service_boundary.sql \
-            20260905060200_clean_ru4b_inbox_event_contract.sql
-          do
-            echo "apply_source=$f"
-            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/$f"
-          done
+          apply_live_alias() {
+            source_file="$1"
+            live_version="$2"
+            live_name="$3"
+            echo "apply_source=$source_file live_alias=${live_version}_${live_name}"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/$source_file"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -c "insert into supabase_migrations.schema_migrations(version,name) values ('$live_version','$live_name');"
+          }
+
+          apply_live_alias 20260903130355_clean_ru0_authority_closure.sql 20260903160812 clean_ru0_authority_closure
+          apply_live_alias 20260903165700_clean_ru1_worker_readiness.sql 20260903184545 clean_ru1_worker_readiness
+          apply_live_alias 20260903190000_clean_ru2_need_v2_draft.sql 20260903222139 clean_ru2_need_v2_draft
+          apply_live_alias 20260903190100_clean_ru2_ai_fact_transition_guard.sql 20260903222333 clean_ru2_ai_fact_transition_guard
+          apply_live_alias 20260904090000_clean_ru3_policy_bundle_foundation.sql 20260904090147 clean_ru3_policy_bundle_foundation
+          apply_live_alias 20260904103000_clean_ru3_need_publication_decision.sql 20260904102429 clean_ru3_need_publication_decision
+          apply_live_alias 20260904111500_clean_ru3_canonical_publish.sql 20260904182402 clean_ru3_canonical_publish
+          apply_live_alias 20260904214500_clean_ru4_owner_edit_lock.sql 20260905052130 clean_ru4_owner_edit_lock
+          apply_live_alias 20260904223000_clean_ru4_close_remaining_search.sql 20260905052224 clean_ru4_close_remaining_search
+          apply_live_alias 20260904230000_clean_ru4_ai_edit_conversation.sql 20260905052336 clean_ru4_ai_edit_conversation
+          apply_live_alias 20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql 20260905052651 clean_ru4_ai_edit_conversation_live_transfer_reconcile
+          apply_live_alias 20260904230500_clean_ru4_ai_edit_replay_boundary.sql 20260905052713 clean_ru4_ai_edit_replay_boundary
+          apply_live_alias 20260905060000_clean_ru4b_preselection_qa_foundation.sql 20260905070010 clean_ru4b_preselection_qa_foundation
+          apply_live_alias 20260905060100_clean_ru4b_service_boundary.sql 20260905070029 clean_ru4b_service_boundary
+          apply_live_alias 20260905060200_clean_ru4b_inbox_event_contract.sql 20260905070046 clean_ru4b_inbox_event_contract
+
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "live_ru4b_predecessor=$actual"
+          test "$actual" = "71/20260905070046"
 
           test "$(psql "$DB_URL" -Atc "select to_regclass('public.app_profiles') is not null;")" = "t"
           test "$(psql "$DB_URL" -Atc "select to_regclass('public.agreements') is not null;")" = "t"
           test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_complete_worker_profile(uuid)') is not null;")" = "t"
           test "$(psql "$DB_URL" -Atc "select to_regprocedure('public.rpc_ru4b_public_preselection_qa(uuid)') is not null;")" = "t"
           test "$(psql "$DB_URL" -Atc "select count(*) from pg_policies where schemaname='public' and tablename='app_profiles' and policyname='app_profiles_select_own' and cmd='SELECT';")" = "1"
-          echo "PASS RU5_P0C01_PREDECESSOR canonical_56_plus_ru0_ru4b"
+          echo "PASS RU5_P0C01_PREDECESSOR live_71_ru4b"
 
       - name: Apply isolated P0C-01 candidate
         shell: bash
