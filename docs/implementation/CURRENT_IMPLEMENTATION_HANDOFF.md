@@ -1,3 +1,23 @@
+<!-- CDL_A04_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A04 RESPONSE VIEWED CLOSED / CANONICAL
+
+- canonical code promotion: `36eaeefb5c053df051cfed445e106ca0663e36cc`
+- proof branch/head: `proof/client-data-response-viewed-20260905 @ ecf7e7709c05d41481a9cc674a2b58042fedf1fa`
+- proof PR: `#7`, squash-promoted only after pre-deletion and post-deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33956936388` — PASS
+- final post-deletion proof: GitHub Actions `33957121385` — PASS (migration integrity, TypeScript, full regression)
+- `src/data/responseClientService.ts` is now the single production owner for `oznaciPrijavuVidjenom`
+- exact backend authority preserved: `rpc_mark_response_viewed(p_response_id)`
+- lower-precedence fake-success/no-op implementation was physically removed from `src/data/supabaseIzvor.ts`
+- duplicate implementation was physically removed from `src/data/productionAuthorityOverrides.ts`
+- preserved exactly: RPC name/params, success result and active error-code/message mapping
+- no Supabase migration/write, Edge change, RU-4/RU-4B semantic change, D0140 activation or monetization change
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **FRESH POST-A04 SHADOW INVENTORY → SELECT CDL-A05 BY LOWEST-RISK PROVEN SLICE**
+
 <!-- CDL_A03_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A03 NEED READS CLOSED / CANONICAL
 
@@ -84,7 +104,7 @@ This block supersedes older next-cursor text that pointed directly from RU-4 to 
 - no placeholder ALLOW, rate number or block behavior was invented.
 - RU-4 remains **CLOSED / LIVE / DO NOT REDO**.
 - RU-4B verdict: **LIVE_FOUNDATION / ACTIVATION_BLOCKED / NOT CLOSED AS USER-FACING FEATURE**.
-- planned next engineering track after this reconciled checkpoint: **CLIENT DATA LAYER CONSOLIDATION / OVERRIDES ELIMINATION**, in a fresh chat, with no behavior reinterpretation and no big-bang rewrite.
+- planned next engineering track after this reconciled checkpoint: **CLIENT DATA_LAYER_CONSOLIDATION / OVERRIDES ELIMINATION**, in a fresh chat, with no behavior reinterpretation and no big-bang rewrite.
 
 <!-- RU4_LIVE_CHECKPOINT_20260905 -->
 ## LATEST PHYSICAL CHECKPOINT — RU-4 OWNER EDIT LOCK LIVE / RECONCILED
