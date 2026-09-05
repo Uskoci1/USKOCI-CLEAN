@@ -1,10 +1,13 @@
 /**
- * CDL-A05 — PHONE grant/revoke, pre-deletion equivalence proof.
+ * CDL-A05 — canonical PHONE grant/revoke contract.
  *
- * Current active productionAuthorityOverrides and the new contactClientService
- * are executed against the same mocked Supabase RPC. Physical deletion is
- * allowed only after this test and the full PRE-P4 gate are green.
+ * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33957532925.
+ * After deletion these tests lock the canonical RPC/error contract and prove
+ * both migrated commands have one physical production owner.
  */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
   const mockRpc = jest.fn();
@@ -16,62 +19,61 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { contactClientService } from '../contactClientService';
-import { productionAuthorityOverrides } from '../productionAuthorityOverrides';
 
 const { mockRpc } = (jest.requireMock('../supabaseClient') as {
   __testMocks: { mockRpc: jest.Mock };
 }).__testMocks;
 
-async function capture(run: () => Promise<unknown>, rpcResult: unknown) {
+function resetRpc(result: unknown) {
   mockRpc.mockReset();
-  mockRpc.mockResolvedValue(rpcResult);
-  const value = await run();
-  return { value, calls: mockRpc.mock.calls.map((args) => [...args]) };
+  mockRpc.mockResolvedValue(result);
 }
 
-describe('CDL-A05 — phone grant equivalence before deletion', () => {
-  it('podeliTelefon preserves exact RPC, PHONE channel, granted=true and success', async () => {
-    const rpcResult = { data: null, error: null };
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.podeliTelefon!('agr-1'),
-      rpcResult,
-    );
-    const newOwner = await capture(
-      () => contactClientService.podeliTelefon('agr-1'),
-      rpcResult,
-    );
+describe('CDL-A05 — canonical phone grant contract', () => {
+  it('physically eliminates both transitional PHONE grant owners', () => {
+    const dataDir = join(__dirname, '..');
+    const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
+    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
+    const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls).toEqual([
+    expect(indexSource).toContain("import { contactClientService } from './contactClientService'");
+    expect(indexSource).toContain('...contactClientService');
+    expect(authoritySource).not.toContain('podeliTelefon');
+    expect(authoritySource).not.toContain('opoziviTelefon');
+    expect(baselineSource).not.toContain('async podeliTelefon(');
+    expect(baselineSource).not.toContain('async opoziviTelefon(');
+    expect(baselineSource).toContain("'podeliTelefon'");
+    expect(baselineSource).toContain("'opoziviTelefon'");
+  });
+
+  it('podeliTelefon preserves exact RPC, PHONE channel, granted=true and success', async () => {
+    resetRpc({ data: null, error: null });
+
+    const result = await contactClientService.podeliTelefon('agr-1');
+
+    expect(mockRpc.mock.calls).toEqual([
       ['rpc_set_contact_grant', {
         p_agreement_id: 'agr-1',
         p_channel: 'PHONE',
         p_granted: true,
       }],
     ]);
-    expect(newOwner.value).toEqual({ ok: true, podatak: null });
+    expect(result).toEqual({ ok: true, podatak: null });
   });
 
   it('opoziviTelefon preserves exact RPC, PHONE channel, granted=false and success', async () => {
-    const rpcResult = { data: null, error: null };
-    const oldOwner = await capture(
-      () => productionAuthorityOverrides.opoziviTelefon!('agr-2'),
-      rpcResult,
-    );
-    const newOwner = await capture(
-      () => contactClientService.opoziviTelefon('agr-2'),
-      rpcResult,
-    );
+    resetRpc({ data: null, error: null });
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.calls).toEqual([
+    const result = await contactClientService.opoziviTelefon('agr-2');
+
+    expect(mockRpc.mock.calls).toEqual([
       ['rpc_set_contact_grant', {
         p_agreement_id: 'agr-2',
         p_channel: 'PHONE',
         p_granted: false,
       }],
     ]);
-    expect(newOwner.value).toEqual({ ok: true, podatak: null });
+    expect(result).toEqual({ ok: true, podatak: null });
   });
 
   it.each([
@@ -82,17 +84,12 @@ describe('CDL-A05 — phone grant equivalence before deletion', () => {
     ['revoke code', 'opoziviTelefon', { code: '42501' }, { ok: false, kod: '42501', poruka: 'Deljenje telefona nije opozvano.' }],
     ['revoke fallback', 'opoziviTelefon', {}, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
   ])('preserves active error mapping: %s', async (_label, method, error, expected) => {
-    const runOld = () => method === 'podeliTelefon'
-      ? productionAuthorityOverrides.podeliTelefon!('agr-error')
-      : productionAuthorityOverrides.opoziviTelefon!('agr-error');
-    const runNew = () => method === 'podeliTelefon'
-      ? contactClientService.podeliTelefon('agr-error')
-      : contactClientService.opoziviTelefon('agr-error');
+    resetRpc({ data: null, error });
 
-    const oldOwner = await capture(runOld, { data: null, error });
-    const newOwner = await capture(runNew, { data: null, error });
+    const result = method === 'podeliTelefon'
+      ? await contactClientService.podeliTelefon('agr-error')
+      : await contactClientService.opoziviTelefon('agr-error');
 
-    expect(newOwner).toEqual(oldOwner);
-    expect(newOwner.value).toEqual(expected);
+    expect(result).toEqual(expected);
   });
 });
