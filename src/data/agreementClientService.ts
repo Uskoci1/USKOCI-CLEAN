@@ -8,7 +8,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type AgreementService = Pick<
   Izvor,
-  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu'
+  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem'
 >;
 
 function fail<T>(error: any, code: string, message: string): Ishod<T> {
@@ -164,6 +164,17 @@ export const agreementClientService: AgreementService = {
       p_accept: prihvatam,
     });
     if (error) return fail(error, 'CHANGE_RESPONSE_FAILED', 'Odgovor na izmenu nije sačuvan.');
+    return { ok: true, podatak: null };
+  },
+
+  async prijaviProblem(dogovorId, opis) {
+    const narrative = opis.trim();
+    if (!narrative) return { ok: false, kod: 'NARRATIVE_REQUIRED', poruka: 'Opišite problem.' };
+    const { error } = await supabase.rpc('rpc_report_problem', {
+      p_agreement_id: dogovorId,
+      p_narrative: narrative,
+    });
+    if (error) return fail(error, 'PROBLEM_REPORT_FAILED', 'Problem nije mogao da se sačuva.');
     return { ok: true, podatak: null };
   },
 };
