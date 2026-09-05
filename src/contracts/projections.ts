@@ -77,7 +77,7 @@ export type PrilikaProjekcija = {
   ponudjenaCena?: Novac;
 };
 
-/* ---------------------------------------------------------------- Prijava */
+/* ---------------------------------------------------------------- Profili */
 
 export type StanjeProfila = 'DRAFT' | 'ACTIVE' | 'SUSPENDED';
 
@@ -94,13 +94,49 @@ export type RadnikProfilProjekcija = {
   radijusKm: number;
 };
 
+/**
+ * RU-5 P0C-01 — javno bezbedan profil.
+ * Privatni storage path, kontakt, verifier payload i hidden T&S signal nikad nisu deo DTO-a.
+ */
+export type JavniProfilProjekcija = {
+  profilId: string;
+  uloga: 'REQUESTER' | 'WORKER';
+  ime: string;
+  avatarUrl: string | null;
+  grad: string | null;
+  biografija: string | null;
+  ocenaProsek: number | null;
+  brojRecenzija: number | null;
+  brojZavrsenih: number;
+  verifikacija: 'VERIFIED' | null;
+};
+
+/* ---------------------------------------------------------------- Prijava */
+
+/**
+ * RU-5: selectable je server-derived stanje. Klijent više ne proizvodi "IZBORNA".
+ */
 export type StanjePrijave =
-  | 'IZBORNA'
-  | 'IZABRANA'
-  | 'POPUNJENO'
+  | 'SELECTABLE'
+  | 'SELECTED'
   | 'STALE_REVIEW_REQUIRED'
-  | 'POVUCENA'
-  | 'ZATVORENA';
+  | 'WITHDRAWN'
+  | 'CLOSED';
+
+export type ApplicationSnapshotSchema = 'RU5_WORKER_CONTEXT_V1' | 'LEGACY_UNPROVEN';
+
+export type KandidatResursi = {
+  vestine: string[];
+  alati: string[];
+  licence: string[];
+  vozila: string[];
+  godineIskustva: number | null;
+};
+
+export type KandidatTim = {
+  kapacitetPriPrijavi: number;
+  pokrivenaMesta: number;
+};
 
 export type KandidatProjekcija = {
   /** Id prijave, ne id osobe. Izbor bira prijavu. */
@@ -108,15 +144,24 @@ export type KandidatProjekcija = {
   /** Tačna verzija prijave. Izbor je veže; bez nje izbor nije atomski. */
   verzija: number;
   hash: string;
+  radnikProfilId: string;
   ime: string;
   inicijali: string;
+  grad: string | null;
   ocenaTekst: string;
   recenzijeTekst: string;
   cena: Novac;
   pokrivaMesta: number;
+  preostalaMesta: number;
   dolazakTekst: string;
   prevozTekst: string;
   stanje: StanjePrijave;
+  nijeIzbornaRazlog: string | null;
+  napomena: string | null;
+  snapshot: ApplicationSnapshotSchema;
+  snapshotHash: string | null;
+  resursi: KandidatResursi | null;
+  tim: KandidatTim | null;
   /**
    * Zašto je predložen — ljudski razlog, nikad procenat.
    * null znači da nije preporučen.
@@ -187,7 +232,7 @@ export type DogovorProjekcija = {
    * Nikad ne računati rok na klijentu — sat na telefonu nije autoritet.
    */
   rokPotvrdeIso: string | null;
-  /** Otvoren problem blokira automatsko zatvaranje. */
+  /** Otvoren problem blokira automatsko zatvaranje po isteku prozora. */
   problemOtvoren: boolean;
   /** Ocena je moguća tek posle kanonskog završetka, ne pre. */
   ocenaMoguca: boolean;
