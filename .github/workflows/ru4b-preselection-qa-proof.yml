@@ -114,7 +114,8 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
-          src=Path(__import__('os').environ['GITHUB_WORKSPACE'])/'supabase/migrations/20260904230000_clean_ru4_ai_edit_conversation.sql'
+          import os
+          src=Path(os.environ['GITHUB_WORKSPACE'])/'supabase/migrations/20260904230000_clean_ru4_ai_edit_conversation.sql'
           s=src.read_text()
           needle='v_need.requester_price_rsd::text'
           if s.count(needle) < 1:
@@ -131,12 +132,12 @@ jobs:
           test "$actual" = "68/20260905052713"
           test "$(psql "$DB_URL" -Atc "select position('requester_rsd' in pg_get_functiondef('public.rpc_ai_open_need_edit_conversation_v2(uuid)'::regprocedure));")" = "0"
 
-      - name: Apply RU-4B fail-closed foundation candidate
+      - name: Apply RU-4B fail-closed candidates
         shell: bash
         run: |
           set -euo pipefail
-          psql "$DB_URL" -v ON_ERROR_STOP=1 \
-            -f "$GITHUB_WORKSPACE/supabase/staging/ru4b/20260905060000_clean_ru4b_preselection_qa_foundation.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/staging/ru4b/20260905060000_clean_ru4b_preselection_qa_foundation.sql"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/staging/ru4b/20260905060100_clean_ru4b_service_boundary.sql"
 
       - name: Verify production-default fail-closed structure
         shell: bash
@@ -148,15 +149,40 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select count(*) from private.preselection_qa_commands;")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from private.publication_policy_bundles;")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from private.need_publication_decisions;")" = "0"
-          echo "PASS RU4B_FAIL_CLOSED_ZERO_SEED"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('service_role','public.rpc_ru4b_record_policy_decision_service(text,uuid,integer,uuid,text,uuid,text,text[],text,jsonb)','EXECUTE');")" = "t"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('authenticated','public.rpc_ru4b_record_policy_decision_service(text,uuid,integer,uuid,text,uuid,text,text[],text,jsonb)','EXECUTE');")" = "f"
+          test "$(psql "$DB_URL" -Atc "select has_function_privilege('anon','public.rpc_ru4b_record_policy_decision_service(text,uuid,integer,uuid,text,uuid,text,text[],text,jsonb)','EXECUTE');")" = "f"
+          echo "PASS RU4B_FAIL_CLOSED_ZERO_SEED_SERVICE_BOUNDARY"
+
+      - name: Prove service ALLOW remains disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          set local role service_role;
+          do $proof$
+          declare denied boolean:=false;
+          begin
+            begin
+              perform public.rpc_ru4b_record_policy_decision_service(
+                'QUESTION',extensions.gen_random_uuid(),1,null,repeat('a',64),extensions.gen_random_uuid(),
+                'ALLOW','{}'::text[],'PROOF',jsonb_build_object('proofOnly',true));
+            exception when sqlstate 'P0001' then
+              if sqlerrm='RU4B_ALLOW_NOT_ENABLED' then denied:=true; else raise; end if;
+            end;
+            if not denied then raise exception 'RU4B_SERVICE_ALLOW_WAS_ENABLED'; end if;
+          end
+          $proof$;
+          rollback;
+          SQL
+          echo "PASS RU4B_SERVICE_ALLOW_FAIL_CLOSED"
 
       - name: Run authenticated two-account RU-4B proof
         shell: bash
         run: |
           set -euo pipefail
-          psql "$DB_URL" -v ON_ERROR_STOP=1 \
-            -f "$GITHUB_WORKSPACE/supabase/proofs/ru4b_preselection_qa_runtime_proof.sql" \
-            | tee /tmp/ru4b.log
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/ru4b_preselection_qa_runtime_proof.sql" | tee /tmp/ru4b.log
           grep -F "PASS RU4B_PRESELECTION_QA fail_closed_dependencies active_worker owner_only anonymous_until_answer no_identity_leak exact_policy_gate exact_materiality_gate material_routes_ru4 append_only_answer_history edited_marker ignore_nonpublic pii_floor idempotent events" /tmp/ru4b.log
 
       - name: Verify proof zero residue
