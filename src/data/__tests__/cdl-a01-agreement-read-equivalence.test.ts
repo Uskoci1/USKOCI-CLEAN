@@ -3,9 +3,12 @@
  *
  * The pre-deletion commit proved old-owner/new-owner equivalence in CI.
  * After migration, these tests lock the canonical RPC/auth/mapping/error
- * contract and verify that the transitional Agreement override no longer owns
- * either read operation.
+ * contract and verify that the transitional Agreement override and legacy
+ * baseline can no longer own either read operation at runtime.
  */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
@@ -74,6 +77,19 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
   it('transitional Agreement override no longer owns migrated reads', () => {
     expect(agreementProductionOverrides).not.toHaveProperty('mojiDogovori');
     expect(agreementProductionOverrides).not.toHaveProperty('dogovor');
+  });
+
+  it('production composition excludes legacy baseline reads from runtime ownership', () => {
+    const source = readFileSync(join(__dirname, '..', 'index.ts'), 'utf8');
+    const productionStart = source.indexOf('const produkcijskiIzvor');
+    const productionEnd = source.indexOf('export const izvor');
+    const productionComposition = source.slice(productionStart, productionEnd);
+
+    expect(source).toContain('mojiDogovori: legacyMojiDogovori');
+    expect(source).toContain('dogovor: legacyDogovor');
+    expect(productionComposition).toContain('...supabaseBaseline');
+    expect(productionComposition).toContain('...agreementClientService');
+    expect(productionComposition).not.toContain('...supabaseIzvor');
   });
 
   it('mojiDogovori uses only canonical list RPC and preserves projection mapping', async () => {
