@@ -123,20 +123,31 @@ export type JavniProfilProjekcija = {
   poverenje: JavniProfilPoverenje;
 };
 
+/** RU-5 / P0D-01 — server-owned Requester candidate lifecycle. */
 export type StanjePrijave =
-  | 'IZBORNA'
-  | 'IZABRANA'
-  | 'POPUNJENO'
-  | 'STALE_REVIEW_REQUIRED'
-  | 'POVUCENA'
-  | 'ZATVORENA';
+  | 'SELECTABLE'
+  | 'STALE'
+  | 'OVERFILL'
+  | 'SELECTED'
+  | 'WITHDRAWN'
+  | 'CLOSED'
+  | 'FULL';
+
+export type DokazPrijave = {
+  sema: 'LEGACY_UNPROVEN' | 'APPLICATION_V1_SELF_DECLARED';
+  kapacitetTima: number | null;
+  vestine: string[] | null;
+  alati: string[] | null;
+  licence: string[] | null;
+  vozila: string[] | null;
+};
 
 export type KandidatProjekcija = {
   /** Id prijave, ne id osobe. Izbor bira prijavu. */
   prijavaId: string;
   /** Bezbedan profile id za javni profil; nikada auth/account id. */
   radnikProfilId: string;
-  /** Tačna verzija prijave. Izbor je veže; bez nje izbor nije atomski. */
+  /** Tačna verzija/hash prijave. Izbor se vezuje baš za njih. */
   verzija: number;
   hash: string;
   ime: string;
@@ -145,12 +156,16 @@ export type KandidatProjekcija = {
   recenzijeTekst: string;
   cena: Novac;
   pokrivaMesta: number;
+  preostaloMesta: number;
   dolazakTekst: string;
   prevozTekst: string;
+  napomena: string;
   stanje: StanjePrijave;
+  mozeIzabrati: boolean;
+  dokazPrijave: DokazPrijave;
   /**
    * Zašto je predložen — ljudski razlog, nikad procenat.
-   * null znači da nije preporučen.
+   * P0D-01 ne izmišlja ranking; null znači da nema kanonskog razloga.
    */
   razlogPreporuke: string | null;
 };
