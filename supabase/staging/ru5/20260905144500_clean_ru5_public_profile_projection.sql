@@ -36,7 +36,9 @@ begin
     into completed_count
     from public.agreements a
     join public.agreement_execution e on e.agreement_id = a.id
-   where e.completed_at is not null
+   where a.status = 'COMPLETED'
+     and e.state = 'COMPLETED'
+     and e.completed_at is not null
      and (
        (p.kind = 'REQUESTER' and a.requester_profile_id = p.id)
        or
