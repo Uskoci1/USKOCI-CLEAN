@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T09:10:00Z",
+  "updated_at": "2026-09-05T09:26:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,8 +9,8 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "36eaeefb5c053df051cfed445e106ca0663e36cc",
-    "note": "CDL-A04 response-viewed command is canonical and closed. responseClientService is the single production owner for oznaciPrijavuVidjenom; rpc_mark_response_viewed remains backend authority. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
+    "canonical_base_observed_before_docs_reconciliation": "d14ee1c9e451c6a462b174082e1b06a0fde35a88",
+    "note": "CDL-A05 PHONE grant/revoke is canonical and closed. contactClientService is the single production owner for podeliTelefon/opoziviTelefon; rpc_set_contact_grant remains backend authority. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. Exact-location was not changed. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
   },
   "live_migration_count": 71,
   "live_head": {
@@ -87,7 +87,23 @@
       "supabase_write": false,
       "edge_change": false
     },
-    "next_cursor": "FRESH_POST_A04_SHADOW_INVENTORY"
+    "cdl_a05": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "d14ee1c9e451c6a462b174082e1b06a0fde35a88",
+      "proof_branch": "proof/client-data-phone-grants-20260905",
+      "proof_head": "f95631d4d45f803efc70e098f922238d13b42fb4",
+      "pre_deletion_equivalence_run": 33957532925,
+      "final_post_deletion_run": 33957660880,
+      "methods": ["podeliTelefon", "opoziviTelefon"],
+      "canonical_owner": "src/data/contactClientService.ts",
+      "backend_authority": ["rpc_set_contact_grant"],
+      "production_authority_duplicates_deleted": true,
+      "legacy_fake_success_duplicates_deleted": true,
+      "exact_location_unchanged": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "next_cursor": "FRESH_POST_A05_SHADOW_INVENTORY"
   },
   "ru0": {
     "status": "CLOSED",
@@ -161,7 +177,7 @@
     "activation_blocker":"No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish":"FAIL_CLOSED"
   },
-  "next_allowed_action":"Fresh post-A04 shadow inventory; select CDL-A05 from current canonical composition; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
+  "next_allowed_action":"Fresh post-A05 shadow inventory; select CDL-A06 from current canonical composition by lowest-risk proven slice; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
   "ru4": {
     "status":"CLOSED_LIVE_STRUCTURAL_PROVEN",
     "functional_canonical_source_head":"a271d6084b4648e757d2230d0a208f558c802a14",
@@ -195,6 +211,6 @@
     "activation_blockers":["BLOCK_AUTHORITY_NOT_READY","NUMERIC_RATE_POLICY_NOT_OWNER_APPROVED","PRESELECTION_QA_PRODUCTION_ALLOW_NOT_ACTIVATED","TRUSTED_MATERIALITY_AUTHORITY_NOT_ACTIVATED"],
     "public_qa":"FAIL_CLOSED",
     "d0140_publish":"FAIL_CLOSED",
-    "next_track":"FRESH_POST_A04_SHADOW_INVENTORY"
+    "next_track":"FRESH_POST_A05_SHADOW_INVENTORY"
   }
 }
