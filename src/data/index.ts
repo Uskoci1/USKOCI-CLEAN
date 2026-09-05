@@ -1,4 +1,5 @@
 import { agreementClientService } from './agreementClientService';
+import { applicationClientService } from './applicationClientService';
 import { aiCommandOverrides } from './aiCommandOverrides';
 import { aiNeedV2Production } from './aiNeedV2Production';
 import { aiProductionOverrides } from './aiProductionOverrides';
@@ -48,6 +49,7 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // raw app_profiles remains owner-only and is never opened for marketplace cards.
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
+  ...applicationClientService,
   ...productionAuthorityOverrides,
   ...workerProfileClientService,
   ...publicProfileClientService,

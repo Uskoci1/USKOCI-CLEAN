@@ -100,6 +100,8 @@ type SupabaseIzvor = Omit<
   | 'otvoriRazgovor'
   | 'razgovor'
   | 'objaviPotrebu'
+  | 'mojePrijave'
+  | 'povuciPrijavu'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
