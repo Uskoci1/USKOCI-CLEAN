@@ -5,6 +5,7 @@ import { aiProductionOverrides } from './aiProductionOverrides';
 import { lazniIzvor } from './lazniIzvor';
 import { needClientService } from './needClientService';
 import { productionAuthorityOverrides } from './productionAuthorityOverrides';
+import { responseClientService } from './responseClientService';
 import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
 import { Izvor } from './ports';
@@ -33,6 +34,8 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // known unsafe/incorrect paths. CDL-A03 physically removes the legacy Need read
 // implementations, so needClientService is the only production owner for
 // mojePotrebe/potreba and keeps their fail-loud projection semantics explicit.
+// CDL-A04 routes oznaciPrijavuVidjenom through an explicit response service while
+// the old owner remains temporarily present only for equivalence proof.
 // AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
 // CDL-A01/A02 physically removed the five migrated Agreement methods from
@@ -41,6 +44,7 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...productionAuthorityOverrides,
+  ...responseClientService,
   ...needClientService,
   ...aiProductionOverrides,
   ...aiCommandOverrides,
