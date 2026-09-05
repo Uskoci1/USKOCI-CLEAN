@@ -39,7 +39,10 @@ function pokrivenost(ukupno: number, popunjeno: number) {
 const UKUPNO_MESTA = 2;
 const NARUCILAC_PROFIL_ID = 'narucilac-milos';
 
-type Kandidat = Omit<KandidatProjekcija, 'stanje' | 'razlogPreporuke'>;
+type Kandidat = Omit<
+  KandidatProjekcija,
+  'stanje' | 'preostaloMesta' | 'napomena' | 'mozeIzabrati' | 'dokazPrijave' | 'razlogPreporuke'
+>;
 
 const KANDIDATI: Kandidat[] = [
   { prijavaId: 'p-marko', radnikProfilId: 'radnik-marko', verzija: 2, hash: 'h-marko-2', ime: 'Marko Ilić', inicijali: 'MI', ocenaTekst: '5,0', recenzijeTekst: '11 recenzija', cena: rsd(5200), pokrivaMesta: 2, dolazakTekst: 'Sutra · 17:00', prevozTekst: 'Kombi' },
@@ -386,10 +389,28 @@ export const lazniIzvor: Izvor = {
     return KANDIDATI.map((k) => {
       const izabran = izabraniIds.includes(k.prijavaId);
       const prviSlobodan = slobodni[0]?.prijavaId === k.prijavaId;
+      const kandidatStanje = izabran
+        ? 'SELECTED'
+        : preostalo === 0
+          ? 'FULL'
+          : k.pokrivaMesta > preostalo
+            ? 'OVERFILL'
+            : 'SELECTABLE';
       return {
         ...k,
-        stanje: izabran ? 'IZABRANA' : preostalo === 0 ? 'POPUNJENO' : 'IZBORNA',
-        razlogPreporuke: !izabran && prviSlobodan && preostalo > 0 ? razlog(k, preostalo) : null,
+        preostaloMesta: preostalo,
+        napomena: '',
+        stanje: kandidatStanje,
+        mozeIzabrati: kandidatStanje === 'SELECTABLE',
+        dokazPrijave: {
+          sema: 'LEGACY_UNPROVEN',
+          kapacitetTima: null,
+          vestine: null,
+          alati: null,
+          licence: null,
+          vozila: null,
+        },
+        razlogPreporuke: kandidatStanje === 'SELECTABLE' && prviSlobodan ? razlog(k, preostalo) : null,
       } satisfies KandidatProjekcija;
     });
   },
