@@ -1,75 +1,74 @@
 # USKOČI implementation continuity
 
-## Current authoritative checkpoint — 2026-09-05 — POST RU-5 / P0C-02 LIVE
+## Current authoritative checkpoint — 2026-09-05 — POST RU-5 / P0C-03 LIVE
 
-This file is the current forward continuity pointer. Older checkpoint sections in `HANDOFF.md`, `docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md`, `docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md`, and earlier status files are retained as historical evidence even where they record live-71/live-72 or P0C-01/P0C-02-next state; they are superseded by this checkpoint, `CURRENT_IMPLEMENTATION_STATUS.md`, `RU_STATUS.md`, `LIVE_MIGRATION_STATE.json`, canonical GitHub state and fresh live Supabase reads.
+This file is the current forward continuity pointer. Older checkpoint sections in `HANDOFF.md`, `docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md`, `docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md`, and earlier status files are retained as historical evidence even where they record live-71/live-72/live-73 or P0C-01/P0C-02/P0C-03-next state; they are superseded by this checkpoint, `CURRENT_IMPLEMENTATION_STATUS.md`, `RU_STATUS.md`, `LIVE_MIGRATION_STATE.json`, canonical GitHub state and fresh live Supabase reads.
 
 ### Canonical repository
 
 - repository: `Uskoci1/USKOCI-CLEAN`
 - branch: `clean-alpha-backend`
-- P0C-02 final proof SHA: `2d6b1a64d9760bddcca1e4751945fdccc8a5e6ba`
-- P0C-02 canonical merge: `bc784f3ed65d3a053195789740fae17e4df235d3`
-- proof run: `33982216558` — PASS
-- PR PRE-P4: `33982373215` — PASS
-- PR CodeQL: `33982372198` — JS/TS, Python and Actions PASS
-- canonical push PRE-P4: `33985675818` — PASS
-- canonical push CodeQL: `33985675330` — JS/TS, Python and Actions PASS
+- P0C-03 final proof SHA: `bffc533996a7f629846eaf51de231320df41e09b`
+- P0C-03 canonical merge: `3fe3768f1dde3aa32340c6bd60167fd9aa610c47`
+- final proof run: `33988582621` — PASS
+- PR PRE-P4: `33988584895` — PASS
+- PR CodeQL: `33988582873` — JS/TS, Python and Actions PASS
+- canonical push PRE-P4: `33988758024` — PASS
+- canonical push CodeQL: `33988757345` — JS/TS, Python and Actions PASS
+- canonical Control-0: `33988758119` — PASS
 
 ### Live Supabase
 
 - project: `leqcwgzvjsxugfgzdmth`
-- migration count: `73`
-- head: `20260905190040_clean_ru5_atomic_application_submit`
-- canonical source migration: `20260905190000_clean_ru5_atomic_application_submit.sql`
-- canonical raw MD5: `1a397f893deb3109b8984035c19111bb`
-- canonical UTF-8 bytes: `18107` including terminal LF
-- live recorded statement MD5: `e573341dad8ed303d4c72f234e11b761`
-- live recorded statement UTF-8 bytes: `18106`
-- raw exact-byte identity: `FALSE` because the connected migration transport omitted only the terminal LF
-- normalized identity proof: `md5(live_recorded_statement || E'\n') = 1a397f893deb3109b8984035c19111bb`, bytes `18107`
+- migration count: `74`
+- head: `20260905200133_clean_ru5_my_applications_projection`
+- canonical source migration: `20260905211500_clean_ru5_my_applications_projection.sql`
+- canonical raw MD5: `868ef30987d3a62b84b41e93efeed047`
+- canonical UTF-8 bytes: `6353`
+- live recorded statement MD5: `868ef30987d3a62b84b41e93efeed047`
+- live recorded statement UTF-8 bytes: `6353`
+- raw exact-byte identity: `TRUE`
 
 Fresh live postflight reconfirmed:
 
-- `rpc_submit_response(...)` contains P0C-02 readiness, team-capacity, remaining-capacity, MY_PRICE equality, snapshot and `RESPONSE_RECEIVED` markers;
-- `authenticated EXECUTE = YES`, `service_role EXECUTE = YES`, `anon EXECUTE = NO` on the canonical submit RPC;
-- authenticated direct INSERT remains denied on `marketplace_responses` and `marketplace_response_versions`;
-- `private.response_application_snapshots` exists with RLS enabled and no authenticated raw SELECT/INSERT grant;
-- snapshot row count is `0`, proving no historical response/version backfill was performed by the migration;
+- `rpc_list_my_applications()` exists, is STABLE + SECURITY DEFINER and is executable by `authenticated` only;
+- projection is bound to `worker_account_id = auth.uid()` and returns canonical Worker-facing lifecycle mapping;
+- terminal `WITHDRAWN` takes precedence over stale-revision mapping;
+- selected Applications expose exact Agreement link and cannot use standard withdrawal;
+- standard withdrawal remains `rpc_withdraw_response`; stale resolution remains the separate RU-4 authority;
+- authenticated direct INSERT/UPDATE remains denied on response authority tables;
 - business counts remain `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`;
 - D0140 inventory remains zero: `publication_policy_bundles=0`, `publication_policy_rule_refs=0`, `need_publication_decisions=0`;
-- RU-4B governed inventory remains zero: questions/answer versions/policy decisions/materiality decisions/commands all `0`;
+- RU-4B governed inventory remains zero;
 - D0140 production ALLOW remains fail-closed;
 - RU-4B remains foundation-only / activation blocked;
 - V1 monetization remains `FREE / 0 RSD`.
 
-### RU-5 / P0C-02
+### RU-5 / P0C-03
 
 Status: `CLOSED / CANONICAL / LIVE / DO NOT REDO`.
 
-The closed unit proves the manual atomic Application submit contract admitted by the latest owner scope: current RU-1 Worker readiness, own-profile ownership, Need state/deadline/revision, own-Need denial, team capacity, remaining Need capacity, fixed `MY_PRICE` equality, semantic replay, direct-write denial, private immutable per-version self-declared snapshot, one deduplicated `RESPONSE_RECEIVED` event, and compatibility with existing Selection/Withdrawal lifecycle.
+The closed unit proves a single production read owner for Worker My Applications, own-only privacy, canonical lifecycle mapping, selected Agreement navigation, standard withdrawal with exact request-key replay semantics, selected withdrawal denial, stale handoff to the existing RU-4 resolver, direct response-write denial and W06 client cutover. The old raw `ru4Production.mojePrijave()` shadow reader is physically removed.
 
-Existing historical Application versions were not rewritten or backfilled. Absence of a P0C-02 snapshot therefore remains `LEGACY_UNPROVEN`, not inferred trust.
-
-P0C-02 does **not** claim to solve or activate bounded-note policy, hard calendar-conflict authority, D0140, RU-4B, monetization, Application AI, candidate projection or other later RU-5/RU-6 work.
+P0C-03 does **not** change Selection/Agreement semantics or claim calendar, bounded-note, D0140, RU-4B, monetization, Application AI or legacy Application repair.
 
 ### Exact next cursor
 
-`RU-5 / P0C-03 — MY APPLICATIONS PROJECTION + WITHDRAW PORT`
+`RU-5 / P0D-01 — CANDIDATE PROJECTION`
 
 Before any code or live write:
 
-1. fresh-read current `marketplace_responses`/versions ownership and lifecycle states relevant to the Worker’s own Applications;
-2. inspect `rpc_withdraw_response`, its semantic request-key/replay behavior and selected/closed/stale denial rules;
-3. inspect current RLS/grants for own Application reads and direct write denial;
-4. inspect W06 `moje-prijave` and the current data port/projection path;
-5. reconcile exact canonical mapping for SUBMITTED/VIEWED/SHORTLISTED/STALE/WITHDRAWN/SELECTED/closed without inventing new lifecycle authority;
-6. prove that a Worker sees own Applications only and that selected Applications cannot be withdrawn;
-7. only after a concrete physical gap is identified, open the smallest P0C-03 proof branch.
+1. fresh-read the current Requester-facing candidate/Application read path and all consumers;
+2. identify exactly which Application version/hash/revision fields are needed for safe selection binding;
+3. reconcile public-safe Worker/profile evidence with P0C-01 and private Application snapshot authority without exposing raw `app_profiles`;
+4. inspect current ordering/ranking fields physically present; do not invent ranking policy;
+5. inspect `rpc_select_response` prerequisites and current Selection/Agreement binding read-only; do not modify it in preflight;
+6. prove requester ownership/visibility boundaries and direct-write denial;
+7. only after a concrete physical gap is identified, open the smallest P0D-01 proof branch.
 
-The frozen forward blueprint identifies P0C-03 as `my_applications_projection_and_withdraw_port`. Bounded-note/calendar gaps remain separately tracked and are not to be silently mixed into this unit.
+Known broader Selection gaps such as legacy over-capacity selection revalidation and calendar hard-conflict authority remain separately tracked; they must not be silently folded into Candidate Projection without a proven dependency and governing scope.
 
-No RU-5B Application AI work is admissible until the manual RU-5 Application contract and dependent manual lifecycle units are proven.
+No RU-5B Application AI work is admissible until the manual RU-5 Application lifecycle dependencies are proven.
 
 ### Safety locks that remain in force
 

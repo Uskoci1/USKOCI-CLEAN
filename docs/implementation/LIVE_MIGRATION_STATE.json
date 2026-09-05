@@ -10,8 +10,8 @@
   },
   "canonical_code_checkpoint_before_continuity_docs": "366561e74a088d55d816d3795cba5f2299e3283c",
   "live": {
-    "migration_count": 73,
-    "head": "20260905190040_clean_ru5_atomic_application_submit",
+    "migration_count": 74,
+    "head": "20260905200133_clean_ru5_my_applications_projection",
     "pending_forward_migrations": 0
   },
   "edge": {
@@ -23,7 +23,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_73_RU5_P0C02",
+    "state": "NORMALIZED_TO_LIVE_74_RU5_P0C03",
     "ru2_live_aliases": [
       {"live_version":"20260903222139","source_version":"20260903190000","source_file":"20260903190000_clean_ru2_need_v2_draft.sql","exact_byte_identity":true},
       {"live_version":"20260903222333","source_version":"20260903190100","source_file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","exact_byte_identity":true}
@@ -73,6 +73,24 @@
       "proof_run":33982216558,
       "canonical_pre_p4_run":33985675818,
       "canonical_codeql_run":33985675330
+    },
+    "ru5_p0c03_live_alias": {
+      "name":"clean_ru5_my_applications_projection",
+      "live_version":"20260905200133",
+      "source_version":"20260905211500",
+      "source_file":"20260905211500_clean_ru5_my_applications_projection.sql",
+      "exact_byte_identity":true,
+      "canonical_raw_md5":"868ef30987d3a62b84b41e93efeed047",
+      "canonical_utf8_bytes":6353,
+      "recorded_statement_md5":"868ef30987d3a62b84b41e93efeed047",
+      "recorded_statement_utf8_bytes":6353,
+      "canonical_promotion_sha":"3fe3768f1dde3aa32340c6bd60167fd9aa610c47",
+      "proof_run":33988582621,
+      "pr_pre_p4_run":33988584895,
+      "pr_codeql_run":33988582873,
+      "canonical_pre_p4_run":33988758024,
+      "canonical_codeql_run":33988757345,
+      "canonical_control0_run":33988758119
     }
   },
   "client_data_layer": {
@@ -95,7 +113,7 @@
       {"id":"CDL-A11","status":"CLOSED_CANONICAL","sha":"1be672dc649fee102a66c826c86b0e5609a43315","owner":"aiProductionOverrides","methods":["otvoriRazgovor","razgovor"],"proof":[33966439120,33966556555],"deleted":["NEW_NEED lower shadow","null conversation-read shadow"]},
       {"id":"CDL-A12","status":"CLOSED_CANONICAL","sha":"40afb2ed654c9987f82e7cd3c120a5b60ccbcf11","owner":"productionAuthorityOverrides","methods":["objaviPotrebu"],"proof":[33967095683,33967215611,33967294217],"deleted":["incomplete p_profile_id lower shadow"],"fail_closed":"PACKAGE_4_NOT_READY"}
     ],
-    "next_cursor": "RU5_P0C03_MY_APPLICATIONS_PREFLIGHT"
+    "next_cursor": "RU5_P0D01_CANDIDATE_PROJECTION_PREFLIGHT"
   },
   "ru5": {
     "status":"IN_PROGRESS",
@@ -116,8 +134,15 @@
       "next":"P0C-03_MY_APPLICATIONS_PROJECTION_WITHDRAW"
     },
     "p0c03": {
+      "status":"CLOSED_LIVE",
+      "contract":"MY_APPLICATIONS_PROJECTION_AND_WITHDRAW_PORT",
+      "canonical_sha":"3fe3768f1dde3aa32340c6bd60167fd9aa610c47",
+      "live_migration":"20260905200133_clean_ru5_my_applications_projection",
+      "next":"P0D-01_CANDIDATE_PROJECTION"
+    },
+    "p0d01": {
       "status":"NEXT_READ_ONLY_PREFLIGHT",
-      "contract":"MY_APPLICATIONS_PROJECTION_AND_WITHDRAW_PORT"
+      "contract":"CANDIDATE_PROJECTION"
     }
   },
   "status": {
@@ -128,7 +153,7 @@
     "RU-4":"CLOSED_LIVE_DO_NOT_REDO",
     "RU-4B":"LIVE_FOUNDATION_ACTIVATION_BLOCKED_DEFERRED",
     "CDL":"CLOSED_CANONICAL",
-    "RU-5":"IN_PROGRESS_P0C01_P0C02_CLOSED_LIVE_P0C03_NEXT",
+    "RU-5":"IN_PROGRESS_P0C01_P0C02_P0C03_CLOSED_LIVE_P0D01_NEXT",
     "RU-5B":"NOT_STARTED_GATED_BY_RU5",
     "RU-6A":"FOUNDATION_ONLY_GATED_BY_RU5",
     "RU-6B":"NOT_STARTED_GATED_BY_RU6A",
@@ -147,5 +172,5 @@
     "service_offer_listing_supported":false
   },
   "monetization":"FREE_0_RSD",
-  "next_allowed_action":"RU-5/P0C-03 My Applications projection + withdraw port: fresh read-only physical preflight of own Application projection, rpc_withdraw_response, response/version lifecycle, RLS/idempotency and W06 consumer; proof branch before any new live write."
+  "next_allowed_action":"RU-5/P0D-01 Candidate Projection: fresh read-only physical preflight of current requester candidate-list reads, public-safe Worker evidence, Application version binding, selection prerequisites and privacy boundaries; no selection semantic change and no live write before proof/promotion."
 }

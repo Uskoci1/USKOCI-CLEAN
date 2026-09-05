@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-05T16:58:00Z",
+  "generated_at_utc": "2026-09-05T20:36:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "23f9756cbd9dec38d05161d60007d0fb15edbe0c",
+  "repository_base_head": "3fe3768f1dde3aa32340c6bd60167fd9aa610c47",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 73,
+    "migration_count": 74,
     "last": {
-      "name": "clean_ru5_atomic_application_submit",
-      "version": "20260905190040"
+      "name": "clean_ru5_my_applications_projection",
+      "version": "20260905200133"
     },
     "entries": [
       {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
@@ -90,23 +90,11 @@
       {"name":"clean_ru4b_service_boundary","version":"20260905070029","file":"20260905060100_clean_ru4b_service_boundary.sql","source_version":"20260905060100","exact_byte_mirror":true,"canonical_raw_md5":"ee041bed805dbcdc016e8f9e0ab85f74","live_recorded_statement_md5":"ee041bed805dbcdc016e8f9e0ab85f74","recorded_statement_utf8_bytes":2408},
       {"name":"clean_ru4b_inbox_event_contract","version":"20260905070046","file":"20260905060200_clean_ru4b_inbox_event_contract.sql","source_version":"20260905060200","exact_byte_mirror":true,"canonical_raw_md5":"9182fb1c347ac1abc889cc6e0554cc2b","live_recorded_statement_md5":"9182fb1c347ac1abc889cc6e0554cc2b","recorded_statement_utf8_bytes":2201},
       {"name":"clean_ru5_public_profile_projection","version":"20260905163927","file":"20260905133000_clean_ru5_public_profile_projection.sql","source_version":"20260905133000","exact_byte_mirror":true,"canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","live_recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","recorded_statement_utf8_bytes":2458},
-      {"name":"clean_ru5_atomic_application_submit","version":"20260905190040","file":"20260905190000_clean_ru5_atomic_application_submit.sql","source_version":"20260905190000","exact_byte_mirror":false,"canonical_raw_md5":"1a397f893deb3109b8984035c19111bb","canonical_utf8_bytes":18107,"live_recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761","recorded_statement_utf8_bytes":18106,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb","normalized_terminal_lf_bytes":18107}
+      {"name":"clean_ru5_atomic_application_submit","version":"20260905190040","file":"20260905190000_clean_ru5_atomic_application_submit.sql","source_version":"20260905190000","exact_byte_mirror":false,"canonical_raw_md5":"1a397f893deb3109b8984035c19111bb","canonical_utf8_bytes":18107,"live_recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761","recorded_statement_utf8_bytes":18106,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb","normalized_terminal_lf_bytes":18107},
+      {"name":"clean_ru5_my_applications_projection","version":"20260905200133","file":"20260905211500_clean_ru5_my_applications_projection.sql","source_version":"20260905211500","exact_byte_mirror":true,"canonical_raw_md5":"868ef30987d3a62b84b41e93efeed047","live_recorded_statement_md5":"868ef30987d3a62b84b41e93efeed047","recorded_statement_utf8_bytes":6353}
     ]
   },
-  "pending_forward_migrations": [
-    {
-      "version": "20260905211500",
-      "name": "clean_ru5_my_applications_projection",
-      "file": "20260905211500_clean_ru5_my_applications_projection.sql",
-      "raw_md5": "868ef30987d3a62b84b41e93efeed047",
-      "canonical_utf8_bytes": 6353,
-      "classification": "PENDING_FORWARD_MIGRATION",
-      "live_applied": false,
-      "predecessor_live_migration_count": 73,
-      "predecessor_live_head": "20260905190040",
-      "rationale": "RU-5 P0C-03 own-Worker My Applications projection and client withdraw binding. Projection is read-only, maps canonical Worker-facing lifecycle states, returns selected Agreement link, preserves existing rpc_withdraw_response authority and leaves RU-4 stale resolution separate. No response row rewrite, D0140/RU-4B/monetization/calendar/note-policy activation."
-    }
-  ],
+  "pending_forward_migrations": [],
   "reconstructions": [
     {
       "version": "20260830191500",
@@ -157,7 +145,8 @@
     {"version":"20260901114029","name":"clean_ai_fact_supersession_and_human_correction","file":"20260901114029_clean_ai_fact_supersession_and_human_correction.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":14428,"recorded_statement_md5":"777a5ed9f25163c66bfe9070ee0a2844","canonical_raw_md5":"777a5ed9f25163c66bfe9070ee0a2844","mirror_contract":"canonical file mirrors the exact single recorded UTF-8 migration statement","applied_history_action":"UNCHANGED"},
     {"version":"20260903160812","source_version":"20260903130355","name":"clean_ru0_authority_closure","file":"20260903130355_clean_ru0_authority_closure.sql","classification":"SEMANTIC_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_chars":21495,"recorded_statement_md5":"4c0d630d93f8fdfc6e683dcfd8a9895a","canonical_raw_md5":"23a60f86bdb952f1dbf62990f2f800cc","exact_byte_mirror":false,"difference":"Supabase assigned the live timestamp and the connected deployment payload omitted non-executable section comments. Executable RU-0 contract preserved; raw-byte identity not claimed.","applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
     {"version":"20260904090147","source_version":"20260904090000","name":"clean_ru3_policy_bundle_foundation","file":"20260904090000_clean_ru3_policy_bundle_foundation.sql","classification":"SEMANTIC_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_utf8_bytes":8506,"recorded_statement_md5":"6ca4db41a4c23dd9bd85fc2e76ea2af8","canonical_raw_md5":"e65a1d1658938ffdca07c88c246e660c","exact_byte_mirror":false,"difference":"Connected Supabase migration recording is not byte-identical to the canonical raw file representation. Executable B05 contract and live structural postconditions match; raw-byte identity is not claimed.","applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
-    {"version":"20260905163927","source_version":"20260905133000","name":"clean_ru5_public_profile_projection","file":"20260905133000_clean_ru5_public_profile_projection.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":2458,"recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","exact_byte_mirror":true,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"}
+    {"version":"20260905163927","source_version":"20260905133000","name":"clean_ru5_public_profile_projection","file":"20260905133000_clean_ru5_public_profile_projection.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":2458,"recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","canonical_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","exact_byte_mirror":true,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
+    {"version":"20260905200133","source_version":"20260905211500","name":"clean_ru5_my_applications_projection","file":"20260905211500_clean_ru5_my_applications_projection.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":6353,"recorded_statement_md5":"868ef30987d3a62b84b41e93efeed047","canonical_raw_md5":"868ef30987d3a62b84b41e93efeed047","exact_byte_mirror":true,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"}
   ],
   "ru4_live_reconciliation": {
     "status": "CLOSED_LIVE_STRUCTURAL_PROVEN",
@@ -169,7 +158,7 @@
     "transport_incident": {"affected_live_version":"20260905052336","historical_record_preserved":true,"canonical_raw_md5":"b976f1ccc2c329d7f2fe0bc43ef36606","live_recorded_statement_md5":"d3fb1fe33fffcd3c7314a9fa2238de3","repair_live_version":"20260905052651","repair_source_version":"20260904230200","repair_source_file":"20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql","repair_raw_md5":"6be6134441a81a4550710969cac89d85"},
     "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"need_edit_commands":0,"need_revision_events":0,"response_revision_resolution_commands":0,"remaining_search_close_commands":0,"policy_bundles":0,"policy_rule_refs":0,"publication_decisions":0,"d0140_production_publish":"FAIL_CLOSED"}
   },
-  "next_allowed_action": "RU-5 / P0C-03 MY APPLICATIONS PROJECTION + WITHDRAW PORT — fresh read-only physical preflight of own Application projection, rpc_withdraw_response, response/version lifecycle, RLS/idempotency and W06 consumer; proof branch before any live write.",
+  "next_allowed_action": "RU-5 / P0D-01 CANDIDATE PROJECTION — fresh read-only physical preflight of current requester candidate-list reads, public-safe Worker evidence, Application version binding, selection prerequisites and privacy boundaries; no selection semantic change and no live write before proof/promotion.",
   "ru5_p0c01_live_reconciliation": {
     "status": "CLOSED_LIVE",
     "canonical_promotion_sha": "366561e74a088d55d816d3795cba5f2299e3283c",
@@ -216,6 +205,33 @@
     "ru4b_public_qa": "ACTIVATION_BLOCKED",
     "monetization": "FREE_0_RSD",
     "explicit_non_claims": ["bounded_note_policy","calendar_hard_conflict_authority","historical_snapshot_backfill","application_ai"]
+  },
+  "ru5_p0c03_live_reconciliation": {
+    "status": "CLOSED_LIVE",
+    "proof_sha": "bffc533996a7f629846eaf51de231320df41e09b",
+    "canonical_promotion_sha": "3fe3768f1dde3aa32340c6bd60167fd9aa610c47",
+    "source_version": "20260905211500",
+    "source_file": "20260905211500_clean_ru5_my_applications_projection.sql",
+    "live_version": "20260905200133",
+    "live_name": "clean_ru5_my_applications_projection",
+    "exact_byte_identity": true,
+    "canonical_raw_md5": "868ef30987d3a62b84b41e93efeed047",
+    "canonical_utf8_bytes": 6353,
+    "live_recorded_statement_md5": "868ef30987d3a62b84b41e93efeed047",
+    "recorded_statement_utf8_bytes": 6353,
+    "proof_run": 33988582621,
+    "pr_pre_p4_run": 33988584895,
+    "pr_codeql_run": 33988582873,
+    "canonical_pre_p4_run": 33988758024,
+    "canonical_codeql_run": 33988757345,
+    "canonical_control0_run": 33988758119,
+    "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"publication_policy_bundles":0,"publication_policy_rule_refs":0,"need_publication_decisions":0,"preselection_questions":0,"preselection_answer_versions":0,"preselection_policy_decisions":0,"preselection_materiality_decisions":0,"preselection_commands":0},
+    "projection_authority": "AUTHENTICATED_OWN_WORKER_ONLY",
+    "direct_response_write": "DENIED_UNCHANGED",
+    "d0140_production_publish": "FAIL_CLOSED",
+    "ru4b_public_qa": "ACTIVATION_BLOCKED",
+    "monetization": "FREE_0_RSD",
+    "explicit_non_claims": ["candidate_selection_repair","calendar_hard_conflict_authority","bounded_note_policy","application_ai"]
   },
   "ru4b": {
     "status": "LIVE_FOUNDATION_ACTIVATION_BLOCKED",
