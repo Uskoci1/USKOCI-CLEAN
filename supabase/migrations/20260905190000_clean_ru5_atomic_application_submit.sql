@@ -423,9 +423,10 @@ begin
 end;
 $function$;
 
+-- Preserve the pre-existing service_role command capability; P0C-02 is not an ACL redesign.
 revoke all on function public.rpc_submit_response(
   uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text
-) from public, anon, authenticated, service_role;
+) from public, anon, authenticated;
 grant execute on function public.rpc_submit_response(
   uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text
 ) to authenticated;
@@ -441,6 +442,11 @@ declare
 begin
   if not has_function_privilege(
        'authenticated',
+       'public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)',
+       'EXECUTE'
+     )
+     or not has_function_privilege(
+       'service_role',
        'public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)',
        'EXECUTE'
      )
