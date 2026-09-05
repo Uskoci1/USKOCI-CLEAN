@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T07:01:00Z",
+  "updated_at": "2026-09-05T07:31:09Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,8 +9,8 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "240e5b2e06f9bef2d4c4d0c6effb1d971efd55b7",
-    "note": "RU-4B fail-closed foundation is live at 71 with exact-byte live aliases. Resolve current Git HEAD physically before every write. RU-4 remains closed; RU-4B activation remains blocked by governed dependencies."
+    "canonical_base_observed_before_docs_reconciliation": "5e387aa7890a35d87fcb1844b16f9e4943967595",
+    "note": "CDL-A01 Agreement workspace reads are canonical and closed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
   },
   "live_migration_count": 71,
   "live_head": {
@@ -23,6 +23,31 @@
     "status": "ACTIVE",
     "verify_jwt": true,
     "ezbr_sha256": "5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca"
+  },
+  "client_data_layer": {
+    "track": "CONSOLIDATION_OVERRIDES_ELIMINATION",
+    "cdl_a01": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "5e387aa7890a35d87fcb1844b16f9e4943967595",
+      "proof_branch": "proof/client-data-agreement-read-20260905",
+      "proof_head": "0b84c3b4f792fe228d263762df9514cc277afa34",
+      "pre_deletion_equivalence_run": 33952203946,
+      "post_owner_run": 33952346007,
+      "final_physical_deletion_run": 33952603276,
+      "methods": [
+        "mojiDogovori",
+        "dogovor"
+      ],
+      "canonical_owner": "src/data/agreementClientService.ts",
+      "backend_authority": [
+        "rpc_list_my_agreements",
+        "rpc_get_agreement_workspace"
+      ],
+      "legacy_shadow_physical_deletion": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "next_cursor": "CDL-A02_AGREEMENT_MUTATION_OVERRIDES"
   },
   "ru0": {
     "status": "CLOSED",
@@ -301,7 +326,7 @@
     "activation_blocker": "No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish": "FAIL_CLOSED"
   },
-  "next_allowed_action": "Fresh physical preflight from live 68 / 20260905052713 clean_ru4_ai_edit_replay_boundary; RU-4 is CLOSED/DO_NOT_REDO; resolve the next implementation unit from governing master/current network; keep production D-0140 activation fail-closed/deferred.",
+  "next_allowed_action": "CDL-A02 Agreement mutation override consolidation for posaljiPoruku/predloziIzmenu/odgovoriNaIzmenu; prove exact active behavior first; no backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
   "ru4": {
     "status": "CLOSED_LIVE_STRUCTURAL_PROVEN",
     "functional_canonical_source_head": "a271d6084b4648e757d2230d0a208f558c802a14",
@@ -452,6 +477,6 @@
     ],
     "public_qa": "FAIL_CLOSED",
     "d0140_publish": "FAIL_CLOSED",
-    "next_track": "CLIENT_DATA_LAYER_CONSOLIDATION_OVERRIDES_ELIMINATION"
+    "next_track": "CDL-A02_AGREEMENT_MUTATION_OVERRIDES"
   }
 }
