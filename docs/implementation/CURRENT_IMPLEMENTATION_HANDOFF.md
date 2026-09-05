@@ -1,3 +1,24 @@
+<!-- CDL_A07_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A07 AGREEMENT COMPLETION MARK CLOSED / CANONICAL
+
+- canonical code promotion: `fb59f44e4af3a2a9fce36b4ecdb910c790ff51d8`
+- proof branch/head: `proof/client-data-completion-mark-20260905 @ 43e7c95c790423a21876bd5bbff9de65dfb74c6f`
+- proof PR: `#10`, squash-promoted only after pre-deletion and post-deletion gates were green
+- pre-deletion old-vs-new equivalence: GitHub Actions `33961448582` — PASS
+- final post-deletion proof: GitHub Actions `33961594981` — PASS (migration integrity, TypeScript, full regression)
+- `src/data/agreementClientService.ts` is now the single production owner for `oznaciZavrsetak`
+- exact backend authority preserved: `rpc_mark_work_done(p_agreement_id)`
+- server-authoritative requester deadline is preserved exactly as returned by the RPC
+- duplicate active implementation was physically removed from `src/data/productionAuthorityOverrides.ts`
+- stale lower-precedence local `new Date().toISOString()` deadline shadow was physically removed from `src/data/supabaseIzvor.ts`
+- `potvrdiZavrsetak`, exact-location, worker-profile and AI paths were not changed in CDL-A07
+- no Supabase migration/write, Edge change, RU-4/RU-4B semantic change, D0140 activation or monetization change
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- production D0140 publication remains **FAIL_CLOSED**
+- exact next cursor: **FRESH POST-A07 SHADOW INVENTORY → SELECT CDL-A08 ONLY IF A HIGH-VALUE RISK REMAINS**
+
 <!-- CDL_A06_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A06 AGREEMENT PROBLEM REPORT CLOSED / CANONICAL
 
