@@ -1,6 +1,6 @@
 {
   "format_version": 2,
-  "updated_at": "2026-09-05T10:49:00Z",
+  "updated_at": "2026-09-05T11:20:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
@@ -9,8 +9,8 @@
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
   "continuity_reconciliation": {
-    "canonical_base_observed_before_docs_reconciliation": "fb59f44e4af3a2a9fce36b4ecdb910c790ff51d8",
-    "note": "CDL-A07 Agreement completion marking is canonical and closed. agreementClientService is the single production owner for oznaciZavrsetak; rpc_mark_work_done(p_agreement_id) remains backend authority and the server-returned requester deadline is preserved exactly. The stale local new Date().toISOString() shadow is physically removed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. Confirm-completion, exact-location, worker-profile and AI paths were not changed. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
+    "canonical_base_observed_before_docs_reconciliation": "ccdc5d75a9dcd11afc817f59905cb32f44579022",
+    "note": "CDL-A08 exact-location reveal and CDL-A09 Worker profile mutation are canonical and closed. contactClientService is the single production owner for exact-location reveal via rpc_reveal_contact(EXACT_LOCATION), with the dead rpc_r24 path and fake address removed. workerProfileClientService is the single production owner for azurirajRadnikProfil; DRAFT creation and rpc_complete_worker_profile(p_profile_id) activation are preserved, and the stale no-id activation shadow is removed. Live Supabase remains 71 / 20260905070046 with no backend or Edge change. RU-4 remains closed; RU-4B activation and D0140 production publication remain fail-closed."
   },
   "live_migration_count": 71,
   "live_head": {
@@ -142,7 +142,43 @@
       "supabase_write": false,
       "edge_change": false
     },
-    "next_cursor": "FRESH_POST_A07_SHADOW_INVENTORY"
+    "cdl_a08": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "5997459306165e9e79fb8a6dff1ebce015904c86",
+      "proof_branch": "proof/client-data-exact-location-20260905",
+      "proof_head": "f940ffb55c8ebc7316fe74e1963c2d9dd1586bfc",
+      "pre_deletion_equivalence_run": 33961961032,
+      "final_post_deletion_run": 33962093949,
+      "methods": ["otkrijTacnuLokaciju"],
+      "canonical_owner": "src/data/contactClientService.ts",
+      "backend_authority": ["rpc_reveal_contact"],
+      "active_duplicate_deleted": true,
+      "dead_rpc_r24_shadow_deleted": true,
+      "fake_address_shadow_deleted": true,
+      "privacy_authority_preserved": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "cdl_a09": {
+      "status": "CLOSED_CANONICAL",
+      "canonical_source_head": "ccdc5d75a9dcd11afc817f59905cb32f44579022",
+      "proof_branch": "proof/client-data-worker-profile-20260905",
+      "proof_head": "ca941c4e9a6c7bb4885fb99d56860dbcbe03ea20",
+      "pre_deletion_equivalence_run": 33962358107,
+      "final_post_deletion_run": 33962499445,
+      "methods": ["azurirajRadnikProfil"],
+      "canonical_owner": "src/data/workerProfileClientService.ts",
+      "backend_authority": ["public.app_profiles RLS", "rpc_complete_worker_profile"],
+      "active_duplicate_deleted": true,
+      "stale_no_profile_id_activation_shadow_deleted": true,
+      "draft_creation_preserved": true,
+      "activation_profile_id_preserved": true,
+      "worker_profile_read_unchanged": true,
+      "ai_unchanged": true,
+      "supabase_write": false,
+      "edge_change": false
+    },
+    "next_cursor": "FRESH_POST_A09_SHADOW_INVENTORY_STOP_OR_MASTER"
   },
   "ru0": {
     "status": "CLOSED",
@@ -212,11 +248,11 @@
     "full_ru3_closed":false,
     "b05":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"ac70e1e66375a9e1be602808a3d4d3a2735f1b3b","source_version":"20260904090000","source_file":"supabase/migrations/20260904090000_clean_ru3_policy_bundle_foundation.sql","source_raw_md5":"e65a1d1658938ffdca07c88c246e660c","live_version":"20260904090147","recorded_statement_utf8_bytes":8506,"recorded_statement_md5":"6ca4db41a4c23dd9bd85fc2e76ea2af8","exact_byte_identity_with_source":false,"disposable_runtime_proof_run":33854188735,"canonical_integrity_run":33855138395,"zero_policy_rows":true,"publish_admission":"FAIL_CLOSED"},
     "b06":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"4d735390e32c530a323b24dad95ddaa0422bd493","source_version":"20260904103000","source_file":"supabase/migrations/20260904103000_clean_ru3_need_publication_decision.sql","source_raw_md5":"3974c57c159f3c7c9262db4b296729c3","live_version":"20260904102429","recorded_statement_utf8_bytes":19746,"recorded_statement_md5":"693e3c31a5647b8a63932f3b1ab13eb0","exact_byte_identity_with_source":false,"disposable_runtime_proof_run":33857742442,"clean_promotion_run":33862361633,"canonical_integrity_run":33862478205,"zero_decision_rows":true,"allow_enabled":false,"legacy_publish_closed":true,"ai_publish_fail_closed":true,"business_rows_preserved":{"ai_structured_facts":82,"ai_conversations":15,"needs":6,"app_profiles":6}},
-    "b07":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"d2c077d90c6410dc0737916df13b257389c6cb3b","source_version":"20260904111500","source_file":"20260904111500_clean_ru3_canonical_publish.sql","source_raw_md5":"17468983d28cddfe4948c3866a96e813","live_version":"20260904182402","proof_branch":"proof/ru3-b07-canonical-publish-20260904","proof_head":"7351198577685641ab9a7c08cb753a1094c41ea1","true_concurrency_proof_run":33903129202,"promotion_integrity_run":33905242409,"canonical_integrity_run":33905436213,"live_applied":true,"publish_command_rows":0,"policy_bundle_rows":0,"policy_rule_rows":0,"publication_decision_rows":0,"allow_enabled":false,"production_publish":"FAIL_CLOSED","business_rows_preserved":{"ai_structured_facts":82,"ai_conversations":15,"needs":6,"app_profiles":6}},
+    "b07":{"status":"LIVE_STRUCTURAL_PROVEN","canonical_source_head":"d2c077d90c6410dc0737916df13b257389c6cb3b","source_version":"20260904111500","source_file":"supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql","source_raw_md5":"17468983d28cddfe4948c3866a96e813","live_version":"20260904182402","proof_branch":"proof/ru3-b07-canonical-publish-20260904","proof_head":"7351198577685641ab9a7c08cb753a1094c41ea1","true_concurrency_proof_run":33903129202,"promotion_integrity_run":33905242409,"canonical_integrity_run":33905436213,"live_applied":true,"publish_command_rows":0,"policy_bundle_rows":0,"policy_rule_rows":0,"publication_decision_rows":0,"allow_enabled":false,"production_publish":"FAIL_CLOSED","business_rows_preserved":{"ai_structured_facts":82,"ai_conversations":15,"needs":6,"app_profiles":6}},
     "activation_blocker":"No reviewed/current/applicable production Serbia policy bundle/evaluator is activated; production ALLOW remains disabled.",
     "production_publish":"FAIL_CLOSED"
   },
-  "next_allowed_action":"Fresh post-A07 shadow inventory; select CDL-A08 only if a high-value proven risk remains; otherwise stop cleanup and return to the governing MASTER implementation track. No backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
+  "next_allowed_action":"Fresh post-A09 shadow inventory. Stop the consolidation cleanup unless another comparable high-risk production shadow is physically proven; otherwise return to the governing MASTER implementation track. No backend write; keep RU-4 closed and RU-4B/D0140 activation blocked.",
   "ru4": {
     "status":"CLOSED_LIVE_STRUCTURAL_PROVEN",
     "functional_canonical_source_head":"a271d6084b4648e757d2230d0a208f558c802a14",
@@ -250,6 +286,6 @@
     "activation_blockers":["BLOCK_AUTHORITY_NOT_READY","NUMERIC_RATE_POLICY_NOT_OWNER_APPROVED","PRESELECTION_QA_PRODUCTION_ALLOW_NOT_ACTIVATED","TRUSTED_MATERIALITY_AUTHORITY_NOT_ACTIVATED"],
     "public_qa":"FAIL_CLOSED",
     "d0140_publish":"FAIL_CLOSED",
-    "next_track":"FRESH_POST_A07_SHADOW_INVENTORY"
+    "next_track":"FRESH_POST_A09_SHADOW_INVENTORY_STOP_OR_MASTER"
   }
 }
