@@ -38,8 +38,8 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // both lower response-viewed owners; responseClientService is its only owner.
 // CDL-A05 consolidated PHONE grants and CDL-A08 exact-location reveal;
 // contactClientService is the canonical contact/privacy owner for those paths.
-// CDL-A09 stages Worker profile mutation behind workerProfileClientService while
-// the prior active owner remains temporarily for equivalence proof.
+// CDL-A09 makes workerProfileClientService the sole Worker-profile mutation owner,
+// preserving DRAFT creation and server-authoritative activation by profile id.
 // CDL-A06/A07 moved problem reporting and completion marking into Agreement service.
 // AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
 // call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
