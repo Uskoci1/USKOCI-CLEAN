@@ -9,8 +9,6 @@ type CommandOverrides = Partial<Pick<
   Izvor,
   | 'oznaciZavrsetak'
   | 'prijaviProblem'
-  | 'podeliTelefon'
-  | 'opoziviTelefon'
   | 'otkrijTacnuLokaciju'
   | 'azurirajRadnikProfil'
   | 'posaljiKorisnikovuPoruku'
@@ -43,26 +41,6 @@ export const productionAuthorityOverrides: CommandOverrides = {
       p_narrative: narrative,
     });
     if (error) return rpcFailure(error, 'PROBLEM_REPORT_FAILED', 'Problem nije mogao da se sačuva.');
-    return { ok: true, podatak: null };
-  },
-
-  async podeliTelefon(dogovorId) {
-    const { error } = await supabase.rpc('rpc_set_contact_grant', {
-      p_agreement_id: dogovorId,
-      p_channel: 'PHONE',
-      p_granted: true,
-    });
-    if (error) return rpcFailure(error, 'PHONE_GRANT_FAILED', 'Broj telefona nije podeljen.');
-    return { ok: true, podatak: null };
-  },
-
-  async opoziviTelefon(dogovorId) {
-    const { error } = await supabase.rpc('rpc_set_contact_grant', {
-      p_agreement_id: dogovorId,
-      p_channel: 'PHONE',
-      p_granted: false,
-    });
-    if (error) return rpcFailure(error, 'PHONE_REVOKE_FAILED', 'Deljenje telefona nije opozvano.');
     return { ok: true, podatak: null };
   },
 
