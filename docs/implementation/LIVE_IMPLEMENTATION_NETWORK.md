@@ -1,3 +1,26 @@
+<!-- CDL_A06_CANONICAL_CHECKPOINT_20260905 -->
+## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A06 AGREEMENT PROBLEM REPORT CLOSED / CANONICAL
+
+This block supersedes CDL-A05 next-cursor text for the consolidation track.
+
+- canonical code promotion: `ff052c43cd26841f396f86942594163b9f08b1b7`
+- proof branch/head: `proof/client-data-problem-report-20260905 @ 9952ab02d8b53d244e2501b4b7f1de6d41098bd2`
+- pre-deletion equivalence run: `33959818756` — PASS
+- final post-deletion run: `33959946664` — PASS
+- canonical Agreement owner: `src/data/agreementClientService.ts`
+- method now owned there: `prijaviProblem`
+- exact backend authority remains `rpc_report_problem(p_agreement_id, p_narrative)`
+- exact trim + blank `NARRATIVE_REQUIRED` validation remains unchanged
+- stale lower-precedence `p_description` path is physically removed from `supabaseIzvor.ts`
+- duplicate active implementation is physically removed from `productionAuthorityOverrides.ts`
+- completion, exact-location, worker-profile and AI paths were not changed
+- no backend migration or Edge deployment occurred in CDL-A06
+- live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
+- RU-4 remains **CLOSED / LIVE / DO NOT REDO**
+- RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
+- D0140 production publication remains **FAIL_CLOSED**
+- exact next cursor: **fresh post-A06 shadow inventory, then select CDL-A07 by lowest-risk high-value slice**
+
 <!-- CDL_A05_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A05 PHONE GRANTS CLOSED / CANONICAL
 
