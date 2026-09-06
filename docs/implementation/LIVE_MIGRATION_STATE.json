@@ -8,10 +8,10 @@
     "name": "USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip",
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
-  "canonical_code_checkpoint_before_continuity_docs": "366561e74a088d55d816d3795cba5f2299e3283c",
+  "canonical_code_checkpoint_before_continuity_docs": "c0dd1434c436578e0f517520a2156b72ec5d3eaa",
   "live": {
-    "migration_count": 75,
-    "head": "20260905230326_clean_ru5_candidate_projection",
+    "migration_count": 76,
+    "head": "20260906065758_clean_ru5_selection_eligibility_revalidation",
     "pending_forward_migrations": 0
   },
   "edge": {
@@ -23,7 +23,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_75_RU5_P0D01",
+    "state": "NORMALIZED_TO_LIVE_76_RU5_SELECTION_ELIGIBILITY",
     "ru2_live_aliases": [
       {"live_version":"20260903222139","source_version":"20260903190000","source_file":"20260903190000_clean_ru2_need_v2_draft.sql","exact_byte_identity":true},
       {"live_version":"20260903222333","source_version":"20260903190100","source_file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","exact_byte_identity":true}
@@ -109,6 +109,27 @@
       "canonical_pre_p4_run":33997533070,
       "canonical_codeql_run":33997532816,
       "canonical_control0_run":33997533227
+    },
+    "ru5_selection_eligibility_live_alias": {
+      "name":"clean_ru5_selection_eligibility_revalidation",
+      "live_version":"20260906065758",
+      "source_version":"20260906010000",
+      "source_file":"20260906010000_clean_ru5_selection_eligibility_revalidation.sql",
+      "exact_byte_identity":true,
+      "canonical_raw_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d",
+      "canonical_utf8_bytes":17954,
+      "recorded_statement_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d",
+      "recorded_statement_utf8_bytes":17954,
+      "canonical_promotion_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa",
+      "proof_head":"d71c6e08b518e2955020c21538c1238358b14df3",
+      "proof_run":34017442269,
+      "pr_pre_p4_run":34017443678,
+      "pr_codeql_run":34017442615,
+      "canonical_pre_p4_run":34017639405,
+      "canonical_codeql_run":34017639038,
+      "canonical_control0_run":34017639343,
+      "selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0",
+      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"
     }
   },
   "client_data_layer": {
@@ -131,7 +152,7 @@
       {"id":"CDL-A11","status":"CLOSED_CANONICAL","sha":"1be672dc649fee102a66c826c86b0e5609a43315","owner":"aiProductionOverrides","methods":["otvoriRazgovor","razgovor"],"proof":[33966439120,33966556555],"deleted":["NEW_NEED lower shadow","null conversation-read shadow"]},
       {"id":"CDL-A12","status":"CLOSED_CANONICAL","sha":"40afb2ed654c9987f82e7cd3c120a5b60ccbcf11","owner":"productionAuthorityOverrides","methods":["objaviPotrebu"],"proof":[33967095683,33967215611,33967294217],"deleted":["incomplete p_profile_id lower shadow"],"fail_closed":"PACKAGE_4_NOT_READY"}
     ],
-    "next_cursor": "RU5_MANUAL_SELECTION_READ_ONLY_RECONCILIATION"
+    "next_cursor": "FRESH_MANUAL_SELECTION_AGREEMENT_DEPENDENCY_RECONCILIATION"
   },
   "ru5": {
     "status":"IN_PROGRESS",
@@ -164,7 +185,17 @@
       "canonical_sha":"de3e25ce248d745d5a908fe1edf0a3e7b44d53c1",
       "live_migration":"20260905230326_clean_ru5_candidate_projection",
       "selection_definition_md5":"90332c500eb8fe9f1b7379fa382af3b6",
-      "next":"MANUAL_SELECTION_READ_ONLY_RECONCILIATION"
+      "next":"MANUAL_SELECTION_ELIGIBILITY_REVALIDATION_CLOSED_LIVE"
+    },
+    "manual_selection_eligibility_revalidation": {
+      "status":"CLOSED_LIVE",
+      "contract":"CURRENT_WORKER_READINESS_AND_TEAM_CAPACITY_REVALIDATION",
+      "canonical_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa",
+      "live_migration":"20260906065758_clean_ru5_selection_eligibility_revalidation",
+      "historical_rows_rewritten":false,
+      "selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0",
+      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba",
+      "next":"FRESH_DEPENDENCY_RECONCILIATION_NO_NUMBER_INVENTION"
     }
   },
   "status": {
@@ -175,7 +206,7 @@
     "RU-4":"CLOSED_LIVE_DO_NOT_REDO",
     "RU-4B":"LIVE_FOUNDATION_ACTIVATION_BLOCKED_DEFERRED",
     "CDL":"CLOSED_CANONICAL",
-    "RU-5":"IN_PROGRESS_P0C01_P0C02_P0C03_P0D01_CLOSED_LIVE",
+    "RU-5":"IN_PROGRESS_P0C01_P0C02_P0C03_P0D01_SELECTION_ELIGIBILITY_CLOSED_LIVE",
     "RU-5B":"NOT_STARTED_GATED_BY_RU5",
     "RU-6A":"FOUNDATION_ONLY_GATED_BY_RU5",
     "RU-6B":"NOT_STARTED_GATED_BY_RU6A",
@@ -194,5 +225,5 @@
     "service_offer_listing_supported":false
   },
   "monetization":"FREE_0_RSD",
-  "next_allowed_action":"RU-5 MANUAL SELECTION: fresh read-only physical reconciliation of remaining candidate-selection gaps after P0D-01; inspect current rpc_select_response revalidation, legacy over-capacity handling, Agreement binding and calendar dependencies before admitting any new numbered unit. No semantic change or live write before a concrete gap and governing scope are proven."
+  "next_allowed_action":"Fresh-read the frozen dependency plan and current canonical/live Selection/Agreement state. Do not invent a new P0D/RU identifier. The first physically proven unresolved Selection risk is durable Selection command identity/idempotency plus R05 retry identity, but it is a separate candidate unit only after governing-plan reconciliation. Calendar hard-conflict authority remains separate RU-6A work; Povezivanje/shared Dogovor and RU-5B Application AI remain gated."
 }
