@@ -57,7 +57,7 @@ def clickable_for(node, parent):
         if cur.attrib.get('clickable') == 'true' and cur.attrib.get('enabled', 'true') == 'true':
             return cur
         cur = parent.get(cur)
-    return node
+    return None
 
 
 def matches(node, *, text=None, desc=None, contains=None, clazz=None):
@@ -76,6 +76,11 @@ def matches(node, *, text=None, desc=None, contains=None, clazz=None):
 
 def tap_node(node, parent):
     target = clickable_for(node, parent)
+    if target is None:
+        raise RuntimeError(
+            f"Node is visible but not actionable: text={node.attrib.get('text')!r} "
+            f"desc={node.attrib.get('content-desc')!r} bounds={node.attrib.get('bounds')!r}"
+        )
     x1, y1, x2, y2 = parse_bounds(target.attrib.get('bounds'))
     adb('shell', 'input', 'tap', str((x1 + x2) // 2), str((y1 + y2) // 2))
     time.sleep(0.8)
@@ -147,17 +152,43 @@ def wait_nodes(timeout=40, minimum=1, **criteria):
 
 
 def tap(prefer='bottom', timeout=40, **criteria):
-    nodes, parent = wait_nodes(timeout=timeout, **criteria)
-    clickable = [(clickable_for(n, parent), parent) for n in nodes]
-    unique = {}
-    for n, p in clickable:
-        unique[n.attrib.get('bounds', str(id(n)))] = (n, p)
-    options = list(unique.values())
-    options.sort(
-        key=lambda item: parse_bounds(item[0].attrib.get('bounds'))[1],
-        reverse=(prefer == 'bottom'),
+    end = time.time() + timeout
+    last_visible = 0
+    while time.time() < end:
+        try:
+            root, parent, _ = dump_tree()
+            nodes = [n for n in root.iter() if matches(n, **criteria)]
+            last_visible = len(nodes)
+            unique = {}
+            for node in nodes:
+                target = clickable_for(node, parent)
+                if target is not None:
+                    unique[target.attrib.get('bounds', str(id(target)))] = (target, parent)
+            options = list(unique.values())
+            if options:
+                options.sort(
+                    key=lambda item: parse_bounds(item[0].attrib.get('bounds'))[1],
+                    reverse=(prefer == 'bottom'),
+                )
+                tap_node(options[0][0], options[0][1])
+                return
+            if dismiss_known_system_anr(root, parent):
+                adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
+        except Exception as exc:
+            print(f'TAP_RETRY criteria={criteria} error={type(exc).__name__}:{exc}', flush=True)
+        time.sleep(0.5)
+
+    root, _, xml = dump_tree('tap_timeout')
+    visible = [
+        (n.attrib.get('text'), n.attrib.get('content-desc'), n.attrib.get('class'),
+         n.attrib.get('clickable'), n.attrib.get('enabled'))
+        for n in root.iter()
+        if n.attrib.get('text') or n.attrib.get('content-desc')
+    ]
+    raise RuntimeError(
+        f'Timeout waiting for actionable control criteria={criteria}; '
+        f'visible_matches={last_visible} visible={visible[-80:]} xml_tail={xml[-1000:]}'
     )
-    tap_node(options[0][0], options[0][1])
 
 
 def wait_visible(timeout=40, **criteria):
@@ -208,13 +239,23 @@ def launch_clean():
 
 
 def login(email):
-    tap(desc='Prijavi se', prefer='top', timeout=45)
-    wait_nodes(timeout=30, minimum=2, clazz='android.widget.EditText')
+    # The entry control is visible before the reference-entry animation makes it
+    # enabled. `tap()` deliberately waits for the real user control to become
+    # actionable instead of tapping a disabled node or bypassing the entry UI.
+    tap(desc='Prijavi se', prefer='top', timeout=90)
+    wait_nodes(timeout=45, minimum=2, clazz='android.widget.EditText')
     edit_text(0, email)
     edit_text(1, PASSWORD)
     hide_keyboard()
     tap(text='Prijavi se', prefer='bottom', timeout=30)
     wait_visible(text='Početna', timeout=60)
+
+
+def switch_to_worker_workspace():
+    tap(text='Profil', prefer='bottom')
+    wait_visible(desc='Pređi u prostor Uskočera')
+    tap(desc='Pređi u prostor Uskočera')
+    wait_visible(text='Prilike', timeout=45)
 
 
 def dismiss_ok(timeout=15):
@@ -239,6 +280,7 @@ where r.need_id='{NEED_ID}'::uuid and p.account_id='{WORKER_USER_ID}'::uuid;
     parts = row.split('|')
     if parts[1] not in ('SUBMITTED', 'VIEWED', 'SHORTLISTED') or parts[2] != '3000' or parts[3] != '1':
         raise AssertionError(f'Unexpected W05 Application: {row}')
+    print(f'CHECKPOINT W05_RESPONSE_CREATED response={parts[0]} state={parts[1]}', flush=True)
     return parts[0]
 
 
@@ -269,6 +311,12 @@ where a.agreement_id='{agreement_id}'::uuid
 """)
     if activation != '1':
         raise AssertionError('P0D03 zero-RSD Requester activation mismatch')
+    print(
+        f'CHECKPOINT AGREEMENT_CREATED agreement={agreement_id} '
+        'policy=REQUESTER_SELECTION_V1 beneficiary=REQUESTER reason=SELECTION '
+        'charge=PROMOTIONAL_FREE basis=HEADCOUNT platform_cost_rsd=0',
+        flush=True,
+    )
     return agreement_id
 
 
@@ -288,6 +336,7 @@ def assert_gates_unchanged():
     bad = {name: value for name, value in observed.items() if value != '0'}
     if bad:
         raise AssertionError(f'Gated/retired inventory changed: {bad}')
+    print(f'CHECKPOINT GATES_UNCHANGED {observed}', flush=True)
 
 
 print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY', flush=True)
@@ -295,10 +344,8 @@ print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY', flush=True)
 # Worker physical UI: Auth -> workspace -> W03 -> W04 -> W05 -> W06.
 launch_clean()
 login(WORKER_EMAIL)
-tap(text='Profil', prefer='bottom')
-wait_visible(desc='Pređi u prostor Uskočera')
-tap(desc='Pređi u prostor Uskočera')
-wait_visible(text='Prilike', timeout=45)
+shot('AUTH_worker_authenticated')
+switch_to_worker_workspace()
 tap(text='Prilike', prefer='bottom')
 wait_visible(desc=f'Otvorite priliku {NEED_TITLE}', timeout=45)
 shot('W03_worker_opportunity_list')
@@ -323,6 +370,7 @@ response_id = assert_worker_submit()
 # Same installed physical APK, clean application storage, second real Auth identity.
 launch_clean()
 login(REQUESTER_EMAIL)
+shot('AUTH_requester_authenticated')
 tap(text='Potrebe', prefer='bottom')
 wait_visible(desc=f'Otvori Potrebu {NEED_TITLE}', timeout=45)
 tap(desc=f'Otvori Potrebu {NEED_TITLE}')
@@ -336,11 +384,29 @@ wait_visible(contains='Dogovor je uspešno sklopljen', timeout=45)
 shot('R05_requester_selection_success')
 dismiss_ok()
 agreement_id = assert_final_selection(response_id)
+shot('AGREEMENT_created')
+
+# Clear storage again and prove the selected state is visible to the real Worker
+# through W06, then open the real Dogovor from the UI.
+launch_clean()
+login(WORKER_EMAIL)
+shot('AUTH_worker_reauthenticated')
+switch_to_worker_workspace()
+tap(text='Prijave', prefer='bottom')
+wait_visible(text=NEED_TITLE, timeout=45)
+wait_visible(text='Izabrani ste', timeout=45)
+wait_visible(desc='Otvorite Dogovor', timeout=45)
+shot('W06_worker_selected_state')
+tap(desc='Otvorite Dogovor')
+wait_visible(text='Dogovor', timeout=45)
+wait_visible(text=NEED_TITLE, timeout=45)
+shot('DOGOVOR_worker_opened')
+
 assert_gates_unchanged()
 
 print(
     f'PASS RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY W03 W04 W05 W06 R05 '
     f'two_real_auth_identities agreement={agreement_id} P0D03_0_RSD '
-    'bounded_note_not_claimed disposable_local_only',
+    'worker_selected_and_dogovor_opened bounded_note_not_claimed disposable_local_only',
     flush=True,
 )

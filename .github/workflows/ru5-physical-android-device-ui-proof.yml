@@ -66,6 +66,14 @@ jobs:
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$RU5_DEVICE_ANON_KEY" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_USE_FAKE_SOURCE=0" >> "$GITHUB_ENV"
 
+      - name: Assert proof endpoint is local-only
+        run: |
+          test "$EXPO_PUBLIC_SUPABASE_URL" = "http://10.0.2.2:54321"
+          if [[ "$EXPO_PUBLIC_SUPABASE_URL" == *"leqcwgzvjsxugfgzdmth.supabase.co"* ]]; then
+            echo "Production Supabase URL detected in device proof environment."
+            exit 1
+          fi
+
       - name: Inject proof-only Android package id
         run: |
           node <<'NODE'
@@ -117,6 +125,17 @@ jobs:
           NODE_ENV: production
         run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
 
+      - name: Verify bundled Supabase endpoint is disposable local
+        run: |
+          bundle="$(find android/app/build/generated/assets -type f -name 'index.android.bundle' | head -n 1)"
+          test -n "$bundle"
+          grep -aF 'http://10.0.2.2:54321' "$bundle" >/dev/null
+          if grep -aF 'leqcwgzvjsxugfgzdmth.supabase.co' "$bundle" >/dev/null; then
+            echo "Production Supabase hostname found in bundled proof APK."
+            exit 1
+          fi
+          echo "PASS RU5_DEVICE_APK_ENDPOINT disposable_local_only http://10.0.2.2:54321"
+
       - name: Enable KVM for Android emulator when available
         run: |
           if [[ -e /dev/kvm ]]; then
@@ -139,25 +158,74 @@ jobs:
             mkdir -p artifacts/ru5-device-ui
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell settings put system pointer_location 0 || true
-            status=0
-            python3 scripts/ru5_android_device_ui_journey.py > artifacts/ru5-device-ui/proof.log 2>&1 || status=$?
-            cat artifacts/ru5-device-ui/proof.log
-            exit "$status"
+            bash -lc 'set +e; python3 scripts/ru5_android_device_ui_journey.py > artifacts/ru5-device-ui/proof.log 2>&1; status=$?; cat artifacts/ru5-device-ui/proof.log; exit "$status"'
 
       - name: Validate physical UI evidence chain
         run: |
           grep -F 'PASS RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY W03 W04 W05 W06 R05' artifacts/ru5-device-ui/proof.log
+          grep -F 'CHECKPOINT AGREEMENT_CREATED' artifacts/ru5-device-ui/proof.log
+          grep -F 'CHECKPOINT GATES_UNCHANGED' artifacts/ru5-device-ui/proof.log
           for checkpoint in \
+            AUTH_worker_authenticated \
             W03_worker_opportunity_list \
             W04_worker_need_detail \
             W05_worker_application_draft \
             W05_worker_application_success \
             W06_worker_own_application \
+            AUTH_requester_authenticated \
             R05_requester_candidate_selection \
-            R05_requester_selection_success; do
+            R05_requester_selection_success \
+            AGREEMENT_created \
+            AUTH_worker_reauthenticated \
+            W06_worker_selected_state \
+            DOGOVOR_worker_opened; do
             test -s "artifacts/ru5-device-ui/${checkpoint}.png"
             test -s "artifacts/ru5-device-ui/${checkpoint}.xml"
           done
+
+      - name: Validate disposable business effects
+        run: |
+          test "$(psql "$RU5_DEVICE_DB_URL" -Atc "
+            select count(*)
+            from public.marketplace_responses r
+            join public.app_profiles p on p.id=r.worker_profile_id
+            where r.need_id='$RU5_DEVICE_NEED_ID'::uuid
+              and p.account_id='$RU5_DEVICE_WORKER_USER_ID'::uuid
+              and r.price_rsd=3000
+              and r.covered_slots=1;
+          ")" = "1"
+          test "$(psql "$RU5_DEVICE_DB_URL" -Atc "
+            select count(*)
+            from public.need_selections s
+            join public.marketplace_responses r on r.id=s.response_id
+            join public.app_profiles p on p.id=r.worker_profile_id
+            where r.need_id='$RU5_DEVICE_NEED_ID'::uuid
+              and p.account_id='$RU5_DEVICE_WORKER_USER_ID'::uuid
+              and s.status='SELECTED';
+          ")" = "1"
+          test "$(psql "$RU5_DEVICE_DB_URL" -Atc "
+            select count(*)
+            from public.agreements a
+            where a.need_id='$RU5_DEVICE_NEED_ID'::uuid
+              and a.requester_account_id='$RU5_DEVICE_REQUESTER_USER_ID'::uuid
+              and a.worker_account_id='$RU5_DEVICE_WORKER_USER_ID'::uuid;
+          ")" = "1"
+          test "$(psql "$RU5_DEVICE_DB_URL" -Atc "
+            select count(*)
+            from private.connection_activations a
+            join public.agreements g on g.id=a.agreement_id
+            where g.need_id='$RU5_DEVICE_NEED_ID'::uuid
+              and a.requester_account_id='$RU5_DEVICE_REQUESTER_USER_ID'::uuid
+              and a.beneficiary_account_id='$RU5_DEVICE_REQUESTER_USER_ID'::uuid
+              and a.worker_account_id='$RU5_DEVICE_WORKER_USER_ID'::uuid
+              and a.activation_reason='SELECTION'
+              and a.units=1
+              and a.platform_cost_rsd=0
+              and a.state='SATISFIED'
+              and a.policy_key='REQUESTER_SELECTION_V1'
+              and a.policy_version=1;
+          ")" = "1"
+          echo "PASS RU5_DEVICE_POSTFLIGHT response selection agreement REQUESTER_SELECTION_V1 zero_rsd"
 
       - name: Disposable postflight invariants
         if: always()
