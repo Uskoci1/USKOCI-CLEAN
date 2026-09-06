@@ -28,42 +28,44 @@ jobs:
           s = p.read_text(encoding='utf-8')
           start = s.index('do $p0d03_preflight$')
           end = s.index('$p0d03_preflight$;', start) + len('$p0d03_preflight$;')
-          new = '''do $p0d03_preflight$
-declare
-  v_select_def text := pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure);
-  v_select_md5 text;
-begin
-  v_select_md5 := md5(v_select_def);
-
-  -- P0D-02 has two physically proven storage fingerprints for the same
-  -- non-whitespace function body: canonical disposable apply and live
-  -- Supabase transport (the latter omitted three LF bytes in migration
-  -- transport). Accept only those two fingerprints and independently require
-  -- the P0D-02 semantic guards before P0D-03 may proceed.
-  if v_select_md5 not in (
-       'b1ca0a03ee075565c71b50f00d61dade',
-       '65785758985a1abac56dc55498678b22'
-     ) then
-    raise exception 'P0D03_PREDECESSOR_MISMATCH: rpc_select_response' using detail=v_select_md5;
-  end if;
-
-  if position('IDEMPOTENCY_KEY_REUSED' in v_select_def)=0
-     or position('private.selection_commands' in v_select_def)=0
-     or position('pg_advisory_xact_lock' in v_select_def)=0
-     or position('WORKER_PROFILE_NOT_READY' in v_select_def)=0
-     or position('TEAM_CAPACITY_EXCEEDED' in v_select_def)=0 then
-    raise exception 'P0D03_PREDECESSOR_MISMATCH: P0D02 semantic guards';
-  end if;
-
-  if to_regclass('private.selection_commands') is null then
-    raise exception 'P0D03_PREDECESSOR_MISMATCH: selection_commands missing';
-  end if;
-  if to_regclass('private.connection_policy_versions') is not null
-     or to_regclass('private.connection_activations') is not null then
-    raise exception 'P0D03_PREDECESSOR_MISMATCH: connection ledger already exists';
-  end if;
-end
-$p0d03_preflight$;'''
+          lines = [
+              'do $p0d03_preflight$',
+              'declare',
+              "  v_select_def text := pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure);",
+              '  v_select_md5 text;',
+              'begin',
+              '  v_select_md5 := md5(v_select_def);',
+              '',
+              '  -- P0D-02 has two physically proven storage fingerprints for the same',
+              '  -- non-whitespace function body: canonical disposable apply and live',
+              '  -- Supabase transport. Accept only those fingerprints and independently',
+              '  -- require the P0D-02 semantic guards before P0D-03 may proceed.',
+              '  if v_select_md5 not in (',
+              "       'b1ca0a03ee075565c71b50f00d61dade',",
+              "       '65785758985a1abac56dc55498678b22'",
+              '     ) then',
+              "    raise exception 'P0D03_PREDECESSOR_MISMATCH: rpc_select_response' using detail=v_select_md5;",
+              '  end if;',
+              '',
+              "  if position('IDEMPOTENCY_KEY_REUSED' in v_select_def)=0",
+              "     or position('private.selection_commands' in v_select_def)=0",
+              "     or position('pg_advisory_xact_lock' in v_select_def)=0",
+              "     or position('WORKER_PROFILE_NOT_READY' in v_select_def)=0",
+              "     or position('TEAM_CAPACITY_EXCEEDED' in v_select_def)=0 then",
+              "    raise exception 'P0D03_PREDECESSOR_MISMATCH: P0D02 semantic guards';",
+              '  end if;',
+              '',
+              "  if to_regclass('private.selection_commands') is null then",
+              "    raise exception 'P0D03_PREDECESSOR_MISMATCH: selection_commands missing';",
+              '  end if;',
+              "  if to_regclass('private.connection_policy_versions') is not null",
+              "     or to_regclass('private.connection_activations') is not null then",
+              "    raise exception 'P0D03_PREDECESSOR_MISMATCH: connection ledger already exists';",
+              '  end if;',
+              'end',
+              '$p0d03_preflight$;'
+          ]
+          new = '\n'.join(lines)
           p.write_text(s[:start] + new + s[end:], encoding='utf-8', newline='\n')
           PY
           git diff --check
