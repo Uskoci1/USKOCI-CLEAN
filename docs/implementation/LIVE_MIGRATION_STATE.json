@@ -11,6 +11,7 @@
   "canonical_code_checkpoint_before_continuity_docs": "e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec",
   "canonical_head_at_pending_admission": "db818b99034d1f67b9b8cd08c95fe7f416b8e0a0",
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
+  "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
     "migration_count": 79,
     "head": "20260906141409_clean_ru5_fastest_autofill_retirement",
@@ -142,7 +143,8 @@
     "manual_selection_eligibility_revalidation":{"status":"CLOSED_LIVE","contract":"CURRENT_WORKER_READINESS_AND_TEAM_CAPACITY_REVALIDATION","canonical_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa","live_migration":"20260906065758_clean_ru5_selection_eligibility_revalidation","historical_rows_rewritten":false,"selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba","next":"P0D02_CLOSED_LIVE"},
     "p0d02_selection_semantic_idempotency":{"status":"CLOSED_LIVE","canonical_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9","live_migration":"20260906090451_clean_p0d02_selection_semantic_idempotency","next":"P0D03_CLOSED_LIVE"},
     "p0d03_requester_connection_activation_v1":{"status":"CLOSED_CANONICAL_LIVE_DO_NOT_REDO","canonical_sha":"e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec","live_migration":"20260906102021_clean_p0d03_requester_connection_activation_v1","policy":"REQUESTER_SELECTION_V1","platform_cost_rsd":0,"historical_activation_backfill":false,"next":"RU5_AGGREGATE_RECONCILIATION"},
-    "fastest_autofill_retirement":{"status":"CLOSED_CANONICAL_LIVE_PROVEN","source_migration":"20260906130000_clean_ru5_fastest_autofill_retirement.sql","live_migration":"20260906141409_clean_ru5_fastest_autofill_retirement","raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c","live_recorded_md5":"04466b38e780a59a7eab6f4b928544a0","canonical_bytes":7363,"live_bytes":6743,"normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0","exact_byte_identity":false,"semantic_equivalence":true,"proof_head":"e7b5ce501c2b9708bd176075ab4b41575edf0832","proof_run":34034993845,"canonical_sha":"6ee5c611fadf6861b7cc029ffda77437a847ca8c","live_applied":true,"edge_live_version":6,"edge_live_sha256":"012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954","repair_migration_required":false,"next":"BOUNDED_NOTE_AUTHORITY_AND_TWO_ACCOUNT_DEVICE_PROOF"}
+    "fastest_autofill_retirement":{"status":"CLOSED_CANONICAL_LIVE_PROVEN","source_migration":"20260906130000_clean_ru5_fastest_autofill_retirement.sql","live_migration":"20260906141409_clean_ru5_fastest_autofill_retirement","raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c","live_recorded_md5":"04466b38e780a59a7eab6f4b928544a0","canonical_bytes":7363,"live_bytes":6743,"normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0","exact_byte_identity":false,"semantic_equivalence":true,"proof_head":"e7b5ce501c2b9708bd176075ab4b41575edf0832","proof_run":34034993845,"canonical_sha":"6ee5c611fadf6861b7cc029ffda77437a847ca8c","live_applied":true,"edge_live_version":6,"edge_live_sha256":"012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954","repair_migration_required":false,"next":"BOUNDED_NOTE_AUTHORITY_AND_PHYSICAL_DEVICE_UI_PROOF"},
+    "two_account_authenticated_journey":{"status":"CLOSED_CANONICAL_PROVEN","journey":"W03_W04_W05_W06_R05","w03_w04_routing_fix_sha":"bc49e8ae423b91b37321787e1dc3a1dada90583e","proof_head":"bedca53d2d0bff336a2ea912b3489f4fbf5402aa","proof_run":34045287333,"proof_job":101519151761,"implementation_pr":35,"pr_pre_p4_run":34045560199,"pr_codeql_run":34045558347,"canonical_sha":"55f218d1f2cd9a79fdaba9b8c058e92664be758f","canonical_pre_p4_run":34045636959,"canonical_codeql_run":34045636726,"canonical_control0_run":34045636967,"typescript":"PASS","regression_suites":"23/23","regression_tests":"146/146","auth_sessions":"TWO_DISTINCT_REAL_GOTRUE_SESSIONS","service_role_substitutes_user_authority":false,"environment":"DISPOSABLE_LOCAL_LIVE79_EQUIVALENT","bounded_note_claimed":false,"device_ui_claimed":false,"postflight_zero_external_residue":true,"fresh_live_business_counts":{"profiles":6,"needs":6,"responses":4,"selections":2,"agreements":2},"fresh_live_gated_inventory":{"publication_policy_bundles":0,"publication_decisions":0,"preselection_questions":0,"preselection_answers":0,"preselection_policy_decisions":0,"preselection_materiality_decisions":0,"preselection_commands":0,"connection_activations":0},"closure_doc":"docs/implementation/RU5_TWO_ACCOUNT_AUTH_JOURNEY_PROOF_CLOSURE.md","next":"BOUNDED_NOTE_AUTHORITY_AND_PHYSICAL_DEVICE_UI_PROOF"}
   },
   "status": {
     "RU-0":"CLOSED_LIVE",
@@ -152,10 +154,13 @@
     "RU-4":"CLOSED_LIVE_DO_NOT_REDO",
     "RU-4B":"LIVE_FOUNDATION_ACTIVATION_BLOCKED_DEFERRED",
     "CDL":"CLOSED_CANONICAL",
-    "RU-5":"IN_PROGRESS_BOUNDED_NOTE_AUTHORITY_AND_TWO_ACCOUNT_DEVICE_PROOF",
+    "RU-5":"IN_PROGRESS_BOUNDED_NOTE_AUTHORITY_AND_PHYSICAL_DEVICE_UI_PROOF",
     "P0D-02":"CLOSED_CANONICAL_LIVE_DO_NOT_REDO",
     "P0D-03":"CLOSED_CANONICAL_LIVE_DO_NOT_REDO",
     "RU-5_FASTEST_AUTOFILL_RETIREMENT":"CLOSED_CANONICAL_LIVE_PROVEN",
+    "RU-5_TWO_ACCOUNT_AUTH_JOURNEY":"CLOSED_CANONICAL_PROVEN",
+    "RU-5_PHYSICAL_DEVICE_UI_PROOF":"OPEN_NOT_EXECUTED",
+    "RU-5_BOUNDED_NOTE_AUTHORITY":"BLOCKED_DECISION_REQUIRED",
     "RU-5B":"NOT_STARTED_GATED_BY_RU5",
     "RU-6A":"FOUNDATION_ONLY_GATED_BY_RU5",
     "RU-6B":"NOT_STARTED_GATED_BY_RU6A",
@@ -176,5 +181,5 @@
     "service_offer_listing_supported":false
   },
   "monetization":"FREE_0_RSD",
-  "next_allowed_action":"Finish docs/provenance-only canonical closure for live RU-5 FASTEST/AUTO_FILL retirement, then resolve bounded/preselection-note authority without inventing numeric/regex policy. Reconstruct and prove the frozen W03→W04→W05→W06→R05 two-account journey. Do not admit RU-5B until both aggregate blockers are physically closed."
+  "next_allowed_action":"Preserve all closed RU-5 units. Resolve bounded/preselection-note authority without inventing numeric/regex/block-list policy, and independently establish/execute a real physical mobile device or emulator UI proof for W03→W04→W05→W06→R05 without production contamination. Automated two-account authenticated integration proof is already CLOSED_CANONICAL_PROVEN. Do not admit RU-5B until both remaining aggregate gates are physically closed."
 }
