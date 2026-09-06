@@ -159,7 +159,7 @@ jobs:
             mkdir -p artifacts/ru5-device-ui
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell settings put system pointer_location 0 || true
-            bash -lc 'set +e; python3 scripts/ru5_android_device_ui_journey.py > artifacts/ru5-device-ui/proof.log 2>&1; status=$?; cat artifacts/ru5-device-ui/proof.log; exit "$status"'
+            bash scripts/ru5_run_device_journey.sh
 
       - name: Validate physical UI evidence chain
         run: |
