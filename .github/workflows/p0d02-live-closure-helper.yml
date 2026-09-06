@@ -1,0 +1,154 @@
+name: P0D-02 Live Closure Helper
+
+on:
+  push:
+    branches:
+      - docs/p0d02-selection-semantic-idempotency-live-closure-20260906
+    paths:
+      - .github/workflows/p0d02-live-closure-helper.yml
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Write narrow P0D-02 live closure evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          canonical_merge = '5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9'
+          proof_head = 'c3ada4219b9c8427be0c7b35bc36afa30b4302cc'
+          source_file = '20260906080000_clean_p0d02_selection_semantic_idempotency.sql'
+          canonical_md5 = '065a6a172f1cea50b99c57f6759ef109'
+          canonical_bytes = 15516
+          live_version = '20260906090451'
+          live_name = 'clean_p0d02_selection_semantic_idempotency'
+          live_md5 = 'c267357c43e2c18448b46268ae458085'
+          live_bytes = 15513
+          ws_md5 = '3433be65f949407f62f751dbf5b57a9d'
+          selection_def_md5 = 'b1ca0a03ee075565c71b50f00d61dade'
+          candidate_def_md5 = '1978ce1d5852cef46f94e81468d37bba'
+
+          # 1) MIGRATION_PROVENANCE — preserve historical formatting; move exactly one pending entry to live history.
+          p = Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          s = p.read_text(encoding='utf-8')
+          assert '"migration_count": 76' in s
+          assert '"version": "20260906065758"' in s
+          assert s.count('"classification": "PENDING_FORWARD_MIGRATION"') == 1
+          s = s.replace('"generated_at_utc": "2026-09-06T07:02:00Z"', '"generated_at_utc": "2026-09-06T09:10:00Z"', 1)
+          s = s.replace('"repository_base_head": "c0dd1434c436578e0f517520a2156b72ec5d3eaa"', f'"repository_base_head": "{canonical_merge}"', 1)
+          s = s.replace('"migration_count": 76', '"migration_count": 77', 1)
+          old_last = '"last": {\n      "name": "clean_ru5_selection_eligibility_revalidation",\n      "version": "20260906065758"\n    }'
+          new_last = f'"last": {{\n      "name": "{live_name}",\n      "version": "{live_version}"\n    }}'
+          assert old_last in s
+          s = s.replace(old_last, new_last, 1)
+          history_entry = {
+              'name': live_name,
+              'version': live_version,
+              'file': source_file,
+              'source_version': '20260906080000',
+              'exact_byte_mirror': False,
+              'canonical_raw_md5': canonical_md5,
+              'canonical_utf8_bytes': canonical_bytes,
+              'live_recorded_statement_md5': live_md5,
+              'recorded_statement_utf8_bytes': live_bytes,
+              'transport_deviation': 'connected migration transport omitted exactly three LF bytes; canonical LF=342 terminal_LF=true, live LF=339 terminal_LF=false',
+              'canonical_whitespace_stripped_md5': ws_md5,
+              'live_whitespace_stripped_md5': ws_md5,
+              'whitespace_only_semantic_equivalence': True,
+              'canonical_promotion_sha': canonical_merge,
+              'proof_head': proof_head,
+              'proof_run': 34023168764,
+              'implementation_pr': 26,
+              'pr_pre_p4_run': 34023318196,
+              'pr_codeql_run': 34023316595,
+              'canonical_pre_p4_run': 34023411493,
+              'canonical_codeql_run': 34023410485,
+              'canonical_control0_run': 34023411602,
+              'selection_definition_md5': selection_def_md5,
+              'candidate_definition_md5': candidate_def_md5,
+          }
+          marker = '\n    ]\n  },\n  "pending_forward_migrations": ['
+          assert s.count(marker) == 1
+          compact = json.dumps(history_entry, ensure_ascii=False, separators=(',', ':'))
+          s = s.replace(marker, ',\n      ' + compact + '\n    ]\n  },\n  "pending_forward_migrations": [', 1)
+          s, n = re.subn(r'  "pending_forward_migrations": \[.*?\],\n  "reconstructions":', '  "pending_forward_migrations": [],\n  "reconstructions":', s, count=1, flags=re.S)
+          assert n == 1
+          json.loads(s)
+          p.write_text(s, encoding='utf-8', newline='\n')
+
+          # 2) LIVE_MIGRATION_STATE — narrow top-level/live alias patch without reformatting history.
+          p = Path('docs/implementation/LIVE_MIGRATION_STATE.json')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('"canonical_code_checkpoint_before_continuity_docs": "c0dd1434c436578e0f517520a2156b72ec5d3eaa"', f'"canonical_code_checkpoint_before_continuity_docs": "{canonical_merge}"', 1)
+          s = s.replace('"migration_count": 76,\n    "head": "20260906065758_clean_ru5_selection_eligibility_revalidation"', f'"migration_count": 77,\n    "head": "{live_version}_{live_name}"', 1)
+          s = s.replace('"state": "NORMALIZED_TO_LIVE_76_RU5_SELECTION_ELIGIBILITY"', '"state": "NORMALIZED_TO_LIVE_77_P0D02_SELECTION_SEMANTIC_IDEMPOTENCY"', 1)
+          anchor = '      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"\n    }\n  },\n  "client_data_layer": {'
+          assert anchor in s
+          alias = f'''      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"\n    }},\n    "p0d02_selection_semantic_idempotency_live_alias": {{\n      "name":"{live_name}",\n      "live_version":"{live_version}",\n      "source_version":"20260906080000",\n      "source_file":"{source_file}",\n      "exact_byte_identity":false,\n      "canonical_raw_md5":"{canonical_md5}",\n      "canonical_utf8_bytes":{canonical_bytes},\n      "recorded_statement_md5":"{live_md5}",\n      "recorded_statement_utf8_bytes":{live_bytes},\n      "transport_deviation":"exactly three LF bytes omitted by connected migration transport",\n      "canonical_lf_count":342,\n      "live_lf_count":339,\n      "canonical_terminal_lf":true,\n      "live_terminal_lf":false,\n      "canonical_whitespace_stripped_md5":"{ws_md5}",\n      "live_whitespace_stripped_md5":"{ws_md5}",\n      "whitespace_only_semantic_equivalence":true,\n      "canonical_promotion_sha":"{canonical_merge}",\n      "proof_head":"{proof_head}",\n      "proof_run":34023168764,\n      "pr_pre_p4_run":34023318196,\n      "pr_codeql_run":34023316595,\n      "canonical_pre_p4_run":34023411493,\n      "canonical_codeql_run":34023410485,\n      "canonical_control0_run":34023411602,\n      "selection_definition_md5":"{selection_def_md5}",\n      "candidate_definition_md5":"{candidate_def_md5}"\n    }}\n  }},\n  "client_data_layer": {{'''
+          s = s.replace(anchor, alias, 1)
+          json.loads(s)
+          p.write_text(s, encoding='utf-8', newline='\n')
+
+          # 3) Continuity — replace only the P0D-02 WIP block; preserve predecessor history.
+          p = Path('docs/implementation/IMPLEMENTATION_CONTINUITY.md')
+          s = p.read_text(encoding='utf-8')
+          start = s.index('## Current WIP checkpoint — 2026-09-06 — P0D-02')
+          end = s.index('## Predecessor authoritative checkpoint — 2026-09-06 — RU-5')
+          block = f'''## Current authoritative checkpoint — 2026-09-06 — P0D-02 SELECTION SEMANTIC IDEMPOTENCY CLOSED / CANONICAL / LIVE\n\nFrozen forward authority explicitly names this unit `P0D-02 — selection_semantic_idempotency`. The governing frozen package remains unchanged.\n\n### Canonical implementation and proof\n\n- implementation proof branch exact head: `{proof_head}`\n- exact-head proof run: `34023168764` — PASS\n- implementation PR: `#26`\n- PR PRE-P4: `34023318196` — PASS\n- PR CodeQL: `34023316595` — Actions/Python/JavaScript-TypeScript PASS\n- canonical implementation merge: `{canonical_merge}`\n- canonical PRE-P4: `34023411493` — PASS\n- canonical CodeQL: `34023410485` — Actions/Python/JavaScript-TypeScript PASS\n- canonical Control-0: `34023411602` — PASS\n- locked canonical migration: `supabase/migrations/{source_file}`\n- canonical raw MD5 / bytes: `{canonical_md5}` / `{canonical_bytes}`\n\n### Live Supabase\n\n- project: `leqcwgzvjsxugfgzdmth`\n- live migration count/head: `77 / {live_version}_{live_name}`\n- recorded statement count: `1`\n- live recorded statement MD5 / bytes: `{live_md5}` / `{live_bytes}`\n- canonical source: `342` LF with terminal LF; connected live record: `339` LF without terminal LF\n- canonical/live whitespace-stripped MD5: `{ws_md5}` on both sides — the three-byte difference is whitespace-only transport deviation, not semantic drift\n- live Selection definition MD5: `{selection_def_md5}`\n- Candidate projection definition MD5 remains `{candidate_def_md5}`\n- `private.selection_commands`: RLS enabled, `0` policies, `0` rows immediately post-migration; anon/authenticated/service_role direct SELECT all denied\n- Selection EXECUTE remains authenticated + service_role, anon denied\n- authenticated direct `marketplace_responses` INSERT/UPDATE/DELETE remains denied\n- business rows unchanged: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`\n- historical state unchanged: `2` SUBMITTED responses, `2` SELECTED responses, `2` SELECTED need_selections, `2` Agreements\n- no historical Selection request-hash receipt was fabricated\n- D0140 inventories remain `0/0/0`; production ALLOW remains fail-closed\n- all five RU-4B governed inventories remain `0`; public Q&A remains activation blocked\n- monetization remains `FREE / 0 RSD`; Povezivanje remains not activated; Application AI/RU-5B remains gated\n\n### Closed behavior\n\n- same Requester key + same exact Selection payload returns the same authoritative Agreement without duplicate Selection/Agreement/receipt;\n- same key + different semantic payload rejects with `IDEMPOTENCY_KEY_REUSED`;\n- true concurrent same-key retry serializes to one result; distinct keys racing for the final seat produce one winner under existing Need row authority;\n- R05 retains one request ID for exact `(Need/revision, Application/version/hash, covered slots)` intent across ambiguous retry and allocates a new ID when that intent changes;\n- historical Selection/Agreement rows remain untouched and legacy replay relies on existing immutable evidence rather than fabricated hashes.\n\n### Explicit non-claims / locks\n\nThis closure does **not** implement hard calendar conflict authority, shared Agreement/Dogovor redesign, Povezivanje, D0140 production ALLOW, RU-4B public Q&A activation, monetization, bounded-note policy or Application AI/RU-5B.\n\n`P0D-02 — selection_semantic_idempotency` = **CLOSED / CANONICAL / LIVE / DO NOT REDO**.\n\nExact next cursor: fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting the next unit. Do not invent a new P0D/RU identifier and do not activate Povezivanje by implication.\n\n'''
+          s = s[:start] + block + s[end:]
+          p.write_text(s, encoding='utf-8', newline='\n')
+
+          # 4) Current status — current snapshot, older details remain recoverable in Git history/network checkpoints.
+          current = f'''# USKOČI current implementation status\n\nAuthoritative current status as of `2026-09-06`, after live closure of frozen-governed `P0D-02 — selection_semantic_idempotency`.\n\n## Current platform checkpoint\n\n- canonical repo/branch: `Uskoci1/USKOCI-CLEAN` / `clean-alpha-backend`\n- canonical implementation merge: `{canonical_merge}`\n- exact-head proof: `{proof_head}` / run `34023168764` PASS\n- implementation PR #26 PRE-P4 / CodeQL: `34023318196` / `34023316595` PASS\n- canonical PRE-P4 / CodeQL / Control-0: `34023411493` / `34023410485` / `34023411602` PASS\n- live Supabase: `77 / {live_version}_{live_name}`\n- canonical source: `{source_file}`\n- canonical raw MD5 / bytes: `{canonical_md5}` / `{canonical_bytes}`\n- live recorded MD5 / bytes: `{live_md5}` / `{live_bytes}`\n- transport: whitespace-only three-LF omission; canonical/live whitespace-stripped MD5 `{ws_md5}`\n- live Selection definition MD5: `{selection_def_md5}`\n- Candidate projection definition MD5: `{candidate_def_md5}`\n- business counts: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`\n- history preserved: `2 SUBMITTED / 2 SELECTED` responses; `2` selected need_selections; `2` Agreements\n- `private.selection_commands`: `0` rows post-migration; RLS ON; zero policies/direct API reads\n\n## P0D-02 closure\n\n- durable private Selection command receipt binds Requester + client request ID to exact semantic payload;\n- same key/same payload replays one authoritative Agreement; same key/different payload rejects;\n- true same-key concurrency and distinct-key final-seat race are proven;\n- R05 retains exact-intent request identity across ambiguous retry;\n- historical Selection request hashes are not backfilled/fabricated.\n\n## Current locks\n\n- production D0140 ALLOW: `FAIL_CLOSED`; inventories `0 / 0 / 0`\n- RU-4B public Q&A: `ACTIVATION_BLOCKED / DEFERRED`; all five governed inventories `0`\n- monetization: `FREE / 0 RSD`\n- urgent production activation: unchanged/disabled\n- raw cross-account `app_profiles`: forbidden\n- production fake source fallback: forbidden\n- Povezivanje: not activated\n- Application AI / RU-5B: gated by remaining manual lifecycle dependencies\n\n## RU status summary\n\n- RU-0 — `CLOSED / LIVE / DO NOT REDO`\n- RU-1 — `CLOSED / LIVE / DO NOT REDO`\n- RU-2 — `CLOSED / LIVE / DO NOT REDO`\n- RU-3 — `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`\n- RU-4 — `CLOSED / LIVE / DO NOT REDO`\n- RU-4B — `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`\n- Client Data Layer — `CLOSED / CANONICAL / DO NOT REDO`\n- RU-5 — `IN PROGRESS`\n- RU-5 P0C-01 — `CLOSED / LIVE / DO NOT REDO`\n- RU-5 P0C-02 — `CLOSED / LIVE / DO NOT REDO`\n- RU-5 P0C-03 — `CLOSED / LIVE / DO NOT REDO`\n- RU-5 P0D-01 — `CLOSED / LIVE / DO NOT REDO`\n- RU-5 Manual Selection Eligibility Revalidation — `CLOSED / CANONICAL / LIVE / DO NOT REDO`\n- P0D-02 Selection Semantic Idempotency — `CLOSED / CANONICAL / LIVE / DO NOT REDO`\n- RU-5B — `NOT STARTED / GATED`\n- RU-6A — `FOUNDATION ONLY / GATED BY RU-5`\n- RU-6B — `NOT STARTED / GATED BY RU-6A`\n- RU-7 — `FOUNDATION ONLY / GATED BY RU-6A/RU-6B`\n- RU-8 — `NOT STARTED / MANDATORY PROOF TRACK`\n\n## Explicit non-claims and next action\n\nP0D-02 does not close hard calendar conflict authority, shared Dogovor/Povezivanje, D0140/RU-4B activation, monetization, bounded-note policy or Application AI. Fresh-read the frozen dependency plan plus current physical Agreement/calendar state before admitting the next unit; do not invent a new number.\n'''
+          Path('docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md').write_text(current, encoding='utf-8', newline='\n')
+
+          # 5) RU status current matrix.
+          ru = f'''# USKOČI RU status\n\nCurrent authoritative RU matrix after live closure of frozen-governed `P0D-02 — selection_semantic_idempotency`.\n\n| Unit | Status | Current rule |\n|---|---|---|\n| RU-0 | CLOSED / LIVE | Do not redo unless an actual regression is proven. |\n| RU-1 | CLOSED / LIVE | Worker readiness authority remains required at relevant command boundaries. |\n| RU-2 | CLOSED / LIVE | Need V2 draft/Human Review authority remains canonical. |\n| RU-3 | LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED | D0140 production ALLOW remains fail-closed. |\n| RU-4 | CLOSED / LIVE | Do not redo owner-edit/revision closure. |\n| RU-4B | LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED | Do not activate public Q&A until all governing blockers are resolved. |\n| Client Data Layer | CLOSED / CANONICAL | Specialized owners remain canonical; no fake production fallback. |\n| RU-5 | IN PROGRESS | Continue dependency-by-dependency; no invented numbering. |\n| RU-5 P0C-01 | CLOSED / LIVE | Public-safe profile projection canonical; raw `app_profiles` remains protected. |\n| RU-5 P0C-02 | CLOSED / LIVE | Atomic Application submit canonical/live; no historical snapshot backfill. |\n| RU-5 P0C-03 | CLOSED / LIVE | My Applications projection + withdraw canonical/live. |\n| RU-5 P0D-01 | CLOSED / LIVE | Requester Candidate Projection canonical/live. |\n| RU-5 Manual Selection Eligibility Revalidation | CLOSED / CANONICAL / LIVE | Current readiness/team-capacity are revalidated at Selection boundary. |\n| P0D-02 Selection Semantic Idempotency | CLOSED / CANONICAL / LIVE | Durable semantic receipt + retained R05 exact-intent retry identity; no historical hash backfill. |\n| RU-5B | NOT STARTED / GATED | Manual lifecycle dependencies must be freshly reconciled before admission. |\n| RU-6A | FOUNDATION ONLY / GATED BY RU-5 | Hard calendar/Agreement authority must not be claimed prematurely. |\n| RU-6B | NOT STARTED / GATED BY RU-6A | Shared Dogovor/Povezivanje remains later. |\n| RU-7 | FOUNDATION ONLY / GATED BY RU-6A/RU-6B | Deferred. |\n| RU-8 | NOT STARTED / MANDATORY PROOF TRACK | Required before release closure. |\n\n## Live checkpoint\n\n- Supabase: `77 / {live_version}_{live_name}`\n- canonical implementation merge: `{canonical_merge}`\n- proof head/run: `{proof_head}` / `34023168764` PASS\n- PR PRE-P4 / CodeQL: `34023318196` / `34023316595` PASS\n- canonical PRE-P4 / CodeQL / Control-0: `34023411493` / `34023410485` / `34023411602` PASS\n- source canonical MD5/bytes: `{canonical_md5}` / `{canonical_bytes}`\n- live recorded MD5/bytes: `{live_md5}` / `{live_bytes}`\n- whitespace-stripped identity: `{ws_md5}` both sides; three LF transport omission only\n- live function MD5s: Selection `{selection_def_md5}`; Candidate `{candidate_def_md5}`\n- business rows: `6 / 6 / 4 / 2`; Selection history unchanged; command receipts `0` immediately after migration\n- D0140 `0/0/0` and FAIL_CLOSED; all RU-4B inventories `0`; monetization FREE/0; Povezivanje off\n\n## Explicit non-claims / cursor\n\nP0D-02 does not close hard calendar conflicts, shared Dogovor/Povezivanje, D0140/RU-4B activation, monetization, bounded-note policy or Application AI. Fresh-read frozen dependencies and current physical Agreement/calendar state before naming or implementing the next unit.\n'''
+          Path('docs/implementation/RU_STATUS.md').write_text(ru, encoding='utf-8', newline='\n')
+
+          # 6) Append immutable-style ledger line.
+          p = Path('docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv')
+          s = p.read_text(encoding='utf-8')
+          assert 'P0D-02_SELECTION_SEMANTIC_IDEMPOTENCY' not in s
+          row = f'P0D-02_SELECTION_SEMANTIC_IDEMPOTENCY,CLOSED_LIVE,proof={proof_head};canonical={canonical_merge},source=20260906080000_clean_p0d02_selection_semantic_idempotency;live={live_version}_{live_name},rpc_select_response + private.selection_commands,R05 candidate Selection consumer,proof=34023168764;pr_pre_p4=34023318196;pr_codeql=34023316595;canonical_pre_p4=34023411493;canonical_codeql=34023410485;canonical_control0=34023411602;live_postflight=PASS,AUTHENTICATED_RUNTIME_PROVEN+TRUE_CONCURRENCY_PROVEN+RN_RETRY_ID_PROVEN+LIVE_STRUCTURAL_PROVEN+WHITESPACE_TRANSPORT_EQUIVALENCE_PROVEN+PROVENANCE_RECONCILED,YES,hard calendar/shared Dogovor/Povezivanje/D0140/RU4B/monetization/Application AI remain separate,FRESH_FROZEN_PLAN_AND_CURRENT_AGREEMENT_CALENDAR_PREFLIGHT\n'
+          if not s.endswith('\n'): s += '\n'
+          p.write_text(s + row, encoding='utf-8', newline='\n')
+
+          # 7) Prepend latest live network checkpoint; preserve all historical blocks below.
+          p = Path('docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md')
+          s = p.read_text(encoding='utf-8')
+          prefix = f'''<!-- P0D02_SELECTION_SEMANTIC_IDEMPOTENCY_LIVE_CLOSURE_20260906 -->\n## LATEST NETWORK CHECKPOINT — P0D-02 SELECTION SEMANTIC IDEMPOTENCY LIVE\n\nThis block supersedes older next-cursor text below for current physical state; historical blocks remain evidence.\n\n- frozen authority: `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip` / `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`\n- exact proof: `{proof_head}` / `34023168764` PASS\n- implementation PR #26 PRE-P4 / CodeQL: `34023318196` / `34023316595` PASS\n- canonical implementation merge: `{canonical_merge}`\n- canonical PRE-P4 / CodeQL / Control-0: `34023411493` / `34023410485` / `34023411602` PASS\n- live Supabase: `77 / {live_version}_{live_name}`\n- canonical migration: `{source_file}` / `{canonical_md5}` / `{canonical_bytes}` bytes\n- live recorded statement: `{live_md5}` / `{live_bytes}` bytes\n- transport deviation: exactly three LF bytes omitted; whitespace-stripped MD5 `{ws_md5}` is identical canonical/live\n- live Selection/Candidate definition MD5s: `{selection_def_md5}` / `{candidate_def_md5}`\n- `private.selection_commands`: RLS ON; 0 policies; 0 rows post-migration; direct API reads denied\n- business/history unchanged: profiles 6; needs 6; responses 4 (2 SUBMITTED/2 SELECTED); selections 2; agreements 2\n- D0140 inventories 0/0/0 and ALLOW fail-closed; all RU-4B inventories 0 and Q&A blocked; monetization FREE/0; Povezivanje off; RU-5B gated\n- verdict: **P0D-02 = CLOSED / CANONICAL / LIVE / DO NOT REDO** once this closure payload is canonical\n- next cursor: fresh frozen-plan + current Agreement/calendar reconciliation; no invented unit and no Povezivanje activation by implication\n\n'''
+          assert not s.startswith('<!-- P0D02_SELECTION_SEMANTIC_IDEMPOTENCY_LIVE_CLOSURE_20260906 -->')
+          p.write_text(prefix + s, encoding='utf-8', newline='\n')
+
+          # 8) Dedicated closure evidence.
+          closure = f'''# P0D-02 Selection Semantic Idempotency — Live Closure\n\nDate: `2026-09-06`\n\n## Verdict\n\n`P0D-02 — selection_semantic_idempotency` = **CLOSED / CANONICAL / LIVE / DO NOT REDO** once this docs/provenance closure payload is merged to canonical and its canonical push gates pass.\n\n## Implementation proof and promotion\n\n- exact proof head: `{proof_head}`\n- exact-head proof run: `34023168764` PASS\n- PR #26 PRE-P4: `34023318196` PASS\n- PR #26 CodeQL: `34023316595` Actions/Python/JavaScript-TypeScript PASS\n- implementation canonical merge: `{canonical_merge}`\n- canonical PRE-P4: `34023411493` PASS\n- canonical CodeQL: `34023410485` PASS\n- canonical Control-0: `34023411602` PASS\n\n## Live evidence\n\n- project: `leqcwgzvjsxugfgzdmth`\n- migration: `77 / {live_version}_{live_name}`\n- canonical source: `{source_file}`\n- canonical MD5/bytes/LF: `{canonical_md5}` / `{canonical_bytes}` / `342`, terminal LF true\n- live recorded MD5/bytes/LF: `{live_md5}` / `{live_bytes}` / `339`, terminal LF false\n- canonical/live whitespace-stripped MD5: `{ws_md5}` — identical\n- conclusion: connected migration transport omitted only three LF bytes; non-whitespace content is identical\n- Selection definition MD5 live: `{selection_def_md5}`\n- Candidate definition MD5 unchanged: `{candidate_def_md5}`\n\nPostflight preserves all business/history counts and access boundaries. `selection_commands` is empty immediately after migration, RLS-enabled, has zero policies, and is unreadable directly by anon/authenticated/service_role. No legacy Selection hash was fabricated.\n\n## Non-claims\n\nNo hard calendar authority, shared Dogovor/Povezivanje redesign/activation, D0140 production ALLOW, RU-4B public Q&A activation, monetization, bounded-note policy or Application AI/RU-5B is claimed by this closure.\n'''
+          Path('docs/implementation/P0D02_SELECTION_SEMANTIC_IDEMPOTENCY_LIVE_CLOSURE.md').write_text(closure, encoding='utf-8', newline='\n')
+          PY
+
+          python supabase/migrations/check_migration_integrity.py
+          git diff --check
+
+      - name: Commit closure payload and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'msljivic031'
+          git config user.email 'msljivic031@gmail.com'
+          git rm .github/workflows/p0d02-live-closure-helper.yml
+          git add docs/implementation supabase/migrations/MIGRATION_PROVENANCE.json
+          git status --short
+          git diff --cached --stat
+          git commit -m 'docs(p0d02): close live selection semantic idempotency'
+          git push origin HEAD:${GITHUB_REF_NAME}
