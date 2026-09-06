@@ -1,0 +1,52 @@
+name: P0D-03 Proof Guard Patch Helper
+
+on:
+  push:
+    branches:
+      - proof/p0d03-requester-connection-activation-v1-20260906
+    paths:
+      - .github/workflows/p0d03-proof-guard-patch-helper.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-proof-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Replace comment-sensitive paid-scope guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('supabase/proofs/p0d03_ci_proof.sh')
+          s = p.read_text(encoding='utf-8')
+          old = "if grep -Eiq 'wallet_balance|checkout|payment_provider|worker_debit' \"$candidate\"; then echo 'P0D-03 scope widened into paid/Worker debit semantics' >&2; exit 1; fi"
+          new = """scope_code=/tmp/p0d03-candidate-code-only.sql
+          sed -E '/^[[:space:]]*--/d' \"$candidate\" > \"$scope_code\"
+          if grep -Eiq 'wallet_balance|payment_provider|worker_debit|paid_package|connection_balance|checkout' \"$scope_code\"; then
+            echo 'P0D-03 scope widened into paid/Worker debit semantics' >&2
+            exit 1
+          fi"""
+          if old not in s:
+              raise SystemExit('exact old scope guard not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8', newline='\n')
+          PY
+          git diff --check
+          grep -F "scope_code=/tmp/p0d03-candidate-code-only.sql" supabase/proofs/p0d03_ci_proof.sh
+          grep -F "paid_package" supabase/proofs/p0d03_ci_proof.sh
+
+      - name: Commit harness-only guard repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'msljivic031'
+          git config user.email 'msljivic031@gmail.com'
+          git add supabase/proofs/p0d03_ci_proof.sh
+          git commit -m 'test(p0d03): ignore SQL comments in paid-scope guard'
+          git push origin HEAD:${GITHUB_REF_NAME}
