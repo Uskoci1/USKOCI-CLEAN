@@ -92,7 +92,10 @@ declare
   v_terms jsonb;
   v_match jsonb;
   v_request_hash text;
-  v_legacy_selection public.need_selections%rowtype;
+  v_legacy_selected_by uuid;
+  v_legacy_need_revision integer;
+  v_legacy_response_id uuid;
+  v_legacy_covered_slots integer;
   v_legacy_agreement_id uuid;
   v_legacy_response_version integer;
   v_legacy_content_hash text;
@@ -147,11 +150,17 @@ begin
   -- Historical Selection rows intentionally have no fabricated request hash.
   -- Preserve their authoritative replay only when the immutable Selection +
   -- Agreement v1 evidence agrees with the caller's exact known payload.
-  select s.*,
+  select s.selected_by_account_id,
+         s.need_revision,
+         s.response_id,
+         s.covered_slots,
          a.id,
          nullif(av.terms->>'response_version','')::integer,
          av.content_hash
-    into v_legacy_selection,
+    into v_legacy_selected_by,
+         v_legacy_need_revision,
+         v_legacy_response_id,
+         v_legacy_covered_slots,
          v_legacy_agreement_id,
          v_legacy_response_version,
          v_legacy_content_hash
@@ -163,13 +172,13 @@ begin
      and s.client_request_id = p_client_request_id;
 
   if found then
-    if v_legacy_selection.selected_by_account_id <> uid then
+    if v_legacy_selected_by <> uid then
       raise exception 'NOT_REQUESTER' using errcode = '42501';
     end if;
-    if v_legacy_selection.need_revision <> p_need_revision
-       or v_legacy_selection.response_id is distinct from p_response_id
+    if v_legacy_need_revision <> p_need_revision
+       or v_legacy_response_id is distinct from p_response_id
        or (v_requested_ver.response_id is not null
-           and v_legacy_selection.covered_slots <> v_requested_ver.covered_slots)
+           and v_legacy_covered_slots <> v_requested_ver.covered_slots)
        or (v_legacy_response_version is not null
            and v_legacy_response_version <> p_response_version)
        or (v_legacy_content_hash is not null
