@@ -122,7 +122,7 @@ def find_nodes(**criteria):
     return nodes, parent
 
 
-def wait_nodes(timeout=40, minimum=1, **criteria):
+def wait_nodes(timeout=40, minimum=1, save_timeout=True, **criteria):
     end = time.time() + timeout
     last = []
     while time.time() < end:
@@ -133,13 +133,12 @@ def wait_nodes(timeout=40, minimum=1, **criteria):
             if len(nodes) >= minimum:
                 return nodes, parent
             if dismiss_known_system_anr(root, parent):
-                # Directly re-assert the app activity after launcher starvation.
                 adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
         except Exception as exc:
             print(f'WAIT_RETRY criteria={criteria} error={type(exc).__name__}:{exc}', flush=True)
         time.sleep(1)
 
-    root, _, xml = dump_tree('timeout')
+    root, _, xml = dump_tree('timeout' if save_timeout else None)
     visible = [
         (n.attrib.get('text'), n.attrib.get('content-desc'), n.attrib.get('class'))
         for n in root.iter()
@@ -217,8 +216,6 @@ def shot(name):
 
 
 def launch_clean():
-    # Clear only this proof APK. Start MainActivity directly so launcher/Quickstep
-    # is not part of the marketplace proof path.
     adb('shell', 'am', 'force-stop', PACKAGE, check=False)
     adb('shell', 'pm', 'clear', PACKAGE, check=False)
     time.sleep(1)
@@ -238,12 +235,30 @@ def launch_clean():
     wait_visible(timeout=90, desc='Prijavi se')
 
 
+def open_login_sheet():
+    # Emulator input can occasionally drop a coordinate tap while the entry
+    # animation is settling. Every attempt below uses the same visible, enabled
+    # production Pressable and succeeds only after the real form becomes visible.
+    last_error = None
+    for attempt in range(1, 4):
+        tap(desc='Prijavi se', prefer='top', timeout=90 if attempt == 1 else 15)
+        try:
+            nodes, parent = wait_nodes(
+                timeout=8,
+                minimum=2,
+                save_timeout=False,
+                clazz='android.widget.EditText',
+            )
+            print(f'CHECKPOINT AUTH_SHEET_OPEN attempt={attempt}', flush=True)
+            return nodes, parent
+        except RuntimeError as exc:
+            last_error = exc
+            print(f'RETRY AUTH_ENTRY_TAP attempt={attempt}', flush=True)
+    raise RuntimeError(f'Login sheet did not open after real UI taps: {last_error}')
+
+
 def login(email):
-    # The entry control is visible before the reference-entry animation makes it
-    # enabled. `tap()` deliberately waits for the real user control to become
-    # actionable instead of tapping a disabled node or bypassing the entry UI.
-    tap(desc='Prijavi se', prefer='top', timeout=90)
-    wait_nodes(timeout=45, minimum=2, clazz='android.widget.EditText')
+    open_login_sheet()
     edit_text(0, email)
     edit_text(1, PASSWORD)
     hide_keyboard()
@@ -341,7 +356,6 @@ def assert_gates_unchanged():
 
 print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY', flush=True)
 
-# Worker physical UI: Auth -> workspace -> W03 -> W04 -> W05 -> W06.
 launch_clean()
 login(WORKER_EMAIL)
 shot('AUTH_worker_authenticated')
@@ -367,7 +381,6 @@ wait_visible(text='Poslata', timeout=45)
 shot('W06_worker_own_application')
 response_id = assert_worker_submit()
 
-# Same installed physical APK, clean application storage, second real Auth identity.
 launch_clean()
 login(REQUESTER_EMAIL)
 shot('AUTH_requester_authenticated')
@@ -386,8 +399,6 @@ dismiss_ok()
 agreement_id = assert_final_selection(response_id)
 shot('AGREEMENT_created')
 
-# Clear storage again and prove the selected state is visible to the real Worker
-# through W06, then open the real Dogovor from the UI.
 launch_clean()
 login(WORKER_EMAIL)
 shot('AUTH_worker_reauthenticated')
