@@ -1,0 +1,159 @@
+name: RU-5 physical Android device UI proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - proof/ru5-physical-device-ui-journey-20260906
+
+permissions:
+  contents: read
+
+env:
+  CI: '1'
+  NODE_ENV: production
+  SUPABASE_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
+  RU5_DEVICE_PACKAGE: rs.uskoci.ru5proof
+  RU5_DEVICE_ARTIFACT_DIR: artifacts/ru5-device-ui
+
+jobs:
+  physical-device-ui-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout proof branch
+        uses: actions/checkout@v4
+
+      - name: Verify migration bytes and provenance integrity
+        run: sh supabase/migrations/check_md5.sh
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+
+      - name: Regression tests
+        run: npm test -- --runInBand
+
+      - name: Reconstruct disposable live-79 Supabase
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+
+      - name: Create two real Auth accounts and one disposable Need fixture
+        run: node supabase/proofs/ru5_device_ui_fixture.mjs
+
+      - name: Bind proof APK to disposable emulator-host Supabase
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$RU5_DEVICE_ANON_KEY" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_USE_FAKE_SOURCE=0" >> "$GITHUB_ENV"
+
+      - name: Inject proof-only Android package id
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'app.json';
+          const app = JSON.parse(fs.readFileSync(path, 'utf8'));
+          app.expo.android = app.expo.android || {};
+          app.expo.android.package = 'rs.uskoci.ru5proof';
+          app.expo.name = 'USKOČI RU5 PROOF';
+          fs.writeFileSync(path, JSON.stringify(app, null, 2) + '\n');
+          NODE
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Enable local HTTP only in generated proof APK
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('android/app/src/main/AndroidManifest.xml')
+          text = path.read_text()
+          if 'android:usesCleartextTraffic=' not in text:
+              text = text.replace('<application ', '<application android:usesCleartextTraffic="true" ', 1)
+          path.write_text(text)
+          if 'android:usesCleartextTraffic="true"' not in path.read_text():
+              raise SystemExit('proof-only cleartext manifest injection failed')
+          PY
+
+      - name: Tune Gradle for x86_64 emulator APK
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'android/gradle.properties';
+          let text = fs.readFileSync(path, 'utf8');
+          const setProp = (key, value) => {
+            const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(`^${escaped}=.*$`, 'm');
+            const line = `${key}=${value}`;
+            text = re.test(text) ? text.replace(re, line) : `${text.trimEnd()}\n${line}\n`;
+          };
+          setProp('org.gradle.jvmargs', '-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8');
+          setProp('reactNativeArchitectures', 'x86_64');
+          fs.writeFileSync(path, text);
+          NODE
+
+      - name: Build standalone proof APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
+
+      - name: Run physical Android emulator journey
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            adb shell settings put system pointer_location 0 || true
+            python3 scripts/ru5_android_device_ui_journey.py | tee artifacts/ru5-device-ui/proof.log
+
+      - name: Disposable postflight invariants
+        if: always()
+        run: |
+          if [[ -n "${RU5_DEVICE_DB_URL:-}" ]]; then
+            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.publication_policy_bundles;")" = "0"
+            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.need_publication_decisions;")" = "0"
+            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.preselection_qa_questions;")" = "0"
+            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.preselection_qa_commands;")" = "0"
+            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from public.needs where mode='FASTEST';")" = "0"
+            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from public.need_selections where selection_mode='AUTO_FILL';")" = "0"
+          fi
+
+      - name: Upload physical UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RU5-PHYSICAL-ANDROID-UI-EVIDENCE
+          path: artifacts/ru5-device-ui/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop disposable Supabase
+        if: always()
+        run: |
+          if [[ -n "${RU5_DEVICE_PROOF_DIR:-}" && -d "$RU5_DEVICE_PROOF_DIR" ]]; then
+            cd "$RU5_DEVICE_PROOF_DIR"
+            supabase stop --no-backup || true
+          fi
