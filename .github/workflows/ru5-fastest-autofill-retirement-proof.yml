@@ -1,0 +1,166 @@
+name: RU-5 FASTEST AUTO_FILL retirement proof
+
+on:
+  push:
+    branches:
+      - proof/ru5-fastest-autofill-retirement-20260906
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru5-fastest-autofill-retirement-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Verify existing canonical migration integrity
+        run: sh supabase/migrations/check_md5.sh
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: latest
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Replay exact live-78 P0D-03 predecessor and keep disposable DB running
+        shell: bash
+        run: |
+          set -euo pipefail
+          real_supabase="$(command -v supabase)"
+          printf '%s\n' "$real_supabase" > /tmp/ru5-fastest-real-supabase
+          mkdir -p /tmp/ru5-fastest-bin
+          cat > /tmp/ru5-fastest-bin/supabase <<EOF
+          #!/bin/sh
+          if [ "\${1:-}" = "stop" ]; then
+            exit 0
+          fi
+          exec "$real_supabase" "\$@"
+          EOF
+          chmod +x /tmp/ru5-fastest-bin/supabase
+          PATH="/tmp/ru5-fastest-bin:$PATH" bash supabase/proofs/p0d03_ci_proof.sh
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "retirement_predecessor=$actual"
+          test "$actual" = "78/20260906102021"
+
+      - name: Apply retirement candidate and prove current-mode preservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate="$GITHUB_WORKSPACE/supabase/proofs/candidates/20260906130000_clean_ru5_fastest_autofill_retirement.sql"
+          candidate_md5="$(md5sum "$candidate" | awk '{print $1}')"
+          candidate_bytes="$(wc -c < "$candidate" | tr -d ' ')"
+          echo "candidate_md5=$candidate_md5 candidate_bytes=$candidate_bytes"
+          test "$candidate_md5" = "25bf03d6bed27d0d9af27ec65d59a63c"
+          test "$candidate_bytes" = "7363"
+
+          before_submit="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)'::regprocedure));")"
+          before_select="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure));")"
+          before_profiles="$(psql "$DB_URL" -Atc "select count(*) from public.app_profiles;")"
+          before_needs="$(psql "$DB_URL" -Atc "select count(*) from public.needs;")"
+          before_responses="$(psql "$DB_URL" -Atc "select count(*) from public.marketplace_responses;")"
+          before_selections="$(psql "$DB_URL" -Atc "select count(*) from public.need_selections;")"
+          before_agreements="$(psql "$DB_URL" -Atc "select count(*) from public.agreements;")"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$candidate"
+
+          after_submit="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)'::regprocedure));")"
+          after_select="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure));")"
+          test "$before_submit" = "$after_submit"
+          test "$before_select" = "$after_select"
+
+          test "$before_profiles" = "$(psql "$DB_URL" -Atc "select count(*) from public.app_profiles;")"
+          test "$before_needs" = "$(psql "$DB_URL" -Atc "select count(*) from public.needs;")"
+          test "$before_responses" = "$(psql "$DB_URL" -Atc "select count(*) from public.marketplace_responses;")"
+          test "$before_selections" = "$(psql "$DB_URL" -Atc "select count(*) from public.need_selections;")"
+          test "$before_agreements" = "$(psql "$DB_URL" -Atc "select count(*) from public.agreements;")"
+
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where mode='FASTEST';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.ai_structured_facts where fact_schema_version='NEED_FACT_V2' and fact_key='need.price_mode' and fact_value='\"FASTEST\"'::jsonb;")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.response_application_snapshots where pricing_mode='FASTEST';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.need_selections where selection_mode='AUTO_FILL';")" = "0"
+
+          needs_check="$(psql "$DB_URL" -Atc "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.needs'::regclass and conname='needs_mode_check';")"
+          snapshot_check="$(psql "$DB_URL" -Atc "select pg_get_constraintdef(oid) from pg_constraint where conrelid='private.response_application_snapshots'::regclass and conname='response_application_snapshots_pricing_mode_check';")"
+          selection_check="$(psql "$DB_URL" -Atc "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.need_selections'::regclass and conname='need_selections_selection_mode_check';")"
+          ! grep -Fq FASTEST <<<"$needs_check"
+          ! grep -Fq FASTEST <<<"$snapshot_check"
+          ! grep -Fq AUTO_FILL <<<"$selection_check"
+          grep -Fq MY_PRICE <<<"$needs_check"
+          grep -Fq OFFERS <<<"$needs_check"
+          grep -Fq REQUESTER_SELECTS <<<"$selection_check"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          do $proof$
+          begin
+            perform private.validate_need_v2_fact('need.price_mode','"OFFERS"'::jsonb);
+            perform private.validate_need_v2_fact('need.price_mode','"MY_PRICE"'::jsonb);
+            begin
+              perform private.validate_need_v2_fact('need.price_mode','"FASTEST"'::jsonb);
+              raise exception 'FASTEST_ACCEPTED';
+            exception when sqlstate '22023' then
+              null;
+            end;
+          end
+          $proof$;
+          SQL
+
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.publication_policy_bundles;")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.preselection_qa_questions;")" = "0"
+          echo "PASS RU5_FASTEST_AUTOFILL_RETIREMENT live78_candidate current_modes_preserved no_business_rewrite"
+
+      - name: Prove client and Edge no longer offer FASTEST
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Fq FASTEST src/data/aiNeedV2Ui.ts; then
+            echo "RN Need V2 correction still exposes FASTEST" >&2
+            exit 1
+          fi
+          if grep -Fq FASTEST supabase/functions/uskoci-ai-interview/index.ts; then
+            echo "Need AI Edge contract still exposes FASTEST" >&2
+            exit 1
+          fi
+          grep -Fq "MY_PRICE" src/data/aiNeedV2Ui.ts
+          grep -Fq "OFFERS" src/data/aiNeedV2Ui.ts
+          grep -Fq "MY_PRICE" supabase/functions/uskoci-ai-interview/index.ts
+          grep -Fq "OFFERS" supabase/functions/uskoci-ai-interview/index.ts
+          echo "PASS RU5_FASTEST_CLIENT_EDGE_RETIREMENT"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+
+      - name: Focused price-mode regression
+        run: npm test -- --runInBand src/data/__tests__/aiNeedV2Ui.test.ts
+
+      - name: Full regression tests
+        run: npm test -- --runInBand
+
+      - name: Stop disposable Supabase DB
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [ -f /tmp/ru5-fastest-real-supabase ] && [ -d /tmp/uskoci-p0d03-proof ]; then
+            real_supabase="$(cat /tmp/ru5-fastest-real-supabase)"
+            cd /tmp/uskoci-p0d03-proof
+            "$real_supabase" stop --no-backup
+          fi
