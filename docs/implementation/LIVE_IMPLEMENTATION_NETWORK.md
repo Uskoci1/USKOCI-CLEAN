@@ -170,7 +170,7 @@ This block supersedes CDL-A05 next-cursor text for the consolidation track.
 - RU-4 remains **CLOSED / LIVE / DO NOT REDO**
 - RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
 - D0140 production publication remains **FAIL_CLOSED**
-- exact next cursor: **fresh post-A06 shadow inventory, then select CDL-A07 by lowest-risk high-value slice**
+- exact next cursor: **fresh post-A06 shadow inventory, then select CDL-A07 by lowest-risk proven slice**
 
 <!-- CDL_A05_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A05 PHONE GRANTS CLOSED / CANONICAL
@@ -192,7 +192,7 @@ This block supersedes CDL-A04 next-cursor text for the consolidation track.
 - RU-4 remains **CLOSED / LIVE / DO NOT REDO**
 - RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
 - D0140 production publication remains **FAIL_CLOSED**
-- exact next cursor: **fresh post-A05 shadow inventory; then select CDL-A06 by lowest-risk proven slice**
+- exact next cursor: **fresh post-A05 shadow inventory, then select CDL-A06 by lowest-risk proven slice**
 
 <!-- CDL_A04_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A04 RESPONSE VIEWED CLOSED / CANONICAL
@@ -213,7 +213,7 @@ This block supersedes CDL-A03 next-cursor text for the consolidation track.
 - RU-4 remains **CLOSED / LIVE / DO NOT REDO**
 - RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
 - D0140 production publication remains **FAIL_CLOSED**
-- exact next cursor: **fresh post-A04 shadow inventory; then select CDL-A05 by lowest-risk proven slice**
+- exact next cursor: **fresh post-A04 shadow inventory, then select CDL-A05 by lowest-risk proven slice**
 
 <!-- CDL_A03_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A03 NEED READS CLOSED / CANONICAL
@@ -234,7 +234,7 @@ This block supersedes CDL-A02 next-cursor text for the consolidation track.
 - RU-4 remains **CLOSED / LIVE / DO NOT REDO**
 - RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
 - D0140 production publication remains **FAIL_CLOSED**
-- exact next cursor: **fresh post-A03 shadow inventory; then select CDL-A04 by lowest-risk high-value slice**
+- exact next cursor: **fresh post-A03 shadow inventory, then select CDL-A04 by lowest-risk proven slice**
 
 <!-- CDL_A02_CANONICAL_CHECKPOINT_20260905 -->
 ## LATEST CLIENT DATA LAYER CHECKPOINT — CDL-A02 AGREEMENT MUTATIONS CLOSED / CANONICAL
