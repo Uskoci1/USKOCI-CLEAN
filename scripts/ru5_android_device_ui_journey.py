@@ -74,7 +74,7 @@ def matches(node, *, text=None, desc=None, contains=None, clazz=None):
     return True
 
 
-def tap_node(node, parent):
+def tap_node(node, parent, hold_ms=0):
     target = clickable_for(node, parent)
     if target is None:
         raise RuntimeError(
@@ -82,7 +82,18 @@ def tap_node(node, parent):
             f"desc={node.attrib.get('content-desc')!r} bounds={node.attrib.get('bounds')!r}"
         )
     x1, y1, x2, y2 = parse_bounds(target.attrib.get('bounds'))
-    adb('shell', 'input', 'tap', str((x1 + x2) // 2), str((y1 + y2) // 2))
+    x = (x1 + x2) // 2
+    y = (y1 + y2) // 2
+    if hold_ms > 0:
+        # A short same-coordinate touchscreen swipe produces a real down/hold/up
+        # gesture. This is closer to a human press than an instantaneous shell
+        # tap and is more reliable for RN Pressability on a loaded CI emulator.
+        adb(
+            'shell', 'input', 'touchscreen', 'swipe',
+            str(x), str(y), str(x), str(y), str(hold_ms),
+        )
+    else:
+        adb('shell', 'input', 'tap', str(x), str(y))
     time.sleep(0.8)
 
 
@@ -150,7 +161,7 @@ def wait_nodes(timeout=40, minimum=1, save_timeout=True, **criteria):
     )
 
 
-def tap(prefer='bottom', timeout=40, **criteria):
+def tap(prefer='bottom', timeout=40, hold_ms=0, **criteria):
     end = time.time() + timeout
     last_visible = 0
     while time.time() < end:
@@ -169,7 +180,7 @@ def tap(prefer='bottom', timeout=40, **criteria):
                     key=lambda item: parse_bounds(item[0].attrib.get('bounds'))[1],
                     reverse=(prefer == 'bottom'),
                 )
-                tap_node(options[0][0], options[0][1])
+                tap_node(options[0][0], options[0][1], hold_ms=hold_ms)
                 return
             if dismiss_known_system_anr(root, parent):
                 adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
@@ -236,12 +247,18 @@ def launch_clean():
 
 
 def open_login_sheet():
-    # Emulator input can occasionally drop a coordinate tap while the entry
-    # animation is settling. Every attempt below uses the same visible, enabled
-    # production Pressable and succeeds only after the real form becomes visible.
+    # The real CTA becomes enabled slightly before the JS-driven reference-entry
+    # animation finishes. Let the production entry settle, then use a short real
+    # touchscreen press on that same CTA. No auth/navigation shortcut is used.
+    time.sleep(1.5)
     last_error = None
     for attempt in range(1, 4):
-        tap(desc='Prijavi se', prefer='top', timeout=90 if attempt == 1 else 15)
+        tap(
+            desc='Prijavi se',
+            prefer='top',
+            timeout=90 if attempt == 1 else 15,
+            hold_ms=160,
+        )
         try:
             nodes, parent = wait_nodes(
                 timeout=8,
@@ -253,8 +270,10 @@ def open_login_sheet():
             return nodes, parent
         except RuntimeError as exc:
             last_error = exc
-            print(f'RETRY AUTH_ENTRY_TAP attempt={attempt}', flush=True)
-    raise RuntimeError(f'Login sheet did not open after real UI taps: {last_error}')
+            dump_tree(f'AUTH_entry_attempt_{attempt}_after')
+            print(f'RETRY AUTH_ENTRY_PRESS attempt={attempt}', flush=True)
+            time.sleep(1)
+    raise RuntimeError(f'Login sheet did not open after real UI presses: {last_error}')
 
 
 def login(email):
