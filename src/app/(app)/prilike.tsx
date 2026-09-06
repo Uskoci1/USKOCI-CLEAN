@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   CaretRight, Clock, Users, ArrowRight, ListBullets, MapTrifold, Columns, MapPin,
 } from 'phosphor-react-native';
@@ -29,6 +29,7 @@ type Prikaz = 'lista' | 'mapa' | 'kombinovano';
  */
 export default function Prilike() {
   const izvor = useIzvor();
+  const router = useRouter();
   const [prikaz, setPrikaz] = useState<Prikaz>('kombinovano');
   const [prilike, setPrilike] = useState<PrilikaProjekcija[]>([]);
 
@@ -134,7 +135,13 @@ export default function Prilike() {
             key={p.id}
             entering={naUredjaju ? FadeInDown.duration(motion.enter).delay(i * 45) : undefined}
           >
-            <Press haptic="light" scaleTo={0.985}>
+            <Press
+              accessibilityRole="button"
+              accessibilityLabel={`Otvorite priliku ${p.naslov}`}
+              haptic="light"
+              scaleTo={0.985}
+              onPress={() => router.push(`/prilike/${p.id}` as any)}
+            >
               <Card style={elevation.card}>
                 <View style={{ padding: space.base, gap: space.md }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
