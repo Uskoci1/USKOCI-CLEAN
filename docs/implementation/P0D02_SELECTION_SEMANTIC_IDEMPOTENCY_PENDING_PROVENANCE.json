@@ -38,11 +38,13 @@
     "legacy_replay_requires_existing_immutable_selection_agreement_evidence": true
   },
   "metadata_registration": {
-    "commit": "d26debc8710e2f27402646db03abb8ca3ddb1d2f",
+    "initial_commit": "d26debc8710e2f27402646db03abb8ca3ddb1d2f",
+    "narrow_format_normalization_commit": "6500885e0894867b62c8e2e625f1062c421ebe07",
     "manifest_registered": true,
     "migration_provenance_pending_registered": true,
     "continuity_wip_registered": true,
-    "migration_integrity": "PASS"
+    "migration_integrity": "PASS",
+    "provenance_diff_shape": "28 additions / 1 deletion versus canonical predecessor"
   },
   "live_applied": false,
   "promotion_state": "AWAITING_EXACT_HEAD_PROOF_AND_PR_GATES",
