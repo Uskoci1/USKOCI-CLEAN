@@ -1,5 +1,30 @@
 # USKOČI implementation continuity
 
+## Current authoritative checkpoint — 2026-09-06 — P0D-03 REQUESTER CONNECTION ACTIVATION V1 CANONICAL / LIVE / POSTFLIGHT PROVEN / CLOSURE PENDING
+
+Frozen authority explicitly names this unit `P0D-03 — requester_connection_activation_v1`. Backend implementation and live promotion are complete; this docs/provenance branch is the final closure step.
+
+- final implementation/proof head: `01b514289091ad9c9ced7d1d5ed4598eaa2994c5`
+- exact-head proof run: `34026655155` — PASS
+- implementation PR #28 PRE-P4 / CodeQL: `34026813290` / `34026811947` — PASS
+- canonical implementation merge: `e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec`
+- canonical PRE-P4 / CodeQL / Control-0: `34026900540` / `34026900127` / `34026900533` — PASS
+- live: `78 / 20260906102021_clean_p0d03_requester_connection_activation_v1`
+- canonical migration MD5/bytes: `e6fb0cb596b51587958b92d08b36ce98` / `25525`
+- live recorded MD5/bytes: `c77a5d4c6efec10c928f38c0542e593e` / `25524`; only terminal LF is omitted and appending that LF produces the canonical MD5/byte count exactly
+- live Selection/Candidate MD5s: `4c2b68cdee2fe66facf7fe1c46cef43f` / `1978ce1d5852cef46f94e81468d37bba`
+- live policy: `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`
+- `connection_activations=0`; no historical backfill; private connection ledgers remain RLS-protected with direct activation-ledger SELECT denied
+- D0140 ALLOW remains fail-closed; RU-4B remains activation-blocked; paid/wallet/checkout and Worker debit remain absent; Application AI remains gated
+
+Status before closure PR merge: **CANONICAL / LIVE / POSTFLIGHT PROVEN / FORMAL DOCS-PROVENANCE CLOSURE PENDING**. After this closure payload is canonical and canonical push gates pass: **CLOSED / CANONICAL / LIVE / DO NOT REDO**.
+
+Exact continuation cursor after closure: fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting another unit. Do not invent a new P0D/RU identifier and do not interpret narrow P0D-03 activation as shared Dogovor or monetization.
+
+---
+
+The following checkpoints are retained verbatim as historical continuity evidence and must not override the newer authoritative checkpoint above.
+
 ## Current WIP checkpoint — 2026-09-06 — P0D-03 REQUESTER CONNECTION ACTIVATION V1 PROVEN / PENDING PROMOTION
 
 - frozen authority: `P0D-03 — requester_connection_activation_v1`

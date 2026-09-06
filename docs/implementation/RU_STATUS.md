@@ -1,6 +1,6 @@
 # USKOČI RU status
 
-Current authoritative RU matrix after live closure of frozen-governed `P0D-02 — selection_semantic_idempotency`.
+Current authoritative RU matrix after live promotion of frozen-governed `P0D-03 — requester_connection_activation_v1`; formal P0D-03 docs/provenance closure is the only remaining closure step.
 
 | Unit | Status | Current rule |
 |---|---|---|
@@ -18,26 +18,30 @@ Current authoritative RU matrix after live closure of frozen-governed `P0D-02 �
 | RU-5 P0D-01 | CLOSED / LIVE | Requester Candidate Projection canonical/live. |
 | RU-5 Manual Selection Eligibility Revalidation | CLOSED / CANONICAL / LIVE | Current readiness/team-capacity are revalidated at Selection boundary. |
 | P0D-02 Selection Semantic Idempotency | CLOSED / CANONICAL / LIVE | Durable semantic receipt + retained R05 exact-intent retry identity; no historical hash backfill. |
+| P0D-03 Requester Connection Activation V1 | CANONICAL / LIVE / POSTFLIGHT PROVEN | Narrow V1 Requester-beneficiary Selection activation is live at 0 RSD; becomes CLOSED / DO NOT REDO when this closure payload is canonical and its push gates pass. |
 | RU-5B | NOT STARTED / GATED | Manual lifecycle dependencies must be freshly reconciled before admission. |
-| RU-6A | FOUNDATION ONLY / GATED BY RU-5 | Hard calendar/Agreement authority must not be claimed prematurely. |
-| RU-6B | NOT STARTED / GATED BY RU-6A | Shared Dogovor/Povezivanje remains later. |
+| RU-6A | FOUNDATION ONLY / GATED BY FRESH RU-5/AGREEMENT/CALENDAR RECONCILIATION | Hard calendar authority and immutable Agreement snapshot remain separate. |
+| RU-6B | NOT STARTED / GATED BY RU-6A | True shared multi-person Dogovor remains later. |
 | RU-7 | FOUNDATION ONLY / GATED BY RU-6A/RU-6B | Deferred. |
 | RU-8 | NOT STARTED / MANDATORY PROOF TRACK | Required before release closure. |
 
 ## Live checkpoint
 
-- Supabase: `77 / 20260906090451_clean_p0d02_selection_semantic_idempotency`
-- canonical implementation merge: `5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9`
-- proof head/run: `c3ada4219b9c8427be0c7b35bc36afa30b4302cc` / `34023168764` PASS
-- PR PRE-P4 / CodeQL: `34023318196` / `34023316595` PASS
-- canonical PRE-P4 / CodeQL / Control-0: `34023411493` / `34023410485` / `34023411602` PASS
-- source canonical MD5/bytes: `065a6a172f1cea50b99c57f6759ef109` / `15516`
-- live recorded MD5/bytes: `c267357c43e2c18448b46268ae458085` / `15513`
-- whitespace-stripped identity: `3433be65f949407f62f751dbf5b57a9d` both sides; three LF transport omission only
-- live function MD5s: Selection `b1ca0a03ee075565c71b50f00d61dade`; Candidate `1978ce1d5852cef46f94e81468d37bba`
-- business rows: `6 / 6 / 4 / 2`; Selection history unchanged; command receipts `0` immediately after migration
-- D0140 `0/0/0` and FAIL_CLOSED; all RU-4B inventories `0`; monetization FREE/0; Povezivanje off
+- Supabase: `78 / 20260906102021_clean_p0d03_requester_connection_activation_v1`
+- canonical implementation merge: `e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec`
+- final proof head/run: `01b514289091ad9c9ced7d1d5ed4598eaa2994c5` / `34026655155` PASS
+- PR #28 PRE-P4 / CodeQL: `34026813290` / `34026811947` PASS
+- canonical PRE-P4 / CodeQL / Control-0: `34026900540` / `34026900127` / `34026900533` PASS
+- source canonical MD5/bytes: `e6fb0cb596b51587958b92d08b36ce98` / `25525`
+- live recorded MD5/bytes: `c77a5d4c6efec10c928f38c0542e593e` / `25524`
+- transport equivalence: live record omits only terminal LF; appending one LF yields canonical MD5/bytes exactly
+- live function MD5s: Selection `4c2b68cdee2fe66facf7fe1c46cef43f`; Candidate `1978ce1d5852cef46f94e81468d37bba`
+- Povezivanje V1 policy: `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`
+- `connection_activations=0` after promotion; no historical backfill
+- private connection tables retain RLS; direct activation-ledger SELECT denied to anon/authenticated/service_role
+- business rows: `6 profiles / 6 needs / 4 responses / 2 agreements / 2 selections`
+- D0140 production ALLOW remains fail-closed; RU-4B remains blocked; paid/wallet/checkout remains absent
 
 ## Explicit non-claims / cursor
 
-P0D-02 does not close hard calendar conflicts, shared Dogovor/Povezivanje, D0140/RU-4B activation, monetization, bounded-note policy or Application AI. Fresh-read frozen dependencies and current physical Agreement/calendar state before naming or implementing the next unit.
+P0D-03 is not hard calendar authority, calendar commitment, immutable Agreement snapshot V2, shared Dogovor, paid monetization, D0140/RU-4B activation or Application AI. Fresh-read frozen dependencies and current physical Agreement/calendar state before naming or implementing the next unit.

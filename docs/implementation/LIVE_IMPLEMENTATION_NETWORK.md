@@ -1,3 +1,28 @@
+<!-- P0D03_REQUESTER_CONNECTION_ACTIVATION_V1_LIVE_CLOSURE_20260906 -->
+## LATEST NETWORK CHECKPOINT — P0D-03 REQUESTER CONNECTION ACTIVATION V1 LIVE
+
+This block supersedes older next-cursor text below for current physical state; historical blocks remain evidence.
+
+- frozen authority: `P0D-03 — requester_connection_activation_v1`
+- final implementation/proof head: `01b514289091ad9c9ced7d1d5ed4598eaa2994c5`
+- exact-head proof: `34026655155` PASS
+- earlier locked proof: `06c60587b6af992d987052a4373f1cc8294df969` / `34026374264` / artifact `9987204281`
+- implementation PR #28 PRE-P4 / CodeQL: `34026813290` / `34026811947` PASS
+- canonical implementation merge: `e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec`
+- canonical PRE-P4 / CodeQL / Control-0: `34026900540` / `34026900127` / `34026900533` PASS
+- live Supabase: `78 / 20260906102021_clean_p0d03_requester_connection_activation_v1`
+- canonical migration: `20260906100000_clean_p0d03_requester_connection_activation_v1.sql` / `e6fb0cb596b51587958b92d08b36ce98` / `25525` bytes
+- live recorded statement: `c77a5d4c6efec10c928f38c0542e593e` / `25524` bytes / terminal LF absent
+- normalized transport proof: appending exactly one terminal LF yields canonical MD5 `e6fb0cb596b51587958b92d08b36ce98` and `25525` bytes; no semantic drift and no repair migration required
+- live Selection/Candidate definition MD5s: `4c2b68cdee2fe66facf7fe1c46cef43f` / `1978ce1d5852cef46f94e81468d37bba`
+- Povezivanje V1 policy: `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`
+- private connection policy/activation tables: RLS ON; activation rows `0`; no historical Povezivanje fabricated; anon/authenticated/service_role direct activation-ledger SELECT denied
+- business/history unchanged: profiles `6`; needs `6`; responses `4`; selections `2`; agreements `2`
+- D0140 production ALLOW remains fail-closed with policy bundles `0`; RU-4B remains activation-blocked; paid/wallet/checkout absent; Worker debit absent; Application AI gated
+- status before closure PR is canonical: **P0D-03 = CANONICAL / LIVE / POSTFLIGHT PROVEN / FORMAL CLOSURE PENDING**
+- status after this closure payload is merged and canonical push gates pass: **P0D-03 = CLOSED / CANONICAL / LIVE / DO NOT REDO**
+- next cursor after closure: fresh frozen-plan + current Agreement/calendar reconciliation; do not invent a new unit and do not interpret narrow P0D-03 activation as shared Dogovor or paid monetization
+
 <!-- P0D02_SELECTION_SEMANTIC_IDEMPOTENCY_LIVE_CLOSURE_20260906 -->
 ## LATEST NETWORK CHECKPOINT — P0D-02 SELECTION SEMANTIC IDEMPOTENCY LIVE
 
