@@ -8,10 +8,10 @@
     "name": "USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip",
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
-  "canonical_code_checkpoint_before_continuity_docs": "c0dd1434c436578e0f517520a2156b72ec5d3eaa",
+  "canonical_code_checkpoint_before_continuity_docs": "5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9",
   "live": {
-    "migration_count": 76,
-    "head": "20260906065758_clean_ru5_selection_eligibility_revalidation",
+    "migration_count": 77,
+    "head": "20260906090451_clean_p0d02_selection_semantic_idempotency",
     "pending_forward_migrations": 0
   },
   "edge": {
@@ -23,7 +23,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_76_RU5_SELECTION_ELIGIBILITY",
+    "state": "NORMALIZED_TO_LIVE_77_P0D02_SELECTION_SEMANTIC_IDEMPOTENCY",
     "ru2_live_aliases": [
       {"live_version":"20260903222139","source_version":"20260903190000","source_file":"20260903190000_clean_ru2_need_v2_draft.sql","exact_byte_identity":true},
       {"live_version":"20260903222333","source_version":"20260903190100","source_file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","exact_byte_identity":true}
@@ -129,6 +129,35 @@
       "canonical_codeql_run":34017639038,
       "canonical_control0_run":34017639343,
       "selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0",
+      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"
+    },
+    "p0d02_selection_semantic_idempotency_live_alias": {
+      "name":"clean_p0d02_selection_semantic_idempotency",
+      "live_version":"20260906090451",
+      "source_version":"20260906080000",
+      "source_file":"20260906080000_clean_p0d02_selection_semantic_idempotency.sql",
+      "exact_byte_identity":false,
+      "canonical_raw_md5":"065a6a172f1cea50b99c57f6759ef109",
+      "canonical_utf8_bytes":15516,
+      "recorded_statement_md5":"c267357c43e2c18448b46268ae458085",
+      "recorded_statement_utf8_bytes":15513,
+      "transport_deviation":"exactly three LF bytes omitted by connected migration transport",
+      "canonical_lf_count":342,
+      "live_lf_count":339,
+      "canonical_terminal_lf":true,
+      "live_terminal_lf":false,
+      "canonical_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d",
+      "live_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d",
+      "whitespace_only_semantic_equivalence":true,
+      "canonical_promotion_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9",
+      "proof_head":"c3ada4219b9c8427be0c7b35bc36afa30b4302cc",
+      "proof_run":34023168764,
+      "pr_pre_p4_run":34023318196,
+      "pr_codeql_run":34023316595,
+      "canonical_pre_p4_run":34023411493,
+      "canonical_codeql_run":34023410485,
+      "canonical_control0_run":34023411602,
+      "selection_definition_md5":"b1ca0a03ee075565c71b50f00d61dade",
       "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"
     }
   },

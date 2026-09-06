@@ -1,14 +1,58 @@
 # USKOČI implementation continuity
 
-## Current WIP checkpoint — 2026-09-06 — P0D-02 SELECTION SEMANTIC IDEMPOTENCY PROOF-PASSED / PENDING PROMOTION
+## Current authoritative checkpoint — 2026-09-06 — P0D-02 SELECTION SEMANTIC IDEMPOTENCY CLOSED / CANONICAL / LIVE
 
-Frozen forward authority physically names this unit `P0D-02 — selection_semantic_idempotency`. It is the next admitted manual Selection repair after the closed RU-5 eligibility revalidation predecessor.
+Frozen forward authority explicitly names this unit `P0D-02 — selection_semantic_idempotency`. The governing frozen package remains unchanged.
 
-Current proof branch: `proof/p0d02-selection-semantic-idempotency-20260906`. Locked candidate migration: `supabase/migrations/20260906080000_clean_p0d02_selection_semantic_idempotency.sql`, raw MD5 `065a6a172f1cea50b99c57f6759ef109`, UTF-8 bytes `15516`. Implementation/concurrency proof run `34020645411` on head `70e1ae400d011408f4e0ea84cbf66478851dec9f` is PASS: same-key/same-payload returns one Agreement/Selection/receipt; same key with different semantic payload is rejected; two distinct keys racing for the last seat produce one winner; RU-5 eligibility and P0D-01 regressions remain PASS; TypeScript PASS; Jest `22/22` suites and `144/144` tests PASS.
+### Canonical implementation and proof
 
-R05 now retains one request ID for the exact Selection intent `(Need/revision, Application/version/hash, covered slots)` across ambiguous retry and allocates a new ID when that semantic intent changes. Historical Selection rows are not backfilled with fabricated request hashes.
+- implementation proof branch exact head: `c3ada4219b9c8427be0c7b35bc36afa30b4302cc`
+- exact-head proof run: `34023168764` — PASS
+- implementation PR: `#26`
+- PR PRE-P4: `34023318196` — PASS
+- PR CodeQL: `34023316595` — Actions/Python/JavaScript-TypeScript PASS
+- canonical implementation merge: `5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9`
+- canonical PRE-P4: `34023411493` — PASS
+- canonical CodeQL: `34023410485` — Actions/Python/JavaScript-TypeScript PASS
+- canonical Control-0: `34023411602` — PASS
+- locked canonical migration: `supabase/migrations/20260906080000_clean_p0d02_selection_semantic_idempotency.sql`
+- canonical raw MD5 / bytes: `065a6a172f1cea50b99c57f6759ef109` / `15516`
 
-Live Supabase remains predecessor-only at `76 / 20260906065758_clean_ru5_selection_eligibility_revalidation`. P0D-02 is **NOT canonical, NOT live, NOT closed** at this checkpoint. The migration is registered only as `PENDING_FORWARD_MIGRATION`; exact-head proof and PR PRE-P4/CodeQL gates are still required before any live write. D0140 production ALLOW, RU-4B public Q&A, monetization, Povezivanje and Application AI remain unchanged and blocked.
+### Live Supabase
+
+- project: `leqcwgzvjsxugfgzdmth`
+- live migration count/head: `77 / 20260906090451_clean_p0d02_selection_semantic_idempotency`
+- recorded statement count: `1`
+- live recorded statement MD5 / bytes: `c267357c43e2c18448b46268ae458085` / `15513`
+- canonical source: `342` LF with terminal LF; connected live record: `339` LF without terminal LF
+- canonical/live whitespace-stripped MD5: `3433be65f949407f62f751dbf5b57a9d` on both sides — the three-byte difference is whitespace-only transport deviation, not semantic drift
+- live Selection definition MD5: `b1ca0a03ee075565c71b50f00d61dade`
+- Candidate projection definition MD5 remains `1978ce1d5852cef46f94e81468d37bba`
+- `private.selection_commands`: RLS enabled, `0` policies, `0` rows immediately post-migration; anon/authenticated/service_role direct SELECT all denied
+- Selection EXECUTE remains authenticated + service_role, anon denied
+- authenticated direct `marketplace_responses` INSERT/UPDATE/DELETE remains denied
+- business rows unchanged: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
+- historical state unchanged: `2` SUBMITTED responses, `2` SELECTED responses, `2` SELECTED need_selections, `2` Agreements
+- no historical Selection request-hash receipt was fabricated
+- D0140 inventories remain `0/0/0`; production ALLOW remains fail-closed
+- all five RU-4B governed inventories remain `0`; public Q&A remains activation blocked
+- monetization remains `FREE / 0 RSD`; Povezivanje remains not activated; Application AI/RU-5B remains gated
+
+### Closed behavior
+
+- same Requester key + same exact Selection payload returns the same authoritative Agreement without duplicate Selection/Agreement/receipt;
+- same key + different semantic payload rejects with `IDEMPOTENCY_KEY_REUSED`;
+- true concurrent same-key retry serializes to one result; distinct keys racing for the final seat produce one winner under existing Need row authority;
+- R05 retains one request ID for exact `(Need/revision, Application/version/hash, covered slots)` intent across ambiguous retry and allocates a new ID when that intent changes;
+- historical Selection/Agreement rows remain untouched and legacy replay relies on existing immutable evidence rather than fabricated hashes.
+
+### Explicit non-claims / locks
+
+This closure does **not** implement hard calendar conflict authority, shared Agreement/Dogovor redesign, Povezivanje, D0140 production ALLOW, RU-4B public Q&A activation, monetization, bounded-note policy or Application AI/RU-5B.
+
+`P0D-02 — selection_semantic_idempotency` = **CLOSED / CANONICAL / LIVE / DO NOT REDO**.
+
+Exact next cursor: fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting the next unit. Do not invent a new P0D/RU identifier and do not activate Povezivanje by implication.
 
 ## Predecessor authoritative checkpoint — 2026-09-06 — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION CLOSED / CANONICAL / LIVE
 

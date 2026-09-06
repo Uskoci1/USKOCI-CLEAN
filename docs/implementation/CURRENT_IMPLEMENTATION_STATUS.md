@@ -1,57 +1,40 @@
 # USKOČI current implementation status
 
-Authoritative current status as of `2026-09-06`, after canonical/live closure of the RU-5 Manual Selection Eligibility Revalidation.
+Authoritative current status as of `2026-09-06`, after live closure of frozen-governed `P0D-02 — selection_semantic_idempotency`.
 
 ## Current platform checkpoint
 
-- canonical repo: `Uskoci1/USKOCI-CLEAN`
-- canonical branch: `clean-alpha-backend`
-- Selection eligibility canonical implementation merge: `c0dd1434c436578e0f517520a2156b72ec5d3eaa`
-- closure/provenance canonical merge: `cc507910a10515db52f0b0db6d86478cfd19ea05`
-- final exact-head proof SHA: `d71c6e08b518e2955020c21538c1238358b14df3`
-- proof run: `34017442269` — PASS
-- PR #23 PRE-P4: `34017443678` — PASS
-- PR #23 CodeQL: `34017442615` — Actions, Python and JavaScript/TypeScript PASS
-- implementation canonical push PRE-P4: `34017639405` — PASS
-- implementation canonical push CodeQL: `34017639038` — Actions, Python and JavaScript/TypeScript PASS
-- implementation canonical Control-0: `34017639343` — PASS
-- closure PR #24 PRE-P4: `34018929991` — PASS
-- closure PR #24 CodeQL: `34018929257` — Actions, Python and JavaScript/TypeScript PASS
-- closure canonical push PRE-P4: `34019026629` — PASS
-- closure canonical push CodeQL: `34019026435` — Actions, Python and JavaScript/TypeScript PASS
-- closure canonical Control-0: `34019026661` — PASS
-- live Supabase project: `leqcwgzvjsxugfgzdmth`
-- live migrations: `76`
-- live head: `20260906065758_clean_ru5_selection_eligibility_revalidation`
-- source migration: `20260906010000_clean_ru5_selection_eligibility_revalidation.sql`
-- canonical/live recorded MD5: `6ddb7d5d141e7cb3a454fa7e6ca1280d`
-- canonical/live recorded UTF-8 bytes: `17954`
-- exact-byte identity: `TRUE`
-- business counts after final fresh live postflight: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
-- Application snapshot rows: `0`; no historical backfill was performed
-- response states remain `2 SUBMITTED / 2 SELECTED`; historical selected rows were not rewritten
+- canonical repo/branch: `Uskoci1/USKOCI-CLEAN` / `clean-alpha-backend`
+- canonical implementation merge: `5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9`
+- exact-head proof: `c3ada4219b9c8427be0c7b35bc36afa30b4302cc` / run `34023168764` PASS
+- implementation PR #26 PRE-P4 / CodeQL: `34023318196` / `34023316595` PASS
+- canonical PRE-P4 / CodeQL / Control-0: `34023411493` / `34023410485` / `34023411602` PASS
+- live Supabase: `77 / 20260906090451_clean_p0d02_selection_semantic_idempotency`
+- canonical source: `20260906080000_clean_p0d02_selection_semantic_idempotency.sql`
+- canonical raw MD5 / bytes: `065a6a172f1cea50b99c57f6759ef109` / `15516`
+- live recorded MD5 / bytes: `c267357c43e2c18448b46268ae458085` / `15513`
+- transport: whitespace-only three-LF omission; canonical/live whitespace-stripped MD5 `3433be65f949407f62f751dbf5b57a9d`
+- live Selection definition MD5: `b1ca0a03ee075565c71b50f00d61dade`
+- Candidate projection definition MD5: `1978ce1d5852cef46f94e81468d37bba`
+- business counts: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
+- history preserved: `2 SUBMITTED / 2 SELECTED` responses; `2` selected need_selections; `2` Agreements
+- `private.selection_commands`: `0` rows post-migration; RLS ON; zero policies/direct API reads
 
-## Selection eligibility closure
+## P0D-02 closure
 
-- `rpc_select_response(uuid,integer,uuid,integer,text,text)` revalidates current RU-1 minimum Worker readiness and current `covered_slots <= team_capacity` immediately before Selection write authority;
-- `rpc_list_need_candidates(uuid)` applies the same current-read checks and reuses existing `STALE / canSelect=false` rather than introducing a new state;
-- live Selection function MD5: `ea1c1c40783dbfb9eeab527c128f9dd0`;
-- live Candidate function MD5: `1978ce1d5852cef46f94e81468d37bba`;
-- current live legacy SUBMITTED rows matching the new STALE branch: `2/2`;
-- authenticated direct response INSERT/UPDATE/DELETE remains denied;
-- `need_selections` RLS remains enabled with one authenticated SELECT policy and zero DML policies;
-- Selection grant boundary remains authenticated + service_role, anon denied;
-- Candidate projection remains authenticated-only, anon/service_role denied.
+- durable private Selection command receipt binds Requester + client request ID to exact semantic payload;
+- same key/same payload replays one authoritative Agreement; same key/different payload rejects;
+- true same-key concurrency and distinct-key final-seat race are proven;
+- R05 retains exact-intent request identity across ambiguous retry;
+- historical Selection request hashes are not backfilled/fabricated.
 
 ## Current locks
 
-- production D0140 ALLOW: `FAIL_CLOSED`
-- D0140 inventories: `0 / 0 / 0`
-- RU-4B public preselection Q&A: `ACTIVATION_BLOCKED / DEFERRED`
-- all RU-4B governed inventories: `0`
+- production D0140 ALLOW: `FAIL_CLOSED`; inventories `0 / 0 / 0`
+- RU-4B public Q&A: `ACTIVATION_BLOCKED / DEFERRED`; all five governed inventories `0`
 - monetization: `FREE / 0 RSD`
 - urgent production activation: unchanged/disabled
-- raw cross-account `app_profiles`: forbidden; owner/private projection boundaries remain
+- raw cross-account `app_profiles`: forbidden
 - production fake source fallback: forbidden
 - Povezivanje: not activated
 - Application AI / RU-5B: gated by remaining manual lifecycle dependencies
@@ -71,22 +54,13 @@ Authoritative current status as of `2026-09-06`, after canonical/live closure of
 - RU-5 P0C-03 — `CLOSED / LIVE / DO NOT REDO`
 - RU-5 P0D-01 — `CLOSED / LIVE / DO NOT REDO`
 - RU-5 Manual Selection Eligibility Revalidation — `CLOSED / CANONICAL / LIVE / DO NOT REDO`
-- RU-5B — `NOT STARTED / GATED BY MANUAL RU-5`
+- P0D-02 Selection Semantic Idempotency — `CLOSED / CANONICAL / LIVE / DO NOT REDO`
+- RU-5B — `NOT STARTED / GATED`
 - RU-6A — `FOUNDATION ONLY / GATED BY RU-5`
 - RU-6B — `NOT STARTED / GATED BY RU-6A`
 - RU-7 — `FOUNDATION ONLY / GATED BY RU-6A/RU-6B`
 - RU-8 — `NOT STARTED / MANDATORY PROOF TRACK`
 
-## Explicit non-claims
+## Explicit non-claims and next action
 
-This unit does not close Selection durable idempotency/client retry identity, calendar hard-conflict authority, Agreement/shared-Dogovor redesign, Povezivanje, bounded-note policy, D0140, RU-4B, monetization or Application AI.
-
-The live SQL inspection connector runs as `supabase_read_only_user` and therefore cannot execute the requester-only candidate RPC. No grant or production privilege was widened merely to manufacture a live authenticated replay. Authenticated behavior was already proved on the disposable proof stack; live closure uses exact-byte migration identity, exact function definitions/grants, preserved live rows and direct current-row classification.
-
-## Exact next action
-
-Fresh-read the frozen dependency plan plus current canonical/live Selection and Agreement state. Do not invent a new numbered P0D unit.
-
-The first physically proven unresolved Selection risk to reconcile is durable command identity/idempotency: the server currently replays by `(need_id, client_request_id)` without a durable payload hash/receipt and R05 generates a fresh Selection request ID per press. Admit it as a separate unit only if the governing dependency read confirms it as next.
-
-Hard calendar/double-booking authority remains separate RU-6A work and must be closed before claiming confirmed Agreements are collision-safe. Shared Dogovor/Povezivanje remains later and must not be activated by implication. RU-5B Application AI remains gated.
+P0D-02 does not close hard calendar conflict authority, shared Dogovor/Povezivanje, D0140/RU-4B activation, monetization, bounded-note policy or Application AI. Fresh-read the frozen dependency plan plus current physical Agreement/calendar state before admitting the next unit; do not invent a new number.

@@ -1,3 +1,24 @@
+<!-- P0D02_SELECTION_SEMANTIC_IDEMPOTENCY_LIVE_CLOSURE_20260906 -->
+## LATEST NETWORK CHECKPOINT — P0D-02 SELECTION SEMANTIC IDEMPOTENCY LIVE
+
+This block supersedes older next-cursor text below for current physical state; historical blocks remain evidence.
+
+- frozen authority: `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip` / `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`
+- exact proof: `c3ada4219b9c8427be0c7b35bc36afa30b4302cc` / `34023168764` PASS
+- implementation PR #26 PRE-P4 / CodeQL: `34023318196` / `34023316595` PASS
+- canonical implementation merge: `5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9`
+- canonical PRE-P4 / CodeQL / Control-0: `34023411493` / `34023410485` / `34023411602` PASS
+- live Supabase: `77 / 20260906090451_clean_p0d02_selection_semantic_idempotency`
+- canonical migration: `20260906080000_clean_p0d02_selection_semantic_idempotency.sql` / `065a6a172f1cea50b99c57f6759ef109` / `15516` bytes
+- live recorded statement: `c267357c43e2c18448b46268ae458085` / `15513` bytes
+- transport deviation: exactly three LF bytes omitted; whitespace-stripped MD5 `3433be65f949407f62f751dbf5b57a9d` is identical canonical/live
+- live Selection/Candidate definition MD5s: `b1ca0a03ee075565c71b50f00d61dade` / `1978ce1d5852cef46f94e81468d37bba`
+- `private.selection_commands`: RLS ON; 0 policies; 0 rows post-migration; direct API reads denied
+- business/history unchanged: profiles 6; needs 6; responses 4 (2 SUBMITTED/2 SELECTED); selections 2; agreements 2
+- D0140 inventories 0/0/0 and ALLOW fail-closed; all RU-4B inventories 0 and Q&A blocked; monetization FREE/0; Povezivanje off; RU-5B gated
+- verdict: **P0D-02 = CLOSED / CANONICAL / LIVE / DO NOT REDO** once this closure payload is canonical
+- next cursor: fresh frozen-plan + current Agreement/calendar reconciliation; no invented unit and no Povezivanje activation by implication
+
 <!-- RU5_SELECTION_ELIGIBILITY_LIVE_CLOSURE_20260906 -->
 ## LATEST NETWORK CHECKPOINT — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION LIVE
 
