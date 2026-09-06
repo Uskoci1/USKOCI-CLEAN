@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -6,7 +6,7 @@ import { T } from "../../../../ui/Text";
 import { Button, Card } from "../../../../ui/Button";
 import { palette, space, elevation } from "../../../../theme/tokens";
 import { useIzvor } from "../../../../store/uloga";
-import { noviZahtevId } from "../../../../lib/idempotencija";
+import { SelectionRequestRegistry, type SelectionIntent } from "../../../../lib/selectionIdempotency";
 import type { KandidatProjekcija, PotrebaProjekcija, StanjePrijave } from "../../../../contracts/projections";
 
 const stanjeTekst: Record<StanjePrijave, string> = {
@@ -23,6 +23,7 @@ export default function KandidatiEkran() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const izvor = useIzvor();
+  const selectionRequests = useRef(new SelectionRequestRegistry());
 
   const [kandidati, setKandidati] = useState<KandidatProjekcija[]>([]);
   const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
@@ -74,9 +75,7 @@ export default function KandidatiEkran() {
       return;
     }
 
-    setBira(prijava.prijavaId);
-    const k = {
-      clientRequestId: noviZahtevId("izbor"),
+    const intent: SelectionIntent = {
       potrebaId: potreba.id,
       potrebaRevizija: potreba.revizija,
       prijavaId: prijava.prijavaId,
@@ -85,9 +84,18 @@ export default function KandidatiEkran() {
       mesta: prijava.pokrivaMesta,
     };
 
+    setBira(prijava.prijavaId);
+    const k = {
+      clientRequestId: selectionRequests.current.getOrCreate(intent),
+      ...intent,
+    };
+
     const ishod = await izvor.izaberiPrijavu(k);
     setBira(null);
     if (ishod.ok) {
+      // Definitive success closes this logical command. Unknown/error outcomes
+      // deliberately keep the same request ID so a user retry is a true replay.
+      selectionRequests.current.clear(intent);
       Alert.alert("Uspeh", "Dogovor je uspešno sklopljen!");
       router.back();
     } else {

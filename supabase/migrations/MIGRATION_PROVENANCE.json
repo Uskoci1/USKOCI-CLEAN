@@ -96,7 +96,34 @@
       {"name":"clean_ru5_selection_eligibility_revalidation","version":"20260906065758","file":"20260906010000_clean_ru5_selection_eligibility_revalidation.sql","source_version":"20260906010000","exact_byte_mirror":true,"canonical_raw_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","live_recorded_statement_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","recorded_statement_utf8_bytes":17954}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260906080000",
+      "name": "clean_p0d02_selection_semantic_idempotency",
+      "file": "20260906080000_clean_p0d02_selection_semantic_idempotency.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "065a6a172f1cea50b99c57f6759ef109",
+      "canonical_utf8_bytes": 15516,
+      "live_applied": false,
+      "predecessor_live_migration_count": 76,
+      "predecessor_live_head": "20260906065758",
+      "proof_branch": "proof/p0d02-selection-semantic-idempotency-20260906",
+      "implementation_proof_head": "70e1ae400d011408f4e0ea84cbf66478851dec9f",
+      "implementation_proof_run_id": 34020645411,
+      "proof_state": "AUTHENTICATED_RUNTIME_AND_TRUE_CONCURRENCY_PROVEN",
+      "client_retry_identity": "R05_EXACT_INTENT_REQUEST_ID_RETENTION_PROVEN",
+      "scope": "Selection semantic command receipt plus retained R05 exact-intent retry identity only",
+      "nonclaims": [
+        "calendar hard-conflict authority",
+        "Povezivanje activation",
+        "Agreement/shared-Dogovor redesign",
+        "D0140 production ALLOW",
+        "RU-4B public Q&A activation",
+        "monetization",
+        "Application AI / RU-5B"
+      ]
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",

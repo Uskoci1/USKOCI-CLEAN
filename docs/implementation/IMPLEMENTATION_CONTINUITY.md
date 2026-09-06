@@ -1,6 +1,16 @@
 # USKOČI implementation continuity
 
-## Current authoritative checkpoint — 2026-09-06 — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION CLOSED / CANONICAL / LIVE
+## Current WIP checkpoint — 2026-09-06 — P0D-02 SELECTION SEMANTIC IDEMPOTENCY PROOF-PASSED / PENDING PROMOTION
+
+Frozen forward authority physically names this unit `P0D-02 — selection_semantic_idempotency`. It is the next admitted manual Selection repair after the closed RU-5 eligibility revalidation predecessor.
+
+Current proof branch: `proof/p0d02-selection-semantic-idempotency-20260906`. Locked candidate migration: `supabase/migrations/20260906080000_clean_p0d02_selection_semantic_idempotency.sql`, raw MD5 `065a6a172f1cea50b99c57f6759ef109`, UTF-8 bytes `15516`. Implementation/concurrency proof run `34020645411` on head `70e1ae400d011408f4e0ea84cbf66478851dec9f` is PASS: same-key/same-payload returns one Agreement/Selection/receipt; same key with different semantic payload is rejected; two distinct keys racing for the last seat produce one winner; RU-5 eligibility and P0D-01 regressions remain PASS; TypeScript PASS; Jest `22/22` suites and `144/144` tests PASS.
+
+R05 now retains one request ID for the exact Selection intent `(Need/revision, Application/version/hash, covered slots)` across ambiguous retry and allocates a new ID when that semantic intent changes. Historical Selection rows are not backfilled with fabricated request hashes.
+
+Live Supabase remains predecessor-only at `76 / 20260906065758_clean_ru5_selection_eligibility_revalidation`. P0D-02 is **NOT canonical, NOT live, NOT closed** at this checkpoint. The migration is registered only as `PENDING_FORWARD_MIGRATION`; exact-head proof and PR PRE-P4/CodeQL gates are still required before any live write. D0140 production ALLOW, RU-4B public Q&A, monetization, Povezivanje and Application AI remain unchanged and blocked.
+
+## Predecessor authoritative checkpoint — 2026-09-06 — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION CLOSED / CANONICAL / LIVE
 
 This is the current forward continuity pointer. The governing frozen package remains unchanged and older checkpoints remain available in Git history and their original evidence artifacts. They must not override this newer physically proven state.
 
