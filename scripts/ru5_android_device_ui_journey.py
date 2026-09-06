@@ -205,13 +205,73 @@ def wait_visible(timeout=40, **criteria):
     wait_nodes(timeout=timeout, **criteria)
 
 
-def edit_text(index, value, timeout=40):
-    nodes, parent = wait_nodes(timeout=timeout, minimum=index + 1, clazz='android.widget.EditText')
-    nodes.sort(key=lambda n: parse_bounds(n.attrib.get('bounds'))[1])
-    tap_node(nodes[index], parent)
-    adb('shell', 'input', 'keyevent', 'KEYCODE_MOVE_END')
-    adb('shell', 'input', 'text', value)
-    time.sleep(0.5)
+def ordered_edit_fields(root):
+    nodes = [node for node in root.iter() if node.attrib.get('class') == 'android.widget.EditText']
+    return sorted(nodes, key=lambda node: parse_bounds(node.attrib.get('bounds'))[1])
+
+
+def entered_value_matches(node, value):
+    observed = node.attrib.get('text', '')
+    if node.attrib.get('password') == 'true':
+        # Android deliberately masks passwords. Never expose/toggle the secret;
+        # the subsequent real Auth request remains the credential authority.
+        return bool(observed) and len(observed) == len(value)
+    return observed == value
+
+
+def current_edit_field(index):
+    root, parent, _ = dump_tree()
+    if dismiss_known_system_anr(root, parent):
+        return None, parent
+    nodes = ordered_edit_fields(root)
+    return (nodes[index] if len(nodes) > index else None), parent
+
+
+def edit_text(index, value, timeout=60):
+    if index < 0 or not isinstance(value, str) or not value:
+        raise ValueError('A non-empty value and non-negative field index are required')
+    deadline = time.monotonic() + timeout
+    attempt = 0
+    last_error = 'field unavailable'
+    while time.monotonic() < deadline:
+        attempt += 1
+        try:
+            field, parent = current_edit_field(index)
+            if field is None:
+                time.sleep(1)
+                continue
+            tap_node(field, parent, hold_ms=160)
+            field, _ = current_edit_field(index)
+            if field is None or field.attrib.get('focused') != 'true':
+                last_error = 'native focus not confirmed'
+                print(f'RETRY UI_TEXT_FOCUS field={index} attempt={attempt}', flush=True)
+                time.sleep(1)
+                continue
+
+            # Real keyboard select-all/delete makes a retry replace, not append.
+            # No accessibility setText, Auth injection, or business RPC fallback.
+            adb('shell', 'input', 'keyboard', 'keycombination', '-t', '100',
+                'KEYCODE_CTRL_LEFT', 'KEYCODE_A')
+            time.sleep(0.2)
+            adb('shell', 'input', 'keyevent', 'KEYCODE_DEL')
+            adb('shell', 'input', 'text', value)
+            time.sleep(0.8)
+            field, _ = current_edit_field(index)
+            if field is not None and entered_value_matches(field, value):
+                secret = field.attrib.get('password') == 'true'
+                print(f'CHECKPOINT UI_TEXT_ENTERED field={index} secret={secret} '
+                      f'characters={len(value)} attempt={attempt}', flush=True)
+                return
+            last_error = 'native readback mismatch'
+            print(f'RETRY UI_TEXT_READBACK field={index} attempt={attempt}', flush=True)
+        except (RuntimeError, subprocess.CalledProcessError, ET.ParseError) as exc:
+            # Do not include subprocess arguments: one may contain a password.
+            last_error = type(exc).__name__
+            print(f'RETRY UI_TEXT_INPUT field={index} attempt={attempt} error={last_error}', flush=True)
+        time.sleep(1)
+
+    dump_tree(f'input_{index}_timeout')
+    raise RuntimeError(f'Could not verify real UI input field={index}: {last_error}')
 
 
 def hide_keyboard():

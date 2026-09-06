@@ -55,6 +55,9 @@ jobs:
       - name: Regression tests
         run: npm test -- --runInBand
 
+      - name: Physical input harness regression tests
+        run: python3 -m unittest scripts/test_ru5_android_input.py -v
+
       - name: Reconstruct disposable live-79 Supabase
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
 
