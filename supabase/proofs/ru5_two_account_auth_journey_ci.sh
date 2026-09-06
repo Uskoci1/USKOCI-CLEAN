@@ -42,7 +42,9 @@ comment on function public.rpc_ai_correct_fact(uuid,text) is 'AUTHENTICATED_RUNT
 comment on function public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb) is 'SERVICE_RUNTIME_PROVEN: repeated canonical keys preserve one-live-fact invariant by superseding before insert; replacement proof rolled back with zero residue.';
 SQL
 
-supabase db start
+# Full local stack is required here because this proof exercises real GoTrue
+# sessions plus PostgREST RPCs, not only direct PostgreSQL role simulation.
+supabase start
 trap 'cd "$PROOF_DIR" && supabase stop --no-backup >/dev/null 2>&1 || true' EXIT
 supabase db reset --local
 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
