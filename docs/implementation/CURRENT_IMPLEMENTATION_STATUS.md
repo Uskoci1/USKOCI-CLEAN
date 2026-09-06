@@ -1,17 +1,22 @@
 # USKOČI current implementation status
 
-Authoritative current status as of `2026-09-06`, after canonical/live/proven FASTEST/AUTO_FILL retirement. Historical closure evidence remains in dedicated closure and continuity documents.
+Authoritative current status as of `2026-09-06`, after canonical/live/proven FASTEST/AUTO_FILL retirement and canonical/proven authenticated two-account Application journey proof. Historical closure evidence remains in dedicated closure and continuity documents.
 
 ## Current platform checkpoint
 
 - governing master: `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip` / SHA-256 `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`
 - canonical repo/branch: `Uskoci1/USKOCI-CLEAN` / `clean-alpha-backend`
 - FASTEST/AUTO_FILL implementation proof head/run: `e7b5ce501c2b9708bd176075ab4b41575edf0832` / `34034993845` PASS
-- implementation PR #32 PRE-P4 / CodeQL: `34038248027` / `34038246172` PASS
-- canonical implementation merge: `6ee5c611fadf6861b7cc029ffda77437a847ca8c`
-- implementation canonical PRE-P4 / CodeQL / Control-0: `34038380354` / `34038380028` / `34038380360` PASS
+- canonical FASTEST/AUTO_FILL merge: `6ee5c611fadf6861b7cc029ffda77437a847ca8c`
+- W03→W04 routing fix canonical merge: `bc49e8ae423b91b37321787e1dc3a1dada90583e` (PR #34)
+- two-account authenticated journey proof run/job: `34045287333 / 101519151761` PASS
+- two-account proof PR #35 PRE-P4 / CodeQL: `34045560199 / 34045558347` PASS
+- two-account proof canonical merge: `55f218d1f2cd9a79fdaba9b8c058e92664be758f`
+- two-account proof canonical PRE-P4 / CodeQL / Control-0: `34045636959 / 34045636726 / 34045636967` PASS
+- proof TypeScript: PASS
+- proof regression suite: `23/23` suites PASS, `146/146` tests PASS
 - live Supabase project: `leqcwgzvjsxugfgzdmth`
-- live Supabase: `79 / 20260906141409_clean_ru5_fastest_autofill_retirement`
+- fresh live Supabase post-proof: `79 / 20260906141409_clean_ru5_fastest_autofill_retirement`
 - canonical source: `20260906130000_clean_ru5_fastest_autofill_retirement.sql`
 - canonical raw MD5 / bytes: `25bf03d6bed27d0d9af27ec65d59a63c` / `7363`
 - live recorded MD5 / bytes: `04466b38e780a59a7eab6f4b928544a0` / `6743`
@@ -19,7 +24,7 @@ Authoritative current status as of `2026-09-06`, after canonical/live/proven FAS
 - transport equivalence: removing SQL `--` line comments and whitespace from canonical/live yields identical MD5 `c99a1ded1106ae52f2dbf47289192ce0`; executable semantics are proven equivalent; applied history remains unchanged; no repair migration is required
 - live Selection definition MD5: `4c2b68cdee2fe66facf7fe1c46cef43f`
 - Candidate projection definition MD5: `1978ce1d5852cef46f94e81468d37bba`
-- business counts: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `need_selections=2`, `agreements=2`
+- fresh post-proof business counts: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `need_selections=2`, `agreements=2`
 - retired inventory: FASTEST Needs `0`; FASTEST V2 AI facts `0`; FASTEST Application snapshots `0`; AUTO_FILL Selections `0`
 - live admissible Need/Application price modes: `MY_PRICE | OFFERS`
 - live admissible Selection modes: `REQUESTER_SELECTS | BIDDING`
@@ -37,17 +42,30 @@ The following units remain physically closed and must not be redone without a pr
 - P0D-02 Selection Semantic Idempotency — `CLOSED / CANONICAL / LIVE`
 - P0D-03 Requester Connection Activation V1 — `CLOSED / CANONICAL / LIVE / PROVEN`
 - RU-5 FASTEST/AUTO_FILL retirement — `CLOSED / CANONICAL / LIVE / PROVEN`
+- RU-5 automated two-account authenticated Application journey — `CLOSED / CANONICAL / PROVEN`
 
 P0D-03 policy remains exactly:
 
 `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`
 
-`private.connection_activations=0`; no historical activation backfill and no Worker debit were introduced.
+Fresh post-proof `private.connection_activations=0`; no historical activation backfill and no Worker debit were introduced.
+
+## Automated two-account journey closure
+
+Dedicated evidence: `docs/implementation/RU5_TWO_ACCOUNT_AUTH_JOURNEY_PROOF_CLOSURE.md`.
+
+The proof uses two distinct real GoTrue Auth sessions and proves the frozen automated journey:
+
+`W03 → W04 → W05 → W06 → R05`
+
+It proves authenticated submit and selection authority, Requester-owner-only candidates, exact Application version/hash selection, submit and Selection replay semantics, selected-state reload, P0D-03 zero-cost Requester activation semantics and zero external residue. Service/admin authority does not substitute either marketplace identity.
+
+This closes the **automated integration** portion only. It is not a physical mobile UI/device proof.
 
 ## Current locks
 
-- production D0140 ALLOW: `FAIL_CLOSED`; publication policy bundle inventory `0`; publication decision inventory `0`
-- RU-4B public Q&A: `ACTIVATION_BLOCKED / DEFERRED`; governed production question/policy/command inventory remains empty
+- production D0140 ALLOW: `FAIL_CLOSED`; fresh publication policy bundle inventory `0`; publication decision inventory `0`
+- RU-4B public Q&A: `ACTIVATION_BLOCKED / DEFERRED`; fresh questions/answers/policy decisions/materiality decisions/commands all `0`
 - monetization: `FREE / 0 RSD`; no paid/wallet/checkout/packages activation
 - urgent production activation: unchanged/disabled
 - raw cross-account `app_profiles`: forbidden
@@ -64,7 +82,7 @@ P0D-03 policy remains exactly:
 - RU-4 — `CLOSED / LIVE / DO NOT REDO`
 - RU-4B — `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`
 - Client Data Layer — `CLOSED / CANONICAL / DO NOT REDO`
-- RU-5 — `IN PROGRESS`; constituent closed units stay closed, but aggregate RU-5 is not yet closed
+- RU-5 — `IN PROGRESS`; automated two-account journey is closed, but bounded-note authority and physical device/UI proof remain open
 - RU-5B — `NOT STARTED / GATED BY RU-5`
 - RU-6A — `FOUNDATION ONLY / GATED BY RU-5`
 - RU-6B — `NOT STARTED / GATED BY RU-6A`
@@ -79,24 +97,21 @@ Frozen RU-5 requires a bounded Application note and denial of contact/payment/ex
 
 The current governing sources do not owner-approve a numeric maximum length, regex/block list, moderation threshold or numeric rate for this Application note. Concrete values found only in `06_DRAFT_EVIDENCE` are draft evidence and cannot be promoted into product policy by implementation inference.
 
-Therefore any implementation step that would require inventing those values is `BLOCKED / DECISION-REQUIRED`. Continue only with policy-independent proof/reconciliation work until authority exists.
+Therefore any implementation step that would require inventing those values remains `BLOCKED / DECISION-REQUIRED`.
 
-### 2. Two-account/device Application journey proof
+### 2. Physical device/emulator UI journey proof
 
-Frozen RU-5 still requires complete journey proof:
+The automated two-account authenticated journey is now closed. What remains is a genuinely separate physical UI proof of the same `W03 → W04 → W05 → W06 → R05` path on an actually connected emulator/device or an equivalent mobile E2E harness.
 
-`W03 → W04 → W05 → W06 → R05`
-
-Existing unit/DB/integration proofs establish important command properties, but do not by themselves prove the complete aggregate two-identity journey. The next proof must preserve authenticated Worker and Requester authority without service-role substitution, prove retry/replay/stale/atomic/no-partial-write behavior, preserve P0D-02 and P0D-03, and leave zero proof residue. Automated integration proof and physical device/emulator proof must be reported separately.
+No Maestro/Detox-equivalent click-through harness is currently established in canonical, and Android build success does not constitute this proof. Device/UI proof therefore remains `OPEN / NOT EXECUTED` and must not be inferred.
 
 ## Exact continuation cursor
 
-1. finish this docs/provenance closure through normal PR and canonical gates;
-2. fresh-read final canonical closure state;
-3. search governing/master/legal/history/code for any later owner-approved bounded-note policy; do not invent missing values;
-4. reconstruct exact `W03/W04/W05/W06/R05` surface/command/backend mapping;
-5. run the strongest available authenticated two-account automated proof and, only if physically available, the separate device/emulator proof;
-6. keep aggregate RU-5 `IN PROGRESS` until both governing blockers are physically closed;
-7. do not enter RU-5B early.
+1. merge this proof-status reconciliation through normal PR and canonical push gates;
+2. preserve all already closed RU-5 units and do not redo them;
+3. resolve bounded/preselection-note governing authority without inventing numeric/regex/block-list policy;
+4. establish the smallest canonical physical mobile E2E/device harness that can prove `W03 → W04 → W05 → W06 → R05` without production contamination;
+5. execute and retain physical device/emulator evidence only when a real device/emulator environment is actually available;
+6. keep aggregate RU-5 `IN PROGRESS` and RU-5B gated until both remaining gates close.
 
-Explicit non-claims: bounded-note policy values, Application AI, hard calendar authority, immutable Agreement Snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B public activation, HITNO activation, wallet/checkout/packages or paid monetization.
+Explicit non-claims: bounded-note policy values, physical device proof, Application AI, hard calendar authority, immutable Agreement Snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B public activation, HITNO activation, wallet/checkout/packages or paid monetization.
