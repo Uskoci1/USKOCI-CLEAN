@@ -247,7 +247,7 @@ def login(email):
     edit_text(0, email)
     edit_text(1, PASSWORD)
     hide_keyboard()
-    tap(text='Prijavi se', prefer='bottom', timeout=30)
+    tap(text='Prijavite se', prefer='bottom', timeout=30)
     wait_visible(text='Početna', timeout=60)
 
 
