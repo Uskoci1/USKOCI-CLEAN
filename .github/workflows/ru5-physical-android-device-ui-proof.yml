@@ -11,7 +11,6 @@ permissions:
 
 env:
   CI: '1'
-  NODE_ENV: production
   SUPABASE_TELEMETRY_DISABLED: '1'
   DO_NOT_TRACK: '1'
   RU5_DEVICE_PACKAGE: rs.uskoci.ru5proof
@@ -114,6 +113,8 @@ jobs:
 
       - name: Build standalone proof APK
         working-directory: android
+        env:
+          NODE_ENV: production
         run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
 
       - name: Run physical Android emulator journey
