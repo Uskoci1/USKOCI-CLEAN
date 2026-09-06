@@ -1,5 +1,22 @@
 # USKOČI implementation continuity
 
+## Current WIP checkpoint — 2026-09-06 — P0D-03 REQUESTER CONNECTION ACTIVATION V1 PROVEN / PENDING PROMOTION
+
+- frozen authority: `P0D-03 — requester_connection_activation_v1`
+- proof branch: `proof/p0d03-requester-connection-activation-v1-20260906`
+- locked proof head before metadata registration: `06c60587b6af992d987052a4373f1cc8294df969`
+- exact-head proof run: `34026374264` — PASS
+- proof artifact: `9987204281`
+- locked migration: `supabase/migrations/20260906100000_clean_p0d03_requester_connection_activation_v1.sql`
+- canonical raw MD5 / bytes: `e6fb0cb596b51587958b92d08b36ce98` / `25525`
+- predecessor live state: `77 / 20260906090451_clean_p0d02_selection_semantic_idempotency`
+- proven behavior: Requester beneficiary; Selection activation reason; HEADCOUNT units; `PROMOTIONAL_FREE`; platform cost `0 RSD`; same Selection transaction creates the immutable private activation receipt required for a new Agreement; no Worker debit; no task-price/platform-fee conflation; no historical Agreement backfill; P0D-02 concurrency and RU-5/P0D-01 regressions preserved.
+- private boundary: `private.connection_policy_versions` and `private.connection_activations` are server-only, RLS-enabled and immutable; authenticated proof does not receive direct private-schema read access.
+- status: **PROVEN ON PROOF BRANCH / PENDING CANONICAL PROMOTION / NOT LIVE / NOT CLOSED**.
+- non-scope remains: paid checkout/balance/packages, calendar authority, Agreement snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B activation, monetization, Application AI.
+
+Do not treat P0D-03 as canonical or live until PR gates, canonical push gates, fresh live preflight, exact migration promotion, postflight and closure provenance are all complete.
+
 ## Current authoritative checkpoint — 2026-09-06 — P0D-02 SELECTION SEMANTIC IDEMPOTENCY CLOSED / CANONICAL / LIVE
 
 Frozen forward authority explicitly names this unit `P0D-02 — selection_semantic_idempotency`. The governing frozen package remains unchanged.

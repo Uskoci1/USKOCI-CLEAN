@@ -97,7 +97,24 @@
       {"name":"clean_p0d02_selection_semantic_idempotency","version":"20260906090451","file":"20260906080000_clean_p0d02_selection_semantic_idempotency.sql","source_version":"20260906080000","exact_byte_mirror":false,"canonical_raw_md5":"065a6a172f1cea50b99c57f6759ef109","canonical_utf8_bytes":15516,"live_recorded_statement_md5":"c267357c43e2c18448b46268ae458085","recorded_statement_utf8_bytes":15513,"transport_deviation":"connected migration transport omitted exactly three LF bytes; canonical LF=342 terminal_LF=true, live LF=339 terminal_LF=false","canonical_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d","live_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d","whitespace_only_semantic_equivalence":true,"canonical_promotion_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9","proof_head":"c3ada4219b9c8427be0c7b35bc36afa30b4302cc","proof_run":34023168764,"implementation_pr":26,"pr_pre_p4_run":34023318196,"pr_codeql_run":34023316595,"canonical_pre_p4_run":34023411493,"canonical_codeql_run":34023410485,"canonical_control0_run":34023411602,"selection_definition_md5":"b1ca0a03ee075565c71b50f00d61dade","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260906100000",
+      "name": "clean_p0d03_requester_connection_activation_v1",
+      "file": "20260906100000_clean_p0d03_requester_connection_activation_v1.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "e6fb0cb596b51587958b92d08b36ce98",
+      "utf8_bytes": 25525,
+      "live_applied": false,
+      "predecessor_live_migration_count": 77,
+      "predecessor_live_head": "20260906090451",
+      "proof_branch": "proof/p0d03-requester-connection-activation-v1-20260906",
+      "proof_head": "06c60587b6af992d987052a4373f1cc8294df969",
+      "proof_run": 34026374264,
+      "proof_artifact_id": 9987204281,
+      "scope": "Requester-beneficiary Selection Povezivanje V1; PROMOTIONAL_FREE; HEADCOUNT; platform cost 0 RSD; no Worker debit; no historical backfill"
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
