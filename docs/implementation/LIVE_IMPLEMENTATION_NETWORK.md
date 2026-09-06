@@ -1,3 +1,41 @@
+<!-- RU5_SELECTION_ELIGIBILITY_LIVE_CLOSURE_20260906 -->
+## LATEST NETWORK CHECKPOINT — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION LIVE
+
+This block supersedes older next-cursor text below for current physical state. Historical checkpoint blocks are intentionally preserved below as evidence.
+
+- governing frozen package: `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip`
+- governing SHA-256: `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`
+- canonical repository/branch: `Uskoci1/USKOCI-CLEAN` / `clean-alpha-backend`
+- Selection eligibility proof head: `d71c6e08b518e2955020c21538c1238358b14df3`
+- proof run: `34017442269` — PASS
+- PR #23 PRE-P4 / CodeQL: `34017443678` / `34017442615` — PASS
+- canonical implementation merge: `c0dd1434c436578e0f517520a2156b72ec5d3eaa`
+- canonical PRE-P4 / CodeQL / Control-0: `34017639405` / `34017639038` / `34017639343` — PASS
+- live Supabase project: `leqcwgzvjsxugfgzdmth`
+- live migration count/head: `76 / 20260906065758_clean_ru5_selection_eligibility_revalidation`
+- canonical source: `20260906010000_clean_ru5_selection_eligibility_revalidation.sql`
+- canonical/live exact MD5: `6ddb7d5d141e7cb3a454fa7e6ca1280d`
+- canonical/live UTF-8 bytes: `17954`
+- live Selection function MD5: `ea1c1c40783dbfb9eeab527c128f9dd0`
+- live Candidate function MD5: `1978ce1d5852cef46f94e81468d37bba`
+- business rows preserved: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
+- snapshot rows remain `0`; no historical backfill
+- historical Selection state preserved: `2` SELECTED responses / `2` SELECTED need_selections / `2` Agreements
+- open legacy Applications preserved: `2` SUBMITTED; both `2/2` now satisfy the new current-read `STALE` branch
+- authenticated direct response DML remains denied
+- `need_selections` RLS remains enabled with one SELECT policy and zero DML policies
+- D0140 inventories remain `0/0/0`; production ALLOW remains `FAIL_CLOSED`
+- RU-4B governed inventories remain zero; public Q&A remains activation blocked
+- monetization remains `FREE / 0 RSD`
+- Povezivanje remains not activated
+- RU-5B Application AI remains gated
+
+Unit verdict after closure promotion: **RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION = CLOSED / LIVE / DO NOT REDO**.
+
+Explicit non-claims: durable Selection payload-idempotency/command receipt, R05 lost-response retry identity, hard calendar conflicts, Agreement/shared-Dogovor redesign, Povezivanje, bounded-note policy, D0140/RU-4B activation, monetization and Application AI are separate work.
+
+Exact next cursor: **fresh frozen-plan + current physical reconciliation of remaining manual Selection/Agreement dependencies; do not invent a new P0D/RU number**. Durable Selection command identity/idempotency + R05 retry identity is the first physically proven unresolved Selection risk, but it is only a candidate next unit until the governing dependency read admits it. Calendar hard-conflict authority remains separate RU-6A work.
+
 <!-- CDL_CLOSURE_MASTER_READMISSION_20260905 -->
 ## LATEST NETWORK CHECKPOINT — CDL CLOSED / RU-5 ADMITTED
 
