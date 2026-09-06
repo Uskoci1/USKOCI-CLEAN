@@ -1,6 +1,6 @@
 # USKOČI — LIVE IMPLEMENTATION NETWORK
 
-Current authoritative network checkpoint: `2026-09-06` after RU-5 FASTEST/AUTO_FILL retirement became canonical/live/proven.
+Current authoritative network checkpoint: `2026-09-06` after RU-5 FASTEST/AUTO_FILL retirement became canonical/live/proven and the automated two-account authenticated Application journey became canonical/proven.
 
 Historical network checkpoints that previously occupied this file are preserved byte-for-byte in `LIVE_IMPLEMENTATION_NETWORK_HISTORY_PRE_RU5_RETIREMENT_20260906.md` and in Git history. They remain evidence, but they do not override this newer checkpoint.
 
@@ -22,9 +22,23 @@ RU-5 FASTEST/AUTO_FILL retirement:
 - source migration: `20260906130000_clean_ru5_fastest_autofill_retirement.sql`
 - source MD5/bytes: `25bf03d6bed27d0d9af27ec65d59a63c` / `7363`
 
+RU-5 automated two-account authenticated journey:
+
+- prerequisite W03→W04 routing fix canonical merge: `bc49e8ae423b91b37321787e1dc3a1dada90583e` (PR `#34`)
+- proof branch head: `bedca53d2d0bff336a2ea912b3489f4fbf5402aa`
+- proof run/job: `34045287333 / 101519151761` PASS
+- PR `#35` PRE-P4 / CodeQL: `34045560199 / 34045558347` PASS
+- canonical merge: `55f218d1f2cd9a79fdaba9b8c058e92664be758f`
+- canonical PRE-P4 / CodeQL / Control-0: `34045636959 / 34045636726 / 34045636967` PASS
+- TypeScript: PASS
+- regression suite: `23/23` suites PASS, `146/146` tests PASS
+- closure evidence: `RU5_TWO_ACCOUNT_AUTH_JOURNEY_PROOF_CLOSURE.md`
+
 ## Current live Supabase checkpoint
 
 Project: `leqcwgzvjsxugfgzdmth`
+
+Fresh read-only post-proof checkpoint:
 
 - migration count/head: `79 / 20260906141409_clean_ru5_fastest_autofill_retirement`
 - live recorded statement MD5/bytes: `04466b38e780a59a7eab6f4b928544a0` / `6743`
@@ -45,15 +59,25 @@ Retired inventory:
 - FASTEST Application snapshots: `0`
 - AUTO_FILL Selections: `0`
 
-Continuity:
+Fresh continuity after automated journey proof:
 
 - profiles `6`
 - Needs `6`
 - responses `4`
 - selections `2`
 - Agreements `2`
+- D0140 policy bundles `0`
+- D0140 publication decisions `0`
+- RU-4B questions `0`
+- RU-4B answer versions `0`
+- RU-4B policy decisions `0`
+- RU-4B materiality decisions `0`
+- RU-4B commands `0`
+- connection activations `0`
 - Selection function MD5 `4c2b68cdee2fe66facf7fe1c46cef43f`
 - Candidate function MD5 `1978ce1d5852cef46f94e81468d37bba`
+
+The automated proof was disposable-only and left zero external/production residue.
 
 ## Current live Edge checkpoint
 
@@ -80,12 +104,30 @@ Continuity:
 - P0D-02 — `CLOSED / CANONICAL / LIVE`
 - P0D-03 — `CLOSED / CANONICAL / LIVE / PROVEN`
 - RU-5 FASTEST/AUTO_FILL retirement — `CLOSED / CANONICAL / LIVE / PROVEN`
+- RU-5 automated two-account authenticated journey — `CLOSED / CANONICAL / PROVEN`
 
 P0D-03 remains exactly:
 
 `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`
 
 No Worker debit and no historical connection-activation backfill were introduced.
+
+## Automated journey network proof
+
+The canonical automated proof uses two distinct real GoTrue Auth sessions and proves:
+
+`W03 public opportunity read → W04 exact Need read → W05 authenticated Application submit → W06 own Application projection → R05 owner-only candidate projection → exact Application version/hash Selection`
+
+It additionally proves:
+
+- same submit key + same payload replay PASS;
+- same submit key + changed payload DENY;
+- authenticated Selection replay under P0D-02;
+- selected-state W06 reload;
+- P0D-03 Requester-beneficiary, promotional-free, headcount, `0 RSD` semantics;
+- zero external residue.
+
+This is a backend/client-authority integration proof. It does **not** claim physical UI taps on an emulator/device.
 
 ## Fail-closed/deferred network
 
@@ -102,21 +144,20 @@ No Worker debit and no historical connection-activation backfill were introduced
 
 `RU-5 = IN PROGRESS`.
 
-FASTEST/AUTO_FILL retirement does not close the aggregate. Two governing blockers remain:
+The automated two-account integration blocker is closed. Two separate aggregate gates remain:
 
 1. **Bounded / preselection note governance** — frozen RU-5 requires a bounded note and denial of contact/payment/exact-private-location bypass content according to current policy. Current governing sources do not owner-approve a numeric max length, regex/block list, moderation threshold or numeric rate. Values under `06_DRAFT_EVIDENCE` remain draft-only. Do not invent policy.
-2. **Two-account/device Application journey proof** — frozen proof gate remains `W03 → W04 → W05 → W06 → R05`. Existing constituent DB/unit proofs do not substitute for the aggregate authenticated two-identity journey. Automated integration proof and physical device/emulator proof must remain separately classified.
+2. **Physical device/emulator UI journey proof** — the automated `W03 → W04 → W05 → W06 → R05` journey is proven, but no physical mobile click-through proof has been executed. Android build success is not a substitute. No device proof may be claimed until an actual device/emulator or equivalent mobile E2E harness executes the path.
 
 ## Exact next cursor
 
-1. finish docs/provenance closure through normal PR and canonical push gates;
-2. fresh-read final canonical status/provenance;
-3. exhaustively resolve bounded-note governing authority without invention;
-4. reconstruct exact `W03/W04/W05/W06/R05` surface → client command → RPC/DB authority mapping;
-5. execute the strongest available authenticated two-account automated proof with zero residue and no service-role substitution for user authority;
-6. execute physical device/emulator proof only if that environment is actually available; never claim it otherwise;
-7. keep RU-5B gated until all aggregate RU-5 requirements are physically proven.
+1. merge this current-state/proof reconciliation through normal PR and canonical push gates;
+2. preserve all closed RU-5 constituent units and do not redo them;
+3. resolve bounded-note governing authority without invention;
+4. establish the smallest trustworthy mobile E2E/device harness for `W03/W04/W05/W06/R05` without production contamination;
+5. execute physical device/emulator proof only when the environment is actually available and retain evidence;
+6. keep RU-5B gated until both remaining aggregate RU-5 gates are physically closed.
 
-Explicit non-claims: bounded-note policy values, Application AI, calendar hard-conflict authority, Agreement Snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B public activation, HITNO activation or paid monetization.
+Explicit non-claims: bounded-note policy values, physical device proof, Application AI, calendar hard-conflict authority, Agreement Snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B public activation, HITNO activation or paid monetization.
 
 Principle: **AI agent is replaceable. Canonical project state is not.**
