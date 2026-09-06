@@ -4,7 +4,9 @@ Date: `2026-09-06`
 
 ## Verdict
 
-`P0D-03 — requester_connection_activation_v1` = **CLOSED / CANONICAL / LIVE / DO NOT REDO** once this docs/provenance closure payload is merged to canonical and its canonical push gates pass.
+`P0D-03 — requester_connection_activation_v1` = **CLOSED / CANONICAL / LIVE / PROVEN / DO NOT REDO**.
+
+The implementation, live promotion, postflight, docs/provenance closure PR #29, and canonical closure push gates have all completed successfully. Do not redo this unit unless a physical regression is proven.
 
 ## Implementation proof and promotion
 
@@ -15,9 +17,19 @@ Date: `2026-09-06`
 - PR #28 PRE-P4: `34026813290` PASS
 - PR #28 CodeQL: `34026811947` PASS
 - implementation canonical merge: `e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec`
-- canonical PRE-P4: `34026900540` PASS
-- canonical CodeQL: `34026900127` PASS
-- canonical Control-0: `34026900533` PASS
+- implementation canonical PRE-P4: `34026900540` PASS
+- implementation canonical CodeQL: `34026900127` PASS
+- implementation canonical Control-0: `34026900533` PASS
+
+## Formal closure canonicalization
+
+- docs/provenance closure PR: `#29`
+- closure PR head: `364e4cffb8abb1526ddd027dbe7c3ee4b7393df9`
+- closure merge/current canonical closure SHA: `6b7d9df42b575d72b97ab2dd9cb0f45f02fda96e`
+- closure canonical PRE-P4: `34029631265` PASS
+- closure canonical CodeQL: `34029630490` PASS
+- closure canonical Control-0: `34029631297` PASS
+- closure introduced no runtime SQL/RPC/Edge/live Supabase mutation
 
 ## Live evidence
 
@@ -50,7 +62,7 @@ Date: `2026-09-06`
 
 ## Preserved history and safety locks
 
-- business rows remain `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
+- business rows remain `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`, `need_selections=2`
 - Selection history remains `2` selections / `2` Agreements; open legacy Applications remain `2 SUBMITTED`
 - D0140 production ALLOW remains fail-closed; publication policy bundles remain `0`
 - RU-4B public Q&A remains activation-blocked; current governed question inventory remains `0`
@@ -61,6 +73,10 @@ Date: `2026-09-06`
 
 This closure does **not** claim or implement paid monetization, wallet/checkout/packages, Worker debit, hard calendar conflict authority, calendar commitment, immutable Agreement task/location snapshot V2, shared multi-person Dogovor/group-private channel model, D0140 production ALLOW, RU-4B public Q&A activation, Application AI/RU-5B, reviews, push delivery, maps, or identity-provider runtime.
 
+It also does not close aggregate RU-5 by itself. Frozen RU-5 still requires reconciliation/proof of its remaining manual Application contract boundary before RU-5B admission.
+
 ## Continuation cursor
 
-Do not invent another P0D/RU identifier from this closure. Fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting the next unit. P0D-03 itself must not be redone unless a physical regression is proven.
+P0D-03 itself is closed and must not be redone unless a physical regression is proven.
+
+Continue with fresh aggregate RU-5 reconciliation against frozen authority and current physical code/live state. Do not invent a new P0D/RU identifier, do not invent unapproved preselection-note numeric/pattern policy, and do not interpret narrow P0D-03 activation as shared Dogovor or paid monetization.
