@@ -132,7 +132,12 @@ test "$(grep -Eic '^create or replace function public.rpc_select_response' "$can
 grep -F "PROMOTIONAL_FREE" "$candidate" >/dev/null
 grep -F "agreements_require_connection_activation_trg" "$candidate" >/dev/null
 if grep -Eiq '^create table public\.' "$candidate"; then echo 'P0D-03 must not create public tables' >&2; exit 1; fi
-if grep -Eiq 'wallet_balance|checkout|payment_provider|worker_debit' "$candidate"; then echo 'P0D-03 scope widened into paid/Worker debit semantics' >&2; exit 1; fi
+scope_code=/tmp/p0d03-candidate-code-only.sql
+sed -E '/^[[:space:]]*--/d' "$candidate" > "$scope_code"
+if grep -Eiq 'wallet_balance|payment_provider|worker_debit|paid_package|connection_balance|checkout' "$scope_code"; then
+  echo 'P0D-03 scope widened into paid/Worker debit semantics' >&2
+  exit 1
+fi
 
 echo "PASS P0D03_NARROW_SCOPE"
 
