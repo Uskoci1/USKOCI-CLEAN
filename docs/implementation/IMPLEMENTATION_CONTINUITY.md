@@ -1,23 +1,64 @@
 # USKOČI implementation continuity
 
-## Current WIP checkpoint — 2026-09-06 — P0D-03 REQUESTER CONNECTION ACTIVATION V1 PROVEN / PENDING PROMOTION
+## Current authoritative checkpoint — 2026-09-06 — P0D-03 REQUESTER CONNECTION ACTIVATION V1 CANONICAL / LIVE / POSTFLIGHT PROVEN / CLOSURE PENDING
 
-- frozen authority: `P0D-03 — requester_connection_activation_v1`
+Frozen authority explicitly names this unit `P0D-03 — requester_connection_activation_v1`. Backend implementation and live promotion are complete; this docs/provenance branch is the final closure step.
+
+### Canonical implementation and proof
+
 - proof branch: `proof/p0d03-requester-connection-activation-v1-20260906`
-- locked proof head before metadata registration: `06c60587b6af992d987052a4373f1cc8294df969`
-- exact-head proof run: `34026374264` — PASS
-- proof artifact: `9987204281`
-- locked migration: `supabase/migrations/20260906100000_clean_p0d03_requester_connection_activation_v1.sql`
+- final implementation/proof head: `01b514289091ad9c9ced7d1d5ed4598eaa2994c5`
+- exact-head proof run: `34026655155` — PASS
+- earlier locked proof provenance: `06c60587b6af992d987052a4373f1cc8294df969` / run `34026374264` / artifact `9987204281`
+- implementation PR: `#28`
+- PR PRE-P4: `34026813290` — PASS
+- PR CodeQL: `34026811947` — PASS
+- canonical implementation merge: `e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec`
+- canonical PRE-P4: `34026900540` — PASS
+- canonical CodeQL: `34026900127` — PASS
+- canonical Control-0: `34026900533` — PASS
+- locked canonical migration: `supabase/migrations/20260906100000_clean_p0d03_requester_connection_activation_v1.sql`
 - canonical raw MD5 / bytes: `e6fb0cb596b51587958b92d08b36ce98` / `25525`
-- predecessor live state: `77 / 20260906090451_clean_p0d02_selection_semantic_idempotency`
-- proven behavior: Requester beneficiary; Selection activation reason; HEADCOUNT units; `PROMOTIONAL_FREE`; platform cost `0 RSD`; same Selection transaction creates the immutable private activation receipt required for a new Agreement; no Worker debit; no task-price/platform-fee conflation; no historical Agreement backfill; P0D-02 concurrency and RU-5/P0D-01 regressions preserved.
-- private boundary: `private.connection_policy_versions` and `private.connection_activations` are server-only, RLS-enabled and immutable; authenticated proof does not receive direct private-schema read access.
-- status: **PROVEN ON PROOF BRANCH / PENDING CANONICAL PROMOTION / NOT LIVE / NOT CLOSED**.
-- non-scope remains: paid checkout/balance/packages, calendar authority, Agreement snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B activation, monetization, Application AI.
 
-Do not treat P0D-03 as canonical or live until PR gates, canonical push gates, fresh live preflight, exact migration promotion, postflight and closure provenance are all complete.
+### Live Supabase
 
-## Current authoritative checkpoint — 2026-09-06 — P0D-02 SELECTION SEMANTIC IDEMPOTENCY CLOSED / CANONICAL / LIVE
+- project: `leqcwgzvjsxugfgzdmth`
+- live migration count/head: `78 / 20260906102021_clean_p0d03_requester_connection_activation_v1`
+- recorded statement count: `1`
+- live recorded statement MD5 / bytes: `c77a5d4c6efec10c928f38c0542e593e` / `25524`
+- terminal LF in live recorded statement: false
+- appending exactly one terminal LF yields canonical MD5 `e6fb0cb596b51587958b92d08b36ce98` and `25525` bytes; no semantic drift and no forward repair required
+- live Selection definition MD5: `4c2b68cdee2fe66facf7fe1c46cef43f`
+- Candidate projection definition MD5 unchanged: `1978ce1d5852cef46f94e81468d37bba`
+- Povezivanje V1 policy is exactly `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`
+- `private.connection_policy_versions=1`; `private.connection_activations=0`
+- no historical Agreement/Selection activation backfill was fabricated
+- both connection tables are private and RLS-enabled; direct activation-ledger SELECT is denied to anon/authenticated/service_role
+- business state preserved: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `need_selections=2`, `agreements=2`
+- D0140 policy bundle inventory remains `0`; production ALLOW remains fail-closed
+- RU-4B production Q&A remains activation-blocked with governed inventory empty
+- paid/wallet/checkout relations remain absent; Worker debit remains absent; Application AI remains absent/gated
+
+### Closed behavior
+
+- Requester is the V1 Povezivanje beneficiary;
+- activation reason is Selection;
+- units are covered `HEADCOUNT`;
+- V1 platform connection cost is exactly `0 RSD` (`PROMOTIONAL_FREE`);
+- canonical Selection requires/creates the immutable activation receipt for a newly created Agreement in the same transaction;
+- task work price remains separate from platform connection cost;
+- P0D-02 semantic idempotency and prior Selection eligibility/Candidate behavior remain preserved;
+- historical Agreements/Selections remain untouched.
+
+### Explicit non-claims / locks
+
+P0D-03 does **not** implement paid monetization, wallet/checkout/packages, Worker debit, hard calendar conflict authority, calendar commitment, immutable Agreement task/location snapshot V2, shared multi-person Dogovor/group-private channels, D0140 production ALLOW, RU-4B public Q&A activation, Application AI/RU-5B, reviews, push, maps or identity-provider runtime.
+
+Unit status before this closure branch is merged: **CANONICAL / LIVE / POSTFLIGHT PROVEN / FORMAL DOCS-PROVENANCE CLOSURE PENDING**. After this closure payload is canonical and its canonical push gates pass: **CLOSED / CANONICAL / LIVE / DO NOT REDO**.
+
+Exact next cursor after closure: fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting another unit. Do not invent a new P0D/RU identifier and do not interpret narrow P0D-03 activation as shared Dogovor or monetization.
+
+## Predecessor authoritative checkpoint — 2026-09-06 — P0D-02 SELECTION SEMANTIC IDEMPOTENCY CLOSED / CANONICAL / LIVE
 
 Frozen forward authority explicitly names this unit `P0D-02 — selection_semantic_idempotency`. The governing frozen package remains unchanged.
 
@@ -53,7 +94,7 @@ Frozen forward authority explicitly names this unit `P0D-02 — selection_semant
 - no historical Selection request-hash receipt was fabricated
 - D0140 inventories remain `0/0/0`; production ALLOW remains fail-closed
 - all five RU-4B governed inventories remain `0`; public Q&A remains activation blocked
-- monetization remains `FREE / 0 RSD`; Povezivanje remains not activated; Application AI/RU-5B remains gated
+- monetization remains `FREE / 0 RSD`; Povezivanje remained not activated at this predecessor checkpoint; Application AI/RU-5B remained gated
 
 ### Closed behavior
 
@@ -65,15 +106,13 @@ Frozen forward authority explicitly names this unit `P0D-02 — selection_semant
 
 ### Explicit non-claims / locks
 
-This closure does **not** implement hard calendar conflict authority, shared Agreement/Dogovor redesign, Povezivanje, D0140 production ALLOW, RU-4B public Q&A activation, monetization, bounded-note policy or Application AI/RU-5B.
+This closure does **not** implement hard calendar conflict authority, shared Agreement/Dogovor redesign, D0140 production ALLOW, RU-4B public Q&A activation, monetization, bounded-note policy or Application AI/RU-5B.
 
 `P0D-02 — selection_semantic_idempotency` = **CLOSED / CANONICAL / LIVE / DO NOT REDO**.
 
-Exact next cursor: fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting the next unit. Do not invent a new P0D/RU identifier and do not activate Povezivanje by implication.
-
 ## Predecessor authoritative checkpoint — 2026-09-06 — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION CLOSED / CANONICAL / LIVE
 
-This is the current forward continuity pointer. The governing frozen package remains unchanged and older checkpoints remain available in Git history and their original evidence artifacts. They must not override this newer physically proven state.
+This is a predecessor forward continuity pointer. The governing frozen package remains unchanged and older checkpoints remain evidence. They must not override the newer P0D-03 physically proven state above.
 
 ### Frozen authority
 
@@ -147,7 +186,6 @@ Final fresh live postflight after closure promotion:
 - D0140 production ALLOW remains fail-closed;
 - RU-4B public Q&A remains activation blocked;
 - monetization remains `FREE / 0 RSD`;
-- Povezivanje remains not activated;
 - Application AI remains gated.
 
 The connected SQL inspection channel executes as `supabase_read_only_user`, which intentionally does not have EXECUTE on requester-only `rpc_list_need_candidates`. Therefore live authenticated RPC replay was not fabricated by changing grants or escalating that channel. The exact live function bytes/definition, authenticated grant, current live rows and prior authenticated disposable proof together establish the closure evidence without weakening production access boundaries.
@@ -162,31 +200,19 @@ The unit changes only the two admitted Selection functions. It does not rewrite 
 
 This closure does **not** claim or implement:
 
-- durable Selection request-payload idempotency / command receipt;
-- durable R05 retry identity after a lost network response;
-- calendar hard double-book prevention;
+- hard calendar conflict authority;
 - Agreement/shared-Dogovor redesign;
-- Povezivanje activation;
 - bounded-note policy;
 - D0140 production ALLOW;
 - RU-4B public Q&A activation;
 - monetization;
 - Application AI / RU-5B.
 
-## Exact continuation cursor after closure
-
-Do **not** invent a new P0D/RU number. Fresh-read the frozen dependency plan and current physical Selection/Agreement state before admitting another unit.
-
-The first already-proven unresolved manual Selection risk to reconcile is durable command idempotency/client retry identity: server replay currently keys Selection by `(need_id, client_request_id)` without a durable payload hash/receipt, while R05 currently creates a new Selection request ID per press. Treat that only as a candidate next unit after governing-plan reconciliation, not as part of this closed eligibility repair.
-
-Calendar/double-booking remains a separate RU-6A dependency and must precede any claim that confirmed Agreements are collision-safe. Shared Dogovor/Povezivanje remains later and must not be activated by implication.
-
 ### Safety locks that remain in force
 
 - no D0140 production ALLOW activation;
 - no RU-4B public Q&A activation;
-- no monetization activation;
-- no Povezivanje activation by implication;
+- no paid monetization activation;
 - no raw public `app_profiles` exposure;
 - no direct-client write bypass where RPC authority exists;
 - no fake production fallback;
