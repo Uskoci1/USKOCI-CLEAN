@@ -117,6 +117,16 @@ jobs:
           NODE_ENV: production
         run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
 
+      - name: Enable KVM for Android emulator when available
+        run: |
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+            echo "KVM_AVAILABLE=1"
+            ls -l /dev/kvm
+          else
+            echo "KVM_AVAILABLE=0"
+          fi
+
       - name: Run physical Android emulator journey
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
