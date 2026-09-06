@@ -1,6 +1,6 @@
 # USKOČI RU status
 
-Current authoritative RU matrix candidate after RU-5 Manual Selection Eligibility Revalidation live application. It becomes canonical status when the closure/provenance branch is promoted after gates pass.
+Current authoritative RU matrix after canonical/live closure of RU-5 Manual Selection Eligibility Revalidation.
 
 | Unit | Status | Current rule |
 |---|---|---|
@@ -16,7 +16,7 @@ Current authoritative RU matrix candidate after RU-5 Manual Selection Eligibilit
 | RU-5 P0C-02 | CLOSED / LIVE | Atomic Application submit canonical/live; no historical snapshot backfill. |
 | RU-5 P0C-03 | CLOSED / LIVE | My Applications projection + existing withdraw authority canonical/live. |
 | RU-5 P0D-01 | CLOSED / LIVE | Requester Candidate Projection canonical/live. |
-| RU-5 Manual Selection Eligibility Revalidation | CLOSED / LIVE | Current RU-1 readiness + current team-capacity are revalidated at Selection and candidate projection boundaries; historical rows are untouched. |
+| RU-5 Manual Selection Eligibility Revalidation | CLOSED / CANONICAL / LIVE | Current RU-1 readiness + current team-capacity are revalidated at Selection and candidate projection boundaries; historical rows are untouched. |
 | RU-5B | NOT STARTED / GATED | Manual canonical Application/Selection lifecycle dependencies must be proven first. |
 | RU-6A | FOUNDATION ONLY / GATED BY RU-5 | Calendar/Agreement authority must not be claimed complete prematurely. |
 | RU-6B | NOT STARTED / GATED BY RU-6A | Shared Dogovor/Povezivanje work remains later. |
@@ -31,10 +31,13 @@ Current authoritative RU matrix candidate after RU-5 Manual Selection Eligibilit
 - canonical/live recorded bytes: `17954`
 - exact-byte identity: `TRUE`
 - canonical implementation merge: `c0dd1434c436578e0f517520a2156b72ec5d3eaa`
+- closure/provenance canonical merge: `cc507910a10515db52f0b0db6d86478cfd19ea05`
 - proof head: `d71c6e08b518e2955020c21538c1238358b14df3`
 - proof run: `34017442269` — PASS
-- PR PRE-P4 / CodeQL: `34017443678` / `34017442615` — PASS
-- canonical PRE-P4 / CodeQL / Control-0: `34017639405` / `34017639038` / `34017639343` — PASS
+- implementation PR PRE-P4 / CodeQL: `34017443678` / `34017442615` — PASS
+- implementation canonical PRE-P4 / CodeQL / Control-0: `34017639405` / `34017639038` / `34017639343` — PASS
+- closure PR PRE-P4 / CodeQL: `34018929991` / `34018929257` — PASS
+- closure canonical PRE-P4 / CodeQL / Control-0: `34019026629` / `34019026435` / `34019026661` — PASS
 - live function MD5s: Selection `ea1c1c40783dbfb9eeab527c128f9dd0`; Candidate `1978ce1d5852cef46f94e81468d37bba`
 - business rows: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
 - snapshot rows: `0`

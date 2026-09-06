@@ -1,6 +1,6 @@
 # USKOČI implementation continuity
 
-## Current authoritative checkpoint — 2026-09-06 — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION LIVE
+## Current authoritative checkpoint — 2026-09-06 — RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION CLOSED / CANONICAL / LIVE
 
 This is the current forward continuity pointer. The governing frozen package remains unchanged and older checkpoints remain available in Git history and their original evidence artifacts. They must not override this newer physically proven state.
 
@@ -15,8 +15,10 @@ This is the current forward continuity pointer. The governing frozen package rem
 - repository: `Uskoci1/USKOCI-CLEAN`
 - canonical branch: `clean-alpha-backend`
 - Selection eligibility proof branch final gated head: `d71c6e08b518e2955020c21538c1238358b14df3`
-- PR: `#23`
+- implementation PR: `#23`
 - canonical implementation merge: `c0dd1434c436578e0f517520a2156b72ec5d3eaa`
+- closure/provenance PR: `#24`
+- closure/provenance canonical merge: `cc507910a10515db52f0b0db6d86478cfd19ea05`
 - locked source migration: `supabase/migrations/20260906010000_clean_ru5_selection_eligibility_revalidation.sql`
 - canonical raw MD5: `6ddb7d5d141e7cb3a454fa7e6ca1280d`
 - canonical UTF-8 bytes: `17954`
@@ -34,11 +36,16 @@ This is the current forward continuity pointer. The governing frozen package rem
   - P0D-01 regression: PASS
   - TypeScript: PASS
   - Jest: `21/21` suites, `136/136` tests PASS
-- PR PRE-P4: `34017443678` — PASS
-- PR CodeQL: `34017442615` — Actions/Python/JavaScript-TypeScript PASS
-- canonical push PRE-P4: `34017639405` — PASS
-- canonical push CodeQL: `34017639038` — Actions/Python/JavaScript-TypeScript PASS
-- canonical Control-0: `34017639343` — PASS
+- implementation PR PRE-P4: `34017443678` — PASS
+- implementation PR CodeQL: `34017442615` — Actions/Python/JavaScript-TypeScript PASS
+- implementation canonical push PRE-P4: `34017639405` — PASS
+- implementation canonical push CodeQL: `34017639038` — Actions/Python/JavaScript-TypeScript PASS
+- implementation canonical Control-0: `34017639343` — PASS
+- closure PR PRE-P4: `34018929991` — PASS
+- closure PR CodeQL: `34018929257` — Actions/Python/JavaScript-TypeScript PASS
+- closure canonical push PRE-P4: `34019026629` — PASS
+- closure canonical push CodeQL: `34019026435` — Actions/Python/JavaScript-TypeScript PASS
+- closure canonical Control-0: `34019026661` — PASS
 
 ### Live Supabase
 
@@ -51,7 +58,7 @@ This is the current forward continuity pointer. The governing frozen package rem
 - live recorded statement UTF-8 bytes: `17954`
 - canonical/live byte identity: `TRUE`
 
-Fresh live postflight:
+Final fresh live postflight after closure promotion:
 
 - `rpc_select_response(uuid,integer,uuid,integer,text,text)` definition MD5: `ea1c1c40783dbfb9eeab527c128f9dd0`;
 - `rpc_list_need_candidates(uuid)` definition MD5: `1978ce1d5852cef46f94e81468d37bba`;
@@ -63,7 +70,7 @@ Fresh live postflight:
 - historical state is unchanged: `2` SELECTED responses, `2` SELECTED `need_selections`, `2` Agreements;
 - legacy open Applications remain rows rather than being rewritten: `2` SUBMITTED;
 - snapshot rows remain `0`; no backfill occurred;
-- both current SUBMITTED rows now satisfy the new current-read `STALE` branch (`2/2`), because their current Worker readiness/team-capacity no longer satisfies Selection eligibility;
+- both current SUBMITTED rows satisfy the new current-read `STALE` branch (`2/2`);
 - D0140 inventories remain `0/0/0`;
 - all RU-4B governed inventories remain `0`;
 - D0140 production ALLOW remains fail-closed;
@@ -76,7 +83,7 @@ The connected SQL inspection channel executes as `supabase_read_only_user`, whic
 
 ## Unit verdict
 
-`RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION` — `CLOSED_LIVE` once this closure/provenance branch is promoted to canonical.
+`RU-5 MANUAL SELECTION ELIGIBILITY REVALIDATION` — `CLOSED / CANONICAL / LIVE / DO NOT REDO`.
 
 The unit changes only the two admitted Selection functions. It does not rewrite historical Applications/Selections/Agreements and does not introduce a new product state.
 
