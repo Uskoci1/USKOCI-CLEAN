@@ -55,21 +55,65 @@ The closed unit establishes one Requester-facing production owner for candidate 
 
 P0D-01 does **not** change `rpc_select_response`, Selection/Agreement semantics, legacy over-capacity revalidation, calendar hard-conflict authority, bounded-note policy, Povezivanje, D0140, RU-4B, monetization or Application AI.
 
-### Exact next cursor
+## Current WIP handoff — RU-5 manual Selection eligibility revalidation
 
-`RU-5 — REMAINING MANUAL SELECTION GAPS — FRESH READ-ONLY PHYSICAL RECONCILIATION`
+This section records current proof-branch work only. It does **not** promote the unit to canonical/live and does not supersede the closed P0D-01 live state above.
 
-Before any new numbered unit, code or live write:
+### Proof branch
 
-1. fresh-read the current `rpc_select_response` implementation and all production consumers;
-2. inspect what it revalidates at selection time versus what P0C-02/P0D-01 already prove;
-3. reconcile legacy over-capacity Applications without rewriting historical rows;
-4. inspect exact Selection → Agreement creation/binding and idempotency behavior;
-5. inspect calendar/double-booking dependencies only as read-only evidence; do not invent hard-conflict policy;
-6. preserve exact version/hash/Need revision binding and existing authority boundaries;
-7. only after a concrete remaining gap and governing scope are physically proven, admit the smallest next unit.
+- branch: `proof/ru5-selection-eligibility-revalidation-20260906`
+- base / canonical closure: `ba636e2ddae66013bfa1cc6e5ebdcb5dbd15a0fe`
+- current proof head after CI signature repair: `ae11ebab6dc4d57ac37cbef816f5c9171aabd673`
+- candidate migration: `supabase/migrations/20260906010000_clean_ru5_selection_eligibility_revalidation.sql`
+- candidate migration MD5 from first proof artifact: `e7bf018eac3545ea6b0c53e48b31279e`
+- candidate migration bytes: `17953`
+- focused rollback proof: `supabase/proofs/ru5_selection_eligibility_revalidation_runtime_proof.sql`
+- proof workflow: `.github/workflows/ru5-selection-eligibility-revalidation-proof.yml`
+- first run: `33998505410` — predecessor/checksum/narrow-scope PASS; failed before candidate SQL execution because the workflow guard referenced a non-existent old `rpc_withdraw_response(uuid,integer,text)` signature
+- physically verified live withdraw signature: `rpc_withdraw_response(uuid,integer,integer,text,text)`, definition MD5 `c27fafad76fe046323d7b52c6614a5b1`
+- second run: `34005973596` — started after workflow-only signature repair; treat its eventual result as authoritative for the current proof head
 
-No RU-5B Application AI work is admissible until the remaining manual RU-5 Application/Selection lifecycle dependencies are proven.
+### Read-only physical findings that admitted this smallest repair
+
+- live `rpc_select_response` already revalidates Need status/deadline/revision, exact Application status/version/hash, `private.match_detail`, and remaining Need capacity;
+- live `rpc_select_response` does **not** revalidate the current RU-1 minimum Worker readiness (`display_name`, `city`, at least one skill) and does not revalidate `covered_slots <= current team_capacity`;
+- `private.match_detail(uuid,uuid)` checks ACTIVE/profile/resource eligibility but does not cover current `team_capacity` or the full RU-1 minimum readiness contract;
+- live has two still-`SUBMITTED` legacy Applications with `covered_slots=2` while the current Worker `team_capacity=1`;
+- the same current Worker profile has `skills_count=0`, so it also fails the current RU-1 minimum even though the legacy profile remains ACTIVE;
+- historical already-SELECTED rows with the same legacy facts are evidence only and MUST NOT be rewritten/backfilled;
+- P0D-01 candidate projection currently lacks those two current-read revalidations, so the repair aligns read-model selectability with Selection authority by mapping such drifted open Applications to the existing `STALE` state.
+
+### Exact admitted scope
+
+The candidate migration may change only:
+
+1. `public.rpc_select_response(uuid,integer,uuid,integer,text,text)` — add current RU-1 minimum readiness + current team-capacity revalidation immediately before Selection write authority;
+2. `public.rpc_list_need_candidates(uuid)` — apply the same current-read checks when deriving `SELECTABLE`, mapping drifted legacy Applications to existing `STALE` / `canSelect=false`.
+
+No new table, no historical row rewrite, no snapshot backfill, no new candidate state, no Agreement redesign, no calendar implementation, no Povezivanje activation, no D0140/RU-4B/monetization/Application-AI activation.
+
+### Explicitly observed but OUT OF THIS UNIT
+
+- Selection idempotency is currently only `UNIQUE (need_id, client_request_id)` and replay returns an existing Agreement without a durable request-payload hash/receipt; this needs a separate reconciliation/unit;
+- current R05 generates a new Selection `clientRequestId` on each press, so lost-response retry cannot safely replay the same durable command; separate unit only;
+- hard calendar/double-booking authority is not yet physically implemented; availability rules/windows exist but no final commitment/conflict owner is proven; separate RU-6A/calendar work only;
+- MY_PRICE is not an admitted Selection gap: P0C-02 enforces requester fixed price on submit, and material Need edits increment revision/re-admit, while Selection binds exact Need revision + Application version/hash.
+
+### Exact immediate continuation cursor
+
+1. Read run `34005973596` on head `ae11ebab6dc4d57ac37cbef816f5c9171aabd673`.
+2. If it fails, fetch exact failing step/log and repair only the physically demonstrated proof/migration defect on the proof branch.
+3. Do not change live Supabase or canonical `clean-alpha-backend` while proof is not fully green.
+4. If proof becomes fully green, lock exact migration MD5/bytes, add pending provenance/integrity only after content is stable, then rerun same-head proof.
+5. Only after same-head proof + TypeScript + regressions PASS: open PR to `clean-alpha-backend`, require PRE-P4 + all CodeQL jobs PASS, merge, run canonical push gates, fresh live preflight, then apply only the proven forward migration.
+6. After live postflight, close provenance/status/docs through a separate closure step and only then mark this Selection eligibility repair `CLOSED_LIVE`.
+7. After closure, perform a fresh read-only reconciliation to choose the next manual Selection/Agreement dependency from the frozen MASTER plan; do not invent numbering or merge idempotency/calendar/Povezivanje into this unit.
+
+### Frozen MASTER source rule
+
+The governing frozen package remains `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip` with SHA-256 `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`.
+
+The ZIP is a frozen product/system/execution authority, not a stale physical-state override. Its own start command requires a fresh physical preflight and rebaseline whenever GitHub/Supabase are newer than the freeze. Latest explicit owner decisions override older conflicting visual/donor/source details. Physical GitHub/live evidence determines what is already implemented and must not be redone.
 
 ### Safety locks that remain in force
 

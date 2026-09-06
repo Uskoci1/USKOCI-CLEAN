@@ -95,7 +95,18 @@
       {"name":"clean_ru5_candidate_projection","version":"20260905230326","file":"20260905223000_clean_ru5_candidate_projection.sql","source_version":"20260905223000","exact_byte_mirror":true,"canonical_raw_md5":"e69c6037c876ca4c0fb48409ab68ab45","live_recorded_statement_md5":"e69c6037c876ca4c0fb48409ab68ab45","recorded_statement_utf8_bytes":8246}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260906010000",
+      "name": "clean_ru5_selection_eligibility_revalidation",
+      "file": "20260906010000_clean_ru5_selection_eligibility_revalidation.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "6ddb7d5d141e7cb3a454fa7e6ca1280d",
+      "live_applied": false,
+      "predecessor_live_migration_count": 75,
+      "predecessor_live_head": "20260905230326"
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
