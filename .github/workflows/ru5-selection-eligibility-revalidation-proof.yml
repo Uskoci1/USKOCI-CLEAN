@@ -155,7 +155,7 @@ jobs:
         run: |
           set -euo pipefail
           before_submit="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)'::regprocedure));")"
-          before_withdraw="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_withdraw_response(uuid,integer,text)'::regprocedure));")"
+          before_withdraw="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_withdraw_response(uuid,integer,integer,text,text)'::regprocedure));")"
           before_match="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('private.match_detail(uuid,uuid)'::regprocedure));")"
           before_select="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure));")"
           before_candidates="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_list_need_candidates(uuid)'::regprocedure));")"
@@ -163,7 +163,7 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/migrations/20260906010000_clean_ru5_selection_eligibility_revalidation.sql"
 
           after_submit="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)'::regprocedure));")"
-          after_withdraw="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_withdraw_response(uuid,integer,text)'::regprocedure));")"
+          after_withdraw="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_withdraw_response(uuid,integer,integer,text,text)'::regprocedure));")"
           after_match="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('private.match_detail(uuid,uuid)'::regprocedure));")"
           after_select="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure));")"
           after_candidates="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_list_need_candidates(uuid)'::regprocedure));")"
