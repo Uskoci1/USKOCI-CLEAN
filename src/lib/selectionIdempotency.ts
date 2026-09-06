@@ -31,12 +31,14 @@ export function selectionIntentKey(intent: SelectionIntent): string {
 export class SelectionRequestRegistry {
   private readonly requestIds = new Map<string, string>();
 
+  constructor(private readonly createId: () => string = () => noviZahtevId('izbor')) {}
+
   getOrCreate(intent: SelectionIntent): string {
     const key = selectionIntentKey(intent);
     const existing = this.requestIds.get(key);
     if (existing) return existing;
 
-    const created = noviZahtevId('izbor');
+    const created = this.createId();
     this.requestIds.set(key, created);
     return created;
   }
