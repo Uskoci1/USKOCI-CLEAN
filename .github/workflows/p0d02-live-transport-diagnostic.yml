@@ -1,0 +1,32 @@
+name: P0D-02 Live Transport Diagnostic
+
+on:
+  push:
+    branches:
+      - proof/p0d02-live-transport-diagnostic-20260906
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compute canonical migration byte fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, re
+          p = Path('supabase/migrations/20260906080000_clean_p0d02_selection_semantic_idempotency.sql')
+          raw = p.read_bytes()
+          text = raw.decode('utf-8')
+          stripped = re.sub(r'\s+', '', text)
+          print('canonical_bytes=' + str(len(raw)))
+          print('canonical_md5=' + hashlib.md5(raw).hexdigest())
+          print('canonical_lf_count=' + str(raw.count(b'\n')))
+          print('canonical_terminal_lf=' + str(raw.endswith(b'\n')).lower())
+          print('canonical_whitespace_stripped_md5=' + hashlib.md5(stripped.encode('utf-8')).hexdigest())
+          PY
