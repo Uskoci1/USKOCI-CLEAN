@@ -36,9 +36,10 @@ begin
       from public.ai_structured_facts
      where fact_schema_version='NEED_FACT_V2'
        and fact_key='need.price_mode'
+       and superseded_at is null
        and fact_value='"FASTEST"'::jsonb
   ) then
-    raise exception 'RU5_FASTEST_RETIREMENT_ABORT: existing FASTEST V2 facts require explicit reconciliation' using errcode='55000';
+    raise exception 'RU5_FASTEST_RETIREMENT_ABORT: active FASTEST V2 facts require explicit reconciliation' using errcode='55000';
   end if;
 
   if exists (
