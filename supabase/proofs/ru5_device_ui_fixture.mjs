@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { appendFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+import { assertLocalDeviceProofTargets } from './ru5_device_ui_local_guard.mjs';
 
 const url = process.env.RU5_DEVICE_SUPABASE_URL;
 const anonKey = process.env.RU5_DEVICE_ANON_KEY;
@@ -15,6 +16,8 @@ assert.ok(anonKey, 'RU5_DEVICE_ANON_KEY required');
 assert.ok(serviceRoleKey, 'RU5_DEVICE_SERVICE_ROLE_KEY required');
 assert.ok(dbUrl, 'RU5_DEVICE_DB_URL required');
 assert.ok(githubEnv, 'GITHUB_ENV required');
+
+assertLocalDeviceProofTargets(url, dbUrl);
 
 const options = {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },

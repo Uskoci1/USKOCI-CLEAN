@@ -227,7 +227,21 @@ def current_edit_field(index):
     return (nodes[index] if len(nodes) > index else None), parent
 
 
-def edit_text(index, value, timeout=60):
+def type_paced_fixture_text(value, deadline):
+    # These are transport-safe characters in our generated disposable fixture,
+    # not application input policy. One real key event at a time gives controlled
+    # React Native TextInput a chance to process each native onChange event.
+    allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@._-'
+    if not value or any(character not in allowed for character in value):
+        raise ValueError('Unsupported synthetic fixture keyboard input')
+    for character in value:
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Physical keyboard input deadline exceeded')
+        adb('shell', 'input', 'text', character)
+        time.sleep(0.15)
+
+
+def edit_text(index, value, timeout=180):
     if index < 0 or not isinstance(value, str) or not value:
         raise ValueError('A non-empty value and non-negative field index are required')
     deadline = time.monotonic() + timeout
@@ -254,7 +268,7 @@ def edit_text(index, value, timeout=60):
                 'KEYCODE_CTRL_LEFT', 'KEYCODE_A')
             time.sleep(0.2)
             adb('shell', 'input', 'keyevent', 'KEYCODE_DEL')
-            adb('shell', 'input', 'text', value)
+            type_paced_fixture_text(value, deadline)
             time.sleep(0.8)
             field, _ = current_edit_field(index)
             if field is not None and entered_value_matches(field, value):
@@ -263,7 +277,9 @@ def edit_text(index, value, timeout=60):
                       f'characters={len(value)} attempt={attempt}', flush=True)
                 return
             last_error = 'native readback mismatch'
-            print(f'RETRY UI_TEXT_READBACK field={index} attempt={attempt}', flush=True)
+            observed_length = len(field.attrib.get('text', '')) if field is not None else -1
+            print(f'RETRY UI_TEXT_READBACK field={index} attempt={attempt} '
+                  f'observed_characters={observed_length} expected_characters={len(value)}', flush=True)
         except (RuntimeError, subprocess.CalledProcessError, ET.ParseError) as exc:
             # Do not include subprocess arguments: one may contain a password.
             last_error = type(exc).__name__

@@ -72,7 +72,49 @@ class NativeInputModel:
 
 
 class AndroidInputHarnessTests(unittest.TestCase):
-    def exercise(self, model, value, timeout=10):
+    def test_long_fixture_email_is_sent_as_separate_paced_key_events(self):
+        model = NativeInputModel()
+        value = 'ru5-device-worker-5182cbd1-9e18-4772-b78a-ebd34b2c0000@proof.invalid'
+        self.assertEqual(len(value), 68)
+        log = self.exercise(model, value)
+        text_commands = [args for _, args in model.commands if args[:3] == ('shell', 'input', 'text')]
+        self.assertEqual([args[-1] for args in text_commands], list(value))
+        self.assertTrue(all(len(args[-1]) == 1 for args in text_commands))
+        self.assertGreaterEqual(model.clock, len(value) * 0.15)
+        self.assertEqual(model.value, value)
+        self.assertIn('characters=68', log)
+        self.assertNotIn(value, log)
+
+    def test_long_email_with_dropped_character_retries_the_whole_value(self):
+        model = NativeInputModel(dropped_inputs=1)
+        value = 'ru5-device-requester-00000000-0000-4000-8000-000000000000@proof.invalid'
+        log = self.exercise(model, value)
+        self.assertEqual(model.taps, 2)
+        self.assertEqual(model.value, value)
+        self.assertIn('observed_characters=', log)
+        self.assertNotIn(value, log)
+
+    def test_keyboard_pacing_has_a_deadline_and_cannot_claim_partial_success(self):
+        model = NativeInputModel()
+        log = io.StringIO()
+        with contextlib.redirect_stdout(log), self.assertRaises(RuntimeError):
+            model.namespace()['edit_text'](0, 'worker@proof.invalid', timeout=0.5)
+        self.assertNotEqual(model.value, 'worker@proof.invalid')
+        self.assertNotIn('CHECKPOINT UI_TEXT_ENTERED', log.getvalue())
+        self.assertEqual(model.saved, ['input_0_timeout'])
+
+    def test_unsupported_shell_transport_input_is_rejected_without_commands(self):
+        model = NativeInputModel()
+        with self.assertRaisesRegex(ValueError, 'synthetic fixture'):
+            model.namespace()['type_paced_fixture_text']('synthetic;command', 100)
+        self.assertEqual(model.commands, [])
+
+    def test_partial_masked_password_is_not_accepted(self):
+        ns = NativeInputModel().namespace()
+        field = ET.Element('node', {'text': '\u2022' * 10, 'password': 'true'})
+        self.assertFalse(ns['entered_value_matches'](field, 'SyntheticUnitCredential'))
+
+    def exercise(self, model, value, timeout=40):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             model.namespace()['edit_text'](0, value, timeout=timeout)
@@ -121,7 +163,7 @@ class AndroidInputHarnessTests(unittest.TestCase):
         model = NativeInputModel(dropped_inputs=100)
         log = io.StringIO()
         with contextlib.redirect_stdout(log), self.assertRaisesRegex(RuntimeError, 'readback mismatch'):
-            model.namespace()['edit_text'](0, '3000', timeout=3)
+            model.namespace()['edit_text'](0, '3000', timeout=2)
         self.assertNotIn('CHECKPOINT UI_TEXT_ENTERED', log.getvalue())
 
     def test_command_failure_does_not_log_secret_arguments(self):
