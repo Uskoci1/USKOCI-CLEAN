@@ -1,0 +1,44 @@
+name: P0D-03 Replay MD5 Diagnostic Helper
+
+on:
+  push:
+    branches:
+      - proof/p0d03-requester-connection-activation-v1-20260906
+    paths:
+      - .github/workflows/p0d03-replay-md5-diagnostic-helper.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Expose predecessor MD5 without weakening candidate preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/p0d03-requester-connection-activation-v1-proof.yml')
+          s=p.read_text()
+          old='          test "$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef(\'public.rpc_select_response(uuid,integer,uuid,integer,text,text)\'::regprocedure));")" = "b1ca0a03ee075565c71b50f00d61dade"\n'
+          new='          predecessor_select_md5="$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef(\'public.rpc_select_response(uuid,integer,uuid,integer,text,text)\'::regprocedure));")"\n          echo "p0d02_disposable_select_md5=$predecessor_select_md5"\n'
+          if old not in s:
+              raise SystemExit('target MD5 assertion not found exactly')
+          p.write_text(s.replace(old,new,1))
+          PY
+          git diff --check
+      - name: Commit harness-only diagnostic and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'msljivic031'
+          git config user.email 'msljivic031@gmail.com'
+          git rm .github/workflows/p0d03-replay-md5-diagnostic-helper.yml
+          git add .github/workflows/p0d03-requester-connection-activation-v1-proof.yml
+          git commit -m 'test(p0d03): diagnose disposable predecessor function hash'
+          git push origin HEAD:${GITHUB_REF_NAME}
