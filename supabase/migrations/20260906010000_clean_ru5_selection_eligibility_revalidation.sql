@@ -388,7 +388,7 @@ begin
 
   if position('current_team_capacity' in v_candidates_def)=0
      or position('current_skills' in v_candidates_def)=0
-     or position("then 'STALE'" in v_candidates_def)=0 then
+     or position('then ''STALE''' in v_candidates_def)=0 then
     raise exception 'RU5_SELECTION_REVALIDATION_POSTCONDITION_FAILED: candidate markers';
   end if;
 
