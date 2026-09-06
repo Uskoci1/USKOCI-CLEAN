@@ -24,11 +24,31 @@
 begin;
 
 do $p0d03_preflight$
+declare
+  v_select_def text := pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure);
+  v_select_md5 text;
 begin
-  if md5(pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure))
-       <> 'b1ca0a03ee075565c71b50f00d61dade' then
-    raise exception 'P0D03_PREDECESSOR_MISMATCH: rpc_select_response';
+  v_select_md5 := md5(v_select_def);
+
+  -- P0D-02 has two physically proven storage fingerprints for the same
+  -- non-whitespace function body: canonical disposable apply and live
+  -- Supabase transport. Accept only those fingerprints and independently
+  -- require the P0D-02 semantic guards before P0D-03 may proceed.
+  if v_select_md5 not in (
+       'b1ca0a03ee075565c71b50f00d61dade',
+       '65785758985a1abac56dc55498678b22'
+     ) then
+    raise exception 'P0D03_PREDECESSOR_MISMATCH: rpc_select_response' using detail=v_select_md5;
   end if;
+
+  if position('IDEMPOTENCY_KEY_REUSED' in v_select_def)=0
+     or position('private.selection_commands' in v_select_def)=0
+     or position('pg_advisory_xact_lock' in v_select_def)=0
+     or position('WORKER_PROFILE_NOT_READY' in v_select_def)=0
+     or position('TEAM_CAPACITY_EXCEEDED' in v_select_def)=0 then
+    raise exception 'P0D03_PREDECESSOR_MISMATCH: P0D02 semantic guards';
+  end if;
+
   if to_regclass('private.selection_commands') is null then
     raise exception 'P0D03_PREDECESSOR_MISMATCH: selection_commands missing';
   end if;
