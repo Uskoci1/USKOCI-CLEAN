@@ -9,9 +9,6 @@ export type FactCorrection =
   | { ok: false; message: string };
 
 const PRICE_MODE: Record<string, string> = {
-  fastest: 'FASTEST',
-  'najbrže': 'FASTEST',
-  najbrze: 'FASTEST',
   'moja cena': 'MY_PRICE',
   'moja_cena': 'MY_PRICE',
   my_price: 'MY_PRICE',
@@ -89,8 +86,8 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       const normalized = text.toLocaleLowerCase('sr-Latn-RS');
       if (fact.key === 'need.price_mode') {
         const value = PRICE_MODE[normalized] ?? text.toUpperCase();
-        if (!['FASTEST', 'MY_PRICE', 'OFFERS'].includes(value)) {
-          return { ok: false, message: 'Koristite: najbrže, moja cena ili ponude.' };
+        if (!['MY_PRICE', 'OFFERS'].includes(value)) {
+          return { ok: false, message: 'Koristite: moja cena ili ponude.' };
         }
         return { ok: true, value, displayValue: text };
       }

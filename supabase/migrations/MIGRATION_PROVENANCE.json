@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-06T11:03:33Z",
+  "generated_at_utc": "2026-09-06T13:58:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "repository_base_head": "e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec",
@@ -98,7 +98,23 @@
       {"name":"clean_p0d03_requester_connection_activation_v1","version":"20260906102021","file":"20260906100000_clean_p0d03_requester_connection_activation_v1.sql","source_version":"20260906100000","exact_byte_mirror":false,"canonical_raw_md5":"e6fb0cb596b51587958b92d08b36ce98","canonical_utf8_bytes":25525,"live_recorded_statement_md5":"c77a5d4c6efec10c928f38c0542e593e","recorded_statement_utf8_bytes":25524,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"e6fb0cb596b51587958b92d08b36ce98","normalized_terminal_lf_bytes":25525,"canonical_promotion_sha":"e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec","proof_head":"01b514289091ad9c9ced7d1d5ed4598eaa2994c5","proof_run":34026655155,"implementation_pr":28,"pr_pre_p4_run":34026813290,"pr_codeql_run":34026811947,"canonical_pre_p4_run":34026900540,"canonical_codeql_run":34026900127,"canonical_control0_run":34026900533,"selection_definition_md5":"4c2b68cdee2fe66facf7fe1c46cef43f","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"}
     ]
   },
-  "pending_forward_migrations": [],
+  "pending_forward_migrations": [
+    {
+      "version": "20260906130000",
+      "name": "clean_ru5_fastest_autofill_retirement",
+      "file": "20260906130000_clean_ru5_fastest_autofill_retirement.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "25bf03d6bed27d0d9af27ec65d59a63c",
+      "live_applied": false,
+      "predecessor_live_migration_count": 78,
+      "predecessor_live_head": "20260906102021",
+      "proof_head": "e7b5ce501c2b9708bd176075ab4b41575edf0832",
+      "proof_run": 34034993845,
+      "contract": "Retire FASTEST Need/Application/AI fact state and AUTO_FILL Selection state while preserving MY_PRICE/OFFERS and P0D-02/P0D-03 behavior; no business-row rewrite.",
+      "edge_live_followup_required": true,
+      "explicit_non_claims": ["bounded_note_policy","application_ai","calendar_hard_conflict_authority","agreement_snapshot_v2","shared_dogovor","d0140_production_allow","ru4b_public_qa_activation","monetization","hitno_activation"]
+    }
+  ],
   "reconstructions": [
     {
       "version": "20260830191500",
@@ -166,7 +182,7 @@
     "transport_incident": {"affected_live_version":"20260905052336","historical_record_preserved":true,"canonical_raw_md5":"b976f1ccc2c329d7f2fe0bc43ef36606","live_recorded_statement_md5":"d3fb1fe33fffcd3c7314a9fa2238de3","repair_live_version":"20260905052651","repair_source_version":"20260904230200","repair_source_file":"20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql","repair_raw_md5":"6be6134441a81a4550710969cac89d85"},
     "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"need_edit_commands":0,"need_revision_events":0,"response_revision_resolution_commands":0,"remaining_search_close_commands":0,"policy_bundles":0,"policy_rule_refs":0,"publication_decisions":0,"d0140_production_publish":"FAIL_CLOSED"}
   },
-  "next_allowed_action": "Complete P0D-03 docs/provenance closure only. After closure, fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting another unit. Do not invent a new P0D/RU identifier and do not interpret narrow P0D-03 V1 activation as shared Dogovor, paid monetization, calendar authority or Application AI.",
+  "next_allowed_action": "Promote the proven pending RU-5 FASTEST/AUTO_FILL retirement only after PR/canonical gates and a fresh live-78/P0D-03 preflight. After DB promotion, deploy the matching uskoci-ai-interview Edge source and prove the live function no longer offers FASTEST. Do not invent bounded-note policy, Application AI, calendar authority, D0140 ALLOW, RU-4B activation or monetization.",
   "ru5_p0c01_live_reconciliation": {
     "status": "CLOSED_LIVE",
     "canonical_promotion_sha": "366561e74a088d55d816d3795cba5f2299e3283c",
