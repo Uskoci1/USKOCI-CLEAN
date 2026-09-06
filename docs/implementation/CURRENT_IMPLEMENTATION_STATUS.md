@@ -5,7 +5,7 @@ Authoritative current status as of `2026-09-06`, after canonical/live/proven clo
 ## Current platform checkpoint
 
 - canonical repo/branch: `Uskoci1/USKOCI-CLEAN` / `clean-alpha-backend`
-- canonical current HEAD after closure: `6b7d9df42b575d72b97ab2dd9cb0f45f02fda96e`
+- P0D-03 formal closure checkpoint SHA: `6b7d9df42b575d72b97ab2dd9cb0f45f02fda96e`; always fresh-read the branch for the moving current HEAD
 - canonical implementation merge: `e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec`
 - final implementation/proof head: `01b514289091ad9c9ced7d1d5ed4598eaa2994c5`
 - exact-head proof: run `34026655155` PASS
