@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-06T13:58:00Z",
+  "generated_at_utc": "2026-09-06T15:17:00Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
-  "repository_base_head": "e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec",
+  "repository_base_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "live_project_ref": "leqcwgzvjsxugfgzdmth",
   "checksum_contract": {
     "algorithm": "MD5",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 78,
+    "migration_count": 79,
     "last": {
-      "name": "clean_p0d03_requester_connection_activation_v1",
-      "version": "20260906102021"
+      "name": "clean_ru5_fastest_autofill_retirement",
+      "version": "20260906141409"
     },
     "entries": [
       {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
@@ -95,26 +95,11 @@
       {"name":"clean_ru5_candidate_projection","version":"20260905230326","file":"20260905223000_clean_ru5_candidate_projection.sql","source_version":"20260905223000","exact_byte_mirror":true,"canonical_raw_md5":"e69c6037c876ca4c0fb48409ab68ab45","live_recorded_statement_md5":"e69c6037c876ca4c0fb48409ab68ab45","recorded_statement_utf8_bytes":8246},
       {"name":"clean_ru5_selection_eligibility_revalidation","version":"20260906065758","file":"20260906010000_clean_ru5_selection_eligibility_revalidation.sql","source_version":"20260906010000","exact_byte_mirror":true,"canonical_raw_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","live_recorded_statement_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","recorded_statement_utf8_bytes":17954},
       {"name":"clean_p0d02_selection_semantic_idempotency","version":"20260906090451","file":"20260906080000_clean_p0d02_selection_semantic_idempotency.sql","source_version":"20260906080000","exact_byte_mirror":false,"canonical_raw_md5":"065a6a172f1cea50b99c57f6759ef109","canonical_utf8_bytes":15516,"live_recorded_statement_md5":"c267357c43e2c18448b46268ae458085","recorded_statement_utf8_bytes":15513,"transport_deviation":"connected migration transport omitted exactly three LF bytes; canonical LF=342 terminal_LF=true, live LF=339 terminal_LF=false","canonical_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d","live_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d","whitespace_only_semantic_equivalence":true,"canonical_promotion_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9","proof_head":"c3ada4219b9c8427be0c7b35bc36afa30b4302cc","proof_run":34023168764,"implementation_pr":26,"pr_pre_p4_run":34023318196,"pr_codeql_run":34023316595,"canonical_pre_p4_run":34023411493,"canonical_codeql_run":34023410485,"canonical_control0_run":34023411602,"selection_definition_md5":"b1ca0a03ee075565c71b50f00d61dade","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"},
-      {"name":"clean_p0d03_requester_connection_activation_v1","version":"20260906102021","file":"20260906100000_clean_p0d03_requester_connection_activation_v1.sql","source_version":"20260906100000","exact_byte_mirror":false,"canonical_raw_md5":"e6fb0cb596b51587958b92d08b36ce98","canonical_utf8_bytes":25525,"live_recorded_statement_md5":"c77a5d4c6efec10c928f38c0542e593e","recorded_statement_utf8_bytes":25524,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"e6fb0cb596b51587958b92d08b36ce98","normalized_terminal_lf_bytes":25525,"canonical_promotion_sha":"e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec","proof_head":"01b514289091ad9c9ced7d1d5ed4598eaa2994c5","proof_run":34026655155,"implementation_pr":28,"pr_pre_p4_run":34026813290,"pr_codeql_run":34026811947,"canonical_pre_p4_run":34026900540,"canonical_codeql_run":34026900127,"canonical_control0_run":34026900533,"selection_definition_md5":"4c2b68cdee2fe66facf7fe1c46cef43f","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"}
+      {"name":"clean_p0d03_requester_connection_activation_v1","version":"20260906102021","file":"20260906100000_clean_p0d03_requester_connection_activation_v1.sql","source_version":"20260906100000","exact_byte_mirror":false,"canonical_raw_md5":"e6fb0cb596b51587958b92d08b36ce98","canonical_utf8_bytes":25525,"live_recorded_statement_md5":"c77a5d4c6efec10c928f38c0542e593e","recorded_statement_utf8_bytes":25524,"transport_deviation":"connected migration transport omitted only the terminal LF","normalized_terminal_lf_md5":"e6fb0cb596b51587958b92d08b36ce98","normalized_terminal_lf_bytes":25525,"canonical_promotion_sha":"e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec","proof_head":"01b514289091ad9c9ced7d1d5ed4598eaa2994c5","proof_run":34026655155,"implementation_pr":28,"pr_pre_p4_run":34026813290,"pr_codeql_run":34026811947,"canonical_pre_p4_run":34026900540,"canonical_codeql_run":34026900127,"canonical_control0_run":34026900533,"selection_definition_md5":"4c2b68cdee2fe66facf7fe1c46cef43f","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"},
+      {"name":"clean_ru5_fastest_autofill_retirement","version":"20260906141409","file":"20260906130000_clean_ru5_fastest_autofill_retirement.sql","source_version":"20260906130000","exact_byte_mirror":false,"canonical_raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c","canonical_utf8_bytes":7363,"live_recorded_statement_md5":"04466b38e780a59a7eab6f4b928544a0","recorded_statement_utf8_bytes":6743,"transport_deviation":"connected migration transport omitted SQL line comments and whitespace only","canonical_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0","live_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0","semantic_equivalence":true,"applied_history_action":"UNCHANGED","repair_migration_required":false,"canonical_promotion_sha":"6ee5c611fadf6861b7cc029ffda77437a847ca8c","proof_head":"e7b5ce501c2b9708bd176075ab4b41575edf0832","proof_run":34034993845,"implementation_pr":32,"pr_pre_p4_run":34038248027,"pr_codeql_run":34038246172,"canonical_pre_p4_run":34038380354,"canonical_codeql_run":34038380028,"canonical_control0_run":34038380360,"selection_definition_md5":"4c2b68cdee2fe66facf7fe1c46cef43f","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"}
     ]
   },
-  "pending_forward_migrations": [
-    {
-      "version": "20260906130000",
-      "name": "clean_ru5_fastest_autofill_retirement",
-      "file": "20260906130000_clean_ru5_fastest_autofill_retirement.sql",
-      "classification": "PENDING_FORWARD_MIGRATION",
-      "raw_md5": "25bf03d6bed27d0d9af27ec65d59a63c",
-      "live_applied": false,
-      "predecessor_live_migration_count": 78,
-      "predecessor_live_head": "20260906102021",
-      "proof_head": "e7b5ce501c2b9708bd176075ab4b41575edf0832",
-      "proof_run": 34034993845,
-      "contract": "Retire FASTEST Need/Application/AI fact state and AUTO_FILL Selection state while preserving MY_PRICE/OFFERS and P0D-02/P0D-03 behavior; no business-row rewrite.",
-      "edge_live_followup_required": true,
-      "explicit_non_claims": ["bounded_note_policy","application_ai","calendar_hard_conflict_authority","agreement_snapshot_v2","shared_dogovor","d0140_production_allow","ru4b_public_qa_activation","monetization","hitno_activation"]
-    }
-  ],
+  "pending_forward_migrations": [],
   "reconstructions": [
     {
       "version": "20260830191500",
@@ -170,7 +155,8 @@
     {"version":"20260905200133","source_version":"20260905211500","name":"clean_ru5_my_applications_projection","file":"20260905211500_clean_ru5_my_applications_projection.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":6353,"recorded_statement_md5":"868ef30987d3a62b84b41e93efeed047","canonical_raw_md5":"868ef30987d3a62b84b41e93efeed047","exact_byte_mirror":true,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
     {"version":"20260905230326","source_version":"20260905223000","name":"clean_ru5_candidate_projection","file":"20260905223000_clean_ru5_candidate_projection.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":8246,"recorded_statement_md5":"e69c6037c876ca4c0fb48409ab68ab45","canonical_raw_md5":"e69c6037c876ca4c0fb48409ab68ab45","exact_byte_mirror":true,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
     {"version":"20260906065758","source_version":"20260906010000","name":"clean_ru5_selection_eligibility_revalidation","file":"20260906010000_clean_ru5_selection_eligibility_revalidation.sql","classification":"EXACT_RECORDED_STATEMENT_MIRROR","recorded_statement_utf8_bytes":17954,"recorded_statement_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","canonical_raw_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","exact_byte_mirror":true,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
-    {"version":"20260906102021","source_version":"20260906100000","name":"clean_p0d03_requester_connection_activation_v1","file":"20260906100000_clean_p0d03_requester_connection_activation_v1.sql","classification":"TERMINAL_LF_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_utf8_bytes":25524,"recorded_statement_md5":"c77a5d4c6efec10c928f38c0542e593e","canonical_raw_md5":"e6fb0cb596b51587958b92d08b36ce98","canonical_utf8_bytes":25525,"exact_byte_mirror":false,"difference":"Connected migration transport omitted only the terminal LF; appending exactly one LF produces canonical MD5 and byte count.","normalized_terminal_lf_md5":"e6fb0cb596b51587958b92d08b36ce98","normalized_terminal_lf_bytes":25525,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"}
+    {"version":"20260906102021","source_version":"20260906100000","name":"clean_p0d03_requester_connection_activation_v1","file":"20260906100000_clean_p0d03_requester_connection_activation_v1.sql","classification":"TERMINAL_LF_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_utf8_bytes":25524,"recorded_statement_md5":"c77a5d4c6efec10c928f38c0542e593e","canonical_raw_md5":"e6fb0cb596b51587958b92d08b36ce98","canonical_utf8_bytes":25525,"exact_byte_mirror":false,"difference":"Connected migration transport omitted only the terminal LF; appending exactly one LF produces canonical MD5 and byte count.","normalized_terminal_lf_md5":"e6fb0cb596b51587958b92d08b36ce98","normalized_terminal_lf_bytes":25525,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"},
+    {"version":"20260906141409","source_version":"20260906130000","name":"clean_ru5_fastest_autofill_retirement","file":"20260906130000_clean_ru5_fastest_autofill_retirement.sql","classification":"COMMENT_WHITESPACE_RECORDED_STATEMENT_RECONCILIATION","recorded_statement_utf8_bytes":6743,"recorded_statement_md5":"04466b38e780a59a7eab6f4b928544a0","canonical_raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c","canonical_utf8_bytes":7363,"exact_byte_mirror":false,"difference":"Connected migration transport omitted non-executable SQL line comments and whitespace only. Removing -- line comments and whitespace from canonical and live representations yields the same MD5.","canonical_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0","live_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0","semantic_equivalence":true,"repair_migration_required":false,"applied_history_action":"LIVE_VERSION_ALIAS_RECORDED"}
   ],
   "ru4_live_reconciliation": {
     "status": "CLOSED_LIVE_STRUCTURAL_PROVEN",
@@ -182,7 +168,7 @@
     "transport_incident": {"affected_live_version":"20260905052336","historical_record_preserved":true,"canonical_raw_md5":"b976f1ccc2c329d7f2fe0bc43ef36606","live_recorded_statement_md5":"d3fb1fe33fffcd3c7314a9fa2238de3","repair_live_version":"20260905052651","repair_source_version":"20260904230200","repair_source_file":"20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql","repair_raw_md5":"6be6134441a81a4550710969cac89d85"},
     "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"need_edit_commands":0,"need_revision_events":0,"response_revision_resolution_commands":0,"remaining_search_close_commands":0,"policy_bundles":0,"policy_rule_refs":0,"publication_decisions":0,"d0140_production_publish":"FAIL_CLOSED"}
   },
-  "next_allowed_action": "Promote the proven pending RU-5 FASTEST/AUTO_FILL retirement only after PR/canonical gates and a fresh live-78/P0D-03 preflight. After DB promotion, deploy the matching uskoci-ai-interview Edge source and prove the live function no longer offers FASTEST. Do not invent bounded-note policy, Application AI, calendar authority, D0140 ALLOW, RU-4B activation or monetization.",
+  "next_allowed_action": "Resolve bounded/preselection-note authority without inventing numeric/regex policy, then reconstruct and prove the frozen W03→W04→W05→W06→R05 two-account/device journey. Do not admit RU-5B until both aggregate blockers are physically closed.",
   "ru5_p0c01_live_reconciliation": {
     "status": "CLOSED_LIVE",
     "canonical_promotion_sha": "366561e74a088d55d816d3795cba5f2299e3283c",
@@ -318,7 +304,7 @@
     "explicit_non_claims": ["selection_durable_idempotency","rn_selection_retry_identity","calendar_hard_conflict_authority","agreement_snapshot_redesign","shared_dogovor","povezivanje_activation","bounded_note_policy","d0140_production_allow","ru4b_public_qa_activation","monetization","application_ai"]
   },
   "p0d03_requester_connection_activation_live_reconciliation": {
-    "status": "CANONICAL_LIVE_POSTFLIGHT_PROVEN_CLOSURE_PENDING",
+    "status": "CLOSED_CANONICAL_LIVE_PROVEN",
     "proof_head": "01b514289091ad9c9ced7d1d5ed4598eaa2994c5",
     "proof_run": 34026655155,
     "earlier_locked_proof_head": "06c60587b6af992d987052a4373f1cc8294df969",
@@ -357,6 +343,44 @@
     "ru4b_public_qa": "ACTIVATION_BLOCKED",
     "monetization": "FREE_0_RSD",
     "explicit_non_claims": ["paid_checkout_wallet_packages","calendar_hard_conflict_authority","calendar_commitment","agreement_snapshot_v2","shared_multi_person_dogovor","d0140_production_allow","ru4b_public_qa_activation","application_ai","reviews","push","maps","identity_provider_runtime"]
+  },
+  "ru5_fastest_autofill_live_reconciliation": {
+    "status":"CLOSED_CANONICAL_LIVE_PROVEN",
+    "proof_head":"e7b5ce501c2b9708bd176075ab4b41575edf0832",
+    "proof_run":34034993845,
+    "implementation_pr":32,
+    "canonical_promotion_sha":"6ee5c611fadf6861b7cc029ffda77437a847ca8c",
+    "source_version":"20260906130000",
+    "source_file":"20260906130000_clean_ru5_fastest_autofill_retirement.sql",
+    "live_version":"20260906141409",
+    "live_name":"clean_ru5_fastest_autofill_retirement",
+    "exact_byte_identity":false,
+    "canonical_raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c",
+    "canonical_utf8_bytes":7363,
+    "live_recorded_statement_md5":"04466b38e780a59a7eab6f4b928544a0",
+    "recorded_statement_utf8_bytes":6743,
+    "canonical_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0",
+    "live_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0",
+    "normalization":"remove -- line comments then remove whitespace",
+    "semantic_equivalence":true,
+    "repair_migration_required":false,
+    "applied_history_action":"UNCHANGED",
+    "pr_pre_p4_run":34038248027,
+    "pr_codeql_run":34038246172,
+    "canonical_pre_p4_run":34038380354,
+    "canonical_codeql_run":34038380028,
+    "canonical_control0_run":34038380360,
+    "selection_definition_md5":"4c2b68cdee2fe66facf7fe1c46cef43f",
+    "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba",
+    "edge":{"slug":"uskoci-ai-interview","status":"ACTIVE","version":6,"verify_jwt":true,"ezbr_sha256":"012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954","price_modes":["MY_PRICE","OFFERS"]},
+    "post_live":{"app_profiles":6,"needs":6,"marketplace_responses":4,"need_selections":2,"agreements":2,"fastest_needs":0,"fastest_v2_ai_facts":0,"fastest_application_snapshots":0,"autofill_selections":0,"publication_policy_bundles":0,"need_publication_decisions":0,"preselection_questions":0},
+    "admissible_need_application_price_modes":["MY_PRICE","OFFERS"],
+    "admissible_selection_modes":["REQUESTER_SELECTS","BIDDING"],
+    "d0140_production_publish":"FAIL_CLOSED",
+    "ru4b_public_qa":"ACTIVATION_BLOCKED",
+    "monetization":"FREE_0_RSD",
+    "historical_business_rows_rewritten":false,
+    "explicit_non_claims":["bounded_note_policy","application_ai","calendar_hard_conflict_authority","agreement_snapshot_v2","shared_dogovor","d0140_production_allow","ru4b_public_qa_activation","monetization","hitno_activation"]
   },
   "ru4b": {
     "status": "LIVE_FOUNDATION_ACTIVATION_BLOCKED",

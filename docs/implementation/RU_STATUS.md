@@ -1,6 +1,6 @@
 # USKOČI RU status
 
-Current authoritative RU matrix after canonical/live/proven closure of frozen-governed `P0D-03 — requester_connection_activation_v1` and canonical docs/provenance closure PR #29.
+Current authoritative RU matrix after canonical/live/proven FASTEST/AUTO_FILL retirement and fresh live re-admission on 2026-09-06.
 
 | Unit | Status | Current rule |
 |---|---|---|
@@ -11,7 +11,7 @@ Current authoritative RU matrix after canonical/live/proven closure of frozen-go
 | RU-4 | CLOSED / LIVE | Do not redo owner-edit/revision closure. |
 | RU-4B | LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED | Do not activate public Q&A until all governing blockers are resolved. |
 | Client Data Layer | CLOSED / CANONICAL | Specialized owners remain canonical; no fake production fallback. |
-| RU-5 | IN PROGRESS | Constituent units below remain closed; aggregate RU-5 still requires frozen-contract reconciliation/proof before RU-5B admission. |
+| RU-5 | IN PROGRESS | Constituent units and FASTEST/AUTO_FILL retirement below are closed; aggregate RU-5 still requires bounded/preselection-note authority resolution plus full two-account/device journey proof before RU-5B admission. |
 | RU-5 P0C-01 | CLOSED / LIVE | Public-safe profile projection canonical; raw `app_profiles` remains protected. |
 | RU-5 P0C-02 | CLOSED / LIVE | Atomic Application submit canonical/live; no historical snapshot backfill. |
 | RU-5 P0C-03 | CLOSED / LIVE | My Applications projection + withdraw canonical/live. |
@@ -19,42 +19,50 @@ Current authoritative RU matrix after canonical/live/proven closure of frozen-go
 | RU-5 Manual Selection Eligibility Revalidation | CLOSED / CANONICAL / LIVE | Current readiness/team-capacity are revalidated at Selection boundary. |
 | P0D-02 Selection Semantic Idempotency | CLOSED / CANONICAL / LIVE | Durable semantic receipt + retained R05 exact-intent retry identity; no historical hash backfill. |
 | P0D-03 Requester Connection Activation V1 | CLOSED / CANONICAL / LIVE / PROVEN | Narrow V1 Requester-beneficiary Selection activation is live at 0 RSD. Do not redo unless a physical regression is proven. |
+| RU-5 FASTEST/AUTO_FILL retirement | CLOSED / CANONICAL / LIVE / PROVEN | Need/Application/AI price modes are `MY_PRICE|OFFERS`; Selection modes are `REQUESTER_SELECTS|BIDDING`; historical business rows were not rewritten. |
 | RU-5B | NOT STARTED / GATED | Manual canonical Application contract must first satisfy the frozen aggregate RU-5 gate. |
-| RU-6A | FOUNDATION ONLY / GATED BY FRESH RU-5/AGREEMENT/CALENDAR RECONCILIATION | Hard calendar authority and immutable Agreement snapshot remain separate. |
+| RU-6A | FOUNDATION ONLY / GATED BY RU-5 | Hard calendar authority and immutable Agreement snapshot remain separate. |
 | RU-6B | NOT STARTED / GATED BY RU-6A | True shared multi-person Dogovor remains later. |
 | RU-7 | FOUNDATION ONLY / GATED BY RU-6A/RU-6B | Deferred. |
 | RU-8 | NOT STARTED / MANDATORY PROOF TRACK | Required before release closure. |
 
 ## Current canonical/live checkpoint
 
-- P0D-03 formal closure checkpoint SHA: `6b7d9df42b575d72b97ab2dd9cb0f45f02fda96e`; always fresh-read `clean-alpha-backend` for the moving current HEAD
-- canonical implementation merge: `e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec`
-- final proof head/run: `01b514289091ad9c9ced7d1d5ed4598eaa2994c5` / `34026655155` PASS
-- implementation PR #28 PRE-P4 / CodeQL: `34026813290` / `34026811947` PASS
-- implementation canonical PRE-P4 / CodeQL / Control-0: `34026900540` / `34026900127` / `34026900533` PASS
-- closure PR #29 merge: `6b7d9df42b575d72b97ab2dd9cb0f45f02fda96e`
-- closure canonical PRE-P4 / CodeQL / Control-0: `34029631265` / `34029630490` / `34029631297` PASS
-- Supabase: `78 / 20260906102021_clean_p0d03_requester_connection_activation_v1`
-- source canonical MD5/bytes: `e6fb0cb596b51587958b92d08b36ce98` / `25525`
-- live recorded MD5/bytes: `c77a5d4c6efec10c928f38c0542e593e` / `25524`
-- transport equivalence: live record omits only terminal LF; appending one LF yields canonical MD5/bytes exactly
-- live function MD5s: Selection `4c2b68cdee2fe66facf7fe1c46cef43f`; Candidate `1978ce1d5852cef46f94e81468d37bba`
-- Povezivanje V1 policy: `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`
-- `connection_activations=0` after promotion; no historical backfill
-- private connection tables retain RLS; direct activation-ledger SELECT denied to anon/authenticated/service_role
-- business rows: `6 profiles / 6 needs / 4 responses / 2 agreements / 2 selections`
-- D0140 production ALLOW remains fail-closed; RU-4B remains blocked; paid/wallet/checkout remains absent
+- governing master: `USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip` / SHA-256 `e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988`
+- canonical repository/branch: `Uskoci1/USKOCI-CLEAN` / `clean-alpha-backend`
+- FASTEST/AUTO_FILL implementation merge: `6ee5c611fadf6861b7cc029ffda77437a847ca8c` (PR #32)
+- exact predecessor proof head/run: `e7b5ce501c2b9708bd176075ab4b41575edf0832` / `34034993845` PASS
+- implementation PR #32 PRE-P4 / CodeQL: `34038248027` / `34038246172` PASS
+- implementation canonical PRE-P4 / CodeQL / Control-0: `34038380354` / `34038380028` / `34038380360` PASS
+- Supabase project: `leqcwgzvjsxugfgzdmth`
+- live Supabase: `79 / 20260906141409_clean_ru5_fastest_autofill_retirement`
+- canonical source: `20260906130000_clean_ru5_fastest_autofill_retirement.sql`
+- canonical raw MD5/bytes: `25bf03d6bed27d0d9af27ec65d59a63c` / `7363`
+- live recorded MD5/bytes: `04466b38e780a59a7eab6f4b928544a0` / `6743`
+- exact byte identity: `false`
+- transport reconciliation: after removing SQL line comments and whitespace, canonical/live normalized MD5 is `c99a1ded1106ae52f2dbf47289192ce0`; executable semantics are proven equivalent; applied history remains untouched and no repair migration is required
+- live constraints: Need/Application price modes `MY_PRICE|OFFERS`; Selection modes `REQUESTER_SELECTS|BIDDING`
+- retired inventory: FASTEST Needs `0`; FASTEST V2 AI facts `0`; FASTEST Application snapshots `0`; AUTO_FILL Selections `0`
+- live Selection/Candidate definition MD5s preserved: `4c2b68cdee2fe66facf7fe1c46cef43f` / `1978ce1d5852cef46f94e81468d37bba`
+- live business rows preserved: profiles `6`; needs `6`; responses `4`; selections `2`; agreements `2`
+- Edge `uskoci-ai-interview`: `ACTIVE v6`, `verify_jwt=true`, EZBR SHA-256 `012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954`; live V2 AI contract allows only `MY_PRICE|OFFERS`
+- Povezivanje V1 policy remains `REQUESTER_SELECTION_V1 / REQUESTER / SELECTION / PROMOTIONAL_FREE / HEADCOUNT / 0 RSD`; activation rows remain `0`; no Worker debit or historical activation backfill
+- D0140: zero policy bundles and no publication decisions; production ALLOW remains fail-closed
+- RU-4B: foundation tables remain live with zero question/policy-command inventory; user-facing activation remains blocked
+- monetization remains FREE / 0 RSD; no paid/wallet/checkout/packages activation is claimed
 
-## Current RU-5 aggregate blockers/reconciliation items
+## Current RU-5 aggregate blockers
 
-The current physical P0C-02 explicitly excluded bounded-note policy rather than inventing it. Frozen RU-5 still requires bounded note and prohibited preselection-note denial according to current policy. No new numeric length/regex/block policy may be invented from draft evidence.
+### A. Bounded / preselection note governance
 
-The frozen RU-5 proof gate also requires a two-account device journey `W03 → W04 → W05 → W06 → R05`; current unit proofs do not by themselves establish that complete device journey.
+Frozen RU-5 requires a bounded note and denial of preselection-note contact/payment/exact-private-location bypass content according to current policy. The only concrete numeric/regex implementation found in the implementation-ready master is under `06_DRAFT_EVIDENCE/P0_SQL_DRAFTS_V10/P0C/DRAFT_P0C_03_preselection_note_policy.sql`; draft evidence is not governing authority. The current locked public preselection Q&A contract requires a bounded configured size and deterministic privacy/contact floors, but does not owner-approve a numeric note length, regex set, block list, moderation threshold or rate. Do not invent those values. This gate is therefore `BLOCKED / DECISION-REQUIRED` for any policy-specific implementation that would require such values.
 
-Current schema/Selection code still admits legacy `FASTEST/AUTO_FILL` while the frozen current RU-5 contract retires it. Current live Need rows are `OFFERS`, so retirement can be reconciled without rewriting current business rows, but historical/runtime compatibility must be inspected before any mutation.
+### B. Two-account/device Application journey proof
+
+Frozen RU-5 requires a complete two-account/device journey `W03 → W04 → W05 → W06 → R05`. Existing DB/unit/integration proofs establish constituent command properties but do not by themselves prove the complete physical journey. Reconstruct the exact frozen surface/command mapping, then run the strongest available authenticated two-account proof without service-role substitution for user authority; keep automated integration proof distinct from physical device/emulator proof.
 
 ## Explicit non-claims / cursor
 
-P0D-03 is not hard calendar authority, calendar commitment, immutable Agreement snapshot V2, shared Dogovor, paid monetization, D0140/RU-4B activation or Application AI.
+FASTEST/AUTO_FILL retirement does not close aggregate RU-5. It does not authorize bounded-note policy invention, Application AI, hard calendar authority, immutable Agreement Snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B public activation, HITNO or paid monetization.
 
-Exact next cursor: finish fresh RU-5 aggregate reconciliation. Resolve only owner-approved preselection-note semantics, prove the required two-account Application path, and reconcile retired FASTEST/AUTO_FILL admissibility. Do not admit RU-5B or invent a new unit identifier until that gate is physically satisfied.
+Exact next cursor after this docs/provenance closure is canonical: resolve bounded/preselection-note authority without invention, then reconstruct and prove the required `W03 → W04 → W05 → W06 → R05` two-account journey. RU-5B remains gated until both aggregate blockers are physically closed.
