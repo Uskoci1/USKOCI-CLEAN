@@ -1,0 +1,113 @@
+name: P0D-03 Pending Metadata Helper
+
+on:
+  push:
+    branches:
+      - proof/p0d03-requester-connection-activation-v1-20260906
+    paths:
+      - .github/workflows/p0d03-pending-metadata-helper.yml
+
+permissions:
+  contents: write
+
+jobs:
+  register-pending:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Register locked P0D-03 candidate as pending
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import hashlib
+
+          migration = Path('supabase/migrations/20260906100000_clean_p0d03_requester_connection_activation_v1.sql')
+          raw = migration.read_bytes()
+          md5 = hashlib.md5(raw).hexdigest()
+          size = len(raw)
+          if md5 != 'e6fb0cb596b51587958b92d08b36ce98' or size != 25525:
+              raise SystemExit(f'locked P0D-03 bytes changed: {md5}/{size}')
+
+          manifest = Path('supabase/migrations/MD5_MANIFEST.txt')
+          m = manifest.read_text(encoding='utf-8')
+          line = 'e6fb0cb596b51587958b92d08b36ce98  20260906100000_clean_p0d03_requester_connection_activation_v1.sql\n'
+          if line not in m:
+              if not m.endswith('\n'):
+                  m += '\n'
+              m += line
+              manifest.write_text(m, encoding='utf-8', newline='\n')
+
+          provenance = Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          p = provenance.read_text(encoding='utf-8')
+          old = '  "pending_forward_migrations": [],\n'
+          new = '''  "pending_forward_migrations": [
+            {
+              "version": "20260906100000",
+              "name": "clean_p0d03_requester_connection_activation_v1",
+              "file": "20260906100000_clean_p0d03_requester_connection_activation_v1.sql",
+              "classification": "PENDING_FORWARD_MIGRATION",
+              "raw_md5": "e6fb0cb596b51587958b92d08b36ce98",
+              "utf8_bytes": 25525,
+              "live_applied": false,
+              "predecessor_live_migration_count": 77,
+              "predecessor_live_head": "20260906090451",
+              "proof_branch": "proof/p0d03-requester-connection-activation-v1-20260906",
+              "proof_head": "06c60587b6af992d987052a4373f1cc8294df969",
+              "proof_run": 34026374264,
+              "proof_artifact_id": 9987204281,
+              "scope": "Requester-beneficiary Selection Povezivanje V1; PROMOTIONAL_FREE; HEADCOUNT; platform cost 0 RSD; no Worker debit; no historical backfill"
+            }
+          ],
+          '''
+          if old not in p:
+              raise SystemExit('expected empty pending_forward_migrations marker not found')
+          p = p.replace(old, new, 1)
+          json.loads(p)
+          provenance.write_text(p, encoding='utf-8', newline='\n')
+
+          continuity = Path('docs/implementation/IMPLEMENTATION_CONTINUITY.md')
+          c = continuity.read_text(encoding='utf-8')
+          marker = '# USKOČI implementation continuity\n\n'
+          block = '''## Current WIP checkpoint — 2026-09-06 — P0D-03 REQUESTER CONNECTION ACTIVATION V1 PROVEN / PENDING PROMOTION
+
+- frozen authority: `P0D-03 — requester_connection_activation_v1`
+- proof branch: `proof/p0d03-requester-connection-activation-v1-20260906`
+- locked proof head before metadata registration: `06c60587b6af992d987052a4373f1cc8294df969`
+- exact-head proof run: `34026374264` — PASS
+- proof artifact: `9987204281`
+- locked migration: `supabase/migrations/20260906100000_clean_p0d03_requester_connection_activation_v1.sql`
+- canonical raw MD5 / bytes: `e6fb0cb596b51587958b92d08b36ce98` / `25525`
+- predecessor live state: `77 / 20260906090451_clean_p0d02_selection_semantic_idempotency`
+- proven behavior: Requester beneficiary; Selection activation reason; HEADCOUNT units; `PROMOTIONAL_FREE`; platform cost `0 RSD`; same Selection transaction creates the immutable private activation receipt required for a new Agreement; no Worker debit; no task-price/platform-fee conflation; no historical Agreement backfill; P0D-02 concurrency and RU-5/P0D-01 regressions preserved.
+- private boundary: `private.connection_policy_versions` and `private.connection_activations` are server-only, RLS-enabled and immutable; authenticated proof does not receive direct private-schema read access.
+- status: **PROVEN ON PROOF BRANCH / PENDING CANONICAL PROMOTION / NOT LIVE / NOT CLOSED**.
+- non-scope remains: paid checkout/balance/packages, calendar authority, Agreement snapshot V2, shared Dogovor, D0140 production ALLOW, RU-4B activation, monetization, Application AI.
+
+Do not treat P0D-03 as canonical or live until PR gates, canonical push gates, fresh live preflight, exact migration promotion, postflight and closure provenance are all complete.
+
+'''
+          if not c.startswith(marker):
+              raise SystemExit('continuity title marker mismatch')
+          if 'P0D-03 REQUESTER CONNECTION ACTIVATION V1 PROVEN / PENDING PROMOTION' not in c:
+              c = marker + block + c[len(marker):]
+              continuity.write_text(c, encoding='utf-8', newline='\n')
+          PY
+
+          python3 supabase/migrations/check_migration_integrity.py
+          git diff --check
+
+      - name: Commit pending registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'msljivic031'
+          git config user.email 'msljivic031@gmail.com'
+          git add supabase/migrations/MD5_MANIFEST.txt supabase/migrations/MIGRATION_PROVENANCE.json docs/implementation/IMPLEMENTATION_CONTINUITY.md
+          git commit -m 'docs(p0d03): register proven candidate pending promotion'
+          git push origin HEAD:${GITHUB_REF_NAME}
