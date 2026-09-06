@@ -54,6 +54,19 @@ jobs:
           EOF
           chmod +x /tmp/ru5-fastest-bin/supabase
           PATH="/tmp/ru5-fastest-bin:$PATH" bash supabase/proofs/p0d03_ci_proof.sh
+
+          # p0d03_ci_proof.sh intentionally proves the candidate without recording
+          # the connected live alias. After its PASS markers, the disposable DB is
+          # the physical P0D-03 state with migration history still at live-77.
+          actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
+          echo "p0d03_proven_unaliased=$actual"
+          test "$actual" = "77/20260906090451"
+          test "$(psql "$DB_URL" -Atc "select to_regclass('private.connection_activations') is not null;")" = "t"
+          test "$(psql "$DB_URL" -Atc "select md5(pg_get_functiondef('public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure));")" = "4c2b68cdee2fe66facf7fe1c46cef43f"
+
+          psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -c "insert into supabase_migrations.schema_migrations(version,name) values ('20260906102021','clean_p0d03_requester_connection_activation_v1');"
+
           actual="$(psql "$DB_URL" -Atc "select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations;")"
           echo "retirement_predecessor=$actual"
           test "$actual" = "78/20260906102021"
