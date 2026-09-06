@@ -1,0 +1,55 @@
+name: RU5 read-only pinned source export
+on:
+  push:
+    branches: [proof/ru5-source-readonly-export-20260906]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 251d72e9ab373e01af717e7512181b4850d2a6f4
+          persist-credentials: false
+      - name: Package tracked text sources only
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import hashlib, json, pathlib, subprocess, zipfile
+          expected = '251d72e9ab373e01af717e7512181b4850d2a6f4'
+          actual = subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip()
+          assert actual == expected, 'pinned source mismatch'
+          prefixes = ('src/','scripts/','docs/','supabase/','__tests__/','.github/workflows/')
+          roots = {'package.json','package-lock.json','tsconfig.json','app.json','AGENTS.md','HANDOFF.md','README.md','babel.config.js','metro.config.js'}
+          extensions = {'.ts','.tsx','.js','.jsx','.cjs','.mjs','.py','.sh','.sql','.json','.yml','.yaml','.md','.csv','.txt'}
+          paths = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          manifest = {'source_sha': actual, 'files': []}
+          pathlib.Path('/tmp/ru5-source-export').mkdir(exist_ok=True)
+          with zipfile.ZipFile('/tmp/ru5-source-export/source.zip','w',zipfile.ZIP_DEFLATED) as archive:
+              for name in paths:
+                  if not name or not (name.startswith(prefixes) or name in roots):
+                      continue
+                  path = pathlib.Path(name)
+                  if path.suffix.lower() not in extensions or path.is_symlink() or not path.is_file():
+                      continue
+                  if any(part.startswith('.env') for part in path.parts):
+                      continue
+                  data = path.read_bytes()
+                  try:
+                      data.decode('utf-8')
+                  except UnicodeDecodeError:
+                      continue
+                  blob = hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+                  manifest['files'].append({'path':name,'bytes':len(data),'git_blob_sha':blob,'sha256':hashlib.sha256(data).hexdigest()})
+                  archive.writestr(name,data)
+              archive.writestr('SOURCE_EXPORT_MANIFEST.json',json.dumps(manifest,indent=2)+'\n')
+          print('READ_ONLY_EXPORT source='+actual+' tracked_text_files='+str(len(manifest['files'])))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RU5-PINNED-TEXT-SOURCE-251d72e9
+          path: /tmp/ru5-source-export/source.zip
+          retention-days: 14
+          if-no-files-found: error
