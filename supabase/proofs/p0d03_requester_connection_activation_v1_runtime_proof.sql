@@ -93,7 +93,6 @@ do $selection_and_replay$
 declare
   aid1 uuid;
   aid2 uuid;
-  act_count integer;
   sel_count integer;
   agr_count integer;
 begin
@@ -105,7 +104,6 @@ begin
   if aid1 is null then raise exception 'P0D03_FIRST_SELECTION_FAILED'; end if;
   perform set_config('uskoci.p0d03_main_agreement',aid1::text,true);
 
-  select count(*) into act_count from private.connection_activations;
   select count(*) into sel_count from public.need_selections;
   select count(*) into agr_count from public.agreements;
 
@@ -115,8 +113,7 @@ begin
     'p0d03-main-key'
   );
   if aid2 <> aid1 then raise exception 'P0D03_REPLAY_DIFFERENT_AGREEMENT'; end if;
-  if (select count(*) from private.connection_activations) <> act_count
-     or (select count(*) from public.need_selections) <> sel_count
+  if (select count(*) from public.need_selections) <> sel_count
      or (select count(*) from public.agreements) <> agr_count then
     raise exception 'P0D03_REPLAY_DUPLICATED_ROWS';
   end if;
@@ -126,9 +123,6 @@ begin
     current_setting('uskoci.p0d03_r_rogue')::uuid,1,repeat('8',64),
     'p0d03-main-key','IDEMPOTENCY_KEY_REUSED'
   );
-  if (select count(*) from private.connection_activations) <> act_count then
-    raise exception 'P0D03_DIFFERENT_PAYLOAD_CREATED_ACTIVATION';
-  end if;
 end
 $selection_and_replay$;
 reset role;
@@ -140,6 +134,10 @@ declare
   av public.agreement_versions%rowtype;
   expected_agreement uuid := current_setting('uskoci.p0d03_main_agreement')::uuid;
 begin
+  if (select count(*) from private.connection_activations) <> 1 then
+    raise exception 'P0D03_ACTIVATION_COUNT_NOT_ONE';
+  end if;
+
   select * into a from private.connection_activations where agreement_id=expected_agreement;
   if not found then raise exception 'P0D03_ACTIVATION_MISSING'; end if;
 
