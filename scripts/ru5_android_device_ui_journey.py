@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 PACKAGE = os.environ.get('RU5_DEVICE_PACKAGE', 'rs.uskoci.ru5proof')
+MAIN_ACTIVITY = f'{PACKAGE}/.MainActivity'
 WORKER_EMAIL = os.environ['RU5_DEVICE_WORKER_EMAIL']
 REQUESTER_EMAIL = os.environ['RU5_DEVICE_REQUESTER_EMAIL']
 PASSWORD = os.environ['RU5_DEVICE_PASSWORD']
@@ -65,11 +66,48 @@ def matches(node, *, text=None, desc=None, contains=None, clazz=None):
     if desc is not None and node.attrib.get('content-desc') != desc:
         return False
     if contains is not None:
-        hay = f"{node.attrib.get('text','')} {node.attrib.get('content-desc','')}"
+        hay = f"{node.attrib.get('text', '')} {node.attrib.get('content-desc', '')}"
         if contains not in hay:
             return False
     if clazz is not None and node.attrib.get('class') != clazz:
         return False
+    return True
+
+
+def tap_node(node, parent):
+    target = clickable_for(node, parent)
+    x1, y1, x2, y2 = parse_bounds(target.attrib.get('bounds'))
+    adb('shell', 'input', 'tap', str((x1 + x2) // 2), str((y1 + y2) // 2))
+    time.sleep(0.8)
+
+
+def dismiss_known_system_anr(root, parent):
+    """Dismiss only launcher/System UI starvation dialogs, never an USKOČI ANR."""
+    labels = [
+        f"{n.attrib.get('text', '')} {n.attrib.get('content-desc', '')}".strip()
+        for n in root.iter()
+        if n.attrib.get('text') or n.attrib.get('content-desc')
+    ]
+    system_anr = any(
+        ("Quickstep isn't responding" in label)
+        or ('Quickstep ne reaguje' in label)
+        or ("System UI isn't responding" in label)
+        or ('Sistemski korisnički interfejs ne reaguje' in label)
+        for label in labels
+    )
+    if not system_anr:
+        return False
+
+    wait_nodes = [
+        n for n in root.iter()
+        if n.attrib.get('text') in ('Wait', 'Sačekaj', 'Čekaj')
+        or n.attrib.get('content-desc') in ('Wait', 'Sačekaj', 'Čekaj')
+    ]
+    if not wait_nodes:
+        raise RuntimeError(f'Known system ANR present without safe Wait action: {labels[-30:]}')
+    tap_node(wait_nodes[-1], parent)
+    print('RECOVERED known_system_anr via Wait', flush=True)
+    time.sleep(1.5)
     return True
 
 
@@ -84,23 +122,28 @@ def wait_nodes(timeout=40, minimum=1, **criteria):
     last = []
     while time.time() < end:
         try:
-            nodes, parent = find_nodes(**criteria)
+            root, parent, _ = dump_tree()
+            nodes = [n for n in root.iter() if matches(n, **criteria)]
             last = nodes
             if len(nodes) >= minimum:
                 return nodes, parent
-        except Exception:
-            pass
+            if dismiss_known_system_anr(root, parent):
+                # Directly re-assert the app activity after launcher starvation.
+                adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
+        except Exception as exc:
+            print(f'WAIT_RETRY criteria={criteria} error={type(exc).__name__}:{exc}', flush=True)
         time.sleep(1)
+
     root, _, xml = dump_tree('timeout')
-    visible = [(n.attrib.get('text'), n.attrib.get('content-desc'), n.attrib.get('class')) for n in root.iter() if n.attrib.get('text') or n.attrib.get('content-desc')]
-    raise RuntimeError(f'Timeout criteria={criteria} minimum={minimum}; last={len(last)} visible={visible[-80:]} xml_tail={xml[-1000:]}')
-
-
-def tap_node(node, parent):
-    target = clickable_for(node, parent)
-    x1, y1, x2, y2 = parse_bounds(target.attrib.get('bounds'))
-    adb('shell', 'input', 'tap', str((x1 + x2) // 2), str((y1 + y2) // 2))
-    time.sleep(0.8)
+    visible = [
+        (n.attrib.get('text'), n.attrib.get('content-desc'), n.attrib.get('class'))
+        for n in root.iter()
+        if n.attrib.get('text') or n.attrib.get('content-desc')
+    ]
+    raise RuntimeError(
+        f'Timeout criteria={criteria} minimum={minimum}; last={len(last)} '
+        f'visible={visible[-80:]} xml_tail={xml[-1000:]}'
+    )
 
 
 def tap(prefer='bottom', timeout=40, **criteria):
@@ -110,7 +153,10 @@ def tap(prefer='bottom', timeout=40, **criteria):
     for n, p in clickable:
         unique[n.attrib.get('bounds', str(id(n)))] = (n, p)
     options = list(unique.values())
-    options.sort(key=lambda item: parse_bounds(item[0].attrib.get('bounds'))[1], reverse=(prefer == 'bottom'))
+    options.sort(
+        key=lambda item: parse_bounds(item[0].attrib.get('bounds'))[1],
+        reverse=(prefer == 'bottom'),
+    )
     tap_node(options[0][0], options[0][1])
 
 
@@ -136,24 +182,39 @@ def shot(name):
     png = subprocess.run(['adb', 'exec-out', 'screencap', '-p'], check=True, capture_output=True).stdout
     (ARTIFACT_DIR / f'{name}.png').write_bytes(png)
     dump_tree(name)
-    print(f'EVIDENCE {name}')
+    print(f'EVIDENCE {name}', flush=True)
 
 
 def launch_clean():
+    # Clear only this proof APK. Start MainActivity directly so launcher/Quickstep
+    # is not part of the marketplace proof path.
+    adb('shell', 'am', 'force-stop', PACKAGE, check=False)
     adb('shell', 'pm', 'clear', PACKAGE, check=False)
-    adb('shell', 'monkey', '-p', PACKAGE, '-c', 'android.intent.category.LAUNCHER', '1')
+    time.sleep(1)
+
+    try:
+        root, parent, _ = dump_tree()
+        dismiss_known_system_anr(root, parent)
+    except Exception:
+        pass
+
+    started = adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
+    print(
+        f'APP_START returncode={started.returncode} stdout={started.stdout[-500:]} stderr={started.stderr[-500:]}',
+        flush=True,
+    )
     time.sleep(2)
-    wait_visible(timeout=45, desc='Prijavi se')
+    wait_visible(timeout=90, desc='Prijavi se')
 
 
 def login(email):
     tap(desc='Prijavi se', prefer='top', timeout=45)
-    wait_nodes(timeout=20, minimum=2, clazz='android.widget.EditText')
+    wait_nodes(timeout=30, minimum=2, clazz='android.widget.EditText')
     edit_text(0, email)
     edit_text(1, PASSWORD)
     hide_keyboard()
-    tap(text='Prijavi se', prefer='bottom', timeout=20)
-    wait_visible(text='Početna', timeout=45)
+    tap(text='Prijavi se', prefer='bottom', timeout=30)
+    wait_visible(text='Početna', timeout=60)
 
 
 def dismiss_ok(timeout=15):
@@ -223,12 +284,13 @@ def assert_gates_unchanged():
         'fastest_needs': "select count(*) from public.needs where mode='FASTEST';",
         'autofill_selections': "select count(*) from public.need_selections where selection_mode='AUTO_FILL';",
     }
-    bad = {name: psql(sql) for name, sql in checks.items() if psql(sql) != '0'}
+    observed = {name: psql(sql) for name, sql in checks.items()}
+    bad = {name: value for name, value in observed.items() if value != '0'}
     if bad:
         raise AssertionError(f'Gated/retired inventory changed: {bad}')
 
 
-print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY')
+print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY', flush=True)
 
 # Worker physical UI: Auth -> workspace -> W03 -> W04 -> W05 -> W06.
 launch_clean()
@@ -236,44 +298,49 @@ login(WORKER_EMAIL)
 tap(text='Profil', prefer='bottom')
 wait_visible(desc='Pređi u prostor Uskočera')
 tap(desc='Pređi u prostor Uskočera')
-wait_visible(text='Prilike', timeout=30)
+wait_visible(text='Prilike', timeout=45)
 tap(text='Prilike', prefer='bottom')
-wait_visible(desc=f'Otvorite priliku {NEED_TITLE}', timeout=30)
+wait_visible(desc=f'Otvorite priliku {NEED_TITLE}', timeout=45)
 shot('W03_worker_opportunity_list')
 tap(desc=f'Otvorite priliku {NEED_TITLE}')
-wait_visible(desc='Sastavi prijavu', timeout=30)
+wait_visible(desc='Sastavi prijavu', timeout=45)
 shot('W04_worker_need_detail')
 tap(desc='Sastavi prijavu')
-wait_visible(text='Sastavi prijavu', timeout=30)
-wait_nodes(timeout=20, minimum=1, clazz='android.widget.EditText')
+wait_visible(text='Sastavi prijavu', timeout=45)
+wait_nodes(timeout=30, minimum=1, clazz='android.widget.EditText')
 edit_text(0, '3000')
 hide_keyboard()
 shot('W05_worker_application_draft')
-tap(desc='Pošalji prijavu', timeout=20)
-wait_visible(contains='Prijava je uspešno podneta', timeout=30)
+tap(desc='Pošalji prijavu', timeout=30)
+wait_visible(contains='Prijava je uspešno podneta', timeout=45)
 shot('W05_worker_application_success')
 dismiss_ok()
-wait_visible(text=NEED_TITLE, timeout=30)
-wait_visible(text='Poslata', timeout=30)
+wait_visible(text=NEED_TITLE, timeout=45)
+wait_visible(text='Poslata', timeout=45)
 shot('W06_worker_own_application')
 response_id = assert_worker_submit()
 
-# Same physical APK, clean application storage, second real Auth identity.
+# Same installed physical APK, clean application storage, second real Auth identity.
 launch_clean()
 login(REQUESTER_EMAIL)
 tap(text='Potrebe', prefer='bottom')
-wait_visible(desc=f'Otvori Potrebu {NEED_TITLE}', timeout=30)
+wait_visible(desc=f'Otvori Potrebu {NEED_TITLE}', timeout=45)
 tap(desc=f'Otvori Potrebu {NEED_TITLE}')
-wait_visible(contains='Otvori prijave, ukupno 1', timeout=30)
+wait_visible(contains='Otvori prijave, ukupno 1', timeout=45)
 tap(contains='Otvori prijave, ukupno 1')
-wait_visible(text='Prijave (1)', timeout=30)
-wait_visible(desc='Izaberi', timeout=30)
+wait_visible(text='Prijave (1)', timeout=45)
+wait_visible(desc='Izaberi', timeout=45)
 shot('R05_requester_candidate_selection')
 tap(desc='Izaberi')
-wait_visible(contains='Dogovor je uspešno sklopljen', timeout=30)
+wait_visible(contains='Dogovor je uspešno sklopljen', timeout=45)
 shot('R05_requester_selection_success')
 dismiss_ok()
 agreement_id = assert_final_selection(response_id)
 assert_gates_unchanged()
 
-print(f'PASS RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY W03 W04 W05 W06 R05 two_real_auth_identities agreement={agreement_id} P0D03_0_RSD bounded_note_not_claimed disposable_local_only')
+print(
+    f'PASS RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY W03 W04 W05 W06 R05 '
+    f'two_real_auth_identities agreement={agreement_id} P0D03_0_RSD '
+    'bounded_note_not_claimed disposable_local_only',
+    flush=True,
+)
