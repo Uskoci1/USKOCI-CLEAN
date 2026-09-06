@@ -1,19 +1,25 @@
 # USKOČI current implementation status
 
-Authoritative current status candidate as of `2026-09-06`, after canonical promotion and live application of the RU-5 Manual Selection Eligibility Revalidation. This status becomes canonical authority only when the closure/provenance branch is merged after its gates pass.
+Authoritative current status as of `2026-09-06`, after canonical/live closure of the RU-5 Manual Selection Eligibility Revalidation.
 
 ## Current platform checkpoint
 
 - canonical repo: `Uskoci1/USKOCI-CLEAN`
 - canonical branch: `clean-alpha-backend`
 - Selection eligibility canonical implementation merge: `c0dd1434c436578e0f517520a2156b72ec5d3eaa`
+- closure/provenance canonical merge: `cc507910a10515db52f0b0db6d86478cfd19ea05`
 - final exact-head proof SHA: `d71c6e08b518e2955020c21538c1238358b14df3`
 - proof run: `34017442269` — PASS
 - PR #23 PRE-P4: `34017443678` — PASS
 - PR #23 CodeQL: `34017442615` — Actions, Python and JavaScript/TypeScript PASS
-- canonical push PRE-P4: `34017639405` — PASS
-- canonical push CodeQL: `34017639038` — Actions, Python and JavaScript/TypeScript PASS
-- canonical Control-0: `34017639343` — PASS
+- implementation canonical push PRE-P4: `34017639405` — PASS
+- implementation canonical push CodeQL: `34017639038` — Actions, Python and JavaScript/TypeScript PASS
+- implementation canonical Control-0: `34017639343` — PASS
+- closure PR #24 PRE-P4: `34018929991` — PASS
+- closure PR #24 CodeQL: `34018929257` — Actions, Python and JavaScript/TypeScript PASS
+- closure canonical push PRE-P4: `34019026629` — PASS
+- closure canonical push CodeQL: `34019026435` — Actions, Python and JavaScript/TypeScript PASS
+- closure canonical Control-0: `34019026661` — PASS
 - live Supabase project: `leqcwgzvjsxugfgzdmth`
 - live migrations: `76`
 - live head: `20260906065758_clean_ru5_selection_eligibility_revalidation`
@@ -21,13 +27,13 @@ Authoritative current status candidate as of `2026-09-06`, after canonical promo
 - canonical/live recorded MD5: `6ddb7d5d141e7cb3a454fa7e6ca1280d`
 - canonical/live recorded UTF-8 bytes: `17954`
 - exact-byte identity: `TRUE`
-- business counts after live postflight: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
+- business counts after final fresh live postflight: `app_profiles=6`, `needs=6`, `marketplace_responses=4`, `agreements=2`
 - Application snapshot rows: `0`; no historical backfill was performed
 - response states remain `2 SUBMITTED / 2 SELECTED`; historical selected rows were not rewritten
 
 ## Selection eligibility closure
 
-- `rpc_select_response(uuid,integer,uuid,integer,text,text)` now revalidates current RU-1 minimum Worker readiness and current `covered_slots <= team_capacity` immediately before Selection write authority;
+- `rpc_select_response(uuid,integer,uuid,integer,text,text)` revalidates current RU-1 minimum Worker readiness and current `covered_slots <= team_capacity` immediately before Selection write authority;
 - `rpc_list_need_candidates(uuid)` applies the same current-read checks and reuses existing `STALE / canSelect=false` rather than introducing a new state;
 - live Selection function MD5: `ea1c1c40783dbfb9eeab527c128f9dd0`;
 - live Candidate function MD5: `1978ce1d5852cef46f94e81468d37bba`;
@@ -64,7 +70,7 @@ Authoritative current status candidate as of `2026-09-06`, after canonical promo
 - RU-5 P0C-02 — `CLOSED / LIVE / DO NOT REDO`
 - RU-5 P0C-03 — `CLOSED / LIVE / DO NOT REDO`
 - RU-5 P0D-01 — `CLOSED / LIVE / DO NOT REDO`
-- RU-5 Manual Selection Eligibility Revalidation — `CLOSED / LIVE / DO NOT REDO` after this closure branch promotion
+- RU-5 Manual Selection Eligibility Revalidation — `CLOSED / CANONICAL / LIVE / DO NOT REDO`
 - RU-5B — `NOT STARTED / GATED BY MANUAL RU-5`
 - RU-6A — `FOUNDATION ONLY / GATED BY RU-5`
 - RU-6B — `NOT STARTED / GATED BY RU-6A`
