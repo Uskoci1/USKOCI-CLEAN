@@ -10,22 +10,24 @@
   },
   "canonical_code_checkpoint_before_continuity_docs": "e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec",
   "canonical_head_at_pending_admission": "db818b99034d1f67b9b8cd08c95fe7f416b8e0a0",
+  "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "live": {
-    "migration_count": 78,
-    "head": "20260906102021_clean_p0d03_requester_connection_activation_v1",
-    "pending_forward_migrations": 1
+    "migration_count": 79,
+    "head": "20260906141409_clean_ru5_fastest_autofill_retirement",
+    "pending_forward_migrations": 0
   },
   "edge": {
     "slug": "uskoci-ai-interview",
-    "version": 5,
+    "version": 6,
     "status": "ACTIVE",
     "verify_jwt": true,
-    "ezbr_sha256": "5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca",
-    "canonical_source_retirement_pending_live_deploy": true
+    "ezbr_sha256": "012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954",
+    "price_modes": ["MY_PRICE", "OFFERS"],
+    "canonical_source_retirement_pending_live_deploy": false
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "LIVE_78_P0D03_PLUS_PENDING_RU5_FASTEST_AUTOFILL_RETIREMENT",
+    "state": "LIVE_79_RU5_FASTEST_AUTOFILL_RETIREMENT_PROVEN",
     "ru2_live_aliases": [
       {"live_version":"20260903222139","source_version":"20260903190000","source_file":"20260903190000_clean_ru2_need_v2_draft.sql","exact_byte_identity":true},
       {"live_version":"20260903222333","source_version":"20260903190100","source_file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","exact_byte_identity":true}
@@ -76,6 +78,37 @@
       "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba",
       "policy":{"key":"REQUESTER_SELECTION_V1","version":1,"beneficiary_role":"REQUESTER","activation_reason":"SELECTION","charge_mode":"PROMOTIONAL_FREE","unit_basis":"HEADCOUNT","platform_cost_rsd":0},
       "connection_activation_rows":0
+    },
+    "ru5_fastest_autofill_live_alias": {
+      "name":"clean_ru5_fastest_autofill_retirement",
+      "live_version":"20260906141409",
+      "source_version":"20260906130000",
+      "source_file":"20260906130000_clean_ru5_fastest_autofill_retirement.sql",
+      "exact_byte_identity":false,
+      "canonical_raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c",
+      "canonical_utf8_bytes":7363,
+      "live_recorded_statement_md5":"04466b38e780a59a7eab6f4b928544a0",
+      "recorded_statement_utf8_bytes":6743,
+      "transport_deviation":"connected migration transport omitted SQL line comments and whitespace only; executable statements remain semantically equivalent",
+      "canonical_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0",
+      "live_normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0",
+      "normalization":"remove -- line comments then remove whitespace",
+      "semantic_equivalence":true,
+      "applied_history_action":"UNCHANGED",
+      "repair_migration_required":false,
+      "proof_head":"e7b5ce501c2b9708bd176075ab4b41575edf0832",
+      "proof_run":34034993845,
+      "implementation_pr":32,
+      "pr_pre_p4_run":34038248027,
+      "pr_codeql_run":34038246172,
+      "canonical_promotion_sha":"6ee5c611fadf6861b7cc029ffda77437a847ca8c",
+      "canonical_pre_p4_run":34038380354,
+      "canonical_codeql_run":34038380028,
+      "canonical_control0_run":34038380360,
+      "selection_definition_md5":"4c2b68cdee2fe66facf7fe1c46cef43f",
+      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba",
+      "retired_inventory":{"fastest_needs":0,"fastest_v2_ai_facts":0,"fastest_application_snapshots":0,"autofill_selections":0},
+      "business_counts":{"profiles":6,"needs":6,"responses":4,"selections":2,"agreements":2}
     }
   },
   "client_data_layer": {
@@ -98,7 +131,7 @@
       {"id":"CDL-A11","status":"CLOSED_CANONICAL","sha":"1be672dc649fee102a66c826c86b0e5609a43315","owner":"aiProductionOverrides","methods":["otvoriRazgovor","razgovor"],"proof":[33966439120,33966556555],"deleted":["NEW_NEED lower shadow","null conversation-read shadow"]},
       {"id":"CDL-A12","status":"CLOSED_CANONICAL","sha":"40afb2ed654c9987f82e7cd3c120a5b60ccbcf11","owner":"productionAuthorityOverrides","methods":["objaviPotrebu"],"proof":[33967095683,33967215611,33967294217],"deleted":["incomplete p_profile_id lower shadow"],"fail_closed":"PACKAGE_4_NOT_READY"}
     ],
-    "next_cursor": "FRESH_FROZEN_PLAN_AND_AGREEMENT_CALENDAR_RECONCILIATION"
+    "next_cursor": "RU5_AGGREGATE_RECONCILIATION"
   },
   "ru5": {
     "status":"IN_PROGRESS",
@@ -109,7 +142,7 @@
     "manual_selection_eligibility_revalidation":{"status":"CLOSED_LIVE","contract":"CURRENT_WORKER_READINESS_AND_TEAM_CAPACITY_REVALIDATION","canonical_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa","live_migration":"20260906065758_clean_ru5_selection_eligibility_revalidation","historical_rows_rewritten":false,"selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba","next":"P0D02_CLOSED_LIVE"},
     "p0d02_selection_semantic_idempotency":{"status":"CLOSED_LIVE","canonical_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9","live_migration":"20260906090451_clean_p0d02_selection_semantic_idempotency","next":"P0D03_CLOSED_LIVE"},
     "p0d03_requester_connection_activation_v1":{"status":"CLOSED_CANONICAL_LIVE_DO_NOT_REDO","canonical_sha":"e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec","live_migration":"20260906102021_clean_p0d03_requester_connection_activation_v1","policy":"REQUESTER_SELECTION_V1","platform_cost_rsd":0,"historical_activation_backfill":false,"next":"RU5_AGGREGATE_RECONCILIATION"},
-    "fastest_autofill_retirement":{"status":"PROVEN_PENDING_FORWARD_MIGRATION","source_migration":"20260906130000_clean_ru5_fastest_autofill_retirement.sql","raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c","proof_head":"e7b5ce501c2b9708bd176075ab4b41575edf0832","proof_run":34034993845,"live_applied":false,"edge_live_followup_required":true,"next":"PR_CANONICAL_GATES_THEN_FRESH_LIVE_PREFLIGHT"}
+    "fastest_autofill_retirement":{"status":"CLOSED_CANONICAL_LIVE_PROVEN","source_migration":"20260906130000_clean_ru5_fastest_autofill_retirement.sql","live_migration":"20260906141409_clean_ru5_fastest_autofill_retirement","raw_md5":"25bf03d6bed27d0d9af27ec65d59a63c","live_recorded_md5":"04466b38e780a59a7eab6f4b928544a0","canonical_bytes":7363,"live_bytes":6743,"normalized_md5":"c99a1ded1106ae52f2dbf47289192ce0","exact_byte_identity":false,"semantic_equivalence":true,"proof_head":"e7b5ce501c2b9708bd176075ab4b41575edf0832","proof_run":34034993845,"canonical_sha":"6ee5c611fadf6861b7cc029ffda77437a847ca8c","live_applied":true,"edge_live_version":6,"edge_live_sha256":"012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954","repair_migration_required":false,"next":"BOUNDED_NOTE_AUTHORITY_AND_TWO_ACCOUNT_DEVICE_PROOF"}
   },
   "status": {
     "RU-0":"CLOSED_LIVE",
@@ -119,11 +152,12 @@
     "RU-4":"CLOSED_LIVE_DO_NOT_REDO",
     "RU-4B":"LIVE_FOUNDATION_ACTIVATION_BLOCKED_DEFERRED",
     "CDL":"CLOSED_CANONICAL",
-    "RU-5":"IN_PROGRESS_PROVEN_PENDING_FASTEST_AUTOFILL_RETIREMENT",
+    "RU-5":"IN_PROGRESS_BOUNDED_NOTE_AUTHORITY_AND_TWO_ACCOUNT_DEVICE_PROOF",
     "P0D-02":"CLOSED_CANONICAL_LIVE_DO_NOT_REDO",
     "P0D-03":"CLOSED_CANONICAL_LIVE_DO_NOT_REDO",
+    "RU-5_FASTEST_AUTOFILL_RETIREMENT":"CLOSED_CANONICAL_LIVE_PROVEN",
     "RU-5B":"NOT_STARTED_GATED_BY_RU5",
-    "RU-6A":"FOUNDATION_ONLY_GATED_BY_FRESH_RU5_AGREEMENT_CALENDAR_RECONCILIATION",
+    "RU-6A":"FOUNDATION_ONLY_GATED_BY_RU5",
     "RU-6B":"NOT_STARTED_GATED_BY_RU6A",
     "RU-7":"FOUNDATION_ONLY_GATED_BY_RU6A_RU6B",
     "RU-8":"NOT_STARTED_MANDATORY_PROOF"
@@ -136,9 +170,11 @@
   "d0140": {
     "status":"FAIL_CLOSED",
     "production_allow_enabled":false,
+    "publication_policy_bundle_rows":0,
+    "need_publication_decision_rows":0,
     "public_inventory_type":"REQUESTED_ZADATAK_ONLY",
     "service_offer_listing_supported":false
   },
   "monetization":"FREE_0_RSD",
-  "next_allowed_action":"PR/canonical gate the proven 20260906130000 RU-5 FASTEST/AUTO_FILL retirement. Before live DB write, fresh-read canonical HEAD and live 78/P0D-03 plus zero retired-mode inventory. After DB promotion, deploy the matching uskoci-ai-interview Edge source and prove live Edge no longer offers FASTEST. Do not invent bounded-note policy, Application AI, calendar authority, D0140 ALLOW, RU-4B activation or monetization."
+  "next_allowed_action":"Finish docs/provenance-only canonical closure for live RU-5 FASTEST/AUTO_FILL retirement, then resolve bounded/preselection-note authority without inventing numeric/regex policy. Reconstruct and prove the frozen W03→W04→W05→W06→R05 two-account journey. Do not admit RU-5B until both aggregate blockers are physically closed."
 }
