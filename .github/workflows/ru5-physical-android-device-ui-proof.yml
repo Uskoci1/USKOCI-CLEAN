@@ -124,12 +124,30 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           script: |
             mkdir -p artifacts/ru5-device-ui
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell settings put system pointer_location 0 || true
-            python3 scripts/ru5_android_device_ui_journey.py | tee artifacts/ru5-device-ui/proof.log
+            status=0
+            python3 scripts/ru5_android_device_ui_journey.py > artifacts/ru5-device-ui/proof.log 2>&1 || status=$?
+            cat artifacts/ru5-device-ui/proof.log
+            exit "$status"
+
+      - name: Validate physical UI evidence chain
+        run: |
+          grep -F 'PASS RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY W03 W04 W05 W06 R05' artifacts/ru5-device-ui/proof.log
+          for checkpoint in \
+            W03_worker_opportunity_list \
+            W04_worker_need_detail \
+            W05_worker_application_draft \
+            W05_worker_application_success \
+            W06_worker_own_application \
+            R05_requester_candidate_selection \
+            R05_requester_selection_success; do
+            test -s "artifacts/ru5-device-ui/${checkpoint}.png"
+            test -s "artifacts/ru5-device-ui/${checkpoint}.xml"
+          done
 
       - name: Disposable postflight invariants
         if: always()
