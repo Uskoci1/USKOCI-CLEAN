@@ -8,10 +8,10 @@
     "name": "USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip",
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
-  "canonical_code_checkpoint_before_continuity_docs": "5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9",
+  "canonical_code_checkpoint_before_continuity_docs": "e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec",
   "live": {
-    "migration_count": 77,
-    "head": "20260906090451_clean_p0d02_selection_semantic_idempotency",
+    "migration_count": 78,
+    "head": "20260906102021_clean_p0d03_requester_connection_activation_v1",
     "pending_forward_migrations": 0
   },
   "edge": {
@@ -23,7 +23,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "NORMALIZED_TO_LIVE_77_P0D02_SELECTION_SEMANTIC_IDEMPOTENCY",
+    "state": "NORMALIZED_TO_LIVE_78_P0D03_REQUESTER_CONNECTION_ACTIVATION_V1",
     "ru2_live_aliases": [
       {"live_version":"20260903222139","source_version":"20260903190000","source_file":"20260903190000_clean_ru2_need_v2_draft.sql","exact_byte_identity":true},
       {"live_version":"20260903222333","source_version":"20260903190100","source_file":"20260903190100_clean_ru2_ai_fact_transition_guard.sql","exact_byte_identity":true}
@@ -43,122 +43,37 @@
       {"name":"clean_ru4b_service_boundary","live_version":"20260905070029","source_version":"20260905060100","source_file":"20260905060100_clean_ru4b_service_boundary.sql","exact_byte_identity":true,"recorded_statement_md5":"ee041bed805dbcdc016e8f9e0ab85f74","recorded_statement_utf8_bytes":2408,"source_raw_md5":"ee041bed805dbcdc016e8f9e0ab85f74"},
       {"name":"clean_ru4b_inbox_event_contract","live_version":"20260905070046","source_version":"20260905060200","source_file":"20260905060200_clean_ru4b_inbox_event_contract.sql","exact_byte_identity":true,"recorded_statement_md5":"9182fb1c347ac1abc889cc6e0554cc2b","recorded_statement_utf8_bytes":2201,"source_raw_md5":"9182fb1c347ac1abc889cc6e0554cc2b"}
     ],
-    "ru5_p0c01_live_alias": {
-      "name":"clean_ru5_public_profile_projection",
-      "live_version":"20260905163927",
-      "source_version":"20260905133000",
-      "source_file":"20260905133000_clean_ru5_public_profile_projection.sql",
-      "exact_byte_identity":true,
-      "recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e",
-      "recorded_statement_utf8_bytes":2458,
-      "source_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e",
-      "canonical_promotion_sha":"366561e74a088d55d816d3795cba5f2299e3283c",
-      "proof_run":33978292187,
-      "canonical_pre_p4_run":33978451146,
-      "canonical_codeql_run":33978450975
-    },
-    "ru5_p0c02_live_alias": {
-      "name":"clean_ru5_atomic_application_submit",
-      "live_version":"20260905190040",
-      "source_version":"20260905190000",
-      "source_file":"20260905190000_clean_ru5_atomic_application_submit.sql",
+    "ru5_p0c01_live_alias": {"name":"clean_ru5_public_profile_projection","live_version":"20260905163927","source_version":"20260905133000","source_file":"20260905133000_clean_ru5_public_profile_projection.sql","exact_byte_identity":true,"recorded_statement_md5":"6fe4a4f013debb262700fbbe2e76c33e","recorded_statement_utf8_bytes":2458,"source_raw_md5":"6fe4a4f013debb262700fbbe2e76c33e","canonical_promotion_sha":"366561e74a088d55d816d3795cba5f2299e3283c","proof_run":33978292187,"canonical_pre_p4_run":33978451146,"canonical_codeql_run":33978450975},
+    "ru5_p0c02_live_alias": {"name":"clean_ru5_atomic_application_submit","live_version":"20260905190040","source_version":"20260905190000","source_file":"20260905190000_clean_ru5_atomic_application_submit.sql","exact_byte_identity":false,"canonical_raw_md5":"1a397f893deb3109b8984035c19111bb","canonical_utf8_bytes":18107,"recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761","recorded_statement_utf8_bytes":18106,"transport_deviation":"terminal LF omitted only","normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb","canonical_promotion_sha":"bc784f3ed65d3a053195789740fae17e4df235d3","proof_run":33982216558,"canonical_pre_p4_run":33985675818,"canonical_codeql_run":33985675330},
+    "ru5_p0c03_live_alias": {"name":"clean_ru5_my_applications_projection","live_version":"20260905200133","source_version":"20260905211500","source_file":"20260905211500_clean_ru5_my_applications_projection.sql","exact_byte_identity":true,"canonical_raw_md5":"868ef30987d3a62b84b41e93efeed047","canonical_utf8_bytes":6353,"recorded_statement_md5":"868ef30987d3a62b84b41e93efeed047","recorded_statement_utf8_bytes":6353,"canonical_promotion_sha":"3fe3768f1dde3aa32340c6bd60167fd9aa610c47","proof_run":33988582621,"pr_pre_p4_run":33988584895,"pr_codeql_run":33988582873,"canonical_pre_p4_run":33988758024,"canonical_codeql_run":33988757345,"canonical_control0_run":33988758119},
+    "ru5_p0d01_live_alias": {"name":"clean_ru5_candidate_projection","live_version":"20260905230326","source_version":"20260905223000","source_file":"20260905223000_clean_ru5_candidate_projection.sql","exact_byte_identity":true,"canonical_raw_md5":"e69c6037c876ca4c0fb48409ab68ab45","canonical_utf8_bytes":8246,"recorded_statement_md5":"e69c6037c876ca4c0fb48409ab68ab45","recorded_statement_utf8_bytes":8246,"canonical_promotion_sha":"de3e25ce248d745d5a908fe1edf0a3e7b44d53c1","proof_run":33993116261,"pr_pre_p4_run":33993284041,"pr_codeql_run":33993283308,"canonical_pre_p4_run":33997533070,"canonical_codeql_run":33997532816,"canonical_control0_run":33997533227},
+    "ru5_selection_eligibility_live_alias": {"name":"clean_ru5_selection_eligibility_revalidation","live_version":"20260906065758","source_version":"20260906010000","source_file":"20260906010000_clean_ru5_selection_eligibility_revalidation.sql","exact_byte_identity":true,"canonical_raw_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","canonical_utf8_bytes":17954,"recorded_statement_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d","recorded_statement_utf8_bytes":17954,"canonical_promotion_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa","proof_head":"d71c6e08b518e2955020c21538c1238358b14df3","proof_run":34017442269,"pr_pre_p4_run":34017443678,"pr_codeql_run":34017442615,"canonical_pre_p4_run":34017639405,"canonical_codeql_run":34017639038,"canonical_control0_run":34017639343,"selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"},
+    "p0d02_selection_semantic_idempotency_live_alias": {"name":"clean_p0d02_selection_semantic_idempotency","live_version":"20260906090451","source_version":"20260906080000","source_file":"20260906080000_clean_p0d02_selection_semantic_idempotency.sql","exact_byte_identity":false,"canonical_raw_md5":"065a6a172f1cea50b99c57f6759ef109","canonical_utf8_bytes":15516,"recorded_statement_md5":"c267357c43e2c18448b46268ae458085","recorded_statement_utf8_bytes":15513,"transport_deviation":"exactly three LF bytes omitted by connected migration transport","canonical_lf_count":342,"live_lf_count":339,"canonical_terminal_lf":true,"live_terminal_lf":false,"canonical_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d","live_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d","whitespace_only_semantic_equivalence":true,"canonical_promotion_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9","proof_head":"c3ada4219b9c8427be0c7b35bc36afa30b4302cc","proof_run":34023168764,"pr_pre_p4_run":34023318196,"pr_codeql_run":34023316595,"canonical_pre_p4_run":34023411493,"canonical_codeql_run":34023410485,"canonical_control0_run":34023411602,"selection_definition_md5":"b1ca0a03ee075565c71b50f00d61dade","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"},
+    "p0d03_requester_connection_activation_v1_live_alias": {
+      "name":"clean_p0d03_requester_connection_activation_v1",
+      "live_version":"20260906102021",
+      "source_version":"20260906100000",
+      "source_file":"20260906100000_clean_p0d03_requester_connection_activation_v1.sql",
       "exact_byte_identity":false,
-      "canonical_raw_md5":"1a397f893deb3109b8984035c19111bb",
-      "canonical_utf8_bytes":18107,
-      "recorded_statement_md5":"e573341dad8ed303d4c72f234e11b761",
-      "recorded_statement_utf8_bytes":18106,
+      "canonical_raw_md5":"e6fb0cb596b51587958b92d08b36ce98",
+      "canonical_utf8_bytes":25525,
+      "recorded_statement_md5":"c77a5d4c6efec10c928f38c0542e593e",
+      "recorded_statement_utf8_bytes":25524,
       "transport_deviation":"terminal LF omitted only",
-      "normalized_terminal_lf_md5":"1a397f893deb3109b8984035c19111bb",
-      "canonical_promotion_sha":"bc784f3ed65d3a053195789740fae17e4df235d3",
-      "proof_run":33982216558,
-      "canonical_pre_p4_run":33985675818,
-      "canonical_codeql_run":33985675330
-    },
-    "ru5_p0c03_live_alias": {
-      "name":"clean_ru5_my_applications_projection",
-      "live_version":"20260905200133",
-      "source_version":"20260905211500",
-      "source_file":"20260905211500_clean_ru5_my_applications_projection.sql",
-      "exact_byte_identity":true,
-      "canonical_raw_md5":"868ef30987d3a62b84b41e93efeed047",
-      "canonical_utf8_bytes":6353,
-      "recorded_statement_md5":"868ef30987d3a62b84b41e93efeed047",
-      "recorded_statement_utf8_bytes":6353,
-      "canonical_promotion_sha":"3fe3768f1dde3aa32340c6bd60167fd9aa610c47",
-      "proof_run":33988582621,
-      "pr_pre_p4_run":33988584895,
-      "pr_codeql_run":33988582873,
-      "canonical_pre_p4_run":33988758024,
-      "canonical_codeql_run":33988757345,
-      "canonical_control0_run":33988758119
-    },
-    "ru5_p0d01_live_alias": {
-      "name":"clean_ru5_candidate_projection",
-      "live_version":"20260905230326",
-      "source_version":"20260905223000",
-      "source_file":"20260905223000_clean_ru5_candidate_projection.sql",
-      "exact_byte_identity":true,
-      "canonical_raw_md5":"e69c6037c876ca4c0fb48409ab68ab45",
-      "canonical_utf8_bytes":8246,
-      "recorded_statement_md5":"e69c6037c876ca4c0fb48409ab68ab45",
-      "recorded_statement_utf8_bytes":8246,
-      "canonical_promotion_sha":"de3e25ce248d745d5a908fe1edf0a3e7b44d53c1",
-      "proof_run":33993116261,
-      "pr_pre_p4_run":33993284041,
-      "pr_codeql_run":33993283308,
-      "canonical_pre_p4_run":33997533070,
-      "canonical_codeql_run":33997532816,
-      "canonical_control0_run":33997533227
-    },
-    "ru5_selection_eligibility_live_alias": {
-      "name":"clean_ru5_selection_eligibility_revalidation",
-      "live_version":"20260906065758",
-      "source_version":"20260906010000",
-      "source_file":"20260906010000_clean_ru5_selection_eligibility_revalidation.sql",
-      "exact_byte_identity":true,
-      "canonical_raw_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d",
-      "canonical_utf8_bytes":17954,
-      "recorded_statement_md5":"6ddb7d5d141e7cb3a454fa7e6ca1280d",
-      "recorded_statement_utf8_bytes":17954,
-      "canonical_promotion_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa",
-      "proof_head":"d71c6e08b518e2955020c21538c1238358b14df3",
-      "proof_run":34017442269,
-      "pr_pre_p4_run":34017443678,
-      "pr_codeql_run":34017442615,
-      "canonical_pre_p4_run":34017639405,
-      "canonical_codeql_run":34017639038,
-      "canonical_control0_run":34017639343,
-      "selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0",
-      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"
-    },
-    "p0d02_selection_semantic_idempotency_live_alias": {
-      "name":"clean_p0d02_selection_semantic_idempotency",
-      "live_version":"20260906090451",
-      "source_version":"20260906080000",
-      "source_file":"20260906080000_clean_p0d02_selection_semantic_idempotency.sql",
-      "exact_byte_identity":false,
-      "canonical_raw_md5":"065a6a172f1cea50b99c57f6759ef109",
-      "canonical_utf8_bytes":15516,
-      "recorded_statement_md5":"c267357c43e2c18448b46268ae458085",
-      "recorded_statement_utf8_bytes":15513,
-      "transport_deviation":"exactly three LF bytes omitted by connected migration transport",
-      "canonical_lf_count":342,
-      "live_lf_count":339,
-      "canonical_terminal_lf":true,
-      "live_terminal_lf":false,
-      "canonical_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d",
-      "live_whitespace_stripped_md5":"3433be65f949407f62f751dbf5b57a9d",
-      "whitespace_only_semantic_equivalence":true,
-      "canonical_promotion_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9",
-      "proof_head":"c3ada4219b9c8427be0c7b35bc36afa30b4302cc",
-      "proof_run":34023168764,
-      "pr_pre_p4_run":34023318196,
-      "pr_codeql_run":34023316595,
-      "canonical_pre_p4_run":34023411493,
-      "canonical_codeql_run":34023410485,
-      "canonical_control0_run":34023411602,
-      "selection_definition_md5":"b1ca0a03ee075565c71b50f00d61dade",
-      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba"
+      "normalized_terminal_lf_md5":"e6fb0cb596b51587958b92d08b36ce98",
+      "normalized_terminal_lf_bytes":25525,
+      "canonical_promotion_sha":"e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec",
+      "proof_head":"01b514289091ad9c9ced7d1d5ed4598eaa2994c5",
+      "proof_run":34026655155,
+      "pr_pre_p4_run":34026813290,
+      "pr_codeql_run":34026811947,
+      "canonical_pre_p4_run":34026900540,
+      "canonical_codeql_run":34026900127,
+      "canonical_control0_run":34026900533,
+      "selection_definition_md5":"4c2b68cdee2fe66facf7fe1c46cef43f",
+      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba",
+      "policy":{"key":"REQUESTER_SELECTION_V1","version":1,"beneficiary_role":"REQUESTER","activation_reason":"SELECTION","charge_mode":"PROMOTIONAL_FREE","unit_basis":"HEADCOUNT","platform_cost_rsd":0},
+      "connection_activation_rows":0
     }
   },
   "client_data_layer": {
@@ -181,51 +96,17 @@
       {"id":"CDL-A11","status":"CLOSED_CANONICAL","sha":"1be672dc649fee102a66c826c86b0e5609a43315","owner":"aiProductionOverrides","methods":["otvoriRazgovor","razgovor"],"proof":[33966439120,33966556555],"deleted":["NEW_NEED lower shadow","null conversation-read shadow"]},
       {"id":"CDL-A12","status":"CLOSED_CANONICAL","sha":"40afb2ed654c9987f82e7cd3c120a5b60ccbcf11","owner":"productionAuthorityOverrides","methods":["objaviPotrebu"],"proof":[33967095683,33967215611,33967294217],"deleted":["incomplete p_profile_id lower shadow"],"fail_closed":"PACKAGE_4_NOT_READY"}
     ],
-    "next_cursor": "FRESH_MANUAL_SELECTION_AGREEMENT_DEPENDENCY_RECONCILIATION"
+    "next_cursor": "FRESH_FROZEN_PLAN_AND_AGREEMENT_CALENDAR_RECONCILIATION"
   },
   "ru5": {
     "status":"IN_PROGRESS",
-    "p0c01": {
-      "status":"CLOSED_LIVE",
-      "contract":"PUBLIC_SAFE_PROFILE_PROJECTION",
-      "canonical_sha":"366561e74a088d55d816d3795cba5f2299e3283c",
-      "live_migration":"20260905163927_clean_ru5_public_profile_projection",
-      "raw_profile_rls":"OWNER_ONLY_UNCHANGED",
-      "next":"P0C-02_CLOSED_LIVE"
-    },
-    "p0c02": {
-      "status":"CLOSED_LIVE",
-      "contract":"ATOMIC_APPLICATION_SUBMIT",
-      "canonical_sha":"bc784f3ed65d3a053195789740fae17e4df235d3",
-      "live_migration":"20260905190040_clean_ru5_atomic_application_submit",
-      "historical_snapshot_backfill":false,
-      "next":"P0C-03_MY_APPLICATIONS_PROJECTION_WITHDRAW"
-    },
-    "p0c03": {
-      "status":"CLOSED_LIVE",
-      "contract":"MY_APPLICATIONS_PROJECTION_AND_WITHDRAW_PORT",
-      "canonical_sha":"3fe3768f1dde3aa32340c6bd60167fd9aa610c47",
-      "live_migration":"20260905200133_clean_ru5_my_applications_projection",
-      "next":"P0D-01_CANDIDATE_PROJECTION"
-    },
-    "p0d01": {
-      "status":"CLOSED_LIVE",
-      "contract":"CANDIDATE_PROJECTION",
-      "canonical_sha":"de3e25ce248d745d5a908fe1edf0a3e7b44d53c1",
-      "live_migration":"20260905230326_clean_ru5_candidate_projection",
-      "selection_definition_md5":"90332c500eb8fe9f1b7379fa382af3b6",
-      "next":"MANUAL_SELECTION_ELIGIBILITY_REVALIDATION_CLOSED_LIVE"
-    },
-    "manual_selection_eligibility_revalidation": {
-      "status":"CLOSED_LIVE",
-      "contract":"CURRENT_WORKER_READINESS_AND_TEAM_CAPACITY_REVALIDATION",
-      "canonical_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa",
-      "live_migration":"20260906065758_clean_ru5_selection_eligibility_revalidation",
-      "historical_rows_rewritten":false,
-      "selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0",
-      "candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba",
-      "next":"FRESH_DEPENDENCY_RECONCILIATION_NO_NUMBER_INVENTION"
-    }
+    "p0c01":{"status":"CLOSED_LIVE","contract":"PUBLIC_SAFE_PROFILE_PROJECTION","canonical_sha":"366561e74a088d55d816d3795cba5f2299e3283c","live_migration":"20260905163927_clean_ru5_public_profile_projection","raw_profile_rls":"OWNER_ONLY_UNCHANGED","next":"P0C-02_CLOSED_LIVE"},
+    "p0c02":{"status":"CLOSED_LIVE","contract":"ATOMIC_APPLICATION_SUBMIT","canonical_sha":"bc784f3ed65d3a053195789740fae17e4df235d3","live_migration":"20260905190040_clean_ru5_atomic_application_submit","historical_snapshot_backfill":false,"next":"P0C-03_MY_APPLICATIONS_PROJECTION_WITHDRAW"},
+    "p0c03":{"status":"CLOSED_LIVE","contract":"MY_APPLICATIONS_PROJECTION_AND_WITHDRAW_PORT","canonical_sha":"3fe3768f1dde3aa32340c6bd60167fd9aa610c47","live_migration":"20260905200133_clean_ru5_my_applications_projection","next":"P0D-01_CANDIDATE_PROJECTION"},
+    "p0d01":{"status":"CLOSED_LIVE","contract":"CANDIDATE_PROJECTION","canonical_sha":"de3e25ce248d745d5a908fe1edf0a3e7b44d53c1","live_migration":"20260905230326_clean_ru5_candidate_projection","selection_definition_md5":"90332c500eb8fe9f1b7379fa382af3b6","next":"MANUAL_SELECTION_ELIGIBILITY_REVALIDATION_CLOSED_LIVE"},
+    "manual_selection_eligibility_revalidation":{"status":"CLOSED_LIVE","contract":"CURRENT_WORKER_READINESS_AND_TEAM_CAPACITY_REVALIDATION","canonical_sha":"c0dd1434c436578e0f517520a2156b72ec5d3eaa","live_migration":"20260906065758_clean_ru5_selection_eligibility_revalidation","historical_rows_rewritten":false,"selection_definition_md5":"ea1c1c40783dbfb9eeab527c128f9dd0","candidate_definition_md5":"1978ce1d5852cef46f94e81468d37bba","next":"P0D02_CLOSED_LIVE"},
+    "p0d02_selection_semantic_idempotency":{"status":"CLOSED_LIVE","canonical_sha":"5faa7b5442d26b2c2d3ece3ed1b48b39a37d00d9","live_migration":"20260906090451_clean_p0d02_selection_semantic_idempotency","next":"P0D03_CLOSED_LIVE"},
+    "p0d03_requester_connection_activation_v1":{"status":"CANONICAL_LIVE_POSTFLIGHT_PROVEN_CLOSURE_PENDING","canonical_sha":"e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec","live_migration":"20260906102021_clean_p0d03_requester_connection_activation_v1","policy":"REQUESTER_SELECTION_V1","platform_cost_rsd":0,"historical_activation_backfill":false,"next":"FRESH_FROZEN_PLAN_AND_AGREEMENT_CALENDAR_RECONCILIATION"}
   },
   "status": {
     "RU-0":"CLOSED_LIVE",
@@ -235,9 +116,11 @@
     "RU-4":"CLOSED_LIVE_DO_NOT_REDO",
     "RU-4B":"LIVE_FOUNDATION_ACTIVATION_BLOCKED_DEFERRED",
     "CDL":"CLOSED_CANONICAL",
-    "RU-5":"IN_PROGRESS_P0C01_P0C02_P0C03_P0D01_SELECTION_ELIGIBILITY_CLOSED_LIVE",
+    "RU-5":"IN_PROGRESS_THROUGH_P0D03_CANONICAL_LIVE_POSTFLIGHT_PROVEN_CLOSURE_PENDING",
+    "P0D-02":"CLOSED_CANONICAL_LIVE_DO_NOT_REDO",
+    "P0D-03":"CANONICAL_LIVE_POSTFLIGHT_PROVEN_CLOSURE_PENDING",
     "RU-5B":"NOT_STARTED_GATED_BY_RU5",
-    "RU-6A":"FOUNDATION_ONLY_GATED_BY_RU5",
+    "RU-6A":"FOUNDATION_ONLY_GATED_BY_FRESH_RU5_AGREEMENT_CALENDAR_RECONCILIATION",
     "RU-6B":"NOT_STARTED_GATED_BY_RU6A",
     "RU-7":"FOUNDATION_ONLY_GATED_BY_RU6A_RU6B",
     "RU-8":"NOT_STARTED_MANDATORY_PROOF"
@@ -254,5 +137,5 @@
     "service_offer_listing_supported":false
   },
   "monetization":"FREE_0_RSD",
-  "next_allowed_action":"Fresh-read the frozen dependency plan and current canonical/live Selection/Agreement state. Do not invent a new P0D/RU identifier. The first physically proven unresolved Selection risk is durable Selection command identity/idempotency plus R05 retry identity, but it is a separate candidate unit only after governing-plan reconciliation. Calendar hard-conflict authority remains separate RU-6A work; Povezivanje/shared Dogovor and RU-5B Application AI remain gated."
+  "next_allowed_action":"Complete P0D-03 docs/provenance closure only. After closure, fresh-read the frozen dependency plan and current physical Agreement/calendar state before admitting another unit. Do not invent a new P0D/RU identifier; P0D-03 does not imply shared Dogovor, paid monetization, calendar authority or Application AI."
 }
