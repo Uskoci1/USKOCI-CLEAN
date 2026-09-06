@@ -191,6 +191,118 @@ jobs:
           test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where email like 'p0d02-%@proof.invalid';")" = "0"
           test "$(psql "$DB_URL" -Atc "select count(*) from private.selection_commands;")" = "0"
 
+      - name: Prove true concurrent Selection semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/proofs/p0d02_selection_concurrency_seed.sql" | tee /tmp/p0d02-concurrency-seed.log
+          grep -F "PASS P0D02_CONCURRENCY_FIXTURES" /tmp/p0d02-concurrency-seed.log
+
+          requester="f0d02000-0000-4000-8000-000000000001"
+          same_need="f0d02000-0000-4000-8000-000000000101"
+          same_response="f0d02000-0000-4000-8000-000000000201"
+          diff_need="f0d02000-0000-4000-8000-000000000102"
+          diff_response="f0d02000-0000-4000-8000-000000000202"
+
+          run_select() {
+            local need_id="$1"
+            local response_id="$2"
+            local hash="$3"
+            local request_id="$4"
+            local out="$5"
+            local err="$6"
+            psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 \
+              -c "begin; set local role authenticated; set local \"request.jwt.claim.sub\" = '$requester'; select public.rpc_select_response('$need_id'::uuid,1,'$response_id'::uuid,1,'$hash','$request_id'); commit;" \
+              >"$out" 2>"$err"
+          }
+
+          # Same actor + same request key + same payload must serialize and replay.
+          set +e
+          run_select "$same_need" "$same_response" "$(printf 'e%.0s' {1..64})" "p0d02-concurrent-same" /tmp/p0d02-same-1.out /tmp/p0d02-same-1.err & p1=$!
+          run_select "$same_need" "$same_response" "$(printf 'e%.0s' {1..64})" "p0d02-concurrent-same" /tmp/p0d02-same-2.out /tmp/p0d02-same-2.err & p2=$!
+          wait "$p1"; s1=$?
+          wait "$p2"; s2=$?
+          set -e
+          if [ "$s1" -ne 0 ] || [ "$s2" -ne 0 ]; then
+            cat /tmp/p0d02-same-1.err /tmp/p0d02-same-2.err >&2
+            exit 1
+          fi
+          a1="$(grep -E '^[0-9a-f-]{36}$' /tmp/p0d02-same-1.out | tail -n1)"
+          a2="$(grep -E '^[0-9a-f-]{36}$' /tmp/p0d02-same-2.out | tail -n1)"
+          test -n "$a1"
+          test "$a1" = "$a2"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.selection_commands where need_id='$same_need'::uuid;")" = "1"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.need_selections where need_id='$same_need'::uuid and status='SELECTED';")" = "1"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.agreements where need_id='$same_need'::uuid;")" = "1"
+
+          # Different request keys race for one seat. Need row locking remains the
+          # business concurrency authority: exactly one command may commit.
+          set +e
+          run_select "$diff_need" "$diff_response" "$(printf 'f%.0s' {1..64})" "p0d02-concurrent-a" /tmp/p0d02-diff-a.out /tmp/p0d02-diff-a.err & p3=$!
+          run_select "$diff_need" "$diff_response" "$(printf 'f%.0s' {1..64})" "p0d02-concurrent-b" /tmp/p0d02-diff-b.out /tmp/p0d02-diff-b.err & p4=$!
+          wait "$p3"; s3=$?
+          wait "$p4"; s4=$?
+          set -e
+          if { [ "$s3" -eq 0 ] && [ "$s4" -eq 0 ]; } || { [ "$s3" -ne 0 ] && [ "$s4" -ne 0 ]; }; then
+            echo "expected exactly one different-key winner, got statuses $s3/$s4" >&2
+            cat /tmp/p0d02-diff-a.err /tmp/p0d02-diff-b.err >&2
+            exit 1
+          fi
+          if [ "$s3" -ne 0 ]; then failing_err=/tmp/p0d02-diff-a.err; else failing_err=/tmp/p0d02-diff-b.err; fi
+          grep -Eq 'NEED_NOT_OPEN|RESPONSE_NOT_SELECTABLE' "$failing_err"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.selection_commands where need_id='$diff_need'::uuid;")" = "1"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.need_selections where need_id='$diff_need'::uuid and status='SELECTED';")" = "1"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.agreements where need_id='$diff_need'::uuid;")" = "1"
+
+          echo "PASS P0D02_TRUE_CONCURRENCY same_key_same_payload_same_agreement different_keys_one_winner one_selection one_agreement"
+
+          # Explicit disposable-fixture cleanup. No proof residue may remain.
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          delete from public.agreement_execution
+           where agreement_id in (select id from public.agreements where need_id in (
+             'f0d02000-0000-4000-8000-000000000101'::uuid,
+             'f0d02000-0000-4000-8000-000000000102'::uuid));
+          delete from public.agreement_versions
+           where agreement_id in (select id from public.agreements where need_id in (
+             'f0d02000-0000-4000-8000-000000000101'::uuid,
+             'f0d02000-0000-4000-8000-000000000102'::uuid));
+          delete from private.selection_commands where need_id in (
+             'f0d02000-0000-4000-8000-000000000101'::uuid,
+             'f0d02000-0000-4000-8000-000000000102'::uuid);
+          delete from public.agreements where need_id in (
+             'f0d02000-0000-4000-8000-000000000101'::uuid,
+             'f0d02000-0000-4000-8000-000000000102'::uuid);
+          delete from public.need_selections where need_id in (
+             'f0d02000-0000-4000-8000-000000000101'::uuid,
+             'f0d02000-0000-4000-8000-000000000102'::uuid);
+          delete from public.marketplace_response_versions where response_id in (
+             'f0d02000-0000-4000-8000-000000000201'::uuid,
+             'f0d02000-0000-4000-8000-000000000202'::uuid);
+          delete from public.marketplace_responses where id in (
+             'f0d02000-0000-4000-8000-000000000201'::uuid,
+             'f0d02000-0000-4000-8000-000000000202'::uuid);
+          alter table public.needs disable trigger user;
+          delete from public.needs where id in (
+             'f0d02000-0000-4000-8000-000000000101'::uuid,
+             'f0d02000-0000-4000-8000-000000000102'::uuid);
+          alter table public.needs enable trigger user;
+          alter table public.app_profiles disable trigger user;
+          delete from public.app_profiles where account_id in (
+             'f0d02000-0000-4000-8000-000000000001'::uuid,
+             'f0d02000-0000-4000-8000-000000000002'::uuid);
+          alter table public.app_profiles enable trigger user;
+          delete from auth.users where id in (
+             'f0d02000-0000-4000-8000-000000000001'::uuid,
+             'f0d02000-0000-4000-8000-000000000002'::uuid);
+          commit;
+          SQL
+          test "$(psql "$DB_URL" -Atc "select count(*) from auth.users where id::text like 'f0d02000-%';")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.needs where id in ('$same_need'::uuid,'$diff_need'::uuid);")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from public.marketplace_responses where id in ('$same_response'::uuid,'$diff_response'::uuid);")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.selection_commands where client_request_id like 'p0d02-concurrent-%';")" = "0"
+          echo "PASS P0D02_TRUE_CONCURRENCY_ZERO_RESIDUE"
+
       - name: Re-run RU-5 Selection eligibility regression
         shell: bash
         run: |
