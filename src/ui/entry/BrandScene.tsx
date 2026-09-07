@@ -69,16 +69,16 @@ const words = [
   ['15:509', 'entry-word-3', 301.496, 191.5, 18, 10, -2.7502, -2.75005, 24, 16],
 ] as const;
 
-export function BrandScene({ animate = false, onComplete }: { animate?: boolean; onComplete?: () => void }) {
-  const time = useSharedValue(animate ? 0 : SPLASH_DURATION_MS);
+export function BrandScene({ animate = false, paused = false, onComplete }: { animate?: boolean; paused?: boolean; onComplete?: () => void }) {
+  const time = useSharedValue(animate || paused ? 0 : SPLASH_DURATION_MS);
   useEffect(() => {
-    if (!animate) { time.set(SPLASH_DURATION_MS); return; }
+    if (!animate) { time.set(paused ? 0 : SPLASH_DURATION_MS); return; }
     time.set(0);
     time.set(withTiming(SPLASH_DURATION_MS, { duration: SPLASH_DURATION_MS, easing: Easing.linear }, finished => {
       if (finished && onComplete) scheduleOnRN(onComplete);
     }));
     return () => cancelAnimation(time);
-  }, [animate, onComplete, time]);
+  }, [animate, paused, onComplete, time]);
   return <View pointerEvents="none" accessible accessibilityRole="image" accessibilityLabel="USKOČI" style={styles.scene}>
     <MotionNode id="15:490" time={time} bounds={[55, 200, 280, 290.89658]}>
       {mark.map(([id, svg, ...bounds]) => <MotionNode key={id} id={id} time={time} bounds={bounds}>

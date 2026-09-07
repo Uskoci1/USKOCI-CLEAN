@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, ScrollView, Platform, ActivityIndicator, TextInput } from 'react-native';
+import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-  CaretLeft, CaretRight, Clock, ArrowRight, Users, ClockCountdown, Star,
-  ChatCircle, Phone, MapPin, Warning, PaperPlaneTilt,
+  CaretLeft, Clock, ArrowRight, ClockCountdown, CheckCircle,
+  Phone, MapPin,
 } from 'phosphor-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -13,7 +13,10 @@ import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
 import { useIzvor } from '../../store/uloga';
-import type { DogovorProjekcija, PorukaProjekcija } from '../../contracts/projections';
+import { useFocusedResource } from '../../hooks/useFocusedResource';
+import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
+import { useSesija } from '../../store/sesija';
+import { AgreementChat } from '../../ui/AgreementChat';
 import { useUloga } from '../../store/uloga';
 
 const naUredjaju = Platform.OS !== 'web';
@@ -25,83 +28,68 @@ function rokTekst(iso: string | null): string {
   return d.toLocaleString('sr-Latn-RS', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 }
 
+function backToAgreements() {
+  if (router.canGoBack()) router.back(); else router.replace('/dogovori');
+}
+
+function AgreementStatus({ loading = false, error = false, retry }: {
+  loading?: boolean; error?: boolean; retry?: () => void;
+}) {
+  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: palette.ground }}>
+    <Press accessibilityRole="button" accessibilityLabel="Nazad" onPress={backToAgreements}
+      style={{ minHeight: touch.min, padding: space.base, justifyContent: 'center' }}>
+      <T variant="action" tone="orange">Nazad na Dogovore</T>
+    </Press>
+    <View style={{ padding: space.base, gap: space.md }}>
+      {loading ? <ActivityIndicator accessibilityLabel="Učitavanje Dogovora" color={palette.teal500} /> : <>
+        <T variant="title">{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
+        <T variant="body" tone="muted">{error ? 'Proverite internet vezu i pokušajte ponovo.' : 'Veza je zastarela ili nemate pristup ovom Dogovoru.'}</T>
+        {retry && <Press accessibilityRole="button" accessibilityLabel="Ponovo učitaj Dogovor" onPress={retry}
+          style={{ minHeight: touch.min, justifyContent: 'center' }}>
+          <T variant="action" tone="orange">Pokušajte ponovo</T>
+        </Press>}
+      </>}
+    </View>
+  </SafeAreaView>;
+}
+
 export default function Dogovor() {
+  const { id } = useLocalSearchParams<{ id: string | string[] }>();
+  const session = useSesija();
+  const accountId = session.user?.id;
+  const intent = useUloga();
+  if (typeof id !== 'string' || id.length !== 36
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) {
+    return <AgreementStatus />;
+  }
+  return <DogovorContent key={`${accountId}:${session.accountRevision}:${intent}:${id}`} id={id} accountId={accountId} />;
+}
+
+function DogovorContent({ id, accountId }: { id: string; accountId: string }) {
   const izvor = useIzvor();
-  const { id } = useLocalSearchParams<{ id: string }>();
   const uloga = useUloga();
   const jaSamUskocer = uloga === 'uskocer';
   const [tab, setTab] = useState<'pregled' | 'poruke'>('pregled');
-  const [dogovor, setDogovor] = useState<DogovorProjekcija | null>(null);
-  const [poruke, setPoruke] = useState<PorukaProjekcija[]>([]);
-  const [nacrt, setNacrt] = useState('');
-  const [ucitavanje, setUcitavanje] = useState(true);
-
-  const osvezi = useCallback(async () => {
-    if (!id) return;
-    const [d, p] = await Promise.all([izvor.dogovor(id), izvor.poruke(id)]);
-    setDogovor(d);
-    setPoruke(p);
-    setUcitavanje(false);
-  }, [id]);
-
+  const workspace = useFocusedResource(useCallback(() => izvor.dogovor(id), [izvor, id, accountId]));
+  const messages = useFocusedResource(useCallback(() => izvor.poruke(id, accountId), [izvor, id, accountId]));
+  const dogovor = workspace.data;
+  const writable = !workspace.loading && !workspace.error && dogovor?.chatDostupan === true;
+  const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
+  const osvezi = workspace.refresh;
   useEffect(() => {
-    osvezi();
-  }, [osvezi]);
+    if (messages.data && !messages.error) void outbox.reconcile(messages.data
+      .filter(message => !!message.clientMessageId && !!message.posiljalacAccountId)
+      .map(message => ({ clientMessageId: message.clientMessageId!, senderAccountId: message.posiljalacAccountId!,
+        messageId: message.id, body: message.telo })));
+  }, [messages.data, messages.error, outbox, outboxState.phase]);
+  const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
+    .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
+  useEffect(() => { if (deniedAttempt) void osvezi(); }, [deniedAttempt, osvezi]);
 
-  const posalji = useCallback(async () => {
-    const telo = nacrt.trim();
-    if (!telo || !id) return;
-    setNacrt('');
-    await izvor.posaljiPoruku(id, telo);
-    setPoruke(await izvor.poruke(id));
-  }, [nacrt, id]);
-
-  if (ucitavanje) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center' }}>
-        <ActivityIndicator color={palette.teal500} />
-      </SafeAreaView>
-    );
-  }
-
-  if (!dogovor) {
-    return (
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-        <View style={{ padding: space.base, gap: space.md }}>
-          <T variant="title">Dogovor ne postoji</T>
-          <T variant="body" tone="muted">Možda je otkazan ili je veza zastarela.</T>
-          <Press haptic="select" onPress={() => router.replace('/dogovori')}>
-            <T variant="action" tone="orange">Nazad na Dogovore</T>
-          </Press>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  if (!dogovor) return <AgreementStatus loading={workspace.loading} error={workspace.error} retry={() => void osvezi()} />;
 
   const p = dogovor.pokrivenost;
-  const drugi = dogovor.ucesnici.filter((u) => !u.viSte);
-
-  return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.sm, paddingBottom: space.sm }}>
-        <Press
-          accessibilityRole="button"
-          accessibilityLabel="Nazad"
-          haptic="select"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/dogovori'))}
-          style={{ width: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <CaretLeft size={22} color={palette.ink} weight="bold" />
-        </Press>
-        <T variant="heading" style={{ flex: 1, textAlign: 'center', marginRight: touch.min }}>
-          Dogovor
-        </T>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.huge, gap: space.base }}
-        showsVerticalScrollIndicator={false}
-      >
+  const hero = (<>
         {/* Prihvaćena verzija je autoritativna. Verzija se vidi, ne krije. */}
         <View
           style={[
@@ -142,7 +130,8 @@ export default function Dogovor() {
           </View>
         </View>
 
-        {/* M03: tačno dva taba. D04 nije treći. */}
+</>);
+  const tabs = (<>        {/* M03: tačno dva taba. D04 nije treći. */}
         <View
           style={{
             flexDirection: 'row', backgroundColor: palette.cream050,
@@ -174,7 +163,32 @@ export default function Dogovor() {
           })}
         </View>
 
+</>);
+
+  return (
+    <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: palette.ground }}>
+      {/* The keyboard screenY and this full-screen parent's layout share an origin.
+          Nesting avoidance below the header/tabs loses their height on Android. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} enabled={tab === 'poruke'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.sm, paddingBottom: space.sm }}>
+        <Press
+          accessibilityRole="button"
+          accessibilityLabel="Nazad"
+          haptic="select"
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/dogovori'))}
+          style={{ width: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <CaretLeft size={22} color={palette.ink} weight="bold" />
+        </Press>
+        <T variant="heading" style={{ flex: 1, textAlign: 'center', marginRight: touch.min }}>
+          Dogovor
+        </T>
+      </View>
+
         {tab === 'pregled' ? (
+          <ScrollView contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.huge, gap: space.base }} showsVerticalScrollIndicator={false}>
+          {hero}{tabs}
           <Animated.View entering={naUredjaju ? FadeIn.duration(motion.enter) : undefined} style={{ gap: space.base }}>
             <Card style={elevation.card}>
               <View style={{ paddingHorizontal: space.base }}>
@@ -228,27 +242,6 @@ export default function Dogovor() {
                   </View>
                 ))}
 
-                {p.preostalo > 0 && (
-                  <Press
-                    accessibilityRole="button"
-                    accessibilityLabel={`Još ${p.preostalo} mesta nije popunjeno`}
-                    haptic="light"
-                    onPress={() => router.push('/prijave')}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md,
-                      borderTopWidth: 1, borderTopColor: palette.line100,
-                    }}
-                  >
-                    <Users size={20} color={palette.orangeInk} />
-                    <View style={{ flex: 1, gap: 1 }}>
-                      <T variant="bodyStrong">
-                        Još {p.preostalo} {p.preostalo === 1 ? 'mesto' : 'mesta'} nije popunjeno
-                      </T>
-                      <T variant="meta" tone="muted">Izaberite iz prijava</T>
-                    </View>
-                    <CaretRight size={16} color={palette.inkMuted} />
-                  </Press>
-                )}
               </View>
             </Card>
 
@@ -485,123 +478,28 @@ export default function Dogovor() {
                       alignItems: 'center', justifyContent: 'center',
                     }}
                   >
-                    <Star size={19} color={palette.success} weight="fill" />
+                    <CheckCircle size={19} color={palette.success} weight="fill" />
                   </View>
                   <View style={{ flex: 1, gap: 1 }}>
                     <T variant="bodyStrong">Dogovor je završen</T>
-                    <T variant="meta" tone="muted">
-                      {dogovor.ocenaMoguca ? 'Možete ostaviti ocenu.' : 'Ocena još nije moguća.'}
-                    </T>
                   </View>
-                  {dogovor.ocenaMoguca && <CaretRight size={16} color={palette.inkMuted} />}
                 </View>
               </Card>
             )}
 
-            {/* M06: otkazivanje je jednostrano. Tiho i odvojeno od primarnog.
-                Završen Dogovor se ne otkazuje — akcija tada nestaje. */}
-            {dogovor.stanje !== 'COMPLETED' && (
-              <Press
-                accessibilityRole="button"
-                accessibilityLabel="Problem ili otkazivanje"
-                haptic="medium"
-                style={{
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                  gap: space.sm, minHeight: touch.min, marginTop: space.sm,
-                }}
-              >
-                <Warning size={16} color={palette.danger} />
-                <T variant="action" tone="danger">Problem / otkazivanje</T>
-              </Press>
-            )}
           </Animated.View>
+          </ScrollView>
         ) : (
-          <Animated.View entering={naUredjaju ? FadeIn.duration(motion.enter) : undefined} style={{ gap: space.md }}>
-            {/* M04: chat radi nezavisno od grantova za privatne podatke. */}
-            <View
-              style={{
-                flexDirection: 'row', alignItems: 'center', gap: space.md,
-                padding: space.md, borderRadius: radius.md, backgroundColor: palette.successBg,
-              }}
-            >
-              <ChatCircle size={18} color={palette.success} weight="fill" />
-              <View style={{ flex: 1, gap: 1 }}>
-                <T variant="bodyStrong">Razgovor o Dogovoru</T>
-                <T variant="meta" tone="muted">Vide ga učesnici ovog Dogovora</T>
-              </View>
-            </View>
-
-            {poruke.length === 0 && (
-              <T variant="meta" tone="muted" style={{ textAlign: 'center', paddingVertical: space.lg }}>
-                Još nema poruka.
-              </T>
-            )}
-
-            {poruke.map((m) => (
-              <View
-                key={m.id}
-                style={{
-                  alignSelf: m.moja ? 'flex-end' : 'flex-start',
-                  maxWidth: '84%',
-                  backgroundColor: m.moja ? palette.forest800 : palette.surface,
-                  borderWidth: m.moja ? 0 : 1,
-                  borderColor: palette.line100,
-                  borderRadius: radius.lg,
-                  paddingVertical: space.md, paddingHorizontal: space.base, gap: 3,
-                }}
-              >
-                {!m.moja && (
-                  <T variant="meta" tone="muted" style={{ fontWeight: '700' }}>{m.posiljalacIme}</T>
-                )}
-                <T variant="body" tone={m.moja ? 'onDark' : 'ink'}>{m.telo}</T>
-                <T variant="meta" tone={m.moja ? 'onDarkMuted' : 'muted'} style={{ fontSize: 12 }}>
-                  {m.vremeTekst}
-                </T>
-              </View>
-            ))}
-
-            <View
-              style={{
-                flexDirection: 'row', alignItems: 'center', gap: space.sm,
-                backgroundColor: palette.surface, borderRadius: radius.lg,
-                borderWidth: 1, borderColor: palette.line100,
-                paddingLeft: space.base, paddingRight: space.sm, paddingVertical: space.sm,
-                marginTop: space.sm,
-              }}
-            >
-              <TextInput
-                value={nacrt}
-                onChangeText={setNacrt}
-                placeholder="Poruka…"
-                placeholderTextColor={palette.inkMuted}
-                accessibilityLabel="Napišite poruku"
-                onSubmitEditing={posalji}
-                returnKeyType="send"
-                style={{ flex: 1, fontSize: 16, color: palette.ink, paddingVertical: 6 }}
-              />
-              <Press
-                accessibilityRole="button"
-                accessibilityLabel="Pošalji poruku"
-                accessibilityState={{ disabled: !nacrt.trim() }}
-                disabled={!nacrt.trim()}
-                haptic="light"
-                onPress={posalji}
-                style={{
-                  width: touch.min, height: touch.min, borderRadius: radius.md,
-                  alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: nacrt.trim() ? palette.orange : palette.cream050,
-                }}
-              >
-                <PaperPlaneTilt
-                  size={19}
-                  color={nacrt.trim() ? palette.onOrange : palette.inkMuted}
-                  weight="fill"
-                />
-              </Press>
-            </View>
-          </Animated.View>
+          <View style={{ flex: 1 }}>
+          <View style={{ paddingHorizontal: space.base, paddingBottom: space.sm, gap: space.sm }}>
+            {tabs}<T variant="heading" numberOfLines={2}>{dogovor.naslov}</T>
+          </View>
+          <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
+            writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh}
+            refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} />
+          </View>
         )}
-      </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

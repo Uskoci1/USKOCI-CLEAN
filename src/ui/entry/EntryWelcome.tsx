@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowRight } from 'phosphor-react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useEntryIntro } from '../../hooks/useEntryIntro';
+import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 import { BrandScene } from './BrandScene';
 
 export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, error }: {
@@ -10,20 +11,21 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
 }) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { phase, finish } = useEntryIntro();
+  const { readiness, onLayout } = useEntrySplashReady();
+  const { phase, finish } = useEntryIntro(readiness);
   const scale = Math.min(width / 390, 1.12);
   const intro = phase === 'intro';
-  return <View style={styles.root}>
-    {intro ? <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
+  return <View onLayout={onLayout} style={styles.root}>
+    {phase !== 'welcome' ? <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs><LinearGradient id="entry-warm" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#FFF5EC" /><Stop offset="1" stopColor="#FFE0C5" /></LinearGradient></Defs>
       <Rect width="100%" height="100%" fill="url(#entry-warm)" />
     </Svg> : null}
     <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top, paddingBottom: Math.max(24, insets.bottom + 12) }]}>
       <View style={[styles.column, { minHeight: intro ? 700 * scale : undefined }]}>
         <View style={{ height: 330 * scale, alignItems: 'center' }}>
-          {phase !== 'loading' ? <View style={{ width: 390, height: 844, transformOrigin: 'top center', transform: [{ scale }] }}>
-            <BrandScene animate={intro} onComplete={finish} />
-          </View> : null}
+          <View style={{ width: 390, height: 844, transformOrigin: 'top center', transform: [{ scale }] }}>
+            <BrandScene animate={intro} paused={phase === 'loading'} onComplete={finish} />
+          </View>
         </View>
         {phase === 'welcome' ? <View style={styles.content}>
           <Text accessibilityRole="header" style={styles.title}>Meni treba.{`\n`}Ja mogu.</Text>

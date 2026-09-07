@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useEntryIntro } from '../../hooks/useEntryIntro';
+import type { EntrySplashReadiness } from '../../hooks/useEntrySplashReady';
 
 const mockRead = jest.fn();
 const mockWrite = jest.fn();
@@ -20,7 +21,9 @@ jest.mock('react-native', () => {
     } } : Reflect.get(target, key);
   } });
 });
-function Probe() { return React.createElement('Snapshot', { snapshot: useEntryIntro() }); }
+function Probe({ readiness = 'ready' }: { readiness?: EntrySplashReadiness }) {
+  return React.createElement('Snapshot', { snapshot: useEntryIntro(readiness) });
+}
 let tree: ReactTestRenderer;
 const snapshot = () => tree.root.findByType('Snapshot' as React.ElementType).props.snapshot;
 async function mount() { await act(async () => { tree = create(<Probe />); }); }
@@ -67,4 +70,30 @@ it('does not persist a delayed animation completion after leaving the screen', a
   await mount(); const complete = snapshot().finish;
   await act(async () => tree.unmount()); await act(async () => complete());
   expect(mockWrite).not.toHaveBeenCalled();
+});
+
+it('holds the entire intro until splash readiness, independent of early cosmetic storage', async () => {
+  await act(async () => { tree = create(<Probe readiness="pending" />); });
+  expect(snapshot().phase).toBe('loading');
+  await act(async () => jest.advanceTimersByTime(4500));
+  expect(snapshot().phase).toBe('loading'); expect(mockWrite).not.toHaveBeenCalled();
+  await act(async () => tree.update(<Probe readiness="ready" />));
+  expect(snapshot().phase).toBe('intro'); expect(mockRead).toHaveBeenCalledTimes(1);
+});
+
+it('shows static welcome on failed readiness, and preserves reduced motion without waiting', async () => {
+  await act(async () => { tree = create(<Probe readiness="skip" />); });
+  expect(snapshot().phase).toBe('welcome');
+  await act(async () => tree.unmount());
+  mockReduced = true;
+  await act(async () => { tree = create(<Probe readiness="pending" />); });
+  expect(snapshot().phase).toBe('welcome');
+});
+
+it('does not revive an intro after Back/skip or background while visibility was pending', async () => {
+  await act(async () => { tree = create(<Probe readiness="pending" />); });
+  await act(async () => mockForeground('background'));
+  expect(snapshot().phase).toBe('welcome');
+  await act(async () => tree.update(<Probe readiness="ready" />));
+  expect(snapshot().phase).toBe('welcome'); expect(mockWrite).toHaveBeenCalledTimes(1);
 });

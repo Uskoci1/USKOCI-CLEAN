@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
+import type { EntrySplashReadiness } from './useEntrySplashReady';
 
 const KEY = 'uskoci.presentation.intro-seen.v1';
-export function useEntryIntro() {
+export function useEntryIntro(readiness: EntrySplashReadiness) {
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState<'loading' | 'intro' | 'welcome'>(reduced ? 'welcome' : 'loading');
   const lifetime = useRef(0);
@@ -35,5 +36,10 @@ export function useEntryIntro() {
     const subscription = AppState.addEventListener('change', state => { if (state !== 'active') finish(); });
     return () => { lifetime.current++; clearTimeout(timer); subscription.remove(); };
   }, [finish, reduced]);
-  return { phase, finish };
+  // Storage may finish while the native splash is still covering this screen.
+  // Hold the scene at its first frame until its full timeline can be visible.
+  const visiblePhase = phase === 'intro' && readiness !== 'ready'
+    ? readiness === 'skip' ? 'welcome' : 'loading'
+    : phase;
+  return { phase: visiblePhase, finish };
 }

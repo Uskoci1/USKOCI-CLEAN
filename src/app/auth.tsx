@@ -89,6 +89,8 @@ function PrimaryButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ busy: !!busy, disabled: !!(disabled || busy) }}
       disabled={disabled || busy}
       onPress={onPress}
       style={({ pressed }) => [

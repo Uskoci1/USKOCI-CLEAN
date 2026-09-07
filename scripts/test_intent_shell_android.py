@@ -53,6 +53,21 @@ def agreement_tree(schedule='Fleksibilno', amount='3.000 RSD'):
     return root, card
 
 
+def signed_out_form_tree(labels=('Email', 'Lozinka')):
+    root = ET.Element('hierarchy')
+    for index, label in enumerate(labels):
+        ET.SubElement(root, 'node', {
+            'class': 'android.widget.EditText', 'content-desc': label,
+            'bounds': f'[72,{600 + index * 200}][1008,{760 + index * 200}]',
+            'enabled': 'true',
+        })
+    submit = ET.SubElement(root, 'node', {
+        'class': 'android.widget.Button', 'content-desc': 'Prijavite se',
+        'bounds': '[72,1080][1008,1248]', 'enabled': 'true', 'clickable': 'true',
+    })
+    return root, submit, {child: parent for parent in root.iter() for child in parent}
+
+
 class IntentShellSelectors(unittest.TestCase):
     def assert_shell(self, names, expected, disabled=()):
         root, parent = tree(names, disabled)
@@ -112,6 +127,47 @@ class IntentShellSelectors(unittest.TestCase):
             self.assertIs(namespace['assert_signed_out_surface'](), root)
         observed.assert_called_once_with(timeout=40, desc='Prijavi se')
         raw_dump.assert_not_called()
+
+    def assert_password_form(self, root, submit, parent):
+        observed = Mock(return_value=([submit], parent))
+        raw_dump = Mock(side_effect=AssertionError('A later raw dump can contain a new Quickstep overlay'))
+        with patch.dict(namespace, {
+            'wait_nodes': observed,
+            'dump_tree': raw_dump,
+            'adb': Mock(return_value=SimpleNamespace(stdout='Physical size: 1080x2400')),
+        }):
+            self.assertIs(namespace['assert_signed_out_surface'](form_open=True), root)
+        observed.assert_called_once_with(timeout=40, desc='Prijavite se')
+        raw_dump.assert_not_called()
+
+    def test_signed_out_direct_form_accepts_exact_email_password_fields_in_confirmed_snapshot(self):
+        # Logout may land directly on this real form rather than the welcome CTA.
+        self.assert_password_form(*signed_out_form_tree())
+
+    def test_signed_out_direct_form_rejects_missing_extra_duplicate_or_mislabelled_fields(self):
+        for labels in ((), ('Email',), ('Lozinka',), ('Email', 'Lozinka', 'Ime'),
+                       ('Email', 'Email'), ('Email', 'Password'), ('email', 'Lozinka')):
+            with self.subTest(labels=labels):
+                with self.assertRaisesRegex(AssertionError, 'password form is incomplete'):
+                    self.assert_password_form(*signed_out_form_tree(labels))
+
+    def test_signed_out_direct_form_rejects_labelled_text_that_is_not_an_editable_field(self):
+        root, submit, parent = signed_out_form_tree()
+        next(node for node in root.iter() if node.attrib.get('content-desc') == 'Lozinka').set(
+            'class', 'android.widget.TextView')
+        with self.assertRaisesRegex(AssertionError, 'password form is incomplete'):
+            self.assert_password_form(root, submit, parent)
+
+    def test_signed_out_direct_form_rejects_private_tabs_despite_both_real_fields(self):
+        for label in ('Zadaci', 'Novi', 'Novi Zadatak', 'Prijave', 'Dogovori', 'Profil', 'Početna'):
+            with self.subTest(label=label):
+                root, submit, parent = signed_out_form_tree()
+                ET.SubElement(root, 'node', {
+                    'content-desc': label, 'bounds': '[0,2200][360,2360]',
+                    'clickable': 'true', 'enabled': 'true',
+                })
+                with self.assertRaisesRegex(AssertionError, 'Private bottom destination'):
+                    self.assert_password_form(root, submit, parent)
 
 
 class AgreementMetadataVisibility(unittest.TestCase):
