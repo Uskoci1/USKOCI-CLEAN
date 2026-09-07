@@ -1,4 +1,72 @@
 {
+  "spoj_entry_acceptance_20260907": {
+    "state": "IMPLEMENTED_SOURCE_AND_SCOPED_ANDROID_PROVEN_ROOT_ACCEPTED_CANONICAL_PROMOTION_PENDING",
+    "source": "82a99fc115ff813327e9548c66fedd8413d29bff",
+    "canonical_base": "80e091ee31930b28cc5c2e0af6b6e876a4926362",
+    "native_run": 34163510260,
+    "native_result": "SUCCESS",
+    "original_artifact_id": 10033887904,
+    "original_artifact_bytes": 5847655,
+    "original_artifact_sha256": "c82d1206009dd410c303b2a3517f6abbd68e4e07fbffc975bc62be8661de3386",
+    "original_pairs_individually_reviewed": {
+      "entry": 7,
+      "navigation": 17,
+      "inbox": 10,
+      "total": 34
+    },
+    "original_mp4_sha256": "1461d06e5b5d920d439ea716bc211cdf22dfaa1047f9e99c272ab902b8340456",
+    "motion": {
+      "behavior": "PROVEN",
+      "root_reviewed_original_decoded_frames": 70,
+      "source_timeline_ms": 4500,
+      "measured_frame_exact_4500ms": false,
+      "smooth_60fps_proven": false,
+      "physical_handset_proven": false,
+      "capture_average_fps": 4.69,
+      "capture_timing_and_performance": "LIMITED",
+      "old_expo_placeholder_observed": false,
+      "auth_slide_obscures_beginning": false
+    },
+    "pre_p4_run": 34163513828,
+    "jest": {
+      "suites": 64,
+      "tests": 600,
+      "result": "PASS"
+    },
+    "typescript": "PASS",
+    "source_integrity": {
+      "migrations": 87,
+      "snapshot": 87,
+      "pending": 0
+    },
+    "codeql_run": 34163510667,
+    "codeql_actual_analyses": [
+      1737819620,
+      1737818245,
+      1737818206
+    ],
+    "codeql_results_errors_warnings": 0,
+    "root_local_web_password_mode_check": "ACTUAL_DOM_MASKED_EMPTY_FIELDS_AFTER_REVEAL_AND_SWITCH_NO_AUTH_SUBMISSION",
+    "latest_figma_observation": {
+      "visible_nodes": [
+        "66:17",
+        "66:18"
+      ],
+      "scope": "COVER_ONLY",
+      "owner_design_location_clarification": "PENDING"
+    },
+    "original_supplied_asset_preservation": "EXPLICIT_USER_REQUIREMENT_SVG_AND_12_TRACKS_PRESERVED",
+    "public_archive_files": 178,
+    "frozen_non_document_inputs": 422,
+    "final_candidate_gates_and_root_merge_required": true,
+    "evidence": "docs/implementation/evidence/spoj-entry-20260907/run34163510260/native-review-summary.json",
+    "supersedes_entry_motion_gap_only": "spoj_entry_route_transition_replay_20260907",
+    "new_live_observation": false,
+    "production_mutation": false,
+    "final_visual_claim": false,
+    "all_47_items_closed": false,
+    "public_manifest_hashed_entries": 177
+  },
   "spoj_entry_route_transition_replay_20260907": {
     "state": "SOURCE_REPAIRED_FRESH_NATIVE_MOTION_PROOF_PENDING",
     "canonical_base": "80e091ee31930b28cc5c2e0af6b6e876a4926362",
