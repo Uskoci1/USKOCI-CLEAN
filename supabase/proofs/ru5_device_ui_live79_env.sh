@@ -18,6 +18,9 @@ cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
 
 for f in "$GITHUB_WORKSPACE"/supabase/migrations/*.sql; do
   b="$(basename "$f")"
+  # Replay only the historical bootstrap interval. New pending forward files
+  # must never execute before their dependency-ordered live-79 predecessors.
+  if [[ "${b:0:14}" > "20260901114029" ]]; then continue; fi
   case "$b" in
     20260903*|20260904*|20260905*|20260906*) ;;
     20260901105922_clean_completion_and_writer_authenticated_proof.sql|20260901113333_clean_ai_interview_turn_authenticated_proof.sql|20260901114029_clean_ai_fact_supersession_and_human_correction.sql) ;;
