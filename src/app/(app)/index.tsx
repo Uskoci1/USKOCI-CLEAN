@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react';
 import { View, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { CaretRight, Package, Clock, Bell, User, Plus, Check } from 'phosphor-react-native';
+import { CaretRight, Package, Clock, User, Plus, Check } from 'phosphor-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { T } from '../../ui/Text';
+import { InboxBell } from '../../ui/InboxBell';
 import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
@@ -54,22 +55,7 @@ export default function Pocetna() {
           <T variant="label" tone="onDark" style={{ letterSpacing: 0 }}>U</T>
         </View>
         <T variant="heading" style={{ flex: 1, letterSpacing: 0.4 }}>USKOČI</T>
-        <Press
-          accessibilityRole="button"
-          accessibilityLabel="Obaveštenja"
-          haptic="select"
-          style={{ width: touch.min, height: touch.min, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Bell size={21} color={palette.ink} />
-          {trebaIzbor && (
-            <View
-              style={{
-                position: 'absolute', top: 10, right: 11,
-                width: 8, height: 8, borderRadius: 4, backgroundColor: palette.orange,
-              }}
-            />
-          )}
-        </Press>
+        <InboxBell />
         <Press
           accessibilityRole="button"
           accessibilityLabel="Profil"

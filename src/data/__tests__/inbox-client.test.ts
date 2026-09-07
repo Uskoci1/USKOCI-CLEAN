@@ -1,0 +1,39 @@
+import { createInboxService } from '../inboxClientService';
+jest.mock('../supabaseClient',()=>({supabaseKlijent:jest.fn()}));
+const id='12345678-1234-1234-1234-123456789012';
+const at='2026-09-07T07:00:00Z';
+const event={id,eventType:'RESPONSE_SELECTED',role:'WORKER',occurredAt:at,readAt:null,
+  title:'Vaša prijava je izabrana',body:'Otvorite Dogovor.',family:'responses'};
+describe('Inbox production adapter',()=>{
+  it('sends paired cursor and role and returns only a validated projection',async()=>{
+    const rpc=jest.fn().mockResolvedValue({data:{items:[event],unreadCount:1,hasMore:false,asOf:at},error:null});
+    const result=await createInboxService(rpc).list('WORKER',{id,at},20);
+    expect(rpc).toHaveBeenCalledWith('rpc_list_inbox',{p_role:'WORKER',p_limit:20,p_before_id:id,p_before_at:at});
+    expect(result.items).toEqual([event]);
+  });
+  it('never converts an API failure into empty Inbox or zero unread',async()=>{
+    const rpc=jest.fn().mockResolvedValue({data:null,error:{message:'private SQL error'}});
+    await expect(createInboxService(rpc).list(null)).rejects.toThrow('INBOX_REQUEST_FAILED');
+  });
+  it.each([null,{}, {items:[],unreadCount:0,hasMore:true,asOf:at},
+    {items:[event,event],unreadCount:1,hasMore:false,asOf:at},
+    {items:[{...event,readAt:'invalid'}],unreadCount:1,hasMore:false,asOf:at}])('rejects malformed results',async(data)=>{
+    await expect(createInboxService(jest.fn().mockResolvedValue({data,error:null})).list(null)).rejects.toThrow();
+  });
+  it('requires server read acknowledgment; it does not manufacture timestamps',async()=>{
+    const rpc=jest.fn().mockResolvedValue({data:at,error:null});
+    expect(await createInboxService(rpc).read(id)).toBe(at);
+    expect(rpc).toHaveBeenCalledWith('rpc_mark_activity_event_read',{p_event_id:id});
+    rpc.mockResolvedValue({data:null,error:null});
+    await expect(createInboxService(rpc).read(id)).rejects.toThrow();
+  });
+  it('uses server snapshot boundary for mark-all and rejects arbitrary route targets',async()=>{
+    const rpc=jest.fn().mockResolvedValue({data:2,error:null});
+    expect(await createInboxService(rpc).readAll(at,'REQUESTER')).toBe(2);
+    expect(rpc).toHaveBeenCalledWith('rpc_mark_inbox_read',{p_through:at,p_role:'REQUESTER'});
+    rpc.mockResolvedValue({data:{kind:'ARBITRARY',id,role:'WORKER',route:'/admin'},error:null});
+    await expect(createInboxService(rpc).resolve(id)).rejects.toThrow();
+    rpc.mockResolvedValue({data:{kind:'UNAVAILABLE'},error:null});
+    expect(await createInboxService(rpc).resolve(id)).toEqual({kind:'UNAVAILABLE'});
+  });
+});
