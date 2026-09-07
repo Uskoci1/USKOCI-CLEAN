@@ -14,6 +14,19 @@ class LocalRestSafety(unittest.TestCase):
         validate_local_targets(ENV)
         self.assertEqual(validate_container(IDENTITY, expected_running=True), 'a' * 64)
 
+    def test_accepts_actual_supabase_cli_ghcr_postgrest_image(self):
+        fields = [*IDENTITY[:2], 'ghcr.io/supabase/postgrest:v16.1', True]
+        self.assertEqual(validate_container(fields, expected_running=True, expected_id='a' * 64), 'a' * 64)
+
+    def test_rejects_ghcr_registry_namespace_or_repository_spoofs(self):
+        for image in ('ghcr.io.attacker.invalid/supabase/postgrest:v16.1',
+                      'ghcr.io/supabase-evil/postgrest:v16.1',
+                      'ghcr.io/attacker/supabase/postgrest:v16.1',
+                      'ghcr.io/supabase/postgrest-evil:v16.1',
+                      'ghcr.io/supabase/postgrest:v16.1/extra'):
+            with self.subTest(image=image), self.assertRaises(RuntimeError):
+                validate_container([*IDENTITY[:2], image, True], expected_running=True)
+
     def test_rejects_remote_or_redirected_targets_without_exposing_credentials(self):
         cases = [
             {'RU5_DEVICE_SUPABASE_URL': 'https://leqcwgzvjsxugfgzdmth.supabase.co'},

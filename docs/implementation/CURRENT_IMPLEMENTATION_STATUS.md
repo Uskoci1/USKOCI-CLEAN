@@ -1,15 +1,95 @@
+## Current integration — W04/W05 recovery review, LIVE87 and Edge v11 configuration
+
+Fresh canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` includes PR49, PR55/56, PR57/58, PR62 and PR63. The existing W04/W05 recovery branch is integrated without conflicts; the four reviewed production files remain identical. At integration all16 unit blobs were preserved; a later narrow harness fix admits the actual `ghcr.io/supabase/postgrest:v16.1` namespace and rejects five spoof variants while retaining exact local targets/container/socket guards. W04 distinguishes failed/absent reads, keeps real Back/retry, marks a display-only stale cache and suppresses application entry when the public task gate/deadline is unavailable. W05 read recovery preserves the existing submission engine. This is **IMPLEMENTED / LOCAL SOURCE PROVEN / REVIEW PENDING**, not new canonical or Android proof. Full52 suites/452 tests, TypeScript,45 Python and22 local-target Node tests pass; AST64 client/25 presentation files has0 findings. The dedicated native harness retains27 original checkpoints plus16 recovery checkpoints; physical execution/inspection and exact-head CI/CodeQL remain required. UI remains a testable scaffold; final Figma design and Fable asset work remain separate.
+
+Recorded current production is **LIVE87 / Edge v11 ACTIVE / JWT true**, from the root's supplied14:44 observation. Historical14:26 Edge v8 promotion retains its exact source/proof and then-unchanged secrets; later owner setup at14:38–14:42 changes configuration, not the27,775-byte handler/4,097-byte registry or EZBR. Names-only metadata observed all three required provider entries at14:41:53; model/selector values are owner-confirmed manual saves, not independently read back. Actual provider success is **NOT PROVEN**. This W04 integration records supplied observations only and makes no live call. Source87/live87/pending0, existing price modes,0 RSD and all closed SQL/proof boundaries remain preserved. Do not reapply migrations or relabel earlier Android/provider evidence. Review `docs/implementation/W04_W05_RECOVERY_20260907.md` and its committed evidence; earlier pointers below remain historical at their own boundaries.
+
+---
+
+## Current checkpoint — AI authority LIVE87 and Edge context v7
+
+Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.
+
+PR58 final handler proof34129593102 has17 actual-handler mocked-transport tests, Deno/TSC and49 suites395 tests PASS. Its canonical gates preceded existing Edge v6→v7 promotion: exact26346-byte handler and4097-byte registry verified after deployment; ACTIVE/JWT true. This is **SOURCE PROVEN / CANONICAL / LIVE SOURCE VERIFIED**, not a successful provider interview. Normal owner login and empty Novi are now observed; the owner-reported unknown AI turn and actual owner human-review/DRAFT/card remain unresolved. No synthetic production fixture or provider success is asserted. Provider secrets are server-only; current UI remains a testable scaffold, with later Figma/Fable work separate.
+
+Completed source/proof/live records: [AI live promotion](AI_LIVE87_EDGE7_PROMOTION_20260907.md). Earlier pending/deployment/current-head checkpoints below are historical where superseded here. Continue current mobile/provider execution without restarting the engine.
+
+---
+
+## Current integration — fresh LIVE86 provenance plus AI Edge context
+
+Fresh fetched canonical is `c4c6b624446f3273a40e8393bfadc8c49dff5494`, preserving accepted Auth/navigation, configured application identity, D03 canonical/live86 provenance and the canonical AI DRAFT authority source unchanged. This branch changes only the existing AI Edge time reference, newest history window and sanitized failure logging, with actual-handler source proof: **SOURCE IMPLEMENTED / CI MOCKED TRANSPORT PROVEN AT B9376F1 / FINAL CANONICAL INTEGRATION PENDING / NOT DEPLOYED / ACTUAL PROVIDER NOT PROVEN**.
+
+The frozen Edge is26,346 bytes / SHA-256 `4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704`; the shared fact registry is unchanged. Integrated run34128479788 atb9376f1 passed Deno, TypeScript,17 actual-handler checks and49 suites/395 tests, with three actual zero-result CodeQL analyses. Original artifact10021094289 ZIP SHA-256 `d3eb59dcbec33aa010feb12b685f29f73cd2f3ff3e761bec682578bccf745afa` was physically verified. Earlier committed evidence and precise limits remain in [the unit report](AI_EDGE_SERVER_CONTEXT_20260907.md). The final integrated source run after canonical PR57 and its gates will be recorded after execution. This unit uses synthetic fetch/environment only; no provider call, database write, deployment or gate activation is part of source proof.
+
+Source87 / recorded live86 / pending1 are retained from canonical provenance; this branch adds no SQL migration. Root accepted PR57's unchanged AI SQL atf5b9550 with actual86→87 proof34128347708; its separate live promotion remains root-owned. Follow user-adopted V3 and06.09 guidance. Root reviews final source/proof/gates, then fresh live v6 source/config before any existing Edge promotion. Actual owner intake, human confirmation/correction and truthful DRAFT card remain a separate functional boundary. Production is not a synthetic fixture sandbox. Current UI is a testable scaffold; final Figma design and Fable remain separate. Underlying checkpoints retain their historical boundaries where superseded here.
+
+---
+
+## Current integration — fresh LIVE86 provenance plus AI DRAFT authority proof
+
+Fresh fetched canonical is `f055d6415b5153aa6ef0db735d63dddea7806ead`. Auth/navigation, configured application identity and the existing D03 command source/live alias are canonical at their accepted proof boundaries. This branch adds only the two-RPC AI DRAFT authority repair and its proof integration: **SOURCE IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN AT17659 / FINAL D03 INTEGRATION REPLAY PENDING / NOT LIVE**. Exact AI SQL remains21,141 bytes / SHA-256 `ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1`.
+
+Original run34121379016 at17659 passed15 AI checks plus6 N07/12 N08,37 suites/232 tests and four physically observed lock interleavings; the inspected original artifact and zero-result CodeQL analyses are linked in [the unit report](AI_DRAFT_AUTHORITY_20260907.md). The new source-derived predecessor step admits only exact canonical D03, preserves all original full history records and rejects unknown/missing/changed files. Its final integrated runtime result remains pending.
+
+Inventory at this source checkpoint: **87 source / recorded live86 / pending1**. This is source/provenance reconciliation, not a new production observation. The D03 live86 reconciliation is preserved unchanged; AI remains unpromoted. Provider execution, Edge context deployment, native AI review/card flow and policy activation are separate proof boundaries. Current UI is a testable scaffold; final Figma design and Fable remain separate. Continue V3/06.09 guidance and do not restart closed engine or native Auth work. All underlying checkpoints retain their historical boundaries where superseded here.
+
+---
+
+## Current integration — D03 canonical and LIVE86
+
+Fresh canonical is `4ff2dc0f4862cccb2a432851657b68929b8bdc35`, including PR56 merged at13:17:59 UTC. D03 source was promoted by PR55 as `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a` at12:58:53 UTC after exact-head proof34124166375. D03 stable message retry is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. The completed exact forward promotion is live as **86 migrations / `20260907130151_clean_d03_message_retry`**; source86 / live86 / pending0. Do not reapply or rename the source SQL.
+
+All4277 source bytes match the single live statement (MD5 `ea4ebf5cc6f24f103bdb9c854f55463d`, SHA-256 `f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889`). Postflight13:02:34Z retained all85 complete historical records, original2 message rows, existing RLS/table grants/N01/emitter and0 keyed messages. The new RPC is authenticated-only with its reviewed body and fixed search path. Final disposable proof passed11 D03,6 N07 and12 N08 checks; canonical PRE-P4 passed47 suites/347 tests and TSC, and canonical CodeQL/CONTROL-0 passed with3 actual zero-result/error analyses. Final aggregate gates at13:18:42Z remain0, including notification events/deliveries/push attempts, publication bundles/decisions and Q&A rows; requester connection policy remains PROMOTIONAL_FREE /0 RSD. Advisors changed71→72 with exactly one reviewed authenticated SECURITY DEFINER warning and all prior71 warning identities preserved; no errors or blanket warning closure is claimed. This follow-up records completed promotion only; it executes no production SQL.
+
+PR56 EAS/Firebase configuration source is now canonical; all its application/config/test blobs and original evidence are preserved from4ff2dc0. Actual preview APK/signing/Auth/provider acceptance remains unproven. PR49 remains canonical at65d2802 with accepted exact-source292 Android evidence. UI remains a **testable functional scaffold**; future Figma owns final visual design and Fable remains separate. Continue separate D03 mobile binding and functional AI work; broader Chat, native retry/provider/final-visual/Store closure is not claimed. N07/N08 and accepted core proofs remain closed at their recorded boundaries. See `D03_LIVE86_PROMOTION_20260907.md` and `D03_MESSAGE_RETRY_20260907.md`; older pending-forward/live85 statements below are historical where superseded here.
+
+
+The retained PR56 pending-merge and recorded-live85 checkpoints below describe their earlier source/proof boundaries and are superseded by this current pointer.
+
+---
+
+<!-- EAS_D03_CANONICAL_INTEGRATION_20260907 -->
+## Current source — canonical Auth and D03; EAS/Firebase PR56 pending
+
+Fresh GitHub fetch confirms `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a`, the PR55 merge on top of canonical PR49. Auth/account/Inbox and D03 stable-send source are canonical at their existing recorded proof boundaries. D03 mobile recovery is a separate source unit. The older pending-merge checkpoints below are preserved as historical evidence.
+
+PR56 is being reconciled onto this fresh canonical source. All eight EAS/Firebase source/test blobs remain identical to reviewed source170686a; the exact public Firebase file and preview/proof package overrides are preserved. Imported Auth and D03 application source remains identical to canonical. No build, token/provider call, EAS remote mutation or database access occurred in this integration. EAS/Firebase APK, signing/Auth and push acceptance remain unproven. Current UI is a functional scaffold; final Figma design is separate.
+
+Root's separate D03 structural postflight at 2026-09-07 13:02:34 UTC confirms live86 with head `20260907130151_clean_d03_message_retry`. This branch still retains the canonical repository's recorded live85/pending1 provenance until the dedicated alias reconciliation is merged. These are distinct observed-live and recorded-source boundaries. Do not reapply D03 based on the older recorded metadata; this EAS integration made no live call.
+
+See [PR55 integration and validation](EAS_PR55_CANONICAL_INTEGRATION_20260907.md). Local source checks and final-head CI/CodeQL must pass before PR56 merge; this checkpoint is not canonical PR56 or new live evidence.
+
+---
+
+<!-- EAS_CANONICAL_INTEGRATION_20260907 -->
+## Current source integration — canonical PR49 and pending EAS/Firebase PR56
+
+Fresh GitHub fetch confirms canonical `65d280270ead4d13dcb41f7342a74b164c41e4d9`, the merge of PR49. Its recorded Auth/account/Inbox native proof remains tied to source29271e6 and run34119448882; it is now canonical at that scoped boundary. The older “NOT MERGED” paragraphs below describe their recorded pre-merge checkpoints and are superseded here.
+
+PR56's existing team EAS identity and exact public Firebase configuration are being integrated onto that canonical source. The eight EAS/Firebase source/test Git blobs remain identical to170686a, including the671-byte Firebase file and package-aware proof/dev overrides. The only package.json delta from canonical is the existing EAS pre-install guard hook. No EAS build, key/environment/version mutation, provider call, Supabase write or final UI redesign occurred. Preview/APK certificate/Auth/token/provider acceptance remains unproven.
+
+See [canonical integration and validation](EAS_PR49_CANONICAL_INTEGRATION_20260907.md). This merge is reviewable source work pending Root acceptance/commit/push; do not label it canonical PR56 or new live evidence. Frozen governing documents and all historical evidence retain their original bytes. The current UI remains a functional scaffold; final Figma design is separate.
+
+---
+
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / D03 STABLE MESSAGE RETRY
+
+The D03 stable-send unit is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / PENDING CANONICAL AND LIVE ADMISSION**. It extends the existing message table with a sender-owned command key and an account-bound RPC that invokes the unchanged N01 writer. The same command returns the original message UUID after retry or terminal completion; it creates no duplicate message/event. Overall Chat remains PARTIAL: this unit does not activate UI, group channels, attachments, read receipts or push delivery.
+
+Read [D03 contract and original proof](D03_MESSAGE_RETRY_20260907.md). Exact source `04132b98ff189abeae5481a73a95245289b4e0f6`, run34113306660, artifact10015325641:11 D03 checks plus6 N07 and12 N08 checks,38 suites/266 tests and TypeScript PASS. Inventory is **86 source files / recorded live85 / pending1**. Live remains the verified N08 baseline below; this source unit made no production write. Next: reviewed canonical merge, fresh live preflight and accepted exact forward promotion, then real D03 screen binding and physical Android proof.
 <!-- EXECUTION_V3_CHECKPOINT_20260907 -->
-## Current execution — testable scaffold, Auth boundary and identity ownership
+## Current execution — reviewed scaffold and native Auth/account proof
 
-The owner's latest steering keeps the current UI as a **testable functional scaffold**. Future Figma work owns the final visual design; Fable is separate asset work. Do not turn this slice into a final visual redesign. The current three-zone capability/navigation remains: Profile is an avatar destination, with no permanent Home/Profile tab or combined discovery mode. Frozen governance bytes remain unchanged; V3 governs execution and the preserved 06.09 documents resolve older product/UI conflicts where applicable.
+The owner's latest steering keeps the current UI a **testable functional scaffold**. Future Figma work owns final visual design; Fable is separate asset work. Current three-zone capability/navigation remains, with Profile behind the avatar and no permanent Home/Profile tab or combined discovery mode. Frozen governance bytes remain unchanged; V3 governs execution and the preserved06.09 documents resolve older UI/product conflicts.
 
-Fresh canonical remains `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54, fetched again before this commit). N08 and its exact live85 promotion are already canonical. Live remains **85 / `20260907102458_clean_n08_notification_preferences`**, source85 / pending0; no production or migration change belongs to this PR49 slice. Do not reapply N08/N07. Current charge remains 0 RSD; unsupported capabilities stay gated.
+Fresh canonical remains `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54), already an ancestor of PR49. N08/live85 is canonical: **85 / `20260907102458_clean_n08_notification_preferences`**, source85 / pending0. This slice changes no migration or production state. Do not reapply N08/N07. Current charge remains0 RSD; unsupported capabilities stay gated.
 
-PR #49 remains **IMPLEMENTED / SOURCE TESTED / NOT MERGED**. Android run `34114525948` at exact source `86fffc1b58789a2a7331e3646ba8aa0647e02a73` passed; all27 original PNG/XML pairs were inspected, including both corrected Agreement rows with full schedule/amount. This is scoped native emulator/navigation/Auth-account/Inbox proof, not final visual design, full product or production proof. Earlier failures and the prior row defect remain preserved evidence.
+PR #49 is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / NOT MERGED**. New Android run `34119448882` passed at exact source `29271e6be7fc519e40941531d37c6d48b0db7ef3`, which includes central Auth commands and identity revision. All27 original PNG/XML pairs were inspected, including real UI logout, second-account login without storage clearing and both readable Agreement rows. Artifact `10018537383`, ZIP SHA-256 `e87d3f887870505942806faa3824f80c699234835f18e31ca5ebd582f62a1acc`. Original source86 and earlier failures remain separately scoped historical evidence.
 
-The latest architecture review found direct presentation Auth calls and a batched A→B→A ownership gap. Auth UI commands now cross `contracts/auth` into `authClientService`; SDK session subscription/restore remains in the existing session owner. `accountRevision` increments only when userId changes and binds Root navigation, focused reads and Profile actions; token refresh retains the current screen/draft. Root review found no blocker; 46 suites /313 tests and TypeScript passed. The AST client scan inspected62 source files /25 presentation files with0 findings; this is a bounded static boundary check, **not a complete AI/domain-authority audit**.
+PR49's required source boundary review passed: UI-issued Auth commands cross the SDK-free contract into `authClientService`; existing Auth runtime owns session subscription/restore. Monotonic `accountRevision` closes batched A→B→A ownership gaps while same-account token refresh retains navigation/drafts. The actual native run passed TypeScript,46 suites /313 tests,34 Python tests and integrity85; all6 source checks succeeded, with3 actual CodeQL analyses and zero errors/results. AST62 client files /25 presentation files /0 findings is a bounded static check, not complete AI/domain-authority proof. Batched concurrency cases are source/component proof, not invented native scenarios.
 
-The changed Auth/account-revision source requires a new exact-head CI/CodeQL and full native replay; the source86 proof cannot be relabelled as proof of later code. **No merge until the required architecture reviews and exact-source gates are complete.** Continue with the functional AI vertical after this bounded safety closure and its separate AI boundary review. See `docs/implementation/INTENT_SHELL_20260907.md` and `docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md`. Older active-cursor claims below are historical where superseded here.
+This follow-up changes documentation/evidence only. All138 frozen native/source/assets/config/vendor/proof Git blobs remain identical to tested source29271e6; the Android artifact remains tied to that source. Final documentation-head CI/CodeQL must pass, and Root must accept before merge. Continue the separate functional AI vertical and its authority work; no final visual/product/provider/Store claim is made. See `docs/implementation/INTENT_SHELL_20260907.md`, `docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md` and `docs/implementation/evidence/intent-shell-auth-20260907/run34119448882/inspection.md`. Older cursor claims below are historical where superseded here.
 
 ---
 

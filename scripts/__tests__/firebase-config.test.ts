@@ -1,0 +1,95 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+
+const root = path.resolve(__dirname, '../..');
+const configure = require('../../app.config.js');
+const original = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
+const firebasePath = './config/firebase/google-services.json';
+const enrollmentPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
+const temporary = path.join(root, '.expo');
+const fixtures: string[] = [];
+
+function resolvePackage(packageName: string) {
+  fs.mkdirSync(temporary, { recursive: true });
+  const fixture = fs.mkdtempSync(path.join(temporary, 'firebase-config-'));
+  fixtures.push(fixture);
+  const source = structuredClone(original);
+  source.expo.android.package = packageName;
+  source.expo.android.googleServicesFile = firebasePath;
+  source.expo.name = 'Disposable label'; source.expo.scheme = 'disposable-scheme';
+  source.expo.extra = { fixture: 'local-only' };
+  fs.writeFileSync(path.join(fixture, 'app.json'), JSON.stringify(source));
+  fs.copyFileSync(path.join(root, 'package.json'), path.join(fixture, 'package.json'));
+  fs.copyFileSync(path.join(root, 'app.config.js'), path.join(fixture, 'app.config.js'));
+  fs.mkdirSync(path.join(fixture, 'plugins'));
+  fs.copyFileSync(path.join(root, enrollmentPlugin), path.join(fixture, enrollmentPlugin));
+  // Use the same Node resolver as Expo CLI; Jest's browser module conditions
+  // otherwise select an unrelated ESM-only xcode dependency.
+  const result = spawnSync(process.execPath, ['-e',
+    "process.stdout.write(JSON.stringify(require('@expo/config').getConfig(process.argv[1], { skipSDKVersionRequirement: true }).exp))",
+    fixture], { cwd: root, encoding: 'utf8', timeout: 15000 });
+  expect(result.status).toBe(0);
+  return JSON.parse(result.stdout);
+}
+
+afterAll(() => {
+  for (const fixture of fixtures) {
+    if (path.dirname(path.resolve(fixture)) !== path.resolve(temporary)) throw new Error('Unsafe config fixture cleanup');
+    fs.rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+describe('actual package-aware Firebase config', () => {
+  it('keeps the exact owner-provided public file bytes', () => {
+    const bytes = fs.readFileSync(path.join(root, firebasePath));
+    expect(bytes.length).toBe(671);
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe('44d16e473ec04afa35df40fd7fa5eb9d79c6c341f348236355f8098b369fcb91');
+  });
+
+  it('Expo resolves preview Firebase without replacing other incoming configuration', () => {
+    const config = resolvePackage('rs.uskoci.preview');
+    expect(config.android.googleServicesFile).toBe(firebasePath);
+    expect(config.plugins).toContain(enrollmentPlugin);
+    expect(config.name).toBe('Disposable label'); expect(config.scheme).toBe('disposable-scheme');
+    expect(config.extra).toMatchObject({ fixture: 'local-only' }); expect(config.extra.eas).toBeUndefined();
+  });
+
+  it.each(['rs.uskoci.n04proof', 'rs.uskoci.ru5proof', 'rs.uskoci.dev', 'rs.uskoci.unknown'])('Expo preserves %s and removes incompatible preview Firebase', packageName => {
+    const config = resolvePackage(packageName);
+    expect(config.android.package).toBe(packageName);
+    expect(config.android.googleServicesFile).toBeUndefined();
+    expect(config.plugins).not.toContain(enrollmentPlugin);
+    expect(config.name).toBe('Disposable label'); expect(config.scheme).toBe('disposable-scheme');
+    expect(config.extra).toMatchObject({ fixture: 'local-only' }); expect(config.extra.eas).toBeUndefined();
+  });
+
+  it('repeated config resolution does not mutate its input or duplicate the plugin', () => {
+    const source = structuredClone(original.expo);
+    const first = configure({ config: source });
+    expect(source).toEqual(original.expo);
+    expect(configure({ config: first }).plugins.filter((plugin: string) => plugin === enrollmentPlugin)).toHaveLength(1);
+  });
+
+  it('actual installed Expo introspection generates disabled native enrollment without messaging components', () => {
+    const script = `const { getPrebuildConfigAsync } = require('@expo/prebuild-config');
+      const { compileModsAsync } = require('expo/config-plugins');
+      (async () => {
+        const { exp } = await getPrebuildConfigAsync(process.cwd(), { platforms: ['android'] });
+        const config = await compileModsAsync(exp, { projectRoot: process.cwd(), platforms: ['android'], introspect: true });
+        const application = config._internal.modResults.android.manifest.manifest.application[0];
+        process.stdout.write(JSON.stringify({ application, autolinked: config._internal.autolinkedModules }));
+      })().catch(() => { process.stderr.write('Native config introspection failed'); process.exitCode = 1; });`;
+    const result = spawnSync(process.execPath, ['-e', script], { cwd: root, encoding: 'utf8', timeout: 30000 });
+    expect(result.status).toBe(0);
+    const { application, autolinked } = JSON.parse(result.stdout);
+    for (const name of ['firebase_messaging_auto_init_enabled', 'firebase_analytics_collection_enabled']) {
+      expect(application['meta-data'].filter((item: any) => item.$['android:name'] === name)).toEqual([
+        { $: { 'android:name': name, 'android:value': 'false' } },
+      ]);
+    }
+    expect(JSON.stringify(application.service ?? [])).not.toMatch(/FirebaseMessaging|MESSAGING_EVENT/);
+    expect(autolinked).not.toContain('expo-notifications');
+  }, 40000);
+});

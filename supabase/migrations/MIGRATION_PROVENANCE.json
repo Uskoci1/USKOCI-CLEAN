@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-09-07T10:25:45Z",
+  "generated_at_utc": "2026-09-07T14:04:10Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "repository_base_head": "7a94c19f8f79a97a91cec45f21c6e349345b122e",
@@ -12,10 +12,10 @@
     "statement": "MD5_MANIFEST.txt verifies repository bytes; applied migrations are immutable and later semantic changes are forward-only. Live Supabase version aliases may point to an explicit canonical source file when a connected deployment mechanism assigns the live timestamp."
   },
   "live_history_snapshot": {
-    "migration_count": 85,
+    "migration_count": 87,
     "last": {
-      "name": "clean_n08_notification_preferences",
-      "version": "20260907102458"
+      "name": "clean_ai_need_draft_safety_authority",
+      "version": "20260907135905"
     },
     "entries": [
       {"name":"cloud_profile_foundation_1_3b","version":"20260825115040"},
@@ -102,7 +102,9 @@
       {"name":"clean_n03_event_inbox","version":"20260907090527","file":"20260907080200_clean_n03_event_inbox.sql","source_version":"20260907080200","exact_byte_mirror":true,"canonical_raw_md5":"d7d05cec995093fc97c53bf4c171d8c3","canonical_sha256":"55909e6759d908cb3a077ffc231bd59e3171eaa56a938c05ef8a556b1eebea05","live_recorded_statement_md5":"d7d05cec995093fc97c53bf4c171d8c3","live_recorded_statement_sha256":"55909e6759d908cb3a077ffc231bd59e3171eaa56a938c05ef8a556b1eebea05","recorded_statement_utf8_bytes":7431,"proof_run":34099067010,"source_canonical_promotion_sha":"4858370610192b88112673b08bde151793409e99"},
       {"name":"clean_n05_agreement_change_events","version":"20260907090615","file":"20260907080300_clean_n05_agreement_change_events.sql","source_version":"20260907080300","exact_byte_mirror":true,"canonical_raw_md5":"059378cd24fb4d05d040b96ade02e80a","canonical_sha256":"62461ca958e88b9b9882b22759c0e3bcc02e21b771efc45425a926301f243892","live_recorded_statement_md5":"059378cd24fb4d05d040b96ade02e80a","live_recorded_statement_sha256":"62461ca958e88b9b9882b22759c0e3bcc02e21b771efc45425a926301f243892","recorded_statement_utf8_bytes":3894,"proof_run":34099067010,"source_canonical_promotion_sha":"4858370610192b88112673b08bde151793409e99"},
       {"name":"clean_n06_push_device_registry","version":"20260907090645","file":"20260907080400_clean_n06_push_device_registry.sql","source_version":"20260907080400","exact_byte_mirror":true,"canonical_raw_md5":"c078ffda2fa68264dd9f0d934c69b05a","canonical_sha256":"6826306e4d66666f3241eecf8d9a187a652e0ea89cda742cbeefd37cf9ada7eb","live_recorded_statement_md5":"c078ffda2fa68264dd9f0d934c69b05a","live_recorded_statement_sha256":"6826306e4d66666f3241eecf8d9a187a652e0ea89cda742cbeefd37cf9ada7eb","recorded_statement_utf8_bytes":5031,"proof_run":34099067010,"source_canonical_promotion_sha":"4858370610192b88112673b08bde151793409e99"},
-      {"name":"clean_n08_notification_preferences","version":"20260907102458","file":"20260907100000_clean_n08_notification_preferences.sql","source_version":"20260907100000","exact_byte_mirror":true,"canonical_raw_md5":"349e81a12760af65dc4d5d98a7677333","canonical_sha256":"f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16","live_recorded_statement_md5":"349e81a12760af65dc4d5d98a7677333","live_recorded_statement_sha256":"f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16","recorded_statement_utf8_bytes":13177,"proof_run":34110025856,"source_canonical_promotion_sha":"06d8ce1a14c87ca2237d94aa5a60cd7230899ff6"}
+      {"name":"clean_n08_notification_preferences","version":"20260907102458","file":"20260907100000_clean_n08_notification_preferences.sql","source_version":"20260907100000","exact_byte_mirror":true,"canonical_raw_md5":"349e81a12760af65dc4d5d98a7677333","canonical_sha256":"f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16","live_recorded_statement_md5":"349e81a12760af65dc4d5d98a7677333","live_recorded_statement_sha256":"f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16","recorded_statement_utf8_bytes":13177,"proof_run":34110025856,"source_canonical_promotion_sha":"06d8ce1a14c87ca2237d94aa5a60cd7230899ff6"},
+      {"name":"clean_d03_message_retry","version":"20260907130151","file":"20260907110000_clean_d03_message_retry.sql","source_version":"20260907110000","exact_byte_mirror":true,"canonical_raw_md5":"ea4ebf5cc6f24f103bdb9c854f55463d","canonical_sha256":"f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889","live_recorded_statement_md5":"ea4ebf5cc6f24f103bdb9c854f55463d","live_recorded_statement_sha256":"f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889","recorded_statement_utf8_bytes":4277,"proof_run":34124166375,"source_canonical_promotion_sha":"a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a"},
+      {"name":"clean_ai_need_draft_safety_authority","version":"20260907135905","file":"20260907120000_clean_ai_need_draft_safety_authority.sql","source_version":"20260907120000","exact_byte_mirror":true,"canonical_raw_md5":"d52caaa375623c9cfe93c8e536b3f55c","canonical_sha256":"ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1","live_recorded_statement_md5":"d52caaa375623c9cfe93c8e536b3f55c","live_recorded_statement_sha256":"ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1","recorded_statement_utf8_bytes":21141,"proof_run":34128347708,"source_canonical_promotion_sha":"c4c6b624446f3273a40e8393bfadc8c49dff5494"}
     ]
   },
   "pending_forward_migrations": [],
@@ -174,7 +176,7 @@
     "transport_incident": {"affected_live_version":"20260905052336","historical_record_preserved":true,"canonical_raw_md5":"b976f1ccc2c329d7f2fe0bc43ef36606","live_recorded_statement_md5":"d3fb1fe33fffcd3c7314a9fa2238de3","repair_live_version":"20260905052651","repair_source_version":"20260904230200","repair_source_file":"20260904230200_clean_ru4_ai_edit_conversation_live_transfer_reconcile.sql","repair_raw_md5":"6be6134441a81a4550710969cac89d85"},
     "post_live": {"needs":6,"marketplace_responses":4,"agreements":2,"app_profiles":6,"need_edit_commands":0,"need_revision_events":0,"response_revision_resolution_commands":0,"remaining_search_close_commands":0,"policy_bundles":0,"policy_rule_refs":0,"publication_decisions":0,"d0140_production_publish":"FAIL_CLOSED"}
   },
-  "next_allowed_action": "Continue the next bounded current-canonical product gap. N08 is canonical, disposable proven and live structurally verified; do not reapply. Visible preference controls and provider delivery remain separate unproven work. Apply future changes only through fresh source-proof-review-forward-promotion.",
+  "next_allowed_action": "AI review/save authority is canonical and live87; Edge context is canonical and active v7. Do not reapply completed SQL. Continue actual owner provider/human review/DRAFT proof and independent mobile/native work. UI remains scaffold.",
   "ru5_p0c01_live_reconciliation": {
     "status": "CLOSED_LIVE",
     "canonical_promotion_sha": "366561e74a088d55d816d3795cba5f2299e3283c",
@@ -469,5 +471,98 @@
     "production_business_rpc_called": false,
     "physical_delivery_proven": false,
     "report": "docs/implementation/N08_LIVE85_PROMOTION_20260907.md"
+  },
+  "d03_message_retry_live_reconciliation": {
+    "unit": "D03",
+    "status": "CANONICAL_AUTHENTICATED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
+    "canonical_sha": "a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a",
+    "promotion_alias": {
+      "name": "clean_d03_message_retry",
+      "version": "20260907130151",
+      "file": "20260907110000_clean_d03_message_retry.sql",
+      "source_version": "20260907110000",
+      "exact_byte_mirror": true,
+      "canonical_raw_md5": "ea4ebf5cc6f24f103bdb9c854f55463d",
+      "canonical_sha256": "f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889",
+      "live_recorded_statement_md5": "ea4ebf5cc6f24f103bdb9c854f55463d",
+      "live_recorded_statement_sha256": "f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889",
+      "recorded_statement_utf8_bytes": 4277,
+      "proof_run": 34124166375,
+      "source_canonical_promotion_sha": "a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a"
+    },
+    "observed_at_utc": "2026-09-07T13:02:34.853014Z",
+    "live_migration_count": 86,
+    "original85_full_metadata_and_statement_fingerprints_unchanged": true,
+    "new_rpc_acl_search_path_body_match": true,
+    "old_rls_grants_indexes_n01_emitter_unchanged": true,
+    "original_message_rows_unchanged": true,
+    "new_keyed_messages": 0,
+    "source_pr": 55,
+    "proof_run": 34124166375,
+    "proof_head": "eb28d612ef6ff836911eeaa17d4501fcea4d7268",
+    "proof_artifact": 10019503348,
+    "artifact_zip_sha256": "4e3a7f9fa289edeb9aae2482b92a2e222525069e384c0c690eba7da8e1b98d6b",
+    "authenticated_checks": 11,
+    "predecessor_n07_checks": 6,
+    "predecessor_n08_checks": 12,
+    "canonical_pre_p4_run": 34124828179,
+    "canonical_codeql_run": 34124827576,
+    "canonical_control0_run": 34124828163,
+    "regression_suites": 47,
+    "regression_tests": 347,
+    "provider_called": false,
+    "production_business_fixture": false,
+    "production_business_rpc_called": false,
+    "mobile_screen_bound": false,
+    "overall_chat": "PARTIAL",
+    "report": "docs/implementation/D03_LIVE86_PROMOTION_20260907.md",
+    "provenance_reconciliation_canonical_base": "4ff2dc0f4862cccb2a432851657b68929b8bdc35",
+    "postflight_gates": {
+      "observed_at": "2026-09-07 13:18:42.065361+00",
+      "all_listed_counts": 0,
+      "connection_policy": [
+        {
+          "mode": "PROMOTIONAL_FREE",
+          "role": "REQUESTER",
+          "basis": "HEADCOUNT",
+          "policy": "REQUESTER_SELECTION_V1",
+          "reason": "SELECTION",
+          "version": 1,
+          "cost_rsd": 0
+        }
+      ],
+      "evidence": "docs/implementation/evidence/d03-live86-20260907/02-additional-gates.json"
+    },
+    "advisors_review": {
+      "before_count": 71,
+      "after_count": 72,
+      "added_count": 1,
+      "removed_count": 0,
+      "all_original71_cache_keys_preserved": true,
+      "errors": 0,
+      "new_warning": "authenticated_security_definer_function_executable",
+      "review": "Intentional authenticated command boundary. Expected actor/auth.uid equality and current membership are enforced; pg_catalog search_path; anon and service_role EXECUTE revoked. Original disposable proof independently covers Auth/RLS negatives, exact retry, conflicts and concurrent lifecycle. Existing advisor warnings are not claimed resolved.",
+      "evidence": "docs/implementation/evidence/d03-live86-20260907/02-advisors-review.json"
+    }
+  },
+  "ai_draft_authority_live_reconciliation": {
+    "canonical": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+    "observed_at_utc": "2026-09-07T14:04:10Z",
+    "alias": {
+      "name": "clean_ai_need_draft_safety_authority",
+      "version": "20260907135905",
+      "file": "20260907120000_clean_ai_need_draft_safety_authority.sql",
+      "source_version": "20260907120000",
+      "exact_byte_mirror": true,
+      "canonical_raw_md5": "d52caaa375623c9cfe93c8e536b3f55c",
+      "canonical_sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+      "live_recorded_statement_md5": "d52caaa375623c9cfe93c8e536b3f55c",
+      "live_recorded_statement_sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+      "recorded_statement_utf8_bytes": 21141,
+      "proof_run": 34128347708,
+      "source_canonical_promotion_sha": "c4c6b624446f3273a40e8393bfadc8c49dff5494"
+    },
+    "verification": "docs/implementation/evidence/ai-live87-20260907/verification.json",
+    "report": "docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md"
   }
 }

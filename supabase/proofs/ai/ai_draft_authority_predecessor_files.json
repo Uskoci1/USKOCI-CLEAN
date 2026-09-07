@@ -1,0 +1,13 @@
+{
+  "historical_source_commit": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
+  "historical_file_count": 85,
+  "historical_inventory_sha256": "7a255831327ba2a20a1784d3282b9a2fd40c4c85fed472ec4f7819b664d701e4",
+  "d03": {
+    "forward_file": "20260907110000_clean_d03_message_retry.sql",
+    "forward_version": "20260907110000",
+    "forward_name": "clean_d03_message_retry",
+    "bytes": 4277,
+    "md5": "ea4ebf5cc6f24f103bdb9c854f55463d",
+    "sha256": "f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889"
+  }
+}
