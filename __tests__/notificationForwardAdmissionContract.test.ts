@@ -5,14 +5,16 @@ const root=join(__dirname,'..');
 const read=(path:string)=>readFileSync(join(root,path),'utf8');
 describe('N07 exact per-unit forward admission',()=>{
   it('retains candidate SQL byte-for-byte after only a provenance comment prefix',()=>{
-    const pending=JSON.parse(read('supabase/migrations/MIGRATION_PROVENANCE.json')).pending_forward_migrations;
+    const pending=JSON.parse(read('supabase/proofs/notifications/n07_forward_files.json'));
+    const provenance=JSON.parse(read('supabase/migrations/MIGRATION_PROVENANCE.json'));
+    const registered=[...provenance.pending_forward_migrations,...provenance.live_history_snapshot.entries];
     expect(pending.map((x:any)=>x.unit)).toEqual(['N01','N02','N03','N05','N06']);
     for(const item of pending){
       const sql=read(`supabase/migrations/${item.file}`);
       expect(sql).toBe(`-- Forward admission of canonical ${item.unit}; NOT LIVE until approved promotion.\n-- Embedded candidate comments below are retained pre-admission provenance.\n`+read(item.candidate_file));
       expect(createHash('md5').update(sql).digest('hex')).toBe(item.raw_md5);
       expect(createHash('sha256').update(sql).digest('hex')).toBe(item.sha256);
-      expect(item.live_applied).toBe(false);
+      expect(registered.some((entry:any)=>(entry.file||`${entry.version}_${entry.name}.sql`)===item.file)).toBe(true);
     }
   });
   it('never replays new pending files before the historical live-79 predecessor',()=>{

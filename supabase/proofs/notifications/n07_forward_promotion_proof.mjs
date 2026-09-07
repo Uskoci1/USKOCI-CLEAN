@@ -25,9 +25,13 @@ try {
   check('EXACT_FIVE_FORWARD_FILES_APPLY_TO_LIVE79_PREDECESSOR');
   assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'),'79');
   const provenance=JSON.parse(readFileSync('supabase/migrations/MIGRATION_PROVENANCE.json','utf8'));
-  const pending=provenance.pending_forward_migrations;
+  // Immutable source-byte inventory, not a claim that files are still pending
+  // in a future session. The historical disposable proof remains reproducible.
+  const pending=JSON.parse(readFileSync('supabase/proofs/notifications/n07_forward_files.json','utf8'));
+  const registered=[...provenance.pending_forward_migrations,...provenance.live_history_snapshot.entries];
   assert.deepEqual(pending.map(x=>x.unit),['N01','N02','N03','N05','N06']);
   for(const [index,item] of pending.entries()){
+    assert.ok(registered.some(entry=>(entry.file||`${entry.version}_${entry.name}.sql`)===item.file));
     assert.match(item.file,/^20260907\d{6}_clean_n\d{2}_[a-z_]+\.sql$/);
     const bytes=readFileSync(`supabase/migrations/${item.file}`);
     assert.equal(createHash('md5').update(bytes).digest('hex'),item.raw_md5);
