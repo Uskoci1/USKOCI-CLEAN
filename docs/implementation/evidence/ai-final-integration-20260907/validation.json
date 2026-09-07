@@ -1,0 +1,48 @@
+{
+  "observedAt": "2026-09-07T14:03:24.376552+00:00",
+  "worktree": "USKOCI-CLEAN-ai-vertical-final",
+  "reviewedAiSource": "8fe1fc4a9b74f3a5b6b721b71229ba5c8389e145",
+  "canonicalSource": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+  "reviewedAuthFix": "386d539648ddcf10c34b90aa5cbb28701f90753f",
+  "preCommitWorktree": true,
+  "jest": {
+    "suites": 53,
+    "tests": 461,
+    "result": "PASS",
+    "seconds": 56.968
+  },
+  "typescript": "PASS",
+  "pythonHarness": {
+    "tests": 50,
+    "result": "PASS",
+    "runtime": "Python314; existing workspace scratch tzdata2026.3"
+  },
+  "nodeLocalGuard": {
+    "tests": 23,
+    "result": "PASS"
+  },
+  "migrationIntegrity": {
+    "source": 87,
+    "recordedLive": 86,
+    "pending": 1,
+    "result": "PASS"
+  },
+  "clientAst": {
+    "files": 67,
+    "presentation": 25,
+    "findings": 0,
+    "result": "STATIC_BOUNDARY_PASS"
+  },
+  "initialColdRun": {
+    "suitesPassed": 52,
+    "testsPassed": 460,
+    "failedTests": 1,
+    "failure": "Existing firebase-config.test.ts Expo subprocess status null at15000ms deadline",
+    "sourceOrTimeoutChanged": false,
+    "exactUnmodifiedFocusedRerun": "8 tests PASS in7.56s; preview child813ms",
+    "subsequentFullRerun": "53 suites461 tests PASS"
+  },
+  "nativeOnIntegratedSource": "PENDING",
+  "providerProof": false,
+  "productionMutationByIntegration": false
+}

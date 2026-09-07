@@ -1,5 +1,6 @@
 """Proof assertion regressions; these are not substituted for Android pixels."""
 import copy
+from pathlib import Path
 import unittest
 import xml.etree.ElementTree as ET
 from unittest.mock import Mock, patch
@@ -60,6 +61,29 @@ class NativeAssertions(unittest.TestCase):
     def test_scrolling_conversation_anchors_real_fixed_input(self):
         self.assertEqual(journey.anchor_criteria('Recite šta Vam treba'), {'desc': 'Poruka za AI razgovor'})
         self.assertEqual(journey.anchor_criteria('Proverite Zadatak'), {'text': 'Proverite Zadatak'})
+
+    def test_retained_review_position_scrolls_up_from_original_failure_geometry_before_tap(self):
+        path = Path(__file__).resolve().parents[1] / 'docs/implementation/evidence/ai-final-integration-20260907/run34125911445-failure-original.xml'
+        clipped, cp = tree(path.read_text(encoding='utf-8'))
+        original = next(n for n in clipped.iter() if n.attrib.get('content-desc') == 'Izmenite: Ljudi')
+        self.assertEqual(original.attrib['bounds'], '[353,307][655,269]')
+        self.assertFalse(journey.visible_node(original, cp, 1080, 2400))
+        visible = copy.deepcopy(clipped)
+        target = next(n for n in visible.iter() if n.attrib.get('content-desc') == 'Izmenite: Ljudi')
+        target.attrib['bounds'] = '[353,500][655,616]'
+        vp = {child: parent for parent in visible.iter() for child in parent}
+        with patch.object(journey, 'clean_surface', side_effect=[(clipped, cp), (visible, vp)]), patch.object(journey, 'screen_size', return_value=(1080, 2400)), patch.object(journey, 'scroll_once') as scroll, patch.object(journey, 'tap_node') as tap:
+            journey.press_in_review('Izmenite: Ljudi')
+        scroll.assert_called_once_with(clipped, 'up')
+        tap.assert_called_once_with(target, vp, hold_ms=120)
+
+    def test_observed_below_clip_overrides_up_hint_without_accepting_inverted_bounds(self):
+        clipped, cp = tree('<hierarchy><node scrollable="true" bounds="[0,307][1080,2101]"><node content-desc="Potvrdite: Vozilo" enabled="true" bounds="[676,2200][993,2101]"/></node></hierarchy>')
+        visible, vp = tree('<hierarchy><node scrollable="true" bounds="[0,307][1080,2101]"><node content-desc="Potvrdite: Vozilo" enabled="true" bounds="[676,700][993,816]"/></node></hierarchy>')
+        with patch.object(journey, 'clean_surface', side_effect=[(clipped, cp), (visible, vp)]), patch.object(journey, 'screen_size', return_value=(1080, 2400)), patch.object(journey, 'scroll_once') as scroll:
+            result, _, _ = journey.seek('Proverite Zadatak', desc='Potvrdite: Vozilo', direction='up', enabled=True)
+        self.assertIs(result, visible)
+        scroll.assert_called_once_with(clipped, 'down')
 
 
 class PersistedAssertions(unittest.TestCase):

@@ -1,0 +1,42 @@
+{
+  "observedAt": "2026-09-07T14:01:40.590961+00:00",
+  "reviewedMobileSource": "8fe1fc4a9b74f3a5b6b721b71229ba5c8389e145",
+  "canonicalSource": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+  "reviewedAuthFix": "386d539648ddcf10c34b90aa5cbb28701f90753f",
+  "mergeCommitted": false,
+  "mobileSourcePaths": 111,
+  "mobileSourceTreeInventorySha256": "e7ca39261dfb29968eb7f3be4a4171a0f07f4d47c2999f7616aceeedd761e0f6",
+  "onlyMobileSourceDifference": "src/app/auth.tsx",
+  "authFixExactReviewedBlob": "e34a1fc5c1db75d90fcda8380815e551d52185bd",
+  "canonicalConfigSupabasePackageDiff": [],
+  "original27AndWorkflowPreserved": [
+    {
+      "file": "scripts/intent_shell_run_journey.sh",
+      "blob": "85831a2ba61adec2cf3fb3d82279ba3bae864078"
+    },
+    {
+      "file": "scripts/intent_shell_android_journey.py",
+      "blob": "2581ceaf57eccc2d1b91910ce1e0e2f2a82aed9f"
+    },
+    {
+      "file": "scripts/intent_shell_discovery_fixture.mjs",
+      "blob": "32e2852bb6510e2ccb833bbcb464e99d9ab9296f"
+    },
+    {
+      "file": "scripts/n04_android_inbox_journey.py",
+      "blob": "ea500e699cd2656c4e85b726aa5ae0772e56aa7d"
+    },
+    {
+      "file": "scripts/ru5_android_device_ui_journey.py",
+      "blob": "1bf3b706c9db5682465f329b4c70c372d208a060"
+    },
+    {
+      "file": ".github/workflows/ai-review-mobile-proof.yml",
+      "blob": "43dc6516a5e62b3f2f715ff868cd4b059513b2a6"
+    }
+  ],
+  "apkInputsChanged": true,
+  "freshIntegratedNativeRequired": true,
+  "ownerWorktreeChangedByAgent": false,
+  "providerOrProductionCallByIntegration": false
+}

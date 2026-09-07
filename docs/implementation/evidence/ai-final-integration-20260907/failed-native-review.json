@@ -1,0 +1,41 @@
+{
+  "sourceHead": "8fe1fc4a9b74f3a5b6b721b71229ba5c8389e145",
+  "runId": 34125911445,
+  "result": "FAIL",
+  "artifactId": 10021212191,
+  "artifactZipBytes": 5679901,
+  "artifactZipSha256": "215873c04849491aec4e12dbdef6a1158fb5b0307f133acaa3c42c902a404e4f",
+  "original27LogResult": "PASS",
+  "newAiBoundaryReached": [
+    "real_third_owner_login",
+    "owned_conversation_open",
+    "typed_pending_service_fixture",
+    "pending_proposals",
+    "review_pending_save_disabled",
+    "back_same_conversation"
+  ],
+  "humanCorrectionReached": false,
+  "saveOrCardProofReached": false,
+  "providerProof": false,
+  "nativeAccepted": false,
+  "failure": {
+    "stage": "seek Izmenite: Ljudi after review Back/reentry",
+    "actualBounds": "[353,307][655,269]",
+    "actualEnabled": "true",
+    "scrollViewport": "[0,307][1080,2101]",
+    "saveEnabled": "false",
+    "finding": "The retained bottom scroll position places the real labelled People control above the viewport. The old harness only searched down.",
+    "failureXmlSha256": "fc9e2569536983e43266a328ed1b7362692fead9317663d572d8ab279c458984"
+  },
+  "manualOriginalImagesInspected": [
+    "AI_FAILURE_last_screen.png",
+    "AI_review_pending_top.png",
+    "AI_save_blocked_pending.png"
+  ],
+  "manualOriginalXmlInspected": [
+    "AI_FAILURE_last_screen.xml",
+    "AI_review_pending_top.xml",
+    "AI_save_blocked_pending.xml"
+  ],
+  "scope": "Historical79+N02/N03+exact reviewed AI2RPC; no provider; no full canonical replay; no integrated EAS APK claim"
+}

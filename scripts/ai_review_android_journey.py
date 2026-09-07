@@ -93,8 +93,8 @@ def seek(anchor, *, text=None, desc=None, direction='down', attempts=28, enabled
     """Scroll only the observed real surface; return the same asserted XML tree."""
     for _ in range(attempts):
         root, parent = clean_surface(anchor)
-        found = [n for n in root.iter() if matches(n, text=text, desc=desc)
-                 and visible_node(n, parent, *screen_size())]
+        candidates = [n for n in root.iter() if matches(n, text=text, desc=desc)]
+        found = [n for n in candidates if visible_node(n, parent, *screen_size())]
         if found:
             if len(found) != 1:
                 raise AssertionError(f'Ambiguous visible content text={text} desc={desc}')
@@ -104,7 +104,24 @@ def seek(anchor, *, text=None, desc=None, direction='down', attempts=28, enabled
                 time.sleep(0.5)
                 continue
             return root, parent, found[0]
-        scroll_once(root, direction)
+        observed_direction = direction
+        if len(candidates) == 1 and candidates[0].attrib.get('bounds'):
+            node = candidates[0]
+            bounds = parse_bounds(node.attrib.get('bounds'))
+            ancestor = parent.get(node)
+            while ancestor is not None:
+                if ancestor.attrib.get('scrollable') == 'true':
+                    clip = parse_bounds(ancestor.attrib.get('bounds'))
+                    # Android may report inverted bounds for a clipped node.
+                    # Run34125911445 retained Review's bottom position after
+                    # Back: People was [353,307][655,269], above clip y=307.
+                    if bounds[3] <= clip[1] or bounds[1] < clip[1]:
+                        observed_direction = 'up'
+                    elif bounds[1] >= clip[3] or bounds[3] > clip[3]:
+                        observed_direction = 'down'
+                    break
+                ancestor = parent.get(ancestor)
+        scroll_once(root, observed_direction)
     raise AssertionError(f'Required content did not become visible text={text} desc={desc}')
 
 
