@@ -61,6 +61,9 @@ jobs:
       - name: Fixture local-target guard tests
         run: node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
 
+      - name: Verify all D03 native source admission inputs before database and APK build
+        run: node --test supabase/proofs/notifications/d03_chat_device_source_admission.test.mjs
+
       - name: Reconstruct disposable live-79 Supabase
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
 

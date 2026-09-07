@@ -2,10 +2,10 @@
 // Deliberately NOT a full canonical migration-history replay.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
 import {readFileSync,writeFileSync,existsSync,realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
+import {readD03ChatSourceAdmission} from './d03_chat_device_source_admission.mjs';
 
 const env=process.env,out=env.RU5_DEVICE_ARTIFACT_DIR;
 assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL,env.RU5_DEVICE_DB_URL);
@@ -23,7 +23,6 @@ const agreement=uuid(env.N04_AGREEMENT_ID),need=uuid(env.RU5_DEVICE_NEED_ID);
 const worker=uuid(env.RU5_DEVICE_WORKER_USER_ID),requester=uuid(env.RU5_DEVICE_REQUESTER_USER_ID);
 const sql=query=>execFileSync('psql',[env.RU5_DEVICE_DB_URL,'-X','-v','ON_ERROR_STOP=1','-At','-c',query],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
 const rows=query=>JSON.parse(sql(`select coalesce(json_agg(x),'[]'::json) from (${query}) x`));
-const digest=(algorithm,bytes)=>createHash(algorithm).update(bytes).digest('hex');
 const inbox=readFileSync(join(out,'proof-inbox.log'),'utf8'),navigation=readFileSync(join(out,'proof-navigation.log'),'utf8');
 assert.ok(inbox.includes('PASS N04_PHYSICAL_INBOX'));assert.ok(navigation.includes('PASS PHYSICAL_INTENT_SHELL'));
 const n04=['INBOX_requester_one_event','INBOX_role_empty','INBOX_requester_read_all','INBOX_bell_zero','INBOX_worker_selection_unread','INBOX_selection_opens_real_agreement','INBOX_selection_read_confirmed','INBOX_next_page_available','INBOX_second_page_loaded','INBOX_worker_read_all'];
@@ -44,17 +43,7 @@ const business=()=>rows("select (select count(*) from public.marketplace_respons
 const beforeBusiness=business();
 console.log('PASS D03_NATIVE_PREDECESSOR_POSTFLIGHT ten_N04 seventeen_NAV selection_agreement_zero_rsd history79_plus_unrecorded_N02_N03');
 
-const n07=JSON.parse(readFileSync('supabase/proofs/notifications/n07_forward_files.json','utf8'));
-function exact(file,candidate,md5,sha256){
-  const bytes=readFileSync(`supabase/migrations/${file}`);
-  assert.deepEqual(bytes,readFileSync(candidate));assert.equal(digest('md5',bytes),md5);assert.equal(digest('sha256',bytes),sha256);
-  return {file,candidate,bytes:bytes.length,md5,sha256};
-}
-const alreadyApplied=n07.filter(item=>['N02','N03'].includes(item.unit)).map(item=>({...exact(item.file,item.candidate_file,item.raw_md5,item.sha256),unit:item.unit,appliedBy:'n04_inbox_device_fixture.mjs',historyRowAdded:false}));
-const additions=n07.filter(item=>['N01','N05','N06'].includes(item.unit)).map(item=>({...exact(item.file,item.candidate_file,item.raw_md5,item.sha256),unit:item.unit}));
-additions.push({...exact('20260907100000_clean_n08_notification_preferences.sql','supabase/proofs/notifications/n08_preferences_candidate.sql','349e81a12760af65dc4d5d98a7677333','f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16'),unit:'N08'});
-additions.push({...exact('20260907110000_clean_d03_message_retry.sql','supabase/proofs/notifications/d03_message_retry_candidate.sql','ea4ebf5cc6f24f103bdb9c854f55463d','f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889'),unit:'D03'});
-assert.equal(additions.at(-1).bytes,4277);
+const {alreadyApplied,additions}=readD03ChatSourceAdmission();
 const report={sourceSha:env.GITHUB_SHA,runId:env.GITHUB_RUN_ID,localOnly:true,liveAccess:false,providerCalled:false,
   fullCanonicalHistoryReplay:false,nativeBoundary:'historical79 + exact N02/N03 fixture extensions + exact N01/N05/N06/N08/D03 extensions; no added history rows',
   predecessorPhysical:{n04:n04.length,navigation:nav.length,businessPostflight:'PASS'},agreementId:agreement,requesterId:requester,workerId:worker,
