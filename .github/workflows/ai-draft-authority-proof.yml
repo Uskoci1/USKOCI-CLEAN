@@ -41,6 +41,7 @@ jobs:
           npx tsc --noEmit
           npm test -- --runInBand
           node --check supabase/proofs/ai/ai_draft_authority_proof.mjs
+          node --test supabase/proofs/ai/ai_draft_authority_predecessor.test.mjs
           node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
       - name: Reconstruct disposable historical live79
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
@@ -59,9 +60,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node supabase/proofs/ai/ai_draft_authority_predecessor.mjs
           node supabase/proofs/ai/ai_draft_authority_proof.mjs 2>&1 | tee "$AI_AUTHORITY_ARTIFACT_DIR/proof.log"
           grep -F 'PASS AI_DRAFT_AUTHORITY' "$AI_AUTHORITY_ARTIFACT_DIR/proof.log"
-          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.AI_AUTHORITY_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || !r.provider_response_stubbed || r.migration_history_count!==86 || !r.exact_forward_file_applied_disposable || !r.original85_full_history_unchanged || r.lock_interleavings.length!==4) process.exit(1);'
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.AI_AUTHORITY_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || !r.provider_response_stubbed || r.migration_history_count!==r.predecessor_history_count+1 || r.migration_history_count!==r.predecessor_plan.source_migration_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==4) process.exit(1);'
       - name: Existing RU2 typed correction, privacy, save and supersession regressions
         shell: bash
         run: |

@@ -7,9 +7,11 @@ import {createHash,randomUUID} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
+import {readAiAuthorityPredecessorPlan} from './ai_draft_authority_predecessor.mjs';
 
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url,db);
+const predecessorPlan=readAiAuthorityPredecessorPlan();
 const uuid=value=>{assert.match(String(value),/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i);return value;};
 const ownerId=uuid(env.RU5_DEVICE_REQUESTER_USER_ID),outsiderId=uuid(env.RU5_DEVICE_WORKER_USER_ID);
 const opts={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
@@ -105,7 +107,9 @@ const wireJson=result=>JSON.parse(result.stdout.split(/\r?\n/).find(line=>line.s
 const sqlDenied=(result,message)=>{assert.notEqual(result.code,0);assert.match(result.stderr,new RegExp(`P0001: ${message}`));};
 
 try{
-  assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'),'85');
+  assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')),predecessorPlan.expected_predecessor_count);
+  report.predecessor_plan=predecessorPlan;
+  report.predecessor_history_count=predecessorPlan.expected_predecessor_count;
   for(const [client,email,id] of [[owner,env.RU5_DEVICE_REQUESTER_EMAIL,ownerId],[outsider,env.RU5_DEVICE_WORKER_EMAIL,outsiderId]]){
     await ok(client.auth.signInWithPassword({email,password:env.RU5_DEVICE_PASSWORD}));
     assert.equal((await ok(client.auth.getUser())).user.id,id);
@@ -113,6 +117,11 @@ try{
   profileId=uuid((await ok(owner.from('app_profiles').select('id').eq('account_id',ownerId).eq('kind','REQUESTER').single())).id);
   const unaffected=noEffects();
   const history=tableHash('supabase_migrations.schema_migrations');
+  const fullHistory=where=>rows(`select to_jsonb(m) metadata from supabase_migrations.schema_migrations m where ${where} order by version`);
+  const originalHistory=fullHistory('true');
+  report.original_full_history_sha256=createHash('sha256').update(JSON.stringify(originalHistory)).digest('hex');
+  report.original_history_record_fingerprints=originalHistory.map(({metadata})=>({version:metadata.version,name:metadata.name,
+    full_record_sha256:createHash('sha256').update(JSON.stringify(metadata)).digest('hex')}));
   const allFunctions=()=>rows("select n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) args,md5(p.prosrc) body_md5,p.prosecdef,p.proconfig,p.proacl::text acl from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.oid not in ('public.rpc_ai_need_review_v2(uuid)'::regprocedure,'public.rpc_save_need_draft_from_review(uuid,uuid,text)'::regprocedure) order by n.nspname,p.proname,args");
   const unchangedFunctions=allFunctions(),registry=tableHash('private.need_fact_registry');
   const targetAuthority=()=>rows("select p.oid::regprocedure::text signature,p.prosecdef,p.proleakproof,p.provolatile,p.proparallel,p.proconfig,p.proacl::text acl,p.proowner::regrole::text owner,p.prorettype::regtype::text result_type,p.proargnames,p.proargmodes from pg_proc p where p.oid in ('public.rpc_ai_need_review_v2(uuid)'::regprocedure,'public.rpc_save_need_draft_from_review(uuid,uuid,text)'::regprocedure) order by signature");
@@ -128,18 +137,19 @@ try{
   report.predecessor={latest_persisted_safety:'BLOCK',review_can_save:true,authenticated_direct_save:'SUCCEEDED',
     conversation_id:legacyBlocked,receipt:oldReceipt};pass();
 
-  check('EXACT_TWO_RPC_FORWARD_APPLY_PRESERVES_ALL85_HISTORY_AND_ENGINE');
+  check('EXACT_TWO_RPC_FORWARD_APPLY_PRESERVES_FULL_PREDECESSOR_HISTORY_AND_ENGINE');
   const beforeApply=scoped(legacyBlocked);
   execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-f',forward],{stdio:'pipe'});
   sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${lit(manifest.forward_version)},${lit(manifest.forward_name)},array[${lit(bytes.toString('utf8'))}])`);
   assert.equal(tableHash('supabase_migrations.schema_migrations',`version<>${lit(manifest.forward_version)}`),history);
+  assert.deepEqual(fullHistory(`version<>${lit(manifest.forward_version)}`),originalHistory);
   assert.deepEqual(scoped(legacyBlocked),beforeApply);assert.deepEqual(allFunctions(),unchangedFunctions);
   assert.deepEqual(targetAuthority(),authorityBefore,'target RPC ACL/search path/owner/security modes unchanged');
   assert.equal(tableHash('private.need_fact_registry'),registry);assert.deepEqual(noEffects(),unaffected);
   sql("notify pgrst,'reload schema'");
   let refreshed=false;
   for(let i=0;i<40;i++){const r=await review(legacyBlocked);if(!r.error&&r.data.safety==='BLOCK'){refreshed=true;break;}await new Promise(r=>setTimeout(r,250));}
-  assert.ok(refreshed);report.exact_forward_file_applied_disposable=true;report.original85_full_history_unchanged=true;pass();
+  assert.ok(refreshed);report.exact_forward_file_applied_disposable=true;report.original_predecessor_full_history_unchanged=true;pass();
 
   check('REAPPLY_WRONG_PREDECESSOR_REFUSES_WITHOUT_PARTIAL_FUNCTION_CHANGE');
   let refused=false;
@@ -274,8 +284,14 @@ try{
   assert.deepEqual(noEffects(),unaffected);
   assert.equal(tableHash('supabase_migrations.schema_migrations',`version<>${lit(manifest.forward_version)}`),history);
   assert.equal(sql(`select md5(statements[1]) from supabase_migrations.schema_migrations where version=${lit(manifest.forward_version)}`),manifest.md5);
-  report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));assert.equal(report.migration_history_count,86);
-  report.original85_full_history_unchanged=true;report.unchanged_writer_and_publish_functions=true;
+  report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
+  assert.equal(report.migration_history_count,predecessorPlan.source_migration_count);
+  assert.equal(report.migration_history_count,report.predecessor_history_count+1);
+  const remainingHistory=fullHistory(`version<>${lit(manifest.forward_version)}`);
+  assert.deepEqual(remainingHistory,originalHistory);
+  report.after_original_full_history_sha256=createHash('sha256').update(JSON.stringify(remainingHistory)).digest('hex');
+  assert.equal(report.after_original_full_history_sha256,report.original_full_history_sha256);
+  report.original_predecessor_full_history_unchanged=true;report.unchanged_writer_and_publish_functions=true;
   report.review_and_save_fingerprints=rows("select p.oid::regprocedure::text signature,md5(p.prosrc) body_md5,p.prosecdef,p.proconfig,p.proacl::text acl from pg_proc p where p.oid in ('public.rpc_ai_need_review_v2(uuid)'::regprocedure,'public.rpc_save_need_draft_from_review(uuid,uuid,text)'::regprocedure)");
   report.limitations=['No actual provider request or mobile/device execution.','Existing human fact-first then conversation lock versus writer/save conversation-first lock order is unchanged; global AI deadlock freedom is not claimed.','Edge still uses first40 transcript slice and has no durable turn request key.','Fallback REVIEW permits a confirmed DRAFT under existing semantics; this is not publication approval.'];
   pass();report.result='PASS';console.log('PASS AI_DRAFT_AUTHORITY');

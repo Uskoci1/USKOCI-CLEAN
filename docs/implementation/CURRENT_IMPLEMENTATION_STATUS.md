@@ -1,8 +1,10 @@
 ## CURRENT SOURCE CHECKPOINT — 2026-09-07 / AI DRAFT AUTHORITY PENDING
 
-AI DRAFT authority is **SOURCE IMPLEMENTED / PROOF PENDING / NOT CANONICAL / NOT LIVE** on isolated baseline `9d245f3053c8e79370a73e82b12d4250e3ed94b7`. Two existing owner RPCs now project persisted safety coherently and reject a new DRAFT after BLOCK while preserving prior successful acknowledgments. Inventory for this branch is **86 source / observed live85 / pending1**. No provider request, production fixture, Edge deployment, policy activation or live migration occurred. N07/N08 closure remains unchanged.
+AI DRAFT authority is **SOURCE IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN AT17659 / FRESH INTEGRATION PENDING / NOT LIVE** on isolated baseline `9d245f3053c8e79370a73e82b12d4250e3ed94b7`. Two existing owner RPCs now project persisted safety coherently and reject a new DRAFT after BLOCK while preserving prior successful acknowledgments. Inventory for this branch is **86 source / observed live85 / pending1**. No provider request, production fixture, Edge deployment, policy activation or live migration occurred. N07/N08 closure remains unchanged.
 
-Read [the exact source and proof boundary](AI_DRAFT_AUTHORITY_20260907.md). The disposable runner must first reproduce the predecessor bypass and prove direct denial, owner isolation, unchanged engine/history and observed lock interleavings. Do not call this runtime-proven until original current-head artifacts pass review. Older source-count pointers below are historical to their own checkpoint. Continue under user V3 and06.09 UI priority; production is not a sandbox.
+Read [the exact source and proof boundary](AI_DRAFT_AUTHORITY_20260907.md). The original85-to86 authenticated runtime proof is accepted; the prepared dynamic D03 predecessor integration still requires its own final source replay. Older source-count pointers below are historical to their own checkpoint. Continue under user V3 and06.09 UI priority; production is not a sandbox.
+
+Original run34121379016 at17659 passed15 AI checks plus6 N07/12 N08,37 suites/232 tests and four physically observed lock interleavings; exact original artifact and zero-result CodeQL analyses are linked in the unit report. The D03-aware source inventory/full-history integration is prepared and awaits the actual canonical D03 replay. SQL bytes remain unchanged; no live/provider claim.
 
 ---
 

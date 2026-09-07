@@ -8,3 +8,4 @@ supabase/proofs/notifications/n08_preferences_candidate.sql text eol=lf
 docs/implementation/evidence/n08-preferences-20260907/*.log text eol=lf
 supabase/proofs/ai/*.sql text eol=lf
 supabase/proofs/ai/*.json text eol=lf
+supabase/proofs/ai/*.mjs text eol=lf
