@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import type { PrilikaProjekcija } from '../../contracts/projections';
+import type { PrilikaDetaljiProjekcija } from '../../contracts/publicTaskDetail';
 
 let mockId: string | string[] | undefined = 'task-a';
 let mockAccountId: string | undefined = 'account-a';
@@ -9,7 +9,7 @@ let mockAccountRevision = 1;
 let mockIntent: 'uskocer' | 'narucilac' = 'uskocer';
 let mockFocused = true;
 const mockLoad = jest.fn();
-const mockSource = { prilika: mockLoad };
+const mockSource = { detaljiPrilike: mockLoad };
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockAppListeners = new Set<(value: string) => void>();
 
@@ -45,10 +45,13 @@ function deferred<T>() {
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 }
-const detail = (id = 'task-a'): PrilikaProjekcija => ({
+const detail = (id = 'task-a'): PrilikaDetaljiProjekcija => ({
   id, naslov: `Zadatak ${id}`, statusTekst: 'Traži ponude', primaNovePrijave: true, rokZaPrijaveIso: null, podrucjeTekst: 'Centar, Novi Sad', vremeTekst: 'Fleksibilno',
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, uslovi: ['Alat'],
   narucilacProfilId: 'requester-a', narucilacIme: '', narucilacOcena: null, priblizno: null,
+  revision: 1, opis: 'Potrebna je pomoć oko rada.', kategorija: 'Pomoć',
+  zahtevi: { vestine: [], alati: ['Alat'], vozila: [], licence: [], minimalnoIskustvoGodina: null, zahtevaProverenIdentitet: false },
+  javnaGeografija: { state: 'unavailable' }, kriticniUslovi: { state: 'unavailable' },
 });
 let tree: ReactTestRenderer | undefined;
 async function render() { await act(async () => { tree = create(<Detail />); }); }
@@ -65,8 +68,29 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => { tree?.unmount(); }); tree = undefined; jest.useRealTimers(); });
 
 describe('W04 actual screen and focused read lifecycle', () => {
+  it('gives a requester a profile path without falsely calling an open task closed', async () => {
+    mockIntent = 'narucilac'; mockLoad.mockResolvedValue(detail()); await render();
+    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(text()).toContain('Za slanje prijave uključite režim JA MOGU');
+    expect(text()).not.toContain('Nove prijave trenutno nisu dostupne');
+    const press = buttons('Otvorite profil')[0].props.onPress;
+    await act(async () => { press(); press(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil']]);
+  });
+
+  it('refreshes public material and removes previously visible child facts when RLS no longer returns them', async () => {
+    mockLoad.mockResolvedValueOnce({ ...detail(), opis: 'Stari opis',
+      kriticniUslovi: { state: 'available', value: ['Prethodni uslov'] } })
+      .mockResolvedValueOnce({ ...detail(), revision: 2, opis: 'Novi opis', primaNovePrijave: false });
+    await render(); expect(text()).toContain('Prethodni uslov');
+    await act(async () => mockAppListeners.forEach(listener => listener('active')));
+    expect(text()).toContain('Novi opis'); expect(text()).not.toContain('Stari opis');
+    expect(text()).not.toContain('Prethodni uslov'); expect(text()).toContain('Dodatni uslovi nisu dostupni');
+    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+  });
+
   it('shows recoverable read failure without transport details and serializes retry taps', async () => {
-    const retry = deferred<PrilikaProjekcija>();
+    const retry = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockRejectedValueOnce(new Error('secret transport internals')).mockReturnValueOnce(retry.promise);
     await render();
     expect(text()).toContain('Zadatak trenutno nije moguće učitati'); expect(text()).not.toContain('secret');
@@ -86,7 +110,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('retains only marked display data after a failed foreground refresh and invalidates old presses immediately', async () => {
-    const refresh = deferred<PrilikaProjekcija>();
+    const refresh = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(refresh.promise).mockResolvedValueOnce(detail());
     await render(); const stalePress = buttons('Sastavi prijavu')[0].props.onPress;
     await act(async () => { mockAppListeners.forEach(listener => listener('active')); stalePress(); });
@@ -135,7 +159,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('clears displayed A detail on id change and rejects A handlers', async () => {
-    const b = deferred<PrilikaProjekcija>(); mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(b.promise);
+    const b = deferred<PrilikaDetaljiProjekcija>(); mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(b.promise);
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
     mockId = 'task-b'; await update();
     expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
@@ -144,7 +168,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('invalidates a pending account A read when B signs in, even if A completes later', async () => {
-    const a = deferred<PrilikaProjekcija>(); const b = deferred<PrilikaProjekcija>();
+    const a = deferred<PrilikaDetaljiProjekcija>(); const b = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise); await render();
     mockAccountId = 'account-b'; mockEpoch++; await update();
     await act(async () => b.resolve({ ...detail(), naslov: 'Podaci za B' }));
@@ -153,8 +177,8 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('rejects the previous A read and press after A→B→A without rendering B', async () => {
-    const oldRead = deferred<PrilikaProjekcija>();
-    const currentRead = deferred<PrilikaProjekcija>();
+    const oldRead = deferred<PrilikaDetaljiProjekcija>();
+    const currentRead = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(oldRead.promise).mockReturnValueOnce(currentRead.promise);
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
@@ -173,7 +197,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('conservatively rereads W04 after same-account token refresh while identity revision stays stable', async () => {
-    const refresh = deferred<PrilikaProjekcija>();
+    const refresh = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(refresh.promise);
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
     mockEpoch++;
@@ -209,7 +233,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('drops cache and application action when intent changes during a read', async () => {
-    const late = deferred<PrilikaProjekcija>();
+    const late = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(late.promise).mockRejectedValueOnce(new Error('offline'));
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
@@ -220,7 +244,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('invalidates reads and actions on blur and rereads on focus', async () => {
-    const late = deferred<PrilikaProjekcija>();
+    const late = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(late.promise).mockResolvedValueOnce({ ...detail(), naslov: 'Sveži podaci' });
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
@@ -254,7 +278,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('clears task A immediately on id B and ignores A finishing after B', async () => {
-    const a = deferred<PrilikaProjekcija>(); const b = deferred<PrilikaProjekcija>();
+    const a = deferred<PrilikaDetaljiProjekcija>(); const b = deferred<PrilikaDetaljiProjekcija>();
     mockLoad.mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise); await render();
     mockId = 'task-b'; await update();
     await act(async () => b.resolve(detail('task-b')));

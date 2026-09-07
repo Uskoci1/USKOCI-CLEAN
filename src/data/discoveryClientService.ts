@@ -4,6 +4,7 @@ import type { JavniProfilProjekcija, PrilikaProjekcija } from '../contracts/proj
 import type { Izvor } from './ports';
 import { publicProfileClientService } from './publicProfileClientService';
 import { supabaseKlijent } from './supabaseClient';
+import { publicTaskMaterial } from './publicTaskDetailProjection';
 
 // Only authenticated public Need fields. Never add account IDs, sensitive rows,
 // exact addresses, private terms or raw profiles to the discovery projection.
@@ -13,10 +14,16 @@ const PUBLIC_NEED_FIELDS = [
   'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots',
   'mode', 'requester_price_rsd', 'requester_profile_id', 'response_deadline',
 ].join(',');
+// Default LEFT embeds keep readable terminal parents when child policies filter material.
+const PUBLIC_DETAIL_FIELDS = [PUBLIC_NEED_FIELDS, 'revision', 'description', 'category', 'required_licenses',
+  'minimum_experience_years', 'verified_identity_required',
+  'geography:need_geography(need_id,public_topology)',
+  'requirementDetails:need_requirement_details(need_id,critical_conditions)',
+].join(',');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MODES = ['STATIONARY', 'POINT_TO_POINT', 'MULTI_STOP', 'AREA_BASED', 'REMOTE'];
 const SCHEDULES = ['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'];
-type Service = Pick<Izvor, 'otvorenePrilike' | 'otvorenePrilikeStrana' | 'prilika'>;
+type Service = Pick<Izvor, 'otvorenePrilike' | 'otvorenePrilikeStrana' | 'prilika' | 'detaljiPrilike'>;
 type Row = Record<string, any>;
 
 function timestamp(value: unknown): value is string {
@@ -175,6 +182,20 @@ export function createDiscoveryClientService(deps: {
       if (error) throw error;
       if (data === null) return null;
       return (await project([data]))[0];
+    },
+    async detaljiPrilike(id, opcije = {}) {
+      const signal = opcije.signal;
+      cancelled(signal);
+      if (typeof id !== 'string' || id.length !== 36 || !UUID.test(id)) throw new Error('PUBLIC_TASK_ID_INVALID');
+      let query = deps.client().from('needs').select(PUBLIC_DETAIL_FIELDS).eq('id', id.toLowerCase());
+      if (signal) query = query.abortSignal(signal);
+      const { data, error } = await query.maybeSingle();
+      cancelled(signal);
+      if (error) throw error;
+      if (data === null) return null;
+      // Validate material before optional public-profile reads. No material is cached or merged across reads.
+      const material = publicTaskMaterial(data, id.toLowerCase());
+      return { ...(await project([data], signal))[0], ...material };
     },
   };
 }

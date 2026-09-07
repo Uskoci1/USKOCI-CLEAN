@@ -20,6 +20,7 @@ import type {
   RadnikProfilProjekcija,
 } from '../contracts/projections';
 import type { PrilikeStrana, PrilikeStranaUpit } from '../contracts/discovery';
+import type { PrilikaDetaljiProjekcija, PrilikaDetaljiUpit } from '../contracts/publicTaskDetail';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
 export type Ishod<T> =
@@ -43,8 +44,10 @@ export interface PotrebeCitanje {
   otvorenePrilike(): Promise<PrilikaProjekcija[]>;
   /** W03 — one authenticated public-safe dataset for List and Map. */
   otvorenePrilikeStrana(upit?: PrilikeStranaUpit): Promise<PrilikeStrana>;
-  /** W04 — dosije jedne Prilike. */
+  /** Compact read retained for existing W05 and other summary consumers. */
   prilika(id: string): Promise<PrilikaProjekcija | null>;
+  /** W04 — public material; null children remain unavailable under existing RLS. */
+  detaljiPrilike(id: string, opcije?: PrilikaDetaljiUpit): Promise<PrilikaDetaljiProjekcija | null>;
 }
 
 export interface PrijaveCitanje {

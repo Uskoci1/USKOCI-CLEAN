@@ -53,6 +53,7 @@ export const supabaseIzvor: SupabaseIzvor = {
   otvorenePrilike: discoveryClientService.otvorenePrilike,
   otvorenePrilikeStrana: discoveryClientService.otvorenePrilikeStrana,
   prilika: discoveryClientService.prilika,
+  detaljiPrilike: discoveryClientService.detaljiPrilike,
 
   async poruke(dogovorId: string, expectedAccountId?: string) {
     const uuid = (value: unknown): value is string => typeof value === 'string' && value.length === 36
