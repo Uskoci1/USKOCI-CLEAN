@@ -20,11 +20,15 @@ The composer remains outside the history scroller and uses keyboard avoidance. I
 
 ## Source validation
 
-- Full current source: **50 Jest suites / 394 tests PASS**, TypeScript PASS.
+- Full current source after the capacity fix: **52 Jest suites /419 tests PASS**, TypeScript PASS. This supersedes the earlier interim50/394 count.
 - Actual message adapter tests cover Auth changes, bad routes/rows, read errors, sender/key preservation and unknown read receipts.
 - Actual route/hook/component tests cover rapid capture, reconciliation before hydration, stale A → B and batched A → B → A completion, rejected-send workspace refresh, composer/keyboard structure, explicit retry and scroll position.
 - The pure outbox and message command tests cover durable-before-send ordering, storage failures, immutable retries, real deferred-request ordering, stop/start generations, cross-instance acknowledgement reconciliation and terminal retry admission.
 - Native harness syntax and local-outage/observer tests pass. These are harness checks, not Android execution proof.
+
+The final independent review reproduced an unbounded volatile fallback at sourcecc94fda: with maxPending1, repeated storage failures while composing the next draft retained3 unsaved rows. The fix checks capacity before capture and counts the union of durable pending keys and volatile reservations inside the serialized write. Retrying a reservation excludes only its own key, so recovery remains possible at capacity. Two deferred-storage regressions cover repeated failures, a mixed durable-unknown/unsaved limit, preserved current text and exact same-key recovery. The independent six-suite D03 check passed104 tests before these two additions; the final full run above includes them. The10 local-target/observer tests also passed without touching Docker, an emulator or a live endpoint.
+
+Updated bounded client inspection:67 source files /26 presentation files /0 findings, and local migration integrity85/live-snapshot85/pending0 PASS. See [capacity-fix source evidence](evidence/d03-chat-recovery-20260907/capacity-fix-validation.json) and [AST fingerprints](evidence/d03-chat-recovery-20260907/client-boundary-capacity-fix.json). These artifacts record the dirty tested source before its commit; no Android or production acceptance is added.
 
 Backend PR #55 separately proves server idempotency, contention, actor/membership negatives and rollback behavior at its exact recorded source. That proof does not substitute for this mobile source's device proof.
 

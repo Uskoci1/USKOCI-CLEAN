@@ -88,6 +88,42 @@ it('storage read failure is explicit and start retries loading without any send'
   await model.start(); expect(model.getSnapshot()).toMatchObject({ phase: 'ready', error: null }); expect(send).not.toHaveBeenCalled();
 });
 
+it('bounds volatile failed captures while retaining the next draft and allowing same-key recovery', async () => {
+  const write = deferred<void>(); const { model, storage, send } = setup({ maxPending: 1 }); await model.start();
+  storage.setItem.mockImplementationOnce(async () => { await write.promise; throw new Error('disk'); });
+  model.setDraft('Prva'); const capture = model.sendDraft(); await until(() => storage.setItem.mock.calls.length === 1);
+  model.setDraft('Druga'); write.resolve(); await capture;
+  const original = first(model).command;
+  for (const text of ['Druga', 'Treća', 'Četvrta']) {
+    model.setDraft(text); await model.sendDraft();
+    expect(model.getSnapshot()).toMatchObject({ draft: text, error: 'CAPACITY' });
+    expect(model.getSnapshot().entries).toHaveLength(1);
+  }
+  expect(storage.setItem).toHaveBeenCalledTimes(1); expect(send).not.toHaveBeenCalled();
+  await model.retry(original.clientMessageId);
+  expect(send.mock.calls[0][0]).toEqual(original);
+  expect(first(model)).toMatchObject({ state: 'confirmed', persisted: true });
+  expect(model.getSnapshot().draft).toBe('Četvrta');
+  await model.sendDraft(); expect(send.mock.calls.map(([command]) => command.body)).toEqual(['Prva', 'Četvrta']);
+});
+
+it('counts durable unknown and unsaved captured intents together at the configured limit', async () => {
+  const write = deferred<void>(); const { model, storage, send } = setup({ maxPending: 2 });
+  send.mockRejectedValue(new AgreementMessageError('UNAVAILABLE')); await model.start();
+  model.setDraft('Nepotvrđena'); await model.sendDraft();
+  const writes = storage.setItem.mock.calls.length;
+  storage.setItem.mockImplementationOnce(async () => { await write.promise; throw new Error('disk'); });
+  model.setDraft('Nesačuvana'); const capture = model.sendDraft();
+  await until(() => storage.setItem.mock.calls.length === writes + 1); model.setDraft('Sledeća'); write.resolve(); await capture;
+  await model.sendDraft();
+  expect(model.getSnapshot()).toMatchObject({ draft: 'Sledeća', error: 'CAPACITY' });
+  expect(model.getSnapshot().entries.map(entry => entry.persisted)).toEqual([true, false]);
+  const retry = model.getSnapshot().entries[1].command; await model.retry(retry.clientMessageId);
+  expect(stored(storage).entries).toHaveLength(2);
+  expect(model.getSnapshot().entries.every(entry => entry.persisted)).toBe(true);
+  expect(send.mock.calls.map(([command]) => command.body)).toEqual(['Nepotvrđena', 'Nesačuvana']);
+});
+
 it.each(['not json', JSON.stringify({ version: 1, accountId: anotherAccount, agreementId, revision: 1, entries: [] })])('refuses corrupt or foreign stored state without overwriting it', async value => {
   const { model, storage, send } = setup(); storage.getItem.mockResolvedValue(value);
   await model.start(); expect(model.getSnapshot()).toMatchObject({ phase: 'error', error: 'STORAGE_INVALID' });

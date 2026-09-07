@@ -3,7 +3,7 @@
 
 Agreement chat recovery is IMPLEMENTED / SOURCE TESTED / NOT CANONICAL OR LIVE in this isolated unit. It integrates PR49 source `29271e6be7fc519e40941531d37c6d48b0db7ef3`; PR55's server command remains a separately gated dependency. Typed commands, durable immutable attempts, manual same-key retry, focused actor/revision ownership, distinct errors and a keyboard-aware composer replace the lossy send behavior. Presentation delegates through hooks and client services. The current UI remains a testable scaffold; the owner's later approved Figma source will govern final visual layout.
 
-Read [D03 mobile scope, architecture and proof boundaries](D03_CHAT_RECOVERY_20260907.md). The combined Android harness is prepared but has not executed for this source. No older APK proves these changes, and no D03 production promotion occurred. Retain fresh canonical/live provenance below; do not reinterpret this source checkpoint as activation or repeat previously accepted core proofs.
+Read [D03 mobile scope, architecture and proof boundaries](D03_CHAT_RECOVERY_20260907.md). Final independent review closed the volatile storage-failure capacity gap while preserving same-key retry and the next draft;52 suites/419 tests, TSC, integrity85 and AST67/26/0 pass locally. The combined Android harness is prepared but has not executed for this source. No older APK proves these changes, and no D03 production promotion occurred. Retain fresh canonical/live provenance below; do not reinterpret this source checkpoint as activation or repeat previously accepted core proofs.
 
 ---
 

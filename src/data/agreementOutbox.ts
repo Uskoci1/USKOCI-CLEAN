@@ -157,7 +157,11 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
   }
   function add(record: Stored, command: AgreementMessageCommand) {
     if (record.entries.some(entry => entry.command.clientMessageId === command.clientMessageId)) throw new Fault('CONFLICT');
-    if (record.entries.filter(entry => entry.state !== 'confirmed').length >= limit) throw new Fault('CAPACITY');
+    // A retry converts its own volatile reservation to durable storage. Other
+    // unsaved intents still consume capacity and must not be silently dropped.
+    const pending = new Set(record.entries.filter(entry => entry.state !== 'confirmed').map(entry => entry.command.clientMessageId));
+    for (const key of unsaved.keys()) if (key !== command.clientMessageId) pending.add(key);
+    if (pending.size >= limit) throw new Fault('CAPACITY');
     record.entries.push(immutable({ command, state: 'sending', persisted: true, attempt: record.revision + 1 }));
   }
 
@@ -192,6 +196,11 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       if (snapshot.capturing) return Promise.resolve();
       if (snapshot.phase !== 'ready') { publish({ error: 'NOT_READY' }); return Promise.resolve(); }
       if (!maySendNew()) { publish({ error: 'READ_ONLY' }); return Promise.resolve(); }
+      // Reserve capacity before storage can fail. Otherwise repeated failures
+      // while the user types the next draft grow the volatile fallback forever.
+      if (snapshot.entries.filter(entry => entry.state !== 'confirmed').length >= limit) {
+        publish({ error: 'CAPACITY' }); return Promise.resolve();
+      }
       const admitted = generation;
       const originalDraft = snapshot.draft, revision = draftRevision;
       const body = originalDraft.trim();
