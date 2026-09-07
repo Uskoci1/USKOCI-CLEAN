@@ -1,3 +1,11 @@
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / EXISTING EAS PREVIEW IDENTITY
+
+Existing team EAS identity is source-configured and read-only verified: `@sljivas-team/uskoci`, project `1e6cc490-9851-4741-9226-128612122db6`, package `rs.uskoci.preview`. Source review/merge is pending for this unit. The preview profile uses existing remote credentials and automatic remote versioning with local seed35; the fresh remote-version read returned no initialized counter. The EAS-only pre-install guard rejects wrong identity, missing/foreign public backend environment and fake/test data composition.
+
+Read [existing identity, signing reference and proof limits](EAS_EXISTING_PREVIEW_IDENTITY_20260907.md). No build, submit, update, remote version/credential/environment mutation or database write occurred. Configured FCM metadata is not native delivery proof; Firebase app-list access/client config, actual APK certificate/Auth and provider/token delivery remain open. N08 live85/pending0 from canonical PR54 is retained below and is not reopened.
+
+---
+
 ## CURRENT CHECKPOINT — 2026-09-07 / N08 LIVE85
 
 N08 is **CANONICAL / AUTHENTICATED DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. PR53 merged as `06d8ce1a14c87ca2237d94aa5a60cd7230899ff6`; exact forward promotion is live at **85 migrations / `20260907102458_clean_n08_notification_preferences`**. Inventory is **85 source files / live85 / pending0**. All original84 full history metadata and statement fingerprints remain unchanged. Do not reapply N08 or N07.

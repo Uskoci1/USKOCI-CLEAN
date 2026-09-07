@@ -49,6 +49,7 @@
     }
   },
   "scripts": {
+    "eas-build-pre-install": "node ./scripts/check-eas-preview.cjs",
     "postinstall": "node ./scripts/sync-entry-reference-assets.cjs",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",

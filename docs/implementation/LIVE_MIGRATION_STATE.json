@@ -1,4 +1,17 @@
 {
+  "eas_existing_identity_checkpoint_20260907": {
+    "state": "SOURCE_CONFIGURED_READ_ONLY_VERIFIED_REVIEW_PENDING",
+    "source_base": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
+    "project_id": "1e6cc490-9851-4741-9226-128612122db6",
+    "android_package": "rs.uskoci.preview",
+    "source_version_code_seed": 35,
+    "remote_version_initialized": false,
+    "expected_signing_sha256": "df2edf3f91abcb1df10eac03802ba55caedc29aee3d7188846182e0e49015782",
+    "build_proven": false,
+    "provider_or_mobile_push_proof": false,
+    "live_database_change": false,
+    "evidence": "docs/implementation/EAS_EXISTING_PREVIEW_IDENTITY_20260907.md"
+  },
   "n08_preferences_checkpoint_20260907": {
     "state": "CANONICAL_AUTHENTICATED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
     "source_sha": "6c4ac2387a9ce017bcc27c27f477d2f08f4821ce",
