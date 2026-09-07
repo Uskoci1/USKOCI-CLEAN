@@ -397,22 +397,22 @@
   },
   "edge": {
     "slug": "uskoci-ai-interview",
-    "version": 7,
+    "version": 11,
     "status": "ACTIVE",
     "verify_jwt": true,
-    "ezbr_sha256": "642bbb1c49ed4c360b95f23a9d1f2b5f33243edaa9095d0452e824246f304864",
+    "ezbr_sha256": "28f00dc1c969e08122cd5468fb6f3de23119a5ddf6642b376f7a0575a1f6078a",
     "price_modes": [
       "MY_PRICE",
       "OFFERS"
     ],
     "canonical_source_retirement_pending_live_deploy": false,
     "name": "uskoci-ai-interview",
-    "canonical_source": "6701311d89047c0a1058332362887fb7b396df5a",
+    "canonical_source": "27688086e7e53a9f6644a4fcf1c74c241c982da3",
     "files": [
       {
         "name": "supabase/functions/uskoci-ai-interview/index.ts",
-        "bytes": 26346,
-        "sha256": "4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704"
+        "bytes": 26775,
+        "sha256": "4421fd3fe16399bfcc6e4820218f080008f6eefd09784b2b08039fe267f3726c"
       },
       {
         "name": "src/contracts/needFactsV2.ts",
@@ -420,7 +420,11 @@
         "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
       }
     ],
-    "actual_provider_proven": false
+    "actual_provider_proven": false,
+    "promotion_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/edge-v8-selector-promotion.json",
+    "owner_configuration_observed_at": "2026-09-07T14:44:00Z",
+    "configuration_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/openai-configuration-metadata.json",
+    "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK"
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
@@ -1387,5 +1391,168 @@
     "linux_default_configuration_semantics_reviewed": true,
     "composition_review_accepted": true,
     "final_combined_ci_required": true
+  },
+  "w04_w05_recovery_checkpoint_20260907": {
+    "state": "SOURCE_ANDROID_PROVEN_ROOT_ACCEPTED_PENDING_CANONICAL",
+    "canonical_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
+    "native_source": "3f73321927ff5a0d01eb4b884c347d73a30258a3",
+    "native_run": 34159176253,
+    "artifact_id": 10032628812,
+    "artifact_zip_sha256": "cca131ad9a0dfb86e7a7f4be16232ab981b9caceb0f449fe1b0e58f909b13ab9",
+    "original_pairs": 43,
+    "inherited_pairs": 27,
+    "recovery_pairs": 16,
+    "original_pairs_retained_and_reviewed": true,
+    "exact_restored_outages": 5,
+    "retained_tab_retry_proven": true,
+    "deadline_closure_without_rest_proven": true,
+    "fresh_process_uncached_native_failure_proven": false,
+    "native_database_boundary": "HISTORICAL79_PLUS_EXPLICIT_N02_N03",
+    "full87_native_replay": false,
+    "independent_apk_bytes_verified": false,
+    "unchanged_native_inputs": 382,
+    "source_jest_suites": 57,
+    "source_jest_tests": 528,
+    "typescript": "PASS",
+    "python_tests": 45,
+    "node_local_guard_tests": 24,
+    "codeql_analyses": [
+      1737639152,
+      1737638379,
+      1737638332
+    ],
+    "codeql_results": 0,
+    "final_documentation_gates": "PENDING",
+    "production_call": false,
+    "provider_call": false,
+    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md",
+    "original_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/retained-tab-fix/run34159176253"
+  },
+  "ai_provider_selector_checkpoint_20260907": {
+    "state": "CANONICAL_SOURCE_PROVEN_ACTIVE_V11_PROVIDER_NOT_PROVEN",
+    "canonical_merge": "27688086e7e53a9f6644a4fcf1c74c241c982da3",
+    "proof_head": "49fe98ade0ceb9a0bab53e3c6b7087fb6bb48b88",
+    "proof_run": 34131911410,
+    "artifact_id": 10022434532,
+    "artifact_zip_sha256": "f9e90d8353d8a33982e595b50afbb4d95772fe87e743019440f4138721f572f0",
+    "mocked_actual_handler_tests": 44,
+    "live_version": 11,
+    "actual_provider_proven": false,
+    "source_files_exact": true,
+    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md",
+    "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK",
+    "configuration_observed_at": "2026-09-07T14:44:00Z"
+  },
+  "historical_edge_before_provider_selector_v8": {
+    "slug": "uskoci-ai-interview",
+    "version": 7,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "ezbr_sha256": "642bbb1c49ed4c360b95f23a9d1f2b5f33243edaa9095d0452e824246f304864",
+    "price_modes": [
+      "MY_PRICE",
+      "OFFERS"
+    ],
+    "canonical_source_retirement_pending_live_deploy": false,
+    "name": "uskoci-ai-interview",
+    "canonical_source": "6701311d89047c0a1058332362887fb7b396df5a",
+    "files": [
+      {
+        "name": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytes": 26346,
+        "sha256": "4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704"
+      },
+      {
+        "name": "src/contracts/needFactsV2.ts",
+        "bytes": 4097,
+        "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
+      }
+    ],
+    "actual_provider_proven": false
+  },
+  "historical_edge_at_selector_promotion_v8": {
+    "slug": "uskoci-ai-interview",
+    "version": 8,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "ezbr_sha256": "28f00dc1c969e08122cd5468fb6f3de23119a5ddf6642b376f7a0575a1f6078a",
+    "price_modes": [
+      "MY_PRICE",
+      "OFFERS"
+    ],
+    "canonical_source_retirement_pending_live_deploy": false,
+    "name": "uskoci-ai-interview",
+    "canonical_source": "27688086e7e53a9f6644a4fcf1c74c241c982da3",
+    "files": [
+      {
+        "name": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytes": 26775,
+        "sha256": "4421fd3fe16399bfcc6e4820218f080008f6eefd09784b2b08039fe267f3726c"
+      },
+      {
+        "name": "src/contracts/needFactsV2.ts",
+        "bytes": 4097,
+        "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
+      }
+    ],
+    "actual_provider_proven": false,
+    "secrets_changed": false,
+    "openai_configured": false,
+    "promotion_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/edge-v8-selector-promotion.json"
+  },
+  "historical_ai_provider_selector_before_owner_configuration": {
+    "state": "CANONICAL_SOURCE_PROVEN_ACTIVE_V8_PROVIDER_NOT_PROVEN",
+    "canonical_merge": "27688086e7e53a9f6644a4fcf1c74c241c982da3",
+    "proof_head": "49fe98ade0ceb9a0bab53e3c6b7087fb6bb48b88",
+    "proof_run": 34131911410,
+    "artifact_id": 10022434532,
+    "artifact_zip_sha256": "f9e90d8353d8a33982e595b50afbb4d95772fe87e743019440f4138721f572f0",
+    "mocked_actual_handler_tests": 44,
+    "live_version": 8,
+    "actual_provider_proven": false,
+    "openai_configured": false,
+    "secrets_changed": false,
+    "source_files_exact": true,
+    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md"
+  },
+  "historical_w04_w05_before_retained_tab_fix": {
+    "state": "IMPLEMENTED_LOCAL_SOURCE_PROVEN_REVIEW_NATIVE_PENDING",
+    "canonical_integration_base": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
+    "reviewed_task_source": "5e2831e889fe9a60f1f86d722ae021ae6c5837c4",
+    "production_blobs_preserved": 4,
+    "jest_suites": 52,
+    "jest_tests": 452,
+    "typescript": "PASS",
+    "python_tests": 45,
+    "node_local_guard_tests": 22,
+    "static_client_files": 64,
+    "static_presentation_files": 25,
+    "static_findings": 0,
+    "native_required_png_xml_pairs": 43,
+    "native_executed": false,
+    "live_call_made_by_unit": false,
+    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md",
+    "unit_blobs_preserved_at_initial_integration": 16,
+    "later_harness_compatibility_files": [
+      "scripts/task_detail_local_rest.py",
+      "scripts/test_task_detail_local_rest.py"
+    ]
+  },
+  "historical_w05_fixed_source_before_android_acceptance": {
+    "state": "SOURCE_FIXED_COMPONENT_PROVEN_NATIVE_REPLAY_PENDING",
+    "canonical_integration_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
+    "fix_commit": "aceafaeb7889d728d5df663a57ae09ea96daf2f7",
+    "native_failed_run": 34150043928,
+    "native_failed_artifact": 10029703587,
+    "native_required_png_xml_pairs": 43,
+    "source_jest_suites": 57,
+    "source_jest_tests": 528,
+    "typescript": "PASS",
+    "python_tests": 45,
+    "node_local_guard_tests": 24,
+    "migration_integrity": "87/87/0 PASS",
+    "component_reproduction": "BEFORE_2_FAIL_AFTER_6_PASS",
+    "live_call_made_by_unit": false,
+    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md"
   }
 }
