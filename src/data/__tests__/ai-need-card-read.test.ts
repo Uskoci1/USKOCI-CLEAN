@@ -56,4 +56,3 @@ describe('actual persisted Need read adapter',()=>{
   expect(correctionInputText(fact('need.people_needed',2,{displayValue:'2 people'}))).toBe('2');
  });
 });
-

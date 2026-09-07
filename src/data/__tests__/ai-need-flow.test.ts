@@ -102,4 +102,3 @@ describe('actual AI flow controller', () => {
   await model.save(); expect(model.snapshot().savedNeedId).toBe(id(3)); expect(api.saveDraft).toHaveBeenCalledTimes(1);
  });
 });
-

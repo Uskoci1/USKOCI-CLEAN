@@ -142,4 +142,3 @@ describe('saved draft temporary card',()=>{
   expect(texts()).toContain('B card');expect(mockReadNeed).toHaveBeenLastCalledWith(id(4));
  });
 });
-

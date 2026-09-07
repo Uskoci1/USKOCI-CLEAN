@@ -1,3 +1,13 @@
+## Current source integration — AI human review / scaffold only
+
+Canonical PR49 and PR55 are preserved at `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a`. D03 live86/head20260907130151 was independently observed13:02:34UTC; its source-to-live alias documentation is being reconciled. The recorded source inventory here remains86/recorded85/pending1 until that provenance admission; do not reapply D03.
+
+This branch adds the reviewed typed AI input → human confirm/correct → DRAFT → exact persisted public-card flow. Initial reviewed source passed50 suites/379 tests,TSC,AST65/25/0; the added canonical D03 client is unchanged. Native harness source has independent review plus48 Python/23 Node checks. The exact21141-byte AI two-RPC candidate is included as a proof-only dependency for historical79+N02/N03; there is no AI migration or production/provider write in this mobile unit. Final integrated CI/native and actual-provider proof remain pending.
+
+UI remains a testable scaffold; final Figma design and Fable asset work are separate. Existing server owns authorization, safety, required facts, idempotent save and materialization. Client hooks/services own captures, stale-result rejection and human review; presentation contains no SDK writes or AI secrets. Explicit-zone/valid-calendar input parsing avoids silently changing the confirmed instant. Known durable-turn and cross-device review-CAS limitations remain documented. Read AI_MOBILE_VERTICAL_RECOVERY_20260907.md; older checkpoints below retain their original evidence boundaries.
+
+---
+
 <!-- AI_MOBILE_VERTICAL_SOURCE_20260907 -->
 ## Pending source unit — AI input, human review and saved-draft read
 
@@ -10,18 +20,36 @@ Unknown non-idempotent Edge turns are never blindly replayed; pending state is c
 ---
 
 
+
+---
+
+## Current integration — PR49 canonical / D03 pending forward
+
+Fresh canonical is `65d280270ead4d13dcb41f7342a74b164c41e4d9`: PR49 merged at12:44:07 UTC after Root accepted the actual292 Android artifact and final1133 documentation-head CI/CodeQL with all138 tested blobs unchanged. Its Auth/navigation boundary is CANONICAL / SOURCE AND SCOPED ANDROID PROVEN. UI remains a testable scaffold; final visual design awaits Figma and Fable is separate.
+
+D03 exact4277-byte SQL and typed client remain unchanged from accepted proof run34115037170 (artifact10015994215, ZIP SHA256 `f20fb61a7e31402c135b8473e3403f612acbe08eac23a5835b8b49ea7f744e9e`). That proof passed11 D03,6 N07,12 N08 checks and physically observed advisory/lifecycle lock contention. This integration carries the fresh Auth baseline; its final-head regression/replay/CI/CodeQL are pending. Source86 / recorded live85 / pending1; no D03 production write. Canonical review/merge, fresh structural live preflight and exact forward promotion precede the separately developed D03 mobile binding.
+
+The older checkpoints below retain their original source/proof boundaries and are historical where superseded here. Do not restart accepted N07/N08, Auth or core engine work. See D03_MESSAGE_RETRY_20260907.md for the bounded command contract; no full Chat, provider, final visual or Store closure is claimed.
+
+---
+
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / D03 STABLE MESSAGE RETRY
+
+The D03 stable-send unit is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / PENDING CANONICAL AND LIVE ADMISSION**. It extends the existing message table with a sender-owned command key and an account-bound RPC that invokes the unchanged N01 writer. The same command returns the original message UUID after retry or terminal completion; it creates no duplicate message/event. Overall Chat remains PARTIAL: this unit does not activate UI, group channels, attachments, read receipts or push delivery.
+
+Read [D03 contract and original proof](D03_MESSAGE_RETRY_20260907.md). Exact source `04132b98ff189abeae5481a73a95245289b4e0f6`, run34113306660, artifact10015325641:11 D03 checks plus6 N07 and12 N08 checks,38 suites/266 tests and TypeScript PASS. Inventory is **86 source files / recorded live85 / pending1**. Live remains the verified N08 baseline below; this source unit made no production write. Next: reviewed canonical merge, fresh live preflight and accepted exact forward promotion, then real D03 screen binding and physical Android proof.
 <!-- EXECUTION_V3_CHECKPOINT_20260907 -->
-## Current execution — testable scaffold, Auth boundary and identity ownership
+## Current execution — reviewed scaffold and native Auth/account proof
 
-The owner's latest steering keeps the current UI as a **testable functional scaffold**. Future Figma work owns the final visual design; Fable is separate asset work. Do not turn this slice into a final visual redesign. The current three-zone capability/navigation remains: Profile is an avatar destination, with no permanent Home/Profile tab or combined discovery mode. Frozen governance bytes remain unchanged; V3 governs execution and the preserved 06.09 documents resolve older product/UI conflicts where applicable.
+The owner's latest steering keeps the current UI a **testable functional scaffold**. Future Figma work owns final visual design; Fable is separate asset work. Current three-zone capability/navigation remains, with Profile behind the avatar and no permanent Home/Profile tab or combined discovery mode. Frozen governance bytes remain unchanged; V3 governs execution and the preserved06.09 documents resolve older UI/product conflicts.
 
-Fresh canonical remains `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54, fetched again before this commit). N08 and its exact live85 promotion are already canonical. Live remains **85 / `20260907102458_clean_n08_notification_preferences`**, source85 / pending0; no production or migration change belongs to this PR49 slice. Do not reapply N08/N07. Current charge remains 0 RSD; unsupported capabilities stay gated.
+Fresh canonical remains `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54), already an ancestor of PR49. N08/live85 is canonical: **85 / `20260907102458_clean_n08_notification_preferences`**, source85 / pending0. This slice changes no migration or production state. Do not reapply N08/N07. Current charge remains0 RSD; unsupported capabilities stay gated.
 
-PR #49 remains **IMPLEMENTED / SOURCE TESTED / NOT MERGED**. Android run `34114525948` at exact source `86fffc1b58789a2a7331e3646ba8aa0647e02a73` passed; all27 original PNG/XML pairs were inspected, including both corrected Agreement rows with full schedule/amount. This is scoped native emulator/navigation/Auth-account/Inbox proof, not final visual design, full product or production proof. Earlier failures and the prior row defect remain preserved evidence.
+PR #49 is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / NOT MERGED**. New Android run `34119448882` passed at exact source `29271e6be7fc519e40941531d37c6d48b0db7ef3`, which includes central Auth commands and identity revision. All27 original PNG/XML pairs were inspected, including real UI logout, second-account login without storage clearing and both readable Agreement rows. Artifact `10018537383`, ZIP SHA-256 `e87d3f887870505942806faa3824f80c699234835f18e31ca5ebd582f62a1acc`. Original source86 and earlier failures remain separately scoped historical evidence.
 
-The latest architecture review found direct presentation Auth calls and a batched A→B→A ownership gap. Auth UI commands now cross `contracts/auth` into `authClientService`; SDK session subscription/restore remains in the existing session owner. `accountRevision` increments only when userId changes and binds Root navigation, focused reads and Profile actions; token refresh retains the current screen/draft. Root review found no blocker; 46 suites /313 tests and TypeScript passed. The AST client scan inspected62 source files /25 presentation files with0 findings; this is a bounded static boundary check, **not a complete AI/domain-authority audit**.
+PR49's required source boundary review passed: UI-issued Auth commands cross the SDK-free contract into `authClientService`; existing Auth runtime owns session subscription/restore. Monotonic `accountRevision` closes batched A→B→A ownership gaps while same-account token refresh retains navigation/drafts. The actual native run passed TypeScript,46 suites /313 tests,34 Python tests and integrity85; all6 source checks succeeded, with3 actual CodeQL analyses and zero errors/results. AST62 client files /25 presentation files /0 findings is a bounded static check, not complete AI/domain-authority proof. Batched concurrency cases are source/component proof, not invented native scenarios.
 
-The changed Auth/account-revision source requires a new exact-head CI/CodeQL and full native replay; the source86 proof cannot be relabelled as proof of later code. **No merge until the required architecture reviews and exact-source gates are complete.** Continue with the functional AI vertical after this bounded safety closure and its separate AI boundary review. See `docs/implementation/INTENT_SHELL_20260907.md` and `docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md`. Older active-cursor claims below are historical where superseded here.
+This follow-up changes documentation/evidence only. All138 frozen native/source/assets/config/vendor/proof Git blobs remain identical to tested source29271e6; the Android artifact remains tied to that source. Final documentation-head CI/CodeQL must pass, and Root must accept before merge. Continue the separate functional AI vertical and its authority work; no final visual/product/provider/Store claim is made. See `docs/implementation/INTENT_SHELL_20260907.md`, `docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md` and `docs/implementation/evidence/intent-shell-auth-20260907/run34119448882/inspection.md`. Older cursor claims below are historical where superseded here.
 
 ---
 
