@@ -27,9 +27,13 @@ const report={unit:'AI_DRAFT_AUTHORITY',source_sha:env.GITHUB_SHA||null,run_id:e
   fixture_boundary:'REAL_LOCAL_AUTH_POSTGREST_AND_ROLE_SCOPED_PSQL_TRANSACTIONS',candidate:manifest,checks:[]};
 const lit=value=>`'${String(value).replaceAll("'","''")}'`;
 function sql(query){
-  try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-At'],
+  try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-At'],
     {input:query,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();}
-  catch{throw new Error('DISPOSABLE_SQL_FAILED');}
+  catch(error){
+    const code=String(error.stderr).match(/ERROR:\s+([A-Z0-9]{5}):/)?.[1]??'UNAVAILABLE';
+    report.failed_sql={sqlstate:code,query_sha256:createHash('sha256').update(query).digest('hex')};
+    throw new Error(`DISPOSABLE_SQL_FAILED_${code}`);
+  }
 }
 const rows=query=>JSON.parse(sql(`select coalesce(json_agg(x),'[]'::json) from (${query}) x`));
 const ok=async promise=>{const result=await promise;if(result.error)throw new Error(`AUTH_RPC_FAILED_${result.error.code}`);return result.data;};
@@ -42,7 +46,7 @@ const tableHash=(table,where='true')=>sql(`select md5(coalesce(jsonb_agg(to_json
 const noEffects=()=>Object.fromEntries(['public.agreements','public.marketplace_responses','public.dispatch_rounds',
   'public.opportunity_deliveries','public.user_activity_events','public.notification_deliveries',
   'private.dispatch_schedule','private.publication_policy_bundles','private.need_publication_decisions',
-  'private.connection_policy_versions','public.marketplace_config'].map(table=>[table,tableHash(table)]));
+  'private.connection_policy_versions','private.marketplace_config'].map(table=>[table,tableHash(table)]));
 const review=(conversation,client=owner)=>client.rpc('rpc_ai_need_review_v2',{p_conversation_id:conversation});
 const save=(conversation,key,client=owner)=>client.rpc('rpc_save_need_draft_from_review',
   {p_conversation_id:conversation,p_requester_profile_id:profileId,p_client_request_id:key});

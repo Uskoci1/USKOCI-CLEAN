@@ -16,6 +16,8 @@ The runner uses real disposable Auth/PostgREST, reproduces the predecessor direc
 
 Local source checks: Node syntax,19 existing strict local-target guard tests and migration integrity PASS. No Docker/PostgreSQL runtime is installed on this Windows host; real disposable proof runs on the existing GitHub runner. No production or provider call occurred.
 
+First run34120810444 at30b8fc1 failed in runner PREFLIGHT because its snapshot referenced `public.marketplace_config` instead of canonical `private.marketplace_config`. It reached no AI reproduction or candidate apply; the preceding N07/N08 stages passed. The runner reference is corrected and SQL diagnostics retain only SQLSTATE/query digest. The frozen migration bytes are unchanged; fresh runtime evidence is still required.
+
 Limits retained: old human fact-first/conversation-second locks versus writer/save conversation-first ordering are unchanged, so global AI deadlock freedom is not claimed. Edge lacks durable turn idempotency, uses an old first40 history slice and has no server-date context; those are separate units. This SQL fix alone does not close actual provider execution, Android product proof or publication policy activation.
 
 Live remains the observed85 migration boundary at `20260907102458_clean_n08_notification_preferences`; source baseline for this branch is canonical `9d245f3053c8e79370a73e82b12d4250e3ed94b7`. Source inventory here is86/live85/pending1. Follow fresh canonical→proof→review→forward-promotion. Do not apply from this pending checkpoint.
