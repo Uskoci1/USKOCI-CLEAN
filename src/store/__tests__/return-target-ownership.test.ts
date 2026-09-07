@@ -146,3 +146,19 @@ describe('serialized return-target ownership', () => {
     expect(await store.snapshot()).toBeNull();
   });
 });
+
+it('does not persist a guest intent after its account boundary changes during write', async () => {
+  const original = await store.prepare({ intent: 'REQUESTER' });
+  const write = deferred<void>(); const realSet = jest.mocked(AsyncStorage.setItem).getMockImplementation()!;
+  jest.mocked(AsyncStorage.setItem).mockImplementationOnce(async (key, value) => { await realSet(key, value); await write.promise; });
+  let current = true;
+  const result = store.prepare({ intent: 'WORKER' }, () => current);
+  await flush(); current = false; write.resolve();
+  expect(await result).toBeNull();
+  expect(await store.snapshot()).toEqual(original);
+});
+it('does not start intent storage for an already stale guest command', async () => {
+  expect(await store.prepare({ intent: 'WORKER' }, () => false)).toBeNull();
+  expect(AsyncStorage.getItem).not.toHaveBeenCalled();
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+});

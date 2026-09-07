@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - fix/intent-shell-20260907
+      - feat/figma-entry-20260907
 
 permissions:
   contents: read
@@ -15,6 +16,7 @@ env:
   DO_NOT_TRACK: '1'
   RU5_DEVICE_PACKAGE: rs.uskoci.n04proof
   RU5_DEVICE_ARTIFACT_DIR: artifacts/intent-shell-device
+  RU5_ENTRY_PROOF: '1'
 
 jobs:
   physical-device-ui-proof:
@@ -162,7 +164,7 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_6
-          disable-animations: true
+          disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           script: |
             mkdir -p artifacts/intent-shell-device
@@ -195,6 +197,14 @@ jobs:
           assert.equal(fixture.localOnly, true);
           assert.equal(fixture.publicationProof, false);
           NODE
+      - name: Validate SPOJ entry proof
+        run: |
+          grep -F 'PASS SPOJ_ENTRY_PHYSICAL' artifacts/intent-shell-device/proof.log
+          test -s artifacts/intent-shell-device/ENTRY_intro.mp4
+          for checkpoint in ENTRY_welcome ENTRY_login ENTRY_empty_error ENTRY_recovery_gated ENTRY_registration ENTRY_back_to_welcome ENTRY_reduced_motion_welcome; do
+            test -s "artifacts/intent-shell-device/${checkpoint}.png"
+            test -s "artifacts/intent-shell-device/${checkpoint}.xml"
+          done
       - name: Validate disposable business effects
         run: |
           test "$(psql "$RU5_DEVICE_DB_URL" -Atc "

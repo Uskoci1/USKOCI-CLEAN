@@ -3,6 +3,32 @@
 Fresh canonical base `d4d8cd09bf44dd54c7355605b0c256813b46ab1b` is integrated. A narrow discovery client service now provides bounded keyset pages (default30/max50; created_at+id DESC with server microseconds), cancellation, real-zero/range-safe coarse points, REMOTE without pins, strict capacity and the accepted PR64 task deadline/error fields. Legacy array/detail ports remain available. There is no new backend, UI/navigation, Map SDK or anonymous grant. The consumer must still bind List/Map to the same page set and own account/focus/refresh state.
 
 Final local verification:55 suites/511 tests PASS, including42 new actual-SDK/controlled-HTTP cases; TSC PASS; unchanged recorded87/87/0 migration integrity PASS; client AST69 files/26 presentation/0 findings. No live query/write, provider run, Android proof, release or canonical acceptance is added. Existing live observations retain their timestamps. Integration and PR/CI/CodeQL are pending with the coordinating root; preserve the separate PR64 screen/proof boundary. See [Shared discovery read foundation](SHARED_DISCOVERY_READ_FOUNDATION_20260907.md).
+## Current entry replay — original Android journey passed; route motion repair pending proof
+
+Canonical PR64 is merged at `80e091ee31930b28cc5c2e0af6b6e876a4926362` with exact canonical PRE-P4/CodeQL/CONTROL-0 PASS. It is integrated additively here; W04/W05 source is preserved. PR66 original source `c1b803285e2b5b97c57680ea09c9f17a6934d32d` has SUCCESS native run34160744232 and34 reviewed original PNG/XML checkpoints (7 entry +27 account/Inbox/navigation). Artifact10033052964 is5,932,807 bytes, SHA-256 `c0932b714237ae92d3ba78fd372d06ce13da5f571e32a7a5aa9b3a3c0b7ff602`. These static journeys are proven in their source scope; the full visible owner intro is not accepted.
+
+Actual MP4 frames show the Auth route sliding over the owner sequence: frame55 at7.535878s is partial-width, frame56 at7.953489s first fully visible assembled mark, welcome at11.466433s. The old blue Expo splash is gone. The narrow repair disables the competing Stack transition only for Auth; all original SVGs and12 motion tracks retain their4500ms timeline. A separately reproduced revealed-password carry across Login/Signup is repaired by remounting that field per mode, preserving its value and masking it again. Its actual component regression fails before and passes after the change. Tab selected state already exists; an AX Value0 alone was not a source defect.
+
+Integrated pre-repair source passes64 suites/599 tests; final focused4 suites/36 tests and TypeScript pass. The new source requires a fresh standalone Android replay, original motion inspection and exact-head CI/CodeQL before merge. No60fps, production/provider, full Auth/release or47-item closure is claimed. No SQL, secret or feature-gate change occurred. Prior checkpoints below retain their exact historical boundaries.
+
+---
+
+## SPOJ entry replay — original Android failure reviewed
+
+Canonical `d4d8cd09bf44dd54c7355605b0c256813b46ab1b` is integrated with accepted D03/PR61 and Metro65 preserved. PR66 is **SOURCE PROVEN / ORIGINAL ANDROID PARTIAL / FRESH ANDROID AND CANONICAL PROMOTION PENDING**. Original source `95dd6f67e514140f6f631c4acdaae9d02db645b9`, run `34150271309`, failed on the obsolete post-logout welcome selector while the real direct login form was visible. The harness now requires exactly Email/Lozinka plus absence of private tabs and logs the second account in through that observed form. Busy Auth buttons retain their accessible title/state.
+
+Original ENTRY stills and video were physically reviewed; the video showed Expo's old blue native splash covering an already-running owner animation. Approximately one hidden second is inferred, not instrumented. The repair uses a warm native background/transparent drawable and a paused first-frame scene, then layout → hide request completion → two frame callbacks → unchanged 4500ms clock. The 1s readiness failure skips animation and the 500ms storage bound remains. Full visible timing and the complete two-account journey need a new exact-source native artifact; no 60fps claim is inferred from mocks or sampled video.
+
+Integrated 61 suites / 540 tests, TypeScript, 21 selector tests and AST 78/30/0 PASS. Source fingerprints are in `evidence/spoj-entry-20260907/replay-source/client-architecture.json`; existing workflow commit/APK/driver hashes provide the next native identity. Final CI/CodeQL and original-artifact review remain pending. Read `SPOJ_ENTRY_IMPLEMENTATION_20260907.md`. No SQL, Edge, provider, account, price or production mutation/new live observation occurs in this checkpoint. Earlier source/live proof boundaries and the separate remaining 47-item backlog are preserved below.
+
+## SPOJ entry implementation — 2026-09-07
+
+Owner-selected visual direction: Figma `DovAtPfVaLKL6xnXtQImbf`, splash15:487, welcome3:123, auth3:182. Original handshake U, outlined wordmark and all12 recorded4500ms motion tracks are retained. Light full-page Auth replaces the obscuring sheet. Implemented Auth methods are intersected with fresh public server settings; unsupported providers/recovery remain gated. Guest intent uses the existing account-owned return store through a client service, with5s cancellation/rollback. Form single-flight/account revision and intro storage/reduced-motion/lifetime cases are source-tested.
+
+State: **IMPLEMENTED / LOCAL SOURCE PROVEN / WEB SIGNED-OUT SURFACES OBSERVED / ANDROID AND CANONICAL PENDING**. This does not close all47 backlog items, account registration delivery, recovery, all deep-link returns, native smoothness, shared maps or final release. Full physical Auth/account/Inbox/navigation proof is queued for the exact source; no production fixture, SQL, Edge, secret or pricing mutation. Fresh live read17:09UTC remains87 migrations/Edgev11/0RSD/HITNO-off/publication gated; older Edge checkpoints below are historical. See `SPOJ_ENTRY_IMPLEMENTATION_20260907.md`.
+
+
+Metro recovery PR65 is now canonical7eacc627833187d58b1fef803e5c9f0c2cb05fbc; exact-source/canonical CI and CodeQL passed. This integration retains its Windows-only32-operation queue unchanged.
 
 ---
 
