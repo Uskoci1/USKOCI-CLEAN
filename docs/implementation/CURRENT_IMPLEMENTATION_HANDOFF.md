@@ -1,3 +1,11 @@
+## Shared discovery read checkpoint — source pending consumer integration
+
+Fresh canonical base `d4d8cd09bf44dd54c7355605b0c256813b46ab1b` is integrated. A narrow discovery client service now provides bounded keyset pages (default30/max50; created_at+id DESC with server microseconds), cancellation, real-zero/range-safe coarse points, REMOTE without pins, strict capacity and the accepted PR64 task deadline/error fields. Legacy array/detail ports remain available. There is no new backend, UI/navigation, Map SDK or anonymous grant. The consumer must still bind List/Map to the same page set and own account/focus/refresh state.
+
+Final local verification:55 suites/511 tests PASS, including42 new actual-SDK/controlled-HTTP cases; TSC PASS; unchanged recorded87/87/0 migration integrity PASS; client AST69 files/26 presentation/0 findings. No live query/write, provider run, Android proof, release or canonical acceptance is added. Existing live observations retain their timestamps. Integration and PR/CI/CodeQL are pending with the coordinating root; preserve the separate PR64 screen/proof boundary. See [Shared discovery read foundation](SHARED_DISCOVERY_READ_FOUNDATION_20260907.md).
+
+---
+
 ## Current composition — canonical Metro65 with accepted D03 native source
 
 Canonical `7eacc627833187d58b1fef803e5c9f0c2cb05fbc` is integrated additively. All application, SQL/Edge, dependencies, fixtures and native harness blobs remain identical to accepted Android6ef2c65. Of366 recorded non-document inputs,365 remain identical; only PRE-P4 changes, with the canonical Metro configuration and its test newly added. This is not whole-build byte identity. The canonical configuration returns Expo's unmodified default on Linux and wraps cache operations only on Windows. All7 actual Metro tests and serial TSC pass. The coordinating reviewer accepts this bounded composition with the already-reviewed38-pair native proof; final combined CI/CodeQL remain mandatory. A parallel local TSC run exhausted host memory and one Firebase test child exited134; that local run is not reported as a full PASS. See `canonical65-composition.json` beside the D03 evidence for exact blobs and limits. No production or owner process was changed.

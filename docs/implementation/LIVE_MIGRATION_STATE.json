@@ -1,4 +1,24 @@
 {
+  "shared_discovery_read_checkpoint_20260907": {
+    "state": "SOURCE_IMPLEMENTED_LOCAL_SDK_TRANSPORT_PROVEN_CONSUMER_INTEGRATION_PENDING",
+    "canonical_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
+    "default_page_limit": 30,
+    "maximum_page_limit": 50,
+    "profile_concurrency_limit": 4,
+    "new_discovery_tests": 42,
+    "full_jest_suites": 55,
+    "full_jest_tests": 511,
+    "typescript": "PASS",
+    "migration_integrity": "87_FILES_87_RECORDED_LIVE_SNAPSHOT_0_PENDING_PASS",
+    "ast_source_files": 69,
+    "ast_presentation_files": 26,
+    "ast_findings": 0,
+    "live_read_performed": false,
+    "live_write_performed": false,
+    "native_proof_performed": false,
+    "sql_dependencies_and_presentation_unchanged": true,
+    "report": "docs/implementation/SHARED_DISCOVERY_READ_FOUNDATION_20260907.md"
+  },
   "windows_metro_cache_checkpoint_20260907": {
     "state": "SOURCE_IMPLEMENTED_LOCAL_SOURCE_AND_DISK_PROVEN_PR_REVIEW_PENDING",
     "canonical_base": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",

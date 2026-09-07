@@ -375,6 +375,17 @@ export const lazniIzvor: Izvor = {
     ];
   },
 
+  async otvorenePrilikeStrana(upit = {}) {
+    if (upit.signal?.aborted) throw new Error('DISCOVERY_READ_CANCELLED');
+    if (upit.limit !== undefined && (!Number.isInteger(upit.limit) || upit.limit < 1 || upit.limit > 50)) {
+      throw new Error('DISCOVERY_LIMIT_INVALID');
+    }
+    // This explicitly selected simulator has a single fixture, no live cursor.
+    const items = await this.otvorenePrilike();
+    if (upit.signal?.aborted) throw new Error('DISCOVERY_READ_CANCELLED');
+    return { items: upit.cursor ? [] : items, nextCursor: null };
+  },
+
   async prilika(id) {
     const sve = await this.otvorenePrilike();
     return sve.find((p) => p.id === id) ?? null;

@@ -65,6 +65,16 @@ export type PrilikaProjekcija = {
   id: string;
   naslov: string;
   statusTekst: string;
+  /** Task-level hint only; server remains the authority for submitting an Application. */
+  primaNovePrijave?: boolean;
+  /** Public server deadline; null means no cutoff, undefined means unknown. */
+  rokZaPrijaveIso?: string | null;
+  executionLocationMode?: 'STATIONARY' | 'POINT_TO_POINT' | 'MULTI_STOP' | 'AREA_BASED' | 'REMOTE';
+  scheduleKind?: 'FIXED_WINDOW' | 'FLEXIBLE' | 'REMOTE_ANYTIME' | 'TODAY_FLEXIBLE' | 'TOMORROW_FLEXIBLE' | 'WEEK_FLEXIBLE';
+  startsAt?: string | null;
+  endsAt?: string | null;
+  /** Approximate public city; does not imply a global city-filter contract. */
+  grad?: string;
   podrucjeTekst: string;
   vremeTekst: string;
   pokrivenost: Pokrivenost;

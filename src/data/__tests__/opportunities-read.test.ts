@@ -46,6 +46,7 @@ describe('W03 authoritative discovery read', () => {
       approximate_area: 'Centar', approximate_city: 'Beograd', approximate_lat: 44.8, approximate_lng: 20.4,
       required_slots: 3, covered_slots: 1, required_skills: ['Selidbe'], required_tools: [], required_vehicles: [],
       requester_profile_id: 'requester-1', mode: 'OFFERS', requester_price_rsd: null,
+      ends_at: null, schedule_kind: 'FLEXIBLE', execution_location_mode: 'STATIONARY', response_deadline: null,
     }], error: null });
     publicProfile.mockResolvedValueOnce(null);
 
@@ -55,6 +56,8 @@ describe('W03 authoritative discovery read', () => {
     expect(publicProfile).toHaveBeenCalledWith('requester-1');
     expect(result).toEqual([{
       id: 'need-1', naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
+      primaNovePrijave: true, rokZaPrijaveIso: null,
+      executionLocationMode: 'STATIONARY', scheduleKind: 'FLEXIBLE', startsAt: null, endsAt: null, grad: 'Beograd',
       podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilno',
       pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 },
       uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacIme: '', narucilacOcena: null,
