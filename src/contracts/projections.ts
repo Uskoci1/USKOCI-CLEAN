@@ -340,9 +340,12 @@ export type PorukaRazgovora = {
 
 export type PorukaProjekcija = {
   id: string;
+  clientMessageId?: string | null;
+  posiljalacAccountId?: string;
   posiljalacIme: string;
   moja: boolean;
   telo: string;
   vremeTekst: string;
-  procitano: boolean;
+  /** null means no authoritative read receipt exists. */
+  procitano: boolean | null;
 };
