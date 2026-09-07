@@ -47,3 +47,9 @@ This workflow has **not yet run for this source**. Do not infer device acceptanc
 The read path currently refreshes on focus/foreground or explicit pull-to-refresh; it does not claim realtime delivery. History pagination beyond the server REST row cap remains open. Unsent text survives the current mounted model's read failures, while persisted attempts survive remount; a never-submitted draft is not claimed durable across process death. Attachments, groups, notifications provider delivery and full contact/completion recovery remain separate units. No private message read receipt or final visual acceptance is claimed.
 
 No D03 production migration, provider call, dispatch, publication, pricing change or gate activation occurred. Original live85 provenance remains the current recorded baseline until a separate fresh read and reviewed forward promotion.
+
+## Canonical integration observed at13:31UTC
+
+The same reviewed mobile source1421acfb is now integrated with canonical4ff2dc0 (PR49, PR55 and PR56). All270 relevant source/config/SQL paths were compared against the intended Git blobs; the15 D03 mobile source paths remain identical1421acfb and imported canonical source remains identical4ff2dc0. Four additive continuity conflicts were resolved without changing source. Full54 suites/467 tests, TypeScript, integrity86/recorded85/pending1 and AST67/26/0 PASS. This records the tested merge working tree before its commit; no new native or live acceptance is implied.
+
+D03 was separately promoted live86 and its alias provenance is now canonical atf055d641. This merge will immediately admit that documentation-only successor before the exact-source mobile PR/device run. No server migration is reapplied. All earlier base85 and pending-backend paragraphs above are historical boundaries; final scaffold/product limitations remain unchanged.
