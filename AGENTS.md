@@ -1,3 +1,11 @@
+## Public task detail — source proven; actual RLS and Android pending
+
+Canonical PR66 is now `38e9a38f7c9713cc7061f347eb083d84022dcdfd`, with verified canonical CI/CodeQL and identical accepted entry inputs. This branch composes PR67 `ed0bd581` shared discovery source; its physical map acceptance is still open. The new public detail binds actual description, time/price/capacity, geography and requirements through a typed contract and explicit public LEFT reader. Missing child RLS material remains unavailable; existing action/session/retry/Back authority is preserved.
+
+Application source: **74 suites/818 Jest, TSC,67 Python and36 Node guard tests PASS; manual boundary review and AST96/39/0; recorded87/87/0 integrity unchanged**. New actual disposable SDK/native proof is pending, with original43 recovery pairs/five REST restores retained. Legacy server geography validation remains a separate hardening gap. No new live observation/write, final Figma screen, provider/release or whole47 closure is added. See [public detail report](docs/implementation/PUBLIC_TASK_MATERIAL_20260908.md). Older pointers below retain their historical source boundaries.
+
+---
+
 ## Shared List/Map integration — source proven; native acceptance pending
 
 Canonical PR64 `80e091ee` and PR66 source `82a99fc` are composed without reverting either. PR66 remains independently pending acceptance. The same authenticated public discovery page set now feeds a shared List/Map for both intentions, with retained local filters, bounded pagination/refresh, account/focus cancellation, approximate pins and real MapLibre renderers. Original SPOJ logo/motion assets are preserved; list header uses the owner brand. Task labels distinguish price from lifecycle, route origin from destination, and complete Serbia-time windows.

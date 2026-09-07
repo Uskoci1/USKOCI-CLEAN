@@ -65,6 +65,33 @@ in XML is not a physical display proof.
     return found
 
 
+def card_touch_point(root, title, width, height):
+    """Choose a real exposed part of the labelled card, never its offscreen center."""
+    result = None
+
+    def visit(node, clip):
+        nonlocal result
+        if node.attrib.get('visible-to-user') == 'false' or node.attrib.get('enabled') == 'false':
+            return
+        rect = bounds(node.attrib.get('bounds'))
+        if rect[0] < rect[2] and rect[1] < rect[3]:
+            clip = (max(clip[0], rect[0]), max(clip[1], rect[1]), min(clip[2], rect[2]), min(clip[3], rect[3]))
+        elif node.tag != 'hierarchy':
+            return
+        if clip[2] - clip[0] < 1 or clip[3] - clip[1] < 1:
+            return
+        if (node.attrib.get('content-desc') == f'Otvorite priliku {title}'
+                and node.attrib.get('clickable') == 'true' and clip[2] - clip[0] >= 80 and clip[3] - clip[1] >= 120):
+            assert result is None, 'Ambiguous duplicate actionable task card'
+            result = ((clip[0] + clip[2]) // 2, (clip[1] + clip[3]) // 2)
+        for child in node:
+            visit(child, clip)
+
+    # Leave fixed header/footer untouched. Ancestor clipping narrows this further.
+    visit(root, (0, int(height * .17), width, int(height * .84)))
+    return result
+
+
 def validate_fixture(fixture, env):
     assert fixture['result'] == 'PASS' and fixture['sourceSha'] == env['GITHUB_SHA']
     assert fixture['localOnly'] is True and fixture['publicationProof'] is False
@@ -126,9 +153,22 @@ def main(env=os.environ):
             scroll()
         raise AssertionError('Complete public material not visible after bounded actual scrolling')
 
+    def seek_card(title):
+        for index in range(24):
+            root, parent, _ = dump_tree()
+            if dismiss_known_system_anr(root, parent):
+                root, parent, _ = dump_tree()
+            point = card_touch_point(root, title, width, height)
+            if point is not None:
+                return point
+            targets = [node for node in root.iter() if node.attrib.get('content-desc') == f'Otvorite priliku {title}']
+            above = targets and bounds(targets[0].attrib.get('bounds'))[1] < height * .17
+            scroll('up' if above or index >= 16 else 'down')
+        raise AssertionError('Task card has no physically reachable touch region after bounded scrolling')
+
     def open_card(title):
-        # Fresh seed puts these three cards first; use actual accessibility control.
-        tap(desc=f'Otvorite priliku {title}', timeout=45)
+        x, y = seek_card(title)
+        adb('shell', 'input', 'tap', str(x), str(y))
         wait_visible(text=title, timeout=45)
         wait_visible(desc='Nazad na Zadatke')
 
@@ -138,6 +178,7 @@ def main(env=os.environ):
     tap(desc='Prijave', prefer='bottom')
     tap(desc='Zadaci', prefer='bottom')
     wait_visible(desc=f"Otvorite priliku {fixture['publicNeedTitle']}", timeout=45)
+    seek_card(fixture['publicNeedTitle'])
     checkpoint('MATERIAL_worker_list')
     open_card(fixture['publicNeedTitle'])
     wait_visible(desc='Sastavi prijavu')
@@ -150,13 +191,14 @@ def main(env=os.environ):
     checkpoint('MATERIAL_worker_legacy')
     scan('MATERIAL_worker_legacy', [fixture['legacyNeedTitle'], *LEGACY_TEXT])
     tap(desc='Nazad na Zadatke')
-    tap(desc='Profil', prefer='top')
+    tap(desc='Radni profil', prefer='top')
     tap(desc='Odjavite se')
     assert_signed_out_surface(form_open=True)
     checkpoint('MATERIAL_signed_out')
     login(env['RU5_DEVICE_REQUESTER_EMAIL'], form_open=True)
     tap(desc='Istražite sve otvorene zadatke', timeout=45)
     wait_visible(desc=f"Otvorite priliku {fixture['publicNeedTitle']}", timeout=45)
+    seek_card(fixture['publicNeedTitle'])
     checkpoint('MATERIAL_requester_list')
     open_card(fixture['publicNeedTitle'])
     wait_visible(desc='Otvorite profil')

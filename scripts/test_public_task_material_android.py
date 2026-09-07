@@ -6,7 +6,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).parent))
-from public_task_material_android_journey import normalize_text, visible_text
+from public_task_material_android_journey import card_touch_point, normalize_text, visible_text
 from public_task_material_validate import validate_original_text
 
 
@@ -18,6 +18,22 @@ def tree(text='Kutije', rect='[10,30][190,70]', parent='[0,20][200,180]', **attr
 
 
 class PhysicalMaterialObservations(unittest.TestCase):
+    def test_tall_card_touch_is_clipped_to_actual_exposed_region(self):
+        root = tree(rect='[0,40][200,850]', parent='[0,20][200,190]')
+        card = root[0][0]
+        card.set('content-desc', 'Otvorite priliku Kutije')
+        card.set('clickable', 'true')
+        self.assertEqual(card_touch_point(root, 'Kutije', 200, 200), (100, 104))
+
+    def test_tiny_hidden_disabled_or_other_card_is_not_a_touch_target(self):
+        for patch in ({'bounds': '[0,170][200,900]'}, {'enabled': 'false'},
+                      {'visible-to-user': 'false'}, {'content-desc': 'Otvorite priliku Drugo'}):
+            root = tree(rect='[0,40][200,850]', parent='[0,20][200,190]')
+            card = root[0][0]
+            card.attrib.update({'content-desc': 'Otvorite priliku Kutije', 'clickable': 'true', **patch})
+            with self.subTest(patch=patch):
+                self.assertIsNone(card_touch_point(root, 'Kutije', 200, 200))
+
     def test_fully_visible_material_is_admitted(self):
         self.assertEqual(visible_text(tree(), 200, 200), {'Kutije'})
 

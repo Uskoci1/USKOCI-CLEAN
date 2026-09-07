@@ -1759,5 +1759,57 @@
     "final_visual_claim": false,
     "all_47_items_closed": false,
     "public_manifest_hashed_entries": 177
+  },
+  "public_task_material_20260908": {
+    "observedAt": "2026-09-07T22:40:53.384Z",
+    "state": "SOURCE_PROVEN_NATIVE_AND_EXACT_PR_GATES_PENDING",
+    "canonicalBase": "38e9a38f7c9713cc7061f347eb083d84022dcdfd",
+    "composedDiscoverySource": "ed0bd58170d41a32776bc58710ea6aa84f3810f1",
+    "implementationSource": "2724ea2",
+    "integrationSource": "2ea2422086343af4989660f05dc3bfc430488309",
+    "jest": {
+      "suites": 74,
+      "tests": 818,
+      "result": "PASS",
+      "scope": "Same application source; subsequent changes are proof helpers and canonical documentation only"
+    },
+    "typescript": "PASS",
+    "python": {
+      "tests": 67,
+      "result": "PASS"
+    },
+    "nodeGuards": {
+      "tests": 36,
+      "result": "PASS"
+    },
+    "architecture": {
+      "scanned": 96,
+      "presentation": 39,
+      "findings": 0,
+      "manualPeerReview": "PASS",
+      "scope": "Static boundary and reviewed contract/service/UI; not whole-product security closure"
+    },
+    "migrationProvenance": "87 files /87 recorded snapshot /0 pending; no fresh production observation",
+    "nativeProof": "PENDING",
+    "actualLocalRlsProof": "PENDING",
+    "productionRead": false,
+    "productionWrite": false,
+    "releaseReady": false,
+    "existingUpstreamGap": "Legacy geography validator admits null MULTI_STOP waypoints and non-string point values; strict new reader fails closed. Separate forward server hardening remains required."
+  },
+  "entry_canonical_20260908": {
+    "canonical": "38e9a38f7c9713cc7061f347eb083d84022dcdfd",
+    "pr": 66,
+    "preP4": 34166399849,
+    "codeql": 34166399632,
+    "actualAnalyses": [
+      1737938042,
+      1737937062,
+      1737937020
+    ],
+    "resultsErrorsWarnings": 0,
+    "control0": 34166399987,
+    "control0Scope": "Runner health only",
+    "newLiveObservation": false
   }
 }
