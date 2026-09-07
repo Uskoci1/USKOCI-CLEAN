@@ -1,6 +1,14 @@
-## CURRENT POINTER — 2026-09-07 / N07 LIVE84
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / N08 PREFERENCES
 
-N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
+N08 is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / PENDING FORWARD PROMOTION**. Its source is submitted through this PR; canonical status requires physical merge. One exact forward file is registered: **85 source files / recorded live84 / pending1**. Fresh live inspection and accepted review must precede production apply; this unit performed no live write.
+
+The reproduced invalid-timezone preference could roll back a counterpart message. N08 validates writes on the existing preference owner, adds monotonic full-payload CAS and required initiating-account binding, and includes an inert typed client adapter. Original message/event/Inbox/device engines and history remain unchanged; no settings UI or push provider is activated. Read [N08 contract and original proof](docs/implementation/N08_NOTIFICATION_PREFERENCES_20260907.md): exact source `6c4ac2387a9ce017bcc27c27f477d2f08f4821ce`, run34109276473,12 authenticated checks plus predecessor N07 six checks,37 suites/232 tests and TSC PASS. The prior N07 LIVE84 checkpoint below remains valid for its five admitted files.
+
+---
+
+## CURRENT POINTER â€” 2026-09-07 / N07 LIVE84
+
+N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof â†’ review â†’ promotion flow.
 
 Read [N07 live promotion and evidence](docs/implementation/N07_LIVE84_PROMOTION_20260907.md) and the current status owner before the next narrow preflight. N04's Inbox backend dependency is now LIVE; its recorded Android proof remains valid at its own source boundary. Native token lifecycle, provider dispatch/tickets/receipts, remaining Chat/product work and Store acceptance remain open. No provider/business test call, backfill, HITNO/D0140/Q&A/Application-AI activation or pricing change occurred; 0 RSD remains current.
 
@@ -10,16 +18,16 @@ All retained earlier pending-production, live79 and read-blocked checkpoints bel
 
 ---
 
-## CURRENT POINTER — 2026-09-07 / NOTIFICATIONS + ANDROID INBOX
+## CURRENT POINTER â€” 2026-09-07 / NOTIFICATIONS + ANDROID INBOX
 
-Current status and proof owner: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02/N03/N05/N06 backend source and N04 real Inbox/bell are CANONICAL / PROVEN at recorded boundaries; N04 native Android run34096462936 has all10 original PNG/XML pairs reviewed. N07 five exact forward migrations are canonical at PR #46 / 4858370610192b88112673b08bde151793409e99, with combined proof run34099067010 and canonical PRE-P4/CodeQL/Control-0 PASS. Fresh limited configured Supabase reads succeeded; live still79/head20260906141409, no production write. Explicit authorization and a new exact preflight/postflight are required for live apply. Do not restart closed RU-5 physical/N01–N06 units or mistake source/proof for live/Store readiness.
+Current status and proof owner: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02/N03/N05/N06 backend source and N04 real Inbox/bell are CANONICAL / PROVEN at recorded boundaries; N04 native Android run34096462936 has all10 original PNG/XML pairs reviewed. N07 five exact forward migrations are canonical at PR #46 / 4858370610192b88112673b08bde151793409e99, with combined proof run34099067010 and canonical PRE-P4/CodeQL/Control-0 PASS. Fresh limited configured Supabase reads succeeded; live still79/head20260906141409, no production write. Explicit authorization and a new exact preflight/postflight are required for live apply. Do not restart closed RU-5 physical/N01â€“N06 units or mistake source/proof for live/Store readiness.
 
 Older cursor/read-blocked claims below are retained historical provenance, not active instructions. Follow the current status owner for exact SHAs, jobs/artifacts/checksums, pending files and remaining independent work.
 
 ---
 
 <!-- RU5_PHYSICAL_CANONICAL_20260907 -->
-## CURRENT CHECKPOINT — 2026-09-07
+## CURRENT CHECKPOINT â€” 2026-09-07
 
 This checkpoint supersedes older active-cursor claims below; all retained sections are historical provenance, not instructions to repeat closed RU/CDL/P0C/P0D units.
 
@@ -32,7 +40,7 @@ This checkpoint supersedes older active-cursor claims below; all retained sectio
 - Next: retain the outstanding permitted live read as OWNER-ACTION, resolve bounded-note authority only from an approved owner source, and proceed with independent current-source gap reconstruction / Notifications-Inbox-Push proof units. No live promotion while its preflight is blocked. Do not rerun the accepted physical journey solely because an older section says pending.
 
 <!-- CDL_CLOSED_RU5_POINTER_20260905 -->
-## CURRENT ROOT POINTER — CDL CLOSED / MASTER RE-ADMISSION → RU-5 P0C-01
+## CURRENT ROOT POINTER â€” CDL CLOSED / MASTER RE-ADMISSION â†’ RU-5 P0C-01
 
 This top pointer supersedes every older `Exact next cursor` below. Historical text remains provenance only.
 
@@ -47,10 +55,10 @@ This top pointer supersedes every older `Exact next cursor` below. Historical te
 - RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**; its policy/rate/block/materiality activation blockers are explicitly deferred while RU-5 foundation proceeds and MUST NOT be invented
 - production D0140 remains **FAIL_CLOSED**; monetization remains **FREE / 0 RSD**
 - governing master re-admission selects **RU-5 / P0C-01 PUBLIC-SAFE PROFILE PROJECTION** as the next admissible unit
-- exact next cursor: **FRESH READ-ONLY RU-5/P0C-01 PREFLIGHT → inspect live `app_profiles` schema/RLS/grants/public profile projections + canonical W03/W04/R05/R06 consumers → smallest proof branch → no live Supabase write before disposable/authenticated proof**
+- exact next cursor: **FRESH READ-ONLY RU-5/P0C-01 PREFLIGHT â†’ inspect live `app_profiles` schema/RLS/grants/public profile projections + canonical W03/W04/R05/R06 consumers â†’ smallest proof branch â†’ no live Supabase write before disposable/authenticated proof**
 
 <!-- CDL_A10_ROOT_POINTER_20260905 -->
-## CURRENT ROOT POINTER — CDL-A10 CLOSED / POST-A10 INVENTORY
+## CURRENT ROOT POINTER â€” CDL-A10 CLOSED / POST-A10 INVENTORY
 
 This top pointer supersedes every older `Exact next cursor` below. Historical text is retained for provenance only.
 
@@ -58,25 +66,25 @@ This top pointer supersedes every older `Exact next cursor` below. Historical te
 - latest canonical code unit: CDL-A10 AI command shadow elimination
 - CDL-A10 canonical code promotion: `24a08d6c6d90daa1dd88217ea4a4d0f82a5eaf5d`
 - proof PR: `#13`
-- pre-deletion proof: `33965614404` — PASS
-- final post-deletion proof: `33965807723` — PASS
+- pre-deletion proof: `33965614404` â€” PASS
+- final post-deletion proof: `33965807723` â€” PASS
 - live Supabase remains `71 / 20260905070046_clean_ru4b_inbox_event_contract`
 - Edge remains `uskoci-ai-interview` ACTIVE v5 / `verify_jwt=true` / EZBR `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
 - RU-4 remains **CLOSED / LIVE / DO NOT REDO**
 - RU-4B remains **LIVE_FOUNDATION / ACTIVATION_BLOCKED**
 - production D0140 publication remains **FAIL_CLOSED**
-- exact next cursor: **FRESH POST-A10 SHADOW INVENTORY → continue client cleanup only if another comparable HIGH-RISK production shadow is physically proven; otherwise formal cleanup closure + governing MASTER re-admission**
+- exact next cursor: **FRESH POST-A10 SHADOW INVENTORY â†’ continue client cleanup only if another comparable HIGH-RISK production shadow is physically proven; otherwise formal cleanup closure + governing MASTER re-admission**
 
 <!-- RU3_B07_LIVE_CHECKPOINT_20260904 -->
-## LATEST PHYSICAL CHECKPOINT — RU-3/B07 LIVE
+## LATEST PHYSICAL CHECKPOINT â€” RU-3/B07 LIVE
 
 This block supersedes older B07 proof-only/concurrency-pending cursor text below.
 
 - canonical source promotion: `d2c077d90c6410dc0737916df13b257389c6cb3b`
 - B07 source: `supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql` (`17468983d28cddfe4948c3866a96e813` raw MD5)
-- true concurrency/idempotency proof: GitHub Actions `33903129202` — PASS
-- clean promotion integrity: `33905242409` — PASS
-- canonical push integrity: `33905436213` — PASS
+- true concurrency/idempotency proof: GitHub Actions `33903129202` â€” PASS
+- clean promotion integrity: `33905242409` â€” PASS
+- canonical push integrity: `33905436213` â€” PASS
 - live Supabase migration: `20260904182402_clean_ru3_canonical_publish`
 - live migration count: `63`
 - live structural proof: PASS; zero publish-command rows; zero policy bundles/rules/publication decisions; business counts preserved
@@ -84,7 +92,7 @@ This block supersedes older B07 proof-only/concurrency-pending cursor text below
 - RU-3/B05, B06 and B07 infrastructure are live/structurally proven; RU-3 overall remains OPEN only for deferred production policy/evaluator/release activation
 - exact next implementation cursor: **RU-4 Material Revision / Re-admission** after a fresh physical preflight
 
-# USKOČI — CURRENT HANDOFF POINTER
+# USKOÄŒI â€” CURRENT HANDOFF POINTER
 
 Status: `CURRENT CONTINUITY ENTRY / 2026-09-04`
 
@@ -107,7 +115,7 @@ The master is the complete frozen baseline. Implementation progress after that f
 - GitHub: `Uskoci1/USKOCI-CLEAN`
 - branch: `clean-alpha-backend`
 - Supabase: `leqcwgzvjsxugfgzdmth`
-- quarantine: `repair/ru0-ru1-backend-20260902` — no merge/cherry-pick/apply
+- quarantine: `repair/ru0-ru1-backend-20260902` â€” no merge/cherry-pick/apply
 
 ## Read this before continuing
 
@@ -128,14 +136,14 @@ Then perform a fresh physical GitHub/Supabase preflight before writes.
 - Edge `uskoci-ai-interview`: ACTIVE v5, `verify_jwt=true`
 - Edge EZBR SHA-256: `5003809f31681eb396713ffc66a1adf979d62a39312dcb833ead67df180954ca`
 
-## Closed / proven units — do not redo
+## Closed / proven units â€” do not redo
 
-- Edge source reconciliation — DONE
-- RU-0 Authority Closure — CLOSED
-- RU-1 Worker Readiness — CLOSED
-- RU-2 Need V2 + R02/R07 DRAFT — CLOSED
-- RU-3/B05 policy-bundle foundation — LIVE_STRUCTURAL_PROVEN
-- RU-3/B06 publication decision + canonical fingerprint — LIVE_STRUCTURAL_PROVEN
+- Edge source reconciliation â€” DONE
+- RU-0 Authority Closure â€” CLOSED
+- RU-1 Worker Readiness â€” CLOSED
+- RU-2 Need V2 + R02/R07 DRAFT â€” CLOSED
+- RU-3/B05 policy-bundle foundation â€” LIVE_STRUCTURAL_PROVEN
+- RU-3/B06 publication decision + canonical fingerprint â€” LIVE_STRUCTURAL_PROVEN
 
 RU-3 as a whole is still OPEN.
 
@@ -193,7 +201,7 @@ Production publication remains fail-closed:
 3. Promote only intended B07 artifacts after proof and rebaseline.
 4. Keep real Serbia policy activation fail-closed/deferred.
 5. Continue RU-4 material revision/re-admission.
-6. Then continue RU-5 → RU-6A → RU-6B → RU-7 → RU-8 according to the governing master.
+6. Then continue RU-5 â†’ RU-6A â†’ RU-6B â†’ RU-7 â†’ RU-8 according to the governing master.
 
 After every promoted unit, update the four continuity files so the next AI can resume without reconstructing the project.
 

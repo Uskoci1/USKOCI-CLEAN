@@ -1,6 +1,14 @@
-## CURRENT POINTER — 2026-09-07 / N07 LIVE84
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / N08 PREFERENCES
 
-N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
+N08 is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / PENDING FORWARD PROMOTION**. Its source is submitted through this PR; canonical status requires physical merge. One exact forward file is registered: **85 source files / recorded live84 / pending1**. Fresh live inspection and accepted review must precede production apply; this unit performed no live write.
+
+The reproduced invalid-timezone preference could roll back a counterpart message. N08 validates writes on the existing preference owner, adds monotonic full-payload CAS and required initiating-account binding, and includes an inert typed client adapter. Original message/event/Inbox/device engines and history remain unchanged; no settings UI or push provider is activated. Read [N08 contract and original proof](N08_NOTIFICATION_PREFERENCES_20260907.md): exact source `6c4ac2387a9ce017bcc27c27f477d2f08f4821ce`, run34109276473,12 authenticated checks plus predecessor N07 six checks,37 suites/232 tests and TSC PASS. The prior N07 LIVE84 checkpoint below remains valid for its five admitted files.
+
+---
+
+## CURRENT POINTER â€” 2026-09-07 / N07 LIVE84
+
+N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof â†’ review â†’ promotion flow.
 
 Read [N07 live promotion and evidence](N07_LIVE84_PROMOTION_20260907.md) and the current status owner before the next narrow preflight. N04's Inbox backend dependency is now LIVE; its recorded Android proof remains valid at its own source boundary. Native token lifecycle, provider dispatch/tickets/receipts, remaining Chat/product work and Store acceptance remain open. No provider/business test call, backfill, HITNO/D0140/Q&A/Application-AI activation or pricing change occurred; 0 RSD remains current.
 
@@ -11,7 +19,7 @@ All retained earlier pending-production, live79 and read-blocked checkpoints bel
 ---
 
 <!-- RU5_PHYSICAL_CANONICAL_20260907 -->
-## CURRENT CHECKPOINT — 2026-09-07
+## CURRENT CHECKPOINT â€” 2026-09-07
 
 This checkpoint supersedes older active-cursor claims below; all retained sections are historical provenance, not instructions to repeat closed RU/CDL/P0C/P0D units.
 
@@ -23,7 +31,7 @@ This checkpoint supersedes older active-cursor claims below; all retained sectio
 - Evidence: `docs/implementation/RU5_PHYSICAL_ANDROID_PROOF_ACCEPTANCE_20260907.md` and `RU5_PHYSICAL_ANDROID_EVIDENCE_20260907.json`.
 - Next: retain the outstanding permitted live read as OWNER-ACTION, resolve bounded-note authority only from an approved owner source, and proceed with independent current-source gap reconstruction / Notifications-Inbox-Push proof units. No live promotion while its preflight is blocked. Do not rerun the accepted physical journey solely because an older section says pending.
 
-# USKOČI — LIVE IMPLEMENTATION NETWORK
+# USKOÄŒI â€” LIVE IMPLEMENTATION NETWORK
 
 Current authoritative network checkpoint: `2026-09-06` after RU-5 FASTEST/AUTO_FILL retirement became canonical/live/proven and the automated two-account authenticated Application journey became canonical/proven.
 
@@ -49,7 +57,7 @@ RU-5 FASTEST/AUTO_FILL retirement:
 
 RU-5 automated two-account authenticated journey:
 
-- prerequisite W03→W04 routing fix canonical merge: `bc49e8ae423b91b37321787e1dc3a1dada90583e` (PR `#34`)
+- prerequisite W03â†’W04 routing fix canonical merge: `bc49e8ae423b91b37321787e1dc3a1dada90583e` (PR `#34`)
 - proof branch head: `bedca53d2d0bff336a2ea912b3489f4fbf5402aa`
 - proof run/job: `34045287333 / 101519151761` PASS
 - PR `#35` PRE-P4 / CodeQL: `34045560199 / 34045558347` PASS
@@ -116,20 +124,20 @@ The automated proof was disposable-only and left zero external/production residu
 
 ## Preserved closed units
 
-- RU-0 — `CLOSED / LIVE / DO NOT REDO`
-- RU-1 — `CLOSED / LIVE / DO NOT REDO`
-- RU-2 — `CLOSED / LIVE / DO NOT REDO`
-- RU-4 — `CLOSED / LIVE / DO NOT REDO`
-- Client Data Layer — `CLOSED / CANONICAL / DO NOT REDO`
-- RU-5 P0C-01 — `CLOSED / LIVE`
-- RU-5 P0C-02 — `CLOSED / LIVE`
-- RU-5 P0C-03 — `CLOSED / LIVE`
-- RU-5 P0D-01 — `CLOSED / LIVE`
-- RU-5 Manual Selection Eligibility Revalidation — `CLOSED / CANONICAL / LIVE`
-- P0D-02 — `CLOSED / CANONICAL / LIVE`
-- P0D-03 — `CLOSED / CANONICAL / LIVE / PROVEN`
-- RU-5 FASTEST/AUTO_FILL retirement — `CLOSED / CANONICAL / LIVE / PROVEN`
-- RU-5 automated two-account authenticated journey — `CLOSED / CANONICAL / PROVEN`
+- RU-0 â€” `CLOSED / LIVE / DO NOT REDO`
+- RU-1 â€” `CLOSED / LIVE / DO NOT REDO`
+- RU-2 â€” `CLOSED / LIVE / DO NOT REDO`
+- RU-4 â€” `CLOSED / LIVE / DO NOT REDO`
+- Client Data Layer â€” `CLOSED / CANONICAL / DO NOT REDO`
+- RU-5 P0C-01 â€” `CLOSED / LIVE`
+- RU-5 P0C-02 â€” `CLOSED / LIVE`
+- RU-5 P0C-03 â€” `CLOSED / LIVE`
+- RU-5 P0D-01 â€” `CLOSED / LIVE`
+- RU-5 Manual Selection Eligibility Revalidation â€” `CLOSED / CANONICAL / LIVE`
+- P0D-02 â€” `CLOSED / CANONICAL / LIVE`
+- P0D-03 â€” `CLOSED / CANONICAL / LIVE / PROVEN`
+- RU-5 FASTEST/AUTO_FILL retirement â€” `CLOSED / CANONICAL / LIVE / PROVEN`
+- RU-5 automated two-account authenticated journey â€” `CLOSED / CANONICAL / PROVEN`
 
 P0D-03 remains exactly:
 
@@ -141,7 +149,7 @@ No Worker debit and no historical connection-activation backfill were introduced
 
 The canonical automated proof uses two distinct real GoTrue Auth sessions and proves:
 
-`W03 public opportunity read → W04 exact Need read → W05 authenticated Application submit → W06 own Application projection → R05 owner-only candidate projection → exact Application version/hash Selection`
+`W03 public opportunity read â†’ W04 exact Need read â†’ W05 authenticated Application submit â†’ W06 own Application projection â†’ R05 owner-only candidate projection â†’ exact Application version/hash Selection`
 
 It additionally proves:
 
@@ -156,14 +164,14 @@ This is a backend/client-authority integration proof. It does **not** claim phys
 
 ## Fail-closed/deferred network
 
-- RU-3 — `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`
-- D0140 production ALLOW — `FAIL_CLOSED`; policy bundle rows `0`; publication decision rows `0`
-- RU-4B — `LIVE FOUNDATION / PUBLIC ACTIVATION BLOCKED-DEFERRED`; governed production inventories remain zero
-- monetization — `FREE / 0 RSD`; no paid/wallet/checkout/packages activation
-- HITNO production activation — unchanged/disabled
-- Application AI / RU-5B — gated
-- RU-6A hard calendar authority / immutable Agreement Snapshot V2 — separate future unit
-- RU-6B shared multi-person Dogovor — separate future unit
+- RU-3 â€” `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`
+- D0140 production ALLOW â€” `FAIL_CLOSED`; policy bundle rows `0`; publication decision rows `0`
+- RU-4B â€” `LIVE FOUNDATION / PUBLIC ACTIVATION BLOCKED-DEFERRED`; governed production inventories remain zero
+- monetization â€” `FREE / 0 RSD`; no paid/wallet/checkout/packages activation
+- HITNO production activation â€” unchanged/disabled
+- Application AI / RU-5B â€” gated
+- RU-6A hard calendar authority / immutable Agreement Snapshot V2 â€” separate future unit
+- RU-6B shared multi-person Dogovor â€” separate future unit
 
 ## Aggregate RU-5 status
 
@@ -171,8 +179,8 @@ This is a backend/client-authority integration proof. It does **not** claim phys
 
 The automated two-account integration blocker is closed. Two separate aggregate gates remain:
 
-1. **Bounded / preselection note governance** — frozen RU-5 requires a bounded note and denial of contact/payment/exact-private-location bypass content according to current policy. Current governing sources do not owner-approve a numeric max length, regex/block list, moderation threshold or numeric rate. Values under `06_DRAFT_EVIDENCE` remain draft-only. Do not invent policy.
-2. **Physical device/emulator UI journey proof** — the automated `W03 → W04 → W05 → W06 → R05` journey is proven, but no physical mobile click-through proof has been executed. Android build success is not a substitute. No device proof may be claimed until an actual device/emulator or equivalent mobile E2E harness executes the path.
+1. **Bounded / preselection note governance** â€” frozen RU-5 requires a bounded note and denial of contact/payment/exact-private-location bypass content according to current policy. Current governing sources do not owner-approve a numeric max length, regex/block list, moderation threshold or numeric rate. Values under `06_DRAFT_EVIDENCE` remain draft-only. Do not invent policy.
+2. **Physical device/emulator UI journey proof** â€” the automated `W03 â†’ W04 â†’ W05 â†’ W06 â†’ R05` journey is proven, but no physical mobile click-through proof has been executed. Android build success is not a substitute. No device proof may be claimed until an actual device/emulator or equivalent mobile E2E harness executes the path.
 
 ## Exact next cursor
 
