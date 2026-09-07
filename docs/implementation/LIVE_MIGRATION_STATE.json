@@ -1,4 +1,28 @@
 {
+  "n08_preferences_checkpoint_20260907": {
+    "state": "IMPLEMENTED_AUTHENTICATED_DISPOSABLE_PROVEN_PENDING_FORWARD_PROMOTION",
+    "source_sha": "6c4ac2387a9ce017bcc27c27f477d2f08f4821ce",
+    "proof_run": 34109276473,
+    "artifact_id": 10013759621,
+    "artifact_zip_sha256": "bd098db108be14865f6f96612b2912cda929e89020f43a5f4c3b6c19ab3bf822",
+    "forward_file": "20260907100000_clean_n08_notification_preferences.sql",
+    "source_sha256": "f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16",
+    "raw_md5": "349e81a12760af65dc4d5d98a7677333",
+    "bytes": 13177,
+    "live_applied": false,
+    "canonical_source_file_count": 85,
+    "recorded_live_migration_count": 84,
+    "pending_forward_files": 1,
+    "disposable_migration_count": 85,
+    "original84_history_unchanged": true,
+    "authenticated_checks": 12,
+    "predecessor_n07_checks": 6,
+    "jest_suites": 37,
+    "jest_tests": 232,
+    "client_transport": "IMPLEMENTED_INERT_NO_UI_OR_EAGER_RPC",
+    "provider_or_mobile_push_proof": false,
+    "evidence": "docs/implementation/evidence/n08-preferences-20260907/SHA256_MANIFEST.json"
+  },
   "action_pins_checkpoint_20260907": {
     "pr": 48,
     "state": "CANONICAL_CODEQL_ALERTS_FIXED",
