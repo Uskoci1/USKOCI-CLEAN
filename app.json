@@ -1,7 +1,13 @@
 {
   "expo": {
-    "name": "USKOCI-APP",
-    "slug": "USKOCI-APP",
+    "name": "USKOČI",
+    "slug": "uskoci",
+    "owner": "sljivas-team",
+    "extra": {
+      "eas": {
+        "projectId": "1e6cc490-9851-4741-9226-128612122db6"
+      }
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -11,6 +17,8 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "rs.uskoci.preview",
+      "versionCode": 35,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
