@@ -1,7 +1,117 @@
 {
+  "action_pins_checkpoint_20260907": {
+    "pr": 48,
+    "state": "CANONICAL_CODEQL_ALERTS_FIXED",
+    "canonical_head": "79e6f3380029b0a9e9494fe54f4ed2e6ca274c98",
+    "canonical_pre_p4_run": 34104632010,
+    "canonical_codeql_run": 34104631839,
+    "canonical_control0_run": 34104631920,
+    "fixed_alert_ids": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      8
+    ],
+    "fixed_at_utc": "2026-09-07T09:12:05Z",
+    "open_alerts": [],
+    "runtime_or_production_change": false,
+    "evidence": "docs/implementation/evidence/action-pins-20260907/SHA256_MANIFEST.json"
+  },
+  "notification_checkpoint_20260907": {
+    "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
+    "canonical_head_at_live_promotion": "7a94c19f8f79a97a91cec45f21c6e349345b122e",
+    "state": "CANONICAL_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
+    "live_migration_count": 84,
+    "live_head": "20260907090645_clean_n06_push_device_registry",
+    "pending_forward_files": 0,
+    "source_live_aliases": [
+      {
+        "name": "clean_n01_message_event",
+        "version": "20260907090358",
+        "file": "20260907080000_clean_n01_message_event.sql",
+        "source_version": "20260907080000",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "4ed2e7bac92d8c54c9b1338fb831e630",
+        "canonical_sha256": "fca581eddacbaf1ac33f972e4d56d414d9309f89556d4042c9c413941a48e410",
+        "live_recorded_statement_md5": "4ed2e7bac92d8c54c9b1338fb831e630",
+        "live_recorded_statement_sha256": "fca581eddacbaf1ac33f972e4d56d414d9309f89556d4042c9c413941a48e410",
+        "recorded_statement_utf8_bytes": 3612,
+        "proof_run": 34099067010,
+        "source_canonical_promotion_sha": "4858370610192b88112673b08bde151793409e99"
+      },
+      {
+        "name": "clean_n02_selection_event",
+        "version": "20260907090454",
+        "file": "20260907080100_clean_n02_selection_event.sql",
+        "source_version": "20260907080100",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "3e3f39ebb4c331fbf189358f5b4e27af",
+        "canonical_sha256": "774dda228b14157a9312777e9857360ea2034f1dbeb333709c3e1c5d9fdec7f9",
+        "live_recorded_statement_md5": "3e3f39ebb4c331fbf189358f5b4e27af",
+        "live_recorded_statement_sha256": "774dda228b14157a9312777e9857360ea2034f1dbeb333709c3e1c5d9fdec7f9",
+        "recorded_statement_utf8_bytes": 2287,
+        "proof_run": 34099067010,
+        "source_canonical_promotion_sha": "4858370610192b88112673b08bde151793409e99"
+      },
+      {
+        "name": "clean_n03_event_inbox",
+        "version": "20260907090527",
+        "file": "20260907080200_clean_n03_event_inbox.sql",
+        "source_version": "20260907080200",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "d7d05cec995093fc97c53bf4c171d8c3",
+        "canonical_sha256": "55909e6759d908cb3a077ffc231bd59e3171eaa56a938c05ef8a556b1eebea05",
+        "live_recorded_statement_md5": "d7d05cec995093fc97c53bf4c171d8c3",
+        "live_recorded_statement_sha256": "55909e6759d908cb3a077ffc231bd59e3171eaa56a938c05ef8a556b1eebea05",
+        "recorded_statement_utf8_bytes": 7431,
+        "proof_run": 34099067010,
+        "source_canonical_promotion_sha": "4858370610192b88112673b08bde151793409e99"
+      },
+      {
+        "name": "clean_n05_agreement_change_events",
+        "version": "20260907090615",
+        "file": "20260907080300_clean_n05_agreement_change_events.sql",
+        "source_version": "20260907080300",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "059378cd24fb4d05d040b96ade02e80a",
+        "canonical_sha256": "62461ca958e88b9b9882b22759c0e3bcc02e21b771efc45425a926301f243892",
+        "live_recorded_statement_md5": "059378cd24fb4d05d040b96ade02e80a",
+        "live_recorded_statement_sha256": "62461ca958e88b9b9882b22759c0e3bcc02e21b771efc45425a926301f243892",
+        "recorded_statement_utf8_bytes": 3894,
+        "proof_run": 34099067010,
+        "source_canonical_promotion_sha": "4858370610192b88112673b08bde151793409e99"
+      },
+      {
+        "name": "clean_n06_push_device_registry",
+        "version": "20260907090645",
+        "file": "20260907080400_clean_n06_push_device_registry.sql",
+        "source_version": "20260907080400",
+        "exact_byte_mirror": true,
+        "canonical_raw_md5": "c078ffda2fa68264dd9f0d934c69b05a",
+        "canonical_sha256": "6826306e4d66666f3241eecf8d9a187a652e0ea89cda742cbeefd37cf9ada7eb",
+        "live_recorded_statement_md5": "c078ffda2fa68264dd9f0d934c69b05a",
+        "live_recorded_statement_sha256": "6826306e4d66666f3241eecf8d9a187a652e0ea89cda742cbeefd37cf9ada7eb",
+        "recorded_statement_utf8_bytes": 5031,
+        "proof_run": 34099067010,
+        "source_canonical_promotion_sha": "4858370610192b88112673b08bde151793409e99"
+      }
+    ],
+    "original_disposable_proof_run": 34099067010,
+    "n04": "CANONICAL_ANDROID_NATIVE_PROVEN_BACKEND_LIVE",
+    "n04_original_proof_run": 34096462936,
+    "provider_delivery_proven": false,
+    "new_production_business_rpc_proof": false,
+    "all_five_exact_source_live_bytes": true,
+    "historical79_statement_bytes_unchanged": true,
+    "observed_at_utc": "2026-09-07T09:07:48Z",
+    "report": "docs/implementation/N07_LIVE84_PROMOTION_20260907.md",
+    "next": "NATIVE_PUSH_LIFECYCLE_DISPATCH_AND_REMAINING_CHAT_PRODUCT_UNITS"
+  },
   "format_version": 3,
   "updated_at": "2026-09-07",
-  "notification_checkpoint_20260907": {
+  "historical_notification_checkpoint_before_live84_20260907": {
     "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
     "n01": { "pr": 39, "state": "CANONICAL_NOT_LIVE" },
     "n02": { "pr": 40, "state": "CANONICAL_NOT_LIVE", "proof_run": 34094384747, "artifact": 10008095140, "checks_passed": 12 },
@@ -60,9 +170,10 @@
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
-    "migration_count": 79,
-    "head": "20260906141409_clean_ru5_fastest_autofill_retirement",
-    "pending_forward_migrations": 5
+    "migration_count": 84,
+    "head": "20260907090645_clean_n06_push_device_registry",
+    "pending_forward_migrations": 0,
+    "observed_at_utc": "2026-09-07T09:07:48Z"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
@@ -78,7 +189,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "LIVE_79_RU5_FASTEST_AUTOFILL_RETIREMENT_PROVEN",
+    "state": "LIVE_84_N07_NOTIFICATION_PROMOTION_STRUCTURAL_PROVEN",
     "ru2_live_aliases": [
       {
         "live_version": "20260903222139",
