@@ -38,9 +38,10 @@ const pass=()=>{report.checks.push({name:current,result:'PASS'});console.log(`PA
 const snapshot=()=>Object.fromEntries(['agreement_messages','user_activity_events','notification_deliveries']
   .map(name=>[name,sql(`select count(*)||':'||md5(coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb)::text) from public.${name} t`)]));
 const rows=query=>JSON.parse(sql(`select coalesce(json_agg(x),'[]'::json) from (${query}) x`));
-const get=(client,role='WORKER')=>ok(client.rpc('rpc_get_notification_preferences',{p_role:role}));
+const ownerId=client=>client===worker?env.RU5_DEVICE_WORKER_USER_ID:env.RU5_DEVICE_REQUESTER_USER_ID;
+const get=(client,role='WORKER')=>ok(client.rpc('rpc_get_notification_preferences',{p_expected_user_id:ownerId(client),p_role:role}));
 const set=(client,settings,revision,role='WORKER')=>client.rpc('rpc_set_notification_preferences',
-  {p_role:role,p_settings:settings,p_expected_revision:revision});
+  {p_expected_user_id:ownerId(client),p_role:role,p_settings:settings,p_expected_revision:revision});
 async function rejected(promise,code){const result=await promise;assert.ok(result.error);if(code)assert.equal(result.error.code,code);return result.error;}
 const defaultSettings={in_app_enabled:true,push_enabled:false,opportunities_enabled:true,responses_enabled:true,
   dogovor_enabled:true,execution_enabled:true,recovery_enabled:true,account_enabled:true,quiet_hours_enabled:false,
@@ -83,7 +84,7 @@ try{
   catch(error){refused=String(error.stderr).includes('N08_EXISTING_INVALID_PREFERENCES');}
   assert.equal(refused,true);
   assert.equal(sql("select count(*) from information_schema.columns where table_schema='public' and table_name='notification_preferences' and column_name='revision'"),'0');
-  assert.equal(sql("select to_regprocedure('public.rpc_get_notification_preferences(text)') is null"),'t');
+  assert.equal(sql("select to_regprocedure('public.rpc_get_notification_preferences(uuid,text)') is null"),'t');
   assert.equal(sql("select md5(jsonb_agg(to_jsonb(p))::text) from public.notification_preferences p"),invalidRows);
   assert.deepEqual(snapshot(),before);pass();
   check('PREDECESSOR_RECOVERS_AFTER_OWNER_REMOVES_INVALID_PREFERENCE');
@@ -106,7 +107,7 @@ try{
   sql("notify pgrst,'reload schema'");
   let ready=false;
   for(let i=0;i<40;i++){
-    const response=await worker.rpc('rpc_get_notification_preferences',{p_role:'WORKER'});
+    const response=await worker.rpc('rpc_get_notification_preferences',{p_expected_user_id:ownerId(worker),p_role:'WORKER'});
     if(!response.error){ready=true;break;}
     await new Promise(resolve=>setTimeout(resolve,250));
   }
@@ -118,15 +119,15 @@ try{
   assert.deepEqual(existing.settings,defaultSettings);
   for(const [client,role] of [[requester,'REQUESTER'],[requester,'WORKER'],[worker,'REQUESTER']]){
     const result=await get(client,role);
-    assert.deepEqual(result,{exists:false,roleContext:role,revision:0,updatedAt:null,settings:defaultSettings});
+    assert.deepEqual(result,{userId:ownerId(client),exists:false,roleContext:role,revision:0,updatedAt:null,settings:defaultSettings});
   }
   assert.equal(sql('select count(*) from public.notification_preferences'),'1');pass();
 
   check('AUTH_ROLE_PAYLOAD_TIMEZONE_AND_TIME_INVARIANTS');
-  await rejected(anon.rpc('rpc_get_notification_preferences',{p_role:'WORKER'}));
-  await rejected(anon.rpc('rpc_set_notification_preferences',{p_role:'WORKER',p_settings:defaultSettings,p_expected_revision:0}));
+  await rejected(anon.rpc('rpc_get_notification_preferences',{p_expected_user_id:ownerId(worker),p_role:'WORKER'}));
+  await rejected(anon.rpc('rpc_set_notification_preferences',{p_expected_user_id:ownerId(worker),p_role:'WORKER',p_settings:defaultSettings,p_expected_revision:0}));
   for(const role of [null,'worker','ADMIN']){
-    await rejected(worker.rpc('rpc_get_notification_preferences',{p_role:role}),'22023');
+    await rejected(worker.rpc('rpc_get_notification_preferences',{p_expected_user_id:ownerId(worker),p_role:role}),'22023');
     await rejected(set(worker,defaultSettings,0,role),'22023');
   }
   const withoutPush={...defaultSettings};delete withoutPush.push_enabled;
@@ -142,6 +143,21 @@ try{
   for(const revision of [null,-1,'9223372036854775807'])await rejected(set(worker,defaultSettings,revision),'22023');
   await rejected(set(worker,defaultSettings,99),'40001');
   assert.deepEqual(await get(worker),existing);
+  assert.deepEqual(snapshot(),noEffects);pass();
+
+  check('EXPECTED_ACTOR_REJECTS_OLD_ACCOUNT_INTENT_WITH_NEW_ACCOUNT_JWT');
+  const beforeSwitch=sql("select md5(jsonb_agg(to_jsonb(p) order by user_id,role_context)::text) from public.notification_preferences p");
+  const newAccount=await get(requester,'WORKER');
+  for(const expected of [ownerId(worker),null]){
+    const readError=await rejected(requester.rpc('rpc_get_notification_preferences',
+      {p_expected_user_id:expected,p_role:'WORKER'}),'28000');
+    assert.equal(readError.message,'AUTH_CONTEXT_CHANGED');
+    const writeError=await rejected(requester.rpc('rpc_set_notification_preferences',
+      {p_expected_user_id:expected,p_role:'WORKER',p_settings:{...defaultSettings,push_enabled:true},p_expected_revision:0}),'28000');
+    assert.equal(writeError.message,'AUTH_CONTEXT_CHANGED');
+  }
+  assert.deepEqual(await get(requester,'WORKER'),newAccount);
+  assert.equal(sql("select md5(jsonb_agg(to_jsonb(p) order by user_id,role_context)::text) from public.notification_preferences p"),beforeSwitch);
   assert.deepEqual(snapshot(),noEffects);pass();
 
   check('FIRST_WRITE_COMPLETE_PAYLOAD_RETRY_AND_REVOCATION_BOUNDARIES');
@@ -229,7 +245,7 @@ try{
       assert.equal(sql(`select has_table_privilege('${role}','public.notification_preferences','${privilege}')`),'f');
   }
   assert.equal(sql("select has_table_privilege('service_role','public.notification_preferences','DELETE')"),'f');
-  for(const name of ['rpc_get_notification_preferences(text)','rpc_set_notification_preferences(text,jsonb,bigint)']){
+  for(const name of ['rpc_get_notification_preferences(uuid,text)','rpc_set_notification_preferences(uuid,text,jsonb,bigint)']){
     assert.equal(sql(`select has_function_privilege('authenticated','public.${name}','EXECUTE')`),'t');
     for(const role of ['anon','service_role'])assert.equal(sql(`select has_function_privilege('${role}','public.${name}','EXECUTE')`),'f');
   }

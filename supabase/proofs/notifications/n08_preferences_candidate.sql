@@ -17,7 +17,9 @@ begin
           and attnum>0 and not attisdropped)<>16
      or exists(select 1 from pg_trigger where tgrelid='public.notification_preferences'::regclass and not tgisinternal)
      or to_regprocedure('public.rpc_get_notification_preferences(text)') is not null
-     or to_regprocedure('public.rpc_set_notification_preferences(text,jsonb,bigint)') is not null then
+     or to_regprocedure('public.rpc_set_notification_preferences(text,jsonb,bigint)') is not null
+     or to_regprocedure('public.rpc_get_notification_preferences(uuid,text)') is not null
+     or to_regprocedure('public.rpc_set_notification_preferences(uuid,text,jsonb,bigint)') is not null then
     raise exception 'N08_PREDECESSOR_MISMATCH';
   end if;
   -- Never silently repair a legacy row or apply only part of this boundary.
@@ -79,12 +81,14 @@ as $settings$
     'quiet_timezone',p.quiet_timezone,'urgent_overrides_quiet_hours',p.urgent_overrides_quiet_hours);
 $settings$;
 
-create function public.rpc_get_notification_preferences(p_role text)
+create function public.rpc_get_notification_preferences(p_expected_user_id uuid,p_role text)
 returns jsonb language plpgsql stable security definer set search_path=pg_catalog
 as $read$
 declare v_uid uuid:=auth.uid(); d public.notification_preferences%rowtype; v_exists boolean:=true;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
+  if p_expected_user_id is null or p_expected_user_id<>v_uid then
+    raise exception 'AUTH_CONTEXT_CHANGED' using errcode='28000'; end if;
   if p_role is null or p_role not in ('REQUESTER','WORKER') then
     raise exception 'INVALID_NOTIFICATION_ROLE' using errcode='22023'; end if;
   select * into d from public.notification_preferences where user_id=v_uid and role_context=p_role;
@@ -100,12 +104,12 @@ begin
         "urgent_overrides_quiet_hours":false}'::jsonb);
     d.role_context:=p_role;
   end if;
-  return jsonb_build_object('exists',v_exists,'roleContext',d.role_context,'revision',d.revision,
+  return jsonb_build_object('userId',v_uid,'exists',v_exists,'roleContext',d.role_context,'revision',d.revision,
     'updatedAt',d.updated_at,'settings',private.notification_preferences_settings(d));
 end
 $read$;
 
-create function public.rpc_set_notification_preferences(p_role text,p_settings jsonb,p_expected_revision bigint)
+create function public.rpc_set_notification_preferences(p_expected_user_id uuid,p_role text,p_settings jsonb,p_expected_revision bigint)
 returns jsonb language plpgsql security definer set search_path=pg_catalog
 as $write$
 declare
@@ -116,6 +120,10 @@ declare
     'quiet_start','quiet_end','quiet_timezone','urgent_overrides_quiet_hours'];
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
+  -- The mobile request captures its initiating account. A later token switch
+  -- must fail here, before reads, locks or writes under the new authenticated user.
+  if p_expected_user_id is null or p_expected_user_id<>v_uid then
+    raise exception 'AUTH_CONTEXT_CHANGED' using errcode='28000'; end if;
   if p_role is null or p_role not in ('REQUESTER','WORKER') then
     raise exception 'INVALID_NOTIFICATION_ROLE' using errcode='22023'; end if;
   if p_expected_revision is null or p_expected_revision<0 or p_expected_revision=9223372036854775807
@@ -147,7 +155,7 @@ begin
   select * into d from public.notification_preferences where user_id=v_uid and role_context=p_role for update;
   if found then
     if d.revision=p_expected_revision+1 and private.notification_preferences_settings(d)=v_canonical then
-      return jsonb_build_object('exists',true,'roleContext',d.role_context,'revision',d.revision,
+      return jsonb_build_object('userId',v_uid,'exists',true,'roleContext',d.role_context,'revision',d.revision,
         'updatedAt',d.updated_at,'settings',v_canonical);
     end if;
     if d.revision<>p_expected_revision then
@@ -173,7 +181,7 @@ begin
     if not found then -- A concurrent trusted insert cannot be overwritten.
       raise exception 'NOTIFICATION_PREFERENCES_REVISION_CONFLICT' using errcode='40001'; end if;
   end if;
-  return jsonb_build_object('exists',true,'roleContext',d.role_context,'revision',d.revision,
+  return jsonb_build_object('userId',v_uid,'exists',true,'roleContext',d.role_context,'revision',d.revision,
     'updatedAt',d.updated_at,'settings',private.notification_preferences_settings(d));
 end
 $write$;
@@ -188,8 +196,8 @@ grant select on public.notification_preferences to authenticated;
 grant select,insert,update on public.notification_preferences to service_role;
 revoke all on function private.notification_preferences_write_guard() from public,anon,authenticated,service_role;
 revoke all on function private.notification_preferences_settings(public.notification_preferences) from public,anon,authenticated,service_role;
-revoke all on function public.rpc_get_notification_preferences(text) from public,anon,service_role;
-revoke all on function public.rpc_set_notification_preferences(text,jsonb,bigint) from public,anon,service_role;
-grant execute on function public.rpc_get_notification_preferences(text) to authenticated;
-grant execute on function public.rpc_set_notification_preferences(text,jsonb,bigint) to authenticated;
+revoke all on function public.rpc_get_notification_preferences(uuid,text) from public,anon,service_role;
+revoke all on function public.rpc_set_notification_preferences(uuid,text,jsonb,bigint) from public,anon,service_role;
+grant execute on function public.rpc_get_notification_preferences(uuid,text) to authenticated;
+grant execute on function public.rpc_set_notification_preferences(uuid,text,jsonb,bigint) to authenticated;
 commit;

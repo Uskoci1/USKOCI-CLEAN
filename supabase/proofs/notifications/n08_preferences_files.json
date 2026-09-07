@@ -1,9 +1,9 @@
 {
   "unit": "N08_NOTIFICATION_PREFERENCES",
   "file": "supabase/proofs/notifications/n08_preferences_candidate.sql",
-  "bytes": 12364,
-  "md5": "6bbd4d61976c2073c57638b7b99f60a5",
-  "sha256": "0c5e06112d8138791615e6bc42e683a00e929deea4d252863ad7058fdcb4d7b2",
+  "bytes": 13113,
+  "md5": "1baa3a0396906bed0f7562593ddaacee",
+  "sha256": "f5b19011606f53aedff431b8c312fd1ac6a32de1f0adef2982070d8a765b5be4",
   "baseline_migration_history_count": 84,
   "status": "DISPOSABLE_CANDIDATE_NOT_LIVE"
 }
