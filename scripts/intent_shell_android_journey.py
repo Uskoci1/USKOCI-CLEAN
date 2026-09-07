@@ -172,6 +172,10 @@ def back_to_tasks(intent):
 
 
 print('START PHYSICAL_INTENT_SHELL_JOURNEY', flush=True)
+if os.environ.get('RU5_ENTRY_PROOF') == '1':
+    entry_source = Path(__file__).with_name('entry_spoj_android.py')
+    exec(compile(entry_source.read_text(encoding='utf-8'), str(entry_source), 'exec'), globals())
+    prove_spoj_entry()
 launch_clean()
 login(os.environ['RU5_DEVICE_REQUESTER_EMAIL'])
 assert_shell('requester')

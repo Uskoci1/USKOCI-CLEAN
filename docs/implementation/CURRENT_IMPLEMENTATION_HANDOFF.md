@@ -1,3 +1,11 @@
+## SPOJ entry implementation — 2026-09-07
+
+Owner-selected visual direction: Figma `DovAtPfVaLKL6xnXtQImbf`, splash15:487, welcome3:123, auth3:182. Original handshake U, outlined wordmark and all12 recorded4500ms motion tracks are retained. Light full-page Auth replaces the obscuring sheet. Implemented Auth methods are intersected with fresh public server settings; unsupported providers/recovery remain gated. Guest intent uses the existing account-owned return store through a client service, with5s cancellation/rollback. Form single-flight/account revision and intro storage/reduced-motion/lifetime cases are source-tested.
+
+State: **IMPLEMENTED / LOCAL SOURCE PROVEN / WEB SIGNED-OUT SURFACES OBSERVED / ANDROID AND CANONICAL PENDING**. This does not close all47 backlog items, account registration delivery, recovery, all deep-link returns, native smoothness, shared maps or final release. Full physical Auth/account/Inbox/navigation proof is queued for the exact source; no production fixture, SQL, Edge, secret or pricing mutation. Fresh live read17:09UTC remains87 migrations/Edgev11/0RSD/HITNO-off/publication gated; older Edge checkpoints below are historical. See `SPOJ_ENTRY_IMPLEMENTATION_20260907.md`.
+
+---
+
 ## Current checkpoint — AI authority LIVE87 and Edge context v7
 
 Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.

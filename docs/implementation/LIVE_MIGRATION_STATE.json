@@ -1,4 +1,14 @@
 {
+  "spoj_entry_checkpoint_20260907": {
+    "state": "IMPLEMENTED_LOCAL_SOURCE_PROVEN_NATIVE_PENDING",
+    "visual_file_key": "DovAtPfVaLKL6xnXtQImbf",
+    "base": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
+    "source_migrations": 87,
+    "observed_live_migrations": 87,
+    "observed_edge_version": 11,
+    "production_mutation": false,
+    "report": "docs/implementation/SPOJ_ENTRY_IMPLEMENTATION_20260907.md"
+  },
   "ai_edge_server_context_checkpoint_20260907": {
     "state": "CANONICAL_SOURCE_PROVEN_ACTIVE_V7_PROVIDER_NOT_PROVEN",
     "canonical_integration_base": "c4c6b624446f3273a40e8393bfadc8c49dff5494",

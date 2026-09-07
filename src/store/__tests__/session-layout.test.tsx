@@ -3,6 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { Session } from '@supabase/supabase-js';
 
 const mockRouter = { replace: jest.fn() };
+let mockPath = '/';
 const mockSegments = ['(app)'];
 const mockConsume = jest.fn();
 const mockRole = jest.fn();
@@ -34,7 +35,7 @@ jest.mock('expo-router', () => {
   };
   Stack.Screen = Screen;
   Stack.Protected = Protected;
-  return { Stack, useRouter: () => mockRouter, useSegments: () => mockSegments };
+  return { Stack, useRouter: () => mockRouter, useSegments: () => mockSegments, usePathname: () => mockPath };
 });
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: 'GestureHandlerRootView' }));
@@ -47,7 +48,7 @@ import RootLayout from '../../app/_layout';
 
 let tree: ReactTestRenderer;
 beforeEach(() => {
-  jest.clearAllMocks();
+  jest.clearAllMocks(); mockPath = '/';
   mockSegments.splice(0, mockSegments.length, '(app)');
   mockStackMounts = 0;
   mockRendered = { isLoaded: true, session: mockSession, user: mockSession.user, sessionEpoch: 1, accountRevision: 1, returnTargetRevision: 0 };
@@ -142,4 +143,16 @@ describe('session-owned root return navigation', () => {
     await render();
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
+});
+
+it('bypasses the decorative intro for an unauthenticated deep route', async () => {
+  mockPath = '/dogovor/example';
+  mockRendered = { ...mockRendered, session: null, user: null }; mockCurrent = mockRendered;
+  await render();
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
+});
+it.each([['WORKER', '/prilike'], ['REQUESTER', '/nova']])('continues the completed %s entry shortcut once', async (intent, destination) => {
+  mockConsume.mockResolvedValueOnce({ intent: { intent, returnTarget: { kind: 'NONE' } } });
+  await render();
+  expect(mockRouter.replace).toHaveBeenCalledWith(destination);
 });
