@@ -129,7 +129,7 @@ def prepare_body(body,keyboard_evidence=False):
         # never fall back to screen bounds or record a whole window dump.
         observed.update(observe_ime_frame(adb('shell','dumpsys','window').stdout,width,height))
         assert_composer_above_ime(observed)
-        check('PHYSICAL_KEYBOARD_COMPOSER_VISIBLE')
+        checkpoint('PHYSICAL_KEYBOARD_COMPOSER_VISIBLE')
     hide_keyboard()
     root,_=wait_surface(desc='Pošalji poruku')
     assert any(node.attrib.get('text')==body for node in ordered_edit_fields(root))

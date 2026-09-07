@@ -1,5 +1,11 @@
 """Source geometry regressions; only a new emulator run proves actual visibility."""
+import ast
+from pathlib import Path
+import re
+from types import SimpleNamespace
 import unittest
+from unittest.mock import Mock
+import xml.etree.ElementTree as ET
 from scripts.d03_chat_keyboard_bounds import observe_ime_frame, assert_composer_above_ime
 
 IME = 'InsetsSource id=3 type=ime frame=[0,1500][1080,2400] visible=true flags= sideHint=BOTTOM'
@@ -57,6 +63,63 @@ class ActualImeBoundary(unittest.TestCase):
                        {'input': [-1, 1200, 878, 1400]}, {'send': [899, 1200, 1081, 1401]}):
             with self.subTest(change=change), self.assertRaises(AssertionError):
                 assert_composer_above_ime({**observation, **change})
+
+
+class ActualJourneyKeyboardCheckpoint(unittest.TestCase):
+    """Execute the real journey functions, without importing its device/DB setup."""
+
+    def fixture(self, *, window_dump=IME, input_bottom=1400):
+        body = 'SYNTHETIC_KEYBOARD_BODY'
+        field = ET.Element('node', {'focused': 'true', 'text': body,
+                                   'bounds': f'[65,1200][878,{input_bottom}]'})
+        button = ET.Element('node', {'bounds': '[899,1200][1014,1401]'})
+        root = ET.Element('hierarchy')
+        root.extend([field, button])
+        scope = {
+            're': re,
+            'report': {'checks': []},
+            'wait_visible': Mock(), 'edit_text': Mock(), 'shot': Mock(),
+            'hide_keyboard': Mock(), 'print': Mock(),
+            'wait_surface': Mock(return_value=(root, {})),
+            'screen_size': lambda: (1080, 2400),
+            'visible_control': lambda _root, **criteria: [field] if criteria['desc'] == 'Napišite poruku' else [button],
+            'parse_bounds': lambda bounds: tuple(map(int, re.findall(r'\d+', bounds))),
+            'adb': Mock(side_effect=lambda *args: SimpleNamespace(stdout=(
+                'mInputShown=true' if args == ('shell', 'dumpsys', 'input_method') else window_dump))),
+            'observe_ime_frame': observe_ime_frame,
+            'assert_composer_above_ime': assert_composer_above_ime,
+            'ordered_edit_fields': lambda _root: [field],
+        }
+        source = Path(__file__).with_name('d03_chat_android_journey.py')
+        definitions = [node for node in ast.parse(source.read_text(encoding='utf-8')).body
+                       if isinstance(node, ast.FunctionDef) and node.name in ('prepare_body', 'checkpoint')]
+        self.assertEqual({node.name for node in definitions}, {'prepare_body', 'checkpoint'})
+        exec(compile(ast.Module(body=definitions, type_ignores=[]), str(source), 'exec'), scope)
+        return scope, body
+
+    def test_actual_prepare_body_records_real_checkpoint_after_valid_ime_then_continues(self):
+        scope, body = self.fixture()
+        scope['prepare_body'](body, keyboard_evidence=True)
+        self.assertEqual(scope['report']['checks'], [
+            {'name': 'PHYSICAL_KEYBOARD_COMPOSER_VISIBLE', 'result': 'PASS'}])
+        self.assertEqual(scope['report']['keyboardComposer']['imeTop'], 1500)
+        scope['shot'].assert_called_once_with('D03_worker_composer_keyboard')
+        scope['hide_keyboard'].assert_called_once_with()
+        self.assertEqual(scope['adb'].call_count, 2)
+
+    def test_unknown_ime_cannot_record_checkpoint_or_continue(self):
+        scope, body = self.fixture(window_dump='no known IME frame')
+        with self.assertRaisesRegex(AssertionError, 'unknown or conflicting'):
+            scope['prepare_body'](body, keyboard_evidence=True)
+        self.assertEqual(scope['report']['checks'], [])
+        scope['hide_keyboard'].assert_not_called()
+
+    def test_occluded_composer_cannot_record_checkpoint_or_continue(self):
+        scope, body = self.fixture(input_bottom=1501)
+        with self.assertRaisesRegex(AssertionError, 'occluded'):
+            scope['prepare_body'](body, keyboard_evidence=True)
+        self.assertEqual(scope['report']['checks'], [])
+        scope['hide_keyboard'].assert_not_called()
 
 
 if __name__ == '__main__':

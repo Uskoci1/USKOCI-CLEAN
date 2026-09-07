@@ -1,3 +1,11 @@
+## Recorder repair and exact failed-run evidence — 17:05 UTC
+
+Original run34136396782 at `6cd0c6b4147e3399763187374d201ad311fa9f53` passed the inherited27 and exact local source admission, then captured the first D03 keyboard PNG/XML. The real WindowManager IME top was1499; input bottom1435 and send bottom1434. Independent inspection of that original PNG confirms both controls above the keyboard. The report is still FAIL with zero recorded D03 checks: `prepare_body` called undefined `check` after geometry validation and before `rapid_send`. This is a harness NameError, not a message send/server failure. Remaining D03 steps did not execute.
+
+The original artifact10025037197 was downloaded and matched GitHub ZIP SHA256 `c79f5e399806d1b43b850c2842eccc2f8f5c71034f558f8d869728de3760aca2` (4406712 bytes). [Verified evidence and preserved Git input blobs](evidence/d03-chat-recovery-20260907/run34136396782/verified-summary.json), original report and failure log retain this boundary. Only the keyboard image is newly visually reviewed; no full journey or independent APK-byte acceptance is inferred.
+
+The one-line repair calls the existing `checkpoint` recorder. Three regressions execute the actual journey function definitions, requiring one checkpoint and continued input on valid observed geometry, while unknown geometry and occlusion still fail before recording PASS. All57 Python tests,48 admission/local guard tests and87/87/0 migration integrity pass. All application/server/dependency/build inputs remain identical6cd0c6b; no UI, SDK, SQL or workflow guard changes. Fresh same-source27+11 native execution and exact-head source/CodeQL gates remain required before root review and merge. This is functional scaffold recovery; final user-owned Figma design remains separate.
+
 # D03 mobile message recovery — 2026-09-07
 
 State: IMPLEMENTED / SOURCE TESTED / TWO-PARTY NATIVE SEND-READ PARTIAL / KEYBOARD AND OUTAGE REPAIR NEEDS NEW APK / MOBILE NOT CANONICAL.

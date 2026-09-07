@@ -1,3 +1,7 @@
+## Current D03 replay checkpoint — harness recorder repair
+
+Fresh GitHub at 17:05 UTC still has canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41`. Native run34136396782 at `6cd0c6b4147e3399763187374d201ad311fa9f53` failed in Python before sending: the keyboard check called undefined `check`. Its original PNG and parsed WindowManager geometry show composer/send above IME; the aggregate report remains FAIL. This repair calls the existing `checkpoint` recorder and adds three actual-function regressions. All57 Python and48 source-admission/local-target tests plus87/87/0 integrity PASS; application, server, dependency and build source remain identical6cd0c6b. A fresh27+11 native replay and original-artifact review are still required. No live observation/write or final visual acceptance is added. See the current D03 Chat report for exact evidence and limits; older checkpoints below retain their own boundaries.
+
 ## Current D03 mobile checkpoint — observed native limits
 
 Fresh canonical is `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` including the recorded AI live87 / Edge7 promotion and the server provider-selector source. This branch preserves that incoming SQL, provenance and server source; no new production/provider action occurs here. Recorded source/live migration inventory is87/87, pending0.
