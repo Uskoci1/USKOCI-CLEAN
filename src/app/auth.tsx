@@ -413,7 +413,7 @@ export default function AuthScreen() {
       <KeyboardAvoidingView
         pointerEvents={otvoren ? 'box-none' : 'none'}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={StyleSheet.absoluteFill}
+        style={styles.sheetHost}
       >
         <Animated.View
           style={[
@@ -679,6 +679,10 @@ const styles = StyleSheet.create({
     ...ABSOLUTE_FILL,
     zIndex: 310,
     backgroundColor: 'rgba(1,20,18,0.68)',
+  },
+  sheetHost: {
+    ...ABSOLUTE_FILL,
+    zIndex: 320,
   },
   sheet: {
     position: 'absolute',
