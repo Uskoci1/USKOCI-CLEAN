@@ -1,4 +1,15 @@
 {
+  "d03_mobile_checkpoint_20260907": {
+    "state": "IMPLEMENTED_SOURCE_TESTED_NATIVE_PENDING_NOT_CANONICAL_NOT_LIVE",
+    "integrated_intent_shell_source": "29271e6be7fc519e40941531d37c6d48b0db7ef3",
+    "backend_dependency_pr": 55,
+    "report": "docs/implementation/D03_CHAT_RECOVERY_20260907.md",
+    "new_native_checkpoint_pairs": 11,
+    "preserved_native_checkpoint_pairs": 27,
+    "native_executed": false,
+    "production_write": false,
+    "final_visual_design": false
+  },
   "mobile_execution_checkpoint_20260907": {
     "canonical_baseline": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
     "intent_shell_pr": 49,

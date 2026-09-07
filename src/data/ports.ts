@@ -54,7 +54,7 @@ export interface PrijaveCitanje {
 export interface DogovoriCitanje {
   mojiDogovori(): Promise<DogovorProjekcija[]>;
   dogovor(id: string): Promise<DogovorProjekcija | null>;
-  poruke(dogovorId: string): Promise<PorukaProjekcija[]>;
+  poruke(dogovorId: string, expectedAccountId?: string): Promise<PorukaProjekcija[]>;
 }
 
 /* --------------------------------------------------------------- komande */
