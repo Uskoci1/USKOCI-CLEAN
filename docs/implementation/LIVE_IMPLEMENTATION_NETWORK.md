@@ -1,3 +1,11 @@
+## Source unit — Windows Metro cache recovery pending review
+
+Canonical base `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` is preserved. Windows Metro delegates cache get/set through one queue of at most 32 operations; application/domain behavior and Linux/macOS defaults remain unchanged. Local evidence: seven focused tests including installed Expo disk values and controlled EMFILE comparison; 49 suites / 395 tests, TSC, integrity 87/87/0 and AST 64/25/0 PASS. Cold/warm server-module transformation succeeded without EMFILE; static export remained blocked by deliberately absent public backend configuration.
+
+This node is **SOURCE IMPLEMENTED / LOCAL SOURCE AND DISK PROVEN / PR REVIEW PENDING**, not native/browser/provider or production proof. No live state was inspected or changed. Preserve existing engine/proof boundaries and follow [the unit report](WINDOWS_METRO_CACHE_RECOVERY_20260907.md) through CI/CodeQL and review. Historical live checkpoints below are not refreshed by this tooling unit.
+
+---
+
 ## Current checkpoint — AI authority LIVE87 and Edge context v7
 
 Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.

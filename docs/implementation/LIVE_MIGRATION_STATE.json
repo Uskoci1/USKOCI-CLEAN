@@ -1,4 +1,21 @@
 {
+  "windows_metro_cache_checkpoint_20260907": {
+    "state": "SOURCE_IMPLEMENTED_LOCAL_SOURCE_AND_DISK_PROVEN_PR_REVIEW_PENDING",
+    "canonical_base": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
+    "scope": "WINDOWS_DEVELOPMENT_CACHE_ONLY",
+    "shared_cache_operation_limit": 32,
+    "focused_node_tests": 7,
+    "full_jest_suites": 49,
+    "full_jest_tests": 395,
+    "typescript": "PASS",
+    "disk_pressure": "INJECTED_LIMIT64_BASELINE1136_EMFILE_WRAPPED0",
+    "cold_warm_export": "4546_MODULES_NO_EMFILE_THEN_EXPECTED_MISSING_CONFIG_REFUSAL",
+    "full_export_or_app_acceptance": false,
+    "application_backend_dependency_source_unchanged": true,
+    "live_read_performed": false,
+    "live_write_performed": false,
+    "report": "docs/implementation/WINDOWS_METRO_CACHE_RECOVERY_20260907.md"
+  },
   "ai_edge_server_context_checkpoint_20260907": {
     "state": "CANONICAL_SOURCE_PROVEN_ACTIVE_V7_PROVIDER_NOT_PROVEN",
     "canonical_integration_base": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
