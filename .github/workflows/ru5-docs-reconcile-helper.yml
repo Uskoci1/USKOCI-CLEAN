@@ -1,0 +1,39 @@
+name: RU-5 isolated continuity writer
+on:
+  push:
+    branches: [proof/ru5-continuity-generator-20260907]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout isolated reviewed generator
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: builder
+          persist-credentials: false
+      - name: Checkout immutable canonical source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 940fd1fdf34a314f5d8a0c0fdb9cc3753e55ce01
+          path: target
+          persist-credentials: false
+      - name: Create docs-only work branch, never update canonical
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_DOCS: '1'
+          SOURCE_DIR: target
+          OUTPUT_DIR: docs-output
+          EVIDENCE_FILE: builder/.github/proof-build/evidence-approved.json
+        run: python3 builder/.github/proof-build/reconcile_physical_docs.py
+      - name: Archive exact docs and hashes for independent review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: RU5-DOCS-RECONCILIATION
+          path: docs-output/
+          if-no-files-found: error
+          retention-days: 14
