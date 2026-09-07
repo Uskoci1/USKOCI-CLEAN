@@ -1,3 +1,13 @@
+## Current checkpoint — AI authority LIVE87 and Edge context v7
+
+Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.
+
+PR58 final handler proof34129593102 has17 actual-handler mocked-transport tests, Deno/TSC and49 suites395 tests PASS. Its canonical gates preceded existing Edge v6→v7 promotion: exact26346-byte handler and4097-byte registry verified after deployment; ACTIVE/JWT true. This is **SOURCE PROVEN / CANONICAL / LIVE SOURCE VERIFIED**, not a successful provider interview. Normal owner login and empty Novi are now observed; the owner-reported unknown AI turn and actual owner human-review/DRAFT/card remain unresolved. No synthetic production fixture or provider success is asserted. Provider secrets are server-only; current UI remains a testable scaffold, with later Figma/Fable work separate.
+
+Completed source/proof/live records: [AI live promotion](docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md). Earlier pending/deployment/current-head checkpoints below are historical where superseded here. Continue current mobile/provider execution without restarting the engine.
+
+---
+
 ## Current integration — fresh LIVE86 provenance plus AI Edge context
 
 Fresh fetched canonical is `c4c6b624446f3273a40e8393bfadc8c49dff5494`, preserving accepted Auth/navigation, configured application identity, D03 canonical/live86 provenance and the canonical AI DRAFT authority source unchanged. This branch changes only the existing AI Edge time reference, newest history window and sanitized failure logging, with actual-handler source proof: **SOURCE IMPLEMENTED / CI MOCKED TRANSPORT PROVEN AT B9376F1 / FINAL CANONICAL INTEGRATION PENDING / NOT DEPLOYED / ACTUAL PROVIDER NOT PROVEN**.
