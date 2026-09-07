@@ -1,3 +1,15 @@
+## CURRENT POINTER — 2026-09-07 / N07 LIVE84
+
+N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
+
+Read [N07 live promotion and evidence](N07_LIVE84_PROMOTION_20260907.md) and the current status owner before the next narrow preflight. N04's Inbox backend dependency is now LIVE; its recorded Android proof remains valid at its own source boundary. Native token lifecycle, provider dispatch/tickets/receipts, remaining Chat/product work and Store acceptance remain open. No provider/business test call, backfill, HITNO/D0140/Q&A/Application-AI activation or pricing change occurred; 0 RSD remains current.
+
+PR #48 is also CANONICAL at `79e6f3380029b0a9e9494fe54f4ed2e6ca274c98`: six third-party Action references pinned across five workflows; canonical PRE-P4/CodeQL/Control-0 SUCCESS, all six alerts #1/#2/#3/#4/#6/#8 FIXED at09:12:05 UTC and canonical open-alert API empty. This changes workflow supply-chain references only. Evidence is linked from the N07 report.
+
+All retained earlier pending-production, live79 and read-blocked checkpoints below are **HISTORICAL / SUPERSEDED by this pointer**. Do not reapply N07 or restart closed core proofs.
+
+---
+
 ## CURRENT CHECKPOINT — 2026-09-07 / NOTIFICATIONS EXECUTION CLOSURE
 
 This is the current status owner. Retained sections below are historical evidence, not active cursors. Verified implementation baseline: `4858370610192b88112673b08bde151793409e99`. Fetch current canonical before the next write.
