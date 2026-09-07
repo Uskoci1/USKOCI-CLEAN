@@ -1,3 +1,18 @@
+<!-- EXECUTION_V3_CHECKPOINT_20260907 -->
+## Current execution — reviewed scaffold and native Auth/account proof
+
+The owner's latest steering keeps the current UI a **testable functional scaffold**. Future Figma work owns final visual design; Fable is separate asset work. Current three-zone capability/navigation remains, with Profile behind the avatar and no permanent Home/Profile tab or combined discovery mode. Frozen governance bytes remain unchanged; V3 governs execution and the preserved06.09 documents resolve older UI/product conflicts.
+
+Fresh canonical remains `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54), already an ancestor of PR49. N08/live85 is canonical: **85 / `20260907102458_clean_n08_notification_preferences`**, source85 / pending0. This slice changes no migration or production state. Do not reapply N08/N07. Current charge remains0 RSD; unsupported capabilities stay gated.
+
+PR #49 is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / NOT MERGED**. New Android run `34119448882` passed at exact source `29271e6be7fc519e40941531d37c6d48b0db7ef3`, which includes central Auth commands and identity revision. All27 original PNG/XML pairs were inspected, including real UI logout, second-account login without storage clearing and both readable Agreement rows. Artifact `10018537383`, ZIP SHA-256 `e87d3f887870505942806faa3824f80c699234835f18e31ca5ebd582f62a1acc`. Original source86 and earlier failures remain separately scoped historical evidence.
+
+PR49's required source boundary review passed: UI-issued Auth commands cross the SDK-free contract into `authClientService`; existing Auth runtime owns session subscription/restore. Monotonic `accountRevision` closes batched A→B→A ownership gaps while same-account token refresh retains navigation/drafts. The actual native run passed TypeScript,46 suites /313 tests,34 Python tests and integrity85; all6 source checks succeeded, with3 actual CodeQL analyses and zero errors/results. AST62 client files /25 presentation files /0 findings is a bounded static check, not complete AI/domain-authority proof. Batched concurrency cases are source/component proof, not invented native scenarios.
+
+This follow-up changes documentation/evidence only. All138 frozen native/source/assets/config/vendor/proof Git blobs remain identical to tested source29271e6; the Android artifact remains tied to that source. Final documentation-head CI/CodeQL must pass, and Root must accept before merge. Continue the separate functional AI vertical and its authority work; no final visual/product/provider/Store claim is made. See `docs/implementation/INTENT_SHELL_20260907.md`, `docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md` and `docs/implementation/evidence/intent-shell-auth-20260907/run34119448882/inspection.md`. Older cursor claims below are historical where superseded here.
+
+---
+
 ## CURRENT CHECKPOINT — 2026-09-07 / N08 LIVE85
 
 N08 is **CANONICAL / AUTHENTICATED DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. PR53 merged as `06d8ce1a14c87ca2237d94aa5a60cd7230899ff6`; exact forward promotion is live at **85 migrations / `20260907102458_clean_n08_notification_preferences`**. Inventory is **85 source files / live85 / pending0**. All original84 full history metadata and statement fingerprints remain unchanged. Do not reapply N08 or N07.

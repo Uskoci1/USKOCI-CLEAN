@@ -12,6 +12,7 @@ import { palette, radius, space, touch } from '../../theme/tokens';
 import { Card } from '../../ui/Button';
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
+import { WorkspaceHeader } from '../../ui/WorkspaceHeader';
 
 function statusTekst(stanje: MojaPrijavaProjekcija['stanje']) {
   switch (stanje) {
@@ -262,8 +263,8 @@ export default function MojePrijave() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <View style={{ paddingHorizontal: space.base, paddingTop: space.md, paddingBottom: space.sm, gap: 4 }}>
-        <T variant="display">Prijave</T>
+      <WorkspaceHeader title="Prijave" />
+      <View style={{ paddingHorizontal: space.base, paddingBottom: space.sm }}>
         <T variant="body" tone="muted">Šta se dešava sa Vašim prijavama i gde treba da reagujete.</T>
       </View>
 
@@ -280,7 +281,13 @@ export default function MojePrijave() {
       ) : (
         <ScrollView contentContainerStyle={{ padding: space.base, paddingBottom: space.huge, gap: space.lg }}>
 {prijave.length === 0 ? (
-  <Card><View style={{ padding: space.base, gap: space.sm }}><T variant="heading">Još nemate Prijave</T><T variant="body" tone="muted">Kada se prijavite na Zadatak, videćete ga ovde.</T></View></Card>
+  <Card><View style={{ padding: space.base, gap: space.sm }}><T variant="heading">Još nemate Prijave</T><T variant="body" tone="muted">Kada se prijavite na Zadatak, videćete ga ovde.</T>
+    <Press accessibilityRole="button" accessibilityLabel="Pogledajte Zadatke" haptic="light"
+      onPress={() => router.navigate('/prilike')}
+      style={{ minHeight: touch.min, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: palette.ink, borderRadius: radius.md }}>
+      <T variant="action">Pogledajte Zadatke</T>
+    </Press>
+  </View></Card>
 ) : null}
 {sections.map((section) => {
   const rows = prijave.filter((p) => sectionFor(p) === section);

@@ -1,0 +1,42 @@
+import type { Uloga } from '../contracts/projections';
+import { supabaseKlijent } from './supabaseClient';
+
+export type OwnProfileIdentity = {
+  accountId: string;
+  profileId: string;
+  kind: 'REQUESTER' | 'WORKER';
+  ime: string | null;
+  grad: string | null;
+};
+
+const optionalText = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null;
+
+/** Own identity only. Public trust and other accounts use their separate RPC projection. */
+export const ownProfileClientService = {
+  async read(accountId: string, intent: Uloga): Promise<OwnProfileIdentity | null> {
+    if (!accountId) throw new Error('AUTH_REQUIRED');
+    const kind = intent === 'narucilac' ? 'REQUESTER' : 'WORKER';
+    const supabase = supabaseKlijent();
+    const { data: userData, error: authError } = await supabase.auth.getUser();
+    if (authError || !userData.user) throw new Error('AUTH_REQUIRED');
+    if (userData.user.id !== accountId) throw new Error('PROFILE_ACCOUNT_CHANGED');
+
+    const { data, error } = await supabase.from('app_profiles')
+      .select('id,account_id,kind,display_name,city')
+      .eq('account_id', userData.user.id)
+      .eq('kind', kind)
+      .maybeSingle();
+    if (error) throw new Error('OWN_PROFILE_READ_FAILED');
+    if (!data) return null;
+    if (data.account_id !== accountId || data.kind !== kind || typeof data.id !== 'string' || !data.id) {
+      throw new Error('OWN_PROFILE_INVALID_SCOPE');
+    }
+    return {
+      accountId,
+      profileId: data.id,
+      kind,
+      ime: optionalText(data.display_name),
+      grad: optionalText(data.city),
+    };
+  },
+};

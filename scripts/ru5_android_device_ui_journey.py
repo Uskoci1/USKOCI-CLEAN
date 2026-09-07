@@ -205,6 +205,17 @@ def wait_visible(timeout=40, **criteria):
     wait_nodes(timeout=timeout, **criteria)
 
 
+def wait_surface(timeout=40, **criteria):
+    # Assert against the same complete XML tree in which the required real
+    # control was observed. A second raw dump can instead sample a new launcher
+    # ANR overlay after wait_nodes has safely waited for the app surface.
+    nodes, parent = wait_nodes(timeout=timeout, **criteria)
+    root = nodes[0]
+    while root in parent:
+        root = parent[root]
+    return root, parent
+
+
 def ordered_edit_fields(root):
     nodes = [node for node in root.iter() if node.attrib.get('class') == 'android.widget.EditText']
     return sorted(nodes, key=lambda node: parse_bounds(node.attrib.get('bounds'))[1])
@@ -299,6 +310,26 @@ def shot(name):
     print(f'EVIDENCE {name}', flush=True)
 
 
+def assert_no_private_tabs(root, height):
+    private_destinations = {'Zadaci', 'Novi', 'Novi Zadatak', 'Prijave', 'Dogovori', 'Profil', 'Početna'}
+    for node in root.iter():
+        names = {node.attrib.get('text', ''), node.attrib.get('content-desc', '')}
+        if names.intersection(private_destinations) and parse_bounds(node.attrib.get('bounds'))[1] >= height * 0.75:
+            raise AssertionError('Private bottom destination visible on signed-out Auth screen')
+
+
+def assert_signed_out_surface():
+    # Called only after observing the actual Auth entry control, never as a
+    # substitute for login visibility or as a route/auth bypass.
+    root, _ = wait_surface(desc='Prijavi se')
+    if not any(node.attrib.get('content-desc') == 'Prijavi se' for node in root.iter()):
+        raise AssertionError('Signed-out Auth entry is not visible')
+    height = int(re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').stdout)[-1][1])
+    assert_no_private_tabs(root, height)
+    print('CHECKPOINT SIGNED_OUT_AUTH_NO_PRIVATE_TABS', flush=True)
+    return root
+
+
 def launch_clean():
     adb('shell', 'am', 'force-stop', PACKAGE, check=False)
     adb('shell', 'pm', 'clear', PACKAGE, check=False)
@@ -317,6 +348,7 @@ def launch_clean():
     )
     time.sleep(2)
     wait_visible(timeout=90, desc='Prijavi se')
+    assert_signed_out_surface()
 
 
 def open_login_sheet():
@@ -355,14 +387,15 @@ def login(email):
     edit_text(1, PASSWORD)
     hide_keyboard()
     tap(text='Prijavite se', prefer='bottom', timeout=30)
-    wait_visible(text='Početna', timeout=60)
+    # Current three-zone shell; login is still through the real Auth sheet.
+    wait_visible(text='MENI TREBA', timeout=60)
 
 
 def switch_to_worker_workspace():
-    tap(text='Profil', prefer='bottom')
-    wait_visible(desc='Pređi u prostor Uskočera')
-    tap(desc='Pređi u prostor Uskočera')
-    wait_visible(text='Prilike', timeout=45)
+    tap(desc='Profil', prefer='top')
+    wait_visible(desc='Pređite na JA MOGU')
+    tap(desc='Pređite na JA MOGU')
+    wait_visible(text='JA MOGU', timeout=45)
 
 
 def dismiss_ok(timeout=15):
@@ -452,7 +485,7 @@ launch_clean()
 login(WORKER_EMAIL)
 shot('AUTH_worker_authenticated')
 switch_to_worker_workspace()
-tap(text='Prilike', prefer='bottom')
+tap(desc='Zadaci', prefer='bottom')
 wait_visible(desc=f'Otvorite priliku {NEED_TITLE}', timeout=45)
 shot('W03_worker_opportunity_list')
 tap(desc=f'Otvorite priliku {NEED_TITLE}')
@@ -476,9 +509,9 @@ response_id = assert_worker_submit()
 launch_clean()
 login(REQUESTER_EMAIL)
 shot('AUTH_requester_authenticated')
-tap(text='Potrebe', prefer='bottom')
-wait_visible(desc=f'Otvori Potrebu {NEED_TITLE}', timeout=45)
-tap(desc=f'Otvori Potrebu {NEED_TITLE}')
+tap(desc='Zadaci', prefer='bottom')
+wait_visible(desc=f'Otvorite Zadatak {NEED_TITLE}', timeout=45)
+tap(desc=f'Otvorite Zadatak {NEED_TITLE}')
 wait_visible(contains='Otvori prijave, ukupno 1', timeout=45)
 tap(contains='Otvori prijave, ukupno 1')
 wait_visible(text='Prijave (1)', timeout=45)
