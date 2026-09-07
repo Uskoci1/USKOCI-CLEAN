@@ -65,7 +65,7 @@ export type PrilikaProjekcija = {
   id: string;
   naslov: string;
   statusTekst: string;
-  /** Task-level hint only; server remains the authority for submitting an Application. */
+  /** Task-level read gate only; recheck its server deadline before navigation. Not worker eligibility. */
   primaNovePrijave?: boolean;
   /** Public server deadline; null means no cutoff, undefined means unknown. */
   rokZaPrijaveIso?: string | null;
