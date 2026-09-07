@@ -194,6 +194,97 @@ class OriginalPixelTests(unittest.TestCase):
 
 
 class UIAndEvidenceTests(unittest.TestCase):
+    def original_failure_tree(self):
+        # Geometry/classes are exact from original run34165455214 failure XML.
+        # All text, account/task IDs, resource IDs and unrelated labels removed.
+        root = ET.parse(Path(__file__).parent / 'fixtures' / 'shared-discovery-map-visible-34165455214.xml').getroot()
+        parent = {child: node for node in root.iter() for child in node}
+        return root, parent
+
+    def test_original_visible_map_above_old_percentage_is_found_without_scrolling(self):
+        root, parent = self.original_failure_tree()
+        target = next(node for node in root.iter() if node.attrib.get('content-desc') == 'Mapa')
+        self.assertEqual(journey.observed_bounds(target), (548, 320, 1007, 446))
+        self.assertEqual(journey.scroll_direction(journey.observed_bounds(target), (0, 384, 1080, 2064)), 'up')
+        with patch.object(journey, 'scroll', create=True) as move:
+            found, _ = journey.seek_control(lambda: (root, parent), move, 1080, 2400,
+                                           lambda node: node.attrib.get('content-desc') == 'Mapa')
+        self.assertIs(found, target)
+        move.assert_not_called()
+        actual_scroll = journey.active_scroll(root, parent, 1080, 2400)
+        self.assertIs(actual_scroll, journey.scroll_ancestor(target, parent))
+        self.assertEqual(journey.ancestor_clip(actual_scroll, parent, 1080, 2400), (0, 307, 1080, 2101))
+        allowed = {'class', 'bounds', 'clickable', 'enabled', 'selected', 'scrollable', 'visible-to-user', 'content-desc'}
+        for node in root.iter():
+            self.assertTrue(set(node.attrib).issubset(allowed))
+            self.assertIn(node.attrib.get('content-desc'), (None, 'Mapa', 'Lista'))
+
+    def test_actually_clipped_control_scrolls_inside_its_observed_container(self):
+        for bounds, direction in (('[548,230][1007,356]', 'up'), ('[548,2070][1007,2196]', 'down')):
+            with self.subTest(bounds=bounds):
+                clipped, parents = self.original_failure_tree()
+                target = next(node for node in clipped.iter() if node.attrib.get('content-desc') == 'Mapa')
+                target.set('bounds', bounds)
+                final = self.original_failure_tree()
+                with patch.object(journey, 'scroll', create=True) as move:
+                    found, _ = journey.seek_control(iter(((clipped, parents), final)).__next__, move, 1080, 2400,
+                                                   lambda node: node.attrib.get('content-desc') == 'Mapa')
+                self.assertEqual(found.attrib['bounds'], '[548,320][1007,446]')
+                self.assertEqual(move.call_count, 1)
+                self.assertEqual(move.call_args.args[0], direction)
+                self.assertEqual(move.call_args.args[2], (0, 307, 1080, 2101))
+
+    def test_return_from_long_list_has_scan_sized_budget_and_final_observation(self):
+        for required_moves in (40, journey.SCAN_LIMIT):
+            with self.subTest(required_moves=required_moves):
+                moves = []
+                def read_tree():
+                    root, parent = self.original_failure_tree()
+                    if len(moves) < required_moves:
+                        for node in root.iter():
+                            if node.attrib.get('content-desc') == 'Mapa':
+                                del node.attrib['content-desc']
+                        container = journey.active_scroll(root, parent, 1080, 2400)
+                        ET.SubElement(container, 'node', {'bounds': '[63,700][1017,900]',
+                                                        'text': f'Local page {len(moves)}'})
+                    return root, {child: node for node in root.iter() for child in node}
+                found, _ = journey.seek_control(read_tree, lambda *args: moves.append(args), 1080, 2400,
+                                               lambda node: node.attrib.get('content-desc') == 'Mapa')
+                self.assertEqual(found.attrib['content-desc'], 'Mapa')
+                self.assertEqual(len(moves), required_moves)
+                self.assertTrue(all(move[0] == 'up' and move[2] == (0, 307, 1080, 2101) for move in moves))
+
+    def test_stalled_native_scroll_fails_early_without_blind_tap(self):
+        root, parent = self.original_failure_tree()
+        with patch.object(journey, 'scroll', create=True) as move:
+            with self.assertRaisesRegex(AssertionError, 'no observable progress'):
+                journey.seek_control(lambda: (root, parent), move, 1080, 2400,
+                                     lambda node: node.attrib.get('content-desc') == 'Missing control')
+        self.assertEqual(move.call_count, 3)
+
+    def test_unlaid_out_xml_does_not_invent_upward_geometry_for_downward_search(self):
+        root, parent = self.original_failure_tree()
+        target = next(node for node in root.iter() if node.attrib.get('content-desc') == 'Mapa')
+        target.set('bounds', '[0,0][0,0]')
+        final = self.original_failure_tree()
+        with patch.object(journey, 'scroll', create=True) as move:
+            journey.seek_control(iter(((root, parent), final)).__next__, move, 1080, 2400,
+                                 lambda node: node.attrib.get('content-desc') == 'Mapa', default='down')
+        self.assertEqual(move.call_args.args, ('down', None, (0, 307, 1080, 2101)))
+
+    def test_hidden_or_ambiguous_scroll_surface_cannot_authorize_motion(self):
+        root, parent = self.original_failure_tree()
+        container = journey.active_scroll(root, parent, 1080, 2400)
+        container.set('visible-to-user', 'false')
+        with self.assertRaises(AssertionError):
+            journey.active_scroll(root, parent, 1080, 2400)
+        other = ET.SubElement(root, 'node', {'class': 'android.widget.ScrollView', 'scrollable': 'true',
+                                           'bounds': '[0,307][1080,2101]'})
+        container.attrib.pop('visible-to-user')
+        parent[other] = root
+        with self.assertRaises(AssertionError):
+            journey.active_scroll(root, parent, 1080, 2400)
+
     def test_raw_xml_and_png_must_independently_reproduce_report_not_just_declared_ids(self):
         fixture, report, _ = reports()
         with tempfile.TemporaryDirectory() as directory:

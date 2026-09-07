@@ -21,6 +21,7 @@ from shared_discovery_map_pixels import compare_map_regions, summarize_map
 
 MAP_LABEL = 'Mapa približnih područja zadataka'
 SEARCH_LABEL = 'Pretražite učitane zadatke'
+SCAN_LIMIT = 65
 CHECKPOINTS = (
     'DISCOVERY_requester_own', 'DISCOVERY_requester_list30', 'DISCOVERY_filter_cancel',
     'DISCOVERY_remote_filter', 'DISCOVERY_remote_map_no_pin', 'DISCOVERY_requester_page35',
@@ -84,6 +85,86 @@ def scroll_direction(bounds, viewport):
     return None
 
 
+def observed_bounds(node):
+    match = re.fullmatch(r'\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]', node.attrib.get('bounds', ''))
+    return tuple(map(int, match.groups())) if match else (0, 0, 0, 0)
+
+
+def ancestor_clip(node, parent, width, height):
+    """Native clipping geometry, with no guessed header/footer percentages."""
+    clip = (0, 0, width, height)
+    current = node
+    while current is not None:
+        if current.attrib.get('visible-to-user') == 'false':
+            return (0, 0, 0, 0)
+        if current.tag != 'hierarchy':
+            left, top, right, bottom = observed_bounds(current)
+            if left >= right or top >= bottom:
+                return (0, 0, 0, 0)
+            clip = (max(clip[0], left), max(clip[1], top), min(clip[2], right), min(clip[3], bottom))
+        current = parent.get(current)
+    return clip
+
+
+def scroll_ancestor(node, parent):
+    current = parent.get(node)
+    while current is not None:
+        if current.attrib.get('class') == 'android.widget.ScrollView':
+            return current
+        current = parent.get(current)
+    return None
+
+
+def active_scroll(root, parent, width, height):
+    candidates = [node for node in root.iter()
+                  if node.attrib.get('class') == 'android.widget.ScrollView'
+                  and node.attrib.get('scrollable') == 'true'
+                  and (clip := ancestor_clip(node, parent, width, height))[0] < clip[2] and clip[1] < clip[3]]
+    # Expo has a root ScrollView as well. Operate only on the deepest actual
+    # scroll surface, and fail closed if two unrelated scroll surfaces remain.
+    leaves = [node for node in candidates if not any(other is not node and other in set(node.iter()) for other in candidates)]
+    if len(leaves) != 1:
+        raise AssertionError('One actual native scroll surface required')
+    return leaves[0]
+
+
+def seek_control(read_tree, move, width, height, predicate, default='up', attempts=SCAN_LIMIT):
+    """At most65 real moves plus a final observation; never blindly tap XML."""
+    previous, unchanged = None, 0
+    for attempt in range(attempts + 1):
+        root, parent = read_tree()
+        nodes = [node for node in root.iter() if predicate(node)]
+        container = None
+        direction, distance = default, None
+        if nodes:
+            node = nodes[-1]
+            container = scroll_ancestor(node, parent)
+            bounds = observed_bounds(node)
+            clip = ancestor_clip(parent.get(node, node), parent, width, height)
+            if (node.attrib.get('visible-to-user') != 'false'
+                    and clip[0] <= bounds[0] < bounds[2] <= clip[2]
+                    and clip[1] <= bounds[1] < bounds[3] <= clip[3]):
+                return node, parent
+            if container is not None and bounds[0] < bounds[2] and bounds[1] < bounds[3]:
+                viewport = ancestor_clip(container, parent, width, height)
+                direction = scroll_direction(bounds, viewport) or default
+                distance = (viewport[1] - bounds[1] + 32 if direction == 'up'
+                            else bounds[3] - viewport[3] + 32)
+        if attempt == attempts:
+            break
+        container = container if container is not None else active_scroll(root, parent, width, height)
+        viewport = ancestor_clip(container, parent, width, height)
+        if viewport[0] >= viewport[2] or viewport[1] >= viewport[3]:
+            raise AssertionError('Native scroll surface is clipped or hidden')
+        current = hashlib.sha256(ET.tostring(container)).hexdigest()
+        unchanged = unchanged + 1 if current == previous else 0
+        if unchanged >= 3:
+            raise AssertionError('Actual native scroll made no observable progress')
+        previous = current
+        move(direction, distance, viewport)
+    raise AssertionError('Visible control unreachable after bounded actual scrolling')
+
+
 def card_ids(root, title_ids):
     found = set()
     for node in root.iter():
@@ -113,7 +194,6 @@ def main(env=os.environ):
     exec(compile(definitions, str(helper), 'exec'), globals())
     title_ids = {row['title']: row['id'] for row in fixture['allPublic']}
     width, height = map(int, re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').stdout)[-1])
-    viewport = (0, int(height * .16), width, int(height * .86))
     report = {'sourceSha': env['GITHUB_SHA'], 'localOnly': True,
               'historicalBoundary': fixture['historicalBoundary'], 'checkpoints': [], 'scans': {}, 'maps': {},
               'providerOfflineProven': False, 'productionProof': False,
@@ -132,31 +212,23 @@ def main(env=os.environ):
             root, parent, _ = dump_tree()
         return root, parent
 
-    def scroll(direction, distance=None):
+    def scroll(direction, distance=None, viewport=None):
         # FlatList padding outside the Map prevents a list scroll from panning its camera.
-        x = int(width * .035)
-        low = int(height * .79)
-        high = low - (int(height * .34) if distance is None else min(int(height * .3), max(int(height * .08), distance)))
+        if viewport is None:
+            root, parent = tree()
+            viewport = ancestor_clip(active_scroll(root, parent, width, height), parent, width, height)
+        left, top, right, bottom = viewport
+        visible_height = bottom - top
+        x = left + int((right - left) * .035)
+        low = top + int(visible_height * .86)
+        high = low - (int(visible_height * .46) if distance is None
+                      else min(int(visible_height * .46), max(int(visible_height * .1), distance)))
         start, end = (low, high) if direction == 'down' else (high, low)
         adb('shell', 'input', 'touchscreen', 'swipe', str(x), str(start), str(x), str(end), '420')
         time.sleep(.6)
 
-    def seek(default='up', attempts=32, **criteria):
-        for _ in range(attempts):
-            root, parent = tree()
-            nodes = [node for node in root.iter() if matches(node, **criteria)]
-            if nodes:
-                node = nodes[-1]
-                bounds = parse_bounds(node.attrib.get('bounds'))
-                direction = scroll_direction(bounds, viewport)
-                if direction is None and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
-                    return node, parent
-                distance = (viewport[1] - bounds[1] + 32 if direction == 'up'
-                            else bounds[3] - viewport[3] + 32 if direction == 'down' else None)
-                scroll(direction or default, distance)
-            else:
-                scroll(default)
-        raise AssertionError(f'Visible control unreachable by bounded real scroll: {criteria}')
+    def seek(default='up', attempts=SCAN_LIMIT, **criteria):
+        return seek_control(tree, scroll, width, height, lambda node: matches(node, **criteria), default, attempts)
 
     def press(default='up', **criteria):
         node, parent = seek(default=default, **criteria)
@@ -194,7 +266,7 @@ def main(env=os.environ):
     def enumerate_cards(role):
         seek(desc=SEARCH_LABEL)
         found = set()
-        for index in range(65):
+        for index in range(SCAN_LIMIT):
             checkpoint(f'DISCOVERY_{role}_scan_{index:02d}')
             root = ET.fromstring((ARTIFACT_DIR / f'DISCOVERY_{role}_scan_{index:02d}.xml').read_text(encoding='utf-8'))
             found.update(card_ids(root, title_ids))
@@ -205,11 +277,11 @@ def main(env=os.environ):
         raise AssertionError(f'Physical list did not expose the complete local set: {len(found)}/35')
 
     def map_ready(default='down'):
-        node, _ = seek(default=default, desc=MAP_LABEL)
+        node, parent = seek(default=default, desc=MAP_LABEL)
         bounds = parse_bounds(node.attrib.get('bounds'))
         deadline = time.monotonic() + 40
         while time.monotonic() < deadline:
-            root, _ = tree()
+            root, parent = tree()
             labels = visible_labels(root)
             if 'Mapa trenutno nije dostupna.' in labels:
                 raise AssertionError('Actual provider/map renderer failed; no synthetic fallback acceptance')
@@ -217,7 +289,8 @@ def main(env=os.environ):
                 current = [n for n in root.iter() if n.attrib.get('content-desc') == MAP_LABEL]
                 assert len(current) == 1
                 bounds = parse_bounds(current[0].attrib.get('bounds'))
-                assert scroll_direction(bounds, viewport) is None
+                clip = ancestor_clip(parent.get(current[0], current[0]), parent, width, height)
+                assert clip[0] <= bounds[0] < bounds[2] <= clip[2] and clip[1] <= bounds[1] < bounds[3] <= clip[3]
                 time.sleep(1)
                 return bounds
             time.sleep(.5)
