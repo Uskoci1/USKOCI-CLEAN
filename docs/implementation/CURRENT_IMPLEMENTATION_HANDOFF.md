@@ -1,3 +1,7 @@
+## Current composition — canonical Metro65 with accepted D03 native source
+
+Canonical `7eacc627833187d58b1fef803e5c9f0c2cb05fbc` is integrated additively. All application, SQL/Edge, dependencies, fixtures and native harness blobs remain identical to accepted Android6ef2c65. Of366 recorded non-document inputs,365 remain identical; only PRE-P4 changes, with the canonical Metro configuration and its test newly added. This is not whole-build byte identity. The canonical configuration returns Expo's unmodified default on Linux and wraps cache operations only on Windows. All7 actual Metro tests and serial TSC pass. The coordinating reviewer accepts this bounded composition with the already-reviewed38-pair native proof; final combined CI/CodeQL remain mandatory. A parallel local TSC run exhausted host memory and one Firebase test child exited134; that local run is not reported as a full PASS. See `canonical65-composition.json` beside the D03 evidence for exact blobs and limits. No production or owner process was changed.
+
 ## D03 mobile acceptance — original Android evidence reviewed
 
 PR61 source `6ef2c654713c5acf4d3fdd29d3f539da79256ace` has accepted native run34146855714: all38 original PNG/XML pairs reviewed (27 inherited +11 Chat), two real participants, visible composer above the observed IME, two rapid taps yielding one message/event, actual guarded REST outage, native-observed stable-key manual retry, three unique messages/events, terminal read-only and Back. Exact-head54 suites/469 tests, TSC,57 Python,48 admission/guard tests,87/87/0 integrity and three actual CodeQL analyses with zero results PASS. This record accompanies PR61 canonical promotion; no production or final visual promotion occurs. All366 frozen native inputs remain unchanged in the documentation follow-up. See the D03 Chat report and original evidence manifest. Earlier failures below retain their exact boundaries. Realtime, pagination, attachments/groups, never-submitted draft durability and final user-owned design remain separate.
@@ -29,6 +33,11 @@ Original native run34128121944 at9d5962f passed the10 Inbox and17 navigation che
 
 Current status is **D03 MOBILE SOURCE IMPLEMENTED / PRIOR27 NATIVE CHECKPOINTS PROVEN AT9D5962F / D03 NATIVE REPLAY PENDING / NOT CANONICAL**. The existing backend D03 proof/live boundary remains accepted. Source inventory is87 / recorded live86 / pending1; this preserves incoming provenance and is not a new live observation. Root owns the separate completed AI promotion/provenance and any Edge deployment; this branch performs no production/provider action. See [the current Chat report](D03_CHAT_RECOVERY_20260907.md). UI remains a testable scaffold for later Figma/Fable work. Earlier checkpoints below retain their own source/evidence boundaries where superseded here.
 
+## Source unit — Windows Metro cache recovery pending review
+
+Based on fresh canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41`, this tooling-only unit bounds Windows cache get/set concurrency to 32 while retaining Expo's default stores and other-platform configuration. Seven focused tests, installed Expo binary disk compatibility under controlled descriptor pressure, 49 suites / 395 tests, TSC, integrity 87/87/0 and static architecture checks PASS. Isolated cold/warm bundling reached 4,546 modules without EMFILE, then static export stopped at the intentionally unconfigured backend guard; no full build/app acceptance is claimed.
+
+State: **SOURCE IMPLEMENTED / LOCAL SOURCE AND DISK PROVEN / PR REVIEW PENDING**. Application, backend, Auth, identity and dependency source remain unchanged. No live action or new live-state reconstruction occurred; older operational checkpoints below retain their recorded timestamps and scope. See [source, proof and limits](WINDOWS_METRO_CACHE_RECOVERY_20260907.md). Next: exact-head CI/CodeQL and coordinating review before merge.
 
 ---
 
