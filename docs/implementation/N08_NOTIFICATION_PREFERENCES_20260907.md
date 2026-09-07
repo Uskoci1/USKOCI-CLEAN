@@ -2,9 +2,9 @@
 
 An authenticated recipient could store an invalid quiet-hours timezone, causing a counterpart's message RPC to fail with PostgreSQL22023. The failed transaction retained no message, event or delivery. N08 rejects invalid preferences at their write boundary and makes owner settings read/write safe under retries, concurrent edits and an in-flight account change.
 
-Status: **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / PENDING FORWARD PROMOTION**. This PR submits source for canonical merge. It performs no production write, provider call or physical push test. Source inventory is85 files, recorded live inventory84, pending forward files1. N07's five files remain live at their recorded exact aliases; do not reapply them.
+Status: **CANONICAL / AUTHENTICATED DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. PR53 merged as `06d8ce1a14c87ca2237d94aa5a60cd7230899ff6`; reviewed exact promotion is live at85 / `20260907102458_clean_n08_notification_preferences`. Inventory is85 source / live85 / pending0. Read the [promotion record](N08_LIVE85_PROMOTION_20260907.md). No provider call or physical push proof is claimed. Do not reapply N08 or N07.
 
-## Exact source and proof
+## Original source admission and proof
 
 - Baseline canonical: `f4a687fbb1049ae118030e859da97a68c92e327f` (includes dependency fixes through PR52).
 - Complete source plus inert client proof: `6c4ac2387a9ce017bcc27c27f477d2f08f4821ce`.
@@ -58,4 +58,4 @@ The unchanged engine body hashes are quiet `386e00eb4a7645addffac95fde09bea7`, e
 
 `notificationPreferencesClientService` is an inert typed transport with21 focused tests. It performs no RPC on import and is not connected to visible settings controls. Active settings UX, native permission/token lifecycle, dispatcher, provider tickets/receipts and physical delivery remain separate work. In particular, the current Inbox reads durable events regardless of IN_APP suppression; this unit does not silently change that ledger semantics.
 
-Next: review and physically merge this exact source, verify canonical gates, then perform fresh permitted live preflight and accepted forward promotion. Native provisioning questions do not block this source/disposable closure; no unavailable provider capability is displayed as active.
+The source admission and live promotion are complete. Continue the next real product gap; visible settings and native provider delivery retain their separate proof requirements. The frozen candidate manifest preserves its original pre-promotion status and84 predecessor; current live provenance is authoritative for admission.
