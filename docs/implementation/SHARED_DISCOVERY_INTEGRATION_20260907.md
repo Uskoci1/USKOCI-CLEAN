@@ -1,3 +1,11 @@
+## Current replay source after canonical entry integration
+
+Reviewed repair `91bad83f0a666ee45509b6568687bf0f461c4f5d` and canonical entry `38e9a38f7c9713cc7061f347eb083d84022dcdfd` are composed at `865d39006498862b909f3f0bf9730b64349dadb3`. The canonical merge preserves every non-document blob; relative to failed-native`ed0bd581`, only the journey helper, its regression tests and one sanitized geometry fixture differ among frozen native inputs. [The complete current fingerprints](evidence/shared-discovery-20260907/run34165455214/source-fingerprints.json) and [final local checks](evidence/shared-discovery-20260907/run34165455214/final-checks.json) record this exact boundary. Final70 Python,24 Node,TSC and87/87/0 checks pass; the retained application result is72 suites/744 tests with no full Jest rerun. Entry PR66 is canonical with recorded canonical gates; shared discovery's new exact-source Android replay and complete original map acceptance remain pending.
+
+Durable [original failure PNG](evidence/shared-discovery-20260907/run34165455214/DISCOVERY_FAILURE_last_screen.png), [XML](evidence/shared-discovery-20260907/run34165455214/DISCOVERY_FAILURE_last_screen.xml), [REMOTE map PNG](evidence/shared-discovery-20260907/run34165455214/DISCOVERY_remote_map_no_pin.png), [XML](evidence/shared-discovery-20260907/run34165455214/DISCOVERY_remote_map_no_pin.xml) and [safe review summary](evidence/shared-discovery-20260907/run34165455214/review-summary.json) are exact copies or explicitly labelled derivatives. Full ZIP/raw job logs remain outside Git. Older checkpoints below retain their recorded scopes; the earlier PR66-pending wording is historical.
+
+---
+
 # Shared public List/Map — 2026-09-07
 
 Status: **SOURCE IMPLEMENTED / LOCAL TESTS PASS / PHYSICAL AND CANONICAL ACCEPTANCE PENDING**.

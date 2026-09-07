@@ -1,0 +1,32 @@
+✔ fixture accepts only the explicit existing disposable target/package/actor boundary (2.1138ms)
+✔ invalid production target rejects before any SQL/client setup even when seed is requested (0.5941ms)
+✔ fixture is a deterministic34-row plan with close coarse cluster, isolated point, remote/missing and both price modes (0.973ms)
+✔ postflight query cannot expand outside its table/UUID allowlist and preserves complete original rows (2.9584ms)
+✔ closed VM loads all actual production dependencies including the new formatter and invokes only injected reads (104.1646ms)
+✔ accepts only the existing disposable proof API/database contract (0.8654ms)
+✔ rejects unsafe API case https://leqcwgzvjsxugfgzdmth.supabase.co (0.6495ms)
+✔ rejects unsafe API case http://127.0.0.1.attacker.invalid:54321 (0.1264ms)
+✔ rejects unsafe API case http://127.0.0.1:54321@attacker.invalid (0.0984ms)
+✔ rejects unsafe API case http://redacted@127.0.0.1:54321 (0.1112ms)
+✔ rejects unsafe API case https://127.0.0.1:54321 (0.1314ms)
+✔ rejects unsafe API case http://127.0.0.1:54322 (0.1162ms)
+✔ rejects unsafe API case http://127.0.0.1:54321/rest/v1 (0.1001ms)
+✔ rejects unsafe API case http://127.0.0.1:54321?target=remote (0.1074ms)
+✔ rejects unsafe API case http://127.0.0.1:54321#remote (0.1492ms)
+✔ rejects unsafe API case undefined (0.1213ms)
+✔ rejects unsafe DB target without exposing credentials (0.3171ms)
+✔ rejects unsafe DB target without exposing credentials (0.1509ms)
+✔ rejects unsafe DB target without exposing credentials (0.0823ms)
+✔ rejects unsafe DB target without exposing credentials (0.7337ms)
+✔ rejects unsafe DB target without exposing credentials (0.1163ms)
+✔ rejects unsafe DB target without exposing credentials (0.0848ms)
+✔ rejects unsafe DB target without exposing credentials (0.0768ms)
+✔ fixture validates both targets before client creation or fixture mutation (0.4774ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 376.729

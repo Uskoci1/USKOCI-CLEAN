@@ -1,0 +1,79 @@
+{
+  "failedNativeSource": "ed0bd58170d41a32776bc58710ea6aa84f3810f1",
+  "reviewedCurrentSource": "865d39006498862b909f3f0bf9730b64349dadb3",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 61,
+      "sha256": "34eb9258efc5941824acaeb7418e490d5bbb0b688b8bafb316640155604085a7"
+    },
+    {
+      "path": "DISCOVERY_FAILURE_last_screen.png",
+      "bytes": 220625,
+      "sha256": "3783776cb29586f3aad20f6c7f0c7ff891b1968d120db0efc1b9cb60fdc049c6"
+    },
+    {
+      "path": "DISCOVERY_FAILURE_last_screen.xml",
+      "bytes": 61101,
+      "sha256": "c8f710d0aa4b5a276795b848a030181bd668e4d4b866894aeb497b53ba89f302"
+    },
+    {
+      "path": "DISCOVERY_remote_map_no_pin.png",
+      "bytes": 317356,
+      "sha256": "5cafbf5335ee6bf5ddbf346d18d58857f096ebf4b38847052ad9c0604547c5bd"
+    },
+    {
+      "path": "DISCOVERY_remote_map_no_pin.xml",
+      "bytes": 52353,
+      "sha256": "e73bd614c934e74fa44af388091cc0af516562604fbe3e217a1dcf77b743cdc4"
+    },
+    {
+      "path": "entry-canonical-checkpoint.json",
+      "bytes": 817,
+      "sha256": "5db83b597a83316d7eeab95672c68c0f1b66b58f64c76b90c28336945a8fbe6d"
+    },
+    {
+      "path": "final-checks.json",
+      "bytes": 3250,
+      "sha256": "b6b0caa1db83bc51f496ccd2adc3ec7f93a27847585da1e63a066714b7eb4f15"
+    },
+    {
+      "path": "final-migration-integrity.log",
+      "bytes": 152,
+      "sha256": "64a6258799295dc7214f4c84384f56555af2e190a94a1c37a81ac720bec10d11"
+    },
+    {
+      "path": "final-node24.log",
+      "bytes": 2043,
+      "sha256": "169ed63f71605addc81fd29638a0dabac11532203f03f8cb08ece9d7fba4e80e"
+    },
+    {
+      "path": "final-python70.log",
+      "bytes": 333,
+      "sha256": "248546ea5be3fd369267422046aa794bdd5ef6872bc43fd5c4b3c43bb7dcc258"
+    },
+    {
+      "path": "final-typescript.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "original-build-summary.json",
+      "bytes": 72887,
+      "sha256": "3c421acaadad2c5d07bc49522f88abe26cd51c38e1c8fc04b9ba6f6c34b8d0de"
+    },
+    {
+      "path": "review-summary.json",
+      "bytes": 16333,
+      "sha256": "2d072ceca0808dd69b9dc5845cee69b0114b37109c49bfce083d6d4cbe95b756"
+    },
+    {
+      "path": "source-fingerprints.json",
+      "bytes": 97531,
+      "sha256": "d20c8bcc28441dd79c6bf4e1353dbbff344a281b3adf4668ec30a60c76c0d1f6"
+    }
+  ],
+  "rawJobLogsOrOriginalZipIncluded": false,
+  "selectedOriginalPngXmlBytesUnchanged": true,
+  "lineEndingPolicy": "Local evidence attributes preserve exact PNG/XML bytes; check logs are labelled CRLF-to-LF derivatives; JSON remains LF."
+}
