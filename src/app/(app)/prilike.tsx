@@ -1,231 +1,101 @@
-import { useCallback, useState } from 'react';
-import { View, ScrollView, Platform } from 'react-native';
+import { useCallback } from 'react';
+import { ActivityIndicator, FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
-import {
-  CaretRight, Clock, Users, ArrowRight, ListBullets, MapTrifold, Columns, MapPin,
-} from 'phosphor-react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+import { CaretRight, Clock, MapPin, Users } from 'phosphor-react-native';
 
 import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
-import { Card } from '../../ui/Button';
-import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
+import { Button, Card } from '../../ui/Button';
+import { WorkspaceHeader } from '../../ui/WorkspaceHeader';
+import { palette, space, radius, elevation } from '../../theme/tokens';
 import { useIzvor } from '../../store/uloga';
+import { useFocusedResource } from '../../hooks/useFocusedResource';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 
-const naUredjaju = Platform.OS !== 'web';
-
-type Prikaz = 'lista' | 'mapa' | 'kombinovano';
-
-/**
- * W03 — M09.
- *
- * Tri prikaza dele JEDAN skup podataka i JEDNU karticu. Nije to pravilo iz
- * lepote — ako bi svaki prikaz imao svoj upit, pokazivali bi različite stvari
- * za isti filter, a korisnik bi mislio da nešto nestaje.
- *
- * Sirov matcher procenat ovde ne postoji: `PrilikaProjekcija` ga nema kao polje.
- */
+/** W03 uses the current public-safe discovery projection; W04 rereads on entry. */
 export default function Prilike() {
   const izvor = useIzvor();
   const router = useRouter();
-  const [prikaz, setPrikaz] = useState<Prikaz>('kombinovano');
-  const [prilike, setPrilike] = useState<PrilikaProjekcija[]>([]);
-
-  useFocusEffect(
-    useCallback(() => {
-      let ziv = true;
-      izvor.otvorenePrilike().then((p) => {
-        if (ziv) setPrilike(p);
-      });
-      return () => {
-        ziv = false;
-      };
-    }, []),
-  );
-
-  const prikazuje = prikaz === 'mapa' ? [] : prilike;
+  const load = useCallback(() => izvor.otvorenePrilike(), [izvor]);
+  const { data, loading, error, refresh } = useFocusedResource(load);
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <View
-        style={{
-          flexDirection: 'row', alignItems: 'center', gap: space.sm,
-          paddingHorizontal: space.base, paddingTop: space.sm, paddingBottom: space.md,
-        }}
-      >
-        <T variant="title" style={{ flex: 1 }}>Prilike</T>
-        <T variant="meta" tone="muted">{prilike.length}</T>
-      </View>
-
-      {/* Isti skup podataka, tri načina gledanja. */}
-      <View
-        style={{
-          flexDirection: 'row', marginHorizontal: space.base, marginBottom: space.md,
-          backgroundColor: palette.cream050, borderRadius: radius.md, padding: 4, gap: 4,
-        }}
-      >
-        {([
-          ['lista', 'Lista', ListBullets],
-          ['mapa', 'Mapa', MapTrifold],
-          ['kombinovano', 'Kombinovano', Columns],
-        ] as const).map(([kljuc, naziv, Ikona]) => {
-          const aktivan = prikaz === kljuc;
-          return (
-            <Press
-              key={kljuc}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: aktivan }}
-              accessibilityLabel={naziv}
-              haptic="select"
-              scaleTo={0.99}
-              onPress={() => setPrikaz(kljuc)}
-              style={{
-                flex: 1, minHeight: 40, borderRadius: radius.sm, flexDirection: 'row',
-                alignItems: 'center', justifyContent: 'center', gap: 6,
-                backgroundColor: aktivan ? palette.raised : 'transparent',
-              }}
-            >
-              <Ikona size={15} color={aktivan ? palette.ink : palette.inkMuted} weight={aktivan ? 'fill' : 'regular'} />
-              <T variant="meta" tone={aktivan ? 'ink' : 'muted'} style={{ fontWeight: '700' }} numberOfLines={1}>
-                {naziv}
-              </T>
-            </Press>
-          );
-        })}
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.xxl, gap: space.base }}
+      <WorkspaceHeader title="Zadaci" />
+      <FlatList<PrilikaProjekcija>
+        data={data ?? []}
+        keyExtractor={item => item.id}
+        refreshing={loading}
+        onRefresh={() => { void refresh(); }}
+        contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.xxl, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
-      >
-        {(prikaz === 'mapa' || prikaz === 'kombinovano') && (
-          <Animated.View entering={naUredjaju ? FadeIn.duration(motion.enter) : undefined}>
-            <View
-              style={{
-                height: prikaz === 'mapa' ? 420 : 190,
-                borderRadius: radius.lg,
-                backgroundColor: palette.sage200,
-                alignItems: 'center', justifyContent: 'center', gap: space.sm,
-                borderWidth: 1, borderColor: palette.line100,
-              }}
-            >
-              <MapPin size={26} color={palette.forest700} weight="fill" />
-              <T variant="meta" style={{ fontWeight: '700' }}>Mapa još nije povezana</T>
-              <T variant="meta" tone="muted" style={{ textAlign: 'center', maxWidth: 250 }}>
-                Po OD-05 ide Google kroz provider adapter. Dok adapter ne postoji,
-                ovde namerno nema lažne mape.
-              </T>
-              <T variant="meta" tone="muted">
-                {prilike.length} {prilike.length === 1 ? 'prilika' : 'prilika'} u ovom području
-              </T>
-            </View>
-          </Animated.View>
-        )}
-
-        {prikaz === 'mapa' && prikazuje.length === 0 && (
-          <T variant="meta" tone="muted" style={{ textAlign: 'center', paddingTop: space.md }}>
-            Prebacite na Lista ili Kombinovano da vidite iste prilike kao spisak.
-          </T>
-        )}
-
-        {prikazuje.map((p, i) => (
-          <Animated.View
-            key={p.id}
-            entering={naUredjaju ? FadeInDown.duration(motion.enter).delay(i * 45) : undefined}
+        ItemSeparatorComponent={() => <View style={{ height: space.base }} />}
+        ListEmptyComponent={
+          <View style={{ paddingVertical: space.xxl, gap: space.base }} accessibilityLiveRegion="polite">
+            {loading ? <>
+              <ActivityIndicator color={palette.forest700} accessibilityLabel="Učitavamo zadatke" />
+              <T variant="body" tone="muted" style={{ textAlign: 'center' }}>Učitavamo zadatke…</T>
+            </> : error ? <>
+              <T variant="heading">Zadatke trenutno nije moguće učitati.</T>
+              <T variant="body" tone="muted">Proverite internet vezu i pokušajte ponovo.</T>
+              <Button label="Pokušajte ponovo" onPress={() => { void refresh(); }} />
+            </> : <>
+              <T variant="heading">Trenutno nema otvorenih zadataka.</T>
+              <T variant="body" tone="muted">Možete urediti Radni profil ili kasnije osvežiti listu.</T>
+              <Button label="Uredite Radni profil" onPress={() => router.navigate('/profil/radnik')} />
+            </>}
+          </View>
+        }
+        renderItem={({ item: p }) => (
+          <Press
+            accessibilityRole="button"
+            accessibilityLabel={`Otvorite priliku ${p.naslov}`}
+            haptic="light"
+            scaleTo={0.985}
+            onPress={() => router.navigate({ pathname: '/prilike/[id]', params: { id: p.id } })}
           >
-            <Press
-              accessibilityRole="button"
-              accessibilityLabel={`Otvorite priliku ${p.naslov}`}
-              haptic="light"
-              scaleTo={0.985}
-              onPress={() => router.push(`/prilike/${p.id}` as any)}
-            >
-              <Card style={elevation.card}>
-                <View style={{ padding: space.base, gap: space.md }}>
+            <Card style={elevation.card}>
+              <View style={{ padding: space.base, gap: space.md }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                  <T variant="label" tone="muted" style={{ flex: 1 }}>ZADATAK</T>
+                  <T variant="meta" tone="orange">{p.statusTekst}</T>
+                </View>
+                <T variant="heading">{p.naslov}</T>
+                <View style={{ gap: space.sm }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                    <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: palette.orange }} />
-                    <T variant="label" tone="muted" style={{ flex: 1 }}>PRILIKA</T>
-                    <T variant="meta" tone="orange" style={{ fontWeight: '800' }}>{p.statusTekst}</T>
+                    <MapPin size={16} color={palette.teal500} />
+                    <T variant="meta" tone="muted" style={{ flex: 1 }}>{p.podrucjeTekst}</T>
                   </View>
-
-                  <T variant="heading">{p.naslov}</T>
-
-                  <View
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', gap: space.base, flexWrap: 'wrap',
-                      borderTopWidth: 1, borderTopColor: palette.line100, paddingTop: space.md,
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <ArrowRight size={15} color={palette.teal500} />
-                      <T variant="meta" tone="muted">{p.podrucjeTekst}</T>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Clock size={15} color={palette.teal500} />
-                      <T variant="meta" tone="muted">{p.vremeTekst}</T>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Users size={15} color={palette.teal500} />
-                      <T variant="meta" tone="muted">
-                        {p.pokrivenost.popunjeno}/{p.pokrivenost.ukupno}
-                      </T>
-                    </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <Clock size={16} color={palette.teal500} />
+                    <T variant="meta" tone="muted" style={{ flex: 1 }}>{p.vremeTekst}</T>
                   </View>
-
-                  <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
-                    {p.uslovi.map((u) => (
-                      <View
-                        key={u}
-                        style={{
-                          borderWidth: 1, borderColor: palette.line100, borderRadius: radius.pill,
-                          paddingHorizontal: space.md, paddingVertical: 5,
-                        }}
-                      >
-                        <T variant="meta" tone="muted" style={{ fontWeight: '600' }}>{u}</T>
-                      </View>
-                    ))}
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', gap: space.md,
-                      borderTopWidth: 1, borderTopColor: palette.line100, paddingTop: space.md,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 34, height: 34, borderRadius: radius.sm, backgroundColor: palette.forest800,
-                        alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      <T variant="meta" tone="onDark" style={{ fontWeight: '800' }}>
-                        {p.narucilacIme.slice(0, 2).toUpperCase()}
-                      </T>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <T variant="meta" style={{ fontWeight: '700' }}>{p.narucilacIme}</T>
-                      {p.narucilacOcena && (
-                        <T variant="meta" tone="muted">★ {p.narucilacOcena}</T>
-                      )}
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: 'row', alignItems: 'center', gap: 4,
-                        minHeight: touch.min - 8, paddingHorizontal: space.md,
-                      }}
-                    >
-                      <T variant="action">Detalji</T>
-                      <CaretRight size={15} color={palette.ink} />
-                    </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <Users size={16} color={palette.teal500} />
+                    <T variant="meta" tone="muted">Popunjeno {p.pokrivenost.popunjeno} od {p.pokrivenost.ukupno} mesta</T>
                   </View>
                 </View>
-              </Card>
-            </Press>
-          </Animated.View>
-        ))}
-      </ScrollView>
+                {p.uslovi.length > 0 && <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
+                  {p.uslovi.map((uslov, index) => <View key={`${index}:${uslov}`}
+                    style={{ backgroundColor: palette.cream050, borderRadius: radius.pill,
+                      paddingHorizontal: space.md, paddingVertical: space.xs }}>
+                    <T variant="meta" tone="muted">{uslov}</T>
+                  </View>)}
+                </View>}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md,
+                  borderTopWidth: 1, borderTopColor: palette.line100, paddingTop: space.md }}>
+                  <View style={{ flex: 1, gap: space.xs }}>
+                    <T variant="meta">{p.narucilacIme || 'Naručilac'}</T>
+                    {p.narucilacOcena && <T variant="meta" tone="muted">★ {p.narucilacOcena}</T>}
+                  </View>
+                  <CaretRight size={20} color={palette.ink} />
+                </View>
+              </View>
+            </Card>
+          </Press>
+        )}
+      />
     </SafeAreaView>
   );
 }
