@@ -1,3 +1,18 @@
+## Current D03 mobile checkpoint — observed native limits
+
+Fresh canonical is `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` including the recorded AI live87 / Edge7 promotion and the server provider-selector source. This branch preserves that incoming SQL, provenance and server source; no new production/provider action occurs here. Recorded source/live migration inventory is87/87, pending0.
+
+Original native run34132073163 at`e0682e050f3ac21b43e9a572a028168ca611cf41` passed27 inherited Inbox/navigation checkpoints, exact N07/N08/D03 local admission, and the first5 D03 screenshot/XML checkpoints. Two taps36ms apart persisted one message/event, and both real participants read counterpart messages. Its original artifact10023469575 ZIP SHA256 is `05d8e9a1a15a90a42075cbb4de98392b260cb4a7163d0e4cac1a5c4eb3d0ecd9`. The run then failed before stopping REST because the local identity allowlist omitted the observed `ghcr.io/supabase/postgrest:v16.1` namespace. Offline retry and terminal Back remain unproven in that run. Visual review also found the composer hidden behind the open keyboard: IME visibility was true but its upper boundary was unknown, so the former screen-only check was insufficient.
+
+Current status is **D03 MOBILE SOURCE IMPLEMENTED / TWO-PARTY SEND-READ PARTIALLY PROVEN / KEYBOARD AND OUTAGE REPAIR SOURCE TESTED, NATIVE REPLAY PENDING / NOT CANONICAL**. The accepted backend D03 proof/live boundary remains separate. A fresh APK must prove the corrected keyboard boundary, actual outage/retry and terminal behavior. See [the Chat report](docs/implementation/D03_CHAT_RECOVERY_20260907.md). Earlier checkpoints below remain historical and are superseded only by the explicit observations above.
+
+
+The narrow source repair moves the single keyboard-avoiding view to the full-screen SafeArea boundary, enabled only for Poruke. The harness now requires actual visible WindowManager IME geometry and rejects unknown/conflicting/occluding bounds. Only the exact GHCR Supabase namespace was added to the existing Docker identity allowlist. Full54 suites/469 tests, TypeScript,54 Python harness tests,48 source-admission/local-target tests, integrity87/87/0 and AST67/26/0 pass on the integrated working tree. These are source tests; the changed UI requires a fresh standalone APK and physical replay.
+
+---
+
+### Retained historical D03 source checkpoint
+
 ## Current D03 mobile integration — canonical AI authority and Edge source
 
 Fresh canonical is `6701311d89047c0a1058332362887fb7b396df5a`, including accepted PR57 AI DRAFT authority and PR58 Edge context source. This Chat branch preserves canonical SQL, Edge and their proof inputs, plus the existing reviewed D03 app and native journey. The only new harness behavior is exact N07 source admission: the five forward files retain their approved two-line provenance header plus the unchanged candidate; N08/D03 remain direct byte mirrors. All MD5/SHA and provenance bindings are checked before disposable setup and APK build.
@@ -6,17 +21,16 @@ Original native run34128121944 at9d5962f passed the10 Inbox and17 navigation che
 
 Current status is **D03 MOBILE SOURCE IMPLEMENTED / PRIOR27 NATIVE CHECKPOINTS PROVEN AT9D5962F / D03 NATIVE REPLAY PENDING / NOT CANONICAL**. The existing backend D03 proof/live boundary remains accepted. Source inventory is87 / recorded live86 / pending1; this preserves incoming provenance and is not a new live observation. Root owns the separate completed AI promotion/provenance and any Edge deployment; this branch performs no production/provider action. See [the current Chat report](docs/implementation/D03_CHAT_RECOVERY_20260907.md). UI remains a testable scaffold for later Figma/Fable work. Earlier checkpoints below retain their own source/evidence boundaries where superseded here.
 
+
 ---
 
-### Retained historical D03 source checkpoint
+## Current checkpoint — AI authority LIVE87 and Edge context v7
 
-<!-- D03_CANONICAL_SOURCE_INTEGRATION_20260907 -->
-## D03 mobile integration — canonical Auth, message retry and EAS
+Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.
 
-Reviewed D03 mobile source1421acfb is integrated with canonicalf055d641, including canonical Auth, D03, EAS/Firebase and exact live86 provenance. Full54 suites/467 tests, TypeScript and bounded AST67/26/0 pass; all270 relevant source/config/SQL paths preserve their intended reviewed Git blobs. D03 mobile is SOURCE TESTED / NATIVE PENDING / NOT CANONICAL. Its27+11 native journey is required before acceptance. Source remains a testable scaffold for later approved Figma work.
+PR58 final handler proof34129593102 has17 actual-handler mocked-transport tests, Deno/TSC and49 suites395 tests PASS. Its canonical gates preceded existing Edge v6→v7 promotion: exact26346-byte handler and4097-byte registry verified after deployment; ACTIVE/JWT true. This is **SOURCE PROVEN / CANONICAL / LIVE SOURCE VERIFIED**, not a successful provider interview. Normal owner login and empty Novi are now observed; the owner-reported unknown AI turn and actual owner human-review/DRAFT/card remain unresolved. No synthetic production fixture or provider success is asserted. Provider secrets are server-only; current UI remains a testable scaffold, with later Figma/Fable work separate.
 
-The server dependency is canonical and structurally proven live86; source86/recorded86/pending0 integrity passes after admitting the documentation-only provenance successor. All application, build and proof implementation blobs remain identical to the just-tested54-suite/467-test e0b005a integration. No D03 migration is reapplied. Historical pending statements below retain their own original evidence boundary; the current source and limits are in docs/implementation/D03_CHAT_RECOVERY_20260907.md.
-
+Completed source/proof/live records: [AI live promotion](docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md). Earlier pending/deployment/current-head checkpoints below are historical where superseded here. Continue current mobile/provider execution without restarting the engine.
 
 ---
 

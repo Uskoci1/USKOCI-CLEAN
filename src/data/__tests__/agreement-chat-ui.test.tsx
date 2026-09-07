@@ -73,6 +73,9 @@ describe('D03 actual message component', () => {
     expect(button('Napišite poruku').props.value).toBe('Nova poruka');
     const scroll = tree.root.findByType('ScrollView' as any);
     expect(scroll.findAllByProps({ accessibilityLabel: 'Napišite poruku' })).toHaveLength(0);
+    // The screen owns the one KAV; a nested KAV loses the header origin on Android.
+    expect(tree.root.findAllByType('KeyboardAvoidingView' as any)).toHaveLength(0);
+    expect(button('Pošalji poruku')).toBeTruthy();
   });
   it('unknown delivery has exact-command retry and no invented sent/read state', async () => {
     state = { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] };

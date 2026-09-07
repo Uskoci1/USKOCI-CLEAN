@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, TextInput, View } from 'react-native';
 import { PaperPlaneTilt } from 'phosphor-react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
 import type { createAgreementOutbox, OutboxError } from '../data/agreementOutbox';
@@ -65,7 +65,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
       && message.clientMessageId === entry.command.clientMessageId
       && (!entry.messageId || message.id === entry.messageId)));
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <View style={{ flex: 1 }}>
       <ScrollView ref={list} keyboardShouldPersistTaps="handled" onContentSizeChange={followLatest} onLayout={followLatest}
         scrollEventThrottle={100} onScroll={({ nativeEvent: event }) => {
           nearBottom.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
@@ -138,6 +138,6 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           </Press>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

@@ -40,7 +40,7 @@ def validate_container(fields, *, expected_running, expected_id=None):
     container_id, name, image, running = fields
     if (not isinstance(container_id, str) or not re.fullmatch(r'[a-f0-9]{64}', container_id)
         or name != f'/{REST_NAME}' or not isinstance(image, str)
-        or not re.fullmatch(r'(?:public\.ecr\.aws/supabase|(?:docker\.io/)?supabase)/postgrest:[\w.-]+', image)
+        or not re.fullmatch(r'(?:public\.ecr\.aws/supabase|ghcr\.io/supabase|(?:docker\.io/)?supabase)/postgrest:[\w.-]+', image)
         or running is not expected_running or (expected_id is not None and container_id != expected_id)):
         raise RuntimeError('Disposable PostgREST identity/state mismatch')
     return container_id

@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from d03_chat_local_rest import LocalRestOutage, validate_local_targets
 from d03_chat_outbox_observer import read_scoped_outbox
+from d03_chat_keyboard_bounds import observe_ime_frame, assert_composer_above_ime
 
 validate_local_targets(os.environ)
 PACKAGE=os.environ['RU5_DEVICE_PACKAGE']
@@ -119,18 +120,16 @@ def prepare_body(body,keyboard_evidence=False):
         button=visible_control(root,desc='Pošalji poruku')
         assert len(field)==1 and len(button)==1 and field[0].attrib.get('focused')=='true'
         ime=adb('shell','dumpsys','input_method').stdout
-        assert re.search(r'(?:mInputShown|mIsInputViewShown|isInputViewShown)=true',ime), 'Physical keyboard is not shown'
-        # Android XML can expose the IME as a second package/window. Where it
-        # does, require both controls above its actual upper bound as well.
-        keyboard=[parse_bounds(node.attrib.get('bounds')) for node in root.iter()
-                  if 'inputmethod' in node.attrib.get('package','').lower() and node.attrib.get('bounds')]
-        keyboard=[bounds for bounds in keyboard if 0<=bounds[0]<bounds[2]<=width and 0<bounds[1]<bounds[3]<=height]
         observed={'input':parse_bounds(field[0].attrib['bounds']),'send':parse_bounds(button[0].attrib['bounds']),
-                  'screen':[width,height],'imeShown':True,'imeTop':min(bounds[1] for bounds in keyboard) if keyboard else None}
-        if observed['imeTop'] is not None:
-            assert observed['input'][3]<=observed['imeTop'] and observed['send'][3]<=observed['imeTop']
+                  'screen':[width,height],'imeShown':bool(re.search(r'(?:mInputShown|mIsInputViewShown|isInputViewShown)=true',ime)),
+                  'imeTop':None}
         report['keyboardComposer']=observed
         shot('D03_worker_composer_keyboard')
+        # XML can omit the IME window. Require actual WindowManager geometry;
+        # never fall back to screen bounds or record a whole window dump.
+        observed.update(observe_ime_frame(adb('shell','dumpsys','window').stdout,width,height))
+        assert_composer_above_ime(observed)
+        check('PHYSICAL_KEYBOARD_COMPOSER_VISIBLE')
     hide_keyboard()
     root,_=wait_surface(desc='Pošalji poruku')
     assert any(node.attrib.get('text')==body for node in ordered_edit_fields(root))

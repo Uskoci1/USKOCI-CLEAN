@@ -56,7 +56,7 @@ jobs:
         run: npm test -- --runInBand
 
       - name: Physical input harness regression tests
-        run: python3 -m unittest scripts/test_ru5_android_input.py scripts/test_intent_shell_android.py scripts/d03_chat_test_local_rest.py scripts/d03_chat_test_observer.py -v
+        run: python3 -m unittest scripts/test_ru5_android_input.py scripts/test_intent_shell_android.py scripts/d03_chat_test_local_rest.py scripts/d03_chat_test_observer.py scripts/d03_chat_test_keyboard_bounds.py -v
 
       - name: Fixture local-target guard tests
         run: node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
@@ -217,6 +217,13 @@ jobs:
           const boundary = JSON.parse(fs.readFileSync('artifacts/d03-chat-device/d03-native-db-boundary.json','utf8'));
           assert.equal(boundary.fullCanonicalHistoryReplay,false);
           assert.equal(boundary.historyAfter.count,79); assert.equal(boundary.applied.length,5);
+          const chat = JSON.parse(fs.readFileSync('artifacts/d03-chat-device/d03-physical-chat-report.json','utf8'));
+          const keyboard = chat.keyboardComposer;
+          assert.equal(keyboard.imeShown, true);
+          assert.equal(keyboard.imeGeometrySource, 'WINDOW_MANAGER_INSETS_SOURCE');
+          assert.ok(Number.isInteger(keyboard.imeTop) && keyboard.imeTop > 0 && keyboard.imeTop < keyboard.screen[1]);
+          assert.ok(keyboard.input[3] <= keyboard.imeTop && keyboard.send[3] <= keyboard.imeTop);
+          assert.ok(chat.checks.some(check => check.name === 'PHYSICAL_KEYBOARD_COMPOSER_VISIBLE' && check.result === 'PASS'));
           NODE
 
       - name: Validate disposable business effects

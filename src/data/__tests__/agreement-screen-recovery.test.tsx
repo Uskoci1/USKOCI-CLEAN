@@ -2,6 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 let mockAccount = '10000000-0000-4000-8000-000000000001';
 let mockAccountRevision = 0;
+let mockPlatform = 'android';
 let mockId: string | string[] = '20000000-0000-4000-8000-000000000001';
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn() };
 const mockRead = jest.fn();
@@ -12,7 +13,8 @@ let mockOutboxState = { phase: 'loading', entries: [] as any[] };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
-    return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
+    if (key === 'Platform') return { OS: mockPlatform };
+    return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockId }),
@@ -43,12 +45,36 @@ beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset(); mockMessages.mockReset();
   mockAccount = ownMessage.posiljalacAccountId; mockId = workspace.id;
   mockAccountRevision = 0;
+  mockPlatform = 'android';
   mockRouter.canGoBack.mockReturnValue(true);
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([ownMessage]);
   mockOutboxState = { phase: 'loading', entries: [] };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 describe('D03 actual route and scoped resource integration', () => {
+  it.each(['android', 'ios'])('owns keyboard avoidance at the full-screen boundary on %s without changing workspace/outbox authority', async platform => {
+    mockPlatform = platform;
+    await render();
+    const avoidance = tree.root.findByType('KeyboardAvoidingView' as any);
+    expect(avoidance.parent?.type).toBe('SafeAreaView');
+    expect(avoidance.props.enabled).toBe(false);
+    expect(avoidance.props.behavior).toBe(platform === 'ios' ? 'padding' : 'height');
+    expect(avoidance.props.keyboardVerticalOffset).toBeUndefined();
+    expect(avoidance.findByProps({ accessibilityLabel: 'Nazad' })).toBeTruthy();
+    await act(async () => button('Poruke').props.onPress());
+    expect(tree.root.findAllByType('KeyboardAvoidingView' as any)).toHaveLength(1);
+    expect(avoidance.props.enabled).toBe(true);
+    const chat = avoidance.findByType('AgreementChat' as any);
+    expect(chat.props.outbox).toBe(mockOutbox);
+    expect(chat.props.state).toBe(mockOutboxState);
+    expect(chat.props.writable).toBe(true);
+    expect(chat.props.messages).toEqual([ownMessage]);
+    await act(async () => button('Pregled').props.onPress());
+    expect(avoidance.props.enabled).toBe(false);
+    expect(texts()).toContain(workspace.naslov);
+    expect(mockRead).toHaveBeenCalledTimes(1);
+    expect(mockMessages).toHaveBeenCalledTimes(1);
+  });
   it('reconciles a server read again after outbox hydration becomes ready', async () => {
     await render(); expect(mockMessages).toHaveBeenCalledWith(workspace.id, mockAccount);
     mockOutbox.reconcile.mockClear(); mockOutboxState = { phase: 'ready', entries: [] };

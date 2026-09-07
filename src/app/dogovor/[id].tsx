@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, ScrollView, Platform, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -167,6 +167,10 @@ function DogovorContent({ id, accountId }: { id: string; accountId: string }) {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: palette.ground }}>
+      {/* The keyboard screenY and this full-screen parent's layout share an origin.
+          Nesting avoidance below the header/tabs loses their height on Android. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} enabled={tab === 'poruke'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.sm, paddingBottom: space.sm }}>
         <Press
           accessibilityRole="button"
@@ -495,6 +499,7 @@ function DogovorContent({ id, accountId }: { id: string; accountId: string }) {
             refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} />
           </View>
         )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -121,3 +121,79 @@ for(const failure of ['network','http','json','output'])test(`provider ${failure
   assert.deepEqual(f.logs,expected);assert.ok(!f.calls.some(x=>x.url.includes('/rpc/')));
   assert.ok(!JSON.stringify(f.logs).includes('SYNTHETIC_'));assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_PROVIDER_OUTPUT'));
 });
+
+const providerCalls=f=>f.calls.filter(call=>[
+  'generativelanguage.googleapis.com','api.openai.com',
+].includes(new URL(call.url).hostname));
+const hostFor={gemini:'generativelanguage.googleapis.com',openai:'api.openai.com'};
+
+for(const selected of ['openai','gemini'])test(`explicit ${selected} chooses only its configured pair even when both are present`,async()=>{
+  const f=fixture();f.env.AI_PROVIDER=selected;
+  const other=selected==='openai'?'gemini':'openai';
+  const response=await f.invoke({provider:other,AI_PROVIDER:other}),body=await response.json();
+  assert.equal(response.status,200);assert.equal(body.provider,selected);
+  const calls=providerCalls(f);assert.equal(calls.length,1);assert.equal(new URL(calls[0].url).hostname,hostFor[selected]);
+  if(selected==='openai'){
+    assert.equal(calls[0].headers.authorization,`Bearer ${f.env.OPENAI_API_KEY}`);
+    assert.equal(calls[0].body.model,f.env.OPENAI_MODEL);assert.equal(calls[0].body.store,false);
+  }else{
+    assert.equal(calls[0].headers['x-goog-api-key'],f.env.GEMINI_API_KEY);
+    assert.ok(new URL(calls[0].url).pathname.includes(encodeURIComponent(f.env.GEMINI_MODEL)));
+  }
+  const persist=f.calls.find(call=>new URL(call.url).pathname==='/rest/v1/rpc/rpc_ai_apply_interview_turn_v2_service');
+  assert.ok(persist);assert.equal(persist.body.p_account_id,owner);
+  assert.deepEqual(Object.keys(persist.body).sort(),[
+    'p_account_id','p_assistant_message','p_conversation_id','p_proposals','p_safety','p_user_message',
+  ]);
+  assert.equal(persist.body.p_proposals[0].key,'need.people_needed');assert.equal(persist.body.p_proposals[0].value,2);
+  assert.deepEqual(f.logs,[]);assert.ok(!JSON.stringify(body).includes('SYNTHETIC_'));
+});
+
+test('absent selector preserves legacy Gemini-first selection and ignores client provider fields',async()=>{
+  const f=fixture();assert.equal(f.env.AI_PROVIDER,undefined);
+  const response=await f.invoke({provider:'openai',AI_PROVIDER:'openai'});
+  assert.equal(response.status,200);assert.equal((await response.json()).provider,'gemini');
+  assert.equal(providerCalls(f).length,1);assert.equal(new URL(providerCalls(f)[0].url).hostname,hostFor.gemini);
+});
+
+for(const missing of ['GEMINI_API_KEY','GEMINI_MODEL'])test(`legacy selection uses OpenAI when ${missing} is absent`,async()=>{
+  const f=fixture();delete f.env[missing];
+  const response=await f.invoke();assert.equal(response.status,200);assert.equal((await response.json()).provider,'openai');
+  assert.equal(providerCalls(f).length,1);assert.equal(new URL(providerCalls(f)[0].url).hostname,hostFor.openai);
+});
+
+for(const invalid of ['','OPENAI',' openai','anthropic','gemini,openai'])test(`invalid explicit selector ${JSON.stringify(invalid)} fails before provider or writer`,async()=>{
+  const f=fixture();f.env.AI_PROVIDER=invalid;
+  const response=await f.invoke();assert.equal(response.status,503);
+  assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');
+  assert.deepEqual(providerCalls(f),[]);assert.ok(!f.calls.some(call=>new URL(call.url).pathname.includes('/rpc/')));
+  assert.deepEqual(f.logs,[]);
+});
+
+for(const selected of ['openai','gemini'])for(const suffix of ['API_KEY','MODEL'])for(const missing of [undefined,'']){
+  test(`explicit ${selected} with ${suffix} ${missing===undefined?'absent':'empty'} never falls back`,async()=>{
+    const f=fixture();f.env.AI_PROVIDER=selected;f.env[`${selected.toUpperCase()}_${suffix}`]=missing;
+    const response=await f.invoke();assert.equal(response.status,503);
+    assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');assert.deepEqual(providerCalls(f),[]);
+    assert.ok(!f.calls.some(call=>new URL(call.url).pathname.includes('/rpc/')));assert.deepEqual(f.logs,[]);
+  });
+}
+
+test('absent selector with neither complete pair retains the known pre-provider 503',async()=>{
+  const f=fixture();delete f.env.GEMINI_MODEL;delete f.env.OPENAI_MODEL;
+  const response=await f.invoke();assert.equal(response.status,503);
+  assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');assert.deepEqual(providerCalls(f),[]);
+  assert.ok(!f.calls.some(call=>new URL(call.url).pathname.includes('/rpc/')));assert.deepEqual(f.logs,[]);
+});
+
+for(const selected of ['openai','gemini'])for(const failure of ['network','http','json','output']){
+  test(`explicit ${selected} ${failure} failure calls no alternate provider and no writer`,async()=>{
+    const f=fixture({failure});f.env.AI_PROVIDER=selected;
+    const response=await f.invoke();assert.equal(response.status,502);assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');
+    const calls=providerCalls(f);assert.equal(calls.length,1);assert.equal(new URL(calls[0].url).hostname,hostFor[selected]);
+    assert.ok(!f.calls.some(call=>new URL(call.url).pathname.includes('/rpc/')));
+    const httpCategory=selected==='openai'?'OPENAI_RESPONSES_FAILED':'GEMINI_GENERATE_FAILED';
+    assert.deepEqual(f.logs,failure==='http'?[[httpCategory,429],['AI_PROVIDER_FAILED']]:[['AI_PROVIDER_FAILED']]);
+    assert.ok(!JSON.stringify(f.logs).includes('SYNTHETIC_'));assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_PROVIDER_OUTPUT'));
+  });
+}

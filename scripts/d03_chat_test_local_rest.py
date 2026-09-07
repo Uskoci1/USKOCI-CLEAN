@@ -14,6 +14,26 @@ class LocalRestSafety(unittest.TestCase):
         validate_local_targets(ENV)
         self.assertEqual(validate_container(IDENTITY, expected_running=True), 'a' * 64)
 
+    def test_accepts_only_the_observed_supabase_registry_namespaces(self):
+        for image in ('ghcr.io/supabase/postgrest:v16.1', 'public.ecr.aws/supabase/postgrest:v14.4',
+                      'docker.io/supabase/postgrest:v16.1', 'supabase/postgrest:v16.1'):
+            with self.subTest(image=image):
+                self.assertEqual(validate_container([*IDENTITY[:2], image, True], expected_running=True), 'a' * 64)
+
+    def test_rejects_registry_namespace_and_suffix_spoofs_before_stop(self):
+        for image in ('ghcr.io.attacker.invalid/supabase/postgrest:v16.1',
+                      'attacker.invalid/ghcr.io/supabase/postgrest:v16.1',
+                      'ghcr.io/supabase-evil/postgrest:v16.1', 'ghcr.io/other/postgrest:v16.1',
+                      'ghcr.io/supabase/postgrest-evil:v16.1', 'ghcr.io/supabase/postgres:v16.1',
+                      'https://ghcr.io/supabase/postgrest:v16.1', 'ghcr.io/supabase/postgrest:v16.1\n',
+                      'ghcr.io/supabase/postgrest:v16.1/extra', 'ghcr.io/supabase/postgrest:v16.1@sha256:'+'a'*64):
+            outage = object.__new__(LocalRestOutage); outage.container_id = 'a' * 64
+            outage.inspect = Mock(return_value=[*IDENTITY[:2], image, True]); outage.docker = Mock()
+            with self.subTest(image=image), self.assertRaises(RuntimeError):
+                with outage.stopped():
+                    pass
+            outage.docker.assert_not_called()
+
     def test_rejects_remote_or_redirected_targets_without_exposing_credentials(self):
         cases = [
             {'RU5_DEVICE_SUPABASE_URL': 'https://leqcwgzvjsxugfgzdmth.supabase.co'},
