@@ -126,6 +126,10 @@ try{
   check('OWNER_DEFAULT_READ_HAS_NO_WRITE_OR_OPT_IN');
   const existing=await get(worker);assert.equal(existing.exists,true);assert.equal(existing.revision,0);
   assert.deepEqual(existing.settings,defaultSettings);
+  // These are real server responses for disposable synthetic identities, with
+  // no tokens, names, messages or production user data. Consumers can validate
+  // the actual wire projection rather than a hand-written expected fixture.
+  report.projection_examples={defaultRead:await get(worker,'REQUESTER'),legacyRead:existing};
   for(const [client,role] of [[requester,'REQUESTER'],[requester,'WORKER'],[worker,'REQUESTER']]){
     const result=await get(client,role);
     assert.deepEqual(result,{userId:ownerId(client),exists:false,roleContext:role,revision:0,updatedAt:null,settings:defaultSettings});
@@ -172,6 +176,7 @@ try{
   check('FIRST_WRITE_COMPLETE_PAYLOAD_RETRY_AND_REVOCATION_BOUNDARIES');
   const enabled={...defaultSettings,push_enabled:true,quiet_start:'22:00',quiet_end:'08:00'};
   const first=await ok(set(worker,enabled,0));assert.equal(first.revision,1);
+  report.projection_examples.firstSaveAcknowledgement=first;
   assert.equal(first.settings.quiet_start,'22:00:00');
   assert.deepEqual(await ok(set(worker,enabled,0)),first);
   await rejected(set(worker,{...enabled,responses_enabled:false},0),'40001');
