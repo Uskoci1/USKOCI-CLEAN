@@ -119,19 +119,21 @@ export default function Dogovori() {
                       </View>
                     </View>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.base }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <User size={15} color={palette.teal500} />
-                        <T variant="meta" tone="muted">{drugi?.ime ?? '—'}</T>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <User size={15} color={palette.teal500} style={{ flexShrink: 0 }} />
+                      <T variant="meta" tone="muted" style={{ flex: 1, minWidth: 0 }}>{drugi?.ime ?? '—'}</T>
+                    </View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.md }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexGrow: 1, flexShrink: 1, minWidth: 0 }}>
+                        <Clock size={15} color={palette.teal500} style={{ flexShrink: 0 }} />
+                        <T variant="meta" tone="muted" style={{ flexShrink: 1 }}>{d.vremeTekst}</T>
                       </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Clock size={15} color={palette.teal500} />
-                        <T variant="meta" tone="muted">{d.vremeTekst}</T>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginLeft: 'auto', flexShrink: 0 }}>
+                        <T variant="meta" style={{ fontWeight: '800' }}>
+                          {d.cena.prikaz}
+                        </T>
+                        <CaretRight size={16} color={palette.inkMuted} />
                       </View>
-                      <T variant="meta" style={{ marginLeft: 'auto', fontWeight: '800' }}>
-                        {d.cena.prikaz}
-                      </T>
-                      <CaretRight size={16} color={palette.inkMuted} />
                     </View>
                   </View>
                 </Card>

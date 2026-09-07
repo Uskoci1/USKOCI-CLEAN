@@ -19,6 +19,7 @@ for filename in ('ru5_android_device_ui_journey.py', 'intent_shell_android_journ
     exec(compile(load_functions(source), str(source), 'exec'), namespace)
 assert_shell_tree = namespace['assert_shell_tree']
 assert_no_private_tabs = namespace['assert_no_private_tabs']
+assert_agreement_metadata_tree = namespace['assert_agreement_metadata_tree']
 
 
 def tree(names, disabled=()):
@@ -33,6 +34,23 @@ def tree(names, disabled=()):
                                   'bounds': f'[{index * width},2260][{(index + 1) * width},2310]',
                                   'clickable': 'false'})
     return root, {child: parent for parent in root.iter() for child in parent}
+
+
+def agreement_tree(schedule='Fleksibilno', amount='3.000 RSD'):
+    # Relevant native hierarchy/bounds from run34110549395 requester card;
+    # the recorded worker card had only title/name and no schedule/amount.
+    root = ET.Element('hierarchy')
+    card = ET.SubElement(root, 'node', {
+        'class': 'android.widget.Button', 'content-desc': 'Otvorite Dogovor Proof Need',
+        'clickable': 'true', 'enabled': 'true', 'bounds': '[42,391][1038,628]',
+    })
+    content = ET.SubElement(card, 'node', {'class': 'android.view.ViewGroup', 'bounds': '[42,391][1038,628]'})
+    ET.SubElement(content, 'node', {'class': 'android.widget.TextView', 'text': 'Proof Need', 'bounds': '[87,441][790,499]'})
+    if schedule is not None:
+        ET.SubElement(content, 'node', {'class': 'android.widget.TextView', 'text': schedule, 'bounds': '[538,537][707,585]'})
+    if amount is not None:
+        ET.SubElement(content, 'node', {'class': 'android.widget.TextView', 'text': amount, 'bounds': '[749,537][916,585]'})
+    return root, card
 
 
 class IntentShellSelectors(unittest.TestCase):
@@ -94,6 +112,50 @@ class IntentShellSelectors(unittest.TestCase):
             self.assertIs(namespace['assert_signed_out_surface'](), root)
         observed.assert_called_once_with(timeout=40, desc='Prijavi se')
         raw_dump.assert_not_called()
+
+
+class AgreementMetadataVisibility(unittest.TestCase):
+    def assert_metadata(self, root):
+        return assert_agreement_metadata_tree(root, 1080, 2400, 'Proof Need', 'Fleksibilno', '3.000 RSD')
+
+    def test_real_native_button_hierarchy_preserves_full_schedule_and_amount(self):
+        root, _ = agreement_tree()
+        self.assertEqual(self.assert_metadata(root)['amount'], (749, 537, 916, 585))
+
+    def test_observed_worker_overflow_without_schedule_or_amount_fails(self):
+        root, card = agreement_tree(schedule=None, amount=None)
+        ET.SubElement(card, 'node', {'text': 'Very long actual participant name', 'bounds': '[142,537][1038,633]'})
+        with self.assertRaisesRegex(AssertionError, 'Agreement schedule is missing'):
+            self.assert_metadata(root)
+
+    def test_truncated_amount_text_cannot_substitute_for_full_currency_amount(self):
+        root, _ = agreement_tree(amount='3.000 R…')
+        with self.assertRaisesRegex(AssertionError, 'Agreement amount is missing'):
+            self.assert_metadata(root)
+
+    def test_text_from_another_card_cannot_substitute_for_missing_amount(self):
+        root, _ = agreement_tree(amount=None)
+        ET.SubElement(root, 'node', {'text': '3.000 RSD', 'bounds': '[749,700][916,748]'})
+        with self.assertRaisesRegex(AssertionError, 'Agreement amount is missing'):
+            self.assert_metadata(root)
+
+    def test_metadata_overflowing_card_or_screen_bounds_fails(self):
+        for bounds in ('[980,537][1060,585]', '[1040,537][1200,585]', '[749,620][916,680]', '[749,537][749,585]'):
+            with self.subTest(bounds=bounds):
+                root, card = agreement_tree()
+                next(node for node in card.iter() if node.attrib.get('text') == '3.000 RSD').set('bounds', bounds)
+                with self.assertRaisesRegex(AssertionError, 'Agreement amount is outside'):
+                    self.assert_metadata(root)
+
+    def test_disabled_card_and_offscreen_card_are_not_accepted(self):
+        root, card = agreement_tree()
+        card.set('enabled', 'false')
+        with self.assertRaisesRegex(AssertionError, 'actionable Agreement card'):
+            self.assert_metadata(root)
+        card.set('enabled', 'true')
+        card.set('bounds', '[42,391][1200,628]')
+        with self.assertRaisesRegex(AssertionError, 'card is outside'):
+            self.assert_metadata(root)
 
 
 if __name__ == '__main__':

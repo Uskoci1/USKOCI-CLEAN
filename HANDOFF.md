@@ -3,15 +3,23 @@
 
 The owner supplied and explicitly adopted the complete V3 execution addendum during this continuing session. Execution method follows `docs/governance/2026-09-07/01_USKOCI_CODEX_ULTRA_EXECUTION_MASTER_V3_2026-09-07.md`; current product/UI differences follow the preserved 06.09 reconstruction and 28-surface blueprint in that directory. No repeated admission or return to a historical HEAD is required. Profile is an avatar destination; the final three-zone model has no permanent Home/Profile tab or combined discovery mode.
 
-Fresh canonical baseline is `f4a687fbb1049ae118030e859da97a68c92e327f` (PR #52), after PR #48 workflow pinning and PR #50 live84 provenance. PR #51 pins only Xcode's uuid to 11.1.1; the real native generator dependency contract and canonical 35 suites / 209 tests passed. Canonical PRE-P4 `34105922292`, CodeQL `34105927999`, Control-0 `34105922230` passed; all three exact-HEAD CodeQL analyses have zero results and the open-alert API is empty. PR #52 additionally routes query-string through a small CommonJS adapter to the official patched URL decoder 0.5.0. Clean install, real Router dependency tests, Android/Hermes bundle and PR CI/CodeQL passed; npm audit reports zero vulnerabilities. Its post-merge gates are verified separately. Release gaps remain open.
+Fresh canonical baseline is `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54), including PR #53 N08 preferences and its exact live85 promotion. Canonical PRE-P4 `34112672202`, CodeQL `34112671587` and Control-0 passed; all three exact-HEAD CodeQL analyses have zero results. PR #51/#52 dependency fixes remain canonical, with real Xcode/Router dependency tests and npm audit zero at their recorded boundaries.
 
-PR #49 is IMPLEMENTED / UNDER PROOF until its final native evidence is accepted. Original Android run `34104812406` built the APK but exposed a signed-out navigation race before Auth input; that failed run is retained, not accepted. The repair protects every private root route in the navigator and combines epoch-scoped session/return-target handling before the next whole journey. See `docs/implementation/INTENT_SHELL_20260907.md` for the precise boundary and subsequent proof. N08 preference validation is separate source/disposable work; no N08 live change has occurred.
+PR #49 is IMPLEMENTED / UNDER FINAL VISUAL PROOF. Run `34110549395` at `a8075b6f76c82d3e0a565db4be7c9526765fffb1` passed real Android navigation, Auth, same-storage account switching and Inbox; all 27 original PNG/XML pairs were inspected. This repaired the retained failed Auth run `34104812406`. The successful run exposed long participant names pushing the Agreement time/price offscreen. The row is now split into bounded participant and metadata lines; the next native replay must prove visible schedule and full amount on both roles. See `docs/implementation/INTENT_SHELL_20260907.md` for exact artifacts and boundaries.
 
-Live remains the physically proven **84 / `20260907090645_clean_n06_push_device_registry`** checkpoint below. Native push transport/credentials, unsupported AI/HITNO/publication activation and Store acceptance remain open; current charge is 0 RSD. Older active-cursor statements below are historical wherever superseded here.
+Live is **85 / `20260907102458_clean_n08_notification_preferences`**, source85 / pending0. Do not reapply N08 or N07. Native push delivery, remaining product surfaces and Store acceptance remain open; current charge is 0 RSD. Older active-cursor statements below are historical wherever superseded here.
 
 ---
 
-## CURRENT POINTER — 2026-09-07 / N07 LIVE84
+## CURRENT CHECKPOINT — 2026-09-07 / N08 LIVE85
+
+N08 is **CANONICAL / AUTHENTICATED DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. PR53 merged as `06d8ce1a14c87ca2237d94aa5a60cd7230899ff6`; exact forward promotion is live at **85 migrations / `20260907102458_clean_n08_notification_preferences`**. Inventory is **85 source files / live85 / pending0**. All original84 full history metadata and statement fingerprints remain unchanged. Do not reapply N08 or N07.
+
+Read [N08 live promotion and evidence](docs/implementation/N08_LIVE85_PROMOTION_20260907.md) and [the owner contract](docs/implementation/N08_NOTIFICATION_PREFERENCES_20260907.md). Exact final-head proof run34110025856 passed12 authenticated N08 checks,6 N07 checks,37 suites/232 tests and TSC; canonical PRE-P4/CodeQL passed. Fresh live postflight confirmed expected function bytes, owner-only RPC grants, RLS, monotonic revision trigger and zero opt-in. No visible settings control, provider delivery, production business fixture or activation is claimed; event/message/Inbox/device engines,0 RSD, HITNO-off and other gates remain unchanged. Continue the next real product gap under the user's V3 execution method and06.09 UI priority.
+
+---
+
+## HISTORICAL CHECKPOINT — 2026-09-07 / N07 LIVE84
 
 N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
 

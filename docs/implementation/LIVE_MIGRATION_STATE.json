@@ -1,12 +1,62 @@
 {
   "mobile_execution_checkpoint_20260907": {
-    "canonical_baseline": "f4a687fbb1049ae118030e859da97a68c92e327f",
+    "canonical_baseline": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
     "intent_shell_pr": 49,
-    "state": "IMPLEMENTED_UNDER_PROOF",
+    "state": "IMPLEMENTED_FUNCTIONAL_ANDROID_PROVEN_VISUAL_REPLAY_PENDING",
     "failed_android_run": 34104812406,
-    "failure": "Signed-out child redirect won over root Auth effect; navigator protection and session repair pending new native acceptance",
+    "failure": "Historical Auth failure repaired; successful run exposed Agreement metadata overflow; fixed row requires final native replay",
     "live_change": false,
-    "report": "docs/implementation/INTENT_SHELL_20260907.md"
+    "report": "docs/implementation/INTENT_SHELL_20260907.md",
+    "successful_android_run": 34110549395,
+    "successful_android_source": "a8075b6f76c82d3e0a565db4be7c9526765fffb1",
+    "artifact_id": 10015039759,
+    "artifact_zip_sha256": "d980253d8877009f17662724ca89baf80ed68a68d10c6fd33a216207d54e1e22",
+    "inspected_png_xml_pairs": 27
+  },
+  "n08_preferences_checkpoint_20260907": {
+    "state": "CANONICAL_AUTHENTICATED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
+    "source_sha": "6c4ac2387a9ce017bcc27c27f477d2f08f4821ce",
+    "proof_run": 34109276473,
+    "artifact_id": 10013759621,
+    "artifact_zip_sha256": "bd098db108be14865f6f96612b2912cda929e89020f43a5f4c3b6c19ab3bf822",
+    "forward_file": "20260907100000_clean_n08_notification_preferences.sql",
+    "source_sha256": "f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16",
+    "raw_md5": "349e81a12760af65dc4d5d98a7677333",
+    "bytes": 13177,
+    "live_applied": true,
+    "canonical_source_file_count": 85,
+    "recorded_live_migration_count": 85,
+    "pending_forward_files": 0,
+    "disposable_migration_count": 85,
+    "original84_history_unchanged": true,
+    "authenticated_checks": 12,
+    "predecessor_n07_checks": 6,
+    "jest_suites": 37,
+    "jest_tests": 232,
+    "client_transport": "IMPLEMENTED_INERT_NO_UI_OR_EAGER_RPC",
+    "provider_or_mobile_push_proof": false,
+    "evidence": "docs/implementation/evidence/n08-preferences-20260907/SHA256_MANIFEST.json",
+    "canonical_merge_sha": "06d8ce1a14c87ca2237d94aa5a60cd7230899ff6",
+    "final_head_proof_run": 34110025856,
+    "final_head_proof_artifact": 10014051040,
+    "final_head_artifact_zip_sha256": "22f9cd125fcdb7423f82b56740d73fe7a47182b01647bbfcdbc7c274c6df4820",
+    "live_alias": {
+      "name": "clean_n08_notification_preferences",
+      "version": "20260907102458",
+      "file": "20260907100000_clean_n08_notification_preferences.sql",
+      "source_version": "20260907100000",
+      "exact_byte_mirror": true,
+      "canonical_raw_md5": "349e81a12760af65dc4d5d98a7677333",
+      "canonical_sha256": "f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16",
+      "live_recorded_statement_md5": "349e81a12760af65dc4d5d98a7677333",
+      "live_recorded_statement_sha256": "f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16",
+      "recorded_statement_utf8_bytes": 13177,
+      "proof_run": 34110025856,
+      "source_canonical_promotion_sha": "06d8ce1a14c87ca2237d94aa5a60cd7230899ff6"
+    },
+    "observed_at_utc": "2026-09-07T10:25:45Z",
+    "live_evidence": "docs/implementation/evidence/n08-live85-20260907/SHA256_MANIFEST.json",
+    "report": "docs/implementation/N08_LIVE85_PROMOTION_20260907.md"
   },
   "action_pins_checkpoint_20260907": {
     "pr": 48,
@@ -119,15 +169,58 @@
     "next": "NATIVE_PUSH_LIFECYCLE_DISPATCH_AND_REMAINING_CHAT_PRODUCT_UNITS"
   },
   "format_version": 3,
-  "updated_at": "2026-09-07",
+  "updated_at": "2026-09-07T10:25:45Z",
   "historical_notification_checkpoint_before_live84_20260907": {
     "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
-    "n01": { "pr": 39, "state": "CANONICAL_NOT_LIVE" },
-    "n02": { "pr": 40, "state": "CANONICAL_NOT_LIVE", "proof_run": 34094384747, "artifact": 10008095140, "checks_passed": 12 },
-    "n03": { "pr": 41, "state": "CANONICAL_NOT_LIVE", "proof_run": 34095038531, "artifact": 10008329926, "checks_passed": 9 },
-    "n04": { "pr": 45, "state": "CANONICAL_ANDROID_NATIVE_PROVEN_BACKEND_NOT_LIVE", "proof_head": "576e56b6f4da1db509f4a269962654ff928a1e3f", "proof_run": 34096462936, "job": 101661103645, "artifact": 10009432265, "original_png_xml_pairs_inspected": 10, "zip_sha256": "0e235d73d2f04b2648156c02c9b23476de5b6985aae4628501298f27d8590cc6", "ios_proven": false, "hardware_proven": false },
-    "n05": { "pr": 43, "state": "CANONICAL_NOT_LIVE", "proof_head": "3a0b90a1199c6556cf70f7b3e732215b25129efe", "proof_run": 34097457917, "job": 101664161588, "artifact": 10009242617, "checks_passed": 9 },
-    "n06": { "pr": 44, "state": "CANONICAL_NOT_LIVE", "proof_head": "fabd58075b3a4dcc6165e6f4d606ce9e89ad5046", "proof_run": 34097846464, "job": 101665338379, "artifact": 10009373812, "checks_passed": 9, "provider_delivery_proven": false },
+    "n01": {
+      "pr": 39,
+      "state": "CANONICAL_NOT_LIVE"
+    },
+    "n02": {
+      "pr": 40,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_run": 34094384747,
+      "artifact": 10008095140,
+      "checks_passed": 12
+    },
+    "n03": {
+      "pr": 41,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_run": 34095038531,
+      "artifact": 10008329926,
+      "checks_passed": 9
+    },
+    "n04": {
+      "pr": 45,
+      "state": "CANONICAL_ANDROID_NATIVE_PROVEN_BACKEND_NOT_LIVE",
+      "proof_head": "576e56b6f4da1db509f4a269962654ff928a1e3f",
+      "proof_run": 34096462936,
+      "job": 101661103645,
+      "artifact": 10009432265,
+      "original_png_xml_pairs_inspected": 10,
+      "zip_sha256": "0e235d73d2f04b2648156c02c9b23476de5b6985aae4628501298f27d8590cc6",
+      "ios_proven": false,
+      "hardware_proven": false
+    },
+    "n05": {
+      "pr": 43,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_head": "3a0b90a1199c6556cf70f7b3e732215b25129efe",
+      "proof_run": 34097457917,
+      "job": 101664161588,
+      "artifact": 10009242617,
+      "checks_passed": 9
+    },
+    "n06": {
+      "pr": 44,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_head": "fabd58075b3a4dcc6165e6f4d606ce9e89ad5046",
+      "proof_run": 34097846464,
+      "job": 101665338379,
+      "artifact": 10009373812,
+      "checks_passed": 9,
+      "provider_delivery_proven": false
+    },
     "n07": {
       "pr": 46,
       "state": "CANONICAL_PENDING_EXPLICIT_PRODUCTION_APPROVAL",
@@ -164,7 +257,12 @@
       "edge_reobserved": false
     },
     "next": "EXPLICIT_N07_PRODUCTION_APPROVAL_THEN_FRESH_PREFLIGHT; INDEPENDENT_PUSH_CHAT_AND_REMAINING_PRODUCT_QUEUE_OPEN",
-    "canonical_gates": { "pre_p4": 34099736749, "codeql": 34099736360, "control0": 34099736849, "result": "PASS" },
+    "canonical_gates": {
+      "pre_p4": 34099736749,
+      "codeql": 34099736360,
+      "control0": 34099736849,
+      "result": "PASS"
+    },
     "status_owner": "docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md"
   },
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
@@ -179,10 +277,10 @@
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
-    "migration_count": 84,
-    "head": "20260907090645_clean_n06_push_device_registry",
+    "migration_count": 85,
+    "head": "20260907102458_clean_n08_notification_preferences",
     "pending_forward_migrations": 0,
-    "observed_at_utc": "2026-09-07T09:07:48Z"
+    "observed_at_utc": "2026-09-07T10:25:45Z"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
@@ -198,7 +296,7 @@
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "LIVE_84_N07_NOTIFICATION_PROMOTION_STRUCTURAL_PROVEN",
+    "state": "LIVE_85_N08_PREFERENCES_PROMOTION_STRUCTURAL_PROVEN",
     "ru2_live_aliases": [
       {
         "live_version": "20260903222139",
@@ -511,6 +609,20 @@
         "selections": 2,
         "agreements": 2
       }
+    },
+    "n08_preferences_live_alias": {
+      "name": "clean_n08_notification_preferences",
+      "version": "20260907102458",
+      "file": "20260907100000_clean_n08_notification_preferences.sql",
+      "source_version": "20260907100000",
+      "exact_byte_mirror": true,
+      "canonical_raw_md5": "349e81a12760af65dc4d5d98a7677333",
+      "canonical_sha256": "f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16",
+      "live_recorded_statement_md5": "349e81a12760af65dc4d5d98a7677333",
+      "live_recorded_statement_sha256": "f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16",
+      "recorded_statement_utf8_bytes": 13177,
+      "proof_run": 34110025856,
+      "source_canonical_promotion_sha": "06d8ce1a14c87ca2237d94aa5a60cd7230899ff6"
     }
   },
   "client_data_layer": {
@@ -869,7 +981,8 @@
     "RU-6B": "NOT_STARTED_GATED_BY_RU6A",
     "RU-7": "FOUNDATION_ONLY_GATED_BY_RU6A_RU6B",
     "RU-8": "NOT_STARTED_MANDATORY_PROOF",
-    "LIVE_PREFLIGHT": "OWNER_ACTION_SAFETY_BLOCKED"
+    "LIVE_PREFLIGHT": "FRESH_READ_ONLY_VERIFIED_N08_PROMOTION_POSTFLIGHT_PASS",
+    "N08": "CLOSED_CANONICAL_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN"
   },
   "ru4b": {
     "activation_blockers": [
@@ -890,9 +1003,18 @@
     "service_offer_listing_supported": false
   },
   "monetization": "FREE_0_RSD",
-  "next_allowed_action": "Independent current-canonical product gap reconstruction and Notifications/Inbox/Push proof units; obtain permitted fresh production read before any promotion. RU-5 bounded-note owner decision unresolved; Application AI and forbidden features stay unactivated.",
+  "next_allowed_action": "Continue the next bounded current-canonical product gap. N08 is canonical, disposable proven and live structurally verified; do not reapply. Visible preference controls and provider delivery remain separate unproven work. Apply future changes only through fresh source-proof-review-forward-promotion.",
   "canonical_physical_ui_proof_merge_head": "940fd1fdf34a314f5d8a0c0fdb9cc3753e55ce01",
   "production_observation": {
+    "status": "FRESH_READ_ONLY_PREFLIGHT_AND_N08_STRUCTURAL_POSTFLIGHT_PASS",
+    "observed_at_utc": "2026-09-07T10:25:45Z",
+    "sql_executed": true,
+    "live_writes": "ONE_EXACT_AUTHORIZED_CANONICAL_N08_FORWARD_DDL_ONLY",
+    "production_business_rpc_called": false,
+    "provider_called": false,
+    "note": "Original84 history and business counts/gates unchanged. Current user execution instructions authorized proof/review/forward promotion; old blanket approval block is historical."
+  },
+  "historical_production_observation_before_authorized_promotions": {
     "status": "OWNER_ACTION_SAFETY_BLOCKED_NOT_FRESHLY_VERIFIED",
     "date": "2026-09-07",
     "sql_executed": false,
