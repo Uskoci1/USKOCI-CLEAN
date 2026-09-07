@@ -109,7 +109,8 @@ export const supabaseIzvor: SupabaseIzvor = {
       .in('status', ['PUBLISHED', 'SELECTION'])
       .order('created_at', { ascending: false });
 
-    if (error || !data) return [];
+    if (error) throw error;
+    if (!data) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
 
     const profiles = await safePublicProfiles(data.map((r: any) => r.requester_profile_id));
 

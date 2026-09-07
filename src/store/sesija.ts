@@ -9,12 +9,18 @@ type SesijaStanje = {
   isLoaded: boolean;
   session: Session | null;
   user: User | null;
+  sessionEpoch: number;
+  accountRevision: number;
+  returnTargetRevision: number;
 };
 
 let trenutna: SesijaStanje = {
   isLoaded: false,
   session: null,
   user: null,
+  sessionEpoch: 0,
+  accountRevision: 0,
+  returnTargetRevision: 0,
 };
 
 const pretplatnici = new Set<() => void>();
@@ -24,58 +30,86 @@ function obavesti() {
 }
 
 let initialized = false;
+let pendingTargetCleanup: (() => Promise<void>) | null = null;
 
 export function inicijalizujSesiju() {
   if (initialized) return;
   initialized = true;
 
   const supabase = supabaseKlijent();
+  const restoreEpoch = trenutna.sessionEpoch;
 
-  // Prvo dohvatamo trenutnu sesiju iz AsyncStorage preko Supabase-a
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    trenutna = {
-      isLoaded: true,
-      session,
-      user: session?.user ?? null,
-    };
-    obavesti();
-    resolveReturnTarget(session?.user?.id);
+  // Auth events take precedence over the startup read. Keep the callback
+  // synchronous; storage work must not hold up Supabase's event dispatch.
+  supabase.auth.onAuthStateChange((event, session) => {
+    acceptSession(session, event === 'SIGNED_OUT');
   });
 
-  // Zatim slušamo promene
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    trenutna = {
-      isLoaded: true,
-      session,
-      user: session?.user ?? null,
-    };
-    obavesti();
-
-    if (event === 'SIGNED_IN' && session?.user) {
-      await resolveReturnTarget(session.user.id);
-    } else if (event === 'SIGNED_OUT') {
-      postaviUlogu('narucilac');
-      await povratniCilj.clear();
-    }
-  });
+  const finishRestore = (session: Session | null) => {
+    if (trenutna.sessionEpoch === restoreEpoch) acceptSession(session);
+  };
+  try {
+    void supabase.auth.getSession().then(
+      ({ data, error }) => finishRestore(error ? null : data.session),
+      () => finishRestore(null),
+    );
+  } catch {
+    finishRestore(null);
+  }
 }
 
-async function resolveReturnTarget(userId?: string) {
-  if (!userId) return;
-  
-  // Proverimo da li ima pending intent
-  const pending = await povratniCilj.snapshot();
-  if (pending && pending.status === 'PENDING') {
-     // Označimo ga kao COMPLETED da ga _layout može pokupiti
-     await povratniCilj.markCompleted(userId, pending.intent);
-     
-     // Continuity: ako je namera bila radnička, prebacujemo ulogu
-     if (pending.intent.intent === 'WORKER') {
-        postaviUlogu('uskocer');
-     } else {
-        postaviUlogu('narucilac');
-     }
+function acceptSession(session: Session | null, signedOut = false) {
+  const previousUserId = trenutna.user?.id;
+  const identityChanged = previousUserId !== session?.user.id;
+  const changedAccount = !!previousUserId && previousUserId !== session?.user.id;
+  trenutna = {
+    ...trenutna,
+    isLoaded: true,
+    session,
+    user: session?.user ?? null,
+    sessionEpoch: trenutna.sessionEpoch + 1,
+    // Unlike an Auth-event epoch, identity ownership survives token refresh.
+    // Every A→B→A transition remains visible even when React batches renders.
+    accountRevision: trenutna.accountRevision + (identityChanged ? 1 : 0),
+  };
+  const epoch = trenutna.sessionEpoch;
+  if (signedOut || changedAccount) {
+    postaviUlogu('narucilac');
+    pendingTargetCleanup = povratniCilj.captureSessionCleanup();
   }
+  // Enqueue cleanup before a new account can prepare its own target. Retain
+  // its boundary on failure so a later Auth confirmation can safely retry.
+  const reset = pendingTargetCleanup;
+  const cleanup = reset ? reset() : Promise.resolve();
+  if (reset) void cleanup.then(() => {
+    if (pendingTargetCleanup === reset) pendingTargetCleanup = null;
+  }, () => {});
+  obavesti();
+
+  if (session?.user) {
+    setTimeout(() => {
+      // A storage failure leaves Auth usable and the pending target retryable
+      // on the next session confirmation, without claiming intent completion.
+      // If previous-account cleanup failed, do not adopt its pending target.
+      void cleanup.then(() => resolveReturnTarget(session.user.id, epoch)).catch(() => {});
+    }, 0);
+  }
+}
+
+async function resolveReturnTarget(userId: string, epoch: number) {
+  const isCurrent = () => trenutna.sessionEpoch === epoch && trenutna.user?.id === userId;
+  if (!isCurrent()) return;
+  const pending = await povratniCilj.snapshot();
+  if (!isCurrent() || !pending || pending.status !== 'PENDING') return;
+  const completed = await povratniCilj.markCompleted(userId, pending.intent, {
+    isCurrent,
+    pendingRevision: pending.recordRevision,
+  });
+  if (!isCurrent() || !completed) return;
+  postaviUlogu(completed.intent.intent === 'WORKER' ? 'uskocer' : 'narucilac');
+  // RootLayout may have checked before the asynchronous target was completed.
+  trenutna = { ...trenutna, returnTargetRevision: trenutna.returnTargetRevision + 1 };
+  obavesti();
 }
 
 export function sesijaSada(): SesijaStanje {

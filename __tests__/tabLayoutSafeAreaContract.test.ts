@@ -13,6 +13,7 @@ jest.mock('expo-router', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: jest.fn() }));
 jest.mock('../src/store/uloga', () => ({ useUloga: jest.fn() }));
+jest.mock('../src/ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: () => null }));
 jest.mock('phosphor-react-native', () => ({
   House: () => null, Package: () => null, Plus: () => null, Handshake: () => null,
   User: () => null, PaperPlaneTilt: () => null, MapTrifold: () => null,
@@ -20,6 +21,7 @@ jest.mock('phosphor-react-native', () => ({
 
 type ScreenProps = { name: string; options: { href?: string | null; title?: string } };
 const detailRoutes = [
+  'index', 'profil',
   'pregled-nacrta', 'profil/radnik', 'potrebe/[id]/kandidati',
   'potrebe/[id]/pregled', 'prilike/[id]', 'prilike/[id]/prijava',
 ];
@@ -46,13 +48,13 @@ function routeFiles(directory: string): string[] {
   });
 }
 
-describe('canonical five-tab layout and system navigation clearance', () => {
-  it('retains the exact five Requester destinations in order', () => {
-    expect(visibleNames('narucilac')).toEqual(['index', 'potrebe', 'nova', 'dogovori', 'profil']);
+describe('06.09 three-zone intent navigation and system navigation clearance', () => {
+  it('exposes only Requester tasks, creation and agreements in order', () => {
+    expect(visibleNames('narucilac')).toEqual(['potrebe', 'nova', 'dogovori']);
   });
 
-  it('retains the exact five Worker destinations in order', () => {
-    expect(visibleNames('uskocer')).toEqual(['index', 'moje-prijave', 'prilike', 'dogovori', 'profil']);
+  it('exposes only Worker applications, discovery and agreements in order', () => {
+    expect(visibleNames('uskocer')).toEqual(['moje-prijave', 'prilike', 'dogovori']);
   });
 
   it.each(['narucilac', 'uskocer'] as const)('keeps detail routes registered but hidden for %s', (role) => {
