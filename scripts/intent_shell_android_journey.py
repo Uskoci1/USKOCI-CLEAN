@@ -172,6 +172,10 @@ def back_to_tasks(intent):
 
 
 print('START PHYSICAL_INTENT_SHELL_JOURNEY', flush=True)
+if os.environ.get('RU5_ENTRY_PROOF') == '1':
+    entry_source = Path(__file__).with_name('entry_spoj_android.py')
+    exec(compile(entry_source.read_text(encoding='utf-8'), str(entry_source), 'exec'), globals())
+    prove_spoj_entry()
 launch_clean()
 login(os.environ['RU5_DEVICE_REQUESTER_EMAIL'])
 assert_shell('requester')
@@ -221,13 +225,13 @@ wait_visible(desc='Pređite na MENI TREBA')
 assert_profile(REQUESTER_USER_ID, 'WORKER')
 shot('NAV_same_account_worker_profile')
 tap(desc='Odjavite se')
-wait_visible(desc='Prijavi se', timeout=60)
-root = assert_signed_out_surface()
+wait_visible(desc='Prijavite se', timeout=60)
+root = assert_signed_out_surface(form_open=True)
 assert NAV_NEED_TITLE not in labels(root)
 shot('NAV_signed_out')
 
 # No app clear, force-stop or session injection between logout and second login.
-login(os.environ['RU5_DEVICE_WORKER_EMAIL'])
+login(os.environ['RU5_DEVICE_WORKER_EMAIL'], form_open=True)
 assert_shell('requester')
 root, _ = wait_surface(text='Još nemate Zadatak', timeout=45)
 assert NAV_NEED_TITLE not in labels(root) and NEED_TITLE not in labels(root)

@@ -56,10 +56,14 @@ export class AuthReturnTargetStore {
     return this.runExclusive(async () => this.loadUnlocked());
   }
 
-  async prepare(input: GuestSessionIntent) {
+  async prepare(input: GuestSessionIntent): Promise<AuthReturnTargetRecordV2>;
+  async prepare(input: GuestSessionIntent, isCurrent: () => boolean): Promise<AuthReturnTargetRecordV2 | null>;
+  async prepare(input: GuestSessionIntent, isCurrent: () => boolean = () => true) {
     const preparation = ++this.nextPreparation;
     return this.runExclusive(async () => {
+      if (!isCurrent()) return null;
       const previous = await this.loadUnlocked();
+      if (!isCurrent()) return null;
       const timestamp = new Date().toISOString();
       const next: AuthReturnTargetRecordV2 = {
         storageVersion: AUTH_RETURN_TARGET_STORAGE_VERSION,
@@ -71,6 +75,10 @@ export class AuthReturnTargetStore {
         completedByUserId: null,
       };
       await AsyncStorage.setItem(AUTH_RETURN_TARGET_KEY, JSON.stringify(next));
+      if (!isCurrent()) {
+        await this.restoreUnlocked(previous);
+        return null;
+      }
       this.storedPreparation = preparation;
       return next;
     });

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,14 +14,6 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import {
   ArrowLeft,
   EnvelopeSimple,
@@ -29,102 +23,22 @@ import {
   MapPin,
   Phone,
   User,
-  X,
 } from 'phosphor-react-native';
 
 import { authClientService } from '../data/authClientService';
-import { ReferenceEntryHero } from '../ui/referenceEntry/ReferenceEntryHero';
+import { useAuthAvailability } from '../hooks/useAuthAvailability';
+import { useAuthFormCommand } from '../hooks/useAuthFormCommand';
+import { EntryWelcome } from '../ui/entry/EntryWelcome';
+import { entryIntentClientService } from '../data/entryIntentClientService';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
-type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'VERIFY_EMAIL';
-type Kontekst = 'default' | 'requester' | 'worker';
-
-const EASE = Easing.bezier(0.16, 1, 0.3, 1);
-const ABSOLUTE_FILL = {
-  position: 'absolute' as const,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  left: 0,
-};
-
-function AuthSheetBackground() {
-  return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="authVertical" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#1B5A50" stopOpacity={0.995} />
-          <Stop offset="0.52" stopColor="#0A302B" stopOpacity={0.995} />
-          <Stop offset="1" stopColor="#04211D" stopOpacity={0.998} />
-        </LinearGradient>
-        <RadialGradient id="authGlow" cx="88%" cy="4%" r="42%">
-          <Stop offset="0" stopColor="#3E907E" stopOpacity={0.22} />
-          <Stop offset="0.64" stopColor="#3E907E" stopOpacity={0.04} />
-          <Stop offset="1" stopColor="#3E907E" stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#authVertical)" />
-      <Rect width="100%" height="100%" fill="url(#authGlow)" />
-    </Svg>
-  );
-}
-
-function OrangeButtonBackground() {
-  return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="authOrange" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#FF9A35" />
-          <Stop offset="1" stopColor="#FF7908" />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#authOrange)" />
-    </Svg>
-  );
-}
-
-function IvoryButtonBackground() {
-  return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="authIvory" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FBF2E5" />
-          <Stop offset="1" stopColor="#F4E7D4" />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#authIvory)" />
-    </Svg>
-  );
-}
-
-function GoogleMark() {
-  return (
-    <Svg width={23} height={23} viewBox="0 0 24 24">
-      <Path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.3c1.9-1.8 2.9-4.4 2.9-7.3Z" fill="#4285F4" />
-      <Path d="M12 22c2.7 0 5-.9 6.7-2.5L15.4 17c-.9.6-2.1 1-3.4 1-2.6 0-4.9-1.8-5.7-4.2H2.9v2.6A10 10 0 0 0 12 22Z" fill="#34A853" />
-      <Path d="M6.3 13.8A6 6 0 0 1 6 12c0-.6.1-1.2.3-1.8V7.6H2.9A10 10 0 0 0 2 12c0 1.6.4 3 1 4.4l3.3-2.6Z" fill="#FBBC05" />
-      <Path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.8A9.7 9.7 0 0 0 12 2a10 10 0 0 0-9.1 5.6l3.4 2.6C7.1 7.8 9.4 6 12 6Z" fill="#EA4335" />
-    </Svg>
-  );
-}
-
-function AppleMark() {
-  return (
-    <Svg width={23} height={23} viewBox="0 0 24 24">
-      <Path
-        d="M17.1 12.5c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.7-1.7-3.3-1.7-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3.1-.7s1.9.7 3.1.7c1.3 0 2.1-1.1 2.8-2.2.9-1.3 1.2-2.6 1.2-2.7-.1 0-2.6-1-2.6-3.8ZM14.8 5.9c.6-.8 1.1-1.9 1-3-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2-.5 2.7-1.3Z"
-        fill="#174B43"
-      />
-    </Svg>
-  );
-}
+type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY_UNAVAILABLE' | 'SIGNUP_NEXT_STEP';
 
 function AuthField({
   label,
   value,
   onChangeText,
   placeholder,
-  icon,
   secure,
   keyboardType,
   autoCapitalize = 'none',
@@ -134,7 +48,7 @@ function AuthField({
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   secure?: boolean;
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'number-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
@@ -143,30 +57,20 @@ function AuthField({
   const [vidljivo, setVidljivo] = useState(false);
   return (
     <View style={styles.field}>
-      <View style={styles.fieldIcon}>{icon}</View>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        editable={editable}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        keyboardType={keyboardType}
-        placeholder={placeholder}
-        placeholderTextColor="rgba(248,235,215,0.30)"
-        secureTextEntry={secure && !vidljivo}
-        style={[styles.fieldInput, secure && { paddingRight: 42 }]}
-      />
-      {secure ? (
-        <Pressable
-          accessibilityRole="button"
+      <View style={styles.inputRow}>
+        <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText}
+          editable={editable} autoCapitalize={autoCapitalize} autoCorrect={false}
+          keyboardType={keyboardType} placeholder={placeholder} placeholderTextColor="#73847E"
+          secureTextEntry={secure && !vidljivo} style={styles.fieldInput}
+          autoComplete={keyboardType === 'email-address' ? 'email' : secure ? 'password' : 'off'}
+        />
+        {secure ? <Pressable accessibilityRole="button" disabled={!editable}
           accessibilityLabel={vidljivo ? 'Sakrij lozinku' : 'Prikaži lozinku'}
-          onPress={() => setVidljivo((x) => !x)}
-          style={styles.passToggle}
-        >
-          {vidljivo ? <EyeSlash size={18} color="#BBD2CC" /> : <Eye size={18} color="#BBD2CC" />}
-        </Pressable>
-      ) : null}
+          onPress={() => setVidljivo(x => !x)} style={styles.passToggle}>
+          {vidljivo ? <EyeSlash size={21} color="#5D6E6D" /> : <Eye size={21} color="#5D6E6D" />}
+        </Pressable> : null}
+      </View>
     </View>
   );
 }
@@ -185,6 +89,8 @@ function PrimaryButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ busy: !!busy, disabled: !!(disabled || busy) }}
       disabled={disabled || busy}
       onPress={onPress}
       style={({ pressed }) => [
@@ -193,8 +99,7 @@ function PrimaryButton({
         pressed && !disabled && !busy && styles.primaryPressed,
       ]}
     >
-      <OrangeButtonBackground />
-      {busy ? <ActivityIndicator color="#082621" /> : <Text style={styles.primaryText}>{title}</Text>}
+      {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>{title}</Text>}
     </Pressable>
   );
 }
@@ -203,18 +108,20 @@ function MethodButton({
   title,
   icon,
   onPress,
+  disabled,
 }: {
   title: string;
   icon: React.ReactNode;
   onPress: () => void;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      disabled={disabled}
       style={({ pressed }) => [styles.method, pressed && styles.methodPressed]}
     >
-      <IvoryButtonBackground />
       <View style={styles.methodIcon}>{icon}</View>
       <Text style={styles.methodText}>{title}</Text>
     </Pressable>
@@ -223,8 +130,8 @@ function MethodButton({
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
-  const [otvoren, setOtvoren] = useState(false);
-  const [kontekst, setKontekst] = useState<Kontekst>('default');
+  const params = useLocalSearchParams<{ form?: string }>();
+  const [otvoren, setOtvoren] = useState(params.form === 'login');
   const [rezim, setRezim] = useState<Rezim>('LOGIN');
   const [faza, setFaza] = useState<Faza>('EMAIL');
 
@@ -237,123 +144,105 @@ export default function AuthScreen() {
   const [telefon, setTelefon] = useState('');
   const [otp, setOtp] = useState('');
   const [saglasnost, setSaglasnost] = useState(false);
+  const [confirmationRequired, setConfirmationRequired] = useState(true);
 
-  const [radi, setRadi] = useState(false);
+  const commands = useAuthFormCommand();
+  const radi = commands.busy;
+  const availability = useAuthAvailability(otvoren);
+  const methods = availability.status === 'ready' ? availability.data : null;
   const [greska, setGreska] = useState<string | null>(null);
   const [poruka, setPoruka] = useState<string | null>(null);
 
-  const sheet = useSharedValue(0);
-
   useEffect(() => {
-    sheet.value = withTiming(otvoren ? 1 : 0, {
-      duration: otvoren ? 320 : 260,
-      easing: EASE,
+    if (!otvoren) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      commands.changeForm(() => {
+        if (faza !== 'EMAIL' || rezim !== 'LOGIN') { setFaza('EMAIL'); setRezim('LOGIN'); }
+        else setOtvoren(false);
+        setGreska(null); setPoruka(null);
+      });
+      return true;
     });
-  }, [otvoren, sheet]);
+    return () => subscription.remove();
+  }, [commands.changeForm, otvoren, faza, rezim]);
 
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, sheet.value * (320 / 240)),
-  }));
-
-  const sheetStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(sheet.value, [0, 1], [0.7, 1]),
-    transform: [{ translateY: interpolate(sheet.value, [0, 1], [900, 0]) }],
-  }));
-
-  function otvori(context: Kontekst = 'default') {
-    setKontekst(context);
-    setRezim('LOGIN');
-    setFaza('EMAIL');
-    setGreska(null);
-    setPoruka(null);
-    setOtvoren(true);
+  function otvori(mode: Rezim = 'LOGIN') {
+    commands.changeForm(() => {
+      setRezim(mode);
+      setFaza('EMAIL');
+      setGreska(null);
+      setPoruka(null);
+      setOtvoren(true);
+    });
   }
 
   function nazadNaEmail() {
-    setFaza('EMAIL');
-    setGreska(null);
-    setPoruka(null);
+    commands.changeForm(() => {
+      setRezim('LOGIN');
+      setFaza('EMAIL');
+      setGreska(null);
+      setPoruka(null);
+    });
+  }
+
+  function prijaviGresku(error: unknown) {
+    setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušajte ponovo.');
+  }
+
+  async function izaberiNameru(intent: 'REQUESTER' | 'WORKER') {
+    await commands.run(() => entryIntentClientService.prepare(intent), () => {
+      setRezim('LOGIN'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
+    }, () => setGreska('Izbor nije sačuvan. Pokušajte ponovo.'));
   }
 
   async function emailAkcija() {
-    setRadi(true);
-    setGreska(null);
-    setPoruka(null);
-    try {
+    const ready = availability.current();
+    if (!ready || !(rezim === 'SIGNUP' ? ready.emailSignup : ready.emailPassword)) return;
+    await commands.run(async () => {
+      setGreska(null);
+      setPoruka(null);
+      if (!email.trim() || !lozinka) throw new Error('Unesite email i lozinku.');
       if (rezim === 'LOGIN') {
-        await authClientService.signInWithPassword({
-          email: email.trim(),
-          password: lozinka,
-        });
-      } else {
-        if (!ime.trim() || !prezime.trim() || !grad.trim()) {
-          throw new Error('Unesite ime, prezime i grad.');
-        }
-        if (lozinka.length < 6) throw new Error('Lozinka mora imati najmanje 6 znakova.');
-        if (lozinka !== potvrda) throw new Error('Lozinke se ne poklapaju.');
-        if (!saglasnost) throw new Error('Potrebno je prihvatiti Uslove korišćenja i Politiku privatnosti.');
-
-        const { hasSession } = await authClientService.signUp({
-          email: email.trim(),
-          password: lozinka,
-          firstName: ime.trim(),
-          lastName: prezime.trim(),
-          city: grad.trim(),
-        });
-        if (!hasSession) {
-          setFaza('VERIFY_EMAIL');
-          return;
-        }
+        await authClientService.signInWithPassword({ email: email.trim(), password: lozinka });
+        return true;
       }
-    } catch (error) {
-      setGreska(error instanceof Error ? error.message : 'Prijava trenutno nije uspela.');
-    } finally {
-      setRadi(false);
-    }
+      if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesite ime, prezime i grad.');
+      if (lozinka.length < 6) throw new Error('Lozinka mora imati najmanje 6 znakova.');
+      if (lozinka !== potvrda) throw new Error('Lozinke se ne poklapaju.');
+      if (!saglasnost) throw new Error('Potrebno je prihvatiti Uslove korišćenja i Politiku privatnosti.');
+      const result = await authClientService.signUp({
+        email: email.trim(), password: lozinka,
+        firstName: ime.trim(), lastName: prezime.trim(), city: grad.trim(),
+      });
+      return result.hasSession;
+    }, hasSession => {
+      if (!hasSession) {
+        setLozinka('');
+        setPotvrda('');
+        setConfirmationRequired(ready.emailConfirmationRequired);
+        setFaza('SIGNUP_NEXT_STEP');
+      }
+    }, prijaviGresku);
   }
 
   async function posaljiTelefon() {
-    setRadi(true);
-    setGreska(null);
-    setPoruka(null);
-    try {
+    if (!availability.current()?.phoneOtp) return;
+    await commands.run(async () => {
+      setGreska(null);
+      setPoruka(null);
       await authClientService.sendPhoneOtp({ phone: telefon.trim() });
+    }, () => {
       setFaza('OTP');
-      setPoruka('Kod je poslat na broj telefona.');
-    } catch (error) {
-      setGreska(error instanceof Error ? error.message : 'Kod trenutno nije mogao da bude poslat.');
-    } finally {
-      setRadi(false);
-    }
+      setPoruka('Zahtev za kod je prihvaćen.');
+    }, prijaviGresku);
   }
 
   async function potvrdiOtp() {
-    setRadi(true);
-    setGreska(null);
-    try {
-      await authClientService.verifyPhoneOtp({
-        phone: telefon.trim(),
-        token: otp.trim(),
-      });
-    } catch (error) {
-      setGreska(error instanceof Error ? error.message : 'Kod nije prihvaćen.');
-    } finally {
-      setRadi(false);
-    }
-  }
-
-  async function oporavak() {
-    setRadi(true);
-    setGreska(null);
-    try {
-      await authClientService.requestPasswordRecovery(email.trim());
-      setFaza('VERIFY_EMAIL');
-      setPoruka('Ako nalog postoji, poslat je link za oporavak lozinke.');
-    } catch (error) {
-      setGreska(error instanceof Error ? error.message : 'Link trenutno nije mogao da bude poslat.');
-    } finally {
-      setRadi(false);
-    }
+    if (!availability.current()?.phoneOtp) return;
+    await commands.run(async () => {
+      setGreska(null);
+      await authClientService.verifyPhoneOtp({ phone: telefon.trim(), token: otp.trim() });
+    }, () => {}, prijaviGresku);
   }
 
   const naslov =
@@ -361,10 +250,10 @@ export default function AuthScreen() {
       ? rezim === 'SIGNUP' ? 'Napravite nalog telefonom' : 'Prijavite se telefonom'
       : faza === 'OTP'
         ? 'Unesite kod'
-        : faza === 'RECOVERY'
-          ? 'Nova lozinka'
-          : faza === 'VERIFY_EMAIL'
-            ? 'Potvrdite email'
+        : faza === 'RECOVERY_UNAVAILABLE'
+          ? 'Oporavak lozinke'
+          : faza === 'SIGNUP_NEXT_STEP'
+            ? confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'
             : rezim === 'SIGNUP'
               ? 'Napravite nalog'
               : 'Prijavite se emailom';
@@ -373,116 +262,92 @@ export default function AuthScreen() {
     faza === 'PHONE'
       ? 'Unesite broj telefona.'
       : faza === 'OTP'
-        ? 'Poslali smo kod na Vaš broj.'
-        : faza === 'RECOVERY'
-          ? 'Unesite email za oporavak pristupa.'
-          : faza === 'VERIFY_EMAIL'
-            ? 'Proverite poruku koju smo Vam poslali.'
+        ? 'Unesite kod kada stigne na Vaš broj.'
+        : faza === 'RECOVERY_UNAVAILABLE'
+          ? 'Ova mogućnost još nije dostupna u aplikaciji.'
+          : faza === 'SIGNUP_NEXT_STEP'
+            ? confirmationRequired ? 'Pratite uputstvo za potvrdu registracije.' : 'Vratite se na prijavu.'
             : rezim === 'SIGNUP'
               ? 'Unesite osnovne podatke za nalog.'
               : 'Unesite email i lozinku.';
 
-  const continuity =
-    kontekst === 'requester'
-      ? 'Sačuvali smo Vašu Potrebu. Posle prijave vraćamo Vas na isti Pregled.'
-      : kontekst === 'worker'
-        ? 'Posle prijave vraćamo Vas na istu Priliku — bez gubitka konteksta.'
-        : null;
-
+  if (!otvoren) return <EntryWelcome onRequester={() => void izaberiNameru('REQUESTER')}
+    onWorker={() => void izaberiNameru('WORKER')} onSignIn={() => otvori('LOGIN')} busy={radi} error={greska} />;
   return (
-    <View style={styles.screen}>
-      <StatusBar style="light" />
-      <ReferenceEntryHero
-        onSignIn={() => otvori('default')}
-        onRequester={() => otvori('requester')}
-        onWorker={() => otvori('worker')}
-      />
-
-      <Animated.View
-        pointerEvents={otvoren ? 'auto' : 'none'}
-        style={[styles.backdrop, backdropStyle]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Zatvori prijavu"
-          onPress={() => setOtvoren(false)}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-
-      <KeyboardAvoidingView
-        pointerEvents={otvoren ? 'box-none' : 'none'}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={StyleSheet.absoluteFill}
-      >
-        <Animated.View
-          style={[
-            styles.sheet,
-            { paddingBottom: Math.max(18, insets.bottom + 8) },
-            sheetStyle,
-          ]}
-        >
-          <AuthSheetBackground />
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sheetScroll}
-          >
-            <View style={styles.sheetTop}>
-              <View style={styles.drag} />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Zatvori"
-                onPress={() => setOtvoren(false)}
-                style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
-              >
-                <X size={21} color="#F8EBD7" />
-              </Pressable>
-            </View>
-
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <StatusBar style="dark" />
+      <View style={styles.header}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={radi}
+          onPress={() => commands.changeForm(() => {
+            if (faza !== 'EMAIL' || rezim !== 'LOGIN') { setFaza('EMAIL'); setRezim('LOGIN'); }
+            else setOtvoren(false);
+            setGreska(null); setPoruka(null);
+          })} style={styles.backButton}><ArrowLeft size={22} color="#142F30" /></Pressable>
+        <Text style={styles.headerTitle}>{rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
+        <View style={{ width: 48 }} />
+      </View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
+          <View style={styles.formColumn}>
             <View style={styles.authHead}>
-              <Text style={styles.authTitle}>{naslov}</Text>
-              <Text style={styles.authSubtitle}>{podnaslov}</Text>
+              <Text accessibilityRole="header" style={styles.authTitle}>{faza === 'EMAIL' && rezim === 'LOGIN' ? 'Drago nam je\nšto ste tu.' : naslov}</Text>
+              <Text style={styles.authSubtitle}>{faza === 'EMAIL' && rezim === 'LOGIN' ? 'Prijavite se da nastavite.' : podnaslov}</Text>
             </View>
 
-            {continuity ? (
-              <View style={styles.continuity}>
-                <Text style={styles.continuityPlus}>＋</Text>
-                <Text style={styles.continuityText}>{continuity}</Text>
+
+            {faza === 'EMAIL' && methods?.emailPassword && methods.emailSignup ? <View style={styles.tabs}>
+              {(['LOGIN', 'SIGNUP'] as const).map(mode => <Pressable key={mode} accessibilityRole="tab"
+                accessibilityState={{ selected: rezim === mode, disabled: radi }} disabled={radi}
+                onPress={() => commands.changeForm(() => { setRezim(mode); setGreska(null); setPoruka(null); })}
+                style={[styles.tab, rezim === mode && styles.selectedTab]}>
+                <Text style={styles.tabLabel}>{mode === 'LOGIN' ? 'Prijava' : 'Registracija'}</Text>
+              </Pressable>)}
+            </View> : null}
+            {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
+
+            {availability.status === 'loading' ? (
+              <View accessibilityRole="progressbar" style={styles.form}>
+                <ActivityIndicator color="#5D6E6D" />
+                <Text style={styles.stateCopy}>Proveravamo dostupne načine prijave…</Text>
+              </View>
+            ) : availability.status === 'error' ? (
+              <View style={styles.form}>
+                <Text style={styles.stateCopy}>Ne možemo da proverimo dostupne načine prijave. Proverite vezu i pokušajte ponovo.</Text>
+                <PrimaryButton title="Pokušajte ponovo" busy={radi} onPress={() => void availability.retry()} />
               </View>
             ) : null}
 
-            {greska ? <View style={[styles.banner, styles.bannerError]}><Text style={styles.bannerErrorText}>{greska}</Text></View> : null}
-            {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
-
-            {faza === 'EMAIL' ? (
+            {faza === 'EMAIL' && methods ? (
               <>
-                <View style={styles.form}>
-                  {rezim === 'SIGNUP' ? (
+                {methods.emailPassword ? <View style={styles.form}>
+                  {rezim === 'SIGNUP' && methods.emailSignup ? (
                     <>
                       <AuthField
                         label="Ime"
                         value={ime}
-                        onChangeText={setIme}
+                        onChangeText={(value) => commands.changeForm(() => setIme(value))}
+                        editable={!radi}
                         autoCapitalize="words"
                         placeholder="Ime"
-                        icon={<User size={21} color="#9FC3BA" />}
+                        icon={<User size={21} color="#5D6E6D" />}
                       />
                       <AuthField
                         label="Prezime"
                         value={prezime}
-                        onChangeText={setPrezime}
+                        onChangeText={(value) => commands.changeForm(() => setPrezime(value))}
+                        editable={!radi}
                         autoCapitalize="words"
                         placeholder="Prezime"
-                        icon={<User size={21} color="#9FC3BA" />}
+                        icon={<User size={21} color="#5D6E6D" />}
                       />
                       <AuthField
                         label="Grad"
                         value={grad}
-                        onChangeText={setGrad}
+                        onChangeText={(value) => commands.changeForm(() => setGrad(value))}
+                        editable={!radi}
                         autoCapitalize="words"
-                        placeholder="Pretražite grad"
-                        icon={<MapPin size={21} color="#9FC3BA" />}
+                        placeholder="Vaš grad"
+                        icon={<MapPin size={21} color="#5D6E6D" />}
                       />
                     </>
                   ) : null}
@@ -490,34 +355,39 @@ export default function AuthScreen() {
                   <AuthField
                     label="Email"
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) => commands.changeForm(() => setEmail(value))}
+                    editable={!radi}
                     keyboardType="email-address"
                     placeholder="ime@primer.rs"
-                    icon={<EnvelopeSimple size={21} color="#9FC3BA" />}
+                    icon={<EnvelopeSimple size={21} color="#5D6E6D" />}
                   />
                   <AuthField
+                    key={`password:${rezim}`}
                     label="Lozinka"
                     value={lozinka}
-                    onChangeText={setLozinka}
+                    onChangeText={(value) => commands.changeForm(() => setLozinka(value))}
+                    editable={!radi}
                     placeholder="Unesite lozinku"
                     secure
-                    icon={<LockKey size={21} color="#9FC3BA" />}
+                    icon={<LockKey size={21} color="#5D6E6D" />}
                   />
 
-                  {rezim === 'SIGNUP' ? (
+                  {rezim === 'SIGNUP' && methods.emailSignup ? (
                     <>
                       <AuthField
                         label="Potvrdite lozinku"
                         value={potvrda}
-                        onChangeText={setPotvrda}
+                        onChangeText={(value) => commands.changeForm(() => setPotvrda(value))}
+                        editable={!radi}
                         placeholder="Ponovite lozinku"
                         secure
-                        icon={<LockKey size={21} color="#9FC3BA" />}
+                        icon={<LockKey size={21} color="#5D6E6D" />}
                       />
                       <Pressable
                         accessibilityRole="checkbox"
                         accessibilityState={{ checked: saglasnost }}
-                        onPress={() => setSaglasnost((x) => !x)}
+                        disabled={radi}
+                        onPress={() => commands.changeForm(() => setSaglasnost((x) => !x))}
                         style={styles.consent}
                       >
                         <View style={[styles.checkbox, saglasnost && styles.checkboxChecked]}>
@@ -532,535 +402,183 @@ export default function AuthScreen() {
 
                   <PrimaryButton
                     title={rezim === 'SIGNUP' ? 'Napravite nalog' : 'Prijavite se'}
+                    disabled={rezim === 'SIGNUP' && !methods.emailSignup}
                     onPress={() => void emailAkcija()}
                     busy={radi}
                   />
+                  <View style={styles.feedback} accessibilityLiveRegion="polite">
+                    {greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
+                  </View>
 
                   {rezim === 'LOGIN' ? (
-                    <Pressable onPress={() => { setFaza('RECOVERY'); setGreska(null); setPoruka(null); }} style={styles.forgot}>
+                    <Pressable accessibilityRole="button" disabled={radi} onPress={() => commands.changeForm(() => { setFaza('RECOVERY_UNAVAILABLE'); setGreska(null); setPoruka(null); })} style={styles.forgot}>
                       <Text style={styles.forgotText}>Zaboravili ste lozinku?</Text>
                     </Pressable>
                   ) : null}
-                </View>
+                </View> : <Text style={styles.stateCopy}>Prijava emailom trenutno nije dostupna.</Text>}
 
-                <View style={styles.authSwitch}>
-                  <Text style={styles.authSwitchQuestion}>
-                    {rezim === 'SIGNUP' ? 'Već imate nalog?' : 'Nemate nalog?'}
-                  </Text>
-                  <Pressable
-                    onPress={() => {
-                      setRezim((x) => x === 'LOGIN' ? 'SIGNUP' : 'LOGIN');
-                      setGreska(null);
-                      setPoruka(null);
-                    }}
-                    style={styles.authSwitchButton}
-                  >
-                    <Text style={styles.authSwitchButtonText}>
-                      {rezim === 'SIGNUP' ? 'Prijavite se' : 'Napravite nalog'}
-                    </Text>
-                  </Pressable>
-                </View>
 
-                <View style={styles.dividerRow}>
-                  <View style={styles.divider} />
-                  <Text style={styles.dividerText}>ili nastavite preko</Text>
-                  <View style={styles.divider} />
-                </View>
 
-                <View style={styles.methods}>
-                  <MethodButton
-                    title="Google"
-                    icon={<GoogleMark />}
-                    onPress={() => setGreska('Google prijava čeka serversku OAuth konfiguraciju. Email i telefon su funkcionalni.')}
-                  />
-                  <MethodButton
-                    title="Apple"
-                    icon={<AppleMark />}
-                    onPress={() => setGreska('Apple prijava čeka Apple/Supabase provider konfiguraciju.')}
-                  />
+                {methods.emailPassword && !methods.emailSignup ? (
+                  <Text style={styles.smallNote}>Otvaranje novih naloga trenutno nije dostupno.</Text>
+                ) : null}
+                {rezim === 'SIGNUP' && !methods.emailSignup ? (
+                  <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
+                ) : null}
+                {rezim === 'SIGNUP' && methods.emailSignup && methods.emailConfirmationRequired ? (
+                  <Text style={styles.smallNote}>Pre prve prijave potrebno je da potvrdite email.</Text>
+                ) : null}
+                {methods.phoneOtp ? <View style={styles.methods}>
                   <MethodButton
                     title="Telefon"
                     icon={<Phone size={23} color="#174B43" />}
-                    onPress={() => { setFaza('PHONE'); setGreska(null); setPoruka(null); }}
+                    disabled={radi}
+                    onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
                   />
-                </View>
+                </View> : null}
 
-                <Text style={styles.authLegal}>
-                  <Text style={styles.authLegalLink}>Uslovi korišćenja</Text> · <Text style={styles.authLegalLink}>Politika privatnosti</Text>
-                </Text>
+
               </>
             ) : null}
 
-            {faza === 'PHONE' ? (
+            {faza === 'PHONE' && methods?.phoneOtp ? (
               <View style={styles.form}>
-                <Pressable onPress={nazadNaEmail} style={styles.backRow}>
-                  <ArrowLeft size={16} color="#D8EAE5" />
+                <Pressable disabled={radi} onPress={nazadNaEmail} style={styles.backRow}>
+                  <ArrowLeft size={16} color="#5D6E6D" />
                   <Text style={styles.backText}>Nazad na prijavu</Text>
                 </Pressable>
                 <AuthField
                   label="Broj telefona"
                   value={telefon}
-                  onChangeText={setTelefon}
+                  onChangeText={(value) => commands.changeForm(() => setTelefon(value))}
+                  editable={!radi}
                   keyboardType="phone-pad"
                   placeholder="+381 6x xxx xxxx"
-                  icon={<Phone size={21} color="#9FC3BA" />}
+                  icon={<Phone size={21} color="#5D6E6D" />}
                 />
                 <Text style={styles.smallNote}>Poslaćemo Vam jednokratni kod.</Text>
                 <PrimaryButton title="Pošaljite kod" onPress={() => void posaljiTelefon()} busy={radi} />
               </View>
             ) : null}
 
-            {faza === 'OTP' ? (
+            {faza === 'OTP' && methods?.phoneOtp ? (
               <View style={styles.form}>
-                <Pressable onPress={() => setFaza('PHONE')} style={styles.backRow}>
-                  <ArrowLeft size={16} color="#D8EAE5" />
+                <Pressable disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
+                  <ArrowLeft size={16} color="#5D6E6D" />
                   <Text style={styles.backText}>Promenite broj</Text>
                 </Pressable>
-                <View style={styles.stateIcon}><Phone size={28} color="#DDF0EA" /></View>
+                <View style={styles.stateIcon}><Phone size={28} color="#5D6E6D" /></View>
                 <Text style={styles.stateTitle}>Unesite kod</Text>
-                <Text style={styles.stateCopy}>Poslali smo kod na Vaš broj. Ako ne stigne, možete zatražiti novi.</Text>
+                <Text style={styles.stateCopy}>Unesite primljeni kod. Ako ne stigne, možete zatražiti novi.</Text>
                 <AuthField
                   label="Kod"
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(value) => commands.changeForm(() => setOtp(value))}
+                  editable={!radi}
                   keyboardType="number-pad"
                   placeholder="123456"
-                  icon={<LockKey size={21} color="#9FC3BA" />}
+                  icon={<LockKey size={21} color="#5D6E6D" />}
                 />
                 <PrimaryButton title="Potvrdite kod" onPress={() => void potvrdiOtp()} busy={radi} />
-                <Pressable onPress={() => void posaljiTelefon()} style={styles.linkButton}>
+                <Pressable disabled={radi} onPress={() => void posaljiTelefon()} style={styles.linkButton}>
                   <Text style={styles.linkText}>Pošaljite novi kod</Text>
                 </Pressable>
               </View>
             ) : null}
 
-            {faza === 'RECOVERY' ? (
+            {(faza === 'PHONE' || faza === 'OTP') && methods && !methods.phoneOtp ? (
               <View style={styles.form}>
-                <Pressable onPress={nazadNaEmail} style={styles.backRow}>
-                  <ArrowLeft size={16} color="#D8EAE5" />
-                  <Text style={styles.backText}>Nazad</Text>
-                </Pressable>
-                <View style={styles.stateIcon}><LockKey size={28} color="#DDF0EA" /></View>
-                <Text style={styles.stateTitle}>Zaboravili ste lozinku?</Text>
-                <Text style={styles.stateCopy}>Unesite email na koji želite da dobijete link za novu lozinku.</Text>
-                <AuthField
-                  label="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  placeholder="ime@primer.rs"
-                  icon={<EnvelopeSimple size={21} color="#9FC3BA" />}
-                />
-                <PrimaryButton title="Pošaljite link" onPress={() => void oporavak()} busy={radi} />
+                <Text style={styles.stateCopy}>Prijava telefonom trenutno nije dostupna.</Text>
+                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
               </View>
             ) : null}
 
-            {faza === 'VERIFY_EMAIL' ? (
+            {faza === 'RECOVERY_UNAVAILABLE' ? (
               <View style={styles.form}>
-                <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#DDF0EA" /></View>
-                <Text style={styles.stateTitle}>Proverite email</Text>
-                <Text style={styles.stateCopy}>Poslali smo Vam poruku. Otvorite je i potvrdite email.</Text>
-                <PrimaryButton title="Nastavite" onPress={nazadNaEmail} />
+                <View style={styles.stateIcon}><LockKey size={28} color="#5D6E6D" /></View>
+                <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možete se vratiti na prijavu.</Text>
+                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} />
               </View>
             ) : null}
-          </ScrollView>
-        </Animated.View>
+
+            {faza === 'SIGNUP_NEXT_STEP' ? (
+              <View style={styles.form}>
+                <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
+                <Text style={styles.stateTitle}>{confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'}</Text>
+                <Text style={styles.stateCopy}>{confirmationRequired
+                  ? 'Ako je registracija prihvaćena, dobićete poruku sa daljim uputstvom. Posle potvrde emaila vratite se na prijavu.'
+                  : 'Nalog još nije prijavljen. Vratite se na prijavu. Ako ste dobili poruku za potvrdu emaila, prvo pratite njeno uputstvo.'}</Text>
+                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
+                <Pressable disabled={radi} onPress={() => commands.changeForm(() => {
+                  setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null);
+                })} style={styles.linkButton}>
+                  <Text style={styles.linkText}>Izmenite email</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {faza !== 'EMAIL' && greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
+            {faza === 'EMAIL' && rezim === 'LOGIN' ? <View style={styles.notice}>
+              <Text style={styles.noticeTitle}>Jedan nalog.</Text>
+              <Text style={styles.noticeCopy}>Možete i da tražite pomoć i da uskočite drugima.</Text>
+            </View> : null}
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#0E3D37',
-  },
-  backdrop: {
-    ...ABSOLUTE_FILL,
-    zIndex: 310,
-    backgroundColor: 'rgba(1,20,18,0.68)',
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 320,
-    maxHeight: '92%',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: 'rgba(248,235,215,0.15)',
-    shadowColor: '#000',
-    shadowOpacity: 0.36,
-    shadowRadius: 34,
-    shadowOffset: { width: 0, height: -18 },
-    elevation: 24,
-  },
-  sheetScroll: {
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 6,
-  },
-  sheetTop: {
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  drag: {
-    width: 42,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: 'rgba(248,235,215,0.34)',
-  },
-  close: {
-    position: 'absolute',
-    right: 0,
-    top: -4,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: 'rgba(248,235,215,0.14)',
-    backgroundColor: 'rgba(3,33,29,0.28)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closePressed: {
-    transform: [{ scale: 0.95 }],
-  },
-  authHead: {
-    paddingHorizontal: 4,
-    paddingTop: 8,
-    paddingBottom: 14,
-  },
-  authTitle: {
-    color: '#F8EBD7',
-    fontSize: 28,
-    lineHeight: 30,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  authSubtitle: {
-    marginTop: 8,
-    color: 'rgba(248,235,215,0.78)',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  continuity: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginHorizontal: 2,
-    marginBottom: 14,
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(151,183,174,0.11)',
-    borderWidth: 1,
-    borderColor: 'rgba(151,183,174,0.24)',
-  },
-  continuityPlus: {
-    color: '#A9D4C9',
-    fontSize: 18,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  continuityText: {
-    flex: 1,
-    color: '#DDEDE7',
-    fontSize: 12.5,
-    lineHeight: 17,
-  },
-  banner: {
-    marginHorizontal: 2,
-    marginBottom: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  bannerError: {
-    backgroundColor: 'rgba(255,180,169,0.09)',
-    borderColor: 'rgba(255,180,169,0.22)',
-  },
-  bannerErrorText: {
-    color: '#FFD3CD',
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  bannerOk: {
-    backgroundColor: 'rgba(191,231,211,0.10)',
-    borderColor: 'rgba(191,231,211,0.22)',
-  },
-  bannerOkText: {
-    color: '#D7F1E4',
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  form: {
-    gap: 12,
-  },
-  field: {
-    position: 'relative',
-    minHeight: 58,
-    borderWidth: 1,
-    borderColor: 'rgba(151,183,174,0.35)',
-    borderRadius: 16,
-    backgroundColor: 'rgba(2,30,27,0.46)',
-    paddingTop: 18,
-    paddingRight: 13,
-    paddingBottom: 7,
-    paddingLeft: 45,
-  },
-  fieldIcon: {
-    position: 'absolute',
-    left: 14,
-    top: 19,
-    width: 21,
-    height: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fieldLabel: {
-    position: 'absolute',
-    left: 45,
-    top: 8,
-    color: '#AFCAC3',
-    fontSize: 10,
-    lineHeight: 11,
-    fontWeight: '700',
-    letterSpacing: 0.35,
-  },
-  fieldInput: {
-    height: 30,
-    padding: 0,
-    color: '#F8EBD7',
-    fontSize: 15,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  passToggle: {
-    position: 'absolute',
-    right: 9,
-    top: 11,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primary: {
-    height: 56,
-    borderRadius: 16,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#FF7908',
-    shadowOpacity: 0.22,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 7,
-  },
-  primaryPressed: {
-    transform: [{ scale: 0.988 }],
-  },
-  primaryText: {
-    color: '#082621',
-    fontSize: 15,
-    lineHeight: 17,
-    fontWeight: '900',
-  },
-  disabled: {
-    opacity: 0.45,
-  },
-  forgot: {
-    alignSelf: 'flex-end',
-    marginTop: -4,
-    paddingVertical: 7,
-  },
-  forgotText: {
-    color: '#F3C49B',
-    fontSize: 11.5,
-    fontWeight: '800',
-  },
-  authSwitch: {
-    marginTop: 14,
-    marginBottom: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  authSwitchQuestion: {
-    color: 'rgba(248,235,215,0.66)',
-    fontSize: 12.5,
-  },
-  authSwitchButton: {
-    padding: 8,
-  },
-  authSwitchButtonText: {
-    color: '#FF9A3C',
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginHorizontal: 2,
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  divider: {
-    height: 1,
-    flex: 1,
-    backgroundColor: 'rgba(248,235,215,0.12)',
-  },
-  dividerText: {
-    color: 'rgba(248,235,215,0.48)',
-    fontSize: 11,
-  },
-  methods: {
-    flexDirection: 'row',
-    gap: 9,
-  },
-  method: {
-    flex: 1,
-    minHeight: 76,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(248,235,215,0.58)',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
-  },
-  methodPressed: {
-    transform: [{ scale: 0.975 }],
-  },
-  methodIcon: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  methodText: {
-    color: '#0B332E',
-    fontSize: 11.5,
-    lineHeight: 12,
-    fontWeight: '800',
-  },
-  authLegal: {
-    marginTop: 14,
-    paddingTop: 11,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(248,235,215,0.09)',
-    color: 'rgba(248,235,215,0.50)',
-    fontSize: 10.5,
-    lineHeight: 15,
-    textAlign: 'center',
-  },
-  authLegalLink: {
-    color: 'rgba(248,235,215,0.82)',
-  },
-  consent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
-    borderRadius: 13,
-    backgroundColor: 'rgba(2,30,27,0.24)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,235,215,0.08)',
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(248,235,215,0.34)',
-    backgroundColor: 'rgba(2,30,27,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#FF8A1F',
-    borderColor: '#FF8A1F',
-  },
-  checkmark: {
-    color: '#082621',
-    fontWeight: '900',
-    fontSize: 12,
-  },
-  consentText: {
-    flex: 1,
-    paddingTop: 1,
-    color: 'rgba(248,235,215,0.72)',
-    fontSize: 10.5,
-    lineHeight: 14.5,
-  },
-  legalLink: {
-    color: '#F7EBDD',
-  },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 8,
-    alignSelf: 'flex-start',
-  },
-  backText: {
-    color: '#D8EAE5',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  smallNote: {
-    marginTop: -2,
-    color: 'rgba(248,235,215,0.58)',
-    fontSize: 10.5,
-    lineHeight: 15,
-  },
-  stateIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 20,
-    backgroundColor: 'rgba(151,183,174,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,235,215,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    marginBottom: 1,
-  },
-  stateTitle: {
-    color: '#FFFFFF',
-    fontSize: 23,
-    lineHeight: 26,
-    fontWeight: '800',
-    letterSpacing: -0.25,
-  },
-  stateCopy: {
-    maxWidth: 320,
-    color: 'rgba(248,235,215,0.72)',
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 3,
-  },
-  linkButton: {
-    paddingVertical: 7,
-    alignSelf: 'flex-start',
-  },
-  linkText: {
-    color: '#FFAA5D',
-    fontSize: 12,
-    fontWeight: '800',
-  },
+  screen: { flex: 1, backgroundColor: '#F7F8F5' },
+  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', height: 68, alignItems: 'center', paddingHorizontal: 12 },
+  backButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '600', color: '#142F30' },
+  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 8 },
+  formColumn: { width: '100%', maxWidth: 412 },
+  authHead: { gap: 12, marginBottom: 28 },
+  authTitle: { color: '#142F30', fontSize: 32, lineHeight: 37, letterSpacing: -0.7, fontWeight: '700' },
+  authSubtitle: { color: '#5D6E6D', fontSize: 15, lineHeight: 22 },
+  tabs: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#DCE3DE', marginBottom: 16 },
+  tab: { flex: 1, minHeight: 48, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', borderRadius: 11 },
+  selectedTab: { backgroundColor: '#FFFFFF' },
+  tabLabel: { color: '#142F30', fontSize: 14, fontWeight: '600' },
+  form: { gap: 16 },
+  field: { gap: 8 },
+  fieldLabel: { color: '#142F30', fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE3DE', borderRadius: 12, minHeight: 56 },
+  fieldInput: { flex: 1, minWidth: 0, minHeight: 54, paddingHorizontal: 16, paddingVertical: 14, color: '#142F30', fontSize: 16, lineHeight: 24 },
+  passToggle: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  primary: { minHeight: 56, borderRadius: 16, backgroundColor: '#142F30', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  primaryText: { color: '#FFFFFF', fontSize: 16, lineHeight: 24, fontWeight: '600' },
+  primaryPressed: { opacity: 0.76 },
+  disabled: { opacity: 0.45 },
+  feedback: { minHeight: 24, marginTop: -6 },
+  banner: { marginBottom: 12, borderRadius: 14, padding: 12 },
+  bannerOk: { backgroundColor: '#E6F3EC' },
+  bannerOkText: { color: '#265B40', fontSize: 14, lineHeight: 21 },
+  bannerErrorText: { color: '#A03328', fontSize: 14, lineHeight: 21 },
+  forgot: { minHeight: 48, justifyContent: 'center', marginTop: -20 },
+  forgotText: { color: '#142F30', fontSize: 14, fontWeight: '600', lineHeight: 21 },
+  methods: { marginTop: 16 },
+  method: { minHeight: 56, borderRadius: 16, borderWidth: 1, borderColor: '#DCE3DE', backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
+  methodPressed: { opacity: 0.76 },
+  methodIcon: { width: 24, height: 24 },
+  methodText: { color: '#142F30', fontSize: 16, fontWeight: '600' },
+  consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 8 },
+  checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: '#78938A', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  checkboxChecked: { backgroundColor: '#142F30' },
+  checkmark: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  consentText: { flex: 1, color: '#5D6E6D', fontSize: 13, lineHeight: 21 },
+  legalLink: { color: '#142F30' },
+  backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
+  backText: { color: '#142F30', fontSize: 14, fontWeight: '600' },
+  smallNote: { color: '#5D6E6D', fontSize: 13, lineHeight: 20, marginVertical: 12 },
+  stateIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4EDE8' },
+  stateTitle: { color: '#142F30', fontSize: 23, fontWeight: '700', lineHeight: 29 },
+  stateCopy: { color: '#5D6E6D', fontSize: 15, lineHeight: 23 },
+  linkButton: { minHeight: 48, justifyContent: 'center' },
+  linkText: { color: '#142F30', fontSize: 14, fontWeight: '600' },
+  notice: { backgroundColor: '#E9F3F9', padding: 16, borderRadius: 16, marginTop: 16, gap: 6 },
+  noticeTitle: { color: '#235F87', fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  noticeCopy: { color: '#235F87', fontSize: 13, lineHeight: 20 },
 });

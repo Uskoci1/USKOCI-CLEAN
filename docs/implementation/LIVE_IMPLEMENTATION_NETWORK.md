@@ -1,3 +1,48 @@
+## Current entry acceptance — original Android sequence and 34 checkpoints reviewed
+
+PR66 source `82a99fc115ff813327e9548c66fedd8413d29bff` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / CANONICAL PROMOTION PENDING**. Fresh canonical remains `80e091ee31930b28cc5c2e0af6b6e876a4926362` and is already integrated. Native run34163510260 passed; original artifact10033887904 is 5,847,655 bytes, SHA-256 `c82d1206009dd410c303b2a3517f6abbd68e4e07fbffc975bc62be8661de3386`. All 34 original PNG/XML pairs were individually reviewed: 7 entry, 17 account/navigation and 10 Inbox checkpoints. Both real local accounts, logout to the two-field login form, three-zone intents, full Agreement schedule/amount and current W04 Back pass.
+
+Root reviewed all 70 original decoded video frames through the actual-PTS grid and full original frames 50/51/52/64. The beginning is now visible: bodies/handshake at 7.685922s, smile/pin at 8.124889s, blink/squash, shrink/reposition, ordered wordmark appearance and welcome at 11.764744s. No old blue Expo placeholder or competing Auth slide obscures the sequence. **Motion behavior is proven; capture timing/performance remain limited.** The unchanged source UI clock is 4500ms; this variable 4.69fps capture does not measure frame-perfect 4500ms or prove 60fps/physical-handset performance. Historical c1 run34160744232 remains partial for motion at its own boundary and is superseded only by this exact82 replay.
+
+Exact-source PRE-P4 run34163513828 passes 64 suites/600 tests, TypeScript and 87 source/87 snapshot/0 pending integrity. CodeQL run34163510667 has three actual analyses (1737819620, 1737818245, 1737818206), all with zero results/errors/warnings. Root additionally observed the real local web DOM at exact82: reveal a dummy password, switch to Registration, and the remounted password controls are masked (`type=password`) and empty; no Auth submission occurred. This does not claim signup, recovery or email delivery.
+
+The latest checked Figma file currently exposes only cover nodes 66:17/66:18; clarification of the owner's current design location is pending. The explicit user requirement to preserve the original supplied assets remains binding. Bundled original SVGs and 12 motion tracks retain their saved source provenance; this acceptance does not invent a replacement Figma authority or declare final visual/all-47 completion.
+
+Public evidence is credential-redacted before any Git-directory write, with original PNG/XML/MP4/ZIP bytes retained. Raw logs remain outside Git; public logs are normalized/redacted copies with original SHA256 headers. The archive has 178 public files including its manifest, which contains 177 hashed entries; 422 source/build/config/plugins/vendor/test/SQL inputs are frozen for the documentation-only follow-up. Final candidate PRE-P4/CodeQL and Root merge remain required. A redundant docs-triggered native run may be canceled only after all 422 blobs and the entire added-material boundary are verified unchanged/non-product.
+
+Scope remains synthetic local Auth and historical79+N02/N03 DB, not full87 live replay. Novi opens one owned local conversation without messages/provider/publication; the entry/navigation UI adds no Application/Selection mutation or push proof. The inherited disposable fixture setup does create a real Selection and Agreement. Registration stills cover the upper scroll viewport, recovery stays visibly gated, and one anonymous off-scroll Agreement XML container has known clipped bounds. Existing live87/Edge11, 0 RSD, closed gates and all earlier accepted units are preserved without new live reads or production changes. See [the exact82 evidence](<evidence/spoj-entry-20260907/run34163510260/native-review-summary.json>) and [the entry report](<SPOJ_ENTRY_IMPLEMENTATION_20260907.md>). Earlier checkpoints below retain their exact historical boundaries.
+
+---
+
+## Current entry replay — original Android journey passed; route motion repair pending proof
+
+Canonical PR64 is merged at `80e091ee31930b28cc5c2e0af6b6e876a4926362` with exact canonical PRE-P4/CodeQL/CONTROL-0 PASS. It is integrated additively here; W04/W05 source is preserved. PR66 original source `c1b803285e2b5b97c57680ea09c9f17a6934d32d` has SUCCESS native run34160744232 and34 reviewed original PNG/XML checkpoints (7 entry +27 account/Inbox/navigation). Artifact10033052964 is5,932,807 bytes, SHA-256 `c0932b714237ae92d3ba78fd372d06ce13da5f571e32a7a5aa9b3a3c0b7ff602`. These static journeys are proven in their source scope; the full visible owner intro is not accepted.
+
+Actual MP4 frames show the Auth route sliding over the owner sequence: frame55 at7.535878s is partial-width, frame56 at7.953489s first fully visible assembled mark, welcome at11.466433s. The old blue Expo splash is gone. The narrow repair disables the competing Stack transition only for Auth; all original SVGs and12 motion tracks retain their4500ms timeline. A separately reproduced revealed-password carry across Login/Signup is repaired by remounting that field per mode, preserving its value and masking it again. Its actual component regression fails before and passes after the change. Tab selected state already exists; an AX Value0 alone was not a source defect.
+
+Integrated pre-repair source passes64 suites/599 tests; final focused4 suites/36 tests and TypeScript pass. The new source requires a fresh standalone Android replay, original motion inspection and exact-head CI/CodeQL before merge. No60fps, production/provider, full Auth/release or47-item closure is claimed. No SQL, secret or feature-gate change occurred. Prior checkpoints below retain their exact historical boundaries.
+
+---
+
+## SPOJ entry replay — original Android failure reviewed
+
+Canonical `d4d8cd09bf44dd54c7355605b0c256813b46ab1b` is integrated with accepted D03/PR61 and Metro65 preserved. PR66 is **SOURCE PROVEN / ORIGINAL ANDROID PARTIAL / FRESH ANDROID AND CANONICAL PROMOTION PENDING**. Original source `95dd6f67e514140f6f631c4acdaae9d02db645b9`, run `34150271309`, failed on the obsolete post-logout welcome selector while the real direct login form was visible. The harness now requires exactly Email/Lozinka plus absence of private tabs and logs the second account in through that observed form. Busy Auth buttons retain their accessible title/state.
+
+Original ENTRY stills and video were physically reviewed; the video showed Expo's old blue native splash covering an already-running owner animation. Approximately one hidden second is inferred, not instrumented. The repair uses a warm native background/transparent drawable and a paused first-frame scene, then layout → hide request completion → two frame callbacks → unchanged 4500ms clock. The 1s readiness failure skips animation and the 500ms storage bound remains. Full visible timing and the complete two-account journey need a new exact-source native artifact; no 60fps claim is inferred from mocks or sampled video.
+
+Integrated 61 suites / 540 tests, TypeScript, 21 selector tests and AST 78/30/0 PASS. Source fingerprints are in `evidence/spoj-entry-20260907/replay-source/client-architecture.json`; existing workflow commit/APK/driver hashes provide the next native identity. Final CI/CodeQL and original-artifact review remain pending. Read `SPOJ_ENTRY_IMPLEMENTATION_20260907.md`. No SQL, Edge, provider, account, price or production mutation/new live observation occurs in this checkpoint. Earlier source/live proof boundaries and the separate remaining 47-item backlog are preserved below.
+
+## SPOJ entry implementation — 2026-09-07
+
+Owner-selected visual direction: Figma `DovAtPfVaLKL6xnXtQImbf`, splash15:487, welcome3:123, auth3:182. Original handshake U, outlined wordmark and all12 recorded4500ms motion tracks are retained. Light full-page Auth replaces the obscuring sheet. Implemented Auth methods are intersected with fresh public server settings; unsupported providers/recovery remain gated. Guest intent uses the existing account-owned return store through a client service, with5s cancellation/rollback. Form single-flight/account revision and intro storage/reduced-motion/lifetime cases are source-tested.
+
+State: **IMPLEMENTED / LOCAL SOURCE PROVEN / WEB SIGNED-OUT SURFACES OBSERVED / ANDROID AND CANONICAL PENDING**. This does not close all47 backlog items, account registration delivery, recovery, all deep-link returns, native smoothness, shared maps or final release. Full physical Auth/account/Inbox/navigation proof is queued for the exact source; no production fixture, SQL, Edge, secret or pricing mutation. Fresh live read17:09UTC remains87 migrations/Edgev11/0RSD/HITNO-off/publication gated; older Edge checkpoints below are historical. See `SPOJ_ENTRY_IMPLEMENTATION_20260907.md`.
+
+
+Metro recovery PR65 is now canonical7eacc627833187d58b1fef803e5c9f0c2cb05fbc; exact-source/canonical CI and CodeQL passed. This integration retains its Windows-only32-operation queue unchanged.
+
+---
+
 ## Current W04/W05 acceptance — original43-pair Android proof; merge pending
 
 PR64 source `3f73321927ff5a0d01eb4b884c347d73a30258a3` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / NOT YET CANONICAL**. Original run34159176253 passed; artifact10032628812 ZIP SHA-256 `cca131ad9a0dfb86e7a7f4be16232ab981b9caceb0f449fe1b0e58f909b13ab9` was independently downloaded and digest-verified. All43 original PNG/XML pairs are retained and reviewed:27 inherited account/Inbox/navigation plus16 W04/W05 recovery. The formerly failing retained-tab Back→re-entry→Retry opens the existing form without submission; five exact local REST restores and deadline-driven CTA closure pass with the original business/0RSD/gates checks.

@@ -318,12 +318,17 @@ def assert_no_private_tabs(root, height):
             raise AssertionError('Private bottom destination visible on signed-out Auth screen')
 
 
-def assert_signed_out_surface():
+def assert_signed_out_surface(form_open=False):
     # Called only after observing the actual Auth entry control, never as a
     # substitute for login visibility or as a route/auth bypass.
-    root, _ = wait_surface(desc='Prijavi se')
-    if not any(node.attrib.get('content-desc') == 'Prijavi se' for node in root.iter()):
+    control = 'Prijavite se' if form_open else 'Prijavi se'
+    root, _ = wait_surface(desc=control)
+    if not any(node.attrib.get('content-desc') == control for node in root.iter()):
         raise AssertionError('Signed-out Auth entry is not visible')
+    if form_open:
+        fields = [node for node in root.iter() if node.attrib.get('class') == 'android.widget.EditText']
+        if len(fields) != 2 or {node.attrib.get('content-desc') for node in fields} != {'Email', 'Lozinka'}:
+            raise AssertionError('Signed-out password form is incomplete')
     height = int(re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').stdout)[-1][1])
     assert_no_private_tabs(root, height)
     print('CHECKPOINT SIGNED_OUT_AUTH_NO_PRIVATE_TABS', flush=True)
@@ -381,8 +386,11 @@ def open_login_sheet():
     raise RuntimeError(f'Login sheet did not open after real UI presses: {last_error}')
 
 
-def login(email):
-    open_login_sheet()
+def login(email, form_open=False):
+    if form_open:
+        assert_signed_out_surface(form_open=True)
+    else:
+        open_login_sheet()
     edit_text(0, email)
     edit_text(1, PASSWORD)
     hide_keyboard()

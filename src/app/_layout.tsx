@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();
   const segments = useSegments();
+  const pathname = usePathname();
   const naAuth = segments[0] === 'auth';
 
   // Protected-route authority: unauthenticated users never remain inside the
@@ -22,13 +23,13 @@ export default function RootLayout() {
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
       sesijaSada().user?.id !== session?.user.id) return;
     if (!session && !naAuth) {
-      router.replace('/auth');
+      router.replace(pathname === '/' ? '/auth' : { pathname: '/auth', params: { form: 'login' } });
       return;
     }
     if (session && naAuth) {
       router.replace('/');
     }
-  }, [isLoaded, session, sessionEpoch, naAuth, router]);
+  }, [isLoaded, session, sessionEpoch, naAuth, pathname, router]);
 
   // Consume a completed pre-auth intent exactly once after a real session has
   // been restored/created. The store itself guards which user completed it.
@@ -43,7 +44,10 @@ export default function RootLayout() {
       else postaviUlogu('narucilac');
 
       const target = record.intent.returnTarget;
-      if (!target || target.kind === 'NONE') return;
+      if (!target || target.kind === 'NONE') {
+        router.replace(record.intent.intent === 'WORKER' ? '/prilike' : '/nova');
+        return;
+      }
       if (target.kind === 'REQUESTER_DRAFT') {
         router.replace({ pathname: '/nova', params: { conversationId: target.draftKey } });
       } else if (target.kind === 'NEED') {
@@ -78,7 +82,7 @@ export default function RootLayout() {
           }}
         >
           <Stack.Protected guard={!session}>
-            <Stack.Screen name="auth" />
+            <Stack.Screen name="auth" options={{ animation: 'none' }} />
           </Stack.Protected>
           <Stack.Protected guard={!!session}>
             <Stack.Screen name="(app)" />
