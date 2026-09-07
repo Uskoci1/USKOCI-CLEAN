@@ -1,8 +1,8 @@
 {
   "mobile_execution_checkpoint_20260907": {
-    "canonical_baseline": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
+    "canonical_baseline": "65d280270ead4d13dcb41f7342a74b164c41e4d9",
     "intent_shell_pr": 49,
-    "state": "IMPLEMENTED_SOURCE_AND_SCOPED_ANDROID_PROVEN_NOT_MERGED",
+    "state": "CANONICAL_SOURCE_AND_SCOPED_ANDROID_PROVEN",
     "live_change": false,
     "report": "docs/implementation/INTENT_SHELL_20260907.md",
     "architecture_report": "docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md",
@@ -33,7 +33,8 @@
         "limit": "Both Agreement rows accepted; predates Auth/accountRevision source"
       }
     ],
-    "next": "Final documentation-head CI/CodeQL and Root acceptance before merge; preserve exact native source boundary; functional AI vertical separately"
+    "next": "Continue independent functional AI and Chat units; preserve accepted native source boundary",
+    "canonical_merge": "65d280270ead4d13dcb41f7342a74b164c41e4d9"
   },
   "n08_preferences_checkpoint_20260907": {
     "state": "CANONICAL_AUTHENTICATED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
@@ -1042,5 +1043,34 @@
     "sql_executed": false,
     "live_writes": false,
     "note": "Existing live/edge/gated inventory fields are preserved prior observations, not a new production preflight. No alternate transport or promotion authorized."
+  },
+  "d03_message_retry_checkpoint_20260907": {
+    "state": "IMPLEMENTED_AUTHENTICATED_DISPOSABLE_PROVEN_PENDING_CANONICAL_AND_LIVE",
+    "source_sha": "249f79324ba7a5db7c6fb010372a9179f9da2de5",
+    "proof_run": 34115037170,
+    "artifact_id": 10015994215,
+    "artifact_zip_sha256": "f20fb61a7e31402c135b8473e3403f612acbe08eac23a5835b8b49ea7f744e9e",
+    "forward_file": "20260907110000_clean_d03_message_retry.sql",
+    "bytes": 4277,
+    "raw_md5": "ea4ebf5cc6f24f103bdb9c854f55463d",
+    "sha256": "f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889",
+    "source_file_count": 86,
+    "recorded_live_migration_count": 85,
+    "pending_forward_files": 1,
+    "live_applied": false,
+    "authenticated_checks": 11,
+    "predecessor_n07_checks": 6,
+    "predecessor_n08_checks": 12,
+    "jest_suites": 38,
+    "jest_tests": 266,
+    "new_rpc_body_md5": "8020a93751f4915bffff0fac5524ad64",
+    "legacy_n01_body_unchanged": true,
+    "original85_disposable_history_unchanged": true,
+    "ui_bound": false,
+    "provider_delivery_proven": false,
+    "overall_chat": "PARTIAL",
+    "report": "docs/implementation/D03_MESSAGE_RETRY_20260907.md",
+    "integration_baseline": "65d280270ead4d13dcb41f7342a74b164c41e4d9",
+    "integrated_proof": "PENDING_CURRENT_HEAD_REPLAY"
   }
 }
