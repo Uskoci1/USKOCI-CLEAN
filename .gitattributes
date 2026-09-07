@@ -6,3 +6,7 @@ supabase/migrations/*.json text eol=lf
 docs/implementation/evidence/**/*.json text eol=lf
 supabase/proofs/notifications/n08_preferences_candidate.sql text eol=lf
 docs/implementation/evidence/n08-preferences-20260907/*.log text eol=lf
+supabase/functions/uskoci-ai-interview/index.ts text eol=lf
+src/contracts/needFactsV2.ts text eol=lf
+supabase/proofs/ai/*.mjs text eol=lf
+supabase/proofs/ai/*.json text eol=lf

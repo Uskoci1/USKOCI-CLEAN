@@ -1,0 +1,31 @@
+{
+  "unit": "AI_EDGE_SERVER_CONTEXT_20260907",
+  "boundary": "SOURCE_ONLY_NOT_DEPLOYED",
+  "files": [
+    {
+      "path": "supabase/functions/uskoci-ai-interview/index.ts",
+      "bytes": 26346,
+      "sha256": "4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704"
+    },
+    {
+      "path": "src/contracts/needFactsV2.ts",
+      "bytes": 4097,
+      "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
+    },
+    {
+      "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
+      "bytes": 9675,
+      "sha256": "fd3429dcb662e14cb5696768eadae381da20fd0689bf46ab598ffbd1f628a2ef"
+    },
+    {
+      "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",
+      "bytes": 2817,
+      "sha256": "d397d93c63d6a3fde128a2beeee6e6eb770e9226587b5ca9c8a8f8cc74e924d1"
+    },
+    {
+      "path": ".github/workflows/ai-edge-context-proof.yml",
+      "bytes": 1411,
+      "sha256": "a97dd4bc7ad2cae528cbe8bff0d30ffd80f8305514aeef133ee79979b6fcdf76"
+    }
+  ]
+}
