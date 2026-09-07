@@ -1,3 +1,36 @@
+<!-- EAS_D03_CANONICAL_INTEGRATION_20260907 -->
+## Current source — canonical Auth and D03; EAS/Firebase PR56 pending
+
+Fresh GitHub fetch confirms `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a`, the PR55 merge on top of canonical PR49. Auth/account/Inbox and D03 stable-send source are canonical at their existing recorded proof boundaries. D03 mobile recovery is a separate source unit. The older pending-merge checkpoints below are preserved as historical evidence.
+
+PR56 is being reconciled onto this fresh canonical source. All eight EAS/Firebase source/test blobs remain identical to reviewed source170686a; the exact public Firebase file and preview/proof package overrides are preserved. Imported Auth and D03 application source remains identical to canonical. No build, token/provider call, EAS remote mutation or database access occurred in this integration. EAS/Firebase APK, signing/Auth and push acceptance remain unproven. Current UI is a functional scaffold; final Figma design is separate.
+
+Root's separate D03 structural postflight at 2026-09-07 13:02:34 UTC confirms live86 with head `20260907130151_clean_d03_message_retry`. This branch still retains the canonical repository's recorded live85/pending1 provenance until the dedicated alias reconciliation is merged. These are distinct observed-live and recorded-source boundaries. Do not reapply D03 based on the older recorded metadata; this EAS integration made no live call.
+
+See [PR55 integration and validation](EAS_PR55_CANONICAL_INTEGRATION_20260907.md). Local source checks and final-head CI/CodeQL must pass before PR56 merge; this checkpoint is not canonical PR56 or new live evidence.
+
+---
+
+<!-- EAS_CANONICAL_INTEGRATION_20260907 -->
+## Current source integration — canonical PR49 and pending EAS/Firebase PR56
+
+Fresh GitHub fetch confirms canonical `65d280270ead4d13dcb41f7342a74b164c41e4d9`, the merge of PR49. Its recorded Auth/account/Inbox native proof remains tied to source29271e6 and run34119448882; it is now canonical at that scoped boundary. The older “NOT MERGED” paragraphs below describe their recorded pre-merge checkpoints and are superseded here.
+
+PR56's existing team EAS identity and exact public Firebase configuration are being integrated onto that canonical source. The eight EAS/Firebase source/test Git blobs remain identical to170686a, including the671-byte Firebase file and package-aware proof/dev overrides. The only package.json delta from canonical is the existing EAS pre-install guard hook. No EAS build, key/environment/version mutation, provider call, Supabase write or final UI redesign occurred. Preview/APK certificate/Auth/token/provider acceptance remains unproven.
+
+See [canonical integration and validation](EAS_PR49_CANONICAL_INTEGRATION_20260907.md). This merge is reviewable source work pending Root acceptance/commit/push; do not label it canonical PR56 or new live evidence. Frozen governing documents and all historical evidence retain their original bytes. The current UI remains a functional scaffold; final Figma design is separate.
+
+---
+
+
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / EXISTING EAS PREVIEW IDENTITY
+
+Existing team EAS identity is source-configured and read-only verified: `@sljivas-team/uskoci`, project `1e6cc490-9851-4741-9226-128612122db6`, package `rs.uskoci.preview`. Source review/merge is pending for this unit. The preview profile uses existing remote credentials and automatic remote versioning with local seed35; the fresh remote-version read returned no initialized counter. The EAS-only pre-install guard rejects wrong identity, missing/foreign public backend environment and fake/test data composition.
+
+Read [existing identity, signing reference and proof limits](EAS_EXISTING_PREVIEW_IDENTITY_20260907.md) and the [public Firebase configuration extension](EAS_FIREBASE_PUBLIC_CLIENT_CONFIG_20260907.md). The exact 671-byte owner-supplied file is now integrated for preview only; disposable package overrides resolve without it. Native FCM auto-init and Analytics collection are explicitly disabled. All 48 focused config/guard tests and 39 suites/280 tests pass. No SDK install, build, submit, update, remote version/credential/environment mutation or database write occurred. Firebase Console identity/FCM flags and client config are not APK certificate/Auth or token/provider delivery proof. N08 live85/pending0 below is the original PR54 base checkpoint, not a fresh live inventory or an override of newer canonical evidence.
+
+---
+
 ## Current integration — PR49 canonical / D03 pending forward
 
 Fresh canonical is `65d280270ead4d13dcb41f7342a74b164c41e4d9`: PR49 merged at12:44:07 UTC after Root accepted the actual292 Android artifact and final1133 documentation-head CI/CodeQL with all138 tested blobs unchanged. Its Auth/navigation boundary is CANONICAL / SOURCE AND SCOPED ANDROID PROVEN. UI remains a testable scaffold; final visual design awaits Figma and Fable is separate.
