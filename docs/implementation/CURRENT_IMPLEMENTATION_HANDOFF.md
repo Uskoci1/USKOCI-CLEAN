@@ -1,3 +1,11 @@
+## Source unit — Windows Metro cache recovery pending review
+
+Based on fresh canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41`, this tooling-only unit bounds Windows cache get/set concurrency to 32 while retaining Expo's default stores and other-platform configuration. Seven focused tests, installed Expo binary disk compatibility under controlled descriptor pressure, 49 suites / 395 tests, TSC, integrity 87/87/0 and static architecture checks PASS. Isolated cold/warm bundling reached 4,546 modules without EMFILE, then static export stopped at the intentionally unconfigured backend guard; no full build/app acceptance is claimed.
+
+State: **SOURCE IMPLEMENTED / LOCAL SOURCE AND DISK PROVEN / PR REVIEW PENDING**. Application, backend, Auth, identity and dependency source remain unchanged. No live action or new live-state reconstruction occurred; older operational checkpoints below retain their recorded timestamps and scope. See [source, proof and limits](WINDOWS_METRO_CACHE_RECOVERY_20260907.md). Next: exact-head CI/CodeQL and coordinating review before merge.
+
+---
+
 ## Current checkpoint — AI authority LIVE87 and Edge context v7
 
 Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.
