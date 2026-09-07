@@ -58,7 +58,7 @@ jobs:
           set -euo pipefail
           node supabase/proofs/notifications/n08_preferences_proof.mjs 2>&1 | tee "$N08_ARTIFACT_DIR/proof.log"
           grep -F 'PASS N08_NOTIFICATION_PREFERENCES' "$N08_ARTIFACT_DIR/proof.log"
-          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.N08_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.push_provider_called || r.migration_history_count!==84 || !r.candidate_applied_disposable) process.exit(1);'
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.N08_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.push_provider_called || r.migration_history_count!==85 || !r.exact_forward_file_applied_disposable || !r.original84_history_unchanged) process.exit(1);'
       - name: Upload exact source-bound evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -26,6 +26,14 @@ assert.equal(manifest.sha256,createHash('sha256').update(candidateBytes).digest(
 assert.equal(manifest.md5,createHash('md5').update(candidateBytes).digest('hex'));
 assert.equal(manifest.bytes,candidateBytes.length);
 report.candidate=manifest;
+const forward=`supabase/migrations/${manifest.forward_file}`;
+assert.match(manifest.forward_version,/^\d{14}$/);
+assert.match(manifest.forward_name,/^[a-z0-9_]+$/);
+assert.equal(manifest.forward_file,`${manifest.forward_version}_${manifest.forward_name}.sql`);
+assert.deepEqual(readFileSync(forward),candidateBytes,'exact unmodified candidate bytes admitted as forward source');
+const provenance=JSON.parse(readFileSync('supabase/migrations/MIGRATION_PROVENANCE.json','utf8'));
+assert.ok([...provenance.pending_forward_migrations,...provenance.live_history_snapshot.entries]
+  .some(entry=>(entry.file||`${entry.version}_${entry.name}.sql`)===manifest.forward_file));
 let current='PREFLIGHT';
 function sql(query){
   try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-At','-c',query],
@@ -80,7 +88,7 @@ try{
   check('CANDIDATE_ABORTS_ON_INVALID_LEGACY_ROW_WITHOUT_PARTIAL_DDL');
   const invalidRows=sql("select md5(jsonb_agg(to_jsonb(p))::text) from public.notification_preferences p");
   let refused=false;
-  try{execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-f',candidate],{stdio:'pipe'});}
+  try{execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-f',forward],{stdio:'pipe'});}
   catch(error){refused=String(error.stderr).includes('N08_EXISTING_INVALID_PREFERENCES');}
   assert.equal(refused,true);
   assert.equal(sql("select count(*) from information_schema.columns where table_schema='public' and table_name='notification_preferences' and column_name='revision'"),'0');
@@ -95,13 +103,14 @@ try{
   pass();
   console.log('PASS N08_PREDECESSOR_REPRODUCTION');
 
-  check('EXACT_CANDIDATE_PRESERVES_VALID_LEGACY_ROW_AND_HISTORY');
+  check('EXACT_FORWARD_FILE_PRESERVES_VALID_LEGACY_ROW_AND_ORIGINAL84_HISTORY');
   await ok(worker.from('notification_preferences').insert({user_id:env.RU5_DEVICE_WORKER_USER_ID,
     role_context:'WORKER',...defaultSettings}));
   const legacy=sql("select md5(jsonb_agg(to_jsonb(p))::text) from public.notification_preferences p");
   const history=sql("select md5(jsonb_agg(to_jsonb(m) order by version)::text) from supabase_migrations.schema_migrations m");
   const noEffects=snapshot();
-  execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-f',candidate],{stdio:'pipe'});
+  execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-f',forward],{stdio:'pipe'});
+  sql(`insert into supabase_migrations.schema_migrations(version,name) values('${manifest.forward_version}','${manifest.forward_name}')`);
   assert.equal(sql("select md5(jsonb_agg(to_jsonb(p)-'revision')::text) from public.notification_preferences p"),legacy);
   assert.equal(sql('select revision from public.notification_preferences'),'0');
   sql("notify pgrst,'reload schema'");
@@ -238,8 +247,8 @@ try{
   pass();
 
   check('FINAL_PRIVILEGES_FINGERPRINTS_HISTORY_AND_FORBIDDEN_ACTIVATION');
-  assert.equal(sql("select md5(jsonb_agg(to_jsonb(m) order by version)::text) from supabase_migrations.schema_migrations m"),history);
-  assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'),'84');
+  assert.equal(sql(`select md5(jsonb_agg(to_jsonb(m) order by version)::text) from supabase_migrations.schema_migrations m where version<>'${manifest.forward_version}'`),history);
+  assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'),'85');
   for(const role of ['anon','authenticated']){
     for(const privilege of ['INSERT','UPDATE','DELETE','TRUNCATE'])
       assert.equal(sql(`select has_table_privilege('${role}','public.notification_preferences','${privilege}')`),'f');
@@ -260,7 +269,8 @@ try{
   assert.equal(sql("select count(*) from public.needs where mode='FASTEST'"),'0');
   assert.equal(sql("select count(*) from public.need_selections where selection_mode='AUTO_FILL'"),'0');
   assert.equal(sql("select count(*) from private.connection_activations where policy_key='REQUESTER_SELECTION_V1' and policy_version=1 and platform_cost_rsd=0 and beneficiary_account_id=requester_account_id"),'1');
-  report.migration_history_count=84;report.candidate_applied_disposable=true;pass();
+  report.migration_history_count=85;report.original84_history_unchanged=true;
+  report.candidate_applied_disposable=true;report.exact_forward_file_applied_disposable=true;pass();
   report.result='PASS';console.log('PASS N08_NOTIFICATION_PREFERENCES');
 }catch(error){report.result='FAIL';report.failed_check=current;
   report.error=error instanceof assert.AssertionError?'ASSERTION_FAILED':error.message;
