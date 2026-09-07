@@ -50,7 +50,7 @@ it.each([
   expect(rpc).toHaveBeenCalledTimes(1);
 });
 
-it.each([null, {}, '', 'not-a-message-id', 42])('rejects malformed acknowledgments %#', async data => {
+it.each([null, {}, '', 'not-a-message-id', 42, `${messageId}\n`])('rejects malformed acknowledgments %#', async data => {
   await expect(createAgreementMessageService(jest.fn().mockResolvedValue({data,error:null})).send(command()))
     .rejects.toMatchObject({code:'INVALID_RESPONSE'});
 });
@@ -58,6 +58,9 @@ it.each([null, {}, '', 'not-a-message-id', 42])('rejects malformed acknowledgmen
 it.each([
   {accountId:''}, {agreementId:''}, {clientMessageId:'short'}, {clientMessageId:'a'.repeat(201)},
   {body:' \n '}, {body:'x'.repeat(2001)}, {body:'bad\0body'},
+  {body:'lone\ud800'}, {body:'lone\udfff'}, {body:'\ud800\ud800'},
+  {accountId:`${accountId}\n`}, {agreementId:`${agreementId}\n`},
+  {clientMessageId:'valid_key\n'}, {clientMessageId:'valid_key\r'}, {clientMessageId:'valid_key\u2028'},
 ])('rejects malformed commands before dispatch %#', async patch => {
   const rpc=jest.fn(); await expect(createAgreementMessageService(rpc).send({...command(),...patch})).rejects.toBeDefined();
   expect(rpc).not.toHaveBeenCalled();

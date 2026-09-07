@@ -6,19 +6,27 @@ import { supabaseKlijent } from './supabaseClient';
 type Rpc = (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const key = /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/;
+const exactUuid = (value: string) => value.length === 36 && uuid.test(value);
+function wellFormedUnicode(value: string): boolean {
+  for (const point of value) {
+    const code = point.codePointAt(0)!;
+    if (code >= 0xd800 && code <= 0xdfff) return false;
+  }
+  return true;
+}
 const object = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
 const fail = (code: AgreementMessageErrorCode): never => { throw new AgreementMessageError(code); };
 
 /** Capture before any await; neither a token switch nor an edited draft changes this intent. */
 export function captureAgreementMessage(input: AgreementMessageCommand): AgreementMessageCommand {
-  if (!input || typeof input.accountId !== 'string' || !uuid.test(input.accountId)) return fail('AUTH_CONTEXT_CHANGED');
-  if (typeof input.agreementId !== 'string' || !uuid.test(input.agreementId)
-    || typeof input.clientMessageId !== 'string' || !key.test(input.clientMessageId)
+  if (!input || typeof input.accountId !== 'string' || !exactUuid(input.accountId)) return fail('AUTH_CONTEXT_CHANGED');
+  if (typeof input.agreementId !== 'string' || !exactUuid(input.agreementId)
+    || typeof input.clientMessageId !== 'string' || !key.test(input.clientMessageId) || /\s/.test(input.clientMessageId)
     || typeof input.body !== 'string') return fail('INVALID_MESSAGE');
   const body = input.body.trim();
   // PostgreSQL char_length counts Unicode code points, not JavaScript UTF-16 units.
-  if (!body || Array.from(body).length > 2000 || body.includes('\0')) return fail('INVALID_MESSAGE');
+  if (!body || Array.from(body).length > 2000 || body.includes('\0') || !wellFormedUnicode(body)) return fail('INVALID_MESSAGE');
   return Object.freeze({ accountId: input.accountId, agreementId: input.agreementId,
     clientMessageId: input.clientMessageId, body });
 }
@@ -44,7 +52,7 @@ export function createAgreementMessageService(rpc: Rpc): AgreementMessagePort {
         if (error.code === '22001' || error.code === '22023' || error.message === 'MESSAGE_REQUIRED') return fail('INVALID_MESSAGE');
         return fail('UNAVAILABLE');
       }
-      if (typeof response.data !== 'string' || !uuid.test(response.data)) return fail('INVALID_RESPONSE');
+      if (typeof response.data !== 'string' || !exactUuid(response.data)) return fail('INVALID_RESPONSE');
       return { messageId: response.data };
     },
   };
