@@ -72,7 +72,17 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: palette.ground },
             animation: 'slide_from_right',
           }}
-        />
+        >
+          <Stack.Protected guard={!session}>
+            <Stack.Screen name="auth" />
+          </Stack.Protected>
+          <Stack.Protected guard={!!session}>
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="dogovor/[id]" />
+            <Stack.Screen name="obavestenja" />
+            <Stack.Screen name="prijave" />
+          </Stack.Protected>
+        </Stack>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
