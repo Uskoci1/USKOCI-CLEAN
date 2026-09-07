@@ -1,3 +1,15 @@
+<!-- AI_MOBILE_VERTICAL_SOURCE_20260907 -->
+## Pending source unit — AI input, human review and saved-draft read
+
+The current owner steering keeps this UI a **functional scaffold**, with final visual design reserved for Figma. The existing R02→R07→Need DRAFT path now has typed actor/accountRevision/focus guards, synchronous command serialization, retained input and explicit unknown-turn recovery, complete human review of optional proposals, and accurate persisted public route/time/requirements/people/price on the temporary card. Source is based on PR49 commit29271e6; this unit is **IMPLEMENTED / SOURCE TESTED, NOT CANONICAL / NOT LIVE / NOT NATIVE OR PROVIDER PROVEN**.
+
+Local checks:50 suites/379 tests, TypeScript, migration integrity85/live-snapshot85/pending0, diff check and AST65 client files/25 presentation files/0 findings PASS. See [AI mobile vertical scope and evidence](docs/implementation/AI_MOBILE_VERTICAL_RECOVERY_20260907.md) for exact boundaries. The additive authoritative review.safety/BLOCK-save server unit is a required separate dependency. No SQL, production, provider, remote environment or activation change belongs to this mobile source.
+
+Unknown non-idempotent Edge turns are never blindly replayed; pending state is controller-lifetime memory. Cross-device review→save CAS remains a server gap and is not claimed closed. Native fixture human-review proof and actual-provider/user-owned input proof remain separate pending gates. All earlier canonical/live claims below retain their recorded scope and must not be relabelled as proof of this unit.
+
+---
+
+
 <!-- EXECUTION_V3_CHECKPOINT_20260907 -->
 ## Current execution — testable scaffold, Auth boundary and identity ownership
 

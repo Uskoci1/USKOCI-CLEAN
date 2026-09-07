@@ -53,6 +53,9 @@ export type PotrebaProjekcija = {
   brojPrijava: number;
   rezimCene?: RezimCene;
   ponudjenaCena?: Novac;
+  kategorija?: string;
+  /** Number of persisted public attachments; no unsupported viewer is implied. */
+  brojFotografija?: number;
 };
 
 /* --------------------------------------------------------------- Prilika */

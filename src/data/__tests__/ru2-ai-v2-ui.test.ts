@@ -82,6 +82,25 @@ describe('RU-2 typed R02 → R07 contract', () => {
     });
   });
 
+  it('requires an explicit timestamp zone instead of silently using the device timezone', () => {
+    const start = fact({ key: 'need.starts_at', valueType: 'TIMESTAMPTZ' });
+    for (const input of ['2026-09-09T16:00', '2026-09-09', '09/09/2026 16:00', 'sutra u 16']) {
+      expect(correctionFromText(start, input).ok).toBe(false);
+    }
+    expect(correctionFromText(start, '2026-09-09T16:00:00+02:00')).toEqual({
+      ok: true, value: '2026-09-09T14:00:00.000Z', displayValue: '2026-09-09T16:00:00+02:00',
+    });
+    expect(correctionFromText(start, '2026-09-09T14:00:00Z')).toMatchObject({ ok: true, value: '2026-09-09T14:00:00.000Z' });
+  });
+
+  it('rejects nonexistent calendar dates instead of saving a normalized different day', () => {
+    const start = fact({ key: 'need.starts_at', valueType: 'TIMESTAMPTZ' });
+    for (const input of ['2026-02-30T16:00:00+02:00', '2026-02-29T16:00:00+02:00', '2026-04-31T16:00Z', '2026-09-09T24:00Z']) {
+      expect(correctionFromText(start, input).ok).toBe(false);
+    }
+    expect(correctionFromText(start, '2028-02-29T16:00:00+01:00')).toMatchObject({ ok: true, value: '2028-02-29T15:00:00.000Z' });
+  });
+
   it('orders review facts by canonical registry order', () => {
     const ordered = sortFacts([
       fact({ id: '3', key: 'need.people_needed' }),

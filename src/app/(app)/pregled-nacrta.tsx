@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -12,11 +12,12 @@ import {
   Warning,
 } from 'phosphor-react-native';
 
-import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
-import { aiNeedV2Izvor } from '../../data';
+import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
+import { useAiNeedFlow } from '../../hooks/useAiNeedFlow';
 import {
   canEditFactInline,
   correctionFromText,
+  correctionInputText,
   factLabel,
   safetyMessage,
   sortFacts,
@@ -34,114 +35,53 @@ type EditState = {
 
 export default function PregledNacrtaR07() {
   const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
-  const conversationId = Array.isArray(params.conversationId) ? params.conversationId[0] : params.conversationId;
-  const [stanje, setStanje] = useState<AiNeedV2Conversation | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busyFactId, setBusyFactId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [greska, setGreska] = useState<string | null>(null);
+  const conversationId = params.conversationId;
+  if (typeof conversationId !== 'string' || conversationId.length !== 36 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
+    return <SafeAreaView style={{ flex: 1, padding: space.base, backgroundColor: palette.ground }}>
+      <T variant="heading">Nacrt nije dostupan</T>
+      <Button label="Nazad na Zadatke" onPress={() => router.replace('/potrebe')} />
+    </SafeAreaView>;
+  }
+  return <PregledContent conversationId={conversationId} />;
+}
+
+function PregledContent({ conversationId }: { conversationId: string }) {
+  const { model, state: flow } = useAiNeedFlow(conversationId);
+  const stanje = flow.conversation;
+  const loading = !stanje && !flow.error;
+  const saving = flow.busy === 'save';
+  const greska = flow.error;
   const [edit, setEdit] = useState<EditState | null>(null);
-  const requestId = useRef(`ru2-r07-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
-
-  const osvezi = useCallback(async () => {
-    if (!conversationId) {
-      setGreska('Nacrt nije izabran.');
-      setLoading(false);
-      return false;
-    }
-    try {
-      const result = await aiNeedV2Izvor.loadConversation(conversationId);
-      if (!result) {
-        setGreska('Nacrt nije dostupan ovom nalogu.');
-        setStanje(null);
-        return false;
-      }
-      setStanje(result);
-      setGreska(null);
-      return true;
-    } catch (error: any) {
-      setGreska(error?.message || 'Pregled trenutno nije mogao da se učita.');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [conversationId]);
-
-  useEffect(() => {
-    void osvezi();
-  }, [osvezi]);
-
-  const potvrdi = useCallback(async (fact: AiNeedV2Fact) => {
-    setBusyFactId(fact.id);
-    setGreska(null);
-    try {
-      const result = await aiNeedV2Izvor.confirmFact(fact.id);
-      if (!result.ok) {
-        setGreska(result.poruka);
-        return;
-      }
-      await osvezi();
-    } finally {
-      setBusyFactId(null);
-    }
-  }, [osvezi]);
-
-  const sacuvajIspravku = useCallback(async () => {
-    if (!edit) return;
-    const parsed = correctionFromText(edit.fact, edit.text);
-    if (!parsed.ok) {
-      setEdit({ ...edit, error: parsed.message });
-      return;
-    }
-    setBusyFactId(edit.fact.id);
-    setGreska(null);
-    try {
-      const result = await aiNeedV2Izvor.correctFact(edit.fact.id, parsed.value, parsed.displayValue);
-      if (!result.ok) {
-        setEdit({ ...edit, error: result.poruka });
-        return;
-      }
-      setEdit(null);
-      await osvezi();
-    } finally {
-      setBusyFactId(null);
-    }
-  }, [edit, osvezi]);
-
-  const sacuvajNacrt = useCallback(async () => {
-    if (!conversationId || !stanje?.review.canSaveDraft || saving) return;
-    setSaving(true);
-    setGreska(null);
-    try {
-      const result = await aiNeedV2Izvor.saveDraft(conversationId, requestId.current);
-      if (!result.ok) {
-        setGreska(result.poruka);
-        return;
-      }
-      router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: result.podatak.needId } });
-    } finally {
-      setSaving(false);
-    }
-  }, [conversationId, saving, stanje?.review.canSaveDraft]);
-
-  const vratiSeURazgovor = useCallback(() => {
-    if (!conversationId) {
-      router.back();
-      return;
-    }
-    router.replace({ pathname: '/nova', params: { conversationId } });
-  }, [conversationId]);
-
+  useEffect(() => setEdit(null), [model]);
+  const potvrdi = (fact: AiNeedV2Fact) => model.confirm(fact);
+  const sacuvajIspravku = async () => {
+    if (!edit || flow.busy || !flow.fresh || !model.isCurrent()) return;
+    const parsed = correctionFromText(edit.fact, edit.text, 'lines');
+    if (!parsed.ok) { setEdit({ ...edit, error: parsed.message }); return; }
+    const accepted = await model.correct(edit.fact, parsed.value, parsed.displayValue);
+    if (accepted && model.isCurrent()) setEdit(null);
+  };
+  const sacuvajNacrt = async () => {
+    await model.save();
+    const needId = model.snapshot().savedNeedId;
+    if (model.isCurrent() && needId) router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: needId } });
+  };
+  const vratiSeURazgovor = () => {
+    if (!model.isCurrent()) return;
+    if (router.canGoBack()) router.back();
+    else router.replace({ pathname: '/nova', params: { conversationId } });
+  };
   const facts = useMemo(() => sortFacts(stanje?.facts ?? []), [stanje?.facts]);
-  const confirmed = facts.filter((fact) => fact.status === 'CONFIRMED').length;
+  const confirmed = facts.filter(fact => fact.status === 'CONFIRMED').length;
   const safetyCopy = stanje ? safetyMessage(stanje.safety) : null;
-  const alreadySaved = stanje?.review.boundNeedId ?? null;
-  const saveAllowed = Boolean(stanje?.review.canSaveDraft && stanje?.safety !== 'BLOCK' && !alreadySaved);
+  const alreadySaved = stanje?.review.boundNeedId ?? flow.savedNeedId;
+  const saveAllowed = Boolean(flow.fresh && !flow.busy && flow.reviewPendingCount === 0 && stanje?.review.canSaveDraft && stanje?.safety !== 'BLOCK' && !alreadySaved);
 
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={palette.teal500} />
+        <Button label="Nazad u razgovor" kind="quiet" onPress={vratiSeURazgovor} />
       </SafeAreaView>
     );
   }
@@ -152,7 +92,8 @@ export default function PregledNacrtaR07() {
         <View style={{ alignItems: 'center', gap: space.base }}>
           <Warning size={30} color={palette.danger} weight="fill" />
           <T variant="body" tone="danger" style={{ textAlign: 'center' }}>{greska ?? 'Nacrt nije dostupan.'}</T>
-          <Button label="Nazad" kind="secondary" onPress={() => router.back()} />
+          <Button label="Pokušajte ponovo" disabled={!!flow.busy} onPress={() => void model.refresh()} />
+          <Button label="Nazad u razgovor" kind="secondary" onPress={vratiSeURazgovor} />
         </View>
       </SafeAreaView>
     );
@@ -201,8 +142,9 @@ export default function PregledNacrtaR07() {
           <View style={{ padding: space.base, gap: space.md }}>
             <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <T variant="label" tone="muted">HUMAN REVIEW</T>
+                <T variant="label" tone="muted">VAŠA PROVERA</T>
                 <T variant="heading">{confirmed} od {facts.length} podataka potvrđeno</T>
+                {flow.reviewPendingCount > 0 && <T variant="meta" tone="muted">Još {flow.reviewPendingCount} predloga čeka Vašu proveru, uključujući dodatne uslove.</T>}
               </View>
               <CheckCircle
                 size={28}
@@ -222,7 +164,7 @@ export default function PregledNacrtaR07() {
               <View style={{ backgroundColor: palette.successBg, borderRadius: radius.md, padding: space.md, flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
                 <Check size={17} color={palette.success} weight="bold" />
                 <T variant="meta" tone="success" style={{ flex: 1, fontWeight: '700' }}>
-                  Obavezni podaci su potvrđeni. Server može da napravi DRAFT.
+                  Obavezni podaci su potvrđeni. Nacrt još nije objavljen.
                 </T>
               </View>
             )}
@@ -252,12 +194,12 @@ export default function PregledNacrtaR07() {
             <View style={{ padding: space.base, gap: space.md }}>
               <T variant="heading">Nacrt je već sačuvan</T>
               <T variant="body" tone="muted">
-                Ovaj razgovor je već vezan za jedan DRAFT Zadatak. Ne pravimo drugi.
+                Zadatak je sačuvan kao nacrt i još nije objavljen.
               </T>
               <Button
                 full
                 label="Otvorite sačuvani Zadatak"
-                onPress={() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: alreadySaved } })}
+                onPress={() => { if (model.isCurrent()) router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: alreadySaved } }); }}
               />
             </View>
           </Card>
@@ -265,7 +207,7 @@ export default function PregledNacrtaR07() {
 
         {facts.map((fact) => {
           const potvrdjen = fact.status === 'CONFIRMED';
-          const busy = busyFactId === fact.id;
+          const busy = !!flow.busy || !flow.fresh || flow.pendingSave || !!alreadySaved || stanje.safety === 'BLOCK';
           const editing = edit?.fact.id === fact.id;
           return (
             <Card key={fact.id}>
@@ -282,6 +224,7 @@ export default function PregledNacrtaR07() {
                       ) : null}
                     </View>
                     <T variant="bodyStrong">{fact.displayValue}</T>
+                    <T variant="meta" tone="muted">{fact.status === 'CONFIRMED' ? 'Potvrđeno' : fact.source === 'AI_INFERENCE' ? 'Predlog AI — proverite' : 'Iz odgovora — proverite'}</T>
                     {fact.evidence ? (
                       <T variant="meta" tone="muted">Iz razgovora: „{fact.evidence}“</T>
                     ) : null}
@@ -292,6 +235,8 @@ export default function PregledNacrtaR07() {
                 {editing ? (
                   <View style={{ gap: space.sm }}>
                     <TextInput
+                      accessibilityLabel={`Nova vrednost: ${factLabel(fact.key)}`}
+                      editable={!busy}
                       value={edit.text}
                       onChangeText={(text) => setEdit({ ...edit, text, error: null })}
                       autoFocus
@@ -308,6 +253,7 @@ export default function PregledNacrtaR07() {
                         fontSize: 16,
                       }}
                     />
+                    {fact.valueType === 'TEXT_ARRAY' && <T variant="meta" tone="muted">Jedna stavka po redu.</T>}
                     {edit.error ? <T variant="meta" tone="danger">{edit.error}</T> : null}
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm }}>
                       <Button label="Odustani" kind="quiet" onPress={() => setEdit(null)} />
@@ -317,19 +263,23 @@ export default function PregledNacrtaR07() {
                 ) : (
                   <View style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                     <Button
+                      accessibilityLabel={`Izmenite: ${factLabel(fact.key)}`}
                       label={canEditFactInline(fact) ? 'Izmenite' : 'Izmenite u razgovoru'}
                       kind="quiet"
+                      disabled={busy}
                       icon={<PencilSimple size={16} color={palette.inkMuted} />}
                       onPress={() => {
+                        if (busy || !model.isCurrent()) return;
                         if (!canEditFactInline(fact)) {
                           vratiSeURazgovor();
                           return;
                         }
-                        setEdit({ fact, text: fact.displayValue, error: null });
+                        setEdit({ fact, text: correctionInputText(fact), error: null });
                       }}
                     />
                     {!potvrdjen ? (
                       <Button
+                        accessibilityLabel={`Potvrdite: ${factLabel(fact.key)}`}
                         label="Potvrdite"
                         kind="secondary"
                         disabled={busy}
@@ -354,6 +304,8 @@ export default function PregledNacrtaR07() {
           </Card>
         ) : null}
 
+        {(!flow.fresh || greska || flow.pendingSave) && <Button label="Osvežite nacrt" disabled={!!flow.busy} onPress={() => void model.refresh()} />}
+        {flow.pendingSave && <T variant="meta" tone="muted">Čuvanje još nije potvrđeno. Provera ili ponovni pokušaj odnose se na isti nacrt.</T>}
         {greska ? (
           <View style={{ backgroundColor: palette.dangerBg, borderRadius: radius.md, padding: space.md }}>
             <T variant="meta" tone="danger">{greska}</T>
@@ -366,11 +318,11 @@ export default function PregledNacrtaR07() {
               <View style={{ gap: space.xs }}>
                 <T variant="heading">Sačuvajte kao nacrt</T>
                 <T variant="body" tone="muted">
-                  Ovo još nije objava. Server pravi samo DRAFT Zadatak; admission i objava ostaju poseban sledeći korak.
+                  Sačuvajte proverene podatke kao nacrt. Zadatak još neće biti objavljen.
                 </T>
               </View>
               <Button
-                label={saving ? 'Čuvanje...' : 'Sačuvajte DRAFT'}
+                label={saving ? 'Čuvanje...' : 'Sačuvajte nacrt'}
                 full
                 haptic="success"
                 disabled={!saveAllowed || saving}

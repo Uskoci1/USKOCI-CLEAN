@@ -47,7 +47,11 @@ export function canEditFactInline(fact: AiNeedV2Fact): boolean {
   return fact.valueType !== 'OBJECT';
 }
 
-export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorrection {
+export function correctionInputText(fact: AiNeedV2Fact): string {
+  return Array.isArray(fact.value) ? fact.value.join('\n') : String(fact.value);
+}
+
+export function correctionFromText(fact: AiNeedV2Fact, input: string, arrayMode: 'comma' | 'lines' = 'comma'): FactCorrection {
   const text = input.trim();
   if (!text) return { ok: false, message: 'Unesite vrednost.' };
 
@@ -71,11 +75,23 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       return { ok: false, message: 'Unesite „da“ ili „ne“.' };
     }
     case 'TEXT_ARRAY': {
-      const values = text.split(',').map((item) => item.trim()).filter(Boolean);
+      const values = text.split(arrayMode === 'lines' ? /\r?\n/ : ',').map((item) => item.trim()).filter(Boolean);
       if (!values.length) return { ok: false, message: 'Unesite bar jednu stavku.' };
       return { ok: true, value: values, displayValue: values.join(', ') };
     }
     case 'TIMESTAMPTZ': {
+      // Never infer the intended task timezone from the current device locale.
+      // The conversation can clarify natural language; inline correction must
+      // carry its explicit instant just like the existing server fact value.
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/i.test(text)) {
+        return { ok: false, message: 'Navedite datum i vreme sa vremenskom zonom ili ih izmenite kroz razgovor.' };
+      }
+      const [year, month, day] = text.slice(0, 10).split('-').map(Number);
+      const lastDay = new Date(0);
+      lastDay.setUTCFullYear(year, month, 0);
+      if (month < 1 || month > 12 || day < 1 || day > lastDay.getUTCDate() || Number(text.slice(11, 13)) > 23) {
+        return { ok: false, message: 'Datum ili vreme ne postoji. Proverite unos ili ih izmenite kroz razgovor.' };
+      }
       const parsed = Date.parse(text);
       if (!Number.isFinite(parsed)) {
         return { ok: false, message: 'Termin nije prepoznat. Izmenite ga kroz razgovor.' };
