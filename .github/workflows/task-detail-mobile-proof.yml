@@ -59,13 +59,18 @@ jobs:
         run: python3 -m unittest scripts/test_ru5_android_input.py scripts/test_intent_shell_android.py scripts/test_task_detail_local_rest.py scripts/test_task_detail_android.py -v
 
       - name: Fixture local-target guard tests
-        run: node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs scripts/task_detail_fixture_guard.test.mjs
+        run: node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs scripts/task_detail_fixture_guard.test.mjs scripts/task_detail_read_preflight.test.mjs
 
       - name: Reconstruct disposable live-79 Supabase
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
 
       - name: Create two real Auth accounts and one disposable Need fixture
         run: node supabase/proofs/ru5_device_ui_fixture.mjs
+
+      - name: Prove actual W05 source read adapters before APK build
+        run: |
+          mkdir -p artifacts/task-detail-device
+          node scripts/task_detail_read_preflight.mjs
 
       - name: Apply N02 and N03 locally; real authenticated selection and Inbox fixture
         run: node supabase/proofs/notifications/n04_inbox_device_fixture.mjs
