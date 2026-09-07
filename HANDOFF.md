@@ -1,3 +1,13 @@
+## Current entry replay — original Android journey passed; route motion repair pending proof
+
+Canonical PR64 is merged at `80e091ee31930b28cc5c2e0af6b6e876a4926362` with exact canonical PRE-P4/CodeQL/CONTROL-0 PASS. It is integrated additively here; W04/W05 source is preserved. PR66 original source `c1b803285e2b5b97c57680ea09c9f17a6934d32d` has SUCCESS native run34160744232 and34 reviewed original PNG/XML checkpoints (7 entry +27 account/Inbox/navigation). Artifact10033052964 is5,932,807 bytes, SHA-256 `c0932b714237ae92d3ba78fd372d06ce13da5f571e32a7a5aa9b3a3c0b7ff602`. These static journeys are proven in their source scope; the full visible owner intro is not accepted.
+
+Actual MP4 frames show the Auth route sliding over the owner sequence: frame55 at7.535878s is partial-width, frame56 at7.953489s first fully visible assembled mark, welcome at11.466433s. The old blue Expo splash is gone. The narrow repair disables the competing Stack transition only for Auth; all original SVGs and12 motion tracks retain their4500ms timeline. A separately reproduced revealed-password carry across Login/Signup is repaired by remounting that field per mode, preserving its value and masking it again. Its actual component regression fails before and passes after the change. Tab selected state already exists; an AX Value0 alone was not a source defect.
+
+Integrated pre-repair source passes64 suites/599 tests; final focused4 suites/36 tests and TypeScript pass. The new source requires a fresh standalone Android replay, original motion inspection and exact-head CI/CodeQL before merge. No60fps, production/provider, full Auth/release or47-item closure is claimed. No SQL, secret or feature-gate change occurred. Prior checkpoints below retain their exact historical boundaries.
+
+---
+
 ## Current W04/W05 acceptance — original43-pair Android proof; merge pending
 
 PR64 source `3f73321927ff5a0d01eb4b884c347d73a30258a3` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / NOT YET CANONICAL**. Original run34159176253 passed; artifact10032628812 ZIP SHA-256 `cca131ad9a0dfb86e7a7f4be16232ab981b9caceb0f449fe1b0e58f909b13ab9` was independently downloaded and digest-verified. All43 original PNG/XML pairs are retained and reviewed:27 inherited account/Inbox/navigation plus16 W04/W05 recovery. The formerly failing retained-tab Back→re-entry→Retry opens the existing form without submission; five exact local REST restores and deadline-driven CTA closure pass with the original business/0RSD/gates checks.

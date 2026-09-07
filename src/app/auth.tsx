@@ -362,6 +362,7 @@ export default function AuthScreen() {
                     icon={<EnvelopeSimple size={21} color="#5D6E6D" />}
                   />
                   <AuthField
+                    key={`password:${rezim}`}
                     label="Lozinka"
                     value={lozinka}
                     onChangeText={(value) => commands.changeForm(() => setLozinka(value))}

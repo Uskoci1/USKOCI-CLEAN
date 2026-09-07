@@ -1,3 +1,13 @@
+## Current entry replay — original Android journey passed; route motion repair pending proof
+
+Canonical PR64 is merged at `80e091ee31930b28cc5c2e0af6b6e876a4926362` with exact canonical PRE-P4/CodeQL/CONTROL-0 PASS. It is integrated additively here; W04/W05 source is preserved. PR66 original source `c1b803285e2b5b97c57680ea09c9f17a6934d32d` has SUCCESS native run34160744232 and34 reviewed original PNG/XML checkpoints (7 entry +27 account/Inbox/navigation). Artifact10033052964 is5,932,807 bytes, SHA-256 `c0932b714237ae92d3ba78fd372d06ce13da5f571e32a7a5aa9b3a3c0b7ff602`. These static journeys are proven in their source scope; the full visible owner intro is not accepted.
+
+Actual MP4 frames show the Auth route sliding over the owner sequence: frame55 at7.535878s is partial-width, frame56 at7.953489s first fully visible assembled mark, welcome at11.466433s. The old blue Expo splash is gone. The narrow repair disables the competing Stack transition only for Auth; all original SVGs and12 motion tracks retain their4500ms timeline. A separately reproduced revealed-password carry across Login/Signup is repaired by remounting that field per mode, preserving its value and masking it again. Its actual component regression fails before and passes after the change. Tab selected state already exists; an AX Value0 alone was not a source defect.
+
+Integrated pre-repair source passes64 suites/599 tests; final focused4 suites/36 tests and TypeScript pass. The new source requires a fresh standalone Android replay, original motion inspection and exact-head CI/CodeQL before merge. No60fps, production/provider, full Auth/release or47-item closure is claimed. No SQL, secret or feature-gate change occurred. Prior checkpoints below retain their exact historical boundaries.
+
+---
+
 ## SPOJ entry replay — original Android failure reviewed
 
 Canonical `d4d8cd09bf44dd54c7355605b0c256813b46ab1b` (accepted D03/PR61, including Metro65) is integrated additively. PR66 remains **IMPLEMENTED / SOURCE PROVEN / ORIGINAL ANDROID PARTIAL / FRESH ANDROID AND CANONICAL PROMOTION PENDING**. Original run `34150271309` at `95dd6f67e514140f6f631c4acdaae9d02db645b9` failed after real logout: the stale harness awaited welcome while the app displayed the complete direct login form. The repair requires exactly the two real Email/Lozinka fields and no private bottom tabs before the second account logs in. The Auth button now retains its accessible title while busy.

@@ -1,4 +1,29 @@
 {
+  "spoj_entry_route_transition_replay_20260907": {
+    "state": "SOURCE_REPAIRED_FRESH_NATIVE_MOTION_PROOF_PENDING",
+    "canonical_base": "80e091ee31930b28cc5c2e0af6b6e876a4926362",
+    "original_run": 34160744232,
+    "original_source": "c1b803285e2b5b97c57680ea09c9f17a6934d32d",
+    "original_artifact": 10033052964,
+    "original_sha256": "c0932b714237ae92d3ba78fd372d06ce13da5f571e32a7a5aa9b3a3c0b7ff602",
+    "static_original_pairs_reviewed": 34,
+    "complete_visible_timeline_accepted": false,
+    "auth_only_stack_animation": "none",
+    "password_mode_reveal_reset": true,
+    "owner_assets_and_4500ms_tracks_unchanged": true,
+    "pre_repair_full_jest": {
+      "suites": 64,
+      "tests": 599
+    },
+    "final_focused": {
+      "suites": 4,
+      "tests": 36
+    },
+    "typescript": "PASS",
+    "new_live_observation": false,
+    "production_mutation": false,
+    "all_47_items_closed": false
+  },
   "spoj_entry_replay_checkpoint_20260907": {
     "state": "SOURCE_PROVEN_ORIGINAL_NATIVE_PARTIAL_FRESH_NATIVE_AND_CANONICAL_PROMOTION_PENDING",
     "canonical_integration": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
@@ -1321,7 +1346,7 @@
     "live_writes": "ONE_PREVIOUSLY_COMPLETED_EXACT_CANONICAL_D03_FORWARD_DDL",
     "production_business_rpc_called": false,
     "provider_called": false,
-    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71\u219272 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
+    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71→72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
   },
   "historical_edge_before_context_v7": {
     "slug": "uskoci-ai-interview",

@@ -81,6 +81,22 @@ it('keeps an empty password submission local and immediately editable', async ()
   expect(input('ime@primer.rs').props.editable).toBe(true);
 });
 
+it('hides a revealed password when switching form mode, preserving the entered value without submitting', async () => {
+  await render(); await fill('Unesite lozinku', 'local-dummy-value');
+  const toggle = () => host('Pressable').find(node => node.props.accessibilityLabel === 'Prikaži lozinku')!;
+  await act(async () => toggle().props.onPress());
+  expect(input('Unesite lozinku').props.secureTextEntry).toBe(false);
+  await press('Registracija');
+  expect(button('Registracija').props.accessibilityState.selected).toBe(true);
+  expect(button('Prijava').props.accessibilityState.selected).toBe(false);
+  expect(input('Unesite lozinku').props.value).toBe('local-dummy-value');
+  expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
+  await act(async () => toggle().props.onPress());
+  await press('Prijava');
+  expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
+  expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
+});
+
 it('shows loading/error/retry before enabling a form and preserves entered credentials across a settings retry', async () => {
   const pending = deferred<unknown>(); mockRead.mockReturnValueOnce(pending.promise);
   await render(); expect(text()).toContain('Proveravamo dostupne'); expect(host('TextInput')).toHaveLength(0);

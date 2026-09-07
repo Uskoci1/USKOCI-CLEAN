@@ -82,7 +82,7 @@ export default function RootLayout() {
           }}
         >
           <Stack.Protected guard={!session}>
-            <Stack.Screen name="auth" />
+            <Stack.Screen name="auth" options={{ animation: 'none' }} />
           </Stack.Protected>
           <Stack.Protected guard={!!session}>
             <Stack.Screen name="(app)" />
