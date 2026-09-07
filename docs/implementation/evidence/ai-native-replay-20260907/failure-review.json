@@ -1,0 +1,228 @@
+{
+  "run": 34131247295,
+  "source": "0e009cba2849fb80e56a97b9f8fa76c70e9d2848",
+  "result": "FAILURE",
+  "artifactId": 10023336152,
+  "originalZipBytes": 6340619,
+  "originalZipSha256": "2b9ce0d55f03426fc6ae352776766d1732338a4b22f52b47ba5261239fac440f",
+  "scope": "Historical79+N02+N03+reviewed AI2RPC; synthetic local typed proposals; real local Auth/UI; no provider",
+  "original27LoggedPass": true,
+  "newObserved": [
+    "Human People correction2to3",
+    "Nine confirmed facts",
+    "Vehicle remains NEEDS_CONFIRMATION",
+    "Server canSaveDraft=true while UI Save disabled for unreviewed optional proposal",
+    "No owned Need or save receipt"
+  ],
+  "notReached": [
+    "REST outage",
+    "retry recovery",
+    "human-confirmed save",
+    "saved exact card",
+    "double-save count"
+  ],
+  "failure": "Exact local PostgREST image guard rejected observed GHCR image before stop mutation",
+  "observedImage": "ghcr.io/supabase/postgrest:v16.1",
+  "runLogEvidenceLines": [
+    483,
+    939,
+    3002,
+    3004
+  ],
+  "visuallyInspectedPng": [
+    "AI_people_correction_input.png",
+    "AI_people_corrected.png",
+    "AI_optional_vehicle_blocks_ui_save.png",
+    "AI_FAILURE_last_screen.png"
+  ],
+  "originalXmlInventory": [
+    {
+      "file": "AI_FAILURE_last_screen.xml",
+      "sha256": "7d2e90f651d2004bc88ef2b86cfa15356e43d06d87e9d736c69af2410a2015e2",
+      "nodes": 113
+    },
+    {
+      "file": "AI_optional_vehicle_blocks_ui_save.xml",
+      "sha256": "7d2e90f651d2004bc88ef2b86cfa15356e43d06d87e9d736c69af2410a2015e2",
+      "nodes": 113
+    },
+    {
+      "file": "AI_owned_conversation_open.xml",
+      "sha256": "88cb36075f50a6495065abbb4089bcfbc496f8057e79aeda8e1dcc4534884643",
+      "nodes": 93
+    },
+    {
+      "file": "AI_owner_empty.xml",
+      "sha256": "00600ab03fe92666a8ef0ad3ed02c72c4479bf2503622d7742e4e9b34b72d972",
+      "nodes": 68
+    },
+    {
+      "file": "AI_pending_proposals.xml",
+      "sha256": "5c4601fb057290f90b240586fb838de2c0c650000c9aa6d4f0b3c08797051c30",
+      "nodes": 107
+    },
+    {
+      "file": "AI_people_corrected.xml",
+      "sha256": "d10969dced3e75f3723321fc30ecb00cc95573faac5f4291f6b6be6b2d7a5e0b",
+      "nodes": 127
+    },
+    {
+      "file": "AI_people_correction_input.xml",
+      "sha256": "a21a16490c36d507b7447961b9721a5c9228bf0c053af0908a65120e66c54cb4",
+      "nodes": 112
+    },
+    {
+      "file": "AI_review_back_same_conversation.xml",
+      "sha256": "5c4601fb057290f90b240586fb838de2c0c650000c9aa6d4f0b3c08797051c30",
+      "nodes": 107
+    },
+    {
+      "file": "AI_review_pending_top.xml",
+      "sha256": "5bbdc6fc56cc49d3ec4905cf5ef1b9637d688c5ab3da6e60e47a0caedd636983",
+      "nodes": 107
+    },
+    {
+      "file": "AI_save_blocked_pending.xml",
+      "sha256": "fc9e2569536983e43266a328ed1b7362692fead9317663d572d8ab279c458984",
+      "nodes": 116
+    },
+    {
+      "file": "INBOX_bell_zero.xml",
+      "sha256": "4a1fb3a2c98f13f7658de7b5c621266dab9bbd3b0bbf579501242de8041ab3fa",
+      "nodes": 98
+    },
+    {
+      "file": "INBOX_next_page_available.xml",
+      "sha256": "d1a19ff276e586ae5d45a20aa437501ef08b717fe8ffc0c63240af0c0b63309d",
+      "nodes": 108
+    },
+    {
+      "file": "INBOX_requester_one_event.xml",
+      "sha256": "09c48b53064cbcdb790eabd30b2be55455d6d97e9e7be843dbf53b23c92dde8c",
+      "nodes": 57
+    },
+    {
+      "file": "INBOX_requester_read_all.xml",
+      "sha256": "044d6f8f1511a5bbd7962b7e6e43010dbc1e41a095a76c93a103aa0504ca8cfd",
+      "nodes": 51
+    },
+    {
+      "file": "INBOX_role_empty.xml",
+      "sha256": "71f9655ecd79a68df62309c527cee6de869c6d3902249f6a75379ede4b6eec57",
+      "nodes": 45
+    },
+    {
+      "file": "INBOX_second_page_loaded.xml",
+      "sha256": "11c1b5cbc8638eb3c09c4b0921e49d31689ce924e6b6d82366c347809caaaa52",
+      "nodes": 108
+    },
+    {
+      "file": "INBOX_selection_opens_real_agreement.xml",
+      "sha256": "b16a390bf11d4815094f75a6fa5df2c1051ac59c89493cdeed260ef8bd558494",
+      "nodes": 94
+    },
+    {
+      "file": "INBOX_selection_read_confirmed.xml",
+      "sha256": "8a8dddd77e36bd7b7f726bf8ff0900e59b1433df129ebdf89f827571f5d4bbf4",
+      "nodes": 101
+    },
+    {
+      "file": "INBOX_worker_read_all.xml",
+      "sha256": "6a6b03011ce0b4a345f866c270f4336c7b4aaeae90a53c64358570a0c98b9231",
+      "nodes": 111
+    },
+    {
+      "file": "INBOX_worker_selection_unread.xml",
+      "sha256": "995f199990da530eaff2edc5612f8c4ada90d5dc1e5b217c2acd2bef0949aa42",
+      "nodes": 101
+    },
+    {
+      "file": "NAV_inbox.xml",
+      "sha256": "20d3080c949760d8fbee82647fc33aaca7833b29db26ecd885b66815af539e07",
+      "nodes": 51
+    },
+    {
+      "file": "NAV_inbox_back.xml",
+      "sha256": "ef84c7a3ee46a2c6717199d7ecb94116a8a4825e1c09306e802d59868bf148ad",
+      "nodes": 128
+    },
+    {
+      "file": "NAV_profile_back.xml",
+      "sha256": "ef84c7a3ee46a2c6717199d7ecb94116a8a4825e1c09306e802d59868bf148ad",
+      "nodes": 128
+    },
+    {
+      "file": "NAV_requester_agreements.xml",
+      "sha256": "1ffe704357cfc2a7a4fd76e174e634d2e64b275246a274b72139178307f739bf",
+      "nodes": 89
+    },
+    {
+      "file": "NAV_requester_new_task.xml",
+      "sha256": "88cb36075f50a6495065abbb4089bcfbc496f8057e79aeda8e1dcc4534884643",
+      "nodes": 93
+    },
+    {
+      "file": "NAV_requester_profile.xml",
+      "sha256": "d8b8e79672285a1f2e2fe339b1ef2b293d9f6c8f2b80bb438eff3665111b1a2e",
+      "nodes": 85
+    },
+    {
+      "file": "NAV_requester_tasks.xml",
+      "sha256": "2d0f7a383183973f7c77eab0fa769da07854c8530310e97119bb85f691742a42",
+      "nodes": 128
+    },
+    {
+      "file": "NAV_same_account_worker_discovery.xml",
+      "sha256": "82974de30bb13dc9300907501817805421717c82223a105def8866b03e84c878",
+      "nodes": 93
+    },
+    {
+      "file": "NAV_same_account_worker_profile.xml",
+      "sha256": "b8f3e56992f9db36e5ffba0be59ba5c41089d5c0abb344b2152480c80e744d57",
+      "nodes": 97
+    },
+    {
+      "file": "NAV_second_account_profile.xml",
+      "sha256": "97590d478ea5448b067b443f55f2cb4f406074212e4ce4e9a407767e21f2c508",
+      "nodes": 85
+    },
+    {
+      "file": "NAV_second_account_requester_empty.xml",
+      "sha256": "00600ab03fe92666a8ef0ad3ed02c72c4479bf2503622d7742e4e9b34b72d972",
+      "nodes": 68
+    },
+    {
+      "file": "NAV_second_account_worker_discovery.xml",
+      "sha256": "82974de30bb13dc9300907501817805421717c82223a105def8866b03e84c878",
+      "nodes": 93
+    },
+    {
+      "file": "NAV_signed_out.xml",
+      "sha256": "190f49980175465650086a65c78e8c1f796a1699134ec76f2663b399dd87a9b8",
+      "nodes": 199
+    },
+    {
+      "file": "NAV_task_detail.xml",
+      "sha256": "c43c6d5ab4637e47485c779ddc5569a6edcc2e92cbb3d635c59890e806b7b5fc",
+      "nodes": 64
+    },
+    {
+      "file": "NAV_task_detail_back.xml",
+      "sha256": "82974de30bb13dc9300907501817805421717c82223a105def8866b03e84c878",
+      "nodes": 93
+    },
+    {
+      "file": "NAV_worker_agreements.xml",
+      "sha256": "bbc21a636bf91f9386e21ea3db2e2972bc8baadfcc720ed7383056a3e2deaa49",
+      "nodes": 89
+    },
+    {
+      "file": "NAV_worker_applications.xml",
+      "sha256": "f2afc1ae7c2cc7b3237e14c5fca36741865fedfaa17ff3ac7996bc7c1c7b896e",
+      "nodes": 87
+    }
+  ],
+  "providerProof": false,
+  "nativeFullyAccepted": false,
+  "productionTouched": false
+}

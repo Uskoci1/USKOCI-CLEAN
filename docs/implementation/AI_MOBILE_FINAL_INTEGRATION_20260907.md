@@ -1,3 +1,13 @@
+## Current AI mobile replay — partial native evidence and bounded harness repair
+
+Fresh canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` is integrated, including recorded source87/live87/pending0 and server-only Edge selector/context source. The canonical server/provenance integration preserves APK configuration and the original27 executed scripts from accepted `0e009cba2849fb80e56a97b9f8fa76c70e9d2848`. The one subsequent mobile production change corrects the review helper text to include all proposed facts, including optional Vehicle; it changes no save predicate or server policy and requires the new APK replay. No owner web worktree or production state is changed here.
+
+Fresh Android run34131247295 passed the original27 Inbox/navigation journey, real human correction from2 to3 people, and confirmation of all proposals except optional Vehicle while Save remained disabled. It stopped **before any outage mutation** because the helper did not recognize the actual CLI image `ghcr.io/supabase/postgrest:v16.1`. Its original artifact10023336152 / ZIP SHA-256 `2b9ce0d55f03426fc6ae352776766d1732338a4b22f52b47ba5261239fac440f` is preserved. Outage/retry/save/card were not reached; this is partial evidence, not whole AI native acceptance or provider proof.
+
+The bounded fix adds only the observed Supabase GHCR namespace to the existing exact local-container guard, preserves immutable-id/name/local-daemon/running-state checks, and adds positive/namespace-spoof regressions plus safe identity logging. The reviewed scaffold copy now says “Potvrdite ili ispravite sve predložene podatke pre čuvanja.” The optional-Vehicle route test asserts this guidance while Save is disabled and its removal after confirmation. No save/completeness rule or native assertion is relaxed. Fresh native acceptance remains required. Integrated local checks:53 suites461 tests,TSC,52 Python/23 Node,AST67/25/0 and migration integrity87/live87/pending0 PASS. Original artifact review, partial checkpoints and unchanged source manifests are in `evidence/ai-native-replay-20260907/`. See [replay evidence](AI_MOBILE_FINAL_INTEGRATION_20260907.md). Earlier current-state paragraphs below are historical where superseded here; UI remains a functional scaffold.
+
+---
+
 # AI mobile final integration and native traversal recovery — 2026-09-07
 
 Status: **INTEGRATED SOURCE / LOCAL CHECKS PASS / ROOT REVIEW AND FRESH NATIVE PENDING**.

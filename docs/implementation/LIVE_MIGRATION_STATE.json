@@ -1,25 +1,48 @@
 {
+  "ai_edge_server_context_checkpoint_20260907": {
+    "state": "CANONICAL_SOURCE_PROVEN_ACTIVE_V7_PROVIDER_NOT_PROVEN",
+    "canonical_integration_base": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+    "source_file_count": 87,
+    "recorded_live_migration_count": 87,
+    "pending_forward_files": 0,
+    "edge_entry_bytes": 26346,
+    "edge_entry_sha256": "4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704",
+    "registry_unchanged": true,
+    "deployed": true,
+    "proof_head": "655973d83d43ac4eeb49f94035e4188e00f1901f",
+    "proof_run": 34129593102,
+    "artifact_id": 10021534410,
+    "artifact_zip_sha256": "6285d714823f32b1cc76a03843c8179af5fa605eaba26dedc8f5442f8bbeff44",
+    "mocked_actual_handler_tests": 17,
+    "fresh_canonical_integration": "PASS",
+    "report": "docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md",
+    "canonical_merge": "6701311d89047c0a1058332362887fb7b396df5a",
+    "live_version": 7,
+    "provider_execution_status": "OWNER_ATTEMPT_UNCONFIRMED"
+  },
   "ai_draft_authority_checkpoint_20260907": {
-    "state": "SOURCE_IMPLEMENTED_AUTHENTICATED_PROVEN_INTEGRATION_PENDING_NOT_LIVE",
+    "state": "CANONICAL_AUTHENTICATED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
     "canonical_integration_base": "f055d6415b5153aa6ef0db735d63dddea7806ead",
     "forward_file": "20260907120000_clean_ai_need_draft_safety_authority.sql",
     "bytes": 21141,
     "md5": "d52caaa375623c9cfe93c8e536b3f55c",
     "sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
     "source_file_count": 87,
-    "recorded_live_migration_count": 86,
-    "pending_forward_files": 1,
-    "live_applied": false,
+    "recorded_live_migration_count": 87,
+    "pending_forward_files": 0,
+    "live_applied": true,
     "provider_called": false,
-    "proof_head": "17659a39df9993dfbf791be101487a7a6442fdfb",
-    "proof_run": 34121379016,
-    "artifact_id": 10018420638,
-    "artifact_zip_sha256": "386b62e173834c711aeff19446e1b09020d9a8969c3106fa93ebf05497465cb8",
+    "proof_head": "f5b955011636496bde134b792f6cc1c94253cb24",
+    "proof_run": 34128347708,
+    "artifact_id": 10021153384,
+    "artifact_zip_sha256": "0165c32ab6a8f9052b9d35fa1ade5142b408829bf587a6c93e497fd65336e041",
     "authenticated_checks": 15,
     "observed_lock_interleavings": 4,
-    "proof_boundary": "historical85_to86_before_canonical_D03",
-    "fresh_D03_integration": "SOURCE_PREPARED_RUNTIME_PENDING",
-    "report": "docs/implementation/AI_DRAFT_AUTHORITY_20260907.md"
+    "proof_boundary": "ACTUAL86_TO87_WITH_ORIGINAL86_FULL_RECORDS_PRESERVED",
+    "fresh_D03_integration": "PASS",
+    "report": "docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md",
+    "canonical_merge": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+    "live_alias": "20260907135905"
   },
   "eas_existing_identity_checkpoint_20260907": {
     "state": "SOURCE_CONFIGURED_READ_ONLY_VERIFIED_REVIEW_PENDING",
@@ -242,7 +265,7 @@
     "next": "NATIVE_PUSH_LIFECYCLE_DISPATCH_AND_REMAINING_CHAT_PRODUCT_UNITS"
   },
   "format_version": 3,
-  "updated_at": "2026-09-07T13:02:34.853014Z",
+  "updated_at": "2026-09-07T14:04:10Z",
   "historical_notification_checkpoint_before_live84_20260907": {
     "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
     "n01": {
@@ -350,26 +373,41 @@
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
-    "migration_count": 86,
-    "head": "20260907130151_clean_d03_message_retry",
+    "migration_count": 87,
+    "head": "20260907135905_clean_ai_need_draft_safety_authority",
     "pending_forward_migrations": 0,
-    "observed_at_utc": "2026-09-07T13:02:34.853014Z"
+    "observed_at_utc": "2026-09-07T14:04:10Z"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
-    "version": 6,
+    "version": 7,
     "status": "ACTIVE",
     "verify_jwt": true,
-    "ezbr_sha256": "012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954",
+    "ezbr_sha256": "642bbb1c49ed4c360b95f23a9d1f2b5f33243edaa9095d0452e824246f304864",
     "price_modes": [
       "MY_PRICE",
       "OFFERS"
     ],
-    "canonical_source_retirement_pending_live_deploy": false
+    "canonical_source_retirement_pending_live_deploy": false,
+    "name": "uskoci-ai-interview",
+    "canonical_source": "6701311d89047c0a1058332362887fb7b396df5a",
+    "files": [
+      {
+        "name": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytes": 26346,
+        "sha256": "4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704"
+      },
+      {
+        "name": "src/contracts/needFactsV2.ts",
+        "bytes": 4097,
+        "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
+      }
+    ],
+    "actual_provider_proven": false
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
-    "state": "LIVE_86_D03_MESSAGE_RETRY_PROMOTION_STRUCTURAL_PROVEN",
+    "state": "LIVE_87_AI_REVIEW_SAVE_AUTHORITY_STRUCTURAL_PROVEN",
     "ru2_live_aliases": [
       {
         "live_version": "20260903222139",
@@ -710,6 +748,20 @@
       "recorded_statement_utf8_bytes": 4277,
       "proof_run": 34124166375,
       "source_canonical_promotion_sha": "a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a"
+    },
+    "ai_authority_live_alias": {
+      "name": "clean_ai_need_draft_safety_authority",
+      "version": "20260907135905",
+      "file": "20260907120000_clean_ai_need_draft_safety_authority.sql",
+      "source_version": "20260907120000",
+      "exact_byte_mirror": true,
+      "canonical_raw_md5": "d52caaa375623c9cfe93c8e536b3f55c",
+      "canonical_sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+      "live_recorded_statement_md5": "d52caaa375623c9cfe93c8e536b3f55c",
+      "live_recorded_statement_sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+      "recorded_statement_utf8_bytes": 21141,
+      "proof_run": 34128347708,
+      "source_canonical_promotion_sha": "c4c6b624446f3273a40e8393bfadc8c49dff5494"
     }
   },
   "client_data_layer": {
@@ -1091,16 +1143,16 @@
     "service_offer_listing_supported": false
   },
   "monetization": "FREE_0_RSD",
-  "next_allowed_action": "D03 stable retry is canonical, disposable proven and live structurally verified. Do not reapply D03/N08/N07. Continue the separately reviewed Chat screen binding and functional AI work; keep broader Chat, provider and final visual acceptance separate.",
+  "next_allowed_action": "AI review/save authority is canonical and live87; Edge context is canonical and active v7. Do not reapply completed SQL. Continue actual owner provider/human review/DRAFT proof and independent mobile/native work. UI remains scaffold.",
   "canonical_physical_ui_proof_merge_head": "940fd1fdf34a314f5d8a0c0fdb9cc3753e55ce01",
   "production_observation": {
-    "status": "D03_FRESH_READ_ONLY_PREFLIGHT_AND_STRUCTURAL_POSTFLIGHT_PASS",
-    "observed_at_utc": "2026-09-07T13:02:34.853014Z",
+    "status": "AI_FRESH_PREFLIGHT_AND_EXACT_FORWARD_POSTFLIGHT_PASS",
+    "observed_at_utc": "2026-09-07T14:04:10Z",
     "sql_executed": true,
-    "live_writes": "ONE_PREVIOUSLY_COMPLETED_EXACT_CANONICAL_D03_FORWARD_DDL",
+    "live_writes": "ALREADY_COMPLETED_EXACT_TWO_RPC_FORWARD_AND_EDGE_CONTEXT_V7",
     "production_business_rpc_called": false,
-    "provider_called": false,
-    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71→72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
+    "actual_provider_proven": false,
+    "report": "docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md"
   },
   "historical_production_observation_before_authorized_promotions": {
     "status": "OWNER_ACTION_SAFETY_BLOCKED_NOT_FRESHLY_VERIFIED",
@@ -1194,25 +1246,54 @@
     "preserved_prior_checkpoint": "eas_existing_identity_checkpoint_20260907",
     "new_preview_apk_auth_provider_proof": false
   },
+  "historical_production_observation_before_ai_live87": {
+    "status": "D03_FRESH_READ_ONLY_PREFLIGHT_AND_STRUCTURAL_POSTFLIGHT_PASS",
+    "observed_at_utc": "2026-09-07T13:02:34.853014Z",
+    "sql_executed": true,
+    "live_writes": "ONE_PREVIOUSLY_COMPLETED_EXACT_CANONICAL_D03_FORWARD_DDL",
+    "production_business_rpc_called": false,
+    "provider_called": false,
+    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71→72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
+  },
+  "historical_edge_before_context_v7": {
+    "slug": "uskoci-ai-interview",
+    "version": 6,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "ezbr_sha256": "012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954",
+    "price_modes": [
+      "MY_PRICE",
+      "OFFERS"
+    ],
+    "canonical_source_retirement_pending_live_deploy": false
+  },
   "ai_mobile_vertical_checkpoint_20260907": {
     "state": "SOURCE_REVIEWED_INTEGRATED_NATIVE_RECOVERY_PENDING",
-    "canonical_baseline": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+    "canonical_baseline": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
     "reviewed_initial_source": "de72cbe",
     "initial_source_jest_suites": 50,
     "initial_source_jest_tests": 379,
-    "native_harness_python_tests": 50,
+    "native_harness_python_tests": 52,
     "native_harness_node_tests": 23,
     "native_proven": false,
     "actual_provider_proven": false,
     "migration_added": false,
     "report": "docs/implementation/AI_MOBILE_VERTICAL_RECOVERY_20260907.md",
-    "live_dependency": "PR57 authority SQL is canonical source; live/provider/Edge evidence remains a separately verified checkpoint",
+    "live_dependency": "PR57 authority is canonical and recorded live87; actual provider and native acceptance remain separate",
     "reviewed_mobile_production_source": "8fe1fc4a9b74f3a5b6b721b71229ba5c8389e145",
-    "failed_native_run": 34125911445,
-    "failed_native_boundary": "ORIGINAL27_PASS; REVIEW_REENTRY_OFFSCREEN_PEOPLE_HARNESS_FAILURE; NO_CORRECTION_SAVE_CARD_ACCEPTANCE",
+    "failed_native_run": 34131247295,
+    "failed_native_boundary": "ORIGINAL27_PASS;PEOPLE_2_TO_3_AND_OPTIONAL_VEHICLE_PENDING_OBSERVED;OUTAGE_GUARD_BEFORE_MUTATION;NO_RETRY_SAVE_CARD_ACCEPTANCE",
     "fresh_integrated_apk_required": true,
     "owner_web_worktree_changed": false,
     "migration_added_by_mobile": false,
-    "reviewed_auth_sheet_fix": "386d539648ddcf10c34b90aa5cbb28701f90753f"
+    "reviewed_auth_sheet_fix": "386d539648ddcf10c34b90aa5cbb28701f90753f",
+    "failed_native_source": "0e009cba2849fb80e56a97b9f8fa76c70e9d2848",
+    "failed_native_artifact_id": 10023336152,
+    "failed_native_zip_sha256": "2b9ce0d55f03426fc6ae352776766d1732338a4b22f52b47ba5261239fac440f",
+    "previous_failed_native_runs": [
+      34125911445
+    ],
+    "canonical_apk_configuration_preserved": true,
+    "mobile_delta_after_failed_source": "One review helper string plus actual-route assertion; no save predicate/server-rule change"
   }
 }

@@ -1,3 +1,13 @@
+## Current AI mobile replay — partial native evidence and bounded harness repair
+
+Fresh canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` is integrated, including recorded source87/live87/pending0 and server-only Edge selector/context source. The canonical server/provenance integration preserves APK configuration and the original27 executed scripts from accepted `0e009cba2849fb80e56a97b9f8fa76c70e9d2848`. The one subsequent mobile production change corrects the review helper text to include all proposed facts, including optional Vehicle; it changes no save predicate or server policy and requires the new APK replay. No owner web worktree or production state is changed here.
+
+Fresh Android run34131247295 passed the original27 Inbox/navigation journey, real human correction from2 to3 people, and confirmation of all proposals except optional Vehicle while Save remained disabled. It stopped **before any outage mutation** because the helper did not recognize the actual CLI image `ghcr.io/supabase/postgrest:v16.1`. Its original artifact10023336152 / ZIP SHA-256 `2b9ce0d55f03426fc6ae352776766d1732338a4b22f52b47ba5261239fac440f` is preserved. Outage/retry/save/card were not reached; this is partial evidence, not whole AI native acceptance or provider proof.
+
+The bounded fix adds only the observed Supabase GHCR namespace to the existing exact local-container guard, preserves immutable-id/name/local-daemon/running-state checks, and adds positive/namespace-spoof regressions plus safe identity logging. The reviewed scaffold copy now says “Potvrdite ili ispravite sve predložene podatke pre čuvanja.” The optional-Vehicle route test asserts this guidance while Save is disabled and its removal after confirmation. No save/completeness rule or native assertion is relaxed. Fresh native acceptance remains required. See [replay evidence](docs/implementation/AI_MOBILE_FINAL_INTEGRATION_20260907.md). Earlier current-state paragraphs below are historical where superseded here; UI remains a functional scaffold.
+
+---
+
 <!-- AI_MOBILE_FINAL_INTEGRATION_20260907 -->
 ## Current AI mobile integration — canonical config and server authority
 
@@ -35,6 +45,26 @@ Unknown non-idempotent Edge turns are never blindly replayed; pending state is c
 
 
 ---
+
+---
+
+## Current checkpoint — AI authority LIVE87 and Edge context v7
+
+Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.
+
+PR58 final handler proof34129593102 has17 actual-handler mocked-transport tests, Deno/TSC and49 suites395 tests PASS. Its canonical gates preceded existing Edge v6→v7 promotion: exact26346-byte handler and4097-byte registry verified after deployment; ACTIVE/JWT true. This is **SOURCE PROVEN / CANONICAL / LIVE SOURCE VERIFIED**, not a successful provider interview. Normal owner login and empty Novi are now observed; the owner-reported unknown AI turn and actual owner human-review/DRAFT/card remain unresolved. No synthetic production fixture or provider success is asserted. Provider secrets are server-only; current UI remains a testable scaffold, with later Figma/Fable work separate.
+
+Completed source/proof/live records: [AI live promotion](docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md). Earlier pending/deployment/current-head checkpoints below are historical where superseded here. Continue current mobile/provider execution without restarting the engine.
+
+---
+
+## Current integration — fresh LIVE86 provenance plus AI Edge context
+
+Fresh fetched canonical is `c4c6b624446f3273a40e8393bfadc8c49dff5494`, preserving accepted Auth/navigation, configured application identity, D03 canonical/live86 provenance and the canonical AI DRAFT authority source unchanged. This branch changes only the existing AI Edge time reference, newest history window and sanitized failure logging, with actual-handler source proof: **SOURCE IMPLEMENTED / CI MOCKED TRANSPORT PROVEN AT B9376F1 / FINAL CANONICAL INTEGRATION PENDING / NOT DEPLOYED / ACTUAL PROVIDER NOT PROVEN**.
+
+The frozen Edge is26,346 bytes / SHA-256 `4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704`; the shared fact registry is unchanged. Integrated run34128479788 atb9376f1 passed Deno, TypeScript,17 actual-handler checks and49 suites/395 tests, with three actual zero-result CodeQL analyses. Original artifact10021094289 ZIP SHA-256 `d3eb59dcbec33aa010feb12b685f29f73cd2f3ff3e761bec682578bccf745afa` was physically verified. Earlier committed evidence and precise limits remain in [the unit report](docs/implementation/AI_EDGE_SERVER_CONTEXT_20260907.md). The final integrated source run after canonical PR57 and its gates will be recorded after execution. This unit uses synthetic fetch/environment only; no provider call, database write, deployment or gate activation is part of source proof.
+
+Source87 / recorded live86 / pending1 are retained from canonical provenance; this branch adds no SQL migration. Root accepted PR57's unchanged AI SQL atf5b9550 with actual86→87 proof34128347708; its separate live promotion remains root-owned. Follow user-adopted V3 and06.09 guidance. Root reviews final source/proof/gates, then fresh live v6 source/config before any existing Edge promotion. Actual owner intake, human confirmation/correction and truthful DRAFT card remain a separate functional boundary. Production is not a synthetic fixture sandbox. Current UI is a testable scaffold; final Figma design and Fable remain separate. Underlying checkpoints retain their historical boundaries where superseded here.
 
 ---
 

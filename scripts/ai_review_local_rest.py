@@ -40,7 +40,7 @@ def validate_container(fields, *, expected_running, expected_id=None):
     container_id, name, image, running = fields
     if (not isinstance(container_id, str) or not re.fullmatch(r'[a-f0-9]{64}', container_id)
         or name != f'/{REST_NAME}' or not isinstance(image, str)
-        or not re.fullmatch(r'(?:public\.ecr\.aws/supabase|(?:docker\.io/)?supabase)/postgrest:[\w.-]+', image)
+        or not re.fullmatch(r'(?:(?:public\.ecr\.aws|ghcr\.io)/supabase|(?:docker\.io/)?supabase)/postgrest:[\w.-]+', image)
         or running is not expected_running or (expected_id is not None and container_id != expected_id)):
         raise RuntimeError('Disposable PostgREST identity/state mismatch')
     return container_id
@@ -56,7 +56,9 @@ class LocalRestOutage:
         config = tomllib.loads((proof_dir / 'supabase/config.toml').read_text(encoding='utf-8'))
         if config.get('project_id') != PROJECT_ID:
             raise RuntimeError('Disposable Supabase project id mismatch')
-        self.container_id = validate_container(self.inspect(REST_NAME), expected_running=True)
+        identity = self.inspect(REST_NAME)
+        self.container_id = validate_container(identity, expected_running=True)
+        print(f'CHECKPOINT AI_REVIEW_LOCAL_REST_IDENTITY id={self.container_id} image={identity[2]}', flush=True)
         self.wait_http(available=True)
 
     def docker(self, *args):

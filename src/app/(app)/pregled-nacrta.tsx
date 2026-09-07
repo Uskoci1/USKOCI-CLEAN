@@ -330,7 +330,7 @@ function PregledContent({ conversationId }: { conversationId: string }) {
               />
               {!saveAllowed && stanje.safety !== 'BLOCK' ? (
                 <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>
-                  Potvrdite sve obavezne podatke pre čuvanja.
+                  Potvrdite ili ispravite sve predložene podatke pre čuvanja.
                 </T>
               ) : null}
             </View>

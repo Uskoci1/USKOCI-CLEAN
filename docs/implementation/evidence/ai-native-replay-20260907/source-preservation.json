@@ -1,0 +1,41 @@
+{
+  "canonical": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
+  "testedSource": "0e009cba2849fb80e56a97b9f8fa76c70e9d2848",
+  "mobileSourcePaths": 111,
+  "mobileSourceDifferences": [
+    {
+      "file": "src/app/(app)/pregled-nacrta.tsx",
+      "beforeGitBlob": "b488292ee9bbf705842858e7a6681c41d35a4263",
+      "afterGitBlob": "1d13fa36fe61b4d8fb61bacbb2ac3840c521d2ec",
+      "workingFileSha256": "2b28acf5c1e2483a3fa932870fb73ff8c26115e0d6cca16413c4688e81733f6d"
+    },
+    {
+      "file": "src/data/__tests__/ai-need-routes.test.tsx",
+      "beforeGitBlob": "02a8d2beefca75b9c53c983bd28af23416e0d3e5",
+      "afterGitBlob": "4e8e28b4492ee16d428b4d01b8f2047e4957aec0",
+      "workingFileSha256": "3c456fa31bda0feb2bfe3b86172592a7e661785374dcdb8ec2490d34f2746a05"
+    }
+  ],
+  "canonicalSupabaseDifferences": [],
+  "preservedExecutedOriginal27AndBuildInputs": [
+    "app.json",
+    "app.config.js",
+    "package.json",
+    "package-lock.json",
+    "eas.json",
+    ".github/workflows/ai-review-mobile-proof.yml",
+    "scripts/intent_shell_run_journey.sh",
+    "scripts/intent_shell_android_journey.py",
+    "scripts/intent_shell_discovery_fixture.mjs",
+    "scripts/n04_android_inbox_journey.py",
+    "scripts/ru5_android_device_ui_journey.py"
+  ],
+  "harnessAssertionsRelaxed": false,
+  "newRequiredReplay": true,
+  "unchangedMobileSourcePaths": 109,
+  "boundedExecutableChanges": [
+    "scripts/ai_review_local_rest.py",
+    "src/app/(app)/pregled-nacrta.tsx"
+  ],
+  "reviewCopyOnlyProductionChange": true
+}

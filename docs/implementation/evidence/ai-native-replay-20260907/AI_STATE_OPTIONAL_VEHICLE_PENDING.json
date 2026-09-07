@@ -1,0 +1,305 @@
+{
+  "sourceSha": "0e009cba2849fb80e56a97b9f8fa76c70e9d2848",
+  "accountId": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+  "conversationId": "6f39038b-6c84-4abd-a333-084e53aba67f",
+  "review": {
+    "facts": [
+      {
+        "id": "08250fdf-11f3-4c1b-981a-01c960be7160",
+        "key": "need.category",
+        "value": "pomoc",
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "TEXT",
+        "displayValue": "Pomoć",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": true
+      },
+      {
+        "id": "cd9e9324-35ab-40b3-8a9c-d5514a9eec6f",
+        "key": "need.description",
+        "value": "Generička pomoć pri prenosu stvari uz ljude i kombi.",
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "TEXT",
+        "displayValue": "Generička pomoć pri prenosu stvari uz ljude i kombi.",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": true
+      },
+      {
+        "id": "58cd61be-135f-4c1d-a339-6efb73487b57",
+        "key": "need.ends_at",
+        "value": "2026-09-14T09:00:00.000Z",
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "TIMESTAMPTZ",
+        "displayValue": "2026-09-14T09:00:00.000Z",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": false
+      },
+      {
+        "id": "eef7dadf-29d2-4743-a106-ffbde95f5b24",
+        "key": "need.price_mode",
+        "value": "OFFERS",
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "ENUM",
+        "displayValue": "Očekujete ponude",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": true
+      },
+      {
+        "id": "6a36d8bd-61ab-4d17-8f34-843440144417",
+        "key": "need.required_vehicles",
+        "value": [
+          "Kombi"
+        ],
+        "source": "AI_INFERENCE",
+        "status": "NEEDS_CONFIRMATION",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "TEXT_ARRAY",
+        "displayValue": "Kombi",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": false
+      },
+      {
+        "id": "b6f0936e-7e1a-4b19-9ecb-2c0b9d732373",
+        "key": "need.schedule_kind",
+        "value": "FIXED_WINDOW",
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "ENUM",
+        "displayValue": "Dogovoren termin",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": true
+      },
+      {
+        "id": "f58a246b-758e-42e9-b69e-2c336cf86204",
+        "key": "need.starts_at",
+        "value": "2026-09-14T07:00:00.000Z",
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "TIMESTAMPTZ",
+        "displayValue": "2026-09-14T07:00:00.000Z",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": false
+      },
+      {
+        "id": "1dcac8d4-f647-47cf-941c-f3c6bbc1ceff",
+        "key": "need.task_geography",
+        "value": {
+          "end": {
+            "area": "Liman",
+            "city": "Novi Sad"
+          },
+          "mode": "POINT_TO_POINT",
+          "start": {
+            "area": "Centar",
+            "city": "Novi Sad"
+          }
+        },
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "OBJECT",
+        "displayValue": "Centar, Novi Sad → Liman, Novi Sad",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": true
+      },
+      {
+        "id": "0f3f9150-b9af-4117-962b-f7566759a91b",
+        "key": "need.title",
+        "value": "AI review proof 1db112b1",
+        "source": "AI_INFERENCE",
+        "status": "CONFIRMED",
+        "evidence": "Sintetički lokalni fixture za dokaz ljudske potvrde; nije provider izlaz.",
+        "material": true,
+        "valueType": "TEXT",
+        "displayValue": "AI review proof 1db112b1",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": true
+      },
+      {
+        "id": "57112e77-c49b-40f0-ba9f-36d7ad43136e",
+        "key": "need.people_needed",
+        "value": 3,
+        "source": "EXPLICIT_USER_ANSWER",
+        "status": "CONFIRMED",
+        "evidence": null,
+        "material": true,
+        "valueType": "INTEGER",
+        "displayValue": "3",
+        "privacyClass": "PUBLIC",
+        "schemaVersion": "NEED_FACT_V2",
+        "requiredForDraft": true
+      }
+    ],
+    "safety": "ALLOW",
+    "status": "OPEN",
+    "boundNeedId": null,
+    "canSaveDraft": true,
+    "schemaVersion": "NEED_FACT_V2",
+    "conversationId": "6f39038b-6c84-4abd-a333-084e53aba67f",
+    "missingRequired": []
+  },
+  "facts": [
+    {
+      "id": "08250fdf-11f3-4c1b-981a-01c960be7160",
+      "fact_key": "need.category",
+      "fact_value": "pomoc",
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:38.25394+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "0f3f9150-b9af-4117-962b-f7566759a91b",
+      "fact_key": "need.title",
+      "fact_value": "AI review proof 1db112b1",
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:28.175547+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "1dcac8d4-f647-47cf-941c-f3c6bbc1ceff",
+      "fact_key": "need.task_geography",
+      "fact_value": {
+        "end": {
+          "area": "Liman",
+          "city": "Novi Sad"
+        },
+        "mode": "POINT_TO_POINT",
+        "start": {
+          "area": "Centar",
+          "city": "Novi Sad"
+        }
+      },
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:41:03.192189+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "58cd61be-135f-4c1d-a339-6efb73487b57",
+      "fact_key": "need.ends_at",
+      "fact_value": "2026-09-14T09:00:00.000Z",
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:56.963732+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "6a36d8bd-61ab-4d17-8f34-843440144417",
+      "fact_key": "need.required_vehicles",
+      "fact_value": [
+        "Kombi"
+      ],
+      "source": "AI_INFERENCE",
+      "status": "NEEDS_CONFIRMATION",
+      "confirmed_at": null,
+      "confirmed_by_user_id": null,
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "aeeaa01f-b0e6-4797-b5c8-e57b672fe118",
+      "fact_key": "need.people_needed",
+      "fact_value": 2,
+      "source": "AI_INFERENCE",
+      "status": "NEEDS_CONFIRMATION",
+      "confirmed_at": null,
+      "confirmed_by_user_id": null,
+      "superseded_at": "2026-09-07T14:40:10.728661+00:00",
+      "superseded_by": "57112e77-c49b-40f0-ba9f-36d7ad43136e"
+    },
+    {
+      "id": "b6f0936e-7e1a-4b19-9ecb-2c0b9d732373",
+      "fact_key": "need.schedule_kind",
+      "fact_value": "FIXED_WINDOW",
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:44.446974+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "cd9e9324-35ab-40b3-8a9c-d5514a9eec6f",
+      "fact_key": "need.description",
+      "fact_value": "Generička pomoć pri prenosu stvari uz ljude i kombi.",
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:31.27881+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "eef7dadf-29d2-4743-a106-ffbde95f5b24",
+      "fact_key": "need.price_mode",
+      "fact_value": "OFFERS",
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:41.339956+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "f58a246b-758e-42e9-b69e-2c336cf86204",
+      "fact_key": "need.starts_at",
+      "fact_value": "2026-09-14T07:00:00.000Z",
+      "source": "AI_INFERENCE",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:50.631741+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    },
+    {
+      "id": "57112e77-c49b-40f0-ba9f-36d7ad43136e",
+      "fact_key": "need.people_needed",
+      "fact_value": 3,
+      "source": "EXPLICIT_USER_ANSWER",
+      "status": "CONFIRMED",
+      "confirmed_at": "2026-09-07T14:40:10.728661+00:00",
+      "confirmed_by_user_id": "452a5c8a-5f90-4e22-b2a5-e48c700ce0d2",
+      "superseded_at": null,
+      "superseded_by": null
+    }
+  ],
+  "needs": [],
+  "receipts": []
+}

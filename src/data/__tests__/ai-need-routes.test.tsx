@@ -95,9 +95,11 @@ describe('actual AI routes + real controller + focus hook',()=>{
   const vehicle=fact('need.required_vehicles',['van'],{status:'NEEDS_CONFIRMATION'});
   mockPort.loadConversation.mockResolvedValue(conversation([vehicle]));await render(<Review/>);
   expect(button('Sačuvajte nacrt').props.disabled).toBe(true);expect(texts()).toContain('Vozilo'.toUpperCase());
+  expect(texts()).toContain('Potvrdite ili ispravite sve predložene podatke pre čuvanja.');
   mockPort.loadConversation.mockResolvedValueOnce(conversation([vehicle])).mockResolvedValue(conversation([{...vehicle,status:'CONFIRMED'}]));
   await settle(()=>press('Potvrdite: Vozilo'));expect(mockPort.confirmFact).toHaveBeenCalledTimes(1);
   expect(button('Sačuvajte nacrt').props.disabled).toBe(false);
+  expect(texts()).not.toContain('Potvrdite ili ispravite sve predložene podatke pre čuvanja.');
  });
  it('human2→3 correction cannot race Save, then exact current draft receipt navigates once',async()=>{
   const people=fact('need.people_needed',2);
