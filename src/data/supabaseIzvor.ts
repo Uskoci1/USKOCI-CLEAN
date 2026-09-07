@@ -179,23 +179,45 @@ export const supabaseIzvor: SupabaseIzvor = {
     };
   },
 
-  async poruke(dogovorId: string) {
-    const { data: user } = await supabase.auth.getUser();
+  async poruke(dogovorId: string, expectedAccountId?: string) {
+    const uuid = (value: unknown): value is string => typeof value === 'string' && value.length === 36
+      && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    if (!uuid(dogovorId) || (expectedAccountId !== undefined && !uuid(expectedAccountId))) {
+      throw new Error('MESSAGE_SCOPE_INVALID');
+    }
+    const { data: user, error: authError } = await supabase.auth.getUser();
+    const accountId = user?.user?.id;
+    if (authError || !accountId || (expectedAccountId && expectedAccountId !== accountId)) {
+      throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
+    }
     const { data, error } = await supabase.from('agreement_messages')
-      .select(`id, sender_account_id, body, created_at`)
+      .select(`id, sender_account_id, client_message_id, body, created_at`)
       .eq('agreement_id', dogovorId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true });
 
-    if (error || !data) return [];
+    if (error || !Array.isArray(data)) throw new Error('MESSAGE_READ_FAILED');
+    const { data: current, error: currentError } = await supabase.auth.getUser();
+    if (currentError || current?.user?.id !== accountId) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
 
-    return data.map((r: any) => ({
-      id: r.id,
-      posiljalacIme: r.sender_account_id === user?.user?.id ? 'Ja' : 'Sagovornik',
-      moja: r.sender_account_id === user?.user?.id,
-      telo: r.body,
-      vremeTekst: fTime(r.created_at),
-      procitano: true,
-    }));
+    return data.map((r: any) => {
+      if (!uuid(r?.id) || !uuid(r?.sender_account_id) || typeof r.body !== 'string'
+        || typeof r.created_at !== 'string' || !Number.isFinite(Date.parse(r.created_at))
+        || !(r.client_message_id === null || (typeof r.client_message_id === 'string'
+          && /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/.test(r.client_message_id) && !/\s/.test(r.client_message_id)))) {
+        throw new Error('MESSAGE_PROJECTION_INVALID');
+      }
+      return {
+        id: r.id,
+        clientMessageId: r.client_message_id,
+        posiljalacAccountId: r.sender_account_id,
+        posiljalacIme: r.sender_account_id === accountId ? 'Ja' : 'Sagovornik',
+        moja: r.sender_account_id === accountId,
+        telo: r.body,
+        vremeTekst: fTime(r.created_at),
+        procitano: null,
+      };
+    });
   },
 
   async podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>> {

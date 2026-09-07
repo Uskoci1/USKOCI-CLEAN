@@ -41,6 +41,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Verify Windows Metro cache bound and installed Expo disk compatibility
+        run: node --test scripts/metro-cache-concurrency.test.cjs
+
       - name: TypeScript contract check
         run: npx tsc --noEmit
 
