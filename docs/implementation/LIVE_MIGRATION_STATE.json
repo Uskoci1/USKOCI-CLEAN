@@ -1268,7 +1268,7 @@
     "canonical_source_retirement_pending_live_deploy": false
   },
   "d03_mobile_checkpoint_20260907": {
-    "state": "SOURCE_UNCHANGED_HARNESS_RECORDER_FIXED_NATIVE_REPLAY_PENDING_NOT_CANONICAL",
+    "state": "SOURCE_NATIVE_PROVEN_ORIGINAL_REVIEWED_FOR_PR61_CANONICAL_PROMOTION",
     "integrated_intent_shell_source": "29271e6be7fc519e40941531d37c6d48b0db7ef3",
     "backend_dependency_pr": 55,
     "report": "docs/implementation/D03_CHAT_RECOVERY_20260907.md",
@@ -1280,13 +1280,13 @@
     "canonical_integration": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
     "source_preserved": "1421acfbdbf9ffe0b6bf2fc8116ede6529779a6e",
     "regression_suites": 54,
-    "regression_tests": 467,
-    "native_d03_passed": false,
-    "last_native_run": 34136396782,
-    "last_native_head": "6cd0c6b4147e3399763187374d201ad311fa9f53",
-    "last_native_result": "FAILED_HARNESS_NAMEERROR_CHECK_BEFORE_SEND",
-    "native_artifact_id": 10025037197,
-    "native_artifact_zip_sha256": "c79f5e399806d1b43b850c2842eccc2f8f5c71034f558f8d869728de3760aca2",
+    "regression_tests": 469,
+    "native_d03_passed": true,
+    "last_native_run": 34146855714,
+    "last_native_head": "6ef2c654713c5acf4d3fdd29d3f539da79256ace",
+    "last_native_result": "PASS_ORIGINAL_38_PNG_XML_REVIEWED",
+    "native_artifact_id": 10028710924,
+    "native_artifact_zip_sha256": "38f2ebc8ab633052a4a1997ef2463e18f4bdd077cc6242e742e58480b2491110",
     "inherited_native_checkpoint_pairs_passed": 27,
     "admission_fix_commit": "a792a46",
     "source_admission_tests": 29,
@@ -1294,7 +1294,7 @@
       "jest_suites": 54,
       "jest_tests": 469,
       "typescript": "PASS",
-      "python_harness_tests": 54,
+      "python_harness_tests": 57,
       "source_admission_and_local_guard_tests": 48,
       "migration_integrity": "87_SOURCE_87_RECORDED_LIVE_0_PENDING_PASS",
       "ast": "67_SOURCE_26_PRESENTATION_0_FINDINGS"
@@ -1303,10 +1303,10 @@
     "recorded_live_migrations": 87,
     "pending_forward_migrations": 0,
     "source_validation_evidence": "docs/implementation/evidence/d03-chat-recovery-20260907/canonical670-admission-validation.json",
-    "d03_native_checkpoint_pairs_captured": 1,
-    "keyboard_visibility_proven": false,
-    "offline_retry_proven": false,
-    "terminal_back_proven": false,
+    "d03_native_checkpoint_pairs_captured": 11,
+    "keyboard_visibility_proven": true,
+    "offline_retry_proven": true,
+    "terminal_back_proven": true,
     "prior_failed_native_before_recorder_repair": {
       "last_native_run": 34132073163,
       "last_native_head": "e0682e050f3ac21b43e9a572a028168ca611cf41",
@@ -1325,6 +1325,39 @@
       "migration_integrity": "87/87/0 PASS",
       "production_source_unchanged_from": "6cd0c6b4147e3399763187374d201ad311fa9f53",
       "new_native_acceptance": false
+    },
+    "prior_failed_native_before_acceptance": {
+      "last_native_run": 34136396782,
+      "last_native_head": "6cd0c6b4147e3399763187374d201ad311fa9f53",
+      "last_native_result": "FAILED_HARNESS_NAMEERROR_CHECK_BEFORE_SEND",
+      "native_artifact_id": 10025037197,
+      "native_artifact_zip_sha256": "c79f5e399806d1b43b850c2842eccc2f8f5c71034f558f8d869728de3760aca2",
+      "d03_native_checkpoint_pairs_captured": 1
+    },
+    "native_stable_retry_key_observed": true,
+    "native_proof_head": "6ef2c654713c5acf4d3fdd29d3f539da79256ace",
+    "frozen_native_inputs": 366,
+    "canonical_promotion_pr": 61,
+    "accepted_native_manifest": "docs/implementation/evidence/d03-chat-recovery-20260907/run34146855714/manifest.json",
+    "accepted_native_validation": {
+      "pairs": 38,
+      "inherited": 27,
+      "d03": 11,
+      "original_all_png_xml_reviewed": true,
+      "pre_p4_run": 34146858648,
+      "codeql_run": 34146856039,
+      "actual_analyses": [
+        1737117010,
+        1737115442,
+        1737114976
+      ],
+      "stored_results": 0,
+      "native_db_history": 79,
+      "native_explicit_extensions": 7,
+      "full_canonical_history_replay": false,
+      "independent_apk_bytes_verified": false,
+      "live_access": false,
+      "provider_called": false
     }
   }
 }
