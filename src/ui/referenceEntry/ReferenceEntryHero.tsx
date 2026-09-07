@@ -136,6 +136,13 @@ function LogoLayerView({ layer, timeMs }: { layer: LogoLayer; timeMs: number }) 
   );
 }
 
+/** The operational navigation uses the same completed mark, without intro motion. */
+export function CanonicalMark({ size }: { size: number }) {
+  return <Svg width={size} height={size} viewBox="0 0 512 512" accessible={false}>
+    {ENTRY_LOGO.slojevi.map(layer => <LogoLayerView key={layer.nm} layer={layer} timeMs={END_MS} />)}
+  </Svg>;
+}
+
 function WindowLightView({ light, index, timeMs }: { light: WindowLight; index: number; timeMs: number }) {
   const u = clamp((timeMs - ENTRY_TIMING.CITY_WAKE - light.kasni * 0.72) / 600);
   const fade = u * u * (3 - 2 * u);

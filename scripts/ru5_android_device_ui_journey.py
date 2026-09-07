@@ -355,14 +355,15 @@ def login(email):
     edit_text(1, PASSWORD)
     hide_keyboard()
     tap(text='Prijavite se', prefer='bottom', timeout=30)
-    wait_visible(text='Početna', timeout=60)
+    # Current three-zone shell; login is still through the real Auth sheet.
+    wait_visible(text='MENI TREBA', timeout=60)
 
 
 def switch_to_worker_workspace():
-    tap(text='Profil', prefer='bottom')
-    wait_visible(desc='Pređi u prostor Uskočera')
-    tap(desc='Pređi u prostor Uskočera')
-    wait_visible(text='Prilike', timeout=45)
+    tap(desc='Profil', prefer='top')
+    wait_visible(desc='Pređite na JA MOGU')
+    tap(desc='Pređite na JA MOGU')
+    wait_visible(text='JA MOGU', timeout=45)
 
 
 def dismiss_ok(timeout=15):
@@ -452,7 +453,7 @@ launch_clean()
 login(WORKER_EMAIL)
 shot('AUTH_worker_authenticated')
 switch_to_worker_workspace()
-tap(text='Prilike', prefer='bottom')
+tap(desc='Zadaci', prefer='bottom')
 wait_visible(desc=f'Otvorite priliku {NEED_TITLE}', timeout=45)
 shot('W03_worker_opportunity_list')
 tap(desc=f'Otvorite priliku {NEED_TITLE}')
@@ -476,9 +477,9 @@ response_id = assert_worker_submit()
 launch_clean()
 login(REQUESTER_EMAIL)
 shot('AUTH_requester_authenticated')
-tap(text='Potrebe', prefer='bottom')
-wait_visible(desc=f'Otvori Potrebu {NEED_TITLE}', timeout=45)
-tap(desc=f'Otvori Potrebu {NEED_TITLE}')
+tap(desc='Zadaci', prefer='bottom')
+wait_visible(desc=f'Otvorite Zadatak {NEED_TITLE}', timeout=45)
+tap(desc=f'Otvorite Zadatak {NEED_TITLE}')
 wait_visible(contains='Otvori prijave, ukupno 1', timeout=45)
 tap(contains='Otvori prijave, ukupno 1')
 wait_visible(text='Prijave (1)', timeout=45)

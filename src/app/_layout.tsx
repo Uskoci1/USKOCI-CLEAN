@@ -66,6 +66,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.ground }}>
         <StatusBar style="dark" />
         <Stack
+          key={session?.user.id ?? 'signed-out'}
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: palette.ground },
