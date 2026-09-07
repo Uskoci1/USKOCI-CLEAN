@@ -2,10 +2,31 @@
   "format_version": 3,
   "updated_at": "2026-09-07",
   "notification_checkpoint_20260907": {
-    "canonical_source_head": "0d72d72bc7c3874c25e71db38ff1643e5f170d8f",
+    "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
     "n01": { "pr": 39, "state": "CANONICAL_NOT_LIVE" },
     "n02": { "pr": 40, "state": "CANONICAL_NOT_LIVE", "proof_run": 34094384747, "artifact": 10008095140, "checks_passed": 12 },
     "n03": { "pr": 41, "state": "CANONICAL_NOT_LIVE", "proof_run": 34095038531, "artifact": 10008329926, "checks_passed": 9 },
+    "n04": { "pr": 45, "state": "CANONICAL_ANDROID_NATIVE_PROVEN_BACKEND_NOT_LIVE", "proof_head": "576e56b6f4da1db509f4a269962654ff928a1e3f", "proof_run": 34096462936, "job": 101661103645, "artifact": 10009432265, "original_png_xml_pairs_inspected": 10, "zip_sha256": "0e235d73d2f04b2648156c02c9b23476de5b6985aae4628501298f27d8590cc6", "ios_proven": false, "hardware_proven": false },
+    "n05": { "pr": 43, "state": "CANONICAL_NOT_LIVE", "proof_head": "3a0b90a1199c6556cf70f7b3e732215b25129efe", "proof_run": 34097457917, "job": 101664161588, "artifact": 10009242617, "checks_passed": 9 },
+    "n06": { "pr": 44, "state": "CANONICAL_NOT_LIVE", "proof_head": "fabd58075b3a4dcc6165e6f4d606ce9e89ad5046", "proof_run": 34097846464, "job": 101665338379, "artifact": 10009373812, "checks_passed": 9, "provider_delivery_proven": false },
+    "n07": {
+      "pr": 46,
+      "state": "CANONICAL_PENDING_EXPLICIT_PRODUCTION_APPROVAL",
+      "proof_head": "8a6075bbdc6594161ffe1b8a91327db80d092aa5",
+      "proof_run": 34099067010,
+      "job": 101669088498,
+      "artifact": 10009829534,
+      "zip_sha256": "b5a8d9440ef5d27bb29f5cfa6a809cc9d155ed1756f65d41ec3833ce84cce93a",
+      "combined_authenticated_checks_passed": 6,
+      "regression_suites_passed": 34,
+      "regression_tests_passed": 208,
+      "source_migration_files": 84,
+      "historical_live_snapshot_files": 79,
+      "pending_forward_files": 5,
+      "exact_ordered_source_inventory": "supabase/proofs/notifications/n07_forward_files.json",
+      "applied_historical_bytes_changed": false,
+      "live_write": false
+    },
     "fresh_limited_live_read": {
       "date": "2026-09-07",
       "result": "MIGRATION_LIST_AND_TARGETED_FUNCTION_FINGERPRINTS_READ_SUCCEEDED",
@@ -14,14 +35,17 @@
       "selection_prosrc_md5": "867b280d4131188db3906c1ced7f4c11",
       "message_prosrc_md5": "705f19630e27792639d737bfa41d77c6",
       "emitter_prosrc_md5": "8da91a4736e09b10872bd1240d6e0c8c",
+      "propose_v2_prosrc_md5": "7972e42a84293de069a1ce4b159cd6fd",
+      "respond_change_prosrc_md5": "e0b2079739f81646f592a6575085401b",
+      "event_read_at_present": false,
+      "push_device_revision_present": false,
+      "duplicate_active_push_token_groups": 0,
       "full_live_safety_audit": false,
       "live_write": false,
       "edge_reobserved": false
     },
-    "next": "N04_MOBILE_INBOX_NATIVE_PROOF_PENDING; THEN_DOMAIN_EVENTS_PUSH_CHAT",
-    "n04_initial_proof_head": "576e56b6f4da1db509f4a269962654ff928a1e3f",
-    "n04_initial_run": 34096462936,
-    "canonical_gates": { "pre_p4": 34096030954, "codeql": 34096030976, "control0": 34096030910, "result": "PASS" },
+    "next": "EXPLICIT_N07_PRODUCTION_APPROVAL_THEN_FRESH_PREFLIGHT; INDEPENDENT_PUSH_CHAT_AND_REMAINING_PRODUCT_QUEUE_OPEN",
+    "canonical_gates": { "pre_p4": 34099736749, "codeql": 34099736360, "control0": 34099736849, "result": "PASS" },
     "status_owner": "docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md"
   },
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
@@ -31,14 +55,14 @@
     "name": "USKOCI_ONE_MASTER_IMPLEMENTATION_READY_2026-09-03.zip",
     "sha256": "e063b050dd673485ebb9b1d3e3a556fb0c88dbdda4bacc95eacbf760a31ae988"
   },
-  "canonical_code_checkpoint_before_continuity_docs": "e9d9fd065b0ea895dc37a32bc1707167cd3ed5ec",
+  "canonical_code_checkpoint_before_continuity_docs": "4858370610192b88112673b08bde151793409e99",
   "canonical_head_at_pending_admission": "db818b99034d1f67b9b8cd08c95fe7f416b8e0a0",
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
     "migration_count": 79,
     "head": "20260906141409_clean_ru5_fastest_autofill_retirement",
-    "pending_forward_migrations": 0
+    "pending_forward_migrations": 5
   },
   "edge": {
     "slug": "uskoci-ai-interview",

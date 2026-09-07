@@ -1,8 +1,8 @@
-## CURRENT POINTER — 2026-09-07 / N02 + N03
+## CURRENT POINTER — 2026-09-07 / NOTIFICATIONS + ANDROID INBOX
 
-Current execution status and proof ledger: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02 PR #40 and N03 PR #41 are PROVEN / CANONICAL-NOT-LIVE at `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`; post-merge PRE-P4/CodeQL/Control-0 PASS. Fresh limited live migration/fingerprint reads succeeded this session; older read-blocked statements below describe only the earlier session. No live write occurred. N04 mobile Inbox is in progress; fetch its branch/run before continuing. Do not restart RU-5 physical proof or N01/N02/N03.
+Current status and proof owner: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02/N03/N05/N06 backend source and N04 real Inbox/bell are CANONICAL / PROVEN at recorded boundaries; N04 native Android run34096462936 has all10 original PNG/XML pairs reviewed. N07 five exact forward migrations are canonical at PR #46 / 4858370610192b88112673b08bde151793409e99, with combined proof run34099067010 and canonical PRE-P4/CodeQL/Control-0 PASS. Fresh limited configured Supabase reads succeeded; live still79/head20260906141409, no production write. Explicit authorization and a new exact preflight/postflight are required for live apply. Do not restart closed RU-5 physical/N01–N06 units or mistake source/proof for live/Store readiness.
 
-All older active-cursor claims below are retained historical provenance and cannot override this pointer.
+Older cursor/read-blocked claims below are retained historical provenance, not active instructions. Follow the current status owner for exact SHAs, jobs/artifacts/checksums, pending files and remaining independent work.
 
 ---
 

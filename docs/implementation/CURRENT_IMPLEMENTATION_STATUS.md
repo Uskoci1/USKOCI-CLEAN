@@ -1,3 +1,62 @@
+## CURRENT CHECKPOINT — 2026-09-07 / NOTIFICATIONS EXECUTION CLOSURE
+
+This is the current status owner. Retained sections below are historical evidence, not active cursors. Verified implementation baseline: `4858370610192b88112673b08bde151793409e99`. Fetch current canonical before the next write.
+
+| Unit | Canonical outcome | Strongest inspected proof | Canonical PRE-P4 / CodeQL / Control-0 |
+| --- | --- | --- | --- |
+| N02 Selection → Worker event | PR #40 / `175c0004670d928f63afe5925dee72849ca7d659`, NOT LIVE | 12/12 authenticated checks, run34094384747 | 34095097976 / 34095097864 / 34095097982 PASS |
+| N03 event Inbox backend | PR #41 / `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`, NOT LIVE | 9/9 authenticated checks, run34095038531 | 34096030954 / 34096030976 / 34096030910 PASS |
+| N04 real mobile Inbox/bell | PR #45 / `b6c3739299db0751be42cc5abaab9b75eea747d7`, CANONICAL; backend promotion pending | Android native run34096462936 / job101661103645 / artifact10009432265; 10 original PNG/XML pairs reviewed | 34098833164 / 34098832943 / 34098833131 PASS |
+| N05 change proposal/reject/version events | PR #43 / `77bdf16f2a928c054f7604631b277e87e1425a3c`, NOT LIVE | 9/9 authenticated checks, run34097457917 / job101664161588 / artifact10009242617 | 34098026482 / 34098026294 / 34098026477 PASS |
+| N06 Expo device registry | PR #44 / `6af6ab23118660840cce38d9f9befaec07b5df45`, NOT LIVE | 9/9 authenticated race/security checks, run34097846464 / job101665338379 / artifact10009373812 | 34098467937 / 34098467652 / 34098467871 PASS |
+
+N01 MESSAGE_RECEIVED remains canonical at PR #39 / `abd147d64eab616045d450f87e36ca5759a63e5d`, NOT LIVE. N02/N03 raw candidate and artifact digests remain in the preserved detailed checkpoint below. N04/N05/N06 evidence ZIP SHA-256s match GitHub API metadata:
+
+- N04: `0e235d73d2f04b2648156c02c9b23476de5b6985aae4628501298f27d8590cc6`; proof APK `aaed875c72ef96de5ce81fa70ca81270281628ac1731891cf3f8c7a80dc85e58`; exact source `576e56b6f4da1db509f4a269962654ff928a1e3f`.
+- N05: `4c12ef7ba930975a657ef086ae925e9be719215ed62a0cb59664fefbc77a74ea`; candidate `c4b900ce41086a2aa62653690013d6525c660e66f9616f00f7b170b543f06f1c`; exact source `3a0b90a1199c6556cf70f7b3e732215b25129efe`.
+- N06: `89986bce6cea342b1d38eb69967e214296a9b06d6a4eabb169903ad77a4b8de4`; candidate `07c0a68c3f305d14b55822782d6088ee54329c97efcc36bf9904496e12187d80`; exact source `fabd58075b3a4dcc6165e6f4d606ce9e89ad5046`.
+
+### What these units actually establish
+
+N04 reads only the validated server event projection. Real role filters, paging, unread, read/read-all, refresh, empty, failure/retry and unavailable targets replace the inert bell/fake dot. Read acknowledgment is server-owned; delayed results cannot publish or navigate after blur/logout. Android proof signed in two real accounts through production UI, verified role-empty, requester1→0/bell0, worker32→31 on real Agreement tap, actual oldest rows on the second page, then all32 read. Delivery read timestamps and push attempts stayed untouched. Light ivory/forest/orange layout and all10 original PNG/XML pairs were inspected. Known System UI/launcher starvation dialogs were dismissed only with Wait; there was no application ANR bypass, Auth injection, JS navigation, or RPC business fallback. This is Android emulator native proof, NOT iOS or two-hardware-phone/Store proof.
+
+N05 preserves the admitted bilateral protocol except three counterpart event insertions. A forced event exception rolls back proposal, rejection and all accepted-version changes. Existing grants, emitter, search_path, private terms and non-activation boundaries remain unchanged. A failed first verifier run34097121544 assumed RLS denial must raise; the corrected verifier requires error-or-zero affected rows plus exact state equality. SQL candidate bytes did not change for that correction.
+
+N06 keeps `notification_push_devices` as sole registry owner. Narrow authenticated commands derive user identity, serialize by transport address, compare revisions, acknowledge exact retries, create revoke-before-register tombstones, and atomically move active token ownership between accounts while invalidating the old revision. Direct device writes are denied. Registration NEVER changes opt-in, queues attempts or calls Expo. Native permission/token acquisition/rotation and dispatcher/ticket/receipt delivery remain separate work.
+
+### N07 forward promotion admission
+
+N07 exact source `8a6075bbdc6594161ffe1b8a91327db80d092aa5`, PR #46: combined proof run34099067010 / job101669088498 / artifact10009829534 **6/6 PASS**. ZIP SHA-256 `b5a8d9440ef5d27bb29f5cfa6a809cc9d155ed1756f65d41ec3833ce84cce93a` matched GitHub metadata; actual report/log inspected. TypeScript and 34 suites / 208 tests PASS. Exact files applied sequentially only to disposable live79 →84; real Selection/message/proposal/accept/reject/Inbox/registry coexist, owner restrictions and rollback hold. Canonical merge `4858370610192b88112673b08bde151793409e99`; post-merge PRE-P4 34099736749 / CodeQL 34099736360 / Control-0 34099736849 all SUCCESS.
+
+Five separate files preserve proven candidate SQL after a two-line provenance-only prefix. Applied79 migration files and historical live snapshot are unchanged. Historical replay excludes future pending files before bootstrap. `n07_forward_files.json` freezes only source bytes/hashes, not live-state claims, so proof remains reproducible after a future pending→live transition.
+
+| Order | Exact forward file under `supabase/migrations/` | Raw MD5 |
+| --- | --- | --- |
+| 1 | `20260907080000_clean_n01_message_event.sql` | `4ed2e7bac92d8c54c9b1338fb831e630` |
+| 2 | `20260907080100_clean_n02_selection_event.sql` | `3e3f39ebb4c331fbf189358f5b4e27af` |
+| 3 | `20260907080200_clean_n03_event_inbox.sql` | `d7d05cec995093fc97c53bf4c171d8c3` |
+| 4 | `20260907080300_clean_n05_agreement_change_events.sql` | `059378cd24fb4d05d040b96ade02e80a` |
+| 5 | `20260907080400_clean_n06_push_device_registry.sql` | `c078ffda2fa68264dd9f0d934c69b05a` |
+
+SHA-256s are also recorded in the migration/proof inventories. These are **PENDING PRODUCTION APPLY**, not live migrations.
+
+### Live observation and authorization boundary
+
+Fresh limited configured-connector reads on 2026-09-07 succeeded: **79 / 20260906141409_clean_ru5_fastest_autofill_retirement**; event `read_at` absent; push-device `revision` absent; duplicate active token groups0. Earlier read-blocked statements belong only to the earlier session. Targeted predecessor fingerprints are in this document and PR43. This is NOT a fresh full production safety audit or permission to apply migrations. Live SQL/schema/Edge/provider state was NOT mutated during these units. Edge was not reobserved; preserved Edge metadata is historical.
+
+**Production promotion is OWNER-ACTION / explicit authorization required for the exact reviewed forward files, followed by a new fresh preflight and immediate per-file postflight.** Do not silently deploy because a proof or PR is green. This boundary follows the USKOČI continuation safety rule. No payments/subscription/HITNO/D0140 production ALLOW/RU-4B public Q&A/Application AI/FASTEST/AUTO_FILL activation is included.
+
+### Exact continuation queue / honest remaining scope
+
+1. Obtain explicit production apply authorization for the five N07-admitted files. Then repeat fresh targeted preflight and promote only exact reviewed files in order; record actual source/live aliases and immediate postflight without rewriting applied bytes. Source admission and canonical gates are complete; production approval is not inferred.
+2. Complete mobile Expo permission/token registration/revoke/rotation/preferences and trusted queue claim/tickets/receipts. No blind resend for unknown provider outcomes; no sensitive payloads. Actual FCM/APNs/EAS provider configuration and physical push tests are OWNER-ACTION where credentials are absent.
+3. Finish remaining execution/access/recovery domain events and real Chat ordering/pagination/read/retry. Existing proposal same-key/different-patch semantics and complete typed bilateral-change UX remain open; N05 event wiring does not repair or close them.
+4. Continue Reviews/trust, availability/calendar hard-overlap, OAuth readiness, data-rights phases, media cleanup, identity, MapPort/LocationPort, UI and release verification from the existing master queue. These are NOT completed or all owner-blocked by this session. The unrelated Home `potreba('ormar')` fetch/aggregate error handling is a real source gap; repair in its own runtime-tested surface unit.
+
+RU-5 physical accepted journey remains CLOSED / PROVEN / CANONICAL. Bounded-note authority stays DECISION-REQUIRED and Application AI stays OFF. Legal retention, identity vendor and undefined attachment policy remain owner decisions; OAuth/Maps/Store/provider credentials are never fabricated. P0D03 remains REQUESTER_SELECTION_V1/v1/REQUESTER/SELECTION/PROMOTIONAL_FREE/HEADCOUNT/0 RSD with no Worker debit. **The whole app is not yet Store-ready.**
+
+---
+
 ## CURRENT CHECKPOINT — 2026-09-07 / N02 + N03 CANONICAL, NOT LIVE
 
 This section supersedes retained historical cursors below. Current implementation baseline is canonical `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`. Fetch again before the next unit. RU-5 physical journey remains CLOSED / PROVEN / CANONICAL; its aggregate bounded-note decision and Application AI gate remain unresolved.
