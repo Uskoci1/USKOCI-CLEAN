@@ -138,8 +138,17 @@ assert_shell('requester')
 wait_visible(desc=f'Otvorite Zadatak {NAV_NEED_TITLE}')
 shot('NAV_requester_tasks')
 
+conversation_count_sql = (
+    "select count(*) from public.ai_conversations "
+    f"where account_id='{REQUESTER_USER_ID}' and purpose='NEED_INTAKE' and fact_schema_version='NEED_FACT_V2'"
+)
+conversations_before = int(psql(conversation_count_sql))
 tap(desc='Novi Zadatak', prefer='bottom')
 wait_visible(text='Recite šta Vam treba')
+conversations_after = int(psql(conversation_count_sql))
+assert conversations_after == conversations_before + 1, 'Novi must open one owned local AI conversation'
+print(f'CHECKPOINT LOCAL_AI_CONVERSATION_OPEN account={REQUESTER_USER_ID} '
+      f'before={conversations_before} after={conversations_after} no_message_no_publication', flush=True)
 shot('NAV_requester_new_task')
 tap(desc='Zadaci', prefer='bottom')
 assert_shell('requester')
@@ -172,6 +181,7 @@ assert_profile(REQUESTER_USER_ID, 'WORKER')
 shot('NAV_same_account_worker_profile')
 tap(desc='Odjavite se')
 wait_visible(desc='Prijavi se', timeout=60)
+assert_signed_out_surface()
 root, _, _ = dump_tree()
 assert NAV_NEED_TITLE not in labels(root)
 shot('NAV_signed_out')
@@ -216,4 +226,4 @@ assert psql('select count(*) from public.notification_push_attempts') == '0'
 assert psql('select count(*) from public.notification_deliveries where read_at is not null') == '0'
 assert_gates_unchanged()
 print('PASS PHYSICAL_INTENT_SHELL two_intents three_zones real_profiles inbox_back detail_back '
-      'ui_logout different_account_no_clear no_fake_map no_business_mutation no_push', flush=True)
+      'ui_logout different_account_no_clear no_fake_map no_application_selection_mutation no_push', flush=True)

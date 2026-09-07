@@ -299,6 +299,25 @@ def shot(name):
     print(f'EVIDENCE {name}', flush=True)
 
 
+def assert_no_private_tabs(root, height):
+    private_destinations = {'Zadaci', 'Novi', 'Novi Zadatak', 'Prijave', 'Dogovori', 'Profil', 'Početna'}
+    for node in root.iter():
+        names = {node.attrib.get('text', ''), node.attrib.get('content-desc', '')}
+        if names.intersection(private_destinations) and parse_bounds(node.attrib.get('bounds'))[1] >= height * 0.75:
+            raise AssertionError('Private bottom destination visible on signed-out Auth screen')
+
+
+def assert_signed_out_surface():
+    # Called only after observing the actual Auth entry control, never as a
+    # substitute for login visibility or as a route/auth bypass.
+    root, _, _ = dump_tree()
+    if not any(node.attrib.get('content-desc') == 'Prijavi se' for node in root.iter()):
+        raise AssertionError('Signed-out Auth entry is not visible')
+    height = int(re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').stdout)[-1][1])
+    assert_no_private_tabs(root, height)
+    print('CHECKPOINT SIGNED_OUT_AUTH_NO_PRIVATE_TABS', flush=True)
+
+
 def launch_clean():
     adb('shell', 'am', 'force-stop', PACKAGE, check=False)
     adb('shell', 'pm', 'clear', PACKAGE, check=False)
@@ -317,6 +336,7 @@ def launch_clean():
     )
     time.sleep(2)
     wait_visible(timeout=90, desc='Prijavi se')
+    assert_signed_out_surface()
 
 
 def open_login_sheet():

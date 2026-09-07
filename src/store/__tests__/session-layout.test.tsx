@@ -54,6 +54,22 @@ afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 async function render() { await act(async () => { tree = create(<RootLayout />); }); }
 
 describe('session-owned root return navigation', () => {
+  it('exposes only Auth at cold signed-out startup and excludes every private root route', async () => {
+    mockRendered = { ...mockRendered, session: null, user: null };
+    mockCurrent = mockRendered;
+    await render();
+    const stack = tree.root.findByType('Stack' as React.ElementType);
+    expect(stack.props.screens).toEqual(['auth']);
+    expect(stack.props.protectedScreens.sort()).toEqual(['(app)', 'dogovor/[id]', 'obavestenja', 'prijave']);
+  });
+
+  it('exposes the four private root routes only after authentication and excludes Auth', async () => {
+    await render();
+    const stack = tree.root.findByType('Stack' as React.ElementType);
+    expect(stack.props.screens.sort()).toEqual(['(app)', 'dogovor/[id]', 'obavestenja', 'prijave']);
+    expect(stack.props.protectedScreens).toEqual(['auth']);
+  });
+
   it.each([
     [{ kind: 'REQUESTER_DRAFT', draftKey: 'draft-1' }, { pathname: '/nova', params: { conversationId: 'draft-1' } }],
     [{ kind: 'NEED', needId: 'need-1' }, { pathname: '/potrebe/[id]/pregled', params: { id: 'need-1' } }],

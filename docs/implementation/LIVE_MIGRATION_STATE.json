@@ -1,4 +1,13 @@
 {
+  "mobile_execution_checkpoint_20260907": {
+    "canonical_baseline": "f4a687fbb1049ae118030e859da97a68c92e327f",
+    "intent_shell_pr": 49,
+    "state": "IMPLEMENTED_UNDER_PROOF",
+    "failed_android_run": 34104812406,
+    "failure": "Signed-out child redirect won over root Auth effect; navigator protection and session repair pending new native acceptance",
+    "live_change": false,
+    "report": "docs/implementation/INTENT_SHELL_20260907.md"
+  },
   "action_pins_checkpoint_20260907": {
     "pr": 48,
     "state": "CANONICAL_CODEQL_ALERTS_FIXED",

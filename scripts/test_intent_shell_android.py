@@ -16,6 +16,7 @@ for filename in ('ru5_android_device_ui_journey.py', 'intent_shell_android_journ
     source = Path(__file__).with_name(filename)
     exec(compile(load_functions(source), str(source), 'exec'), namespace)
 assert_shell_tree = namespace['assert_shell_tree']
+assert_no_private_tabs = namespace['assert_no_private_tabs']
 
 
 def tree(names, disabled=()):
@@ -66,6 +67,16 @@ class IntentShellSelectors(unittest.TestCase):
     def test_disabled_historical_profile_is_still_not_allowed(self):
         with self.assertRaisesRegex(AssertionError, 'Historical bottom destination'):
             self.assert_shell(('Zadaci', 'Novi Zadatak', 'Dogovori', 'Profil'), ('Zadaci', 'Novi Zadatak', 'Dogovori'), ('Profil',))
+
+    def test_signed_out_auth_accepts_real_auth_controls_without_private_tabs(self):
+        root, _ = tree(('Prijavi se', 'Treba mi neko', 'Hoću da uskočim'))
+        assert_no_private_tabs(root, 2400)
+
+    def test_signed_out_auth_rejects_private_tabs_even_with_auth_control_present(self):
+        root, _ = tree(('Zadaci', 'Novi Zadatak', 'Dogovori'))
+        ET.SubElement(root, 'node', {'content-desc': 'Prijavi se', 'bounds': '[0,400][200,500]'})
+        with self.assertRaisesRegex(AssertionError, 'Private bottom destination'):
+            assert_no_private_tabs(root, 2400)
 
 
 if __name__ == '__main__':

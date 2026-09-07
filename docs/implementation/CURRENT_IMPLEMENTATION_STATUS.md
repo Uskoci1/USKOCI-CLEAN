@@ -1,3 +1,16 @@
+<!-- EXECUTION_V3_CHECKPOINT_20260907 -->
+## Current execution — V3 / intent shell and session safety
+
+The owner supplied and explicitly adopted the complete V3 execution addendum during this continuing session. Execution method follows `docs/governance/2026-09-07/01_USKOCI_CODEX_ULTRA_EXECUTION_MASTER_V3_2026-09-07.md`; current product/UI differences follow the preserved 06.09 reconstruction and 28-surface blueprint in that directory. No repeated admission or return to a historical HEAD is required. Profile is an avatar destination; the final three-zone model has no permanent Home/Profile tab or combined discovery mode.
+
+Fresh canonical baseline is `f4a687fbb1049ae118030e859da97a68c92e327f` (PR #52), after PR #48 workflow pinning and PR #50 live84 provenance. PR #51 pins only Xcode's uuid to 11.1.1; the real native generator dependency contract and canonical 35 suites / 209 tests passed. Canonical PRE-P4 `34105922292`, CodeQL `34105927999`, Control-0 `34105922230` passed; all three exact-HEAD CodeQL analyses have zero results and the open-alert API is empty. PR #52 additionally routes query-string through a small CommonJS adapter to the official patched URL decoder 0.5.0. Clean install, real Router dependency tests, Android/Hermes bundle and PR CI/CodeQL passed; npm audit reports zero vulnerabilities. Its post-merge gates are verified separately. Release gaps remain open.
+
+PR #49 is IMPLEMENTED / UNDER PROOF until its final native evidence is accepted. Original Android run `34104812406` built the APK but exposed a signed-out navigation race before Auth input; that failed run is retained, not accepted. The repair protects every private root route in the navigator and combines epoch-scoped session/return-target handling before the next whole journey. See `docs/implementation/INTENT_SHELL_20260907.md` for the precise boundary and subsequent proof. N08 preference validation is separate source/disposable work; no N08 live change has occurred.
+
+Live remains the physically proven **84 / `20260907090645_clean_n06_push_device_registry`** checkpoint below. Native push transport/credentials, unsupported AI/HITNO/publication activation and Store acceptance remain open; current charge is 0 RSD. Older active-cursor statements below are historical wherever superseded here.
+
+---
+
 ## CURRENT POINTER — 2026-09-07 / N07 LIVE84
 
 N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
