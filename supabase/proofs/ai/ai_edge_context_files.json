@@ -14,8 +14,8 @@
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-      "bytes": 9675,
-      "sha256": "fd3429dcb662e14cb5696768eadae381da20fd0689bf46ab598ffbd1f628a2ef"
+      "bytes": 9685,
+      "sha256": "f70559c946254e7e3dd4edc373cfdcbb3cf581b35f041cd62298ccc499f54e65"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",

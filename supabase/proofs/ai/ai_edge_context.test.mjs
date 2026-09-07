@@ -95,7 +95,7 @@ for(const provider of ['gemini','openai'])test(`${provider} actual handler sends
   assert.equal(timeContext(call).timeZone,'Europe/Belgrade');
   if(provider==='gemini'){
     assert.equal(call.headers['x-goog-api-key'],f.env.GEMINI_API_KEY);assert.equal(new URL(call.url).search,'');
-    assert.ok(!call.url.includes(f.env.GEMINI_API_KEY));assert.ok(!f.calls.some(x=>x.url.includes('api.openai.com')));
+    assert.ok(!call.url.includes(f.env.GEMINI_API_KEY));assert.ok(!f.calls.some(x=>new URL(x.url).hostname==='api.openai.com'));
   }else{assert.equal(call.headers.authorization,`Bearer ${f.env.OPENAI_API_KEY}`);assert.equal(call.body.store,false);}
   const persist=f.calls.find(x=>x.url.includes('/rpc/rpc_ai_apply_interview_turn_v2_service'));assert.ok(persist);
   assert.equal(persist.headers.authorization,'Bearer SYNTHETIC_SERVICE_KEY');assert.equal(persist.body.p_account_id,owner);
