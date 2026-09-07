@@ -380,7 +380,7 @@ def dismiss_ok(timeout=15):
 
 def assert_worker_submit():
     row = psql(f"""
-select r.id::text || '|' || r.state || '|' || r.price_rsd::text || '|' || r.covered_slots::text
+select r.id::text || '|' || r.status || '|' || r.price_rsd::text || '|' || r.covered_slots::text
 from public.marketplace_responses r
 join public.app_profiles p on p.id=r.worker_profile_id
 where r.need_id='{NEED_ID}'::uuid and p.account_id='{WORKER_USER_ID}'::uuid;
