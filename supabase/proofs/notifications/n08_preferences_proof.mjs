@@ -38,11 +38,11 @@ try{
   const message=body=>requester.rpc('rpc_send_agreement_message',{p_agreement_id:agreement.id,p_body:body});
   check('PREDECESSOR_AUTHENTICATED_INVALID_TIMEZONE_ROLLS_BACK_COUNTERPART_MESSAGE');
   await ok(worker.from('notification_preferences').upsert({user_id:env.RU5_DEVICE_WORKER_USER_ID,
-    role_context:'WORKER',quiet_hours_enabled:true,quiet_start:'22:00',quiet_end:'08:00',
-    quiet_timezone:'Invalid_Nonexistent_Zone'}));
+    role_context:'WORKER',push_enabled:true,quiet_hours_enabled:true,quiet_start:'22:00',quiet_end:'08:00',
+    quiet_timezone:'USKOCI_INVALID_TIMEZONE'}));
   const prefs=await ok(worker.from('notification_preferences')
     .select('role_context,quiet_hours_enabled,quiet_start,quiet_end,quiet_timezone,push_enabled').single());
-  assert.equal(prefs.quiet_timezone,'Invalid_Nonexistent_Zone');
+  assert.equal(prefs.quiet_timezone,'USKOCI_INVALID_TIMEZONE');
   assert.equal(prefs.quiet_hours_enabled,true);
   report.predecessor_observation={preferences:prefs,
     quiet_function_md5:sql("select md5(prosrc) from pg_proc where oid='private.in_quiet_hours(public.notification_preferences)'::regprocedure"),
@@ -55,7 +55,7 @@ try{
   assert.deepEqual(snapshot(),before,'domain message/event/deliveries roll back together');
   report.reproduction={owner_write:'AUTHENTICATED_ACCEPTED',counterpart_rpc:'rpc_send_agreement_message',
     error_code:failed.error.code,error_class:'UNRECOGNIZED_TIME_ZONE',before,after:snapshot(),
-    push_enabled:false};
+    push_enabled:true};
   pass();
   check('PREDECESSOR_RECOVERS_AFTER_OWNER_REMOVES_INVALID_PREFERENCE');
   await ok(worker.from('notification_preferences').delete().eq('role_context','WORKER'));
