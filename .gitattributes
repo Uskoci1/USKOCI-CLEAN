@@ -7,3 +7,4 @@ supabase/proofs/** text eol=lf
 docs/implementation/evidence/**/*.json text eol=lf
 supabase/proofs/notifications/n08_preferences_candidate.sql text eol=lf
 docs/implementation/evidence/n08-preferences-20260907/*.log text eol=lf
+docs/implementation/evidence/intent-shell-auth-20260907/** -text whitespace=cr-at-eol

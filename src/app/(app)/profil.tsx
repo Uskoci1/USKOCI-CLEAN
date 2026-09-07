@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, ArrowsLeftRight, User, CaretRight, SignOut } from 'phosphor-react-native';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { supabaseKlijent } from '../../data/supabaseClient';
+import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { T } from '../../ui/Text';
@@ -13,11 +13,12 @@ import { Button, Card } from '../../ui/Button';
 import { palette, space, radius, elevation, touch } from '../../theme/tokens';
 import { useUloga, postaviUlogu, ulogaSada } from '../../store/uloga';
 
-type ActionScope = { accountId: string; intent: ReturnType<typeof useUloga>; busy: boolean };
+type ActionScope = { accountId: string; accountRevision: number; intent: ReturnType<typeof useUloga>; busy: boolean };
 
 export default function Profil() {
   const uloga = useUloga();
-  const accountId = useSesija().user?.id;
+  const { user, accountRevision } = useSesija();
+  const accountId = user?.id;
   const narucilac = uloga === 'narucilac';
   const load = useCallback(() => ownProfileClientService.read(accountId ?? '', uloga), [accountId, uloga]);
   const profile = useFocusedResource(load);
@@ -26,15 +27,16 @@ export default function Profil() {
   const [logoutError, setLogoutError] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    const scope: ActionScope | null = accountId ? { accountId, intent: uloga, busy: false } : null;
+    const scope: ActionScope | null = accountId ? { accountId, accountRevision, intent: uloga, busy: false } : null;
     actionScope.current = scope;
     setBusy(false);
     setLogoutError(false);
     return () => { if (actionScope.current === scope) actionScope.current = null; };
-  }, [accountId, uloga]));
+  }, [accountId, accountRevision, uloga]));
 
   function isCurrent(scope: ActionScope) {
-    return actionScope.current === scope && sesijaSada().user?.id === scope.accountId && ulogaSada() === scope.intent;
+    return actionScope.current === scope && sesijaSada().user?.id === scope.accountId &&
+      sesijaSada().accountRevision === scope.accountRevision && ulogaSada() === scope.intent;
   }
 
   function beginAction() {
@@ -55,9 +57,7 @@ export default function Profil() {
     if (!scope) return;
     setLogoutError(false);
     try {
-      // This device only; the session owner clears local intent and routes to Auth.
-      const { error } = await supabaseKlijent().auth.signOut({ scope: 'local' });
-      if (error && isCurrent(scope)) setLogoutError(true);
+      await authClientService.signOutLocal({ accountId: scope.accountId, accountRevision: scope.accountRevision });
     } catch {
       if (isCurrent(scope)) setLogoutError(true);
     } finally {

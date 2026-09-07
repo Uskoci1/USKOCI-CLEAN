@@ -7,8 +7,9 @@ const mockSegments = ['(app)'];
 const mockConsume = jest.fn();
 const mockRole = jest.fn();
 const mockSession = { user: { id: 'account-a' } } as Session;
-let mockRendered: { isLoaded: boolean; session: Session | null; user: Session['user'] | null; sessionEpoch: number; returnTargetRevision: number } =
-  { isLoaded: true, session: mockSession, user: mockSession.user, sessionEpoch: 1, returnTargetRevision: 0 };
+let mockStackMounts = 0;
+let mockRendered: { isLoaded: boolean; session: Session | null; user: Session['user'] | null; sessionEpoch: number; accountRevision: number; returnTargetRevision: number } =
+  { isLoaded: true, session: mockSession, user: mockSession.user, sessionEpoch: 1, accountRevision: 1, returnTargetRevision: 0 };
 let mockCurrent = mockRendered;
 
 jest.mock('react-native', () => {
@@ -24,7 +25,9 @@ jest.mock('expo-router', () => {
   const { useFilterScreenChildren } = require('expo-router/build/layouts/withLayoutContext');
   const Stack = ({ children }: { children?: React.ReactNode }) => {
     const filtered = useFilterScreenChildren(children);
+    const [instance] = React.useState(() => ++mockStackMounts);
     return React.createElement('Stack', {
+      instance,
       screens: filtered.screens.map((screen: { name: string }) => screen.name),
       protectedScreens: Array.from(filtered.protectedScreens),
     });
@@ -46,7 +49,8 @@ let tree: ReactTestRenderer;
 beforeEach(() => {
   jest.clearAllMocks();
   mockSegments.splice(0, mockSegments.length, '(app)');
-  mockRendered = { isLoaded: true, session: mockSession, user: mockSession.user, sessionEpoch: 1, returnTargetRevision: 0 };
+  mockStackMounts = 0;
+  mockRendered = { isLoaded: true, session: mockSession, user: mockSession.user, sessionEpoch: 1, accountRevision: 1, returnTargetRevision: 0 };
   mockCurrent = mockRendered;
   mockConsume.mockResolvedValue(null);
 });
@@ -54,6 +58,25 @@ afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 async function render() { await act(async () => { tree = create(<RootLayout />); }); }
 
 describe('session-owned root return navigation', () => {
+  it('replaces private navigation state after batched A→B→A even when the rendered account id matches', async () => {
+    await render();
+    const before = tree.root.findByType('Stack' as React.ElementType).props.instance;
+    mockCurrent = { ...mockRendered, user: { ...mockSession.user, id: 'account-b' }, accountRevision: 2, sessionEpoch: 2 };
+    mockCurrent = { ...mockRendered, accountRevision: 3, sessionEpoch: 3 };
+    mockRendered = mockCurrent;
+    await act(async () => tree.update(<RootLayout />));
+    expect(tree.root.findByType('Stack' as React.ElementType).props.instance).not.toBe(before);
+  });
+
+  it('retains private navigation state across a same-account token refresh', async () => {
+    await render();
+    const before = tree.root.findByType('Stack' as React.ElementType).props.instance;
+    mockRendered = { ...mockRendered, sessionEpoch: 2, session: { ...mockSession, access_token: 'refreshed' } };
+    mockCurrent = mockRendered;
+    await act(async () => tree.update(<RootLayout />));
+    expect(tree.root.findByType('Stack' as React.ElementType).props.instance).toBe(before);
+  });
+
   it('exposes only Auth at cold signed-out startup and excludes every private root route', async () => {
     mockRendered = { ...mockRendered, session: null, user: null };
     mockCurrent = mockRendered;

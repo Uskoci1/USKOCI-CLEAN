@@ -10,6 +10,7 @@ type SesijaStanje = {
   session: Session | null;
   user: User | null;
   sessionEpoch: number;
+  accountRevision: number;
   returnTargetRevision: number;
 };
 
@@ -18,6 +19,7 @@ let trenutna: SesijaStanje = {
   session: null,
   user: null,
   sessionEpoch: 0,
+  accountRevision: 0,
   returnTargetRevision: 0,
 };
 
@@ -58,6 +60,7 @@ export function inicijalizujSesiju() {
 
 function acceptSession(session: Session | null, signedOut = false) {
   const previousUserId = trenutna.user?.id;
+  const identityChanged = previousUserId !== session?.user.id;
   const changedAccount = !!previousUserId && previousUserId !== session?.user.id;
   trenutna = {
     ...trenutna,
@@ -65,6 +68,9 @@ function acceptSession(session: Session | null, signedOut = false) {
     session,
     user: session?.user ?? null,
     sessionEpoch: trenutna.sessionEpoch + 1,
+    // Unlike an Auth-event epoch, identity ownership survives token refresh.
+    // Every A→B→A transition remains visible even when React batches renders.
+    accountRevision: trenutna.accountRevision + (identityChanged ? 1 : 0),
   };
   const epoch = trenutna.sessionEpoch;
   if (signedOut || changedAccount) {

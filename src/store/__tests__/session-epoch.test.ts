@@ -56,6 +56,27 @@ beforeEach(() => {
 afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
 
 describe('actual session store ownership', () => {
+  it('increments account revision for every identity transition, including batched A→B→A, but not token refresh', () => {
+    store.inicijalizujSesiju();
+    expect(store.sesijaSada().accountRevision).toBe(0);
+    emit('INITIAL_SESSION', null);
+    expect(store.sesijaSada().accountRevision).toBe(0);
+    emit('SIGNED_IN', session('account-a'));
+    expect(store.sesijaSada().accountRevision).toBe(1);
+    roles.postaviUlogu('uskocer');
+    emit('TOKEN_REFRESHED', session('account-a', 'refreshed'));
+    expect(store.sesijaSada().accountRevision).toBe(1);
+    expect(roles.ulogaSada()).toBe('uskocer');
+    emit('SIGNED_IN', session('account-b'));
+    emit('SIGNED_IN', session('account-a', 'new-login'));
+    expect(store.sesijaSada().accountRevision).toBe(3);
+    expect(roles.ulogaSada()).toBe('narucilac');
+    emit('SIGNED_OUT', null);
+    expect(store.sesijaSada().accountRevision).toBe(4);
+    emit('SIGNED_OUT', null);
+    expect(store.sesijaSada().accountRevision).toBe(4);
+  });
+
   it.each(['SIGNED_OUT', 'SIGNED_IN'] as const)('ignores old restore success after newer %s', async event => {
     store.inicijalizujSesiju();
     emit(event, event === 'SIGNED_IN' ? session('account-b') : null);
