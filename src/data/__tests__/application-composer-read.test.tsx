@@ -9,6 +9,7 @@ const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mock
 const mockRouter = { replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockAlert = jest.fn();
 let mockId: string | undefined = 'task-a';
+let mockFocused = true;
 
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -18,7 +19,10 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId }) }));
+jest.mock('expo-router', () => ({
+  useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId }),
+  useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]),
+}));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
@@ -30,13 +34,50 @@ const text = () => tree!.root.findAll(node => String(node.type) === 'T').flatMap
 const button = (label: string) => tree!.root.findByProps({ label }).props.onPress;
 const sendButtons = () => tree!.root.findAllByProps({ label: 'Pošalji prijavu' });
 beforeEach(() => {
-  jest.clearAllMocks(); mockTask.mockReset(); mockId = 'task-a'; mockRouter.canGoBack.mockReturnValue(true);
+  jest.clearAllMocks(); mockTask.mockReset(); mockId = 'task-a'; mockFocused = true; mockRouter.canGoBack.mockReturnValue(true);
   mockNeed.mockResolvedValue({ id: 'task-a', revizija: 1, pokrivenost: { ukupno: 1, preostalo: 1 } });
   mockProfile.mockResolvedValue({ id: 'worker-a', stanje: 'ACTIVE' });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 
 describe('existing W05 consumer read-error compatibility', () => {
+  it('rearms read and Retry when Back returns to the same still-mounted hidden tab', async () => {
+    mockTask.mockRejectedValueOnce(new Error('first outage')).mockRejectedValueOnce(new Error('second outage'))
+      .mockResolvedValueOnce({ id: 'task-a', naslov: 'Restored task' });
+    await render();
+    await act(async () => button('Nazad na zadatak')());
+    mockFocused = false;
+    await act(async () => tree!.update(<Composer />));
+    expect(mockTask).toHaveBeenCalledTimes(1);
+    mockFocused = true;
+    await act(async () => tree!.update(<Composer />));
+    expect(mockTask).toHaveBeenCalledTimes(2);
+    expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati');
+    const retry = button('Pokušajte ponovo');
+    await act(async () => { retry(); retry(); });
+    expect(mockTask).toHaveBeenCalledTimes(3);
+    expect(sendButtons()).toHaveLength(1);
+    expect(text()).toContain('Restored task');
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it('ignores an unfinished read after blur and revalidates on the next focus', async () => {
+    let finish!: (value: unknown) => void;
+    mockTask.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }))
+      .mockRejectedValueOnce(new Error('current outage'));
+    await render();
+    mockFocused = false;
+    await act(async () => tree!.update(<Composer />));
+    await act(async () => finish({ id: 'task-a', naslov: 'Late blurred data' }));
+    expect(sendButtons()).toHaveLength(0);
+    expect(text()).not.toContain('Late blurred data');
+    mockFocused = true;
+    await act(async () => tree!.update(<Composer />));
+    expect(mockTask).toHaveBeenCalledTimes(2);
+    expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati');
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
   it('catches the detail port rejection, shows retry, and recovers to the existing composer without a mutation', async () => {
     mockTask.mockRejectedValueOnce(new Error('private transport detail')).mockResolvedValueOnce({ id: 'task-a', naslov: 'Selidba' });
     await render();

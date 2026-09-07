@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { View, ScrollView, TextInput, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { T } from "../../../../ui/Text";
 import { Button } from "../../../../ui/Button";
 import { palette, space, radius } from "../../../../theme/tokens";
@@ -31,7 +31,8 @@ export default function PrijavaEkran() {
   // than silently creating a new Application version.
   const clientRequestIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
+  // Hidden tabs remain mounted after Back; each focus owns a fresh read.
+  useFocusEffect(useCallback(() => {
     let ziv = true;
     setUcitavam(true);
     setReadError(false);
@@ -72,7 +73,7 @@ export default function PrijavaEkran() {
     ucitajSve();
     
     return () => { ziv = false; };
-  }, [id, izvor, readAttempt]);
+  }, [id, izvor, readAttempt, router]));
 
   const backFromRead = () => {
     if (readAction.current) return;
