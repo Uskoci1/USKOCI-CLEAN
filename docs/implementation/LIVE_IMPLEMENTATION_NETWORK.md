@@ -2,7 +2,7 @@
 
 Existing team EAS identity is source-configured and read-only verified: `@sljivas-team/uskoci`, project `1e6cc490-9851-4741-9226-128612122db6`, package `rs.uskoci.preview`. Source review/merge is pending for this unit. The preview profile uses existing remote credentials and automatic remote versioning with local seed35; the fresh remote-version read returned no initialized counter. The EAS-only pre-install guard rejects wrong identity, missing/foreign public backend environment and fake/test data composition.
 
-Read [existing identity, signing reference and proof limits](EAS_EXISTING_PREVIEW_IDENTITY_20260907.md). No build, submit, update, remote version/credential/environment mutation or database write occurred. Configured FCM metadata is not native delivery proof; Firebase app-list access/client config, actual APK certificate/Auth and provider/token delivery remain open. N08 live85/pending0 from canonical PR54 is retained below and is not reopened.
+Read [existing identity, signing reference and proof limits](EAS_EXISTING_PREVIEW_IDENTITY_20260907.md). No build, submit, update, remote version/credential/environment mutation or database write occurred. Firebase Console now physically confirms the existing project/app/package, FCM V1 enabled, Legacy disabled and an empty SHA grid. The actual downloaded public client file remains pending; configured FCM metadata is not APK certificate/Auth or provider/token delivery proof. N08 live85/pending0 from canonical PR54 is retained below and is not reopened.
 
 ---
 
