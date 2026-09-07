@@ -1,0 +1,515 @@
+#!/usr/bin/env python3
+import os
+import re
+import subprocess
+import time
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+PACKAGE = os.environ.get('RU5_DEVICE_PACKAGE', 'rs.uskoci.ru5proof')
+MAIN_ACTIVITY = f'{PACKAGE}/.MainActivity'
+WORKER_EMAIL = os.environ['RU5_DEVICE_WORKER_EMAIL']
+REQUESTER_EMAIL = os.environ['RU5_DEVICE_REQUESTER_EMAIL']
+PASSWORD = os.environ['RU5_DEVICE_PASSWORD']
+NEED_TITLE = os.environ['RU5_DEVICE_NEED_TITLE']
+DB_URL = os.environ['RU5_DEVICE_DB_URL']
+NEED_ID = os.environ['RU5_DEVICE_NEED_ID']
+WORKER_USER_ID = os.environ['RU5_DEVICE_WORKER_USER_ID']
+REQUESTER_USER_ID = os.environ['RU5_DEVICE_REQUESTER_USER_ID']
+ARTIFACT_DIR = Path(os.environ.get('RU5_DEVICE_ARTIFACT_DIR', 'artifacts/ru5-device-ui'))
+ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def run(*args, check=True, text=True, capture_output=True):
+    return subprocess.run(args, check=check, text=text, capture_output=capture_output)
+
+
+def adb(*args, check=True):
+    return run('adb', *args, check=check)
+
+
+def psql(sql):
+    result = run('psql', DB_URL, '-v', 'ON_ERROR_STOP=1', '-At', '-c', sql)
+    return result.stdout.strip()
+
+
+def dump_tree(save_name=None):
+    adb('shell', 'uiautomator', 'dump', '/sdcard/window.xml')
+    xml_text = adb('shell', 'cat', '/sdcard/window.xml').stdout
+    if save_name:
+        (ARTIFACT_DIR / f'{save_name}.xml').write_text(xml_text, encoding='utf-8')
+    root = ET.fromstring(xml_text)
+    parent = {child: p for p in root.iter() for child in p}
+    return root, parent, xml_text
+
+
+def parse_bounds(raw):
+    m = re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', raw or '')
+    if not m:
+        raise RuntimeError(f'Invalid bounds: {raw!r}')
+    x1, y1, x2, y2 = map(int, m.groups())
+    return x1, y1, x2, y2
+
+
+def clickable_for(node, parent):
+    cur = node
+    while cur is not None:
+        if cur.attrib.get('clickable') == 'true' and cur.attrib.get('enabled', 'true') == 'true':
+            return cur
+        cur = parent.get(cur)
+    return None
+
+
+def matches(node, *, text=None, desc=None, contains=None, clazz=None):
+    if text is not None and node.attrib.get('text') != text:
+        return False
+    if desc is not None and node.attrib.get('content-desc') != desc:
+        return False
+    if contains is not None:
+        hay = f"{node.attrib.get('text', '')} {node.attrib.get('content-desc', '')}"
+        if contains not in hay:
+            return False
+    if clazz is not None and node.attrib.get('class') != clazz:
+        return False
+    return True
+
+
+def tap_node(node, parent, hold_ms=0):
+    target = clickable_for(node, parent)
+    if target is None:
+        raise RuntimeError(
+            f"Node is visible but not actionable: text={node.attrib.get('text')!r} "
+            f"desc={node.attrib.get('content-desc')!r} bounds={node.attrib.get('bounds')!r}"
+        )
+    x1, y1, x2, y2 = parse_bounds(target.attrib.get('bounds'))
+    x = (x1 + x2) // 2
+    y = (y1 + y2) // 2
+    if hold_ms > 0:
+        # A short same-coordinate touchscreen swipe produces a real down/hold/up
+        # gesture. This is closer to a human press than an instantaneous shell
+        # tap and is more reliable for RN Pressability on a loaded CI emulator.
+        adb(
+            'shell', 'input', 'touchscreen', 'swipe',
+            str(x), str(y), str(x), str(y), str(hold_ms),
+        )
+    else:
+        adb('shell', 'input', 'tap', str(x), str(y))
+    time.sleep(0.8)
+
+
+def dismiss_known_system_anr(root, parent):
+    """Dismiss only launcher/System UI starvation dialogs, never an USKOČI ANR."""
+    labels = [
+        f"{n.attrib.get('text', '')} {n.attrib.get('content-desc', '')}".strip()
+        for n in root.iter()
+        if n.attrib.get('text') or n.attrib.get('content-desc')
+    ]
+    system_anr = any(
+        ("Quickstep isn't responding" in label)
+        or ('Quickstep ne reaguje' in label)
+        or ("System UI isn't responding" in label)
+        or ('Sistemski korisnički interfejs ne reaguje' in label)
+        for label in labels
+    )
+    if not system_anr:
+        return False
+
+    wait_nodes = [
+        n for n in root.iter()
+        if n.attrib.get('text') in ('Wait', 'Sačekaj', 'Čekaj')
+        or n.attrib.get('content-desc') in ('Wait', 'Sačekaj', 'Čekaj')
+    ]
+    if not wait_nodes:
+        raise RuntimeError(f'Known system ANR present without safe Wait action: {labels[-30:]}')
+    tap_node(wait_nodes[-1], parent)
+    print('RECOVERED known_system_anr via Wait', flush=True)
+    time.sleep(1.5)
+    return True
+
+
+def find_nodes(**criteria):
+    root, parent, _ = dump_tree()
+    nodes = [n for n in root.iter() if matches(n, **criteria)]
+    return nodes, parent
+
+
+def wait_nodes(timeout=40, minimum=1, save_timeout=True, **criteria):
+    end = time.time() + timeout
+    last = []
+    while time.time() < end:
+        try:
+            root, parent, _ = dump_tree()
+            nodes = [n for n in root.iter() if matches(n, **criteria)]
+            last = nodes
+            if len(nodes) >= minimum:
+                return nodes, parent
+            if dismiss_known_system_anr(root, parent):
+                adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
+        except Exception as exc:
+            print(f'WAIT_RETRY criteria={criteria} error={type(exc).__name__}:{exc}', flush=True)
+        time.sleep(1)
+
+    root, _, xml = dump_tree('timeout' if save_timeout else None)
+    visible = [
+        (n.attrib.get('text'), n.attrib.get('content-desc'), n.attrib.get('class'))
+        for n in root.iter()
+        if n.attrib.get('text') or n.attrib.get('content-desc')
+    ]
+    raise RuntimeError(
+        f'Timeout criteria={criteria} minimum={minimum}; last={len(last)} '
+        f'visible={visible[-80:]} xml_tail={xml[-1000:]}'
+    )
+
+
+def tap(prefer='bottom', timeout=40, hold_ms=0, **criteria):
+    end = time.time() + timeout
+    last_visible = 0
+    while time.time() < end:
+        try:
+            root, parent, _ = dump_tree()
+            nodes = [n for n in root.iter() if matches(n, **criteria)]
+            last_visible = len(nodes)
+            unique = {}
+            for node in nodes:
+                target = clickable_for(node, parent)
+                if target is not None:
+                    unique[target.attrib.get('bounds', str(id(target)))] = (target, parent)
+            options = list(unique.values())
+            if options:
+                options.sort(
+                    key=lambda item: parse_bounds(item[0].attrib.get('bounds'))[1],
+                    reverse=(prefer == 'bottom'),
+                )
+                tap_node(options[0][0], options[0][1], hold_ms=hold_ms)
+                return
+            if dismiss_known_system_anr(root, parent):
+                adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
+        except Exception as exc:
+            print(f'TAP_RETRY criteria={criteria} error={type(exc).__name__}:{exc}', flush=True)
+        time.sleep(0.5)
+
+    root, _, xml = dump_tree('tap_timeout')
+    visible = [
+        (n.attrib.get('text'), n.attrib.get('content-desc'), n.attrib.get('class'),
+         n.attrib.get('clickable'), n.attrib.get('enabled'))
+        for n in root.iter()
+        if n.attrib.get('text') or n.attrib.get('content-desc')
+    ]
+    raise RuntimeError(
+        f'Timeout waiting for actionable control criteria={criteria}; '
+        f'visible_matches={last_visible} visible={visible[-80:]} xml_tail={xml[-1000:]}'
+    )
+
+
+def wait_visible(timeout=40, **criteria):
+    wait_nodes(timeout=timeout, **criteria)
+
+
+def ordered_edit_fields(root):
+    nodes = [node for node in root.iter() if node.attrib.get('class') == 'android.widget.EditText']
+    return sorted(nodes, key=lambda node: parse_bounds(node.attrib.get('bounds'))[1])
+
+
+def entered_value_matches(node, value):
+    observed = node.attrib.get('text', '')
+    if node.attrib.get('password') == 'true':
+        # Android deliberately masks passwords. Never expose/toggle the secret;
+        # the subsequent real Auth request remains the credential authority.
+        return bool(observed) and len(observed) == len(value)
+    return observed == value
+
+
+def current_edit_field(index):
+    root, parent, _ = dump_tree()
+    if dismiss_known_system_anr(root, parent):
+        return None, parent
+    nodes = ordered_edit_fields(root)
+    return (nodes[index] if len(nodes) > index else None), parent
+
+
+def type_paced_fixture_text(value, deadline):
+    # These are transport-safe characters in our generated disposable fixture,
+    # not application input policy. One real key event at a time gives controlled
+    # React Native TextInput a chance to process each native onChange event.
+    allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@._-'
+    if not value or any(character not in allowed for character in value):
+        raise ValueError('Unsupported synthetic fixture keyboard input')
+    for character in value:
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Physical keyboard input deadline exceeded')
+        adb('shell', 'input', 'text', character)
+        time.sleep(0.15)
+
+
+def edit_text(index, value, timeout=180):
+    if index < 0 or not isinstance(value, str) or not value:
+        raise ValueError('A non-empty value and non-negative field index are required')
+    deadline = time.monotonic() + timeout
+    attempt = 0
+    last_error = 'field unavailable'
+    while time.monotonic() < deadline:
+        attempt += 1
+        try:
+            field, parent = current_edit_field(index)
+            if field is None:
+                time.sleep(1)
+                continue
+            tap_node(field, parent, hold_ms=160)
+            field, _ = current_edit_field(index)
+            if field is None or field.attrib.get('focused') != 'true':
+                last_error = 'native focus not confirmed'
+                print(f'RETRY UI_TEXT_FOCUS field={index} attempt={attempt}', flush=True)
+                time.sleep(1)
+                continue
+
+            # Real keyboard select-all/delete makes a retry replace, not append.
+            # No accessibility setText, Auth injection, or business RPC fallback.
+            adb('shell', 'input', 'keyboard', 'keycombination', '-t', '100',
+                'KEYCODE_CTRL_LEFT', 'KEYCODE_A')
+            time.sleep(0.2)
+            adb('shell', 'input', 'keyevent', 'KEYCODE_DEL')
+            type_paced_fixture_text(value, deadline)
+            time.sleep(0.8)
+            field, _ = current_edit_field(index)
+            if field is not None and entered_value_matches(field, value):
+                # Log progress only, never credential content or derived metadata.
+                print(f'CHECKPOINT UI_TEXT_ENTERED field={index} attempt={attempt}', flush=True)
+                return
+            last_error = 'native readback mismatch'
+            print(f'RETRY UI_TEXT_READBACK field={index} attempt={attempt}', flush=True)
+        except (RuntimeError, subprocess.CalledProcessError, ET.ParseError) as exc:
+            # Do not include subprocess arguments: one may contain a password.
+            last_error = type(exc).__name__
+            print(f'RETRY UI_TEXT_INPUT field={index} attempt={attempt} error={last_error}', flush=True)
+        time.sleep(1)
+
+    dump_tree(f'input_{index}_timeout')
+    raise RuntimeError(f'Could not verify real UI input field={index}: {last_error}')
+
+
+def hide_keyboard():
+    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK', check=False)
+    time.sleep(0.5)
+
+
+def shot(name):
+    png = subprocess.run(['adb', 'exec-out', 'screencap', '-p'], check=True, capture_output=True).stdout
+    (ARTIFACT_DIR / f'{name}.png').write_bytes(png)
+    dump_tree(name)
+    print(f'EVIDENCE {name}', flush=True)
+
+
+def launch_clean():
+    adb('shell', 'am', 'force-stop', PACKAGE, check=False)
+    adb('shell', 'pm', 'clear', PACKAGE, check=False)
+    time.sleep(1)
+
+    try:
+        root, parent, _ = dump_tree()
+        dismiss_known_system_anr(root, parent)
+    except Exception:
+        pass
+
+    started = adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
+    print(
+        f'APP_START returncode={started.returncode} stdout={started.stdout[-500:]} stderr={started.stderr[-500:]}',
+        flush=True,
+    )
+    time.sleep(2)
+    wait_visible(timeout=90, desc='Prijavi se')
+
+
+def open_login_sheet():
+    # The real CTA becomes enabled slightly before the JS-driven reference-entry
+    # animation finishes. Let the production entry settle, then use a short real
+    # touchscreen press on that same CTA. No auth/navigation shortcut is used.
+    time.sleep(1.5)
+    last_error = None
+    for attempt in range(1, 4):
+        tap(
+            desc='Prijavi se',
+            prefer='top',
+            timeout=90 if attempt == 1 else 15,
+            hold_ms=160,
+        )
+        try:
+            nodes, parent = wait_nodes(
+                timeout=8,
+                minimum=2,
+                save_timeout=False,
+                clazz='android.widget.EditText',
+            )
+            print(f'CHECKPOINT AUTH_SHEET_OPEN attempt={attempt}', flush=True)
+            return nodes, parent
+        except RuntimeError as exc:
+            last_error = exc
+            dump_tree(f'AUTH_entry_attempt_{attempt}_after')
+            print(f'RETRY AUTH_ENTRY_PRESS attempt={attempt}', flush=True)
+            time.sleep(1)
+    raise RuntimeError(f'Login sheet did not open after real UI presses: {last_error}')
+
+
+def login(email):
+    open_login_sheet()
+    edit_text(0, email)
+    edit_text(1, PASSWORD)
+    hide_keyboard()
+    tap(text='Prijavite se', prefer='bottom', timeout=30)
+    wait_visible(text='Početna', timeout=60)
+
+
+def switch_to_worker_workspace():
+    tap(text='Profil', prefer='bottom')
+    wait_visible(desc='Pređi u prostor Uskočera')
+    tap(desc='Pređi u prostor Uskočera')
+    wait_visible(text='Prilike', timeout=45)
+
+
+def dismiss_ok(timeout=15):
+    try:
+        tap(text='OK', prefer='bottom', timeout=timeout)
+    except Exception:
+        try:
+            tap(text='U redu', prefer='bottom', timeout=3)
+        except Exception:
+            pass
+
+
+def assert_worker_submit():
+    row = psql(f"""
+select r.id::text || '|' || r.status || '|' || r.price_rsd::text || '|' || r.covered_slots::text
+from public.marketplace_responses r
+join public.app_profiles p on p.id=r.worker_profile_id
+where r.need_id='{NEED_ID}'::uuid and p.account_id='{WORKER_USER_ID}'::uuid;
+""")
+    if not row:
+        raise AssertionError('W05 UI did not create Application')
+    parts = row.split('|')
+    if parts[1] not in ('SUBMITTED', 'VIEWED', 'SHORTLISTED') or parts[2] != '3000' or parts[3] != '1':
+        raise AssertionError(f'Unexpected W05 Application: {row}')
+    print(f'CHECKPOINT W05_RESPONSE_CREATED response={parts[0]} state={parts[1]}', flush=True)
+    return parts[0]
+
+
+def assert_final_selection(response_id):
+    row = psql(f"""
+select a.id::text || '|' || a.requester_account_id::text || '|' || a.worker_account_id::text || '|' || a.selected_response_id::text
+from public.agreements a
+where a.need_id='{NEED_ID}'::uuid;
+""")
+    if not row:
+        raise AssertionError('R05 UI did not create Agreement')
+    agreement_id, requester_id, worker_id, selected_response = row.split('|')
+    if requester_id != REQUESTER_USER_ID or worker_id != WORKER_USER_ID or selected_response != response_id:
+        raise AssertionError(f'Agreement binding mismatch: {row}')
+    activation = psql(f"""
+select count(*)::text
+from private.connection_activations a
+where a.agreement_id='{agreement_id}'::uuid
+  and a.requester_account_id='{REQUESTER_USER_ID}'::uuid
+  and a.beneficiary_account_id='{REQUESTER_USER_ID}'::uuid
+  and a.worker_account_id='{WORKER_USER_ID}'::uuid
+  and a.activation_reason='SELECTION'
+  and a.units=1
+  and a.platform_cost_rsd=0
+  and a.state='SATISFIED'
+  and a.policy_key='REQUESTER_SELECTION_V1'
+  and a.policy_version=1;
+""")
+    if activation != '1':
+        raise AssertionError('P0D03 zero-RSD Requester activation mismatch')
+    print(
+        f'CHECKPOINT AGREEMENT_CREATED agreement={agreement_id} '
+        'policy=REQUESTER_SELECTION_V1 beneficiary=REQUESTER reason=SELECTION '
+        'charge=PROMOTIONAL_FREE basis=HEADCOUNT platform_cost_rsd=0',
+        flush=True,
+    )
+    return agreement_id
+
+
+def assert_gates_unchanged():
+    checks = {
+        'publication_policy_bundles': 'select count(*) from private.publication_policy_bundles;',
+        'publication_decisions': 'select count(*) from private.need_publication_decisions;',
+        'preselection_questions': 'select count(*) from private.preselection_qa_questions;',
+        'preselection_answers': 'select count(*) from private.preselection_qa_answer_versions;',
+        'preselection_policy': 'select count(*) from private.preselection_qa_policy_decisions;',
+        'preselection_materiality': 'select count(*) from private.preselection_qa_materiality_decisions;',
+        'preselection_commands': 'select count(*) from private.preselection_qa_commands;',
+        'fastest_needs': "select count(*) from public.needs where mode='FASTEST';",
+        'autofill_selections': "select count(*) from public.need_selections where selection_mode='AUTO_FILL';",
+    }
+    observed = {name: psql(sql) for name, sql in checks.items()}
+    bad = {name: value for name, value in observed.items() if value != '0'}
+    if bad:
+        raise AssertionError(f'Gated/retired inventory changed: {bad}')
+    print(f'CHECKPOINT GATES_UNCHANGED {observed}', flush=True)
+
+
+print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY', flush=True)
+
+launch_clean()
+login(WORKER_EMAIL)
+shot('AUTH_worker_authenticated')
+switch_to_worker_workspace()
+tap(text='Prilike', prefer='bottom')
+wait_visible(desc=f'Otvorite priliku {NEED_TITLE}', timeout=45)
+shot('W03_worker_opportunity_list')
+tap(desc=f'Otvorite priliku {NEED_TITLE}')
+wait_visible(desc='Sastavi prijavu', timeout=45)
+shot('W04_worker_need_detail')
+tap(desc='Sastavi prijavu')
+wait_visible(text='Sastavi prijavu', timeout=45)
+wait_nodes(timeout=30, minimum=1, clazz='android.widget.EditText')
+edit_text(0, '3000')
+hide_keyboard()
+shot('W05_worker_application_draft')
+tap(desc='Pošalji prijavu', timeout=30)
+wait_visible(contains='Prijava je uspešno podneta', timeout=45)
+shot('W05_worker_application_success')
+dismiss_ok()
+wait_visible(text=NEED_TITLE, timeout=45)
+wait_visible(text='Poslata', timeout=45)
+shot('W06_worker_own_application')
+response_id = assert_worker_submit()
+
+launch_clean()
+login(REQUESTER_EMAIL)
+shot('AUTH_requester_authenticated')
+tap(text='Potrebe', prefer='bottom')
+wait_visible(desc=f'Otvori Potrebu {NEED_TITLE}', timeout=45)
+tap(desc=f'Otvori Potrebu {NEED_TITLE}')
+wait_visible(contains='Otvori prijave, ukupno 1', timeout=45)
+tap(contains='Otvori prijave, ukupno 1')
+wait_visible(text='Prijave (1)', timeout=45)
+wait_visible(desc='Izaberi', timeout=45)
+shot('R05_requester_candidate_selection')
+tap(desc='Izaberi')
+wait_visible(contains='Dogovor je uspešno sklopljen', timeout=45)
+shot('R05_requester_selection_success')
+dismiss_ok()
+agreement_id = assert_final_selection(response_id)
+shot('AGREEMENT_created')
+
+launch_clean()
+login(WORKER_EMAIL)
+shot('AUTH_worker_reauthenticated')
+switch_to_worker_workspace()
+tap(text='Prijave', prefer='bottom')
+wait_visible(text=NEED_TITLE, timeout=45)
+wait_visible(text='Izabrani ste', timeout=45)
+wait_visible(desc='Otvorite Dogovor', timeout=45)
+shot('W06_worker_selected_state')
+tap(desc='Otvorite Dogovor')
+wait_visible(text='Dogovor', timeout=45)
+wait_visible(text=NEED_TITLE, timeout=45)
+shot('DOGOVOR_worker_opened')
+
+assert_gates_unchanged()
+
+print(
+    f'PASS RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY W03 W04 W05 W06 R05 '
+    f'two_real_auth_identities agreement={agreement_id} P0D03_0_RSD '
+    'worker_selected_and_dogovor_opened bounded_note_not_claimed disposable_local_only',
+    flush=True,
+)

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { House, Package, Plus, Handshake, User, PaperPlaneTilt, MapTrifold } from 'phosphor-react-native';
 import { palette, radius, type as typeScale } from '../../theme/tokens';
 import { useUloga } from '../../store/uloga';
@@ -10,13 +11,17 @@ import { useUloga } from '../../store/uloga';
  *   Uskočer:   Početna · Prijave · [USKOČI znak] · Dogovori · Profil
  *
  * Isti nalog, dva prostora. Tabovi koji ne pripadaju prostoru se sklanjaju
- * (`href: null`), ne prepisuju — pa se ruta ne može dohvatiti ni slučajno.
+ * (`href: null`). Unutrašnje rute ostaju dostupne iz svog toka, bez dodatnih tabova.
+ * Skrivanje taba nije auth granica; postojeće provere pristupa ostaju nepromenjene.
  *
  * Tabovi se NE klizaju pri prebacivanju: ravnopravni su, nisu hijerarhija.
  */
 export default function TabLayout() {
   const uloga = useUloga();
   const narucilac = uloga === 'narucilac';
+  const insets = useSafeAreaInsets();
+  // Preserve the existing 66-point control area; system navigation is extra space.
+  const bottomPadding = Math.max(18, insets.bottom);
 
   return (
     <Tabs
@@ -32,9 +37,9 @@ export default function TabLayout() {
           backgroundColor: palette.surface,
           borderTopColor: palette.line100,
           borderTopWidth: 1,
-          height: 84,
+          height: 66 + bottomPadding,
           paddingTop: 8,
-          paddingBottom: 18,
+          paddingBottom: bottomPadding,
         },
       }}
     >
@@ -130,6 +135,12 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Detail/form routes are not additional top-level destinations. */}
+      <Tabs.Screen name="profil/radnik" options={{ href: null }} />
+      <Tabs.Screen name="potrebe/[id]/kandidati" options={{ href: null }} />
+      <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null }} />
+      <Tabs.Screen name="prilike/[id]" options={{ href: null }} />
+      <Tabs.Screen name="prilike/[id]/prijava" options={{ href: null }} />
     </Tabs>
   );
 }

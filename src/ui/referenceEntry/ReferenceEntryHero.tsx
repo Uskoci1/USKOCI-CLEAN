@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useFonts } from 'expo-font';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, {
   Circle,
   Defs,
@@ -197,6 +198,7 @@ export function ReferenceEntryHero({
   onWorker: () => void;
 }) {
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [timeMs, setTimeMs] = useState(0);
   const [fontsLoaded] = useFonts({
     UskociRounded: require('../../../assets/generated/uskoci-rounded.ttf'),
@@ -228,8 +230,8 @@ export function ReferenceEntryHero({
   const flight = soft((timeMs - FLY_START) / ENTRY_TIMING.FLIGHT);
   const join = out((timeMs - WORD_START) / ENTRY_TIMING.WORD_JOIN);
   const markSize = lerp(ENTRY_TIMING.MARK0, ENTRY_TIMING.MARK1, flight);
-  const markX = lerp(180, 20 + ENTRY_TIMING.MARK1 / 2, flight);
-  const markY = lerp(258, 42, flight);
+  const markX = lerp(180, 20 + ENTRY_TIMING.MARK1 / 2 + insets.left / layoutScale, flight);
+  const markY = lerp(258, 42 + insets.top / layoutScale, flight);
   const brandFontSize = lerp(ENTRY_TIMING.MARK1 * 0.83, ENTRY_TIMING.MARK1 * 0.8, flight) * layoutScale;
   const visualRight = 0.3571953125;
   const opticalGap = 0.8;
@@ -312,7 +314,7 @@ export function ReferenceEntryHero({
           { opacity: homeProgress, transform: [{ translateY: (1 - homeProgress) * 14 }] },
         ]}
       >
-        <View style={styles.topbar}>
+        <View style={[styles.topbar, { top: insets.top, left: insets.left, right: insets.right }]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Prijavi se"
@@ -331,7 +333,7 @@ export function ReferenceEntryHero({
           </Text>
         </View>
 
-        <View style={styles.bottom}>
+        <View style={[styles.bottom, { bottom: 24 + insets.bottom, left: 24 + insets.left, right: 24 + insets.right }]}>
           <Pressable
             accessibilityRole="button"
             disabled={!homeReady}
