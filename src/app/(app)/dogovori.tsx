@@ -1,59 +1,36 @@
-import { useCallback, useState } from 'react';
-import { View, ScrollView, Platform, ActivityIndicator } from 'react-native';
+import { useCallback } from 'react';
+import { View, ScrollView, Platform, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { CaretRight, Clock, User, Handshake, WarningCircle } from 'phosphor-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { T } from '../../ui/Text';
+import { WorkspaceHeader } from '../../ui/WorkspaceHeader';
+import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { Press } from '../../ui/Press';
 import { Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion } from '../../theme/tokens';
-import { useIzvor } from '../../store/uloga';
-import type { DogovorProjekcija } from '../../contracts/projections';
+import { useIzvor, useUloga } from '../../store/uloga';
 
 const naUredjaju = Platform.OS !== 'web';
 
 export default function Dogovori() {
   const izvor = useIzvor();
-  const [dogovori, setDogovori] = useState<DogovorProjekcija[]>([]);
-  const [ucitavanje, setUcitavanje] = useState(true);
-  const [greska, setGreska] = useState<string | null>(null);
-
-  const ucitaj = useCallback(async (ziv?: () => boolean) => {
-    setUcitavanje(true);
-    setGreska(null);
-    try {
-      const rezultat = await izvor.mojiDogovori();
-      if (ziv && !ziv()) return;
-      setDogovori(rezultat);
-    } catch (error) {
-      if (ziv && !ziv()) return;
-      setDogovori([]);
-      setGreska(error instanceof Error ? error.message : 'Dogovori trenutno ne mogu da se učitaju.');
-    } finally {
-      if (!ziv || ziv()) setUcitavanje(false);
-    }
-  }, [izvor]);
-
-  // Vraćanje na tab mora da pokaže sveže stanje — izbor je mogao da napravi Dogovor.
-  useFocusEffect(
-    useCallback(() => {
-      let aktivan = true;
-      void ucitaj(() => aktivan);
-      return () => {
-        aktivan = false;
-      };
-    }, [ucitaj]),
+  const requester = useUloga() === 'narucilac';
+  const { data, loading: ucitavanje, error: greska, refresh: ucitaj } = useFocusedResource(
+    useCallback(() => izvor.mojiDogovori(), [izvor]),
   );
+  const dogovori = data ?? [];
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
+      <WorkspaceHeader title="Dogovori" />
       <ScrollView
+        refreshControl={<RefreshControl refreshing={ucitavanje} onRefresh={() => void ucitaj()} tintColor={palette.teal500} />}
         contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.xxl, gap: space.base }}
         showsVerticalScrollIndicator={false}
       >
-        <T variant="display" style={{ marginTop: space.sm }}>Dogovori</T>
 
         {ucitavanje && <ActivityIndicator color={palette.teal500} style={{ marginTop: space.xl }} />}
 
@@ -62,7 +39,7 @@ export default function Dogovori() {
             <View style={{ padding: space.base, gap: space.md, alignItems: 'center' }}>
               <WarningCircle size={26} color={palette.danger} />
               <T variant="heading">Dogovori nisu učitani</T>
-              <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>{greska}</T>
+              <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Proverite internet vezu i pokušajte ponovo.</T>
               <Press
                 accessibilityRole="button"
                 accessibilityLabel="Pokušaj ponovo"
@@ -95,26 +72,26 @@ export default function Dogovori() {
             </View>
             <T variant="heading">Još nemate Dogovor</T>
             <T variant="meta" tone="muted" style={{ textAlign: 'center', maxWidth: 260 }}>
-              Kada izaberete nekoga iz prijava, Dogovor nastaje odmah i pojavljuje se ovde.
+              {requester ? 'Kada izaberete nekoga iz Prijava, Dogovor se pojavljuje ovde.' : 'Kada Vaša Prijava bude izabrana, Dogovor se pojavljuje ovde.'}
             </T>
             <Press
               accessibilityRole="button"
-              accessibilityLabel="Pogledaj prijave"
+              accessibilityLabel="Pogledajte Zadatke"
               haptic="light"
-              onPress={() => router.push('/prijave')}
+              onPress={() => router.navigate(requester ? '/potrebe' : '/prilike')}
               style={{
                 minHeight: 44, paddingHorizontal: space.lg, borderRadius: radius.md,
                 borderWidth: 1.5, borderColor: palette.ink,
                 alignItems: 'center', justifyContent: 'center', marginTop: space.xs,
               }}
             >
-              <T variant="action">Pogledajte prijave</T>
+              <T variant="action">Pogledajte Zadatke</T>
             </Press>
           </View>
         )}
 
         {!ucitavanje && !greska && dogovori.length > 0 && (
-          <T variant="label" tone="muted">AKTIVNI</T>
+          <T variant="label" tone="muted">VAŠI DOGOVORI</T>
         )}
 
         {!greska && dogovori.map((d, i) => {
@@ -124,7 +101,8 @@ export default function Dogovori() {
               key={d.id}
               entering={naUredjaju ? FadeInDown.duration(motion.enter).delay(i * 45) : undefined}
             >
-              <Press haptic="light" scaleTo={0.985} onPress={() => router.push({ pathname: '/dogovor/[id]', params: { id: d.id } })}>
+              <Press accessibilityRole="button" accessibilityLabel={`Otvorite Dogovor ${d.naslov}`}
+                haptic="light" scaleTo={0.985} onPress={() => router.navigate({ pathname: '/dogovor/[id]', params: { id: d.id } })}>
                 <Card style={elevation.card}>
                   <View style={{ padding: space.base, gap: space.md }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
@@ -136,33 +114,26 @@ export default function Dogovori() {
                         }}
                       >
                         <T variant="meta" tone="success" style={{ fontWeight: '700' }}>
-                          {d.stanje === 'CONFIRMED' ? 'Aktivno' : d.stanje}
+                          {{ CONFIRMED: 'Aktivno', AWAITING_REQUESTER: 'Čeka potvrdu', COMPLETED: 'Završeno', CANCELLED: 'Otkazano' }[d.stanje]}
                         </T>
                       </View>
                     </View>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.base }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <User size={15} color={palette.teal500} />
-                        <T variant="meta" tone="muted">{drugi?.ime ?? '—'}</T>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Clock size={15} color={palette.teal500} />
-                        <T variant="meta" tone="muted">{d.vremeTekst}</T>
-                      </View>
-                      <T variant="meta" style={{ marginLeft: 'auto', fontWeight: '800' }}>
-                        {d.cena.prikaz}
-                      </T>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <User size={15} color={palette.teal500} style={{ flexShrink: 0 }} />
+                      <T variant="meta" tone="muted" style={{ flex: 1, minWidth: 0 }}>{drugi?.ime ?? '—'}</T>
                     </View>
-
-                    <View
-                      style={{
-                        flexDirection: 'row', alignItems: 'center',
-                        borderTopWidth: 1, borderTopColor: palette.line100, paddingTop: space.md,
-                      }}
-                    >
-                      <T variant="action" style={{ flex: 1 }}>Otvorite Dogovor</T>
-                      <CaretRight size={16} color={palette.inkMuted} />
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.md }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexGrow: 1, flexShrink: 1, minWidth: 0 }}>
+                        <Clock size={15} color={palette.teal500} style={{ flexShrink: 0 }} />
+                        <T variant="meta" tone="muted" style={{ flexShrink: 1 }}>{d.vremeTekst}</T>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginLeft: 'auto', flexShrink: 0 }}>
+                        <T variant="meta" style={{ fontWeight: '800' }}>
+                          {d.cena.prikaz}
+                        </T>
+                        <CaretRight size={16} color={palette.inkMuted} />
+                      </View>
                     </View>
                   </View>
                 </Card>

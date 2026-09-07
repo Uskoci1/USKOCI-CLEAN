@@ -26,6 +26,8 @@ export type AuthReturnTargetRecordV2 = {
 
 export class AuthReturnTargetStore {
   private serial: Promise<void> = Promise.resolve();
+  private nextPreparation = 0;
+  private storedPreparation = 0;
 
   private runExclusive<T>(operation: () => Promise<T>): Promise<T> {
     const result = this.serial.then(operation, operation);
@@ -45,11 +47,17 @@ export class AuthReturnTargetStore {
     return null;
   }
 
+  private async restoreUnlocked(record: AuthReturnTargetRecordV2 | null) {
+    if (record) await AsyncStorage.setItem(AUTH_RETURN_TARGET_KEY, JSON.stringify(record));
+    else await AsyncStorage.removeItem(AUTH_RETURN_TARGET_KEY);
+  }
+
   async snapshot() {
     return this.runExclusive(async () => this.loadUnlocked());
   }
 
   async prepare(input: GuestSessionIntent) {
+    const preparation = ++this.nextPreparation;
     return this.runExclusive(async () => {
       const previous = await this.loadUnlocked();
       const timestamp = new Date().toISOString();
@@ -63,27 +71,41 @@ export class AuthReturnTargetStore {
         completedByUserId: null,
       };
       await AsyncStorage.setItem(AUTH_RETURN_TARGET_KEY, JSON.stringify(next));
+      this.storedPreparation = preparation;
       return next;
     });
   }
 
-  async consumeCompleted(userId: string) {
+  async consumeCompleted(userId: string, isCurrent: () => boolean = () => true) {
     const normalizedUserId = userId.trim();
     if (!normalizedUserId) return null;
     return this.runExclusive(async () => {
+      if (!isCurrent()) return null;
       const record = await this.loadUnlocked();
-      if (!record || record.status !== 'COMPLETED') return null;
+      if (!isCurrent() || !record || record.status !== 'COMPLETED') return null;
       await AsyncStorage.removeItem(AUTH_RETURN_TARGET_KEY);
+      if (!isCurrent()) {
+        // No other store operation can run until this serial section ends.
+        await this.restoreUnlocked(record);
+        return null;
+      }
       if (record.completedByUserId !== normalizedUserId) return null;
       return record;
     });
   }
 
-  async markCompleted(userId: string, input: GuestSessionIntent) {
+  async markCompleted(userId: string, input: GuestSessionIntent, owner?: {
+    isCurrent: () => boolean;
+    pendingRevision: number;
+  }) {
     const normalizedUserId = userId.trim();
     if (!normalizedUserId) throw new Error('AUTH_RETURN_TARGET_USER_REQUIRED');
     return this.runExclusive(async () => {
+      if (owner && !owner.isCurrent()) return null;
       const previous = await this.loadUnlocked();
+      if (owner && (!owner.isCurrent() || previous?.status !== 'PENDING' ||
+        previous.recordRevision !== owner.pendingRevision ||
+        JSON.stringify(previous.intent) !== JSON.stringify(input))) return null;
       const timestamp = new Date().toISOString();
       const next: AuthReturnTargetRecordV2 = {
         storageVersion: AUTH_RETURN_TARGET_STORAGE_VERSION,
@@ -95,12 +117,26 @@ export class AuthReturnTargetStore {
         completedByUserId: normalizedUserId,
       };
       await AsyncStorage.setItem(AUTH_RETURN_TARGET_KEY, JSON.stringify(next));
+      if (owner && !owner.isCurrent()) {
+        await this.restoreUnlocked(previous);
+        return null;
+      }
       return next;
     });
   }
 
   async clear() {
     return this.runExclusive(async () => {
+      await AsyncStorage.removeItem(AUTH_RETURN_TARGET_KEY);
+    });
+  }
+
+  captureSessionCleanup() {
+    const boundary = this.nextPreparation;
+    return () => this.runExclusive(async () => {
+      // A retry must not erase an intent successfully prepared after logout or
+      // the account switch. Failed/earlier prepares do not cross this boundary.
+      if (this.storedPreparation > boundary) return;
       await AsyncStorage.removeItem(AUTH_RETURN_TARGET_KEY);
     });
   }

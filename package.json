@@ -58,11 +58,5 @@
     "lint": "expo lint",
     "test": "jest"
   },
-  "private": true,
-  "jest": {
-    "preset": "jest-expo",
-    "testMatch": [
-      "**/__tests__/**/*.test.ts?(x)"
-    ]
-  }
+  "private": true
 }
