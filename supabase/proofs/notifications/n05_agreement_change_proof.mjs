@@ -89,7 +89,10 @@ try {
   const observed=await ok(requester.from('user_activity_events').select('id').eq('event_type','AGREEMENT_CHANGE_PROPOSED'));
   assert.equal(observed.length,1);
   assert.equal((await ok(outsider.from('user_activity_events').select('id'))).length,0);
-  assert.ok((await requester.from('user_activity_events').update({payload:{}}).eq('id',observed[0].id)).error);
+  const beforeDirectWrite=snapshot();
+  const direct=await requester.from('user_activity_events').update({payload:{tampered:true}}).eq('id',observed[0].id).select('id');
+  assert.ok(direct.error || direct.data?.length===0,'RLS must deny affected rows even if PostgREST returns HTTP success');
+  assert.deepEqual(snapshot(),beforeDirectWrite);
   pass();
   check('RESPOND_AUTH_AND_REJECTION_EVENT_ROLLBACK');
   const rejectArgs={p_proposal_id:proposalId,p_accept:false};
