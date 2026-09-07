@@ -1,6 +1,6 @@
 # Existing EAS Android preview identity — 2026-09-07
 
-State: **SOURCE CONFIGURED / READ-ONLY IDENTITY VERIFIED / BUILD AND PUSH NOT PROVEN**. Base canonical commit: `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54). This unit retains current application source and links it to the owner's existing EAS project; it creates no project and imports no historical build code.
+State: **SOURCE CONFIGURED / READ-ONLY IDENTITY VERIFIED / BUILD AND PUSH NOT PROVEN**. Initial base was `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54); the reviewed source now includes canonical PR49 and is being reconciled onto PR55 merge `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a`. See [latest integration and preserved source evidence](EAS_PR55_CANONICAL_INTEGRATION_20260907.md). This unit retains current application source and links it to the owner's existing EAS project; it creates no project and imports no historical build code.
 
 ## Selected identity and evidence
 

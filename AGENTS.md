@@ -1,3 +1,16 @@
+<!-- EAS_D03_CANONICAL_INTEGRATION_20260907 -->
+## Current source — canonical Auth and D03; EAS/Firebase PR56 pending
+
+Fresh GitHub fetch confirms `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a`, the PR55 merge on top of canonical PR49. Auth/account/Inbox and D03 stable-send source are canonical at their existing recorded proof boundaries. D03 mobile recovery is a separate source unit. The older pending-merge checkpoints below are preserved as historical evidence.
+
+PR56 is being reconciled onto this fresh canonical source. All eight EAS/Firebase source/test blobs remain identical to reviewed source170686a; the exact public Firebase file and preview/proof package overrides are preserved. Imported Auth and D03 application source remains identical to canonical. No build, token/provider call, EAS remote mutation or database access occurred in this integration. EAS/Firebase APK, signing/Auth and push acceptance remain unproven. Current UI is a functional scaffold; final Figma design is separate.
+
+Root's separate D03 structural postflight at 2026-09-07 13:02:34 UTC confirms live86 with head `20260907130151_clean_d03_message_retry`. This branch still retains the canonical repository's recorded live85/pending1 provenance until the dedicated alias reconciliation is merged. These are distinct observed-live and recorded-source boundaries. Do not reapply D03 based on the older recorded metadata; this EAS integration made no live call.
+
+See [PR55 integration and validation](docs/implementation/EAS_PR55_CANONICAL_INTEGRATION_20260907.md). Local source checks and final-head CI/CodeQL must pass before PR56 merge; this checkpoint is not canonical PR56 or new live evidence.
+
+---
+
 <!-- EAS_CANONICAL_INTEGRATION_20260907 -->
 ## Current source integration — canonical PR49 and pending EAS/Firebase PR56
 
@@ -9,7 +22,21 @@ See [canonical integration and validation](docs/implementation/EAS_PR49_CANONICA
 
 ---
 
+## Current integration — PR49 canonical / D03 pending forward
 
+Fresh canonical is `65d280270ead4d13dcb41f7342a74b164c41e4d9`: PR49 merged at12:44:07 UTC after Root accepted the actual292 Android artifact and final1133 documentation-head CI/CodeQL with all138 tested blobs unchanged. Its Auth/navigation boundary is CANONICAL / SOURCE AND SCOPED ANDROID PROVEN. UI remains a testable scaffold; final visual design awaits Figma and Fable is separate.
+
+D03 exact4277-byte SQL and typed client remain unchanged from accepted proof run34115037170 (artifact10015994215, ZIP SHA256 `f20fb61a7e31402c135b8473e3403f612acbe08eac23a5835b8b49ea7f744e9e`). That proof passed11 D03,6 N07,12 N08 checks and physically observed advisory/lifecycle lock contention. This integration carries the fresh Auth baseline; its final-head regression/replay/CI/CodeQL are pending. Source86 / recorded live85 / pending1; no D03 production write. Canonical review/merge, fresh structural live preflight and exact forward promotion precede the separately developed D03 mobile binding.
+
+The older checkpoints below retain their original source/proof boundaries and are historical where superseded here. Do not restart accepted N07/N08, Auth or core engine work. See D03_MESSAGE_RETRY_20260907.md for the bounded command contract; no full Chat, provider, final visual or Store closure is claimed.
+
+---
+
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / D03 STABLE MESSAGE RETRY
+
+The D03 stable-send unit is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / PENDING CANONICAL AND LIVE ADMISSION**. It extends the existing message table with a sender-owned command key and an account-bound RPC that invokes the unchanged N01 writer. The same command returns the original message UUID after retry or terminal completion; it creates no duplicate message/event. Overall Chat remains PARTIAL: this unit does not activate UI, group channels, attachments, read receipts or push delivery.
+
+Read [D03 contract and original proof](docs/implementation/D03_MESSAGE_RETRY_20260907.md). Exact source `04132b98ff189abeae5481a73a95245289b4e0f6`, run34113306660, artifact10015325641:11 D03 checks plus6 N07 and12 N08 checks,38 suites/266 tests and TypeScript PASS. Inventory is **86 source files / recorded live85 / pending1**. Live remains the verified N08 baseline below; this source unit made no production write. Next: reviewed canonical merge, fresh live preflight and accepted exact forward promotion, then real D03 screen binding and physical Android proof.
 <!-- EXECUTION_V3_CHECKPOINT_20260907 -->
 ## Current execution — reviewed scaffold and native Auth/account proof
 

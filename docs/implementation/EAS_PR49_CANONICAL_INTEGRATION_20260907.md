@@ -30,4 +30,3 @@ The incoming frozen UI governing document has historical intentional trailing wh
 This integration does not execute EAS CLI, create an APK, enroll a device, obtain a push token, call an AI/push provider, change signing credentials/version/environment, mutate Supabase or finalize UI design. Original metadata observations remain dated evidence; no fresh remote EAS state is invented. The configured existing signing certificate still needs verification on a future actual preview APK, and configured FCM metadata does not prove functional push delivery.
 
 PR49's native artifact proves its recorded source and Auth/account/Inbox scope. It is not an APK proof of this EAS/Firebase configuration. A future preview build requires its own concrete accepted inputs and artifact/signing/Auth checks. Current UI remains a functional scaffold; final Figma work is separate.
-

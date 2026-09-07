@@ -1,6 +1,6 @@
 # Existing preview Firebase client configuration — 2026-09-07
 
-State: **IMPLEMENTED / LOCAL CONFIG PROVEN / REVIEW PENDING / APK AND PUSH UNPROVEN**. This extends the existing EAS identity unit in PR #56 from head `02fce212bd359b7f4f3e9c2efba1a63c793ff359`. It changes build configuration only; it is not the native push delivery unit or a UI redesign.
+State: **IMPLEMENTED / LOCAL CONFIG PROVEN / REVIEW PENDING / APK AND PUSH UNPROVEN**. This extends the existing EAS identity unit in PR #56 from head `02fce212bd359b7f4f3e9c2efba1a63c793ff359`. Firebase source170686a is preserved while [integrating canonical PR49 and PR55](EAS_PR55_CANONICAL_INTEGRATION_20260907.md). It changes build configuration only; it is not the native push delivery unit or a UI redesign.
 
 ## Source and architecture boundary
 
