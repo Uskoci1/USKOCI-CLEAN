@@ -1,12 +1,12 @@
-## CURRENT SOURCE CHECKPOINT — 2026-09-07 / N08 PREFERENCES
+## CURRENT CHECKPOINT — 2026-09-07 / N08 LIVE85
 
-N08 is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / PENDING FORWARD PROMOTION**. Its source is submitted through this PR; canonical status requires physical merge. One exact forward file is registered: **85 source files / recorded live84 / pending1**. Fresh live inspection and accepted review must precede production apply; this unit performed no live write.
+N08 is **CANONICAL / AUTHENTICATED DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. PR53 merged as `06d8ce1a14c87ca2237d94aa5a60cd7230899ff6`; exact forward promotion is live at **85 migrations / `20260907102458_clean_n08_notification_preferences`**. Inventory is **85 source files / live85 / pending0**. All original84 full history metadata and statement fingerprints remain unchanged. Do not reapply N08 or N07.
 
-The reproduced invalid-timezone preference could roll back a counterpart message. N08 validates writes on the existing preference owner, adds monotonic full-payload CAS and required initiating-account binding, and includes an inert typed client adapter. Original message/event/Inbox/device engines and history remain unchanged; no settings UI or push provider is activated. Read [N08 contract and original proof](N08_NOTIFICATION_PREFERENCES_20260907.md): exact source `6c4ac2387a9ce017bcc27c27f477d2f08f4821ce`, run34109276473,12 authenticated checks plus predecessor N07 six checks,37 suites/232 tests and TSC PASS. The prior N07 LIVE84 checkpoint below remains valid for its five admitted files.
+Read [N08 live promotion and evidence](N08_LIVE85_PROMOTION_20260907.md) and [the owner contract](N08_NOTIFICATION_PREFERENCES_20260907.md). Exact final-head proof run34110025856 passed12 authenticated N08 checks,6 N07 checks,37 suites/232 tests and TSC; canonical PRE-P4/CodeQL passed. Fresh live postflight confirmed expected function bytes, owner-only RPC grants, RLS, monotonic revision trigger and zero opt-in. No visible settings control, provider delivery, production business fixture or activation is claimed; event/message/Inbox/device engines,0 RSD, HITNO-off and other gates remain unchanged. Continue the next real product gap under the user's V3 execution method and06.09 UI priority.
 
 ---
 
-## CURRENT POINTER — 2026-09-07 / N07 LIVE84
+## HISTORICAL CHECKPOINT — 2026-09-07 / N07 LIVE84
 
 N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
 
