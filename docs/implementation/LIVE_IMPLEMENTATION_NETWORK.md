@@ -1,3 +1,16 @@
+<!-- RU5_PHYSICAL_CANONICAL_20260907 -->
+## CURRENT CHECKPOINT — 2026-09-07
+
+This checkpoint supersedes older active-cursor claims below; all retained sections are historical provenance, not instructions to repeat closed RU/CDL/P0C/P0D units.
+
+- Canonical merge `940fd1fdf34a314f5d8a0c0fdb9cc3753e55ce01` / PR #37 preserves proof lineage ending `65443681732fe6b290a8216d72d045a1c1b2f840`.
+- Physical Android run `34086225039`, job `101630669388`: SUCCESS. All 13 original PNG/XML pairs reviewed; final PASS and disposable business postflight verified.
+- PR PRE-P4 `34086227221`, CodeQL `34086225561` and actual security-result check `101630762720`: GREEN. Canonical PRE-P4 `34087979355`, CodeQL `34087978664`, Control-0 `34087979396`: GREEN.
+- Physical happy-path unit: **PROVEN / CANONICAL**. Aggregate RU-5: **NOT CLOSED / bounded-note DECISION-REQUIRED**. Application AI stays gated.
+- **Fresh live Supabase preflight was safety-blocked; no SQL executed and no alternative access attempted.** Prior `79 / 20260906141409_clean_ru5_fastest_autofill_retirement` is historical, not a current production observation. No live migration or activation occurred.
+- Evidence: `docs/implementation/RU5_PHYSICAL_ANDROID_PROOF_ACCEPTANCE_20260907.md` and `RU5_PHYSICAL_ANDROID_EVIDENCE_20260907.json`.
+- Next: retain the outstanding permitted live read as OWNER-ACTION, resolve bounded-note authority only from an approved owner source, and proceed with independent current-source gap reconstruction / Notifications-Inbox-Push proof units. No live promotion while its preflight is blocked. Do not rerun the accepted physical journey solely because an older section says pending.
+
 # USKOČI — LIVE IMPLEMENTATION NETWORK
 
 Current authoritative network checkpoint: `2026-09-06` after RU-5 FASTEST/AUTO_FILL retirement became canonical/live/proven and the automated two-account authenticated Application journey became canonical/proven.
