@@ -65,6 +65,8 @@ export type PrilikaProjekcija = {
   id: string;
   naslov: string;
   statusTekst: string;
+  /** Task-level read gate only; worker eligibility and submission remain server-owned. */
+  primaNovePrijave?: boolean;
   podrucjeTekst: string;
   vremeTekst: string;
   pokrivenost: Pokrivenost;

@@ -143,7 +143,8 @@ export const supabaseIzvor: SupabaseIzvor = {
       `)
       .eq('id', id).maybeSingle();
 
-    if (error || !data) return null;
+    if (error) throw error;
+    if (!data) return null;
 
     const profiles = await safePublicProfiles([data.requester_profile_id]);
     const narucilac = profiles.get(data.requester_profile_id) ?? null;
@@ -151,7 +152,9 @@ export const supabaseIzvor: SupabaseIzvor = {
     return {
       id: data.id,
       naslov: data.title,
-      statusTekst: data.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
+      statusTekst: ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
+      primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
+        && (data.required_slots || 1) > (data.covered_slots || 0),
       podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
       vremeTekst: fTime(data.starts_at),
       pokrivenost: pokrivenost(data.required_slots || 1, data.covered_slots || 0),

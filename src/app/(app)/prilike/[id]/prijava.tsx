@@ -18,6 +18,9 @@ export default function PrijavaEkran() {
   const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
   const [profil, setProfil] = useState<RadnikProfilProjekcija | null>(null);
   const [ucitavam, setUcitavam] = useState(true);
+  const [readError, setReadError] = useState(false);
+  const [readAttempt, setReadAttempt] = useState(0);
+  const readAction = useRef(false);
   
   const [cena, setCena] = useState("");
   const [pokrivenaMesta, setPokrivenaMesta] = useState("1");
@@ -30,9 +33,15 @@ export default function PrijavaEkran() {
 
   useEffect(() => {
     let ziv = true;
+    setUcitavam(true);
+    setReadError(false);
+    setPrilika(null);
+    setPotreba(null);
+    setProfil(null);
+    readAction.current = false;
     
     async function ucitajSve() {
-      if (!id) return;
+      if (typeof id !== 'string' || !id.trim()) { setUcitavam(false); return; }
       try {
         const [p, pot, prof] = await Promise.all([
           izvor.prilika(id),
@@ -53,6 +62,8 @@ export default function PrijavaEkran() {
              router.replace("/profil/radnik" as any);
           }
         }
+      } catch {
+        if (ziv) setReadError(true);
       } finally {
         if (ziv) setUcitavam(false);
       }
@@ -61,7 +72,21 @@ export default function PrijavaEkran() {
     ucitajSve();
     
     return () => { ziv = false; };
-  }, [id, izvor]);
+  }, [id, izvor, readAttempt]);
+
+  const backFromRead = () => {
+    if (readAction.current) return;
+    readAction.current = true;
+    if (router.canGoBack()) router.back();
+    else router.replace(typeof id === 'string' && id.trim()
+      ? { pathname: '/prilike/[id]', params: { id } } : '/prilike');
+  };
+
+  const retryRead = () => {
+    if (readAction.current) return;
+    readAction.current = true;
+    setReadAttempt(attempt => attempt + 1);
+  };
 
   const podnesi = async () => {
     if (!potreba || !prilika || !profil) {
@@ -118,11 +143,21 @@ export default function PrijavaEkran() {
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground, padding: space.base, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color={palette.forest700} />
         <T variant="meta" tone="muted" style={{ marginTop: space.sm }}>Učitavam...</T>
+        <Button label="Nazad na zadatak" kind="quiet" onPress={backFromRead} />
       </SafeAreaView>
     );
   }
 
-  if (!prilika || !profil || profil.stanje !== 'ACTIVE') {
+  if (readError || !prilika || !potreba) {
+    return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground, padding: space.base, gap: space.md }}>
+      <Button label="Nazad na zadatak" kind="quiet" onPress={backFromRead} />
+      <T variant="heading">{readError ? 'Podatke za prijavu trenutno nije moguće učitati.' : 'Podaci za prijavu nisu dostupni.'}</T>
+      <T variant="body" tone="muted">Proverite vezu i pokušajte ponovo ili se vratite na zadatak.</T>
+      {typeof id === 'string' && id.trim() && <Button label="Pokušajte ponovo" onPress={retryRead} />}
+    </SafeAreaView>;
+  }
+
+  if (!profil || profil.stanje !== 'ACTIVE') {
     // If not active, the useEffect redirect will trigger shortly, just return empty
     return null;
   }
