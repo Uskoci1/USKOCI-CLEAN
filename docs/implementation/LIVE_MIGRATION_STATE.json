@@ -1,4 +1,26 @@
 {
+  "ai_draft_authority_checkpoint_20260907": {
+    "state": "SOURCE_IMPLEMENTED_AUTHENTICATED_PROVEN_INTEGRATION_PENDING_NOT_LIVE",
+    "canonical_integration_base": "f055d6415b5153aa6ef0db735d63dddea7806ead",
+    "forward_file": "20260907120000_clean_ai_need_draft_safety_authority.sql",
+    "bytes": 21141,
+    "md5": "d52caaa375623c9cfe93c8e536b3f55c",
+    "sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+    "source_file_count": 87,
+    "recorded_live_migration_count": 86,
+    "pending_forward_files": 1,
+    "live_applied": false,
+    "provider_called": false,
+    "proof_head": "17659a39df9993dfbf791be101487a7a6442fdfb",
+    "proof_run": 34121379016,
+    "artifact_id": 10018420638,
+    "artifact_zip_sha256": "386b62e173834c711aeff19446e1b09020d9a8969c3106fa93ebf05497465cb8",
+    "authenticated_checks": 15,
+    "observed_lock_interleavings": 4,
+    "proof_boundary": "historical85_to86_before_canonical_D03",
+    "fresh_D03_integration": "SOURCE_PREPARED_RUNTIME_PENDING",
+    "report": "docs/implementation/AI_DRAFT_AUTHORITY_20260907.md"
+  },
   "eas_existing_identity_checkpoint_20260907": {
     "state": "SOURCE_CONFIGURED_READ_ONLY_VERIFIED_REVIEW_PENDING",
     "source_base": "a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a",
@@ -1078,7 +1100,7 @@
     "live_writes": "ONE_PREVIOUSLY_COMPLETED_EXACT_CANONICAL_D03_FORWARD_DDL",
     "production_business_rpc_called": false,
     "provider_called": false,
-    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71→72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
+    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71\u219272 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
   },
   "historical_production_observation_before_authorized_promotions": {
     "status": "OWNER_ACTION_SAFETY_BLOCKED_NOT_FRESHLY_VERIFIED",
