@@ -272,14 +272,11 @@ def edit_text(index, value, timeout=180):
             time.sleep(0.8)
             field, _ = current_edit_field(index)
             if field is not None and entered_value_matches(field, value):
-                secret = field.attrib.get('password') == 'true'
-                print(f'CHECKPOINT UI_TEXT_ENTERED field={index} secret={secret} '
-                      f'characters={len(value)} attempt={attempt}', flush=True)
+                # Log progress only, never credential content or derived metadata.
+                print(f'CHECKPOINT UI_TEXT_ENTERED field={index} attempt={attempt}', flush=True)
                 return
             last_error = 'native readback mismatch'
-            observed_length = len(field.attrib.get('text', '')) if field is not None else -1
-            print(f'RETRY UI_TEXT_READBACK field={index} attempt={attempt} '
-                  f'observed_characters={observed_length} expected_characters={len(value)}', flush=True)
+            print(f'RETRY UI_TEXT_READBACK field={index} attempt={attempt}', flush=True)
         except (RuntimeError, subprocess.CalledProcessError, ET.ParseError) as exc:
             # Do not include subprocess arguments: one may contain a password.
             last_error = type(exc).__name__

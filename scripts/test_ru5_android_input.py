@@ -82,7 +82,8 @@ class AndroidInputHarnessTests(unittest.TestCase):
         self.assertTrue(all(len(args[-1]) == 1 for args in text_commands))
         self.assertGreaterEqual(model.clock, len(value) * 0.15)
         self.assertEqual(model.value, value)
-        self.assertIn('characters=68', log)
+        self.assertIn('CHECKPOINT UI_TEXT_ENTERED field=0 attempt=1', log)
+        self.assertNotIn('characters=', log)
         self.assertNotIn(value, log)
 
     def test_long_email_with_dropped_character_retries_the_whole_value(self):
@@ -91,7 +92,8 @@ class AndroidInputHarnessTests(unittest.TestCase):
         log = self.exercise(model, value)
         self.assertEqual(model.taps, 2)
         self.assertEqual(model.value, value)
-        self.assertIn('observed_characters=', log)
+        self.assertIn('RETRY UI_TEXT_READBACK field=0 attempt=1', log)
+        self.assertNotIn('characters=', log)
         self.assertNotIn(value, log)
 
     def test_keyboard_pacing_has_a_deadline_and_cannot_claim_partial_success(self):
@@ -149,8 +151,48 @@ class AndroidInputHarnessTests(unittest.TestCase):
         secret = 'SyntheticUnitTestCredentialAa1'
         log = self.exercise(model, secret)
         self.assertNotIn(secret, log)
-        self.assertIn('secret=True', log)
+        self.assertIn('CHECKPOINT UI_TEXT_ENTERED field=0 attempt=1', log)
+        self.assertNotIn('secret=', log)
+        self.assertNotIn('characters=', log)
         self.assertNotIn(secret, model.dump()[2])
+
+    def test_success_and_retry_diagnostics_are_independent_of_input_contents(self):
+        for password in (False, True):
+            for dropped_inputs in (0, 1):
+                with self.subTest(password=password, dropped_inputs=dropped_inputs):
+                    logs = []
+                    for value in ('SyntheticAa1', 'SyntheticLongerCredentialBb22'):
+                        model = NativeInputModel(password=password, dropped_inputs=dropped_inputs)
+                        log = self.exercise(model, value)
+                        self.assertEqual(model.value, value)
+                        self.assertNotIn(value, log)
+                        self.assertNotIn('secret=', log)
+                        self.assertNotIn('characters=', log)
+                        for line in log.splitlines():
+                            self.assertRegex(line, r'^(?:CHECKPOINT UI_TEXT_ENTERED|RETRY UI_TEXT_READBACK) field=0 attempt=[1-9][0-9]*$')
+                        logs.append(log)
+                    self.assertEqual(logs[0], logs[1])
+
+    def test_failed_password_readback_logs_no_value_or_length(self):
+        model = NativeInputModel(password=True, dropped_inputs=100)
+        value = 'SyntheticCredentialNeverLog'
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), self.assertRaises(RuntimeError):
+            model.namespace()['edit_text'](0, value, timeout=7)
+        log = output.getvalue()
+        self.assertIn('RETRY UI_TEXT_READBACK', log)
+        self.assertNotIn('CHECKPOINT UI_TEXT_ENTERED', log)
+        self.assertNotIn(value, log)
+        self.assertNotIn('secret=', log)
+        self.assertNotIn('characters=', log)
+        self.assertEqual(model.saved, ['input_0_timeout'])
+
+    def test_proof_supabase_action_uses_the_proven_immutable_revision(self):
+        workflow = SOURCE.parent.parent / '.github/workflows/ru5-physical-android-device-ui-proof.yml'
+        text = workflow.read_text()
+        self.assertIn('uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1', text)
+        self.assertNotIn('uses: supabase/setup-cli@v1', text)
+        self.assertIn('version: 2.116.0', text)
 
     def test_persistent_focus_failure_stops_without_typing(self):
         model = NativeInputModel(focus_failures=100)
