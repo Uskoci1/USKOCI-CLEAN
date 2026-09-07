@@ -8,11 +8,12 @@ import { discoveryPins, filterDiscovery } from '../../data/discoveryView';
 import { DiscoveryFilters } from './DiscoveryFilters';
 import { DiscoveryMap } from './DiscoveryMap';
 import { TaskCard } from './TaskCard';
+import type { DiscoveryMapScope } from './discoveryMapScope';
 
 type Props = { state: DiscoveryBrowseState; intent: Uloga; refresh: () => Promise<void>; loadMore: () => Promise<void>;
-  onOpen: (id: string) => void; onOwn: () => void; onNew: () => void };
+  cameraScope: DiscoveryMapScope; onOpen: (id: string) => void; onOwn: () => void; onNew: () => void };
 
-export function DiscoveryBody({ state, intent, refresh, loadMore, onOpen, onOwn, onNew }: Props) {
+export function DiscoveryBody({ state, intent, refresh, loadMore, cameraScope, onOpen, onOwn, onNew }: Props) {
   const [filters, setFilters] = useState(EMPTY_DISCOVERY_FILTERS), [filterOpen, setFilterOpen] = useState(false);
   const [mode, setMode] = useState<'list' | 'map'>('list'), [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<DiscoveryViewport>(DISCOVERY_INITIAL_VIEW);
@@ -47,7 +48,7 @@ export function DiscoveryBody({ state, intent, refresh, loadMore, onOpen, onOwn,
           <Pressable accessibilityRole="button" onPress={() => { void (state.error === 'more' ? loadMore() : refresh()); }} style={s.clear}><Text style={s.action}>Pokušajte ponovo</Text></Pressable></View> : null}
         {mode === 'map' ? <>
           <Text style={s.caption}>Približna područja. Tačne adrese ostaju privatne.</Text>
-          <DiscoveryMap pins={pins} selectedId={selectedId} viewport={viewport} onViewport={setViewport} onSelect={setSelectedId} onList={() => setMode('list')} />
+          <DiscoveryMap scope={cameraScope} pins={pins} selectedId={selectedId} viewport={viewport} onViewport={setViewport} onSelect={setSelectedId} onList={() => setMode('list')} />
           <Text style={s.caption}>{pins.features.length} zadataka na mapi. {items.length - pins.features.length} bez pina — pogledajte ih u listi.</Text>
           <Text style={s.subtitle}>{selected ? 'Izabrani zadatak' : 'Dodirnite pin da pogledate zadatak.'}</Text>
         </> : null}

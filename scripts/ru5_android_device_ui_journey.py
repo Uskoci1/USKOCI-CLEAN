@@ -399,11 +399,91 @@ def login(email, form_open=False):
     wait_visible(text='MENI TREBA', timeout=60)
 
 
+def assert_shell_tree(root, parent, width, height, expected):
+    """Prove three physical bottom controls, not matching header text alone."""
+    aliases = {'Novi': 'Novi Zadatak'}
+    anchors = {}
+    for node in root.iter():
+        names = [aliases.get(value.split(',')[0].strip(), value.split(',')[0].strip())
+                 for value in (node.attrib.get('text', ''), node.attrib.get('content-desc', ''))]
+        matches_expected = set(names).intersection(expected)
+        target = clickable_for(node, parent)
+        if not matches_expected or target is None:
+            continue
+        bounds = parse_bounds(target.attrib.get('bounds'))
+        if bounds[1] < height * 0.75 or bounds[3] > height:
+            continue
+        name = next(iter(matches_expected))
+        anchors[name] = (bounds, target)
+    if set(anchors) != set(expected):
+        raise AssertionError(f'Bottom navigation missing: expected={expected}, actual={list(anchors)}')
+    ordered = sorted(anchors, key=lambda name: anchors[name][0][0])
+    if tuple(ordered) != tuple(expected):
+        raise AssertionError(f'Bottom navigation order differs: {ordered}')
+    top = min(value[0][1] for value in anchors.values())
+    bottom = max(value[0][3] for value in anchors.values())
+    controls = set()
+    for node in root.iter():
+        if node.attrib.get('clickable') != 'true' or node.attrib.get('enabled', 'true') != 'true':
+            continue
+        bounds = parse_bounds(node.attrib.get('bounds'))
+        if bounds[1] >= top and bounds[3] <= bottom and bounds[2] - bounds[0] < width * 0.6:
+            controls.add(bounds)
+    if controls != {value[0] for value in anchors.values()}:
+        raise AssertionError(f'Extra bottom controls: {controls}')
+    # Catch the historical fourth/fifth destinations even if disabled.
+    for node in root.iter():
+        if node.attrib.get('text') in ('Početna', 'Profil', 'Prilike'):
+            if parse_bounds(node.attrib.get('bounds'))[1] >= top:
+                raise AssertionError('Historical bottom destination remains visible')
+
+
+def assert_worker_workspace_tree(root, parent, width, height):
+    # Shared discovery can be entered from either intention. Its search alone
+    # cannot prove worker mode: preserve exact physical tabs and own profile.
+    assert_shell_tree(root, parent, width, height, ('Prijave', 'Zadaci', 'Dogovori'))
+    profiles = []
+    for node in root.iter():
+        if node.attrib.get('content-desc') != 'Radni profil':
+            continue
+        target = clickable_for(node, parent)
+        if target is None:
+            continue
+        x1, y1, x2, y2 = parse_bounds(target.attrib.get('bounds'))
+        if 0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height * 0.25:
+            profiles.append(target)
+    if len(set(profiles)) != 1:
+        raise AssertionError('Expected one actionable worker profile in the header')
+    legacy_marker = any(node.attrib.get('text') == 'JA MOGU'
+                        and 0 <= parse_bounds(node.attrib.get('bounds'))[1] < height * 0.25
+                        for node in root.iter())
+    searches = []
+    for node in root.iter():
+        if (node.attrib.get('content-desc') != 'Pretražite učitane zadatke'
+                or node.attrib.get('class') != 'android.widget.EditText'
+                or node.attrib.get('enabled', 'true') != 'true'):
+            continue
+        x1, y1, x2, y2 = parse_bounds(node.attrib.get('bounds'))
+        if 0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height * 0.75:
+            searches.append(node)
+    if not legacy_marker and len(searches) != 1:
+        raise AssertionError('Expected worker eyebrow or one real shared-discovery search field')
+
+
+def wait_worker_workspace(timeout=45):
+    # Validate the same tree observed by wait_surface; never take a second
+    # unguarded snapshot that could replace the app with a launcher overlay.
+    root, parent = wait_surface(desc='Radni profil', timeout=timeout)
+    width, height = map(int, re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').stdout)[-1])
+    assert_worker_workspace_tree(root, parent, width, height)
+    return root, parent
+
+
 def switch_to_worker_workspace():
     tap(desc='Profil', prefer='top')
     wait_visible(desc='Pređite na JA MOGU')
     tap(desc='Pređite na JA MOGU')
-    wait_visible(text='JA MOGU', timeout=45)
+    wait_worker_workspace(timeout=45)
 
 
 def dismiss_ok(timeout=15):

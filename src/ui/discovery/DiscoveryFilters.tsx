@@ -15,6 +15,7 @@ export function DiscoveryFilters({ value, onClose, onConfirm }: { value: Filters
           <Text style={s.label}>Grad ili opština</Text>
           <TextInput accessibilityLabel="Grad ili opština" value={draft.city} onChangeText={city => setDraft(old => ({ ...old, city }))}
             placeholder="Svi gradovi" placeholderTextColor="#5D6E6D" autoCorrect={false} maxLength={100} style={s.input} />
+          <Text style={s.note}>Za prevoz se ovaj izbor odnosi na polazište.</Text>
           <Text style={s.label}>Gde se radi</Text>
           <View style={s.options}>{([['ALL', 'Sve'], ['PHYSICAL', 'Na lokaciji'], ['REMOTE', 'Daljinski']] as const).map(([key, label]) =>
             <Pressable key={key} accessibilityRole="radio" accessibilityState={{ checked: draft.location === key }} onPress={() => setDraft(old => ({ ...old, location: key }))}
@@ -37,6 +38,7 @@ const s = StyleSheet.create({
   title: { flex: 1, fontSize: 26, lineHeight: 34, fontWeight: '700', color: '#142F30' }, close: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 24, paddingTop: 8, gap: 14 }, label: { color: '#142F30', fontSize: 15, lineHeight: 22, fontWeight: '600', marginTop: 8 },
   input: { minHeight: 52, borderWidth: 1, borderColor: '#DCE3DE', borderRadius: 14, padding: 14, color: '#142F30', fontSize: 16 },
+  note: { color: '#5D6E6D', fontSize: 12, lineHeight: 19 },
   options: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   option: { minHeight: 48, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#F7F8F5', borderRadius: 14, justifyContent: 'center' },
   selected: { backgroundColor: '#142F30' }, optionText: { color: '#142F30', fontSize: 14, lineHeight: 22, fontWeight: '600' }, onSelected: { color: '#FFFFFF' },

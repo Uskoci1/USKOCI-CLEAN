@@ -49,47 +49,9 @@ def labels(root):
             for value in (node.attrib.get('text', ''), node.attrib.get('content-desc', '')) if value]
 
 
-def assert_shell_tree(root, parent, width, height, expected):
-    """Prove three physical bottom controls, not matching header text alone."""
-    aliases = {'Novi': 'Novi Zadatak'}
-    anchors = {}
-    for node in root.iter():
-        names = [aliases.get(value.split(',')[0].strip(), value.split(',')[0].strip())
-                 for value in (node.attrib.get('text', ''), node.attrib.get('content-desc', ''))]
-        matches_expected = set(names).intersection(expected)
-        target = clickable_for(node, parent)
-        if not matches_expected or target is None:
-            continue
-        bounds = parse_bounds(target.attrib.get('bounds'))
-        if bounds[1] < height * 0.75 or bounds[3] > height:
-            continue
-        name = next(iter(matches_expected))
-        anchors[name] = (bounds, target)
-    if set(anchors) != set(expected):
-        raise AssertionError(f'Bottom navigation missing: expected={expected}, actual={list(anchors)}')
-    ordered = sorted(anchors, key=lambda name: anchors[name][0][0])
-    if tuple(ordered) != tuple(expected):
-        raise AssertionError(f'Bottom navigation order differs: {ordered}')
-    top = min(value[0][1] for value in anchors.values())
-    bottom = max(value[0][3] for value in anchors.values())
-    controls = set()
-    for node in root.iter():
-        if node.attrib.get('clickable') != 'true' or node.attrib.get('enabled', 'true') != 'true':
-            continue
-        bounds = parse_bounds(node.attrib.get('bounds'))
-        if bounds[1] >= top and bounds[3] <= bottom and bounds[2] - bounds[0] < width * 0.6:
-            controls.add(bounds)
-    if controls != {value[0] for value in anchors.values()}:
-        raise AssertionError(f'Extra bottom controls: {controls}')
-    # Catch the historical fourth/fifth destinations even if disabled.
-    for node in root.iter():
-        if node.attrib.get('text') in ('Početna', 'Profil', 'Prilike'):
-            if parse_bounds(node.attrib.get('bounds'))[1] >= top:
-                raise AssertionError('Historical bottom destination remains visible')
-
-
 def assert_shell(intent):
-    root, parent = wait_surface(text='MENI TREBA' if intent == 'requester' else 'JA MOGU', timeout=45)
+    root, parent = (wait_surface(text='MENI TREBA', timeout=45) if intent == 'requester'
+                    else wait_worker_workspace(timeout=45))
     expected = ('Zadaci', 'Novi Zadatak', 'Dogovori') if intent == 'requester' else ('Prijave', 'Zadaci', 'Dogovori')
     assert_shell_tree(root, parent, *screen_size(), expected)
     print(f'CHECKPOINT THREE_ZONES intent={intent} labels={expected}', flush=True)

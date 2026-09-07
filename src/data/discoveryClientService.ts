@@ -5,6 +5,7 @@ import type { Izvor } from './ports';
 import { publicProfileClientService } from './publicProfileClientService';
 import { supabaseKlijent } from './supabaseClient';
 import { publicTaskMaterial } from './publicTaskDetailProjection';
+import { discoveryArea, discoverySchedule } from './discoveryFormat';
 
 // Only authenticated public Need fields. Never add account IDs, sensitive rows,
 // exact addresses, private terms or raw profiles to the discovery projection.
@@ -85,15 +86,14 @@ function mapNeed(raw: unknown): PrilikaProjekcija {
     && Number.isFinite(r.approximate_lng) && Math.abs(r.approximate_lng) <= 180;
   const open = ['PUBLISHED', 'SELECTION'].includes(r.status);
   return {
-    id: r.id, naslov: r.title, statusTekst: open ? 'Traži ponude' : 'Prijave zatvorene',
+    id: r.id, naslov: r.title, statusTekst: open ? 'Objavljen zadatak' : 'Prijave zatvorene',
     primaNovePrijave: open && r.required_slots > r.covered_slots
       && (r.response_deadline === null || Date.parse(r.response_deadline) > Date.now()),
     rokZaPrijaveIso: r.response_deadline,
     executionLocationMode: r.execution_location_mode, scheduleKind: r.schedule_kind,
     startsAt: r.starts_at, endsAt: r.ends_at, grad: r.approximate_city,
-    podrucjeTekst: r.execution_location_mode === 'REMOTE' ? 'Na daljinu'
-      : [r.approximate_area, r.approximate_city].filter(Boolean).join(', '),
-    vremeTekst: r.starts_at ? new Date(r.starts_at).toLocaleString('sr-Latn-RS') : 'Fleksibilno',
+    podrucjeTekst: discoveryArea(r.execution_location_mode, r.approximate_area, r.approximate_city),
+    vremeTekst: discoverySchedule(r.schedule_kind, r.starts_at, r.ends_at),
     pokrivenost: { ukupno: r.required_slots, popunjeno: r.covered_slots,
       preostalo: Math.max(0, r.required_slots - r.covered_slots), udeo: Math.min(1, r.covered_slots / r.required_slots) },
     uslovi: [...r.required_skills, ...r.required_tools, ...r.required_vehicles],

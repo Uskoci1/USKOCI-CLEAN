@@ -2,6 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import type { DiscoveryBrowseState } from '../discoveryBrowse';
+import { createDiscoveryMapScope } from '../../ui/discovery/discoveryMapScope';
 
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
@@ -23,14 +24,18 @@ const remote: PrilikaProjekcija = { ...physical, id: 'b', naslov: 'Prevod dokume
 const base: DiscoveryBrowseState = { items: [physical, remote], initialized: true, nextCursor: { createdAt: '2026-09-07T01:00:00Z', id: 'cursor' }, refreshing: false, loadingMore: false, error: null };
 let renderer: ReactTestRenderer;
 let state = base;
+let cameraScope: ReturnType<typeof createDiscoveryMapScope>;
 const refresh = jest.fn(), loadMore = jest.fn(), onOpen = jest.fn(), onOwn = jest.fn(), onNew = jest.fn();
 const textOf = (node: ReactTestInstance): string => node.children.map(child => typeof child === 'string' ? child : textOf(child)).join(' ');
 const host = (type: string) => renderer.root.findAll(node => node.type === type);
 const button = (name: string) => host('Pressable').find(node => node.props.accessibilityLabel === name || textOf(node).trim() === name)!;
 const map = () => renderer.root.findByType('MapRenderer' as React.ElementType);
-const body = () => <DiscoveryBody state={state} intent="narucilac" refresh={refresh} loadMore={loadMore} onOpen={onOpen} onOwn={onOwn} onNew={onNew} />;
+const body = () => <DiscoveryBody cameraScope={cameraScope} state={state} intent="narucilac" refresh={refresh} loadMore={loadMore} onOpen={onOpen} onOwn={onOwn} onNew={onNew} />;
 async function press(name: string) { await act(async () => button(name).props.onPress()); }
-beforeEach(async () => { jest.clearAllMocks(); state = base; await act(async () => { renderer = create(body()); }); });
+beforeEach(async () => {
+  jest.clearAllMocks(); state = base; cameraScope = createDiscoveryMapScope(); cameraScope.enter();
+  await act(async () => { renderer = create(body()); });
+});
 afterEach(async () => { await act(async () => renderer.unmount()); });
 
 it('uses the same real items for list/map, retains remote in list and opens the selected ID', async () => {
@@ -43,6 +48,8 @@ it('uses the same real items for list/map, retains remote in list and opens the 
 });
 it('preserves camera, selection and filters when refreshed data returns after detail Back', async () => {
   await press('Mapa'); await act(async () => { map().props.onSelect('a'); map().props.onViewport({ center: [19.8, 45.2], zoom: 12 }); });
+  expect(map().props.scope).toBe(cameraScope);
+  cameraScope.suspend(); cameraScope.leave(); cameraScope.enter();
   state = { ...base, refreshing: true }; await act(async () => renderer.update(body()));
   state = { ...base, items: [{ ...physical, statusTekst: 'Promenjen' }, remote] }; await act(async () => renderer.update(body()));
   expect(map().props.viewport).toEqual({ center: [19.8, 45.2], zoom: 12 }); expect(map().props.selectedId).toBe('a');

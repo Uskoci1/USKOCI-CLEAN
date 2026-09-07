@@ -68,6 +68,90 @@ def signed_out_form_tree(labels=('Email', 'Lozinka')):
     return root, submit, {child: parent for parent in root.iter() for child in parent}
 
 
+def worker_workspace_tree(shared=False, names=('Prijave', 'Zadaci', 'Dogovori')):
+    root, _ = tree(names)
+    profile = ET.SubElement(root, 'node', {
+        'content-desc': 'Radni profil', 'class': 'android.widget.Button',
+        'bounds': '[870,120][1030,280]', 'clickable': 'true', 'enabled': 'true',
+    })
+    marker = ET.SubElement(root, 'node', {
+        'bounds': '[60,360][900,510]', 'enabled': 'true',
+        **({'content-desc': 'Pretražite učitane zadatke', 'class': 'android.widget.EditText'}
+           if shared else {'text': 'JA MOGU', 'class': 'android.widget.TextView'}),
+    })
+    return root, profile, marker, {child: parent for parent in root.iter() for child in parent}
+
+
+class WorkerWorkspaceDetection(unittest.TestCase):
+    def assert_worker(self, root, parent):
+        namespace['assert_worker_workspace_tree'](root, parent, 1080, 2400)
+
+    def test_legacy_worker_header_and_real_three_tabs_remain_supported(self):
+        root, _, _, parent = worker_workspace_tree()
+        self.assert_worker(root, parent)
+
+    def test_shared_search_replaces_removed_eyebrow_with_same_worker_controls(self):
+        root, _, _, parent = worker_workspace_tree(shared=True)
+        self.assert_worker(root, parent)
+
+    def test_requester_tabs_cannot_pass_with_shared_search_and_worker_profile_label(self):
+        root, _, _, parent = worker_workspace_tree(shared=True, names=('Zadaci', 'Novi Zadatak', 'Dogovori'))
+        with self.assertRaisesRegex(AssertionError, 'Bottom navigation missing'):
+            self.assert_worker(root, parent)
+
+    def test_missing_disabled_or_offscreen_worker_profile_fails(self):
+        for change in ({'content-desc': 'Profil'}, {'clickable': 'false'},
+                       {'enabled': 'false'}, {'bounds': '[870,650][1030,810]'}):
+            with self.subTest(change=change):
+                root, profile, _, parent = worker_workspace_tree(shared=True)
+                profile.attrib.update(change)
+                with self.assertRaisesRegex(AssertionError, 'actionable worker profile'):
+                    self.assert_worker(root, parent)
+
+    def test_noneditable_disabled_mislabelled_or_offscreen_shared_search_fails(self):
+        for change in ({'class': 'android.widget.TextView'}, {'enabled': 'false'},
+                       {'content-desc': 'Pretražite zadatke'}, {'bounds': '[60,1900][900,2050]'}):
+            with self.subTest(change=change):
+                root, _, marker, parent = worker_workspace_tree(shared=True)
+                marker.attrib.update(change)
+                with self.assertRaisesRegex(AssertionError, 'real shared-discovery search'):
+                    self.assert_worker(root, parent)
+
+    def test_extra_bottom_control_is_rejected_in_new_discovery(self):
+        root, _, _, parent = worker_workspace_tree(shared=True, names=('Prijave', 'Zadaci', 'Dogovori', 'Settings'))
+        with self.assertRaisesRegex(AssertionError, 'Extra bottom controls'):
+            self.assert_worker(root, parent)
+
+    def test_worker_wait_asserts_the_confirmed_snapshot_without_second_raw_dump(self):
+        root, _, _, parent = worker_workspace_tree(shared=True)
+        wait = Mock(return_value=(root, parent))
+        raw_dump = Mock(side_effect=AssertionError('Do not replace the confirmed app tree'))
+        with patch.dict(namespace, {'wait_surface': wait, 'dump_tree': raw_dump,
+                                   'adb': Mock(return_value=SimpleNamespace(stdout='Physical size: 1080x2400'))}):
+            self.assertEqual(namespace['wait_worker_workspace'](timeout=45), (root, parent))
+        wait.assert_called_once_with(desc='Radni profil', timeout=45)
+        raw_dump.assert_not_called()
+
+    def test_intent_shell_worker_call_uses_same_shared_detector(self):
+        root, _, _, parent = worker_workspace_tree(shared=True)
+        wait = Mock(return_value=(root, parent))
+        with patch.dict(namespace, {'wait_worker_workspace': wait, 'screen_size': Mock(return_value=(1080, 2400)),
+                                   'wait_surface': Mock(side_effect=AssertionError('Removed eyebrow cannot be required'))}):
+            namespace['assert_shell']('worker')
+        wait.assert_called_once_with(timeout=45)
+
+    def test_mode_switch_keeps_real_profile_ui_actions_before_shared_detector(self):
+        tap = Mock()
+        wait_marker = Mock()
+        worker = Mock()
+        with patch.dict(namespace, {'tap': tap, 'wait_visible': wait_marker, 'wait_worker_workspace': worker}):
+            namespace['switch_to_worker_workspace']()
+        self.assertEqual(tap.call_args_list, [unittest.mock.call(desc='Profil', prefer='top'),
+                                              unittest.mock.call(desc='Pređite na JA MOGU')])
+        wait_marker.assert_called_once_with(desc='Pređite na JA MOGU')
+        worker.assert_called_once_with(timeout=45)
+
+
 class IntentShellSelectors(unittest.TestCase):
     def assert_shell(self, names, expected, disabled=()):
         root, parent = tree(names, disabled)
