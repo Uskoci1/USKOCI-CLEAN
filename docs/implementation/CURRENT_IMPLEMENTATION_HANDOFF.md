@@ -4,6 +4,17 @@ Owner-selected visual direction: Figma `DovAtPfVaLKL6xnXtQImbf`, splash15:487, w
 
 State: **IMPLEMENTED / LOCAL SOURCE PROVEN / WEB SIGNED-OUT SURFACES OBSERVED / ANDROID AND CANONICAL PENDING**. This does not close all47 backlog items, account registration delivery, recovery, all deep-link returns, native smoothness, shared maps or final release. Full physical Auth/account/Inbox/navigation proof is queued for the exact source; no production fixture, SQL, Edge, secret or pricing mutation. Fresh live read17:09UTC remains87 migrations/Edgev11/0RSD/HITNO-off/publication gated; older Edge checkpoints below are historical. See `SPOJ_ENTRY_IMPLEMENTATION_20260907.md`.
 
+
+Metro recovery PR65 is now canonical7eacc627833187d58b1fef803e5c9f0c2cb05fbc; exact-source/canonical CI and CodeQL passed. This integration retains its Windows-only32-operation queue unchanged.
+
+---
+
+## Source unit — Windows Metro cache recovery pending review
+
+Based on fresh canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41`, this tooling-only unit bounds Windows cache get/set concurrency to 32 while retaining Expo's default stores and other-platform configuration. Seven focused tests, installed Expo binary disk compatibility under controlled descriptor pressure, 49 suites / 395 tests, TSC, integrity 87/87/0 and static architecture checks PASS. Isolated cold/warm bundling reached 4,546 modules without EMFILE, then static export stopped at the intentionally unconfigured backend guard; no full build/app acceptance is claimed.
+
+State: **SOURCE IMPLEMENTED / LOCAL SOURCE AND DISK PROVEN / PR REVIEW PENDING**. Application, backend, Auth, identity and dependency source remain unchanged. No live action or new live-state reconstruction occurred; older operational checkpoints below retain their recorded timestamps and scope. See [source, proof and limits](WINDOWS_METRO_CACHE_RECOVERY_20260907.md). Next: exact-head CI/CodeQL and coordinating review before merge.
+
 ---
 
 ## Current checkpoint — AI authority LIVE87 and Edge context v7

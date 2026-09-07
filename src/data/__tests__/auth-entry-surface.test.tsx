@@ -199,4 +199,3 @@ it('retains the entry and exposes retry after failed intent storage', async () =
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   expect(input('ime@primer.rs')).toBeDefined();
 });
-

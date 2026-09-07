@@ -4,6 +4,17 @@ Owner-selected visual direction: Figma `DovAtPfVaLKL6xnXtQImbf`, splash15:487, w
 
 State: **IMPLEMENTED / LOCAL SOURCE PROVEN / WEB SIGNED-OUT SURFACES OBSERVED / ANDROID AND CANONICAL PENDING**. This does not close all47 backlog items, account registration delivery, recovery, all deep-link returns, native smoothness, shared maps or final release. Full physical Auth/account/Inbox/navigation proof is queued for the exact source; no production fixture, SQL, Edge, secret or pricing mutation. Fresh live read17:09UTC remains87 migrations/Edgev11/0RSD/HITNO-off/publication gated; older Edge checkpoints below are historical. See `SPOJ_ENTRY_IMPLEMENTATION_20260907.md`.
 
+
+Metro recovery PR65 is now canonical7eacc627833187d58b1fef803e5c9f0c2cb05fbc; exact-source/canonical CI and CodeQL passed. This integration retains its Windows-only32-operation queue unchanged.
+
+---
+
+## Source unit — Windows Metro cache recovery pending review
+
+Canonical base `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` is preserved. Windows Metro delegates cache get/set through one queue of at most 32 operations; application/domain behavior and Linux/macOS defaults remain unchanged. Local evidence: seven focused tests including installed Expo disk values and controlled EMFILE comparison; 49 suites / 395 tests, TSC, integrity 87/87/0 and AST 64/25/0 PASS. Cold/warm server-module transformation succeeded without EMFILE; static export remained blocked by deliberately absent public backend configuration.
+
+This node is **SOURCE IMPLEMENTED / LOCAL SOURCE AND DISK PROVEN / PR REVIEW PENDING**, not native/browser/provider or production proof. No live state was inspected or changed. Preserve existing engine/proof boundaries and follow [the unit report](WINDOWS_METRO_CACHE_RECOVERY_20260907.md) through CI/CodeQL and review. Historical live checkpoints below are not refreshed by this tooling unit.
+
 ---
 
 ## Current checkpoint — AI authority LIVE87 and Edge context v7

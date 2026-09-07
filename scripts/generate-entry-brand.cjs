@@ -10,4 +10,3 @@ const svgs = Object.fromEntries(names.map(name => {
 }));
 fs.writeFileSync(path.join(root, 'src/ui/entry/brandSvg.ts'), '// Generated from the bundled Figma SVGs by scripts/generate-entry-brand.cjs.\nexport const brandSvg = ' + JSON.stringify(svgs, null, 2) + ';\n');
 console.log('Bundled ' + names.length + ' static SVGs. No remote asset dependency.');
-
