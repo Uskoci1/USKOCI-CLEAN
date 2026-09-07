@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/ai-server-context-20260907
+      - fix/ai-provider-selector-20260907
   workflow_dispatch:
 
 permissions:

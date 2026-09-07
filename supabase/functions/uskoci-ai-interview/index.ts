@@ -508,15 +508,19 @@ Deno.serve(async (req: Request) => {
   const geminiModel = Deno.env.get('GEMINI_MODEL') ?? '';
   const openaiKey = Deno.env.get('OPENAI_API_KEY') ?? '';
   const openaiModel = Deno.env.get('OPENAI_MODEL') ?? '';
+  const selectedProvider = Deno.env.get('AI_PROVIDER');
+  // An absent selector preserves legacy Gemini-first configuration routing.
+  // Explicit selection never falls through to another provider or takes input
+  // from the client. Invalid selection and incomplete pairs fail before a call.
+  const provider = selectedProvider === undefined
+    ? (geminiKey && geminiModel ? 'gemini' : openaiKey && openaiModel ? 'openai' : '')
+    : selectedProvider;
 
   let aiTurn: ParsedTurn;
-  let provider = '';
   try {
-    if (geminiKey && geminiModel) {
-      provider = 'gemini';
+    if (provider === 'gemini' && geminiKey && geminiModel) {
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, Array.isArray(activeFacts) ? activeFacts : [], text, timeContext);
-    } else if (openaiKey && openaiModel) {
-      provider = 'openai';
+    } else if (provider === 'openai' && openaiKey && openaiModel) {
       aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, history, Array.isArray(activeFacts) ? activeFacts : [], text, timeContext);
     } else {
       return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
