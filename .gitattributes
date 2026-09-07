@@ -14,3 +14,4 @@ config/firebase/google-services.json -text
 supabase/proofs/notifications/d03_message_retry_candidate.sql text eol=lf
 docs/implementation/evidence/d03-message-retry-20260907/*.log text eol=lf
 docs/implementation/evidence/intent-shell-auth-20260907/** -text whitespace=cr-at-eol
+docs/implementation/evidence/d03-live86-20260907/run34124166375/proof.log text eol=lf

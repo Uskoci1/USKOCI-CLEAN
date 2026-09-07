@@ -1,3 +1,16 @@
+## Current integration — D03 canonical and LIVE86
+
+Fresh canonical is `4ff2dc0f4862cccb2a432851657b68929b8bdc35`, including PR56 merged at13:17:59 UTC. D03 source was promoted by PR55 as `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a` at12:58:53 UTC after exact-head proof34124166375. D03 stable message retry is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. The completed exact forward promotion is live as **86 migrations / `20260907130151_clean_d03_message_retry`**; source86 / live86 / pending0. Do not reapply or rename the source SQL.
+
+All4277 source bytes match the single live statement (MD5 `ea4ebf5cc6f24f103bdb9c854f55463d`, SHA-256 `f7768b8feaefa54090bfdc66a7183089dd72fda21995dcc2beeb0dd6d6494889`). Postflight13:02:34Z retained all85 complete historical records, original2 message rows, existing RLS/table grants/N01/emitter and0 keyed messages. The new RPC is authenticated-only with its reviewed body and fixed search path. Final disposable proof passed11 D03,6 N07 and12 N08 checks; canonical PRE-P4 passed47 suites/347 tests and TSC, and canonical CodeQL/CONTROL-0 passed with3 actual zero-result/error analyses. Final aggregate gates at13:18:42Z remain0, including notification events/deliveries/push attempts, publication bundles/decisions and Q&A rows; requester connection policy remains PROMOTIONAL_FREE /0 RSD. Advisors changed71→72 with exactly one reviewed authenticated SECURITY DEFINER warning and all prior71 warning identities preserved; no errors or blanket warning closure is claimed. This follow-up records completed promotion only; it executes no production SQL.
+
+PR56 EAS/Firebase configuration source is now canonical; all its application/config/test blobs and original evidence are preserved from4ff2dc0. Actual preview APK/signing/Auth/provider acceptance remains unproven. PR49 remains canonical at65d2802 with accepted exact-source292 Android evidence. UI remains a **testable functional scaffold**; future Figma owns final visual design and Fable remains separate. Continue separate D03 mobile binding and functional AI work; broader Chat, native retry/provider/final-visual/Store closure is not claimed. N07/N08 and accepted core proofs remain closed at their recorded boundaries. See `D03_LIVE86_PROMOTION_20260907.md` and `D03_MESSAGE_RETRY_20260907.md`; older pending-forward/live85 statements below are historical where superseded here.
+
+
+The retained PR56 pending-merge and recorded-live85 checkpoints below describe their earlier source/proof boundaries and are superseded by this current pointer.
+
+---
+
 <!-- EAS_D03_CANONICAL_INTEGRATION_20260907 -->
 ## Current source — canonical Auth and D03; EAS/Firebase PR56 pending
 
@@ -28,16 +41,6 @@ See [canonical integration and validation](EAS_PR49_CANONICAL_INTEGRATION_202609
 Existing team EAS identity is source-configured and read-only verified: `@sljivas-team/uskoci`, project `1e6cc490-9851-4741-9226-128612122db6`, package `rs.uskoci.preview`. Source review/merge is pending for this unit. The preview profile uses existing remote credentials and automatic remote versioning with local seed35; the fresh remote-version read returned no initialized counter. The EAS-only pre-install guard rejects wrong identity, missing/foreign public backend environment and fake/test data composition.
 
 Read [existing identity, signing reference and proof limits](EAS_EXISTING_PREVIEW_IDENTITY_20260907.md) and the [public Firebase configuration extension](EAS_FIREBASE_PUBLIC_CLIENT_CONFIG_20260907.md). The exact 671-byte owner-supplied file is now integrated for preview only; disposable package overrides resolve without it. Native FCM auto-init and Analytics collection are explicitly disabled. All 48 focused config/guard tests and 39 suites/280 tests pass. No SDK install, build, submit, update, remote version/credential/environment mutation or database write occurred. Firebase Console identity/FCM flags and client config are not APK certificate/Auth or token/provider delivery proof. N08 live85/pending0 below is the original PR54 base checkpoint, not a fresh live inventory or an override of newer canonical evidence.
-
----
-
-## Current integration — PR49 canonical / D03 pending forward
-
-Fresh canonical is `65d280270ead4d13dcb41f7342a74b164c41e4d9`: PR49 merged at12:44:07 UTC after Root accepted the actual292 Android artifact and final1133 documentation-head CI/CodeQL with all138 tested blobs unchanged. Its Auth/navigation boundary is CANONICAL / SOURCE AND SCOPED ANDROID PROVEN. UI remains a testable scaffold; final visual design awaits Figma and Fable is separate.
-
-D03 exact4277-byte SQL and typed client remain unchanged from accepted proof run34115037170 (artifact10015994215, ZIP SHA256 `f20fb61a7e31402c135b8473e3403f612acbe08eac23a5835b8b49ea7f744e9e`). That proof passed11 D03,6 N07,12 N08 checks and physically observed advisory/lifecycle lock contention. This integration carries the fresh Auth baseline; its final-head regression/replay/CI/CodeQL are pending. Source86 / recorded live85 / pending1; no D03 production write. Canonical review/merge, fresh structural live preflight and exact forward promotion precede the separately developed D03 mobile binding.
-
-The older checkpoints below retain their original source/proof boundaries and are historical where superseded here. Do not restart accepted N07/N08, Auth or core engine work. See D03_MESSAGE_RETRY_20260907.md for the bounded command contract; no full Chat, provider, final visual or Store closure is claimed.
 
 ---
 
