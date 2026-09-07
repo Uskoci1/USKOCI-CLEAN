@@ -19,3 +19,6 @@ supabase/proofs/ai/*.sql text eol=lf
 supabase/proofs/ai/*.json text eol=lf
 supabase/proofs/ai/*.mjs text eol=lf
 docs/implementation/evidence/ai-authority-20260907/*.log -text -whitespace
+supabase/functions/uskoci-ai-interview/index.ts text eol=lf
+src/contracts/needFactsV2.ts text eol=lf
+docs/implementation/evidence/ai-edge-context-20260907/** -text -whitespace

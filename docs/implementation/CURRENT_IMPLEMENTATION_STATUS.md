@@ -1,3 +1,13 @@
+## Current integration — fresh LIVE86 provenance plus AI Edge context
+
+Fresh fetched canonical is `c4c6b624446f3273a40e8393bfadc8c49dff5494`, preserving accepted Auth/navigation, configured application identity, D03 canonical/live86 provenance and the canonical AI DRAFT authority source unchanged. This branch changes only the existing AI Edge time reference, newest history window and sanitized failure logging, with actual-handler source proof: **SOURCE IMPLEMENTED / CI MOCKED TRANSPORT PROVEN AT B9376F1 / FINAL CANONICAL INTEGRATION PENDING / NOT DEPLOYED / ACTUAL PROVIDER NOT PROVEN**.
+
+The frozen Edge is26,346 bytes / SHA-256 `4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704`; the shared fact registry is unchanged. Integrated run34128479788 atb9376f1 passed Deno, TypeScript,17 actual-handler checks and49 suites/395 tests, with three actual zero-result CodeQL analyses. Original artifact10021094289 ZIP SHA-256 `d3eb59dcbec33aa010feb12b685f29f73cd2f3ff3e761bec682578bccf745afa` was physically verified. Earlier committed evidence and precise limits remain in [the unit report](AI_EDGE_SERVER_CONTEXT_20260907.md). The final integrated source run after canonical PR57 and its gates will be recorded after execution. This unit uses synthetic fetch/environment only; no provider call, database write, deployment or gate activation is part of source proof.
+
+Source87 / recorded live86 / pending1 are retained from canonical provenance; this branch adds no SQL migration. Root accepted PR57's unchanged AI SQL atf5b9550 with actual86→87 proof34128347708; its separate live promotion remains root-owned. Follow user-adopted V3 and06.09 guidance. Root reviews final source/proof/gates, then fresh live v6 source/config before any existing Edge promotion. Actual owner intake, human confirmation/correction and truthful DRAFT card remain a separate functional boundary. Production is not a synthetic fixture sandbox. Current UI is a testable scaffold; final Figma design and Fable remain separate. Underlying checkpoints retain their historical boundaries where superseded here.
+
+---
+
 ## Current integration — fresh LIVE86 provenance plus AI DRAFT authority proof
 
 Fresh fetched canonical is `f055d6415b5153aa6ef0db735d63dddea7806ead`. Auth/navigation, configured application identity and the existing D03 command source/live alias are canonical at their accepted proof boundaries. This branch adds only the two-RPC AI DRAFT authority repair and its proof integration: **SOURCE IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN AT17659 / FINAL D03 INTEGRATION REPLAY PENDING / NOT LIVE**. Exact AI SQL remains21,141 bytes / SHA-256 `ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1`.

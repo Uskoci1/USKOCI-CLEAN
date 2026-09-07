@@ -41,6 +41,30 @@ type ParsedTurn = {
   proposals: Array<Record<string, unknown>>;
 };
 
+type ServerTimeContext = {
+  nowUtc: string;
+  timeZone: 'Europe/Belgrade';
+  localDate: string;
+  localTime: string;
+  utcOffset: string;
+};
+
+function serverTimeContext(now: Date): ServerTimeContext {
+  const timeZone = 'Europe/Belgrade' as const;
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+    timeZoneName: 'longOffset',
+  }).formatToParts(now);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '';
+  return {
+    nowUtc: now.toISOString(), timeZone,
+    localDate: `${part('year')}-${part('month')}-${part('day')}`,
+    localTime: `${part('hour')}:${part('minute')}:${part('second')}`,
+    utcOffset: part('timeZoneName').replace(/^GMT/, '') || '+00:00',
+  };
+}
+
 function response(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
@@ -158,7 +182,7 @@ function openAiSchema(schemaVersion: FactSchemaVersion) {
   return convert(src);
 }
 
-function commonInstruction(activeFacts: any[]) {
+function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
   const known = activeFacts.map((fact) => ({
     key: fact.fact_key,
     value: fact.fact_value,
@@ -171,26 +195,29 @@ function commonInstruction(activeFacts: any[]) {
     'Ako nešto materijalno nedostaje ili je kontradiktorno, postavite jedno najvažnije sledeće pitanje; najviše dva usko povezana samo kada je prirodno.',
     'Ako korisnik ispravlja raniji podatak, predložite novu vrednost istog ključa. Server čuva supersession istoriju.',
     'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
+    `Serverski vremenski kontekst za trenutni unos u Srbiji: ${JSON.stringify(timeContext)}.`,
+    'Relativne datume poput danas, sutra i prekosutra tumačite prema ovom serverskom lokalnom datumu, a ne prema sopstvenoj memoriji ili datumu koji klijent tvrdi da je sada. Ako je relevantna druga vremenska zona ili je datum dvosmislen, tražite razjašnjenje.',
+    'Ovaj vremenski kontekst je referenca za predlog, nikada potvrđen termin Zadatka. Datum i vreme jasno prikažite korisniku radi potvrde. Ne izmišljajte nedostajući čas, trajanje, kraj termina ili nejasnu lokaciju; postavite sledeće potrebno pitanje. Timestamp predlozi moraju sadržati eksplicitni vremenski pomak za taj datum.',
     'AI predlog nikada nije ljudska potvrda i nikada nije dozvola za objavu.',
     'Safety je samo razgovorni signal. Ne tvrdite da je nešto zakonski dozvoljeno na osnovu sopstvene memorije. Ako je pravno/policy nejasno ili regulisano, koristite REVIEW; ako se bezbedno pitanje može razjasniti, CLARIFY.',
     `Aktuelne server-side činjenice: ${JSON.stringify(known).slice(0, 8000)}`,
   ];
 }
 
-function legacyInstruction(activeFacts: any[]) {
+function legacyInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
   return [
     'Vi ste USKOČI razgovorni AI asistent koji vodi korisnika kroz unos jednog Zadatka.',
-    ...commonInstruction(activeFacts),
+    ...commonInstruction(activeFacts, timeContext),
     'Iz NAJNOVIJE poruke izdvojite samo podržane legacy činjenice.',
     'evidence mora biti kratak doslovan isečak najnovije korisnikove poruke.',
   ].join(' ');
 }
 
-function v2Instruction(activeFacts: any[]) {
+function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
   const registry = NEED_FACT_V2_KEYS.map((key) => ({ key, ...NEED_FACT_V2_DEFINITIONS[key] }));
   return [
     'Vi ste USKOČI AI kopilot za sastavljanje kvalitetnog Zadatka iz prirodnog razgovora.',
-    ...commonInstruction(activeFacts),
+    ...commonInstruction(activeFacts, timeContext),
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
@@ -330,6 +357,7 @@ async function callGemini(
   history: any[],
   activeFacts: any[],
   text: string,
+  timeContext: ServerTimeContext,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -342,7 +370,7 @@ async function callGemini(
       method: 'POST',
       headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts) : legacyInstruction(activeFacts) }] },
+        systemInstruction: { parts: [{ text: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext) : legacyInstruction(activeFacts, timeContext) }] },
         contents,
         generationConfig: {
           temperature: 0.2,
@@ -375,6 +403,7 @@ async function callOpenAI(
   history: any[],
   activeFacts: any[],
   text: string,
+  timeContext: ServerTimeContext,
 ) {
   const transcript = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'assistant' : 'user',
@@ -387,7 +416,7 @@ async function callOpenAI(
     body: JSON.stringify({
       model,
       store: false,
-      instructions: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts) : legacyInstruction(activeFacts),
+      instructions: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext) : legacyInstruction(activeFacts, timeContext),
       input: transcript,
       text: {
         format: {
@@ -456,7 +485,7 @@ Deno.serve(async (req: Request) => {
   const [historyResponse, factsResponse] = await Promise.all([
     postgrest(
       supabaseUrl, anonKey, authorization,
-      `ai_messages?conversation_id=eq.${encodeURIComponent(conversationId)}&select=role,body,sequence_no&order=sequence_no.asc&limit=40`,
+      `ai_messages?conversation_id=eq.${encodeURIComponent(conversationId)}&select=role,body,sequence_no&order=sequence_no.desc&limit=40`,
       { method: 'GET' },
     ),
     postgrest(
@@ -469,8 +498,11 @@ Deno.serve(async (req: Request) => {
     console.error('AI_EDGE_CONTEXT_QUERY_FAILED', historyResponse.status, factsResponse.status);
     return response(502, { code: 'CONVERSATION_CONTEXT_FAILED', message: 'Razgovor trenutno nije mogao da se nastavi.' });
   }
-  const history = await historyResponse.json();
+  const latestHistory = await historyResponse.json();
+  // Query the newest bounded window, then restore chronological provider order.
+  const history = Array.isArray(latestHistory) ? [...latestHistory].reverse() : [];
   const activeFacts = await factsResponse.json();
+  const timeContext = serverTimeContext(new Date());
 
   const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
   const geminiModel = Deno.env.get('GEMINI_MODEL') ?? '';
@@ -482,15 +514,17 @@ Deno.serve(async (req: Request) => {
   try {
     if (geminiKey && geminiModel) {
       provider = 'gemini';
-      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, Array.isArray(history) ? history : [], Array.isArray(activeFacts) ? activeFacts : [], text);
+      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, Array.isArray(activeFacts) ? activeFacts : [], text, timeContext);
     } else if (openaiKey && openaiModel) {
       provider = 'openai';
-      aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, Array.isArray(history) ? history : [], Array.isArray(activeFacts) ? activeFacts : [], text);
+      aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, history, Array.isArray(activeFacts) ? activeFacts : [], text, timeContext);
     } else {
       return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
     }
-  } catch (error) {
-    console.error('AI_PROVIDER_FAILED', error instanceof Error ? error.message : 'unknown');
+  } catch {
+    // Native fetch/JSON errors can contain provider output or request details.
+    // HTTP adapters above log only a fixed category and numeric response status.
+    console.error('AI_PROVIDER_FAILED');
     return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela.' });
   }
 

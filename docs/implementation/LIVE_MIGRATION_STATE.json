@@ -1,4 +1,23 @@
 {
+  "ai_edge_server_context_checkpoint_20260907": {
+    "state": "SOURCE_IMPLEMENTED_CI_MOCKED_TRANSPORT_PROVEN_INTEGRATION_PENDING_NOT_DEPLOYED",
+    "canonical_integration_base": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+    "source_file_count": 87,
+    "recorded_live_migration_count": 86,
+    "pending_forward_files": 1,
+    "edge_entry_bytes": 26346,
+    "edge_entry_sha256": "4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704",
+    "registry_unchanged": true,
+    "deployed": false,
+    "actual_provider_called": false,
+    "proof_head": "b9376f18e29145d3d60d891e1c8f994472522628",
+    "proof_run": 34128479788,
+    "artifact_id": 10021094289,
+    "artifact_zip_sha256": "d3eb59dcbec33aa010feb12b685f29f73cd2f3ff3e761bec682578bccf745afa",
+    "mocked_actual_handler_tests": 17,
+    "fresh_canonical_integration": "SOURCE_PREPARED_RUNTIME_PENDING",
+    "report": "docs/implementation/AI_EDGE_SERVER_CONTEXT_20260907.md"
+  },
   "ai_draft_authority_checkpoint_20260907": {
     "state": "SOURCE_IMPLEMENTED_AUTHENTICATED_PROVEN_INTEGRATION_PENDING_NOT_LIVE",
     "canonical_integration_base": "f055d6415b5153aa6ef0db735d63dddea7806ead",
