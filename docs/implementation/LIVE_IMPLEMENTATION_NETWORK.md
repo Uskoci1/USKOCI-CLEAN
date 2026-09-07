@@ -1,4 +1,12 @@
-## CURRENT CHECKPOINT — 2026-09-07 / N08 LIVE85
+## CURRENT SOURCE CHECKPOINT — 2026-09-07 / AI DRAFT AUTHORITY PENDING
+
+AI DRAFT authority is **SOURCE IMPLEMENTED / PROOF PENDING / NOT CANONICAL / NOT LIVE** on isolated baseline `9d245f3053c8e79370a73e82b12d4250e3ed94b7`. Two existing owner RPCs now project persisted safety coherently and reject a new DRAFT after BLOCK while preserving prior successful acknowledgments. Inventory for this branch is **86 source / observed live85 / pending1**. No provider request, production fixture, Edge deployment, policy activation or live migration occurred. N07/N08 closure remains unchanged.
+
+Read [the exact source and proof boundary](AI_DRAFT_AUTHORITY_20260907.md). The disposable runner must first reproduce the predecessor bypass and prove direct denial, owner isolation, unchanged engine/history and observed lock interleavings. Do not call this runtime-proven until original current-head artifacts pass review. Older source-count pointers below are historical to their own checkpoint. Continue under user V3 and06.09 UI priority; production is not a sandbox.
+
+---
+
+## HISTORICAL CHECKPOINT — 2026-09-07 / N08 LIVE85
 
 N08 is **CANONICAL / AUTHENTICATED DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. PR53 merged as `06d8ce1a14c87ca2237d94aa5a60cd7230899ff6`; exact forward promotion is live at **85 migrations / `20260907102458_clean_n08_notification_preferences`**. Inventory is **85 source files / live85 / pending0**. All original84 full history metadata and statement fingerprints remain unchanged. Do not reapply N08 or N07.
 
