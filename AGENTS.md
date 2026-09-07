@@ -1,3 +1,11 @@
+## CURRENT POINTER — 2026-09-07 / N02 + N03
+
+Current execution status and proof ledger: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02 PR #40 and N03 PR #41 are PROVEN / CANONICAL-NOT-LIVE at `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`; post-merge PRE-P4/CodeQL/Control-0 PASS. Fresh limited live migration/fingerprint reads succeeded this session; older read-blocked statements below describe only the earlier session. No live write occurred. N04 mobile Inbox is in progress; fetch its branch/run before continuing. Do not restart RU-5 physical proof or N01/N02/N03.
+
+All older active-cursor claims below are retained historical provenance and cannot override this pointer.
+
+---
+
 <!-- RU5_PHYSICAL_CANONICAL_20260907 -->
 ## CURRENT CHECKPOINT — 2026-09-07
 

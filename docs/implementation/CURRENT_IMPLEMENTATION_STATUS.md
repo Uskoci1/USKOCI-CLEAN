@@ -1,3 +1,31 @@
+## CURRENT CHECKPOINT — 2026-09-07 / N02 + N03 CANONICAL, NOT LIVE
+
+This section supersedes retained historical cursors below. Current implementation baseline is canonical `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`. Fetch again before the next unit. RU-5 physical journey remains CLOSED / PROVEN / CANONICAL; its aggregate bounded-note decision and Application AI gate remain unresolved.
+
+| Unit | Source / canonical | Physically inspected proof | Post-merge gates |
+| --- | --- | --- | --- |
+| N01 MESSAGE_RECEIVED | PR #39 / `abd147d64eab616045d450f87e36ca5759a63e5d` | Existing N01 proof remains canonical; do not restart | PRE-P4 34090282763, CodeQL 34090282715, Control-0 34090282829 PASS |
+| N02 RESPONSE_SELECTED | PR #40 / `175c0004670d928f63afe5925dee72849ca7d659`; proof head `3022ffb538205e3ea1e01110006ae09854c30c87` | run 34094384747 / job 101654583667 / artifact 10008095140; 12/12 PASS | PRE-P4 34095097976, CodeQL 34095097864, Control-0 34095097982 PASS |
+| N03 event Inbox | PR #41 / `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`; proof head `c7aae94988c78058903d06393d2e5a3f380a6c7b` | run 34095038531 / job 101656658378 / artifact 10008329926; 9/9 PASS | PRE-P4 34096030954, CodeQL 34096030976, Control-0 34096030910 PASS |
+
+N02 candidate `supabase/proofs/notifications/n02_selection_event_candidate.sql` preserves the exact Selection predecessor except a successful fresh-selection event insertion. Authenticated wrong actor, stale revision, concurrent retry, event-failure rollback, replay/no-backfill, privacy and preference checks pass. Candidate SHA-256: `3677a1859e5df41c80ab7b307286560f8f7aea1de6aab92a9a6e4d6ad4505c8a`. Downloaded evidence ZIP SHA-256: `05314affd7984163b0b4c8768629ed39edf2fd505623a4c5f4603164c9d7364a`.
+
+N03 candidate `supabase/proofs/notifications/n03_inbox_candidate.sql` adds event-owned `read_at`, keyset/unread indexes and four narrow RPCs. A durable event is one Inbox item independent of delivery preferences; `notification_deliveries.read_at` is not the S06 read authority. Owner-only idempotent read, read-all role/snapshot bounds, same-timestamp pagination and RLS-authorized Need/Response/Agreement target resolution pass. Candidate SHA-256: `b5dec48dd034b20762a19a52c809d29d20ebeaa55421c99f167e70b0b545960b`. Downloaded evidence ZIP SHA-256: `a1ee166dfbe90ded90f30dad87393d2b0cc5a20b5c3e47c41fcc6bd1c3296467`. Both ZIP digests matched GitHub API metadata; actual reports/logs were inspected, not inferred from a green badge.
+
+### Fresh limited live observation / no promotion
+
+The configured Supabase connector permitted read-only migration listing and targeted function fingerprints in this session, superseding the earlier session's read-blocked checkpoint. Observed: **79 migrations / 20260906141409_clean_ru5_fastest_autofill_retirement**. Selection `md5(prosrc)=867b280d4131188db3906c1ced7f4c11`; message `705f19630e27792639d737bfa41d77c6`; emitter `8da91a4736e09b10872bd1240d6e0c8c`. This was NOT a complete production safety audit, device proof, new Edge observation, or promotion preflight authorization. No production writes occurred.
+
+**N01/N02/N03 are CANONICAL-NOT-LIVE source candidates outside applied migration history.** No forward migration has been promoted. Live promotion requires exact forward files, integrity/provenance registration, disposable proof, green PR/canonical gates, a new fresh live preflight, approved apply and immediate postflight. Applied 79 migration bytes remain unchanged.
+
+### Active continuation
+
+N04 real mobile Inbox is on `proof/notifications-n04-inbox-mobile-20260907`, initial source `576e56b6f4da1db509f4a269962654ff928a1e3f`, native proof run `34096462936` IN PROGRESS at this checkpoint. Do not call it proven/canonical/live until its actual later state is verified. Local TypeScript, 199 regression tests, 17 input-harness and 19 disposable-target guard tests PASS. It requires N03 backend promotion before production functionality; absence must remain an explicit error, never fake empty content.
+
+Next: inspect N04 original Android evidence, fix any failure, PR/gates/merge/post-merge; continue canonical domain-event wiring and Push/Chat closure. Never activate payments, paid subscription, HITNO, D0140 production ALLOW, RU-4B public Q&A, Application AI, FASTEST or AUTO_FILL. P0D03 remains REQUESTER_SELECTION_V1/v1/REQUESTER/SELECTION/PROMOTIONAL_FREE/HEADCOUNT/0 RSD, with no Worker debit. Full shared Dogovor, realtime/chat-read, reviews, calendar overlap, push provider/device delivery and Store readiness are NOT established by these notification proofs.
+
+---
+
 # USKOČI current implementation status
 
 Authoritative current status as of `2026-09-06`, after canonical/live/proven FASTEST/AUTO_FILL retirement and canonical/proven authenticated two-account Application journey proof. Historical closure evidence remains in dedicated closure and continuity documents.
