@@ -2,16 +2,38 @@
   "mobile_execution_checkpoint_20260907": {
     "canonical_baseline": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
     "intent_shell_pr": 49,
-    "state": "IMPLEMENTED_FUNCTIONAL_ANDROID_PROVEN_VISUAL_REPLAY_PENDING",
-    "failed_android_run": 34104812406,
-    "failure": "Historical Auth failure repaired; successful run exposed Agreement metadata overflow; fixed row requires final native replay",
+    "state": "IMPLEMENTED_SOURCE_AND_SCOPED_ANDROID_PROVEN_NOT_MERGED",
     "live_change": false,
     "report": "docs/implementation/INTENT_SHELL_20260907.md",
-    "successful_android_run": 34110549395,
-    "successful_android_source": "a8075b6f76c82d3e0a565db4be7c9526765fffb1",
-    "artifact_id": 10015039759,
-    "artifact_zip_sha256": "d980253d8877009f17662724ca89baf80ed68a68d10c6fd33a216207d54e1e22",
-    "inspected_png_xml_pairs": 27
+    "architecture_report": "docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md",
+    "successful_android_run": 34119448882,
+    "successful_android_source": "29271e6be7fc519e40941531d37c6d48b0db7ef3",
+    "artifact_id": 10018537383,
+    "artifact_zip_sha256": "e87d3f887870505942806faa3824f80c699234835f18e31ca5ebd582f62a1acc",
+    "apk_sha256": "fd6f513be2f8e0fe71fcff4688de5a1db30d3dfdab0d1c55661133758650708d",
+    "inspected_png_xml_pairs": 27,
+    "frozen_native_git_blobs": 138,
+    "source_validation": "46 suites /313 tests; TSC;34 Python; integrity85;6 checks SUCCESS;3 CodeQL zero errors/results",
+    "architecture_review": "PR49 source review accepted; AST62 client/25 presentation/0 findings; separate AI audit not claimed",
+    "scope": "Standalone Android API35 emulator; disposable historical79+N02/N03; testable scaffold, not final Figma design or production/Store proof",
+    "historical_failed_android_runs": [
+      34104812406,
+      34108000350,
+      34108536812
+    ],
+    "historical_proofs": [
+      {
+        "run": 34110549395,
+        "source": "a8075b6f76c82d3e0a565db4be7c9526765fffb1",
+        "limit": "Functional success; original visual review found Agreement row overflow, later fixed"
+      },
+      {
+        "run": 34114525948,
+        "source": "86fffc1b58789a2a7331e3646ba8aa0647e02a73",
+        "limit": "Both Agreement rows accepted; predates Auth/accountRevision source"
+      }
+    ],
+    "next": "Final documentation-head CI/CodeQL and Root acceptance before merge; preserve exact native source boundary; functional AI vertical separately"
   },
   "n08_preferences_checkpoint_20260907": {
     "state": "CANONICAL_AUTHENTICATED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
