@@ -33,6 +33,18 @@ export default function PrilikaDetaljiEkran() {
   // The cache is display-only and cannot survive a task, account, session or intent change.
   const cache = useMemo(() => ({ data: null as PrilikaProjekcija | null }), [load, intent]);
   const fresh = resource.data?.prilika?.id === id ? resource.data.prilika : null;
+  const deadlineAt = fresh?.rokZaPrijaveIso === null ? null
+    : typeof fresh?.rokZaPrijaveIso === 'string' ? Date.parse(fresh.rokZaPrijaveIso) : undefined;
+  const [deadlineTick, setDeadlineTick] = useState(0);
+  const deadlineOpen = () => deadlineAt === null || (typeof deadlineAt === 'number' && deadlineAt > Date.now());
+  useFocusEffect(useCallback(() => {
+    if (typeof deadlineAt !== 'number' || !Number.isFinite(deadlineAt)) return;
+    const remaining = deadlineAt - Date.now();
+    if (remaining <= 0) return;
+    // Long deadlines are rechecked before scheduling another bounded timer.
+    const timer = setTimeout(() => setDeadlineTick(tick => tick + 1), Math.min(remaining, 2_147_483_647));
+    return () => clearTimeout(timer);
+  }, [deadlineAt, deadlineTick]));
   useEffect(() => {
     if (!resource.loading && !resource.error) cache.data = fresh;
   }, [cache, fresh, resource.loading, resource.error]);
@@ -73,7 +85,7 @@ export default function PrilikaDetaljiEkran() {
   function compose() {
     // A saved press from before refresh/blur/id/account change cannot navigate.
     if (!fresh || resource.loading || resource.error || resource.data?.request !== readRequest.current
-      || fresh.primaNovePrijave !== true || intent !== 'uskocer') return;
+      || fresh.primaNovePrijave !== true || !deadlineOpen() || intent !== 'uskocer') return;
     navigate(() => router.navigate({ pathname: '/prilike/[id]/prijava', params: { id: fresh.id } }));
   }
 
@@ -124,7 +136,7 @@ export default function PrilikaDetaljiEkran() {
         </>}
       </ScrollView>
       {fresh && !resource.loading && !resource.error && <View style={{ padding: space.base, borderTopWidth: 1, borderTopColor: palette.line100, gap: space.sm }}>
-        {fresh.primaNovePrijave === true && intent === 'uskocer' ? <Button label="Sastavi prijavu" full disabled={busy} onPress={compose} />
+        {fresh.primaNovePrijave === true && deadlineOpen() && intent === 'uskocer' ? <Button label="Sastavi prijavu" full disabled={busy} onPress={compose} />
           : <T variant="body" tone="muted">Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
       </View>}
     </SafeAreaView>

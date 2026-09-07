@@ -45,7 +45,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 const detail = (id = 'task-a'): PrilikaProjekcija => ({
-  id, naslov: `Zadatak ${id}`, statusTekst: 'Traži ponude', primaNovePrijave: true, podrucjeTekst: 'Centar, Novi Sad', vremeTekst: 'Fleksibilno',
+  id, naslov: `Zadatak ${id}`, statusTekst: 'Traži ponude', primaNovePrijave: true, rokZaPrijaveIso: null, podrucjeTekst: 'Centar, Novi Sad', vremeTekst: 'Fleksibilno',
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, uslovi: ['Alat'],
   narucilacProfilId: 'requester-a', narucilacIme: '', narucilacOcena: null, priblizno: null,
 });
@@ -61,7 +61,7 @@ beforeEach(() => {
   mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockIntent = 'uskocer'; mockFocused = true;
   mockRouter.canGoBack.mockReturnValue(true);
 });
-afterEach(async () => { await act(async () => { tree?.unmount(); }); tree = undefined; });
+afterEach(async () => { await act(async () => { tree?.unmount(); }); tree = undefined; jest.useRealTimers(); });
 
 describe('W04 actual screen and focused read lifecycle', () => {
   it('shows recoverable read failure without transport details and serializes retry taps', async () => {
@@ -109,6 +109,22 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockLoad.mockResolvedValue({ ...detail(), primaNovePrijave }); await render();
     expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
     expect(text()).toContain('Nove prijave trenutno nisu dostupne');
+  });
+
+  it.each([undefined, 'invalid', '2000-01-01T00:00:00Z'])('never offers the composer for unknown/expired deadline %s', async rokZaPrijaveIso => {
+    mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso }); await render();
+    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+  });
+
+  it('expires the visible CTA without a network call and rejects a press before the timer paints', async () => {
+    jest.useFakeTimers(); jest.setSystemTime(new Date('2026-09-07T12:00:00Z'));
+    mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso: '2026-09-07T12:00:10Z' });
+    await render(); const press = buttons('Sastavi prijavu')[0].props.onPress;
+    jest.setSystemTime(new Date('2026-09-07T12:00:10Z'));
+    await act(async () => press()); expect(mockRouter.navigate).not.toHaveBeenCalled();
+    await act(async () => jest.advanceTimersByTime(10_000));
+    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(mockLoad).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a response that does not match the requested task', async () => {

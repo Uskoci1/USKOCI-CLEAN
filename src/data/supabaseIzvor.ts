@@ -139,12 +139,22 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id
+        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline
       `)
       .eq('id', id).maybeSingle();
 
     if (error) throw error;
     if (!data) return null;
+
+    // Missing/malformed capacity is an invalid read, never implicit free space.
+    if (!Number.isSafeInteger(data.required_slots) || data.required_slots <= 0
+      || !Number.isSafeInteger(data.covered_slots) || data.covered_slots < 0) {
+      throw new Error('TASK_CAPACITY_INVALID');
+    }
+    const rok = data.response_deadline;
+    if (rok !== null && (typeof rok !== 'string'
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(rok)
+      || !Number.isFinite(Date.parse(rok)))) throw new Error('TASK_DEADLINE_INVALID');
 
     const profiles = await safePublicProfiles([data.requester_profile_id]);
     const narucilac = profiles.get(data.requester_profile_id) ?? null;
@@ -154,10 +164,11 @@ export const supabaseIzvor: SupabaseIzvor = {
       naslov: data.title,
       statusTekst: ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
       primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
-        && (data.required_slots || 1) > (data.covered_slots || 0),
+        && data.required_slots > data.covered_slots && (rok === null || Date.parse(rok) > Date.now()),
+      rokZaPrijaveIso: rok,
       podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
       vremeTekst: fTime(data.starts_at),
-      pokrivenost: pokrivenost(data.required_slots || 1, data.covered_slots || 0),
+      pokrivenost: pokrivenost(data.required_slots, data.covered_slots),
       uslovi: [...(data.required_skills || []), ...(data.required_tools || []), ...(data.required_vehicles || [])],
       narucilacProfilId: data.requester_profile_id,
       narucilacIme: narucilac?.ime || '',
