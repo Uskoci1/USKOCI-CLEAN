@@ -1,6 +1,6 @@
 # D03 mobile message recovery — 2026-09-07
 
-State: IMPLEMENTED / SOURCE TESTED / ANDROID REPLAY PENDING / NOT CANONICAL OR LIVE.
+State: IMPLEMENTED / SOURCE TESTED / INHERITED27 ANDROID CHECKPOINTS PROVEN / D03 NATIVE ADMISSION FIXED, REPLAY PENDING / MOBILE NOT CANONICAL.
 
 This continues the current Agreement screen as a testable scaffold. It does not establish final visual design. The owner's latest instruction reserves final navigation, screen organization, cards, maps, floating commands, photos, vehicles, calendar, colors, typography and animation for a later approved Figma source; Fable intro is a separate asset. Existing functional contracts and server authority remain independent of that future layout.
 
@@ -55,3 +55,13 @@ The same reviewed mobile source1421acfb is now integrated with canonical4ff2dc0 
 D03 was separately promoted live86 and its alias provenance is now canonical atf055d641. This merge will immediately admit that documentation-only successor before the exact-source mobile PR/device run. No server migration is reapplied. All earlier base85 and pending-backend paragraphs above are historical boundaries; final scaffold/product limitations remain unchanged.
 
 The final source now also includes canonicalf055d641 / PR60. Only documentation, provenance and original evidence were added after the54-suite/467-test integration. All application/build/proof blobs are unchanged; integrity is86 source/live86/pending0. The next step is exact-head Android and CI/CodeQL acceptance, without production replay.
+
+## Actual native boundary and repaired admission
+
+Run34128121944 at9d5962f built and booted the standalone local-only Android APK, then passed10 N04 and17 NAV screenshot/XML checkpoints plus the inherited business/zero-RSD/history79 postflight. It failed before any D03 extension or Chat interaction: the helper incorrectly required a N07 forward file to equal its raw candidate, omitting the already-admitted150-byte two-line header. N02 was2287 bytes versus2137 candidate bytes. Original artifact10021851979 ZIP SHA256 `799054c27299fc2a23e8470cac5b801378ea16f1196dfb6c92137fd0bf4fa10d` was independently downloaded and verified. This failure does not establish a Chat runtime failure or success. No D03 boundary/report/screenshot exists in that artifact.
+
+Reviewed commita792a46 fixes only this harness admission. A pure shared helper now requires the exact canonical header plus original candidate for N01/N02/N03/N05/N06, preserves the canonical MD5/SHA and provenance membership, and retains direct exact N08/D03 mirroring. N02/N03 remain explicitly already applied and are never applied again. All17 pre-existing SQL/candidate/manifest/provenance inputs remain byte-identical.29 source regression cases cover every candidate/forward mutation, coherent two-file mutation, malformed header and missing/duplicate/reordered/missing-alias bindings;19 existing local guard and3 canonical admission tests pass. The workflow executes source admission before disposable setup/APK build.
+
+The branch is now integrated with canonical `6701311d89047c0a1058332362887fb7b396df5a` (PR57/PR58). All existing D03 application/build and Python journey blobs remain unchanged; canonical AI SQL/Edge/proof blobs are preserved. This establishes source input preservation, not a new APK binary digest or native execution result. Source87/recorded live86/pending1 is the incoming provenance snapshot; this branch makes no live observation or provider call. Final integrated validation passes54 suites/467 tests, TypeScript, integrity87/recorded86/pending1,29 admission+19 local guard and44 Python harness checks, plus AST67/26/0. The exact-source27+11 native replay remains pending. The previously successful AI source proofs retain their own accepted boundaries and need no backend replay in this native unit.
+
+[Integrated validation](evidence/d03-chat-recovery-20260907/canonical670-admission-validation.json), [exact Git input preservation](evidence/d03-chat-recovery-20260907/canonical670-input-preservation.json) and [AST observation](evidence/d03-chat-recovery-20260907/canonical670-client-boundary.json) retain the tested merge working-tree boundary before its commit. Their [manifest](evidence/d03-chat-recovery-20260907/canonical670-manifest.json) binds those original recorded files.

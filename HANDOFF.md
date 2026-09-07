@@ -1,9 +1,42 @@
+## Current D03 mobile integration — canonical AI authority and Edge source
+
+Fresh canonical is `6701311d89047c0a1058332362887fb7b396df5a`, including accepted PR57 AI DRAFT authority and PR58 Edge context source. This Chat branch preserves canonical SQL, Edge and their proof inputs, plus the existing reviewed D03 app and native journey. The only new harness behavior is exact N07 source admission: the five forward files retain their approved two-line provenance header plus the unchanged candidate; N08/D03 remain direct byte mirrors. All MD5/SHA and provenance bindings are checked before disposable setup and APK build.
+
+Original native run34128121944 at9d5962f passed the10 Inbox and17 navigation checkpoints and their business postflight, then stopped before D03 setup because the old admission check compared N02's2287-byte forward file with its2137-byte raw candidate. Original artifact10021851979 ZIP SHA-256 `799054c27299fc2a23e8470cac5b801378ea16f1196dfb6c92137fd0bf4fa10d` was downloaded and verified. No D03 screenshot or Chat proof passed in that run. The reviewed fixa792a46 has29 source admission tests plus19 local guard tests and3 existing canonical admission tests passing. Final integrated validation passes54 suites/467 tests, TypeScript, integrity87/recorded86/pending1,44 Python harness tests and AST67/26/0. Exact-source native replay remains pending.
+
+Current status is **D03 MOBILE SOURCE IMPLEMENTED / PRIOR27 NATIVE CHECKPOINTS PROVEN AT9D5962F / D03 NATIVE REPLAY PENDING / NOT CANONICAL**. The existing backend D03 proof/live boundary remains accepted. Source inventory is87 / recorded live86 / pending1; this preserves incoming provenance and is not a new live observation. Root owns the separate completed AI promotion/provenance and any Edge deployment; this branch performs no production/provider action. See [the current Chat report](docs/implementation/D03_CHAT_RECOVERY_20260907.md). UI remains a testable scaffold for later Figma/Fable work. Earlier checkpoints below retain their own source/evidence boundaries where superseded here.
+
+---
+
+### Retained historical D03 source checkpoint
+
 <!-- D03_CANONICAL_SOURCE_INTEGRATION_20260907 -->
 ## D03 mobile integration — canonical Auth, message retry and EAS
 
 Reviewed D03 mobile source1421acfb is integrated with canonicalf055d641, including canonical Auth, D03, EAS/Firebase and exact live86 provenance. Full54 suites/467 tests, TypeScript and bounded AST67/26/0 pass; all270 relevant source/config/SQL paths preserve their intended reviewed Git blobs. D03 mobile is SOURCE TESTED / NATIVE PENDING / NOT CANONICAL. Its27+11 native journey is required before acceptance. Source remains a testable scaffold for later approved Figma work.
 
 The server dependency is canonical and structurally proven live86; source86/recorded86/pending0 integrity passes after admitting the documentation-only provenance successor. All application, build and proof implementation blobs remain identical to the just-tested54-suite/467-test e0b005a integration. No D03 migration is reapplied. Historical pending statements below retain their own original evidence boundary; the current source and limits are in docs/implementation/D03_CHAT_RECOVERY_20260907.md.
+
+
+---
+
+## Current integration — fresh LIVE86 provenance plus AI Edge context
+
+Fresh fetched canonical is `c4c6b624446f3273a40e8393bfadc8c49dff5494`, preserving accepted Auth/navigation, configured application identity, D03 canonical/live86 provenance and the canonical AI DRAFT authority source unchanged. This branch changes only the existing AI Edge time reference, newest history window and sanitized failure logging, with actual-handler source proof: **SOURCE IMPLEMENTED / CI MOCKED TRANSPORT PROVEN AT B9376F1 / FINAL CANONICAL INTEGRATION PENDING / NOT DEPLOYED / ACTUAL PROVIDER NOT PROVEN**.
+
+The frozen Edge is26,346 bytes / SHA-256 `4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704`; the shared fact registry is unchanged. Integrated run34128479788 atb9376f1 passed Deno, TypeScript,17 actual-handler checks and49 suites/395 tests, with three actual zero-result CodeQL analyses. Original artifact10021094289 ZIP SHA-256 `d3eb59dcbec33aa010feb12b685f29f73cd2f3ff3e761bec682578bccf745afa` was physically verified. Earlier committed evidence and precise limits remain in [the unit report](docs/implementation/AI_EDGE_SERVER_CONTEXT_20260907.md). The final integrated source run after canonical PR57 and its gates will be recorded after execution. This unit uses synthetic fetch/environment only; no provider call, database write, deployment or gate activation is part of source proof.
+
+Source87 / recorded live86 / pending1 are retained from canonical provenance; this branch adds no SQL migration. Root accepted PR57's unchanged AI SQL atf5b9550 with actual86→87 proof34128347708; its separate live promotion remains root-owned. Follow user-adopted V3 and06.09 guidance. Root reviews final source/proof/gates, then fresh live v6 source/config before any existing Edge promotion. Actual owner intake, human confirmation/correction and truthful DRAFT card remain a separate functional boundary. Production is not a synthetic fixture sandbox. Current UI is a testable scaffold; final Figma design and Fable remain separate. Underlying checkpoints retain their historical boundaries where superseded here.
+
+---
+
+## Current integration — fresh LIVE86 provenance plus AI DRAFT authority proof
+
+Fresh fetched canonical is `f055d6415b5153aa6ef0db735d63dddea7806ead`. Auth/navigation, configured application identity and the existing D03 command source/live alias are canonical at their accepted proof boundaries. This branch adds only the two-RPC AI DRAFT authority repair and its proof integration: **SOURCE IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN AT17659 / FINAL D03 INTEGRATION REPLAY PENDING / NOT LIVE**. Exact AI SQL remains21,141 bytes / SHA-256 `ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1`.
+
+Original run34121379016 at17659 passed15 AI checks plus6 N07/12 N08,37 suites/232 tests and four physically observed lock interleavings; the inspected original artifact and zero-result CodeQL analyses are linked in [the unit report](docs/implementation/AI_DRAFT_AUTHORITY_20260907.md). The new source-derived predecessor step admits only exact canonical D03, preserves all original full history records and rejects unknown/missing/changed files. Its final integrated runtime result remains pending.
+
+Inventory at this source checkpoint: **87 source / recorded live86 / pending1**. This is source/provenance reconciliation, not a new production observation. The D03 live86 reconciliation is preserved unchanged; AI remains unpromoted. Provider execution, Edge context deployment, native AI review/card flow and policy activation are separate proof boundaries. Current UI is a testable scaffold; final Figma design and Fable remain separate. Continue V3/06.09 guidance and do not restart closed engine or native Auth work. All underlying checkpoints retain their historical boundaries where superseded here.
 
 ---
 

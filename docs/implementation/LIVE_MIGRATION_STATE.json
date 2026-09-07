@@ -1,4 +1,45 @@
 {
+  "ai_edge_server_context_checkpoint_20260907": {
+    "state": "SOURCE_IMPLEMENTED_CI_MOCKED_TRANSPORT_PROVEN_INTEGRATION_PENDING_NOT_DEPLOYED",
+    "canonical_integration_base": "c4c6b624446f3273a40e8393bfadc8c49dff5494",
+    "source_file_count": 87,
+    "recorded_live_migration_count": 86,
+    "pending_forward_files": 1,
+    "edge_entry_bytes": 26346,
+    "edge_entry_sha256": "4861e371c2da01122f013516826008e15a9c9a752f52188523510ff9b7da9704",
+    "registry_unchanged": true,
+    "deployed": false,
+    "actual_provider_called": false,
+    "proof_head": "b9376f18e29145d3d60d891e1c8f994472522628",
+    "proof_run": 34128479788,
+    "artifact_id": 10021094289,
+    "artifact_zip_sha256": "d3eb59dcbec33aa010feb12b685f29f73cd2f3ff3e761bec682578bccf745afa",
+    "mocked_actual_handler_tests": 17,
+    "fresh_canonical_integration": "SOURCE_PREPARED_RUNTIME_PENDING",
+    "report": "docs/implementation/AI_EDGE_SERVER_CONTEXT_20260907.md"
+  },
+  "ai_draft_authority_checkpoint_20260907": {
+    "state": "SOURCE_IMPLEMENTED_AUTHENTICATED_PROVEN_INTEGRATION_PENDING_NOT_LIVE",
+    "canonical_integration_base": "f055d6415b5153aa6ef0db735d63dddea7806ead",
+    "forward_file": "20260907120000_clean_ai_need_draft_safety_authority.sql",
+    "bytes": 21141,
+    "md5": "d52caaa375623c9cfe93c8e536b3f55c",
+    "sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+    "source_file_count": 87,
+    "recorded_live_migration_count": 86,
+    "pending_forward_files": 1,
+    "live_applied": false,
+    "provider_called": false,
+    "proof_head": "17659a39df9993dfbf791be101487a7a6442fdfb",
+    "proof_run": 34121379016,
+    "artifact_id": 10018420638,
+    "artifact_zip_sha256": "386b62e173834c711aeff19446e1b09020d9a8969c3106fa93ebf05497465cb8",
+    "authenticated_checks": 15,
+    "observed_lock_interleavings": 4,
+    "proof_boundary": "historical85_to86_before_canonical_D03",
+    "fresh_D03_integration": "SOURCE_PREPARED_RUNTIME_PENDING",
+    "report": "docs/implementation/AI_DRAFT_AUTHORITY_20260907.md"
+  },
   "eas_existing_identity_checkpoint_20260907": {
     "state": "SOURCE_CONFIGURED_READ_ONLY_VERIFIED_REVIEW_PENDING",
     "source_base": "a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a",
@@ -1078,7 +1119,7 @@
     "live_writes": "ONE_PREVIOUSLY_COMPLETED_EXACT_CANONICAL_D03_FORWARD_DDL",
     "production_business_rpc_called": false,
     "provider_called": false,
-    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71→72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
+    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71\u219272 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
   },
   "historical_production_observation_before_authorized_promotions": {
     "status": "OWNER_ACTION_SAFETY_BLOCKED_NOT_FRESHLY_VERIFIED",
@@ -1173,18 +1214,32 @@
     "new_preview_apk_auth_provider_proof": false
   },
   "d03_mobile_checkpoint_20260907": {
-    "state": "IMPLEMENTED_SOURCE_TESTED_NATIVE_PENDING_NOT_CANONICAL_NOT_LIVE",
+    "state": "SOURCE_TESTED_NATIVE_ADMISSION_FIXED_REPLAY_PENDING_NOT_CANONICAL",
     "integrated_intent_shell_source": "29271e6be7fc519e40941531d37c6d48b0db7ef3",
     "backend_dependency_pr": 55,
     "report": "docs/implementation/D03_CHAT_RECOVERY_20260907.md",
     "new_native_checkpoint_pairs": 11,
     "preserved_native_checkpoint_pairs": 27,
-    "native_executed": false,
+    "native_executed": true,
     "production_write": false,
     "final_visual_design": false,
-    "canonical_integration": "f055d6415b5153aa6ef0db735d63dddea7806ead",
+    "canonical_integration": "6701311d89047c0a1058332362887fb7b396df5a",
     "source_preserved": "1421acfbdbf9ffe0b6bf2fc8116ede6529779a6e",
     "regression_suites": 54,
-    "regression_tests": 467
+    "regression_tests": 467,
+    "native_d03_passed": false,
+    "last_native_run": 34128121944,
+    "last_native_head": "9d5962f07cc83d6bd5f6e8f5106e57c7a6886751",
+    "last_native_result": "FAILED_N07_FORWARD_HEADER_ADMISSION_BEFORE_D03_EXTENSION",
+    "native_artifact_id": 10021851979,
+    "native_artifact_zip_sha256": "799054c27299fc2a23e8470cac5b801378ea16f1196dfb6c92137fd0bf4fa10d",
+    "inherited_native_checkpoint_pairs_passed": 27,
+    "admission_fix_commit": "a792a46",
+    "source_admission_tests": 29,
+    "source_validation_after_integration": "PASS_54_SUITES_467_TESTS_TSC_87_86_1_ADMISSION29_GUARD19_PYTHON44_AST67_26_0",
+    "backend_source_inventory": 87,
+    "recorded_live_migrations": 86,
+    "pending_forward_migrations": 1,
+    "source_validation_evidence": "docs/implementation/evidence/d03-chat-recovery-20260907/canonical670-admission-validation.json"
   }
 }

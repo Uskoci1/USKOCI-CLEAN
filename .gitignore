@@ -51,3 +51,4 @@ example
 
 # Supabase CLI scratch
 supabase/.temp/
+/proof-out/
