@@ -11,7 +11,8 @@ import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../supabase/proofs/ru5_device_ui_local_guard.mjs';
 
-const modules = ['supabaseIzvor', 'needClientService', 'publicProfileClientService'];
+const modules = ['supabaseIzvor', 'needClientService', 'publicProfileClientService',
+  'discoveryClientService', 'discoveryFormat', 'publicTaskDetailProjection'];
 export function assertReadProbeRequest(input, init = {}) {
   const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
   assert.equal(url.origin, 'http://127.0.0.1:54321', 'W05_PROBE_REQUEST_NOT_LOCAL');

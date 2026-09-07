@@ -65,6 +65,7 @@ export function sourceReaders(client) {
     ['src/data/publicProfileClientService.ts', './publicProfileClientService'],
     ['src/data/discoveryView.ts', './discoveryView'],
     ['src/data/discoveryFormat.ts', './discoveryFormat'],
+    ['src/data/publicTaskDetailProjection.ts', './publicTaskDetailProjection'],
   ]);
   const modules = new Map();
   const fingerprints = [];

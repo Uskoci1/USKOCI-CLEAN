@@ -48,7 +48,7 @@ test('postflight query cannot expand outside its table/UUID allowlist and preser
   assert.match(snapshotSql('public.needs'), /row_to_json\(t\)/);
 });
 
-test('closed VM loads all actual production dependencies including the new formatter and invokes only injected reads', async () => {
+test('closed VM loads formatter and public-material dependencies without broadening compact reads', async () => {
   const calls = [];
   const row = { id: id(1), title: 'LOCAL_TEST', status: 'PUBLISHED', created_at: '2026-09-07T12:00:00.123456+00:00',
     starts_at: null, ends_at: null, schedule_kind: 'REMOTE_ANYTIME', execution_location_mode: 'REMOTE',
@@ -67,7 +67,8 @@ test('closed VM loads all actual production dependencies including the new forma
   assert.equal(page.items[0].id, row.id); assert.equal(page.items[0].priblizno, null);
   assert.equal(page.items[0].pokrivenost.popunjeno, 0); assert.equal(pins(page.items).features.length, 0);
   assert.deepEqual(fingerprints.map(item => item.path).sort(), ['src/data/discoveryClientService.ts',
-    'src/data/discoveryFormat.ts', 'src/data/discoveryView.ts', 'src/data/publicProfileClientService.ts'].sort());
+    'src/data/discoveryFormat.ts', 'src/data/discoveryView.ts', 'src/data/publicProfileClientService.ts',
+    'src/data/publicTaskDetailProjection.ts'].sort());
   assert.ok(fingerprints.every(item => item.bytes > 0 && /^[0-9a-f]{64}$/.test(item.sha256)));
   assert.ok(calls.some(([operation]) => operation === 'rpc'));
   assert.ok(calls.filter(([operation]) => operation === 'select').every(([, fields]) => !fields.includes('exact_address')));
