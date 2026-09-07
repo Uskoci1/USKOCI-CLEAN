@@ -1,4 +1,49 @@
 {
+  "shared_discovery_integration_20260907": {
+    "observedAt": "2026-09-07T22:05:04.233Z",
+    "testedWorkingTreeParent": "0d1a8669b26b8aa298d62a87c3d4770b9bbe9615",
+    "state": "SOURCE_LOCAL_PROVEN_NATIVE_AND_PR_REVIEW_PENDING",
+    "canonicalBase": "80e091ee31930b28cc5c2e0af6b6e876a4926362",
+    "composedEntrySource": "82a99fc115ff813327e9548c66fedd8413d29bff",
+    "entryPR66Canonical": false,
+    "jest": {
+      "suites": 72,
+      "tests": 744,
+      "result": "PASS"
+    },
+    "typescript": "PASS",
+    "python": {
+      "tests": 64,
+      "result": "PASS",
+      "command": "python -X utf8 -m unittest scripts/test_ru5_android_input.py scripts/test_intent_shell_android.py scripts/test_shared_discovery_android.py"
+    },
+    "fixtureGuards": {
+      "tests": 24,
+      "result": "PASS",
+      "command": "node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs scripts/shared_discovery_fixture.test.mjs"
+    },
+    "architecture": {
+      "scanned": 93,
+      "presentation": 38,
+      "findings": 0,
+      "scope": "Static boundary plus manual source review; not complete security proof"
+    },
+    "migrationProvenance": "87 files /87 recorded live snapshot /0 pending; no fresh live observation",
+    "nativeExecuted": false,
+    "productionRead": false,
+    "productionWrite": false,
+    "providerOfflineProven": false,
+    "releaseReady": false,
+    "cameraFocusRepair": "Monotonic presentation scope; synchronous invalidation before navigation; late cluster/movement rejected across blur/refocus;13 new focused regressions.",
+    "designSourceObservation": {
+      "fileKey": "DovAtPfVaLKL6xnXtQImbf",
+      "onlyPage": "66:17",
+      "board": "66:18",
+      "actualScreenFramesReturned": 0,
+      "ownerLocationClarification": "PENDING",
+      "finalVisualClaim": false
+    }
+  },
   "shared_discovery_read_checkpoint_20260907": {
     "state": "SOURCE_IMPLEMENTED_LOCAL_SDK_TRANSPORT_PROVEN_CONSUMER_INTEGRATION_PENDING",
     "canonical_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",

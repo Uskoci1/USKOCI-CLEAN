@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { DiscoveryMapProps } from '../../ui/discovery/DiscoveryMap.types';
+import { createDiscoveryMapScope } from '../../ui/discovery/discoveryMapScope';
 
 const mockZoom = jest.fn();
 const mockJump = jest.fn();
@@ -35,7 +36,7 @@ function deferred() {
 const collection = (id = 'public-a'): DiscoveryMapProps['pins'] => ({ type: 'FeatureCollection', features: [
   { type: 'Feature', geometry: { type: 'Point', coordinates: [20.4, 44.8] }, properties: { id, label: 'Javni zadatak' } },
 ] });
-let tree: ReactTestRenderer | undefined, props: DiscoveryMapProps;
+let tree: ReactTestRenderer | undefined, props: DiscoveryMapProps, scope: ReturnType<typeof createDiscoveryMapScope>;
 const map = () => tree!.root.findByType('NativeMapView' as any).props;
 const source = () => tree!.root.findByType('MapSource' as any).props;
 const labels = () => tree!.root.findAllByType('Text' as any).flatMap(node => node.children).join(' ');
@@ -52,12 +53,53 @@ async function press(properties: object, coordinates = [20, 44]) {
 }
 beforeEach(() => {
   jest.useFakeTimers(); mockZoom.mockReset(); mockJump.mockReset();
-  props = { pins: collection(), selectedId: null, viewport: { center: [20.8, 44.1], zoom: 5.4 },
+  scope = createDiscoveryMapScope(); scope.enter();
+  props = { scope, pins: collection(), selectedId: null, viewport: { center: [20.8, 44.1], zoom: 5.4 },
     onSelect: jest.fn(), onViewport: jest.fn(), onList: jest.fn() };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.restoreAllMocks(); jest.useRealTimers(); });
 
 describe('actual native discovery renderer with mocked MapLibre transport', () => {
+  it('synchronously suppresses pending expansion and point/viewport events when opening detail before blur', async () => {
+    const old = deferred(); mockZoom.mockReturnValueOnce(old.promise);
+    await mount(); await ready(); await press({ cluster_id: 1 });
+    await act(async () => map().onRegionWillChange({ nativeEvent: { userInteraction: false } }));
+    scope.suspend();
+    await act(async () => old.resolve(12));
+    await press({ id: 'public-a' });
+    await act(async () => map().onRegionDidChange({ nativeEvent: { center: [21, 45], zoom: 12 } }));
+    expect(mockJump).not.toHaveBeenCalled(); expect(props.onSelect).not.toHaveBeenCalled();
+    expect(props.onViewport).not.toHaveBeenCalled();
+  });
+
+  it.each(['resolve', 'reject'] as const)('does not revive the pre-detail cluster %s after blur and Back refocus', async outcome => {
+    const old = deferred(); mockZoom.mockReturnValueOnce(old.promise);
+    await mount(); await ready(); await press({ cluster_id: 1 });
+    const originalMap = tree!.root.findByType('NativeMapView' as any);
+    scope.leave(); scope.enter();
+    await act(async () => outcome === 'resolve' ? old.resolve(12) : old.reject(new Error('old focus')));
+    expect(mockJump).not.toHaveBeenCalled(); expect(props.onViewport).not.toHaveBeenCalled();
+    expect(labels()).not.toContain('Mapa trenutno nije dostupna');
+    expect(tree!.root.findByType('NativeMapView' as any)).toBe(originalMap);
+    expect(tree!.root.findByType('MapCamera' as any).props.initialViewState).toEqual(props.viewport);
+    mockZoom.mockResolvedValueOnce(10); await press({ cluster_id: 2 });
+    expect(mockJump).toHaveBeenCalledWith({ center: [20, 44], zoom: 10 });
+  });
+
+  it('rejects a prior-focus movement finish but accepts a new real movement after Back', async () => {
+    await mount(); await ready();
+    await act(async () => map().onRegionWillChange({ nativeEvent: { userInteraction: true } }));
+    scope.leave(); scope.enter();
+    await act(async () => map().onRegionDidChange({ nativeEvent: { center: [22, 46], zoom: 13 } }));
+    expect(props.onViewport).not.toHaveBeenCalled();
+    await act(async () => {
+      map().onRegionWillChange({ nativeEvent: { userInteraction: true } });
+      map().onRegionDidChange({ nativeEvent: { center: [20, 44], zoom: 7 } });
+    });
+    expect(props.onViewport).toHaveBeenCalledTimes(1);
+    expect(props.onViewport).toHaveBeenCalledWith({ center: [20, 44], zoom: 7 });
+  });
+
   it('passes only supplied public GeoJSON and exposes named map plus loading/list escape', async () => {
     await mount();
     expect(source().data).toBe(props.pins);

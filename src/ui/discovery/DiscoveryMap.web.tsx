@@ -12,6 +12,7 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
   useEffect(() => {
     let active = true;
     let interaction = 0;
+    let motion: { scope: DiscoveryMapProps['scope']; epoch: number | null } | null = null;
     setStatus('loading');
     const timer = setTimeout(() => { if (active) setStatus(value => value === 'loading' ? 'failed' : value); }, 15000);
     void import('maplibre-gl').then(({ Map, NavigationControl }) => {
@@ -37,11 +38,16 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
       instance.on('click', 'task-points', event => {
         interaction++;
         const id = event.features?.[0]?.properties?.id;
-        if (active && typeof id === 'string' && latest.current.pins.features.some(pin => pin.properties.id === id)) latest.current.onSelect(id);
+        const scope = latest.current.scope;
+        if (active && scope.owns(scope.capture()) && typeof id === 'string'
+          && latest.current.pins.features.some(pin => pin.properties.id === id)) latest.current.onSelect(id);
       });
       instance.on('click', 'task-clusters', event => {
+        const scope = latest.current.scope, epoch = scope.capture();
+        if (!scope.owns(epoch)) return;
         const request = ++interaction, ownedPins = latest.current.pins;
-        const owns = () => active && request === interaction && latest.current.pins === ownedPins;
+        const owns = () => active && request === interaction && latest.current.pins === ownedPins
+          && latest.current.scope === scope && scope.owns(epoch);
         const feature = event.features?.[0];
         if (!feature || feature.geometry.type !== 'Point' || typeof feature.properties?.cluster_id !== 'number') return;
         const center: [number, number] = [feature.geometry.coordinates[0], feature.geometry.coordinates[1]];
@@ -49,8 +55,16 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
           if (owns()) instance.jumpTo({ center, zoom: Math.min(16, zoom) });
         }).catch(() => { if (owns()) setStatus('failed'); });
       });
-      instance.on('movestart', event => { if (event.originalEvent) interaction++; });
-      instance.on('moveend', () => { if (active) { const center = instance.getCenter(); latest.current.onViewport({ center: [center.lng, center.lat], zoom: instance.getZoom() }); } });
+      instance.on('movestart', event => {
+        const scope = latest.current.scope; motion = { scope, epoch: scope.capture() };
+        if (event.originalEvent) interaction++;
+      });
+      instance.on('moveend', () => {
+        const started = motion; motion = null;
+        if (active && started?.scope === latest.current.scope && started.scope.owns(started.epoch)) {
+          const center = instance.getCenter(); latest.current.onViewport({ center: [center.lng, center.lat], zoom: instance.getZoom() });
+        }
+      });
       instance.on('error', () => { if (active) setStatus('failed'); });
     }).catch(() => { if (active) setStatus('failed'); });
     return () => { active = false; clearTimeout(timer); map.current?.remove(); map.current = null; };

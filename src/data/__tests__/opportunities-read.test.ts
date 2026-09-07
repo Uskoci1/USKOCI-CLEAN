@@ -55,10 +55,10 @@ describe('W03 authoritative discovery read', () => {
     expect(mockIn).toHaveBeenLastCalledWith('status', ['PUBLISHED', 'SELECTION']);
     expect(publicProfile).toHaveBeenCalledWith('requester-1');
     expect(result).toEqual([{
-      id: 'need-1', naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
+      id: 'need-1', naslov: 'Pomoć pri selidbi', statusTekst: 'Objavljen zadatak',
       primaNovePrijave: true, rokZaPrijaveIso: null,
       executionLocationMode: 'STATIONARY', scheduleKind: 'FLEXIBLE', startsAt: null, endsAt: null, grad: 'Beograd',
-      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilno',
+      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Termin po dogovoru',
       pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 },
       uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacIme: '', narucilacOcena: null,
       priblizno: { lat: 44.8, lng: 20.4 }, rezimCene: 'OFFERS', ponudjenaCena: undefined,

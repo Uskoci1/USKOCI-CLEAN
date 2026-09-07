@@ -1,3 +1,11 @@
+## Shared List/Map integration — source proven; native acceptance pending
+
+Canonical PR64 `80e091ee` and PR66 source `82a99fc` are composed without reverting either. PR66 remains independently pending acceptance. The same authenticated public discovery page set now feeds a shared List/Map for both intentions, with retained local filters, bounded pagination/refresh, account/focus cancellation, approximate pins and real MapLibre renderers. Original SPOJ logo/motion assets are preserved; list header uses the owner brand. Task labels distinguish price from lifecycle, route origin from destination, and complete Serbia-time windows.
+
+Local composed source: **72 suites/744 Jest tests, TSC,64 Python input/proof tests,24 fixture guard tests PASS; AST93/38/0 findings; unchanged87/87/0 recorded migration provenance**. Physical Android source/APK and original PNG/XML proof is prepared, not yet executed for this unit. Historical79 plus explicit N02/N03 proof reconstruction does not mean full live87 replay. No fresh live query, production write, offline-map, launch or overall47-item closure is claimed. See [shared discovery integration](SHARED_DISCOVERY_INTEGRATION_20260907.md).
+
+---
+
 ## Shared discovery read checkpoint — source pending consumer integration
 
 Fresh canonical base `d4d8cd09bf44dd54c7355605b0c256813b46ab1b` is integrated. A narrow discovery client service now provides bounded keyset pages (default30/max50; created_at+id DESC with server microseconds), cancellation, real-zero/range-safe coarse points, REMOTE without pins, strict capacity and the accepted PR64 task deadline/error fields. Legacy array/detail ports remain available. There is no new backend, UI/navigation, Map SDK or anonymous grant. The consumer must still bind List/Map to the same page set and own account/focus/refresh state.

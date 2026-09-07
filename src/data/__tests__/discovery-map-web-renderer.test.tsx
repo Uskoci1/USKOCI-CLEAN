@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import type { DiscoveryMapProps } from '../../ui/discovery/DiscoveryMap.types';
+import { createDiscoveryMapScope } from '../../ui/discovery/discoveryMapScope';
 
 function deferred<T>() {
   let resolve!: (value: T) => void, reject!: (reason: Error) => void;
@@ -78,7 +79,7 @@ function makeMap() {
 const collection = (id = 'public-a'): DiscoveryMapProps['pins'] => ({ type: 'FeatureCollection', features: [
   { type: 'Feature', geometry: { type: 'Point', coordinates: [20.4, 44.8] }, properties: { id, label: 'Javni zadatak' } },
 ] });
-let tree: ReactTestRenderer | undefined, props: DiscoveryMapProps, instances: MapMock[];
+let tree: ReactTestRenderer | undefined, props: DiscoveryMapProps, instances: MapMock[], scope: ReturnType<typeof createDiscoveryMapScope>;
 const latestMap = () => instances[instances.length - 1];
 const labels = () => tree!.root.findAllByType('Text' as any).flatMap(node => node.children).join(' ');
 const press = (label: string) => tree!.root.findAllByType('Pressable' as any)
@@ -98,12 +99,50 @@ beforeEach(() => {
   jest.useFakeTimers(); instances = []; mockImport = deferred<object>();
   mockConstruct.mockReset().mockImplementation(() => { const instance = makeMap(); instances.push(instance); return instance; });
   mockNavigation.mockReset();
-  props = { pins: collection(), selectedId: null, viewport: { center: [20.8, 44.1], zoom: 5.4 },
+  scope = createDiscoveryMapScope(); scope.enter();
+  props = { scope, pins: collection(), selectedId: null, viewport: { center: [20.8, 44.1], zoom: 5.4 },
     onSelect: jest.fn(), onViewport: jest.fn(), onList: jest.fn() };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.restoreAllMocks(); jest.useRealTimers(); });
 
 describe('actual web discovery renderer with mocked asynchronous MapLibre boundary', () => {
+  it('synchronously blocks expansion and point/viewport publication before detail navigation blurs', async () => {
+    await mountedReady(); const instance = latestMap(), old = deferred<number>();
+    instance.source.getClusterExpansionZoom.mockReturnValueOnce(old.promise); await cluster(1);
+    await act(async () => instance.emit('movestart'));
+    scope.suspend();
+    await act(async () => {
+      old.resolve(12);
+      instance.emit('click:task-points', { features: [{ properties: { id: 'public-a' } }] });
+      instance.emit('moveend');
+    });
+    expect(instance.jumpTo).not.toHaveBeenCalled(); expect(props.onSelect).not.toHaveBeenCalled();
+    expect(props.onViewport).not.toHaveBeenCalled();
+  });
+
+  it.each(['resolve', 'reject'] as const)('does not revive pre-detail expansion %s on the same mounted map after Back', async outcome => {
+    await mountedReady(); const instance = latestMap(), old = deferred<number>();
+    instance.source.getClusterExpansionZoom.mockReturnValueOnce(old.promise); await cluster(1);
+    scope.leave(); scope.enter();
+    await act(async () => outcome === 'resolve' ? old.resolve(12) : old.reject(new Error('old focus')));
+    expect(instance.jumpTo).not.toHaveBeenCalled(); expect(props.onViewport).not.toHaveBeenCalled();
+    expect(labels()).not.toContain('Mapa trenutno nije dostupna');
+    expect(mockConstruct).toHaveBeenCalledTimes(1); expect(instance.remove).not.toHaveBeenCalled();
+    instance.source.getClusterExpansionZoom.mockResolvedValueOnce(10); await cluster(2);
+    expect(instance.jumpTo).toHaveBeenCalledWith({ center: [20, 44], zoom: 10 });
+  });
+
+  it('rejects a prior-focus moveend and retains legitimate movement in the new focus lifetime', async () => {
+    await mountedReady(); const instance = latestMap();
+    await act(async () => instance.emit('movestart', { originalEvent: {} }));
+    scope.leave(); scope.enter();
+    await act(async () => instance.emit('moveend'));
+    expect(props.onViewport).not.toHaveBeenCalled();
+    await act(async () => { instance.emit('movestart', { originalEvent: {} }); instance.emit('moveend'); });
+    expect(props.onViewport).toHaveBeenCalledTimes(1);
+    expect(props.onViewport).toHaveBeenCalledWith({ center: [20.2, 44.4], zoom: 9 });
+  });
+
   it('uses latest viewport/pins after deferred import and exposes actual canvas locale plus list escape', async () => {
     await mount();
     expect(mockConstruct).not.toHaveBeenCalled(); expect(labels()).toContain('Učitavamo mapu');
@@ -202,6 +241,7 @@ describe('actual web discovery renderer with mocked asynchronous MapLibre bounda
     await act(async () => {
       instance.emit('click:task-points', { features: [{ properties: { id: 'not-current' } }] });
       instance.emit('click:task-points', { features: [{ properties: { id: 'public-a' } }] });
+      instance.emit('movestart');
       instance.emit('moveend');
       pending.resolve(12);
     });

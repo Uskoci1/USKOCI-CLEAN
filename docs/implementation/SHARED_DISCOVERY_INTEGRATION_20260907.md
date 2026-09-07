@@ -1,0 +1,27 @@
+# Shared public List/Map — 2026-09-07
+
+Status: **SOURCE IMPLEMENTED / LOCAL TESTS PASS / PHYSICAL AND CANONICAL ACCEPTANCE PENDING**.
+
+Both intentions can explore the same actual public tasks. Requesters enter from their own-task screen; Workers enter from their existing Zadaci destination. Role-dependent bottom navigation and profile actions stay intact. The owner SPOJ reference (file `DovAtPfVaLKL6xnXtQImbf`, list `3:963`, map `8:21`) guides presentation. Original owner logo, 12 motion nodes and 4500 ms entry timeline are unchanged. Entry PR66 remains a separate acceptance boundary.
+
+Fresh design-source observation during final source review: the same file now lists only page `66:17`, containing board `66:18` **FINAL V1 — START HERE**. Metadata, design context and its rendered image were physically read; no actual mobile screen or animation remains in that returned file tree. The board describes a newer Manrope/light-first direction, but it cannot prove the listed screens are implemented or supply their layouts. The owner has been asked for the location of any moved screens. The references above are the previously retrieved design basis, not a claim that those nodes are still present or that the current scaffold is final. Functional work and saved original assets continue without fabricating new approved frames.
+
+## Behavior and architecture
+
+`DiscoveryBody` and map components receive projections and callbacks. `useDiscoveryBrowse` binds account/revision/intention/focus ownership; the client service alone accesses the public Supabase read/RPC boundary. The UI adds no direct database writes, AI secret, eligibility authority or business mutation. The existing W04/W05 route and command engine remain authoritative.
+
+List and Map derive from identical accumulated keyset pages. Filters explicitly apply to loaded tasks; there is no fake global search, total count or automatic user location. Default page30, maximum50, raw server microseconds and strict descending cursor order are preserved. Same-page-count refresh is atomic and has one total20-second budget; ambiguous read failure preserves stale content and the correct retry operation. Account/role/focus change cancels work and rejects late results even from an uncooperative transport. Repeated load requests are single-flight.
+
+Only safe coarse coordinates enter GeoJSON. Remote/missing locations remain in List with a clear route back from Map. MapLibre Native11.3.10 and web6.7.0 use the actual OpenFreeMap Positron style with attribution. Loading/error/retry are bounded; a failed provider never becomes a fabricated map. User camera movement invalidates an older cluster-expansion promise. Selected card, filters, list/map choice and viewport survive W04 Back while the account owner is unchanged.
+
+Cards render real pricing, capacity and public facts. Open lifecycle reads **Objavljen zadatak**, independently of OFFERS/MY_PRICE. Availability remains a server-revalidated W04/W05 decision. Complete fixed windows show both bounds in Europe/Belgrade, including cross-day/year and DST behavior. Transport labels identify a departure/first stop/area rather than inventing a destination. Legacy relative day labels with no date anchor explicitly say the date is unspecified; proper intake normalization remains a separate gap.
+
+## Verification and limits
+
+Composed source includes canonical PR64 `80e091ee31930b28cc5c2e0af6b6e876a4926362` and pending PR66 `82a99fc115ff813327e9548c66fedd8413d29bff`. Full Jest72 suites/744 tests, TSC,64 Python helper/proof tests,24 Node fixture guards and static client boundary93 source/38 presentation/0 findings passed. Evidence is in `evidence/shared-discovery-20260907/integrated-source/`. The old foundation report remains its historical narrower result. A local web export previously proved actual ESM/CSS bundling, but its earlier un-frozen output is not exact-current-source visual acceptance.
+
+The dedicated automatic Android workflow freezes Git source before explicit proof-only app identity/prebuild changes, hashes the built APK, and preserves all27 original Inbox/navigation checkpoint pairs. New proof seeds34 declared local tasks alongside the existing NAV task, compares actual authenticated source reads for two real accounts (30+5 IDs), checks private-address RLS and full business-row/history invariants, then physically exercises pagination, filter cancel/apply, real cluster/pins, W04 Back and account change. Original PNG/XML scans must contain all35 IDs for each account; pixel checks support rather than replace human map review.
+
+That native proof has **not run yet** for this unit. Its historical79 plus explicit N02/N03 disposable database is not a full live87 replay. No migration, production query/write, GPS permission, geocoding, route calculation, directory, offline-provider reliability, frame-rate, complete Auth/recovery, store or overall47-item release claim is made. Final merge requires the exact-source original Android observations, security review, CI/CodeQL and canonical verification.
+
+Final pre-proof peer review found a camera lifetime race: a delayed cluster response could move the retained map after opening W04. Both renderers now capture a monotonic presentation epoch, synchronously invalidate it before navigation, and reject old cluster or move-end callbacks after blur/refocus. The map stays mounted.13 new regressions cover this alongside existing list/filter/viewport retention; final full count is72 suites/744 tests.

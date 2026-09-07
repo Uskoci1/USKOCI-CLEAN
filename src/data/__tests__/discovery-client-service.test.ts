@@ -37,6 +37,19 @@ function setup() {
 }
 
 describe('actual PostgREST SDK discovery read adapter (controlled HTTP only)', () => {
+  it('keeps lifecycle separate from price mode and carries complete public time and origin into the DTO', async () => {
+    const { service, fetch } = setup();
+    fetch.mockResolvedValue(respond([row(1, { mode: 'MY_PRICE', requester_price_rsd: 4500,
+      execution_location_mode: 'POINT_TO_POINT', schedule_kind: 'FIXED_WINDOW',
+      starts_at: '2026-09-08T14:00:00Z', ends_at: '2026-09-08T18:00:00Z', covered_slots: 2 })]));
+    const item = (await service.otvorenePrilikeStrana()).items[0];
+    expect(item).toMatchObject({ statusTekst: 'Objavljen zadatak', primaNovePrijave: false,
+      podrucjeTekst: 'Polazište: Centar, Beograd', ponudjenaCena: { iznos: 4500 } });
+    expect(item.statusTekst).not.toMatch(/ponude|Otvorene prijave/);
+    expect(item.vremeTekst).toContain('16:00–20:00');
+    expect(item.vremeTekst).toContain('vreme u Srbiji');
+  });
+
   it('uses a bounded public GET and one identical item set for list and map, with safe zero coordinates', async () => {
     const { service, fetch, url } = setup();
     fetch.mockResolvedValue(respond([row(2, { approximate_lat: 0, approximate_lng: 0 }), row(1, {

@@ -1,3 +1,11 @@
+## Shared List/Map integration — source proven; native acceptance pending
+
+Canonical PR64 `80e091ee` and PR66 source `82a99fc` are composed without reverting either. PR66 remains independently pending acceptance. The same authenticated public discovery page set now feeds a shared List/Map for both intentions, with retained local filters, bounded pagination/refresh, account/focus cancellation, approximate pins and real MapLibre renderers. Original SPOJ logo/motion assets are preserved; list header uses the owner brand. Task labels distinguish price from lifecycle, route origin from destination, and complete Serbia-time windows.
+
+Local composed source: **72 suites/744 Jest tests, TSC,64 Python input/proof tests,24 fixture guard tests PASS; AST93/38/0 findings; unchanged87/87/0 recorded migration provenance**. Physical Android source/APK and original PNG/XML proof is prepared, not yet executed for this unit. Historical79 plus explicit N02/N03 proof reconstruction does not mean full live87 replay. No fresh live query, production write, offline-map, launch or overall47-item closure is claimed. See [shared discovery integration](SHARED_DISCOVERY_INTEGRATION_20260907.md).
+
+---
+
 ## Current entry replay — original Android journey passed; route motion repair pending proof
 
 Canonical PR64 is merged at `80e091ee31930b28cc5c2e0af6b6e876a4926362` with exact canonical PRE-P4/CodeQL/CONTROL-0 PASS. It is integrated additively here; W04/W05 source is preserved. PR66 original source `c1b803285e2b5b97c57680ea09c9f17a6934d32d` has SUCCESS native run34160744232 and34 reviewed original PNG/XML checkpoints (7 entry +27 account/Inbox/navigation). Artifact10033052964 is5,932,807 bytes, SHA-256 `c0932b714237ae92d3ba78fd372d06ce13da5f571e32a7a5aa9b3a3c0b7ff602`. These static journeys are proven in their source scope; the full visible owner intro is not accepted.

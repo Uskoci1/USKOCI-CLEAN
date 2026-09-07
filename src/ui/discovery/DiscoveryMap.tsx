@@ -5,12 +5,14 @@ import { DISCOVERY_MAP_STYLE, type DiscoveryMapProps } from './DiscoveryMap.type
 import { MapFeedback } from './MapFeedback';
 
 /** Native map renderer. All task data arrives through the public projection contract. */
-function NativeMap({ pins, selectedId, viewport, onSelect, onViewport, onList, onRetry }: DiscoveryMapProps & { onRetry: () => void }) {
+function NativeMap({ scope, pins, selectedId, viewport, onSelect, onViewport, onList, onRetry }: DiscoveryMapProps & { onRetry: () => void }) {
   const camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const active = useRef(true);
   const interaction = useRef(0), latestPins = useRef(pins);
+  const latestScope = useRef(scope), motion = useRef<{ scope: typeof scope; epoch: number | null } | null>(null);
   latestPins.current = pins;
+  latestScope.current = scope;
   const initial = useRef(viewport);
   useEffect(() => {
     active.current = true;
@@ -21,14 +23,25 @@ function NativeMap({ pins, selectedId, viewport, onSelect, onViewport, onList, o
     <Map style={styles.map} mapStyle={DISCOVERY_MAP_STYLE} attribution attributionPosition={{ bottom: 8, right: 8 }}
       logo={false} touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih područja zadataka"
       onDidFinishLoadingMap={() => { if (active.current) setStatus('ready'); }} onDidFailLoadingMap={() => { if (active.current) setStatus('failed'); }}
-      onRegionWillChange={event => { if (event.nativeEvent.userInteraction) interaction.current++; }}
-      onRegionDidChange={event => { if (active.current) onViewport({ center: event.nativeEvent.center, zoom: event.nativeEvent.zoom }); }}>
+      onRegionWillChange={event => {
+        motion.current = { scope, epoch: scope.capture() };
+        if (event.nativeEvent.userInteraction) interaction.current++;
+      }}
+      onRegionDidChange={event => {
+        const started = motion.current; motion.current = null;
+        if (active.current && started?.scope === latestScope.current && started.scope.owns(started.epoch)) {
+          onViewport({ center: event.nativeEvent.center, zoom: event.nativeEvent.zoom });
+        }
+      }}>
       <Camera ref={camera} initialViewState={initial.current} minZoom={2} maxZoom={16} />
       <GeoJSONSource ref={source} id="uskoci-public-tasks" data={pins} cluster clusterRadius={48} clusterMaxZoom={13}
         hitbox={{ top: 24, bottom: 24, left: 24, right: 24 }} onPress={event => {
           event.stopPropagation();
+          const epoch = scope.capture();
+          if (!active.current || latestScope.current !== scope || !scope.owns(epoch)) return;
           const request = ++interaction.current, ownedPins = pins;
-          const owns = () => active.current && request === interaction.current && latestPins.current === ownedPins;
+          const owns = () => active.current && request === interaction.current && latestPins.current === ownedPins
+            && latestScope.current === scope && scope.owns(epoch);
           const feature = event.nativeEvent.features[0];
           if (!feature || feature.geometry.type !== 'Point') return;
           const properties = feature.properties;
