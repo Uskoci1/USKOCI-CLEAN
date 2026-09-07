@@ -1,6 +1,29 @@
 {
   "format_version": 3,
   "updated_at": "2026-09-07",
+  "notification_checkpoint_20260907": {
+    "canonical_source_head": "0d72d72bc7c3874c25e71db38ff1643e5f170d8f",
+    "n01": { "pr": 39, "state": "CANONICAL_NOT_LIVE" },
+    "n02": { "pr": 40, "state": "CANONICAL_NOT_LIVE", "proof_run": 34094384747, "artifact": 10008095140, "checks_passed": 12 },
+    "n03": { "pr": 41, "state": "CANONICAL_NOT_LIVE", "proof_run": 34095038531, "artifact": 10008329926, "checks_passed": 9 },
+    "fresh_limited_live_read": {
+      "date": "2026-09-07",
+      "result": "MIGRATION_LIST_AND_TARGETED_FUNCTION_FINGERPRINTS_READ_SUCCEEDED",
+      "migration_count": 79,
+      "head": "20260906141409_clean_ru5_fastest_autofill_retirement",
+      "selection_prosrc_md5": "867b280d4131188db3906c1ced7f4c11",
+      "message_prosrc_md5": "705f19630e27792639d737bfa41d77c6",
+      "emitter_prosrc_md5": "8da91a4736e09b10872bd1240d6e0c8c",
+      "full_live_safety_audit": false,
+      "live_write": false,
+      "edge_reobserved": false
+    },
+    "next": "N04_MOBILE_INBOX_NATIVE_PROOF_PENDING; THEN_DOMAIN_EVENTS_PUSH_CHAT",
+    "n04_initial_proof_head": "576e56b6f4da1db509f4a269962654ff928a1e3f",
+    "n04_initial_run": 34096462936,
+    "canonical_gates": { "pre_p4": 34096030954, "codeql": 34096030976, "control0": 34096030910, "result": "PASS" },
+    "status_owner": "docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md"
+  },
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
   "canonical_branch": "clean-alpha-backend",
   "canonical_supabase_project": "leqcwgzvjsxugfgzdmth",
