@@ -39,7 +39,14 @@ try{
   check('PREDECESSOR_AUTHENTICATED_INVALID_TIMEZONE_ROLLS_BACK_COUNTERPART_MESSAGE');
   await ok(worker.from('notification_preferences').upsert({user_id:env.RU5_DEVICE_WORKER_USER_ID,
     role_context:'WORKER',quiet_hours_enabled:true,quiet_start:'22:00',quiet_end:'08:00',
-    quiet_timezone:'N08/Invalid_Zone'}));
+    quiet_timezone:'Invalid_Nonexistent_Zone'}));
+  const prefs=await ok(worker.from('notification_preferences')
+    .select('role_context,quiet_hours_enabled,quiet_start,quiet_end,quiet_timezone,push_enabled').single());
+  assert.equal(prefs.quiet_timezone,'Invalid_Nonexistent_Zone');
+  assert.equal(prefs.quiet_hours_enabled,true);
+  report.predecessor_observation={preferences:prefs,
+    quiet_function_md5:sql("select md5(prosrc) from pg_proc where oid='private.in_quiet_hours(public.notification_preferences)'::regprocedure"),
+    emit_function_md5:sql("select md5(prosrc) from pg_proc where oid='private.emit_event(uuid,text,text,text,uuid,integer,text,text,text,text,jsonb,timestamptz)'::regprocedure")};
   const before=snapshot();
   const failed=await message('N08_PRIVATE_ROLLBACK_CANARY');
   assert.ok(failed.error,'actual counterpart command must fail on admitted malformed preferences');
