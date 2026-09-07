@@ -6,6 +6,7 @@
     "@expo/ui": "~57.0.14",
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@supabase/supabase-js": "^2.112.4",
+    "decode-uri-component": "file:vendor/decode-uri-component-compat",
     "expo": "~57.0.18",
     "expo-constants": "~57.0.16",
     "expo-device": "~57.0.1",
@@ -42,6 +43,9 @@
   "overrides": {
     "xcode": {
       "uuid": "11.1.1"
+    },
+    "query-string": {
+      "decode-uri-component": "$decode-uri-component"
     }
   },
   "scripts": {
@@ -54,11 +58,5 @@
     "lint": "expo lint",
     "test": "jest"
   },
-  "private": true,
-  "jest": {
-    "preset": "jest-expo",
-    "testMatch": [
-      "**/__tests__/**/*.test.ts?(x)"
-    ]
-  }
+  "private": true
 }

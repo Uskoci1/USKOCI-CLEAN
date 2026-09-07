@@ -2,6 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockAccountId = 'account-a';
+let mockAccountRevision = 1;
 let mockIntent: 'narucilac' | 'uskocer' = 'narucilac';
 const mockPostaviUlogu = jest.fn();
 const mockSignOut = jest.fn();
@@ -19,9 +20,10 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]) }));
-jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccountId } }), sesijaSada: () => ({ user: { id: mockAccountId } }) }));
+jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }),
+  sesijaSada: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }) }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: (value: string) => mockPostaviUlogu(value) }));
-jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ auth: { signOut: mockSignOut } }) }));
+jest.mock('../authClientService', () => ({ authClientService: { signOutLocal: (actor: unknown) => mockSignOut(actor) } }));
 jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read: jest.fn() } }));
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: () => mockResource }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
@@ -38,10 +40,10 @@ const visibleText = () => tree.root.findAll(node => String(node.type) === 'T').f
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockAccountId = 'account-a'; mockIntent = 'narucilac';
+  mockAccountId = 'account-a'; mockAccountRevision = 1; mockIntent = 'narucilac';
   mockResource = { data: { ime: 'Ana Petrović', grad: 'Novi Sad' }, loading: false, error: false, refresh: mockRefresh };
   mockRouter.canGoBack.mockReturnValue(true);
-  mockSignOut.mockResolvedValue({ error: null });
+  mockSignOut.mockResolvedValue(undefined);
 });
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 
@@ -115,15 +117,40 @@ describe('real profile hub', () => {
   });
 
   it('serializes local logout and ignores late failure after account changes', async () => {
-    let resolve!: (value: unknown) => void;
-    mockSignOut.mockImplementation(() => new Promise(done => { resolve = done; }));
+    let reject!: (reason: Error) => void;
+    mockSignOut.mockImplementation(() => new Promise((_, fail) => { reject = fail; }));
     await render();
     const onPress = tree.root.findByProps({ label: 'Odjavite se' }).props.onPress;
     await act(async () => { onPress(); onPress(); });
-    expect(mockSignOut.mock.calls).toEqual([[{ scope: 'local' }]]);
+    expect(mockSignOut.mock.calls).toEqual([[{ accountId: 'account-a', accountRevision: 1 }]]);
     mockAccountId = 'account-b';
-    await act(async () => { tree.update(<Profil />); resolve({ error: new Error('late failure') }); });
+    mockAccountRevision = 2;
+    await act(async () => { tree.update(<Profil />); reject(new Error('late failure')); });
     expect(visibleText()).not.toContain('Odjava nije potvrđena');
     expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it('blocks an old action after batched A→B→A even before React rerenders', async () => {
+    await render();
+    mockAccountId = 'account-b'; mockAccountRevision = 2;
+    mockAccountId = 'account-a'; mockAccountRevision = 3;
+    await act(async () => { press('Pređite na JA MOGU'); logout(); });
+    expect(mockSignOut).not.toHaveBeenCalled();
+    expect(mockPostaviUlogu).not.toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it('ignores a late logout failure after batched A→B→A and admits a fresh current action', async () => {
+    let reject!: (reason: Error) => void;
+    mockSignOut.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+    await render();
+    await act(async () => logout());
+    mockAccountId = 'account-b'; mockAccountRevision = 2;
+    mockAccountId = 'account-a'; mockAccountRevision = 3;
+    await act(async () => reject(new Error('old logout failure')));
+    expect(visibleText()).not.toContain('Odjava nije potvrđena');
+    await act(async () => tree.update(<Profil />));
+    await act(async () => logout());
+    expect(mockSignOut.mock.calls.at(-1)).toEqual([{ accountId: 'account-a', accountRevision: 3 }]);
   });
 });

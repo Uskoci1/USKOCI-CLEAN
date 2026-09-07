@@ -1,4 +1,27 @@
-## CURRENT POINTER — 2026-09-07 / N07 LIVE84
+<!-- EXECUTION_V3_CHECKPOINT_20260907 -->
+## Current execution — testable scaffold, Auth boundary and identity ownership
+
+The owner's latest steering keeps the current UI as a **testable functional scaffold**. Future Figma work owns the final visual design; Fable is separate asset work. Do not turn this slice into a final visual redesign. The current three-zone capability/navigation remains: Profile is an avatar destination, with no permanent Home/Profile tab or combined discovery mode. Frozen governance bytes remain unchanged; V3 governs execution and the preserved 06.09 documents resolve older product/UI conflicts where applicable.
+
+Fresh canonical remains `9d245f3053c8e79370a73e82b12d4250e3ed94b7` (PR #54, fetched again before this commit). N08 and its exact live85 promotion are already canonical. Live remains **85 / `20260907102458_clean_n08_notification_preferences`**, source85 / pending0; no production or migration change belongs to this PR49 slice. Do not reapply N08/N07. Current charge remains 0 RSD; unsupported capabilities stay gated.
+
+PR #49 remains **IMPLEMENTED / SOURCE TESTED / NOT MERGED**. Android run `34114525948` at exact source `86fffc1b58789a2a7331e3646ba8aa0647e02a73` passed; all27 original PNG/XML pairs were inspected, including both corrected Agreement rows with full schedule/amount. This is scoped native emulator/navigation/Auth-account/Inbox proof, not final visual design, full product or production proof. Earlier failures and the prior row defect remain preserved evidence.
+
+The latest architecture review found direct presentation Auth calls and a batched A→B→A ownership gap. Auth UI commands now cross `contracts/auth` into `authClientService`; SDK session subscription/restore remains in the existing session owner. `accountRevision` increments only when userId changes and binds Root navigation, focused reads and Profile actions; token refresh retains the current screen/draft. Root review found no blocker; 46 suites /313 tests and TypeScript passed. The AST client scan inspected62 source files /25 presentation files with0 findings; this is a bounded static boundary check, **not a complete AI/domain-authority audit**.
+
+The changed Auth/account-revision source requires a new exact-head CI/CodeQL and full native replay; the source86 proof cannot be relabelled as proof of later code. **No merge until the required architecture reviews and exact-source gates are complete.** Continue with the functional AI vertical after this bounded safety closure and its separate AI boundary review. See `docs/implementation/INTENT_SHELL_20260907.md` and `docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md`. Older active-cursor claims below are historical where superseded here.
+
+---
+
+## CURRENT CHECKPOINT — 2026-09-07 / N08 LIVE85
+
+N08 is **CANONICAL / AUTHENTICATED DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. PR53 merged as `06d8ce1a14c87ca2237d94aa5a60cd7230899ff6`; exact forward promotion is live at **85 migrations / `20260907102458_clean_n08_notification_preferences`**. Inventory is **85 source files / live85 / pending0**. All original84 full history metadata and statement fingerprints remain unchanged. Do not reapply N08 or N07.
+
+Read [N08 live promotion and evidence](docs/implementation/N08_LIVE85_PROMOTION_20260907.md) and [the owner contract](docs/implementation/N08_NOTIFICATION_PREFERENCES_20260907.md). Exact final-head proof run34110025856 passed12 authenticated N08 checks,6 N07 checks,37 suites/232 tests and TSC; canonical PRE-P4/CodeQL passed. Fresh live postflight confirmed expected function bytes, owner-only RPC grants, RLS, monotonic revision trigger and zero opt-in. No visible settings control, provider delivery, production business fixture or activation is claimed; event/message/Inbox/device engines,0 RSD, HITNO-off and other gates remain unchanged. Continue the next real product gap under the user's V3 execution method and06.09 UI priority.
+
+---
+
+## HISTORICAL CHECKPOINT — 2026-09-07 / N07 LIVE84
 
 N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
 

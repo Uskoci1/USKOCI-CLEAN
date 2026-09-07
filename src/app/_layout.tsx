@@ -10,7 +10,7 @@ import { povratniCilj } from '../store/povratniCilj';
 import { postaviUlogu } from '../store/uloga';
 
 export default function RootLayout() {
-  const { isLoaded, session, sessionEpoch, returnTargetRevision } = useSesija();
+  const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();
   const segments = useSegments();
   const naAuth = segments[0] === 'auth';
@@ -70,7 +70,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.ground }}>
         <StatusBar style="dark" />
         <Stack
-          key={session?.user.id ?? 'signed-out'}
+          key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: palette.ground },

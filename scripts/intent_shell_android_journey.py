@@ -95,6 +95,47 @@ def assert_shell(intent):
     print(f'CHECKPOINT THREE_ZONES intent={intent} labels={expected}', flush=True)
 
 
+def assert_agreement_metadata_tree(root, width, height, title, schedule, amount):
+    # Original native XML exposes the labelled Press as android.widget.Button
+    # with TextView descendants. Match its actual accessibility label and
+    # actionable state, without assuming a particular Android element class.
+    cards = [node for node in root.iter()
+             if node.attrib.get('content-desc') == f'Otvorite Dogovor {title}'
+             and node.attrib.get('clickable') == 'true'
+             and node.attrib.get('enabled', 'true') == 'true']
+    if len(cards) != 1:
+        raise AssertionError('Expected one actionable Agreement card')
+    card = cards[0]
+    card_bounds = parse_bounds(card.attrib.get('bounds'))
+
+    def inside(bounds, container):
+        return (container[0] <= bounds[0] < bounds[2] <= container[2]
+                and container[1] <= bounds[1] < bounds[3] <= container[3])
+
+    screen = (0, 0, width, height)
+    if not inside(card_bounds, screen):
+        raise AssertionError('Agreement card is outside the visible screen')
+    observed = {}
+    for field, expected in (('title', title), ('schedule', schedule), ('amount', amount)):
+        nodes = [node for node in card.iter() if node.attrib.get('text') == expected]
+        if len(nodes) != 1:
+            raise AssertionError(f'Agreement {field} is missing or ambiguous: {expected}')
+        bounds = parse_bounds(nodes[0].attrib.get('bounds'))
+        if not inside(bounds, card_bounds) or not inside(bounds, screen):
+            raise AssertionError(f'Agreement {field} is outside card/screen bounds: {bounds}')
+        observed[field] = bounds
+    return observed
+
+
+def assert_agreement_metadata(intent):
+    root, _ = wait_surface(desc=f'Otvorite Dogovor {NEED_TITLE}', timeout=45)
+    # The original authenticated fixture selects one 3,000 RSD response on a
+    # FLEX need. These exact fields must remain readable for both participants.
+    observed = assert_agreement_metadata_tree(root, *screen_size(), NEED_TITLE, 'Fleksibilno', '3.000 RSD')
+    print(f'CHECKPOINT AGREEMENT_METADATA_VISIBLE intent={intent} full_schedule full_amount '
+          f'within_card_and_screen bounds={observed}', flush=True)
+
+
 def assert_profile(account_id, kind):
     name = psql("select coalesce(nullif(btrim(display_name),''),'Ime još nije uneto') "
                 f"from public.app_profiles where account_id='{account_id}' and kind='{kind}'")
@@ -154,6 +195,7 @@ assert_shell('requester')
 tap(desc='Dogovori', prefer='bottom')
 wait_visible(text=NEED_TITLE)
 assert_shell('requester')
+assert_agreement_metadata('requester')
 shot('NAV_requester_agreements')
 tap(desc='Zadaci', prefer='bottom')
 wait_visible(desc=f'Otvorite Zadatak {NAV_NEED_TITLE}')
@@ -213,6 +255,7 @@ shot('NAV_worker_applications')
 tap(desc='Dogovori', prefer='bottom')
 assert_shell('worker')
 wait_visible(text=NEED_TITLE)
+assert_agreement_metadata('worker')
 shot('NAV_worker_agreements')
 
 assert psql(f"select count(*) from public.marketplace_responses where need_id='{NAV_NEED_ID}'") == '0'

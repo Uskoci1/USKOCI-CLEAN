@@ -5,6 +5,7 @@ import type { PrilikaProjekcija } from '../../contracts/projections';
 let mockId: string | string[] | undefined = 'task-a';
 let mockAccountId: string | undefined = 'account-a';
 let mockEpoch = 1;
+let mockAccountRevision = 1;
 let mockIntent: 'uskocer' | 'narucilac' = 'uskocer';
 let mockFocused = true;
 const mockLoad = jest.fn();
@@ -28,8 +29,8 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]),
 }));
 jest.mock('../../store/sesija', () => ({
-  useSesija: () => ({ user: mockAccountId ? { id: mockAccountId } : null, sessionEpoch: mockEpoch }),
-  sesijaSada: () => ({ user: mockAccountId ? { id: mockAccountId } : null, sessionEpoch: mockEpoch }),
+  useSesija: () => ({ user: mockAccountId ? { id: mockAccountId } : null, sessionEpoch: mockEpoch, accountRevision: mockAccountRevision }),
+  sesijaSada: () => ({ user: mockAccountId ? { id: mockAccountId } : null, sessionEpoch: mockEpoch, accountRevision: mockAccountRevision }),
 }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent, useIzvor: () => mockSource }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
@@ -58,7 +59,7 @@ const back = () => tree!.root.findByProps({ accessibilityLabel: 'Nazad na Zadatk
 
 beforeEach(() => {
   jest.clearAllMocks(); mockLoad.mockReset(); mockAppListeners.clear();
-  mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockIntent = 'uskocer'; mockFocused = true;
+  mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockAccountRevision = 1; mockIntent = 'uskocer'; mockFocused = true;
   mockRouter.canGoBack.mockReturnValue(true);
 });
 afterEach(async () => { await act(async () => { tree?.unmount(); }); tree = undefined; jest.useRealTimers(); });
@@ -149,6 +150,42 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await act(async () => b.resolve({ ...detail(), naslov: 'Podaci za B' }));
     await act(async () => a.resolve({ ...detail(), naslov: 'Podaci za A' }));
     expect(text()).toContain('Podaci za B'); expect(text()).not.toContain('Podaci za A');
+  });
+
+  it('rejects the previous A read and press after A→B→A without rendering B', async () => {
+    const oldRead = deferred<PrilikaProjekcija>();
+    const currentRead = deferred<PrilikaProjekcija>();
+    mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(oldRead.promise).mockReturnValueOnce(currentRead.promise);
+    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await act(async () => mockAppListeners.forEach(listener => listener('active')));
+    mockAccountId = 'account-b'; mockEpoch++; mockAccountRevision++;
+    mockAccountId = 'account-a'; mockEpoch++; mockAccountRevision++;
+    await act(async () => oldPress());
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    await update();
+    await act(async () => oldRead.resolve({ ...detail(), naslov: 'Prethodna sesija A' }));
+    expect(text()).not.toContain('Prethodna sesija A');
+    expect(text()).not.toContain('Zadatak task-a');
+    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    await act(async () => currentRead.resolve({ ...detail(), naslov: 'Nova sesija A' }));
+    expect(text()).toContain('Nova sesija A');
+    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+  });
+
+  it('conservatively rereads W04 after same-account token refresh while identity revision stays stable', async () => {
+    const refresh = deferred<PrilikaProjekcija>();
+    mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(refresh.promise);
+    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    mockEpoch++;
+    await act(async () => oldPress());
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    await update();
+    expect(mockAccountRevision).toBe(1);
+    expect(mockLoad).toHaveBeenCalledTimes(2);
+    expect(text()).not.toContain('Zadatak task-a');
+    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    await act(async () => refresh.resolve(detail()));
+    expect(buttons('Sastavi prijavu')).toHaveLength(1);
   });
 
   it('blocks pre-render account changes and clears the display cache for a new session', async () => {

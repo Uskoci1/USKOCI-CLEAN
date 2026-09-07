@@ -6,11 +6,13 @@ import { sesijaSada, useSesija } from '../store/sesija';
 import { ulogaSada, useUloga } from '../store/uloga';
 
 export function useFocusedResource<T>(load: () => Promise<T>) {
-  const accountId = useSesija().user?.id;
+  const { user, accountRevision } = useSesija();
+  const accountId = user?.id;
   const intent = useUloga();
   const model = useMemo(() => createFocusedResource(load,
-    () => !!accountId && sesijaSada().user?.id === accountId && ulogaSada() === intent),
-  [load, accountId, intent]);
+    () => !!accountId && sesijaSada().user?.id === accountId &&
+      sesijaSada().accountRevision === accountRevision && ulogaSada() === intent),
+  [load, accountId, accountRevision, intent]);
   const state = useSyncExternalStore(model.subscribe, model.snapshot, model.snapshot);
   useFocusEffect(useCallback(() => {
     model.start();
