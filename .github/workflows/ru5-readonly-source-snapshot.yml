@@ -1,0 +1,46 @@
+name: RU-5 read-only source snapshot
+
+on:
+  push:
+    branches:
+      - proof/ru5-readonly-source-snapshot-20260907
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read immutable reviewed proof source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 65443681732fe6b290a8216d72d045a1c1b2f840
+          fetch-depth: 64
+          persist-credentials: false
+      - name: Package tracked source only without executing project code
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof=65443681732fe6b290a8216d72d045a1c1b2f840
+          canonical=46ddea1a2688a3026c269c1235026142f0f3921c
+          test "$(git rev-parse HEAD)" = "$proof"
+          git cat-file -e "$canonical^{commit}"
+          out="$RUNNER_TEMP/ru5-source-snapshot"
+          mkdir -p "$out"
+          git archive --format=tar --prefix=proof/ "$proof" > "$out/proof-source.tar"
+          git archive --format=tar --prefix=canonical/ "$canonical" > "$out/canonical-source.tar"
+          git ls-tree -r "$proof" > "$out/proof-tree.txt"
+          git ls-tree -r "$canonical" > "$out/canonical-tree.txt"
+          git diff --binary "$canonical" "$proof" > "$out/reviewed-branch.patch"
+          git log --format='%H %s' "$canonical..$proof" > "$out/proof-lineage.txt"
+          printf 'proof=%s\ncanonical=%s\nno_project_execution=true\nno_supabase_access=true\nno_git_directory_or_credentials_in_archives=true\n' "$proof" "$canonical" > "$out/snapshot.txt"
+          (cd "$out" && sha256sum proof-source.tar canonical-source.tar reviewed-branch.patch proof-tree.txt canonical-tree.txt proof-lineage.txt snapshot.txt > SHA256SUMS)
+      - name: Upload source review snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: RU5-IMMUTABLE-SOURCE-REVIEW-6544368
+          path: ${{ runner.temp }}/ru5-source-snapshot/
+          if-no-files-found: error
+          retention-days: 14
