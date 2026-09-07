@@ -1,13 +1,15 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CaretRight, Clock, MapPin, PencilSimple, UserMinus, Users } from 'phosphor-react-native';
 
-import type { PotrebaProjekcija, StanjePotrebe } from '../../../../contracts/projections';
+import type { StanjePotrebe } from '../../../../contracts/projections';
+import { useFocusedResource } from '../../../../hooks/useFocusedResource';
+import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { ru4Production } from '../../../../data/ru4Production';
 import { noviZahtevId } from '../../../../lib/idempotencija';
-import { useIzvor } from '../../../../store/uloga';
+import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
 import { palette, space, radius, elevation, touch } from '../../../../theme/tokens';
 import { Card } from '../../../../ui/Button';
 import { Press } from '../../../../ui/Press';
@@ -23,50 +25,32 @@ const STATUS: Record<StanjePotrebe, string> = {
 };
 
 export default function PregledPotrebe() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const izvor = useIzvor();
-  const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
-  const [ucitava, setUcitava] = useState(true);
-  const [greska, setGreska] = useState<string | null>(null);
-  const [preostalaPotragaZatvorena, setPreostalaPotragaZatvorena] = useState(false);
+  const { user, accountRevision } = useSesija();
+  const accountId = user?.id, intent = useUloga();
+  const active = useRef(false), actionLock = useRef(false);
+  const current = useCallback(() => active.current && !!accountId && sesijaSada().user?.id === accountId &&
+    sesijaSada().accountRevision === accountRevision && ulogaSada() === intent, [accountId, accountRevision, intent]);
+  useFocusEffect(useCallback(() => { active.current = true; return () => { active.current = false; }; }, [current, id]));
+  const validId = typeof id === 'string' && id.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const load = useCallback(async () => {
+    if (!validId) return null;
+    const potreba = await izvor.potreba(id as string);
+    if (!potreba || !current()) return null;
+    // A saved unpublished draft does not depend on the remaining-search engine.
+    const search = potreba.stanje === 'NACRT' ? { closed: false } : await ru4Production.remainingSearchState(potreba.id);
+    return { potreba, closed: search.closed };
+  }, [current, id, izvor, validId]);
+  const resource = useFocusedResource(load);
+  const potreba = resource.data?.potreba ?? null;
+  const ucitava = resource.loading;
+  const greska = resource.error ? 'Zadatak nije mogao da se učita. Proverite vezu i pokušajte ponovo.' : null;
+  const preostalaPotragaZatvorena = resource.data?.closed ?? false;
   const [akcijaUToku, setAkcijaUToku] = useState(false);
 
-  const ucitaj = useCallback(() => {
-    let ziv = true;
-    if (!id) {
-      setGreska('Potreba nije navedena.');
-      setUcitava(false);
-      return () => {
-        ziv = false;
-      };
-    }
-
-    setUcitava(true);
-    setGreska(null);
-    void Promise.all([izvor.potreba(id), ru4Production.remainingSearchState(id)])
-      .then(([rezultat, searchState]) => {
-        if (!ziv) return;
-        setPotreba(rezultat);
-        setPreostalaPotragaZatvorena(searchState.closed);
-        if (!rezultat) setGreska('Potreba nije pronađena ili više nije dostupna.');
-      })
-      .catch((error: unknown) => {
-        if (!ziv) return;
-        setGreska(error instanceof Error ? error.message : 'Potreba nije mogla da se učita.');
-      })
-      .finally(() => {
-        if (ziv) setUcitava(false);
-      });
-
-    return () => {
-      ziv = false;
-    };
-  }, [id, izvor]);
-
-  useFocusEffect(ucitaj);
-
   const zatvoriPreostaluPotragu = useCallback(() => {
-    if (!potreba || akcijaUToku) return;
+    if (!potreba || akcijaUToku || actionLock.current || !current()) return;
     const preostalo = potreba.pokrivenost.preostalo;
     Alert.alert(
       'Ne traži više nikoga?',
@@ -77,29 +61,34 @@ export default function PregledPotrebe() {
           text: 'Zatvori potragu',
           style: 'destructive',
           onPress: () => {
+            if (!current() || actionLock.current) return;
+            actionLock.current = true;
             void (async () => {
+              try {
               setAkcijaUToku(true);
               const ishod = await ru4Production.closeRemainingSearch(
                 potreba.id,
                 potreba.revizija,
                 noviZahtevId('zatvori-preostalu-potragu'),
               );
-              setAkcijaUToku(false);
+              if (!current()) return;
               if (!ishod.ok) {
                 Alert.alert('Potraga nije zatvorena', ishod.poruka);
                 return;
               }
-              setPreostalaPotragaZatvorena(true);
+              void resource.refresh();
               Alert.alert(
                 'Preostala potraga je zatvorena',
                 'Postojeći Dogovori ostaju isti. Originalni Zadatak nije prepisan.',
               );
+              } catch { if (current()) Alert.alert('Potraga nije zatvorena', 'Potvrda nije stigla. Osvežite Zadatak.'); }
+              finally { actionLock.current = false; if (current()) setAkcijaUToku(false); }
             })();
           },
         },
       ],
     );
-  }, [akcijaUToku, potreba]);
+  }, [akcijaUToku, current, potreba, resource.refresh]);
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
@@ -116,7 +105,7 @@ export default function PregledPotrebe() {
           accessibilityRole="button"
           accessibilityLabel="Nazad"
           haptic="select"
-          onPress={() => router.back()}
+          onPress={() => { if (current()) router.canGoBack() ? router.back() : router.replace('/potrebe'); }}
           style={{
             width: touch.min,
             height: touch.min,
@@ -142,10 +131,7 @@ export default function PregledPotrebe() {
             accessibilityRole="button"
             accessibilityLabel="Pokušaj ponovo"
             haptic="light"
-            onPress={() => {
-              const cleanup = ucitaj();
-              void cleanup;
-            }}
+            onPress={() => void resource.refresh()}
             style={{
               minHeight: touch.min,
               borderRadius: radius.md,
@@ -174,6 +160,8 @@ export default function PregledPotrebe() {
 
               <T variant="display">{potreba.naslov}</T>
               <T variant="body" tone="muted">{potreba.opis}</T>
+              {potreba.kategorija && <T variant="meta" tone="muted">Kategorija: {potreba.kategorija}</T>}
+              {!!potreba.brojFotografija && <T variant="meta" tone="muted">Sačuvane fotografije: {potreba.brojFotografija}</T>}
 
               <View
                 style={{
@@ -225,14 +213,15 @@ export default function PregledPotrebe() {
                   <T variant="heading">{potreba.ponudjenaCena.prikaz}</T>
                 </View>
               )}
+              {potreba.rezimCene === 'OFFERS' && <T variant="heading">Očekujete ponude</T>}
 
               {potreba.uslovi.length > 0 && (
                 <View style={{ gap: space.sm }}>
                   <T variant="label" tone="muted">USLOVI</T>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-                    {potreba.uslovi.map((uslov) => (
+                    {potreba.uslovi.map((uslov, index) => (
                       <View
-                        key={uslov}
+                        key={`${index}:${uslov}`}
                         style={{
                           borderWidth: 1,
                           borderColor: palette.line100,
@@ -276,7 +265,7 @@ export default function PregledPotrebe() {
               accessibilityRole="button"
               accessibilityLabel="Izmeni Zadatak"
               haptic="light"
-              onPress={() => router.push({ pathname: '/potrebe/[id]/izmeni' as any, params: { id: potreba.id } })}
+              onPress={() => { if (current()) router.push({ pathname: '/potrebe/[id]/izmeni' as any, params: { id: potreba.id } }); }}
               style={{
                 minHeight: touch.min,
                 paddingHorizontal: space.base,
@@ -323,12 +312,12 @@ export default function PregledPotrebe() {
             </Press>
           ) : null}
 
-          <Press
+          {potreba.stanje !== 'NACRT' ? <Press
             accessibilityRole="button"
             accessibilityLabel={`Otvori prijave, ukupno ${potreba.brojPrijava}`}
             haptic="light"
             onPress={() =>
-              router.push({ pathname: '/potrebe/[id]/kandidati', params: { id: potreba.id } })
+              current() && router.push({ pathname: '/potrebe/[id]/kandidati', params: { id: potreba.id } })
             }
           >
             <Card style={elevation.card}>
@@ -352,10 +341,10 @@ export default function PregledPotrebe() {
                 <CaretRight size={19} color={palette.ink} />
               </View>
             </Card>
-          </Press>
+          </Press> : <T variant="body" tone="muted">Nacrt je sačuvan. Još nije objavljen i ne prima prijave.</T>}
 
           <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>
-            Revizija {potreba.revizija}. Izbor kandidata se vezuje za ovu autoritativnu verziju Zadatka.
+            {potreba.stanje === 'NACRT' ? 'Sačuvani nacrt je dostupan u Zadacima.' : `Revizija ${potreba.revizija}.`}
           </T>
         </ScrollView>
       )}

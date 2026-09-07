@@ -1266,5 +1266,34 @@
       "OFFERS"
     ],
     "canonical_source_retirement_pending_live_deploy": false
+  },
+  "ai_mobile_vertical_checkpoint_20260907": {
+    "state": "SOURCE_REVIEWED_INTEGRATED_NATIVE_RECOVERY_PENDING",
+    "canonical_baseline": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
+    "reviewed_initial_source": "de72cbe",
+    "initial_source_jest_suites": 50,
+    "initial_source_jest_tests": 379,
+    "native_harness_python_tests": 52,
+    "native_harness_node_tests": 23,
+    "native_proven": false,
+    "actual_provider_proven": false,
+    "migration_added": false,
+    "report": "docs/implementation/AI_MOBILE_VERTICAL_RECOVERY_20260907.md",
+    "live_dependency": "PR57 authority is canonical and recorded live87; actual provider and native acceptance remain separate",
+    "reviewed_mobile_production_source": "8fe1fc4a9b74f3a5b6b721b71229ba5c8389e145",
+    "failed_native_run": 34131247295,
+    "failed_native_boundary": "ORIGINAL27_PASS;PEOPLE_2_TO_3_AND_OPTIONAL_VEHICLE_PENDING_OBSERVED;OUTAGE_GUARD_BEFORE_MUTATION;NO_RETRY_SAVE_CARD_ACCEPTANCE",
+    "fresh_integrated_apk_required": true,
+    "owner_web_worktree_changed": false,
+    "migration_added_by_mobile": false,
+    "reviewed_auth_sheet_fix": "386d539648ddcf10c34b90aa5cbb28701f90753f",
+    "failed_native_source": "0e009cba2849fb80e56a97b9f8fa76c70e9d2848",
+    "failed_native_artifact_id": 10023336152,
+    "failed_native_zip_sha256": "2b9ce0d55f03426fc6ae352776766d1732338a4b22f52b47ba5261239fac440f",
+    "previous_failed_native_runs": [
+      34125911445
+    ],
+    "canonical_apk_configuration_preserved": true,
+    "mobile_delta_after_failed_source": "One review helper string plus actual-route assertion; no save predicate/server-rule change"
   }
 }

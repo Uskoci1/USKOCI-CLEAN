@@ -7,6 +7,7 @@ type Kind = 'primary' | 'secondary' | 'quiet' | 'danger';
 
 type Props = {
   label: string;
+  accessibilityLabel?: string;
   onPress?: () => void;
   kind?: Kind;
   /** Prati akciju, ne stoji uz nju kao ravnopravno. */
@@ -25,6 +26,7 @@ type Props = {
  */
 export function Button({
   label,
+  accessibilityLabel,
   onPress,
   kind = 'primary',
   meta,
@@ -44,7 +46,7 @@ export function Button({
   return (
     <Press
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}

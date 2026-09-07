@@ -1,3 +1,38 @@
+## Current AI mobile replay — partial native evidence and bounded harness repair
+
+Fresh canonical `7c83a1bf09faad1edb7fd0bc2e9199bee645dd41` is integrated, including recorded source87/live87/pending0 and server-only Edge selector/context source. The canonical server/provenance integration preserves APK configuration and the original27 executed scripts from accepted `0e009cba2849fb80e56a97b9f8fa76c70e9d2848`. The one subsequent mobile production change corrects the review helper text to include all proposed facts, including optional Vehicle; it changes no save predicate or server policy and requires the new APK replay. No owner web worktree or production state is changed here.
+
+Fresh Android run34131247295 passed the original27 Inbox/navigation journey, real human correction from2 to3 people, and confirmation of all proposals except optional Vehicle while Save remained disabled. It stopped **before any outage mutation** because the helper did not recognize the actual CLI image `ghcr.io/supabase/postgrest:v16.1`. Its original artifact10023336152 / ZIP SHA-256 `2b9ce0d55f03426fc6ae352776766d1732338a4b22f52b47ba5261239fac440f` is preserved. Outage/retry/save/card were not reached; this is partial evidence, not whole AI native acceptance or provider proof.
+
+The bounded fix adds only the observed Supabase GHCR namespace to the existing exact local-container guard, preserves immutable-id/name/local-daemon/running-state checks, and adds positive/namespace-spoof regressions plus safe identity logging. The reviewed scaffold copy now says “Potvrdite ili ispravite sve predložene podatke pre čuvanja.” The optional-Vehicle route test asserts this guidance while Save is disabled and its removal after confirmation. No save/completeness rule or native assertion is relaxed. Fresh native acceptance remains required. See [replay evidence](AI_MOBILE_FINAL_INTEGRATION_20260907.md). Earlier current-state paragraphs below are historical where superseded here; UI remains a functional scaffold.
+
+---
+
+<!-- AI_MOBILE_FINAL_INTEGRATION_20260907 -->
+## Current AI mobile integration — canonical config and server authority
+
+Fresh canonical is `c4c6b624446f3273a40e8393bfadc8c49dff5494`, including PR49 Auth, PR55 D03/live86, PR56 EAS/Firebase configuration and PR57 AI DRAFT server authority source. The current source inventory is87 / recorded live86 / pending1. This integration changes no production database or provider state and does not supersede a newer independently recorded live promotion.
+
+PR59's reviewed AI mobile production source remains identical to `8fe1fc4a9b74f3a5b6b721b71229ba5c8389e145`. The sole additional mobile-source change is Root's exact reviewed Auth fix `386d539648ddcf10c34b90aa5cbb28701f90753f`, which raises the sheet host above its dismiss backdrop; Root physically verified field focus after browser reload without submitting Auth. Its native run34125911445 passed the original27 checks but failed the added review traversal before human correction: after Back, the real review retained its bottom scroll position and the harness searched downward for a control physically above the viewport. Original failure XML/PNG and ZIP hash are preserved; this is not AI correction/save/card acceptance. A narrow harness fix follows observed clipping geometry, with regression coverage. The original27 scripts and business invariants remain unchanged.
+
+The independent final worktree now imports canonical build configuration and exact AI SQL while the owner's active8fe web worktree remains untouched. Because APK inputs changed, a fresh integrated Android run is required. No previous artifact is relabelled as this new APK proof. UI remains a functional scaffold; final Figma design is separate. Actual provider/user-owned confirmation remains its own proof gate.
+
+See [integration, failure evidence and validation](AI_MOBILE_FINAL_INTEGRATION_20260907.md). Root review and final-head CI/native acceptance are pending. Older checkpoints below retain their historical source/proof boundaries.
+
+---
+
+## Current source integration — AI human review / scaffold only
+
+Canonical PR49 and PR55 are preserved at `a0dfc9f7bec6d1d6cc0c7f71b71ded23e38a114a`. D03 live86/head20260907130151 was independently observed13:02:34UTC; its source-to-live alias documentation is being reconciled. The recorded source inventory here remains86/recorded85/pending1 until that provenance admission; do not reapply D03.
+
+This branch adds the reviewed typed AI input → human confirm/correct → DRAFT → exact persisted public-card flow. Initial reviewed source passed50 suites/379 tests,TSC,AST65/25/0; the added canonical D03 client is unchanged. Native harness source has independent review plus48 Python/23 Node checks. The exact21141-byte AI two-RPC candidate is included as a proof-only dependency for historical79+N02/N03; there is no AI migration or production/provider write in this mobile unit. Final integrated CI/native and actual-provider proof remain pending.
+
+UI remains a testable scaffold; final Figma design and Fable asset work are separate. Existing server owns authorization, safety, required facts, idempotent save and materialization. Client hooks/services own captures, stale-result rejection and human review; presentation contains no SDK writes or AI secrets. Explicit-zone/valid-calendar input parsing avoids silently changing the confirmed instant. Known durable-turn and cross-device review-CAS limitations remain documented. Read AI_MOBILE_VERTICAL_RECOVERY_20260907.md; older checkpoints below retain their original evidence boundaries.
+
+---
+
+---
+
 ## Current checkpoint — AI authority LIVE87 and Edge context v7
 
 Canonical `6701311d89047c0a1058332362887fb7b396df5a` includes PR57 `c4c6b624446f3273a40e8393bfadc8c49dff5494` and PR58. AI review/save authority is **IMPLEMENTED / AUTHENTICATED DISPOSABLE PROVEN / CANONICAL / LIVE STRUCTURAL PROVEN**. Actual86→87 proof34128347708 and final canonical gates preceded exact live alias `20260907135905_clean_ai_need_draft_safety_authority`. All21141 source bytes match the live statement; all86 complete prior history records,127 other function bodies,129 function metadata/ACLs and12 table catalogs remain unchanged. The same47 policies/53 RLS settings and72 advisor entries remain; immediate before/after business counts and0 RSD/gates are unchanged. Source87/live87/pending0; do not reapply closed SQL.

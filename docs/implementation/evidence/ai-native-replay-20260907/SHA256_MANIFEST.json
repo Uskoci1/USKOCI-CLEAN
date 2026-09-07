@@ -1,0 +1,45 @@
+{
+  "scope": "Failed run original evidence plus bounded local harness repair and truthful review copy; no actual provider proof",
+  "files": [
+    {
+      "file": "AI_FAILURE_last_screen.xml",
+      "bytes": 38127,
+      "sha256": "7d2e90f651d2004bc88ef2b86cfa15356e43d06d87e9d736c69af2410a2015e2"
+    },
+    {
+      "file": "AI_optional_vehicle_blocks_ui_save.xml",
+      "bytes": 38127,
+      "sha256": "7d2e90f651d2004bc88ef2b86cfa15356e43d06d87e9d736c69af2410a2015e2"
+    },
+    {
+      "file": "AI_people_corrected.xml",
+      "bytes": 42845,
+      "sha256": "d10969dced3e75f3723321fc30ecb00cc95573faac5f4291f6b6be6b2d7a5e0b"
+    },
+    {
+      "file": "AI_STATE_OPTIONAL_VEHICLE_PENDING.json",
+      "bytes": 10324,
+      "sha256": "0e5000d99dde1a008b002d53245af21fa27b1fb894277f707e4e003cb3cf4528"
+    },
+    {
+      "file": "client-boundary.json",
+      "bytes": 24096,
+      "sha256": "f82a19846b706fd0ed5089857dcc809507ead9098e49e4513b0e8dcf6c504f25"
+    },
+    {
+      "file": "failure-review.json",
+      "bytes": 7267,
+      "sha256": "8c9bccb2c7d5a7a84eee3fa765a13721fbeba479ca280a5e77ff954b27dbb9a5"
+    },
+    {
+      "file": "source-preservation.json",
+      "bytes": 1510,
+      "sha256": "aa67e635d67936a7749b66f5c30826afb3a0ad4ba6cd73e540876adca1b259a4"
+    },
+    {
+      "file": "validation.json",
+      "bytes": 885,
+      "sha256": "79bd9ce61d52375de1da608d27c63da9f20d44c904fe35a7233ad9f88793c3b8"
+    }
+  ]
+}

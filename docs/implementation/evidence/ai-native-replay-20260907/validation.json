@@ -1,0 +1,39 @@
+{
+  "observedAt": "2026-09-07T14:50:56.954368+00:00",
+  "canonical": "7c83a1bf09faad1edb7fd0bc2e9199bee645dd41",
+  "previousNativeSource": "0e009cba2849fb80e56a97b9f8fa76c70e9d2848",
+  "preCommitWorktree": true,
+  "jest": {
+    "suites": 53,
+    "tests": 461,
+    "seconds": 30.287,
+    "result": "PASS"
+  },
+  "typescript": "PASS",
+  "pythonHarness": {
+    "tests": 52,
+    "result": "PASS",
+    "newRegressionTests": 2
+  },
+  "nodeLocalGuard": {
+    "tests": 23,
+    "result": "PASS"
+  },
+  "migrationIntegrity": {
+    "source": 87,
+    "recordedLive": 87,
+    "pending": 0,
+    "result": "PASS"
+  },
+  "clientAst": {
+    "files": 67,
+    "presentation": 25,
+    "findings": 0,
+    "result": "STATIC_BOUNDARY_PASS"
+  },
+  "newNativeReplay": "PENDING",
+  "providerProof": false,
+  "productionTouched": false,
+  "finalReviewCopyIncluded": true,
+  "typescriptAfterReviewCopy": "PASS"
+}

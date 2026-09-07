@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,8 +19,7 @@ import {
 } from 'phosphor-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
-import { aiNeedV2Izvor } from '../../data';
+import { useAiNeedFlow } from '../../hooks/useAiNeedFlow';
 import { factLabel, safetyMessage, sortFacts } from '../../data/aiNeedV2Ui';
 import { palette, radius, space, touch } from '../../theme/tokens';
 import { Button, Card } from '../../ui/Button';
@@ -29,87 +28,39 @@ import { T } from '../../ui/Text';
 
 export default function NovaPotrebaV2() {
   const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
-  const resumeId = Array.isArray(params.conversationId) ? params.conversationId[0] : params.conversationId;
-  const [razgovorId, setRazgovorId] = useState<string | null>(null);
-  const [stanje, setStanje] = useState<AiNeedV2Conversation | null>(null);
-  const [unos, setUnos] = useState('');
-  const [radi, setRadi] = useState(false);
-  const [greska, setGreska] = useState<string | null>(null);
+  const resumeId = params.conversationId;
+  if (Array.isArray(resumeId) || (resumeId !== undefined && (resumeId.length !== 36 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resumeId)))) {
+    return <SafeAreaView style={{ flex: 1, padding: space.base, backgroundColor: palette.ground }}>
+      <T variant="heading">Nacrt nije dostupan</T>
+      <Button label="Nazad na Zadatke" onPress={() => router.replace('/potrebe')} />
+    </SafeAreaView>;
+  }
+  return <NovaPotrebaContent resumeId={resumeId} />;
+}
+
+function NovaPotrebaContent({ resumeId }: { resumeId?: string }) {
+  const { model, state: flow } = useAiNeedFlow(resumeId);
+  const stanje = flow.conversation;
+  const razgovorId = flow.conversationId;
+  const unos = flow.draft;
+  const radi = !!flow.busy;
+  const greska = flow.error;
+  const setUnos = model.setDraft;
   const skrol = useRef<ScrollView>(null);
-
-  const osvezi = useCallback(async (id: string) => {
-    try {
-      const next = await aiNeedV2Izvor.loadConversation(id);
-      if (!next) {
-        setGreska('Ovaj nacrt nije dostupan u novom unosu. Otvorite novi Zadatak.');
-        setStanje(null);
-        return false;
-      }
-      setStanje(next);
-      return true;
-    } catch (error: any) {
-      setGreska(error?.message || 'Nacrt trenutno nije mogao da se učita.');
-      return false;
-    }
-  }, []);
-
-  const otvoriNovi = useCallback(async () => {
-    setGreska(null);
-    setStanje(null);
-    const result = await aiNeedV2Izvor.openConversation();
-    if (!result.ok) {
-      setGreska(result.poruka);
-      return;
-    }
-    setRazgovorId(result.podatak.conversationId);
-    await osvezi(result.podatak.conversationId);
-  }, [osvezi]);
-
-  useEffect(() => {
-    let ziv = true;
-    async function start() {
-      if (resumeId) {
-        setRazgovorId(resumeId);
-        if (ziv) await osvezi(resumeId);
-        return;
-      }
-      if (!ziv) return;
-      await otvoriNovi();
-    }
-    void start();
-    return () => {
-      ziv = false;
-    };
-  }, [osvezi, otvoriNovi, resumeId]);
-
-  const posalji = useCallback(async () => {
-    const body = unos.trim();
-    if (!body || !razgovorId || radi) return;
-    setRadi(true);
-    setGreska(null);
-    setUnos('');
-    try {
-      const result = await aiNeedV2Izvor.sendMessage(razgovorId, body);
-      if (!result.ok) {
-        setGreska(result.poruka);
-        setUnos(body);
-        return;
-      }
-      await osvezi(razgovorId);
-      requestAnimationFrame(() => skrol.current?.scrollToEnd({ animated: true }));
-    } finally {
-      setRadi(false);
-    }
-  }, [unos, razgovorId, radi, osvezi]);
+  const nazad = () => { if (model.isCurrent()) router.canGoBack() ? router.back() : router.replace('/potrebe'); };
+  const posalji = () => { void model.send().then(() => {
+    if (model.isCurrent()) requestAnimationFrame(() => skrol.current?.scrollToEnd({ animated: true }));
+  }); };
 
   if (!stanje) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', padding: space.xl }}>
+        <Button label="Nazad na Zadatke" kind="quiet" onPress={nazad} />
         {greska ? (
           <View style={{ gap: space.base, alignItems: 'center' }}>
             <Warning size={30} color={palette.danger} weight="fill" />
             <T variant="body" tone="danger" style={{ textAlign: 'center' }}>{greska}</T>
-            <Button label="Otvorite novi Zadatak" onPress={otvoriNovi} />
+            <Button label="Pokušajte ponovo" disabled={radi} onPress={() => void model.refresh()} />
           </View>
         ) : (
           <ActivityIndicator color={palette.teal500} />
@@ -127,10 +78,15 @@ export default function NovaPotrebaV2() {
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={8}
       >
-        <View style={{ paddingHorizontal: space.base, paddingTop: space.md, gap: space.md }}>
+        <View style={{ paddingHorizontal: space.base }}>
+          <Button label="Nazad" kind="quiet" onPress={nazad} />
+        </View>
+        <ScrollView ref={skrol} style={{ flex: 1 }} keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ padding: space.base, gap: space.md, paddingBottom: space.xl }}>
+        <View style={{ gap: space.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
             <View style={{ flex: 1 }}>
               <T variant="label" tone="orange">NOVI ZADATAK</T>
@@ -198,10 +154,10 @@ export default function NovaPotrebaV2() {
                 label="Pregledajte nacrt"
                 meta={stanje.review.missingRequired.length ? `${stanje.review.missingRequired.length} obaveznih` : 'spreman za proveru'}
                 full
-                disabled={!razgovorId || facts.length === 0}
+                disabled={!flow.fresh || radi || !!flow.pendingTurn || !razgovorId || facts.length === 0}
                 icon={<ArrowRight size={18} color={palette.onOrange} weight="bold" />}
                 onPress={() => {
-                  if (!razgovorId) return;
+                  if (!model.isCurrent() || !flow.fresh || radi || flow.pendingTurn || !razgovorId) return;
                   router.push({ pathname: '/pregled-nacrta', params: { conversationId: razgovorId } });
                 }}
               />
@@ -227,12 +183,6 @@ export default function NovaPotrebaV2() {
           ) : null}
         </View>
 
-        <ScrollView
-          ref={skrol}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: space.base, gap: space.sm, paddingBottom: space.xl }}
-          showsVerticalScrollIndicator={false}
-        >
           {stanje.messages.length === 0 ? (
             <Animated.View
               entering={FadeInDown.duration(220)}
@@ -269,14 +219,27 @@ export default function NovaPotrebaV2() {
             </Animated.View>
           ))}
           {radi ? <ActivityIndicator color={palette.teal500} style={{ alignSelf: 'flex-start' }} /> : null}
-        </ScrollView>
 
+        {flow.pendingTurn && <View style={{ paddingHorizontal: space.base, gap: space.sm }}>
+          <T variant="bodyStrong">{flow.busy === 'send' ? 'Slanje je u toku' : 'Slanje nije potvrđeno'}</T>
+          <T selectable variant="meta">{flow.pendingTurn.body}</T>
+          <T variant="meta" tone="muted">Tekst nije odbačen. Ne šaljemo ga ponovo bez provere. Možete ga označiti i kopirati pre izlaska.</T>
+          <Button label="Proverite razgovor" disabled={radi} onPress={() => void model.refresh()} />
+          {flow.pendingTurn.observed && flow.fresh && <>
+            <T variant="meta">Ista poruka sada postoji u razgovoru. Pregledajte odgovor pre nastavka.</T>
+            <Button label="Pregledao sam, nastavi" disabled={radi} onPress={model.acknowledgeObservedTurn} />
+          </>}
+        </View>}
+        {!flow.pendingTurn && !flow.fresh && <View style={{ paddingHorizontal: space.base }}>
+          <Button label="Osvežite nacrt" disabled={radi} onPress={() => void model.refresh()} />
+        </View>}
         {greska ? (
           <View style={{ paddingHorizontal: space.base, paddingBottom: space.sm }}>
             <T variant="meta" tone="danger">{greska}</T>
           </View>
         ) : null}
 
+        </ScrollView>
         <View
           style={{
             paddingHorizontal: space.base,
@@ -291,9 +254,10 @@ export default function NovaPotrebaV2() {
           }}
         >
           <TextInput
+            accessibilityLabel="Poruka za AI razgovor"
             value={unos}
             onChangeText={setUnos}
-            editable={!radi && stanje.safety !== 'BLOCK'}
+            editable={!radi && !flow.pendingTurn && stanje.safety !== 'BLOCK' && !stanje.review.boundNeedId}
             placeholder="Npr. treba mi prevoz frižidera sutra..."
             placeholderTextColor={palette.inkMuted}
             multiline
@@ -316,15 +280,15 @@ export default function NovaPotrebaV2() {
           <Press
             accessibilityRole="button"
             accessibilityLabel="Pošalji poruku"
-            accessibilityState={{ disabled: !unos.trim() || radi || stanje.safety === 'BLOCK' }}
-            disabled={!unos.trim() || radi || stanje.safety === 'BLOCK'}
+            accessibilityState={{ disabled: !unos.trim() || radi || !flow.fresh || !!flow.pendingTurn || !!stanje.review.boundNeedId || stanje.safety === 'BLOCK' }}
+            disabled={!unos.trim() || radi || !flow.fresh || !!flow.pendingTurn || !!stanje.review.boundNeedId || stanje.safety === 'BLOCK'}
             haptic="light"
             onPress={posalji}
             style={{
               width: touch.min,
               height: touch.min,
               borderRadius: radius.md,
-              backgroundColor: unos.trim() && !radi && stanje.safety !== 'BLOCK' ? palette.orange : palette.cream050,
+              backgroundColor: unos.trim() && !radi && flow.fresh && !flow.pendingTurn && !stanje.review.boundNeedId && stanje.safety !== 'BLOCK' ? palette.orange : palette.cream050,
               alignItems: 'center',
               justifyContent: 'center',
             }}

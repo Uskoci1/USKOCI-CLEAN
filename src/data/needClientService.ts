@@ -1,20 +1,13 @@
 import type { PotrebaProjekcija, StanjePotrebe } from '../contracts/projections';
 import type { Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { needDisplayProjection } from './needDisplayProjection';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
 type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'potreba'>;
-
-function vreme(iso: string | null | undefined) {
-  return iso ? new Date(iso).toLocaleString('sr-Latn-RS') : 'Fleksibilno';
-}
-
-function podrucje(area: string | null | undefined, city: string | null | undefined) {
-  return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
-}
 
 function stanje(
   raw: string,
@@ -43,8 +36,10 @@ function stanje(
 }
 
 function mapNeed(raw: any): PotrebaProjekcija {
-  const ukupno = Math.max(1, Number(raw.required_slots ?? 1));
-  const popunjeno = Math.max(0, Math.min(ukupno, Number(raw.covered_slots ?? 0)));
+  if (!Number.isSafeInteger(raw.required_slots) || raw.required_slots < 1 ||
+    !Number.isSafeInteger(raw.covered_slots) || raw.covered_slots < 0 || raw.covered_slots > raw.required_slots) throw new Error('NEED_CAPACITY_INVALID');
+  const ukupno = raw.required_slots;
+  const popunjeno = raw.covered_slots;
   const brojPrijava = Array.isArray(raw.marketplace_responses)
     ? raw.marketplace_responses.length
     : 0;
@@ -63,13 +58,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
       preostalo: Math.max(0, ukupno - popunjeno),
       udeo: ukupno > 0 ? popunjeno / ukupno : 0,
     },
-    vremeTekst: vreme(raw.starts_at),
-    podrucjeTekst: podrucje(raw.approximate_area, raw.approximate_city),
-    uslovi: [
-      ...(raw.required_skills ?? []),
-      ...(raw.required_tools ?? []),
-      ...(raw.required_vehicles ?? []),
-    ],
+    ...needDisplayProjection(raw),
     brojPrijava,
     rezimCene: mode,
     ponudjenaCena:
@@ -84,18 +73,20 @@ function mapNeed(raw: any): PotrebaProjekcija {
 }
 
 const NEED_SELECT = `
-  id, revision, title, description, status, starts_at,
+  id, revision, title, description, category, status, schedule_kind, starts_at, ends_at,
   approximate_area, approximate_city,
   required_slots, required_skills, required_tools, required_vehicles,
+  required_licenses, minimum_experience_years, verified_identity_required, public_photo_paths,
+  execution_location_mode, need_geography(public_topology), need_requirement_details(critical_conditions),
   covered_slots, mode, requester_price_rsd,
   marketplace_responses(id)
 `;
 
 /**
  * Canonical production client boundary for Need read operations.
- * This intentionally preserves the exact active behavior previously owned by
- * needProductionOverrides. Database authority remains in live RLS; this service
- * only performs approved reads and maps them to the Izvor projection contract.
+ * Database authority remains in live RLS. This service reads persisted public
+ * task fields, including the full public route and schedule, and maps them to
+ * the Izvor projection contract without inventing missing fact values.
  */
 export const needClientService: NeedReadService = {
   async mojePotrebe() {
