@@ -6,9 +6,9 @@ The reproduced invalid-timezone preference could roll back a counterpart message
 
 ---
 
-## CURRENT POINTER â€” 2026-09-07 / N07 LIVE84
+## CURRENT POINTER — 2026-09-07 / N07 LIVE84
 
-N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof â†’ review â†’ promotion flow.
+N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
 
 Read [N07 live promotion and evidence](N07_LIVE84_PROMOTION_20260907.md) and the current status owner before the next narrow preflight. N04's Inbox backend dependency is now LIVE; its recorded Android proof remains valid at its own source boundary. Native token lifecycle, provider dispatch/tickets/receipts, remaining Chat/product work and Store acceptance remain open. No provider/business test call, backfill, HITNO/D0140/Q&A/Application-AI activation or pricing change occurred; 0 RSD remains current.
 
@@ -18,13 +18,13 @@ All retained earlier pending-production, live79 and read-blocked checkpoints bel
 
 ---
 
-## CURRENT CHECKPOINT â€” 2026-09-07 / NOTIFICATIONS EXECUTION CLOSURE
+## CURRENT CHECKPOINT — 2026-09-07 / NOTIFICATIONS EXECUTION CLOSURE
 
 This is the current status owner. Retained sections below are historical evidence, not active cursors. Verified implementation baseline: `4858370610192b88112673b08bde151793409e99`. Fetch current canonical before the next write.
 
 | Unit | Canonical outcome | Strongest inspected proof | Canonical PRE-P4 / CodeQL / Control-0 |
 | --- | --- | --- | --- |
-| N02 Selection â†’ Worker event | PR #40 / `175c0004670d928f63afe5925dee72849ca7d659`, NOT LIVE | 12/12 authenticated checks, run34094384747 | 34095097976 / 34095097864 / 34095097982 PASS |
+| N02 Selection → Worker event | PR #40 / `175c0004670d928f63afe5925dee72849ca7d659`, NOT LIVE | 12/12 authenticated checks, run34094384747 | 34095097976 / 34095097864 / 34095097982 PASS |
 | N03 event Inbox backend | PR #41 / `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`, NOT LIVE | 9/9 authenticated checks, run34095038531 | 34096030954 / 34096030976 / 34096030910 PASS |
 | N04 real mobile Inbox/bell | PR #45 / `b6c3739299db0751be42cc5abaab9b75eea747d7`, CANONICAL; backend promotion pending | Android native run34096462936 / job101661103645 / artifact10009432265; 10 original PNG/XML pairs reviewed | 34098833164 / 34098832943 / 34098833131 PASS |
 | N05 change proposal/reject/version events | PR #43 / `77bdf16f2a928c054f7604631b277e87e1425a3c`, NOT LIVE | 9/9 authenticated checks, run34097457917 / job101664161588 / artifact10009242617 | 34098026482 / 34098026294 / 34098026477 PASS |
@@ -38,7 +38,7 @@ N01 MESSAGE_RECEIVED remains canonical at PR #39 / `abd147d64eab616045d450f87e36
 
 ### What these units actually establish
 
-N04 reads only the validated server event projection. Real role filters, paging, unread, read/read-all, refresh, empty, failure/retry and unavailable targets replace the inert bell/fake dot. Read acknowledgment is server-owned; delayed results cannot publish or navigate after blur/logout. Android proof signed in two real accounts through production UI, verified role-empty, requester1â†’0/bell0, worker32â†’31 on real Agreement tap, actual oldest rows on the second page, then all32 read. Delivery read timestamps and push attempts stayed untouched. Light ivory/forest/orange layout and all10 original PNG/XML pairs were inspected. Known System UI/launcher starvation dialogs were dismissed only with Wait; there was no application ANR bypass, Auth injection, JS navigation, or RPC business fallback. This is Android emulator native proof, NOT iOS or two-hardware-phone/Store proof.
+N04 reads only the validated server event projection. Real role filters, paging, unread, read/read-all, refresh, empty, failure/retry and unavailable targets replace the inert bell/fake dot. Read acknowledgment is server-owned; delayed results cannot publish or navigate after blur/logout. Android proof signed in two real accounts through production UI, verified role-empty, requester1→0/bell0, worker32→31 on real Agreement tap, actual oldest rows on the second page, then all32 read. Delivery read timestamps and push attempts stayed untouched. Light ivory/forest/orange layout and all10 original PNG/XML pairs were inspected. Known System UI/launcher starvation dialogs were dismissed only with Wait; there was no application ANR bypass, Auth injection, JS navigation, or RPC business fallback. This is Android emulator native proof, NOT iOS or two-hardware-phone/Store proof.
 
 N05 preserves the admitted bilateral protocol except three counterpart event insertions. A forced event exception rolls back proposal, rejection and all accepted-version changes. Existing grants, emitter, search_path, private terms and non-activation boundaries remain unchanged. A failed first verifier run34097121544 assumed RLS denial must raise; the corrected verifier requires error-or-zero affected rows plus exact state equality. SQL candidate bytes did not change for that correction.
 
@@ -46,9 +46,9 @@ N06 keeps `notification_push_devices` as sole registry owner. Narrow authenticat
 
 ### N07 forward promotion admission
 
-N07 exact source `8a6075bbdc6594161ffe1b8a91327db80d092aa5`, PR #46: combined proof run34099067010 / job101669088498 / artifact10009829534 **6/6 PASS**. ZIP SHA-256 `b5a8d9440ef5d27bb29f5cfa6a809cc9d155ed1756f65d41ec3833ce84cce93a` matched GitHub metadata; actual report/log inspected. TypeScript and 34 suites / 208 tests PASS. Exact files applied sequentially only to disposable live79 â†’84; real Selection/message/proposal/accept/reject/Inbox/registry coexist, owner restrictions and rollback hold. Canonical merge `4858370610192b88112673b08bde151793409e99`; post-merge PRE-P4 34099736749 / CodeQL 34099736360 / Control-0 34099736849 all SUCCESS.
+N07 exact source `8a6075bbdc6594161ffe1b8a91327db80d092aa5`, PR #46: combined proof run34099067010 / job101669088498 / artifact10009829534 **6/6 PASS**. ZIP SHA-256 `b5a8d9440ef5d27bb29f5cfa6a809cc9d155ed1756f65d41ec3833ce84cce93a` matched GitHub metadata; actual report/log inspected. TypeScript and 34 suites / 208 tests PASS. Exact files applied sequentially only to disposable live79 →84; real Selection/message/proposal/accept/reject/Inbox/registry coexist, owner restrictions and rollback hold. Canonical merge `4858370610192b88112673b08bde151793409e99`; post-merge PRE-P4 34099736749 / CodeQL 34099736360 / Control-0 34099736849 all SUCCESS.
 
-Five separate files preserve proven candidate SQL after a two-line provenance-only prefix. Applied79 migration files and historical live snapshot are unchanged. Historical replay excludes future pending files before bootstrap. `n07_forward_files.json` freezes only source bytes/hashes, not live-state claims, so proof remains reproducible after a future pendingâ†’live transition.
+Five separate files preserve proven candidate SQL after a two-line provenance-only prefix. Applied79 migration files and historical live snapshot are unchanged. Historical replay excludes future pending files before bootstrap. `n07_forward_files.json` freezes only source bytes/hashes, not live-state claims, so proof remains reproducible after a future pending→live transition.
 
 | Order | Exact forward file under `supabase/migrations/` | Raw MD5 |
 | --- | --- | --- |
@@ -64,7 +64,7 @@ SHA-256s are also recorded in the migration/proof inventories. These are **PENDI
 
 Fresh limited configured-connector reads on 2026-09-07 succeeded: **79 / 20260906141409_clean_ru5_fastest_autofill_retirement**; event `read_at` absent; push-device `revision` absent; duplicate active token groups0. Earlier read-blocked statements belong only to the earlier session. Targeted predecessor fingerprints are in this document and PR43. This is NOT a fresh full production safety audit or permission to apply migrations. Live SQL/schema/Edge/provider state was NOT mutated during these units. Edge was not reobserved; preserved Edge metadata is historical.
 
-**Production promotion is OWNER-ACTION / explicit authorization required for the exact reviewed forward files, followed by a new fresh preflight and immediate per-file postflight.** Do not silently deploy because a proof or PR is green. This boundary follows the USKOÄŒI continuation safety rule. No payments/subscription/HITNO/D0140 production ALLOW/RU-4B public Q&A/Application AI/FASTEST/AUTO_FILL activation is included.
+**Production promotion is OWNER-ACTION / explicit authorization required for the exact reviewed forward files, followed by a new fresh preflight and immediate per-file postflight.** Do not silently deploy because a proof or PR is green. This boundary follows the USKOČI continuation safety rule. No payments/subscription/HITNO/D0140 production ALLOW/RU-4B public Q&A/Application AI/FASTEST/AUTO_FILL activation is included.
 
 ### Exact continuation queue / honest remaining scope
 
@@ -77,7 +77,7 @@ RU-5 physical accepted journey remains CLOSED / PROVEN / CANONICAL. Bounded-note
 
 ---
 
-## CURRENT CHECKPOINT â€” 2026-09-07 / N02 + N03 CANONICAL, NOT LIVE
+## CURRENT CHECKPOINT — 2026-09-07 / N02 + N03 CANONICAL, NOT LIVE
 
 This section supersedes retained historical cursors below. Current implementation baseline is canonical `0d72d72bc7c3874c25e71db38ff1643e5f170d8f`. Fetch again before the next unit. RU-5 physical journey remains CLOSED / PROVEN / CANONICAL; its aggregate bounded-note decision and Application AI gate remain unresolved.
 
@@ -105,7 +105,7 @@ Next: inspect N04 original Android evidence, fix any failure, PR/gates/merge/pos
 
 ---
 
-# USKOÄŒI current implementation status
+# USKOČI current implementation status
 
 Authoritative current status as of `2026-09-06`, after canonical/live/proven FASTEST/AUTO_FILL retirement and canonical/proven authenticated two-account Application journey proof. Historical closure evidence remains in dedicated closure and continuity documents.
 
@@ -115,7 +115,7 @@ Authoritative current status as of `2026-09-06`, after canonical/live/proven FAS
 - canonical repo/branch: `Uskoci1/USKOCI-CLEAN` / `clean-alpha-backend`
 - FASTEST/AUTO_FILL implementation proof head/run: `e7b5ce501c2b9708bd176075ab4b41575edf0832` / `34034993845` PASS
 - canonical FASTEST/AUTO_FILL merge: `6ee5c611fadf6861b7cc029ffda77437a847ca8c`
-- W03â†’W04 routing fix canonical merge: `bc49e8ae423b91b37321787e1dc3a1dada90583e` (PR #34)
+- W03→W04 routing fix canonical merge: `bc49e8ae423b91b37321787e1dc3a1dada90583e` (PR #34)
 - two-account authenticated journey proof run/job: `34045287333 / 101519151761` PASS
 - two-account proof PR #35 PRE-P4 / CodeQL: `34045560199 / 34045558347` PASS
 - two-account proof canonical merge: `55f218d1f2cd9a79fdaba9b8c058e92664be758f`
@@ -141,15 +141,15 @@ Authoritative current status as of `2026-09-06`, after canonical/live/proven FAS
 
 The following units remain physically closed and must not be redone without a proven regression:
 
-- RU-5 P0C-01 Public-safe profile projection â€” `CLOSED / LIVE`
-- RU-5 P0C-02 Atomic Application submit â€” `CLOSED / LIVE`
-- RU-5 P0C-03 My Applications projection + withdraw â€” `CLOSED / LIVE`
-- RU-5 P0D-01 Requester Candidate Projection â€” `CLOSED / LIVE`
-- RU-5 Manual Selection Eligibility Revalidation â€” `CLOSED / CANONICAL / LIVE`
-- P0D-02 Selection Semantic Idempotency â€” `CLOSED / CANONICAL / LIVE`
-- P0D-03 Requester Connection Activation V1 â€” `CLOSED / CANONICAL / LIVE / PROVEN`
-- RU-5 FASTEST/AUTO_FILL retirement â€” `CLOSED / CANONICAL / LIVE / PROVEN`
-- RU-5 automated two-account authenticated Application journey â€” `CLOSED / CANONICAL / PROVEN`
+- RU-5 P0C-01 Public-safe profile projection — `CLOSED / LIVE`
+- RU-5 P0C-02 Atomic Application submit — `CLOSED / LIVE`
+- RU-5 P0C-03 My Applications projection + withdraw — `CLOSED / LIVE`
+- RU-5 P0D-01 Requester Candidate Projection — `CLOSED / LIVE`
+- RU-5 Manual Selection Eligibility Revalidation — `CLOSED / CANONICAL / LIVE`
+- P0D-02 Selection Semantic Idempotency — `CLOSED / CANONICAL / LIVE`
+- P0D-03 Requester Connection Activation V1 — `CLOSED / CANONICAL / LIVE / PROVEN`
+- RU-5 FASTEST/AUTO_FILL retirement — `CLOSED / CANONICAL / LIVE / PROVEN`
+- RU-5 automated two-account authenticated Application journey — `CLOSED / CANONICAL / PROVEN`
 
 P0D-03 policy remains exactly:
 
@@ -163,7 +163,7 @@ Dedicated evidence: `docs/implementation/RU5_TWO_ACCOUNT_AUTH_JOURNEY_PROOF_CLOS
 
 The proof uses two distinct real GoTrue Auth sessions and proves the frozen automated journey:
 
-`W03 â†’ W04 â†’ W05 â†’ W06 â†’ R05`
+`W03 → W04 → W05 → W06 → R05`
 
 It proves authenticated submit and selection authority, Requester-owner-only candidates, exact Application version/hash selection, submit and Selection replay semantics, selected-state reload, P0D-03 zero-cost Requester activation semantics and zero external residue. Service/admin authority does not substitute either marketplace identity.
 
@@ -182,19 +182,19 @@ This closes the **automated integration** portion only. It is not a physical mob
 
 ## RU status summary
 
-- RU-0 â€” `CLOSED / LIVE / DO NOT REDO`
-- RU-1 â€” `CLOSED / LIVE / DO NOT REDO`
-- RU-2 â€” `CLOSED / LIVE / DO NOT REDO`
-- RU-3 â€” `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`
-- RU-4 â€” `CLOSED / LIVE / DO NOT REDO`
-- RU-4B â€” `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`
-- Client Data Layer â€” `CLOSED / CANONICAL / DO NOT REDO`
-- RU-5 â€” `IN PROGRESS`; automated two-account journey is closed, but bounded-note authority and physical device/UI proof remain open
-- RU-5B â€” `NOT STARTED / GATED BY RU-5`
-- RU-6A â€” `FOUNDATION ONLY / GATED BY RU-5`
-- RU-6B â€” `NOT STARTED / GATED BY RU-6A`
-- RU-7 â€” `FOUNDATION ONLY / GATED BY RU-6A/RU-6B`
-- RU-8 â€” `NOT STARTED / MANDATORY PROOF TRACK`
+- RU-0 — `CLOSED / LIVE / DO NOT REDO`
+- RU-1 — `CLOSED / LIVE / DO NOT REDO`
+- RU-2 — `CLOSED / LIVE / DO NOT REDO`
+- RU-3 — `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`
+- RU-4 — `CLOSED / LIVE / DO NOT REDO`
+- RU-4B — `LIVE FOUNDATION / ACTIVATION BLOCKED-DEFERRED`
+- Client Data Layer — `CLOSED / CANONICAL / DO NOT REDO`
+- RU-5 — `IN PROGRESS`; automated two-account journey is closed, but bounded-note authority and physical device/UI proof remain open
+- RU-5B — `NOT STARTED / GATED BY RU-5`
+- RU-6A — `FOUNDATION ONLY / GATED BY RU-5`
+- RU-6B — `NOT STARTED / GATED BY RU-6A`
+- RU-7 — `FOUNDATION ONLY / GATED BY RU-6A/RU-6B`
+- RU-8 — `NOT STARTED / MANDATORY PROOF TRACK`
 
 ## Remaining RU-5 aggregate blockers
 
@@ -208,7 +208,7 @@ Therefore any implementation step that would require inventing those values rema
 
 ### 2. Physical device/emulator UI journey proof
 
-The automated two-account authenticated journey is now closed. What remains is a genuinely separate physical UI proof of the same `W03 â†’ W04 â†’ W05 â†’ W06 â†’ R05` path on an actually connected emulator/device or an equivalent mobile E2E harness.
+The automated two-account authenticated journey is now closed. What remains is a genuinely separate physical UI proof of the same `W03 → W04 → W05 → W06 → R05` path on an actually connected emulator/device or an equivalent mobile E2E harness.
 
 No Maestro/Detox-equivalent click-through harness is currently established in canonical, and Android build success does not constitute this proof. Device/UI proof therefore remains `OPEN / NOT EXECUTED` and must not be inferred.
 
@@ -217,7 +217,7 @@ No Maestro/Detox-equivalent click-through harness is currently established in ca
 1. merge this proof-status reconciliation through normal PR and canonical push gates;
 2. preserve all already closed RU-5 units and do not redo them;
 3. resolve bounded/preselection-note governing authority without inventing numeric/regex/block-list policy;
-4. establish the smallest canonical physical mobile E2E/device harness that can prove `W03 â†’ W04 â†’ W05 â†’ W06 â†’ R05` without production contamination;
+4. establish the smallest canonical physical mobile E2E/device harness that can prove `W03 → W04 → W05 → W06 → R05` without production contamination;
 5. execute and retain physical device/emulator evidence only when a real device/emulator environment is actually available;
 6. keep aggregate RU-5 `IN PROGRESS` and RU-5B gated until both remaining gates close.
 

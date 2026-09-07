@@ -6,9 +6,9 @@ The reproduced invalid-timezone preference could roll back a counterpart message
 
 ---
 
-## CURRENT POINTER â€” 2026-09-07 / N07 LIVE84
+## CURRENT POINTER — 2026-09-07 / N07 LIVE84
 
-N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof â†’ review â†’ promotion flow.
+N01/N02/N03/N05/N06 are now **CANONICAL / DISPOSABLE PROVEN / LIVE STRUCTURAL PROVEN**. Exact forward promotion completed at 09:07:48 UTC on confirmed project `leqcwgzvjsxugfgzdmth`: **84 migrations / `20260907090645_clean_n06_push_device_registry`**. All five live statement SHA-256/MD5/byte counts equal the frozen canonical files; original79 statement bytes remain unchanged. Current owner execution instructions authorize the completed proof → review → promotion flow.
 
 Read [N07 live promotion and evidence](docs/implementation/N07_LIVE84_PROMOTION_20260907.md) and the current status owner before the next narrow preflight. N04's Inbox backend dependency is now LIVE; its recorded Android proof remains valid at its own source boundary. Native token lifecycle, provider dispatch/tickets/receipts, remaining Chat/product work and Store acceptance remain open. No provider/business test call, backfill, HITNO/D0140/Q&A/Application-AI activation or pricing change occurred; 0 RSD remains current.
 
@@ -18,16 +18,16 @@ All retained earlier pending-production, live79 and read-blocked checkpoints bel
 
 ---
 
-## CURRENT POINTER â€” 2026-09-07 / NOTIFICATIONS + ANDROID INBOX
+## CURRENT POINTER — 2026-09-07 / NOTIFICATIONS + ANDROID INBOX
 
-Current status and proof owner: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02/N03/N05/N06 backend source and N04 real Inbox/bell are CANONICAL / PROVEN at recorded boundaries; N04 native Android run34096462936 has all10 original PNG/XML pairs reviewed. N07 five exact forward migrations are canonical at PR #46 / 4858370610192b88112673b08bde151793409e99, with combined proof run34099067010 and canonical PRE-P4/CodeQL/Control-0 PASS. Fresh limited configured Supabase reads succeeded; live still79/head20260906141409, no production write. Explicit authorization and a new exact preflight/postflight are required for live apply. Do not restart closed RU-5 physical/N01â€“N06 units or mistake source/proof for live/Store readiness.
+Current status and proof owner: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02/N03/N05/N06 backend source and N04 real Inbox/bell are CANONICAL / PROVEN at recorded boundaries; N04 native Android run34096462936 has all10 original PNG/XML pairs reviewed. N07 five exact forward migrations are canonical at PR #46 / 4858370610192b88112673b08bde151793409e99, with combined proof run34099067010 and canonical PRE-P4/CodeQL/Control-0 PASS. Fresh limited configured Supabase reads succeeded; live still79/head20260906141409, no production write. Explicit authorization and a new exact preflight/postflight are required for live apply. Do not restart closed RU-5 physical/N01–N06 units or mistake source/proof for live/Store readiness.
 
 Older cursor/read-blocked claims below are retained historical provenance, not active instructions. Follow the current status owner for exact SHAs, jobs/artifacts/checksums, pending files and remaining independent work.
 
 ---
 
 <!-- RU5_PHYSICAL_CANONICAL_20260907 -->
-## CURRENT CHECKPOINT â€” 2026-09-07
+## CURRENT CHECKPOINT — 2026-09-07
 
 This checkpoint supersedes older active-cursor claims below; all retained sections are historical provenance, not instructions to repeat closed RU/CDL/P0C/P0D units.
 
@@ -40,15 +40,15 @@ This checkpoint supersedes older active-cursor claims below; all retained sectio
 - Next: retain the outstanding permitted live read as OWNER-ACTION, resolve bounded-note authority only from an approved owner source, and proceed with independent current-source gap reconstruction / Notifications-Inbox-Push proof units. No live promotion while its preflight is blocked. Do not rerun the accepted physical journey solely because an older section says pending.
 
 <!-- RU3_B07_LIVE_CHECKPOINT_20260904 -->
-## LATEST PHYSICAL CHECKPOINT â€” RU-3/B07 LIVE
+## LATEST PHYSICAL CHECKPOINT — RU-3/B07 LIVE
 
 This block supersedes older B07 proof-only/concurrency-pending cursor text below.
 
 - canonical source promotion: `d2c077d90c6410dc0737916df13b257389c6cb3b`
 - B07 source: `supabase/migrations/20260904111500_clean_ru3_canonical_publish.sql` (`17468983d28cddfe4948c3866a96e813` raw MD5)
-- true concurrency/idempotency proof: GitHub Actions `33903129202` â€” PASS
-- clean promotion integrity: `33905242409` â€” PASS
-- canonical push integrity: `33905436213` â€” PASS
+- true concurrency/idempotency proof: GitHub Actions `33903129202` — PASS
+- clean promotion integrity: `33905242409` — PASS
+- canonical push integrity: `33905436213` — PASS
 - live Supabase migration: `20260904182402_clean_ru3_canonical_publish`
 - live migration count: `63`
 - live structural proof: PASS; zero publish-command rows; zero policy bundles/rules/publication decisions; business counts preserved
@@ -56,7 +56,7 @@ This block supersedes older B07 proof-only/concurrency-pending cursor text below
 - RU-3/B05, B06 and B07 infrastructure are live/structurally proven; RU-3 overall remains OPEN only for deferred production policy/evaluator/release activation
 - exact next implementation cursor: **RU-4 Material Revision / Re-admission** after a fresh physical preflight
 
-# USKOÄŒI â€” AGENT ENTRY POINT
+# USKOČI — AGENT ENTRY POINT
 
 This file is the repository entry point for Codex, Claude, ChatGPT or any other implementation agent.
 
@@ -77,7 +77,7 @@ The package defines product canon, owner decisions, 28-surface model, machine-re
 - repository: `Uskoci1/USKOCI-CLEAN`
 - canonical branch: `clean-alpha-backend`
 - Supabase project: `leqcwgzvjsxugfgzdmth`
-- quarantine branch: `repair/ru0-ru1-backend-20260902` â€” never merge/cherry-pick/apply
+- quarantine branch: `repair/ru0-ru1-backend-20260902` — never merge/cherry-pick/apply
 
 ## 3. Mandatory current-state read order before any write
 
@@ -93,7 +93,7 @@ Then perform a fresh physical read-only preflight against GitHub + live Supabase
 
 ## 4. Current continuity rule
 
-Do not reconstruct USKOÄŒI from old donor files or old handoffs. Latest explicit owner closure wins over older plans/research. Historical files are provenance only unless the current master explicitly promotes them.
+Do not reconstruct USKOČI from old donor files or old handoffs. Latest explicit owner closure wins over older plans/research. Historical files are provenance only unless the current master explicitly promotes them.
 
 The root `HANDOFF.md` is only a pointer/current summary. It no longer carries the obsolete 30.08.2026 implementation truth.
 
