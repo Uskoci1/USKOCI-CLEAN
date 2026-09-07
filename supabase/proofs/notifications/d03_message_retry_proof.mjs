@@ -52,6 +52,20 @@ async function waitActivity(application,condition){
   }
   assert.fail('expected controlled transaction state was not observed');
 }
+async function waitAdvisoryContention(holder,waiter){
+  for(let i=0;i<40;i++){
+    const observed=rows(`select w.wait_event_type,w.wait_event,
+      h.wait_event holder_wait_event,h.pid=any(pg_blocking_pids(w.pid)) blocked_by_holder,
+      exists(select 1 from pg_locks l where l.pid=w.pid and l.locktype='advisory' and not l.granted) advisory_lock_pending
+      from pg_stat_activity w cross join pg_stat_activity h
+      where w.application_name=${q(waiter)} and h.application_name=${q(holder)}`)[0];
+    if(observed?.wait_event_type==='Lock'&&observed.wait_event==='advisory'
+      &&observed.holder_wait_event==='PgSleep'&&observed.blocked_by_holder&&observed.advisory_lock_pending)return observed;
+    await new Promise(resolve=>setTimeout(resolve,40));
+  }
+  assert.fail('same-key waiter was not observed blocked by the holder advisory lock');
+}
+const lastSqlUuid=result=>validUuid(result.stdout.split(/\r?\n/).filter(line=>/^[0-9a-f-]{36}$/i.test(line)).at(-1));
 // Same narrowly scoped disposable Need seed used by the admitted device proof;
 // response and selection still run through actual authenticated domain RPCs.
 async function anotherAgreement(){
@@ -144,11 +158,30 @@ try{
   }
 
   {
-  check('TRUE_CONCURRENT_RETRIES_ONE_MESSAGE_DISTINCT_PAYLOAD_ONE_WINNER');
+  check('OBSERVED_ADVISORY_CONTENTION_REPLAYS_ONCE_OR_REJECTS_CHANGED_BODY');
   let before=counts();const same=await Promise.all([ok(send(requester,agreement,'d03-concurrent-same','D03_PRIVATE_RACE')),ok(send(requester,agreement,'d03-concurrent-same','D03_PRIVATE_RACE'))]);
   assert.equal(same[0],same[1]);grew(before,1);before=counts();
   const different=await Promise.all([send(requester,agreement,'d03-concurrent-different','D03_PRIVATE_LEFT'),send(requester,agreement,'d03-concurrent-different','D03_PRIVATE_RIGHT')]);
-  assert.equal(different.filter(r=>!r.error).length,1);assert.equal(different.filter(r=>r.error?.code==='40001').length,1);grew(before,1);pass();
+  assert.equal(different.filter(r=>!r.error).length,1);assert.equal(different.filter(r=>r.error?.code==='40001').length,1);grew(before,1);
+  report.command_lock_contention=[];
+  for(const changedBody of [false,true]){
+    const suffix=changedBody?'conflict':'identical',key=`d03-held-${suffix}`;
+    const holder=`d03-key-holder-${suffix}`,waiter=`d03-key-waiter-${suffix}`,body='D03_PRIVATE_HELD_COMMAND';
+    before=counts();
+    const held=asyncSql(holder,authSql(rid,`${v2Sql(agreement,key,body)};select pg_sleep(2)`));
+    await waitActivity(holder,"wait_event='PgSleep'");
+    const waiting=asyncSql(waiter,authSql(rid,v2Sql(agreement,key,changedBody?'D03_PRIVATE_CHANGED_COMMAND':body)));
+    const observed=await waitAdvisoryContention(holder,waiter);
+    const committed=await held;assert.ok(committed.success);const originalId=lastSqlUuid(committed);
+    const acknowledged=await waiting;
+    if(changedBody){assert.equal(acknowledged.success,false);assert.match(acknowledged.stderr,/40001/);assert.match(acknowledged.stderr,/MESSAGE_COMMAND_CONFLICT/);}
+    else{assert.ok(acknowledged.success);assert.equal(lastSqlUuid(acknowledged),originalId);}
+    grew(before,1);
+    assert.deepEqual(rows(`select id,body from public.agreement_messages where sender_account_id=${q(rid)} and client_message_id=${q(key)}`),[{id:originalId,body}]);
+    report.command_lock_contention.push({payload:changedBody?'CHANGED':'IDENTICAL',observed,
+      outcome:changedBody?'40001_MESSAGE_COMMAND_CONFLICT':'ORIGINAL_UUID',message_delta:1,event_delta:1,delivery_delta:2});
+  }
+  pass();
   }
 
   {
