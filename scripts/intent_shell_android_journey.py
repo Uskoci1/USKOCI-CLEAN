@@ -89,8 +89,7 @@ def assert_shell_tree(root, parent, width, height, expected):
 
 
 def assert_shell(intent):
-    wait_visible(text='MENI TREBA' if intent == 'requester' else 'JA MOGU', timeout=45)
-    root, parent, _ = dump_tree()
+    root, parent = wait_surface(text='MENI TREBA' if intent == 'requester' else 'JA MOGU', timeout=45)
     expected = ('Zadaci', 'Novi Zadatak', 'Dogovori') if intent == 'requester' else ('Prijave', 'Zadaci', 'Dogovori')
     assert_shell_tree(root, parent, *screen_size(), expected)
     print(f'CHECKPOINT THREE_ZONES intent={intent} labels={expected}', flush=True)
@@ -104,9 +103,10 @@ def assert_profile(account_id, kind):
     if not name or not city:
         raise AssertionError('Expected fixture own profile not found')
     wait_visible(text=name)
-    wait_visible(text=city)
-    root, _, _ = dump_tree()
+    root, _ = wait_surface(text=city)
     visible = labels(root)
+    if name not in visible:
+        raise AssertionError('Expected own profile name and city are not visible together')
     if any(value in ('Miloš', 'MŠ', '4,9 · 18 recenzija', '18 recenzija') for value in visible):
         raise AssertionError('Historical fabricated profile identity/trust remains')
     if any('★' in value for value in visible):
@@ -116,8 +116,7 @@ def assert_profile(account_id, kind):
 
 def assert_discovery():
     assert_shell('worker')
-    wait_visible(desc=f'Otvorite priliku {NAV_NEED_TITLE}', timeout=45)
-    root, _, _ = dump_tree()
+    root, _ = wait_surface(desc=f'Otvorite priliku {NAV_NEED_TITLE}', timeout=45)
     visible = labels(root)
     forbidden = ('Kombinovano', 'Mapa još nije povezana', 'Po OD-05', 'Detalji')
     if any(word in value for value in visible for word in forbidden):
@@ -138,8 +137,17 @@ assert_shell('requester')
 wait_visible(desc=f'Otvorite Zadatak {NAV_NEED_TITLE}')
 shot('NAV_requester_tasks')
 
+conversation_count_sql = (
+    "select count(*) from public.ai_conversations "
+    f"where account_id='{REQUESTER_USER_ID}' and purpose='NEED_INTAKE' and fact_schema_version='NEED_FACT_V2'"
+)
+conversations_before = int(psql(conversation_count_sql))
 tap(desc='Novi Zadatak', prefer='bottom')
 wait_visible(text='Recite šta Vam treba')
+conversations_after = int(psql(conversation_count_sql))
+assert conversations_after == conversations_before + 1, 'Novi must open one owned local AI conversation'
+print(f'CHECKPOINT LOCAL_AI_CONVERSATION_OPEN account={REQUESTER_USER_ID} '
+      f'before={conversations_before} after={conversations_after} no_message_no_publication', flush=True)
 shot('NAV_requester_new_task')
 tap(desc='Zadaci', prefer='bottom')
 assert_shell('requester')
@@ -172,15 +180,14 @@ assert_profile(REQUESTER_USER_ID, 'WORKER')
 shot('NAV_same_account_worker_profile')
 tap(desc='Odjavite se')
 wait_visible(desc='Prijavi se', timeout=60)
-root, _, _ = dump_tree()
+root = assert_signed_out_surface()
 assert NAV_NEED_TITLE not in labels(root)
 shot('NAV_signed_out')
 
 # No app clear, force-stop or session injection between logout and second login.
 login(os.environ['RU5_DEVICE_WORKER_EMAIL'])
 assert_shell('requester')
-wait_visible(text='Još nemate Zadatak', timeout=45)
-root, _, _ = dump_tree()
+root, _ = wait_surface(text='Još nemate Zadatak', timeout=45)
 assert NAV_NEED_TITLE not in labels(root) and NEED_TITLE not in labels(root)
 shot('NAV_second_account_requester_empty')
 tap(desc='Profil', prefer='top')
@@ -192,9 +199,9 @@ assert_discovery()
 shot('NAV_second_account_worker_discovery')
 tap(desc=f'Otvorite priliku {NAV_NEED_TITLE}')
 wait_visible(text=NAV_NEED_TITLE)
-wait_visible(text='Uslovi:')
+wait_visible(desc='Nazad na Zadatke')
 shot('NAV_task_detail')
-adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+tap(desc='Nazad na Zadatke')
 assert_discovery()
 shot('NAV_task_detail_back')
 
@@ -216,4 +223,4 @@ assert psql('select count(*) from public.notification_push_attempts') == '0'
 assert psql('select count(*) from public.notification_deliveries where read_at is not null') == '0'
 assert_gates_unchanged()
 print('PASS PHYSICAL_INTENT_SHELL two_intents three_zones real_profiles inbox_back detail_back '
-      'ui_logout different_account_no_clear no_fake_map no_business_mutation no_push', flush=True)
+      'ui_logout different_account_no_clear no_fake_map no_application_selection_mutation no_push', flush=True)
