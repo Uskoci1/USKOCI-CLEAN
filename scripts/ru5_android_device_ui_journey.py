@@ -205,6 +205,17 @@ def wait_visible(timeout=40, **criteria):
     wait_nodes(timeout=timeout, **criteria)
 
 
+def wait_surface(timeout=40, **criteria):
+    # Assert against the same complete XML tree in which the required real
+    # control was observed. A second raw dump can instead sample a new launcher
+    # ANR overlay after wait_nodes has safely waited for the app surface.
+    nodes, parent = wait_nodes(timeout=timeout, **criteria)
+    root = nodes[0]
+    while root in parent:
+        root = parent[root]
+    return root, parent
+
+
 def ordered_edit_fields(root):
     nodes = [node for node in root.iter() if node.attrib.get('class') == 'android.widget.EditText']
     return sorted(nodes, key=lambda node: parse_bounds(node.attrib.get('bounds'))[1])
@@ -310,12 +321,13 @@ def assert_no_private_tabs(root, height):
 def assert_signed_out_surface():
     # Called only after observing the actual Auth entry control, never as a
     # substitute for login visibility or as a route/auth bypass.
-    root, _, _ = dump_tree()
+    root, _ = wait_surface(desc='Prijavi se')
     if not any(node.attrib.get('content-desc') == 'Prijavi se' for node in root.iter()):
         raise AssertionError('Signed-out Auth entry is not visible')
     height = int(re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').stdout)[-1][1])
     assert_no_private_tabs(root, height)
     print('CHECKPOINT SIGNED_OUT_AUTH_NO_PRIVATE_TABS', flush=True)
+    return root
 
 
 def launch_clean():

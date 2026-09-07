@@ -89,8 +89,7 @@ def assert_shell_tree(root, parent, width, height, expected):
 
 
 def assert_shell(intent):
-    wait_visible(text='MENI TREBA' if intent == 'requester' else 'JA MOGU', timeout=45)
-    root, parent, _ = dump_tree()
+    root, parent = wait_surface(text='MENI TREBA' if intent == 'requester' else 'JA MOGU', timeout=45)
     expected = ('Zadaci', 'Novi Zadatak', 'Dogovori') if intent == 'requester' else ('Prijave', 'Zadaci', 'Dogovori')
     assert_shell_tree(root, parent, *screen_size(), expected)
     print(f'CHECKPOINT THREE_ZONES intent={intent} labels={expected}', flush=True)
@@ -104,9 +103,10 @@ def assert_profile(account_id, kind):
     if not name or not city:
         raise AssertionError('Expected fixture own profile not found')
     wait_visible(text=name)
-    wait_visible(text=city)
-    root, _, _ = dump_tree()
+    root, _ = wait_surface(text=city)
     visible = labels(root)
+    if name not in visible:
+        raise AssertionError('Expected own profile name and city are not visible together')
     if any(value in ('Miloš', 'MŠ', '4,9 · 18 recenzija', '18 recenzija') for value in visible):
         raise AssertionError('Historical fabricated profile identity/trust remains')
     if any('★' in value for value in visible):
@@ -116,8 +116,7 @@ def assert_profile(account_id, kind):
 
 def assert_discovery():
     assert_shell('worker')
-    wait_visible(desc=f'Otvorite priliku {NAV_NEED_TITLE}', timeout=45)
-    root, _, _ = dump_tree()
+    root, _ = wait_surface(desc=f'Otvorite priliku {NAV_NEED_TITLE}', timeout=45)
     visible = labels(root)
     forbidden = ('Kombinovano', 'Mapa još nije povezana', 'Po OD-05', 'Detalji')
     if any(word in value for value in visible for word in forbidden):
@@ -181,16 +180,14 @@ assert_profile(REQUESTER_USER_ID, 'WORKER')
 shot('NAV_same_account_worker_profile')
 tap(desc='Odjavite se')
 wait_visible(desc='Prijavi se', timeout=60)
-assert_signed_out_surface()
-root, _, _ = dump_tree()
+root = assert_signed_out_surface()
 assert NAV_NEED_TITLE not in labels(root)
 shot('NAV_signed_out')
 
 # No app clear, force-stop or session injection between logout and second login.
 login(os.environ['RU5_DEVICE_WORKER_EMAIL'])
 assert_shell('requester')
-wait_visible(text='Još nemate Zadatak', timeout=45)
-root, _, _ = dump_tree()
+root, _ = wait_surface(text='Još nemate Zadatak', timeout=45)
 assert NAV_NEED_TITLE not in labels(root) and NEED_TITLE not in labels(root)
 shot('NAV_second_account_requester_empty')
 tap(desc='Profil', prefer='top')

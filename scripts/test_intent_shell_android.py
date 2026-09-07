@@ -2,6 +2,8 @@
 import ast
 import re
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -77,6 +79,21 @@ class IntentShellSelectors(unittest.TestCase):
         ET.SubElement(root, 'node', {'content-desc': 'Prijavi se', 'bounds': '[0,400][200,500]'})
         with self.assertRaisesRegex(AssertionError, 'Private bottom destination'):
             assert_no_private_tabs(root, 2400)
+
+    def test_signed_out_assertion_uses_auth_confirmed_tree_without_second_raw_snapshot(self):
+        root, parent = tree(('Prijavi se', 'Treba mi neko', 'Hoću da uskočim'))
+        auth = next(node for node in root.iter() if node.attrib.get('text') == 'Prijavi se')
+        auth.set('content-desc', 'Prijavi se')
+        observed = Mock(return_value=([auth], parent))
+        raw_dump = Mock(side_effect=AssertionError('A later raw dump can contain a new Quickstep overlay'))
+        with patch.dict(namespace, {
+            'wait_nodes': observed,
+            'dump_tree': raw_dump,
+            'adb': Mock(return_value=SimpleNamespace(stdout='Physical size: 1080x2400')),
+        }):
+            self.assertIs(namespace['assert_signed_out_surface'](), root)
+        observed.assert_called_once_with(timeout=40, desc='Prijavi se')
+        raw_dump.assert_not_called()
 
 
 if __name__ == '__main__':
