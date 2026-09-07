@@ -38,16 +38,16 @@ The dependency-free `eas-build-pre-install` hook fails early for wrong project/p
 
 The metadata snapshot contains configured FCM V1 service-account metadata referencing `uskoci-ed59b`; it does not establish working Firebase client configuration, token registration or delivery. A subsequent physical Firebase Console inspection by the parent agent confirmed project `uskoci-ed59b`, project number `383421751370`, Android app `1:383421751370:android:3e19dd87280aa317a986b3` and package `rs.uskoci.preview`. FCM V1 was enabled, Legacy was disabled and the Android SHA certificate grid was empty. This supersedes the earlier app-list access failure; the empty grid is an observed configuration value, not proof of a signing mismatch or working token registration.
 
-The user reported downloading the public client `google-services.json`, but its actual filesystem path/file is still pending and it has not been found in Downloads at this checkpoint. No client configuration was fabricated or added. The next native Firebase source unit starts from that actual file and must preserve the disposable proof package overrides. EAS project environment metadata was empty in the recorded read. No EAS environment variables were written by this unit.
+The actual owner-supplied public client file has now been received and copied byte-for-byte: 671 bytes, SHA-256 `44d16e473ec04afa35df40fd7fa5eb9d79c6c341f348236355f8098b369fcb91`. The [public Firebase configuration extension](EAS_FIREBASE_PUBLIC_CLIENT_CONFIG_20260907.md) preserves disposable package overrides and explicitly disables native enrollment. This supersedes the earlier missing-file checkpoint. EAS project environment metadata was empty in the recorded read; no EAS environment variables were written.
 
 Before an authorized preview build, provide the required public backend environment through the selected EAS preview environment, re-read project/remote version/default signing metadata and finish the Firebase client configuration boundary as appropriate for the separately implemented native push unit. A future artifact must prove current source lineage, actual package/version/certificate, real Auth and product flows. Native permission/token lifecycle, backend registration, provider dispatch/tickets/receipts and device delivery remain separate proof. FCM credentials and the client config file serve different purposes. [Expo FCM credentials](https://docs.expo.dev/push-notifications/fcm-credentials/)
 
-No EAS build, submit, update, remote version initialization, credential mutation, production database write or feature activation was performed. The existing N08 live85/pending0 checkpoint from PR #54 remains unchanged.
+No EAS build, submit, update, remote version initialization, credential mutation, production database write or feature activation was performed. N08 live85/pending0 from PR #54 is this unit's original base checkpoint; it does not override newer canonical/live evidence.
 
 ## Validation
 
 - Installed EAS configuration schema and resolved Expo configuration: PASS.
-- EAS preflight: 31 focused tests, including real CLI failure/log-redaction behavior: PASS.
-- Full Jest: 38 suites / 263 tests PASS after restoring five CRLF-expanded proof-candidate working copies to their exact canonical Git blobs. The initial Windows checkout produced three EOL-only failures in two existing notification suites; no tracked candidate or migration content changed.
+- EAS/Firebase preflight: 48 focused tests, including real CLI failure/log-redaction behavior, package overrides and native introspection: PASS.
+- Full Jest: 39 suites / 280 tests PASS. The earlier identity-only verification restored five CRLF-expanded proof-candidate working copies to their exact canonical Git blobs; no tracked candidate or migration content changed.
 - TypeScript and migration integrity: PASS (`85 source / 85 recorded live / 0 pending`).
 - Physical EAS APK, signing-artifact validation, Firebase client registration and native push: NOT EXECUTED by this unit.

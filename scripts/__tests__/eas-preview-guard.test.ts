@@ -2,17 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const { validatePreview } = require('../check-eas-preview.cjs');
+const { validatePreview, validateFirebase } = require('../check-eas-preview.cjs');
 const root = path.resolve(__dirname, '../..');
-const appSource = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
+const configure = require('../../app.config.js');
+const appSource = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) };
 const easSource = JSON.parse(fs.readFileSync(path.join(root, 'eas.json'), 'utf8'));
+const firebaseSource = JSON.parse(fs.readFileSync(path.join(root, 'config/firebase/google-services.json'), 'utf8'));
 const ref = 'leqcwgzvjsxugfgzdmth';
 const jwt = (role = 'anon', project = ref) => ['header',
   Buffer.from(JSON.stringify({ role, ref: project })).toString('base64url'), 'signature'].join('.');
 
 function fixture() {
   return {
-    app: structuredClone(appSource), eas: structuredClone(easSource),
+    app: structuredClone(appSource), eas: structuredClone(easSource), firebase: structuredClone(firebaseSource),
     env: {
       EAS_BUILD_PROFILE: 'preview', EAS_BUILD_PLATFORM: 'android',
       EAS_BUILD_PROJECT_ID: '1e6cc490-9851-4741-9226-128612122db6',
@@ -81,5 +83,28 @@ describe('actual EAS preview pre-install guard', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('EAS preview preflight FAIL: EXPO_PUBLIC_SUPABASE_ANON_KEY');
     expect(result.stdout + result.stderr).not.toContain('NEVER_LOG_THIS_KEY');
+  });
+
+  it.each(['project', 'number', 'app', 'package', 'multipleClients', 'missingKey', 'privateMaterial'])('rejects Firebase client drift without leaking supplied values: %s', field => {
+    const firebase = structuredClone(firebaseSource);
+    if (field === 'project') firebase.project_info.project_id = 'other-project';
+    else if (field === 'number') firebase.project_info.project_number = '999999999999';
+    else if (field === 'app') firebase.client[0].client_info.mobilesdk_app_id = 'other-app';
+    else if (field === 'package') firebase.client[0].client_info.android_client_info.package_name = 'rs.uskoci.n04proof';
+    else if (field === 'multipleClients') firebase.client.push(structuredClone(firebase.client[0]));
+    else if (field === 'missingKey') firebase.client[0].api_key = [];
+    else firebase.private_key = 'PRIVATE KEY NEVER_LOG_THIS_PRIVATE_VALUE';
+    expect(() => validateFirebase(firebase)).toThrow(/Firebase/);
+    try { validateFirebase(firebase); } catch (error) {
+      expect(String(error)).not.toContain('NEVER_LOG_THIS_PRIVATE_VALUE');
+      expect(String(error)).not.toContain(firebaseSource.client[0].api_key[0].current_key);
+    }
+  });
+
+  it.each(['file', 'autoEnrollment'])('fails if resolved Firebase configuration loses its reviewed boundary: %s', field => {
+    const input = fixture();
+    if (field === 'file') input.app.expo.android.googleServicesFile = './different.json';
+    else input.app.expo.plugins = [];
+    expect(() => validatePreview(input)).toThrow(/disabled native enrollment/);
   });
 });

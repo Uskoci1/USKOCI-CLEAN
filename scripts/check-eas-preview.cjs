@@ -24,7 +24,22 @@ function isPublicKeyForm(value) {
   }
 }
 
-function validatePreview({ app, eas, env }) {
+function validateFirebase(firebase) {
+  requireCondition(firebase?.project_info?.project_id === 'uskoci-ed59b' &&
+    firebase?.project_info?.project_number === '383421751370', 'Expected the confirmed public Firebase project.');
+  requireCondition(Array.isArray(firebase.client) && firebase.client.length === 1 &&
+    firebase.client[0]?.client_info?.mobilesdk_app_id === '1:383421751370:android:3e19dd87280aa317a986b3' &&
+    firebase.client[0]?.client_info?.android_client_info?.package_name === 'rs.uskoci.preview',
+  'Expected the confirmed Firebase Android client and preview package.');
+  requireCondition(Array.isArray(firebase.client[0].api_key) &&
+    firebase.client[0].api_key.some(key => typeof key?.current_key === 'string' && /^AIza[A-Za-z0-9_-]{20,}$/.test(key.current_key)),
+  'The public Firebase Android API key is absent or malformed.');
+  const serialized = JSON.stringify(firebase);
+  requireCondition(!/"(?:private_key|private_key_id|client_secret)"|PRIVATE KEY|"service_account"/i.test(serialized),
+    'Firebase client configuration must not contain private credential material.');
+}
+
+function validatePreview({ app, eas, env, firebase }) {
   const expo = app?.expo;
   const preview = eas?.build?.preview;
   requireCondition(expo?.owner === 'sljivas-team' && expo?.slug === 'uskoci' &&
@@ -46,21 +61,28 @@ function validatePreview({ app, eas, env }) {
     'EXPO_PUBLIC_SUPABASE_URL must identify the confirmed canonical Supabase project.');
   requireCondition(isPublicKeyForm(env.EXPO_PUBLIC_SUPABASE_ANON_KEY),
     'EXPO_PUBLIC_SUPABASE_ANON_KEY must be a public publishable key or canonical-project anon JWT.');
+  requireCondition(expo?.android?.googleServicesFile === './config/firebase/google-services.json' &&
+    expo?.plugins?.includes('./plugins/withFirebaseEnrollmentDisabled.js'),
+  'Expected the reviewed public Firebase file and disabled native enrollment configuration.');
+  validateFirebase(firebase);
 }
 
 function main() {
   let app;
   let eas;
+  let firebase;
   try {
     const root = path.resolve(__dirname, '..');
-    app = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
+    const raw = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
+    app = { expo: require('../app.config.js')({ config: raw.expo }) };
     eas = JSON.parse(fs.readFileSync(path.join(root, 'eas.json'), 'utf8'));
+    firebase = JSON.parse(fs.readFileSync(path.join(root, 'config/firebase/google-services.json'), 'utf8'));
   } catch {
     console.error('EAS preview preflight FAIL: could not read the source app/EAS configuration.');
     return 1;
   }
   try {
-    validatePreview({ app, eas, env: process.env });
+    validatePreview({ app, eas, env: process.env, firebase });
     console.log('EAS preview preflight PASS: existing project/package/profile and public environment form. Auth, signing artifact and push delivery remain unproven.');
     return 0;
   } catch (error) {
@@ -69,5 +91,5 @@ function main() {
   }
 }
 
-module.exports = { validatePreview };
+module.exports = { validatePreview, validateFirebase };
 if (require.main === module) process.exitCode = main();
