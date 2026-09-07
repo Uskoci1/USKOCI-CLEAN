@@ -1274,7 +1274,7 @@
     "live_writes": "ONE_PREVIOUSLY_COMPLETED_EXACT_CANONICAL_D03_FORWARD_DDL",
     "production_business_rpc_called": false,
     "provider_called": false,
-    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71→72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
+    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71\u219272 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
   },
   "historical_edge_before_context_v7": {
     "slug": "uskoci-ai-interview",
@@ -1393,21 +1393,40 @@
     "final_combined_ci_required": true
   },
   "w04_w05_recovery_checkpoint_20260907": {
-    "state": "SOURCE_FIXED_COMPONENT_PROVEN_NATIVE_REPLAY_PENDING",
-    "canonical_integration_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
-    "fix_commit": "aceafaeb7889d728d5df663a57ae09ea96daf2f7",
-    "native_failed_run": 34150043928,
-    "native_failed_artifact": 10029703587,
-    "native_required_png_xml_pairs": 43,
+    "state": "SOURCE_ANDROID_PROVEN_ROOT_ACCEPTED_PENDING_CANONICAL",
+    "canonical_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
+    "native_source": "3f73321927ff5a0d01eb4b884c347d73a30258a3",
+    "native_run": 34159176253,
+    "artifact_id": 10032628812,
+    "artifact_zip_sha256": "cca131ad9a0dfb86e7a7f4be16232ab981b9caceb0f449fe1b0e58f909b13ab9",
+    "original_pairs": 43,
+    "inherited_pairs": 27,
+    "recovery_pairs": 16,
+    "original_pairs_retained_and_reviewed": true,
+    "exact_restored_outages": 5,
+    "retained_tab_retry_proven": true,
+    "deadline_closure_without_rest_proven": true,
+    "fresh_process_uncached_native_failure_proven": false,
+    "native_database_boundary": "HISTORICAL79_PLUS_EXPLICIT_N02_N03",
+    "full87_native_replay": false,
+    "independent_apk_bytes_verified": false,
+    "unchanged_native_inputs": 382,
     "source_jest_suites": 57,
     "source_jest_tests": 528,
     "typescript": "PASS",
     "python_tests": 45,
     "node_local_guard_tests": 24,
-    "migration_integrity": "87/87/0 PASS",
-    "component_reproduction": "BEFORE_2_FAIL_AFTER_6_PASS",
-    "live_call_made_by_unit": false,
-    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md"
+    "codeql_analyses": [
+      1737639152,
+      1737638379,
+      1737638332
+    ],
+    "codeql_results": 0,
+    "final_documentation_gates": "PENDING",
+    "production_call": false,
+    "provider_call": false,
+    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md",
+    "original_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/retained-tab-fix/run34159176253"
   },
   "ai_provider_selector_checkpoint_20260907": {
     "state": "CANONICAL_SOURCE_PROVEN_ACTIVE_V11_PROVIDER_NOT_PROVEN",
@@ -1518,5 +1537,22 @@
       "scripts/task_detail_local_rest.py",
       "scripts/test_task_detail_local_rest.py"
     ]
+  },
+  "historical_w05_fixed_source_before_android_acceptance": {
+    "state": "SOURCE_FIXED_COMPONENT_PROVEN_NATIVE_REPLAY_PENDING",
+    "canonical_integration_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
+    "fix_commit": "aceafaeb7889d728d5df663a57ae09ea96daf2f7",
+    "native_failed_run": 34150043928,
+    "native_failed_artifact": 10029703587,
+    "native_required_png_xml_pairs": 43,
+    "source_jest_suites": 57,
+    "source_jest_tests": 528,
+    "typescript": "PASS",
+    "python_tests": 45,
+    "node_local_guard_tests": 24,
+    "migration_integrity": "87/87/0 PASS",
+    "component_reproduction": "BEFORE_2_FAIL_AFTER_6_PASS",
+    "live_call_made_by_unit": false,
+    "report": "docs/implementation/W04_W05_RECOVERY_20260907.md"
   }
 }
