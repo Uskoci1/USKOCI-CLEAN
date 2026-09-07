@@ -5,12 +5,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { palette } from '../theme/tokens';
-import { useSesija } from '../store/sesija';
+import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { postaviUlogu } from '../store/uloga';
 
 export default function RootLayout() {
-  const { isLoaded, session } = useSesija();
+  const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();
   const segments = useSegments();
   const naAuth = segments[0] === 'auth';
@@ -19,6 +19,8 @@ export default function RootLayout() {
   // marketplace shell. Auth is one screen in the same app, not a second app.
   useEffect(() => {
     if (!isLoaded) return;
+    if (sesijaSada().sessionEpoch !== sessionEpoch ||
+      sesijaSada().user?.id !== session?.user.id) return;
     if (!session && !naAuth) {
       router.replace('/auth');
       return;
@@ -26,15 +28,17 @@ export default function RootLayout() {
     if (session && naAuth) {
       router.replace('/');
     }
-  }, [isLoaded, session, naAuth, router]);
+  }, [isLoaded, session, sessionEpoch, naAuth, router]);
 
   // Consume a completed pre-auth intent exactly once after a real session has
   // been restored/created. The store itself guards which user completed it.
   useEffect(() => {
     if (!isLoaded || !session) return;
     let aktivan = true;
-    void povratniCilj.consumeCompleted(session.user.id).then((record) => {
-      if (!aktivan || !record) return;
+    const isCurrent = () => aktivan && sesijaSada().sessionEpoch === sessionEpoch &&
+      sesijaSada().user?.id === session.user.id;
+    void povratniCilj.consumeCompleted(session.user.id, isCurrent).then((record) => {
+      if (!isCurrent() || !record) return;
       if (record.intent.intent === 'WORKER') postaviUlogu('uskocer');
       else postaviUlogu('narucilac');
 
@@ -47,11 +51,11 @@ export default function RootLayout() {
       } else if (target.kind === 'DOGOVOR') {
         router.replace({ pathname: '/dogovor/[id]', params: { id: target.agreementId } });
       }
-    });
+    }).catch(() => {});
     return () => {
       aktivan = false;
     };
-  }, [isLoaded, session, router]);
+  }, [isLoaded, session, sessionEpoch, returnTargetRevision, router]);
 
   if (!isLoaded) {
     return (
@@ -66,12 +70,23 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.ground }}>
         <StatusBar style="dark" />
         <Stack
+          key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: palette.ground },
             animation: 'slide_from_right',
           }}
-        />
+        >
+          <Stack.Protected guard={!session}>
+            <Stack.Screen name="auth" />
+          </Stack.Protected>
+          <Stack.Protected guard={!!session}>
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="dogovor/[id]" />
+            <Stack.Screen name="obavestenja" />
+            <Stack.Screen name="prijave" />
+          </Stack.Protected>
+        </Stack>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

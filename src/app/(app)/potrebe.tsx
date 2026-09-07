@@ -1,97 +1,40 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import { ActivityIndicator, Platform, RefreshControl, ScrollView, View } from 'react-native';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Clock, MapPin, Plus, Users } from 'phosphor-react-native';
+import { CaretRight, Clock, MapPin, Users } from 'phosphor-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
+import type { StanjePotrebe } from '../../contracts/projections';
 import { useIzvor } from '../../store/uloga';
 import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
 import { Card } from '../../ui/Button';
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
+import { WorkspaceHeader } from '../../ui/WorkspaceHeader';
+import { useFocusedResource } from '../../hooks/useFocusedResource';
 
 const naUredjaju = Platform.OS !== 'web';
 
 const STATUS: Record<StanjePotrebe, string> = {
   NACRT: 'Nacrt',
-  OBJAVLJENA: 'Objavljena',
+  OBJAVLJENA: 'Objavljen',
   CEKA_PRIJAVE: 'Čeka prijave',
-  DELIMICNO_POPUNJENA: 'Delimično popunjena',
-  POPUNJENA: 'Popunjena',
-  ZATVORENA: 'Zatvorena',
+  DELIMICNO_POPUNJENA: 'Delimično popunjen',
+  POPUNJENA: 'Popunjen',
+  ZATVORENA: 'Zatvoren',
 };
 
 export default function Potrebe() {
   const izvor = useIzvor();
-  const [potrebe, setPotrebe] = useState<PotrebaProjekcija[]>([]);
-  const [ucitava, setUcitava] = useState(true);
-  const [greska, setGreska] = useState<string | null>(null);
-
-  const ucitaj = useCallback(() => {
-    let ziv = true;
-    setUcitava(true);
-    setGreska(null);
-
-    void izvor
-      .mojePotrebe()
-      .then((rezultat) => {
-        if (!ziv) return;
-        setPotrebe(rezultat);
-      })
-      .catch((error: unknown) => {
-        if (!ziv) return;
-        setGreska(error instanceof Error ? error.message : 'Potrebe nisu mogle da se učitaju.');
-      })
-      .finally(() => {
-        if (ziv) setUcitava(false);
-      });
-
-    return () => {
-      ziv = false;
-    };
-  }, [izvor]);
-
-  useFocusEffect(ucitaj);
+  const { data, loading: ucitava, error: greska, refresh: ucitaj } = useFocusedResource(
+    useCallback(() => izvor.mojePotrebe(), [izvor]),
+  );
+  const potrebe = data ?? [];
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: space.sm,
-          paddingHorizontal: space.base,
-          paddingTop: space.sm,
-          paddingBottom: space.md,
-        }}
-      >
-        <View style={{ flex: 1 }}>
-          <T variant="title">Potrebe</T>
-          <T variant="meta" tone="muted">Vaši objavljeni zahtevi i njihova pokrivenost</T>
-        </View>
-        <Press
-          accessibilityRole="button"
-          accessibilityLabel="Nova Potreba"
-          haptic="light"
-          onPress={() => router.push('/nova')}
-          style={{
-            minHeight: touch.min,
-            minWidth: touch.min,
-            paddingHorizontal: space.md,
-            borderRadius: radius.md,
-            backgroundColor: palette.orange,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-          }}
-        >
-          <Plus size={17} color={palette.onOrange} weight="bold" />
-          <T variant="action" tone="onOrange">Nova</T>
-        </Press>
-      </View>
+      <WorkspaceHeader title="Zadaci" />
 
       {ucitava ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -99,16 +42,13 @@ export default function Potrebe() {
         </View>
       ) : greska ? (
         <View style={{ flex: 1, padding: space.base, justifyContent: 'center', gap: space.md }}>
-          <T variant="heading">Potrebe trenutno nisu dostupne</T>
-          <T variant="body" tone="muted">{greska}</T>
+          <T variant="heading">Zadaci trenutno nisu dostupni</T>
+          <T variant="body" tone="muted">Proverite internet vezu i pokušajte ponovo.</T>
           <Press
             accessibilityRole="button"
             accessibilityLabel="Pokušaj ponovo"
             haptic="light"
-            onPress={() => {
-              const cleanup = ucitaj();
-              void cleanup;
-            }}
+            onPress={() => void ucitaj()}
             style={{
               minHeight: touch.min,
               borderRadius: radius.md,
@@ -122,15 +62,15 @@ export default function Potrebe() {
         </View>
       ) : potrebe.length === 0 ? (
         <View style={{ flex: 1, padding: space.xl, justifyContent: 'center', alignItems: 'center', gap: space.md }}>
-          <T variant="heading" style={{ textAlign: 'center' }}>Još nemate Potrebu</T>
+          <T variant="heading" style={{ textAlign: 'center' }}>Još nemate Zadatak</T>
           <T variant="body" tone="muted" style={{ textAlign: 'center' }}>
             Recite šta Vam treba. USKOČI će Vas voditi kroz nacrt pre objave.
           </T>
           <Press
             accessibilityRole="button"
-            accessibilityLabel="Kreiraj prvu Potrebu"
+            accessibilityLabel="Napravite prvi Zadatak"
             haptic="light"
-            onPress={() => router.push('/nova')}
+            onPress={() => router.navigate('/nova')}
             style={{
               minHeight: touch.min,
               paddingHorizontal: space.xl,
@@ -140,11 +80,12 @@ export default function Potrebe() {
               justifyContent: 'center',
             }}
           >
-            <T variant="action" tone="onOrange">Kreirajte Potrebu</T>
+            <T variant="action" tone="onOrange">Napravite Zadatak</T>
           </Press>
         </View>
       ) : (
         <ScrollView
+          refreshControl={<RefreshControl refreshing={ucitava} onRefresh={() => void ucitaj()} tintColor={palette.teal500} />}
           contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.xxl, gap: space.base }}
           showsVerticalScrollIndicator={false}
         >
@@ -155,18 +96,18 @@ export default function Potrebe() {
             >
               <Press
                 accessibilityRole="button"
-                accessibilityLabel={`Otvori Potrebu ${p.naslov}`}
+                accessibilityLabel={`Otvorite Zadatak ${p.naslov}`}
                 haptic="light"
                 scaleTo={0.985}
                 onPress={() =>
-                  router.push({ pathname: '/potrebe/[id]/pregled', params: { id: p.id } })
+                  router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: p.id } })
                 }
               >
                 <Card style={elevation.card}>
                   <View style={{ padding: space.base, gap: space.md }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: palette.orange }} />
-                      <T variant="label" tone="muted" style={{ flex: 1 }}>POTREBA</T>
+                      <T variant="label" tone="muted" style={{ flex: 1 }}>ZADATAK</T>
                       <T variant="meta" tone="orange" style={{ fontWeight: '800' }}>
                         {STATUS[p.stanje]}
                       </T>
@@ -224,7 +165,6 @@ export default function Potrebe() {
                           <T variant="meta" tone="muted">Ponude kandidata</T>
                         )}
                       </View>
-                      <T variant="action">Pregled</T>
                       <CaretRight size={16} color={palette.ink} />
                     </View>
                   </View>

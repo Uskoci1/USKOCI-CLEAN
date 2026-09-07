@@ -1,7 +1,7 @@
 {
   "eas_existing_identity_checkpoint_20260907": {
     "state": "SOURCE_CONFIGURED_READ_ONLY_VERIFIED_REVIEW_PENDING",
-    "source_base": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
+    "source_base": "65d280270ead4d13dcb41f7342a74b164c41e4d9",
     "project_id": "1e6cc490-9851-4741-9226-128612122db6",
     "android_package": "rs.uskoci.preview",
     "source_version_code_seed": 35,
@@ -22,7 +22,46 @@
     "build_proven": false,
     "provider_or_mobile_push_proof": false,
     "live_database_change": false,
-    "evidence": "docs/implementation/EAS_EXISTING_PREVIEW_IDENTITY_20260907.md"
+    "evidence": "docs/implementation/EAS_EXISTING_PREVIEW_IDENTITY_20260907.md",
+    "original_source_base": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
+    "integration_preserved_source": "170686a"
+  },
+  "mobile_execution_checkpoint_20260907": {
+    "canonical_baseline": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
+    "intent_shell_pr": 49,
+    "state": "CANONICAL_SOURCE_AND_SCOPED_ANDROID_PROVEN",
+    "live_change": false,
+    "report": "docs/implementation/INTENT_SHELL_20260907.md",
+    "architecture_report": "docs/implementation/AUTH_CLIENT_BOUNDARY_20260907.md",
+    "successful_android_run": 34119448882,
+    "successful_android_source": "29271e6be7fc519e40941531d37c6d48b0db7ef3",
+    "artifact_id": 10018537383,
+    "artifact_zip_sha256": "e87d3f887870505942806faa3824f80c699234835f18e31ca5ebd582f62a1acc",
+    "apk_sha256": "fd6f513be2f8e0fe71fcff4688de5a1db30d3dfdab0d1c55661133758650708d",
+    "inspected_png_xml_pairs": 27,
+    "frozen_native_git_blobs": 138,
+    "source_validation": "46 suites /313 tests; TSC;34 Python; integrity85;6 checks SUCCESS;3 CodeQL zero errors/results",
+    "architecture_review": "PR49 source review accepted; AST62 client/25 presentation/0 findings; separate AI audit not claimed",
+    "scope": "Standalone Android API35 emulator; disposable historical79+N02/N03; testable scaffold, not final Figma design or production/Store proof",
+    "historical_failed_android_runs": [
+      34104812406,
+      34108000350,
+      34108536812
+    ],
+    "historical_proofs": [
+      {
+        "run": 34110549395,
+        "source": "a8075b6f76c82d3e0a565db4be7c9526765fffb1",
+        "limit": "Functional success; original visual review found Agreement row overflow, later fixed"
+      },
+      {
+        "run": 34114525948,
+        "source": "86fffc1b58789a2a7331e3646ba8aa0647e02a73",
+        "limit": "Both Agreement rows accepted; predates Auth/accountRevision source"
+      }
+    ],
+    "next": "Preserve exact recorded native source boundary; review independent EAS/Firebase and functional AI units separately",
+    "canonical_merge": "65d280270ead4d13dcb41f7342a74b164c41e4d9"
   },
   "n08_preferences_checkpoint_20260907": {
     "state": "CANONICAL_AUTHENTICATED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_PROVEN",
@@ -183,12 +222,55 @@
   "updated_at": "2026-09-07T10:25:45Z",
   "historical_notification_checkpoint_before_live84_20260907": {
     "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
-    "n01": { "pr": 39, "state": "CANONICAL_NOT_LIVE" },
-    "n02": { "pr": 40, "state": "CANONICAL_NOT_LIVE", "proof_run": 34094384747, "artifact": 10008095140, "checks_passed": 12 },
-    "n03": { "pr": 41, "state": "CANONICAL_NOT_LIVE", "proof_run": 34095038531, "artifact": 10008329926, "checks_passed": 9 },
-    "n04": { "pr": 45, "state": "CANONICAL_ANDROID_NATIVE_PROVEN_BACKEND_NOT_LIVE", "proof_head": "576e56b6f4da1db509f4a269962654ff928a1e3f", "proof_run": 34096462936, "job": 101661103645, "artifact": 10009432265, "original_png_xml_pairs_inspected": 10, "zip_sha256": "0e235d73d2f04b2648156c02c9b23476de5b6985aae4628501298f27d8590cc6", "ios_proven": false, "hardware_proven": false },
-    "n05": { "pr": 43, "state": "CANONICAL_NOT_LIVE", "proof_head": "3a0b90a1199c6556cf70f7b3e732215b25129efe", "proof_run": 34097457917, "job": 101664161588, "artifact": 10009242617, "checks_passed": 9 },
-    "n06": { "pr": 44, "state": "CANONICAL_NOT_LIVE", "proof_head": "fabd58075b3a4dcc6165e6f4d606ce9e89ad5046", "proof_run": 34097846464, "job": 101665338379, "artifact": 10009373812, "checks_passed": 9, "provider_delivery_proven": false },
+    "n01": {
+      "pr": 39,
+      "state": "CANONICAL_NOT_LIVE"
+    },
+    "n02": {
+      "pr": 40,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_run": 34094384747,
+      "artifact": 10008095140,
+      "checks_passed": 12
+    },
+    "n03": {
+      "pr": 41,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_run": 34095038531,
+      "artifact": 10008329926,
+      "checks_passed": 9
+    },
+    "n04": {
+      "pr": 45,
+      "state": "CANONICAL_ANDROID_NATIVE_PROVEN_BACKEND_NOT_LIVE",
+      "proof_head": "576e56b6f4da1db509f4a269962654ff928a1e3f",
+      "proof_run": 34096462936,
+      "job": 101661103645,
+      "artifact": 10009432265,
+      "original_png_xml_pairs_inspected": 10,
+      "zip_sha256": "0e235d73d2f04b2648156c02c9b23476de5b6985aae4628501298f27d8590cc6",
+      "ios_proven": false,
+      "hardware_proven": false
+    },
+    "n05": {
+      "pr": 43,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_head": "3a0b90a1199c6556cf70f7b3e732215b25129efe",
+      "proof_run": 34097457917,
+      "job": 101664161588,
+      "artifact": 10009242617,
+      "checks_passed": 9
+    },
+    "n06": {
+      "pr": 44,
+      "state": "CANONICAL_NOT_LIVE",
+      "proof_head": "fabd58075b3a4dcc6165e6f4d606ce9e89ad5046",
+      "proof_run": 34097846464,
+      "job": 101665338379,
+      "artifact": 10009373812,
+      "checks_passed": 9,
+      "provider_delivery_proven": false
+    },
     "n07": {
       "pr": 46,
       "state": "CANONICAL_PENDING_EXPLICIT_PRODUCTION_APPROVAL",
@@ -225,7 +307,12 @@
       "edge_reobserved": false
     },
     "next": "EXPLICIT_N07_PRODUCTION_APPROVAL_THEN_FRESH_PREFLIGHT; INDEPENDENT_PUSH_CHAT_AND_REMAINING_PRODUCT_QUEUE_OPEN",
-    "canonical_gates": { "pre_p4": 34099736749, "codeql": 34099736360, "control0": 34099736849, "result": "PASS" },
+    "canonical_gates": {
+      "pre_p4": 34099736749,
+      "codeql": 34099736360,
+      "control0": 34099736849,
+      "result": "PASS"
+    },
     "status_owner": "docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md"
   },
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",

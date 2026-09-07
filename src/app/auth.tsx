@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -32,7 +32,7 @@ import {
   X,
 } from 'phosphor-react-native';
 
-import { supabaseKlijent } from '../data/supabaseClient';
+import { authClientService } from '../data/authClientService';
 import { ReferenceEntryHero } from '../ui/referenceEntry/ReferenceEntryHero';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
@@ -223,7 +223,6 @@ function MethodButton({
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
-  const supabase = useMemo(() => supabaseKlijent(), []);
   const [otvoren, setOtvoren] = useState(false);
   const [kontekst, setKontekst] = useState<Kontekst>('default');
   const [rezim, setRezim] = useState<Rezim>('LOGIN');
@@ -282,11 +281,10 @@ export default function AuthScreen() {
     setPoruka(null);
     try {
       if (rezim === 'LOGIN') {
-        const { error } = await supabase.auth.signInWithPassword({
+        await authClientService.signInWithPassword({
           email: email.trim(),
           password: lozinka,
         });
-        if (error) throw error;
       } else {
         if (!ime.trim() || !prezime.trim() || !grad.trim()) {
           throw new Error('Unesite ime, prezime i grad.');
@@ -295,19 +293,14 @@ export default function AuthScreen() {
         if (lozinka !== potvrda) throw new Error('Lozinke se ne poklapaju.');
         if (!saglasnost) throw new Error('Potrebno je prihvatiti Uslove korišćenja i Politiku privatnosti.');
 
-        const { data, error } = await supabase.auth.signUp({
+        const { hasSession } = await authClientService.signUp({
           email: email.trim(),
           password: lozinka,
-          options: {
-            data: {
-              first_name: ime.trim(),
-              last_name: prezime.trim(),
-              city: grad.trim(),
-            },
-          },
+          firstName: ime.trim(),
+          lastName: prezime.trim(),
+          city: grad.trim(),
         });
-        if (error) throw error;
-        if (!data.session) {
+        if (!hasSession) {
           setFaza('VERIFY_EMAIL');
           return;
         }
@@ -324,8 +317,7 @@ export default function AuthScreen() {
     setGreska(null);
     setPoruka(null);
     try {
-      const { error } = await supabase.auth.signInWithOtp({ phone: telefon.trim() });
-      if (error) throw error;
+      await authClientService.sendPhoneOtp({ phone: telefon.trim() });
       setFaza('OTP');
       setPoruka('Kod je poslat na broj telefona.');
     } catch (error) {
@@ -339,12 +331,10 @@ export default function AuthScreen() {
     setRadi(true);
     setGreska(null);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      await authClientService.verifyPhoneOtp({
         phone: telefon.trim(),
         token: otp.trim(),
-        type: 'sms',
       });
-      if (error) throw error;
     } catch (error) {
       setGreska(error instanceof Error ? error.message : 'Kod nije prihvaćen.');
     } finally {
@@ -356,8 +346,7 @@ export default function AuthScreen() {
     setRadi(true);
     setGreska(null);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-      if (error) throw error;
+      await authClientService.requestPasswordRecovery(email.trim());
       setFaza('VERIFY_EMAIL');
       setPoruka('Ako nalog postoji, poslat je link za oporavak lozinke.');
     } catch (error) {
