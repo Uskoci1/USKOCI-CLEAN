@@ -1,5 +1,6 @@
-// Reconstruct the exact live87 predecessor on a disposable loopback target.
-// Importing the inventory reader performs no database or network operation.
+// Reconstruct the exact live87 predecessor plus any earlier pending forward files
+// on a disposable loopback target. Importing the inventory reader performs no
+// database or network operation.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -22,22 +23,42 @@ export function readP4ProcessorPredecessorPlan(root = process.cwd()) {
       assert.ok(!bytes.includes(13), `SOURCE_CR_BYTE:${file}`);
       return { file, md5: digest('md5', bytes) };
     });
-  const declared = [...provenance.live_history_snapshot.entries.map(entry =>
-    entry.file ?? `${entry.version}_${entry.name}.sql`),
-  ...provenance.pending_forward_migrations.map(entry => entry.file)];
+
+  const liveEntries = provenance.live_history_snapshot.entries;
+  const pendingEntries = provenance.pending_forward_migrations;
+  const declared = [
+    ...liveEntries.map(entry => entry.file ?? `${entry.version}_${entry.name}.sql`),
+    ...pendingEntries.map(entry => entry.file),
+  ];
   assert.deepEqual(source.map(entry => entry.file), declared, 'SOURCE_PROVENANCE_INVENTORY_MISMATCH');
-  assert.equal(provenance.live_history_snapshot.migration_count, provenance.live_history_snapshot.entries.length);
+  assert.equal(provenance.live_history_snapshot.migration_count, liveEntries.length);
   assert.equal(provenance.live_history_snapshot.migration_count, admitted.historical_file_count);
   assert.equal(provenance.live_history_snapshot.last.version, admitted.historical_live_head);
+
   const forward = source.find(entry => entry.file === unit.forward_file);
   assert.ok(forward, 'FORWARD_FILE_MISSING');
   assert.equal(forward.md5, unit.md5, 'FORWARD_FILE_CHANGED');
-  const historical = source.filter(entry => entry.file !== unit.forward_file);
+
+  const liveFiles = new Set(liveEntries.map(entry => entry.file ?? `${entry.version}_${entry.name}.sql`));
+  const historical = source.filter(entry => liveFiles.has(entry.file));
   const inventoryText = historical.map(entry => `${entry.md5}  ${entry.file}\n`).join('');
   assert.equal(digest('sha256', inventoryText), admitted.historical_inventory_sha256,
-    'UNKNOWN_MISSING_OR_CHANGED_PREDECESSOR_SOURCE');
+    'UNKNOWN_MISSING_OR_CHANGED_LIVE87_SOURCE');
   assert.equal(historical.length, admitted.historical_file_count);
-  assert.equal(source.length, historical.length + 1);
+
+  const unitPendingIndex = pendingEntries.findIndex(entry => entry.file === unit.forward_file);
+  assert.ok(unitPendingIndex >= 0, 'P4_PENDING_PROVENANCE_MISSING');
+  assert.equal(unitPendingIndex, pendingEntries.length - 1, 'P4_PENDING_NOT_LAST_IN_CURRENT_FORWARD_STACK');
+  const pendingPredecessors = pendingEntries.slice(0, unitPendingIndex).map(entry => {
+    assert.equal(entry.live_applied, false, `PENDING_PREDECESSOR_MARKED_LIVE:${entry.file}`);
+    assert.ok(String(entry.version) < String(unit.forward_version), `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
+    const current = source.find(candidate => candidate.file === entry.file);
+    assert.ok(current, `PENDING_PREDECESSOR_FILE_MISSING:${entry.file}`);
+    assert.equal(current.md5, entry.raw_md5, `PENDING_PREDECESSOR_MD5_CHANGED:${entry.file}`);
+    return { file: entry.file, version: String(entry.version), name: entry.name, md5: entry.raw_md5 };
+  });
+  assert.equal(source.length, historical.length + pendingEntries.length);
+
   for (const dep of [admitted.d03, admitted.ai_draft]) {
     const current = readJson(dep.manifest);
     for (const key of ['forward_file', 'forward_version', 'forward_name', 'bytes', 'md5', 'sha256']) {
@@ -48,12 +69,15 @@ export function readP4ProcessorPredecessorPlan(root = process.cwd()) {
     assert.equal(digest('md5', bytes), dep.md5);
     assert.equal(digest('sha256', bytes), dep.sha256);
   }
+
   return {
     source_migration_count: source.length,
     historical_predecessor_count: historical.length,
-    expected_predecessor_count: source.length - 1,
+    pending_predecessor_count: pendingPredecessors.length,
+    expected_predecessor_count: historical.length + pendingPredecessors.length,
     historical_inventory_sha256: admitted.historical_inventory_sha256,
     source_inventory: source,
+    pending_predecessors: pendingPredecessors,
     d03: admitted.d03,
     ai_draft: admitted.ai_draft,
   };
@@ -62,7 +86,7 @@ export function readP4ProcessorPredecessorPlan(root = process.cwd()) {
 function applyDisposablePredecessor() {
   const env = process.env;
   assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL, env.RU5_DEVICE_DB_URL);
-  const plan = readP4ProcessorPredecessorPlan(); // Refuse unknown source before any SQL.
+  const plan = readP4ProcessorPredecessorPlan();
   const out = env.P4_ARTIFACT_DIR || 'artifacts/p4-processor-map';
   mkdirSync(out, { recursive: true });
   const report = { result: 'RUNNING', source_sha: env.GITHUB_SHA ?? null,
@@ -76,7 +100,6 @@ function applyDisposablePredecessor() {
   let stage = 'ORIGINAL_HISTORY_PREFLIGHT';
   try {
     const before = history('true');
-    // N07/N08 proofs leave the disposable at live85 before this integration step.
     assert.equal(JSON.parse(before).length, plan.historical_predecessor_count - 2, 'UNEXPECTED_LIVE85_BASELINE');
     report.original_full_history_sha256 = digest('sha256', before);
     const applied = [];
@@ -95,15 +118,38 @@ function applyDisposablePredecessor() {
       }
       applied.push({ forward_version, forward_name, md5 });
     }
+
     stage = 'LIVE87_POSTFLIGHT';
     assert.equal(history(`version not in (${applied.map(a => quote(a.forward_version)).join(',')})`), before,
       'ORIGINAL_FULL_HISTORY_CHANGED');
     assert.equal(sql("select to_regclass('private.processor_map_sets') is null"), 't', 'PROCESSOR_TABLE_UNEXPECTEDLY_PRESENT');
     assert.equal(sql("select to_regprocedure('public.rpc_publish_processor_map(text,text,timestamptz,jsonb)') is null"), 't', 'PROCESSOR_RPC_UNEXPECTEDLY_PRESENT');
+
+    const appliedPending = [];
+    for (const dep of plan.pending_predecessors) {
+      stage = `PENDING_PREDECESSOR_APPLY:${dep.name}`;
+      assert.equal(sql(`select count(*) from supabase_migrations.schema_migrations where version=${quote(dep.version)}`), '0');
+      const file = `supabase/migrations/${dep.file}`, bytes = readFileSync(file);
+      assert.equal(digest('md5', bytes), dep.md5, `PENDING_PREDECESSOR_BYTES_CHANGED:${dep.file}`);
+      execFileSync('psql', [env.RU5_DEVICE_DB_URL, '-X', '-v', 'ON_ERROR_STOP=1', '-f', file], { stdio: 'pipe' });
+      stage = `PENDING_PREDECESSOR_HISTORY_RECORD:${dep.name}`;
+      sql(`insert into supabase_migrations.schema_migrations(version,name,statements)
+        values(${quote(dep.version)},${quote(dep.name)},array[${quote(bytes.toString('utf8'))}])`);
+      assert.equal(sql(`select md5(statements[1]) from supabase_migrations.schema_migrations where version=${quote(dep.version)}`), dep.md5);
+      appliedPending.push(dep);
+    }
+
+    stage = 'ORDERED_PREDECESSOR_STACK_POSTFLIGHT';
+    const excluded = [...applied.map(a => a.forward_version), ...appliedPending.map(a => a.version)];
+    assert.equal(history(`version not in (${excluded.map(quote).join(',')})`), before,
+      'ORIGINAL_BASE_HISTORY_CHANGED_AFTER_PENDING_PREDECESSORS');
+    assert.equal(sql("select to_regclass('private.processor_map_sets') is null"), 't', 'PROCESSOR_TABLE_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
+    assert.equal(sql("select to_regprocedure('public.rpc_publish_processor_map(text,text,timestamptz,jsonb)') is null"), 't', 'PROCESSOR_RPC_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
     sql("notify pgrst,'reload schema'");
     const after = history('true');
     assert.equal(JSON.parse(after).length, plan.expected_predecessor_count);
     report.applied_dependencies = applied;
+    report.applied_pending_predecessors = appliedPending;
     report.original_full_history_unchanged = true;
     report.final_full_history_sha256 = digest('sha256', after);
     report.final_history_count = JSON.parse(after).length;
