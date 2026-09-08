@@ -30,7 +30,7 @@ test('forward file guards the exact live87 predecessor bodies it replaces', () =
   const text = readFileSync(`supabase/migrations/${unit.forward_file}`, 'utf8');
   for (const [signature, expected] of Object.entries(unit.predecessor_body_md5)) {
     assert.ok(text.includes(`'${signature}'::regprocedure`), `missing guard for ${signature}`);
-    assert.ok(text.includes(`'${expected}'`), `missing predecessor md5 for ${signature}`);
+    for (const digest of [].concat(expected)) assert.ok(text.includes(`'${digest}'`), `missing predecessor md5 ${digest} for ${signature}`);
   }
   assert.ok(text.includes("to_regclass('public.worker_calendar_commitments') is not null"));
   assert.ok(!/\bneed_id\s+uuid\s*;/.test(text), 'ambiguous need_id variable must not be declared');

@@ -107,7 +107,7 @@ try{
   check('PREFLIGHT_LIVE87_PREDECESSOR_AND_REAL_ACCOUNTS');
   predecessorCount=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
   assert.equal(predecessorCount,plan.expected_predecessor_count);
-  for(const [signature,expected] of Object.entries(manifest.predecessor_body_md5))assert.equal(bodyMd5(signature),expected,signature);
+  for(const [signature,expected] of Object.entries(manifest.predecessor_body_md5))assert.ok([].concat(expected).includes(bodyMd5(signature)),`PREDECESSOR_BODY:${signature}`);
   for(const [c,email,id] of [[worker,env.RU5_DEVICE_WORKER_EMAIL,wid],[requester,env.RU5_DEVICE_REQUESTER_EMAIL,rid]]){
     await ok(c.auth.signInWithPassword({email,password:env.RU5_DEVICE_PASSWORD}));assert.equal((await ok(c.auth.getUser())).user.id,id);
   }

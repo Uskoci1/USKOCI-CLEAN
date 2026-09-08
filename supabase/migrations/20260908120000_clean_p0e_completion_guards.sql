@@ -18,7 +18,11 @@ begin
   if (select md5(prosrc) from pg_proc where oid='public.rpc_confirm_completion(uuid)'::regprocedure) is distinct from '39ff23fd1d3f4668dbb99a664bf963a9' then
     raise exception 'P0E_PREDECESSOR_FUNCTION_MISMATCH' using detail='public.rpc_confirm_completion(uuid)';
   end if;
-  if (select md5(prosrc) from pg_proc where oid='public.rpc_report_problem(uuid,text)'::regprocedure) is distinct from 'd872dd1eaffdb67856ce6c47f4176f33' then
+  -- rpc_report_problem was last defined by 20260830191500, a recorded-statement
+  -- reconstruction (exact_byte_mirror=false): live carries the recorded body,
+  -- a canonical source replay carries the file body. Both are frozen here.
+  if coalesce((select md5(prosrc) from pg_proc where oid='public.rpc_report_problem(uuid,text)'::regprocedure),'')
+     not in ('d872dd1eaffdb67856ce6c47f4176f33','f4800952fc49316868e6b57c081e7f88') then
     raise exception 'P0E_PREDECESSOR_FUNCTION_MISMATCH' using detail='public.rpc_report_problem(uuid,text)';
   end if;
   if to_regprocedure('private.emit_event(uuid,text,text,text,uuid,integer,text,text,text,text,jsonb,timestamptz)') is null then

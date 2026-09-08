@@ -100,7 +100,8 @@ function applyDisposablePredecessor() {
     assert.equal(history(`version not in (${applied.map(a => quote(a.forward_version)).join(',')})`), before,
       'ORIGINAL_FULL_HISTORY_CHANGED');
     for (const [signature, expected] of Object.entries(plan.predecessor_body_md5)) {
-      assert.equal(bodyMd5(signature), expected, `LIVE87_PREDECESSOR_BODY_MISMATCH:${signature}`);
+      const allowed = [].concat(expected); // recorded live body or canonical source body
+      assert.ok(allowed.includes(bodyMd5(signature)), `LIVE87_PREDECESSOR_BODY_MISMATCH:${signature}`);
     }
     sql("notify pgrst,'reload schema'");
     const after = history('true');
