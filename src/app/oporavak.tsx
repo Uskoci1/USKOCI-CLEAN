@@ -19,7 +19,7 @@ export default function PasswordRecoveryScreen() {
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [validation, setValidation] = useState<string | null>(null);
-  const recovery = usePasswordRecovery(link);
+  const recovery = usePasswordRecovery(link, intent?.id ?? null);
   const busy = recovery.state.status === 'saving';
   const back = () => {
     if (intent) passwordRecoveryIntent.clear(intent.id);

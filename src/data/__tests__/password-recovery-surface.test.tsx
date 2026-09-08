@@ -142,3 +142,19 @@ it('scrubs the focused route rather than just the enclosing navigator params', (
   const clean = { ...state, routes: [{ ...state.routes[0], state: cleanLeaf }] };
   expect(getPathFromState(clean, config)).toBe('/oporavak');
 });
+
+it('revalidates a repeated OS callback instead of displaying the preceding success', async () => {
+  await render();
+  await fill('Nova lozinka', 'new-password');
+  await fill('Potvrdite novu lozinku', 'new-password');
+  await press('Sačuvajte novu lozinku');
+  expect(text()).toContain('Lozinka je\npromenjena.');
+  mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('INVALID_LINK'));
+  mockIntent = { id: mockIntent!.id + 1, link: mockLink! };
+  await act(async () => tree.update(<PasswordRecoveryScreen />));
+  expect(mockVerify).toHaveBeenCalledTimes(2);
+  expect(text()).not.toContain('Lozinka je\npromenjena.');
+  expect(text()).toContain('Link je nevažeći ili je istekao');
+  expect(hosts('TextInput')).toHaveLength(0);
+  expect(mockSave).toHaveBeenCalledTimes(1);
+});

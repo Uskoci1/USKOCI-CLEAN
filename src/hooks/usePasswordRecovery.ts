@@ -11,7 +11,7 @@ type State =
   | { status: 'success' }
   | { status: 'error'; error: PasswordRecoveryError };
 
-export function usePasswordRecovery(link: string | null) {
+export function usePasswordRecovery(link: string | null, intentId: number | null) {
   const account = useSesija();
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<State>({ status: 'verifying' });
@@ -48,7 +48,9 @@ export function usePasswordRecovery(link: string | null) {
       if (active.current === lease) active.current = null;
       lease.service.dispose();
     };
-  }, [link, attempt, account.accountRevision, account.user?.id]);
+  // A new OS event is a new attempt even when it carries the same link.
+  // Never reuse a prior success as the result of a newly opened callback.
+  }, [link, intentId, attempt, account.accountRevision, account.user?.id]);
 
   const save = useCallback(async (password: string) => {
     const lease = active.current;
