@@ -1,3 +1,5 @@
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: 'test-owner' }, accountRevision: 1 }) }));
+
 /**
  * CB1 — Requester terminal commands on a Zadatak. Revision-bound, idempotent,
  * server exception names mapped once to product language.
@@ -32,7 +34,7 @@ describe('CB1 — cancelNeed', () => {
   });
 
   it('reports a replayed cancellation and routes a Dogovor-bound Zadatak to the Dogovor flow', async () => {
-    resetRpc({ data: { needId: NEED, status: 'CANCELLED', revision: 4, affectedResponses: 0, idempotentReplay: true }, error: null });
+    resetRpc({ data: { needId: NEED, status: 'CANCELLED', revision: 4, affectedResponses: 0, idempotentReplay: true, authoritative: true }, error: null });
     expect(await needLifecycleClientService.cancelNeed(NEED, 4)).toMatchObject({ ok: true, podatak: { idempotentReplay: true, affectedResponses: 0 } });
     resetRpc({ data: null, error: { code: 'P0001', message: 'NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW' } });
     const blocked = await needLifecycleClientService.cancelNeed(NEED, 4);

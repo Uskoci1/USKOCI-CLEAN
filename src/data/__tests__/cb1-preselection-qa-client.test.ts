@@ -1,3 +1,5 @@
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: 'test-owner' }, accountRevision: 1 }) }));
+
 /**
  * CB1 — RU-4B pre-Dogovor Q&A client contract. Every command carries a uuid
  * request id; server exception names become product language; fail-closed
