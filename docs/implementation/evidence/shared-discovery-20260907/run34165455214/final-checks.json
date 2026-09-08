@@ -1,0 +1,97 @@
+{
+  "sourceSha": "865d39006498862b909f3f0bf9730b64349dadb3",
+  "checks": [
+    {
+      "name": "python70",
+      "command": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "scripts/test_ru5_android_input.py",
+        "scripts/test_intent_shell_android.py",
+        "scripts/test_shared_discovery_android.py"
+      ],
+      "exitCode": 0,
+      "startedAt": "2026-09-07T22:52:08.514877+00:00",
+      "completedAt": "2026-09-07T22:52:09.287782+00:00",
+      "originalLogSha256": "0529126c2bcd4e2fa144071929eeb4664eb58be6d93395563dfc2fc9a1a1dff8",
+      "originalLogBytes": 341,
+      "publicLog": {
+        "path": "final-python70.log",
+        "sha256": "248546ea5be3fd369267422046aa794bdd5ef6872bc43fd5c4b3c43bb7dcc258",
+        "bytes": 333,
+        "transformation": "CRLF_TO_LF_ONLY; original raw log retained in workspace"
+      }
+    },
+    {
+      "name": "typescript",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "exitCode": 0,
+      "startedAt": "2026-09-07T22:52:09.287898+00:00",
+      "completedAt": "2026-09-07T22:52:15.081438+00:00",
+      "originalLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalLogBytes": 0,
+      "publicLog": {
+        "path": "final-typescript.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "transformation": "CRLF_TO_LF_ONLY; original raw log retained in workspace"
+      }
+    },
+    {
+      "name": "node24",
+      "command": [
+        "node",
+        "--test",
+        "supabase/proofs/ru5_device_ui_local_guard.test.mjs",
+        "scripts/shared_discovery_fixture.test.mjs"
+      ],
+      "exitCode": 0,
+      "startedAt": "2026-09-07T22:52:15.081649+00:00",
+      "completedAt": "2026-09-07T22:52:15.510222+00:00",
+      "originalLogSha256": "169ed63f71605addc81fd29638a0dabac11532203f03f8cb08ece9d7fba4e80e",
+      "originalLogBytes": 2043,
+      "publicLog": {
+        "path": "final-node24.log",
+        "sha256": "169ed63f71605addc81fd29638a0dabac11532203f03f8cb08ece9d7fba4e80e",
+        "bytes": 2043,
+        "transformation": "CRLF_TO_LF_ONLY; original raw log retained in workspace"
+      }
+    },
+    {
+      "name": "migration-integrity",
+      "command": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "supabase/migrations/check_migration_integrity.py"
+      ],
+      "exitCode": 0,
+      "startedAt": "2026-09-07T22:52:15.510350+00:00",
+      "completedAt": "2026-09-07T22:52:15.571871+00:00",
+      "originalLogSha256": "053c62c025271ff496feb4aa1dfb2c263f517032d69683605159a3c1e5640441",
+      "originalLogBytes": 153,
+      "publicLog": {
+        "path": "final-migration-integrity.log",
+        "sha256": "64a6258799295dc7214f4c84384f56555af2e190a94a1c37a81ac720bec10d11",
+        "bytes": 152,
+        "transformation": "CRLF_TO_LF_ONLY; original raw log retained in workspace"
+      }
+    }
+  ],
+  "fullJestRerun": false,
+  "retainedAppJest": {
+    "suites": 72,
+    "tests": 744,
+    "source": "ed0bd58170d41a32776bc58710ea6aa84f3810f1",
+    "basis": "application/dependency/build configuration source unchanged"
+  }
+}

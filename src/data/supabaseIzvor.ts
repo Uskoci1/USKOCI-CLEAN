@@ -1,11 +1,6 @@
 import { Izvor, Ishod, IzborKomanda, PodnesiPrijavuKomanda } from './ports';
-import { publicProfileClientService } from './publicProfileClientService';
+import { discoveryClientService } from './discoveryClientService';
 import { supabaseKlijent } from './supabaseClient';
-import type {
-  JavniProfilProjekcija,
-  Novac,
-  Pokrivenost,
-} from '../contracts/projections';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_t, prop) => (supabaseKlijent() as never)[prop],
@@ -20,53 +15,9 @@ function handleRpcError<T>(error: any, defaultCode: string, defaultMessage: stri
   };
 }
 
-const rsd = (iznos: number): Novac => ({
-  iznos,
-  valuta: 'RSD',
-  prikaz: `${iznos.toLocaleString('sr-Latn-RS')} RSD`,
-});
-
-function pokrivenost(ukupno: number, popunjeno: number): Pokrivenost {
-  const preostalo = Math.max(0, ukupno - popunjeno);
-  return { ukupno, popunjeno, preostalo, udeo: ukupno ? popunjeno / ukupno : 0 };
-}
-
 function fTime(iso: string | null): string {
   if (!iso) return 'Fleksibilno';
   return new Date(iso).toLocaleString('sr-Latn-RS');
-}
-
-function fLoc(area: string, city: string) {
-  return area ? `${area}, ${city}` : city;
-}
-
-function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): string | null {
-  if (!profile?.poverenje.ocenaDostupna || profile.poverenje.ocenaProsek === null) return null;
-  return profile.poverenje.ocenaProsek.toLocaleString('sr-Latn-RS', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
-
-/**
- * One narrow RPC per distinct profile id. A profile projection failure must not
- * erase otherwise-public Need/Application rows, so marketplace list consumers
- * degrade to unavailable trust while the explicit javniProfil() port itself
- * still fails loudly when called directly by a profile screen.
- */
-async function safePublicProfiles(profileIds: Array<string | null | undefined>) {
-  const ids = [...new Set(profileIds.filter((id): id is string => typeof id === 'string' && id.length > 0))];
-  const entries = await Promise.all(
-    ids.map(async (id) => {
-      try {
-        return [id, await publicProfileClientService.javniProfil(id)] as const;
-      } catch (error) {
-        console.error('[Public profile projection unavailable]', { profileId: id, error });
-        return [id, null] as const;
-      }
-    }),
-  );
-  return new Map<string, JavniProfilProjekcija | null>(entries);
 }
 
 type SupabaseIzvor = Omit<
@@ -99,85 +50,9 @@ type SupabaseIzvor = Omit<
 export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
 
-  async otvorenePrilike() {
-    const { data, error } = await supabase.from('needs')
-      .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
-        required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id
-      `)
-      .in('status', ['PUBLISHED', 'SELECTION'])
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (!data) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
-
-    const profiles = await safePublicProfiles(data.map((r: any) => r.requester_profile_id));
-
-    return data.map((r: any) => {
-      const narucilac = profiles.get(r.requester_profile_id) ?? null;
-      return {
-        id: r.id,
-        naslov: r.title,
-        statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
-        podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
-        vremeTekst: fTime(r.starts_at),
-        pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
-        uslovi: [...(r.required_skills || []), ...(r.required_tools || []), ...(r.required_vehicles || [])],
-        narucilacProfilId: r.requester_profile_id,
-        narucilacIme: narucilac?.ime || '',
-        narucilacOcena: formatPublicRating(narucilac),
-        priblizno: (r.approximate_lat && r.approximate_lng) ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
-        rezimCene: r.mode,
-        ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
-      };
-    });
-  },
-
-  async prilika(id: string) {
-    const { data, error } = await supabase.from('needs')
-      .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
-        required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline
-      `)
-      .eq('id', id).maybeSingle();
-
-    if (error) throw error;
-    if (!data) return null;
-
-    // Missing/malformed capacity is an invalid read, never implicit free space.
-    if (!Number.isSafeInteger(data.required_slots) || data.required_slots <= 0
-      || !Number.isSafeInteger(data.covered_slots) || data.covered_slots < 0) {
-      throw new Error('TASK_CAPACITY_INVALID');
-    }
-    const rok = data.response_deadline;
-    if (rok !== null && (typeof rok !== 'string'
-      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(rok)
-      || !Number.isFinite(Date.parse(rok)))) throw new Error('TASK_DEADLINE_INVALID');
-
-    const profiles = await safePublicProfiles([data.requester_profile_id]);
-    const narucilac = profiles.get(data.requester_profile_id) ?? null;
-
-    return {
-      id: data.id,
-      naslov: data.title,
-      statusTekst: ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
-      primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
-        && data.required_slots > data.covered_slots && (rok === null || Date.parse(rok) > Date.now()),
-      rokZaPrijaveIso: rok,
-      podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
-      vremeTekst: fTime(data.starts_at),
-      pokrivenost: pokrivenost(data.required_slots, data.covered_slots),
-      uslovi: [...(data.required_skills || []), ...(data.required_tools || []), ...(data.required_vehicles || [])],
-      narucilacProfilId: data.requester_profile_id,
-      narucilacIme: narucilac?.ime || '',
-      narucilacOcena: formatPublicRating(narucilac),
-      priblizno: data.approximate_lat ? { lat: data.approximate_lat, lng: data.approximate_lng } : null,
-      rezimCene: data.mode as any,
-      ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
-    };
-  },
+  otvorenePrilike: discoveryClientService.otvorenePrilike,
+  otvorenePrilikeStrana: discoveryClientService.otvorenePrilikeStrana,
+  prilika: discoveryClientService.prilika,
 
   async poruke(dogovorId: string, expectedAccountId?: string) {
     const uuid = (value: unknown): value is string => typeof value === 'string' && value.length === 36

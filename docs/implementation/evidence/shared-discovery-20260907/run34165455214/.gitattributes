@@ -1,0 +1,4 @@
+*.png -text
+*.xml -text
+*.log text eol=lf
+*.json text eol=lf

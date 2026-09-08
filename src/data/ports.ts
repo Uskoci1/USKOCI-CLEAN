@@ -19,6 +19,7 @@ import type {
   PrilikaProjekcija,
   RadnikProfilProjekcija,
 } from '../contracts/projections';
+import type { PrilikeStrana, PrilikeStranaUpit } from '../contracts/discovery';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
 export type Ishod<T> =
@@ -38,8 +39,10 @@ export interface PotrebeCitanje {
   mojePotrebe(): Promise<PotrebaProjekcija[]>;
   /** R04 — radni prostor jedne Potrebe. */
   potreba(id: string): Promise<PotrebaProjekcija | null>;
-  /** W03 — javno bezbedan skup za Lista | Mapa | Kombinovano. */
+  /** Legacy array read; transport row limits still apply. Prefer explicit pages for discovery. */
   otvorenePrilike(): Promise<PrilikaProjekcija[]>;
+  /** W03 — one authenticated public-safe dataset for List and Map. */
+  otvorenePrilikeStrana(upit?: PrilikeStranaUpit): Promise<PrilikeStrana>;
   /** W04 — dosije jedne Prilike. */
   prilika(id: string): Promise<PrilikaProjekcija | null>;
 }

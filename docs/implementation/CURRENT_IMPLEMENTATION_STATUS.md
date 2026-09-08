@@ -1,3 +1,23 @@
+## Shared discovery replay checkpoint — canonical entry retained; native repair awaits replay
+
+Canonical entry PR66 is **verified at `38e9a38f7c9713cc7061f347eb083d84022dcdfd`** and composed into `865d39006498862b909f3f0bf9730b64349dadb3` after the reviewed harness repair `91bad83f0a666ee45509b6568687bf0f461c4f5d`. Canonical PRE-P4 run34166399849 passed64 suites/600 tests, TSC and87/87/0 integrity; CodeQL run34166399632 has three actual zero-result analyses1737938042/1737937062/1737937020; CONTROL-0 run34166399987 passed. These are the coordinating Root's recorded canonical observations. Accepted entry motion keeps its original82/run34163510260 scope and timing/handset limits. The canonical merge changes no non-document input relative to the repaired source.
+
+PR67 exact`ed0bd58170d41a32776bc58710ea6aa84f3810f1` run34165455214 is **FAILED / PARTIALLY OBSERVED**, not whole-journey accepted. Original27 passed, both local source-reader actors matched30+5 IDs, and33 original requester scans independently yield all35 IDs. The REMOTE map original PNG renders real vectors with zero pins. After that scan, the helper exhausted its Map seek: original enabled tab bounds`[548,320][1007,446]` are fully inside actual ScrollView`[0,307][1080,2101]`, but the old fixed viewport began384px. Intermediate seek frames are unavailable. Cluster/pin/detail-Back and second-actor physical35 remain unproven;19 listed business-table snapshots/history stayed unchanged.
+
+The reviewed proof-only repair observes real scroll/ancestor clipping, permits65 moves plus final observation and rejects stalled/ambiguous geometry. **Final70 Python,24 Node, TSC and87/87/0 checks PASS**. Existing72-suite/744-test application result remains valid at its unchanged application/dependency/build-input boundary; full Jest was not rerun for documentation/harness-only changes. The next action is one exact-source push/native replay, original map review and final CI/CodeQL before PR67 merge. No production, provider-offline, final-visual or release completion is added. Historical checkpoints below retain their original boundaries and are superseded here only for current entry/PR67 status.
+
+See [original failure/repair evidence](evidence/shared-discovery-20260907/run34165455214/review-summary.json), [current source fingerprints](evidence/shared-discovery-20260907/run34165455214/source-fingerprints.json) and [shared discovery report](SHARED_DISCOVERY_INTEGRATION_20260907.md).
+
+---
+
+## Shared List/Map integration — source proven; native acceptance pending
+
+Canonical PR64 `80e091ee` and PR66 source `82a99fc` are composed without reverting either. PR66 remains independently pending acceptance. The same authenticated public discovery page set now feeds a shared List/Map for both intentions, with retained local filters, bounded pagination/refresh, account/focus cancellation, approximate pins and real MapLibre renderers. Original SPOJ logo/motion assets are preserved; list header uses the owner brand. Task labels distinguish price from lifecycle, route origin from destination, and complete Serbia-time windows.
+
+Local composed source: **72 suites/744 Jest tests, TSC,64 Python input/proof tests,24 fixture guard tests PASS; AST93/38/0 findings; unchanged87/87/0 recorded migration provenance**. Physical Android source/APK and original PNG/XML proof is prepared, not yet executed for this unit. Historical79 plus explicit N02/N03 proof reconstruction does not mean full live87 replay. No fresh live query, production write, offline-map, launch or overall47-item closure is claimed. See [shared discovery integration](SHARED_DISCOVERY_INTEGRATION_20260907.md).
+
+---
+
 ## Current entry acceptance — original Android sequence and 34 checkpoints reviewed
 
 PR66 source `82a99fc115ff813327e9548c66fedd8413d29bff` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / CANONICAL PROMOTION PENDING**. Fresh canonical remains `80e091ee31930b28cc5c2e0af6b6e876a4926362` and is already integrated. Native run34163510260 passed; original artifact10033887904 is 5,847,655 bytes, SHA-256 `c82d1206009dd410c303b2a3517f6abbd68e4e07fbffc975bc62be8661de3386`. All 34 original PNG/XML pairs were individually reviewed: 7 entry, 17 account/navigation and 10 Inbox checkpoints. Both real local accounts, logout to the two-field login form, three-zone intents, full Agreement schedule/amount and current W04 Back pass.

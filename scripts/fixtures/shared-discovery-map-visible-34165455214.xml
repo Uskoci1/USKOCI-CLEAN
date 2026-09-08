@@ -1,0 +1,310 @@
+<?xml version='1.0' encoding='utf-8'?>
+<hierarchy>
+  <node class="android.widget.FrameLayout" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+    <node class="android.widget.LinearLayout" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+      <node class="android.widget.FrameLayout" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+        <node class="android.widget.LinearLayout" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+          <node class="android.widget.FrameLayout" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+            <node class="android.widget.FrameLayout" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+                <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+                  <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+                    <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+                      <node class="android.widget.ScrollView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+                        <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+                          <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2400]">
+                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2101]">
+                              <node class="android.widget.FrameLayout" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2101]">
+                                <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2101]">
+                                  <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2101]">
+                                    <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,0][1080,2101]">
+                                      <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[63,151][436,273]">
+                                        <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[63,151][436,273]">
+                                          <node class="android.widget.ImageView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[63,151][436,273]">
+                                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[67,152][179,268]">
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[67,152][97,182]">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[67,152][97,182]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[68,152][98,183]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[68,152][98,183]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[68,152][98,183]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[149,153][178,183]">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[149,153][178,183]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[150,153][179,184]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[150,153][179,184]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[150,153][179,184]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[67,186][139,268]">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[67,186][139,268]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[68,186][140,269]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[68,186][140,269]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[68,186][140,269]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[113,187][177,258]">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[113,187][177,258]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,187][178,259]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,187][178,259]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,187][178,259]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,190][130,214]">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,190][130,214]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,190][131,215]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,190][131,215]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[114,190][131,215]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[105,215][140,225]">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[105,215][140,225]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[106,215][140,226]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[106,215][140,226]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[106,215][140,226]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[104,255][120,268]">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[104,255][120,268]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[105,255][121,269]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[105,255][121,269]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[105,255][121,269]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                              </node>
+                                            </node>
+                                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[184,163][346,264]">
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[184,186][345,247]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[184,186][346,248]">
+                                                  <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[184,186][346,248]" />
+                                                </node>
+                                              </node>
+                                            </node>
+                                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[353,163][406,264]">
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[354,186][405,247]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[354,186][406,247]">
+                                                  <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[354,186][406,247]" />
+                                                </node>
+                                              </node>
+                                            </node>
+                                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[369,172][390,183]">
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[369,172][390,183]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[372,175][394,188]">
+                                                  <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[372,175][394,188]" />
+                                                </node>
+                                              </node>
+                                            </node>
+                                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[409,163][431,264]">
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[412,187][428,246]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[412,188][428,247]">
+                                                  <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[412,188][428,247]" />
+                                                </node>
+                                              </node>
+                                            </node>
+                                          </node>
+                                        </node>
+                                      </node>
+                                      <node class="android.widget.Button" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[744,149][870,275]">
+                                        <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[776,181][839,244]">
+                                          <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[782,186][831,239]">
+                                            <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[782,186][831,239]">
+                                              <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[782,186][831,239]" />
+                                            </node>
+                                          </node>
+                                        </node>
+                                      </node>
+                                      <node class="android.widget.Button" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[891,149][1017,275]">
+                                        <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[923,181][986,244]">
+                                          <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[928,181][981,237]">
+                                            <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[928,181][981,237]">
+                                              <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[928,181][981,237]" />
+                                            </node>
+                                          </node>
+                                        </node>
+                                      </node>
+                                      <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,307][1080,2101]">
+                                        <node class="android.widget.ScrollView" clickable="false" enabled="true" scrollable="true" selected="false" bounds="[0,307][1080,2101]">
+                                          <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,307][1080,2101]">
+                                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[63,307][1017,629]">
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[63,309][1017,456]" />
+                                              <node class="android.view.View" clickable="true" enabled="true" scrollable="false" selected="true" bounds="[74,320][532,446]" content-desc="Lista">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="true" bounds="[227,358][277,408]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="true" bounds="[233,368][271,398]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="true" bounds="[233,368][271,398]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="true" bounds="[233,368][271,398]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                                <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="true" bounds="[298,354][379,412]" />
+                                              </node>
+                                              <node class="android.view.View" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[548,320][1007,446]" content-desc="Mapa">
+                                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[695,358][745,408]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[699,364][740,402]">
+                                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[699,364][740,402]">
+                                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[699,364][740,402]" />
+                                                    </node>
+                                                  </node>
+                                                </node>
+                                                <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[766,354][859,412]" />
+                                              </node>
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[63,513][1017,566]" />
+                                            </node>
+                                            <node class="android.widget.Button" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[63,629][1017,1461]">
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,689][431,763]" />
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[149,702][404,750]" />
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,805][957,884]" />
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,933][168,978]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[130,935][161,975]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[130,935][161,975]">
+                                                    <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[130,935][161,975]" />
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[193,927][956,983]" />
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1010][168,1055]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[127,1014][164,1051]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[127,1014][164,1051]">
+                                                    <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[127,1014][164,1051]" />
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[193,1004][956,1060]" />
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1087][168,1132]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1091][168,1124]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1091][168,1124]">
+                                                    <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1091][168,1124]" />
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[193,1081][956,1137]" />
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1179][957,1402]" />
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1224][800,1295]" />
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1305][800,1401]" />
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[830,1249][956,1375]" />
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[864,1283][922,1341]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[875,1295][909,1329]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[875,1295][909,1329]">
+                                                    <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[875,1295][909,1329]" />
+                                                  </node>
+                                                </node>
+                                              </node>
+                                            </node>
+                                            <node class="android.widget.Button" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[63,1498][1017,2101]">
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1558][431,1632]" />
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[149,1571][404,1619]" />
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1674][957,1753]" />
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1802][168,1847]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[130,1804][161,1844]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[130,1804][161,1844]">
+                                                    <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[130,1804][161,1844]" />
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[193,1796][956,1852]" />
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1879][168,1924]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[127,1883][164,1920]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[127,1883][164,1920]">
+                                                    <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[127,1883][164,1920]" />
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[193,1873][956,1929]" />
+                                              <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1956][168,2001]">
+                                                <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1960][168,1993]">
+                                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1960][168,1993]">
+                                                    <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,1960][168,1993]" />
+                                                  </node>
+                                                </node>
+                                              </node>
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[193,1950][956,2006]" />
+                                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,2048][957,2101]" />
+                                              <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[123,2093][800,2101]" />
+                                            </node>
+                                          </node>
+                                        </node>
+                                      </node>
+                                    </node>
+                                  </node>
+                                </node>
+                              </node>
+                            </node>
+                            <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,2101][1080,2400]">
+                              <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,2104][1080,2400]" />
+                              <node class="android.view.View" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[0,2141][360,2259]">
+                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[150,2161][210,2221]">
+                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[155,2164][204,2218]">
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[155,2164][204,2218]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[155,2164][204,2218]" />
+                                    </node>
+                                  </node>
+                                </node>
+                                <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[130,2235][230,2259]" />
+                              </node>
+                              <node class="android.view.View" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[360,2141][720,2259]">
+                                <node class="android.view.ViewGroup" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[466,2141][613,2246]" />
+                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[487,2141][592,2244]">
+                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[501,2152][577,2230]">
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[501,2152][521,2173]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[501,2152][521,2173]" />
+                                    </node>
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[557,2152][577,2173]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[557,2152][577,2173]" />
+                                    </node>
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[502,2175][550,2230]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[502,2175][550,2230]" />
+                                    </node>
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[527,2194][550,2201]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[527,2194][550,2201]" />
+                                    </node>
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[533,2178][544,2195]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[533,2178][544,2195]" />
+                                    </node>
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[527,2221][538,2230]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[527,2221][538,2230]" />
+                                    </node>
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[533,2175][577,2224]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[533,2175][577,2224]" />
+                                    </node>
+                                  </node>
+                                </node>
+                                <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[506,2235][573,2259]" />
+                              </node>
+                              <node class="android.view.View" clickable="true" enabled="true" scrollable="false" selected="false" bounds="[720,2141][1080,2259]">
+                                <node class="com.horcrux.svg.SvgView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[870,2161][930,2221]">
+                                  <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[870,2170][930,2213]">
+                                    <node class="com.horcrux.svg.GroupView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[870,2170][930,2213]">
+                                      <node class="com.horcrux.svg.PathView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[870,2170][930,2213]" />
+                                    </node>
+                                  </node>
+                                </node>
+                                <node class="android.widget.TextView" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[833,2235][967,2259]" />
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                      </node>
+                    </node>
+                  </node>
+                </node>
+              </node>
+            </node>
+          </node>
+        </node>
+      </node>
+    </node>
+    <node class="android.view.View" clickable="false" enabled="true" scrollable="false" selected="false" bounds="[0,2274][1080,2400]" />
+  </node>
+</hierarchy>

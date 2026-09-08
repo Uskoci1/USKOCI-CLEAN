@@ -1,0 +1,70 @@
+{
+  "fingerprint_basis": "Tested working-tree raw bytes; Git applies the configured line-ending normalization when committing.",
+  "state": "SOURCE_IMPLEMENTED_LOCAL_SDK_TRANSPORT_PROVEN_CONSUMER_INTEGRATION_PENDING",
+  "canonical_base": "d4d8cd09bf44dd54c7355605b0c256813b46ab1b",
+  "default_page_limit": 30,
+  "maximum_page_limit": 50,
+  "profile_concurrency_limit": 4,
+  "new_discovery_tests": 42,
+  "full_jest_suites": 55,
+  "full_jest_tests": 511,
+  "typescript": "PASS",
+  "migration_integrity": "87_FILES_87_RECORDED_LIVE_SNAPSHOT_0_PENDING_PASS",
+  "ast_source_files": 69,
+  "ast_presentation_files": 26,
+  "ast_findings": 0,
+  "live_read_performed": false,
+  "live_write_performed": false,
+  "native_proof_performed": false,
+  "sql_dependencies_and_presentation_unchanged": true,
+  "report": "docs/implementation/SHARED_DISCOVERY_READ_FOUNDATION_20260907.md",
+  "observed_at": "2026-09-07T20:35:16.686968+00:00",
+  "scope": "Local source checks only; actual SDK with controlled HTTP, no live/provider/native execution",
+  "files": [
+    {
+      "path": "src/contracts/discovery.ts",
+      "bytes": 543,
+      "sha256": "aa77db5576c642a963729ce5a413a943d0abb579db0f664f1b4144538463c449"
+    },
+    {
+      "path": "src/data/__tests__/discovery-client-service.test.ts",
+      "bytes": 13773,
+      "sha256": "65869cffb1965d787ba6988c398d55cdc91597fad268a47e6c06cd1b8ce9716e"
+    },
+    {
+      "path": "src/data/discoveryClientService.ts",
+      "bytes": 10612,
+      "sha256": "edc9b770f5b8af7a18f1b4ccdc2030e48c25018912ec6f6f6675fda8179a2403"
+    },
+    {
+      "path": "src/contracts/projections.ts",
+      "bytes": 10890,
+      "sha256": "42119756820df1bbcf35e4285c5b7925099fd19113ad1c8a0eff5afb2bff2293"
+    },
+    {
+      "path": "src/data/__tests__/opportunities-read.test.ts",
+      "bytes": 3599,
+      "sha256": "1945502cca9e162daefbe5187a3f4d8636db324063ced237f625170b469965cd"
+    },
+    {
+      "path": "src/data/__tests__/ru5-p0c01-public-profile.test.ts",
+      "bytes": 5296,
+      "sha256": "4ab4f5359b1a15e032bc8b7be22ab1b48b653318c417ce2f34f5ce16402529f6"
+    },
+    {
+      "path": "src/data/lazniIzvor.ts",
+      "bytes": 28117,
+      "sha256": "a2af8d3a666ce367e0c661e6aa49d02bb73531161189062621fde0a927fea430"
+    },
+    {
+      "path": "src/data/ports.ts",
+      "bytes": 8574,
+      "sha256": "a7380d3d028260320ff53b099a46b055dafe569441108e38f9cf262fc4dce17e"
+    },
+    {
+      "path": "src/data/supabaseIzvor.ts",
+      "bytes": 6980,
+      "sha256": "53e9f861b77244f5bc3e638f72027034d69f51d1dea8d564144e5b98e790b644"
+    }
+  ]
+}

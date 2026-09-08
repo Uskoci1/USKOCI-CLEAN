@@ -1,0 +1,418 @@
+{
+  "sourceSha": "ed0bd58170d41a32776bc58710ea6aa84f3810f1",
+  "runId": 34165455214,
+  "nativeConclusion": "failure",
+  "wholeJourneyAccepted": false,
+  "artifactId": 10034550113,
+  "originalZipBytes": 13297891,
+  "originalZipSha256": "70907b2a0fe1bbda1736a54a306fb1387fac2de6970508bfcc2fb42c03a82148",
+  "originalZipMatchesGitHubDigest": true,
+  "extractedOriginalFiles": 145,
+  "failureFrames": [
+    "shared_discovery_android_journey.py:261 main",
+    "shared_discovery_android_journey.py:162 press",
+    "shared_discovery_android_journey.py:159 seek"
+  ],
+  "operation": "Return from requester all-card scan to actual Mapa tab",
+  "observed": {
+    "inherited27LogPass": true,
+    "requesterScanOriginalPairs": 33,
+    "requesterOriginalXmlDistinctIds": 35,
+    "requesterIdsExactlyMatchFixture": true,
+    "lastScreen": "DISCOVERY_FAILURE_last_screen.png",
+    "lastXml": "DISCOVERY_FAILURE_last_screen.xml",
+    "mapTabBounds": [
+      548,
+      320,
+      1007,
+      446
+    ],
+    "mapTabEnabledClickable": true,
+    "actualScrollAncestorBounds": [
+      0,
+      307,
+      1080,
+      2101
+    ],
+    "oldFixedViewportBounds": [
+      0,
+      384,
+      1080,
+      2064
+    ],
+    "remoteMapOriginalPngReviewed": true,
+    "remoteMapBounds": [
+      63,
+      1070,
+      1017,
+      1962
+    ],
+    "remoteMapSampledColors": 535,
+    "remoteMapPointCount": 0,
+    "remoteMapClusterCount": 0,
+    "postflightListedBusinessTablesUnchanged": 19,
+    "postflightHistoryUnchanged": true
+  },
+  "diagnosis": "The final original PNG/XML show Mapa fully visible inside its real scroll clipping ancestor, while the fixed .16 screen top classifies it as clipped. Seek exhausted32 attempts after scanning the complete requester list. This demonstrates a proof-helper geometry defect; no app source defect is established by this failure.",
+  "limits": [
+    "Intermediate XML for all32 seek attempts was not recorded; no claim is made that Mapa was visible on every attempt.",
+    "Requester35 identity comparison uses original accessibility card labels; it is not a claim that every card field was fully visible simultaneously.",
+    "Cluster expansion, selected pin, detail Back camera retention and second actor physical35 journey were not reached.",
+    "Actual remote map rendering is observed; provider offline behavior remains unproven.",
+    "Historical79 plus N02/N03 local fixture boundary only; no production or publication proof.",
+    "Raw original job logs remain workspace-only and may contain generated disposable credentials. Do not commit them."
+  ],
+  "recommendedNextUnit": "Repair91bad83 is reviewed and composed865d390. Push one reviewed descendant source for a fresh exact-head native replay; inspect original cluster/pin/Back and both actor observations before PR67 acceptance.",
+  "sourceModifiedDuringReview": false,
+  "extraDispatches": 0,
+  "reviewedRepairSha": "91bad83f0a666ee45509b6568687bf0f461c4f5d",
+  "currentSourceSha": "865d39006498862b909f3f0bf9730b64349dadb3",
+  "state": "FAILED_NATIVE_PARTIAL_OBSERVATIONS_REPAIR_SOURCE_PROVEN_FRESH_NATIVE_PENDING",
+  "durableSelectedOriginals": [
+    {
+      "path": "DISCOVERY_FAILURE_last_screen.png",
+      "bytes": 220625,
+      "sha256": "3783776cb29586f3aad20f6c7f0c7ff891b1968d120db0efc1b9cb60fdc049c6",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "DISCOVERY_FAILURE_last_screen.xml",
+      "bytes": 61101,
+      "sha256": "c8f710d0aa4b5a276795b848a030181bd668e4d4b866894aeb497b53ba89f302",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "DISCOVERY_remote_map_no_pin.png",
+      "bytes": 317356,
+      "sha256": "5cafbf5335ee6bf5ddbf346d18d58857f096ebf4b38847052ad9c0604547c5bd",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "DISCOVERY_remote_map_no_pin.xml",
+      "bytes": 52353,
+      "sha256": "e73bd614c934e74fa44af388091cc0af516562604fbe3e217a1dcf77b743cdc4",
+      "originalBytesUnchanged": true
+    }
+  ],
+  "fullOriginalArchiveLocation": "Workspace evidence/github-shared-discovery-34165455214; ZIP and raw logs excluded from Git",
+  "originalRequesterScanPairs": [
+    {
+      "name": "DISCOVERY_requester_scan_00",
+      "xmlSha256": "94596c9714705f934dfa15e575d039c57cf5e5493a677d3dc55a4c07c8525dbd",
+      "pngSha256": "44d5139ca0590ee49f5b6e0676d7c2d72b1b2fdad4e7536f0dfe303cd8071cee"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_01",
+      "xmlSha256": "7f248d6978a2774825d72910a6c28a956cc587c90d8f85960e9f91e8184bd7ca",
+      "pngSha256": "87105850626edd9d5b4b01e25f8b46f50a91dc51df4b66d4e9d63ef59697990c"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_02",
+      "xmlSha256": "e40c9e1a7d2326de90e92caca143ca40af8e7582e5980822126659a454369519",
+      "pngSha256": "e6a455ddcea98f4dba7d2296951d12ec611eb2fafad458ec6ac430f7c99014ef"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_03",
+      "xmlSha256": "b22c9590a997ada935614800cdc227b3c9dca7d6ccae7622acebcba904975b55",
+      "pngSha256": "1e6327918a83d5ee07858bdc81c4dc6b3d0b0b5c06de87bb0d4e911f927d57b9"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_04",
+      "xmlSha256": "0c0348f521c1f5e86fba9a336a3fd52a02aaf378e6b25b3c2db15d13ae6de1bf",
+      "pngSha256": "f3ca94b340654945682b4f67916c3e3b0b865dba97d2666413249e9c25ceb990"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_05",
+      "xmlSha256": "6080e43fbdde960d005c99d5182d575b8874c957870f20711ed51ddaa5501b18",
+      "pngSha256": "c0a387a1fc8eb3d8b504732bfe1751dd559fa297b21816b70ad31e413e11e5d8"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_06",
+      "xmlSha256": "46b90730f6c694fe5e42869a25f6e59b3263a91ff0f2055fa7917b3e6ee13aa2",
+      "pngSha256": "b6b95334017c14c4dc2a62b9f8cf4709fbaa6ffcdcae54d8f23e0fcbb8caca2c"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_07",
+      "xmlSha256": "3a860cfa6057a629a908b5399eff38100ccc0d79e162985bea76fe6173c3db01",
+      "pngSha256": "58efdf166bdb5b673c846c4bd35aa8506a1cdd6392ff07a5761b3af96948231d"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_08",
+      "xmlSha256": "34836ca4a18c7e10104a7d3c5cb51e33a2f33844deacf76cce91bc3f81803787",
+      "pngSha256": "948b9d9027bc05b9dcfdb079eebb6f0b98d0f7ae6b95defcdc4e13b7343c0e30"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_09",
+      "xmlSha256": "b9456c33f8bde9383116a0347eee11bf0ea777672a6ada3b6660d9866943f3f9",
+      "pngSha256": "44ce0e5245711fb649ada2cf454defe1204e3006e7b041ff216ce1f92481584b"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_10",
+      "xmlSha256": "324333d57f0040f33bbdebbc05f4f54d8e20b3ef17173fa4584fa38631f9d20d",
+      "pngSha256": "f4a263793a85f7d376e53913639cfcbddc195dcf768dd9c424fefa8e9272d74e"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_11",
+      "xmlSha256": "d70db8abfad71747164f9242f4497d0caa71626fcf46b28c693932e3e37b7881",
+      "pngSha256": "e02ba80528d87c2b85a892ec22a12e4560400540992e6ce42e7fbc0cebce02f7"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_12",
+      "xmlSha256": "a25789efa9b6f3c2a519d755057612e9a4e18977ca15b3ecfa557c8d9c50d9d5",
+      "pngSha256": "a81c66e63df21fba5f4d18d0d84c82e37207c7630e00a99eee9547d5ddf1b271"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_13",
+      "xmlSha256": "8232ad174c7aa5d57f83768ea5fef13451557814a2ecb5cefe1dea3cb2dfd887",
+      "pngSha256": "c5356c44cd8674d3dd3f24343e52eaf44454b80d611a723e70e1f5b35dcf0b9f"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_14",
+      "xmlSha256": "1afefdfe6c1be88c4d6864861ef8ff7a5bd3ab7139e84822138c9ef08384cc85",
+      "pngSha256": "b49bb1d3dc07af44a8cbe604f9c1d061cc3dc77645f0cda43a8ce17d462e8b6e"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_15",
+      "xmlSha256": "076efc8f4d53b986d55c47db4f7a8c96fb777e1c2eb660a0fc4d40e2d88082a4",
+      "pngSha256": "e4ba3bbdb0fcb32111966c3322988983a4950eb9441a5eac35dcdda735367ff4"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_16",
+      "xmlSha256": "10a4a2edb8418e26375d784a3f705dc77f0b4e305be5b10efeb13be11b9f57a7",
+      "pngSha256": "24d012e4792ab70c042ec93d46051600db532b5a6b9c49296a57c17dfdff95f8"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_17",
+      "xmlSha256": "0f3d45baeb07b19379dc3a3281b1b158871f6a79dabce5d9de376b1bd5359610",
+      "pngSha256": "144c611beef10c0d4db744bd8050668418331148f62a887106e24aa5b73c4472"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_18",
+      "xmlSha256": "49d704edbf4b3dc28809510d78fec0aab43953490f0b345921c50279bdd83221",
+      "pngSha256": "f82b2791b215c1f0231ba67ba3073671520c7d8d045a904732962f9660efdd75"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_19",
+      "xmlSha256": "9d52bff34c7905019bd7877c5df93d0c8492b21d71a93420e309085b2ea71bfc",
+      "pngSha256": "0cb1a9943759b034262d3a1710a07ad1c441bec2e39d336d63bf19dffe0a65a7"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_20",
+      "xmlSha256": "e1774de5324fe3266d871080c1f8cd7564f8788eccfbd2cdf23e6951d3410ad3",
+      "pngSha256": "3b524a89a1ab32c516cba6268d18d4acc151ee77544bbbec9d569ed7653913f1"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_21",
+      "xmlSha256": "96267a02fc11c912f0bfd2a4c833f436316a4c5116b42a36b45c058cae78c4e8",
+      "pngSha256": "eb1d254002edbc7d8e2289ce4e2f22be723fa1eaee651f1ff5102c9af82e94ab"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_22",
+      "xmlSha256": "26ae055a7449397b659cc9ffa1dc59511c16ae0f678896f8f16bb053fb7f7fe5",
+      "pngSha256": "2a82216b6cbe3277fe5d978a1785b15ce415f42bfddb9463fe0f655245f271cb"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_23",
+      "xmlSha256": "1c0fc11f7bd298fb1550660d00c11335281c8d88d16efd52978a22b37dd3668c",
+      "pngSha256": "0c7983ade87542ae36ea08823189165a7aedc976eb7d92339017280c658e8398"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_24",
+      "xmlSha256": "6ac996f42ab87b8b0c66d425177469fa00bb1c0f7e8a3fd342199260f9f0c2c1",
+      "pngSha256": "09abacd174500171d04f97b7776ef8cfcc9d564d34cc3880ca3c9a4e7c4f3d9d"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_25",
+      "xmlSha256": "6c12cca1464dec9f3619455e38e534663868ea7536a01afcc9ce3352a30e8f7b",
+      "pngSha256": "e0d621732c62eedd9b4f98560e963ec01946c9eabbedb86d4886f77b71fd2598"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_26",
+      "xmlSha256": "354d3a87222760023aa2954d99338ab25a11ff245f282b2258fabbe172f2aa33",
+      "pngSha256": "d4828f821aefef06d3e3648f1acbbe20ff0b40499edcf8deec796b7d0cbf6c49"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_27",
+      "xmlSha256": "c6e63b22cb56a0ebbce05ef84225bfaf3fe2b51d964e33a23b91615fd083fbf3",
+      "pngSha256": "ba9a469346488bafdef571c33e7eefeb0aaf1358eb4769be8893da29e70f0763"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_28",
+      "xmlSha256": "280fe6dbb3a4603b4857cbfcb542cb01a2f3e0956ceb2446f431e8b315e98211",
+      "pngSha256": "6a6b6f219f566c641c75e65ea101c2b68c82a017644f8f6aa34dd47de012cdc8"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_29",
+      "xmlSha256": "32418a394908a2ccaffb3ec98461c39e5256f20dedf531c2c3ae0302c54cfacb",
+      "pngSha256": "f63292be8e1d046401b61888b37e78a052e4cd68535369b1fded6a2ecd4c16f3"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_30",
+      "xmlSha256": "a08e45c0748c56679eadbe937bc5bd73f351b5e2544db6771b131ffd4378aa80",
+      "pngSha256": "7c27968e71d3996740264be4be15ca4f65ce9e02c5b5b2888adf693e2cd3e48d"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_31",
+      "xmlSha256": "70b21ac7cdb23958793c76b80e5601505e281069cbb4462bc0cc339d95ddab6b",
+      "pngSha256": "9891529fa56c88b3fc31343b299db78776ec77e35a0c0318b1ca10b4c87bed23"
+    },
+    {
+      "name": "DISCOVERY_requester_scan_32",
+      "xmlSha256": "ecb0b05b380101b9bff34cf210f79cb8e9bd20dae69fcd2b0d375cd8505d885c",
+      "pngSha256": "0e2214880068328963dc85d7a8cc40bf56baf92865e06a423392738e209b798a"
+    }
+  ],
+  "originalRequesterIdSetSha256": "ac5b90e797dc1d983d7ba726111edd580ee22181f6bb97d993715d3608b06237",
+  "originalRemoteMapRaster": {
+    "bounds": [
+      63,
+      1070,
+      1017,
+      1962
+    ],
+    "region_sha256": "fccd365010d7ddb86fc064162b266765a401a172479eab8ff8a41ee39fb2c8de",
+    "sampled_colors": 535,
+    "clusters": [],
+    "points": []
+  },
+  "postflight": {
+    "sourceSha": "ed0bd58170d41a32776bc58710ea6aa84f3810f1",
+    "localOnly": true,
+    "businessRowsUnchanged": true,
+    "historyUnchanged": true,
+    "tables": {
+      "public.app_profiles": {
+        "count": 4,
+        "hash": "3d62fb188a7f80cbb65b0894aadb2825"
+      },
+      "public.ai_conversations": {
+        "count": 1,
+        "hash": "cc61bdcc179d73d8aaa609988dc08e22"
+      },
+      "public.ai_messages": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "public.ai_structured_facts": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "public.agreement_messages": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "public.needs": {
+        "count": 36,
+        "hash": "d210c7c1f7fd10e3d2ddb92240961ef2"
+      },
+      "public.need_sensitive": {
+        "count": 34,
+        "hash": "ff498ab82c3ac5cfd4f41bb180af9656"
+      },
+      "public.marketplace_responses": {
+        "count": 1,
+        "hash": "5768d71d88c6930ad63661f1107f1388"
+      },
+      "public.need_selections": {
+        "count": 1,
+        "hash": "1e56d5f4821bee6deace113e033c7ef4"
+      },
+      "public.agreements": {
+        "count": 1,
+        "hash": "c35799fc51d65d63e5b54263801a7604"
+      },
+      "public.user_activity_events": {
+        "count": 33,
+        "hash": "76556373ab5e4a04b27b5fb1006bfbd2"
+      },
+      "public.notification_deliveries": {
+        "count": 66,
+        "hash": "ee76b0d153f0fe140a8ca22660152cc6"
+      },
+      "public.notification_preferences": {
+        "count": 1,
+        "hash": "4e631461619c4d512f974f4a123067dd"
+      },
+      "public.notification_push_attempts": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "private.connection_activations": {
+        "count": 1,
+        "hash": "b1ab4a43180ebacb89457bdf1d770464"
+      },
+      "private.publication_policy_bundles": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "private.need_publication_decisions": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "private.preselection_qa_questions": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "private.preselection_qa_commands": {
+        "count": 0,
+        "hash": "d41d8cd98f00b204e9800998ecf8427e"
+      }
+    },
+    "scope": "All rows of the explicitly listed business tables, new discovery journey only; preceding inherited N04 fixtures/read marks are outside this frozen interval. Auth sessions legitimately change."
+  },
+  "originalInheritedProofLogSha256": "e7411285ad09175c6a2ed4ef3ae46d08b06a5d53c9ba4bd5dfb3cef55f2323a0",
+  "originalCombinedProofLogSha256": "399888ee1084666d437ff2daa6180469babeed0f163aad848578de8f0291cdd5",
+  "failedSourceGates": {
+    "preP4Run": 34165479223,
+    "codeQLRun": 34165478000,
+    "actualAnalyses": [
+      1737900493,
+      1737899416,
+      1737899023
+    ],
+    "allPassed": true,
+    "results": 0,
+    "openAlerts": 0
+  },
+  "finalLocalChecks": {
+    "python": 70,
+    "node": 24,
+    "typescript": "PASS",
+    "integrity": "87/87/0",
+    "retainedAppJestSuites": 72,
+    "retainedAppJestTests": 744,
+    "fullJestRerun": false
+  },
+  "newNativeExecuted": false,
+  "canonicalEntry": {
+    "canonicalSha": "38e9a38f7c9713cc7061f347eb083d84022dcdfd",
+    "pr": 66,
+    "state": "CANONICAL_SCOPED_ENTRY_ANDROID_ACCEPTED",
+    "evidenceOwner": "Coordinating Root supplied fresh canonical gate observation; no new live query by this documentation unit",
+    "preP4": {
+      "runId": 34166399849,
+      "result": "PASS",
+      "jestSuites": 64,
+      "jestTests": 600,
+      "typescript": "PASS",
+      "integrity": "87/87/0"
+    },
+    "codeQL": {
+      "runId": 34166399632,
+      "actualAnalyses": [
+        1737938042,
+        1737937062,
+        1737937020
+      ],
+      "results": 0
+    },
+    "control0": {
+      "runId": 34166399987,
+      "result": "PASS"
+    },
+    "acceptedNativeSource": "82a99fc115ff813327e9548c66fedd8413d29bff",
+    "acceptedNativeRun": 34163510260,
+    "timing60FpsHandsetProof": false,
+    "finalVisualOr47ItemClosure": false
+  }
+}

@@ -12,7 +12,8 @@ import { publicProfileClientService } from '../publicProfileClientService';
 const { maybeSingle, eq, select, from } = jest.requireMock('../supabaseClient').__testMocks as Record<string, jest.Mock>;
 const publicProfile = publicProfileClientService.javniProfil as jest.Mock;
 const row = () => ({
-  id: 'task-a', title: 'Pomoć pri selidbi', status: 'PUBLISHED', starts_at: null,
+  id: 'task-a', title: 'Pomoć pri selidbi', status: 'PUBLISHED', starts_at: null, ends_at: null,
+  schedule_kind: 'FLEXIBLE', execution_location_mode: 'STATIONARY',
   approximate_area: 'Centar', approximate_city: 'Novi Sad', approximate_lat: 45.2, approximate_lng: 19.8,
   required_slots: 2, covered_slots: 0, required_skills: ['Alat'], required_tools: [], required_vehicles: [],
   requester_profile_id: 'requester-a', mode: 'MY_PRICE', requester_price_rsd: 5000, response_deadline: null,
@@ -36,7 +37,8 @@ describe('W04 public-safe detail read', () => {
     const result = await supabaseIzvor.prilika('task-a');
     expect(from).toHaveBeenCalledWith('needs'); expect(eq).toHaveBeenCalledWith('id', 'task-a');
     expect(select.mock.calls[0][0].split(',').map((field: string) => field.trim())).toEqual([
-      'id', 'title', 'status', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
+      'id', 'title', 'status', 'created_at', 'starts_at', 'ends_at', 'schedule_kind', 'execution_location_mode',
+      'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
       'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'requester_profile_id', 'response_deadline',
     ]);
     expect(result).toMatchObject({ id: 'task-a', naslov: 'Pomoć pri selidbi', primaNovePrijave: true,

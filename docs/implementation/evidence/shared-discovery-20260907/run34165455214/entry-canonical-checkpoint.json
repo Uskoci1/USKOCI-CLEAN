@@ -1,0 +1,31 @@
+{
+  "canonicalSha": "38e9a38f7c9713cc7061f347eb083d84022dcdfd",
+  "pr": 66,
+  "state": "CANONICAL_SCOPED_ENTRY_ANDROID_ACCEPTED",
+  "evidenceOwner": "Coordinating Root supplied fresh canonical gate observation; no new live query by this documentation unit",
+  "preP4": {
+    "runId": 34166399849,
+    "result": "PASS",
+    "jestSuites": 64,
+    "jestTests": 600,
+    "typescript": "PASS",
+    "integrity": "87/87/0"
+  },
+  "codeQL": {
+    "runId": 34166399632,
+    "actualAnalyses": [
+      1737938042,
+      1737937062,
+      1737937020
+    ],
+    "results": 0
+  },
+  "control0": {
+    "runId": 34166399987,
+    "result": "PASS"
+  },
+  "acceptedNativeSource": "82a99fc115ff813327e9548c66fedd8413d29bff",
+  "acceptedNativeRun": 34163510260,
+  "timing60FpsHandsetProof": false,
+  "finalVisualOr47ItemClosure": false
+}
