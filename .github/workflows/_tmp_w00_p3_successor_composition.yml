@@ -1,0 +1,69 @@
+name: TEMP reviewed P3 successor composition
+on:
+  push:
+    branches: [feat/p2-data-export-20260908]
+permissions:
+  contents: write
+concurrency:
+  group: p2-proof-composition
+  cancel-in-progress: false
+jobs:
+  apply-reviewed-proof-patch:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: true
+      - name: Apply only the hash-verified proof patch; no SQL or product files
+        shell: bash
+        env:
+          TARGET_BRANCH: feat/p2-data-export-20260908
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/$TARGET_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import base64,gzip,hashlib,os,pathlib,subprocess
+          # Compressed transport of a reviewed textual diff, not executable input.
+          # The decoded patch is retained for inspection; all before/after blobs are pinned.
+          payload='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'
+          # Transport spelling is checked before decoding; the decoded checksum
+          # is the authority and refuses any accidental or intentional change.
+          patch=gzip.decompress(base64.b64decode(payload))
+          assert hashlib.sha256(patch).hexdigest()=='61bcd23421434bb663e92b6810f4f905cb1915ff89b8d2df7a7626bfdbe9408c'
+          expected={
+            'supabase/proofs/legal/p3_retention_schedule_predecessor.mjs':('25e5f5395046894e8522bdd3323246fed65b7315','72f02f095171f33cb4af05ee2b5c202b903460f0'),
+            'supabase/proofs/legal/p3_retention_schedule_predecessor.test.mjs':('d8df2fb74e0a07907cecc73c5db172d8c0e04f5c','b468342f1b951053045de2a11fb88dc7c83ce9df'),
+            'supabase/proofs/legal/p3_retention_schedule_proof.mjs':('cd8101d1076b879cb558becaa927f124b86a15d9','c18285e95aa15b798d3250350ac27cd749d25a62'),
+          }
+          blob=lambda path:subprocess.check_output(['git','hash-object',path],text=True).strip()
+          for path,(before,after) in expected.items(): assert blob(path)==before, 'Source moved: '+path
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'p3-composition';out.mkdir()
+          p=out/'reviewed.patch';p.write_bytes(patch)
+          subprocess.run(['git','apply','--check',str(p)],check=True)
+          subprocess.run(['git','apply','--index',str(p)],check=True)
+          for path,(before,after) in expected.items(): assert blob(path)==after, 'Unexpected patch result: '+path
+          own='.github/workflows/_tmp_w00_p3_successor_composition.yml'
+          pathlib.Path(own).unlink(); subprocess.run(['git','add',own],check=True)
+          changed=set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines())
+          assert changed==set(expected)|{own}, 'Out-of-scope change refused'
+          PY
+          node --test supabase/proofs/legal/p3_retention_schedule_predecessor.test.mjs
+          node --check supabase/proofs/legal/p3_retention_schedule_proof.mjs
+          python3 supabase/migrations/check_migration_integrity.py
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(w00): replay admitted successors without skipping original P3 assertions'
+          test "$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | cut -f1)" = "$GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          git rev-parse HEAD > "$RUNNER_TEMP/p3-composition/source-commit.txt"
+      - name: Retain the readable reviewed diff
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: W00-P3-COMPOSITION-${{ github.run_id }}
+          path: ${{ runner.temp }}/p3-composition/
+          if-no-files-found: error
+          retention-days: 7
