@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigation, useRouter, type NativeStackNavigationProp } from 'expo-router';
-import * as Linking from 'expo-linking';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useRouter } from 'expo-router';
+import { passwordRecoveryIntent } from '../store/passwordRecoveryIntent';
 import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, CheckCircle, LockKey } from 'phosphor-react-native';
@@ -12,33 +12,23 @@ import { palette, radius, space, type } from '../theme/tokens';
 
 export default function PasswordRecoveryScreen() {
   const router = useRouter();
-  const navigation = useNavigation<NativeStackNavigationProp<{ oporavak: { '#': string } }, 'oporavak'>>();
   const insets = useSafeAreaInsets();
   const { user } = useSesija();
-  const incoming = Linking.useLinkingURL();
-  const [link, setLink] = useState(incoming);
+  const intent = useSyncExternalStore(passwordRecoveryIntent.subscribe, passwordRecoveryIntent.snapshot, passwordRecoveryIntent.serverSnapshot);
+  const link = intent?.link ?? null;
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [validation, setValidation] = useState<string | null>(null);
   const recovery = usePasswordRecovery(link);
   const busy = recovery.state.status === 'saving';
-  const back = () => router.replace(user ? '/' : { pathname: '/auth', params: { form: 'login' } });
+  const back = () => {
+    if (intent) passwordRecoveryIntent.clear(intent.id);
+    router.replace(user ? '/' : { pathname: '/auth', params: { form: 'login' } });
+  };
 
   useEffect(() => {
-    if (!incoming) return;
-    if (incoming !== link) { setPassword(''); setConfirmation(''); setValidation(null); }
-    setLink(incoming);
-    // The global router can target Expo's enclosing slot. Clear the actual
-    // recovery route instead, so its retained path cannot restore credentials.
-    // An empty string is intentional: this serializer stringifies undefined.
-    navigation.setParams({ '#': '' });
-    // Credentials are read only through Linking and kept in this transient flow.
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.location.pathname === '/oporavak') {
-        window.history.replaceState(window.history.state, '', '/oporavak');
-      }
-    } else Linking.clearInitialURL();
-  }, [incoming]);
+    setPassword(''); setConfirmation(''); setValidation(null);
+  }, [intent?.id]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {

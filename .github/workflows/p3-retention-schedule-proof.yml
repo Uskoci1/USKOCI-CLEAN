@@ -1,6 +1,15 @@
 name: P3 retention schedule authenticated proof
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [clean-alpha-backend]
+    paths:
+      - '.github/workflows/p3-retention-schedule-proof.yml'
+      - 'supabase/migrations/**'
+      - 'supabase/proofs/legal/p3_retention_schedule*'
+      - 'supabase/proofs/notifications/n07_forward*'
+      - 'supabase/proofs/notifications/n08_preferences*'
+      - 'supabase/proofs/ru5_device_ui_live79_env.sh'
   push:
     branches:
       - feat/p3-retention-schedule-20260908

@@ -5,7 +5,6 @@ import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
 let mockLink: string | null = 'uskociapp://oporavak#synthetic';
 let mockAccount: { user: { id: string } | null; accountRevision: number } = { user: null, accountRevision: 0 };
 const mockReplace = jest.fn();
-const mockSetParams = jest.fn();
 const mockClear = jest.fn();
 const mockVerify = jest.fn();
 const mockSave = jest.fn();
@@ -18,9 +17,15 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CheckCircle: 'Icon', LockKey: 'Icon', Eye: 'Icon', EyeSlash: 'Icon' }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }),
-  useNavigation: () => ({ setParams: mockSetParams }) }));
-jest.mock('expo-linking', () => ({ useLinkingURL: () => mockLink, clearInitialURL: () => mockClear() }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
+let mockIntent: { id: number; link: string } | null = null;
+jest.mock('../../store/passwordRecoveryIntent', () => ({ passwordRecoveryIntent: {
+  subscribe: () => () => {}, serverSnapshot: () => null,
+  snapshot: () => {
+    if (mockIntent?.link !== mockLink) mockIntent = mockLink ? { id: (mockIntent?.id ?? 0) + 1, link: mockLink } : null;
+    return mockIntent;
+  }, clear: (...args: unknown[]) => mockClear(...args),
+} }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
 jest.mock('../passwordRecoveryClientService', () => ({ passwordRecoveryClientService: {
   createSession: () => ({ verify: mockVerify, updatePassword: mockSave, dispose: mockDispose }),
@@ -41,7 +46,7 @@ const deferred = <T,>() => {
   return { resolve, reject, promise };
 };
 beforeEach(() => {
-  jest.clearAllMocks(); mockLink = 'uskociapp://oporavak#synthetic'; mockAccount = { user: null, accountRevision: 0 };
+  jest.clearAllMocks(); mockIntent = null; mockLink = 'uskociapp://oporavak#synthetic'; mockAccount = { user: null, accountRevision: 0 };
   mockVerify.mockResolvedValue({ email: 'account-a@example.test' }); mockSave.mockResolvedValue(undefined);
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
@@ -49,8 +54,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it('does not render password controls or success before server verification finishes', async () => {
   const waiting = deferred<{ email: string }>(); mockVerify.mockReturnValue(waiting.promise);
   await render(); expect(text()).toContain('Proveravamo link'); expect(hosts('TextInput')).toHaveLength(0);
-  expect(mockClear).toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
-  expect(mockSetParams).toHaveBeenCalledWith({ '#': '' });
+  expect(mockClear).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
   await act(async () => waiting.resolve({ email: 'account-a@example.test' }));
   expect(field('Nova lozinka').props.secureTextEntry).toBe(true);
   expect(field('Nova lozinka').props.autoComplete).toBe('new-password');
