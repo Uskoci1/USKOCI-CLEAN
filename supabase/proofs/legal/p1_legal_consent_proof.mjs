@@ -54,7 +54,7 @@ const bundle=client=>client.rpc('rpc_get_legal_bundle');
 const accept=(client,key)=>client.rpc('rpc_accept_legal_bundle',{p_client_request_id:key});
 const acceptances=uid=>rows(`select id,request_id,terms_document_id,terms_version_label,terms_content_sha256,privacy_document_id,privacy_version_label,privacy_content_sha256,acceptance_context from public.account_legal_acceptance_events where account_id=${q(uid)} order by accepted_at`);
 const sha=text=>createHash('sha256').update(text).digest('hex');
-const publish=(kind,label,content,extra='')=>sql(`insert into private.legal_document_versions(document_kind,version_label,content_sha256,public_url,published_at,effective_at,is_active${extra?','+extra.split('=')[0]:''}) values(${q(kind)},${q(label)},${q(sha(content))},${q('https://proof.invalid/legal/'+kind.toLowerCase()+'/'+label)},statement_timestamp()-interval '1 minute',statement_timestamp()-interval '1 minute',true${extra?','+extra.split('=')[1]:''}) returning id`);
+const publish=(kind,label,content)=>sql(`insert into private.legal_document_versions(document_kind,version_label,content_sha256,public_url,published_at,effective_at,is_active) values(${q(kind)},${q(label)},${q(sha(content))},${q('https://proof.invalid/legal/'+kind.toLowerCase()+'/'+label)},statement_timestamp()-interval '1 minute',statement_timestamp()-interval '1 minute',true) returning id`).split(/\r?\n/)[0];
 function asyncSql(application,query){return new Promise(resolve=>{
   execFile('psql',[db,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-At','-c',
     `set application_name=${q(application)};set statement_timeout='20s';${query}`],{encoding:'utf8',maxBuffer:1024*1024},
