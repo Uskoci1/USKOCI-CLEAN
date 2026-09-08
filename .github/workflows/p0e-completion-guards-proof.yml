@@ -1,20 +1,20 @@
-name: D-0140-A policy bundle registration proof
+name: P0E completion guards authenticated proof
 on:
   workflow_dispatch:
   push:
     branches:
-      - feat/d0140a-policy-bundle-registration-20260908
+      - fix/p0e-completion-guards-20260908
 permissions:
   contents: read
 env:
   CI: '1'
   SUPABASE_TELEMETRY_DISABLED: '1'
   DO_NOT_TRACK: '1'
-  N07_ARTIFACT_DIR: artifacts/d0140a-bundle-registration/predecessor-n07
-  N08_ARTIFACT_DIR: artifacts/d0140a-bundle-registration/predecessor-n08
-  D0140A_ARTIFACT_DIR: artifacts/d0140a-bundle-registration
+  N07_ARTIFACT_DIR: artifacts/p0e-completion-guards/predecessor-n07
+  N08_ARTIFACT_DIR: artifacts/p0e-completion-guards/predecessor-n08
+  P0E_ARTIFACT_DIR: artifacts/p0e-completion-guards
 jobs:
-  policy-bundle-registration-proof:
+  authenticated-completion-guards-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -40,9 +40,9 @@ jobs:
         run: |
           npx tsc --noEmit
           npm test -- --runInBand
-          node --check supabase/proofs/policy/d0140a_bundle_registration_proof.mjs
-          node --check supabase/proofs/policy/d0140a_bundle_registration_predecessor.mjs
-          node --test supabase/proofs/policy/d0140a_bundle_registration_predecessor.test.mjs
+          node --check supabase/proofs/completion/p0e_completion_guards_proof.mjs
+          node --check supabase/proofs/completion/p0e_completion_guards_predecessor.mjs
+          node --test supabase/proofs/completion/p0e_completion_guards_predecessor.test.mjs
           node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
           python3 supabase/migrations/check_migration_integrity.py
       - name: Reconstruct disposable historical live79
@@ -58,25 +58,30 @@ jobs:
           grep -F 'PASS N07_FORWARD_NOTIFICATION_ADMISSION' "$N07_ARTIFACT_DIR/proof.log"
           node supabase/proofs/notifications/n08_preferences_proof.mjs 2>&1 | tee "$N08_ARTIFACT_DIR/proof.log"
           grep -F 'PASS N08_NOTIFICATION_PREFERENCES' "$N08_ARTIFACT_DIR/proof.log"
-      - name: Reconstruct exact canonical predecessor through earlier pending forwards
+      - name: Reconstruct exact canonical D03 and AI DRAFT authority to live87
         shell: bash
         run: |
           set -euo pipefail
-          node supabase/proofs/policy/d0140a_bundle_registration_predecessor.mjs 2>&1 | tee "$D0140A_ARTIFACT_DIR/predecessor.log"
-          grep -F 'PASS D0140A_PREDECESSOR_INTEGRATION' "$D0140A_ARTIFACT_DIR/predecessor.log"
-      - name: Apply exact D-0140-A source and prove the registered bundle is inert
+          node supabase/proofs/completion/p0e_completion_guards_predecessor.mjs 2>&1 | tee "$P0E_ARTIFACT_DIR/predecessor.log"
+          grep -F 'PASS P0E_COMPLETION_PREDECESSOR_INTEGRATION' "$P0E_ARTIFACT_DIR/predecessor.log"
+      - name: Reproduce predecessor defects then apply exact P0E source and prove completion truth
         shell: bash
         run: |
           set -euo pipefail
-          node supabase/proofs/policy/d0140a_bundle_registration_proof.mjs 2>&1 | tee "$D0140A_ARTIFACT_DIR/proof.log"
-          grep -F 'PASS D0140A_BUNDLE_REGISTRATION' "$D0140A_ARTIFACT_DIR/proof.log"
-          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.D0140A_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.policy_activated_live || r.rule_text_seeded || r.allow_enabled || r.migration_history_count!==r.predecessor_history_count+1 || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==r.predecessor_plan.expected_predecessor_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==0 || r.checks.length!==6) process.exit(1);'
+          node supabase/proofs/completion/p0e_completion_guards_proof.mjs 2>&1 | tee "$P0E_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS P0E_COMPLETION_GUARDS' "$P0E_ARTIFACT_DIR/proof.log"
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P0E_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.migration_history_count!==r.predecessor_history_count+1 || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==87 || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==2 || !r.predecessor.deadline_extended_on_replay || !r.predecessor.cancelled_agreement_resurrected || r.predecessor.duplicate_problem_messages!==2 || r.checks.length!==14) process.exit(1);'
+      - name: Existing completion and problem client regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx jest --runInBand src/data/__tests__/m07-zavrsetak.test.ts src/data/__tests__/cdl-a07-completion-mark-equivalence.test.ts src/data/__tests__/cdl-a06-problem-report-equivalence.test.ts
       - name: Upload exact source-bound disposable evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: D0140A-BUNDLE-REGISTRATION-EVIDENCE
-          path: artifacts/d0140a-bundle-registration/
+          name: P0E-COMPLETION-GUARDS-EVIDENCE
+          path: artifacts/p0e-completion-guards/
           if-no-files-found: warn
           retention-days: 14
       - name: Teardown disposable Supabase

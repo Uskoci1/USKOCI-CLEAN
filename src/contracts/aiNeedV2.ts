@@ -46,3 +46,20 @@ export type AiNeedV2Conversation = {
   review: AiNeedV2Review;
   safety: AiNeedSafety;
 };
+
+/** RU-4: server opened an edit conversation bound to an owned public Zadatak. */
+export type AiNeedEditOpened = {
+  conversationId: string;
+  needId: string;
+  /** Exact revision the owner is editing; confirm must carry it back. */
+  revision: number;
+};
+
+/** RU-4: confirmed material edit — the Zadatak returned to DRAFT and needs re-admission. */
+export type AiNeedEditConfirmed = {
+  needId: string;
+  fromRevision: number;
+  revision: number;
+  requiresReadmission: boolean;
+  idempotentReplay: boolean;
+};

@@ -195,7 +195,7 @@ export default function NovaPotrebaV2() {
               )}
 
               <Button
-                label="Pregledajte nacrt"
+                label={stanje.review.boundNeedId ? 'Pregledajte izmene' : 'Pregledajte nacrt'}
                 meta={stanje.review.missingRequired.length ? `${stanje.review.missingRequired.length} obaveznih` : 'spreman za proveru'}
                 full
                 disabled={!razgovorId || facts.length === 0}

@@ -11,10 +11,10 @@ import { assertLocalDeviceProofTargets } from '../ru5_device_ui_local_guard.mjs'
 
 const digest = (algorithm, bytes) => createHash(algorithm).update(bytes).digest('hex');
 
-export function readD0140aPredecessorPlan(root = process.cwd()) {
+export function readP1LegalPredecessorPlan(root = process.cwd()) {
   const readJson = path => JSON.parse(readFileSync(resolve(root, path), 'utf8'));
-  const unit = readJson('supabase/proofs/policy/d0140a_bundle_registration_files.json');
-  const admitted = readJson('supabase/proofs/policy/d0140a_bundle_registration_predecessor_files.json');
+  const unit = readJson('supabase/proofs/legal/p1_legal_consent_files.json');
+  const admitted = readJson('supabase/proofs/legal/p1_legal_consent_predecessor_files.json');
   const provenance = readJson('supabase/migrations/MIGRATION_PROVENANCE.json');
   const source = readdirSync(resolve(root, 'supabase/migrations'))
     .filter(name => name.endsWith('.sql')).sort().map(file => {
@@ -49,8 +49,8 @@ export function readD0140aPredecessorPlan(root = process.cwd()) {
   assert.equal(historical.length, admitted.historical_file_count);
 
   const unitPendingIndex = pendingEntries.findIndex(entry => entry.file === unit.forward_file);
-  assert.ok(unitPendingIndex >= 0, 'D0140A_PENDING_PROVENANCE_MISSING');
-  assert.equal(unitPendingIndex, pendingEntries.length - 1, 'D0140A_PENDING_NOT_LAST_IN_CURRENT_FORWARD_STACK');
+  assert.ok(unitPendingIndex >= 0, 'P1_PENDING_PROVENANCE_MISSING');
+  assert.equal(unitPendingIndex, pendingEntries.length - 1, 'P1_PENDING_NOT_LAST_IN_CURRENT_FORWARD_STACK');
   const pendingPredecessors = pendingEntries.slice(0, unitPendingIndex).map(entry => {
     assert.equal(entry.live_applied, false, `PENDING_PREDECESSOR_MARKED_LIVE:${entry.file}`);
     assert.ok(String(entry.version) < String(unit.forward_version), `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
@@ -94,8 +94,8 @@ export function readD0140aPredecessorPlan(root = process.cwd()) {
 function applyDisposablePredecessor() {
   const env = process.env;
   assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL, env.RU5_DEVICE_DB_URL);
-  const plan = readD0140aPredecessorPlan(); // Refuse unknown source before any SQL.
-  const out = env.D0140A_ARTIFACT_DIR || 'artifacts/d0140a-bundle-registration';
+  const plan = readP1LegalPredecessorPlan(); // Refuse unknown source before any SQL.
+  const out = env.P1_ARTIFACT_DIR || 'artifacts/p1-legal-consent';
   mkdirSync(out, { recursive: true });
   const report = { result: 'RUNNING', source_sha: env.GITHUB_SHA ?? null,
     live_access: false, provider_called: false, plan };
@@ -131,8 +131,8 @@ function applyDisposablePredecessor() {
     stage = 'LIVE87_POSTFLIGHT';
     assert.equal(history(`version not in (${applied.map(a => quote(a.forward_version)).join(',')})`), before,
       'ORIGINAL_FULL_HISTORY_CHANGED');
-    assert.equal(sql("select count(*) from private.publication_policy_bundles"), '0', 'BUNDLE_UNEXPECTEDLY_PRESENT');
-    assert.equal(sql("select to_regprocedure('private.current_publication_policy_bundle(text,text,timestamptz)') is not null"), 't', 'RESOLVER_MISSING');
+    assert.equal(sql("select to_regclass('private.legal_document_versions') is null"), 't', 'LEGAL_TABLE_UNEXPECTEDLY_PRESENT');
+    assert.equal(sql("select to_regprocedure('public.rpc_accept_legal_bundle(text)') is null"), 't', 'LEGAL_RPC_UNEXPECTEDLY_PRESENT');
 
     const appliedPending = [];
     for (const dep of plan.pending_predecessors) {
@@ -152,8 +152,8 @@ function applyDisposablePredecessor() {
     const excluded = [...applied.map(a => a.forward_version), ...appliedPending.map(a => a.version)];
     assert.equal(history(`version not in (${excluded.map(quote).join(',')})`), before,
       'ORIGINAL_BASE_HISTORY_CHANGED_AFTER_PENDING_PREDECESSORS');
-    assert.equal(sql("select count(*) from private.publication_policy_bundles"), '0', 'BUNDLE_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
-    assert.equal(sql("select to_regprocedure('private.current_publication_policy_bundle(text,text,timestamptz)') is not null"), 't', 'RESOLVER_MISSING_AFTER_PENDING_PREDECESSORS');
+    assert.equal(sql("select to_regclass('private.legal_document_versions') is null"), 't', 'LEGAL_TABLE_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
+    assert.equal(sql("select to_regprocedure('public.rpc_accept_legal_bundle(text)') is null"), 't', 'LEGAL_RPC_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
     sql("notify pgrst,'reload schema'");
     const after = history('true');
     assert.equal(JSON.parse(after).length, plan.expected_predecessor_count);
@@ -171,11 +171,11 @@ function applyDisposablePredecessor() {
     process.exitCode = 1;
   } finally {
     writeFileSync(`${out}/predecessor-integration-report.json`, `${JSON.stringify(report, null, 2)}\n`);
-    console.log(`${report.result} D0140A_PREDECESSOR_INTEGRATION`);
+    console.log(`${report.result} P1_LEGAL_PREDECESSOR_INTEGRATION`);
   }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv[2] === '--inspect') console.log(JSON.stringify(readD0140aPredecessorPlan(), null, 2));
+  if (process.argv[2] === '--inspect') console.log(JSON.stringify(readP1LegalPredecessorPlan(), null, 2));
   else applyDisposablePredecessor();
 }

@@ -9,12 +9,17 @@ const unit = JSON.parse(readFileSync('supabase/proofs/policy/d0140a_bundle_regis
 const SOURCE_DOC = 'docs/implementation/ru3/RS_PUBLICATION_POLICY_MINIMUM_OWNER_LOCK_V1.md';
 const SOURCE_SHA = '792597eb4b5b940238f784587c9431613d3a71bdd7f662e9439fdbed134bd2aa';
 
-test('plan admits exactly the frozen live87 inventory plus one pending forward file', () => {
+test('plan admits frozen live87 plus the ordered earlier pending stack and this unit', () => {
+  const provenance = JSON.parse(readFileSync('supabase/migrations/MIGRATION_PROVENANCE.json', 'utf8'));
+  const pending = provenance.pending_forward_migrations.map(entry => entry.file);
+  const before = pending.slice(0, pending.indexOf(unit.forward_file));
   const plan = readD0140aPredecessorPlan();
   assert.equal(plan.historical_predecessor_count, 87);
-  assert.equal(plan.source_migration_count, 88);
-  assert.equal(plan.expected_predecessor_count, 87);
-  assert.equal(plan.source_inventory.at(-1).file, unit.forward_file);
+  assert.equal(plan.pending_predecessor_count, before.length);
+  assert.equal(plan.source_migration_count, 87 + pending.length);
+  assert.equal(plan.expected_predecessor_count, 87 + before.length);
+  assert.deepEqual(plan.pending_predecessors.map(entry => entry.file), before);
+  assert.equal(pending.at(-1), unit.forward_file, 'unit must be last in the current forward stack');
 });
 
 test('candidate and forward bytes are identical and match the manifest digests', () => {
