@@ -8,6 +8,7 @@ import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { T } from '../../ui/Text';
+import { BuildIdentity } from '../../ui/BuildIdentity';
 import { Press } from '../../ui/Press';
 import { Button, Card } from '../../ui/Button';
 import { palette, space, radius, elevation, touch } from '../../theme/tokens';
@@ -155,6 +156,7 @@ export default function Profil() {
           <Button label={busy ? 'Sačekajte…' : 'Odjavite se'} kind="quiet" disabled={busy}
             icon={<SignOut size={20} color={palette.inkMuted} />} onPress={() => { void logout(); }} />
         </View>
+        <BuildIdentity />
       </ScrollView>
     </SafeAreaView>
   );

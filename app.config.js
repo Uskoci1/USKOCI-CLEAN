@@ -1,4 +1,5 @@
 'use strict';
+const { buildIdentity } = require('./scripts/build-identity.cjs');
 
 // Expo supplies normalized app.json, including each disposable workflow's
 // package/label overrides. Never replace those with the preview identity.
@@ -14,5 +15,7 @@ module.exports = ({ config }) => {
     // Preview Firebase has no Android client for proof/dev/unknown packages.
     delete android.googleServicesFile;
   }
-  return { ...config, android, plugins };
+  return { ...config, android, plugins, extra: { ...config.extra,
+    uskociBuild: buildIdentity({ root: __dirname, version: config.version }),
+  } };
 };

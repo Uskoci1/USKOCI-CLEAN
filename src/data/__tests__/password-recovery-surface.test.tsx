@@ -49,7 +49,7 @@ it('does not render password controls or success before server verification fini
   const waiting = deferred<{ email: string }>(); mockVerify.mockReturnValue(waiting.promise);
   await render(); expect(text()).toContain('Proveravamo link'); expect(hosts('TextInput')).toHaveLength(0);
   expect(mockClear).toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
-  expect(mockSetParams).toHaveBeenCalledWith({ '#': undefined });
+  expect(mockSetParams).toHaveBeenCalledWith({ '#': '' });
   await act(async () => waiting.resolve({ email: 'account-a@example.test' }));
   expect(field('Nova lozinka').props.secureTextEntry).toBe(true);
   expect(field('Nova lozinka').props.autoComplete).toBe('new-password');
@@ -112,4 +112,11 @@ it('does not hide an interrupted write behind a newer link or a late success', a
   await act(async () => tree.update(<PasswordRecoveryScreen />));
   await act(async () => waiting.resolve());
   expect(text()).toContain('Nije potvrđeno da li je lozinka promenjena'); expect(mockVerify).toHaveBeenCalledTimes(1);
+});
+
+
+it('clears the fragment in the installed Expo serializer, not just a mocked router', () => {
+  const { getPathFromState } = require('expo-router/build/fork/getPathFromState');
+  const state = { routes: [{ name: 'oporavak', params: { '#': '' } }], index: 0 };
+  expect(getPathFromState(state, { screens: { oporavak: 'oporavak' } })).toBe('/oporavak');
 });

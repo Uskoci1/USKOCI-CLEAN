@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle, LockKey } from 'phosphor-react-native';
 import { usePasswordRecovery } from '../hooks/usePasswordRecovery';
 import { useSesija } from '../store/sesija';
 import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
+import { BuildIdentity } from '../ui/BuildIdentity';
 import { palette, radius, space, type } from '../theme/tokens';
 
 export default function PasswordRecoveryScreen() {
@@ -29,7 +30,7 @@ export default function PasswordRecoveryScreen() {
     // Expo Router preserves a URL fragment as the '#' navigation parameter.
     // Clear that owner as well as browser history, otherwise router hydration
     // restores the credential fragment after a direct history.replaceState.
-    router.setParams({ '#': undefined });
+    router.setParams({ '#': '' });
     // Credentials are read only through Linking and kept in this transient flow.
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined' && window.location.pathname === '/oporavak') {
@@ -104,6 +105,7 @@ export default function PasswordRecoveryScreen() {
               </Pressable>
             </> : null}
           </View>
+          <BuildIdentity />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

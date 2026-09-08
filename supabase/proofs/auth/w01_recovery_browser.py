@@ -140,6 +140,11 @@ try:
         page.get_by_role('button', name='Sačuvajte novu lozinku').click()
         page.get_by_text('Lozinka je promenjena.', exact=False).wait_for()
         screenshot('05-confirmed')
+        page.get_by_role('button', name='Podaci o verziji').click()
+        page.get_by_text('Izvor: ' + report['sourceCommit'], exact=True).wait_for()
+        page.get_by_text('Lokalno test okruženje', exact=True).wait_for()
+        screenshot('09-build-identity')
+        report['checks'].append('In-app version details identify the exact tested source and local backend without claiming live activation')
         assert page.url == WEB + '/oporavak', 'Recovery unexpectedly became marketplace login'
         values = page.evaluate('Object.values(localStorage)')
         assert not any('access_token' in value or 'refresh_token' in value for value in values), 'Recovery tokens persisted'

@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/w01-auth-recovery-proof.yml'
       - 'src/**'
+      - 'app.config.js'
+      - 'scripts/build-identity*'
       - 'supabase/proofs/auth/**'
       - 'package*.json'
 permissions:
@@ -39,6 +41,7 @@ jobs:
       - run: npm ci
       - name: TypeScript, complete regressions and immutable migration integrity
         run: |
+          node --test scripts/build-identity.test.cjs
           npx tsc --noEmit
           npm test -- --runInBand
           sh supabase/migrations/check_md5.sh

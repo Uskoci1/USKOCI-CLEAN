@@ -67,6 +67,10 @@ jobs:
         id: metro
         run: node --test scripts/metro-cache-concurrency.test.cjs
 
+      - name: Verify public build identity projection
+        id: build_identity
+        run: node --test scripts/build-identity.test.cjs
+
       - name: TypeScript contract check
         id: typescript
         run: npx tsc --noEmit
@@ -82,12 +86,13 @@ jobs:
           MIGRATION_RESULT: ${{ steps.migration.outcome }}
           DEPENDENCIES_RESULT: ${{ steps.dependencies.outcome }}
           METRO_RESULT: ${{ steps.metro.outcome }}
+          BUILD_IDENTITY_RESULT: ${{ steps.build_identity.outcome }}
           TYPESCRIPT_RESULT: ${{ steps.typescript.outcome }}
           REGRESSION_RESULT: ${{ steps.regression.outcome }}
         run: |
           python - <<'PY'
           import json, os, pathlib, subprocess
-          names = ('migration', 'dependencies', 'metro', 'typescript', 'regression')
+          names = ('migration', 'dependencies', 'metro', 'build_identity', 'typescript', 'regression')
           results = {name: os.environ.get(name.upper() + '_RESULT') or 'not_run' for name in names}
           checked_out = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
           receipt = {
