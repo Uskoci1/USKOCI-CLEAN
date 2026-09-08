@@ -630,6 +630,45 @@
   },
   "pending_forward_migrations": [
     {
+      "version": "20260908120000",
+      "name": "clean_p0e_completion_guards",
+      "file": "20260908120000_clean_p0e_completion_guards.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "aeb81a26c7015ebf2370968c9b9b5b98",
+      "raw_sha256": "e407bfb542b8f8a0561a946c87da51db0040dd823c33caedba749bc1587f0133",
+      "raw_bytes": 16541,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "P0E_COMPLETION_GUARDS",
+      "approved_rules": "MASTER 06_DRAFT_EVIDENCE/P0_SQL_DRAFTS_V10/P0E 01,02,04 + P0E_PROOF_MATRIX.csv",
+      "proof_entrypoint": "supabase/proofs/completion/p0e_completion_guards_proof.mjs",
+      "workflow": ".github/workflows/p0e-completion-guards-proof.yml",
+      "predecessor_reconciliation": {
+        "public.rpc_report_problem(uuid,text)": {
+          "defined_by": "20260830191500_clean_p0_authoritative_fixes.sql",
+          "classification": "RECORDED_STATEMENT_RECONSTRUCTION",
+          "live_recorded_body_md5": "d872dd1eaffdb67856ce6c47f4176f33",
+          "canonical_source_body_md5": "f4800952fc49316868e6b57c081e7f88",
+          "rule": "either frozen digest admits the predecessor; a disposable source replay yields the canonical digest, live yields the recorded one"
+        }
+      }
+    },
+    {
+      "version": "20260908130000",
+      "name": "clean_p1_legal_consent_ledger",
+      "file": "20260908130000_clean_p1_legal_consent_ledger.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "6d32b1a05622b232ca54658f7f70f8a5",
+      "raw_sha256": "fa9be26fd9006d8af271384c3ed344be72b51531b49450cbc6c89f3bc1b653e7",
+      "raw_bytes": 11829,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "P1_LEGAL_CONSENT",
+      "legal_content": "MISSING_APPROVED_CONTENT"
+    },
+    {
       "version": "20260908140000",
       "name": "clean_p4_processor_map_registry",
       "file": "20260908140000_clean_p4_processor_map_registry.sql",
@@ -1680,6 +1719,48 @@
     },
     "verification": "docs/implementation/evidence/ai-live87-20260907/verification.json",
     "report": "docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md"
+  },
+  "p0e_completion_guards": {
+    "unit": "P0E_COMPLETION_GUARDS",
+    "status": "SOURCE_IMPLEMENTED_PENDING_DISPOSABLE_PROOF_NOT_LIVE",
+    "canonical_base_sha": "b0a915dba28d914203a50fc38d353a433d61e7d1",
+    "source_version": "20260908120000",
+    "source_file": "20260908120000_clean_p0e_completion_guards.sql",
+    "raw_md5": "aeb81a26c7015ebf2370968c9b9b5b98",
+    "raw_sha256": "e407bfb542b8f8a0561a946c87da51db0040dd823c33caedba749bc1587f0133",
+    "live_version": null,
+    "live_applied": false,
+    "replaced_functions": [
+      "public.rpc_mark_work_done(uuid)",
+      "public.rpc_confirm_completion(uuid)",
+      "public.rpc_report_problem(uuid,text)"
+    ],
+    "draft_corrections": [
+      "need_id variable/column ambiguity resolved (v_need_id + qualified columns)",
+      "absent public.worker_calendar_commitments statement removed and guarded",
+      "void->jsonb return type changes performed via drop function + recreate + explicit re-grant"
+    ],
+    "runner_correction": "first replay 34213592979 failed LIVE87_POSTFLIGHT: rpc_report_problem source replay body f4800952fc49316868e6b57c081e7f88 vs live recorded d872dd1eaffdb67856ce6c47f4176f33; guards now admit both frozen digests",
+    "tick_race_correction": {
+      "discovered_by": "run 34214812925 check OBSERVED_LOCK_REQUESTER_CONFIRM_HOLDER_VERSUS_SERVICE_TICK_WAITER_CONVERGES_ONCE",
+      "defect": "live rpc_tick_auto_completion evaluated state/deadline predicates in a CTE snapshot and updated by agreement_id, so after waiting on the confirm lock it re-completed the row and overwrote completed_at",
+      "fix": "predicates moved into the UPDATE so the post-lock re-check skips rows completed meanwhile; grants and return type unchanged"
+    }
+  },
+  "p1_legal_consent_ledger": {
+    "unit": "P1_LEGAL_CONSENT",
+    "forward_file": "20260908130000_clean_p1_legal_consent_ledger.sql",
+    "raw_md5": "6d32b1a05622b232ca54658f7f70f8a5",
+    "raw_sha256": "fa9be26fd9006d8af271384c3ed344be72b51531b49450cbc6c89f3bc1b653e7",
+    "raw_bytes": 11829,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "proof_workflow": ".github/workflows/p1-legal-consent-proof.yml",
+    "proof": "supabase/proofs/legal/p1_legal_consent_proof.mjs",
+    "record": "docs/implementation/P1_LEGAL_CONSENT_20260908.md",
+    "seeds_legal_documents": false,
+    "legal_content": "MISSING_APPROVED_CONTENT",
+    "owner_decision_required": "approved TERMS/PRIVACY content, public https URLs and effective dates; publication is an authorized-operations act"
   },
   "p4_processor_map_registry": {
     "unit": "P4_PROCESSOR_MAP",
