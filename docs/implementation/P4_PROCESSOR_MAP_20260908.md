@@ -1,6 +1,6 @@
 # P4 processor/subprocessor map registry — 2026-09-08
 
-Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PENDING ON RUNNER / NOT LIVE / LEGAL MAP MISSING_APPROVED_CONTENT.
+Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PASS ON RUNNER (run 34232677273) / NOT LIVE / LEGAL MAP MISSING_APPROVED_CONTENT.
 
 CLEAN has no server-owned inventory of the providers that can process personal data and no versioned, counsel-referenced processor map behind the privacy notice. The donor closed the technical foundation in `rc2_025_versioned_processor_subprocessor_map_foundation` (281 lines); the master's donor→CLEAN reconciliation marks it ADAPT_HIGH because the donor seeds its own project's evidence. This unit ports the design as one forward-only migration: three private tables, two RPCs, no change to any existing object.
 
