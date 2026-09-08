@@ -1,4 +1,6 @@
 import type {
+  AiNeedEditConfirmed,
+  AiNeedEditOpened,
   AiNeedMessage,
   AiNeedSafety,
   AiNeedV2Conversation,
@@ -23,6 +25,34 @@ function fail(kod: string, poruka: string): Ishod<never> {
 
 function mapRpcError(error: any, fallback: string) {
   return fail(error?.code || error?.message || fallback, error?.message || 'Radnja trenutno nije mogla da se završi.');
+}
+
+// RU-4 edit authority speaks in server exception names; the user reads product language.
+const NEED_EDIT_COPY: Record<string, string> = {
+  NEED_EDIT_LOCKED_AFTER_FIRST_DOGOVOR:
+    'Zadatak više ne može da se menja jer je već sklopljen Dogovor. Promene idu kroz izmenu Dogovora.',
+  NEED_NOT_EDITABLE_PUBLIC_STATE: 'Ovaj Zadatak trenutno nije u stanju u kom može da se menja.',
+  NEED_EDIT_GEOGRAPHY_NOT_READY: 'Lokacija Zadatka još nije spremna za izmenu.',
+  NEED_NOT_OWNED: 'Samo vlasnik Zadatka može da ga menja.',
+  NOT_OWNER: 'Samo vlasnik Zadatka može da ga menja.',
+  NEED_NOT_FOUND: 'Zadatak nije pronađen.',
+  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Otvorite ga ponovo i proverite podatke.',
+  NEED_EDIT_CONFLICT: 'Zadatak je u međuvremenu promenjen. Otvorite ga ponovo i proverite podatke.',
+  EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION: 'Potvrdite sve podatke pre čuvanja izmena.',
+  REQUIRED_CONFIRMED_FACTS_MISSING: 'Nedostaju obavezni podaci. Dopunite ih pre čuvanja.',
+  NO_MATERIAL_CHANGE: 'Niste promenili nijedan podatak.',
+  EDIT_CONVERSATION_NOT_CONFIRMABLE: 'Ova izmena više nije otvorena. Pokrenite izmenu ponovo iz Zadatka.',
+  EDIT_CONVERSATION_NEED_MISMATCH: 'Ova izmena ne pripada ovom Zadatku.',
+  MY_PRICE_AMOUNT_REQUIRED: 'Unesite cenu ili izaberite prikupljanje ponuda.',
+  FIXED_WINDOW_BOUNDS_REQUIRED: 'Termin mora imati početak i kraj.',
+};
+
+function editFailure(error: any, fallback: string): Ishod<never> {
+  const name = typeof error?.message === 'string' ? error.message : '';
+  return fail(
+    name || error?.code || fallback,
+    NEED_EDIT_COPY[name] ?? 'Izmena trenutno nije mogla da se sačuva. Pokušajte ponovo.',
+  );
 }
 
 async function edgeFailure(error: any) {
@@ -190,5 +220,59 @@ export const aiNeedV2Production = {
     const needId = typeof data?.needId === 'string' ? data.needId : typeof data?.need_id === 'string' ? data.need_id : '';
     if (!needId) return fail('NEED_V2_DRAFT_INVALID_RESPONSE', 'Server nije vratio sačuvan Zadatak.');
     return { ok: true, podatak: { needId } };
+  },
+
+  /**
+   * RU-4 owner edit. The server seeds a NEED_INTAKE conversation bound to the
+   * Zadatak with its current confirmed facts and returns the exact revision.
+   * Refused after the first Dogovor; that is the server's rule, not the client's.
+   */
+  async openEditConversation(needId: string): Promise<Ishod<AiNeedEditOpened>> {
+    const { data, error } = await supabase.rpc('rpc_ai_open_need_edit_conversation_v2', { p_need_id: needId });
+    if (error) return editFailure(error, 'NEED_EDIT_OPEN_FAILED');
+    const conversationId = typeof data?.conversationId === 'string' ? data.conversationId : '';
+    const revision = Number(data?.revision);
+    if (!conversationId || !Number.isInteger(revision) || revision < 1) {
+      return fail('NEED_EDIT_INVALID_RESPONSE', 'Server nije otvorio izmenu Zadatka.');
+    }
+    return {
+      ok: true,
+      podatak: { conversationId, needId: typeof data?.needId === 'string' ? data.needId : needId, revision },
+    };
+  },
+
+  /**
+   * RU-4 material edit confirmation from R07. Carries the revision the owner
+   * reviewed; a moved revision is STALE_REVIEW_REQUIRED, never a silent overwrite.
+   * The same clientRequestId across retries of the same intent replays the receipt.
+   */
+  async confirmEdit(
+    needId: string,
+    expectedRevision: number,
+    conversationId: string,
+    clientRequestId: string,
+  ): Promise<Ishod<AiNeedEditConfirmed>> {
+    const { data, error } = await supabase.rpc('rpc_confirm_need_edit_from_review_v2', {
+      p_need_id: needId,
+      p_expected_revision: expectedRevision,
+      p_conversation_id: conversationId,
+      p_client_request_id: clientRequestId,
+    });
+    if (error) return editFailure(error, 'NEED_EDIT_CONFIRM_FAILED');
+    const resultNeedId = typeof data?.needId === 'string' ? data.needId : '';
+    const revision = Number(data?.revision);
+    if (!resultNeedId || !Number.isInteger(revision) || revision < 1) {
+      return fail('NEED_EDIT_INVALID_RESPONSE', 'Server nije potvrdio izmenu Zadatka.');
+    }
+    return {
+      ok: true,
+      podatak: {
+        needId: resultNeedId,
+        fromRevision: Number.isInteger(Number(data?.fromRevision)) ? Number(data.fromRevision) : expectedRevision,
+        revision,
+        requiresReadmission: data?.requiresReadmission !== false,
+        idempotentReplay: data?.idempotentReplay === true,
+      },
+    };
   },
 };
