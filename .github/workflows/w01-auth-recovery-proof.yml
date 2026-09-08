@@ -1,0 +1,51 @@
+name: W01 auth recovery proof
+
+on:
+  pull_request:
+    branches: [clean-alpha-backend]
+    paths:
+      - '.github/workflows/w01-auth-recovery-proof.yml'
+      - 'src/**'
+      - 'scripts/w01-*'
+      - 'package*.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: w01-auth-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recovery-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Temporary offline validation transfer
+        if: github.head_ref == 'feat/w00-w01-account-recovery-20260908'
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/uskoci-offline"
+          tar -czf "$RUNNER_TEMP/uskoci-offline/dependencies.tgz" node_modules
+          cp package-lock.json "$RUNNER_TEMP/uskoci-offline/package-lock.json"
+          git rev-parse HEAD > "$RUNNER_TEMP/uskoci-offline/source-commit.txt"
+          (cd "$RUNNER_TEMP/uskoci-offline" && sha256sum dependencies.tgz package-lock.json > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        if: github.head_ref == 'feat/w00-w01-account-recovery-20260908'
+        with:
+          name: uskoci-offline-validation-${{ github.run_id }}
+          path: ${{ runner.temp }}/uskoci-offline/
+          retention-days: 1
+          if-no-files-found: error
+      - name: TypeScript contract check
+        run: npx tsc --noEmit
+      - name: Existing regression boundary
+        run: npm test -- --runInBand
