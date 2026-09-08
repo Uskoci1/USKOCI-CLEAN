@@ -169,3 +169,48 @@ it.each([true, false])('keeps the recovery route public without consuming a save
   expect(stack.props.screens).toContain('oporavak');
   if (!signedIn) expect(stack.props.screens).not.toContain('(app)');
 });
+
+it.each(['auth', 'oporavak'])('does not overwrite an unresolved cold native %s link while Auth restores', async destination => {
+  mockSegments.splice(0, mockSegments.length);
+  mockRendered = { ...mockRendered, session: null, user: null };
+  mockCurrent = mockRendered;
+  await render();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(mockConsume).not.toHaveBeenCalled();
+  mockSegments.push(destination); mockPath = '/' + destination;
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
+it('does not consume a saved user action before the native destination is resolved', async () => {
+  mockSegments.splice(0, mockSegments.length);
+  await render();
+  expect(mockConsume).not.toHaveBeenCalled();
+  mockSegments.push('oporavak'); mockPath = '/oporavak';
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockConsume).not.toHaveBeenCalled();
+});
+
+
+it('resumes unauthenticated access protection once a private native destination resolves', async () => {
+  mockSegments.splice(0, mockSegments.length);
+  mockRendered = { ...mockRendered, session: null, user: null }; mockCurrent = mockRendered;
+  await render();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(tree.root.findByType('Stack' as React.ElementType).props.screens.sort()).toEqual(['auth', 'oporavak']);
+  mockSegments.push('dogovor'); mockPath = '/dogovor/private-id';
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
+  expect(mockConsume).not.toHaveBeenCalled();
+});
+
+it('consumes the completed intention after a signed-in native app destination resolves', async () => {
+  mockSegments.splice(0, mockSegments.length);
+  mockConsume.mockResolvedValueOnce({ intent: { intent: 'WORKER', returnTarget: { kind: 'NONE' } } });
+  await render();
+  expect(mockConsume).not.toHaveBeenCalled();
+  mockSegments.push('(app)');
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockConsume).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).toHaveBeenCalledWith('/prilike');
+});

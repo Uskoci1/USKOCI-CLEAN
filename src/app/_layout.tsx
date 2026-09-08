@@ -14,13 +14,17 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const pathname = usePathname();
+  // Native linking resolves asynchronously. An empty route is not a request
+  // for the welcome screen; do not overwrite its incoming Auth/recovery link.
+  // Stack.Protected continues to enforce access while the route resolves.
+  const routeResolved = segments.length > 0;
   const naAuth = segments[0] === 'auth';
   const naOporavku = segments[0] === 'oporavak';
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !routeResolved) return;
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
       sesijaSada().user?.id !== session?.user.id) return;
     if (!session && !naAuth && !naOporavku) {
@@ -30,12 +34,12 @@ export default function RootLayout() {
     if (session && naAuth) {
       router.replace('/');
     }
-  }, [isLoaded, session, sessionEpoch, naAuth, naOporavku, pathname, router]);
+  }, [isLoaded, routeResolved, session, sessionEpoch, naAuth, naOporavku, pathname, router]);
 
   // Consume a completed pre-auth intent exactly once after a real session has
   // been restored/created. The store itself guards which user completed it.
   useEffect(() => {
-    if (!isLoaded || !session || naOporavku) return;
+    if (!isLoaded || !routeResolved || !session || naOporavku) return;
     let aktivan = true;
     const isCurrent = () => aktivan && sesijaSada().sessionEpoch === sessionEpoch &&
       sesijaSada().user?.id === session.user.id;
@@ -60,7 +64,7 @@ export default function RootLayout() {
     return () => {
       aktivan = false;
     };
-  }, [isLoaded, session, sessionEpoch, returnTargetRevision, naOporavku, router]);
+  }, [isLoaded, routeResolved, session, sessionEpoch, returnTargetRevision, naOporavku, router]);
 
   if (!isLoaded) {
     return (
