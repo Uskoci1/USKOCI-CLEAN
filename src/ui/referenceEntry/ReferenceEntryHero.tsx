@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -138,7 +139,8 @@ function LogoLayerView({ layer, timeMs }: { layer: LogoLayer; timeMs: number }) 
 
 /** The operational navigation uses the same completed mark, without intro motion. */
 export function CanonicalMark({ size }: { size: number }) {
-  return <Svg width={size} height={size} viewBox="0 0 512 512" accessible={false}>
+  return <Svg width={size} height={size} viewBox="0 0 512 512"
+    {...(Platform.OS === 'web' ? { 'aria-hidden': true, focusable: false } : { accessible: false })}>
     {ENTRY_LOGO.slojevi.map(layer => <LogoLayerView key={layer.nm} layer={layer} timeMs={END_MS} />)}
   </Svg>;
 }
