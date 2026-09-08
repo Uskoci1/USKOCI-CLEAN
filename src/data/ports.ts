@@ -4,9 +4,9 @@
  * Ekran zove ovo. Ispod može da stoji lažni izvor ili Supabase — ekran ne zna
  * razliku i ne sme da zna. Zamena izvora je zamena jednog fajla.
  *
- * Imena metoda prate stvarne RPC funkcije iz donora, da se kasnije ne pogađa:
- *   rpc_r24_list_requester_responses, rpc_r24_select_response,
- *   rpc_r24_confirm_agreement, rpc_r24_browse_open_needs, ...
+ * Imena metoda prate stvarne LIVE RPC funkcije CLEAN servera, ne donorska
+ * r24/r25 imena koja uzivo ne postoje: rpc_submit_response,
+ * rpc_select_response, rpc_propose_agreement_change_v2, ...
  */
 
 import type {
@@ -116,16 +116,16 @@ export interface Komande {
   /** P0C-03 — rpc_withdraw_response; stale-revision odluke ostaju RU-4 authority. */
   povuciPrijavu(k: PovuciPrijavuKomanda): Promise<Ishod<{ stanje: 'WITHDRAWN'; verzija: number }>>;
 
-  /** rpc_r24_select_response → rpc_r24_confirm_agreement, atomski */
+  /** rpc_select_response — izbor i Dogovor su jedna atomska serverska komanda */
   izaberiPrijavu(k: IzborKomanda): Promise<Ishod<{ dogovorId: string }>>;
 
-  /** rpc_r24_mark_response_viewed */
+  /** rpc_mark_response_viewed */
   oznaciPrijavuVidjenom(prijavaId: string): Promise<Ishod<null>>;
 
-  /** rpc_r25_propose_agreement_change */
+  /** rpc_propose_agreement_change_v2 */
   predloziIzmenu(k: IzmenaKomanda): Promise<Ishod<{ predlogId: string }>>;
 
-  /** rpc_r25_respond_agreement_change */
+  /** rpc_respond_agreement_change */
   odgovoriNaIzmenu(predlogId: string, prihvatam: boolean): Promise<Ishod<null>>;
 
   /** M04 — chat radi nezavisno od privatnih grantova */
@@ -165,9 +165,9 @@ export interface Komande {
 /* ----------------------------------------------------- R02 — AI intake */
 
 /**
- * Imena prate donorov dokazani lanac (KEEP):
- *   rpc_ai_open_conversation → rpc_ai_propose_fact → rpc_ai_confirm_fact
- *   → rpc_ai_complete_conversation → rpc_r24_create_need_draft → rpc_r24_publish_need
+ * Istorijski V1 lanac. Produkcijski V2 lanac je aiNeedV2Izvor:
+ *   rpc_ai_open_need_conversation_v2 → uskoci-ai-interview → rpc_ai_need_review_v2
+ *   → rpc_save_need_draft_from_review → rpc_publish_need_canonical (fail-closed do D-0140)
  */
 export interface AiIntake {
   /** rpc_ai_open_conversation */
