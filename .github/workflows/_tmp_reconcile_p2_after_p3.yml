@@ -1,66 +1,117 @@
-name: TEMP merge canonical into P2 and reconcile registries
+name: TEMP bounded P2 canonical reconciliation
 on:
   push:
     branches: [feat/p2-data-export-20260908]
 permissions:
   contents: write
+concurrency:
+  group: p2-canonical-reconciliation
+  cancel-in-progress: false
 env:
   TARGET_BRANCH: feat/p2-data-export-20260908
+  CANONICAL_SHA: b0f6851c1957cf27da8e135fdf05c0b55321f754
 jobs:
   reconcile:
-    if: github.actor != 'github-actions[bot]'
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           persist-credentials: true
-      - name: Merge canonical and resolve only migration registries
+      - name: Merge only the verified canonical; retain all other work
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/$TARGET_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch origin clean-alpha-backend
+          test "$(git rev-parse origin/clean-alpha-backend)" = "$CANONICAL_SHA"
           p='supabase/migrations/MIGRATION_PROVENANCE.json'
           m='supabase/migrations/MD5_MANIFEST.txt'
-          git fetch origin clean-alpha-backend
-          git show "HEAD:$p" >/tmp/fp.json; git show "HEAD:$m" >/tmp/fm.txt
-          git show "origin/clean-alpha-backend:$p" >/tmp/bp.json; git show "origin/clean-alpha-backend:$m" >/tmp/bm.txt
+          git show "HEAD:$p" > "$RUNNER_TEMP/p2-feature-provenance.json"
+          git show "HEAD:$m" > "$RUNNER_TEMP/p2-feature-manifest.txt"
+          git show "$CANONICAL_SHA:$p" > "$RUNNER_TEMP/p2-base-provenance.json"
+          git show "$CANONICAL_SHA:$m" > "$RUNNER_TEMP/p2-base-manifest.txt"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          set +e; git merge --no-ff --no-commit origin/clean-alpha-backend; rc=$?; set -e
-          if [ "$rc" -ne 0 ] && [ ! -f .git/MERGE_HEAD ]; then exit "$rc"; fi
-          unresolved="$(git diff --name-only --diff-filter=U || true)"
-          bad="$(printf '%s\n' "$unresolved" | grep -vxF "$m" | grep -vxF "$p" || true)"
-          if [ -n "$bad" ]; then echo 'Unexpected conflicts:'; printf '%s\n' "$bad"; exit 1; fi
+          set +e
+          git merge --no-ff --no-commit "$CANONICAL_SHA"
+          result=$?
+          set -e
+          if [ "$result" -gt 1 ]; then exit "$result"; fi
           python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=Path('supabase/migrations/MIGRATION_PROVENANCE.json'); m=Path('supabase/migrations/MD5_MANIFEST.txt')
-          b=json.loads(Path('/tmp/bp.json').read_text()); f=json.loads(Path('/tmp/fp.json').read_text())
-          out=dict(b); out.update(f); pend={}
-          for src in (b.get('pending_forward_migrations',[]), f.get('pending_forward_migrations',[])):
-            for x in src:
-              v=x['version']
-              if v in pend and pend[v] != x: raise SystemExit(f'conflicting provenance {v}')
-              pend[v]=x
-          out['pending_forward_migrations']=[pend[v] for v in sorted(pend)]
-          p.write_text(json.dumps(out,indent=2,ensure_ascii=False)+'\n',newline='\n')
-          def parse(t):
-            d={}
-            for line in t.splitlines():
-              h,n=line.split('  ',1)
-              if n in d and d[n] != h: raise SystemExit(f'conflicting manifest {n}')
-              d[n]=h
-            return d
-          d=parse(Path('/tmp/bm.txt').read_text())
-          for n,h in parse(Path('/tmp/fm.txt').read_text()).items():
-            if n in d and d[n] != h: raise SystemExit(f'conflicting manifest {n}')
-            d[n]=h
-          m.write_text(''.join(f'{d[n]}  {n}\n' for n in sorted(d)),newline='\n')
+          import hashlib,json,os,pathlib,subprocess
+          root=pathlib.Path('.'); temp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          manifest='supabase/migrations/MD5_MANIFEST.txt'
+          provenance='supabase/migrations/MIGRATION_PROVENANCE.json'
+          conflicts=set(subprocess.check_output(['git','diff','--name-only','--diff-filter=U'],text=True).splitlines())
+          assert conflicts <= {manifest,provenance}, 'Unexpected merge conflict; coordinator review required'
+          base=json.loads((temp/'p2-base-provenance.json').read_text())
+          feature=json.loads((temp/'p2-feature-provenance.json').read_text())
+          merged={}
+          for key in base.keys() | feature.keys():
+              if key=='pending_forward_migrations': continue
+              if key in base and key in feature: assert base[key]==feature[key], 'Conflicting provenance outside pending inventory: '+key
+              merged[key]=base[key] if key in base else feature[key]
+          pending={}
+          for item in base.get('pending_forward_migrations',[])+feature.get('pending_forward_migrations',[]):
+              version=item['version']
+              if version in pending: assert pending[version]==item, 'Conflicting pending migration identity'
+              assert item['live_applied'] is False
+              pending[version]=item
+          # Preserve canonical ordering and historical sections; append only the unit's new key.
+          ordered={key:merged[key] for key in base if key!='pending_forward_migrations'}
+          for key in feature:
+              if key not in ordered and key!='pending_forward_migrations': ordered[key]=merged[key]
+          ordered['pending_forward_migrations']=[pending[key] for key in sorted(pending)]
+          (root/provenance).write_text(json.dumps(ordered,ensure_ascii=False,indent=2)+'\n')
+          entries={}
+          for name in ['p2-base-manifest.txt','p2-feature-manifest.txt']:
+              for line in (temp/name).read_text().splitlines():
+                  digest,filename=line.split('  ',1)
+                  if filename in entries: assert entries[filename]==digest, 'Conflicting migration bytes'
+                  entries[filename]=digest
+          (root/manifest).write_text(''.join(entries[name]+'  '+name+'\n' for name in sorted(entries)))
+          original=subprocess.check_output(['git','ls-tree','-r',os.environ['CANONICAL_SHA'],'--','supabase/migrations'],text=True)
+          for line in original.splitlines():
+              meta,name=line.split('\t',1)
+              if name.endswith('.sql'):
+                  assert subprocess.check_output(['git','hash-object',name],text=True).strip()==meta.split()[2], 'Existing SQL bytes changed'
+          assert hashlib.md5(pathlib.Path('supabase/migrations/20260908160000_clean_p2_data_export_requests.sql').read_bytes()).hexdigest()=='51b1cb1aea386a5bd2a596c89b58dd97'
+          pathlib.Path('.github/workflows/_tmp_reconcile_p2_after_p3.yml').unlink()
+          allowed={
+            '.github/workflows/p2-data-export-proof.yml','docs/implementation/P2_DATA_EXPORT_20260908.md',
+            'src/contracts/dataExport.ts','src/data/dataExportClientService.ts','src/data/__tests__/p2-data-export-client.test.ts',
+            'supabase/migrations/20260908160000_clean_p2_data_export_requests.sql',manifest,provenance,
+            'supabase/proofs/legal/p2_data_export_candidate.sql','supabase/proofs/legal/p2_data_export_files.json',
+            'supabase/proofs/legal/p2_data_export_predecessor.mjs','supabase/proofs/legal/p2_data_export_predecessor.test.mjs',
+            'supabase/proofs/legal/p2_data_export_predecessor_files.json','supabase/proofs/legal/p2_data_export_proof.mjs',
+          }
+          changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['CANONICAL_SHA']],text=True).splitlines())
+          assert changed<=allowed, 'Unexpected unit scope; no push'
+          (temp/'p2-unit-files.txt').write_text('\n'.join(sorted(changed))+'\n')
           PY
-          git add "$m" "$p"
+          git add "$m" "$p" .github/workflows/_tmp_reconcile_p2_after_p3.yml
           test -z "$(git diff --name-only --diff-filter=U)"
           python3 supabase/migrations/check_migration_integrity.py
-          git diff --cached --check; git diff --check
-          git commit -m 'Merge clean-alpha-backend into P2; reconcile migration registries'
-          git push origin "HEAD:${TARGET_BRANCH}"
+          node --test supabase/proofs/legal/p2_data_export_predecessor.test.mjs
+          git diff --cached --check
+          git commit -m 'Merge verified canonical into P2; preserve SQL and retire reconciliation writer'
+          test "$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | cut -f1)" = "$GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          mkdir -p "$RUNNER_TEMP/p2-integrated-source"
+          git rev-parse HEAD > "$RUNNER_TEMP/p2-integrated-source/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/p2-integrated-source/source-tree.txt"
+          printf '%s\n' "$CANONICAL_SHA" > "$RUNNER_TEMP/p2-integrated-source/canonical-base.txt"
+          mapfile -t files < "$RUNNER_TEMP/p2-unit-files.txt"
+          git archive --format=zip --output="$RUNNER_TEMP/p2-integrated-source/p2-unit-source.zip" HEAD -- "${files[@]}"
+          (cd "$RUNNER_TEMP/p2-integrated-source" && sha256sum p2-unit-source.zip > SHA256SUMS)
+      - name: Retain exact non-production unit sources for review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: P2-INTEGRATED-SOURCE-${{ github.run_id }}
+          path: ${{ runner.temp }}/p2-integrated-source/
+          if-no-files-found: error
+          retention-days: 7
