@@ -58,7 +58,7 @@ jobs:
           grep -F 'PASS N07_FORWARD_NOTIFICATION_ADMISSION' "$N07_ARTIFACT_DIR/proof.log"
           node supabase/proofs/notifications/n08_preferences_proof.mjs 2>&1 | tee "$N08_ARTIFACT_DIR/proof.log"
           grep -F 'PASS N08_NOTIFICATION_PREFERENCES' "$N08_ARTIFACT_DIR/proof.log"
-      - name: Reconstruct exact canonical D03 and AI DRAFT authority to live87
+      - name: Reconstruct exact canonical predecessor through earlier pending forwards
         shell: bash
         run: |
           set -euo pipefail
@@ -70,7 +70,7 @@ jobs:
           set -euo pipefail
           node supabase/proofs/legal/p4_processor_map_proof.mjs 2>&1 | tee "$P4_ARTIFACT_DIR/proof.log"
           grep -F 'PASS P4_PROCESSOR_MAP' "$P4_ARTIFACT_DIR/proof.log"
-          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P4_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.migration_history_count!==r.predecessor_history_count+1 || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==87 || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==1 || r.checks.length!==8) process.exit(1);'
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P4_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.migration_history_count!==r.predecessor_history_count+1 || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==r.predecessor_plan.expected_predecessor_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==1 || r.checks.length!==8) process.exit(1);'
       - name: Upload exact source-bound disposable evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
