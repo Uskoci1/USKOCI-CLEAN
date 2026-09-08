@@ -122,8 +122,14 @@ try:
         stage = 'actual-provider-email-link-and-isolated-recovery-session'
         page.goto(first_link, wait_until='networkidle')
         page.get_by_label('Nova lozinka', exact=True).wait_for()
-        assert page.url == WEB + '/oporavak', 'Credentials remained in browser URL or Auth redirected into marketplace'
         screenshot('03-verified')
+        # Record only structural booleans, never a credential-bearing URL.
+        report['callbackLocation'] = page.evaluate('''() => ({
+            correctOrigin: location.origin === 'http://127.0.0.1:4173',
+            correctPath: location.pathname === '/oporavak',
+            hasSearch: Boolean(location.search), hasHash: Boolean(location.hash)
+        })''')
+        assert page.url == WEB + '/oporavak', 'Credentials remained in browser URL or Auth redirected into marketplace'
         page.get_by_label('Nova lozinka', exact=True).fill(new_password)
         page.get_by_label('Potvrdite novu lozinku', exact=True).fill('mismatch')
         page.get_by_role('button', name='Sačuvajte novu lozinku').click()

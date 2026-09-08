@@ -5,6 +5,7 @@ import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
 let mockLink: string | null = 'uskociapp://oporavak#synthetic';
 let mockAccount: { user: { id: string } | null; accountRevision: number } = { user: null, accountRevision: 0 };
 const mockReplace = jest.fn();
+const mockSetParams = jest.fn();
 const mockClear = jest.fn();
 const mockVerify = jest.fn();
 const mockSave = jest.fn();
@@ -17,7 +18,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CheckCircle: 'Icon', LockKey: 'Icon', Eye: 'Icon', EyeSlash: 'Icon' }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace, setParams: mockSetParams }) }));
 jest.mock('expo-linking', () => ({ useLinkingURL: () => mockLink, clearInitialURL: () => mockClear() }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
 jest.mock('../passwordRecoveryClientService', () => ({ passwordRecoveryClientService: {
@@ -48,6 +49,7 @@ it('does not render password controls or success before server verification fini
   const waiting = deferred<{ email: string }>(); mockVerify.mockReturnValue(waiting.promise);
   await render(); expect(text()).toContain('Proveravamo link'); expect(hosts('TextInput')).toHaveLength(0);
   expect(mockClear).toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
+  expect(mockSetParams).toHaveBeenCalledWith({ '#': undefined });
   await act(async () => waiting.resolve({ email: 'account-a@example.test' }));
   expect(field('Nova lozinka').props.secureTextEntry).toBe(true);
   expect(field('Nova lozinka').props.autoComplete).toBe('new-password');
