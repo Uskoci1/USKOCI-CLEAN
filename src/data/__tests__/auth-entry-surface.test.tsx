@@ -215,3 +215,30 @@ it('retains the entry and exposes retry after failed intent storage', async () =
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   expect(input('ime@primer.rs')).toBeDefined();
 });
+
+
+it('submits recovery only on user action and reports accepted rather than delivered email', async () => {
+  mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
+  await render(); await fill('ime@primer.rs', 'ana@example.test');
+  await press('Zaboravili ste lozinku?');
+  expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
+  expect(host('TextInput')).toHaveLength(1);
+  await press('Pošaljite link');
+  expect(mockAuth.requestPasswordRecovery.mock.calls).toEqual([['ana@example.test']]);
+  expect(text()).toContain('Ako nalog sa ovim emailom postoji');
+  expect(text()).not.toContain('Poslali smo');
+  expect(button('Nazad na prijavu')).toBeDefined();
+});
+
+it('prevents duplicate recovery sends and keeps a failed request editable', async () => {
+  mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
+  const waiting = deferred<void>(); mockAuth.requestPasswordRecovery.mockReturnValue(waiting.promise);
+  await render(); await press('Zaboravili ste lozinku?'); await fill('ime@primer.rs', 'ana@example.test');
+  const send = button('Pošaljite link').props.onPress;
+  await act(async () => { send(); send(); });
+  expect(mockAuth.requestPasswordRecovery).toHaveBeenCalledTimes(1);
+  expect(input('ime@primer.rs').props.editable).toBe(false);
+  await act(async () => waiting.reject(new Error('Proverite email pre ponovnog pokušaja.')));
+  expect(text()).toContain('Proverite email pre ponovnog pokušaja.');
+  expect(input('ime@primer.rs').props.editable).toBe(true);
+});

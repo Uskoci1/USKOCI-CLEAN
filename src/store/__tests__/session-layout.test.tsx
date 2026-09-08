@@ -83,14 +83,14 @@ describe('session-owned root return navigation', () => {
     mockCurrent = mockRendered;
     await render();
     const stack = tree.root.findByType('Stack' as React.ElementType);
-    expect(stack.props.screens).toEqual(['auth']);
+    expect(stack.props.screens.sort()).toEqual(['auth', 'oporavak']);
     expect(stack.props.protectedScreens.sort()).toEqual(['(app)', 'dogovor/[id]', 'obavestenja', 'prijave']);
   });
 
   it('exposes the four private root routes only after authentication and excludes Auth', async () => {
     await render();
     const stack = tree.root.findByType('Stack' as React.ElementType);
-    expect(stack.props.screens.sort()).toEqual(['(app)', 'dogovor/[id]', 'obavestenja', 'prijave']);
+    expect(stack.props.screens.sort()).toEqual(['(app)', 'dogovor/[id]', 'obavestenja', 'oporavak', 'prijave']);
     expect(stack.props.protectedScreens).toEqual(['auth']);
   });
 
@@ -155,4 +155,17 @@ it.each([['WORKER', '/prilike'], ['REQUESTER', '/nova']])('continues the complet
   mockConsume.mockResolvedValueOnce({ intent: { intent, returnTarget: { kind: 'NONE' } } });
   await render();
   expect(mockRouter.replace).toHaveBeenCalledWith(destination);
+});
+
+
+it.each([true, false])('keeps the recovery route public without consuming a saved intention: signedIn=%s', async signedIn => {
+  mockSegments.splice(0, mockSegments.length, 'oporavak'); mockPath = '/oporavak';
+  if (!signedIn) mockRendered = { ...mockRendered, session: null, user: null };
+  mockCurrent = mockRendered;
+  await render();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(mockConsume).not.toHaveBeenCalled();
+  const stack = tree.root.findByType('Stack' as React.ElementType);
+  expect(stack.props.screens).toContain('oporavak');
+  if (!signedIn) expect(stack.props.screens).not.toContain('(app)');
 });

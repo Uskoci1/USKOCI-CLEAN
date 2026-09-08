@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -17,13 +16,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   EnvelopeSimple,
-  Eye,
-  EyeSlash,
   LockKey,
   MapPin,
   Phone,
   User,
 } from 'phosphor-react-native';
+
+import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
 
 import { authClientService } from '../data/authClientService';
 import { useAuthAvailability } from '../hooks/useAuthAvailability';
@@ -32,77 +31,7 @@ import { EntryWelcome } from '../ui/entry/EntryWelcome';
 import { entryIntentClientService } from '../data/entryIntentClientService';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
-type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY_UNAVAILABLE' | 'SIGNUP_NEXT_STEP';
-
-function AuthField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secure,
-  keyboardType,
-  autoCapitalize = 'none',
-  editable = true,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  icon?: React.ReactNode;
-  secure?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'number-pad';
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  editable?: boolean;
-}) {
-  const [vidljivo, setVidljivo] = useState(false);
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.inputRow}>
-        <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText}
-          editable={editable} autoCapitalize={autoCapitalize} autoCorrect={false}
-          keyboardType={keyboardType} placeholder={placeholder} placeholderTextColor="#73847E"
-          secureTextEntry={secure && !vidljivo} style={styles.fieldInput}
-          autoComplete={keyboardType === 'email-address' ? 'email' : secure ? 'password' : 'off'}
-        />
-        {secure ? <Pressable accessibilityRole="button" disabled={!editable}
-          accessibilityLabel={vidljivo ? 'Sakrij lozinku' : 'Prikaži lozinku'}
-          onPress={() => setVidljivo(x => !x)} style={styles.passToggle}>
-          {vidljivo ? <EyeSlash size={21} color="#5D6E6D" /> : <Eye size={21} color="#5D6E6D" />}
-        </Pressable> : null}
-      </View>
-    </View>
-  );
-}
-
-function PrimaryButton({
-  title,
-  onPress,
-  busy,
-  disabled,
-}: {
-  title: string;
-  onPress: () => void;
-  busy?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      accessibilityState={{ busy: !!busy, disabled: !!(disabled || busy) }}
-      disabled={disabled || busy}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.primary,
-        (disabled || busy) && styles.disabled,
-        pressed && !disabled && !busy && styles.primaryPressed,
-      ]}
-    >
-      {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>{title}</Text>}
-    </Pressable>
-  );
-}
+type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT';
 
 function MethodButton({
   title,
@@ -131,9 +60,9 @@ function MethodButton({
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ form?: string }>();
-  const [otvoren, setOtvoren] = useState(params.form === 'login');
+  const [otvoren, setOtvoren] = useState(params.form === 'login' || params.form === 'recovery');
   const [rezim, setRezim] = useState<Rezim>('LOGIN');
-  const [faza, setFaza] = useState<Faza>('EMAIL');
+  const [faza, setFaza] = useState<Faza>(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
 
   const [ime, setIme] = useState('');
   const [prezime, setPrezime] = useState('');
@@ -245,13 +174,24 @@ export default function AuthScreen() {
     }, () => {}, prijaviGresku);
   }
 
+  async function zatraziOporavak() {
+    if (!availability.current()?.passwordRecovery) return;
+    await commands.run(async () => {
+      setGreska(null); setPoruka(null);
+      await authClientService.requestPasswordRecovery(email);
+    }, () => {
+      setLozinka(''); setPotvrda(''); setFaza('RECOVERY_SENT');
+    }, prijaviGresku);
+  }
+
   const naslov =
     faza === 'PHONE'
       ? rezim === 'SIGNUP' ? 'Napravite nalog telefonom' : 'Prijavite se telefonom'
       : faza === 'OTP'
         ? 'Unesite kod'
-        : faza === 'RECOVERY_UNAVAILABLE'
-          ? 'Oporavak lozinke'
+        : faza === 'RECOVERY'
+          ? 'Vratite pristup\nnalogu.'
+          : faza === 'RECOVERY_SENT' ? 'Proverite email'
           : faza === 'SIGNUP_NEXT_STEP'
             ? confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'
             : rezim === 'SIGNUP'
@@ -263,8 +203,9 @@ export default function AuthScreen() {
       ? 'Unesite broj telefona.'
       : faza === 'OTP'
         ? 'Unesite kod kada stigne na Vaš broj.'
-        : faza === 'RECOVERY_UNAVAILABLE'
-          ? 'Ova mogućnost još nije dostupna u aplikaciji.'
+        : faza === 'RECOVERY'
+          ? methods?.passwordRecovery ? 'Unesite email koji koristite za USKOČI.' : 'Ova mogućnost još nije dostupna u aplikaciji.'
+          : faza === 'RECOVERY_SENT' ? 'Zahtev za oporavak je prihvaćen.'
           : faza === 'SIGNUP_NEXT_STEP'
             ? confirmationRequired ? 'Pratite uputstvo za potvrdu registracije.' : 'Vratite se na prijavu.'
             : rezim === 'SIGNUP'
@@ -411,7 +352,7 @@ export default function AuthScreen() {
                   </View>
 
                   {rezim === 'LOGIN' ? (
-                    <Pressable accessibilityRole="button" disabled={radi} onPress={() => commands.changeForm(() => { setFaza('RECOVERY_UNAVAILABLE'); setGreska(null); setPoruka(null); })} style={styles.forgot}>
+                    <Pressable accessibilityRole="button" disabled={radi} onPress={() => commands.changeForm(() => { setFaza('RECOVERY'); setLozinka(''); setPotvrda(''); setGreska(null); setPoruka(null); })} style={styles.forgot}>
                       <Text style={styles.forgotText}>Zaboravili ste lozinku?</Text>
                     </Pressable>
                   ) : null}
@@ -493,13 +434,30 @@ export default function AuthScreen() {
               </View>
             ) : null}
 
-            {faza === 'RECOVERY_UNAVAILABLE' ? (
+            {faza === 'RECOVERY' && methods ? (
               <View style={styles.form}>
                 <View style={styles.stateIcon}><LockKey size={28} color="#5D6E6D" /></View>
-                <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možete se vratiti na prijavu.</Text>
-                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} />
+                {methods.passwordRecovery ? <>
+                  <AuthField label="Email" value={email} onChangeText={value => commands.changeForm(() => setEmail(value))}
+                    editable={!radi} keyboardType="email-address" placeholder="ime@primer.rs" />
+                  <Text style={styles.stateCopy}>Otvorićete link iz emaila i izabrati novu lozinku. Vaši Zadaci i Dogovori ostaju na istom nalogu.</Text>
+                  <PrimaryButton title="Pošaljite link" busy={radi} onPress={() => void zatraziOporavak()} />
+                </> : <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možete se vratiti na prijavu.</Text>}
+                <Pressable accessibilityRole="button" disabled={radi} style={styles.linkButton} onPress={nazadNaEmail}>
+                  <Text style={styles.linkText}>Nazad na prijavu</Text>
+                </Pressable>
               </View>
             ) : null}
+
+            {faza === 'RECOVERY_SENT' ? <View style={styles.form}>
+              <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
+              <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićete link za novu lozinku. Proverite i neželjenu poštu.</Text>
+              <Text style={styles.smallNote}>{email.trim()}</Text>
+              <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} />
+              <Pressable accessibilityRole="button" style={styles.linkButton} onPress={() => commands.changeForm(() => {
+                setFaza('RECOVERY'); setGreska(null); setPoruka(null);
+              })}><Text style={styles.linkText}>Izmenite email ili ponovite zahtev</Text></Pressable>
+            </View> : null}
 
             {faza === 'SIGNUP_NEXT_STEP' ? (
               <View style={styles.form}>
@@ -543,15 +501,6 @@ const styles = StyleSheet.create({
   selectedTab: { backgroundColor: '#FFFFFF' },
   tabLabel: { color: '#142F30', fontSize: 14, fontWeight: '600' },
   form: { gap: 16 },
-  field: { gap: 8 },
-  fieldLabel: { color: '#142F30', fontSize: 14, lineHeight: 20, fontWeight: '600' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE3DE', borderRadius: 12, minHeight: 56 },
-  fieldInput: { flex: 1, minWidth: 0, minHeight: 54, paddingHorizontal: 16, paddingVertical: 14, color: '#142F30', fontSize: 16, lineHeight: 24 },
-  passToggle: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  primary: { minHeight: 56, borderRadius: 16, backgroundColor: '#142F30', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  primaryText: { color: '#FFFFFF', fontSize: 16, lineHeight: 24, fontWeight: '600' },
-  primaryPressed: { opacity: 0.76 },
-  disabled: { opacity: 0.45 },
   feedback: { minHeight: 24, marginTop: -6 },
   banner: { marginBottom: 12, borderRadius: 14, padding: 12 },
   bannerOk: { backgroundColor: '#E6F3EC' },

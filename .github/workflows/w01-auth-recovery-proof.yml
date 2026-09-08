@@ -1,51 +1,71 @@
 name: W01 auth recovery proof
-
 on:
   pull_request:
     branches: [clean-alpha-backend]
     paths:
       - '.github/workflows/w01-auth-recovery-proof.yml'
       - 'src/**'
-      - 'scripts/w01-*'
+      - 'supabase/proofs/auth/**'
       - 'package*.json'
-
 permissions:
   contents: read
-
 concurrency:
   group: w01-auth-recovery-${{ github.ref }}
   cancel-in-progress: true
-
+env:
+  CI: '1'
+  EXPO_OFFLINE: '1'
+  SUPABASE_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
 jobs:
-  recovery-source:
+  isolated-auth-recovery:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
-      - name: Temporary offline validation transfer
-        if: github.head_ref == 'feat/w00-w01-account-recovery-20260908'
-        run: |
-          set -eu
-          mkdir -p "$RUNNER_TEMP/uskoci-offline"
-          tar -czf "$RUNNER_TEMP/uskoci-offline/dependencies.tgz" node_modules
-          cp package-lock.json "$RUNNER_TEMP/uskoci-offline/package-lock.json"
-          git rev-parse HEAD > "$RUNNER_TEMP/uskoci-offline/source-commit.txt"
-          (cd "$RUNNER_TEMP/uskoci-offline" && sha256sum dependencies.tgz package-lock.json > SHA256SUMS)
-      - uses: actions/upload-artifact@v4
-        if: github.head_ref == 'feat/w00-w01-account-recovery-20260908'
+      - uses: actions/setup-python@v5
         with:
-          name: uskoci-offline-validation-${{ github.run_id }}
-          path: ${{ runner.temp }}/uskoci-offline/
-          retention-days: 1
-          if-no-files-found: error
-      - name: TypeScript contract check
-        run: npx tsc --noEmit
-      - name: Existing regression boundary
-        run: npm test -- --runInBand
+          python-version: '3.13'
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - run: npm ci
+      - name: TypeScript, complete regressions and immutable migration integrity
+        run: |
+          npx tsc --noEmit
+          npm test -- --runInBand
+          sh supabase/migrations/check_md5.sh
+          python3 -m py_compile supabase/proofs/auth/w01_recovery_browser.py
+      - name: Disposable Auth only, without live access or marketplace replay
+        run: bash supabase/proofs/auth/w01_recovery_env.sh
+      - name: Build the actual Expo web client
+        run: npx expo export --platform web --output-dir dist-w01
+      - name: Install pinned browser proof tooling outside application dependencies
+        run: |
+          python3 -m pip install playwright==1.57.0
+          python3 -m playwright install --with-deps chromium
+      - name: Actual email recovery and visual proof
+        run: python3 supabase/proofs/auth/w01_recovery_browser.py
+      - name: Retain source-bound screenshots and sanitized outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: W01-AUTH-RECOVERY-${{ github.run_id }}
+          path: artifacts/w01-auth-recovery/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Teardown only the newly created disposable instance
+        if: always()
+        shell: bash
+        run: |
+          if [[ "${W01_PROOF_DIR:-}" == /tmp/uskoci-w01-auth-* && -d "${W01_PROOF_DIR:-}" ]]; then
+            cd "$W01_PROOF_DIR"
+            supabase stop --no-backup >/dev/null
+          fi

@@ -15,6 +15,7 @@ export default function RootLayout() {
   const segments = useSegments();
   const pathname = usePathname();
   const naAuth = segments[0] === 'auth';
+  const naOporavku = segments[0] === 'oporavak';
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
@@ -22,19 +23,19 @@ export default function RootLayout() {
     if (!isLoaded) return;
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
       sesijaSada().user?.id !== session?.user.id) return;
-    if (!session && !naAuth) {
+    if (!session && !naAuth && !naOporavku) {
       router.replace(pathname === '/' ? '/auth' : { pathname: '/auth', params: { form: 'login' } });
       return;
     }
     if (session && naAuth) {
       router.replace('/');
     }
-  }, [isLoaded, session, sessionEpoch, naAuth, pathname, router]);
+  }, [isLoaded, session, sessionEpoch, naAuth, naOporavku, pathname, router]);
 
   // Consume a completed pre-auth intent exactly once after a real session has
   // been restored/created. The store itself guards which user completed it.
   useEffect(() => {
-    if (!isLoaded || !session) return;
+    if (!isLoaded || !session || naOporavku) return;
     let aktivan = true;
     const isCurrent = () => aktivan && sesijaSada().sessionEpoch === sessionEpoch &&
       sesijaSada().user?.id === session.user.id;
@@ -59,7 +60,7 @@ export default function RootLayout() {
     return () => {
       aktivan = false;
     };
-  }, [isLoaded, session, sessionEpoch, returnTargetRevision, router]);
+  }, [isLoaded, session, sessionEpoch, returnTargetRevision, naOporavku, router]);
 
   if (!isLoaded) {
     return (
@@ -81,6 +82,7 @@ export default function RootLayout() {
             animation: 'slide_from_right',
           }}
         >
+          <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
           <Stack.Protected guard={!session}>
             <Stack.Screen name="auth" options={{ animation: 'none' }} />
           </Stack.Protected>
