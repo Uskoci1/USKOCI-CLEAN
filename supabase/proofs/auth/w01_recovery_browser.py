@@ -77,8 +77,10 @@ def mailbox_link(email: str, excluded: set[str]) -> tuple[str, str]:
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlsplit(self.path).path
-        candidate = ROOT / path.lstrip('/')
-        if path != '/' and not candidate.is_file() and Path(str(candidate) + '.html').is_file(): self.path = path + '.html'
+        # Only these two fixed Expo pages need extension mapping. Never probe
+        # the filesystem with an HTTP-supplied path; assets use the stdlib handler.
+        if path == '/auth': self.path = '/auth.html'
+        elif path == '/oporavak': self.path = '/oporavak.html'
         super().do_GET()
     def log_message(self, *_args):
         pass  # Request URLs can carry recovery credentials.
