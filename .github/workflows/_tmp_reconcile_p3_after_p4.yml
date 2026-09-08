@@ -1,0 +1,66 @@
+name: TEMP merge canonical into P3 and reconcile registries
+on:
+  push:
+    branches: [feat/p3-retention-schedule-20260908]
+permissions:
+  contents: write
+env:
+  TARGET_BRANCH: feat/p3-retention-schedule-20260908
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Merge canonical and resolve only migration registries
+        shell: bash
+        run: |
+          set -euo pipefail
+          p='supabase/migrations/MIGRATION_PROVENANCE.json'
+          m='supabase/migrations/MD5_MANIFEST.txt'
+          git fetch origin clean-alpha-backend
+          git show "HEAD:$p" >/tmp/fp.json; git show "HEAD:$m" >/tmp/fm.txt
+          git show "origin/clean-alpha-backend:$p" >/tmp/bp.json; git show "origin/clean-alpha-backend:$m" >/tmp/bm.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          set +e; git merge --no-ff --no-commit origin/clean-alpha-backend; rc=$?; set -e
+          if [ "$rc" -ne 0 ] && [ ! -f .git/MERGE_HEAD ]; then exit "$rc"; fi
+          unresolved="$(git diff --name-only --diff-filter=U || true)"
+          bad="$(printf '%s\n' "$unresolved" | grep -vxF "$m" | grep -vxF "$p" || true)"
+          if [ -n "$bad" ]; then echo "Unexpected conflicts:"; printf '%s\n' "$bad"; exit 1; fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('supabase/migrations/MIGRATION_PROVENANCE.json'); m=Path('supabase/migrations/MD5_MANIFEST.txt')
+          b=json.loads(Path('/tmp/bp.json').read_text()); f=json.loads(Path('/tmp/fp.json').read_text())
+          out=dict(b); out.update(f); pend={}
+          for src in (b.get('pending_forward_migrations',[]),f.get('pending_forward_migrations',[])):
+            for x in src:
+              v=x['version']
+              if v in pend and pend[v]!=x: raise SystemExit(f'conflicting provenance {v}')
+              pend[v]=x
+          out['pending_forward_migrations']=[pend[v] for v in sorted(pend)]
+          p.write_text(json.dumps(out,indent=2,ensure_ascii=False)+'\n',newline='\n')
+          def parse(t):
+            d={}
+            for line in t.splitlines():
+              h,n=line.split('  ',1)
+              if n in d and d[n]!=h: raise SystemExit(f'conflicting manifest {n}')
+              d[n]=h
+            return d
+          d=parse(Path('/tmp/bm.txt').read_text())
+          for n,h in parse(Path('/tmp/fm.txt').read_text()).items():
+            if n in d and d[n]!=h: raise SystemExit(f'conflicting manifest {n}')
+            d[n]=h
+          m.write_text(''.join(f'{d[n]}  {n}\n' for n in sorted(d)),newline='\n')
+          PY
+          git add "$m" "$p"
+          test -z "$(git diff --name-only --diff-filter=U)"
+          python3 supabase/migrations/check_migration_integrity.py
+          git diff --cached --check; git diff --check
+          git commit -m 'Merge clean-alpha-backend into P3; reconcile migration registries'
+          git push origin "HEAD:${TARGET_BRANCH}"
