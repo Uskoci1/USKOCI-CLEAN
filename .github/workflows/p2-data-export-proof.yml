@@ -1,9 +1,22 @@
 name: P2 data export authenticated proof
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [clean-alpha-backend]
+    paths:
+      - '.github/workflows/p2-data-export-proof.yml'
+      - 'src/data/dataExportClientService.ts'
+      - 'src/data/serverReceipt.ts'
+      - 'src/contracts/dataExport.ts'
+      - 'src/data/__tests__/p2-data-export-client.test.ts'
+      - 'supabase/migrations/**'
+      - 'supabase/proofs/legal/p2_data_export*'
   push:
     branches:
       - feat/p2-data-export-20260908
+concurrency:
+  group: p2-data-export-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 env:
@@ -71,6 +84,11 @@ jobs:
           node supabase/proofs/legal/p2_data_export_proof.mjs 2>&1 | tee "$P2_ARTIFACT_DIR/proof.log"
           grep -F 'PASS P2_DATA_EXPORT' "$P2_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P2_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.export_artifact_generated || r.migration_history_count!==r.predecessor_history_count+1 || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==r.predecessor_plan.expected_predecessor_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==2 || r.checks.length!==9) process.exit(1);'
+      - name: Actual data-export client against the same disposable Auth and RPC
+        run: |
+          node --check supabase/proofs/legal/p2_data_export_client_proof.cjs
+          node supabase/proofs/legal/p2_data_export_client_proof.cjs
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P2_ARTIFACT_DIR+"/client-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.mocked_rpc_responses || r.client_path_sql_writes || r.live_access || r.live_promotion || r.export_artifact_generated || r.checks.length!==5) process.exit(1);'
       - name: Upload exact source-bound disposable evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
