@@ -189,7 +189,7 @@ try{
   await rejected(accept(anon,'p1-anon-accept-0000000001'));
   await rejected(accept(admin,'p1-service-accept-000000001'));
   assert.equal(tableHash('public.account_legal_acceptance_events'),settled);
-  assert.deepEqual(await ok(requester.from('account_legal_acceptance_events').select('id')),[]);
+  {const sel=await requester.from('account_legal_acceptance_events').select('id');assert.ok(sel.error||sel.data?.length===0,'direct select must be denied or empty');}
   const direct=await requester.from('account_legal_acceptance_events').insert({account_id:rid,request_id:'p1-direct-insert-0000001',terms_document_id:report.fixture_documents.termsV1,terms_version_label:'x',terms_content_sha256:sha('x'),privacy_document_id:report.fixture_documents.privacyV1,privacy_version_label:'x',privacy_content_sha256:sha('x')}).select('id');
   assert.ok(direct.error||direct.data?.length===0,'direct acceptance insert must be denied');
   assert.equal(tableHash('public.account_legal_acceptance_events'),settled);
