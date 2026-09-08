@@ -27,8 +27,11 @@
 
 ## Navigation
 
-- Role-aware five-tab bar with center action/brand item.
-- Top bar with title, optional bell and contextual action.
+Use the owner-confirmed three-zone correction from 8 September 2026; previous five-tab variants are superseded.
+
+- Three-zone role bar: MENI TREBA = Zadaci | U / Novi | Dogovori; JA MOGU = Prijave | U / Zadaci | Dogovori.
+- Top bar with title, bell → Inbox and avatar → Profile; no permanent Home/Profile bottom items.
+- List/Map switch, search/filter entry and owner Needs context inside Zadaci, available in both intents.
 - Back/return header preserving source context.
 - Role switch control inside Profile.
 - Full-screen modal, bottom sheet and confirmation dialog.

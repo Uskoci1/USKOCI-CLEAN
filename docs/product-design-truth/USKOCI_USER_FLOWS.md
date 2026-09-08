@@ -1,31 +1,33 @@
 # USKOČI User Flows
 
+Navigation follows the owner-confirmed three-zone correction of 8 September 2026. Bell → Inbox; avatar → Profile. No permanent Home/Profile tab.
+
 ## 1. First entry and dual-role account
 
 1. Cold start plays the original USKOČI mark/wordmark sequence with reduced-motion support.
 2. User chooses **Meni treba** or **Ja mogu** as current intent.
 3. User signs in or creates one account.
-4. The app returns to the original protected target when safe; otherwise it opens the role Home.
-5. Later, the user changes intent in Profile without creating another account.
+4. The app returns to the original protected target when safe; otherwise it opens an authorized tab in the active intent (current shell defaults: requester Zadaci, worker Prijave).
+5. Later, the user opens Profile through the avatar and changes intent without creating another account.
 
 Failure flow: an unavailable Auth method stays hidden or explicitly disabled. A failed login preserves email, clears no unrelated context and allows retry. Expired recovery links explain how to request another.
 
 ## 2. Naručilac creates a Need with AI
 
-1. Tap center `+` or Home prompt **Šta Vam treba?**
+1. Tap center **U / Novi** in MENI TREBA
 2. Type or speak the whole request naturally.
 3. The user's message appears immediately; the server-side interview processes it.
 4. A compact Need card fills title, safe location, time, people and pricing as facts become available.
 5. AI asks one concise question only when a required fact is missing or ambiguous.
 6. User corrects facts in conversation or structured review.
 7. One final action saves a private draft; publication is offered only if the server admission result permits it.
-8. Success opens the full Need detail or My Needs list with the exact saved values.
+8. Success opens the full Need detail or owner Needs context inside Zadaci with the exact saved values.
 
 Recovery: unsent text survives navigation. A submitted turn uses one client id; timeout shows Retry and never sends a duplicate silently. A stale review is reloaded before save. Account change cancels the old response.
 
 ## 3. Naručilac publishes and receives Applications
 
-1. Open a draft from Potrebe/Home.
+1. Open a draft from the owner Needs context inside Zadaci.
 2. Review the full Need and publication warnings.
 3. Publish with an idempotent command.
 4. Inbox reports Applications and updates.
@@ -38,8 +40,8 @@ If another device edits the Need or candidate, selection fails stale and reloads
 
 ## 4. Uskočer discovers and applies
 
-1. Worker Home reports profile readiness and availability.
-2. Open USKOČI / Prilike in List or Map.
+1. Open **U / Zadaci** in JA MOGU. Profile readiness and availability remain accessible through the avatar and contextual guidance.
+2. Choose List or Map inside Zadaci. The same discovery modes are also accessible from Zadaci in MENI TREBA; Application eligibility remains worker-specific.
 3. Search/filter without losing the List/Map result set.
 4. Tap a card or map pin; a pin opens a compact sheet.
 5. Open full Opportunity detail.
@@ -76,7 +78,7 @@ If the Need revision changes, the form blocks submission and refreshes. Duplicat
 2. In-app delivery appears under the bell with role context.
 3. Tap resolves the current target server-side.
 4. App switches role if required and opens the target.
-5. Deleted/unauthorized targets show an unavailable state and route to the appropriate Home/list.
+5. Deleted/unauthorized targets show an unavailable state and route to the appropriate Zadaci, Prijave or Dogovori context.
 
 Push follows the same resolution path when provider delivery is enabled; design it now, label current transport unproven.
 
