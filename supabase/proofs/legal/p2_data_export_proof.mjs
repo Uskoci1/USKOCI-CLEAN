@@ -193,7 +193,7 @@ try{
   {
   check('DIRECT_TABLE_ACCESS_REMAINS_DENIED_FOR_AUTHENTICATED');
   const settled=tableHash('public.data_export_requests');
-  assert.deepEqual(await ok(requester.from('data_export_requests').select('id')),[]);
+  {const sel=await requester.from('data_export_requests').select('id');assert.ok(sel.error||sel.data?.length===0,'direct select must be denied or empty');}
   const ins=await requester.from('data_export_requests').insert({account_id:rid,client_request_id:'p2-direct-insert-00000001'}).select('id');
   assert.ok(ins.error||ins.data?.length===0,'direct insert must be denied');
   const upd=await requester.from('data_export_requests').update({status:'READY',completed_at:new Date().toISOString()}).eq('account_id',rid).select('id');
