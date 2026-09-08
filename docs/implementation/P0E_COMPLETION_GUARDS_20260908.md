@@ -1,6 +1,6 @@
 # P0E completion truth guards — 2026-09-08
 
-Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PENDING ON RUNNER / NOT LIVE.
+Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PASS ON RUNNER (run 34232670338) / NOT LIVE.
 
 Three live87 owner RPCs let the product state something untrue. `rpc_confirm_completion` guarded only `ALREADY_COMPLETED`, so a `CANCELLED` Agreement could be set to `COMPLETED`. `rpc_mark_work_done` recomputed `statement_timestamp() + 48 hours` on every call, so a retry after an unknown outcome silently moved the Requester deadline. `rpc_report_problem` updated `agreement_execution` idempotently but inserted a new system message on every repeat. All three were confirmed by reading `pg_get_functiondef` bodies whose `md5(prosrc)` values are frozen below and independently matched by a second same-day review.
 
