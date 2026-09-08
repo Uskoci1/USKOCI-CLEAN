@@ -8,11 +8,15 @@ import { readP1LegalPredecessorPlan } from './p1_legal_consent_predecessor.mjs';
 const unit = JSON.parse(readFileSync('supabase/proofs/legal/p1_legal_consent_files.json', 'utf8'));
 const md5 = bytes => createHash('md5').update(bytes).digest('hex');
 
-test('plan admits exactly the frozen live87 inventory plus one pending forward file', () => {
+test('plan admits frozen live87 plus the ordered earlier pending stack and P1', () => {
   const plan = readP1LegalPredecessorPlan();
   assert.equal(plan.historical_predecessor_count, 87);
-  assert.equal(plan.source_migration_count, 88);
-  assert.equal(plan.expected_predecessor_count, 87);
+  assert.equal(plan.pending_predecessor_count, 1);
+  assert.equal(plan.source_migration_count, 89);
+  assert.equal(plan.expected_predecessor_count, 88);
+  assert.deepEqual(plan.pending_predecessors.map(entry => entry.file), [
+    '20260908120000_clean_p0e_completion_guards.sql',
+  ]);
   assert.equal(plan.source_inventory.at(-1).file, unit.forward_file);
 });
 
