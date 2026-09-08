@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CaretRight, Clock, MapPin, PencilSimple, UserMinus, Users } from 'phosphor-react-native';
 
 import type { PotrebaProjekcija, StanjePotrebe } from '../../../../contracts/projections';
+import { aiNeedV2Izvor } from '../../../../data';
 import { ru4Production } from '../../../../data/ru4Production';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { useIzvor } from '../../../../store/uloga';
@@ -94,6 +95,35 @@ export default function PregledPotrebe() {
                 'Preostala potraga je zatvorena',
                 'Postojeći Dogovori ostaju isti. Originalni Zadatak nije prepisan.',
               );
+            })();
+          },
+        },
+      ],
+    );
+  }, [akcijaUToku, potreba]);
+
+  // RU-4: the server owns edit authority. It seeds an edit conversation bound to
+  // this Zadatak and refuses after the first Dogovor. The consequence is stated
+  // before anything is touched; nothing changes until R07 confirms.
+  const otvoriIzmenu = useCallback(() => {
+    if (!potreba || akcijaUToku) return;
+    Alert.alert(
+      'Izmena Zadatka',
+      'Dok traje izmena, Zadatak privremeno prestaje da prima nove Prijave. Posle čuvanja prolazi ponovnu proveru, a postojeće Prijave će morati da se osveže. Postojeći Dogovori se ne menjaju.',
+      [
+        { text: 'Odustanite', style: 'cancel' },
+        {
+          text: 'Nastavite',
+          onPress: () => {
+            void (async () => {
+              setAkcijaUToku(true);
+              const ishod = await aiNeedV2Izvor.openEditConversation(potreba.id);
+              setAkcijaUToku(false);
+              if (!ishod.ok) {
+                Alert.alert('Izmena nije moguća', ishod.poruka);
+                return;
+              }
+              router.push({ pathname: '/nova', params: { conversationId: ishod.podatak.conversationId } });
             })();
           },
         },
@@ -275,8 +305,10 @@ export default function PregledPotrebe() {
             <Press
               accessibilityRole="button"
               accessibilityLabel="Izmeni Zadatak"
+              accessibilityState={{ disabled: akcijaUToku }}
               haptic="light"
-              onPress={() => router.push({ pathname: '/potrebe/[id]/izmeni' as any, params: { id: potreba.id } })}
+              disabled={akcijaUToku}
+              onPress={otvoriIzmenu}
               style={{
                 minHeight: touch.min,
                 paddingHorizontal: space.base,
