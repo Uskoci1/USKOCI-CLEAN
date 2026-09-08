@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter, type NativeStackNavigationProp } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { palette, radius, space, type } from '../theme/tokens';
 
 export default function PasswordRecoveryScreen() {
   const router = useRouter();
+  const navigation = useNavigation<NativeStackNavigationProp<{ oporavak: { '#': string } }, 'oporavak'>>();
   const insets = useSafeAreaInsets();
   const { user } = useSesija();
   const incoming = Linking.useLinkingURL();
@@ -27,10 +28,10 @@ export default function PasswordRecoveryScreen() {
     if (!incoming) return;
     if (incoming !== link) { setPassword(''); setConfirmation(''); setValidation(null); }
     setLink(incoming);
-    // Expo Router preserves a URL fragment as the '#' navigation parameter.
-    // Clear that owner as well as browser history, otherwise router hydration
-    // restores the credential fragment after a direct history.replaceState.
-    router.setParams({ '#': '' });
+    // The global router can target Expo's enclosing slot. Clear the actual
+    // recovery route instead, so its retained path cannot restore credentials.
+    // An empty string is intentional: this serializer stringifies undefined.
+    navigation.setParams({ '#': '' });
     // Credentials are read only through Linking and kept in this transient flow.
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined' && window.location.pathname === '/oporavak') {

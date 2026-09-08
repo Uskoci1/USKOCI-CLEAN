@@ -18,7 +18,8 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CheckCircle: 'Icon', LockKey: 'Icon', Eye: 'Icon', EyeSlash: 'Icon' }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace, setParams: mockSetParams }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }),
+  useNavigation: () => ({ setParams: mockSetParams }) }));
 jest.mock('expo-linking', () => ({ useLinkingURL: () => mockLink, clearInitialURL: () => mockClear() }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
 jest.mock('../passwordRecoveryClientService', () => ({ passwordRecoveryClientService: {
@@ -119,4 +120,21 @@ it('clears the fragment in the installed Expo serializer, not just a mocked rout
   const { getPathFromState } = require('expo-router/build/fork/getPathFromState');
   const state = { routes: [{ name: 'oporavak', params: { '#': '' } }], index: 0 };
   expect(getPathFromState(state, { screens: { oporavak: 'oporavak' } })).toBe('/oporavak');
+});
+
+
+it('scrubs the focused route rather than just the enclosing navigator params', () => {
+  const { BaseRouter } = require('expo-router/build/react-navigation/routers/BaseRouter');
+  const { getPathFromState } = require('expo-router/build/fork/getPathFromState');
+  const config = { screens: { slot: { path: '', screens: { oporavak: 'oporavak' } } } };
+  const leaf = { key: 'leaf-stack', type: 'stack', stale: false, index: 0, routeNames: ['oporavak'],
+    routes: [{ key: 'recovery-route', name: 'oporavak', params: { '#': 'synthetic-secret' } }] };
+  const state = { key: 'root', type: 'stack', stale: false, index: 0, routeNames: ['slot'],
+    routes: [{ key: 'slot-route', name: 'slot', state: leaf }] };
+  const action = { type: 'SET_PARAMS', payload: { params: { '#': '' } } };
+  const wrongOwner = BaseRouter.getStateForAction(state, action);
+  expect(getPathFromState(wrongOwner, config)).toBe('/oporavak#synthetic-secret');
+  const cleanLeaf = BaseRouter.getStateForAction(leaf, { ...action, source: 'recovery-route' });
+  const clean = { ...state, routes: [{ ...state.routes[0], state: cleanLeaf }] };
+  expect(getPathFromState(clean, config)).toBe('/oporavak');
 });
