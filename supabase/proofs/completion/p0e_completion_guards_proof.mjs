@@ -275,6 +275,8 @@ try{
   const observed=await waitBlockedBy(holderApp,waiterApp);report.lock_interleavings.push({case:'CONFIRM_HOLDER_TICK_WAITER',...observed});
   const [h,w]=await Promise.all([holder,waiter]);assert.ok(h.success,'confirm holder failed');assert.ok(w.success,'tick waiter failed');
   const result=jsonLine(h.stdout);assert.equal(result.state,'COMPLETED');assert.equal(result.idempotentReplay,false);
+  // The tick that waited on the confirm lock must re-check and skip the row: no overwrite, no over-count.
+  assert.equal(w.stdout.trim().split(/\r?\n/).filter(Boolean).at(-1),'0','tick must skip the row completed under its lock wait');
   assert.equal(agreementStatus(K.agreement),'COMPLETED');
   assert.equal(sql(`select count(*) from public.agreement_execution where agreement_id=${q(K.agreement)} and state='COMPLETED' and completed_at=${q(result.completedAt)}::timestamptz`),'1');
   assert.equal(events(K.agreement,'EXECUTION_STATE_CHANGED').length,1);pass();

@@ -43,6 +43,9 @@ begin
   ) then
     raise exception 'P0E_EVENT_TYPES_NOT_ADMITTED' using detail='public.user_activity_events.event_type';
   end if;
+  if (select md5(prosrc) from pg_proc where oid='public.rpc_tick_auto_completion()'::regprocedure) is distinct from '5a0c010d6467dc7f56eb817de564601e' then
+    raise exception 'P0E_PREDECESSOR_FUNCTION_MISMATCH' using detail='public.rpc_tick_auto_completion()';
+  end if;
 end
 $precondition$;
 
@@ -333,5 +336,56 @@ comment on function public.rpc_confirm_completion(uuid) is
   'P0E-02: requester explicit completion from CONFIRMED or AWAITING_REQUESTER; COMPLETED replay idempotent; CANCELLED never resurrects; open problem blocks auto only.';
 comment on function public.rpc_report_problem(uuid,text) is
   'P0E-04: neutral problem record on a live Agreement only; first narrative preserved; repeat reports add no second message or event.';
+
+
+-- rpc_tick_auto_completion: the live body selected due rows in a CTE and
+-- updated by agreement_id only, so a tick that waited on a row locked by an
+-- explicit rpc_confirm_completion re-applied COMPLETED to the already
+-- completed row, overwriting completed_at and over-counting. The state,
+-- problem and deadline predicates now live in the UPDATE itself, so the
+-- re-check after the lock wait skips a row completed meanwhile. Grants
+-- (service_role only) and the integer return are unchanged.
+create or replace function public.rpc_tick_auto_completion()
+returns integer
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $tick$
+declare
+  v_count integer := 0;
+  v_need_ids uuid[];
+  v_need_id uuid;
+begin
+  with zatvoreni as (
+    update public.agreement_execution e
+       set state = 'COMPLETED',
+           completed_at = statement_timestamp(),
+           requester_deadline_at = null,
+           updated_at = statement_timestamp()
+     where e.state = 'AWAITING_REQUESTER'
+       and e.problem_opened_at is null
+       and e.requester_deadline_at is not null
+       and e.requester_deadline_at <= statement_timestamp()
+    returning e.agreement_id
+  ), zatvoreni_agreements as (
+    update public.agreements a
+       set status = 'COMPLETED', updated_at = statement_timestamp()
+      from zatvoreni z
+     where a.id = z.agreement_id
+    returning a.need_id
+  )
+  select count(*)::integer, array_agg(distinct need_id)
+    into v_count, v_need_ids
+    from zatvoreni_agreements;
+
+  if v_need_ids is not null then
+    foreach v_need_id in array v_need_ids loop
+      perform private.sync_need_completion(v_need_id);
+    end loop;
+  end if;
+
+  return v_count;
+end;
+$tick$;
 
 commit;
