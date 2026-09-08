@@ -44,10 +44,12 @@ Keep the original U/handshake/pin mark and its intro motion. Refine its color tr
 
 ## Navigation
 
-- Naručilac: Početna | Potrebe | + | Dogovori | Profil.
-- Uskočer: Početna | Prijave | USKOČI / Prilike | Dogovori | Profil.
+Owner-confirmed correction, 8 September 2026: this three-zone decision supersedes the earlier five-tab design brief. The current canonical three-zone shell is aligned with it.
+
+- MENI TREBA (Naručilac): Zadaci | U / Novi | Dogovori.
+- JA MOGU (Uskočer): Prijave | U / Zadaci | Dogovori.
 - The selected tab uses icon, label and shape/weight, not color alone.
-- Bell opens Inbox. Profile stays a permanent tab; role switching lives inside Profile.
+- Bell → Notifications / Inbox. Avatar → Profile, including the intent switch. No permanent Home or Profile tab. Map/List are modes inside Zadaci, accessible in both intents; access to public discovery does not grant Application or private-data permissions.
 - Preserve per-role navigation history.
 
 ## Marketplace cards

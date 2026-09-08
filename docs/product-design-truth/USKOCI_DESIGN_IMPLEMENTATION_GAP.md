@@ -17,7 +17,7 @@ Baseline: canonical `38e9a38`, live migrations 87/87, Edge `uskoci-ai-interview`
 - **R04 Need full detail / workspace** — PARTIAL. Route: /potrebe/[id]/pregled. Backend: needs, need_geography, need_requirement_details, need_sensitive, marketplace_responses.
 - **R06 Public worker profile** — BACKEND READY / UI PARTIAL. Route: none. Backend: rpc_get_public_profile.
 - **R07 Need structured review** — PARTIAL. Route: /pregled-nacrta. Backend: ai_structured_facts, need_draft_save_commands, needs.
-- **W03 Opportunities list / map** — PARTIAL / PR67 SOURCE-PROVEN. Route: /prilike (canonical list only). Backend: needs public projection, need_geography, opportunity_deliveries.
+- **W03 Zadaci discovery / opportunities list and map** — PARTIAL / PR67 SOURCE-PROVEN. Route: /prilike (canonical list only). Backend: needs public projection, need_geography, opportunity_deliveries.
 - **W04 Opportunity full detail** — PARTIAL / PR68 SOURCE-PROVEN. Route: /prilike/[id]. Backend: needs, need_geography, need_requirement_details, rpc_get_public_profile.
 - **W08 Worker profile editor** — PARTIAL. Route: /profil/radnik. Backend: app_profiles, rpc_complete_worker_profile.
 - **D02 Agreement overview** — IMPLEMENTED / PARTIAL. Route: /dogovor/[id]. Backend: agreements, agreement_versions, need_selections, access_grants, agreement_execution.
@@ -37,8 +37,6 @@ Baseline: canonical `38e9a38`, live migrations 87/87, Edge `uskoci-ai-interview`
 - **S08 Notification preferences** — BACKEND READY / UI MISSING. Route: none. Backend: notification_preferences, rpc_get_notification_preferences, rpc_set_notification_preferences.
 - **S09 Privacy & data rights** — NOT IMPLEMENTED. Route: none. Backend: account/data lifecycle not present.
 - **S11 Account & closure** — NOT IMPLEMENTED. Route: none. Backend: auth.sessions, app_accounts, account lifecycle missing.
-- **R01 Naručilac Home** — MISSING. Route: none. Backend: needs, agreements, notification_deliveries.
-- **W01 Uskočer Home** — MISSING. Route: none. Backend: app_profiles, worker_match_preferences, opportunity_deliveries, marketplace_responses, agreements.
 - **W02 AI Worker profile** — NOT IMPLEMENTED. Route: none. Backend: app_profiles, worker_match_preferences, AI profile infrastructure missing.
 - **W09 Availability & calendar** — BACKEND PARTIAL / UI MISSING. Route: none. Backend: profile_availability_rules, profile_availability_windows, worker_match_preferences, agreements.
 - **D06 Completion & review** — PARTIAL / REVIEW MISSING. Route: /dogovor/[id] embedded. Backend: agreement_execution, rpc_mark_work_done, rpc_confirm_completion, review tables missing.
@@ -62,9 +60,14 @@ Baseline: canonical `38e9a38`, live migrations 87/87, Edge `uskoci-ai-interview`
 
 - **H01 HITNO explanation / activation** — CONFIG-DISABLED. Route: none. Backend: needs.urgent, dispatch_schedule, marketplace_config, policy bundles.
 
+## SUPERSEDED — excluded from the implementation backlog
+
+- **R01 Former Naručilac Home** and **W01 Former Uskočer Home** are superseded by the owner-confirmed three-zone correction on 8 September 2026. Their absence is not a missing capability. Useful context belongs in Zadaci, Prijave, Dogovori and avatar → Profile.
+
 ## Cross-cutting implementation findings
 
-- Canonical shell is still the older three-zone navigation; the latest owner decision locks five role-specific tabs and supersedes that shell for final design.
+- Owner-confirmed navigation: MENI TREBA = Zadaci | U / Novi | Dogovori; JA MOGU = Prijave | U / Zadaci | Dogovori. Bell → Inbox; avatar → Profile. No permanent Home/Profile tabs.
+- Checked source `0e6951e` already implements the three-zone shell in `src/app/(app)/_layout.tsx`; it is aligned, not navigation debt. The final visual treatment and shared List/Map access inside Zadaci for both intents retain their separately recorded partial/pending status. This navigation-only correction does not refresh or promote unrelated feature/live statuses.
 - Presentation screens mostly consume ports/projections. One material exception is the worker profile client service, which performs owner-scoped direct `app_profiles` writes inside the data layer; no screen itself writes Supabase.
 - AI Edge authority, durable facts and draft save exist; actual OpenAI provider success with the current secret/model remains unproven.
 - Push registry/preferences/event infrastructure exists; provider delivery and real device receipt remain unproven.

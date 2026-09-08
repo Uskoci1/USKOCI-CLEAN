@@ -2,6 +2,8 @@
 
 Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supabase `leqcwgzvjsxugfgzdmth`; open PR work is listed as pending, never canonical.
 
+Navigation correction, 8 September 2026: MENI TREBA = Zadaci | U / Novi | Dogovori; JA MOGU = Prijave | U / Zadaci | Dogovori. Bell → Inbox; avatar → Profile. Shared List/Map lives inside Zadaci for both intents. R01/W01 are retained historical records; 43 active surfaces remain. The original code/live observation boundary above is unchanged.
+
 ## Status vocabulary
 
 - **IMPLEMENTED**: route/component exists on canonical source.
@@ -9,6 +11,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 - **BACKEND READY / UI MISSING**: live authority exists without a complete mobile surface.
 - **CONFIG-DISABLED**: foundation exists but launch gate is closed.
 - **NOT IMPLEMENTED / MISSING**: no honest current product surface.
+- **SUPERSEDED**: historical surface concept excluded from active design scope and implementation gaps.
 
 ## S01 — Splash / brand introduction
 
@@ -31,7 +34,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** S02 ili S03; role Home  
+**Next:** S02 ili S03; active intent tab / preserved target\
 **Notifications:** —  
 **Edge cases:** spor telefon; reduced motion; session expires tokom animacije  
 **Current route/evidence:** /auth; BrandScene.tsx; 12 motion tracks; PR66 canonical
@@ -57,7 +60,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** S03; R-HOME; W-HOME  
+**Next:** S03; R03 requester Zadaci; W06 worker Prijave; W03 discovery intent\
 **Notifications:** —  
 **Edge cases:** promena naloga tokom zapisa namere; duboki link čuva cilj  
 **Current route/evidence:** /auth; EntryWelcome.tsx; entryIntentClientService.ts
@@ -83,7 +86,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** sačuvani return target; role Home  
+**Next:** sačuvani return target; R03 requester Zadaci / W06 worker Prijave\
 **Notifications:** email confirmation ako je uključena  
 **Edge cases:** dupli submit; account switch; expired target; masked password on mode switch  
 **Current route/evidence:** /auth; auth.tsx; authClientService.ts; physical Android proof
@@ -296,31 +299,31 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Edge cases:** token remains valid after admin delete; multiple devices  
 **Current route/evidence:** —
 
-## R01 — Naručilac Home
+## R01 — Former Naručilac Home (superseded)
 
 **Role:** NARUČILAC  
-**Purpose:** Početna daje jedan pogled na aktivne potrebe, sledeći Dogovor i najbrži način da se zatraži pomoć.  
-**Product canon:** LOCKED CURRENT DECISION  
-**Current implementation:** MISSING  
-**Entry points:** requester tab Početna; post-auth  
-**Displayed data:** greeting; active Need summary; next Agreement; unread count; quick create  
-**Available actions:** create Need; continue draft; open active item  
-**Primary CTA:** Šta Vam treba?  
+**Purpose:** Istorijski zaseban Home koncept je ukinut potvrđenom trozonskom navigacijom. Koristan sadržaj pripada postojećim Zadaci/Prijave/Dogovori površinama i Profilu preko avatara.\
+**Product canon:** SUPERSEDED\
+**Current implementation:** NOT APPLICABLE / SUPERSEDED\
+**Entry points:** —\
+**Displayed data:** —\
+**Available actions:** —\
+**Primary CTA:** —\
 **Secondary actions:** —  
 **Backend objects:** needs; agreements; notification_deliveries  
 **Permissions:** owner projections  
-**Statuses:** NEW_USER; ACTIVE; QUIET  
-**Loading:** Skeleton bez promene rasporeda.  
-**Empty:** Objasniti stanje i ponuditi sledeću korisnu radnju.  
-**Validation:** Greška uz konkretno polje; unos ostaje sačuvan.  
-**Error:** Jasna poruka, Retry i bez lažnog uspeha.  
-**Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
-**Success:** Potvrda i jasan sledeći korak.  
-**Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** R02; R03; D01  
+**Statuses:** SUPERSEDED\
+**Loading:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Empty:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Validation:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Error:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Offline:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Success:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Destructive:** Nema posebne radnje na ukinutom Home ekranu.\
+**Next:** R03; W03; R02; D01; P01\
 **Notifications:** —  
-**Edge cases:** both roles have activity; no current items  
-**Current route/evidence:** —
+**Edge cases:** do not recreate a permanent Home tab or count its absence as a gap\
+**Current route/evidence:** Owner-confirmed three-zone correction 2026-09-08; former five-tab concept superseded
 
 ## R02 — AI Need creation
 
@@ -328,7 +331,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Purpose:** Prirodan tekst ili glas pretvara u tačan, ljudski potvrđen nacrt.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** PARTIAL  
-**Entry points:** center + tab; R01 CTA; edit Need  
+**Entry points:** U / Novi center zone in MENI TREBA; edit Need\
 **Displayed data:** conversation; live compact Need card; missing/ambiguous question; media symbols  
 **Available actions:** type; voice target; add photos target; correct fact; review  
 **Primary CTA:** Pošaljite / Objavite kada spremno  
@@ -351,10 +354,10 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 ## R03 — My Needs list
 
 **Role:** NARUČILAC  
-**Purpose:** Pregled svih Need objekata po životnom ciklusu.  
+**Purpose:** Pregled sopstvenih Need objekata po životnom ciklusu unutar Zadaci; jasno odvojen od javnog discovery prikaza.\
 **Product canon:** PRODUCT CANON  
 **Current implementation:** IMPLEMENTED / NEEDS REDESIGN  
-**Entry points:** Potrebe tab; R01  
+**Entry points:** Zadaci in MENI TREBA → owner Needs/drafts context; post-auth requester default\
 **Displayed data:** title; safe place; time; price/offers; people coverage; applications; status  
 **Available actions:** open Need; continue draft; refresh  
 **Primary CTA:** Otvorite Need  
@@ -478,31 +481,31 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Edge cases:** stale review token; cross-device save; fact superseded; account switch  
 **Current route/evidence:** /pregled-nacrta; pregled-nacrta.tsx; rpc_ai_need_review_v2; rpc_save_need_draft_from_review
 
-## W01 — Uskočer Home
+## W01 — Former Uskočer Home (superseded)
 
 **Role:** USKOČER  
-**Purpose:** Početna sa dostupnošću, relevantnim prilikama, prijavama i sledećim Dogovorom.  
-**Product canon:** LOCKED CURRENT DECISION  
-**Current implementation:** MISSING  
-**Entry points:** worker tab Početna; post-auth  
-**Displayed data:** availability; top opportunities; application attention; next Agreement  
-**Available actions:** set available now; browse opportunities; continue application  
-**Primary CTA:** Pogledajte prilike  
+**Purpose:** Istorijski zaseban Home koncept je ukinut potvrđenom trozonskom navigacijom. Koristan sadržaj pripada postojećim Zadaci/Prijave/Dogovori površinama i Profilu preko avatara.\
+**Product canon:** SUPERSEDED\
+**Current implementation:** NOT APPLICABLE / SUPERSEDED\
+**Entry points:** —\
+**Displayed data:** —\
+**Available actions:** —\
+**Primary CTA:** —\
 **Secondary actions:** —  
 **Backend objects:** app_profiles; worker_match_preferences; opportunity_deliveries; marketplace_responses; agreements  
 **Permissions:** owner projections  
-**Statuses:** PROFILE_INCOMPLETE; AVAILABLE; BUSY; ATTENTION  
-**Loading:** Skeleton bez promene rasporeda.  
-**Empty:** Objasniti stanje i ponuditi sledeću korisnu radnju.  
-**Validation:** Greška uz konkretno polje; unos ostaje sačuvan.  
-**Error:** Jasna poruka, Retry i bez lažnog uspeha.  
-**Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
-**Success:** Potvrda i jasan sledeći korak.  
-**Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** W03; W06; W09; D01  
+**Statuses:** SUPERSEDED\
+**Loading:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Empty:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Validation:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Error:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Offline:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Success:** Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.\
+**Destructive:** Nema posebne radnje na ukinutom Home ekranu.\
+**Next:** W03; W06; W09; D01; P01\
 **Notifications:** —  
-**Edge cases:** —  
-**Current route/evidence:** —
+**Edge cases:** do not recreate a permanent Home tab or count its absence as a gap\
+**Current route/evidence:** Owner-confirmed three-zone correction 2026-09-08; former five-tab concept superseded
 
 ## W02 — AI Worker profile
 
@@ -510,7 +513,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Purpose:** Razgovorom predlaže radni profil, ali čovek potvrđuje capability podatke.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** NOT IMPLEMENTED  
-**Entry points:** W01 incomplete profile; W08  
+**Entry points:** avatar → Profile → incomplete worker profile; W08\
 **Displayed data:** skills; tools; licenses; vehicles; radius; availability; team capacity  
 **Available actions:** talk/type; correct; save profile  
 **Primary CTA:** Sačuvajte Radni profil  
@@ -530,19 +533,19 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Edge cases:** self-declared evidence label; do not imply verification  
 **Current route/evidence:** —
 
-## W03 — Opportunities list / map
+## W03 — Zadaci discovery / opportunities list and map
 
-**Role:** USKOČER  
+**Role:** BOTH\
 **Purpose:** Otkriva javno bezbedne Need prilike kroz sinhronizovanu listu i mapu.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** PARTIAL / PR67 SOURCE-PROVEN  
-**Entry points:** USKOČI/Prilike tab; W01  
+**Entry points:** Zadaci in MENI TREBA; U / Zadaci in JA MOGU\
 **Displayed data:** Need card; approximate pin; filters; list/map mode; requester public trust  
 **Available actions:** toggle list/map; search; filter; open pin/card; refresh  
 **Primary CTA:** Otvorite Zadatak  
 **Secondary actions:** —  
 **Backend objects:** needs public projection; need_geography; opportunity_deliveries  
-**Permissions:** authenticated worker; safe projection  
+**Permissions:** public-safe discovery in both intents; current canonical worker entry and shared-discovery PR status remain separately scoped\
 **Statuses:** LIST; MAP; LOADING; EMPTY; ERROR  
 **Loading:** Skeleton bez promene rasporeda.  
 **Empty:** Objasniti stanje i ponuditi sledeću korisnu radnju.  
@@ -551,21 +554,21 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** W04; W08  
+**Next:** W04; W08 when worker readiness is required\
 **Notifications:** —  
-**Edge cases:** no coordinates; clustered pins; public deadline closes while open; location permission denied  
+**Edge cases:** no coordinates; clustered pins; public deadline closes while open; location permission denied; intent switch preserves shared List/Map context without granting Application rights\
 **Current route/evidence:** /prilike (canonical list only); prilike.tsx; PR67 pending for map/list
 
 ## W04 — Opportunity full detail
 
-**Role:** USKOČER  
+**Role:** BOTH\
 **Purpose:** Full-screen detalj zadatka sa javno bezbednim podacima i jasnom eligibility odlukom.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** PARTIAL / PR68 SOURCE-PROVEN  
 **Entry points:** W03 card/pin; Inbox  
 **Displayed data:** title; description; gallery target; approximate map; schedule; price/offers; slots; requirements; requester profile  
-**Available actions:** open requester profile; apply; back  
-**Primary CTA:** Pošaljite prijavu  
+**Available actions:** open requester profile; apply only with server-authorized worker eligibility; back\
+**Primary CTA:** Pogledajte zadatak / Pošaljite prijavu samo uz worker eligibility\
 **Secondary actions:** —  
 **Backend objects:** needs; need_geography; need_requirement_details; rpc_get_public_profile  
 **Permissions:** public-safe data; no exact address  
@@ -577,9 +580,9 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** W05; R06  
+**Next:** W05 when eligible worker; public requester profile\
 **Notifications:** —  
-**Edge cases:** deadline changes; own Need; already applied; profile incomplete  
+**Edge cases:** deadline changes; own Need; already applied; profile incomplete; MENI TREBA may browse; Application action still requires eligible worker context\
 **Current route/evidence:** /prilike/[id]; prilike/[id].tsx; W04 recovery proof
 
 ## W05 — Application composer
@@ -640,7 +643,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Purpose:** Uređuje identitet rada, capability i javni opis bez lažne verifikacije.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** PARTIAL  
-**Entry points:** Profil; W03 empty; W01  
+**Entry points:** avatar → Profile; W03 readiness guidance\
 **Displayed data:** name; city; bio; skills; tools; vehicles; radius; available now; profile status  
 **Available actions:** save; activate when complete  
 **Primary CTA:** Sačuvajte profil  
@@ -655,7 +658,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** W01; W03; W09  
+**Next:** P01; W03; W09\
 **Notifications:** —  
 **Edge cases:** direct table write currently in client service; activation validation; account switch  
 **Current route/evidence:** /profil/radnik; profil/radnik.tsx; workerProfileClientService.ts
@@ -666,7 +669,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Purpose:** Upravlja dostupnošću odmah, pravilima i izuzecima uz Dogovor obaveze.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** BACKEND PARTIAL / UI MISSING  
-**Entry points:** W01; W08  
+**Entry points:** avatar → Profile; W08; C01\
 **Displayed data:** available now expiry; weekly rules; one-off windows; Agreement conflicts  
 **Available actions:** toggle now; add rule; block time  
 **Primary CTA:** Sačuvajte dostupnost  
@@ -681,7 +684,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** W01; calendar  
+**Next:** P01; C01\
 **Notifications:** —  
 **Edge cases:** timezone; overlap; stale now flag; cross-Need conflicts  
 **Current route/evidence:** —
@@ -692,7 +695,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Purpose:** Prikazuje sve Dogovore iz aktivne uloge i vodi u jedinstven workspace.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** IMPLEMENTED / NEEDS REDESIGN  
-**Entry points:** Dogovori tab; Home; Inbox  
+**Entry points:** Dogovori zone in either intent; Inbox\
 **Displayed data:** title; counterparty; time; price; coverage; state; attention  
 **Available actions:** open; refresh  
 **Primary CTA:** Otvorite Dogovor  
@@ -844,11 +847,11 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 
 ## M01 — Full-screen map
 
-**Role:** USKOČER  
+**Role:** BOTH\
 **Purpose:** Spatial browse with approximate pins and synchronized filters.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** PARTIAL / PR67 PENDING  
-**Entry points:** W03 map mode  
+**Entry points:** W03 map mode inside Zadaci in either intent\
 **Displayed data:** approximate pins; clusters; selected Need preview; search area  
 **Available actions:** pan; re-search area; select pin; switch list  
 **Primary CTA:** Pogledajte Zadatak  
@@ -870,7 +873,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 
 ## M02 — Map pin compact sheet
 
-**Role:** USKOČER  
+**Role:** BOTH\
 **Purpose:** Kratak, informativan preview pre punog detalja.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** PARTIAL / PR67 PENDING  
@@ -896,7 +899,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 
 ## Q01 — Search
 
-**Role:** USKOČER  
+**Role:** BOTH\
 **Purpose:** Pretraga prilika uz recent i korisne predloge.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** NOT IMPLEMENTED  
@@ -922,7 +925,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 
 ## Q02 — Filters
 
-**Role:** USKOČER  
+**Role:** BOTH\
 **Purpose:** Filtrira bez skrivene promene semantike: kategorija, vreme, udaljenost, cena i capability.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** NOT IMPLEMENTED  
@@ -952,7 +955,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Purpose:** Jedan nalog sa jasnim role switch-em i ulazima u profile/settings.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** PARTIAL  
-**Entry points:** Profil tab; header avatar  
+**Entry points:** header avatar\
 **Displayed data:** identity; current intent; requester/worker summaries  
 **Available actions:** switch role; edit personal profile; edit worker profile; settings; logout  
 **Primary CTA:** Promenite ulogu  
@@ -967,7 +970,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Offline:** Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.  
 **Success:** Potvrda i jasan sledeći korak.  
 **Destructive:** Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.  
-**Next:** R01; W01; W08; S07  
+**Next:** retained active-intent zone; R03 requester Zadaci; W06 worker Prijave; W03 discovery; W08; S07\
 **Notifications:** —  
 **Edge cases:** role switch during request; preserve per-role tab history  
 **Current route/evidence:** /profil; profil.tsx
@@ -1108,7 +1111,7 @@ Generated 2026-09-08. Evidence boundary: canonical Git HEAD `38e9a38`; live Supa
 **Purpose:** Jedan pregled Dogovor obaveza; worker additionally sees availability.  
 **Product canon:** PRODUCT CANON  
 **Current implementation:** BACKEND PARTIAL / UI MISSING  
-**Entry points:** Home; Dogovori; W09  
+**Entry points:** Dogovori; avatar → Profile; W09\
 **Displayed data:** Agreement schedule; availability windows/rules; conflicts  
 **Available actions:** open Agreement; edit availability  
 **Primary CTA:** Otvorite Dogovor  

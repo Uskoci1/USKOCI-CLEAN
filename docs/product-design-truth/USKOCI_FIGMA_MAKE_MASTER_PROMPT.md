@@ -21,9 +21,10 @@ Preserve these rules:
 
 Use this locked navigation:
 
-- Naručilac: Početna | Potrebe | + | Dogovori | Profil
-- Uskočer: Početna | Prijave | USKOČI / Prilike | Dogovori | Profil
-- Bell opens Notifications/Inbox. Profile contains the role switch.
+- MENI TREBA (Naručilac): Zadaci | U / Novi | Dogovori
+- JA MOGU (Uskočer): Prijave | U / Zadaci | Dogovori
+- Bell → Notifications / Inbox. Avatar → Profile, including the intent switch. No permanent Home or Profile tab. Map/List are modes inside Zadaci, accessible in both intents; access to public discovery does not grant Application or private-data permissions.
+- This latest owner-confirmed three-zone decision supersedes the earlier five-tab reconstruction brief. Preserve the aligned canonical shell semantics.
 
 Create three genuinely different directions before expanding a full app:
 
@@ -33,8 +34,8 @@ Create three genuinely different directions before expanding a full app:
 
 For each direction create these nine representative screens at 390×844:
 
-1. Naručilac Home
-2. Uskočer Opportunities
+1. Zadaci in MENI TREBA, including owner Needs/drafts context
+2. Zadaci in JA MOGU, showing worker opportunities
 3. full Need/Opportunity detail
 4. Map with selected pin bottom sheet
 5. AI Need creation with chat, live compact Need card and one missing-fact question
@@ -51,7 +52,7 @@ Cards must show what, where, when, fixed price or offers, number of people, crit
 
 AI creation must feel fast: show the user's message immediately, show processing, update the live card, ask only one concise required question, allow corrections and end with one clear Save draft or Publish action. Include explicit offline, timeout/retry and stale-review states that preserve input.
 
-Build a reusable variable-driven system: color, typography, spacing, radius, elevation and motion tokens; buttons, inputs, chips, five-tab navigation, Need/Opportunity/Application/Dogovor cards, map pins/sheets, AI/chat elements, calendar/availability elements, notifications, trust badges and complete system states.
+Build a reusable variable-driven system: color, typography, spacing, radius, elevation and motion tokens; buttons, inputs, chips, three-zone navigation with a central U action/destination, Need/Opportunity/Application/Dogovor cards, map pins/sheets, AI/chat elements, calendar/availability elements, notifications, trust badges and complete system states.
 
 Visual target: premium, young, light, human, recognizable, trustworthy and feasible in Expo/React Native. Use a 4pt grid, 44pt targets, accessible contrast, safe areas, keyboard-safe composers and reduced-motion variants. Orange is a precise brand/action signal; forest/teal builds trust; avoid generic SaaS dashboard styling, excessive gradients, glass and ornamental animation.
 

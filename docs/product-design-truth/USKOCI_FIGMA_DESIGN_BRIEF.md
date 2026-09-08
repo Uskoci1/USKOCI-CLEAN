@@ -39,10 +39,10 @@ Before designing, read:
 
 ## Locked navigation
 
-- Naručilac: Početna | Potrebe | + | Dogovori | Profil.
-- Uskočer: Početna | Prijave | USKOČI / Prilike | Dogovori | Profil.
-- Bell → Inbox.
-- Profile contains role switch.
+- MENI TREBA (Naručilac): Zadaci | U / Novi | Dogovori.
+- JA MOGU (Uskočer): Prijave | U / Zadaci | Dogovori.
+- Bell → Notifications / Inbox. Avatar → Profile, including the intent switch. No permanent Home or Profile tab. Map/List are modes inside Zadaci, accessible in both intents; access to public discovery does not grant Application or private-data permissions.
+- This explicit owner correction supersedes the earlier five-tab brief; the current three-zone source is not a navigation gap.
 
 ## Figma structure
 
@@ -65,8 +65,8 @@ Sections:
 
 Each direction must cover the same nine representative surfaces:
 
-1. Naručilac Home
-2. Uskočer / Prilike
+1. Zadaci entry in MENI TREBA (shared discovery plus owner Needs/drafts context)
+2. Zadaci discovery in JA MOGU (worker opportunities context)
 3. Need / Opportunity full detail
 4. Map with selected pin sheet
 5. AI Need creation with live card

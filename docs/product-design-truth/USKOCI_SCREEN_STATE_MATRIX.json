@@ -43,7 +43,7 @@
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
         "S02 ili S03",
-        "role Home"
+        "active intent tab / preserved target"
       ],
       "notification_implications": [],
       "edge_cases": [
@@ -100,8 +100,9 @@
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
         "S03",
-        "R-HOME",
-        "W-HOME"
+        "R03 requester Zadaci",
+        "W06 worker Prijave",
+        "W03 discovery intent"
       ],
       "notification_implications": [],
       "edge_cases": [
@@ -163,7 +164,7 @@
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
         "sačuvani return target",
-        "role Home"
+        "R03 requester Zadaci / W06 worker Prijave"
       ],
       "notification_implications": [
         "email confirmation ako je uključena"
@@ -625,28 +626,15 @@
     },
     {
       "id": "R01",
-      "name": "Naručilac Home",
+      "name": "Former Naručilac Home (superseded)",
       "role": "NARUČILAC",
-      "purpose": "Početna daje jedan pogled na aktivne potrebe, sledeći Dogovor i najbrži način da se zatraži pomoć.",
-      "canon_status": "LOCKED CURRENT DECISION",
-      "current_status": "MISSING",
-      "entry_points": [
-        "requester tab Početna",
-        "post-auth"
-      ],
-      "displayed_data": [
-        "greeting",
-        "active Need summary",
-        "next Agreement",
-        "unread count",
-        "quick create"
-      ],
-      "actions": [
-        "create Need",
-        "continue draft",
-        "open active item"
-      ],
-      "primary_cta": "Šta Vam treba?",
+      "purpose": "Istorijski zaseban Home koncept je ukinut potvrđenom trozonskom navigacijom. Koristan sadržaj pripada postojećim Zadaci/Prijave/Dogovori površinama i Profilu preko avatara.",
+      "canon_status": "SUPERSEDED",
+      "current_status": "NOT APPLICABLE / SUPERSEDED",
+      "entry_points": [],
+      "displayed_data": [],
+      "actions": [],
+      "primary_cta": "",
       "secondary_actions": [],
       "backend_objects": [
         "needs",
@@ -657,29 +645,30 @@
         "owner projections"
       ],
       "statuses": [
-        "NEW_USER",
-        "ACTIVE",
-        "QUIET"
+        "SUPERSEDED"
       ],
-      "loading_state": "Skeleton bez promene rasporeda.",
-      "empty_state": "Objasniti stanje i ponuditi sledeću korisnu radnju.",
-      "validation_state": "Greška uz konkretno polje; unos ostaje sačuvan.",
-      "error_state": "Jasna poruka, Retry i bez lažnog uspeha.",
-      "offline_state": "Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.",
-      "success_state": "Potvrda i jasan sledeći korak.",
-      "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
+      "loading_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "empty_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "validation_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "error_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "offline_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "success_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "destructive_state": "Nema posebne radnje na ukinutom Home ekranu.",
       "next_navigation": [
-        "R02",
         "R03",
-        "D01"
+        "W03",
+        "R02",
+        "D01",
+        "P01"
       ],
       "notification_implications": [],
       "edge_cases": [
-        "both roles have activity",
-        "no current items"
+        "do not recreate a permanent Home tab or count its absence as a gap"
       ],
       "current_route": "",
-      "evidence": []
+      "evidence": [
+        "Owner-confirmed three-zone correction 2026-09-08; former five-tab concept superseded"
+      ]
     },
     {
       "id": "R02",
@@ -689,8 +678,7 @@
       "canon_status": "PRODUCT CANON",
       "current_status": "PARTIAL",
       "entry_points": [
-        "center + tab",
-        "R01 CTA",
+        "U / Novi center zone in MENI TREBA",
         "edit Need"
       ],
       "displayed_data": [
@@ -761,12 +749,12 @@
       "id": "R03",
       "name": "My Needs list",
       "role": "NARUČILAC",
-      "purpose": "Pregled svih Need objekata po životnom ciklusu.",
+      "purpose": "Pregled sopstvenih Need objekata po životnom ciklusu unutar Zadaci; jasno odvojen od javnog discovery prikaza.",
       "canon_status": "PRODUCT CANON",
       "current_status": "IMPLEMENTED / NEEDS REDESIGN",
       "entry_points": [
-        "Potrebe tab",
-        "R01"
+        "Zadaci in MENI TREBA → owner Needs/drafts context",
+        "post-auth requester default"
       ],
       "displayed_data": [
         "title",
@@ -1101,27 +1089,15 @@
     },
     {
       "id": "W01",
-      "name": "Uskočer Home",
+      "name": "Former Uskočer Home (superseded)",
       "role": "USKOČER",
-      "purpose": "Početna sa dostupnošću, relevantnim prilikama, prijavama i sledećim Dogovorom.",
-      "canon_status": "LOCKED CURRENT DECISION",
-      "current_status": "MISSING",
-      "entry_points": [
-        "worker tab Početna",
-        "post-auth"
-      ],
-      "displayed_data": [
-        "availability",
-        "top opportunities",
-        "application attention",
-        "next Agreement"
-      ],
-      "actions": [
-        "set available now",
-        "browse opportunities",
-        "continue application"
-      ],
-      "primary_cta": "Pogledajte prilike",
+      "purpose": "Istorijski zaseban Home koncept je ukinut potvrđenom trozonskom navigacijom. Koristan sadržaj pripada postojećim Zadaci/Prijave/Dogovori površinama i Profilu preko avatara.",
+      "canon_status": "SUPERSEDED",
+      "current_status": "NOT APPLICABLE / SUPERSEDED",
+      "entry_points": [],
+      "displayed_data": [],
+      "actions": [],
+      "primary_cta": "",
       "secondary_actions": [],
       "backend_objects": [
         "app_profiles",
@@ -1134,28 +1110,30 @@
         "owner projections"
       ],
       "statuses": [
-        "PROFILE_INCOMPLETE",
-        "AVAILABLE",
-        "BUSY",
-        "ATTENTION"
+        "SUPERSEDED"
       ],
-      "loading_state": "Skeleton bez promene rasporeda.",
-      "empty_state": "Objasniti stanje i ponuditi sledeću korisnu radnju.",
-      "validation_state": "Greška uz konkretno polje; unos ostaje sačuvan.",
-      "error_state": "Jasna poruka, Retry i bez lažnog uspeha.",
-      "offline_state": "Prikaži poslednje bezbedno stanje; komande čekaju eksplicitni retry.",
-      "success_state": "Potvrda i jasan sledeći korak.",
-      "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
+      "loading_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "empty_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "validation_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "error_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "offline_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "success_state": "Nije zaseban ekran; koristiti stanje odgovarajuće aktivne površine.",
+      "destructive_state": "Nema posebne radnje na ukinutom Home ekranu.",
       "next_navigation": [
         "W03",
         "W06",
         "W09",
-        "D01"
+        "D01",
+        "P01"
       ],
       "notification_implications": [],
-      "edge_cases": [],
+      "edge_cases": [
+        "do not recreate a permanent Home tab or count its absence as a gap"
+      ],
       "current_route": "",
-      "evidence": []
+      "evidence": [
+        "Owner-confirmed three-zone correction 2026-09-08; former five-tab concept superseded"
+      ]
     },
     {
       "id": "W02",
@@ -1165,7 +1143,7 @@
       "canon_status": "PRODUCT CANON",
       "current_status": "NOT IMPLEMENTED",
       "entry_points": [
-        "W01 incomplete profile",
+        "avatar → Profile → incomplete worker profile",
         "W08"
       ],
       "displayed_data": [
@@ -1219,14 +1197,14 @@
     },
     {
       "id": "W03",
-      "name": "Opportunities list / map",
-      "role": "USKOČER",
+      "name": "Zadaci discovery / opportunities list and map",
+      "role": "BOTH",
       "purpose": "Otkriva javno bezbedne Need prilike kroz sinhronizovanu listu i mapu.",
       "canon_status": "PRODUCT CANON",
       "current_status": "PARTIAL / PR67 SOURCE-PROVEN",
       "entry_points": [
-        "USKOČI/Prilike tab",
-        "W01"
+        "Zadaci in MENI TREBA",
+        "U / Zadaci in JA MOGU"
       ],
       "displayed_data": [
         "Need card",
@@ -1250,7 +1228,7 @@
         "opportunity_deliveries"
       ],
       "permissions": [
-        "authenticated worker; safe projection"
+        "public-safe discovery in both intents; current canonical worker entry and shared-discovery PR status remain separately scoped"
       ],
       "statuses": [
         "LIST",
@@ -1268,14 +1246,15 @@
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
         "W04",
-        "W08"
+        "W08 when worker readiness is required"
       ],
       "notification_implications": [],
       "edge_cases": [
         "no coordinates",
         "clustered pins",
         "public deadline closes while open",
-        "location permission denied"
+        "location permission denied",
+        "intent switch preserves shared List/Map context without granting Application rights"
       ],
       "current_route": "/prilike (canonical list only)",
       "evidence": [
@@ -1286,7 +1265,7 @@
     {
       "id": "W04",
       "name": "Opportunity full detail",
-      "role": "USKOČER",
+      "role": "BOTH",
       "purpose": "Full-screen detalj zadatka sa javno bezbednim podacima i jasnom eligibility odlukom.",
       "canon_status": "PRODUCT CANON",
       "current_status": "PARTIAL / PR68 SOURCE-PROVEN",
@@ -1307,10 +1286,10 @@
       ],
       "actions": [
         "open requester profile",
-        "apply",
+        "apply only with server-authorized worker eligibility",
         "back"
       ],
-      "primary_cta": "Pošaljite prijavu",
+      "primary_cta": "Pogledajte zadatak / Pošaljite prijavu samo uz worker eligibility",
       "secondary_actions": [],
       "backend_objects": [
         "needs",
@@ -1336,15 +1315,16 @@
       "success_state": "Potvrda i jasan sledeći korak.",
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
-        "W05",
-        "R06"
+        "W05 when eligible worker",
+        "public requester profile"
       ],
       "notification_implications": [],
       "edge_cases": [
         "deadline changes",
         "own Need",
         "already applied",
-        "profile incomplete"
+        "profile incomplete",
+        "MENI TREBA may browse; Application action still requires eligible worker context"
       ],
       "current_route": "/prilike/[id]",
       "evidence": [
@@ -1492,9 +1472,8 @@
       "canon_status": "PRODUCT CANON",
       "current_status": "PARTIAL",
       "entry_points": [
-        "Profil",
-        "W03 empty",
-        "W01"
+        "avatar → Profile",
+        "W03 readiness guidance"
       ],
       "displayed_data": [
         "name",
@@ -1534,7 +1513,7 @@
       "success_state": "Potvrda i jasan sledeći korak.",
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
-        "W01",
+        "P01",
         "W03",
         "W09"
       ],
@@ -1558,8 +1537,9 @@
       "canon_status": "PRODUCT CANON",
       "current_status": "BACKEND PARTIAL / UI MISSING",
       "entry_points": [
-        "W01",
-        "W08"
+        "avatar → Profile",
+        "W08",
+        "C01"
       ],
       "displayed_data": [
         "available now expiry",
@@ -1596,8 +1576,8 @@
       "success_state": "Potvrda i jasan sledeći korak.",
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
-        "W01",
-        "calendar"
+        "P01",
+        "C01"
       ],
       "notification_implications": [],
       "edge_cases": [
@@ -1617,8 +1597,7 @@
       "canon_status": "PRODUCT CANON",
       "current_status": "IMPLEMENTED / NEEDS REDESIGN",
       "entry_points": [
-        "Dogovori tab",
-        "Home",
+        "Dogovori zone in either intent",
         "Inbox"
       ],
       "displayed_data": [
@@ -1987,12 +1966,12 @@
     {
       "id": "M01",
       "name": "Full-screen map",
-      "role": "USKOČER",
+      "role": "BOTH",
       "purpose": "Spatial browse with approximate pins and synchronized filters.",
       "canon_status": "PRODUCT CANON",
       "current_status": "PARTIAL / PR67 PENDING",
       "entry_points": [
-        "W03 map mode"
+        "W03 map mode inside Zadaci in either intent"
       ],
       "displayed_data": [
         "approximate pins",
@@ -2046,7 +2025,7 @@
     {
       "id": "M02",
       "name": "Map pin compact sheet",
-      "role": "USKOČER",
+      "role": "BOTH",
       "purpose": "Kratak, informativan preview pre punog detalja.",
       "canon_status": "PRODUCT CANON",
       "current_status": "PARTIAL / PR67 PENDING",
@@ -2096,7 +2075,7 @@
     {
       "id": "Q01",
       "name": "Search",
-      "role": "USKOČER",
+      "role": "BOTH",
       "purpose": "Pretraga prilika uz recent i korisne predloge.",
       "canon_status": "PRODUCT CANON",
       "current_status": "NOT IMPLEMENTED",
@@ -2145,7 +2124,7 @@
     {
       "id": "Q02",
       "name": "Filters",
-      "role": "USKOČER",
+      "role": "BOTH",
       "purpose": "Filtrira bez skrivene promene semantike: kategorija, vreme, udaljenost, cena i capability.",
       "canon_status": "PRODUCT CANON",
       "current_status": "NOT IMPLEMENTED",
@@ -2200,7 +2179,6 @@
       "canon_status": "PRODUCT CANON",
       "current_status": "PARTIAL",
       "entry_points": [
-        "Profil tab",
         "header avatar"
       ],
       "displayed_data": [
@@ -2237,8 +2215,10 @@
       "success_state": "Potvrda i jasan sledeći korak.",
       "destructive_state": "Navesti posledicu i tražiti potvrdu samo za nepovratnu radnju.",
       "next_navigation": [
-        "R01",
-        "W01",
+        "retained active-intent zone",
+        "R03 requester Zadaci",
+        "W06 worker Prijave",
+        "W03 discovery",
         "W08",
         "S07"
       ],
@@ -2524,8 +2504,8 @@
       "canon_status": "PRODUCT CANON",
       "current_status": "BACKEND PARTIAL / UI MISSING",
       "entry_points": [
-        "Home",
         "Dogovori",
+        "avatar → Profile",
         "W09"
       ],
       "displayed_data": [
@@ -2684,5 +2664,36 @@
       "current_route": "",
       "evidence": []
     }
-  ]
+  ],
+  "navigation_decision": {
+    "confirmed_at": "2026-09-08",
+    "authority": "Latest explicit owner correction; supersedes previous five-tab reconstruction brief",
+    "source_checked_head": "0e6951e357efeae8477c2325d752ceef7f013611",
+    "requester": [
+      "Zadaci",
+      "U / Novi",
+      "Dogovori"
+    ],
+    "worker": [
+      "Prijave",
+      "U / Zadaci",
+      "Dogovori"
+    ],
+    "bell": "Notifications / Inbox",
+    "avatar": "Profile",
+    "permanent_home_tab": false,
+    "permanent_profile_tab": false,
+    "shared_discovery": {
+      "container": "Zadaci",
+      "modes": [
+        "LIST",
+        "MAP"
+      ],
+      "roles": [
+        "NARUČILAC",
+        "USKOČER"
+      ]
+    },
+    "source_alignment": "Canonical three-zone shell is aligned; shared map/list coverage retains its recorded partial/pending status."
+  }
 }

@@ -4,12 +4,14 @@
 
 This product canon was reconstructed on 8 September 2026 from canonical Git commit `38e9a38f7c9713cc7061f347eb083d84022dcdfd`, the live Supabase project `leqcwgzvjsxugfgzdmth` with 87 migrations and Edge Function `uskoci-ai-interview` v11, the current governing product documents, and the owner's latest decisions. Open PRs are evidence of work in progress, never canonical behavior.
 
-The latest owner decision locks this final primary navigation and supersedes the older three-zone shell:
+Navigation correction, 8 September 2026: the owner explicitly reconfirmed the three-zone model below. This supersedes the five-tab instruction in the earlier reconstruction brief and the resulting design handoff. The broader code/live evidence above retains its original observation boundary; this correction adds no new live capability claim.
 
-- **Naručilac:** Početna | Potrebe | + | Dogovori | Profil
-- **Uskočer:** Početna | Prijave | USKOČI / Prilike | Dogovori | Profil
+- **MENI TREBA (Naručilac):** Zadaci | U / Novi | Dogovori
+- **JA MOGU (Uskočer):** Prijave | U / Zadaci | Dogovori
 
-The account is singular. The intent changes; identity does not. Notifications remain available from the bell and may deep-link into either role context.
+The account is singular. The intent changes; identity does not. The bell opens Notifications / Inbox, and the avatar opens Profile with the intent switch. Home and Profile are not permanent bottom tabs. Map and List belong inside Zadaci and are accessible in both intents. Public browsing never grants worker Application rights or private-location access.
+
+The canonical `src/app/(app)/_layout.tsx` at checked commit `0e6951e357efeae8477c2325d752ceef7f013611` already implements three visible zones with Profile hidden from the bottom bar. That shell is aligned with the decision, not navigation debt. Shared Map/List access in both intents retains its separately recorded partial/pending implementation status.
 
 ## Product promise
 
@@ -39,7 +41,7 @@ The flow is revision-aware. If a Need or Application changes, the user must revi
 
 ## Naručilac experience
 
-The Naručilac Home answers: what needs attention, what is next, and how to ask for help. The center `+` opens Need creation.
+Zadaci is the requester entry surface: it offers task discovery in List/Map and an owner-only view of the user's own Needs and drafts. Attention belongs with the relevant Need or Dogovor instead of a separate Home tab. The center U / Novi opens Need creation.
 
 Need creation supports natural language first. AI may propose structured facts, but cannot claim that the user confirmed something they did not. The intended interaction is:
 
@@ -57,9 +59,9 @@ Candidate selection compares real Applications. It must show the worker's public
 
 ## Uskočer experience
 
-The Uskočer Home answers: am I available, which Applications need attention, which opportunities fit, and what Agreement is next.
+The worker uses Prijave for Application attention, U / Zadaci for discovery, and Dogovori for accepted work. Profile and availability are reached through the avatar. There is no separate worker Home tab.
 
-Opportunity discovery has synchronized List and Map modes. Public cards show a clear task summary, safe location, time, price/offers, required people and requester trust information only when the backend provides it. Pins use approximate geography. A pin opens a compact bottom sheet; the sheet opens the full Opportunity detail.
+Zadaci discovery is available in both intents and has synchronized List and Map modes. Public cards show a clear task summary, safe location, time, price/offers, required people and requester trust information only when the backend provides it. Pins use approximate geography. A pin opens a compact bottom sheet; the sheet opens the full Opportunity detail.
 
 The full detail reveals no private address. It provides enough information to decide whether to apply. The Application form captures price, covered slots, proposed time and note. Submission is idempotent and tied to the current Need revision.
 
@@ -97,12 +99,12 @@ The current connection policy records a promotional platform cost of **0 RSD** t
 | Area | Product canon | Current implementation |
 |---|---|---|
 | Brand intro and Auth | Required | Implemented and physically proven in scoped journeys |
-| Five-tab role navigation | Latest locked decision | Missing; canonical code still uses older three-zone shell |
+| Three-zone role navigation | Latest owner-confirmed decision | Canonical shell aligned; final visual treatment remains separate |
 | Need list/detail | Required | Implemented as scaffold; detail partial |
 | AI Need interview/review/draft | Required | Partial; server authority live, actual provider success unproven |
 | Publish | Required | RPC/foundation exists; admission policy remains gated |
 | Opportunities list | Required | Implemented scaffold |
-| Map/list | Required | Source-proven in pending PR, not canonical |
+| Map/list inside Zadaci for both intents | Required | Source-proven in pending PR, not canonical; shared discovery coverage remains partial |
 | Application and candidate selection | Required | Implemented with server authority; UI needs redesign |
 | Dogovor and chat | Required | Implemented; broader lifecycle UX partial |
 | Notification Inbox | Required | Implemented |
