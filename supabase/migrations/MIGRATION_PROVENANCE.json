@@ -669,6 +669,34 @@
       "legal_content": "MISSING_APPROVED_CONTENT"
     },
     {
+      "version": "20260908140000",
+      "name": "clean_p4_processor_map_registry",
+      "file": "20260908140000_clean_p4_processor_map_registry.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "244ca4d495de073dc6137c2a799d3fa8",
+      "raw_sha256": "24e191c1436a9ddd010310576f0d571945eff6fcc7b08cb0d004e0fd1ebcf26e",
+      "raw_bytes": 18537,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "P4_PROCESSOR_MAP",
+      "legal_content": "MISSING_APPROVED_CONTENT"
+    },
+    {
+      "version": "20260908150000",
+      "name": "clean_p3_retention_schedule_registry",
+      "file": "20260908150000_clean_p3_retention_schedule_registry.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "65d50eeca8481233a466a3eaa5c458bf",
+      "raw_sha256": "e7ce87db536a72d4d49742bb6bfbd752fc06e7cd838b2c8b373095dd6140a521",
+      "raw_bytes": 16046,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "P3_RETENTION_SCHEDULE",
+      "legal_content": "MISSING_APPROVED_CONTENT"
+    },
+    {
       "version": "20260908160000",
       "name": "clean_p2_data_export_requests",
       "file": "20260908160000_clean_p2_data_export_requests.sql",
@@ -1761,6 +1789,37 @@
     "seeds_legal_documents": false,
     "legal_content": "MISSING_APPROVED_CONTENT",
     "owner_decision_required": "approved TERMS/PRIVACY content, public https URLs and effective dates; publication is an authorized-operations act"
+  },
+  "p4_processor_map_registry": {
+    "unit": "P4_PROCESSOR_MAP",
+    "forward_file": "20260908140000_clean_p4_processor_map_registry.sql",
+    "raw_md5": "244ca4d495de073dc6137c2a799d3fa8",
+    "raw_sha256": "24e191c1436a9ddd010310576f0d571945eff6fcc7b08cb0d004e0fd1ebcf26e",
+    "raw_bytes": 18537,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "proof_workflow": ".github/workflows/p4-processor-map-proof.yml",
+    "proof": "supabase/proofs/legal/p4_processor_map_proof.mjs",
+    "record": "docs/implementation/P4_PROCESSOR_MAP_20260908.md",
+    "seeds_legal_map": false,
+    "legal_content": "MISSING_APPROVED_CONTENT",
+    "owner_decision_required": "counsel-approved map for Supabase/OpenAI/Google or confirmation of the live AI adapter; map provider before inventory entry"
+  },
+  "p3_retention_schedule_registry": {
+    "unit": "P3_RETENTION_SCHEDULE",
+    "forward_file": "20260908150000_clean_p3_retention_schedule_registry.sql",
+    "raw_md5": "65d50eeca8481233a466a3eaa5c458bf",
+    "raw_sha256": "e7ce87db536a72d4d49742bb6bfbd752fc06e7cd838b2c8b373095dd6140a521",
+    "raw_bytes": 16046,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "proof_workflow": ".github/workflows/p3-retention-schedule-proof.yml",
+    "proof": "supabase/proofs/legal/p3_retention_schedule_proof.mjs",
+    "record": "docs/implementation/P3_RETENTION_SCHEDULE_20260908.md",
+    "seeds_retention_schedule": false,
+    "purge_execution_admitted": false,
+    "legal_content": "MISSING_APPROVED_CONTENT",
+    "owner_decision_required": "counsel-approved retention schedule for the fourteen seeded data classes; purge policy before any execution unit"
   },
   "p2_data_export_requests": {
     "unit": "P2_DATA_EXPORT",
