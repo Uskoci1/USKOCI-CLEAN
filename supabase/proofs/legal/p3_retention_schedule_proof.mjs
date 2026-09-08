@@ -215,7 +215,9 @@ try{
   assert.equal(tableHash('supabase_migrations.schema_migrations',`version<>${q(manifest.forward_version)}`),history);
   report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
   assert.equal(report.migration_history_count,predecessorCount+1);
-  assert.equal(report.migration_history_count,plan.source_migration_count);
+  assert.equal(report.migration_history_count,plan.expected_post_unit_count);
+  assert.equal(plan.source_migration_count,plan.expected_post_unit_count+plan.unapplied_successors.length);
+  report.unapplied_successors=plan.unapplied_successors.map(entry=>entry.file);
   assert.equal(sql("select count(*) from private.retention_policy_rules where purpose not like 'PROOF %'"),'0');
   assert.equal(sql("select count(*) from private.retention_policy_sets where counsel_reference not like 'PROOF%'"),'0');
   pass();

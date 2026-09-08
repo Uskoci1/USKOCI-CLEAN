@@ -17,7 +17,10 @@ test('plan admits frozen live87 plus the ordered earlier pending stack and this 
   assert.equal(plan.source_migration_count, 87 + pending.length);
   assert.equal(plan.expected_predecessor_count, 87 + before.length);
   assert.deepEqual(plan.pending_predecessors.map(entry => entry.file), before);
-  assert.equal(pending.at(-1), unit.forward_file, 'unit must be last in the current forward stack');
+  assert.equal(plan.proof_scope, 'HISTORICAL_PLUS_UNIT_PREFIX');
+  assert.equal(plan.expected_post_unit_count, plan.expected_predecessor_count + 1);
+  assert.deepEqual(plan.unapplied_successors.map(entry => entry.file), pending.slice(pending.indexOf(unit.forward_file) + 1));
+  assert.equal(plan.source_migration_count, plan.expected_post_unit_count + plan.unapplied_successors.length);
 });
 
 test('candidate and forward bytes are identical and match the manifest digests', () => {

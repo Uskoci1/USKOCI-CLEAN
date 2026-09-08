@@ -21,7 +21,7 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
       assert.match(file, /^\d{14}_[a-z0-9_]+\.sql$/);
       const bytes = readFileSync(resolve(root, 'supabase/migrations', file));
       assert.ok(!bytes.includes(13), `SOURCE_CR_BYTE:${file}`);
-      return { file, md5: digest('md5', bytes) };
+      return { file, md5: digest('md5', bytes), sha256: digest('sha256', bytes), bytes: bytes.length };
     });
 
   const liveEntries = provenance.live_history_snapshot.entries;
@@ -50,20 +50,29 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
 
   const unitPendingIndex = pendingEntries.findIndex(entry => entry.file === unit.forward_file);
   assert.ok(unitPendingIndex >= 0, 'P3_PENDING_PROVENANCE_MISSING');
-  assert.equal(unitPendingIndex, pendingEntries.length - 1, 'P3_PENDING_NOT_LAST_IN_CURRENT_FORWARD_STACK');
-  const pendingPredecessors = pendingEntries.slice(0, unitPendingIndex).map(entry => {
-    assert.equal(entry.live_applied, false, `PENDING_PREDECESSOR_MARKED_LIVE:${entry.file}`);
-    assert.ok(String(entry.version) < String(unit.forward_version), `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
+  // Validate the entire declared pending inventory, but apply only the prefix
+  // preceding this unit. A later independent migration cannot become a hidden
+  // prerequisite or invalidate an already bounded proof merely by existing.
+  const pending = pendingEntries.map(entry => {
+    assert.equal(entry.live_applied, false, `PENDING_ENTRY_MARKED_LIVE:${entry.file}`);
+    assert.equal(entry.classification, 'PENDING_FORWARD_MIGRATION', `PENDING_CLASSIFICATION_INVALID:${entry.file}`);
+    assert.equal(entry.file, `${entry.version}_${entry.name}.sql`, `PENDING_IDENTITY_MISMATCH:${entry.file}`);
     const current = source.find(candidate => candidate.file === entry.file);
-    assert.ok(current, `PENDING_PREDECESSOR_FILE_MISSING:${entry.file}`);
-    assert.equal(current.md5, entry.raw_md5, `PENDING_PREDECESSOR_MD5_CHANGED:${entry.file}`);
-    return {
-      file: entry.file,
-      version: String(entry.version),
-      name: entry.name,
-      md5: entry.raw_md5,
-    };
+    assert.ok(current, `PENDING_FILE_MISSING:${entry.file}`);
+    assert.equal(current.md5, entry.raw_md5, `PENDING_MD5_CHANGED:${entry.file}`);
+    assert.equal(current.sha256, entry.raw_sha256, `PENDING_SHA256_CHANGED:${entry.file}`);
+    assert.equal(current.bytes, entry.raw_bytes, `PENDING_BYTES_CHANGED:${entry.file}`);
+    return { file: entry.file, version: String(entry.version), name: entry.name, md5: entry.raw_md5 };
   });
+  assert.equal(pending[unitPendingIndex].version, String(unit.forward_version), 'P3_UNIT_VERSION_MISMATCH');
+  const pendingPredecessors = pending.slice(0, unitPendingIndex);
+  const unappliedSuccessors = pending.slice(unitPendingIndex + 1);
+  for (const entry of pendingPredecessors) {
+    assert.ok(entry.version < String(unit.forward_version), `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
+  }
+  for (const entry of unappliedSuccessors) {
+    assert.ok(entry.version > String(unit.forward_version), `PENDING_SUCCESSOR_ORDER_INVALID:${entry.file}`);
+  }
 
   assert.equal(source.length, historical.length + pendingEntries.length);
 
@@ -79,7 +88,10 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
   }
 
   return {
+    proof_scope: 'HISTORICAL_PLUS_UNIT_PREFIX',
     source_migration_count: source.length,
+    expected_post_unit_count: historical.length + pendingPredecessors.length + 1,
+    unapplied_successors: unappliedSuccessors,
     historical_predecessor_count: historical.length,
     pending_predecessor_count: pendingPredecessors.length,
     expected_predecessor_count: historical.length + pendingPredecessors.length,
