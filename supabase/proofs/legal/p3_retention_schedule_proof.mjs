@@ -210,11 +210,49 @@ try{
 
   {
   check('FINAL_FINGERPRINTS_HISTORY_AND_NO_REAL_CONTENT');
+  // Complete the current source stack after proving P3 at its original
+  // position. A later forward is not silently omitted or treated as already
+  // live; each source file and its one history entry are checked separately.
+  const retentionBefore = await ok(status(requester));
+  const tables = ['private.retention_data_classes','private.retention_policy_sets','private.retention_policy_rules'];
+  const tableBefore = tables.map(table => tableHash(table));
+  const functionsBefore = rows(`select p.proname,p.proacl,p.proconfig,md5(p.prosrc) body
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+    and p.proname in ('rpc_get_retention_policy_status','rpc_publish_retention_policy') order by 1`);
+  assert.equal(functionsBefore.length,2);
+  const tableSecurity = () => rows(`select c.relname,c.relrowsecurity,c.relforcerowsecurity,c.relacl
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private'
+    and c.relname in ('retention_data_classes','retention_policy_sets','retention_policy_rules') order by 1`);
+  const securityBefore=tableSecurity(); assert.equal(securityBefore.length,3);
+  const appliedSuccessors = [];
+  for (const successor of plan.pending_successors) {
+    assert.equal(sql(`select count(*) from supabase_migrations.schema_migrations where version=${q(successor.version)}`),'0');
+    const file = `supabase/migrations/${successor.file}`, suffixBytes = readFileSync(file);
+    assert.equal(createHash('md5').update(suffixBytes).digest('hex'),successor.md5);
+    execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-f',file],{stdio:'pipe'});
+    sql(`insert into supabase_migrations.schema_migrations(version,name,statements)
+      values(${q(successor.version)},${q(successor.name)},array[${q(suffixBytes.toString('utf8'))}])`);
+    assert.equal(sql(`select md5(statements[1]) from supabase_migrations.schema_migrations where version=${q(successor.version)}`),successor.md5);
+    appliedSuccessors.push(successor);
+  }
+  sql("notify pgrst,'reload schema'");
+  assert.deepEqual(await ok(status(requester)),retentionBefore,'RETENTION_STATUS_CHANGED_BY_SUCCESSOR');
+  assert.deepEqual(tables.map(table => tableHash(table)),tableBefore,'RETENTION_ROWS_CHANGED_BY_SUCCESSOR');
+  assert.deepEqual(tableSecurity(),securityBefore,'RETENTION_TABLE_SECURITY_CHANGED_BY_SUCCESSOR');
+  assert.deepEqual(rows(`select p.proname,p.proacl,p.proconfig,md5(p.prosrc) body
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+    and p.proname in ('rpc_get_retention_policy_status','rpc_publish_retention_policy') order by 1`),functionsBefore,
+    'RETENTION_FUNCTIONS_OR_GRANTS_CHANGED_BY_SUCCESSOR');
+  report.successor_replay = { applied: appliedSuccessors, count: appliedSuccessors.length,
+    retention_projection_unchanged: true, retention_rows_unchanged: true, retention_functions_and_grants_unchanged: true };
+
   assert.equal(sqlState(authSql(rid,'select count(*) from private.retention_policy_rules')),'42501');
   assert.equal(sqlState(authSql(rid,'select count(*) from private.retention_data_classes')),'42501');
-  assert.equal(tableHash('supabase_migrations.schema_migrations',`version<>${q(manifest.forward_version)}`),history);
+  const newlyApplied = [manifest.forward_version,...appliedSuccessors.map(item => item.version)];
+  assert.equal(tableHash('supabase_migrations.schema_migrations',`version not in (${newlyApplied.map(q).join(',')})`),history);
+  report.successor_replay.original_history_unchanged = true;
   report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
-  assert.equal(report.migration_history_count,predecessorCount+1);
+  assert.equal(report.migration_history_count,predecessorCount+1+appliedSuccessors.length);
   assert.equal(report.migration_history_count,plan.source_migration_count);
   assert.equal(sql("select count(*) from private.retention_policy_rules where purpose not like 'PROOF %'"),'0');
   assert.equal(sql("select count(*) from private.retention_policy_sets where counsel_reference not like 'PROOF%'"),'0');
