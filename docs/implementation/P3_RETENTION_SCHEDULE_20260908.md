@@ -1,6 +1,6 @@
 # P3 retention schedule registry — 2026-09-08
 
-Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PENDING ON RUNNER / NOT LIVE / SCHEDULE MISSING_APPROVED_CONTENT.
+Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PASS ON RUNNER (run 34232757726) / NOT LIVE / SCHEDULE MISSING_APPROVED_CONTENT.
 
 CLEAN has no server-owned inventory of the personal-data classes it holds and no versioned, counsel-referenced retention schedule (category → purpose → period → deletion trigger → exception → legal basis). The donor closed the technical foundation in `rc2_024_versioned_retention_schedule_foundation` plus its publisher ambiguity repair; the master's donor→CLEAN reconciliation marks it ADAPT_HIGH because the donor's class list names surfaces CLEAN does not have. This unit ports the design as one forward-only migration: three private tables, two RPCs, no change to any existing object, and no purge or deletion worker.
 
