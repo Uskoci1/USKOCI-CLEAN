@@ -653,6 +653,20 @@
           "rule": "either frozen digest admits the predecessor; a disposable source replay yields the canonical digest, live yields the recorded one"
         }
       }
+    },
+    {
+      "version": "20260908130000",
+      "name": "clean_p1_legal_consent_ledger",
+      "file": "20260908130000_clean_p1_legal_consent_ledger.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "6d32b1a05622b232ca54658f7f70f8a5",
+      "raw_sha256": "fa9be26fd9006d8af271384c3ed344be72b51531b49450cbc6c89f3bc1b653e7",
+      "raw_bytes": 11829,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "P1_LEGAL_CONSENT",
+      "legal_content": "MISSING_APPROVED_CONTENT"
     }
   ],
   "reconstructions": [
@@ -1718,5 +1732,20 @@
       "defect": "live rpc_tick_auto_completion evaluated state/deadline predicates in a CTE snapshot and updated by agreement_id, so after waiting on the confirm lock it re-completed the row and overwrote completed_at",
       "fix": "predicates moved into the UPDATE so the post-lock re-check skips rows completed meanwhile; grants and return type unchanged"
     }
+  },
+  "p1_legal_consent_ledger": {
+    "unit": "P1_LEGAL_CONSENT",
+    "forward_file": "20260908130000_clean_p1_legal_consent_ledger.sql",
+    "raw_md5": "6d32b1a05622b232ca54658f7f70f8a5",
+    "raw_sha256": "fa9be26fd9006d8af271384c3ed344be72b51531b49450cbc6c89f3bc1b653e7",
+    "raw_bytes": 11829,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "proof_workflow": ".github/workflows/p1-legal-consent-proof.yml",
+    "proof": "supabase/proofs/legal/p1_legal_consent_proof.mjs",
+    "record": "docs/implementation/P1_LEGAL_CONSENT_20260908.md",
+    "seeds_legal_documents": false,
+    "legal_content": "MISSING_APPROVED_CONTENT",
+    "owner_decision_required": "approved TERMS/PRIVACY content, public https URLs and effective dates; publication is an authorized-operations act"
   }
 }
