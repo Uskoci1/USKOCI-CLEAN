@@ -7,11 +7,16 @@ import { readP4ProcessorPredecessorPlan } from './p4_processor_map_predecessor.m
 
 const unit = JSON.parse(readFileSync('supabase/proofs/legal/p4_processor_map_files.json', 'utf8'));
 
-test('plan admits exactly the frozen live87 inventory plus one pending forward file', () => {
+test('plan admits frozen live87 plus P0E and P1 before P4', () => {
   const plan = readP4ProcessorPredecessorPlan();
   assert.equal(plan.historical_predecessor_count, 87);
-  assert.equal(plan.source_migration_count, 88);
-  assert.equal(plan.expected_predecessor_count, 87);
+  assert.equal(plan.pending_predecessor_count, 2);
+  assert.equal(plan.source_migration_count, 90);
+  assert.equal(plan.expected_predecessor_count, 89);
+  assert.deepEqual(plan.pending_predecessors.map(entry => entry.file), [
+    '20260908120000_clean_p0e_completion_guards.sql',
+    '20260908130000_clean_p1_legal_consent_ledger.sql',
+  ]);
   assert.equal(plan.source_inventory.at(-1).file, unit.forward_file);
 });
 
