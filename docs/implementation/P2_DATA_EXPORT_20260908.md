@@ -1,6 +1,6 @@
 # P2 data-export request ledger — 2026-09-08
 
-Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PENDING ON RUNNER / NOT LIVE / ARTIFACT GENERATION NOT ADMITTED.
+Status: SOURCE IMPLEMENTED / LOCAL ADMISSION PASS / DISPOSABLE PROOF PASS ON RUNNER (run 34233662963) / NOT LIVE / ARTIFACT GENERATION NOT ADMITTED.
 
 CLEAN has no server-owned way for an account to request a copy of its data and no honest status of such a request. The donor closed the intake boundary in `rc2_023_data_export_request_foundation` (160 lines); the master's donor→CLEAN reconciliation marks it ADAPT_HIGH. This unit ports the design as one forward-only migration: one public table (RLS forced, every client privilege revoked), three authenticated RPCs, no change to any existing object. It records requests; it does **not** claim that an export artifact exists. Artifact generation, secure delivery, the external DSR channel and the operational SLA remain separate owners and proofs.
 
