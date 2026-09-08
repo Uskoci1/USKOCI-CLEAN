@@ -1,0 +1,80 @@
+PASS src/data/__tests__/agreement-outbox.test.ts
+PASS src/data/__tests__/discovery-browse.test.ts
+PASS src/data/__tests__/discovery-map-web-renderer.test.tsx
+PASS src/data/__tests__/auth-entry-surface.test.tsx
+PASS src/store/__tests__/session-epoch.test.ts
+PASS src/data/__tests__/discovery-map-renderer.test.tsx
+PASS src/data/__tests__/agreement-screen-recovery.test.tsx
+PASS src/data/__tests__/cdl-a09-worker-profile-equivalence.test.ts
+PASS src/data/__tests__/auth-entry-hooks.test.tsx
+PASS src/store/__tests__/session-layout.test.tsx (17.249 s)
+PASS src/data/__tests__/profile-hub.test.tsx
+PASS src/data/__tests__/agreement-chat-ui.test.tsx
+PASS src/store/__tests__/return-target-ownership.test.ts
+PASS src/data/__tests__/discovery-body.test.tsx
+PASS src/data/__tests__/cdl-a03-need-read-equivalence.test.ts
+PASS src/data/__tests__/cdl-a02-agreement-mutation-equivalence.test.ts
+PASS scripts/__tests__/eas-preview-guard.test.ts
+PASS src/data/__tests__/cdl-a01-agreement-read-equivalence.test.ts
+PASS src/data/__tests__/m02-atomski-izbor.test.ts
+PASS src/data/__tests__/r02-ai-nacrt.test.ts
+PASS src/data/__tests__/discovery-view.test.ts
+PASS src/data/__tests__/notification-preferences-client.test.ts
+PASS src/data/__tests__/inbox-model.test.ts
+PASS src/data/__tests__/application-composer-read.test.tsx
+PASS src/data/__tests__/task-detail-read.test.ts
+PASS src/data/__tests__/auth-client.test.ts
+PASS src/data/__tests__/ru5-p0c03-application-client.test.ts
+PASS src/data/__tests__/cdl-a10-ai-command-shadow-equivalence.test.ts
+PASS scripts/__tests__/firebase-config.test.ts
+PASS src/data/__tests__/entry-intro-hook.test.tsx
+PASS src/data/__tests__/entry-splash-ready-hook.test.tsx
+PASS src/data/__tests__/ru5-p0c01-public-profile.test.ts
+PASS src/data/__tests__/auth-availability-client.test.ts
+PASS src/data/__tests__/own-profile-client.test.ts
+PASS __tests__/notificationMessageEventContract.test.ts
+PASS src/data/__tests__/agreement-message-client.test.ts
+PASS src/data/__tests__/agreement-message-read.test.ts
+PASS src/data/__tests__/cdl-a12-ai-publish-shadow-equivalence.test.ts
+PASS __tests__/tabLayoutSafeAreaContract.test.ts
+PASS src/data/__tests__/m07-zavrsetak.test.ts
+PASS src/data/__tests__/discovery-format.test.ts
+PASS src/data/__tests__/cdl-a05-phone-grant-equivalence.test.ts
+PASS src/data/__tests__/m04-privatnost-kontakt.test.ts
+PASS __tests__/routerDecoderDependencyContract.test.ts
+PASS __tests__/notificationSelectionEventContract.test.ts
+PASS src/data/__tests__/cdl-a08-exact-location-equivalence.test.ts
+PASS src/data/__tests__/opportunities-read.test.ts
+PASS src/data/__tests__/discovery-map-route.test.tsx
+PASS src/data/__tests__/cdl-a07-completion-mark-equivalence.test.ts
+PASS src/data/__tests__/focused-resource-hook.test.tsx
+PASS src/data/__tests__/ru2-ai-v2-ui.test.ts
+PASS src/data/__tests__/cdl-a06-problem-report-equivalence.test.ts
+PASS src/data/__tests__/entry-brand-scene-clock.test.tsx
+PASS src/data/__tests__/cdl-a11-ai-conversation-shadow-equivalence.test.ts
+PASS src/data/__tests__/cdl-a04-response-viewed-equivalence.test.ts
+PASS src/store/__tests__/auth-runtime.test.ts
+PASS src/data/__tests__/inbox-client.test.ts
+PASS src/data/__tests__/focused-resource.test.ts
+PASS src/data/__tests__/entry-intent-client.test.ts
+PASS __tests__/ru5DevicePostflightSqlContract.test.ts
+PASS src/data/__tests__/agreement-outbox-hook.test.tsx
+PASS __tests__/notificationForwardAdmissionContract.test.ts
+PASS __tests__/inboxBackendContract.test.ts
+PASS src/data/__tests__/ru5-p0d01-candidate-projection-contract.test.ts
+PASS __tests__/entrySafeAreaContract.test.ts
+PASS __tests__/notificationPushRegistryContract.test.ts
+PASS __tests__/notificationAgreementChangeContract.test.ts
+PASS src/lib/__tests__/selectionIdempotency.test.ts
+PASS __tests__/nativeBuildDependencyContract.test.ts
+PASS src/data/__tests__/aiNeedV2Ui.test.ts
+PASS src/data/__tests__/public-task-detail-service.test.ts
+PASS src/data/__tests__/task-detail-screen.test.tsx
+PASS src/data/__tests__/discovery-client-service.test.ts
+PASS src/data/__tests__/public-task-material.test.tsx
+
+Test Suites: 74 passed, 74 total
+Tests:       818 passed, 818 total
+Snapshots:   0 total
+Time:        54.823 s
+Ran all test suites.

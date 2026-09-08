@@ -35,6 +35,11 @@ export default function Potrebe() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
       <WorkspaceHeader title="Zadaci" />
+      <Press accessibilityRole="button" accessibilityLabel="Istražite sve otvorene zadatke" onPress={() => router.navigate('/prilike')}
+        style={{ marginHorizontal: 24, marginBottom: 16, minHeight: 52, paddingHorizontal: 16, borderRadius: 16,
+          backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE3DE', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <T variant="action">Istražite otvorene zadatke</T><MapPin size={20} color="#142F30" />
+      </Press>
 
       {ucitava ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

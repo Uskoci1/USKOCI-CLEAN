@@ -375,9 +375,40 @@ export const lazniIzvor: Izvor = {
     ];
   },
 
+  async otvorenePrilikeStrana(upit = {}) {
+    if (upit.signal?.aborted) throw new Error('DISCOVERY_READ_CANCELLED');
+    if (upit.limit !== undefined && (!Number.isInteger(upit.limit) || upit.limit < 1 || upit.limit > 50)) {
+      throw new Error('DISCOVERY_LIMIT_INVALID');
+    }
+    // This explicitly selected simulator has a single fixture, no live cursor.
+    const items = await this.otvorenePrilike();
+    if (upit.signal?.aborted) throw new Error('DISCOVERY_READ_CANCELLED');
+    return { items: upit.cursor ? [] : items, nextCursor: null };
+  },
+
   async prilika(id) {
     const sve = await this.otvorenePrilike();
     return sve.find((p) => p.id === id) ?? null;
+  },
+
+  async detaljiPrilike(id, opcije = {}) {
+    const cancelled = () => {
+      if (!opcije.signal?.aborted) return;
+      const error = new Error('DISCOVERY_READ_CANCELLED'); error.name = 'AbortError'; throw error;
+    };
+    cancelled();
+    const summary = await this.prilika(id);
+    cancelled();
+    if (!summary) return null;
+    // Only the explicitly selected simulator. No live material or trust claim is inferred.
+    return { ...summary, revision: stanje.potrebaRevizija,
+      opis: 'Preuzeti, preneti i uneti veliki ormar na drugoj lokaciji.', kategorija: 'Selidbe',
+      zahtevi: { vestine: [], alati: [], vozila: ['Kombi'], licence: [],
+        minimalnoIskustvoGodina: null, zahtevaProverenIdentitet: false },
+      javnaGeografija: { state: 'available', value: { mode: 'POINT_TO_POINT',
+        start: { area: 'Liman', city: 'Novi Sad' }, end: { area: 'Detelinara', city: 'Novi Sad' } } },
+      kriticniUslovi: { state: 'available', value: ['4. sprat', 'Nema lifta'] },
+    };
   },
 
   async prijaveZaPotrebu() {

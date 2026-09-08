@@ -5,12 +5,13 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'phosphor-react-native';
 import { T } from '../../../ui/Text';
 import { Press } from '../../../ui/Press';
-import { Button, Card } from '../../../ui/Button';
+import { Button } from '../../../ui/Button';
 import { palette, space, touch } from '../../../theme/tokens';
 import { useIzvor, useUloga, ulogaSada } from '../../../store/uloga';
 import { useSesija, sesijaSada } from '../../../store/sesija';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
-import type { PrilikaProjekcija } from '../../../contracts/projections';
+import type { PrilikaDetaljiProjekcija } from '../../../contracts/publicTaskDetail';
+import { PublicTaskMaterial } from '../../../ui/task/PublicTaskMaterial';
 
 type ActionScope = { id: string | null; accountId: string | undefined; epoch: number; intent: ReturnType<typeof useUloga>; busy: boolean; refreshing: boolean };
 
@@ -25,13 +26,13 @@ export default function PrilikaDetaljiEkran() {
   const readRequest = useRef(0);
   const load = useCallback(async () => {
     const request = ++readRequest.current;
-    const prilika = id ? await izvor.prilika(id) : null;
+    const prilika = id ? await izvor.detaljiPrilike(id) : null;
     if (sesijaSada().sessionEpoch !== epoch || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
     return { prilika, request };
   }, [id, izvor, accountId, epoch]);
   const resource = useFocusedResource(load);
   // The cache is display-only and cannot survive a task, account, session or intent change.
-  const cache = useMemo(() => ({ data: null as PrilikaProjekcija | null }), [load, intent]);
+  const cache = useMemo(() => ({ data: null as PrilikaDetaljiProjekcija | null }), [load, intent]);
   const fresh = resource.data?.prilika?.id === id ? resource.data.prilika : null;
   const deadlineAt = fresh?.rokZaPrijaveIso === null ? null
     : typeof fresh?.rokZaPrijaveIso === 'string' ? Date.parse(fresh.rokZaPrijaveIso) : undefined;
@@ -100,7 +101,7 @@ export default function PrilikaDetaljiEkran() {
         </Press>
         <T variant="title">Zadatak</T>
       </View>
-      <ScrollView contentContainerStyle={{ padding: space.base, paddingBottom: space.xxl, gap: space.base }}>
+      <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: space.xxl, gap: space.base, width: '100%', maxWidth: 760, alignSelf: 'center' }}>
         <View style={{ gap: space.sm }} accessibilityLiveRegion="polite">
           {id && resource.loading ? <>
             <ActivityIndicator color={palette.forest700} accessibilityLabel="Učitavamo zadatak" />
@@ -116,27 +117,13 @@ export default function PrilikaDetaljiEkran() {
           </> : null}
           {prilika && (resource.loading || resource.error) && <T variant="meta" tone="muted">Poslednji učitani podaci. Osvežite zadatak pre nastavka.</T>}
         </View>
-        {prilika && <>
-          <View style={{ gap: space.xs }}>
-            <T variant="label" tone="muted">{prilika.statusTekst}</T>
-            <T variant="heading">{prilika.naslov}</T>
-          </View>
-          <Card>
-            <View style={{ padding: space.base, gap: space.sm }}>
-              <T variant="bodyStrong">{prilika.podrucjeTekst}</T>
-              <T variant="meta" tone="muted">{prilika.vremeTekst}</T>
-              <T variant="meta" tone="muted">Popunjeno {prilika.pokrivenost.popunjeno} od {prilika.pokrivenost.ukupno} mesta</T>
-              {prilika.ponudjenaCena && <T variant="bodyStrong">{prilika.ponudjenaCena.prikaz}</T>}
-            </View>
-          </Card>
-          {prilika.uslovi.length > 0 && <View style={{ gap: space.xs }}>
-            <T variant="bodyStrong">Uslovi</T>
-            {prilika.uslovi.map((uslov, index) => <T key={`${index}:${uslov}`} variant="meta" tone="muted">• {uslov}</T>)}
-          </View>}
-        </>}
+        {prilika && <PublicTaskMaterial task={prilika} />}
       </ScrollView>
       {fresh && !resource.loading && !resource.error && <View style={{ padding: space.base, borderTopWidth: 1, borderTopColor: palette.line100, gap: space.sm }}>
-        {fresh.primaNovePrijave === true && deadlineOpen() && intent === 'uskocer' ? <Button label="Sastavi prijavu" full disabled={busy} onPress={compose} />
+        {fresh.primaNovePrijave === true && deadlineOpen() ? intent === 'uskocer'
+          ? <Button label="Sastavi prijavu" full disabled={busy} onPress={compose} />
+          : <><T variant="body" tone="muted">Za slanje prijave uključite režim JA MOGU u svom profilu.</T>
+            <Button label="Otvorite profil" kind="secondary" full disabled={busy} onPress={() => navigate(() => router.navigate('/profil'))} /></>
           : <T variant="body" tone="muted">Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
       </View>}
     </SafeAreaView>

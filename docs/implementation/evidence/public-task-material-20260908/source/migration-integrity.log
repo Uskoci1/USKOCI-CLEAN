@@ -1,0 +1,1 @@
+PASS migration_integrity files=87 live_snapshot=87 pending=0 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS

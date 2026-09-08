@@ -70,12 +70,13 @@ assert_shell('worker')
 tap(desc='Zadaci', prefer='bottom')
 assert_discovery()
 
-# Cold detail read fails through real PostgREST transport; Back remains actionable.
+# Re-entered detail read fails through real PostgREST; Back remains actionable.
+# Historical checkpoint filename is retained; this is not a cold-process proof.
 with outage.stopped():
     tap(desc=f'Otvorite priliku {NAV_NEED_TITLE}')
     task_error('W04_cold_read_error')
     tap(desc='Nazad na Zadatke')
-    root, _ = wait_surface(text='Zadatke trenutno nije moguće učitati.', timeout=45)
+    root, _ = wait_surface(text='Zadatke nismo osvežili. Prikazani podaci mogu biti zastareli.', timeout=45)
     assert_no_application_actions(root)
     assert_shell('worker')
     shot('W04_error_back_to_discovery')

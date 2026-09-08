@@ -1,3 +1,27 @@
+## Public task detail — source proven; actual RLS and Android pending
+
+Canonical PR66 is now `38e9a38f7c9713cc7061f347eb083d84022dcdfd`, with verified canonical CI/CodeQL and identical accepted entry inputs. This branch composes PR67 `ed0bd581` shared discovery source; its physical map acceptance is still open. The new public detail binds actual description, time/price/capacity, geography and requirements through a typed contract and explicit public LEFT reader. Missing child RLS material remains unavailable; existing action/session/retry/Back authority is preserved.
+
+Application source: **74 suites/818 Jest, TSC,67 Python and36 Node guard tests PASS; manual boundary review and AST96/39/0; recorded87/87/0 integrity unchanged**. New actual disposable SDK/native proof is pending, with original43 recovery pairs/five REST restores retained. Legacy server geography validation remains a separate hardening gap. No new live observation/write, final Figma screen, provider/release or whole47 closure is added. See [public detail report](PUBLIC_TASK_MATERIAL_20260908.md). Older pointers below retain their historical source boundaries.
+
+---
+
+## Shared List/Map integration — source proven; native acceptance pending
+
+Canonical PR64 `80e091ee` and PR66 source `82a99fc` are composed without reverting either. PR66 remains independently pending acceptance. The same authenticated public discovery page set now feeds a shared List/Map for both intentions, with retained local filters, bounded pagination/refresh, account/focus cancellation, approximate pins and real MapLibre renderers. Original SPOJ logo/motion assets are preserved; list header uses the owner brand. Task labels distinguish price from lifecycle, route origin from destination, and complete Serbia-time windows.
+
+Local composed source: **72 suites/744 Jest tests, TSC,64 Python input/proof tests,24 fixture guard tests PASS; AST93/38/0 findings; unchanged87/87/0 recorded migration provenance**. Physical Android source/APK and original PNG/XML proof is prepared, not yet executed for this unit. Historical79 plus explicit N02/N03 proof reconstruction does not mean full live87 replay. No fresh live query, production write, offline-map, launch or overall47-item closure is claimed. See [shared discovery integration](SHARED_DISCOVERY_INTEGRATION_20260907.md).
+
+---
+
+## Shared discovery read checkpoint — source pending consumer integration
+
+Fresh canonical base `d4d8cd09bf44dd54c7355605b0c256813b46ab1b` is integrated. A narrow discovery client service now provides bounded keyset pages (default30/max50; created_at+id DESC with server microseconds), cancellation, real-zero/range-safe coarse points, REMOTE without pins, strict capacity and the accepted PR64 task deadline/error fields. Legacy array/detail ports remain available. There is no new backend, UI/navigation, Map SDK or anonymous grant. The consumer must still bind List/Map to the same page set and own account/focus/refresh state.
+
+Final local verification:55 suites/511 tests PASS, including42 new actual-SDK/controlled-HTTP cases; TSC PASS; unchanged recorded87/87/0 migration integrity PASS; client AST69 files/26 presentation/0 findings. No live query/write, provider run, Android proof, release or canonical acceptance is added. Existing live observations retain their timestamps. Integration and PR/CI/CodeQL are pending with the coordinating root; preserve the separate PR64 screen/proof boundary. See [Shared discovery read foundation](SHARED_DISCOVERY_READ_FOUNDATION_20260907.md).
+
+---
+
 ## Current entry acceptance — original Android sequence and 34 checkpoints reviewed
 
 PR66 source `82a99fc115ff813327e9548c66fedd8413d29bff` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / CANONICAL PROMOTION PENDING**. Fresh canonical remains `80e091ee31930b28cc5c2e0af6b6e876a4926362` and is already integrated. Native run34163510260 passed; original artifact10033887904 is 5,847,655 bytes, SHA-256 `c82d1206009dd410c303b2a3517f6abbd68e4e07fbffc975bc62be8661de3386`. All 34 original PNG/XML pairs were individually reviewed: 7 entry, 17 account/navigation and 10 Inbox checkpoints. Both real local accounts, logout to the two-field login form, three-zone intents, full Agreement schedule/amount and current W04 Back pass.

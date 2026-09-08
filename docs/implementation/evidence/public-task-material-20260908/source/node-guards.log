@@ -1,0 +1,44 @@
+✔ material proof admits only existing disposable project and validates actor/head identities (2.3184ms)
+✔ main refuses production target before SQL, client creation or filesystem changes (0.9439ms)
+✔ read phase admits only actual public reads, with isolated explicit negative sensitive probe (16.1565ms)
+✔ fixture auth and only the two existing domain commands cannot run after read freeze (3.2644ms)
+✔ HTTP targets reject spoofed origin, URL credentials, fragments and request-object writes (1.5218ms)
+✔ snapshot expression hashes whole rows only in declared public/private tables without interpolation escape (0.4174ms)
+✔ original-row preservation allows new setup rows but detects change, removal, duplicate loss and table inventory changes (1.0899ms)
+✔ fixture accepts only the explicit existing disposable target/package/actor boundary (2.1492ms)
+✔ invalid production target rejects before any SQL/client setup even when seed is requested (0.6074ms)
+✔ fixture is a deterministic34-row plan with close coarse cluster, isolated point, remote/missing and both price modes (0.9474ms)
+✔ postflight query cannot expand outside its table/UUID allowlist and preserves complete original rows (2.999ms)
+✔ closed VM loads formatter and public-material dependencies without broadening compact reads (118.7946ms)
+✔ actual deadline fixture refuses unsafe target before any psql call (66.0117ms)
+✔ actual deadline fixture refuses unsafe target before any psql call (75.3411ms)
+✔ actual deadline fixture refuses unsafe target before any psql call (63.7574ms)
+✔ read probe admits only the actual local read routes and fixture login (18.7634ms)
+✔ read probe rejects writes, arbitrary RPCs and nonlocal/redirected hosts before fetch (2.0016ms)
+✔ accepts only the existing disposable proof API/database contract (1.01ms)
+✔ rejects unsafe API case https://leqcwgzvjsxugfgzdmth.supabase.co (0.7293ms)
+✔ rejects unsafe API case http://127.0.0.1.attacker.invalid:54321 (0.1594ms)
+✔ rejects unsafe API case http://127.0.0.1:54321@attacker.invalid (0.1057ms)
+✔ rejects unsafe API case http://redacted@127.0.0.1:54321 (0.1352ms)
+✔ rejects unsafe API case https://127.0.0.1:54321 (0.1293ms)
+✔ rejects unsafe API case http://127.0.0.1:54322 (0.1401ms)
+✔ rejects unsafe API case http://127.0.0.1:54321/rest/v1 (0.093ms)
+✔ rejects unsafe API case http://127.0.0.1:54321?target=remote (0.1201ms)
+✔ rejects unsafe API case http://127.0.0.1:54321#remote (0.1774ms)
+✔ rejects unsafe API case undefined (0.0959ms)
+✔ rejects unsafe DB target without exposing credentials (0.3684ms)
+✔ rejects unsafe DB target without exposing credentials (0.1203ms)
+✔ rejects unsafe DB target without exposing credentials (0.8376ms)
+✔ rejects unsafe DB target without exposing credentials (0.2097ms)
+✔ rejects unsafe DB target without exposing credentials (0.1119ms)
+✔ rejects unsafe DB target without exposing credentials (0.0825ms)
+✔ rejects unsafe DB target without exposing credentials (0.0672ms)
+✔ fixture validates both targets before client creation or fixture mutation (0.4997ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 470.2971
