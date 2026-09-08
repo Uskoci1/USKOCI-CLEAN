@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
@@ -81,6 +81,22 @@ export default function AuthScreen() {
   const methods = availability.status === 'ready' ? availability.data : null;
   const [greska, setGreska] = useState<string | null>(null);
   const [poruka, setPoruka] = useState<string | null>(null);
+
+  const handledRouteForm = useRef(params.form);
+  useEffect(() => {
+    if (handledRouteForm.current === params.form) return;
+    handledRouteForm.current = params.form;
+    if (params.form !== 'login' && params.form !== 'recovery') return;
+    // Native query parameters may arrive after mount; warm links also reuse
+    // this screen. Consume each change once, without interrupting an Auth write
+    // or replaying the parameter over a form the person selected themselves.
+    commands.changeForm(() => {
+      setRezim('LOGIN');
+      setFaza(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
+      setLozinka(''); setPotvrda(''); setGreska(null); setPoruka(null);
+      setOtvoren(true);
+    });
+  }, [params.form, commands.changeForm]);
 
   useEffect(() => {
     if (!otvoren) return;
