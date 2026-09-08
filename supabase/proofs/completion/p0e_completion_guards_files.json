@@ -1,0 +1,24 @@
+{
+  "unit": "P0E_COMPLETION_GUARDS",
+  "candidate_file": "supabase/proofs/completion/p0e_completion_guards_candidate.sql",
+  "forward_file": "20260908120000_clean_p0e_completion_guards.sql",
+  "forward_version": "20260908120000",
+  "forward_name": "clean_p0e_completion_guards",
+  "bytes": 14279,
+  "md5": "5354a754bb74a588de33070015aa41e4",
+  "sha256": "f558af3866faec14df690780d6b63bd45ab38ab8b3efa6108f27c575194e7a8e",
+  "baseline_migration_history_count": 87,
+  "baseline_live_head": "20260907135905",
+  "baseline_canonical_sha": "b0a915dba28d914203a50fc38d353a433d61e7d1",
+  "status": "SOURCE_CANDIDATE_NOT_PROVEN_NOT_LIVE",
+  "predecessor_body_md5": {
+    "public.rpc_mark_work_done(uuid)": "02c0d47fecd9a1a9d565f0b0f3c9c2e1",
+    "public.rpc_confirm_completion(uuid)": "39ff23fd1d3f4668dbb99a664bf963a9",
+    "public.rpc_report_problem(uuid,text)": "d872dd1eaffdb67856ce6c47f4176f33"
+  },
+  "candidate_body_md5": {
+    "public.rpc_mark_work_done(uuid)": "777687c2da4804d0708b383ab2506f1e",
+    "public.rpc_confirm_completion(uuid)": "ff55e327fafb0d4daa8bb0042332b5d8",
+    "public.rpc_report_problem(uuid,text)": "5cec6c0b45d73229f6c9edf049029dd7"
+  }
+}
