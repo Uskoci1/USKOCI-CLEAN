@@ -13,7 +13,8 @@ import {
 } from 'phosphor-react-native';
 
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
-import { aiNeedV2Izvor } from '../../data';
+import type { PotrebaProjekcija } from '../../contracts/projections';
+import { aiNeedV2Izvor, izvor } from '../../data';
 import {
   canEditFactInline,
   correctionFromText,
@@ -135,8 +136,57 @@ export default function PregledNacrtaR07() {
   const facts = useMemo(() => sortFacts(stanje?.facts ?? []), [stanje?.facts]);
   const confirmed = facts.filter((fact) => fact.status === 'CONFIRMED').length;
   const safetyCopy = stanje ? safetyMessage(stanje.safety) : null;
-  const alreadySaved = stanje?.review.boundNeedId ?? null;
+  const boundNeedId = stanje?.review.boundNeedId ?? null;
+
+  // A bound conversation is either a saved DRAFT (R07 → R04 replay) or an RU-4
+  // edit of a public Zadatak. The bound Zadatak's own state decides which;
+  // the review payload alone cannot.
+  const [vezanZadatak, setVezanZadatak] = useState<PotrebaProjekcija | null>(null);
+  useEffect(() => {
+    let ziv = true;
+    if (!boundNeedId) {
+      setVezanZadatak(null);
+      return () => {
+        ziv = false;
+      };
+    }
+    void izvor.potreba(boundNeedId).then((zadatak) => {
+      if (ziv) setVezanZadatak(zadatak);
+    }).catch(() => {
+      if (ziv) setVezanZadatak(null);
+    });
+    return () => {
+      ziv = false;
+    };
+  }, [boundNeedId]);
+
+  const editMode = Boolean(boundNeedId && vezanZadatak && vezanZadatak.stanje !== 'NACRT');
+  const alreadySaved = editMode ? null : boundNeedId;
   const saveAllowed = Boolean(stanje?.review.canSaveDraft && stanje?.safety !== 'BLOCK' && !alreadySaved);
+  const editRequestId = useRef(`ru4-edit-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+
+  const sacuvajIzmene = useCallback(async () => {
+    if (!conversationId || !boundNeedId || !editMode || !saveAllowed || saving) return;
+    setSaving(true);
+    setGreska(null);
+    try {
+      // Re-read the revision the owner is editing at the moment of confirmation;
+      // the server refuses a moved revision instead of overwriting it.
+      const current = await izvor.potreba(boundNeedId);
+      if (!current) {
+        setGreska('Zadatak trenutno nije dostupan. Pokušajte ponovo.');
+        return;
+      }
+      const result = await aiNeedV2Izvor.confirmEdit(boundNeedId, current.revizija, conversationId, editRequestId.current);
+      if (!result.ok) {
+        setGreska(result.poruka);
+        return;
+      }
+      router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: result.podatak.needId } });
+    } finally {
+      setSaving(false);
+    }
+  }, [boundNeedId, conversationId, editMode, saveAllowed, saving]);
 
   if (loading) {
     return (
@@ -360,7 +410,32 @@ export default function PregledNacrtaR07() {
           </View>
         ) : null}
 
-        {!alreadySaved ? (
+        {editMode ? (
+          <Card raised>
+            <View style={{ padding: space.base, gap: space.md }}>
+              <View style={{ gap: space.xs }}>
+                <T variant="heading">Sačuvajte izmene</T>
+                <T variant="body" tone="muted">
+                  Zadatak se vraća u nacrt i prolazi ponovnu proveru pre nego što ponovo bude vidljiv. Postojeće Prijave će morati da se osveže; Dogovori se ne menjaju.
+                </T>
+              </View>
+              <Button
+                label={saving ? 'Čuvanje...' : 'Sačuvajte izmene'}
+                full
+                haptic="success"
+                disabled={!saveAllowed || saving}
+                onPress={() => { void sacuvajIzmene(); }}
+              />
+              {!saveAllowed && stanje.safety !== 'BLOCK' ? (
+                <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>
+                  Potvrdite sve podatke pre čuvanja izmena.
+                </T>
+              ) : null}
+            </View>
+          </Card>
+        ) : null}
+
+        {!alreadySaved && !editMode ? (
           <Card raised>
             <View style={{ padding: space.base, gap: space.md }}>
               <View style={{ gap: space.xs }}>
