@@ -1847,6 +1847,48 @@
       "predecessor_live_head": "20260907135905",
       "unit": "D0140A_BUNDLE_REGISTRATION",
       "registered_state": "UNREVIEWED_INCOMPLETE_INACTIVE"
+    },
+    {
+      "version": "20260909110000",
+      "name": "clean_w02_calendar_authority",
+      "file": "20260909110000_clean_w02_calendar_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "ee35d301baa3cb5abf8d1ed4b1706146",
+      "raw_sha256": "a7d716a3dc342f1391bcee23f66946173d58c7d1fa514a5ad8d9339e1e350493",
+      "raw_bytes": 17134,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "W02_CALENDAR_AUTHORITY",
+      "activation": "SOURCE_ONLY_NOT_LIVE"
+    },
+    {
+      "version": "20260909120000",
+      "name": "clean_w02_calendar_interval_integrity",
+      "file": "20260909120000_clean_w02_calendar_interval_integrity.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "9aa0e4c174cb3eacb5b2cc119186ed26",
+      "raw_sha256": "6fd21825d1fa61448b126b87b57cbb0eb97fd90bd642ef18ae4e69b3bc5b162c",
+      "raw_bytes": 15227,
+      "live_applied": false,
+      "unit": "W02_CALENDAR_INTERVAL_INTEGRITY",
+      "activation": "SOURCE_ONLY_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260909130000",
+      "name": "clean_w02_flexible_calendar_scope",
+      "file": "20260909130000_clean_w02_flexible_calendar_scope.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "af5ce8da2e202414c518d7a06b42c25f",
+      "raw_sha256": "a1c971461d3bd6e5c00031bf6925dbad61a7e728824a6bca78f81d4ef37e29e0",
+      "raw_bytes": 2638,
+      "live_applied": false,
+      "unit": "W02_FLEXIBLE_CALENDAR_SCOPE",
+      "activation": "SOURCE_ONLY_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {
@@ -1862,5 +1904,16 @@
     "record": "docs/implementation/P2_DATA_EXPORT_20260908.md",
     "artifact_generation_admitted": false,
     "owner_decision_required": "fulfilment path (artifact generation, secure delivery, response deadline) and the external DSR channel"
+  },
+  "w02_calendar_authority": {
+    "unit": "W02_CALENDAR_AUTHORITY",
+    "forward_file": "20260909110000_clean_w02_calendar_authority.sql",
+    "raw_md5": "ee35d301baa3cb5abf8d1ed4b1706146",
+    "raw_sha256": "a7d716a3dc342f1391bcee23f66946173d58c7d1fa514a5ad8d9339e1e350493",
+    "raw_bytes": 17134,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "scope": "AGREEMENT_BACKED_HARD_CALENDAR_MATCHING_SELECTION_AND_OWN_READ",
+    "visual_design_changed": false
   }
 }

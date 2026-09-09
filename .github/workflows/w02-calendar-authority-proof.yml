@@ -1,0 +1,114 @@
+name: W02 calendar authority proof
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/w02-calendar-authority-20260909]
+  pull_request:
+    branches: [clean-alpha-backend]
+    paths:
+      - '.github/workflows/w02-calendar-authority-proof.yml'
+      - 'supabase/migrations/**'
+      - 'supabase/proofs/calendar/**'
+      - 'src/contracts/workerCalendar.ts'
+      - 'src/data/workerCalendarClientService.ts'
+      - 'src/data/__tests__/w02-worker-calendar-client.test.ts'
+      - 'src/data/agreementClientService.ts'
+      - 'src/data/supabaseIzvor.ts'
+      - 'src/data/calendarErrors.ts'
+      - 'src/lib/calendarTime.ts'
+concurrency:
+  group: w02-calendar-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+env:
+  CI: '1'
+  SUPABASE_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
+  N07_ARTIFACT_DIR: artifacts/w02-calendar-authority/predecessor-n07
+  N08_ARTIFACT_DIR: artifacts/w02-calendar-authority/predecessor-n08
+  P3_ARTIFACT_DIR: artifacts/w02-calendar-authority/predecessor-p3
+  W02_CALENDAR_ARTIFACT_DIR: artifacts/w02-calendar-authority/final
+jobs:
+  calendar-authority-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify migration bytes and provenance
+        run: sh supabase/migrations/check_md5.sh
+      - name: Set up proven Supabase CLI
+        uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Locked dependencies
+        run: npm ci
+      - name: TypeScript regression client and proof admission
+        run: |
+          npx tsc --noEmit
+          npm test -- --runInBand
+          node --check supabase/proofs/calendar/w02_calendar_authority_proof.mjs
+          python3 supabase/migrations/check_migration_integrity.py
+      - name: Reconstruct disposable historical live79
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+      - name: Prepare two real disposable Auth accounts
+        run: node supabase/proofs/ru5_device_ui_fixture.mjs
+      - name: Reconstruct exact canonical N07 and N08 predecessor contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$N07_ARTIFACT_DIR" "$N08_ARTIFACT_DIR" "$P3_ARTIFACT_DIR" "$W02_CALENDAR_ARTIFACT_DIR"
+          node supabase/proofs/notifications/n07_forward_promotion_proof.mjs 2>&1 | tee "$N07_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS N07_FORWARD_NOTIFICATION_ADMISSION' "$N07_ARTIFACT_DIR/proof.log"
+          node supabase/proofs/notifications/n08_preferences_proof.mjs 2>&1 | tee "$N08_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS N08_NOTIFICATION_PREFERENCES' "$N08_ARTIFACT_DIR/proof.log"
+      - name: Reconstruct live87 and pending predecessors through P3
+        shell: bash
+        run: |
+          set -euo pipefail
+          node supabase/proofs/legal/p3_retention_schedule_predecessor.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/predecessor.log"
+          grep -F 'PASS P3_RETENTION_PREDECESSOR_INTEGRATION' "$P3_ARTIFACT_DIR/predecessor.log"
+      - name: Apply P3 and replay all later pending source including W02
+        shell: bash
+        run: |
+          set -euo pipefail
+          node supabase/proofs/legal/p3_retention_schedule_proof.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS P3_RETENTION_SCHEDULE' "$P3_ARTIFACT_DIR/proof.log"
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P3_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.successor_replay.count!==r.predecessor_plan.pending_successor_count) process.exit(1);'
+      - name: Prove hard calendar matching selection lifecycle and own read
+        shell: bash
+        run: |
+          set -euo pipefail
+          node supabase/proofs/calendar/w02_calendar_authority_proof.mjs 2>&1 | tee "$W02_CALENDAR_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS W02_CALENDAR_AUTHORITY' "$W02_CALENDAR_ARTIFACT_DIR/proof.log"
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.visual_design_changed || r.checks.length!==9) process.exit(1);'
+      - name: Exact intervals, observed concurrency, completion and actual client
+        run: |
+          node --check supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
+          node supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/integrity-proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.mocked_rpc_responses || !r.actual_client_verified || !r.application_snapshot_unchanged || r.repeatable_read_sqlstate!=="40001" || r.lock_observations.length!==1 || r.lock_observations[0].blocked_calls<2 || r.checks.length!==13 || !r.flexible_windows_do_not_block || !r.unknown_duration_not_inferred || !r.later_exact_time_guarded || !r.explicit_flexible_proposal_guarded || !r.requester_parallel_bookings_allowed) process.exit(1);'
+      - name: Upload exact source-bound calendar evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: W02-CALENDAR-AUTHORITY-EVIDENCE
+          path: artifacts/w02-calendar-authority/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Teardown disposable Supabase
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${RU5_DEVICE_PROOF_DIR:-}" && -d "$RU5_DEVICE_PROOF_DIR" ]]; then
+            cd "$RU5_DEVICE_PROOF_DIR"
+            supabase stop --no-backup
+          fi

@@ -1721,5 +1721,80 @@
       "unit": "W11_EXPORT_REQUEST_INTAKE_ONLY",
       "source": "db4e6d02c7e9d67ff6073bf98df6a413160e49bb"
     }
+  },
+  "w02_interval_review_20260909": {
+    "observed_canonical": "f8042c0478e5cff73255a7cdc2955829fbe5f844",
+    "pr": 83,
+    "state": "FORWARD_SOURCE_LOCAL_FOCUSED_PROVEN_RUNTIME_PENDING",
+    "original_proof_run": 34297635686,
+    "original_pr_proof_run": 34316154393,
+    "source_count": 95,
+    "live_observation": {
+      "count": 87,
+      "latest_version": "20260907135905",
+      "calendar_exists": false,
+      "edge_version": 11,
+      "verify_jwt": true
+    },
+    "live_mutation": false,
+    "whole_W02_closed": false,
+    "design_changed": false,
+    "new_forward": "20260909120000_clean_w02_calendar_interval_integrity.sql",
+    "next": "PROVE_CURRENT_PR83_INTERVALS_CONCURRENCY_CLIENT_THEN_INTEGRATE_AND_CONTINUE_AVAILABILITY"
+  },
+  "w02_calendar_final_source_acceptance": {
+    "application_source": "cd30125426f35dbb287f8ed8f1094026022be917",
+    "tested_merge": "b9cadeb2f7e8f3e8cdb4e5d6a8bb3b4ecd321958",
+    "run": 34319528297,
+    "artifact": 10091435214,
+    "artifact_sha256": "769c46c9ff752499ad353fa3ff913533dfdae21253af54c83408460ae2bb31c6",
+    "original_calendar_checks": 9,
+    "new_interval_checks": 8,
+    "observed_blocked_selections": 2,
+    "stale_snapshot_sqlstate": "40001",
+    "actual_typescript_client": true,
+    "application_snapshot_unchanged": true,
+    "source_migrations": 95,
+    "live_migrations_last_observed": 87,
+    "pending_forwards": 8,
+    "live_applied": false,
+    "ui_calendar_journey_proven": false,
+    "physical_handset_proven": false,
+    "visual_design_changed": false,
+    "ci": {
+      "PRE_P4": 34319528259,
+      "P2": 34319528287,
+      "P3": 34319528291,
+      "W01_ANDROID_AND_WEB": 34319528288
+    },
+    "source_tests": {
+      "suites": 81,
+      "tests": 982
+    },
+    "integration": "ROOT_REVIEW_ACCEPTED_READ_CURRENT_PR83_STATUS",
+    "next": "W02_AVAILABILITY_LOCATION_AND_CALENDAR_UI_REMAIN_OPEN"
+  },
+  "w02_flexible_owner_rule_20260909": {
+    "observed_canonical": "f8042c0478e5cff73255a7cdc2955829fbe5f844",
+    "pr": 83,
+    "rule": "ONLY_EXACT_AGREED_WORKER_INTERVALS_BLOCK_REQUESTER_PARALLEL_ALLOWED",
+    "forward": "20260909130000_clean_w02_flexible_calendar_scope.sql",
+    "source_status": "IMPLEMENTED_LOCAL_TESTED_RUNTIME_PENDING",
+    "source_migrations": 96,
+    "pending_forwards": 9,
+    "source_tests": {
+      "suites": 81,
+      "tests": 984
+    },
+    "live_observation": {
+      "count": 87,
+      "latest_version": "20260907135905",
+      "calendar_exists": false
+    },
+    "live_mutation": false,
+    "full_W02_closed": false,
+    "calendar_ui_proven": false,
+    "visual_design_changed": false,
+    "next": "PROVE_FLEXIBLE_AND_REQUESTER_SCOPE_ON_CURRENT_PR83_THEN_INTEGRATE_CONTINUE_AVAILABILITY"
   }
 }
