@@ -1847,6 +1847,20 @@
       "predecessor_live_head": "20260907135905",
       "unit": "D0140A_BUNDLE_REGISTRATION",
       "registered_state": "UNREVIEWED_INCOMPLETE_INACTIVE"
+    },
+    {
+      "version": "20260909110000",
+      "name": "clean_w02_calendar_authority",
+      "file": "20260909110000_clean_w02_calendar_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "ee35d301baa3cb5abf8d1ed4b1706146",
+      "raw_sha256": "a7d716a3dc342f1391bcee23f66946173d58c7d1fa514a5ad8d9339e1e350493",
+      "raw_bytes": 17134,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "W02_CALENDAR_AUTHORITY",
+      "activation": "SOURCE_ONLY_NOT_LIVE"
     }
   ],
   "p2_data_export_requests": {
@@ -1862,5 +1876,16 @@
     "record": "docs/implementation/P2_DATA_EXPORT_20260908.md",
     "artifact_generation_admitted": false,
     "owner_decision_required": "fulfilment path (artifact generation, secure delivery, response deadline) and the external DSR channel"
+  },
+  "w02_calendar_authority": {
+    "unit": "W02_CALENDAR_AUTHORITY",
+    "forward_file": "20260909110000_clean_w02_calendar_authority.sql",
+    "raw_md5": "ee35d301baa3cb5abf8d1ed4b1706146",
+    "raw_sha256": "a7d716a3dc342f1391bcee23f66946173d58c7d1fa514a5ad8d9339e1e350493",
+    "raw_bytes": 17134,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "scope": "AGREEMENT_BACKED_HARD_CALENDAR_MATCHING_SELECTION_AND_OWN_READ",
+    "visual_design_changed": false
   }
 }
