@@ -1,0 +1,62 @@
+name: TEMP exact reviewed W02 location source transfer
+on:
+  push:
+    branches: [feat/w02-location-shared-20260909]
+permissions:
+  contents: write
+concurrency:
+  group: w02-location-source-transfer
+  cancel-in-progress: false
+jobs:
+  apply-exact-reviewed-source:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          persist-credentials: true
+      - name: Apply only the reviewed patch and remove this temporary writer
+        shell: bash
+        env:
+          TARGET_BRANCH: feat/w02-location-shared-20260909
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/$TARGET_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD^)" = 5eb762695aef0059e57f3b189c0d6c425c7d3feb
+          python3 - <<'PY'
+          import gzip,hashlib,os,pathlib,subprocess
+          parts=[pathlib.Path('_tmp/w02-location-'+str(i)+'.bin') for i in range(4)]
+          raw=b''.join(p.read_bytes() for p in parts)
+          assert len(raw)<30000
+          patch=gzip.decompress(raw)
+          assert len(patch)==91837
+          assert hashlib.sha256(patch).hexdigest()=='26a5ab0f96ac7e0143510a564d4f0ee0ab542408a4325ce2d8d3cd1b1d026c47'
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'w02-location-reviewed';out.mkdir()
+          target=out/'reviewed.patch';target.write_bytes(patch)
+          subprocess.run(['git','apply','--check','--index',str(target)],check=True)
+          subprocess.run(['git','apply','--index',str(target)],check=True)
+          own='.github/workflows/_tmp_w02_location_transfer.yml'
+          subprocess.run(['git','rm',own,*map(str,parts)],check=True)
+          tree=subprocess.check_output(['git','write-tree'],text=True).strip()
+          assert tree=='03781ea9f0f77b870e80898d7a65c57e25d1dd7b', 'Unreviewed source tree refused'
+          (out/'source-tree.txt').write_text(tree+'\n')
+          PY
+          python3 supabase/migrations/check_migration_integrity.py
+          node --check supabase/proofs/calendar/w02_location_proof.mjs
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(w02): connect confirmed manual location to existing Need and Worker authority' -m 'Exact reviewed patch; local TypeScript and 83 suites/1151 tests pass. Real disposable location proof, canonical integration and provider/UI activation are not claimed. Existing calendar, availability and historical SQL remain unchanged. Temporary source-transfer material is removed.'
+          test "$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | cut -f1)" = "$GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          git rev-parse HEAD > "$RUNNER_TEMP/w02-location-reviewed/source-commit.txt"
+      - name: Retain readable source patch and exact resulting identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: W02-LOCATION-REVIEWED-SOURCE-${{ github.run_id }}
+          path: ${{ runner.temp }}/w02-location-reviewed/
+          if-no-files-found: error
+          retention-days: 7
