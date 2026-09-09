@@ -233,9 +233,42 @@ try{
 
   {
   check('FINAL_FINGERPRINTS_HISTORY_AND_NO_ARTIFACT');
-  assert.equal(tableHash('supabase_migrations.schema_migrations',`version<>${q(manifest.forward_version)}`),history);
+  // Prove P2 completely at its own position, then replay every later pending
+  // source and prove that the export boundary remains byte/behavior stable.
+  const requesterStatusBefore=await ok(status(requester));
+  const workerStatusBefore=await ok(status(worker));
+  const exportRowsBefore=tableHash('public.data_export_requests');
+  const functions=()=>rows(`select p.proname,p.prosecdef,p.proacl,p.proconfig,md5(p.prosrc) body
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+    and p.proname in ('rpc_get_data_export_status','rpc_request_data_export','rpc_cancel_data_export') order by 1`);
+  const functionsBefore=functions();assert.equal(functionsBefore.length,3);
+  const tableSecurity=()=>rows(`select c.relname,c.relrowsecurity,c.relforcerowsecurity,c.relacl
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='data_export_requests'`);
+  const securityBefore=tableSecurity();assert.equal(securityBefore.length,1);
+  const appliedSuccessors=[];
+  for(const successor of plan.pending_successors){
+    assert.equal(sql(`select count(*) from supabase_migrations.schema_migrations where version=${q(successor.version)}`),'0');
+    const file=`supabase/migrations/${successor.file}`,suffixBytes=readFileSync(file);
+    assert.equal(createHash('md5').update(suffixBytes).digest('hex'),successor.md5);
+    execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-f',file],{stdio:'pipe'});
+    sql(`insert into supabase_migrations.schema_migrations(version,name,statements)
+      values(${q(successor.version)},${q(successor.name)},array[${q(suffixBytes.toString('utf8'))}])`);
+    assert.equal(sql(`select md5(statements[1]) from supabase_migrations.schema_migrations where version=${q(successor.version)}`),successor.md5);
+    appliedSuccessors.push(successor);
+  }
+  sql("notify pgrst,'reload schema'");
+  assert.deepEqual(await ok(status(requester)),requesterStatusBefore,'EXPORT_REQUESTER_STATUS_CHANGED_BY_SUCCESSOR');
+  assert.deepEqual(await ok(status(worker)),workerStatusBefore,'EXPORT_WORKER_STATUS_CHANGED_BY_SUCCESSOR');
+  assert.equal(tableHash('public.data_export_requests'),exportRowsBefore,'EXPORT_ROWS_CHANGED_BY_SUCCESSOR');
+  assert.deepEqual(functions(),functionsBefore,'EXPORT_FUNCTIONS_OR_GRANTS_CHANGED_BY_SUCCESSOR');
+  assert.deepEqual(tableSecurity(),securityBefore,'EXPORT_TABLE_SECURITY_CHANGED_BY_SUCCESSOR');
+  report.successor_replay={applied:appliedSuccessors,count:appliedSuccessors.length,
+    export_projection_unchanged:true,export_rows_unchanged:true,export_functions_and_grants_unchanged:true,export_security_unchanged:true};
+  const newlyApplied=[manifest.forward_version,...appliedSuccessors.map(item=>item.version)];
+  assert.equal(tableHash('supabase_migrations.schema_migrations',`version not in (${newlyApplied.map(q).join(',')})`),history);
+  report.successor_replay.original_history_unchanged=true;
   report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
-  assert.equal(report.migration_history_count,predecessorCount+1);
+  assert.equal(report.migration_history_count,predecessorCount+1+appliedSuccessors.length);
   assert.equal(report.migration_history_count,plan.source_migration_count);
   assert.equal(sql("select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.proname ~* 'export_(generate|build|deliver|artifact)'"),'0','no artifact generator may be admitted');
   report.request_rows={requester:requestsOf(rid).length,worker:requestsOf(wid).length};
