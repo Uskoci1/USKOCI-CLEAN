@@ -104,9 +104,9 @@ test('runtime proof still replays successors instead of weakening to source-only
   const proof = readFileSync('supabase/proofs/legal/p3_retention_schedule_proof.mjs', 'utf8');
   const workflow = readFileSync('.github/workflows/p3-retention-schedule-proof.yml', 'utf8');
   assert.match(proof, /for\s*\(\s*const\s+successor\s+of\s+plan\.pending_successors\s*\)/);
-  assert.ok(proof.includes('retention_projection_unchanged:true'));
-  assert.ok(proof.includes('retention_rows_unchanged:true'));
-  assert.ok(proof.includes('retention_functions_and_grants_unchanged:true'));
-  assert.ok(workflow.includes('r.successor_replay.count!==r.predecessor_plan.pending_successor_count'));
-  assert.ok(workflow.includes('r.migration_history_count!==r.predecessor_plan.source_migration_count'));
+  assert.match(proof, /retention_projection_unchanged\s*:\s*true/);
+  assert.match(proof, /retention_rows_unchanged\s*:\s*true/);
+  assert.match(proof, /retention_functions_and_grants_unchanged\s*:\s*true/);
+  assert.match(workflow, /r\.successor_replay\.count\s*!==\s*r\.predecessor_plan\.pending_successor_count/);
+  assert.match(workflow, /r\.migration_history_count\s*!==\s*r\.predecessor_plan\.source_migration_count/);
 });
