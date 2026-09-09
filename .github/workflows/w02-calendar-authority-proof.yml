@@ -16,6 +16,11 @@ on:
       - 'src/data/supabaseIzvor.ts'
       - 'src/data/calendarErrors.ts'
       - 'src/lib/calendarTime.ts'
+      - 'src/lib/location.ts'
+      - 'src/contracts/location.ts'
+      - 'src/data/locationClientService.ts'
+      - 'src/data/locationResolver.ts'
+      - 'src/data/__tests__/w02-location-client.test.ts'
       - 'src/lib/workerAvailability.ts'
       - 'src/contracts/workerAvailability.ts'
       - 'src/data/workerAvailabilityClientService.ts'
@@ -105,6 +110,11 @@ jobs:
           node --check supabase/proofs/calendar/w02_availability_proof.mjs
           node supabase/proofs/calendar/w02_availability_proof.mjs
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/availability-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.availability_fixture_sql || !r.calendar_unchanged || r.observed_waiters<2 || r.checks.length!==11) process.exit(1);'
+      - name: Manual location, remote draft, privacy and actual client commands
+        run: |
+          node --check supabase/proofs/calendar/w02_location_proof.mjs
+          node supabase/proofs/calendar/w02_location_proof.mjs
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/location-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.location_fixture_sql || r.gps_permission_requested || r.geocoder_called || r.provider_activated || !r.calendar_and_application_snapshots_unchanged || r.observed_waiters<2 || r.checks.length!==10) process.exit(1);'
       - name: Upload exact source-bound calendar evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
