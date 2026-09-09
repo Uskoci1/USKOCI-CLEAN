@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: true
       - name: Apply only the reviewed patch and remove this temporary writer
         shell: bash
@@ -25,7 +25,8 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/$TARGET_BRANCH"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(git rev-parse HEAD^)" = 5eb762695aef0059e57f3b189c0d6c425c7d3feb
+          test "$(git rev-parse HEAD^)" = e5114f7fa613d7bd4b26cb61920bc7aec91d8e8d
+          test "$(git rev-parse HEAD^^)" = 5eb762695aef0059e57f3b189c0d6c425c7d3feb
           python3 - <<'PY'
           import gzip,hashlib,os,pathlib,subprocess
           parts=[pathlib.Path('_tmp/w02-location-'+str(i)+'.bin') for i in range(4)]
@@ -41,7 +42,10 @@ jobs:
           own='.github/workflows/_tmp_w02_location_transfer.yml'
           subprocess.run(['git','rm',own,*map(str,parts)],check=True)
           tree=subprocess.check_output(['git','write-tree'],text=True).strip()
-          assert tree=='03781ea9f0f77b870e80898d7a65c57e25d1dd7b', 'Unreviewed source tree refused'
+          # Same reviewed bytes, retaining the canonical executable bit of the
+          # migration checker. The source ZIP recorded 100755; extraction used
+          # 100644 locally. The existing remote mode must not be overwritten.
+          assert tree=='127989301ad6f01bb93b8a5f522dd9374044b6c7', 'Unreviewed source tree refused'
           (out/'source-tree.txt').write_text(tree+'\n')
           PY
           python3 supabase/migrations/check_migration_integrity.py
