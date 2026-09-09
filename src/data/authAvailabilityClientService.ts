@@ -1,3 +1,4 @@
+import { configuredRecoveryRedirect } from './passwordRecoveryLink';
 import type { AuthAvailability, AuthAvailabilityPort } from '../contracts/authAvailability';
 
 function projectSettings(raw: unknown): AuthAvailability {
@@ -17,7 +18,7 @@ function projectSettings(raw: unknown): AuthAvailability {
     emailSignup: providers.email && !settings.disable_signup,
     phoneOtp: providers.phone,
     emailConfirmationRequired: !settings.mailer_autoconfirm,
-    passwordRecovery: false,
+    passwordRecovery: providers.email && configuredRecoveryRedirect() !== null,
   };
 }
 
