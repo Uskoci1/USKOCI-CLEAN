@@ -24,7 +24,7 @@ jobs:
         shell: bash
         env:
           BRANCH: feat/w02-calendar-authority-20260909
-          EXPECTED_PARENT: 832110932a6d6eb7e803db03a9ef1be959f9bd9a
+          EXPECTED_PARENT: 135dc75370d0388e993402762ed70e66f6221fda
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/$BRANCH"
