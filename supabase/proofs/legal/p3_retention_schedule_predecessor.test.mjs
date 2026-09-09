@@ -9,7 +9,7 @@ import { readP3RetentionPredecessorPlan } from './p3_retention_schedule_predeces
 
 const unit = JSON.parse(readFileSync('supabase/proofs/legal/p3_retention_schedule_files.json', 'utf8'));
 
-test('plan admits frozen live87 plus the ordered earlier pending stack and this unit', () => {
+test('plan admits frozen live87 plus the ordered earlier pending stack, this unit and replay successors', () => {
   const provenance = JSON.parse(readFileSync('supabase/migrations/MIGRATION_PROVENANCE.json', 'utf8'));
   const pending = provenance.pending_forward_migrations.map(entry => entry.file);
   const before = pending.slice(0, pending.indexOf(unit.forward_file));
@@ -23,6 +23,11 @@ test('plan admits frozen live87 plus the ordered earlier pending stack and this 
   assert.deepEqual(plan.pending_successors.map(entry => entry.file), after);
   assert.equal(plan.pending_successor_count, after.length);
   assert.equal(plan.source_migration_count, plan.expected_predecessor_count + 1 + after.length);
+  for (const item of plan.source_inventory) {
+    assert.match(item.md5, /^[0-9a-f]{32}$/);
+    assert.match(item.sha256, /^[0-9a-f]{64}$/);
+    assert.ok(Number.isInteger(item.bytes) && item.bytes > 0);
+  }
 });
 
 test('candidate and forward bytes are identical and match the manifest digests', () => {
@@ -60,19 +65,25 @@ test('forward file seeds only the technical data-class inventory and admits no s
   assert.ok(!text.includes('r24_require_user') && !text.includes('clock_timestamp'), 'donor helpers must be rebound');
 });
 
-test('provenance declares the unit as pending and not live', () => {
+test('provenance declares the unit as pending, byte-bound and not live', () => {
   const provenance = JSON.parse(readFileSync('supabase/migrations/MIGRATION_PROVENANCE.json', 'utf8'));
   const pending = provenance.pending_forward_migrations.find(entry => entry.file === unit.forward_file);
   assert.ok(pending, 'pending entry missing');
   assert.equal(pending.classification, 'PENDING_FORWARD_MIGRATION');
   assert.equal(pending.live_applied, false);
   assert.equal(pending.raw_md5, unit.md5);
+  assert.equal(pending.raw_sha256, unit.sha256);
+  assert.equal(pending.raw_bytes, unit.bytes);
   assert.equal(pending.predecessor_live_migration_count, 87);
   assert.equal(pending.predecessor_live_head, '20260907135905');
 });
 
-
-for (const mutation of ['changed-source','wrong-checksum','marked-live','wrong-order']) {
+for (const [mutation, expected] of [
+  ['changed-source', /PENDING_MD5_CHANGED/],
+  ['wrong-checksum', /PENDING_MD5_CHANGED/],
+  ['marked-live', /PENDING_ENTRY_MARKED_LIVE/],
+  ['wrong-order', /PENDING_IDENTITY_MISMATCH/],
+]) {
   test(`refuses a declared successor with ${mutation} before any database operation`, () => {
     const root = mkdtempSync(join(tmpdir(), 'p3-admission-'));
     try {
@@ -87,7 +98,7 @@ for (const mutation of ['changed-source','wrong-checksum','marked-live','wrong-o
       if(mutation==='marked-live') next.live_applied=true;
       if(mutation==='wrong-order') next.version=unit.forward_version;
       writeFileSync(file,JSON.stringify(provenance));
-      assert.throws(() => readP3RetentionPredecessorPlan(root), /PENDING_SUCCESSOR_/);
+      assert.throws(() => readP3RetentionPredecessorPlan(root), expected);
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 }
