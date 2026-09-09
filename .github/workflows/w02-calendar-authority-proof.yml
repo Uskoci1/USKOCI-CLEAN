@@ -16,6 +16,10 @@ on:
       - 'src/data/supabaseIzvor.ts'
       - 'src/data/calendarErrors.ts'
       - 'src/lib/calendarTime.ts'
+      - 'src/lib/workerAvailability.ts'
+      - 'src/contracts/workerAvailability.ts'
+      - 'src/data/workerAvailabilityClientService.ts'
+      - 'src/data/__tests__/w02-worker-availability-client.test.ts'
 concurrency:
   group: w02-calendar-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
@@ -96,6 +100,11 @@ jobs:
           node --check supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
           node supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/integrity-proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.mocked_rpc_responses || !r.actual_client_verified || !r.application_snapshot_unchanged || r.repeatable_read_sqlstate!=="40001" || r.lock_observations.length!==1 || r.lock_observations[0].blocked_calls<2 || r.checks.length!==13 || !r.flexible_windows_do_not_block || !r.unknown_duration_not_inferred || !r.later_exact_time_guarded || !r.explicit_flexible_proposal_guarded || !r.requester_parallel_bookings_allowed) process.exit(1);'
+      - name: Actual availability editor, matching, privacy, DST and concurrent saves
+        run: |
+          node --check supabase/proofs/calendar/w02_availability_proof.mjs
+          node supabase/proofs/calendar/w02_availability_proof.mjs
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/availability-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.availability_fixture_sql || !r.calendar_unchanged || r.observed_waiters<2 || r.checks.length!==11) process.exit(1);'
       - name: Upload exact source-bound calendar evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -32,7 +32,10 @@ function sql(query){
   try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-At'],{input:query,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();}
   catch{throw new Error('ISOLATED_SQL_FAILED');}
 }
-const ok=async promise=>{const result=await promise;assert.equal(result.error,null,'REAL_RPC_REFUSED');return result.data;};
+const ok=async promise=>{const result=await promise;
+  if(result.error){report.rpc_failure={code:/^[A-Z0-9]{5}$/.test(result.error.code??'')?result.error.code:'OTHER',
+    reason:['WORKER_NOT_ELIGIBLE','WORKER_NO_LONGER_ELIGIBLE','WORKER_CALENDAR_CONFLICT','AVAILABILITY_TIMEZONE_INVALID'].includes(result.error.message)?result.error.message:'OTHER'};}
+  assert.equal(result.error,null,'REAL_RPC_REFUSED');return result.data;};
 const row=(id)=>JSON.parse(sql(`select row_to_json(e)::text from private.worker_calendar_events e where agreement_id=${q(uid(id))}::uuid`));
 const day=number=>new Date(Date.now()+(16+number)*86400000).toISOString();
 const addHour=(start,hours=1)=>new Date(Date.parse(start)+hours*3600000).toISOString();
@@ -180,17 +183,26 @@ try{
   const busyAgreement=uid(await ok(select(selection(busyNeed,await apply(busyNeed)))));
   const flexibleAgreements=[];
   for(const kind of ['FLEXIBLE','TODAY_FLEXIBLE','TOMORROW_FLEXIBLE','WEEK_FLEXIBLE','REMOTE_ANYTIME']){
+    report.flexible_case={kind,step:'need'};
     const nFlex=await need(flexFrom,flexTo,'flexible-'+kind,kind);
+    report.flexible_case.step='match';
     const projection=JSON.parse(sql(`select private.match_detail(${q(nFlex)}::uuid,${q(profile)}::uuid)::text`));
+    report.flexible_case.manualResponseAllowed=projection.responseAllowed===true;
+    report.flexible_case.hardCalendarConflict=projection.hardBlockers.includes('CALENDAR_CONFLICT');
     assert.equal(projection.responseAllowed,true);
     assert.ok(!projection.hardBlockers.includes('CALENDAR_CONFLICT'));
-    const flexible=uid(await ok(select(selection(nFlex,await apply(nFlex)))));
+    report.flexible_case.step='apply';
+    const application=await apply(nFlex);
+    report.flexible_case.step='select';
+    const flexible=uid(await ok(select(selection(nFlex,application))));
+    report.flexible_case.step='workspace';
     flexibleAgreements.push(flexible);
     const w=await ok(worker.rpc('rpc_get_agreement_workspace',{p_agreement_id:flexible}));
     assert.equal(w.terms.proposed_start_at,null);assert.equal(w.terms.proposed_end_at,null);
     assert.equal(w.terms.schedule_source,'UNSCHEDULED');
     assert.equal(sql(`select count(*) from private.worker_calendar_events where agreement_id=${q(flexible)}::uuid`),'0');
   }
+  report.flexible_case.step='actual-list';
   const actualAgreements=await linked.agreements.mojiDogovori();
   for(const id of flexibleAgreements){
     assert.ok(actualAgreements.some(a=>a.id===id&&a.vremeTekst==='Termin nije potvrđen'),
@@ -342,6 +354,10 @@ try{
 }catch(error){
   report.result='FAIL';report.failed_check=current;
   report.failure_category=error?.code==='ERR_ASSERTION'?'ASSERTION':(error instanceof Error?error.name:'UNKNOWN');
+  // Retain only source line identity and scalar assertion diagnostics, never RPC payloads/tokens.
+  report.failure_line=String(error?.stack??'').match(/w02_calendar_integrity_proof\.mjs:(\d+):\d+/)?.[1]??null;
+  if(typeof error?.actual==='boolean'||typeof error?.actual==='number') report.assertion_actual=error.actual;
+  if(typeof error?.expected==='boolean'||typeof error?.expected==='number') report.assertion_expected=error.expected;
   console.error('FAIL W02_CALENDAR_INTERVAL_INTEGRITY '+current);process.exitCode=1;
 }finally{
   for(const child of children){child.stdin.end('rollback;\n\\q\n');child.kill();}
