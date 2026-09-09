@@ -1,7 +1,9 @@
 // Pure source-admission tests: no database, network or environment side effects.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { readP3RetentionPredecessorPlan } from './p3_retention_schedule_predecessor.mjs';
 
@@ -17,7 +19,10 @@ test('plan admits frozen live87 plus the ordered earlier pending stack and this 
   assert.equal(plan.source_migration_count, 87 + pending.length);
   assert.equal(plan.expected_predecessor_count, 87 + before.length);
   assert.deepEqual(plan.pending_predecessors.map(entry => entry.file), before);
-  assert.equal(pending.at(-1), unit.forward_file, 'unit must be last in the current forward stack');
+  const after = pending.slice(pending.indexOf(unit.forward_file) + 1);
+  assert.deepEqual(plan.pending_successors.map(entry => entry.file), after);
+  assert.equal(plan.pending_successor_count, after.length);
+  assert.equal(plan.source_migration_count, plan.expected_predecessor_count + 1 + after.length);
 });
 
 test('candidate and forward bytes are identical and match the manifest digests', () => {
@@ -65,3 +70,24 @@ test('provenance declares the unit as pending and not live', () => {
   assert.equal(pending.predecessor_live_migration_count, 87);
   assert.equal(pending.predecessor_live_head, '20260907135905');
 });
+
+
+for (const mutation of ['changed-source','wrong-checksum','marked-live','wrong-order']) {
+  test(`refuses a declared successor with ${mutation} before any database operation`, () => {
+    const root = mkdtempSync(join(tmpdir(), 'p3-admission-'));
+    try {
+      cpSync('supabase',join(root,'supabase'),{recursive:true});
+      const file=join(root,'supabase/migrations/MIGRATION_PROVENANCE.json');
+      const provenance=JSON.parse(readFileSync(file,'utf8'));
+      const suffix=provenance.pending_forward_migrations.filter(entry => entry.version>unit.forward_version);
+      assert.ok(suffix.length, 'this integration test requires its admitted later unit');
+      const next=suffix[0];
+      if(mutation==='changed-source') writeFileSync(join(root,'supabase/migrations',next.file),'-- altered SQL');
+      if(mutation==='wrong-checksum') next.raw_md5='0'.repeat(32);
+      if(mutation==='marked-live') next.live_applied=true;
+      if(mutation==='wrong-order') next.version=unit.forward_version;
+      writeFileSync(file,JSON.stringify(provenance));
+      assert.throws(() => readP3RetentionPredecessorPlan(root), /PENDING_SUCCESSOR_/);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+}

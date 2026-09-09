@@ -1,29 +1,20 @@
-name: P3 retention schedule authenticated proof
+name: D-0140-A policy bundle registration proof
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [clean-alpha-backend]
-    paths:
-      - '.github/workflows/p3-retention-schedule-proof.yml'
-      - 'supabase/migrations/**'
-      - 'supabase/proofs/legal/p3_retention_schedule*'
-      - 'supabase/proofs/notifications/n07_forward*'
-      - 'supabase/proofs/notifications/n08_preferences*'
-      - 'supabase/proofs/ru5_device_ui_live79_env.sh'
   push:
     branches:
-      - feat/p3-retention-schedule-20260908
+      - feat/d0140a-policy-bundle-registration-20260908
 permissions:
   contents: read
 env:
   CI: '1'
   SUPABASE_TELEMETRY_DISABLED: '1'
   DO_NOT_TRACK: '1'
-  N07_ARTIFACT_DIR: artifacts/p3-retention-schedule/predecessor-n07
-  N08_ARTIFACT_DIR: artifacts/p3-retention-schedule/predecessor-n08
-  P3_ARTIFACT_DIR: artifacts/p3-retention-schedule
+  N07_ARTIFACT_DIR: artifacts/d0140a-bundle-registration/predecessor-n07
+  N08_ARTIFACT_DIR: artifacts/d0140a-bundle-registration/predecessor-n08
+  D0140A_ARTIFACT_DIR: artifacts/d0140a-bundle-registration
 jobs:
-  authenticated-retention-schedule-proof:
+  policy-bundle-registration-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -49,9 +40,9 @@ jobs:
         run: |
           npx tsc --noEmit
           npm test -- --runInBand
-          node --check supabase/proofs/legal/p3_retention_schedule_proof.mjs
-          node --check supabase/proofs/legal/p3_retention_schedule_predecessor.mjs
-          node --test supabase/proofs/legal/p3_retention_schedule_predecessor.test.mjs
+          node --check supabase/proofs/policy/d0140a_bundle_registration_proof.mjs
+          node --check supabase/proofs/policy/d0140a_bundle_registration_predecessor.mjs
+          node --test supabase/proofs/policy/d0140a_bundle_registration_predecessor.test.mjs
           node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
           python3 supabase/migrations/check_migration_integrity.py
       - name: Reconstruct disposable historical live79
@@ -71,21 +62,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node supabase/proofs/legal/p3_retention_schedule_predecessor.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/predecessor.log"
-          grep -F 'PASS P3_RETENTION_PREDECESSOR_INTEGRATION' "$P3_ARTIFACT_DIR/predecessor.log"
-      - name: Apply exact P3 source and prove fail-closed retention schedule registry
+          node supabase/proofs/policy/d0140a_bundle_registration_predecessor.mjs 2>&1 | tee "$D0140A_ARTIFACT_DIR/predecessor.log"
+          grep -F 'PASS D0140A_PREDECESSOR_INTEGRATION' "$D0140A_ARTIFACT_DIR/predecessor.log"
+      - name: Apply exact D-0140-A source and prove the registered bundle is inert
         shell: bash
         run: |
           set -euo pipefail
-          node supabase/proofs/legal/p3_retention_schedule_proof.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/proof.log"
-          grep -F 'PASS P3_RETENTION_SCHEDULE' "$P3_ARTIFACT_DIR/proof.log"
-          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P3_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.purge_executed || !r.successor_replay || r.successor_replay.count!==r.predecessor_plan.pending_successor_count || !r.successor_replay.original_history_unchanged || !r.successor_replay.retention_projection_unchanged || !r.successor_replay.retention_rows_unchanged || !r.successor_replay.retention_functions_and_grants_unchanged || r.migration_history_count!==r.predecessor_history_count+1+r.successor_replay.count || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==r.predecessor_plan.expected_predecessor_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==1 || r.checks.length!==8) process.exit(1);'
+          node supabase/proofs/policy/d0140a_bundle_registration_proof.mjs 2>&1 | tee "$D0140A_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS D0140A_BUNDLE_REGISTRATION' "$D0140A_ARTIFACT_DIR/proof.log"
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.D0140A_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.policy_activated_live || r.rule_text_seeded || r.allow_enabled || r.migration_history_count!==r.predecessor_history_count+1 || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==r.predecessor_plan.expected_predecessor_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==0 || r.checks.length!==6) process.exit(1);'
       - name: Upload exact source-bound disposable evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: P3-RETENTION-SCHEDULE-EVIDENCE
-          path: artifacts/p3-retention-schedule/
+          name: D0140A-BUNDLE-REGISTRATION-EVIDENCE
+          path: artifacts/d0140a-bundle-registration/
           if-no-files-found: warn
           retention-days: 14
       - name: Teardown disposable Supabase

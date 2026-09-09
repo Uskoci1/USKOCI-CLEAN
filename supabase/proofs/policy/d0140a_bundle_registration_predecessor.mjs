@@ -11,10 +11,10 @@ import { assertLocalDeviceProofTargets } from '../ru5_device_ui_local_guard.mjs'
 
 const digest = (algorithm, bytes) => createHash(algorithm).update(bytes).digest('hex');
 
-export function readP3RetentionPredecessorPlan(root = process.cwd()) {
+export function readD0140aPredecessorPlan(root = process.cwd()) {
   const readJson = path => JSON.parse(readFileSync(resolve(root, path), 'utf8'));
-  const unit = readJson('supabase/proofs/legal/p3_retention_schedule_files.json');
-  const admitted = readJson('supabase/proofs/legal/p3_retention_schedule_predecessor_files.json');
+  const unit = readJson('supabase/proofs/policy/d0140a_bundle_registration_files.json');
+  const admitted = readJson('supabase/proofs/policy/d0140a_bundle_registration_predecessor_files.json');
   const provenance = readJson('supabase/migrations/MIGRATION_PROVENANCE.json');
   const source = readdirSync(resolve(root, 'supabase/migrations'))
     .filter(name => name.endsWith('.sql')).sort().map(file => {
@@ -49,7 +49,8 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
   assert.equal(historical.length, admitted.historical_file_count);
 
   const unitPendingIndex = pendingEntries.findIndex(entry => entry.file === unit.forward_file);
-  assert.ok(unitPendingIndex >= 0, 'P3_PENDING_PROVENANCE_MISSING');
+  assert.ok(unitPendingIndex >= 0, 'D0140A_PENDING_PROVENANCE_MISSING');
+  assert.equal(unitPendingIndex, pendingEntries.length - 1, 'D0140A_PENDING_NOT_LAST_IN_CURRENT_FORWARD_STACK');
   const pendingPredecessors = pendingEntries.slice(0, unitPendingIndex).map(entry => {
     assert.equal(entry.live_applied, false, `PENDING_PREDECESSOR_MARKED_LIVE:${entry.file}`);
     assert.ok(String(entry.version) < String(unit.forward_version), `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
@@ -62,18 +63,6 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
       name: entry.name,
       md5: entry.raw_md5,
     };
-  });
-
-  // Later admitted forwards remain a separate ordered suffix. The P3 proof
-  // runs its original assertions first, then replays this exact suffix and
-  // checks that the retention state, grants and original history are intact.
-  const pendingSuccessors = pendingEntries.slice(unitPendingIndex + 1).map(entry => {
-    assert.equal(entry.live_applied, false, `PENDING_SUCCESSOR_MARKED_LIVE:${entry.file}`);
-    assert.ok(String(entry.version) > String(unit.forward_version), `PENDING_SUCCESSOR_ORDER_INVALID:${entry.file}`);
-    const current = source.find(candidate => candidate.file === entry.file);
-    assert.ok(current, `PENDING_SUCCESSOR_FILE_MISSING:${entry.file}`);
-    assert.equal(current.md5, entry.raw_md5, `PENDING_SUCCESSOR_MD5_CHANGED:${entry.file}`);
-    return { file: entry.file, version: String(entry.version), name: entry.name, md5: entry.raw_md5 };
   });
 
   assert.equal(source.length, historical.length + pendingEntries.length);
@@ -97,8 +86,6 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
     historical_inventory_sha256: admitted.historical_inventory_sha256,
     source_inventory: source,
     pending_predecessors: pendingPredecessors,
-    pending_successors: pendingSuccessors,
-    pending_successor_count: pendingSuccessors.length,
     d03: admitted.d03,
     ai_draft: admitted.ai_draft,
   };
@@ -107,8 +94,8 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
 function applyDisposablePredecessor() {
   const env = process.env;
   assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL, env.RU5_DEVICE_DB_URL);
-  const plan = readP3RetentionPredecessorPlan(); // Refuse unknown source before any SQL.
-  const out = env.P3_ARTIFACT_DIR || 'artifacts/p3-retention-schedule';
+  const plan = readD0140aPredecessorPlan(); // Refuse unknown source before any SQL.
+  const out = env.D0140A_ARTIFACT_DIR || 'artifacts/d0140a-bundle-registration';
   mkdirSync(out, { recursive: true });
   const report = { result: 'RUNNING', source_sha: env.GITHUB_SHA ?? null,
     live_access: false, provider_called: false, plan };
@@ -144,8 +131,8 @@ function applyDisposablePredecessor() {
     stage = 'LIVE87_POSTFLIGHT';
     assert.equal(history(`version not in (${applied.map(a => quote(a.forward_version)).join(',')})`), before,
       'ORIGINAL_FULL_HISTORY_CHANGED');
-    assert.equal(sql("select to_regclass('private.retention_policy_sets') is null"), 't', 'RETENTION_TABLE_UNEXPECTEDLY_PRESENT');
-    assert.equal(sql("select to_regprocedure('public.rpc_publish_retention_policy(text,text,timestamptz,jsonb)') is null"), 't', 'RETENTION_RPC_UNEXPECTEDLY_PRESENT');
+    assert.equal(sql("select count(*) from private.publication_policy_bundles"), '0', 'BUNDLE_UNEXPECTEDLY_PRESENT');
+    assert.equal(sql("select to_regprocedure('private.current_publication_policy_bundle(text,text,timestamptz)') is not null"), 't', 'RESOLVER_MISSING');
 
     const appliedPending = [];
     for (const dep of plan.pending_predecessors) {
@@ -165,8 +152,8 @@ function applyDisposablePredecessor() {
     const excluded = [...applied.map(a => a.forward_version), ...appliedPending.map(a => a.version)];
     assert.equal(history(`version not in (${excluded.map(quote).join(',')})`), before,
       'ORIGINAL_BASE_HISTORY_CHANGED_AFTER_PENDING_PREDECESSORS');
-    assert.equal(sql("select to_regclass('private.retention_policy_sets') is null"), 't', 'RETENTION_TABLE_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
-    assert.equal(sql("select to_regprocedure('public.rpc_publish_retention_policy(text,text,timestamptz,jsonb)') is null"), 't', 'RETENTION_RPC_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
+    assert.equal(sql("select count(*) from private.publication_policy_bundles"), '0', 'BUNDLE_UNEXPECTEDLY_PRESENT_AFTER_PENDING_PREDECESSORS');
+    assert.equal(sql("select to_regprocedure('private.current_publication_policy_bundle(text,text,timestamptz)') is not null"), 't', 'RESOLVER_MISSING_AFTER_PENDING_PREDECESSORS');
     sql("notify pgrst,'reload schema'");
     const after = history('true');
     assert.equal(JSON.parse(after).length, plan.expected_predecessor_count);
@@ -184,11 +171,11 @@ function applyDisposablePredecessor() {
     process.exitCode = 1;
   } finally {
     writeFileSync(`${out}/predecessor-integration-report.json`, `${JSON.stringify(report, null, 2)}\n`);
-    console.log(`${report.result} P3_RETENTION_PREDECESSOR_INTEGRATION`);
+    console.log(`${report.result} D0140A_PREDECESSOR_INTEGRATION`);
   }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv[2] === '--inspect') console.log(JSON.stringify(readP3RetentionPredecessorPlan(), null, 2));
+  if (process.argv[2] === '--inspect') console.log(JSON.stringify(readD0140aPredecessorPlan(), null, 2));
   else applyDisposablePredecessor();
 }
