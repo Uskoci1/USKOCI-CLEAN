@@ -1,3 +1,69 @@
+## 2026-09-09 W02 remainder — availability implementation, current proof pending
+
+Current canonical was physically checked as b72f79f70eeac2677ebebb3e34a93ab7677c49a0.
+PR83 IS MERGED. Its exact worker bookings, flexible nonblocking schedules, immutable
+Application snapshots, lifecycle release and requester parallel engagements remain
+intact. Older calendar-pending pointers below are historical, not a rollback cursor.
+Existing continuation branch: feat/w02-availability-20260909. No canonical direct write.
+
+Re-read W02 in the original 2026-09-08 Markdown and work-package JSON. ZIP SHA256
+b3ea1efe19dac4d30287fb7d569e7d58b469c2d4b555a7561bad7f84ca1d2ff7 and all six manifest
+entries match. Fresh live READ ONLY: 87 migrations through 20260907135905, calendar
+absent. No live migration, provider activation or production write in this unit.
+
+Availability now has one owned read/save command over the EXISTING rules/windows
+and worker_match_preferences timezone, with content-revision conflict detection,
+identical retry/no duplicate writes, finite times, weekday/date/zone validation,
+private owner binding and bounded inputs. Authenticated raw child writes are retired
+in favor of the owned editor; owner RLS reads remain. The old profile toggle remains
+wired, with a new server trigger that makes its state persistent until OFF/safety.
+No weekly calendar screen or final layout is introduced.
+
+Matching/dispatch future scheduling consumes that stored authority, not the toggle
+alone. OFF suppresses immediate opportunities, not eligible future work. ON overrides
+the weekly baseline for an interval containing the current instant; no unapproved
+minutes-to-start threshold or expiry is invented. Future flexible windows need some
+available time, not an entire free day. Personal UNAVAILABLE and agreed hard bookings
+remain stronger than ON. Weekly periods union across midnight/date boundaries and
+are interpreted in the saved IANA zone; DST is tested. No automatic HITNO enrollment.
+
+Written forwards: 20260909140000 and 20260909150000. All earlier SQL bytes unchanged.
+Source inventory 98 / historical snapshot 87 / pending 11. Local TypeScript PASS,
+82 suites / 1057 application tests PASS, including 73 new availability client cases.
+These are SOURCE results, NOT yet current disposable/runtime acceptance. The existing
+calendar workflow retains all original checks and adds real typed-client/Auth/RPC
+save/read, replay/stale, three-account privacy, future/immediate matching, DST,
+observed concurrent saves and unchanged hard-calendar assertions. Runtime pending.
+
+Status: WRITTEN + LOCAL_TESTED; not MERGED, LIVE, new-editor UI_CONNECTED, runtime
+PROVEN or production ACTIVATED. Existing legacy toggle only is already UI connected
+in source; no production benefit is claimed until approved promotion and client use.
+Entire W02 remains OPEN: shared semantic normalization and manual/location adapter
+acceptance still need implementation/proof. W03/W04 remain next dependent work, not
+silently marked complete. At most two unfinished units, no .claude/, PRODUCT.md,
+design-reference or final visual changes. Continue at the exact current GitHub ref.
+
+Next: run full-source disposable availability/calendar proof, review original report,
+resolve real failures, integrate only with current gates. Then continue W02 shared/
+location nonvisual boundaries, without recreating the calendar or changing canon.
+
+### Bounded W02 authority map reviewed in canonical source
+
+| Input | Validation / writer | Existing storage | Projection / consumer | Remaining boundary |
+| --- | --- | --- | --- | --- |
+| Task category/skills/tools/vehicles/licenses | NEED_FACT_V2 registry + human review + draft/edit RPC | needs.category/required_skills/required_tools/required_vehicles/required_licenses | public Task requirements; private.match_detail_without_calendar | Share normalized semantic vocabulary with Worker, no new registry invented here |
+| Worker skills/tools/vehicles | current workerProfileClientService + profile guard | app_profiles.skills/tools/vehicles; licenses already part of schema | owned profile; private matcher | Manual/AI confirmed capability convergence is W04; current direct patch not assumed complete |
+| Public Task place / remote | need_v2_location_ref_valid / task geography validation + Need V2 save | need_geography.public_topology; needs approximate fields/location mode | public topology read; matching coarse geography | Provider-neutral manual validator/adapter + privacy/no-GPS acceptance still open |
+| Exact Task address/access | private NEED_FACT_V2 keys + canonical materializer | need_sensitive.exact_address/access_notes/exact coordinates | authorized Agreement operational read, not public topology | Confirm full manual save/read and third-account denial; do not copy exact place into public labels |
+| Worker work area and radius | existing worker_match_preferences guard + profile owner | worker_match_preferences coarse point; app_profiles.radius_km | matcher radius/remote logic | Shared location editor boundary remains open; no production geocoder selected |
+| Weekly / dated availability / timezone | rpc_save_worker_availability content revision + owner validation (new pending forward) | profile_availability_rules/windows; worker_match_preferences.timezone | rpc_get_worker_availability; schedule_fit + dispatch cheap and detailed consumers | Actual client/RPC proof pending; final editor UI deferred to approved design |
+| Available now | existing profile toggle + persistent-state guard | app_profiles.available_now; retired expiry ignored | immediate dispatch intent; future schedules remain independent | Production activation NOT claimed |
+| Confirmed occupancy | immutable accepted Agreement interval + existing lifecycle | private.worker_calendar_events | calendar client, matching conflict and selection/change protection | PR83 source MERGED, not live or final calendar UI |
+
+Public/private location authorities are retained, not replaced. Location provider
+activation is BLOCKED pending approval; no GPS or tiles dependency is added here.
+This map records observed owners and explicit remaining work, not W02 closure.
+
 ## 2026-09-09 owner clarification — flexible calendar, worker-only conflicts
 
 Latest explicit owner decision: only an agreed exact start/end occupies the

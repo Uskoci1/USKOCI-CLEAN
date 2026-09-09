@@ -1889,6 +1889,34 @@
       "activation": "SOURCE_ONLY_NOT_LIVE",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260909140000",
+      "name": "clean_w02_availability_commands",
+      "file": "20260909140000_clean_w02_availability_commands.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "16570a62aa121859faf60e4e329de0a0",
+      "raw_sha256": "06bee424ee3e781bd6753878d8f89ddedd27d0a14df575018c3d06153c89415b",
+      "raw_bytes": 15755,
+      "live_applied": false,
+      "unit": "W02_AVAILABILITY",
+      "activation": "SOURCE_ONLY_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260909150000",
+      "name": "clean_w02_persistent_availability_matching",
+      "file": "20260909150000_clean_w02_persistent_availability_matching.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "4d860dd6cba2958b3e993ff5f8e80fe2",
+      "raw_sha256": "82dee81a7d16ff42006c425b65dbcaa44ff2829bbe78944cf051733a6438aec9",
+      "raw_bytes": 10106,
+      "live_applied": false,
+      "unit": "W02_AVAILABILITY",
+      "activation": "SOURCE_ONLY_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {

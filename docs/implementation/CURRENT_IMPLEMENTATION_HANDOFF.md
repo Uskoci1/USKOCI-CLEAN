@@ -1,3 +1,52 @@
+## 2026-09-09 W02 remainder — availability implementation, current proof pending
+
+Current canonical was physically checked as b72f79f70eeac2677ebebb3e34a93ab7677c49a0.
+PR83 IS MERGED. Its exact worker bookings, flexible nonblocking schedules, immutable
+Application snapshots, lifecycle release and requester parallel engagements remain
+intact. Older calendar-pending pointers below are historical, not a rollback cursor.
+Existing continuation branch: feat/w02-availability-20260909. No canonical direct write.
+
+Re-read W02 in the original 2026-09-08 Markdown and work-package JSON. ZIP SHA256
+b3ea1efe19dac4d30287fb7d569e7d58b469c2d4b555a7561bad7f84ca1d2ff7 and all six manifest
+entries match. Fresh live READ ONLY: 87 migrations through 20260907135905, calendar
+absent. No live migration, provider activation or production write in this unit.
+
+Availability now has one owned read/save command over the EXISTING rules/windows
+and worker_match_preferences timezone, with content-revision conflict detection,
+identical retry/no duplicate writes, finite times, weekday/date/zone validation,
+private owner binding and bounded inputs. Authenticated raw child writes are retired
+in favor of the owned editor; owner RLS reads remain. The old profile toggle remains
+wired, with a new server trigger that makes its state persistent until OFF/safety.
+No weekly calendar screen or final layout is introduced.
+
+Matching/dispatch future scheduling consumes that stored authority, not the toggle
+alone. OFF suppresses immediate opportunities, not eligible future work. ON overrides
+the weekly baseline for an interval containing the current instant; no unapproved
+minutes-to-start threshold or expiry is invented. Future flexible windows need some
+available time, not an entire free day. Personal UNAVAILABLE and agreed hard bookings
+remain stronger than ON. Weekly periods union across midnight/date boundaries and
+are interpreted in the saved IANA zone; DST is tested. No automatic HITNO enrollment.
+
+Written forwards: 20260909140000 and 20260909150000. All earlier SQL bytes unchanged.
+Source inventory 98 / historical snapshot 87 / pending 11. Local TypeScript PASS,
+82 suites / 1057 application tests PASS, including 73 new availability client cases.
+These are SOURCE results, NOT yet current disposable/runtime acceptance. The existing
+calendar workflow retains all original checks and adds real typed-client/Auth/RPC
+save/read, replay/stale, three-account privacy, future/immediate matching, DST,
+observed concurrent saves and unchanged hard-calendar assertions. Runtime pending.
+
+Status: WRITTEN + LOCAL_TESTED; not MERGED, LIVE, new-editor UI_CONNECTED, runtime
+PROVEN or production ACTIVATED. Existing legacy toggle only is already UI connected
+in source; no production benefit is claimed until approved promotion and client use.
+Entire W02 remains OPEN: shared semantic normalization and manual/location adapter
+acceptance still need implementation/proof. W03/W04 remain next dependent work, not
+silently marked complete. At most two unfinished units, no .claude/, PRODUCT.md,
+design-reference or final visual changes. Continue at the exact current GitHub ref.
+
+Next: run full-source disposable availability/calendar proof, review original report,
+resolve real failures, integrate only with current gates. Then continue W02 shared/
+location nonvisual boundaries, without recreating the calendar or changing canon.
+
 ## 2026-09-09 owner clarification — flexible calendar, worker-only conflicts
 
 Latest explicit owner decision: only an agreed exact start/end occupies the
