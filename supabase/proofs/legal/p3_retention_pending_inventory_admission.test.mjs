@@ -103,7 +103,7 @@ test('changed historical source cannot be hidden by adding a valid future pendin
 test('runtime proof still replays successors instead of weakening to source-only admission', () => {
   const proof = readFileSync('supabase/proofs/legal/p3_retention_schedule_proof.mjs', 'utf8');
   const workflow = readFileSync('.github/workflows/p3-retention-schedule-proof.yml', 'utf8');
-  assert.ok(proof.includes('for(const successor of plan.pending_successors)'));
+  assert.match(proof, /for\s*\(\s*const\s+successor\s+of\s+plan\.pending_successors\s*\)/);
   assert.ok(proof.includes('retention_projection_unchanged:true'));
   assert.ok(proof.includes('retention_rows_unchanged:true'));
   assert.ok(proof.includes('retention_functions_and_grants_unchanged:true'));
