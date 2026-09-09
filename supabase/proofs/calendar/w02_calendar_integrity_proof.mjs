@@ -53,14 +53,16 @@ function session(initial){
   return {child,done,output:()=>stdout};
 }
 let profile,requesterProfile;
-async function need(start,end,label){
+async function need(start,end,label,kind='FIXED_WINDOW'){
+  assert.ok(['FIXED_WINDOW','FLEXIBLE','TODAY_FLEXIBLE','TOMORROW_FLEXIBLE','WEEK_FLEXIBLE','REMOTE_ANYTIME'].includes(kind));
+  const time=value=>value===null?'null':`${q(value)}::timestamptz`;
   const id=randomUUID();
   sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);
     insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,
       approximate_city,approximate_area,mode,required_slots,schedule_kind,starts_at,ends_at,response_deadline,published_at)
     values(${q(id)}::uuid,${q(requesterId)}::uuid,${q(requesterProfile)}::uuid,'PUBLISHED',${q('W02 isolated '+label)},
-      'Explicit disposable test fixture','PROOF','Novi Sad','Liman','OFFERS',1,'FIXED_WINDOW',
-      ${q(start)}::timestamptz,${q(end)}::timestamptz,statement_timestamp()+interval '2 days',statement_timestamp());commit;`);
+      'Explicit disposable test fixture','PROOF','Novi Sad','Liman','OFFERS',1,${q(kind)},
+      ${time(start)},${time(end)},statement_timestamp()+interval '2 days',statement_timestamp());commit;`);
   return id;
 }
 const applyCommand=(id,s,e)=>({p_need_id:id,p_need_revision:1,p_worker_profile_id:profile,p_covered_slots:1,
@@ -80,6 +82,8 @@ function connectedCalendar(client,userId){
     './serverReceipt':'src/data/serverReceipt.ts',
     '../lib/calendarTime':'src/lib/calendarTime.ts',
     './workerCalendarClientService':'src/data/workerCalendarClientService.ts',
+    './agreementClientService':'src/data/agreementClientService.ts',
+    './calendarErrors':'src/data/calendarErrors.ts',
   };
   const cache=new Map();
   const load=name=>{
@@ -96,7 +100,8 @@ function connectedCalendar(client,userId){
     new Function('require','module','exports',compiled)(require,module,module.exports);
     return module.exports;
   };
-  return {service:load('./workerCalendarClientService').workerCalendarClientService,state};
+  return {service:load('./workerCalendarClientService').workerCalendarClientService,
+    agreements:load('./agreementClientService').agreementClientService,state};
 }
 try{
   for(const [client,email,id]of[[requester,env.RU5_DEVICE_REQUESTER_EMAIL,requesterId],[worker,env.RU5_DEVICE_WORKER_EMAIL,workerId]]){
@@ -167,6 +172,112 @@ try{
   }
   assert.equal((await worker.rpc('rpc_get_worker_calendar',{p_from:'-infinity',p_to:'infinity'})).error?.message,'CALENDAR_RANGE_INVALID');
   await cancel(a2);pass();
+
+  check('FLEXIBLE_DAY_AND_WEEK_WINDOWS_ARE_NOT_HARD_BOOKINGS');
+  const busyStart=day(6),busyEnd=addHour(busyStart),flexFrom=new Date(Date.parse(busyStart)-3600000).toISOString();
+  const flexTo=new Date(Date.parse(busyEnd)+20*3600000).toISOString();
+  const busyNeed=await need(busyStart,busyEnd,'fixed-during-flexible-day');
+  const busyAgreement=uid(await ok(select(selection(busyNeed,await apply(busyNeed)))));
+  const flexibleAgreements=[];
+  for(const kind of ['FLEXIBLE','TODAY_FLEXIBLE','TOMORROW_FLEXIBLE','WEEK_FLEXIBLE','REMOTE_ANYTIME']){
+    const nFlex=await need(flexFrom,flexTo,'flexible-'+kind,kind);
+    const projection=JSON.parse(sql(`select private.match_detail(${q(nFlex)}::uuid,${q(profile)}::uuid)::text`));
+    assert.equal(projection.responseAllowed,true);
+    assert.ok(!projection.hardBlockers.includes('CALENDAR_CONFLICT'));
+    const flexible=uid(await ok(select(selection(nFlex,await apply(nFlex)))));
+    flexibleAgreements.push(flexible);
+    const w=await ok(worker.rpc('rpc_get_agreement_workspace',{p_agreement_id:flexible}));
+    assert.equal(w.terms.proposed_start_at,null);assert.equal(w.terms.proposed_end_at,null);
+    assert.equal(w.terms.schedule_source,'UNSCHEDULED');
+    assert.equal(sql(`select count(*) from private.worker_calendar_events where agreement_id=${q(flexible)}::uuid`),'0');
+  }
+  const actualAgreements=await linked.agreements.mojiDogovori();
+  for(const id of flexibleAgreements){
+    assert.ok(actualAgreements.some(a=>a.id===id&&a.vremeTekst==='Termin nije potvrđen'),
+      'A nonblocking Agreement must remain visible in the actual Agreement list');
+  }
+  assert.equal((await calendar()).events.filter(e=>e.agreementId===busyAgreement).length,1);
+  report.flexible_windows_do_not_block=true;pass();
+
+  check('UNKNOWN_OR_PARTIAL_TASK_TIME_NEVER_INVENTS_DURATION');
+  for(const [s,e]of[[null,null],[busyStart,null],[null,busyEnd]]){
+    const nFlex=await need(s,e,'unknown-duration','FLEXIBLE');
+    const flexible=uid(await ok(select(selection(nFlex,await apply(nFlex)))));
+    flexibleAgreements.push(flexible);
+    assert.equal(sql(`select count(*) from private.worker_calendar_events where agreement_id=${q(flexible)}::uuid`),'0');
+    const w=await ok(worker.rpc('rpc_get_agreement_workspace',{p_agreement_id:flexible}));
+    assert.equal(w.terms.proposed_start_at,null);assert.equal(w.terms.proposed_end_at,null);
+  }
+  report.unknown_duration_not_inferred=true;pass();
+
+  check('FLEXIBLE_TO_EXACT_CHANGE_CHECKS_ONLY_ACTUAL_AGREED_TIME');
+  const flexible=flexibleAgreements[0];
+  const collidingProposal=await proposal(flexible,1,{proposed_start_at:busyStart,proposed_end_at:busyEnd});
+  assert.equal((await respond(collidingProposal,true)).error?.message,'WORKER_CALENDAR_CONFLICT');
+  assert.equal(sql(`select current_version from public.agreements where id=${q(flexible)}::uuid`),'1');
+  assert.equal(sql(`select count(*) from private.worker_calendar_events where agreement_id=${q(flexible)}::uuid`),'0');
+  await ok(respond(collidingProposal,false));
+  const exactStart=day(7),exactEnd=addHour(exactStart);
+  const freeProposal=await proposal(flexible,1,{proposed_start_at:exactStart,proposed_end_at:exactEnd});
+  assert.equal((await ok(respond(freeProposal,true))).agreementVersion,2);
+  assert.equal(Date.parse(row(flexible).starts_at),Date.parse(exactStart));
+  assert.equal(Date.parse(row(flexible).ends_at),Date.parse(exactEnd));
+  const releaseProposal=await proposal(flexible,2,{proposed_start_at:null,proposed_end_at:null});
+  assert.equal((await ok(respond(releaseProposal,true))).agreementVersion,3);
+  assert.equal(sql(`select count(*) from private.worker_calendar_events where agreement_id=${q(flexible)}::uuid`),'0');
+  assert.equal(sql(`select count(*) from public.agreement_versions where agreement_id=${q(flexible)}::uuid`),'3');
+  report.later_exact_time_guarded=true;pass();
+
+  check('EXPLICIT_PROPOSAL_ON_FLEXIBLE_TASK_STILL_PROTECTS_THE_WORKER');
+  const nExplicit=await need(flexFrom,flexTo,'explicit-proposal-on-flexible','FLEXIBLE');
+  const denied=await worker.rpc('rpc_submit_response',applyCommand(nExplicit,busyStart,busyEnd));
+  assert.equal(denied.error?.message,'WORKER_NOT_ELIGIBLE');
+  assert.ok(JSON.parse(denied.error.details).includes('CALENDAR_CONFLICT'));
+  const proposedStart=day(8),proposedEnd=addHour(proposedStart);
+  const explicit=uid(await ok(select(selection(nExplicit,await apply(nExplicit,proposedStart,proposedEnd)))));
+  assert.equal(row(explicit).state,'BLOCKING');
+  assert.equal(Date.parse(row(explicit).starts_at),Date.parse(proposedStart));
+  await cancel(explicit);report.explicit_flexible_proposal_guarded=true;pass();
+
+  check('REQUESTER_CAN_BOOK_DIFFERENT_WORKERS_AT_THE_SAME_TIME');
+  const secondWorker=createClient(url,env.RU5_DEVICE_ANON_KEY,options);
+  const email='w02-second-worker-'+randomUUID()+'@proof.invalid';
+  const password='W02'+randomUUID().replaceAll('-','')+'Aa1';
+  const signup=await ok(secondWorker.auth.signUp({email,password,options:{data:{
+    first_name:'W02',last_name:'Second worker',city:'Novi Sad',
+  }}}));
+  assert.ok(signup.user?.id);
+  if(!signup.session){
+    // Explicit disposable test-account confirmation, never production/provider proof.
+    const fixtureAdmin=createClient(url,env.RU5_DEVICE_SERVICE_ROLE_KEY,options);
+    await ok(fixtureAdmin.auth.admin.updateUserById(signup.user.id,{email_confirm:true}));
+  }
+  await ok(secondWorker.auth.signInWithPassword({email,password}));
+  const secondId=uid((await ok(secondWorker.auth.getUser())).user.id);
+  assert.notEqual(secondId,workerId);assert.notEqual(secondId,requesterId);
+  const profiles=await ok(secondWorker.from('app_profiles').select('id,kind').eq('account_id',secondId));
+  const secondProfile=uid(profiles.find(p=>p.kind==='WORKER')?.id);
+  await ok(secondWorker.from('app_profiles').update({display_name:'W02 Second Worker',city:'Novi Sad',
+    skills:['Proof'],available_now:true,radius_km:50}).eq('id',secondProfile));
+  await ok(secondWorker.rpc('rpc_complete_worker_profile',{p_profile_id:secondProfile}));
+  const sameTimeNeed=await need(busyStart,busyEnd,'same-requester-other-worker');
+  const secondResponse=await ok(secondWorker.rpc('rpc_submit_response',{
+    ...applyCommand(sameTimeNeed,null,null),p_worker_profile_id:secondProfile,
+  }));
+  const secondAgreement=uid(await ok(select(selection(sameTimeNeed,secondResponse))));
+  assert.equal(row(secondAgreement).state,'BLOCKING');assert.equal(row(busyAgreement).state,'BLOCKING');
+  assert.equal(row(secondAgreement).worker_account_id,secondId);
+  assert.equal(sql(`select count(distinct worker_account_id) from public.agreements where requester_account_id=${q(requesterId)}::uuid
+    and id in (${q(busyAgreement)}::uuid,${q(secondAgreement)}::uuid) and status='CONFIRMED'`),'2');
+  const requesterAgreements=await other.agreements.mojiDogovori();
+  assert.ok(requesterAgreements.some(a=>a.id===busyAgreement));
+  assert.ok(requesterAgreements.some(a=>a.id===secondAgreement));
+  // A Requester obligation is not that account's Worker occupancy.
+  assert.deepEqual((await ok(requester.rpc('rpc_get_worker_calendar',{p_from:rangeFrom,p_to:rangeTo}))).events,[]);
+  await cancel(secondAgreement);await cancel(busyAgreement);
+  for(const id of flexibleAgreements)await cancel(id);
+  await secondWorker.auth.signOut({scope:'local'});
+  report.requester_parallel_bookings_allowed=true;pass();
 
   check('OBSERVED_WORKER_FENCE_SERIALIZES_TWO_REAL_SELECTIONS');
   const raceStart=day(3),raceEnd=addHour(raceStart);

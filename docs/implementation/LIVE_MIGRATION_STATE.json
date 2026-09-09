@@ -1773,5 +1773,28 @@
     },
     "integration": "ROOT_REVIEW_ACCEPTED_READ_CURRENT_PR83_STATUS",
     "next": "W02_AVAILABILITY_LOCATION_AND_CALENDAR_UI_REMAIN_OPEN"
+  },
+  "w02_flexible_owner_rule_20260909": {
+    "observed_canonical": "f8042c0478e5cff73255a7cdc2955829fbe5f844",
+    "pr": 83,
+    "rule": "ONLY_EXACT_AGREED_WORKER_INTERVALS_BLOCK_REQUESTER_PARALLEL_ALLOWED",
+    "forward": "20260909130000_clean_w02_flexible_calendar_scope.sql",
+    "source_status": "IMPLEMENTED_LOCAL_TESTED_RUNTIME_PENDING",
+    "source_migrations": 96,
+    "pending_forwards": 9,
+    "source_tests": {
+      "suites": 81,
+      "tests": 984
+    },
+    "live_observation": {
+      "count": 87,
+      "latest_version": "20260907135905",
+      "calendar_exists": false
+    },
+    "live_mutation": false,
+    "full_W02_closed": false,
+    "calendar_ui_proven": false,
+    "visual_design_changed": false,
+    "next": "PROVE_FLEXIBLE_AND_REQUESTER_SCOPE_ON_CURRENT_PR83_THEN_INTEGRATE_CONTINUE_AVAILABILITY"
   }
 }

@@ -31,3 +31,11 @@ it('connects the actual agreement-change adapter without reporting success after
     ok: false, kod: 'WORKER_CALENDAR_CONFLICT', poruka: expect.stringContaining('drugi termin'),
   });
 });
+
+
+it.each(['AGREEMENT_CALENDAR_INTERVAL_INVALID', 'NEED_FIXED_INTERVAL_INVALID'])(
+  'invalid exact interval %s does not demand a fixed time for every task', message => {
+    const result = calendarFailure({ message });
+    expect(result).toMatchObject({ ok: false, kod: 'AGREEMENT_CALENDAR_INTERVAL_INVALID',
+      poruka: expect.stringContaining('ostavite ga fleksibilnim') });
+  });

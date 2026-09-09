@@ -1,3 +1,32 @@
+## 2026-09-09 owner clarification — flexible calendar, worker-only conflicts
+
+Latest explicit owner decision: only an agreed exact start/end occupies the
+Uskočer. A day, week, flexible period, unknown time or unknown duration must not
+reserve that whole period. The Naručilac may create/select simultaneous tasks
+with different workers. Available-now is a matching/notification preference,
+not a reservation and not automatic HITNO consent.
+
+Fresh canonical is f8042c0478e5cff73255a7cdc2955829fbe5f844; PR83 remains the
+existing work branch. Continue it, do not redo merged PR77/78/79/80/82.
+Review found that discovery's calendar wrapper interpreted flexible Need bounds
+as exact even though Selection already handled them correctly. The new forward
+20260909130000_clean_w02_flexible_calendar_scope.sql fixes that input only.
+Earlier SQL, Application snapshots, worker serialization and accepted-term
+conflict guards are unchanged. No requester conflict gate is introduced.
+
+Existing integrity proof now covers flexible day/week bounds, absent or partial
+task times, retention in the actual Agreement-list client, later exact schedule
+acceptance/conflict/release, explicit proposals on flexible tasks and a third
+real Auth account proving simultaneous different workers for one requester.
+All original lifecycle, privacy, completion and observed concurrency checks stay.
+Local TypeScript and all 81 suites / 984 tests PASS. These additions still need
+runtime CI proof and canonical integration; no new runtime PASS is asserted here.
+Source inventory:96 SQL files,87 historical live snapshot,9 pending forwards.
+Live read-only preflight:87 through20260907135905; private calendar absent.
+No production mutation or activation, no visual/composition/design-reference
+changes. Full W02 and the final calendar UI remain open; after proof/integration
+continue the existing availability and other independent nonvisual work.
+
 ## 2026-09-09 W02 — exact interval and concurrency proof accepted
 
 Application source cd30125426f35dbb287f8ed8f1094026022be917; tested synthetic

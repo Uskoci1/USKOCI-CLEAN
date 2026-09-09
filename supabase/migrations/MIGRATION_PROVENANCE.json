@@ -1875,6 +1875,20 @@
       "activation": "SOURCE_ONLY_NOT_LIVE",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260909130000",
+      "name": "clean_w02_flexible_calendar_scope",
+      "file": "20260909130000_clean_w02_flexible_calendar_scope.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "af5ce8da2e202414c518d7a06b42c25f",
+      "raw_sha256": "a1c971461d3bd6e5c00031bf6925dbad61a7e728824a6bca78f81d4ef37e29e0",
+      "raw_bytes": 2638,
+      "live_applied": false,
+      "unit": "W02_FLEXIBLE_CALENDAR_SCOPE",
+      "activation": "SOURCE_ONLY_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {
