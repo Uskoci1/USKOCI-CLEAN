@@ -4,13 +4,14 @@ const mockAuth = {
   signInWithPassword: jest.fn(), signUp: jest.fn(), signInWithOtp: jest.fn(),
   verifyOtp: jest.fn(), resetPasswordForEmail: jest.fn(), getSession: jest.fn(), signOut: jest.fn(),
 };
-let mockCurrent = { user: { id: 'account-a' }, accountRevision: 1 };
+let mockCurrent: { user: { id: string } | null; accountRevision: number } = { user: { id: 'account-a' }, accountRevision: 1 };
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ auth: mockAuth }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockCurrent }));
 
 const actor = { accountId: 'account-a', accountRevision: 1 };
 beforeEach(() => {
   jest.resetAllMocks();
+  process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL = 'uskociapp://oporavak';
   mockCurrent = { user: { id: 'account-a' }, accountRevision: 1 };
   for (const method of Object.values(mockAuth)) method.mockResolvedValue({ error: null });
   mockAuth.getSession.mockResolvedValue({ data: { session: { user: { id: 'account-a' } } }, error: null });
@@ -43,12 +44,37 @@ describe('central Auth client boundary', () => {
     expect(mockAuth.verifyOtp.mock.calls).toEqual([[{ phone: '+381601234567', token: '012345', type: 'sms' }]]);
   });
 
-  it('keeps the existing password recovery request without new redirect/provider options', async () => {
-    await authClientService.requestPasswordRecovery('ana@example.test');
-    expect(mockAuth.resetPasswordForEmail.mock.calls).toEqual([['ana@example.test']]);
+  it('binds the signed-out recovery request to the exact configured callback', async () => {
+    mockCurrent = { user: null, accountRevision: 0 };
+    await authClientService.requestPasswordRecovery(' ana@example.test ');
+    expect(mockAuth.resetPasswordForEmail.mock.calls).toEqual([['ana@example.test', { redirectTo: 'uskociapp://oporavak' }]]);
   });
 
-  it.each(['signInWithPassword', 'signUp', 'signInWithOtp', 'verifyOtp', 'resetPasswordForEmail'] as const)(
+  it('keeps recovery unavailable without a configured redirect and never sends a fallback link', async () => {
+    mockCurrent = { user: null, accountRevision: 0 };
+    delete process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL;
+    await expect(authClientService.requestPasswordRecovery('ana@example.test')).rejects.toMatchObject({ code: 'UNCONFIGURED' });
+    expect(mockAuth.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('refuses a recovery request from a signed-in account', async () => {
+    await expect(authClientService.requestPasswordRecovery('ana@example.test')).rejects.toMatchObject({ code: 'SIGNED_IN' });
+    expect(mockAuth.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('sanitizes provider failures without exposing their URL, tokens or internal message', async () => {
+    mockCurrent = { user: null, accountRevision: 0 };
+    mockAuth.resetPasswordForEmail.mockResolvedValue({ error: new Error('https://private/token?secret') });
+    await expect(authClientService.requestPasswordRecovery('ana@example.test')).rejects.toMatchObject({ code: 'REQUEST_UNCONFIRMED' });
+  });
+
+  it('validates the email locally before asking the provider', async () => {
+    mockCurrent = { user: null, accountRevision: 0 };
+    await expect(authClientService.requestPasswordRecovery('not an email')).rejects.toMatchObject({ code: 'INVALID_EMAIL' });
+    expect(mockAuth.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it.each(['signInWithPassword', 'signUp', 'signInWithOtp', 'verifyOtp'] as const)(
     'preserves the %s error used by the existing presentation', async method => {
       const error = new Error('Existing Auth message');
       mockAuth[method].mockResolvedValue({ data: null, error });
@@ -57,7 +83,6 @@ describe('central Auth client boundary', () => {
         signUp: () => authClientService.signUp({ email: 'a', password: 'b', firstName: 'c', lastName: 'd', city: 'e' }),
         signInWithOtp: () => authClientService.sendPhoneOtp({ phone: 'a' }),
         verifyOtp: () => authClientService.verifyPhoneOtp({ phone: 'a', token: 'b' }),
-        resetPasswordForEmail: () => authClientService.requestPasswordRecovery('a'),
       };
       await expect(commands[method]()).rejects.toBe(error);
     },

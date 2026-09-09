@@ -4,8 +4,8 @@ export type AuthAvailability = {
   emailSignup: boolean;
   phoneOtp: boolean;
   emailConfirmationRequired: boolean;
-  // No complete recovery callback/password-update client exists yet.
-  passwordRecovery: false;
+  // Intersects implemented recovery with an explicitly configured deployment redirect.
+  passwordRecovery: boolean;
 };
 
 export type AuthAvailabilityPort = {

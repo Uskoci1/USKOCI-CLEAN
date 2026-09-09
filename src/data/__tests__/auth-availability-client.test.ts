@@ -5,6 +5,7 @@ const originalFetch = global.fetch;
 const settings = { external: { email: true, phone: false, google: false, apple: false },
   disable_signup: false, mailer_autoconfirm: false };
 beforeEach(() => {
+  delete process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL;
   jest.useFakeTimers();
   fetchMock.mockReset(); global.fetch = fetchMock;
   process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://configured.example.test/';
@@ -82,4 +83,15 @@ it('ignores a body arriving after caller cancellation even if the transport igno
   const read = authAvailabilityClientService.read(controller.signal);
   await Promise.resolve(); controller.abort(); resolve(settings);
   await expect(read).rejects.toThrow('AUTH_SETTINGS_CANCELLED');
+});
+
+
+it('offers recovery only with both email enabled and the exact configured native callback', async () => {
+  process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL = 'uskociapp://oporavak';
+  await expect(authAvailabilityClientService.read()).resolves.toMatchObject({ passwordRecovery: true });
+  process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL = 'https://unrelated.example/oporavak';
+  await expect(authAvailabilityClientService.read()).resolves.toMatchObject({ passwordRecovery: false });
+  process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL = 'uskociapp://oporavak';
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ...settings, external: { email: false, phone: false } }) });
+  await expect(authAvailabilityClientService.read()).resolves.toMatchObject({ passwordRecovery: false });
 });

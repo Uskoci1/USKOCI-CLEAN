@@ -43,3 +43,23 @@ AppState.addEventListener('change', (state) => {
   }
 });
 
+
+/** Recovery must not sign another account into the marketplace or consume its pending intent. */
+export function createRecoveryTransport() {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) throw new Error('SUPABASE_NIJE_KONFIGURISAN');
+  const controller = new AbortController();
+  const recovery = createClient(url, anon, {
+    auth: {
+      storageKey: 'uskoci-password-recovery',
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      fetch: (input, options) => fetch(input, { ...options, signal: controller.signal }),
+    },
+  });
+  return { auth: recovery.auth, dispose: () => controller.abort() };
+}

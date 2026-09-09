@@ -1,3 +1,6 @@
+import { configuredRecoveryRedirect } from './passwordRecoveryLink';
+import { PasswordRecoveryError } from '../contracts/passwordRecovery';
+import { recoveryDeadline, recoveryError } from './passwordRecoveryErrors';
 import type { AuthAccountScope, AuthClientPort } from '../contracts/auth';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
@@ -37,8 +40,19 @@ export const authClientService: AuthClientPort = {
   },
 
   async requestPasswordRecovery(email) {
-    const { error } = await supabaseKlijent().auth.resetPasswordForEmail(email);
-    if (error) throw error;
+    const owner = sesijaSada();
+    if (owner.user) throw new PasswordRecoveryError('SIGNED_IN');
+    const redirectTo = configuredRecoveryRedirect();
+    if (!redirectTo) throw new PasswordRecoveryError('UNCONFIGURED');
+    const address = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new PasswordRecoveryError('INVALID_EMAIL');
+    try {
+      const { error } = await recoveryDeadline(() => supabaseKlijent().auth.resetPasswordForEmail(address, { redirectTo }), 'request');
+      if (sesijaSada().user || sesijaSada().accountRevision !== owner.accountRevision) {
+        throw new PasswordRecoveryError('ACCOUNT_CHANGED');
+      }
+      if (error) throw error;
+    } catch (error) { throw recoveryError(error, 'request'); }
   },
 
   async signOutLocal(expected) {

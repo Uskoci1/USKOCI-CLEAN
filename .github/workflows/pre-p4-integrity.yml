@@ -23,13 +23,34 @@ jobs:
     steps:
       - name: Checkout canonical tree
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
+      - name: Capture the exact checked-out source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/uskoci-source"
+          git rev-parse HEAD > "$RUNNER_TEMP/uskoci-source/source-commit.txt"
+          git rev-parse HEAD^{tree} > "$RUNNER_TEMP/uskoci-source/source-tree.txt"
+          git archive --format=zip --output="$RUNNER_TEMP/uskoci-source/source.zip" HEAD
+          (cd "$RUNNER_TEMP/uskoci-source" && sha256sum source.zip > SHA256SUMS)
+
+      - name: Retain source independently of test outcome
+        uses: actions/upload-artifact@v4
+        with:
+          name: uskoci-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/uskoci-source/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Verify migration bytes and provenance
+        id: migration
         run: sh supabase/migrations/check_md5.sh
 
       - name: Set up Node
@@ -39,13 +60,65 @@ jobs:
           cache: npm
 
       - name: Install locked dependencies
+        id: dependencies
         run: npm ci
 
       - name: Verify Windows Metro cache bound and installed Expo disk compatibility
+        id: metro
         run: node --test scripts/metro-cache-concurrency.test.cjs
 
+      - name: Verify public build identity projection
+        id: build_identity
+        run: node --test scripts/build-identity.test.cjs
+
       - name: TypeScript contract check
+        id: typescript
         run: npx tsc --noEmit
 
       - name: Regression tests
+        id: regression
         run: npm test -- --runInBand
+
+      - name: Record observed gates, not production activation
+        if: always()
+        shell: bash
+        env:
+          MIGRATION_RESULT: ${{ steps.migration.outcome }}
+          DEPENDENCIES_RESULT: ${{ steps.dependencies.outcome }}
+          METRO_RESULT: ${{ steps.metro.outcome }}
+          BUILD_IDENTITY_RESULT: ${{ steps.build_identity.outcome }}
+          TYPESCRIPT_RESULT: ${{ steps.typescript.outcome }}
+          REGRESSION_RESULT: ${{ steps.regression.outcome }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, subprocess
+          names = ('migration', 'dependencies', 'metro', 'build_identity', 'typescript', 'regression')
+          results = {name: os.environ.get(name.upper() + '_RESULT') or 'not_run' for name in names}
+          checked_out = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          receipt = {
+              'schemaVersion': 1,
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'checkedOutCommit': checked_out,
+              'workflowCommit': os.environ['GITHUB_SHA'],
+              'runId': os.environ['GITHUB_RUN_ID'],
+              'attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'gates': results,
+              'allRecordedGatesPassed': all(value == 'success' for value in results.values()),
+              'environment': 'github-actions-source-checks',
+              'productionApplied': False,
+              'deviceE2eVerified': False,
+              'providerVerified': False,
+          }
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'uskoci-build-evidence'
+          out.mkdir(exist_ok=True)
+          (out / 'build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+
+      - name: Retain build receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uskoci-build-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/uskoci-build-evidence/build-receipt.json
+          if-no-files-found: error
+          retention-days: 7
