@@ -24,12 +24,14 @@ jobs:
         shell: bash
         env:
           BRANCH: feat/p2-data-export-20260908
-          EXPECTED_PARENT: db4e6d02c7e9d67ff6073bf98df6a413160e49bb
+          EXPECTED_PARENT: d7a3ffd7f41cc5cbc9f0efdacda809ef5c4d113f
           CANONICAL: 9614f5503340bcee3639e7cb8d13555fe58a6ed9
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/$BRANCH"
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           cp supabase/migrations/MIGRATION_PROVENANCE.json /tmp/p2-provenance.json
           cp supabase/migrations/MD5_MANIFEST.txt /tmp/p2-manifest.txt
           git fetch origin clean-alpha-backend
@@ -79,8 +81,6 @@ jobs:
           test -z "$(git diff --name-only --diff-filter=U)"
           python3 supabase/migrations/check_migration_integrity.py
           git diff --cached --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Merge canonical through D0140 into P2 export source'
           test "$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)" = "$GITHUB_SHA"
           git push origin "HEAD:refs/heads/$BRANCH"
