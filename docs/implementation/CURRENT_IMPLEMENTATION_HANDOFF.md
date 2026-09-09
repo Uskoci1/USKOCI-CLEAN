@@ -1,3 +1,58 @@
+## W00/W01 functional continuation checkpoint
+
+This is a dated checkpoint in the existing continuation records, not a new MASTER.
+The owner froze new visual design/composition while Claude performs read-only synthesis.
+Do not modify .claude/, PRODUCT.md, design-reference materials, styling or composition.
+
+Source of scope: USKOCI_KOMPLETAN_PLAN_2026-09-08.zip, SHA256
+b3ea1efe19dac4d30287fb7d569e7d58b469c2d4b555a7561bad7f84ca1d2ff7;
+all six SHA256.json entries were verified. Original dependencies/canon remain authoritative.
+
+Last observed canonical: b0f6851c1957cf27da8e135fdf05c0b55321f754 (PR78 merged).
+Always read actual refs before continuing; do not restore this historical SHA.
+
+W01 recovery application source: aee6d56f81b69a5474f7076640d0cd13bcf3e66b, PR80.
+Exact tested merge: e069d0899b354124a8458b131076c50a58030e4d.
+Run 34288483397 passed both actual Expo web and installed Android API34 emulator
+recovery using real disposable GoTrue and SMTP mailbox; no mocked Auth responses.
+Old password rejected, new password opens the same user, second account unchanged,
+cold/warm native links, reused/expired links, explicit login return and nonpersisted
+web credentials verified. All fifteen screenshots were visually reviewed.
+Artifacts: native 10081018711, web 10080530999. Native ZIP SHA256
+7c4c600ca369c0b62ec7c7bdf5310744ae7d2b20070207aae3eb8014bf7a4836;
+web ZIP SHA256 98c1a18889c645c73ff823f7fd05485aa50b273d0c078ab917768ee1b56e1a92.
+Local complete source regression: 77 suites / 816 tests; TypeScript passed.
+PRE-P4 run34288483394 and P3 run34288483403 passed for the same PR head.
+
+Since that proof, 22ba47adad13d6a55f7462514aa83bb20efc6ac0 changes only the
+loopback browser proof server: static /auth and /oporavak mapping replaces
+request-controlled filesystem probes reported by CodeQL. Application bytes
+are unchanged; verify the current CI/security result before root integration.
+
+Written: recovery + exact build identity. UI-connected: recovery/identity.
+Proven: web and Android emulator recovery. Not claimed: physical handset,
+external production SMTP, production recovery configuration/activation,
+complete W00/W01 closure or full marketplace lifecycle. No live mutation.
+The last live read-only observation remains 87 migrations through 20260907135905;
+no source migration has been newly declared applied by this checkpoint.
+
+Independent W11 continuation is the existing PR77 branch feat/p2-data-export-20260908.
+Source 3cd547c8c1bf90fc107367186dde4255532a65ce hardens export-request receipts,
+account revision guards and timeouts; 88 unit tests passed. db4e6d02c7e9d67ff6073bf98df6a413160e49bb
+adds actual-client/PostgREST proof and exact P3-successor replay; inspect current CI.
+It is intake/status/cancellation, NOT a generated export, UI delivery or live activation.
+
+Exact next action: verify current PR80 refs, CI and review threads; root merge only
+if all applicable gates pass. Then reconcile PR77 against the new canonical,
+prove its actual client and complete source migration stack, update these same
+records and integrate. Do not overwrite completed work or run blind db push.
+Missing production approvals, positive charging, HITNO, verification and ALLOW
+stay closed. Do not stop independent nonvisual implementation for design approval.
+
+Older sections below remain historical evidence; they are not a rollback cursor.
+
+Checkpoint recorded: 2026-09-08T23:27:57.178941+00:00
+
 ## Current entry acceptance — original Android sequence and 34 checkpoints reviewed
 
 PR66 source `82a99fc115ff813327e9548c66fedd8413d29bff` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / CANONICAL PROMOTION PENDING**. Fresh canonical remains `80e091ee31930b28cc5c2e0af6b6e876a4926362` and is already integrated. Native run34163510260 passed; original artifact10033887904 is 5,847,655 bytes, SHA-256 `c82d1206009dd410c303b2a3517f6abbd68e4e07fbffc975bc62be8661de3386`. All 34 original PNG/XML pairs were individually reviewed: 7 entry, 17 account/navigation and 10 Inbox checkpoints. Both real local accounts, logout to the two-field login form, three-zone intents, full Agreement schedule/amount and current W04 Back pass.

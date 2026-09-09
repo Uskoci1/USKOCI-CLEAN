@@ -1738,19 +1738,19 @@
     "legal_content": "MISSING_APPROVED_CONTENT",
     "owner_decision_required": "counsel-approved retention schedule for the fourteen seeded data classes; purge policy before any execution unit"
   },
-  "p2_data_export_requests": {
-    "unit": "P2_DATA_EXPORT",
-    "forward_file": "20260908160000_clean_p2_data_export_requests.sql",
-    "raw_md5": "51b1cb1aea386a5bd2a596c89b58dd97",
-    "raw_sha256": "f5e25e2e6dde212103d9c81a4b34ea75ee772c80123d85d513af169fb80099b5",
-    "raw_bytes": 9956,
+  "d0140a_policy_bundle_registration": {
+    "unit": "D0140A_BUNDLE_REGISTRATION",
+    "forward_file": "20260908170000_clean_d0140a_policy_bundle_registration.sql",
+    "raw_md5": "48b05badae57b036537072b18cdac313",
+    "raw_sha256": "ed81b57d5270dab7470edf8434639598aa55260077b73dfcc010256280ddec71",
+    "raw_bytes": 4353,
     "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
     "live_applied": false,
-    "proof_workflow": ".github/workflows/p2-data-export-proof.yml",
-    "proof": "supabase/proofs/legal/p2_data_export_proof.mjs",
-    "record": "docs/implementation/P2_DATA_EXPORT_20260908.md",
-    "artifact_generation_admitted": false,
-    "owner_decision_required": "fulfilment path (artifact generation, secure delivery, response deadline) and the external DSR channel"
+    "proof_workflow": ".github/workflows/d0140a-bundle-registration-proof.yml",
+    "proof": "supabase/proofs/policy/d0140a_bundle_registration_proof.mjs",
+    "record": "docs/implementation/D0140A_POLICY_BUNDLE_REGISTRATION_20260908.md",
+    "registered_state": "UNREVIEWED_INCOMPLETE_INACTIVE",
+    "owner_decision_required": "legal review + completeness + activation of the registered bundle; lifting RU3_ALLOW_NOT_ENABLED in rpc_record_need_publication_decision_service"
   },
   "pending_forward_migrations": [
     {
@@ -1833,6 +1833,34 @@
       "predecessor_live_head": "20260907135905",
       "unit": "P2_DATA_EXPORT",
       "artifact_generation_admitted": false
+    },
+    {
+      "version": "20260908170000",
+      "name": "clean_d0140a_policy_bundle_registration",
+      "file": "20260908170000_clean_d0140a_policy_bundle_registration.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "48b05badae57b036537072b18cdac313",
+      "raw_sha256": "ed81b57d5270dab7470edf8434639598aa55260077b73dfcc010256280ddec71",
+      "raw_bytes": 4353,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "D0140A_BUNDLE_REGISTRATION",
+      "registered_state": "UNREVIEWED_INCOMPLETE_INACTIVE"
     }
-  ]
+  ],
+  "p2_data_export_requests": {
+    "unit": "P2_DATA_EXPORT",
+    "forward_file": "20260908160000_clean_p2_data_export_requests.sql",
+    "raw_md5": "51b1cb1aea386a5bd2a596c89b58dd97",
+    "raw_sha256": "f5e25e2e6dde212103d9c81a4b34ea75ee772c80123d85d513af169fb80099b5",
+    "raw_bytes": 9956,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "proof_workflow": ".github/workflows/p2-data-export-proof.yml",
+    "proof": "supabase/proofs/legal/p2_data_export_proof.mjs",
+    "record": "docs/implementation/P2_DATA_EXPORT_20260908.md",
+    "artifact_generation_admitted": false,
+    "owner_decision_required": "fulfilment path (artifact generation, secure delivery, response deadline) and the external DSR channel"
+  }
 }
