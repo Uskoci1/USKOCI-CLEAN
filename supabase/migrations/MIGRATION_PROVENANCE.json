@@ -1821,6 +1821,20 @@
       "legal_content": "MISSING_APPROVED_CONTENT"
     },
     {
+      "version": "20260908160000",
+      "name": "clean_p2_data_export_requests",
+      "file": "20260908160000_clean_p2_data_export_requests.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "51b1cb1aea386a5bd2a596c89b58dd97",
+      "raw_sha256": "f5e25e2e6dde212103d9c81a4b34ea75ee772c80123d85d513af169fb80099b5",
+      "raw_bytes": 9956,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "unit": "P2_DATA_EXPORT",
+      "artifact_generation_admitted": false
+    },
+    {
       "version": "20260908170000",
       "name": "clean_d0140a_policy_bundle_registration",
       "file": "20260908170000_clean_d0140a_policy_bundle_registration.sql",
@@ -1834,5 +1848,19 @@
       "unit": "D0140A_BUNDLE_REGISTRATION",
       "registered_state": "UNREVIEWED_INCOMPLETE_INACTIVE"
     }
-  ]
+  ],
+  "p2_data_export_requests": {
+    "unit": "P2_DATA_EXPORT",
+    "forward_file": "20260908160000_clean_p2_data_export_requests.sql",
+    "raw_md5": "51b1cb1aea386a5bd2a596c89b58dd97",
+    "raw_sha256": "f5e25e2e6dde212103d9c81a4b34ea75ee772c80123d85d513af169fb80099b5",
+    "raw_bytes": 9956,
+    "status": "FORWARD_SOURCE_PENDING_NOT_LIVE",
+    "live_applied": false,
+    "proof_workflow": ".github/workflows/p2-data-export-proof.yml",
+    "proof": "supabase/proofs/legal/p2_data_export_proof.mjs",
+    "record": "docs/implementation/P2_DATA_EXPORT_20260908.md",
+    "artifact_generation_admitted": false,
+    "owner_decision_required": "fulfilment path (artifact generation, secure delivery, response deadline) and the external DSR channel"
+  }
 }
