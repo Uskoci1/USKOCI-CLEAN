@@ -1,4 +1,6 @@
 import { Izvor, Ishod, IzborKomanda, PodnesiPrijavuKomanda } from './ports';
+import { calendarFailure } from './calendarErrors';
+import { record } from './serverReceipt';
 import { publicProfileClientService } from './publicProfileClientService';
 import { supabaseKlijent } from './supabaseClient';
 import type {
@@ -11,12 +13,14 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_t, prop) => (supabaseKlijent() as never)[prop],
 });
 
-function handleRpcError<T>(error: any, defaultCode: string, defaultMessage: string): Ishod<T> {
-  console.error('[Supabase RPC Error]', error);
+function handleRpcError<T>(error: unknown, defaultCode: string, defaultMessage: string): Ishod<T> {
+  const calendar = calendarFailure(error);
+  if (calendar) return calendar;
+  const value = record(error);
   return {
     ok: false,
-    kod: error?.code || defaultCode,
-    poruka: error?.message || defaultMessage,
+    kod: typeof value?.code === 'string' ? value.code : defaultCode,
+    poruka: typeof value?.message === 'string' ? value.message : defaultMessage,
   };
 }
 

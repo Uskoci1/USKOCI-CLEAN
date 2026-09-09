@@ -181,3 +181,17 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
     expect(mockRpc).not.toHaveBeenCalled();
   });
 });
+
+it('uses immutable agreed terms rather than the mutable parent task schedule', async () => {
+  resetHappyAuth();
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, startsAt: '2030-01-01T12:00:00Z' }, error: null });
+  const result = await agreementClientService.dogovor('agr-1');
+  expect(result?.vremeTekst).toBe(new Date(rawAgreement.terms.proposed_start_at).toLocaleString('sr-Latn-RS'));
+});
+
+it('does not turn a missing historical agreed interval into a new obligation from the current task', async () => {
+  resetHappyAuth();
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, terms: { ...rawAgreement.terms, proposed_start_at: null } }, error: null });
+  const result = await agreementClientService.dogovor('agr-1');
+  expect(result?.vremeTekst).toBe('Termin nije potvrđen');
+});

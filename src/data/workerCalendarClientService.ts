@@ -1,6 +1,8 @@
 import type { WorkerCalendarEvent, WorkerCalendarRange } from '../contracts/workerCalendar';
 import type { Ishod } from './ports';
-import { failure, positiveInteger, readReceipt, record, timestamp, uuid } from './serverReceipt';
+import { failure, positiveInteger, readReceipt, record, uuid } from './serverReceipt';
+
+import { calendarInstant } from '../lib/calendarTime';
 
 const INVALID = 'WORKER_CALENDAR_INVALID_RESPONSE';
 const CALENDAR_COPY: Readonly<Record<string, string>> = {
@@ -9,21 +11,26 @@ const CALENDAR_COPY: Readonly<Record<string, string>> = {
 };
 
 function validRange(from: string, to: string): boolean {
-  return timestamp(from) && timestamp(to) && Date.parse(from) < Date.parse(to);
+  const start = calendarInstant(from);
+  const end = calendarInstant(to);
+  return start !== null && end !== null && start < end;
 }
 
 function sameInstant(value: string, expected: string): boolean {
-  return Date.parse(value) === Date.parse(expected);
+  return calendarInstant(value) !== null && calendarInstant(value) === calendarInstant(expected);
 }
 
 function mapEvent(raw: unknown, from: string, to: string): WorkerCalendarEvent | null {
   const value = record(raw);
   if (!value || !uuid(value.eventId) || !uuid(value.agreementId) ||
-      !positiveInteger(value.agreementVersion) || !timestamp(value.startsAt) || !timestamp(value.endsAt) ||
+      !positiveInteger(value.agreementVersion) || typeof value.startsAt !== 'string' || typeof value.endsAt !== 'string' ||
       value.agreementStatus !== 'CONFIRMED' || value.source !== 'AGREEMENT') return null;
-  const starts = Date.parse(value.startsAt);
-  const ends = Date.parse(value.endsAt);
-  if (!(starts < ends) || !(starts < Date.parse(to) && ends > Date.parse(from))) return null;
+  const starts = calendarInstant(value.startsAt);
+  const ends = calendarInstant(value.endsAt);
+  const rangeStart = calendarInstant(from);
+  const rangeEnd = calendarInstant(to);
+  if (starts === null || ends === null || rangeStart === null || rangeEnd === null
+      || starts >= ends || starts >= rangeEnd || ends <= rangeStart) return null;
   return {
     eventId: value.eventId,
     agreementId: value.agreementId,
@@ -57,18 +64,24 @@ export const workerCalendarClientService = {
       invalid: INVALID,
       decode(raw): WorkerCalendarRange | null {
         const value = record(raw);
-        if (!value || value.authoritative !== true || !timestamp(value.from) || !timestamp(value.to) ||
+        if (!value || value.authoritative !== true || typeof value.from !== 'string' || typeof value.to !== 'string' ||
             !sameInstant(value.from, from) || !sameInstant(value.to, to) || !Array.isArray(value.events)) return null;
         const events: WorkerCalendarEvent[] = [];
+        const eventIds = new Set<string>();
+        const agreementIds = new Set<string>();
         for (const rawEvent of value.events) {
           const event = mapEvent(rawEvent, from, to);
-          if (!event) return null;
+          if (!event || eventIds.has(event.eventId.toLowerCase()) || agreementIds.has(event.agreementId.toLowerCase())) return null;
+          eventIds.add(event.eventId.toLowerCase());
+          agreementIds.add(event.agreementId.toLowerCase());
           events.push(event);
         }
         for (let index = 1; index < events.length; index += 1) {
           const previous = events[index - 1];
           const current = events[index];
-          if (Date.parse(previous.startsAt) > Date.parse(current.startsAt)) return null;
+          const previousTime = calendarInstant(previous.startsAt);
+          const currentTime = calendarInstant(current.startsAt);
+          if (previousTime === null || currentTime === null || previousTime > currentTime) return null;
         }
         return { from: value.from, to: value.to, events, authoritative: true };
       },

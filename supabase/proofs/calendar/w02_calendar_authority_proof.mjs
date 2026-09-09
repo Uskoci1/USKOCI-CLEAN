@@ -1,17 +1,20 @@
 // W02 calendar authority: authenticated disposable proof only. The workflow
 // reconstructs current source on loopback Supabase and applies W02 before this
-// file runs. No production project, provider or hidden fixture mutation.
+// file runs. Published Needs are explicit isolated SQL fixtures, not UI publication.
+// No production project or external provider is accessed.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+import { readP3RetentionPredecessorPlan } from '../legal/p3_retention_schedule_predecessor.mjs';
 import { assertLocalDeviceProofTargets } from '../ru5_device_ui_local_guard.mjs';
 
 const env = process.env;
 const url = env.RU5_DEVICE_SUPABASE_URL;
 const db = env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url, db);
+const sourceCount = readP3RetentionPredecessorPlan().source_migration_count;
 const out = env.W02_CALENDAR_ARTIFACT_DIR || 'artifacts/w02-calendar-authority';
 mkdirSync(out, { recursive: true });
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
@@ -97,7 +100,7 @@ async function calendar(from, to) {
 
 try {
   check('EXACT_SOURCE_OBJECTS_PRIVILEGES_AND_EMPTY_BACKFILL');
-  assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'), '94');
+  assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')), sourceCount);
   for (const object of [
     "to_regclass('private.worker_calendar_events') is not null",
     "to_regprocedure('private.worker_calendar_conflict(uuid,timestamptz,timestamptz,uuid)') is not null",
@@ -229,7 +232,7 @@ try {
   assert.equal(sql("select count(*) from private.worker_calendar_events where state='RELEASED'"), '1');
   assert.equal(sql("select count(*) from private.worker_calendar_events e left join public.agreements a on a.id=e.agreement_id where a.id is null"), '0');
   assert.equal(sql("select count(*) from private.worker_calendar_events e join public.agreements a on a.id=e.agreement_id where e.state='BLOCKING' and a.status<>'CONFIRMED'"), '0');
-  assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'), '94');
+  assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')), sourceCount);
   report.function_fingerprints = rows(`select oid::regprocedure::text signature,md5(prosrc) prosrc_md5,prosecdef,proconfig
     from pg_proc where oid in (
       'private.match_detail(uuid,uuid)'::regprocedure,

@@ -1721,5 +1721,25 @@
       "unit": "W11_EXPORT_REQUEST_INTAKE_ONLY",
       "source": "db4e6d02c7e9d67ff6073bf98df6a413160e49bb"
     }
+  },
+  "w02_interval_review_20260909": {
+    "observed_canonical": "f8042c0478e5cff73255a7cdc2955829fbe5f844",
+    "pr": 83,
+    "state": "FORWARD_SOURCE_LOCAL_FOCUSED_PROVEN_RUNTIME_PENDING",
+    "original_proof_run": 34297635686,
+    "original_pr_proof_run": 34316154393,
+    "source_count": 95,
+    "live_observation": {
+      "count": 87,
+      "latest_version": "20260907135905",
+      "calendar_exists": false,
+      "edge_version": 11,
+      "verify_jwt": true
+    },
+    "live_mutation": false,
+    "whole_W02_closed": false,
+    "design_changed": false,
+    "new_forward": "20260909120000_clean_w02_calendar_interval_integrity.sql",
+    "next": "PROVE_CURRENT_PR83_INTERVALS_CONCURRENCY_CLIENT_THEN_INTEGRATE_AND_CONTINUE_AVAILABILITY"
   }
 }

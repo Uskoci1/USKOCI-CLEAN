@@ -12,6 +12,13 @@ on:
       - 'src/contracts/workerCalendar.ts'
       - 'src/data/workerCalendarClientService.ts'
       - 'src/data/__tests__/w02-worker-calendar-client.test.ts'
+      - 'src/data/agreementClientService.ts'
+      - 'src/data/supabaseIzvor.ts'
+      - 'src/data/calendarErrors.ts'
+      - 'src/lib/calendarTime.ts'
+concurrency:
+  group: w02-calendar-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 env:
@@ -84,6 +91,11 @@ jobs:
           node supabase/proofs/calendar/w02_calendar_authority_proof.mjs 2>&1 | tee "$W02_CALENDAR_ARTIFACT_DIR/proof.log"
           grep -F 'PASS W02_CALENDAR_AUTHORITY' "$W02_CALENDAR_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.visual_design_changed || r.checks.length!==9) process.exit(1);'
+      - name: Exact intervals, observed concurrency, completion and actual client
+        run: |
+          node --check supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
+          node supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/integrity-proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.mocked_rpc_responses || !r.actual_client_verified || !r.application_snapshot_unchanged || r.repeatable_read_sqlstate!=="40001" || r.lock_observations.length!==1 || r.lock_observations[0].blocked_calls<2 || r.checks.length!==8) process.exit(1);'
       - name: Upload exact source-bound calendar evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

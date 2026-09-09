@@ -1,3 +1,45 @@
+## 2026-09-09 W02 coordinating review — current canonical and forward repair
+
+This checkpoint supersedes only older pending/current-cursor statements below;
+retained historical proofs keep their original scope. Latest physical canonical
+is f8042c0478e5cff73255a7cdc2955829fbe5f844. PR80 is merged at cc71a93;
+PR79 is merged at 9614f55; PR77 is merged at be94ec6; PR82 is merged at f8042c0.
+PR81 is superseded/closed. Do not redo those integrations or reset to earlier refs.
+
+The existing W02 branch is now PR83. Its original b3445e1f source passed the
+bounded calendar proof run34297635686 and fresh PR proof run34316154393.
+Review identified limitations not covered by those passes: a null Application
+schedule lost a fixed Need interval; a current Need could replace the displayed
+agreed time; advisory locking alone did not protect stale higher-isolation writes.
+
+The review adds forward 20260909120000_clean_w02_calendar_interval_integrity.sql
+AFTER the unchanged original W02 forward. New selections freeze the exact reviewed
+fixed Need interval only when no explicit proposal exists. Original Application
+version/hash and old Agreement terms remain unchanged. Ambiguous old fixed-task
+obligations block promotion for explicit reconciliation, rather than being inferred
+from a mutable parent. A private per-worker MVCC fence serializes interval writes;
+accepted finite times, completion/cancellation and actual proposed intervals are
+checked. Existing source calendar and Agreement adapters now reject duplicate or
+invalid times and use agreed terms, without changing screen composition.
+
+Status at this checkpoint: WRITTEN / LOCAL_FOCUSED_TESTED / NOT_INTEGRATED /
+NOT_APPLIED_LIVE. The expanded disposable proof must pass before merge.
+Nine newly added client regressions were observed failing before their fixes;
+all 63 focused read/error tests pass after those fixes. No runtime claim is inferred
+from TypeScript or from the earlier narrower PASS.
+
+Fresh live read-only check: 87 migrations, latest 20260907135905; calendar absent;
+existing public availability rules/windows present; Edge uskoci-ai-interview v11
+ACTIVE, verify_jwt=true. No live mutation. Source registry adds pending files only.
+0 RSD, closed production ALLOW/HITNO/verification/paid activation remain unchanged.
+
+Exact next action: execute/review current PR83 exact-source interval/concurrency,
+completion, real-client and inherited proofs plus CI/security; integrate only if
+all applicable gates pass. Then continue existing availability/other nonvisual
+units. Calendar UI, requester agenda and full W02 location/capability/availability
+closure are NOT claimed here. Claude design synthesis remains read-only; .claude/,
+PRODUCT.md, design-reference material and final visual composition are untouched.
+
 ## W00/W01 functional continuation checkpoint
 
 This is a dated checkpoint in the existing continuation records, not a new MASTER.

@@ -1,5 +1,8 @@
 import type { DogovorProjekcija, UcesnikProjekcija } from '../contracts/projections';
 import type { Ishod, IzmenaKomanda, Izvor } from './ports';
+import { calendarFailure } from './calendarErrors';
+import { record } from './serverReceipt';
+import { calendarInstant } from '../lib/calendarTime';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -11,8 +14,13 @@ type AgreementService = Pick<
   'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak'
 >;
 
-function fail<T>(error: any, code: string, message: string): Ishod<T> {
-  return { ok: false, kod: error?.message || error?.code || code, poruka: error?.message || message };
+function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
+  const calendar = calendarFailure(error);
+  if (calendar) return calendar;
+  const value = record(error);
+  const name = typeof value?.message === 'string' ? value.message : undefined;
+  const errorCode = typeof value?.code === 'string' ? value.code : undefined;
+  return { ok: false, kod: name || errorCode || code, poruka: name || message };
 }
 
 function novac(iznos: number, valuta = 'RSD') {
@@ -69,7 +77,9 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     naslov: raw.title ?? '',
     stanje: status,
     cena: novac(amount, currency),
-    vremeTekst: formatTime(raw.startsAt ?? terms.proposed_start_at),
+    // Parent task edits cannot silently change an already accepted Agreement.
+    vremeTekst: terms.proposed_start_at == null ? 'Termin nije potvrđen'
+      : calendarInstant(terms.proposed_start_at) === null ? 'Termin nije dostupan' : formatTime(terms.proposed_start_at),
     putanjaTekst: [raw.approximateArea, raw.approximateCity].filter(Boolean).join(', '),
     pokrivenost: {
       ukupno: total,

@@ -184,3 +184,27 @@ describe('W02 account-safe receipt boundary', () => {
     expect(JSON.stringify(result)).not.toContain('private-code');
   });
 });
+
+it.each([
+  [event(), event()],
+  [event(), event({ eventId: '22222222-3333-4444-8555-666666666666' })],
+  [event(), event({ agreementId: AGREEMENT.toUpperCase(), eventId: '22222222-3333-4444-8555-666666666666' })],
+].map(events => [events]))('rejects duplicate event or Agreement identity instead of double-counting occupancy', async events => {
+  resetRpc({ data: range({ events }), error: null });
+  await expect(workerCalendarClientService.readRange(FROM, TO)).resolves.toMatchObject({
+    ok: false, kod: 'WORKER_CALENDAR_INVALID_RESPONSE',
+  });
+});
+
+it.each(['2026-02-30T10:00:00Z', '2026-02-29T10:00:00Z', '2026-09-10T24:00:00Z'])('refuses normalized nonexistent or ambiguous dates before transport: %s', async from => {
+  mockRpc.mockReset();
+  await expect(workerCalendarClientService.readRange(from, TO)).resolves.toMatchObject({ ok: false, kod: 'CALENDAR_RANGE_INVALID' });
+  expect(mockRpc).not.toHaveBeenCalled();
+});
+
+it('preserves valid PostgreSQL microsecond intervals instead of rounding them to an empty interval', async () => {
+  const from = '2026-09-11T10:00:00.000001Z';
+  const to = '2026-09-11T10:00:00.000003Z';
+  resetRpc({ data: range({ from, to, events: [event({ startsAt: from, endsAt: '2026-09-11T10:00:00.000002Z' })] }), error: null });
+  await expect(workerCalendarClientService.readRange(from, to)).resolves.toMatchObject({ ok: true });
+});
