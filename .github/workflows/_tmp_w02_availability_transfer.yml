@@ -1,0 +1,70 @@
+name: TEMP exact reviewed W02 availability transfer
+on:
+  push:
+    branches: [feat/w02-availability-20260909]
+    paths: ['.github/workflows/_tmp_w02_availability_transfer.yml', '.github/w02-transfer/**']
+permissions:
+  contents: write
+concurrency:
+  group: w02-availability-transfer
+  cancel-in-progress: false
+jobs:
+  transfer-reviewed-source:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          persist-credentials: true
+      - name: Apply the exact locally tested diff and remove all transfer files
+        shell: bash
+        env:
+          BASE: b72f79f70eeac2677ebebb3e34a93ab7677c49a0
+          BRANCH: feat/w02-availability-20260909
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/$BRANCH"
+          test "$(git rev-parse HEAD^)" = "$BASE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/clean-alpha-backend | cut -f1)" = "$BASE"
+          python3 - <<'PY'
+          import base64,hashlib,lzma,os,pathlib,subprocess
+          # These four blobs are only transport for a human-readable unified diff.
+          # Never execute a payload; git apply must produce the exact reviewed tree.
+          paths=[pathlib.Path('.github/w02-transfer')/(f'{i:02}.txt') for i in range(4)]
+          expected=['9ef8105f34c4e1f451474a1e5f71e0bee6e8b151','f24d5794869ac6b36b88af693249198484196c45','9ce1c9c73acbcd94de71999fa08047d599b25d62','8bb87ee04ec5d8605dc6b0f1367497444a2e602d']
+          for p,sha in zip(paths,expected):
+              assert subprocess.check_output(['git','hash-object',str(p)],text=True).strip()==sha
+          raw=base64.b64decode(''.join(p.read_text() for p in paths),validate=True)
+          patch=lzma.decompress(raw,memlimit=256*1024*1024)
+          assert len(patch)==84165
+          assert hashlib.sha256(patch).hexdigest()=='5b89bedfb55bc581740f9741d484e3bad1c1ba40e53dc3942c97cb2dd107e0fe'
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'w02-reviewed-transfer';out.mkdir()
+          target=out/'reviewed-source.patch';target.write_bytes(patch)
+          subprocess.run(['git','apply','--check',str(target)],check=True)
+          subprocess.run(['git','apply','--index',str(target)],check=True)
+          own=pathlib.Path('.github/workflows/_tmp_w02_availability_transfer.yml')
+          for p in paths+[own]: p.unlink()
+          subprocess.run(['git','add','--update','--',*[str(p) for p in paths+[own]]],check=True)
+          tree=subprocess.check_output(['git','write-tree'],text=True).strip()
+          assert tree=='ab87c292d075537b4492bb71e6423cb5928c51b9','Different resulting source; no push'
+          (out/'reviewed-tree.txt').write_text(tree+'\n')
+          PY
+          python3 supabase/migrations/check_migration_integrity.py
+          node --check supabase/proofs/calendar/w02_availability_proof.mjs
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(w02): owned availability editing and persistent scheduling intent' -m 'Continue the existing b72 calendar source. Reuse rules/windows/preferences; owner CAS and identical retry; persistent ON, future availability while OFF, exceptions and hard-calendar priority. Local TypeScript and 82 suites/1057 tests passed. Full disposable Auth/RPC/privacy/DST/concurrency proof remains required. No visual or live changes; all temporary transfer inputs removed.'
+          test "$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)" = "$GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          git rev-parse HEAD > "$RUNNER_TEMP/w02-reviewed-transfer/source-commit.txt"
+      - name: Retain readable source diff and exact identities
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: W02-AVAILABILITY-REVIEWED-SOURCE-${{ github.run_id }}
+          path: ${{ runner.temp }}/w02-reviewed-transfer/
+          retention-days: 7
+          if-no-files-found: error
