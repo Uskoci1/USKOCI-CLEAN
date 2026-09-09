@@ -7,6 +7,7 @@ on:
       - '.github/workflows/p3-retention-schedule-proof.yml'
       - 'supabase/migrations/**'
       - 'supabase/proofs/legal/p3_retention_schedule*'
+      - 'supabase/proofs/legal/p3_retention_pending_inventory*'
       - 'supabase/proofs/notifications/n07_forward*'
       - 'supabase/proofs/notifications/n08_preferences*'
       - 'supabase/proofs/ru5_device_ui_live79_env.sh'
@@ -51,7 +52,7 @@ jobs:
           npm test -- --runInBand
           node --check supabase/proofs/legal/p3_retention_schedule_proof.mjs
           node --check supabase/proofs/legal/p3_retention_schedule_predecessor.mjs
-          node --test supabase/proofs/legal/p3_retention_schedule_predecessor.test.mjs
+          node --test supabase/proofs/legal/p3_retention_schedule_predecessor.test.mjs supabase/proofs/legal/p3_retention_pending_inventory_admission.test.mjs
           node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
           python3 supabase/migrations/check_migration_integrity.py
       - name: Reconstruct disposable historical live79

@@ -21,7 +21,12 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
       assert.match(file, /^\d{14}_[a-z0-9_]+\.sql$/);
       const bytes = readFileSync(resolve(root, 'supabase/migrations', file));
       assert.ok(!bytes.includes(13), `SOURCE_CR_BYTE:${file}`);
-      return { file, md5: digest('md5', bytes) };
+      return {
+        file,
+        md5: digest('md5', bytes),
+        sha256: digest('sha256', bytes),
+        bytes: bytes.length,
+      };
     });
 
   const liveEntries = provenance.live_history_snapshot.entries;
@@ -38,9 +43,11 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
   const forward = source.find(entry => entry.file === unit.forward_file);
   assert.ok(forward, 'FORWARD_FILE_MISSING');
   assert.equal(forward.md5, unit.md5, 'FORWARD_FILE_CHANGED');
+  assert.equal(forward.sha256, unit.sha256, 'FORWARD_FILE_SHA256_CHANGED');
+  assert.equal(forward.bytes, unit.bytes, 'FORWARD_FILE_BYTES_CHANGED');
 
-  // The frozen historical digest remains live87. Earlier pending files are a
-  // separate ordered forward stack and must not be folded into that digest.
+  // The frozen historical digest remains live87. Pending forward files are a
+  // separate ordered stack and must not be folded into that digest.
   const liveFiles = new Set(liveEntries.map(entry => entry.file ?? `${entry.version}_${entry.name}.sql`));
   const historical = source.filter(entry => liveFiles.has(entry.file));
   const inventoryText = historical.map(entry => `${entry.md5}  ${entry.file}\n`).join('');
@@ -50,12 +57,21 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
 
   const unitPendingIndex = pendingEntries.findIndex(entry => entry.file === unit.forward_file);
   assert.ok(unitPendingIndex >= 0, 'P3_PENDING_PROVENANCE_MISSING');
-  const pendingPredecessors = pendingEntries.slice(0, unitPendingIndex).map(entry => {
-    assert.equal(entry.live_applied, false, `PENDING_PREDECESSOR_MARKED_LIVE:${entry.file}`);
-    assert.ok(String(entry.version) < String(unit.forward_version), `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
+
+  // Validate the complete declared pending inventory before any database
+  // operation. A later unit is replayable only when its identity and all
+  // recorded raw-byte fingerprints still match the repository source.
+  const pending = pendingEntries.map(entry => {
+    assert.equal(entry.classification, 'PENDING_FORWARD_MIGRATION',
+      `PENDING_CLASSIFICATION_INVALID:${entry.file}`);
+    assert.equal(entry.live_applied, false, `PENDING_ENTRY_MARKED_LIVE:${entry.file}`);
+    assert.equal(entry.file, `${entry.version}_${entry.name}.sql`,
+      `PENDING_IDENTITY_MISMATCH:${entry.file}`);
     const current = source.find(candidate => candidate.file === entry.file);
-    assert.ok(current, `PENDING_PREDECESSOR_FILE_MISSING:${entry.file}`);
-    assert.equal(current.md5, entry.raw_md5, `PENDING_PREDECESSOR_MD5_CHANGED:${entry.file}`);
+    assert.ok(current, `PENDING_FILE_MISSING:${entry.file}`);
+    assert.equal(current.md5, entry.raw_md5, `PENDING_MD5_CHANGED:${entry.file}`);
+    assert.equal(current.sha256, entry.raw_sha256, `PENDING_SHA256_CHANGED:${entry.file}`);
+    assert.equal(current.bytes, entry.raw_bytes, `PENDING_BYTES_CHANGED:${entry.file}`);
     return {
       file: entry.file,
       version: String(entry.version),
@@ -64,18 +80,23 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
     };
   });
 
-  // Later admitted forwards remain a separate ordered suffix. The P3 proof
-  // runs its original assertions first, then replays this exact suffix and
-  // checks that the retention state, grants and original history are intact.
-  const pendingSuccessors = pendingEntries.slice(unitPendingIndex + 1).map(entry => {
-    assert.equal(entry.live_applied, false, `PENDING_SUCCESSOR_MARKED_LIVE:${entry.file}`);
-    assert.ok(String(entry.version) > String(unit.forward_version), `PENDING_SUCCESSOR_ORDER_INVALID:${entry.file}`);
-    const current = source.find(candidate => candidate.file === entry.file);
-    assert.ok(current, `PENDING_SUCCESSOR_FILE_MISSING:${entry.file}`);
-    assert.equal(current.md5, entry.raw_md5, `PENDING_SUCCESSOR_MD5_CHANGED:${entry.file}`);
-    return { file: entry.file, version: String(entry.version), name: entry.name, md5: entry.raw_md5 };
-  });
+  assert.equal(pending[unitPendingIndex].file, unit.forward_file, 'P3_UNIT_FILE_MISMATCH');
+  assert.equal(pending[unitPendingIndex].version, String(unit.forward_version), 'P3_UNIT_VERSION_MISMATCH');
 
+  const pendingPredecessors = pending.slice(0, unitPendingIndex);
+  const pendingSuccessors = pending.slice(unitPendingIndex + 1);
+  for (const entry of pendingPredecessors) {
+    assert.ok(entry.version < String(unit.forward_version),
+      `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
+  }
+  for (const entry of pendingSuccessors) {
+    assert.ok(entry.version > String(unit.forward_version),
+      `PENDING_SUCCESSOR_ORDER_INVALID:${entry.file}`);
+  }
+
+  // Later admitted forwards remain an ordered suffix. The P3 proof runs all
+  // original assertions first, then replays this exact suffix and checks that
+  // retention state, grants and original history remain intact.
   assert.equal(source.length, historical.length + pendingEntries.length);
 
   for (const dep of [admitted.d03, admitted.ai_draft]) {
