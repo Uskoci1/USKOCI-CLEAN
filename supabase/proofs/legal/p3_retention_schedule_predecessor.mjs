@@ -50,7 +50,6 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
 
   const unitPendingIndex = pendingEntries.findIndex(entry => entry.file === unit.forward_file);
   assert.ok(unitPendingIndex >= 0, 'P3_PENDING_PROVENANCE_MISSING');
-  assert.equal(unitPendingIndex, pendingEntries.length - 1, 'P3_PENDING_NOT_LAST_IN_CURRENT_FORWARD_STACK');
   const pendingPredecessors = pendingEntries.slice(0, unitPendingIndex).map(entry => {
     assert.equal(entry.live_applied, false, `PENDING_PREDECESSOR_MARKED_LIVE:${entry.file}`);
     assert.ok(String(entry.version) < String(unit.forward_version), `PENDING_PREDECESSOR_ORDER_INVALID:${entry.file}`);
@@ -63,6 +62,18 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
       name: entry.name,
       md5: entry.raw_md5,
     };
+  });
+
+  // Later admitted forwards remain a separate ordered suffix. The P3 proof
+  // runs its original assertions first, then replays this exact suffix and
+  // checks that the retention state, grants and original history are intact.
+  const pendingSuccessors = pendingEntries.slice(unitPendingIndex + 1).map(entry => {
+    assert.equal(entry.live_applied, false, `PENDING_SUCCESSOR_MARKED_LIVE:${entry.file}`);
+    assert.ok(String(entry.version) > String(unit.forward_version), `PENDING_SUCCESSOR_ORDER_INVALID:${entry.file}`);
+    const current = source.find(candidate => candidate.file === entry.file);
+    assert.ok(current, `PENDING_SUCCESSOR_FILE_MISSING:${entry.file}`);
+    assert.equal(current.md5, entry.raw_md5, `PENDING_SUCCESSOR_MD5_CHANGED:${entry.file}`);
+    return { file: entry.file, version: String(entry.version), name: entry.name, md5: entry.raw_md5 };
   });
 
   assert.equal(source.length, historical.length + pendingEntries.length);
@@ -86,6 +97,8 @@ export function readP3RetentionPredecessorPlan(root = process.cwd()) {
     historical_inventory_sha256: admitted.historical_inventory_sha256,
     source_inventory: source,
     pending_predecessors: pendingPredecessors,
+    pending_successors: pendingSuccessors,
+    pending_successor_count: pendingSuccessors.length,
     d03: admitted.d03,
     ai_draft: admitted.ai_draft,
   };
