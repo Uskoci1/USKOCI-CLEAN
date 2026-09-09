@@ -1,0 +1,94 @@
+name: TEMP W02 calendar registry
+on:
+  push:
+    branches: [feat/w02-calendar-authority-20260909]
+permissions:
+  contents: write
+concurrency:
+  group: w02-calendar-registry
+  cancel-in-progress: false
+jobs:
+  register:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Append exact pending source identity only
+        shell: bash
+        env:
+          BRANCH: feat/w02-calendar-authority-20260909
+          EXPECTED_PARENT: 832110932a6d6eb7e803db03a9ef1be959f9bd9a
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/$BRANCH"
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          version='20260909110000'
+          name='clean_w02_calendar_authority'
+          filename=f'{version}_{name}.sql'
+          migration=Path('supabase/migrations')/filename
+          raw=migration.read_bytes()
+          assert b'\r' not in raw
+          md5=hashlib.md5(raw).hexdigest()
+          sha256=hashlib.sha256(raw).hexdigest()
+
+          manifest=Path('supabase/migrations/MD5_MANIFEST.txt')
+          lines=[line for line in manifest.read_text().splitlines() if line.strip()]
+          assert not any(filename in line for line in lines)
+          lines.append(f'{md5}  {filename}')
+          lines.sort(key=lambda line: line.split('  ',1)[1])
+          manifest.write_text('\n'.join(lines)+'\n')
+
+          provenance_path=Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          provenance=json.loads(provenance_path.read_text())
+          pending=provenance['pending_forward_migrations']
+          assert len(pending)==6, len(pending)
+          assert pending[-1]['file']=='20260908170000_clean_d0140a_policy_bundle_registration.sql'
+          assert not any(item['file']==filename for item in pending)
+          entry={
+            'version':version,
+            'name':name,
+            'file':filename,
+            'classification':'PENDING_FORWARD_MIGRATION',
+            'raw_md5':md5,
+            'raw_sha256':sha256,
+            'raw_bytes':len(raw),
+            'live_applied':False,
+            'predecessor_live_migration_count':87,
+            'predecessor_live_head':'20260907135905',
+            'unit':'W02_CALENDAR_AUTHORITY',
+            'activation':'SOURCE_ONLY_NOT_LIVE'
+          }
+          pending.append(entry)
+          pending.sort(key=lambda item:str(item['version']))
+          provenance['w02_calendar_authority']={
+            'unit':'W02_CALENDAR_AUTHORITY',
+            'forward_file':filename,
+            'raw_md5':md5,
+            'raw_sha256':sha256,
+            'raw_bytes':len(raw),
+            'status':'FORWARD_SOURCE_PENDING_NOT_LIVE',
+            'live_applied':False,
+            'scope':'AGREEMENT_BACKED_HARD_CALENDAR_MATCHING_SELECTION_AND_OWN_READ',
+            'visual_design_changed':False
+          }
+          provenance_path.write_text(json.dumps(provenance,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({'file':filename,'md5':md5,'sha256':sha256,'bytes':len(raw)},indent=2))
+          PY
+          git add supabase/migrations/MD5_MANIFEST.txt supabase/migrations/MIGRATION_PROVENANCE.json
+          python3 supabase/migrations/check_migration_integrity.py
+          git diff --cached --check
+          git commit -m 'chore(w02): register calendar authority as pending forward source'
+          test "$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)" = "$GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$BRANCH"
