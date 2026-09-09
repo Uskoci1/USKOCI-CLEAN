@@ -1,0 +1,117 @@
+name: TEMP reconcile D0140-A after W01
+on:
+  push:
+    branches: [feat/d0140a-policy-bundle-registration-20260908]
+permissions:
+  contents: write
+concurrency:
+  group: d0140a-canonical-reconciliation
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Merge only verified canonical and reconcile provenance inventories
+        shell: bash
+        env:
+          TARGET_BRANCH: feat/d0140a-policy-bundle-registration-20260908
+          CANONICAL_SHA: cc71a93b5ca616ea476c96ffe207833b2210cd57
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/$TARGET_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch origin clean-alpha-backend
+          test "$(git rev-parse origin/clean-alpha-backend)" = "$CANONICAL_SHA"
+          p='supabase/migrations/MIGRATION_PROVENANCE.json'
+          m='supabase/migrations/MD5_MANIFEST.txt'
+          git show "HEAD:$p" > "$RUNNER_TEMP/feature-provenance.json"
+          git show "HEAD:$m" > "$RUNNER_TEMP/feature-manifest.txt"
+          git show "$CANONICAL_SHA:$p" > "$RUNNER_TEMP/canonical-provenance.json"
+          git show "$CANONICAL_SHA:$m" > "$RUNNER_TEMP/canonical-manifest.txt"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          set +e
+          git merge --no-ff --no-commit "$CANONICAL_SHA"
+          result=$?
+          set -e
+          if [ "$result" -gt 1 ]; then exit "$result"; fi
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          root=pathlib.Path('.'); temp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          manifest='supabase/migrations/MD5_MANIFEST.txt'
+          provenance='supabase/migrations/MIGRATION_PROVENANCE.json'
+          conflicts=set(subprocess.check_output(['git','diff','--name-only','--diff-filter=U'],text=True).splitlines())
+          assert conflicts <= {manifest,provenance}, 'Unexpected merge conflict: '+repr(sorted(conflicts))
+          base=json.loads((temp/'canonical-provenance.json').read_text())
+          feature=json.loads((temp/'feature-provenance.json').read_text())
+          merged={}
+          for key in base.keys() | feature.keys():
+              if key=='pending_forward_migrations': continue
+              if key in base and key in feature:
+                  assert base[key]==feature[key], 'Conflicting provenance outside pending inventory: '+key
+              merged[key]=base[key] if key in base else feature[key]
+          pending={}
+          for item in base.get('pending_forward_migrations',[])+feature.get('pending_forward_migrations',[]):
+              version=item['version']
+              if version in pending: assert pending[version]==item, 'Conflicting pending migration identity: '+version
+              assert item['live_applied'] is False
+              pending[version]=item
+          ordered={key:merged[key] for key in base if key!='pending_forward_migrations'}
+          for key in feature:
+              if key not in ordered and key!='pending_forward_migrations': ordered[key]=merged[key]
+          ordered['pending_forward_migrations']=[pending[key] for key in sorted(pending)]
+          (root/provenance).write_text(json.dumps(ordered,ensure_ascii=False,indent=2)+'\n')
+          entries={}
+          for name in ['canonical-manifest.txt','feature-manifest.txt']:
+              for line in (temp/name).read_text().splitlines():
+                  digest,filename=line.split('  ',1)
+                  if filename in entries: assert entries[filename]==digest, 'Conflicting migration bytes: '+filename
+                  entries[filename]=digest
+          (root/manifest).write_text(''.join(entries[name]+'  '+name+'\n' for name in sorted(entries)))
+          original=subprocess.check_output(['git','ls-tree','-r',os.environ['CANONICAL_SHA'],'--','supabase/migrations'],text=True)
+          for line in original.splitlines():
+              meta,name=line.split('\t',1)
+              if name.endswith('.sql'):
+                  assert subprocess.check_output(['git','hash-object',name],text=True).strip()==meta.split()[2], 'Canonical SQL changed: '+name
+          target=pathlib.Path('supabase/migrations/20260908170000_clean_d0140a_policy_bundle_registration.sql')
+          assert hashlib.md5(target.read_bytes()).hexdigest()=='48b05badae57b036537072b18cdac313'
+          own='.github/workflows/_tmp_reconcile_d0140a_after_w01.yml'
+          pathlib.Path(own).unlink()
+          subprocess.run(['git','add',manifest,provenance,own],check=True)
+          allowed={
+            '.github/workflows/d0140a-bundle-registration-proof.yml',
+            'docs/implementation/D0140A_POLICY_BUNDLE_REGISTRATION_20260908.md',
+            'supabase/migrations/20260908170000_clean_d0140a_policy_bundle_registration.sql',manifest,provenance,
+            'supabase/proofs/policy/d0140a_bundle_registration_candidate.sql',
+            'supabase/proofs/policy/d0140a_bundle_registration_files.json',
+            'supabase/proofs/policy/d0140a_bundle_registration_predecessor.mjs',
+            'supabase/proofs/policy/d0140a_bundle_registration_predecessor.test.mjs',
+            'supabase/proofs/policy/d0140a_bundle_registration_predecessor_files.json',
+            'supabase/proofs/policy/d0140a_bundle_registration_proof.mjs',
+          }
+          changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['CANONICAL_SHA']],text=True).splitlines())
+          assert changed<=allowed, 'Unexpected final D0140-A scope: '+repr(sorted(changed-allowed))
+          assert '20260908170000' in pending and pending['20260908170000']['registered_state']=='UNREVIEWED_INCOMPLETE_INACTIVE'
+          assert ordered['d0140a_policy_bundle_registration']['live_applied'] is False
+          PY
+          test -z "$(git diff --name-only --diff-filter=U)"
+          npm ci
+          python3 supabase/migrations/check_migration_integrity.py
+          node --test supabase/proofs/policy/d0140a_bundle_registration_predecessor.test.mjs
+          git diff --cached --check
+          git commit -m 'Merge canonical through W01 into inert D0140-A source'
+          test "$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | cut -f1)" = "$GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
