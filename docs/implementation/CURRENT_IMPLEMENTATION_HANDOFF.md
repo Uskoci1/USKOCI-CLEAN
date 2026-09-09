@@ -1,3 +1,33 @@
+## 2026-09-09 W02 — exact interval and concurrency proof accepted
+
+Application source cd30125426f35dbb287f8ed8f1094026022be917; tested synthetic
+merge b9cadeb2f7e8f3e8cdb4e5d6a8bb3b4ecd321958. W02 run34319528297
+passed all9 original calendar checks and all8 added integrity checks. Original
+artifact10091435214 was independently downloaded and verified against SHA256
+769c46c9ff752499ad353fa3ff913533dfdae21253af54c83408460ae2bb31c6.
+
+Two concurrent authenticated selections were physically observed waiting;
+exactly one conflicting booking succeeds. A stale REPEATABLE READ transaction
+aborts with40001. Fixed-task and proposed intervals, unchanged Application
+snapshots, accepted changes, cancellation, completion/reuse and the actual
+TypeScript calendar client against disposable Auth/PostgREST are proven.
+Fixture Needs are explicit test-only SQL, NOT a UI publication demonstration.
+
+PRE-P4 run34319528259, P2 run34319528287, P3 run34319528291, CodeQL
+no-new-alert check and Android/web recovery run34319528288 all passed.
+Local source tests:81 suites/982 tests and TypeScript PASS. Source inventory95;
+historical live snapshot87;8 pending forwards. No live mutation or activation.
+
+This follow-up changes only these four continuation records. All application,
+SQL, configuration, dependencies, proof harnesses, assets and design inputs are
+byte-identical to cd301254. Root review accepts this bounded unit for canonical
+integration; read current PR83/branch metadata for the actual merge outcome.
+Full W02, calendar UI/physical handset, recurring availability/location, external
+providers and production promotion are not claimed. Continue existing nonvisual
+availability work without changing Claude's frozen design inputs.
+
+Earlier pending-proof statements below remain dated historical checkpoints.
+
 ## 2026-09-09 W02 coordinating review — current canonical and forward repair
 
 This checkpoint supersedes only older pending/current-cursor statements below;
