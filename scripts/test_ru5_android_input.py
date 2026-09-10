@@ -11,7 +11,7 @@ from xml.etree import ElementTree as ET
 
 SOURCE = Path(__file__).with_name('ru5_android_device_ui_journey.py')
 # Load function definitions only; never execute top-level Auth/device/DB journey.
-DEFINITIONS = ast.Module(body=[node for node in ast.parse(SOURCE.read_text()).body
+DEFINITIONS = ast.Module(body=[node for node in ast.parse(SOURCE.read_text(encoding='utf-8')).body
                                if isinstance(node, ast.FunctionDef)], type_ignores=[])
 
 
@@ -247,6 +247,149 @@ class AndroidInputHarnessTests(unittest.TestCase):
         bottom = ET.SubElement(root, 'node', {'class': 'android.widget.EditText', 'bounds': '[0,200][400,300]'})
         top = ET.SubElement(root, 'node', {'class': 'android.widget.EditText', 'bounds': '[0,100][400,150]'})
         self.assertEqual(ns['ordered_edit_fields'](root), [top, bottom])
+
+
+class Core106HarnessTests(unittest.TestCase):
+    def namespace(self):
+        import json, re
+        from unittest.mock import Mock
+        ns={'CORE106':True,'re':re,'json':json,'run':Mock()}
+        exec(compile(DEFINITIONS,str(SOURCE),'exec'),ns)
+        return ns
+
+    def application_tree(self, notice=None, title='Tvoja prijava'):
+        package = 'rs.uskoci.n04proof'
+        root = ET.Element('hierarchy')
+        app = ET.SubElement(root, 'node', {'package': package, 'bounds': '[0,0][1080,2400]'})
+        ET.SubElement(app, 'node', {'package': package, 'text': title, 'bounds': '[173,183][1033,252]'})
+        scroll = ET.SubElement(app, 'node', {'package': package, 'class': 'android.widget.ScrollView',
+                              'scrollable': 'true', 'bounds': '[0,307][1080,1633]'})
+        ET.SubElement(app, 'node', {'package': package, 'content-desc': 'Otvori moje prijave',
+                      'clickable': 'true', 'bounds': '[47,1813][1033,1944]'})
+        if notice is not None:
+            ET.SubElement(scroll, 'node', {'package': package, 'text': 'Prijava je poslata.', 'bounds': notice})
+        return root
+
+    def success_probe(self, frames, captured=None):
+        from unittest.mock import Mock
+        ns = self.namespace()
+        state = {'clock': 0, 'index': 0}
+        ns['PACKAGE'] = 'rs.uskoci.n04proof'
+        ns['time'] = types.SimpleNamespace(monotonic=lambda: state['clock'],
+                                          sleep=lambda seconds: state.update(clock=state['clock'] + seconds))
+
+        def dump():
+            root = frames[state['index']]
+            dump.last_observation = (root, ET.tostring(root, encoding='unicode'))
+            return root, {child: p for p in root.iter() for child in p}, dump.last_observation[1]
+
+        def swipe(*args):
+            self.assertEqual(args[:3], ('shell', 'input', 'swipe'))
+            state['index'] = min(state['index'] + 1, len(frames) - 1)
+
+        def capture(name):
+            self.assertEqual(name, 'W05_worker_application_success')
+            dump.last_observation = (captured if captured is not None else frames[state['index']], '')
+
+        ns.update(dump_tree=dump, adb=Mock(side_effect=swipe), shot=Mock(side_effect=capture),
+                  dismiss_known_system_anr=Mock(return_value=False), tap=Mock())
+        return ns
+
+    def test_visible_application_notice_is_captured_without_scrolling_or_submit(self):
+        ns = self.success_probe([self.application_tree('[47,1200][950,1270]')])
+        ns['core_capture_application_success']()
+        ns['adb'].assert_not_called()
+        ns['tap'].assert_not_called()
+        ns['shot'].assert_called_once_with('W05_worker_application_success')
+
+    def test_application_notice_is_physically_scrolled_into_observed_viewport(self):
+        ns = self.success_probe([self.application_tree(), self.application_tree('[47,1200][950,1270]')])
+        ns['core_capture_application_success']()
+        ns['adb'].assert_called_once_with('shell', 'input', 'swipe', '540', '1367', '540', '638', '400')
+        ns['shot'].assert_called_once_with('W05_worker_application_success')
+        ns['tap'].assert_not_called()
+
+    def test_sticky_confirmed_cta_alone_never_substitutes_for_notice(self):
+        ns = self.success_probe([self.application_tree()])
+        with self.assertRaisesRegex(RuntimeError, 'bounded physical scrolling'):
+            ns['core_capture_application_success'](timeout=12)
+        self.assertEqual(ns['adb'].call_count, 8)
+        ns['shot'].assert_not_called()
+        ns['tap'].assert_not_called()
+
+    def test_clipped_or_zero_height_notice_is_not_visible_success(self):
+        for bounds in ('[47,1590][950,1680]', '[47,1633][950,1633]', '[47,1633][950,1200]'):
+            with self.subTest(bounds=bounds):
+                ns = self.success_probe([self.application_tree(bounds), self.application_tree('[47,1200][950,1270]')])
+                ns['core_capture_application_success']()
+                self.assertEqual(ns['adb'].call_count, 1)
+
+    def test_notice_outside_form_scroll_is_not_accepted(self):
+        tree = self.application_tree()
+        ET.SubElement(tree[0], 'node', {'package': 'rs.uskoci.n04proof', 'text': 'Prijava je poslata.',
+                                      'bounds': '[47,1200][950,1270]'})
+        ns = self.success_probe([tree])
+        root, parent, _ = ns['dump_tree']()
+        self.assertFalse(ns['core_application_success_surface'](root, parent)[1])
+
+    def test_capture_must_itself_retain_the_visible_notice(self):
+        ns = self.success_probe([self.application_tree('[47,1200][950,1270]')], captured=self.application_tree())
+        with self.assertRaisesRegex(AssertionError, 'captured checkpoint'):
+            ns['core_capture_application_success']()
+        ns['shot'].assert_called_once()
+        ns['tap'].assert_not_called()
+
+    def test_changed_route_is_not_scrolled_or_captured(self):
+        ns = self.success_probe([self.application_tree('[47,1200][950,1270]', title='Prijavi se')])
+        with self.assertRaisesRegex(AssertionError, 'Application form changed'):
+            ns['core_capture_application_success']()
+        ns['adb'].assert_not_called()
+        ns['shot'].assert_not_called()
+
+    def test_fatal_app_anr_escapes_seek_without_capture_or_retry(self):
+        from unittest.mock import Mock
+        ns = self.success_probe([self.application_tree('[47,1200][950,1270]')])
+        error = RuntimeError('Actual app ANR must fail')
+        error.native_surface_fatal = True
+        ns['dismiss_known_system_anr'] = Mock(side_effect=error)
+        with self.assertRaisesRegex(RuntimeError, 'Actual app ANR'):
+            ns['core_capture_application_success']()
+        ns['dismiss_known_system_anr'].assert_called_once()
+        ns['adb'].assert_not_called()
+        ns['shot'].assert_not_called()
+
+    def test_historical_path_remains_default_and_core_is_explicit(self):
+        ns=self.namespace();self.assertTrue(ns['core_mode']());ns['CORE106']=False;self.assertFalse(ns['core_mode']())
+
+    def test_core_profile_uses_observed_actionable_control_only(self):
+        from unittest.mock import Mock
+        ns=self.namespace();root=ET.fromstring('<hierarchy><node content-desc="Moj profil" clickable="true" enabled="true" bounds="[0,0][50,50]" /></hierarchy>')
+        ns['dump_tree']=Mock(return_value=(root,{root[0]:root},''));ns['tap']=Mock()
+        ns['core_profile']();ns['tap'].assert_called_once_with(desc='Moj profil',prefer='top')
+        ns['dump_tree']=Mock(return_value=(ET.fromstring('<hierarchy/>'),{},''))
+        with self.assertRaises(AssertionError):ns['core_profile']()
+
+    def test_core_account_switch_reaches_real_list_before_profile(self):
+        from unittest.mock import Mock
+        ns=self.namespace(); events=[]
+        for name in ('tap','core_profile','wait_visible','assert_signed_out_surface','login','switch_to_worker_workspace'):
+            ns[name]=Mock(side_effect=lambda *args,_name=name,**kwargs:events.append((_name,args,kwargs)))
+        ns['core_switch_account']('synthetic@example.invalid',worker=True)
+        self.assertEqual(events[0],('tap',(),{'desc':'Zadaci','prefer':'bottom'}))
+        self.assertEqual(events[1],('core_profile',(),{}))
+        self.assertEqual(events[-2],('login',('synthetic@example.invalid',),{}))
+        self.assertEqual(events[-1],('switch_to_worker_workspace',(),{}))
+
+    def test_core_flow_has_no_business_rpc_or_session_injection(self):
+        source=SOURCE.read_text(encoding='utf-8')
+        core=next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=='core_journey')
+        rendered=ast.unparse(core)
+        self.assertNotIn('rpc_',rendered);self.assertNotIn('set_config',rendered);self.assertNotIn('am start',rendered)
+        for label in ['Pošalji ovu Prijavu','Pregledaj povezivanje','Izaberi ovu Prijavu','Otvori Dogovor']:
+            self.assertIn(label,rendered)
+        self.assertEqual(rendered.count('launch_clean()'),1)
+        self.assertLess(rendered.index('core_capture_application_success()'), rendered.index("tap(desc='Otvori moje prijave')"))
+        self.assertLess(rendered.index("tap(desc='Otvori moje prijave')"), rendered.index('assert_worker_submit()'))
 
 
 class SystemDialogModel:

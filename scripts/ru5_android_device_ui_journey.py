@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 import os
+import ast
+import json
 import re
 import subprocess
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+CORE106 = os.environ.get('RU5_DEVICE_CORE106') == '1'
 PACKAGE = os.environ.get('RU5_DEVICE_PACKAGE', 'rs.uskoci.ru5proof')
 MAIN_ACTIVITY = f'{PACKAGE}/.MainActivity'
 WORKER_EMAIL = os.environ['RU5_DEVICE_WORKER_EMAIL']
@@ -471,14 +474,14 @@ def login(email, form_open=False):
     hide_keyboard()
     tap(text='Prijavite se', prefer='bottom', timeout=30)
     # Current three-zone shell; login is still through the real Auth sheet.
-    wait_visible(text='MENI TREBA', timeout=60)
+    wait_visible(desc='Zadaci', timeout=60) if core_mode() else wait_visible(text='MENI TREBA', timeout=60)
 
 
 def switch_to_worker_workspace():
-    tap(desc='Profil', prefer='top')
+    core_profile() if core_mode() else tap(desc='Profil', prefer='top')
     wait_visible(desc='Pređite na JA MOGU')
     tap(desc='Pređite na JA MOGU')
-    wait_visible(text='JA MOGU', timeout=45)
+    wait_visible(desc='Prijave', timeout=45) if core_mode() else wait_visible(text='JA MOGU', timeout=45)
 
 
 def dismiss_ok(timeout=15):
@@ -548,6 +551,8 @@ where a.agreement_id='{agreement_id}'::uuid
 
 
 def assert_gates_unchanged():
+    if core_mode():
+        assert_core_gates(); return
     checks = {
         'publication_policy_bundles': 'select count(*) from private.publication_policy_bundles;',
         'publication_decisions': 'select count(*) from private.need_publication_decisions;',
@@ -565,6 +570,196 @@ def assert_gates_unchanged():
         raise AssertionError(f'Gated/retired inventory changed: {bad}')
     print(f'CHECKPOINT GATES_UNCHANGED {observed}', flush=True)
 
+
+
+def core_mode():
+    return globals().get('CORE106', False)
+
+
+def core_profile():
+    # Use the actual current surface's public profile button, not navigation injection.
+    root, parent, _ = dump_tree()
+    for label in ('Moj profil', 'Radni profil', 'Profil'):
+        nodes = [n for n in root.iter() if matches(n, desc=label) and clickable_for(n,parent) is not None]
+        if nodes:
+            tap(desc=label, prefer='top'); return
+    raise AssertionError('No observed current profile control')
+
+
+def core_switch_account(email, worker=False):
+    # Agreement Back may return the saved Need detail after selection replaced
+    # its route. Reach the actual list tab before using its profile control.
+    tap(desc='Zadaci',prefer='bottom'); core_profile()
+    tap(desc='Odjavite se'); wait_visible(desc='Prijavi se',timeout=60)
+    assert_signed_out_surface(); login(email)
+    if worker: switch_to_worker_workspace()
+
+
+def core_fixture():
+    fixture=json.loads((ARTIFACT_DIR/'core-fixture.json').read_text(encoding='utf-8'))
+    assert fixture['result']=='PASS' and fixture['sourceSha']==os.environ['GITHUB_SHA'] and fixture['localOnly']
+    assert fixture['needId']==NEED_ID and fixture['requesterId']==REQUESTER_USER_ID and fixture['workerId']==WORKER_USER_ID
+    assert fixture['publicationProof'] is False and fixture['productionPolicyActivation'] is False
+    return fixture
+
+
+def assert_core_gates():
+    fixture=core_fixture()
+    tables={'publication':'private.publication_policy_bundles','decisions':'private.need_publication_decisions',
+            'retention':'private.retention_policy_sets','markets':'private.location_market_configs'}
+    for key,table in tables.items():
+        actual=psql(f"select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]'::jsonb)::text) from {table} x")
+        assert actual==fixture['baseline'][key], 'Inert canonical registry/decision baseline changed'
+    for table in ('preselection_qa_questions','preselection_qa_answer_versions','preselection_qa_policy_decisions','preselection_qa_materiality_decisions','preselection_qa_commands'):
+        assert psql(f'select count(*) from private.{table}')=='0'
+    assert psql("select count(*) from public.needs where mode='FASTEST'")=='0'
+    assert psql("select count(*) from public.need_selections where selection_mode='AUTO_FILL'")=='0'
+    assert psql('select count(*) from supabase_migrations.schema_migrations')=='106'
+    print('CHECKPOINT GATES_UNCHANGED exact106 inert_registry_baseline zero_policy_activation',flush=True)
+
+
+def core_map_preview():
+    fixture=core_fixture()
+    wait_visible(desc='Pretraži zadatke'); edit_text(0,fixture['searchToken']); hide_keyboard()
+    wait_visible(desc=f'Otvorite priliku {NEED_TITLE}'); shot('CORE_list_filtered')
+    tap(desc='Mapa'); wait_visible(desc='Pretraži ovu oblast',timeout=60); shot('CORE_map_ready')
+    root,parent=wait_surface(desc='Mapa približnih lokacija Zadatka')
+    nodes=[n for n in root.iter() if matches(n,desc='Mapa približnih lokacija Zadatka')]
+    assert len(nodes)==1, 'One observed actual native map required'
+    x1,y1,x2,y2=parse_bounds(nodes[0].attrib['bounds']);assert x2-x1>100 and y2-y1>100
+    # A single existing public point is camera-fitted by production code. Touch
+    # observed native map centre; no SDK selection/viewport injection.
+    adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
+    wait_visible(desc='Otvori detalj Zadatka',timeout=30);wait_visible(text=NEED_TITLE);shot('CORE_map_selected')
+    tap(desc='Otvori detalj Zadatka');wait_visible(desc='Sastavi prijavu',timeout=45)
+
+
+def core_selection_receipt(response_id,agreement_id):
+    fixture=core_fixture()
+    raw=psql(f"""select jsonb_build_object('agreementId',a.id,'needId',a.need_id,'responseId',a.selected_response_id,
+      'requesterId',a.requester_account_id,'workerId',a.worker_account_id,'needRevision',v.need_revision,
+      'responseVersion',v.version,'responseHash',v.content_hash,'agreementHash',av.content_hash,
+      'terms',av.terms,'commandHash',c.response_content_hash,'commandVersion',c.response_version,
+      'commandNeedRevision',c.need_revision,'activationHash',ca.response_content_hash,
+      'activationVersion',ca.response_version,'activationNeedRevision',ca.need_revision)
+    from public.agreements a join public.marketplace_responses r on r.id=a.selected_response_id
+    join public.marketplace_response_versions v on v.response_id=r.id and v.version=r.current_version
+    join public.agreement_versions av on av.agreement_id=a.id and av.version=a.current_version
+    join private.selection_commands c on c.agreement_id=a.id
+    join private.connection_activations ca on ca.agreement_id=a.id
+    where a.id='{agreement_id}' and a.need_id='{NEED_ID}'""")
+    data=json.loads(raw);assert data['responseId']==response_id
+    assert data['requesterId']==REQUESTER_USER_ID and data['workerId']==WORKER_USER_ID
+    assert data['needRevision']==data['commandNeedRevision']==data['activationNeedRevision']==fixture['needRevision']
+    assert data['responseVersion']==data['commandVersion']==data['activationVersion']
+    assert data['responseHash']==data['agreementHash']==data['commandHash']==data['activationHash']
+    terms=data['terms'];assert terms['price_rsd']==3000 and terms['covered_slots']==1 and terms['schedule_source']=='NEED_FIXED_WINDOW'
+    assert psql(f"select ({repr(terms['proposed_start_at'])}::timestamptz='{fixture['startAt']}'::timestamptz and {repr(terms['proposed_end_at'])}::timestamptz='{fixture['endAt']}'::timestamptz)::text")=='true'
+    for query in [f"select count(*) from private.response_submit_commands where response_id='{response_id}'",
+                  f"select count(*) from private.response_application_snapshots where response_id='{response_id}'",
+                  f"select count(*) from private.selection_commands where agreement_id='{agreement_id}'",
+                  f"select count(*) from public.agreements where need_id='{NEED_ID}'"]:
+        assert psql(query)=='1'
+    report={'result':'PASS','sourceSha':os.environ['GITHUB_SHA'],'localOnly':True,'historyCount':106,
+            'actualNativeApply':True,'actualNativeSelect':True,'actualNativeMapSelection':True,
+            'publicationProof':False,'productionPolicyActivation':False,'providerProof':False,**data}
+    (ARTIFACT_DIR/'core-selection.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    return data
+
+
+def core_application_success_surface(root, parent):
+    # The confirmed receipt's notice lives at the end of the real form's
+    # ScrollView. Its sticky navigation button is not evidence of this notice.
+    assert any(n.attrib.get('package') == PACKAGE and n.attrib.get('text') == 'Tvoja prijava'
+               for n in root.iter()), 'Application form changed while seeking its success notice'
+    scrolls = [n for n in root.iter() if n.attrib.get('package') == PACKAGE
+               and n.attrib.get('class') == 'android.widget.ScrollView'
+               and n.attrib.get('scrollable') == 'true']
+    assert len(scrolls) == 1, 'Expected one observed application form scroll viewport'
+    scroll = scrolls[0]
+    left, top, right, bottom = parse_bounds(scroll.attrib.get('bounds'))
+    assert right > left and bottom - top > 100, 'Invalid application form scroll viewport'
+    for node in scroll.iter():
+        if node.attrib.get('package') != PACKAGE or node.attrib.get('text') != 'Prijava je poslata.':
+            continue
+        x1, y1, x2, y2 = parse_bounds(node.attrib.get('bounds'))
+        if x2 <= x1 or y2 <= y1 or node.attrib.get('visible-to-user') == 'false':
+            continue
+        visible = True
+        ancestor = parent.get(node)
+        while ancestor is not None:
+            if ancestor.attrib.get('bounds'):
+                ax1, ay1, ax2, ay2 = parse_bounds(ancestor.attrib['bounds'])
+                if not (ax1 <= x1 < x2 <= ax2 and ay1 <= y1 < y2 <= ay2):
+                    visible = False
+                    break
+            ancestor = parent.get(ancestor)
+        if visible:
+            return scroll, True
+    return scroll, False
+
+
+def core_capture_application_success(timeout=40):
+    deadline = time.monotonic() + timeout
+    swipes = 0
+    while time.monotonic() < deadline:
+        root, parent, _ = dump_tree()
+        if dismiss_known_system_anr(root, parent):
+            continue
+        scroll, visible = core_application_success_surface(root, parent)
+        if visible:
+            shot('W05_worker_application_success')
+            # Validate the actual saved checkpoint tree, not the earlier match.
+            captured, _ = dump_tree.last_observation
+            captured_parent = {child: p for p in captured.iter() for child in p}
+            assert core_application_success_surface(captured, captured_parent)[1], \
+                'Success notice disappeared or became clipped in captured checkpoint'
+            return
+        if swipes < 8:
+            x1, y1, x2, y2 = parse_bounds(scroll.attrib['bounds'])
+            x = (x1 + x2) // 2
+            height = y2 - y1
+            adb('shell', 'input', 'swipe', str(x), str(y1 + height * 4 // 5),
+                str(x), str(y1 + height // 4), '400')
+            swipes += 1
+        time.sleep(1)
+    raise RuntimeError('Application success notice not visibly observed after bounded physical scrolling')
+
+
+def core_journey():
+    from d03_chat_local_rest import validate_local_targets
+    validate_local_targets(os.environ);fixture=core_fixture()
+    admission=json.loads(Path('artifacts/ai-review-device/ai-review-admission.json').read_text(encoding='utf-8'))
+    assert admission['sourceSha']==os.environ['GITHUB_SHA'] and admission['historyCount']==106 and admission['localOnly']
+    assert_core_gates()
+    assert psql(f"select count(*) from public.marketplace_responses where need_id='{NEED_ID}'")=='0'
+    print('START CORE_NATIVE_TWO_ACCOUNT',flush=True)
+    launch_clean();login(WORKER_EMAIL);shot('AUTH_worker_authenticated');switch_to_worker_workspace()
+    tap(desc='Zadaci',prefer='bottom');wait_visible(desc=f'Otvorite priliku {NEED_TITLE}',timeout=45)
+    shot('W03_worker_opportunity_list');core_map_preview();shot('W04_worker_need_detail')
+    tap(desc='Sastavi prijavu');wait_visible(text='Tvoja prijava');wait_visible(desc='Cena za ponuđeni obim (RSD)')
+    edit_text(0,'3000');hide_keyboard();shot('W05_worker_application_draft');tap(desc='Pošalji ovu Prijavu')
+    core_capture_application_success();tap(desc='Otvori moje prijave')
+    wait_visible(text=NEED_TITLE);wait_visible(text='Poslata');shot('W06_worker_own_application');response_id=assert_worker_submit()
+    core_switch_account(REQUESTER_EMAIL);shot('AUTH_requester_authenticated');tap(desc='Zadaci',prefer='bottom')
+    wait_visible(desc=f'Otvorite Zadatak {NEED_TITLE}');tap(desc=f'Otvorite Zadatak {NEED_TITLE}')
+    wait_visible(desc='Otvori prijave, ukupno 1');shot('CORE_requester_need_detail');tap(desc='Otvori prijave, ukupno 1')
+    worker_name=psql(f"select display_name from public.app_profiles where kind='WORKER' and account_id='{WORKER_USER_ID}'")
+    wait_visible(desc=f'Pogledaj ponudu: {worker_name}');shot('CORE_candidate_list');tap(desc=f'Pogledaj ponudu: {worker_name}')
+    wait_visible(desc='Pregledaj povezivanje');shot('R05_requester_candidate_selection');tap(desc='Pregledaj povezivanje')
+    wait_visible(desc='Izaberi ovu Prijavu');shot('CORE_selection_review');tap(desc='Izaberi ovu Prijavu')
+    wait_visible(text='Dogovor je sklopljen.');shot('R05_requester_selection_success')
+    agreement_id=assert_final_selection(response_id);core_selection_receipt(response_id,agreement_id)
+    tap(desc='Otvori Dogovor');wait_visible(text=NEED_TITLE);shot('AGREEMENT_created');tap(desc='Nazad')
+    core_switch_account(WORKER_EMAIL,worker=True);shot('AUTH_worker_reauthenticated')
+    tap(desc='Prijave',prefer='bottom');wait_visible(text=NEED_TITLE);wait_visible(text='Izabrani ste');shot('W06_worker_selected_state')
+    tap(desc='Otvorite Dogovor');wait_visible(text=NEED_TITLE);shot('DOGOVOR_worker_opened');tap(desc='Nazad')
+    assert_core_gates();print('PASS CORE_NATIVE_APPLY_SELECT_MAP same_agreement two_real_auth_accounts',flush=True)
+
+
+if CORE106:
+    core_journey()
+    raise SystemExit(0)
 
 print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY', flush=True)
 

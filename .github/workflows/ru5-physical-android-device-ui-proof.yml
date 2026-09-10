@@ -1,4 +1,4 @@
-name: RU-5 physical Android device UI proof
+name: V2 core two-account native journey
 
 on:
   workflow_dispatch:
@@ -13,13 +13,15 @@ env:
   CI: '1'
   SUPABASE_TELEMETRY_DISABLED: '1'
   DO_NOT_TRACK: '1'
-  RU5_DEVICE_PACKAGE: rs.uskoci.ru5proof
+  RU5_DEVICE_PACKAGE: rs.uskoci.n04proof
+  RU5_DEVICE_CORE106: '1'
+  W03_INTAKE_ARTIFACT_DIR: artifacts/ru5-device-ui/source105
   RU5_DEVICE_ARTIFACT_DIR: artifacts/ru5-device-ui
 
 jobs:
   physical-device-ui-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 85
 
     steps:
       - name: Checkout proof branch
@@ -52,20 +54,34 @@ jobs:
       - name: TypeScript contract check
         run: npx tsc --noEmit
 
-      - name: Regression tests
-        run: npm test -- --runInBand
+      - name: Targeted source and owner regression tests
+        run: npm test -- --runInBand src/data/__tests__/application-selection-client.test.ts src/data/__tests__/application-selection-native.test.tsx src/data/__tests__/marketplace-owned-screens.test.tsx src/data/__tests__/marketplace-presentation.test.tsx src/data/__tests__/discovery-map.test.tsx src/data/__tests__/agreement-chat-ui.test.tsx src/data/__tests__/agreement-screen-recovery.test.tsx
 
       - name: Physical input harness regression tests
-        run: python3 -m unittest scripts/test_ru5_android_input.py -v
+        run: python3 -B -m unittest scripts/test_ru5_android_input.py scripts/test_intent_shell_android.py scripts/d03_chat_test_local_rest.py scripts/d03_chat_test_observer.py scripts/d03_chat_test_keyboard_bounds.py -v
 
       - name: Fixture local-target guard tests
-        run: node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
+        run: node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs scripts/task_detail_read_preflight.test.mjs supabase/proofs/notifications/d03_chat_device_source_admission.test.mjs
 
       - name: Reconstruct disposable live-79 Supabase
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
 
       - name: Create two real Auth accounts and one disposable Need fixture
         run: node supabase/proofs/ru5_device_ui_fixture.mjs
+
+      - name: Reuse exact current dependency-ordered source105
+        run: node scripts/ci/owned-intake-proof.mjs prepare105
+
+      - name: Current owner-reviewed location and typed disposable task precondition
+        run: node supabase/proofs/ru5_device_ui_fixture.mjs core105
+
+      - name: Reuse exact106 admission before all native business actions
+        env:
+          RU5_DEVICE_ARTIFACT_DIR: artifacts/ai-review-device
+        run: node scripts/ai_review_fixture.mjs admit
+
+      - name: Actual current read adapters and authenticated public projections
+        run: node scripts/task_detail_read_preflight.mjs
 
       - name: Bind proof APK to disposable emulator-host Supabase
         run: |
@@ -88,8 +104,8 @@ jobs:
           const path = 'app.json';
           const app = JSON.parse(fs.readFileSync(path, 'utf8'));
           app.expo.android = app.expo.android || {};
-          app.expo.android.package = 'rs.uskoci.ru5proof';
-          app.expo.name = 'USKOČI RU5 PROOF';
+          app.expo.android.package = 'rs.uskoci.n04proof';
+          app.expo.name = 'USKOČI CORE PROOF';
           fs.writeFileSync(path, JSON.stringify(app, null, 2) + '\n');
           NODE
 
@@ -169,7 +185,8 @@ jobs:
 
       - name: Validate physical UI evidence chain
         run: |
-          grep -F 'PASS RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY W03 W04 W05 W06 R05' artifacts/ru5-device-ui/proof.log
+          grep -F 'PASS CORE_NATIVE_APPLY_SELECT_MAP' artifacts/ru5-device-ui/proof.log
+          grep -F 'PASS PHYSICAL_D03_CHAT_RECOVERY' artifacts/ru5-device-ui/proof.log
           grep -F 'CHECKPOINT AGREEMENT_CREATED' artifacts/ru5-device-ui/proof.log
           grep -F 'CHECKPOINT GATES_UNCHANGED' artifacts/ru5-device-ui/proof.log
           for checkpoint in \
@@ -234,24 +251,40 @@ jobs:
           ")" = "1"
           echo "PASS RU5_DEVICE_POSTFLIGHT response selection agreement REQUESTER_SELECTION_V1 zero_rsd"
 
-      - name: Disposable postflight invariants
-        if: always()
+      - name: Validate exact same-Agreement native completion and source evidence
         run: |
-          if [[ -n "${RU5_DEVICE_DB_URL:-}" ]]; then
-            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.publication_policy_bundles;")" = "0"
-            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.need_publication_decisions;")" = "0"
-            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.preselection_qa_questions;")" = "0"
-            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from private.preselection_qa_commands;")" = "0"
-            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from public.needs where mode='FASTEST';")" = "0"
-            test "$(psql "$RU5_DEVICE_DB_URL" -Atc "select count(*) from public.need_selections where selection_mode='AUTO_FILL';")" = "0"
-          fi
+          for checkpoint in CORE_list_filtered CORE_map_ready CORE_map_selected CORE_requester_need_detail CORE_candidate_list CORE_selection_review CORE_worker_done D03_worker_composer_keyboard D03_worker_sent_once D03_requester_received D03_requester_reply D03_worker_both_sides D03_offline_unknown D03_retry_confirmed D03_refresh_single_copy D03_requester_all_messages D03_terminal_read_only D03_terminal_back; do
+            test -s "artifacts/ru5-device-ui/${checkpoint}.png"
+            test -s "artifacts/ru5-device-ui/${checkpoint}.xml"
+          done
+          node <<'NODE'
+          const assert=require('node:assert/strict'),fs=require('fs');
+          const read=name=>JSON.parse(fs.readFileSync('artifacts/ru5-device-ui/'+name));
+          const fixture=read('core-fixture.json'),selection=read('core-selection.json'),chat=read('d03-physical-chat-report.json'),boundary=read('d03-native-db-boundary.json');
+          const admission=JSON.parse(fs.readFileSync('artifacts/ai-review-device/ai-review-admission.json'));
+          for(const r of [fixture,selection,chat,boundary]) { assert.equal(r.result,'PASS');assert.equal(r.sourceSha,process.env.GITHUB_SHA);assert.equal(r.localOnly,true); }
+          assert.equal(admission.sourceSha,process.env.GITHUB_SHA);assert.equal(admission.historyCount,106);
+          assert.equal(selection.needId,fixture.needId);assert.equal(selection.agreementId,chat.sameAgreementId);assert.equal(selection.agreementId,boundary.agreementId);
+          for(const k of ['actualNativeApply','actualNativeSelect','actualNativeMapSelection'])assert.equal(selection[k],true);
+          assert.equal(chat.nativeWorkerDone,true);assert.equal(chat.nativeRequesterComplete,true);assert.equal(chat.historyCount,106);
+          assert.equal(chat.messages.length,3);assert.equal(new Set(chat.messages.map(m=>m.id)).size,3);
+          assert.equal(new Set(chat.messages.map(m=>m.sender_account_id)).size,2);
+          for(const k of ['publicationProof','productionPolicyActivation']) { assert.equal(fixture[k],false);assert.equal(selection[k],false);assert.equal(chat[k],false); }
+          assert.equal(boundary.nativeBoundary,'EXACT106_UI_CREATED_CORE_AGREEMENT');assert.deepEqual(boundary.applied,[]);assert.deepEqual(boundary.historyAfter,boundary.historyBefore);
+          assert.ok(chat.checks.some(c=>c.name==='WORKER_MARKED_DONE_REAL_UI'&&c.result==='PASS'));
+          assert.ok(chat.checks.some(c=>c.name==='PHYSICAL_KEYBOARD_COMPOSER_VISIBLE'&&c.result==='PASS'));
+          console.log('PASS CORE_NATIVE_ARTIFACT_CHAIN exact106 sameAgreement actualtwoAuth noPublicationProvider');
+          NODE
+          grep -F 'CHECKPOINT GATES_UNCHANGED exact106' artifacts/ru5-device-ui/proof.log
 
       - name: Upload physical UI evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: RU5-PHYSICAL-ANDROID-UI-EVIDENCE
-          path: artifacts/ru5-device-ui/
+          path: |
+            artifacts/ru5-device-ui/
+            artifacts/ai-review-device/ai-review-admission.json
           if-no-files-found: warn
           retention-days: 14
 

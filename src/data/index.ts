@@ -1,5 +1,6 @@
 import { agreementClientService } from './agreementClientService';
 import { applicationClientService } from './applicationClientService';
+import { applicationSelectionClientService } from './applicationSelectionClientService';
 import { aiCommandOverrides } from './aiCommandOverrides';
 import { aiNeedV2Production } from './aiNeedV2Production';
 import { aiProductionOverrides } from './aiProductionOverrides';
@@ -53,6 +54,7 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 const produkcijskiIzvor: Izvor = {
   ...supabaseIzvor,
   ...applicationClientService,
+  ...applicationSelectionClientService,
   ...candidateClientService,
   ...productionAuthorityOverrides,
   ...workerProfileClientService,

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, TextInput, View } from 'react-native';
-import { PaperPlaneTilt } from 'phosphor-react-native';
+import { V2Icon } from './v2/icons';
+import { v2 } from './v2/tokens';
 import type { PorukaProjekcija } from '../contracts/projections';
 import type { createAgreementOutbox, OutboxError } from '../data/agreementOutbox';
 import { palette, radius, space, touch } from '../theme/tokens';
@@ -71,8 +72,8 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           nearBottom.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
         }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={palette.teal500} />}
-        contentContainerStyle={{ padding: space.base, gap: space.md, flexGrow: 1 }}>
-        <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Poruke vide učesnici ovog Dogovora. Povucite naniže za nove poruke.</T>
+        contentContainerStyle={{ padding: v2.space.lg, gap: v2.space.md, flexGrow: 1 }}>
+        <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Razgovor o ovom Dogovoru. Povucite naniže za nove poruke.</T>
         {loading && <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={palette.teal500} />}
         {error && <View style={{ gap: space.sm, alignItems: 'center' }}>
           <T variant="bodyStrong">Poruke nisu učitane</T>
@@ -86,32 +87,32 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           <T variant="meta" tone="muted" style={{ textAlign: 'center', padding: space.lg }}>Još nema poruka.</T>}
         {!error && messages.map(message => <View key={message.id} style={{
           alignSelf: message.moja ? 'flex-end' : 'flex-start', maxWidth: '88%', borderRadius: radius.lg,
-          padding: space.md, gap: space.xs, backgroundColor: message.moja ? palette.forest800 : palette.surface,
+          padding: space.md, gap: space.xs, backgroundColor: message.moja ? v2.color.answer : v2.color.surface, borderWidth: 1, borderColor: message.moja ? v2.color.contextLine : v2.color.line, borderBottomRightRadius: message.moja ? 4 : 18, borderBottomLeftRadius: message.moja ? 18 : 4,
         }}>
           {!message.moja && <T variant="meta" tone="muted">{message.posiljalacIme}</T>}
-          <T selectable variant="body" tone={message.moja ? 'onDark' : 'ink'}>{message.telo}</T>
-          <T variant="meta" tone={message.moja ? 'onDarkMuted' : 'muted'}>{message.vremeTekst}</T>
+          <T selectable variant="body" style={{ ...v2.text.body, color: v2.color.ink }}>{message.telo}</T>
+          <T variant="meta" style={{ ...v2.text.label, color: v2.color.muted, textAlign: 'right' }}>{message.vremeTekst}</T>
         </View>)}
         {local.map(entry => <View key={entry.command.clientMessageId} style={{
           alignSelf: 'flex-end', maxWidth: '88%', borderRadius: radius.lg,
-          padding: space.md, gap: space.xs, backgroundColor: palette.forest800,
+          padding: space.md, gap: space.xs, backgroundColor: v2.color.answer, borderWidth: 1, borderColor: v2.color.contextLine, borderBottomRightRadius: 4,
         }}>
-          <T selectable variant="body" tone="onDark">{entry.command.body}</T>
-          <T variant="meta" tone="onDarkMuted" accessibilityLiveRegion="polite">
+          <T selectable variant="body" style={{ color: v2.color.ink }}>{entry.command.body}</T>
+          <T variant="meta" style={{ color: v2.color.muted }} accessibilityLiveRegion="polite">
             {entry.state === 'sending' ? 'Šalje se…' : entry.state === 'confirmed' ? 'Poslato'
               : entry.state === 'unknown' ? 'Slanje nije potvrđeno' : 'Nije poslato'}
           </T>
-          {entry.state === 'failed' && entry.error && <T variant="meta" tone="onDarkMuted">{errors[entry.error]}</T>}
+          {entry.state === 'failed' && entry.error && <T variant="meta" style={{ color: v2.color.muted }}>{errors[entry.error]}</T>}
           {(entry.state === 'unknown' || entry.state === 'failed') &&
             <Press accessibilityRole="button" accessibilityLabel={`Ponovi slanje poruke ${entry.command.body}`}
               onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => refresh()); }}
               style={{ minHeight: touch.min, justifyContent: 'center' }}>
-              <T variant="action" tone="onDark">Pokušajte ponovo</T>
+              <T variant="action" style={{ color: v2.color.ink }}>Pokušajte ponovo</T>
             </Press>}
         </View>)}
       </ScrollView>
       <View style={{ padding: space.base, paddingTop: space.sm, gap: space.sm, borderTopWidth: 1,
-        borderColor: palette.line100, backgroundColor: palette.ground }}>
+        borderColor: v2.color.line, backgroundColor: v2.color.canvas }}>
         {state.error && <T variant="meta" tone="danger" accessibilityLiveRegion="polite">
           {errors[state.error]}
         </T>}
@@ -126,15 +127,15 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             style={{ minHeight: touch.min, justifyContent: 'center' }}><T variant="action" tone="orange">Osvežite Dogovor</T></Press>}
         {length > 2000 && <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skratite poruku.</T>}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.sm,
-          borderWidth: 1, borderColor: palette.line100, borderRadius: radius.lg, backgroundColor: palette.surface }}>
+          borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 20, backgroundColor: v2.color.surface }}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
-            accessibilityLabel="Napišite poruku" placeholder="Poruka…" placeholderTextColor={palette.inkMuted}
+            accessibilityLabel="Napišite poruku" placeholder="Napiši poruku…" placeholderTextColor={palette.inkMuted}
             style={{ flex: 1, minHeight: touch.min, maxHeight: 140, fontSize: 16, color: palette.ink, padding: space.sm }} />
           <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
-            accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send}
+            accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'}
             style={{ width: touch.min, height: touch.min, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: canSend ? palette.orange : palette.cream050 }}>
-            <PaperPlaneTilt size={19} color={canSend ? palette.onOrange : palette.inkMuted} weight="fill" />
+              backgroundColor: canSend ? v2.color.ink : v2.color.soft }}>
+            <V2Icon name="send" size={22} color={canSend ? v2.color.surface : v2.color.muted} />
           </Press>
         </View>
       </View>

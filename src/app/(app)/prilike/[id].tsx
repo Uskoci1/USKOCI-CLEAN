@@ -1,12 +1,6 @@
+import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, View, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft } from 'phosphor-react-native';
-import { T } from '../../../ui/Text';
-import { Press } from '../../../ui/Press';
-import { Button, Card } from '../../../ui/Button';
-import { palette, space, touch } from '../../../theme/tokens';
 import { useIzvor, useUloga, ulogaSada } from '../../../store/uloga';
 import { useSesija, sesijaSada } from '../../../store/sesija';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
@@ -23,12 +17,23 @@ export default function PrilikaDetaljiEkran() {
   const { user, sessionEpoch: epoch } = useSesija();
   const accountId = user?.id;
   const readRequest = useRef(0);
+  const readCancellations = useRef(new Set<() => void>());
   const load = useCallback(async () => {
     const request = ++readRequest.current;
-    const prilika = id ? await izvor.prilika(id) : null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancel: (() => void) | undefined;
+    let prilika: PrilikaProjekcija | null;
+    try {
+      prilika = id ? await Promise.race([izvor.prilika(id), new Promise<never>((_, reject) => {
+        cancel = () => reject(new Error('TASK_READ_RETIRED'));
+        readCancellations.current.add(cancel);
+        timer = setTimeout(() => reject(new Error('TASK_READ_TIMEOUT')), 15_000);
+      })]) : null;
+    } finally { if (timer !== undefined) clearTimeout(timer); if (cancel) readCancellations.current.delete(cancel); }
     if (sesijaSada().sessionEpoch !== epoch || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
     return { prilika, request };
   }, [id, izvor, accountId, epoch]);
+  useEffect(() => () => { readCancellations.current.forEach(cancel => cancel()); readCancellations.current.clear(); }, [load]);
   const resource = useFocusedResource(load);
   // The cache is display-only and cannot survive a task, account, session or intent change.
   const cache = useMemo(() => ({ data: null as PrilikaProjekcija | null }), [load, intent]);
@@ -89,56 +94,10 @@ export default function PrilikaDetaljiEkran() {
     navigate(() => router.navigate({ pathname: '/prilike/[id]/prijava', params: { id: fresh.id } }));
   }
 
-  return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <View style={{ paddingHorizontal: space.base, paddingVertical: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-        <Press accessibilityRole="button" accessibilityLabel="Nazad na Zadatke" disabled={busy}
-          accessibilityState={{ disabled: busy }}
-          onPress={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/prilike'))}
-          style={{ width: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' }}>
-          <ArrowLeft size={24} color={palette.ink} />
-        </Press>
-        <T variant="title">Zadatak</T>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: space.base, paddingBottom: space.xxl, gap: space.base }}>
-        <View style={{ gap: space.sm }} accessibilityLiveRegion="polite">
-          {id && resource.loading ? <>
-            <ActivityIndicator color={palette.forest700} accessibilityLabel="Učitavamo zadatak" />
-            <T variant="body" tone="muted">Učitavamo zadatak…</T>
-          </> : resource.error ? <>
-            <T variant="heading">Zadatak trenutno nije moguće učitati.</T>
-            <T variant="body" tone="muted">Proverite internet vezu i pokušajte ponovo.</T>
-            <Button label="Pokušajte ponovo" onPress={retry} disabled={busy} />
-          </> : !fresh ? <>
-            <T variant="heading">Zadatak nije dostupan.</T>
-            <T variant="body" tone="muted">Možda je zatvoren ili više nije dostupan vašem nalogu. Vratite se na Zadatke.</T>
-            {id && <Button label="Pokušajte ponovo" kind="secondary" onPress={retry} disabled={busy} />}
-          </> : null}
-          {prilika && (resource.loading || resource.error) && <T variant="meta" tone="muted">Poslednji učitani podaci. Osvežite zadatak pre nastavka.</T>}
-        </View>
-        {prilika && <>
-          <View style={{ gap: space.xs }}>
-            <T variant="label" tone="muted">{prilika.statusTekst}</T>
-            <T variant="heading">{prilika.naslov}</T>
-          </View>
-          <Card>
-            <View style={{ padding: space.base, gap: space.sm }}>
-              <T variant="bodyStrong">{prilika.podrucjeTekst}</T>
-              <T variant="meta" tone="muted">{prilika.vremeTekst}</T>
-              <T variant="meta" tone="muted">Popunjeno {prilika.pokrivenost.popunjeno} od {prilika.pokrivenost.ukupno} mesta</T>
-              {prilika.ponudjenaCena && <T variant="bodyStrong">{prilika.ponudjenaCena.prikaz}</T>}
-            </View>
-          </Card>
-          {prilika.uslovi.length > 0 && <View style={{ gap: space.xs }}>
-            <T variant="bodyStrong">Uslovi</T>
-            {prilika.uslovi.map((uslov, index) => <T key={`${index}:${uslov}`} variant="meta" tone="muted">• {uslov}</T>)}
-          </View>}
-        </>}
-      </ScrollView>
-      {fresh && !resource.loading && !resource.error && <View style={{ padding: space.base, borderTopWidth: 1, borderTopColor: palette.line100, gap: space.sm }}>
-        {fresh.primaNovePrijave === true && deadlineOpen() && intent === 'uskocer' ? <Button label="Sastavi prijavu" full disabled={busy} onPress={compose} />
-          : <T variant="body" tone="muted">Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
-      </View>}
-    </SafeAreaView>
-  );
+  return <PublicNeedPresentation key={`${accountId}:${epoch}:${intent}:${id}`}
+    need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
+    stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
+    canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && intent === 'uskocer'}
+    back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/prilike'))}
+    retry={retry} apply={compose} />;
 }

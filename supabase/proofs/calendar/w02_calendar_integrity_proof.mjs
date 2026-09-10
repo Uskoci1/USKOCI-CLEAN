@@ -88,10 +88,15 @@ function connectedCalendar(client,userId){
     './workerCalendarClientService':'src/data/workerCalendarClientService.ts',
     './agreementClientService':'src/data/agreementClientService.ts',
     './calendarErrors':'src/data/calendarErrors.ts',
+    './needDetailPresentation':'src/data/needDetailPresentation.ts',
+    '../lib/location':'src/lib/location.ts',
+    './market':'src/lib/market.ts',
+    '../ui/calendar/calendarPresentation':'src/ui/calendar/calendarPresentation.ts',
+    '../../lib/calendarTime':'src/lib/calendarTime.ts',
   };
   const cache=new Map();
   const load=name=>{
-    const path=allowed[name];assert.ok(path,'UNEXPECTED_PROOF_MODULE');
+    assert.ok(Object.hasOwn(allowed,name),'UNEXPECTED_PROOF_MODULE');const path=allowed[name];
     if(cache.has(path))return cache.get(path).exports;
     const source=readFileSync(path,'utf8');report.input_sha256[path]=createHash('sha256').update(source).digest('hex');
     const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
