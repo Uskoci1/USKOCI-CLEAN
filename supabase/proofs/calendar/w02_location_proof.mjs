@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../ru5_device_ui_local_guard.mjs';
+import { proveResolvedLocation } from './w02_resolved_location_proof.mjs';
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL,out=env.W02_CALENDAR_ARTIFACT_DIR;
 assertLocalDeviceProofTargets(url,db);assert.ok(out);
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
@@ -42,8 +43,8 @@ function linked(client,id){
   }
   return {...load('./marketClientService'),...load('./locationClientService'),...load('./locationResolver'),state};
 }
-const remote={taskCountryCode:'RS',geography:{mode:'REMOTE'},exactAddress:null,accessNotes:null};
-const manual={taskCountryCode:'RS',geography:{mode:'STATIONARY',start:{city:'Novi Sad',area:'Liman'}},exactAddress:'ISOLATED PRIVATE ADDRESS 12',accessNotes:'ISOLATED PRIVATE ACCESS\nSecond line'};
+const remote={taskCountryCode:'RS',geography:{mode:'REMOTE'},exactAddress:null,accessNotes:null,resolvedLocation:null};
+const manual={taskCountryCode:'RS',geography:{mode:'STATIONARY',start:{city:'Novi Sad',area:'Liman'}},exactAddress:'ISOLATED PRIVATE ADDRESS 12',accessNotes:'ISOLATED PRIVATE ACCESS\nSecond line',resolvedLocation:null};
 const review=(client,id)=>value(client.needLocationClientService.read(id));
 async function save(client,id,input,revision){const previous=await review(client,id);return value(client.needLocationClientService.save({conversationId:id,
   expectedRevision:revision??previous.revision,value:input,confirmed:true}));}
@@ -94,7 +95,7 @@ try{
 
   begin('MANUAL_LOCATION_STARTS_EMPTY_AND_SAVES_CONFIRMED_V2_FACTS');
   const conversation=await open(),empty=await review(a,conversation);
-  assert.deepEqual(empty.value,{taskCountryCode:null,geography:null,exactAddress:null,accessNotes:null});assert.equal(empty.confirmed,false);
+  assert.deepEqual(empty.value,{taskCountryCode:null,geography:null,exactAddress:null,accessNotes:null,resolvedLocation:null});assert.equal(empty.confirmed,false);
   const first=await save(a,conversation,manual);assert.deepEqual(first.review.value,manual);assert.equal(first.review.confirmed,true);
   const facts=await ok(owner.from('ai_structured_facts').select('fact_key,scope,source,status,confirmed_by_user_id').eq('conversation_id',conversation).is('superseded_at',null));
   assert.equal(facts.length,4);for(const f of facts){assert.equal(f.source,'EXPLICIT_USER_ANSWER');assert.equal(f.scope,'NEED_DRAFT');assert.equal(f.status,'CONFIRMED');assert.equal(f.confirmed_by_user_id,env.RU5_DEVICE_REQUESTER_USER_ID);}
@@ -245,7 +246,11 @@ try{
     'private.normalize_task_geography(jsonb)','private.normalize_need_location(jsonb)']){
     for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_function_privilege(${q(role)},${q(signature)},'EXECUTE')`),'f');
   }
-  pass();report.result='PASS';
+  pass();
+  // Original 14 checks above retain their own mutation boundary. The separate
+  // resolved-location report includes a real Response/Selection/Agreement.
+  await proveResolvedLocation({owner,worker,third,anon,fixtureService,a,open,save,review,completeDraft,publishFixture,ok,sql,q,env,out});
+  report.resolved_location_proof_passed=true;report.result='PASS';
 }catch(error){report.result='FAIL';report.failed_stage=stage;report.error_type=error?.code==='ERR_ASSERTION'?'ASSERTION':error?.message==='LOCAL_SQL_FAILED'?'LOCAL_SQL':'CLIENT_OR_RPC';
   report.failed_source_line=Number(error?.stack?.match(/w02_location_proof\.mjs:(\d+):/)?.[1])||null;}
 finally{

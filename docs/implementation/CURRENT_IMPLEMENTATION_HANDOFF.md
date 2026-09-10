@@ -1,41 +1,67 @@
-## 2026-09-10 — native W02 editors and regional country authority; integration pending
+## 2026-09-10 — resolved private points: source ready for disposable admission
 
-Fresh canonical admission: 5645f0f4cdaa268a36171aa741beceb681e5cfec after PR88.
-Physical live admission is 88 migrations, through P0E completion guards; the old
-87-entry provenance snapshot remains the intentionally frozen disposable replay
-baseline. See LIVE_MIGRATION_STATE.json and evidence/live-readmission-20260910.
-There are 101 source migrations and 13 physical pending migrations including this
-regional forward. No production write has occurred in this batch.
+Current branch: feat/w02-resolved-location-20260910, based on canonical PR89.
+The existing Need fact/location authority now accepts an optional, human-only
+resolved-location fact bound to the exact country, geography and address revision.
+MapLibre native editors cover route slots and the coarse Worker base. Country,
+address or topology changes retire old pins; Remote removes physical location.
+The existing Agreement grant/reveal/revoke path covers coordinate-only locations.
+Exact points remain private and are excluded from AI proposals and structured context.
 
-This branch binds the existing Need location review, Worker location, calendar and
-availability clients to native routes. The review refreshes on return and writes
-the displayed revision. Owned editors fence account/intent/revision changes,
-duplicate submissions, retained tabs and unknown command outcomes. The calendar
-uses confirmed exact server intervals for both intents; flexible schedules remain
-accessible through Dogovori, without inventing calendar occupancy. Availability
-edits reuse existing recurring rules, dated exceptions and persistent Available Now.
+The owner selected LocationIQ on 2026-09-10 and confirmed that the production
+LOCATIONIQ_ACCESS_TOKEN Edge secret is set. The existing authenticated search
+adapter is being adapted to https://eu1.locationiq.com/v1/search, format=json,
+with server-only key authentication. Client provider identity is locationiq;
+no client provider secret or extra hint variable is needed. Reverse endpoint
+https://eu1.locationiq.com/v1/reverse is recorded for an explicit reverse intent;
+map taps do not send automatic reverse requests. Manual selection remains available.
+Actual provider proof needs the deployed exact source and a signed-in app session.
 
-The country forward extends existing profile/Need/fact/snapshot authorities and
-preserves canonical edit guards. Historical country stays NULL; RS BUILDING is
-the sole registered market and does not activate publication. Manual entry is
-explicit, exact address remains private, and REMOTE has no physical location.
-Twelve predecessor function-body hashes are checked before replacement. The old
-PR87 corrupt transfer was not applied; ten recoverable source files were verified
-against their Git blob IDs outside the working tree and used only as reuse input.
+Source migration 20260910130851 is pending; SHA256
+3aec6ef4189e0df5ce157e661a64487655645e6b6eee94675f60dcace1214dcf.
+Local TypeScript, location/grant/editor/adapter regressions and strict Edge checks
+pass. The actual-handler synthetic tests pass58 AI and21 LocationIQ cases; they do
+not prove a real provider. The existing W02 workflow now includes11 real
+Auth/SDK/PostgREST resolved-location stages; runtime admission is still pending.
+Android debug build and safe in-place install passed. Automated ADB launch and
+starting the live-connected web app were rejected by tool policy; native map
+rendering and the actual authenticated provider journey remain unproven.
+Live remains101 / AI Edge v12 with21 keys until this successor is admitted,
+merged, promoted and independently read back. Continue the same W02 unit.
 
-Targeted component/client/date tests and TypeScript pass locally; the expanded
-15-stage location proof and existing calendar/availability/capability checks must
-pass together on this exact source in disposable Postgres before merge/promotion.
-The component-only web inspection used labeled fixtures, including 320 px layout
-and remote payload clearing. It is not authenticated or native-device proof.
-BINDING_MATRIX_66.json preserves all supplied surfaces and records only the
-bindings actually implemented here. W02 remains open for resolved coordinates,
-regional matching, rendered private-safe pins and full acceptance.
+---
 
-Next: exact-source integrated W02 proof, review and canonical merge; then re-admit
-the physical live prefix and conditionally promote only proven compatible ordered
-forwards. Continue resolved-location/current debt before W03. D0140 fail-closed,
-fees zero, checkout off, and provider secrets server-only remain unchanged.
+## 2026-09-10 — native W02 regional batch merged and LIVE101
+
+PR89 is canonical at 42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9. The existing
+Need/Worker location, calendar, availability and reviewed-country routes are
+UI_CONNECTED + MERGED + LIVE; physical-device and provider execution remain
+unproven. The admitted source has101 migrations. This working branch has102,
+with the unmerged resolved-location successor pending proof and promotion.
+
+Exact-source run34480194857/artifact10153450975 passes9 calendar +13 interval
++11 availability +14 location +7 capability checks. The original ZIP digest is
+d93c08789ca59a27a3f1845516dd71e5b2975f970d7088baed19eaf340723eb5;
+PR test merge and head have the same tree and all14 runtime input hashes match.
+Earlier assertion/count failures were corrected in the proof; applied SQL bytes
+were unchanged. No device journey is inferred from these disposable checks.
+
+Ordered promotion88→93→99→101 applied13 exact canonical forwards. Final alias
+20260910132345_clean_w02_regional_country_authority has matching raw MD5,
+SHA256 and byte count; all13 aliases were independently compared. Postflight
+at13:25:24UTC verifies country functions/ACLs, RLS, inert registries,0RSD and
+private media. Existing7 Needs and3 Workers retain unknown country; two existing
+confirmed Agreements have no exact accepted interval and correctly add no event.
+
+Existing Edge uskoci-ai-interview is ACTIVE v12/JWT true. Root verified exact
+handler+21-key registry readback; this is source parity, not provider execution.
+RS stays BUILDING; D0140 bundle remains unreviewed/incomplete/inactive, checkout
+and positive fees remain off. The frozen live87 replay snapshot and historical
+pending suffix retain their original meaning; physical overlays carry live101.
+
+Evidence: [live/source verification](evidence/w02-live101-20260910/verification.json).
+Continue the reused resolved-location successor and remaining W02 acceptance.
+Do not reapply the13 promoted forwards or label the whole W02 complete.
 
 ---
 

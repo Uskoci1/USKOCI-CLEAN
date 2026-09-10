@@ -20,12 +20,14 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretDown: 'Icon', Check: 'Icon', LockKey: 'Icon' }));
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() }, useFocusEffect: jest.fn() }));
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
+  useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]) }));
 jest.mock('../locationClientService', () => ({ workerLocationClientService: { read: jest.fn(), save: jest.fn() } }));
 jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: jest.fn() }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
+jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
 
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { WorkerLocationForm } from '../../app/(app)/profil/lokacija';
@@ -56,6 +58,32 @@ const text = () => tree.root.findAll(node => String(node.type) === 'T')
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('actual native Need location form', () => {
+  it('requires point confirmation before saving and does not publish the precise point in geography', async () => {
+    const onSave = jest.fn();
+    await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
+    await act(async () => tree.root.findByType('ResolvedPinMap' as never).props.onChoose({ latitude: 45.251234, longitude: 19.831234 }));
+    act(() => { confirm().props.onPress(); });
+    act(() => { saveButton().props.onPress(); });
+    expect(onSave).not.toHaveBeenCalled();
+    act(() => { tree.root.findByProps({ label: 'Potvrdi tačku: Mesto rada' }).props.onPress(); });
+    act(() => { confirm().props.onPress(); });
+    act(() => { saveButton().props.onPress(); });
+    expect(onSave.mock.calls[0][0].resolvedLocation.points[0]).toMatchObject({ slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234, origin: { kind: 'MANUAL_PIN' } });
+    expect(JSON.stringify(onSave.mock.calls[0][0].geography)).not.toMatch(/latitude|longitude|Privatna/);
+  });
+
+  it('editing a city and returning to the original text cannot revive confirmed coordinates', async () => {
+    const onSave = jest.fn(), base = review();
+    const loaded: NeedLocationReview = { ...base, value: { ...base.value, resolvedLocation: { version: 1, binding: { taskCountryCode: 'RS',
+      geography: base.value.geography!, exactAddress: base.value.exactAddress }, points: [
+      { slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234, origin: { kind: 'MANUAL_PIN' } },
+    ] } } };
+    await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
+    await edit('Mesto rada — grad ili mesto', 'Beograd'); await edit('Mesto rada — grad ili mesto', 'Novi Sad');
+    await check(); await save();
+    expect(onSave.mock.calls[0][0].resolvedLocation).toBeNull();
+    expect(tree.root.findByType('ResolvedPinMap' as never).props.position).toBeNull();
+  });
   it('requires an explicit country for historical location without assuming Serbia', async () => {
     const onSave = jest.fn();
     const historical = review();
@@ -141,6 +169,26 @@ describe('actual native Need location form', () => {
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Početna tačka — grad ili mesto' })).toHaveLength(0);
     await check(); await save();
     expect(onSave.mock.calls[1][0].geography).toEqual({ mode: 'AREA_BASED', serviceArea: { city: 'Beograd' } });
+  });
+
+  it('preserves confirmed start-only AREA_BASED topology when reopening and confirming its private point', async () => {
+    const onSave = jest.fn(), base = review();
+    const geography = { mode: 'AREA_BASED' as const, start: { city: 'Novi Sad', area: 'Liman' } };
+    const resolvedLocation = { version: 1 as const, binding: { taskCountryCode: 'RS', geography, exactAddress: base.value.exactAddress },
+      points: [{ slot: 'start' as const, latitudeE6: 45251234, longitudeE6: 19831234,
+        origin: { kind: 'MANUAL_PIN' as const }, address: 'Privatna početna tačka', accessNotes: 'Zvono 2' }] };
+    const loaded: NeedLocationReview = { ...base, value: { ...base.value, geography, resolvedLocation } };
+    await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
+    expect(tree.root.findByType('ResolvedPinMap' as never).props.position).toEqual({ latitude: 45.251234, longitude: 19.831234 });
+    expect(text()).not.toContain('Prvo unesite državu i javno mesto');
+    act(() => { saveButton().props.onPress(); }); expect(onSave).not.toHaveBeenCalled();
+    act(() => { tree.root.findByProps({ label: 'Potvrdi tačku: Polazište' }).props.onPress(); });
+    act(() => { confirm().props.onPress(); });
+    act(() => { saveButton().props.onPress(); });
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][0].geography).toEqual(geography);
+    expect(onSave.mock.calls[0][0].geography).not.toHaveProperty('serviceArea');
+    expect(onSave.mock.calls[0][0].resolvedLocation).toEqual(resolvedLocation);
   });
 
   it.each(['busy', 'uncertain', 'read-only'] as const)('blocks command submission when %s', async state => {

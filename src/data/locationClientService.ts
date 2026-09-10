@@ -1,5 +1,5 @@
 import type { NeedLocationReceipt, NeedLocationReview, NeedLocationSave, WorkerLocation, WorkerLocationReceipt, WorkerLocationSave } from '../contracts/location';
-import { coarsePosition, locationText, locationPrivateText, normalizeTaskGeography, locationRevision, normalizeNeedLocation, normalizeWorkerLocation, sameNeedLocation, sameWorkerLocation } from '../lib/location';
+import { coarsePosition, locationText, locationPrivateText, normalizeResolvedLocation, normalizeTaskGeography, locationRevision, normalizeNeedLocation, normalizeWorkerLocation, sameNeedLocation, sameWorkerLocation } from '../lib/location';
 import { countryCode } from '../lib/market';
 import { sesijaSada } from '../store/sesija';
 import type { Ishod } from './ports';
@@ -14,6 +14,7 @@ const COPY: Readonly<Record<string, string>> = {
   LOCATION_REVIEW_NOT_FOUND: 'Priprema Zadatka nije pronađena.',
   LOCATION_REVIEW_NOT_EDITABLE: 'Ova priprema Zadatka više ne može da se menja.',
   LOCATION_VERSION_CONFLICT: 'Lokacija je u međuvremenu promenjena. Učitajte novo stanje pre čuvanja.',
+  LOCATION_BINDING_CHANGED: 'Mesto je promenjeno. Ponovo označite i potvrdite tačke na mapi.',
   WORKER_PROFILE_REQUIRED: 'Najpre sačuvajte svoj radni profil.',
   WORKER_PROFILE_RESTRICTED: 'Lokacija ovog profila trenutno ne može da se menja.',
 };
@@ -28,8 +29,11 @@ function review(raw: unknown, accountId: string | undefined, conversationId: str
   const accessNotes = locationPrivateText(val.accessNotes, 2000);
   if ((val.taskCountryCode != null && (!taskCountryCode || val.taskCountryCode !== taskCountryCode)) || (val.geography !== null && !geography) || exactAddress === undefined || accessNotes === undefined
     || (input.confirmed && !geography)) return null;
+  const resolvedLocation = val.resolvedLocation == null ? null : taskCountryCode && geography
+    ? normalizeResolvedLocation(val.resolvedLocation, { taskCountryCode, geography, exactAddress }) : undefined;
+  if (resolvedLocation === undefined) return null;
   return { accountId: input.accountId, conversationId: input.conversationId, revision: input.revision,
-    editable: input.editable, confirmed: input.confirmed && taskCountryCode !== null, value: { taskCountryCode, geography, exactAddress, accessNotes } };
+    editable: input.editable, confirmed: input.confirmed && taskCountryCode !== null, value: { taskCountryCode, geography, exactAddress, accessNotes, resolvedLocation } };
 }
 function worker(raw: unknown, accountId: string | undefined): WorkerLocation | null {
   const input = record(raw);

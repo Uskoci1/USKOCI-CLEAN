@@ -53,7 +53,7 @@ it('shows the known unavailable-country error without exposing arbitrary backend
 });
 
 it('manual geography is the existing textual topology with private fields kept separate', () => {
-  expect(normalizeNeedLocation({ ...input(), geography: { mode: 'STATIONARY', start: { city: ' Novi Sad ', area: ' Liman ' } } })).toEqual(input());
+  expect(normalizeNeedLocation({ ...input(), geography: { mode: 'STATIONARY', start: { city: ' Novi Sad ', area: ' Liman ' } } })).toEqual({ ...input(), resolvedLocation: null });
   expect(normalizeNeedLocation({ ...input(), accessNotes: 'Ulaz A\nSprat 2' })?.accessNotes).toBe('Ulaz A\nSprat 2');
 });
 it.each([
@@ -82,7 +82,7 @@ it.each([
 });
 it('REMOTE explicitly requires no address/GPS and never supplies a synthetic position', () => {
   expect(normalizeNeedLocation({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null }))
-    .toEqual({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null });
+    .toEqual({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null });
   expect(normalizeNeedLocation({ ...input(), geography: { mode: 'REMOTE' } })).toBeNull();
   expect(normalizeTaskGeography({ mode: 'REMOTE', start: null, end: null, waypoints: [], serviceArea: null })).toEqual({ mode: 'REMOTE' });
 });
@@ -100,7 +100,7 @@ it('sends human confirmation through the owned fact command, not direct Need or 
   mockRpc.mockResolvedValue({ data: receipt(), error: null });
   await expect(needLocationClientService.save(command())).resolves.toMatchObject({ ok: true, podatak: { saved: true } });
   expect(mockRpc.mock.calls).toEqual([['rpc_save_need_location_review', {
-    p_conversation_id: C, p_expected_revision: revision, p_confirmed: true, p_value: input(),
+    p_conversation_id: C, p_expected_revision: revision, p_confirmed: true, p_value: { ...input(), resolvedLocation: null },
   }]]);
 });
 it.each([{ saved: false }, { idempotentReplay: undefined }, { review: null },

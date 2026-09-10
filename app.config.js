@@ -8,6 +8,10 @@ module.exports = ({ config }) => {
   const inertPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
+  const mapPlugin = '@maplibre/maplibre-react-native';
+  if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === mapPlugin)) {
+    plugins.push(mapPlugin);
+  }
   if (android.package === 'rs.uskoci.preview') {
     android.googleServicesFile = './config/firebase/google-services.json';
     plugins.push(inertPlugin);

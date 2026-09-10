@@ -701,20 +701,11 @@ export const lazniIzvor: Izvor = {
     return { ok: true, podatak: null };
   },
 
-  async otkrijTacnuLokaciju(dogovorId) {
-    await kasnjenje();
-    if (rezimZa(dogovorId) === 'DALJINSKI') {
-      return {
-        ok: false,
-        kod: 'NO_PHYSICAL_LOCATION',
-        naslov: 'Daljinski Dogovor',
-        poruka: 'Ovaj Dogovor se izvršava daljinski i nema fizičku adresu.',
-      };
-    }
-    const d = deljenjeZa(dogovorId);
-    stanje.deljenje[dogovorId] = { ...d, lokacijaOtkrivena: true };
-    return { ok: true, podatak: { adresa: 'Bulevar oslobođenja 76, 4. sprat' } };
-  },
+  // The demo does not invent authoritative grants or private location receipts.
+  async lokacijskaDozvola() { return { ok: false, kod: 'DEMO_LOCATION_UNAVAILABLE', poruka: 'Privatna lokacija nije dostupna u probnom prikazu.' }; },
+  async podeliTacnuLokaciju() { return { ok: false, kod: 'DEMO_LOCATION_UNAVAILABLE', poruka: 'Privatna lokacija nije dostupna u probnom prikazu.' }; },
+  async opoziviTacnuLokaciju() { return { ok: false, kod: 'DEMO_LOCATION_UNAVAILABLE', poruka: 'Privatna lokacija nije dostupna u probnom prikazu.' }; },
+  async otkrijTacnuLokaciju() { return { ok: false, kod: 'DEMO_LOCATION_UNAVAILABLE', poruka: 'Privatna lokacija nije dostupna u probnom prikazu.' }; },
 
   async mojRadnikProfil() {
     await kasnjenje();

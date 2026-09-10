@@ -14,6 +14,7 @@ import {
 } from '../contracts/needFactsV2';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { normalizeNeedLocation } from '../lib/location';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -72,19 +73,27 @@ function mapFact(raw: any): AiNeedV2Fact | null {
   if (!isNeedFactV2Key(String(raw?.key ?? raw?.fact_key ?? ''))) return null;
   const key = String(raw?.key ?? raw?.fact_key) as keyof typeof NEED_FACT_V2_DEFINITIONS;
   const definition = NEED_FACT_V2_DEFINITIONS[key];
-  const display = String(raw?.displayValue ?? raw?.display_value ?? '').trim();
+  let value = raw?.value ?? raw?.fact_value;
+  const manualLocation = key === 'need.resolved_location';
+  if (manualLocation) {
+    const normalized = normalizeNeedLocation({ ...value?.binding, accessNotes: null, resolvedLocation: value });
+    if (!normalized?.resolvedLocation || raw?.status !== 'CONFIRMED') return null;
+    value = normalized.resolvedLocation;
+  }
+  const display = manualLocation ? `Potvrđene privatne tačke: ${value.points.length}`
+    : String(raw?.displayValue ?? raw?.display_value ?? '').trim();
   if (!display) return null;
   return {
     id: String(raw.id),
     key,
-    value: raw?.value ?? raw?.fact_value,
+    value,
     displayValue: display,
     valueType: (raw?.valueType ?? raw?.value_type ?? definition.valueType) as AiNeedV2Fact['valueType'],
-    privacyClass: (raw?.privacyClass ?? definition.privacyClass) as AiNeedV2Fact['privacyClass'],
+    privacyClass: definition.privacyClass,
     requiredForDraft: Boolean(raw?.requiredForDraft ?? definition.requiredForDraft),
     status: String(raw?.status ?? 'UNKNOWN') as AiNeedV2Fact['status'],
     source: String(raw?.source ?? 'SYSTEM') as AiNeedV2Fact['source'],
-    evidence: typeof (raw?.evidence ?? raw?.evidence_excerpt) === 'string'
+    evidence: !manualLocation && typeof (raw?.evidence ?? raw?.evidence_excerpt) === 'string'
       ? String(raw?.evidence ?? raw?.evidence_excerpt).trim() || null
       : null,
   };

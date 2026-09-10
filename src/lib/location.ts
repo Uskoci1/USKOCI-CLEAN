@@ -1,5 +1,5 @@
 import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../contracts/needFactsV2';
-import type { CoarsePosition, NeedLocationInput, WorkerLocationInput } from '../contracts/location';
+import type { CoarsePosition, ConfirmedLocationPoint, LocationPinOrigin, LocationSlot, NeedLocationInput, ResolvedLocationValue, WorkerLocationInput } from '../contracts/location';
 import { countryCode } from './market';
 
 function object(value: unknown): Record<string, unknown> | null {
@@ -65,14 +65,87 @@ export function normalizeTaskGeography(value: unknown): NeedTaskGeography | null
 }
 export function normalizeNeedLocation(value: unknown): NeedLocationInput | null {
   const input = object(value);
-  if (!input || !only(input, ['taskCountryCode', 'geography', 'exactAddress', 'accessNotes'])) return null;
+  if (!input || !locationPayloadFits(input) || !only(input, ['taskCountryCode', 'geography', 'exactAddress', 'accessNotes', 'resolvedLocation'])) return null;
   const taskCountryCode = countryCode(input.taskCountryCode);
   const geography = normalizeTaskGeography(input.geography);
   const exactAddress = locationPrivateText(input.exactAddress, 1000);
   const accessNotes = locationPrivateText(input.accessNotes, 2000);
   if (!taskCountryCode || !geography || exactAddress === undefined || accessNotes === undefined) return null;
   if (geography.mode === 'REMOTE' && (exactAddress !== null || accessNotes !== null)) return null;
-  return { taskCountryCode, geography, exactAddress, accessNotes };
+  const resolvedLocation = normalizeResolvedLocation(input.resolvedLocation, { taskCountryCode, geography, exactAddress });
+  if (resolvedLocation === undefined) return null;
+  return { taskCountryCode, geography, exactAddress, accessNotes, resolvedLocation };
+}
+
+export function locationPayloadFits(value: unknown): boolean {
+  try {
+    const json = JSON.stringify(value);
+    if (typeof json !== 'string') return false;
+    // PostgreSQL jsonb text uses a space after each structural comma/colon.
+    // Count those too so a UTF-8 payload accepted here fits the server boundary.
+    let bytes = 0, quoted = false, escaped = false;
+    for (const character of json) {
+      const code = character.codePointAt(0)!;
+      bytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === '"') quoted = false;
+      } else if (character === '"') quoted = true;
+      else if (character === ',' || character === ':') bytes++;
+      if (bytes > 65_536) return false;
+    }
+    return true;
+  } catch { return false; }
+}
+
+export function locationSlots(geography: NeedTaskGeography): LocationSlot[] {
+  if (geography.mode === 'REMOTE') return [];
+  return [
+    ...(geography.start ? ['start' as const] : []),
+    ...(geography.waypoints ?? []).map((_, index) => `waypoints/${index}` as LocationSlot),
+    ...(geography.end ? ['end' as const] : []),
+    ...(geography.serviceArea ? ['serviceArea' as const] : []),
+  ];
+}
+
+/** undefined is invalid; null is an honest unresolved or legacy value. */
+export function normalizeResolvedLocation(value: unknown, target: ResolvedLocationValue['binding']): ResolvedLocationValue | null | undefined {
+  if (value == null) return null;
+  const input = object(value), binding = object(input?.binding);
+  if (!input || !binding || !locationPayloadFits(value) || input.version !== 1 || target.geography.mode === 'REMOTE'
+    || !only(input, ['version', 'binding', 'points']) || !only(binding, ['taskCountryCode', 'geography', 'exactAddress'])) return undefined;
+  const boundCountry = countryCode(binding.taskCountryCode), boundGeography = normalizeTaskGeography(binding.geography);
+  const boundAddress = locationPrivateText(binding.exactAddress, 1000);
+  if (boundCountry !== target.taskCountryCode || !boundGeography || boundAddress !== target.exactAddress
+    || JSON.stringify(boundGeography) !== JSON.stringify(target.geography)) return undefined;
+  const slots = locationSlots(target.geography), seen = new Set<string>();
+  if (!Array.isArray(input.points) || !input.points.length || input.points.length > slots.length || input.points.length > 22) return undefined;
+  const points: ConfirmedLocationPoint[] = [];
+  for (const item of input.points) {
+    const pin = object(item), origin = object(pin?.origin);
+    if (!pin || !origin || !only(pin, ['slot', 'latitudeE6', 'longitudeE6', 'origin', 'address', 'accessNotes'])
+      || typeof pin.slot !== 'string' || !slots.includes(pin.slot as LocationSlot) || seen.has(pin.slot)) return undefined;
+    const { latitudeE6, longitudeE6 } = pin;
+    if (typeof latitudeE6 !== 'number' || typeof longitudeE6 !== 'number' || !Number.isSafeInteger(latitudeE6)
+      || !Number.isSafeInteger(longitudeE6) || Math.abs(latitudeE6) > 90_000_000 || Math.abs(longitudeE6) > 180_000_000) return undefined;
+    let normalizedOrigin: LocationPinOrigin;
+    if (origin.kind === 'MANUAL_PIN' && only(origin, ['kind'])) normalizedOrigin = { kind: 'MANUAL_PIN' };
+    else if (origin.kind === 'PROVIDER_CANDIDATE' && only(origin, ['kind', 'providerHint', 'candidateHint'])) {
+      const providerHint = locationText(origin.providerHint, 64);
+      const candidateHint = origin.candidateHint === null ? null : locationText(origin.candidateHint, 160);
+      if (!providerHint || !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(providerHint) || (candidateHint === null && origin.candidateHint !== null)) return undefined;
+      normalizedOrigin = { kind: 'PROVIDER_CANDIDATE', providerHint, candidateHint };
+    } else return undefined;
+    const address = pin.address == null ? null : locationPrivateText(pin.address, 1000);
+    const accessNotes = pin.accessNotes == null ? null : locationPrivateText(pin.accessNotes, 2000);
+    if (address === undefined || accessNotes === undefined) return undefined;
+    seen.add(pin.slot);
+    points.push({ slot: pin.slot as LocationSlot, latitudeE6, longitudeE6, origin: normalizedOrigin,
+      ...(address !== null ? { address } : {}), ...(accessNotes !== null ? { accessNotes } : {}) });
+  }
+  points.sort((a, b) => slots.indexOf(a.slot) - slots.indexOf(b.slot));
+  return { version: 1, binding: { taskCountryCode: target.taskCountryCode, geography: target.geography, exactAddress: target.exactAddress }, points };
 }
 export function coarsePosition(value: unknown): CoarsePosition | null {
   const input = object(value);

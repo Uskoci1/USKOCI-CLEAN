@@ -1,41 +1,34 @@
-## 2026-09-10 — native W02 editors and regional country authority; integration pending
+## 2026-09-10 — native W02 regional batch merged and LIVE101
 
-Fresh canonical admission: 5645f0f4cdaa268a36171aa741beceb681e5cfec after PR88.
-Physical live admission is 88 migrations, through P0E completion guards; the old
-87-entry provenance snapshot remains the intentionally frozen disposable replay
-baseline. See LIVE_MIGRATION_STATE.json and evidence/live-readmission-20260910.
-There are 101 source migrations and 13 physical pending migrations including this
-regional forward. No production write has occurred in this batch.
+PR89 is canonical at 42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9. The existing
+Need/Worker location, calendar, availability and reviewed-country routes are
+UI_CONNECTED + MERGED + LIVE; physical-device and provider execution remain
+unproven. The admitted source has101 migrations. This working branch has102,
+with the unmerged resolved-location successor pending proof and promotion.
 
-This branch binds the existing Need location review, Worker location, calendar and
-availability clients to native routes. The review refreshes on return and writes
-the displayed revision. Owned editors fence account/intent/revision changes,
-duplicate submissions, retained tabs and unknown command outcomes. The calendar
-uses confirmed exact server intervals for both intents; flexible schedules remain
-accessible through Dogovori, without inventing calendar occupancy. Availability
-edits reuse existing recurring rules, dated exceptions and persistent Available Now.
+Exact-source run34480194857/artifact10153450975 passes9 calendar +13 interval
++11 availability +14 location +7 capability checks. The original ZIP digest is
+d93c08789ca59a27a3f1845516dd71e5b2975f970d7088baed19eaf340723eb5;
+PR test merge and head have the same tree and all14 runtime input hashes match.
+Earlier assertion/count failures were corrected in the proof; applied SQL bytes
+were unchanged. No device journey is inferred from these disposable checks.
 
-The country forward extends existing profile/Need/fact/snapshot authorities and
-preserves canonical edit guards. Historical country stays NULL; RS BUILDING is
-the sole registered market and does not activate publication. Manual entry is
-explicit, exact address remains private, and REMOTE has no physical location.
-Twelve predecessor function-body hashes are checked before replacement. The old
-PR87 corrupt transfer was not applied; ten recoverable source files were verified
-against their Git blob IDs outside the working tree and used only as reuse input.
+Ordered promotion88→93→99→101 applied13 exact canonical forwards. Final alias
+20260910132345_clean_w02_regional_country_authority has matching raw MD5,
+SHA256 and byte count; all13 aliases were independently compared. Postflight
+at13:25:24UTC verifies country functions/ACLs, RLS, inert registries,0RSD and
+private media. Existing7 Needs and3 Workers retain unknown country; two existing
+confirmed Agreements have no exact accepted interval and correctly add no event.
 
-Targeted component/client/date tests and TypeScript pass locally; the expanded
-15-stage location proof and existing calendar/availability/capability checks must
-pass together on this exact source in disposable Postgres before merge/promotion.
-The component-only web inspection used labeled fixtures, including 320 px layout
-and remote payload clearing. It is not authenticated or native-device proof.
-BINDING_MATRIX_66.json preserves all supplied surfaces and records only the
-bindings actually implemented here. W02 remains open for resolved coordinates,
-regional matching, rendered private-safe pins and full acceptance.
+Existing Edge uskoci-ai-interview is ACTIVE v12/JWT true. Root verified exact
+handler+21-key registry readback; this is source parity, not provider execution.
+RS stays BUILDING; D0140 bundle remains unreviewed/incomplete/inactive, checkout
+and positive fees remain off. The frozen live87 replay snapshot and historical
+pending suffix retain their original meaning; physical overlays carry live101.
 
-Next: exact-source integrated W02 proof, review and canonical merge; then re-admit
-the physical live prefix and conditionally promote only proven compatible ordered
-forwards. Continue resolved-location/current debt before W03. D0140 fail-closed,
-fees zero, checkout off, and provider secrets server-only remain unchanged.
+Evidence: [live/source verification](evidence/w02-live101-20260910/verification.json).
+Continue the reused resolved-location successor and remaining W02 acceptance.
+Do not reapply the13 promoted forwards or label the whole W02 complete.
 
 ---
 

@@ -2,6 +2,7 @@ import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import {
   NEED_FACT_V2_DEFINITIONS,
   NEED_FACT_V2_KEYS,
+  AI_PROPOSABLE_NEED_FACT_V2_KEYS,
   REQUIRED_NEED_FACT_V2_KEYS,
 } from '../../contracts/needFactsV2';
 import {
@@ -27,8 +28,11 @@ function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
 }
 
 describe('RU-2 typed R02 → R07 contract', () => {
-  it('keeps exactly the canonical 21 V2 fact keys and required draft keys', () => {
-    expect(NEED_FACT_V2_KEYS).toHaveLength(21);
+  it('keeps 22 canonical facts, with the private resolved fact outside the 21 AI proposals', () => {
+    expect(NEED_FACT_V2_KEYS).toHaveLength(22);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(21);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.resolved_location');
+    expect(NEED_FACT_V2_DEFINITIONS['need.resolved_location']).toMatchObject({ privacyClass: 'PRIVATE', manualOnly: true, requiredForDraft: false });
     expect(REQUIRED_NEED_FACT_V2_KEYS).toEqual(expect.arrayContaining([
       'need.title',
       'need.description',

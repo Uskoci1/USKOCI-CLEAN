@@ -7,7 +7,8 @@ import {
   LEGACY_FACT_SCHEMA_V1,
   NEED_FACT_SCHEMA_V2,
   NEED_FACT_V2_DEFINITIONS,
-  NEED_FACT_V2_KEYS,
+  AI_PROPOSABLE_NEED_FACT_V2_KEYS,
+  isAiProposableNeedFactV2Key,
   isNeedFactV2Key,
 } from '../../../src/contracts/needFactsV2.ts';
 
@@ -22,6 +23,10 @@ const LEGACY_FACT_KEYS = [
   'polaziste', 'odrediste', 'osoba', 'vozilo', 'uslovi',
 ] as const;
 const legacyFactKeySet = new Set<string>(LEGACY_FACT_KEYS);
+// Manual form witnesses remain in the full registry, but are neither AI input
+// nor AI proposals. Keep legacy context during the existing schema transition.
+const AI_CONTEXT_FACT_KEYS = [...LEGACY_FACT_KEYS, ...AI_PROPOSABLE_NEED_FACT_V2_KEYS];
+const aiContextFactKeySet = new Set<string>(AI_CONTEXT_FACT_KEYS);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRICE_MODES = new Set(['MY_PRICE', 'OFFERS']);
 const SCHEDULE_KINDS = new Set([
@@ -150,7 +155,7 @@ function v2ProviderSchema() {
           type: 'OBJECT',
           additionalProperties: false,
           properties: {
-            key: { type: 'STRING', enum: NEED_FACT_V2_KEYS },
+            key: { type: 'STRING', enum: AI_PROPOSABLE_NEED_FACT_V2_KEYS },
             // JSON encoded as a string keeps Gemini/OpenAI structured-output
             // contracts provider-neutral. Edge parses it back to real JSON and
             // PostgreSQL remains the final type/range/enum authority.
@@ -183,7 +188,9 @@ function openAiSchema(schemaVersion: FactSchemaVersion) {
 }
 
 function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
-  const known = activeFacts.map((fact) => ({
+  // Defense in depth if the context transport returns rows outside its query
+  // allowlist. This filters structured facts, not arbitrary conversation text.
+  const known = activeFacts.filter((fact) => aiContextFactKeySet.has(fact?.fact_key)).map((fact) => ({
     key: fact.fact_key,
     value: fact.fact_value,
     displayValue: fact.display_value ?? null,
@@ -214,7 +221,7 @@ function legacyInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
 }
 
 function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
-  const registry = NEED_FACT_V2_KEYS.map((key) => ({ key, ...NEED_FACT_V2_DEFINITIONS[key] }));
+  const registry = AI_PROPOSABLE_NEED_FACT_V2_KEYS.map((key) => ({ key, ...NEED_FACT_V2_DEFINITIONS[key] }));
   return [
     'Vi ste USKOČI AI kopilot za sastavljanje kvalitetnog Zadatka iz prirodnog razgovora.',
     ...commonInstruction(activeFacts, timeContext),
@@ -235,7 +242,19 @@ function parseSafety(value: unknown): ParsedTurn['safety'] {
     : 'REVIEW';
 }
 
+function rejectManualOnlyFacts(parsed: any): void {
+  for (const fact of Array.isArray(parsed?.facts) ? parsed.facts : []) {
+    const key = typeof fact?.key === 'string' ? fact.key : '';
+    if (isNeedFactV2Key(key) && !isAiProposableNeedFactV2Key(key)) {
+      // Reject the entire turn before any writer, including BLOCK and legacy
+      // replies; silently dropping this fact would still persist the response.
+      throw new Error('AI_MANUAL_ONLY_FACT_REJECTED');
+    }
+  }
+}
+
 function parseLegacyOutput(parsed: any): ParsedTurn {
+  rejectManualOnlyFacts(parsed);
   const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
     ? parsed.assistantMessage.trim().slice(0, 1200)
@@ -319,6 +338,7 @@ function valueMatchesContract(key: string, value: unknown): boolean {
 }
 
 function parseV2Output(parsed: any): ParsedTurn {
+  rejectManualOnlyFacts(parsed);
   const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
     ? parsed.assistantMessage.trim().slice(0, 1200)
@@ -329,7 +349,7 @@ function parseV2Output(parsed: any): ParsedTurn {
     const seen = new Set<string>();
     for (const fact of Array.isArray(parsed?.facts) ? parsed.facts : []) {
       const key = typeof fact?.key === 'string' ? fact.key : '';
-      if (!isNeedFactV2Key(key) || seen.has(key)) continue;
+      if (!isAiProposableNeedFactV2Key(key) || seen.has(key)) continue;
       let value: unknown;
       try { value = JSON.parse(String(fact?.valueJson ?? '')); } catch { continue; }
       if (!valueMatchesContract(key, value)) continue;
@@ -490,7 +510,7 @@ Deno.serve(async (req: Request) => {
     ),
     postgrest(
       supabaseUrl, anonKey, authorization,
-      `ai_structured_facts?conversation_id=eq.${encodeURIComponent(conversationId)}&superseded_at=is.null&select=fact_key,fact_value,value_type,display_value,fact_schema_version,status,source,created_at&order=created_at.asc`,
+      `ai_structured_facts?conversation_id=eq.${encodeURIComponent(conversationId)}&fact_key=in.(${encodeURIComponent(AI_CONTEXT_FACT_KEYS.map((key) => JSON.stringify(key)).join(','))})&superseded_at=is.null&select=fact_key,fact_value,value_type,display_value,fact_schema_version,status,source,created_at&order=created_at.asc`,
       { method: 'GET' },
     ),
   ]);

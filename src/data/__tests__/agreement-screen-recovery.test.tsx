@@ -26,6 +26,8 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Card: 'Card' }));
 jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: 'AgreementChat' }));
+// Keep the real private-location/session boundary; only the native map renderer is external to this route test.
+jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, useUloga: () => 'narucilac', ulogaSada: () => 'narucilac' }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: mockOutbox, state: mockOutboxState }) }));
