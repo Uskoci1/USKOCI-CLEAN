@@ -28,10 +28,10 @@ const report={unit:'P3_RETENTION_EXECUTION',source_sha:env.GITHUB_SHA??null,run_
 for(const path of ['supabase/proofs/legal/p3_retention_execution_proof.mjs','supabase/proofs/legal/p3_retention_execution_files.json',
   'supabase/proofs/legal/p3_retention_execution_source_boundary.mjs'])report.input_sha256[path]=digest(readFileSync(path));
 const q=v=>"'"+String(v).replaceAll("'","''")+"'";
-function sql(query){try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-At'],
-  {input:query,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:24*1024*1024,timeout:25000}).trim();}
+function sql(query,timeout=25000){try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-At'],
+  {input:query,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:24*1024*1024,timeout}).trim();}
 catch(e){report.failed_sql={state:String(e.stderr).match(/ERROR:\s+([A-Z0-9]{5}):/)?.[1]??'UNAVAILABLE',query_sha256:digest(query)};throw new Error('DISPOSABLE_SQL_FAILED_'+report.failed_sql.state);}}
-const rows=query=>JSON.parse(sql(`select coalesce(jsonb_agg(to_jsonb(x)),'[]'::jsonb) from (${query}) x`));
+const rows=(query,timeout)=>JSON.parse(sql(`select coalesce(jsonb_agg(to_jsonb(x)),'[]'::jsonb) from (${query}) x`,timeout));
 const tableHash=(table,where='true',remove=[])=>{const value=`to_jsonb(t)-array[${remove.map(q).join(',')}]::text[]`;
   return sql(`select md5(coalesce(jsonb_agg(${value} order by (${value})::text),'[]'::jsonb)::text) from ${table} t where ${where}`);};
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
@@ -61,7 +61,11 @@ function conversation({account=rid,purpose='NEED_INTAKE',status:state='ABANDONED
 const exists=id=>sql(`select exists(select 1 from public.ai_conversations where id=${q(id)})`)==='t';
 const candidate=id=>sql(`select private.retention_ai_candidate(${q(id)}) is not null`)==='t';
 const retryNow=id=>sql(`update private.retention_jobs set next_attempt_at=clock_timestamp()-interval '1 second' where id=${q(id)}`);
-function assertClaim(j,id){assert.equal(j.kind,'CLAIMED');assert.equal(j.dataset,'AI_ABANDONED_UNBOUND');
+function assertClaim(j,id){
+  if(j.kind!=='CLAIMED')report.failed_claim={kind:j.kind,code:j.code??null,target_exists:exists(id),
+    jobs:rows(`select status,attempt_number,last_code,lease_until>clock_timestamp() lease_active,
+      next_attempt_at>clock_timestamp() retry_not_due from private.retention_jobs where conversation_id=${q(id)}`)};
+  assert.equal(j.kind,'CLAIMED');assert.equal(j.dataset,'AI_ABANDONED_UNBOUND');
   assert.equal(sql(`select conversation_id from private.retention_jobs where id=${q(j.jobId)}`),id);return j;}
 async function due(){await sleep(1200);}
 let binding,policyId,privacyId,current='PREFLIGHT',historyBefore,oldPolicyRows,oldPolicyHash,oldPrivacyHash,oldGeneralStatus,
@@ -98,7 +102,70 @@ async function waitBlocked(label){for(let i=0;i<80;i++){
 }throw new Error('EXPECTED_HOLD_EXECUTE_LOCK_NOT_OBSERVED');}
 async function bounded(value){let timer;try{return await Promise.race([value,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('OTHER_ACCOUNT_PROGRESS_TIMEOUT')),8000);})]);}finally{clearTimeout(timer);}}
 
+// BEGIN_LOCAL_CRON_ISOLATION: executed only after the existing disposable guard.
+// pg_cron records starting/connecting/sending/running invocations. Pausing its
+// exact job does not by itself prove that an already-started backend has exited.
+let originalCron=null;
+const cronDefinition=(timeout=5000)=>{
+  const found=rows("select to_jsonb(j) definition from cron.job j where jobname='uskoci_marketplace_tick'",timeout);
+  assert.equal(found.length,1,'LOCAL_CRON_EXACT_JOB_REQUIRED');return found[0].definition;
+};
+function setCronActive(expected,active){
+  sql(`begin;set local lock_timeout='5s';update cron.job j set active=${active?'true':'false'}
+    where jobid=${q(expected.jobid)}::bigint and to_jsonb(j)=${q(JSON.stringify(expected))}::jsonb;commit;`);
+  assert.deepEqual(cronDefinition(),{...expected,active},'LOCAL_CRON_DEFINITION_CHANGED');
+}
+async function pauseLocalCron(){
+  assertLocalDeviceProofTargets(url,db);
+  assert.equal(sql("select current_setting('cron.log_run')"),'on','LOCAL_CRON_RUN_LOG_REQUIRED');
+  const found=cronDefinition();
+  assert.equal(found.jobname,'uskoci_marketplace_tick');
+  assert.equal(found.command,'select private.marketplace_tick(25);');
+  assert.equal(found.schedule,'* * * * *');assert.equal(found.database,'postgres');
+  assert.equal(found.username,'postgres');assert.equal(typeof found.active,'boolean');
+  assert.ok(Number.isSafeInteger(found.jobid)&&found.jobid>0,'LOCAL_CRON_JOB_ID_INVALID');
+  // Set restoration ownership before the first write, including an uncertain
+  // psql acknowledgement. Never replace its command/schedule or recreate a job.
+  originalCron=structuredClone(found);
+  report.local_scheduler={definition:originalCron,paused:false,drained:false,restored:false,
+    drain_timeout_ms:15000,quiet_window_ms:1500};
+  if(found.active)setCronActive(found,false);
+  report.local_scheduler.paused=true;
+  const deadline=Date.now()+15000;let quietSince=null;
+  const remaining=()=>{const ms=deadline-Date.now();if(ms<=0)throw new Error('LOCAL_CRON_DRAIN_TIMEOUT');return Math.min(ms,5000);};
+  while(Date.now()<deadline){
+    assert.deepEqual(cronDefinition(remaining()),{...originalCron,active:false},'LOCAL_CRON_DEFINITION_CHANGED');
+    const runs=rows(`select runid::text,job_pid,status from cron.job_run_details
+      where jobid=${q(found.jobid)}::bigint and end_time is null and status not in('succeeded','failed')`,remaining());
+    const backends=rows(`select pid,state from pg_stat_activity where pid<>pg_backend_pid()
+      and datname=${q(found.database)} and usename=${q(found.username)} and state is distinct from 'idle'
+      and (query=${q(found.command)} or pid in(select job_pid from cron.job_run_details
+        where jobid=${q(found.jobid)}::bigint and end_time is null and status not in('succeeded','failed')))`,remaining());
+    report.local_scheduler.last_observed={runs,backends};
+    if(!runs.length&&!backends.length){
+      quietSince??=Date.now();
+      if(Date.now()-quietSince>=1500){report.local_scheduler.drained=true;return;}
+    }else quietSince=null;
+    await sleep(Math.min(200,remaining()));
+  }
+  throw new Error('LOCAL_CRON_DRAIN_TIMEOUT');
+}
+function restoreLocalCron(){
+  if(!originalCron)return;
+  assertLocalDeviceProofTargets(url,db);
+  const found=cronDefinition();
+  if(found.active===originalCron.active)assert.deepEqual(found,originalCron,'LOCAL_CRON_DEFINITION_CHANGED');
+  else{
+    assert.deepEqual(found,{...originalCron,active:false},'LOCAL_CRON_DEFINITION_CHANGED');
+    setCronActive(found,originalCron.active);
+  }
+  assert.deepEqual(cronDefinition(),originalCron,'LOCAL_CRON_RESTORE_FAILED');
+  report.local_scheduler.restored=true;
+}
+// END_LOCAL_CRON_ISOLATION
+
 try{
+  await pauseLocalCron();
   {
   check('PREFLIGHT_REAL_SOURCE104_AND_ORIGINAL_REGISTRY_REPORT');
   const priorPath=baseOut+'/proof-report.json',prior=JSON.parse(readFileSync(priorPath,'utf8'));
@@ -404,8 +471,20 @@ try{
   report.execution_job_counts=rows('select status,count(*)::integer count from private.retention_jobs group by status order by status');
   pass();assert.equal(report.checks.length,16);report.result='PASS';
   }
-}catch(error){report.result='FAIL';report.failed_check=current;report.failure=String(error.message).slice(0,220);process.exitCode=1;
+}catch(error){report.result='FAIL';report.failed_check=current;report.failure=String(error.message).slice(0,220);
+  const frame=String(error.stack??'').match(/p3_retention_execution_proof\.mjs:(\d+):(\d+)/);
+  if(frame)report.failure_location={file:'supabase/proofs/legal/p3_retention_execution_proof.mjs',line:Number(frame[1]),column:Number(frame[2])};
+  process.exitCode=1;
 }finally{
   for(const child of children)if(child.exitCode===null)child.kill();
+  const primarySqlFailure=report.failed_sql;
+  try{restoreLocalCron();}catch(error){
+    // Preserve the original failed stage instead of replacing it with cleanup.
+    report.scheduler_restore_failure='LOCAL_CRON_RESTORE_FAILED';
+    if(report.failed_sql!==primarySqlFailure){report.scheduler_restore_sql=report.failed_sql;
+      if(primarySqlFailure)report.failed_sql=primarySqlFailure;else delete report.failed_sql;}
+    if(report.result!=='FAIL'){report.failed_check='LOCAL_CRON_RESTORE';report.failure='LOCAL_CRON_RESTORE_FAILED';}
+    report.result='FAIL';process.exitCode=1;
+  }
   writeFileSync(out+'/proof-report.json',JSON.stringify(report,null,2)+'\n');console.log(report.result+' P3_RETENTION_EXECUTION');
 }
