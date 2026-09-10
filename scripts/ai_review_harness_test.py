@@ -151,6 +151,73 @@ class NativeAssertions(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 journey.initial_world_touch(frame, density)
 
+    @staticmethod
+    def map_surface(bounds, clip='[0,286][1080,1975]'):
+        root,parents=tree(f'<hierarchy><node scrollable="true" bounds="{clip}">'
+                          f'<node content-desc="Mapa predložene lokacije" enabled="true" clickable="true" bounds="{bounds}"/>'
+                          '</node></hierarchy>')
+        return root,parents,next(n for n in root.iter() if n.attrib.get('content-desc'))
+
+    def test_clipped_original_map_requires_full_native_height_and_stable_bounds_before_touch(self):
+        source=Path(journey.__file__).parents[1]/'src/ui/location/ResolvedPinMap.tsx'
+        self.assertEqual(journey.re.findall(r'frame:\s*\{\s*height:\s*(\d+)',source.read_text(encoding='utf-8')),['320'])
+        # Original10177058152 map ends exactly at the form/footer clip. The
+        # subsequent frames and density here are synthetic regression inputs.
+        clipped=self.map_surface('[97,1288][983,1975]')
+        moving=self.map_surface('[97,650][983,1490]')
+        stable=self.map_surface('[97,620][983,1460]')
+        self.assertTrue(journey.visible_node(clipped[2],clipped[1],1080,2400))
+        with patch.object(journey,'seek',side_effect=[clipped,moving,stable,stable]) as seek, \
+                patch.object(journey,'screen_size',return_value=(1080,2400)), \
+                patch.object(journey,'adb') as adb,patch.object(journey.time,'sleep'):
+            result=journey.full_map_surface(2.625)
+        self.assertIs(result[2],stable[2]);self.assertEqual(seek.call_count,4)
+        self.assertEqual(adb.call_count,1)
+        gesture=adb.call_args.args
+        self.assertEqual(gesture[:4],('shell','input','touchscreen','swipe'))
+        self.assertTrue(0<int(gesture[4])<97);self.assertEqual(gesture[4],gesture[6])
+        self.assertGreater(int(gesture[5]),int(gesture[7]))
+        x,y=journey.initial_world_touch(journey.parse_bounds(result[2].attrib['bounds']),2.625)
+        self.assertTrue(97<x<983 and 620<y<1460)
+
+    def test_top_clipped_map_uses_upward_content_recovery_in_the_outer_gutter(self):
+        clipped=self.map_surface('[97,286][983,900]')
+        stable=self.map_surface('[97,620][983,1460]')
+        with patch.object(journey,'seek',side_effect=[clipped,stable,stable]), \
+                patch.object(journey,'screen_size',return_value=(1080,2400)), \
+                patch.object(journey,'adb') as adb,patch.object(journey.time,'sleep'):
+            journey.full_map_surface(2.625)
+        gesture=adb.call_args.args
+        self.assertTrue(0<int(gesture[4])<97)
+        self.assertLess(int(gesture[5]),int(gesture[7]))
+
+    def test_map_that_never_becomes_complete_fails_before_any_pin_input(self):
+        clipped=self.map_surface('[97,1288][983,1975]')
+        with patch.object(journey,'seek',return_value=clipped),patch.object(journey,'screen_size',return_value=(1080,2400)), \
+                patch.object(journey,'adb') as adb,patch.object(journey.time,'sleep'),self.assertRaises(AssertionError):
+            journey.full_map_surface(2.625,attempts=3)
+        self.assertEqual(adb.call_count,3)
+        self.assertTrue(all(call.args[2:4]==('touchscreen','swipe') for call in adb.call_args_list))
+
+    def test_invalid_map_frame_or_absent_scroll_gutter_is_not_guessed(self):
+        incomplete=self.map_surface('[97,650][983,1200]')
+        with patch.object(journey,'seek',return_value=incomplete),patch.object(journey,'screen_size',return_value=(1080,2400)), \
+                patch.object(journey,'adb') as adb,self.assertRaises(AssertionError):
+            journey.full_map_surface(2.625)
+        adb.assert_not_called()
+        no_gutter=self.map_surface('[0,1288][1080,1975]')
+        with patch.object(journey,'adb') as adb,self.assertRaises(AssertionError):
+            journey.scroll_once(no_gutter[0],'down')
+        adb.assert_not_called()
+
+    def test_manual_point_reads_real_density_but_never_taps_before_full_frame(self):
+        with patch.object(journey,'adb',return_value=Mock(stdout='Physical density: 420\n')) as adb, \
+                patch.object(journey,'full_map_surface',side_effect=AssertionError('Clipped map')) as full, \
+                self.assertRaises(AssertionError):
+            journey.physical_manual_point('Polazište')
+        adb.assert_called_once_with('shell','wm','density')
+        full.assert_called_once_with(2.625)
+
     def test_original_and_marketplace_submit_require_their_exact_headcount(self):
         for mode, slots in [('intake', 1), ('marketplace', 3)]:
             with patch.dict(journey.os.environ, {'AI_REVIEW_SCOPE': mode}), patch.object(journey, 'core_fixture', return_value={'requiredSlots': 3}), patch.dict(journey.__dict__, {'NEED_ID':'need', 'WORKER_USER_ID':'worker'}):
