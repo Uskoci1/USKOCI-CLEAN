@@ -57,6 +57,19 @@ test('workflow changes select their own runtime verification at batch boundary',
   assert.deepEqual(classify(['.github/workflows/w02-calendar-authority-proof.yml']), W02);
 });
 
+test('export delivery UI, file adapters and proof files select the export domain', () => {
+  for (const path of ['src/app/(app)/profil/izvoz.tsx', 'src/lib/dataExportFile.native.ts',
+    'src/lib/__tests__/data-export-file-web.test.ts', 'src/data/dataExportDeliveryService.ts',
+    'supabase/proofs/legal/data_export_edge.test.mjs', 'supabase/proofs/legal/p2_export_delivery_proof.mjs']) {
+    assert.ok(classify([path]).includes('export'), path);
+  }
+  const tracked = ['src/data/__tests__/p2-data-export-delivery-client.test.ts',
+    'src/data/__tests__/data-export-screen.test.tsx', 'src/lib/__tests__/data-export-file-native.test.ts',
+    'src/lib/__tests__/data-export-file-web.test.ts', 'src/data/__tests__/profile-hub.test.tsx'];
+  const args = testArguments(makePlan([], { domain: 'export' }), tracked);
+  for (const path of tracked) assert.ok(args.includes(path), path);
+});
+
 // Real Git comparison and real Actions event payloads, not a mocked classifier.
 const { fromEnvironment } = require('./scope.cjs');
 const { execFileSync } = require('node:child_process');

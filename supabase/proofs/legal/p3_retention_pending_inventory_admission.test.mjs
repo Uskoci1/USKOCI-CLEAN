@@ -105,8 +105,27 @@ test('runtime proof still replays successors instead of weakening to source-only
   const workflow = readFileSync('.github/workflows/p3-retention-schedule-proof.yml', 'utf8');
   assert.match(proof, /for\s*\(\s*const\s+successor\s+of\s+plan\.pending_successors\s*\)/);
   assert.match(proof, /retention_projection_unchanged\s*:\s*true/);
-  assert.match(proof, /retention_rows_unchanged\s*:\s*true/);
+  assert.match(proof, /retention_original_columns_unchanged\s*:\s*true/);
   assert.match(proof, /retention_functions_and_grants_unchanged\s*:\s*true/);
   assert.match(workflow, /r\.successor_replay\.count\s*!==\s*r\.predecessor_plan\.pending_successor_count/);
   assert.match(workflow, /r\.migration_history_count\s*!==\s*r\.predecessor_plan\.source_migration_count/);
+});
+
+test('runtime replay admits only SQL104 nullable export_delivery and preserves all original data and authority checks', () => {
+  const proof = readFileSync('supabase/proofs/legal/p3_retention_schedule_proof.mjs', 'utf8');
+  const delivery = JSON.parse(readFileSync('supabase/proofs/legal/p2_export_delivery_files.json', 'utf8'));
+  const bytes = readFileSync(`supabase/migrations/${delivery.forward_file}`);
+  assert.equal(delivery.forward_file, '20260910153005_clean_p2_export_delivery_authority.sql');
+  assert.equal(delivery.expected_predecessor_count, 103); assert.equal(delivery.expected_history_count, 104);
+  assert.equal(digest('sha256', bytes), delivery.sha256); assert.equal(bytes.length, delivery.bytes);
+  assert.match(proof, /P2_RETENTION_EXTENSION_PRESENT_BEFORE_SUCCESSOR/);
+  assert.match(proof, /P2_RETENTION_EXTENSION_CREATED_BY_EARLIER_SUCCESSOR/);
+  assert.match(proof, /attname:'export_delivery',type:'jsonb',attnotnull:false,atthasdef:false/);
+  assert.match(proof, /where export_delivery is not null/);
+  assert.match(proof, /to_jsonb\(x\)-'export_delivery'/);
+  assert.match(proof, /\[tableHash\(tables\[0\]\),policyOriginalColumnsHash,tableHash\(tables\[2\]\)\],tableBefore/);
+  for (const guard of ['RETENTION_ORIGINAL_COLUMNS_CHANGED_BY_SUCCESSOR', 'RETENTION_TABLE_SECURITY_CHANGED_BY_SUCCESSOR',
+    'RETENTION_FUNCTIONS_OR_GRANTS_CHANGED_BY_SUCCESSOR', 'RETENTION_STATUS_CHANGED_BY_SUCCESSOR']) assert.ok(proof.includes(guard));
+  assert.doesNotMatch(proof, /retention_rows_unchanged\s*:\s*true/);
+  assert.match(proof, /additive_extension:\s*\{\s*file:deliveryFile,sha256:delivery.sha256/);
 });

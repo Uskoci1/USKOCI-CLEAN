@@ -1,3 +1,13 @@
+## Current continuation — 2026-09-10 / P2 delivery ready for disposable CI
+
+The P2 technical path is connected through S09, the existing request ledger, SQL104 service-only attempts, two authenticated Edge handlers, private Storage, native/browser save adapters and revocation/cleanup. It requires an explicit reviewed binding on the existing P3 policy; no content or duration is seeded. Targeted client/UI/file236, synthetic actual-handler39 and TSC pass. The17-group real Auth/Storage proof is written and not yet executed. [The delivery report](P2_EXPORT_DELIVERY_20260910.md) records the exact SQL bytes, tested scope and operational limits.
+
+W05 PR91 source3b50eaaa has passed its actual14-group DB proof at source103, including six55P03 lock results. Original artifact10161277307 SHA256 b8d864273bd3ea505d5f7e6b4e1bc8564ce80a1b1130fffa3a294c061cd9f82e is verified; remaining exact-head CI gates are still running. P2 is stacked on that source and must follow W05 canonical integration. Source104 admits every migration before retaining original D0140 assertions at102 and original P2 intake assertions at103; the intentional extensions are separately proved. P3 compares every original row/column and explicitly validates only the added NULL export_delivery column.
+
+Next: finish PR91 gates and controlled SQL103/Edge promotion with fresh preflight/postflight; run and inspect P2 real Storage proof, then integrate the coherent delivery batch. Production remains accepted LIVE102 at this checkpoint. RC2/Retention V1 are approved but their exact content is still inaccessible. Recurring Edge worker credentials, account closure, complete media export and physical native save are unfinished dependencies, not completed features. Continue P3 execution and the remaining master plan after this batch.
+
+---
+
 ## Current W05 source — 2026-09-10 / publication UI connected; DB and promotion pending
 
 W05 publication is **WRITTEN / UI_CONNECTED / TARGETED SOURCE PROVEN** on canonical `cc839c0d1f5a29a7f47b6aaf5044a81c4010101b`. R04 now performs an explicit saved-Need/revision check, then a separate user-confirmed canonical publication with no additional application deadline. Only a validated stored ALLOW enables publication. NOT_READY and other outcomes remain truthful; unknown outcomes keep the same key until readback, while known rejections require fresh evaluation. Receipt-confirmed publication is followed by a real read, with a refresh-needed message if that read fails. Account, focus/background, revision and bounded-read guards retire stale callbacks.

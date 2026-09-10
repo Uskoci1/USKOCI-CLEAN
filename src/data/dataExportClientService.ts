@@ -1,5 +1,7 @@
-import type { DataExportCancellation, DataExportReceipt, DataExportRequest, DataExportRequestStatus, DataExportStatus } from '../contracts/dataExport';
+import type { DataExportArtifact, DataExportCancellation, DataExportReceipt, DataExportRequest, DataExportRequestStatus, DataExportRevocation, DataExportStatus } from '../contracts/dataExport';
 import type { Ishod } from './ports';
+import { DATA_EXPORT_MAX_BYTES } from '../contracts/dataExport';
+import { downloadExport, prepareExport } from './dataExportDeliveryService';
 import { failure, readReceipt, record, sameId, timestamp, uuid } from './serverReceipt';
 
 const STATUSES: ReadonlySet<string> = new Set(['REQUESTED', 'PROCESSING', 'READY', 'FAILED', 'CANCELLED', 'EXPIRED']);
@@ -12,7 +14,20 @@ const EXPORT_COPY: Readonly<Record<string, string>> = {
   INVALID_CLIENT_REQUEST_ID: 'Zahtev trenutno nije mogao da se zabeleži. Pokušajte ponovo.',
   INVALID_RECEIPT_ID: 'Zahtev nije pronađen.',
   AUTH_REQUIRED: 'Prijavite se da biste zatražili izvoz podataka.',
+  DATA_EXPORT_NOT_AVAILABLE: 'Izvoz trenutno nije dostupan. Učitajte trenutno stanje.',
+  DATA_EXPORT_ARTIFACT_STALE: 'Izvoz je promenjen. Učitajte trenutno stanje.',
 };
+
+export { DATA_EXPORT_MAX_BYTES } from '../contracts/dataExport';
+export function decodeDataExportArtifact(raw: unknown): DataExportArtifact | null {
+  const value = record(raw);
+  if (!value || Object.keys(value).some(key => !['artifactAvailable', 'artifactGeneration', 'artifactExpiresAt', 'byteLength', 'sha256', 'md5'].includes(key))
+    || value.artifactAvailable !== true || !uuid(value.artifactGeneration) || !timestamp(value.artifactExpiresAt)
+    || typeof value.byteLength !== 'number' || !Number.isSafeInteger(value.byteLength) || value.byteLength < 1 || value.byteLength > DATA_EXPORT_MAX_BYTES
+    || typeof value.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256)
+    || typeof value.md5 !== 'string' || !/^[a-f0-9]{32}$/.test(value.md5)) return null;
+  return value as unknown as DataExportArtifact;
+}
 
 function statusValue(value: unknown): value is DataExportRequestStatus {
   return typeof value === 'string' && STATUSES.has(value);
@@ -56,9 +71,11 @@ async function exportReceipt<T>(options: Parameters<typeof readReceipt<T>>[0]): 
 /**
  * The existing account-owned receipt boundary bounds network waits and discards
  * stale responses, including A→B→A. No automatic write retry or synthetic receipt.
- * This unit accepts an export request; it does not generate or deliver the export.
+ * Delivery requires a validated artifact descriptor; intake alone cannot enable it.
  */
 export const dataExportClientService = {
+  prepareExport,
+  downloadExport,
   readStatus(): Promise<Ishod<DataExportStatus>> {
     return exportReceipt({
       rpc: 'rpc_get_data_export_status', args: {}, errors: EXPORT_COPY,
@@ -69,7 +86,12 @@ export const dataExportClientService = {
             typeof value.externalDsrChannelReady !== 'boolean') return null;
         const request = value.hasRequest ? mapRequest(value.request) : null;
         if ((value.hasRequest && !request) || (!value.hasRequest && value.request !== null)) return null;
-        return { hasRequest: value.hasRequest, request, downloadAvailable: false,
+        const hasFulfillment = Object.prototype.hasOwnProperty.call(value, 'fulfillment');
+        const artifact = value.fulfillment === null || !hasFulfillment ? null : decodeDataExportArtifact(value.fulfillment);
+        if (hasFulfillment && ((value.fulfillment !== null && !artifact)
+          || value.downloadAvailable !== (artifact !== null) || (artifact && request?.status !== 'READY'))) return null;
+        return { hasRequest: value.hasRequest, request, downloadAvailable: artifact !== null,
+          ...(hasFulfillment ? { fulfillment: artifact } : {}),
           serverFulfillmentRequired: true, externalDsrChannelReady: value.externalDsrChannelReady };
       },
     });
@@ -104,6 +126,21 @@ export const dataExportClientService = {
             !timestamp(value.cancelledAt) || typeof value.idempotentReplay !== 'boolean') return null;
         return { receiptId: value.receiptId, status: 'CANCELLED', cancelledAt: value.cancelledAt,
           idempotentReplay: value.idempotentReplay };
+      },
+    });
+  },
+
+  revokeExport(receiptId: string): Promise<Ishod<DataExportRevocation>> {
+    if (!uuid(receiptId)) return Promise.resolve(failure('INVALID_RECEIPT_ID', EXPORT_COPY.INVALID_RECEIPT_ID));
+    return exportReceipt({
+      rpc: 'rpc_revoke_data_export_download', args: { p_receipt_id: receiptId }, errors: EXPORT_COPY,
+      fallback: 'DATA_EXPORT_REVOKE_UNCONFIRMED', invalid: INVALID, write: true,
+      decode(raw): DataExportRevocation | null {
+        const value = record(raw);
+        return value && Object.keys(value).every(key => ['receiptId', 'status', 'revoked', 'idempotentReplay'].includes(key))
+          && (value.status === 'EXPIRED' || value.status === 'CANCELLED')
+          && sameId(value.receiptId, receiptId) && value.revoked === true && typeof value.idempotentReplay === 'boolean'
+          ? value as unknown as DataExportRevocation : null;
       },
     });
   },

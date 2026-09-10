@@ -216,6 +216,24 @@ try{
   const retentionBefore = await ok(status(requester));
   const tables = ['private.retention_data_classes','private.retention_policy_sets','private.retention_policy_rules'];
   const tableBefore = tables.map(table => tableHash(table));
+  const deliveryFile = '20260910153005_clean_p2_export_delivery_authority.sql';
+  const delivery = JSON.parse(readFileSync('supabase/proofs/legal/p2_export_delivery_files.json','utf8'));
+  assert.equal(delivery.forward_file,deliveryFile,'UNEXPECTED_P2_RETENTION_EXTENSION');
+  assert.equal(delivery.forward_version,'20260910153005');
+  assert.equal(delivery.forward_name,'clean_p2_export_delivery_authority');
+  assert.equal(delivery.expected_predecessor_count,103);
+  assert.equal(delivery.expected_history_count,104);
+  const deliverySuccessor = plan.pending_successors.find(successor => successor.file === deliveryFile);
+  assert.ok(deliverySuccessor,'P2_RETENTION_EXTENSION_SUCCESSOR_MISSING');
+  const deliveryBytes = readFileSync(`supabase/migrations/${deliveryFile}`);
+  assert.equal(deliveryBytes.length,delivery.bytes);
+  assert.equal(createHash('sha256').update(deliveryBytes).digest('hex'),delivery.sha256);
+  assert.equal(deliverySuccessor.md5,delivery.md5);
+  const deliveryColumn = () => rows(`select a.attname,format_type(a.atttypid,a.atttypmod) as type,a.attnotnull,a.atthasdef
+    from pg_attribute a where a.attrelid='private.retention_policy_sets'::regclass
+    and a.attname='export_delivery' and a.attnum>0 and not a.attisdropped`);
+  const expectedDeliveryColumn = [{attname:'export_delivery',type:'jsonb',attnotnull:false,atthasdef:false}];
+  assert.deepEqual(deliveryColumn(),[],'P2_RETENTION_EXTENSION_PRESENT_BEFORE_SUCCESSOR');
   const functionsBefore = rows(`select p.proname,p.proacl,p.proconfig,md5(p.prosrc) body
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
     and p.proname in ('rpc_get_retention_policy_status','rpc_publish_retention_policy') order by 1`);
@@ -226,6 +244,10 @@ try{
   const securityBefore=tableSecurity(); assert.equal(securityBefore.length,3);
   const appliedSuccessors = [];
   for (const successor of plan.pending_successors) {
+    if (successor.file === deliveryFile) {
+      assert.deepEqual(deliveryColumn(),[],'P2_RETENTION_EXTENSION_CREATED_BY_EARLIER_SUCCESSOR');
+      assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')),103);
+    }
     assert.equal(sql(`select count(*) from supabase_migrations.schema_migrations where version=${q(successor.version)}`),'0');
     const file = `supabase/migrations/${successor.file}`, suffixBytes = readFileSync(file);
     assert.equal(createHash('md5').update(suffixBytes).digest('hex'),successor.md5);
@@ -233,18 +255,30 @@ try{
     sql(`insert into supabase_migrations.schema_migrations(version,name,statements)
       values(${q(successor.version)},${q(successor.name)},array[${q(suffixBytes.toString('utf8'))}])`);
     assert.equal(sql(`select md5(statements[1]) from supabase_migrations.schema_migrations where version=${q(successor.version)}`),successor.md5);
+    if (successor.file === deliveryFile) {
+      assert.deepEqual(deliveryColumn(),expectedDeliveryColumn,'P2_RETENTION_EXTENSION_COLUMN_CHANGED');
+      assert.equal(sql('select count(*) from private.retention_policy_sets where export_delivery is not null'),'0','P2_RETENTION_POLICY_SEEDED');
+    }
     appliedSuccessors.push(successor);
   }
   sql("notify pgrst,'reload schema'");
   assert.deepEqual(await ok(status(requester)),retentionBefore,'RETENTION_STATUS_CHANGED_BY_SUCCESSOR');
-  assert.deepEqual(tables.map(table => tableHash(table)),tableBefore,'RETENTION_ROWS_CHANGED_BY_SUCCESSOR');
+  assert.deepEqual(deliveryColumn(),expectedDeliveryColumn,'P2_RETENTION_EXTENSION_COLUMN_CHANGED');
+  assert.equal(sql('select count(*) from private.retention_policy_sets where export_delivery is not null'),'0','P2_RETENTION_POLICY_SEEDED');
+  // Compare every original column and every original row. Only SQL104's exact
+  // admitted, separately checked NULL field is removed from the after-side.
+  const policyOriginalColumnsHash = sql(`select md5(coalesce(jsonb_agg(to_jsonb(x)-'export_delivery'
+    order by (to_jsonb(x)-'export_delivery')::text),'[]'::jsonb)::text) from private.retention_policy_sets x`);
+  assert.deepEqual([tableHash(tables[0]),policyOriginalColumnsHash,tableHash(tables[2])],tableBefore,'RETENTION_ORIGINAL_COLUMNS_CHANGED_BY_SUCCESSOR');
   assert.deepEqual(tableSecurity(),securityBefore,'RETENTION_TABLE_SECURITY_CHANGED_BY_SUCCESSOR');
   assert.deepEqual(rows(`select p.proname,p.proacl,p.proconfig,md5(p.prosrc) body
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
     and p.proname in ('rpc_get_retention_policy_status','rpc_publish_retention_policy') order by 1`),functionsBefore,
     'RETENTION_FUNCTIONS_OR_GRANTS_CHANGED_BY_SUCCESSOR');
   report.successor_replay = { applied: appliedSuccessors, count: appliedSuccessors.length,
-    retention_projection_unchanged: true, retention_rows_unchanged: true, retention_functions_and_grants_unchanged: true };
+    retention_projection_unchanged: true, retention_original_columns_unchanged: true, retention_functions_and_grants_unchanged: true,
+    additive_extension: { file:deliveryFile,sha256:delivery.sha256,table:'private.retention_policy_sets',column:'export_delivery',
+      absent_before:true,type:'jsonb',nullable:true,has_default:false,all_values_null:true } };
 
   assert.equal(sqlState(authSql(rid,'select count(*) from private.retention_policy_rules')),'42501');
   assert.equal(sqlState(authSql(rid,'select count(*) from private.retention_data_classes')),'42501');

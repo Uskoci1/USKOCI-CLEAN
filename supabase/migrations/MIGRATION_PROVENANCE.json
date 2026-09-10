@@ -1987,6 +1987,20 @@
       "activation": "WRITTEN_NOT_LIVE_NO_POLICY_CONTENT_OR_ACTIVATION",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910153005",
+      "name": "clean_p2_export_delivery_authority",
+      "file": "20260910153005_clean_p2_export_delivery_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "3ed748517ea4a4cb3d83fcc57db6ac86",
+      "raw_sha256": "502972ad434df78a9a6126879370af6e52f3e4700c4711da8b515a78b7012d6a",
+      "raw_bytes": 50251,
+      "live_applied": false,
+      "unit": "P2_EXPORT_DELIVERY",
+      "activation": "WRITTEN_NOT_LIVE_NO_POLICY_CONTENT_OR_ACTIVATION",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {

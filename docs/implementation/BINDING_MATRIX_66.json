@@ -733,14 +733,17 @@
     {
       "screen": "export",
       "group": "account",
-      "boundary": "Current legal/export/closure contracts and server status, no fabricated processing/archive",
+      "boundary": "Existing P2 receipt -> authenticated worker -> verified private JSON artifact -> owner download -> native file verification; SQL104 policy-gated",
       "paths": [
+        "src/app/(app)/profil/izvoz.tsx",
         "src/data/dataExportClientService.ts",
-        "src/data/legalClientService.ts",
-        "src/data/retentionPolicyClientService.ts"
+        "src/data/dataExportDeliveryService.ts",
+        "src/lib/dataExportFile.native.ts",
+        "supabase/functions/uskoci-data-export-worker/index.ts",
+        "supabase/functions/uskoci-data-export-download/index.ts"
       ],
-      "level": "PATH_LISTED_READ_BEFORE_BINDING",
-      "required_runtime_proof": "Authenticated real command, matching receipt and refetched projection, failure/stale/unknown, 2 accounts where applicable."
+      "level": "WRITTEN_UI_CONNECTED_TARGETED_SOURCE_PROVEN_DB_CI_PENDING",
+      "required_runtime_proof": "Real disposable Auth/Storage and original CI artifact review; physical native file picker/write; reviewed policy content and worker scheduling before operational activation."
     },
     {
       "screen": "closure",

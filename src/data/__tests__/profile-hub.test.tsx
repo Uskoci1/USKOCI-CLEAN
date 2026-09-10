@@ -48,6 +48,23 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 
 describe('real profile hub', () => {
+  it.each(['narucilac', 'uskocer'] as const)('opens export once for the current %s intent', async intent => {
+    mockIntent = intent;
+    await render();
+    const open = tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress;
+    await act(async () => { open(); open(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
+  });
+
+  it('retires the captured export entry across an account incarnation change', async () => {
+    await render();
+    const open = tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress;
+    mockAccountId = 'account-b'; mockAccountRevision = 2;
+    mockAccountId = 'account-a'; mockAccountRevision = 3;
+    await act(async () => open());
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+
   it('shows actual identity with no fabricated reputation or dead feature rows', async () => {
     await render();
     const rendered = visibleText();

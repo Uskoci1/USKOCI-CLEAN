@@ -9,10 +9,11 @@ import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {readP2ExportPredecessorPlan} from './p2_data_export_predecessor.mjs';
+import {deliveryBoundary} from './p2_export_delivery_source_boundary.mjs';
 
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url,db);
-const plan=readP2ExportPredecessorPlan();
+const boundary=deliveryBoundary(readP2ExportPredecessorPlan()),plan=boundary.predecessorPlan;
 const out=env.P2_ARTIFACT_DIR||'artifacts/p2-data-export';mkdirSync(out,{recursive:true});
 const manifest=JSON.parse(readFileSync('supabase/proofs/legal/p2_data_export_files.json','utf8'));
 const forward=`supabase/migrations/${manifest.forward_file}`,bytes=readFileSync(forward);
@@ -23,7 +24,7 @@ assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.sha256);
 const report={unit:'P2_DATA_EXPORT',source_sha:env.GITHUB_SHA||null,run_id:env.GITHUB_RUN_ID||null,
   live_access:false,live_promotion:false,provider_called:false,mobile_proof:false,legal_content_real:false,export_artifact_generated:false,
   fixture_boundary:'REAL_LOCAL_AUTH_POSTGREST_AND_ROLE_SCOPED_PSQL_TRANSACTIONS',
-  candidate:manifest,predecessor_plan:plan,checks:[],lock_interleavings:[]};
+  candidate:manifest,predecessor_plan:plan,full_source_plan:boundary.fullPlan,intentional_next_delivery_forward:boundary.next,checks:[],lock_interleavings:[]};
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
 const worker=createClient(url,env.RU5_DEVICE_ANON_KEY,options),requester=createClient(url,env.RU5_DEVICE_ANON_KEY,options);
 const anon=createClient(url,env.RU5_DEVICE_ANON_KEY,options),admin=createClient(url,env.RU5_DEVICE_SERVICE_ROLE_KEY,options);

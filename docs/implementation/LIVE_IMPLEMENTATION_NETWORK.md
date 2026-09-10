@@ -1,3 +1,11 @@
+## Current continuation — 2026-09-10 / P2 technical delivery and W05 DB proof
+
+P2 S09 → existing receipt → server claim/snapshot → private Storage upload/readback → READY → authenticated download → native save is connected in source104. Revocation, expiry and exact-object cleanup share the existing P2/P3 owners. Local236 client/UI/file and39 synthetic Edge checks pass; real disposable Auth/Storage17-group execution and physical save are pending. [P2 delivery](P2_EXPORT_DELIVERY_20260910.md) records the boundaries. Reviewed content and worker scheduling remain required for operational activation.
+
+W05 PR91 source3b50eaaa now passes its actual14-group SQL103 proof and six lock checks; remaining CI gates are still running. No new canonical or live state is claimed here: accepted production remains LIVE102. Next owners are W05 final gates/promotion, P2 exact-source CI/integration, then existing P3 execution and the remaining master plan.
+
+---
+
 ## Current W05 source — 2026-09-10 / publication UI connected; DB and promotion pending
 
 W05 publication is **WRITTEN / UI_CONNECTED / TARGETED SOURCE PROVEN** on canonical `cc839c0d1f5a29a7f47b6aaf5044a81c4010101b`. R04 now performs an explicit saved-Need/revision check, then a separate user-confirmed canonical publication with no additional application deadline. Only a validated stored ALLOW enables publication. NOT_READY and other outcomes remain truthful; unknown outcomes keep the same key until readback, while known rejections require fresh evaluation. Receipt-confirmed publication is followed by a real read, with a refresh-needed message if that read fails. Account, focus/background, revision and bounded-read guards retire stale callbacks.

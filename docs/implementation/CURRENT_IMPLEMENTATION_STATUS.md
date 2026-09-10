@@ -1,3 +1,9 @@
+## Current pointer — 2026-09-10 / P2 delivery connected; exact DB/Storage CI pending
+
+P2 S09 now uses the existing request ledger for explicit preparation, verified private JSON delivery, owner download, native save and revocation. Local client/UI/file checks236, synthetic Edge39 and TSC pass. SQL104 and its17-group real disposable Auth/Storage proof are written; CI execution, canonical merge and live promotion remain pending. The branch includes W05 PR91 source3b50eaaa; its actual14-group DB proof now passes, while remaining CI gates are still running. Production remains accepted LIVE102. See [the P2 delivery boundary](P2_EXPORT_DELIVERY_20260910.md). Reviewed policy contents, recurring Storage-worker wiring and physical device saving remain dependencies; no export activation is claimed.
+
+---
+
 ## Current pointer — 2026-09-10 / W05 source written and UI connected
 
 Canonical remains PR90 `cc839c0d1f5a29a7f47b6aaf5044a81c4010101b`; accepted production remains LIVE102. W05 R04 publication and existing R07 DRAFT correction are now **WRITTEN / UI_CONNECTED**, with SQL103 and the Edge evaluator source prepared. Latest client + screen 143 and synthetic Edge 31 checks pass; earlier UI 120 and AST 135/51/0 pass. Final local TSC passes. The earlier full local Jest run passed 100/101 suites and 1626/1627 tests with one unchanged W02 map timeout; isolated map 21 passed. Final DB/CI, merge/live, real provider and native publication proof remain pending.

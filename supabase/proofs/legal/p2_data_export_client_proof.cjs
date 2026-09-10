@@ -24,7 +24,7 @@ async function main() {
   function bind(client, user) {
     const state = { user, accountRevision: 1 };
     const cache = new Map();
-    const allowed = new Set(['src/data/dataExportClientService.ts', 'src/data/serverReceipt.ts']);
+    const allowed = new Set(['src/data/dataExportClientService.ts', 'src/data/dataExportDeliveryService.ts', 'src/contracts/dataExport.ts', 'src/data/serverReceipt.ts']);
     const load = filename => {
       assert.ok(allowed.has(filename), 'Unsupported proof module');
       if (cache.has(filename)) return cache.get(filename).exports;
@@ -37,6 +37,12 @@ async function main() {
         if (name === './supabaseClient') return { supabaseKlijent: () => client };
         if (name === '../store/sesija') return { sesijaSada: () => state };
         if (name === './serverReceipt') return load('src/data/serverReceipt.ts');
+        if (name === './dataExportDeliveryService') return load('src/data/dataExportDeliveryService.ts');
+        if (name === '../contracts/dataExport') return load('src/contracts/dataExport.ts');
+        if (name === 'expo/fetch') return { fetch: (input, init) => {
+          assert.equal(new URL(String(input)).origin, new URL(env.RU5_DEVICE_SUPABASE_URL).origin, 'DELIVERY_FETCH_MUST_STAY_ON_DISPOSABLE_ORIGIN');
+          return fetch(input, init);
+        } };
         throw new Error('Unexpected runtime dependency in admitted proof modules');
       };
       new Function('require', 'module', 'exports', code)(binding, module, module.exports);
