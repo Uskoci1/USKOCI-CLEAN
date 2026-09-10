@@ -667,6 +667,65 @@ def core_selection_receipt(response_id,agreement_id):
     return data
 
 
+def core_application_success_surface(root, parent):
+    # The confirmed receipt's notice lives at the end of the real form's
+    # ScrollView. Its sticky navigation button is not evidence of this notice.
+    assert any(n.attrib.get('package') == PACKAGE and n.attrib.get('text') == 'Tvoja prijava'
+               for n in root.iter()), 'Application form changed while seeking its success notice'
+    scrolls = [n for n in root.iter() if n.attrib.get('package') == PACKAGE
+               and n.attrib.get('class') == 'android.widget.ScrollView'
+               and n.attrib.get('scrollable') == 'true']
+    assert len(scrolls) == 1, 'Expected one observed application form scroll viewport'
+    scroll = scrolls[0]
+    left, top, right, bottom = parse_bounds(scroll.attrib.get('bounds'))
+    assert right > left and bottom - top > 100, 'Invalid application form scroll viewport'
+    for node in scroll.iter():
+        if node.attrib.get('package') != PACKAGE or node.attrib.get('text') != 'Prijava je poslata.':
+            continue
+        x1, y1, x2, y2 = parse_bounds(node.attrib.get('bounds'))
+        if x2 <= x1 or y2 <= y1 or node.attrib.get('visible-to-user') == 'false':
+            continue
+        visible = True
+        ancestor = parent.get(node)
+        while ancestor is not None:
+            if ancestor.attrib.get('bounds'):
+                ax1, ay1, ax2, ay2 = parse_bounds(ancestor.attrib['bounds'])
+                if not (ax1 <= x1 < x2 <= ax2 and ay1 <= y1 < y2 <= ay2):
+                    visible = False
+                    break
+            ancestor = parent.get(ancestor)
+        if visible:
+            return scroll, True
+    return scroll, False
+
+
+def core_capture_application_success(timeout=40):
+    deadline = time.monotonic() + timeout
+    swipes = 0
+    while time.monotonic() < deadline:
+        root, parent, _ = dump_tree()
+        if dismiss_known_system_anr(root, parent):
+            continue
+        scroll, visible = core_application_success_surface(root, parent)
+        if visible:
+            shot('W05_worker_application_success')
+            # Validate the actual saved checkpoint tree, not the earlier match.
+            captured, _ = dump_tree.last_observation
+            captured_parent = {child: p for p in captured.iter() for child in p}
+            assert core_application_success_surface(captured, captured_parent)[1], \
+                'Success notice disappeared or became clipped in captured checkpoint'
+            return
+        if swipes < 8:
+            x1, y1, x2, y2 = parse_bounds(scroll.attrib['bounds'])
+            x = (x1 + x2) // 2
+            height = y2 - y1
+            adb('shell', 'input', 'swipe', str(x), str(y1 + height * 4 // 5),
+                str(x), str(y1 + height // 4), '400')
+            swipes += 1
+        time.sleep(1)
+    raise RuntimeError('Application success notice not visibly observed after bounded physical scrolling')
+
+
 def core_journey():
     from d03_chat_local_rest import validate_local_targets
     validate_local_targets(os.environ);fixture=core_fixture()
@@ -680,7 +739,7 @@ def core_journey():
     shot('W03_worker_opportunity_list');core_map_preview();shot('W04_worker_need_detail')
     tap(desc='Sastavi prijavu');wait_visible(text='Tvoja prijava');wait_visible(desc='Cena za ponuđeni obim (RSD)')
     edit_text(0,'3000');hide_keyboard();shot('W05_worker_application_draft');tap(desc='Pošalji ovu Prijavu')
-    wait_visible(text='Prijava je poslata.');shot('W05_worker_application_success');tap(desc='Otvori moje prijave')
+    core_capture_application_success();tap(desc='Otvori moje prijave')
     wait_visible(text=NEED_TITLE);wait_visible(text='Poslata');shot('W06_worker_own_application');response_id=assert_worker_submit()
     core_switch_account(REQUESTER_EMAIL);shot('AUTH_requester_authenticated');tap(desc='Zadaci',prefer='bottom')
     wait_visible(desc=f'Otvorite Zadatak {NEED_TITLE}');tap(desc=f'Otvorite Zadatak {NEED_TITLE}')
