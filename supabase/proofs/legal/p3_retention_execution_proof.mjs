@@ -174,8 +174,8 @@ try{
   const priorPath=baseOut+'/proof-report.json',prior=JSON.parse(readFileSync(priorPath,'utf8'));
   assert.equal(prior.unit,'P3_RETENTION_SCHEDULE');assert.equal(prior.result,'PASS');assert.equal(prior.migration_history_count,104);
   assert.equal(prior.source_sha,env.GITHUB_SHA??null);assert.equal(prior.predecessor_plan.source_migration_count,104);
-  assert.equal(prior.full_source_plan.source_migration_count,107);
-  assert.deepEqual(prior.deferred_authority_successors.map(x=>x.file),['20260910172132_clean_w03_owned_ai_intake_authority.sql','20260910193029_clean_n09_expo_push_transport.sql']);
+  assert.equal(prior.full_source_plan.source_migration_count,108);
+  assert.deepEqual(prior.deferred_authority_successors.map(x=>x.file),['20260910172132_clean_w03_owned_ai_intake_authority.sql','20260910193029_clean_n09_expo_push_transport.sql','20260910214845_clean_dispatch_need_lock_order.sql']);
   assert.equal(prior.successor_replay.additive_extension.sha256,'502972ad434df78a9a6126879370af6e52f3e4700c4711da8b515a78b7012d6a');
   report.prior_registry_report_sha256=digest(readFileSync(priorPath));
   assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')),104);

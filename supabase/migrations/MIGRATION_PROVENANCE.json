@@ -2043,6 +2043,20 @@
       "activation": "WRITTEN_NOT_LIVE_TRANSPORT_DISABLED_PHYSICAL_PUSH_UNPROVEN",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910214845",
+      "name": "clean_dispatch_need_lock_order",
+      "file": "20260910214845_clean_dispatch_need_lock_order.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "7f0ec074e46a19756155c18c2e8b37ba",
+      "raw_sha256": "f447ce144ca59e91e9929e52b8cd206a9a27549eacc2fccb44c3f4d096a3a416",
+      "raw_bytes": 11130,
+      "live_applied": false,
+      "unit": "W02_DISPATCH_NEED_LOCK_ORDER",
+      "activation": "WRITTEN_NOT_LIVE_CONCURRENCY_PROOF_PENDING",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {

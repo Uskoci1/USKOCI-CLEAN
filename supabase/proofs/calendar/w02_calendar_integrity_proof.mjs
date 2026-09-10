@@ -2,7 +2,8 @@
 // published Needs below are explicitly isolated SQL fixtures, NOT UI publication
 // proof. No live target, synthetic provider success, or implicit write retry.
 import assert from 'node:assert/strict';
-import {ownedIntakeSourceBoundary} from '../../../scripts/ci/owned-intake-source.mjs';
+import {ownedIntakeSourceBoundary,dispatchLockForward} from '../../../scripts/ci/owned-intake-source.mjs';
+import {admitDispatchLockReport} from './w02_dispatch_lock_proof.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -22,7 +23,8 @@ const worker=createClient(url,env.RU5_DEVICE_ANON_KEY,options);
 const q=value=>`'${String(value).replaceAll("'","''")}'`;
 const uid=value=>{assert.match(value,/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i);return value;};
 const requesterId=uid(env.RU5_DEVICE_REQUESTER_USER_ID),workerId=uid(env.RU5_DEVICE_WORKER_USER_ID);
-const report={unit:'W02_CALENDAR_INTERVAL_INTEGRITY',admitted_source_count:107,applied_source_boundary:105,deferred_authority_successors:[sourceBoundary.next,...sourceBoundary.deferredSuccessors],source_sha:env.GITHUB_SHA,checks:[],
+const report={unit:'W02_CALENDAR_INTERVAL_INTEGRITY',admitted_source_count:108,registry_history_count:105,
+  deferred_authority_successors:[sourceBoundary.next,...sourceBoundary.deferredSuccessors.filter(item=>item.file!==dispatchLockForward)],source_sha:env.GITHUB_SHA,checks:[],
   live_access:false,live_promotion:false,external_provider_called:false,visual_design_changed:false,
   fixture_sql_used:true,ui_journey_proven:false,mocked_rpc_responses:false,input_sha256:{},lock_observations:[]};
 let current='SETUP';
@@ -113,6 +115,11 @@ function connectedCalendar(client,userId){
     agreements:load('./agreementClientService').agreementClientService,state};
 }
 try{
+  report.dispatch_lock_admission=admitDispatchLockReport(JSON.parse(readFileSync((env.W02_DISPATCH_ARTIFACT_DIR||out+'/dispatch-lock')+'/proof-report.json','utf8')),env.GITHUB_SHA);
+  report.applied_authority=report.dispatch_lock_admission.applied_authority;
+  assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'),'105');
+  for(const body of report.dispatch_lock_admission.changed_bodies)
+    assert.equal(sql(`select md5(prosrc) from pg_proc where oid=${q(body.signature)}::regprocedure`),body.current_md5);
   for(const [client,email,id]of[[requester,env.RU5_DEVICE_REQUESTER_EMAIL,requesterId],[worker,env.RU5_DEVICE_WORKER_EMAIL,workerId]]){
     await ok(client.auth.signInWithPassword({email,password:env.RU5_DEVICE_PASSWORD}));
     assert.equal((await ok(client.auth.getUser())).user.id,id);

@@ -9,9 +9,9 @@ import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {readP3RetentionPredecessorPlan} from './p3_retention_schedule_predecessor.mjs';
 import {retentionExecutionBoundary,retentionExecutionForward} from './p3_retention_execution_source_boundary.mjs';
 
-test('exact full source107 is admitted before unchanged original registry assertions at104',()=>{
+test('exact full source108 is admitted before unchanged original registry assertions at104',()=>{
   const plan=readP3RetentionPredecessorPlan(),boundary=retentionExecutionBoundary(plan);
-  assert.equal(plan.source_migration_count,107);
+  assert.equal(plan.source_migration_count,108);
   assert.deepEqual(boundary.fullPlan,plan);
   assert.equal(boundary.predecessorPlan.source_migration_count,104);
   assert.equal(boundary.predecessorPlan.source_inventory.length,104);
@@ -22,7 +22,7 @@ test('exact full source107 is admitted before unchanged original registry assert
 
 test('missing, extra, unknown, reordered or altered suffix identities fail before registry replay',()=>{
   const plan=readP3RetentionPredecessorPlan();
-  for(const count of [103,104,105,106,108])assert.throws(()=>retentionExecutionBoundary({...plan,source_migration_count:count}));
+  for(const count of [103,104,105,106,107,109])assert.throws(()=>retentionExecutionBoundary({...plan,source_migration_count:count}));
   for(const field of ['pending_successors','source_inventory']){
     const changed=structuredClone(plan);changed[field].at(-1).file='20260910162956_unknown.sql';
     assert.throws(()=>retentionExecutionBoundary(changed));
@@ -45,7 +45,7 @@ for(const mutation of ['missing','changed','unknown'])test('full admission rejec
       admitted.d03.manifest,admitted.ai_draft.manifest,'supabase/migrations/MIGRATION_PROVENANCE.json',
       ...readdirSync('supabase/migrations').filter(x=>x.endsWith('.sql')).map(x=>'supabase/migrations/'+x)];
     for(const path of paths){const target=join(root,path);mkdirSync(dirname(target),{recursive:true});copyFileSync(path,target);}
-    assert.equal(retentionExecutionBoundary(readP3RetentionPredecessorPlan(root)).fullPlan.source_migration_count,107);
+    assert.equal(retentionExecutionBoundary(readP3RetentionPredecessorPlan(root)).fullPlan.source_migration_count,108);
     const target=join(root,'supabase/migrations',retentionExecutionForward);
     if(mutation==='missing')rmSync(target);
     if(mutation==='changed')writeFileSync(target,'-- altered SQL105 bytes\n');
