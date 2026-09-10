@@ -1,229 +1,143 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, TextInput, Alert, ActivityIndicator, Switch } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { T } from "../../../ui/Text";
-import { Button } from "../../../ui/Button";
-import { palette, space, radius } from "../../../theme/tokens";
-import { useIzvor } from "../../../store/uloga";
-import type { RadnikProfilProjekcija } from "../../../contracts/projections";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import type { RadnikProfilProjekcija } from '../../../contracts/projections';
+import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
+import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { sesijaSada, useSesija } from '../../../store/sesija';
+import { ulogaSada, useIzvor, useUloga } from '../../../store/uloga';
+import { T } from '../../../ui/Text';
+import { v2 } from '../../../ui/v2/tokens';
+import { V2Action } from '../../../ui/v2/V2Action';
+import { WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
+import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
 
+type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
+type Draft = { value: WorkerDraft; initial: WorkerDraft; profileId: string | null };
+type Attempt = { command: AzurirajProfilKomanda; expected: AzurirajProfilKomanda; profileId: string | null; afterRead: number };
+const failed = (): Ishod<Snapshot> => ({ ok: false, kod: 'PROFILE_UNCONFIRMED',
+  poruka: 'Čuvanje nije potvrđeno. Proverite sačuvani profil pre ponovnog pokušaja.' });
+async function bounded<T>(request: () => Promise<T>, milliseconds: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try { return await Promise.race([request(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('PROFILE_TIMEOUT')), milliseconds); })]); }
+  finally { if (timer !== undefined) clearTimeout(timer); }
+}
 export default function ProfilRadnikEkran() {
-  const router = useRouter();
-  const izvor = useIzvor();
-  
-  const [profil, setProfil] = useState<RadnikProfilProjekcija | null>(null);
-  const [ucitavam, setUcitavam] = useState(true);
-  const [snimam, setSnimam] = useState(false);
-  
-  const [ime, setIme] = useState("");
-  const [grad, setGrad] = useState("");
-  const [biografija, setBiografija] = useState("");
-  const [vestineStr, setVestineStr] = useState("");
-  const [alatiStr, setAlatiStr] = useState("");
-  const [vozilaStr, setVozilaStr] = useState("");
-  const [radijusStr, setRadijusStr] = useState("15");
-  const [dostupanOdmah, setDostupanOdmah] = useState(false);
-  
+  const session = useSesija(), intent = useUloga();
+  return <OwnedWorkerProfile key={`${session.user?.id}:${session.accountRevision}:${intent}`}
+    accountId={session.user?.id} accountRevision={session.accountRevision} />;
+}
+function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string; accountRevision: number }) {
+  const izvor = useIzvor(), intent = useUloga();
+  const owns = useCallback(() => !!accountId && sesijaSada().user?.id === accountId &&
+    sesijaSada().accountRevision === accountRevision && ulogaSada() === intent, [accountId, accountRevision, intent]);
+  const lifecycle = useRef({ focus: null as object | null, active: !AppState.currentState || AppState.currentState === 'active', generation: 0 });
+  const [foreground, setForeground] = useState(lifecycle.current.active), [resumeRequired, setResumeRequired] = useState(false);
+  const [focusEpoch, setFocusEpoch] = useState(0);
+  useFocusEffect(useCallback(() => {
+    const token = {}; lifecycle.current.focus = token; setFocusEpoch(value => value + 1);
+    return () => { if (lifecycle.current.focus === token) { lifecycle.current.focus = null; lifecycle.current.generation++; } };
+  }, []));
+  useEffect(() => { const subscription = AppState.addEventListener('change', state => {
+    lifecycle.current.active = state === 'active'; lifecycle.current.generation++;
+    setForeground(lifecycle.current.active); setResumeRequired(true);
+  }); return () => { subscription.remove(); lifecycle.current.active = false; }; }, []);
+  const readSequence = useRef(0);
+  const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
+    if (!owns()) return failed();
+    const sequence = ++readSequence.current;
+    try {
+      const profile = await bounded(() => izvor.mojRadnikProfil(), 15_000);
+      if (!owns()) return failed();
+      return { ok: true, podatak: { profile, read: sequence } };
+    } catch { return { ok: false, kod: 'PROFILE_READ_FAILED', poruka: 'Profil nije učitan. Proverite vezu i pokušajte ponovo.' }; }
+  }, [izvor, owns]);
+  const editor = useOwnedEditor(read);
+  const [draft, setDraft] = useState<Draft | null>(null), draftRef = useRef<Draft | null>(null), draftGeneration = useRef(0);
+  const [pending, setPending] = useState<Attempt | null>(null), pendingRef = useRef<Attempt | null>(null);
+  const [transportBusy, setTransportBusy] = useState(false), transportRef = useRef(false);
+  const [message, setMessage] = useState<string | null>(null), [validation, setValidation] = useState<string | null>(null);
+  const setLocal = (next: Draft) => { draftGeneration.current++; draftRef.current = next; setDraft(next); };
   useEffect(() => {
-    let ziv = true;
-    async function init() {
-      try {
-        const p = await izvor.mojRadnikProfil();
-        if (ziv) {
-          setProfil(p);
-          if (p) {
-            setIme(p.ime);
-            setGrad(p.grad);
-            setBiografija(p.biografija);
-            setVestineStr(p.vestine?.join(", ") || "");
-            setAlatiStr(p.alati?.join(", ") || "");
-            setVozilaStr(p.vozila?.join(", ") || "");
-            setRadijusStr(p.radijusKm ? String(p.radijusKm) : "15");
-            setDostupanOdmah(p.dostupanOdmah);
-          }
-        }
-      } finally {
-        if (ziv) setUcitavam(false);
-      }
+    if (!editor.data || transportBusy) return;
+    const { profile, read: sequence } = editor.data, attempt = pendingRef.current;
+    const confirmed = attempt && sequence > attempt.afterRead && workerReadbackMatches(profile, attempt.expected, attempt.profileId);
+    const pristine = draftRef.current && JSON.stringify(draftRef.current.value) === JSON.stringify(draftRef.current.initial);
+    if (!draftRef.current || confirmed || (!attempt && pristine)) {
+      const value = workerDraft(profile); setLocal({ value, initial: value, profileId: profile?.id ?? null });
     }
-    init();
-    return () => { ziv = false; };
-  }, [izvor]);
-
-  const sacuvaj = async (zavrsi: boolean) => {
-    const vestine = vestineStr.split(',').map(s => s.trim()).filter(Boolean);
-
-    if (zavrsi && (!ime.trim() || !grad.trim() || vestine.length < 1)) {
-      Alert.alert("Nedostaju podaci", "Unesite ime, grad i bar jednu veštinu pre završetka profila.");
-      return;
+    if (confirmed) {
+      pendingRef.current = null; setPending(null); setValidation(null);
+      setMessage(attempt.command.zavrsi ? 'Profil je aktivan. Sačuvani podaci su potvrđeni.' : 'Izmene profila su sačuvane i proverene.');
     }
-
-    setSnimam(true);
-    const ishod = await izvor.azurirajRadnikProfil({
-      ime: ime.trim(),
-      grad: grad.trim(),
-      biografija: biografija.trim(),
-      vestine,
-      alati: alatiStr.split(',').map(s => s.trim()).filter(Boolean),
-      vozila: vozilaStr.split(',').map(s => s.trim()).filter(Boolean),
-      radijusKm: parseInt(radijusStr, 10) || 15,
-      dostupanOdmah,
-      zavrsi
+  }, [editor.data, transportBusy]);
+  useEffect(() => {
+    if (!foreground || !resumeRequired || transportBusy || !lifecycle.current.focus) return;
+    let current = true;
+    const generation = lifecycle.current.generation;
+    void editor.refresh().then(() => {
+      if (current && owns() && lifecycle.current.active && generation === lifecycle.current.generation) setResumeRequired(false);
     });
-    setSnimam(false);
-
-    if (ishod.ok) {
-      if (zavrsi) {
-        Alert.alert("Uspeh", "Vaš profil je sada aktivan!");
-        router.back();
-      } else {
-        Alert.alert("Uspeh", "Izmene su sačuvane.");
-      }
-    } else {
-      Alert.alert("Greška", ishod.poruka);
-    }
+    return () => { current = false; };
+  }, [foreground, resumeRequired, transportBusy, editor.refresh, focusEpoch, owns]);
+  const focus = lifecycle.current.focus, generation = lifecycle.current.generation, renderedDraft = draftGeneration.current;
+  const current = () => owns() && !!focus && lifecycle.current.focus === focus && lifecycle.current.active && lifecycle.current.generation === generation;
+  const enabled = current() && !resumeRequired && !transportBusy && !editor.busy && !editor.loading && !editor.error && !editor.uncertain;
+  const back = () => { if (!current()) return; if (router.canGoBack()) router.back(); else router.replace('/profil'); };
+  const change = (value: WorkerDraft) => {
+    if (!enabled || transportRef.current || pendingRef.current || renderedDraft !== draftGeneration.current || !draftRef.current || !current()) return;
+    setLocal({ ...draftRef.current, value }); setMessage(null); setValidation(null);
   };
-
-  if (ucitavam) {
-    return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={palette.forest700} />
-      </SafeAreaView>
-    );
-  }
-
-  const isNovi = !profil || profil.stanje !== 'ACTIVE';
-  const imaVestinu = vestineStr.split(',').some(s => s.trim().length > 0);
-
-  return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <ScrollView contentContainerStyle={{ padding: space.base, gap: space.md }}>
-        <T variant="heading">{isNovi ? "Postavite profil Radnika" : "Moj Radnički Profil"}</T>
-        
-        {isNovi && (
-          <View style={{ backgroundColor: palette.cream050, padding: space.md, borderRadius: radius.md }}>
-            <T variant="meta" tone="muted">Unesite ime, grad i bar jednu veštinu da biste aktivirali profil i prijavljivali se na poslove.</T>
-          </View>
-        )}
-        
-        <View style={{ gap: space.xs }}>
-          <T variant="label">Ime (kako će vas naručioci videti)</T>
-          <TextInput 
-            value={ime}
-            onChangeText={setIme}
-            placeholder="Npr. Nikola Petrović"
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink 
-            }}
-          />
-        </View>
-
-        <View style={{ gap: space.xs }}>
-          <T variant="label">Grad / Lokacija rada</T>
-          <TextInput 
-            value={grad}
-            onChangeText={setGrad}
-            placeholder="Npr. Novi Sad"
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink 
-            }}
-          />
-        </View>
-
-        <View style={{ gap: space.xs }}>
-          <T variant="label">Kratka biografija (opciono)</T>
-          <TextInput 
-            value={biografija}
-            onChangeText={setBiografija}
-            multiline
-            placeholder="Nešto o vašem iskustvu..."
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink, minHeight: 80, textAlignVertical: "top"
-            }}
-          />
-        </View>
-
-        <View style={{ gap: space.xs }}>
-          <T variant="label">Veštine (odvojene zarezom)</T>
-          <TextInput 
-            value={vestineStr}
-            onChangeText={setVestineStr}
-            placeholder="Npr. Vodoinstalater, Keramičar"
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink 
-            }}
-          />
-        </View>
-
-        <View style={{ gap: space.xs }}>
-          <T variant="label">Alati (odvojeni zarezom)</T>
-          <TextInput 
-            value={alatiStr}
-            onChangeText={setAlatiStr}
-            placeholder="Npr. Bušilica, Merdevine"
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink 
-            }}
-          />
-        </View>
-
-        <View style={{ gap: space.xs }}>
-          <T variant="label">Vozila (odvojena zarezom)</T>
-          <TextInput 
-            value={vozilaStr}
-            onChangeText={setVozilaStr}
-            placeholder="Npr. Kombi"
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink 
-            }}
-          />
-        </View>
-
-        <View style={{ gap: space.xs }}>
-          <T variant="label">Radijus kretanja (km)</T>
-          <TextInput 
-            value={radijusStr}
-            onChangeText={setRadijusStr}
-            keyboardType="numeric"
-            placeholder="Npr. 15"
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink 
-            }}
-          />
-        </View>
-        
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: palette.line100 }}>
-          <View style={{ flex: 1, paddingRight: space.md }}>
-            <T variant="body">Dostupan odmah</T>
-            <T variant="meta" tone="muted">Označite ako možete prihvatiti HITNE poslove.</T>
-          </View>
-          <Switch value={dostupanOdmah} onValueChange={setDostupanOdmah} />
-        </View>
-
-      </ScrollView>
-
-      <View style={{ padding: space.base, borderTopWidth: 1, borderTopColor: palette.line100, backgroundColor: palette.ground, gap: space.sm }}>
-         <Button 
-           label={isNovi ? "Završi profil" : "Sačuvaj izmene"} 
-           disabled={snimam || !ime.trim() || !grad.trim() || (isNovi && !imaVestinu)}
-           onPress={() => sacuvaj(isNovi)} 
-         />
-         {!isNovi && (
-           <Button 
-             kind="quiet"
-             label="Nazad"
-             onPress={() => router.back()} 
-           />
-         )}
-      </View>
-    </SafeAreaView>
-  );
+  const save = async (activate: boolean) => {
+    if (!enabled || !current() || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
+    const built = pendingRef.current ? { command: pendingRef.current.command, expected: pendingRef.current.expected } : workerCommand(draftRef.current.value, draftRef.current.initial, activate);
+    if (!built.command) { setValidation(built.error ?? 'Proverite unos.'); return; }
+    const attempt = pendingRef.current ?? { command: built.command, expected: built.expected!, profileId: draftRef.current.profileId, afterRead: readSequence.current };
+    await editor.save(async () => {
+      transportRef.current = true; setTransportBusy(true); pendingRef.current = attempt; setPending(attempt); setMessage(null); setValidation(null);
+      try {
+        // The existing writer bounds each of its four authenticated operations
+        // to 15s. Keep its whole pipeline owned until it settles; never replay it.
+        const result = await bounded(() => izvor.azurirajRadnikProfil(attempt.command), 65_000);
+        if (!current()) return failed();
+        if (!result.ok) return failed();
+        const refreshed = await read();
+        if (!current() || !refreshed.ok || !workerReadbackMatches(refreshed.podatak.profile, attempt.expected, attempt.profileId)) return failed();
+        return refreshed;
+      } catch { return failed(); }
+      finally {
+        transportRef.current = false;
+        if (owns()) { setTransportBusy(false); if (!current()) setResumeRequired(true); }
+      }
+    });
+  };
+  const refresh = () => { if (current() && !transportRef.current) { setMessage(null); void editor.refresh(); } };
+  const editAfterRead = () => {
+    if (!enabled || !current() || transportRef.current || !editor.data || !pendingRef.current || editor.data.read <= pendingRef.current.afterRead) return;
+    pendingRef.current = null; setPending(null); setMessage(null); setValidation(null); draftGeneration.current++;
+  };
+  const navigate = (path: '/profil/lokacija' | '/profil/dostupnost' | '/raspored') => {
+    if (!enabled || !current() || transportRef.current || pendingRef.current) return;
+    if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
+      setValidation('Sačuvajte unos pre otvaranja drugog podešavanja.'); return;
+    }
+    router.navigate(path);
+  };
+  const visible = foreground && !resumeRequired && !!editor.data && !!draft && !!focus;
+  const status = editor.data?.profile?.stanje ?? null;
+  return <WorkerProfileFrame back={back} footer={visible ? <>
+    {pending && (editor.uncertain || editor.error) ? <V2Action label="Proverite sačuvani profil" disabled={transportBusy} onPress={refresh} />
+      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : status === 'ACTIVE' || status === 'SUSPENDED' ? 'Sačuvaj izmene' : 'Proveri i aktiviraj profil'}
+        disabled={!enabled} onPress={() => { void save(status !== 'ACTIVE' && status !== 'SUSPENDED'); }}
+        style={{ backgroundColor: v2.color.orange, borderWidth: 0 }} />}
+    {!pending && status !== 'ACTIVE' && status !== 'SUSPENDED' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
+    {pending && enabled ? <V2Action label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
+  </> : undefined}>
+    {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} /> : <>
+      {message ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.teal }}>{message}</T> : null}
+      {validation || editor.error ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.danger }}>{validation ?? editor.error}</T> : null}
+      {pending && !transportBusy ? <T style={{ ...v2.text.label, color: v2.color.muted }}>Vaš unos je zadržan. Prikaz potvrđuje samo podatke koji su ponovo pročitani sa servera.</T> : null}
+      <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} />
+    </>}
+  </WorkerProfileFrame>;
 }
