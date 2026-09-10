@@ -1837,5 +1837,40 @@
     "shared_normalization": "OPEN",
     "whole_w02_closed": false,
     "design_frozen": true
+  },
+  "reuse_first_continuation_20260910": {
+    "observed_canonical_sha": "bf6d1734710433b00f7d4e17f9cddccda740c8f4",
+    "location_pr": 85,
+    "location_status": "MERGED_SOURCE_AND_DISPOSABLE_PROVEN_NOT_LIVE",
+    "location_proof_run": 34397439552,
+    "location_artifact": 10122216941,
+    "source_inventory": 100,
+    "live_snapshot_count": 87,
+    "pending_count": 13,
+    "current_unit": "W02_SHARED_CAPABILITY_VALIDATION_20260910",
+    "branch": "feat/w02-shared-capability-validation-20260910",
+    "runtime_status": "PENDING_CURRENT_CLEAN_PROOF",
+    "ui_finalized": false,
+    "live_write_performed": false,
+    "shared_existing_owners": [
+      "app_profiles",
+      "private.guard_profile_write",
+      "private.validate_need_v2_fact",
+      "private.lower_arr",
+      "workerProfileClientService",
+      "serverReceipt"
+    ],
+    "donor_code_copied": false,
+    "reuse_priority": [
+      "EXISTING_CLEAN",
+      "ADAPT_VERIFIED_DONOR",
+      "EXTEND_CANONICAL_OWNER",
+      "NEW_ONLY_NECESSARY"
+    ],
+    "owner_lock": "LATEST_OWNER_APPROVED_20260910",
+    "controlled_live_promotion": "APPROVED_CONDITIONAL_ON_INTEGRATED_PROOF_AND_PREFLIGHT",
+    "positive_platform_fees": "OFF",
+    "whole_w02": "OPEN",
+    "next": "PROVE_CURRENT_UNIT_THEN_REMAINING_W02_AND_CURRENT_DEBT_BEFORE_W03"
   }
 }

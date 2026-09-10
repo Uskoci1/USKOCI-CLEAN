@@ -314,3 +314,18 @@ Najveći pojedinačni propust je **isporuka prilika sa objašnjenjem**
 preporuke lokalno, umesto da ga dobije od servera.
 
 Ništa nije menjano. Čeka se odluka koje od migracija 13–24 izvršiti.
+
+
+## 2026-09-10 bounded reuse review — historical inventory is not product authority
+
+This dated addition does not recertify the older donor table above. Latest owner
+rules and current CLEAN override its historical AUTO_FILL/reveal/status suggestions.
+PR85 location was reviewed and merged at bf6d173 by reusing existing V2 facts,
+need_geography/need_sensitive and profile preferences, with current-CLEAN proof.
+The next shared-resource repair reuses the Cloud Profile1.3b columns, RU1 guard,
+existing Need V2 validator, lower_arr matcher, CDL-A09 client owner and receipt fence.
+The historical proposed worker_capability_facts table is NOT reintroduced: existing
+app_profiles resource columns remain authoritative and preserve Application snapshots.
+No donor code was copied in this review. A future port must name its source/version,
+record adaptations and superseded rules, then pass current-CLEAN proof.
+Order: REUSE CLEAN -> ADAPT VERIFIED DONOR -> EXTEND CANONICAL -> NEW IF NECESSARY.
