@@ -3,6 +3,7 @@ import type { Ishod, IzmenaKomanda, Izvor } from './ports';
 import { calendarFailure } from './calendarErrors';
 import { record } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
+import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -51,7 +52,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
       ime: myName || 'Vi',
       inicijali: (myName || 'VI').slice(0, 2).toUpperCase(),
       uloga: requester ? 'narucilac' : 'uskocer',
-      mesta: null,
+      mesta: requester ? null : covered,
       viSte: true,
       telefon: null,
     },
@@ -60,7 +61,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
       ime: otherName || 'Druga strana',
       inicijali: (otherName || 'DS').slice(0, 2).toUpperCase(),
       uloga: requester ? 'uskocer' : 'narucilac',
-      mesta: covered,
+      mesta: requester ? covered : null,
       viSte: false,
       telefon: raw.theirPhone ?? null,
     },
@@ -78,8 +79,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     stanje: status,
     cena: novac(amount, currency),
     // Parent task edits cannot silently change an already accepted Agreement.
-    vremeTekst: terms.proposed_start_at == null ? 'Termin nije potvrđen'
-      : calendarInstant(terms.proposed_start_at) === null ? 'Termin nije dostupan' : formatTime(terms.proposed_start_at),
+    vremeTekst: acceptedSchedule(terms),
     putanjaTekst: [raw.approximateArea, raw.approximateCity].filter(Boolean).join(', '),
     pokrivenost: {
       ukupno: total,
@@ -102,6 +102,17 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     ocenaMoguca: status === 'COMPLETED',
     hronologija: [{ vremeTekst: formatTime(raw.createdAt), tekst: 'Dogovor kreiran' }],
   };
+}
+
+function acceptedSchedule(terms: Record<string, unknown>): string {
+  const start = terms.proposed_start_at, end = terms.proposed_end_at;
+  if (start == null && end == null) return 'Termin nije potvrđen';
+  if ((start != null && (typeof start !== 'string' || calendarInstant(start) === null)) ||
+    (end != null && (typeof end !== 'string' || calendarInstant(end) === null))) return 'Termin nije dostupan';
+  // The workspace returns accepted instants but no accepted display timezone.
+  // Keep both endpoints and their precision; never substitute the parent task's time.
+  return needScheduleText({ kind: 'FIXED_WINDOW', startsAt: start as string | null ?? null, endsAt: end as string | null ?? null })
+    + (start == null ? ' · početak nije potvrđen' : end == null ? ' · kraj nije potvrđen' : '');
 }
 
 async function userId() {

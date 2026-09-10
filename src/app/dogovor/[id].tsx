@@ -1,475 +1,190 @@
-import { useCallback, useEffect, useState } from 'react';
-import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView, TextInput, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  CaretLeft, Clock, ArrowRight, ClockCountdown, CheckCircle,
-  Phone,
-} from 'phosphor-react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
-
+import type { DogovorProjekcija } from '../../contracts/projections';
+import type { Ishod } from '../../data/ports';
 import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
-import { Card } from '../../ui/Button';
-import { palette, space, radius, elevation, motion, touch } from '../../theme/tokens';
-import { useIzvor } from '../../store/uloga';
+import { v2 } from '../../ui/v2/tokens';
+import { V2Icon } from '../../ui/v2/icons';
+import { V2Action } from '../../ui/v2/V2Action';
+import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { useIzvor, useUloga, ulogaSada } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
+import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
-import { useSesija } from '../../store/sesija';
+import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementChat } from '../../ui/AgreementChat';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
-import { useUloga } from '../../store/uloga';
+import { needScheduleText } from '../../data/needDetailPresentation';
 
-const naUredjaju = Platform.OS !== 'web';
-
-/** Rok dolazi sa servera kao ISO. Klijent ga samo formatira, nikad ne računa. */
-function rokTekst(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleString('sr-Latn-RS', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+const bodyStyle = { ...v2.text.body, color: v2.color.ink };
+const metaStyle = { ...v2.text.label, color: v2.color.muted };
+async function bounded<T>(operation: () => Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    // Caller timeout does not claim that the server cancelled or rejected a write.
+    return await Promise.race([operation(), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('AGREEMENT_REQUEST_UNCONFIRMED')), 15_000);
+    })]);
+  } finally { if (timer !== undefined) clearTimeout(timer); }
 }
-
-function backToAgreements() {
-  if (router.canGoBack()) router.back(); else router.replace('/dogovori');
-}
-
-function AgreementStatus({ loading = false, error = false, retry }: {
-  loading?: boolean; error?: boolean; retry?: () => void;
-}) {
-  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: palette.ground }}>
+function backToAgreements() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
+function AgreementStatus({ loading = false, error = false, retry }: { loading?: boolean; error?: boolean; retry?: () => void }) {
+  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
     <Press accessibilityRole="button" accessibilityLabel="Nazad" onPress={backToAgreements}
-      style={{ minHeight: touch.min, padding: space.base, justifyContent: 'center' }}>
-      <T variant="action" tone="orange">Nazad na Dogovore</T>
-    </Press>
-    <View style={{ padding: space.base, gap: space.md }}>
-      {loading ? <ActivityIndicator accessibilityLabel="Učitavanje Dogovora" color={palette.teal500} /> : <>
-        <T variant="title">{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
-        <T variant="body" tone="muted">{error ? 'Proverite internet vezu i pokušajte ponovo.' : 'Veza je zastarela ili nemate pristup ovom Dogovoru.'}</T>
-        {retry && <Press accessibilityRole="button" accessibilityLabel="Ponovo učitaj Dogovor" onPress={retry}
-          style={{ minHeight: touch.min, justifyContent: 'center' }}>
-          <T variant="action" tone="orange">Pokušajte ponovo</T>
-        </Press>}
+      style={{ minHeight: 44, padding: 18, justifyContent: 'center' }}><V2Icon name="back" /></Press>
+    <View style={{ padding: 24, gap: 18 }}>
+      {loading ? <ActivityIndicator accessibilityLabel="Učitavanje Dogovora" color={v2.color.teal} /> : <>
+        <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
+        <T style={bodyStyle}>{error ? 'Proverite internet vezu i pokušajte ponovo.' : 'Veza je zastarela ili nemate pristup ovom Dogovoru.'}</T>
+        {retry ? <V2Action label="Ponovo učitaj Dogovor" onPress={retry} /> : null}
       </>}
     </View>
   </SafeAreaView>;
 }
-
 export default function Dogovor() {
   const { id } = useLocalSearchParams<{ id: string | string[] }>();
-  const session = useSesija();
-  const accountId = session.user?.id;
-  const intent = useUloga();
-  if (typeof id !== 'string' || id.length !== 36
-    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) {
-    return <AgreementStatus />;
-  }
-  return <DogovorContent key={`${accountId}:${session.accountRevision}:${intent}:${id}`} id={id} accountId={accountId} />;
+  const session = useSesija(), intent = useUloga(), accountId = session.user?.id;
+  if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
+  return <DogovorContent key={`${accountId}:${session.accountRevision}:${intent}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision} />;
 }
-
-function DogovorContent({ id, accountId }: { id: string; accountId: string }) {
-  const izvor = useIzvor();
-  const uloga = useUloga();
-  const jaSamUskocer = uloga === 'uskocer';
-  const [tab, setTab] = useState<'pregled' | 'poruke'>('pregled');
-  const workspace = useFocusedResource(useCallback(() => izvor.dogovor(id), [izvor, id, accountId]));
+function DogovorContent({ id, accountId, accountRevision }: { id: string; accountId: string; accountRevision: number }) {
+  const izvor = useIzvor(), intent = useUloga();
+  const [tab, setTab] = useState<AgreementTab>('pregled');
+  const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
+  const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
+    && ulogaSada() === intent, [accountId, accountRevision, intent]);
+  const read = useCallback(async (): Promise<Ishod<DogovorProjekcija | null>> => {
+    if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
+    try {
+      const data = await bounded(() => izvor.dogovor(id));
+      if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
+      if (data && data.id !== id) return { ok: false, kod: 'INVALID_RESPONSE', poruka: 'Dogovor nije dostupan.' };
+      return { ok: true, podatak: data };
+    } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proverite vezu i pokušajte ponovo.' }; }
+  }, [izvor, id, ownsAccount]);
+  const workspace = useOwnedEditor(read);
+  const activeRef = useRef(!AppState.currentState || AppState.currentState === 'active');
+  const freshRef = useRef(activeRef.current), resumeGeneration = useRef(0);
+  const [foreground, setForeground] = useState(activeRef.current);
+  const [resumeRequired, setResumeRequired] = useState(!activeRef.current);
+  const [resumeEpoch, setResumeEpoch] = useState(0);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      activeRef.current = state === 'active';
+      freshRef.current = false;
+      resumeGeneration.current++;
+      setResumeEpoch(resumeGeneration.current);
+      setForeground(activeRef.current); setResumeRequired(true);
+    });
+    return () => { subscription.remove(); activeRef.current = false; freshRef.current = false; resumeGeneration.current++; };
+  }, []);
+  useEffect(() => {
+    // Wait for an in-flight mutation, then replace the pre-background snapshot.
+    // A retained callback remains fenced throughout the resume read.
+    if (!foreground || !resumeRequired || workspace.busy) return;
+    let current = true;
+    const generation = resumeGeneration.current;
+    void workspace.refresh().then(() => {
+      if (!current || !activeRef.current || generation !== resumeGeneration.current) return;
+      freshRef.current = true; setResumeRequired(false);
+    });
+    return () => { current = false; };
+  }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
   const messages = useFocusedResource(useCallback(() => izvor.poruke(id, accountId), [izvor, id, accountId]));
   const dogovor = workspace.data;
-  const writable = !workspace.loading && !workspace.error && dogovor?.chatDostupan === true;
+  const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
+  const writable = enabled && dogovor?.chatDostupan === true;
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
   const osvezi = workspace.refresh;
   useEffect(() => {
     if (messages.data && !messages.error) void outbox.reconcile(messages.data
       .filter(message => !!message.clientMessageId && !!message.posiljalacAccountId)
-      .map(message => ({ clientMessageId: message.clientMessageId!, senderAccountId: message.posiljalacAccountId!,
-        messageId: message.id, body: message.telo })));
+      .map(message => ({ clientMessageId: message.clientMessageId!, senderAccountId: message.posiljalacAccountId!, messageId: message.id, body: message.telo })));
   }, [messages.data, messages.error, outbox, outboxState.phase]);
   const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
     .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
   useEffect(() => { if (deniedAttempt) void osvezi(); }, [deniedAttempt, osvezi]);
+  useEffect(() => { setProblemOpen(false); setProblemText(''); }, [dogovor]);
+  if (!foreground || resumeRequired) return <AgreementStatus loading />;
+  if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 
-  if (!dogovor) return <AgreementStatus loading={workspace.loading} error={workspace.error} retry={() => void osvezi()} />;
-
-  const p = dogovor.pokrivenost;
-  const hero = (<>
-        {/* Prihvaćena verzija je autoritativna. Verzija se vidi, ne krije. */}
-        <View
-          style={[
-            { backgroundColor: palette.forest800, borderRadius: radius.xl, padding: space.base, gap: space.md },
-            elevation.raised,
-          ]}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette.teal400 }} />
-            <T variant="label" tone="onDarkMuted" style={{ flex: 1 }}>
-              {dogovor.stanje === 'CONFIRMED' ? 'AKTIVAN' : dogovor.stanje}
-              {dogovor.verzija > 1 ? ` · v${dogovor.verzija}` : ''}
-            </T>
-            <T variant="heading" style={{ color: palette.orange }}>{dogovor.cena.prikaz}</T>
-          </View>
-
-          <T variant="title" tone="onDark">{dogovor.naslov}</T>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.base, flexWrap: 'wrap' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <ArrowRight size={15} color={palette.onDarkMuted} />
-              <T variant="meta" tone="onDarkMuted">{dogovor.putanjaTekst}</T>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Clock size={15} color={palette.onDarkMuted} />
-              <T variant="meta" tone="onDarkMuted">{dogovor.vremeTekst}</T>
-            </View>
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row', alignItems: 'center',
-              borderTopWidth: 1, borderTopColor: 'rgba(251,242,229,0.16)', paddingTop: space.md,
-            }}
-          >
-            <T variant="label" tone="onDarkMuted" style={{ flex: 1 }}>UKUPNA POTREBA</T>
-            <T variant="bodyStrong" tone="onDark">{p.popunjeno}/{p.ukupno}</T>
-          </View>
-        </View>
-
-</>);
-  const tabs = (<>        {/* M03: tačno dva taba. D04 nije treći. */}
-        <View
-          style={{
-            flexDirection: 'row', backgroundColor: palette.cream050,
-            borderRadius: radius.md, padding: 4, gap: 4,
-          }}
-        >
-          {(['pregled', 'poruke'] as const).map((t) => {
-            const aktivan = tab === t;
-            return (
-              <Press
-                key={t}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: aktivan }}
-                accessibilityLabel={t === 'pregled' ? 'Pregled' : 'Poruke'}
-                haptic="select"
-                scaleTo={0.99}
-                onPress={() => setTab(t)}
-                style={{
-                  flex: 1, minHeight: 40, borderRadius: radius.sm,
-                  alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: aktivan ? palette.raised : 'transparent',
-                }}
-              >
-                <T variant="action" tone={aktivan ? 'ink' : 'muted'}>
-                  {t === 'pregled' ? 'Pregled' : 'Poruke'}
-                </T>
-              </Press>
-            );
-          })}
-        </View>
-
-</>);
-
-  return (
-    <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      {/* The keyboard screenY and this full-screen parent's layout share an origin.
-          Nesting avoidance below the header/tabs loses their height on Android. */}
-      <KeyboardAvoidingView style={{ flex: 1 }} enabled={tab === 'poruke'}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.sm, paddingBottom: space.sm }}>
-        <Press
-          accessibilityRole="button"
-          accessibilityLabel="Nazad"
-          haptic="select"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/dogovori'))}
-          style={{ width: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <CaretLeft size={22} color={palette.ink} weight="bold" />
-        </Press>
-        <T variant="heading" style={{ flex: 1, textAlign: 'center', marginRight: touch.min }}>
-          Dogovor
-        </T>
+  // Party identity comes from the Agreement, not the user's currently selected intent.
+  const me = dogovor.ucesnici.find(party => party.viSte && party.id === accountId);
+  const worker = me?.uloga === 'uskocer', requester = me?.uloga === 'narucilac';
+  const active = dogovor.stanje === 'CONFIRMED' || dogovor.stanje === 'AWAITING_REQUESTER';
+  const canComplete = active && !!me && (requester || dogovor.stanje === 'CONFIRMED');
+  const other = dogovor.ucesnici.find(party => !party.viSte);
+  const mutate = async (command: () => Promise<Ishod<unknown>>) => {
+    if (!enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
+    await workspace.save(async () => {
+      const result = await bounded(command);
+      if (!result.ok) return { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Promena nije potvrđena. Osvežite Dogovor pre novog pokušaja.' };
+      return read();
+    });
+  };
+  const complete = () => { if (canComplete) void mutate(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id)); };
+  const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
+  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
+    {/* Keyboard screenY and this full-screen parent share the same origin. */}
+    <KeyboardAvoidingView style={{ flex: 1 }} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
+        <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={backToAgreements}
+          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><V2Icon name="back" /></Press>
+        <View style={{ flex: 1, gap: 2 }}><T style={metaStyle}>{tab === 'poruke' ? other?.ime ?? 'Razgovor o Dogovoru' : active ? 'Prihvaćeni uslovi' : 'Zatvoreni Dogovor'}</T>
+          <T accessibilityRole="header" style={{ ...v2.text.title, color: v2.color.ink }}>{tab === 'poruke' ? 'Poruke' : 'Dogovor'}</T></View>
       </View>
-
-        {tab === 'pregled' ? (
-          <ScrollView contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.huge, gap: space.base }} showsVerticalScrollIndicator={false}>
-          {hero}{tabs}
-          <Animated.View entering={naUredjaju ? FadeIn.duration(motion.enter) : undefined} style={{ gap: space.base }}>
-            <Card style={elevation.card}>
-              <View style={{ paddingHorizontal: space.base }}>
-                <View
-                  style={{
-                    flexDirection: 'row', alignItems: 'center', paddingVertical: space.md,
-                    borderBottomWidth: 1, borderBottomColor: palette.line100,
-                  }}
-                >
-                  <T variant="heading" style={{ flex: 1 }}>Ko je u ovom Dogovoru</T>
-                  <View
-                    style={{
-                      backgroundColor: palette.successBg, borderRadius: radius.pill,
-                      paddingHorizontal: space.md, paddingVertical: 3,
-                    }}
-                  >
-                    <T variant="meta" tone="success" style={{ fontWeight: '800' }}>
-                      {dogovor.ucesnici.length}
-                    </T>
-                  </View>
-                </View>
-
-                {dogovor.ucesnici.map((u, i) => (
-                  <View
-                    key={u.id}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md,
-                      borderBottomWidth: i < dogovor.ucesnici.length - 1 ? 1 : 0,
-                      borderBottomColor: palette.line100,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 40, height: 40, borderRadius: radius.md,
-                        backgroundColor: u.viSte ? palette.forest800 : palette.successBg,
-                        alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      <T variant="meta" tone={u.viSte ? 'onDark' : 'success'} style={{ fontWeight: '800' }}>
-                        {u.inicijali}
-                      </T>
-                    </View>
-                    <View style={{ flex: 1, gap: 1 }}>
-                      <T variant="bodyStrong">{u.ime}</T>
-                      <T variant="meta" tone="muted">
-                        {u.uloga === 'narucilac' ? 'Naručilac' : 'Uskočer'}
-                        {u.mesta ? ` · ${u.mesta} ${u.mesta === 1 ? 'mesto' : 'mesta'}` : ''}
-                      </T>
-                    </View>
-                    {u.viSte && <T variant="meta" tone="muted">to ste Vi</T>}
-                  </View>
-                ))}
-
-              </View>
-            </Card>
-
-            {/* Hronologija je deo Pregleda, ne treći tab. */}
-            {dogovor.hronologija.length > 0 && (
-              <Card>
-                <View style={{ padding: space.base, gap: space.md }}>
-                  <T variant="label" tone="muted">HRONOLOGIJA</T>
-                  {dogovor.hronologija.map((h, i) => (
-                    <View key={i} style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start' }}>
-                      <View
-                        style={{
-                          width: 7, height: 7, borderRadius: 4, marginTop: 7,
-                          backgroundColor: palette.teal500,
-                        }}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <T variant="meta">{h.tekst}</T>
-                        <T variant="meta" tone="muted" style={{ fontSize: 12 }}>{h.vremeTekst}</T>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </Card>
-            )}
-
-            {/* M04: kontakt je odvojena, eksplicitna i USMERENA dozvola.
-                Dva reda, jer to što ja podelim ne znači da vidim njihov broj. */}
-            <Card>
-              <View style={{ paddingHorizontal: space.base }}>
-                <View
-                  style={{
-                    flexDirection: 'row', alignItems: 'center', gap: space.md,
-                    paddingVertical: space.md,
-                    borderBottomWidth: 1, borderBottomColor: palette.line100,
-                  }}
-                >
-                  <Phone size={17} color={palette.teal500} />
-                  <View style={{ flex: 1, gap: 1 }}>
-                    <T variant="meta" style={{ fontWeight: '700' }}>Vaš broj</T>
-                    <T variant="meta" tone="muted">
-                      {dogovor.kontakt.mojTelefonPodeljen
-                        ? 'Podeljen sa drugom stranom'
-                        : 'Nije podeljen'}
-                    </T>
-                  </View>
-                  <Press
-                    accessibilityRole="button"
-                    accessibilityLabel={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'}
-                    haptic="light"
-                    onPress={async () => {
-                      if (!id) return;
-                      if (dogovor.kontakt.mojTelefonPodeljen) await izvor.opoziviTelefon(id);
-                      else await izvor.podeliTelefon(id);
-                      osvezi();
-                    }}
-                    style={{
-                      minHeight: 40, paddingHorizontal: space.base, borderRadius: radius.md,
-                      borderWidth: 1, borderColor: palette.line100,
-                      backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <T variant="meta" style={{ fontWeight: '800' }}>
-                      {dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi' : 'Podeli'}
-                    </T>
-                  </Press>
-                </View>
-
-                <View
-                  style={{
-                    flexDirection: 'row', alignItems: 'center', gap: space.md,
-                    paddingVertical: space.md,
-                    borderBottomWidth: dogovor.kontakt.lokacijaPostoji ? 1 : 0,
-                    borderBottomColor: palette.line100,
-                  }}
-                >
-                  <Phone size={17} color={palette.teal500} />
-                  <View style={{ flex: 1, gap: 1 }}>
-                    <T variant="meta" style={{ fontWeight: '700' }}>
-                      Broj druge strane
-                    </T>
-                    <T variant="meta" tone="muted">
-                      {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}
-                    </T>
-                  </View>
-                </View>
-
-                <AgreementPrivateLocation agreement={dogovor} enabled={!workspace.loading && !workspace.error} />
-              </View>
-            </Card>
-
-            {/* M07: završetak. Prozor drži server — ovde se samo prikazuje.
-                Referenca je ovu poruku izgubila; bez nje korisnik ne zna
-                da se Dogovor sam zatvara. */}
-            {dogovor.stanje !== 'COMPLETED' && (
-              <Card style={elevation.card}>
-                <View style={{ padding: space.base, gap: space.md }}>
-                  {dogovor.stanje === 'AWAITING_REQUESTER' ? (
-                    <>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                        <ClockCountdown size={20} color={palette.orangeInk} />
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <T variant="bodyStrong">
-                            {jaSamUskocer ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio'}
-                          </T>
-                          <T variant="meta" tone="muted">
-                            {dogovor.problemOtvoren
-                              ? 'Prijavljen je problem — Dogovor se neće zatvoriti sam dok se to ne reši.'
-                              : jaSamUskocer
-                                ? `Naručilac ima rok do ${rokTekst(dogovor.rokPotvrdeIso)}. Bez odgovora se Dogovor zatvara sam.`
-                                : `Potvrdite ili prijavite problem do ${rokTekst(dogovor.rokPotvrdeIso)}. Bez odgovora se Dogovor zatvara sam.`}
-                          </T>
-                        </View>
-                      </View>
-                      {!jaSamUskocer && (
-                      <View style={{ flexDirection: 'row', gap: space.sm }}>
-                        <Press
-                          accessibilityRole="button"
-                          accessibilityLabel="Prijavi problem"
-                          haptic="medium"
-                          onPress={async () => {
-                            if (!id) return;
-                            await izvor.prijaviProblem(id, 'Problem prijavljen iz Dogovora.');
-                            osvezi();
-                          }}
-                          style={{
-                            minHeight: touch.min, paddingHorizontal: space.base, borderRadius: radius.md,
-                            borderWidth: 1, borderColor: palette.line100,
-                            alignItems: 'center', justifyContent: 'center',
-                          }}
-                        >
-                          <T variant="action" tone="muted">Prijavi problem</T>
-                        </Press>
-                        <Press
-                          accessibilityRole="button"
-                          accessibilityLabel="Potvrdi završetak"
-                          haptic="success"
-                          onPress={async () => {
-                            if (!id) return;
-                            await izvor.potvrdiZavrsetak(id);
-                            osvezi();
-                          }}
-                          style={{
-                            flex: 1, minHeight: touch.min, borderRadius: radius.md,
-                            backgroundColor: palette.orange,
-                            alignItems: 'center', justifyContent: 'center',
-                          }}
-                        >
-                          <T variant="action" tone="onOrange">Potvrdi završetak</T>
-                        </Press>
-                      </View>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                        <ClockCountdown size={20} color={palette.teal500} />
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <T variant="bodyStrong">
-                            {jaSamUskocer ? 'Kada završite posao' : 'Kada posao bude završen'}
-                          </T>
-                          <T variant="meta" tone="muted">
-                            {jaSamUskocer
-                              ? 'Označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
-                              : 'Možete potvrditi završetak i sami, ne morate čekati Uskočera.'}
-                          </T>
-                        </View>
-                      </View>
-                      <Press
-                        accessibilityRole="button"
-                        accessibilityLabel={jaSamUskocer ? 'Završio sam' : 'Potvrdi završetak'}
-                        haptic="success"
-                        onPress={async () => {
-                          if (!id) return;
-                          if (jaSamUskocer) await izvor.oznaciZavrsetak(id);
-                          else await izvor.potvrdiZavrsetak(id);
-                          osvezi();
-                        }}
-                        style={{
-                          minHeight: touch.min, borderRadius: radius.md,
-                          backgroundColor: jaSamUskocer ? palette.orange : 'transparent',
-                          borderWidth: jaSamUskocer ? 0 : 1.5,
-                          borderColor: palette.ink,
-                          alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        <T variant="action" tone={jaSamUskocer ? 'onOrange' : 'ink'}>
-                          {jaSamUskocer ? 'Završio sam' : 'Potvrdi završetak'}
-                        </T>
-                      </Press>
-                    </>
-                  )}
-                </View>
-              </Card>
-            )}
-
-            {dogovor.stanje === 'COMPLETED' && (
-              <Card style={elevation.card}>
-                <View style={{ padding: space.base, flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                  <View
-                    style={{
-                      width: 38, height: 38, borderRadius: radius.md, backgroundColor: palette.successBg,
-                      alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <CheckCircle size={19} color={palette.success} weight="fill" />
-                  </View>
-                  <View style={{ flex: 1, gap: 1 }}>
-                    <T variant="bodyStrong">Dogovor je završen</T>
-                  </View>
-                </View>
-              </Card>
-            )}
-
-          </Animated.View>
-          </ScrollView>
-        ) : (
-          <View style={{ flex: 1 }}>
-          <View style={{ paddingHorizontal: space.base, paddingBottom: space.sm, gap: space.sm }}>
-            {tabs}<T variant="heading" numberOfLines={2}>{dogovor.naslov}</T>
-          </View>
-          <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
-            writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh}
-            refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} />
-          </View>
-        )}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+      <View style={{ paddingHorizontal: 18, paddingBottom: 12, gap: 10 }}>
+        {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
+        <AgreementTabs tab={tab} onChange={setTab} />
+      </View>
+      {tab === 'poruke' ? <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
+        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} /> : <>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
+          <AgreementHero agreement={dogovor} />
+          <AgreementPeople agreement={dogovor} />
+          <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Vaš broj je podeljen' : 'Podelite svoj broj kada vam odgovara'}>
+            <T style={metaStyle}>Deljenje je odvojeno u oba smera. Kada podelite svoj broj, druga strana ne deli automatski svoj.</T>
+            <T style={bodyStyle}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>
+            {active && me ? <V2Action label={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'} disabled={!enabled}
+              onPress={() => void mutate(() => dogovor.kontakt.mojTelefonPodeljen ? izvor.opoziviTelefon(id) : izvor.podeliTelefon(id))} /> : null}
+          </AgreementSection>
+          {dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji ? <AgreementSection label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
+            <AgreementPrivateLocation agreement={dogovor} enabled={enabled} />
+          </AgreementSection> : null}
+          {dogovor.hronologija.length ? <AgreementSection label="Tok Dogovora" summary="Sačuvani događaji">
+            {dogovor.hronologija.map((event, index) => <View key={index} style={{ gap: 3 }}><T style={bodyStyle}>{event.tekst}</T><T style={metaStyle}>{event.vremeTekst}</T></View>)}
+          </AgreementSection> : null}
+          {dogovor.stanje === 'AWAITING_REQUESTER' ? <View style={{ gap: 12, padding: 18, borderRadius: 18, backgroundColor: v2.color.context }}>
+            <T style={{ ...bodyStyle, fontWeight: '700' }}>{worker ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio'}</T>
+            <T style={metaStyle}>{dogovor.problemOtvoren ? 'Prijavljen je problem — Dogovor se neće zatvoriti sam dok se to ne reši.'
+              : `${deadline}. Bez odgovora se Dogovor zatvara sam.`}</T>
+            {requester && !dogovor.problemOtvoren ? <V2Action label="Prijavi problem" disabled={!enabled} kind="quiet" onPress={() => { if (enabled) setProblemOpen(true); }} /> : null}
+            {problemOpen && requester ? <View style={{ gap: 10 }}>
+              <TextInput accessibilityLabel="Opišite problem" value={problemText} onChangeText={setProblemText} multiline maxLength={2000}
+                editable={enabled} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={v2.color.muted}
+                style={{ ...bodyStyle, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 11, backgroundColor: v2.color.surface }} />
+              <V2Action label="Pošalji prijavu problema" disabled={!enabled || !problemText.trim()} onPress={() => {
+                if (problemText.trim()) void mutate(() => izvor.prijaviProblem(id, problemText.trim()));
+              }} />
+              <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled} onPress={() => setProblemOpen(false)} />
+            </View> : null}
+          </View> : null}
+          {dogovor.stanje === 'CONFIRMED' && me ? <T style={metaStyle}>{worker
+            ? 'Kada završite, označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
+            : 'Završetak možete potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.'}</T> : null}
+          {dogovor.stanje === 'COMPLETED' ? <T style={{ ...bodyStyle, color: v2.color.teal }}>Dogovor je završen</T> : null}
+          {dogovor.stanje === 'CANCELLED' ? <T style={metaStyle}>Dogovor je otkazan.</T> : null}
+          {workspace.error ? <View style={{ gap: 8 }}><T accessibilityRole="alert" style={{ ...bodyStyle, color: v2.color.danger }}>{workspace.error}</T>
+            <V2Action label="Osveži status Dogovora" disabled={workspace.busy} onPress={() => void osvezi()} /></View> : null}
+        </ScrollView>
+        <View style={{ padding: 18, gap: 6, borderTopWidth: 1, borderColor: v2.color.line, backgroundColor: v2.color.surface }}>
+          <V2Action label="Otvori poruke" kind="primary" onPress={() => setTab('poruke')} style={{ backgroundColor: v2.color.orange, borderWidth: 0, minHeight: 50, borderRadius: 16 }} />
+          {canComplete ? <V2Action label={workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak'} kind="quiet" disabled={!enabled} onPress={complete} /> : null}
+        </View>
+      </>}
+    </KeyboardAvoidingView>
+  </SafeAreaView>;
 }
