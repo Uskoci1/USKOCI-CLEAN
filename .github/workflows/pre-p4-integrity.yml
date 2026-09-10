@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
+      w03: ${{ steps.scope.outputs.w03 }}
       auth: ${{ steps.scope.outputs.auth }}
       export: ${{ steps.scope.outputs.export }}
       retention: ${{ steps.scope.outputs.retention }}
@@ -200,3 +201,10 @@ jobs:
     uses: ./.github/workflows/w02-calendar-authority-proof.yml
     with:
       scope: ${{ needs.pre-p4-integrity.outputs.w02_scope }}
+
+  domain-w03:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.w03 == 'true'
+    uses: ./.github/workflows/ai-edge-context-proof.yml
+    with:
+      scope: intake

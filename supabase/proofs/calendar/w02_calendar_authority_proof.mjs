@@ -3,6 +3,7 @@
 // file runs. Published Needs are explicit isolated SQL fixtures, not UI publication.
 // No production project or external provider is accessed.
 import assert from 'node:assert/strict';
+import {ownedIntakeSourceBoundary} from '../../../scripts/ci/owned-intake-source.mjs';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -14,7 +15,8 @@ const env = process.env;
 const url = env.RU5_DEVICE_SUPABASE_URL;
 const db = env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url, db);
-const sourceCount = readP3RetentionPredecessorPlan().source_migration_count;
+const sourceBoundary=ownedIntakeSourceBoundary(readP3RetentionPredecessorPlan());
+const sourceCount=sourceBoundary.predecessorPlan.source_migration_count;
 const out = env.W02_CALENDAR_ARTIFACT_DIR || 'artifacts/w02-calendar-authority';
 mkdirSync(out, { recursive: true });
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
@@ -24,7 +26,7 @@ const anon = createClient(url, env.RU5_DEVICE_ANON_KEY, options);
 const requesterId = env.RU5_DEVICE_REQUESTER_USER_ID;
 const workerId = env.RU5_DEVICE_WORKER_USER_ID;
 const report = {
-  unit: 'W02_CALENDAR_AUTHORITY', source_sha: env.GITHUB_SHA || null, run_id: env.GITHUB_RUN_ID || null,
+  unit: 'W02_CALENDAR_AUTHORITY', admitted_source_count:106, applied_source_boundary:105, deferred_authority_successors:[sourceBoundary.next], source_sha: env.GITHUB_SHA || null, run_id: env.GITHUB_RUN_ID || null,
   live_access: false, live_promotion: false, provider_called: false, visual_design_changed: false,
   checks: [], race: null,
 };

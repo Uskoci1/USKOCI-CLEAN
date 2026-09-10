@@ -36,6 +36,7 @@ function resetRpc(result: unknown) {
 
 const NEED = '11111111-1111-4111-8111-111111111111';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222';
+const EVENT = '33333333-3333-4333-8333-333333333333';
 
 describe('RU-4 — R04 edit no longer dead-ends', () => {
   it('R04 opens the real server edit flow instead of a route that does not exist', () => {
@@ -103,7 +104,7 @@ describe('RU-4 — openEditConversation', () => {
 describe('RU-4 — confirmEdit', () => {
   it('carries the reviewed revision and a stable request id to the v2 authority', async () => {
     resetRpc({
-      data: { needId: NEED, fromRevision: 3, revision: 4, status: 'DRAFT', requiresReadmission: true, idempotentReplay: false },
+      data: { needId: NEED, fromRevision: 3, revision: 4, status: 'DRAFT', requiresReadmission: true, idempotentReplay: false, conversationId: CONVERSATION, revisionEventId: EVENT, authoritative: true },
       error: null,
     });
     const result = await aiNeedV2Production.confirmEdit(NEED, 3, CONVERSATION, 'ru4-edit-abc12345');
@@ -113,12 +114,12 @@ describe('RU-4 — confirmEdit', () => {
     ]]);
     expect(result).toEqual({
       ok: true,
-      podatak: { needId: NEED, fromRevision: 3, revision: 4, requiresReadmission: true, idempotentReplay: false },
+      podatak: { needId: NEED, fromRevision: 3, revision: 4, status: 'DRAFT', requiresReadmission: true, idempotentReplay: false, conversationId: CONVERSATION, revisionEventId: EVENT, authoritative: true },
     });
   });
 
   it('reports a replayed receipt as such instead of a second edit', async () => {
-    resetRpc({ data: { needId: NEED, fromRevision: 3, revision: 4, idempotentReplay: true, requiresReadmission: true }, error: null });
+    resetRpc({ data: { needId: NEED, fromRevision: 3, revision: 4, status: 'DRAFT', idempotentReplay: true, requiresReadmission: true, conversationId: CONVERSATION, revisionEventId: EVENT, authoritative: true }, error: null });
     const result = await aiNeedV2Production.confirmEdit(NEED, 3, CONVERSATION, 'ru4-edit-abc12345');
     expect(result).toMatchObject({ ok: true, podatak: { idempotentReplay: true, revision: 4 } });
   });
