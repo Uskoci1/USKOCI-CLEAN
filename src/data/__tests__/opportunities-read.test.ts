@@ -46,6 +46,10 @@ describe('W03 authoritative discovery read', () => {
       approximate_area: 'Centar', approximate_city: 'Beograd', approximate_lat: 44.8, approximate_lng: 20.4,
       required_slots: 3, covered_slots: 1, required_skills: ['Selidbe'], required_tools: [], required_vehicles: [],
       requester_profile_id: 'requester-1', mode: 'OFFERS', requester_price_rsd: null,
+      description: 'Prenos kutija', category: 'Selidbe', schedule_kind: 'FLEXIBLE', ends_at: null,
+      task_country_code: 'RS', task_timezone: 'Europe/Belgrade', execution_location_mode: null,
+      required_licenses: [], minimum_experience_years: null, verified_identity_required: false,
+      need_geography: null, need_requirement_details: null,
     }], error: null });
     publicProfile.mockResolvedValueOnce(null);
 
@@ -55,7 +59,10 @@ describe('W03 authoritative discovery read', () => {
     expect(publicProfile).toHaveBeenCalledWith('requester-1');
     expect(result).toEqual([{
       id: 'need-1', naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
-      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilno',
+      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilan termin', opis: 'Prenos kutija',
+      taskCountryCode: 'RS', taskTimezone: 'Europe/Belgrade', schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null },
+      detalji: { kategorija: 'Selidbe', geografija: null, rezimLokacije: null,
+        zahtevi: { vestine: ['Selidbe'], alati: [], vozila: [], dozvole: [], bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false } },
       pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 },
       uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacIme: '', narucilacOcena: null,
       priblizno: { lat: 44.8, lng: 20.4 }, rezimCene: 'OFFERS', ponudjenaCena: undefined,

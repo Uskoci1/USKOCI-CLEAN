@@ -36,7 +36,7 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   return range ? `${preference}${range} (${timezone ?? 'UTC · zona nije navedena'})`
     : schedule.kind === 'FIXED_WINDOW' ? 'Tačan termin nije potpun' : SCHEDULE[schedule.kind];
 }
-export function needGeographyRows(need: PotrebaProjekcija): { label: string; value: string }[] {
+export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {
   const geo = need.detalji?.geografija;
   if (!geo) return [{ label: 'Približno područje', value: need.podrucjeTekst }];
   if (geo.mode === 'REMOTE') return [{ label: 'Način izvršenja', value: 'Na daljinu' }];
@@ -47,7 +47,7 @@ export function needGeographyRows(need: PotrebaProjekcija): { label: string; val
       value: [point?.label, point?.city, point?.area].filter(value => value !== undefined).join(' · ') };
   })];
 }
-export function needRequirementRows(need: PotrebaProjekcija): { label: string; value: string }[] {
+export function needRequirementRows(need: Pick<PotrebaProjekcija, 'detalji' | 'uslovi'>): { label: string; value: string }[] {
   const requirements = need.detalji?.zahtevi;
   if (!requirements) return need.uslovi.length ? [{ label: 'Uslovi', value: need.uslovi.map(value => `• ${value}`).join('\n') }] : [];
   const groups: [string, string[] | null][] = [['Veštine', requirements.vestine], ['Alat', requirements.alati], ['Vozilo', requirements.vozila],

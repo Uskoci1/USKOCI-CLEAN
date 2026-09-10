@@ -15,7 +15,7 @@ export function TaskCard({ item, onOpen, compact = false, disabled = false }: { 
   return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvorite Zadatak' : 'Otvorite priliku'} ${item.naslov}`}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986} style={[s.card, compact && s.compact]}>
     <T style={s.status}>{status}</T><T style={s.title}>{item.naslov}</T>
-    <View style={s.meta}><MapPin size={15} color={v2.color.teal} /><T style={s.metaText}>{item.podrucjeTekst}</T></View>
+    <View style={s.meta}>{item.detalji?.rezimLokacije !== 'REMOTE' ? <MapPin size={15} color={v2.color.teal} /> : null}<T style={s.metaText}>{item.detalji?.rezimLokacije === 'REMOTE' ? 'Na daljinu' : item.podrucjeTekst}</T></View>
     <View style={s.meta}><Clock size={15} color={v2.color.teal} /><T style={s.metaText}>{schedule}</T></View>
     <View style={s.bottom}><T style={s.price}>{item.rezimCene === 'OFFERS' ? 'Tražim ponude' : item.ponudjenaCena?.prikaz ?? 'Cena nije navedena'}</T>
       <View accessible accessibilityLabel={`${item.pokrivenost.popunjeno} od ${needPeopleText(item.pokrivenost.ukupno)} dogovoreno`} style={s.coverage}>
