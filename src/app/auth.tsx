@@ -1,3 +1,4 @@
+import { AuthIntro } from '../ui/auth/AuthPresentation';
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import {
@@ -228,8 +229,8 @@ export default function AuthScreen() {
               ? 'Unesite osnovne podatke za nalog.'
               : 'Unesite email i lozinku.';
 
-  if (!otvoren) return <EntryWelcome onRequester={() => void izaberiNameru('REQUESTER')}
-    onWorker={() => void izaberiNameru('WORKER')} onSignIn={() => otvori('LOGIN')} busy={radi} error={greska} />;
+  if (!otvoren) return <EntryWelcome onRequester={() => izaberiNameru('REQUESTER')}
+    onWorker={() => izaberiNameru('WORKER')} onSignIn={() => otvori('LOGIN')} busy={radi} error={greska} />;
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <StatusBar style="dark" />
@@ -241,25 +242,13 @@ export default function AuthScreen() {
             setGreska(null); setPoruka(null);
           })} style={styles.backButton}><ArrowLeft size={22} color="#142F30" /></Pressable>
         <Text style={styles.headerTitle}>{rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
-        <View style={{ width: 48 }} />
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
           <View style={styles.formColumn}>
-            <View style={styles.authHead}>
-              <Text accessibilityRole="header" style={styles.authTitle}>{faza === 'EMAIL' && rezim === 'LOGIN' ? 'Drago nam je\nšto ste tu.' : naslov}</Text>
-              <Text style={styles.authSubtitle}>{faza === 'EMAIL' && rezim === 'LOGIN' ? 'Prijavite se da nastavite.' : podnaslov}</Text>
-            </View>
-
-
-            {faza === 'EMAIL' && methods?.emailPassword && methods.emailSignup ? <View style={styles.tabs}>
-              {(['LOGIN', 'SIGNUP'] as const).map(mode => <Pressable key={mode} accessibilityRole="tab"
-                accessibilityState={{ selected: rezim === mode, disabled: radi }} disabled={radi}
-                onPress={() => commands.changeForm(() => { setRezim(mode); setGreska(null); setPoruka(null); })}
-                style={[styles.tab, rezim === mode && styles.selectedTab]}>
-                <Text style={styles.tabLabel}>{mode === 'LOGIN' ? 'Prijava' : 'Registracija'}</Text>
-              </Pressable>)}
-            </View> : null}
+            <AuthIntro title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Dobro došao.' : naslov}
+              copy={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Nastavi do svojih Zadataka i Dogovora.' : podnaslov}
+              eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : undefined} />
             {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
 
             {availability.status === 'loading' ? (
@@ -357,12 +346,6 @@ export default function AuthScreen() {
                     </>
                   ) : null}
 
-                  <PrimaryButton
-                    title={rezim === 'SIGNUP' ? 'Napravite nalog' : 'Prijavite se'}
-                    disabled={rezim === 'SIGNUP' && !methods.emailSignup}
-                    onPress={() => void emailAkcija()}
-                    busy={radi}
-                  />
                   <View style={styles.feedback} accessibilityLiveRegion="polite">
                     {greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
                   </View>
@@ -497,53 +480,70 @@ export default function AuthScreen() {
             </View> : null}
           </View>
         </ScrollView>
+        {faza === 'EMAIL' && methods?.emailPassword ? <View style={[styles.authFooter, { paddingBottom: Math.max(16, insets.bottom) }]}>
+          <View style={styles.footerColumn}>
+            <PrimaryButton
+              title={rezim === 'SIGNUP' ? 'Napravite nalog' : 'Prijavite se'}
+              disabled={rezim === 'SIGNUP' && !methods.emailSignup}
+              onPress={() => void emailAkcija()}
+              busy={radi}
+            />
+            {methods.emailSignup ? <View style={styles.tabs}>
+              {(['LOGIN', 'SIGNUP'] as const).map(mode => <Pressable key={mode} accessibilityRole="tab"
+                accessibilityState={{ selected: rezim === mode, disabled: radi }} disabled={radi}
+                onPress={() => commands.changeForm(() => { setRezim(mode); setGreska(null); setPoruka(null); })}
+                style={[styles.tab, rezim === mode && styles.selectedTab]}>
+                <Text style={styles.tabLabel}>{mode === 'LOGIN' ? 'Prijava' : 'Registracija'}</Text>
+              </Pressable>)}
+            </View> : null}
+          </View>
+        </View> : null}
       </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F7F8F5' },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', height: 68, alignItems: 'center', paddingHorizontal: 12 },
+  authFooter: { borderTopWidth: 1, borderTopColor: '#DFE7E2', backgroundColor: '#FFFFFF', paddingTop: 12, paddingHorizontal: 20 },
+  footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center' },
+  screen: { flex: 1, backgroundColor: '#F5F7F6' },
+  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', paddingHorizontal: 12 },
   backButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '600', color: '#142F30' },
-  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 8 },
+  headerTitle: { flex: 1, textAlign: 'left', fontSize: 19, fontWeight: '700', color: '#143D35' },
+  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 20, paddingTop: 0 },
   formColumn: { width: '100%', maxWidth: 412 },
-  authHead: { gap: 12, marginBottom: 28 },
-  authTitle: { color: '#142F30', fontSize: 32, lineHeight: 37, letterSpacing: -0.7, fontWeight: '700' },
-  authSubtitle: { color: '#5D6E6D', fontSize: 15, lineHeight: 22 },
-  tabs: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#DCE3DE', marginBottom: 16 },
+  tabs: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#FFFFFF', marginTop: 6 },
   tab: { flex: 1, minHeight: 48, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', borderRadius: 11 },
-  selectedTab: { backgroundColor: '#FFFFFF' },
-  tabLabel: { color: '#142F30', fontSize: 14, fontWeight: '600' },
-  form: { gap: 16 },
-  feedback: { minHeight: 24, marginTop: -6 },
+  selectedTab: { backgroundColor: '#E9F3EE' },
+  tabLabel: { color: '#143D35', fontSize: 14, fontWeight: '600' },
+  form: { gap: 16, backgroundColor: '#FFFFFF', borderColor: '#D8E5DD', borderWidth: 1, borderRadius: 22, padding: 18, marginTop: 6 },
+  feedback: { marginTop: -6 },
   banner: { marginBottom: 12, borderRadius: 14, padding: 12 },
   bannerOk: { backgroundColor: '#E6F3EC' },
   bannerOkText: { color: '#265B40', fontSize: 14, lineHeight: 21 },
   bannerErrorText: { color: '#A03328', fontSize: 14, lineHeight: 21 },
-  forgot: { minHeight: 48, justifyContent: 'center', marginTop: -20 },
-  forgotText: { color: '#142F30', fontSize: 14, fontWeight: '600', lineHeight: 21 },
+  forgot: { minHeight: 48, justifyContent: 'center', marginTop: -6 },
+  forgotText: { color: '#143D35', fontSize: 14, fontWeight: '600', lineHeight: 21 },
   methods: { marginTop: 16 },
   method: { minHeight: 56, borderRadius: 16, borderWidth: 1, borderColor: '#DCE3DE', backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
   methodPressed: { opacity: 0.76 },
   methodIcon: { width: 24, height: 24 },
-  methodText: { color: '#142F30', fontSize: 16, fontWeight: '600' },
+  methodText: { color: '#143D35', fontSize: 16, fontWeight: '600' },
   consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 8 },
   checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: '#78938A', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  checkboxChecked: { backgroundColor: '#142F30' },
+  checkboxChecked: { backgroundColor: '#143D35' },
   checkmark: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  consentText: { flex: 1, color: '#5D6E6D', fontSize: 13, lineHeight: 21 },
-  legalLink: { color: '#142F30' },
+  consentText: { flex: 1, color: '#52665E', fontSize: 13, lineHeight: 21 },
+  legalLink: { color: '#143D35' },
   backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
-  backText: { color: '#142F30', fontSize: 14, fontWeight: '600' },
-  smallNote: { color: '#5D6E6D', fontSize: 13, lineHeight: 20, marginVertical: 12 },
+  backText: { color: '#143D35', fontSize: 14, fontWeight: '600' },
+  smallNote: { color: '#52665E', fontSize: 13, lineHeight: 20, marginVertical: 12 },
   stateIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4EDE8' },
-  stateTitle: { color: '#142F30', fontSize: 23, fontWeight: '700', lineHeight: 29 },
-  stateCopy: { color: '#5D6E6D', fontSize: 15, lineHeight: 23 },
+  stateTitle: { color: '#143D35', fontSize: 23, fontWeight: '700', lineHeight: 29 },
+  stateCopy: { color: '#52665E', fontSize: 15, lineHeight: 23 },
   linkButton: { minHeight: 48, justifyContent: 'center' },
-  linkText: { color: '#142F30', fontSize: 14, fontWeight: '600' },
-  notice: { backgroundColor: '#E9F3F9', padding: 16, borderRadius: 16, marginTop: 16, gap: 6 },
-  noticeTitle: { color: '#235F87', fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  noticeCopy: { color: '#235F87', fontSize: 13, lineHeight: 20 },
+  linkText: { color: '#143D35', fontSize: 14, fontWeight: '600' },
+  notice: { backgroundColor: '#E9F3EE', padding: 16, borderRadius: 16, marginTop: 16, gap: 6 },
+  noticeTitle: { color: '#2E7A6A', fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  noticeCopy: { color: '#2E7A6A', fontSize: 13, lineHeight: 20 },
 });

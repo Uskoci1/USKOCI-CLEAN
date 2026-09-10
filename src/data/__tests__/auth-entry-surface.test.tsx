@@ -22,7 +22,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   Easing: { bezier: () => undefined }, interpolate: () => 0, useAnimatedStyle: () => ({}),
   useSharedValue: () => ({ value: 0 }), withTiming: (value: unknown) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Defs: 'Defs', LinearGradient: 'LinearGradient',
-  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop' }));
+  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
   LockKey: 'Icon', MapPin: 'Icon', Phone: 'Icon', User: 'Icon', X: 'Icon' }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));

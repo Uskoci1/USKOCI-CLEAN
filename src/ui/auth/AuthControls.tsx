@@ -69,19 +69,19 @@ export function PrimaryButton({
         pressed && !disabled && !busy && styles.primaryPressed,
       ]}
     >
-      {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>{title}</Text>}
+      {busy ? <ActivityIndicator color="#143D35" /> : <Text style={styles.primaryText}>{title}</Text>}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   field: { gap: 8 },
-  fieldLabel: { color: '#142F30', fontSize: 14, lineHeight: 20, fontWeight: '600' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE3DE', borderRadius: 12, minHeight: 56 },
-  fieldInput: { flex: 1, minWidth: 0, minHeight: 54, paddingHorizontal: 16, paddingVertical: 14, color: '#142F30', fontSize: 16, lineHeight: 24 },
+  fieldLabel: { color: '#143D35', fontSize: 13, lineHeight: 19.5, fontWeight: '600' },
+  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#ADC2B7', borderRadius: 12, minHeight: 48 },
+  fieldInput: { flex: 1, minWidth: 0, minHeight: 48, paddingHorizontal: 12, paddingVertical: 12, color: '#143D35', fontSize: 16, lineHeight: 22.4 },
   passToggle: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  primary: { minHeight: 56, borderRadius: 16, backgroundColor: '#142F30', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  primaryText: { color: '#FFFFFF', fontSize: 16, lineHeight: 24, fontWeight: '600' },
+  primary: { minHeight: 52, borderRadius: 16, backgroundColor: '#FF7908', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 18 },
+  primaryText: { color: '#13382F', fontSize: 15, lineHeight: 21, fontWeight: '700' },
   primaryPressed: { opacity: 0.76 },
   disabled: { opacity: 0.45 },
 });

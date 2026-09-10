@@ -1,14 +1,15 @@
+import { AuthIntro } from '../ui/auth/AuthPresentation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'expo-router';
 import { passwordRecoveryIntent } from '../store/passwordRecoveryIntent';
 import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, CheckCircle, LockKey } from 'phosphor-react-native';
+import { ArrowLeft } from 'phosphor-react-native';
 import { usePasswordRecovery } from '../hooks/usePasswordRecovery';
 import { useSesija } from '../store/sesija';
 import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
 import { BuildIdentity } from '../ui/BuildIdentity';
-import { palette, radius, space, type } from '../theme/tokens';
+import { palette, space, type } from '../theme/tokens';
 
 export default function PasswordRecoveryScreen() {
   const router = useRouter();
@@ -58,15 +59,13 @@ export default function PasswordRecoveryScreen() {
       <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={busy} onPress={back} style={styles.back}>
         <ArrowLeft size={22} color={palette.ink} />
       </Pressable>
-      <Text style={styles.headerLabel}>Oporavak naloga</Text><View style={styles.back} />
+      <Text style={styles.headerLabel}>Oporavak naloga</Text>
     </View>
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(32, insets.bottom + 24) }]}>
         <View style={styles.column}>
-          <View style={styles.icon}>{state.status === 'success'
-            ? <CheckCircle size={30} color={palette.success} />
-            : <LockKey size={28} color={palette.ink} />}</View>
-          <Text accessibilityRole="header" style={styles.title}>{state.status === 'success' ? 'Lozinka je\npromenjena.' : 'Nova lozinka.\nIsti USKOČI nalog.'}</Text>
+          <AuthIntro title={state.status === 'success' ? 'Lozinka je promenjena.' : 'Postavi novu lozinku.'}
+            copy={state.status === 'success' ? 'Isti nalog. Tvoji Zadaci i Dogovori.' : 'Bezbedan povratak u isti USKOČI nalog.'} eyebrow="BEZBEDAN POVRATAK" />
           <View accessibilityLiveRegion="polite" style={styles.content}>
             {state.status === 'verifying' ? <>
               <ActivityIndicator accessibilityLabel="Provera linka" color={palette.ink} />
@@ -104,16 +103,14 @@ export default function PasswordRecoveryScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F7F8F5' },
+  screen: { flex: 1, backgroundColor: '#F5F7F6' },
   flex: { flex: 1 },
   header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 68, alignItems: 'center', paddingHorizontal: space.md },
   back: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  headerLabel: { flex: 1, color: palette.ink, textAlign: 'center', ...type.meta },
-  scroll: { flexGrow: 1, padding: space.xl, alignItems: 'center' },
-  column: { width: '100%', maxWidth: 412, gap: space.xl },
-  icon: { width: 64, height: 64, borderRadius: radius.xl, backgroundColor: '#E4EDE8', alignItems: 'center', justifyContent: 'center' },
-  title: { color: palette.ink, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.7 },
-  content: { gap: space.base },
+  headerLabel: { flex: 1, color: palette.ink, textAlign: 'left', fontSize: 19, fontWeight: '700' },
+  scroll: { flexGrow: 1, paddingHorizontal: 20, alignItems: 'center' },
+  column: { width: '100%', maxWidth: 412 },
+  content: { gap: space.base, padding: 18, borderWidth: 1, borderColor: '#D8E5DD', backgroundColor: '#FFFFFF', borderRadius: 22, marginTop: 6 },
   copy: { color: palette.inkMuted, ...type.body },
   email: { color: palette.ink, ...type.bodyStrong, marginBottom: space.sm },
   note: { color: palette.inkMuted, ...type.meta },

@@ -69,9 +69,9 @@ it('validates confirmation locally, single-flights the write and waits for confi
   await act(async () => { send(); send(); });
   expect(mockSave.mock.calls).toEqual([['  Nova Lozinka!  ']]);
   expect(field('Nova lozinka').props.editable).toBe(false);
-  expect(text()).not.toContain('Lozinka je\npromenjena.');
+  expect(text()).not.toContain('Lozinka je promenjena.');
   await act(async () => waiting.resolve());
-  expect(text()).toContain('Lozinka je\npromenjena.'); expect(hosts('TextInput')).toHaveLength(0);
+  expect(text()).toContain('Lozinka je promenjena.'); expect(hosts('TextInput')).toHaveLength(0);
   expect(mockReplace).not.toHaveBeenCalled();
   await press('Prijavite se'); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
 });
@@ -148,12 +148,12 @@ it('revalidates a repeated OS callback instead of displaying the preceding succe
   await fill('Nova lozinka', 'new-password');
   await fill('Potvrdite novu lozinku', 'new-password');
   await press('Sačuvajte novu lozinku');
-  expect(text()).toContain('Lozinka je\npromenjena.');
+  expect(text()).toContain('Lozinka je promenjena.');
   mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('INVALID_LINK'));
   mockIntent = { id: mockIntent!.id + 1, link: mockLink! };
   await act(async () => tree.update(<PasswordRecoveryScreen />));
   expect(mockVerify).toHaveBeenCalledTimes(2);
-  expect(text()).not.toContain('Lozinka je\npromenjena.');
+  expect(text()).not.toContain('Lozinka je promenjena.');
   expect(text()).toContain('Link je nevažeći ili je istekao');
   expect(hosts('TextInput')).toHaveLength(0);
   expect(mockSave).toHaveBeenCalledTimes(1);
