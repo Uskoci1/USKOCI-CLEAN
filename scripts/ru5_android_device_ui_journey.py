@@ -245,13 +245,16 @@ def type_paced_fixture_text(value, deadline):
     # These are transport-safe characters in our generated disposable fixture,
     # not application input policy. One real key event at a time gives controlled
     # React Native TextInput a chance to process each native onChange event.
-    allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@._-'
+    allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@._- '
     if not value or any(character not in allowed for character in value):
         raise ValueError('Unsupported synthetic fixture keyboard input')
     for character in value:
         if time.monotonic() >= deadline:
             raise RuntimeError('Physical keyboard input deadline exceeded')
-        adb('shell', 'input', 'text', character)
+        if character == ' ':
+            adb('shell', 'input', 'keyevent', 'KEYCODE_SPACE')
+        else:
+            adb('shell', 'input', 'text', character)
         time.sleep(0.15)
 
 

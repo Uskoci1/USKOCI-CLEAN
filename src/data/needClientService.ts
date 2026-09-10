@@ -43,7 +43,7 @@ function stanje(
   }
 }
 
-function detail(raw: Record<string, any>): { detail: NeedDetailProjection; schedule: NeedScheduleProjection } {
+export function readPublicNeedDetail(raw: Record<string, any>): { detail: NeedDetailProjection; schedule: NeedScheduleProjection } {
   const invalid = (): never => { throw new Error('NEED_DETAIL_INVALID_PROJECTION'); };
   const array = (value: unknown): string[] => capabilityTerms(value) ?? invalid();
   const nullableDate = (value: unknown): string | null => value === null ? null
@@ -75,7 +75,7 @@ function detail(raw: Record<string, any>): { detail: NeedDetailProjection; sched
 }
 
 function mapNeed(raw: any): PotrebaProjekcija {
-  const { detail: detalji, schedule } = detail(raw);
+  const { detail: detalji, schedule } = readPublicNeedDetail(raw);
   const ukupno = Math.max(1, Number(raw.required_slots ?? 1));
   const popunjeno = Math.max(0, Math.min(ukupno, Number(raw.covered_slots ?? 0)));
   const brojPrijava = Array.isArray(raw.marketplace_responses)

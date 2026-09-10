@@ -16,8 +16,44 @@ const row = () => ({
   approximate_area: 'Centar', approximate_city: 'Novi Sad', approximate_lat: 45.2, approximate_lng: 19.8,
   required_slots: 2, covered_slots: 0, required_skills: ['Alat'], required_tools: [], required_vehicles: [],
   requester_profile_id: 'requester-a', mode: 'MY_PRICE', requester_price_rsd: 5000, response_deadline: null,
+  description: 'Prenos kutija', category: 'Selidbe', schedule_kind: 'FLEXIBLE', ends_at: null,
+  task_country_code: 'RS', task_timezone: 'Europe/Belgrade', execution_location_mode: null,
+  required_licenses: [], minimum_experience_years: null, verified_identity_required: false,
+  need_geography: null, need_requirement_details: null,
 });
 beforeEach(() => { jest.clearAllMocks(); maybeSingle.mockReset(); publicProfile.mockResolvedValue(null); });
+
+describe('V2 complete public task context', () => {
+  it.each([[0, 0], [0, 19], [45, 0], [45.25456, 19.83456]])('keeps legitimate public coordinates (%s,%s) coarse', async (lat, lng) => {
+    maybeSingle.mockResolvedValue({ data: { ...row(), approximate_lat: lat, approximate_lng: lng }, error: null });
+    expect((await supabaseIzvor.prilika('task-a'))?.priblizno).toEqual({ lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) });
+  });
+  it.each([null, undefined, '45', NaN, Infinity, 181])('ignores malformed coordinate %p without losing the public task', async value => {
+    for (const column of ['approximate_lat', 'approximate_lng']) {
+      maybeSingle.mockResolvedValue({ data: { ...row(), [column]: value }, error: null });
+      expect(await supabaseIzvor.prilika('task-a')).toMatchObject({ id: 'task-a', priblizno: null });
+    }
+  });
+  it('Remote suppresses stale physical fields and exposes only the typed public context', async () => {
+    maybeSingle.mockResolvedValue({ data: { ...row(), execution_location_mode: 'REMOTE',
+      need_geography: { public_topology: { mode: 'REMOTE' } }, approximate_area: 'Old address', approximate_city: 'Old city' }, error: null });
+    const result = await supabaseIzvor.prilika('task-a');
+    expect(result).toMatchObject({ podrucjeTekst: 'Na daljinu', priblizno: null, detalji: { rezimLokacije: 'REMOTE' } });
+    expect(JSON.stringify(result)).not.toContain('Old');
+  });
+  it('shows the complete public schedule and requirements without granting access to a private witness', async () => {
+    maybeSingle.mockResolvedValue({ data: { ...row(), schedule_kind: 'FIXED_WINDOW',
+      starts_at: '2026-09-12T10:05:01.123456Z', ends_at: '2026-09-12T11:35:02.654321Z',
+      required_licenses: ['Dozvola'], need_requirement_details: { critical_conditions: ['Teške kutije'] },
+      exact_address: 'PRIVATE_ADDRESS', resolved_location: { privateAddress: 'PRIVATE_ADDRESS' } }, error: null });
+    const result = await supabaseIzvor.prilika('task-a');
+    expect(result?.vremeTekst).toContain('12:05:01.123456');
+    expect(result?.vremeTekst).toContain('13:35:02.654321');
+    expect(result?.vremeTekst).toContain('Europe/Belgrade');
+    expect(result?.detalji?.zahtevi).toMatchObject({ dozvole: ['Dozvola'], bitniUslovi: ['Teške kutije'] });
+    expect(JSON.stringify(result)).not.toContain('PRIVATE_ADDRESS');
+  });
+});
 
 describe('W04 public-safe detail read', () => {
   it('separates failed transport/permission reads from a successful missing row', async () => {
@@ -38,6 +74,9 @@ describe('W04 public-safe detail read', () => {
     expect(select.mock.calls[0][0].split(',').map((field: string) => field.trim())).toEqual([
       'id', 'title', 'status', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
       'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'requester_profile_id', 'response_deadline',
+      'description', 'category', 'schedule_kind', 'ends_at', 'task_country_code', 'task_timezone', 'execution_location_mode',
+      'required_licenses', 'minimum_experience_years', 'verified_identity_required',
+      'need_geography(public_topology)', 'need_requirement_details(critical_conditions)',
     ]);
     expect(result).toMatchObject({ id: 'task-a', naslov: 'Pomoć pri selidbi', primaNovePrijave: true,
       podrucjeTekst: 'Centar, Novi Sad', narucilacIme: '', narucilacOcena: null, ponudjenaCena: { iznos: 5000, valuta: 'RSD' } });

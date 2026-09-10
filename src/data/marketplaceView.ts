@@ -9,6 +9,7 @@ export const initialMarketplaceView = (): MarketplaceView => ({ query: '', secti
 export const isOwnedNeed = (item: MarketplaceItem): item is PotrebaProjekcija => 'stanje' in item;
 /** Only the existing public approximation is admitted. This never reads private pins or asks for GPS. */
 export function publicPoint(item: MarketplaceItem): { lat: number; lng: number } | null {
+  if (item.detalji?.rezimLokacije === 'REMOTE') return null;
   if (!('priblizno' in item)) return null;
   const point = item.priblizno;
   return point && typeof point.lat === 'number' && Number.isFinite(point.lat) && Math.abs(point.lat) <= 90
