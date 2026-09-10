@@ -1,19 +1,7 @@
 name: P3 retention schedule authenticated proof
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [clean-alpha-backend]
-    paths:
-      - '.github/workflows/p3-retention-schedule-proof.yml'
-      - 'supabase/migrations/**'
-      - 'supabase/proofs/legal/p3_retention_schedule*'
-      - 'supabase/proofs/legal/p3_retention_pending_inventory*'
-      - 'supabase/proofs/notifications/n07_forward*'
-      - 'supabase/proofs/notifications/n08_preferences*'
-      - 'supabase/proofs/ru5_device_ui_live79_env.sh'
-  push:
-    branches:
-      - feat/p3-retention-schedule-20260908
+  workflow_call:
 permissions:
   contents: read
 env:
@@ -46,10 +34,9 @@ jobs:
           cache: npm
       - name: Locked dependencies
         run: npm ci
-      - name: TypeScript, regression and local-target guard
+      - name: Targeted client and local-target guard
         run: |
-          npx tsc --noEmit
-          npm test -- --runInBand
+          node scripts/ci/scope.cjs test retention
           node --check supabase/proofs/legal/p3_retention_schedule_proof.mjs
           node --check supabase/proofs/legal/p3_retention_schedule_predecessor.mjs
           node --test supabase/proofs/legal/p3_retention_schedule_predecessor.test.mjs supabase/proofs/legal/p3_retention_pending_inventory_admission.test.mjs

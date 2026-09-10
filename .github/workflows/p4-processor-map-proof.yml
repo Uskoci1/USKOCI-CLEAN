@@ -1,9 +1,7 @@
 name: P4 processor map authenticated proof
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/p4-processor-map-20260908
+  workflow_call:
 permissions:
   contents: read
 env:
@@ -36,10 +34,9 @@ jobs:
           cache: npm
       - name: Locked dependencies
         run: npm ci
-      - name: TypeScript, regression and local-target guard
+      - name: Targeted client and local-target guard
         run: |
-          npx tsc --noEmit
-          npm test -- --runInBand
+          node scripts/ci/scope.cjs test processors
           node --check supabase/proofs/legal/p4_processor_map_proof.mjs
           node --check supabase/proofs/legal/p4_processor_map_predecessor.mjs
           node --test supabase/proofs/legal/p4_processor_map_predecessor.test.mjs

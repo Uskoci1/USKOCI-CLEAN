@@ -1,9 +1,7 @@
 name: P1 legal consent authenticated proof
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/p1-legal-consent-20260908
+  workflow_call:
 permissions:
   contents: read
 env:
@@ -36,10 +34,9 @@ jobs:
           cache: npm
       - name: Locked dependencies
         run: npm ci
-      - name: TypeScript, regression and local-target guard
+      - name: Targeted client and local-target guard
         run: |
-          npx tsc --noEmit
-          npm test -- --runInBand
+          node scripts/ci/scope.cjs test consent
           node --check supabase/proofs/legal/p1_legal_consent_proof.mjs
           node --check supabase/proofs/legal/p1_legal_consent_predecessor.mjs
           node --test supabase/proofs/legal/p1_legal_consent_predecessor.test.mjs

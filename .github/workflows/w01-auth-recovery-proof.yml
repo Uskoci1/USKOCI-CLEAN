@@ -1,15 +1,7 @@
 name: W01 auth recovery proof
 on:
-  pull_request:
-    branches: [clean-alpha-backend]
-    paths:
-      - '.github/workflows/w01-auth-recovery-proof.yml'
-      - 'src/**'
-      - 'app.config.js'
-      - 'index.js'
-      - 'scripts/build-identity*'
-      - 'supabase/proofs/auth/**'
-      - 'package*.json'
+  workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
@@ -40,11 +32,10 @@ jobs:
           version: 2.116.0
           github-token: ${{ github.token }}
       - run: npm ci
-      - name: TypeScript, complete regressions and immutable migration integrity
+      - name: Targeted Auth regressions and proof admission
         run: |
           node --test scripts/build-identity.test.cjs
-          npx tsc --noEmit
-          npm test -- --runInBand
+          node scripts/ci/scope.cjs test auth
           sh supabase/migrations/check_md5.sh
           python3 -m py_compile supabase/proofs/auth/w01_recovery_browser.py
       - name: Disposable Auth only, without live access or marketplace replay

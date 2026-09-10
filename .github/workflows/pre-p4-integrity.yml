@@ -5,26 +5,45 @@ on:
     branches:
       - clean-alpha-backend
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - clean-alpha-backend
+
+  workflow_dispatch:
+    inputs:
+      level:
+        description: Fast source checks, changed domains, or all integrated domains
+        type: choice
+        options: [fast, domain, release]
+        default: release
 
 permissions:
   contents: read
 
 concurrency:
   group: pre-p4-integrity-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   pre-p4-integrity:
     name: pre-p4-integrity
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      auth: ${{ steps.scope.outputs.auth }}
+      export: ${{ steps.scope.outputs.export }}
+      retention: ${{ steps.scope.outputs.retention }}
+      consent: ${{ steps.scope.outputs.consent }}
+      processors: ${{ steps.scope.outputs.processors }}
+      policy: ${{ steps.scope.outputs.policy }}
+      w02: ${{ steps.scope.outputs.w02 }}
+      w02_scope: ${{ steps.scope.outputs.w02_scope }}
     steps:
       - name: Checkout canonical tree
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -42,19 +61,29 @@ jobs:
           (cd "$RUNNER_TEMP/uskoci-source" && sha256sum source.zip > SHA256SUMS)
 
       - name: Retain source independently of test outcome
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: uskoci-source-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/uskoci-source/
           if-no-files-found: error
           retention-days: 7
 
+      - name: Determine the exact changed-source scope
+        id: scope
+        env:
+          CI_LEVEL: ${{ inputs.level || 'fast' }}
+        run: node scripts/ci/scope.cjs plan
+
+      - name: Verify CI routing invariants
+        run: node --test scripts/ci/*.test.cjs
+
       - name: Verify migration bytes and provenance
         id: migration
+        if: steps.scope.outputs.migration == 'true'
         run: sh supabase/migrations/check_md5.sh
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "24"
           cache: npm
@@ -75,14 +104,19 @@ jobs:
         id: typescript
         run: npx tsc --noEmit
 
-      - name: Regression tests
+      - name: Selected regressions; full suite only at the full-source boundary
         id: regression
-        run: npm test -- --runInBand
+        env:
+          CI_LEVEL: ${{ inputs.level || 'fast' }}
+        run: node scripts/ci/scope.cjs test
 
       - name: Record observed gates, not production activation
         if: always()
         shell: bash
         env:
+          SCOPE_RESULT: ${{ steps.scope.outcome }}
+          TEST_MODE: ${{ steps.scope.outputs.mode }}
+          MIGRATION_REQUIRED: ${{ steps.scope.outputs.migration }}
           MIGRATION_RESULT: ${{ steps.migration.outcome }}
           DEPENDENCIES_RESULT: ${{ steps.dependencies.outcome }}
           METRO_RESULT: ${{ steps.metro.outcome }}
@@ -92,7 +126,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, os, pathlib, subprocess
-          names = ('migration', 'dependencies', 'metro', 'build_identity', 'typescript', 'regression')
+          names = ('scope', 'migration', 'dependencies', 'metro', 'build_identity', 'typescript', 'regression')
           results = {name: os.environ.get(name.upper() + '_RESULT') or 'not_run' for name in names}
           checked_out = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
           receipt = {
@@ -103,7 +137,12 @@ jobs:
               'runId': os.environ['GITHUB_RUN_ID'],
               'attempt': os.environ['GITHUB_RUN_ATTEMPT'],
               'gates': results,
-              'allRecordedGatesPassed': all(value == 'success' for value in results.values()),
+              'allRecordedGatesPassed': all(value == 'success' or
+                  (name == 'migration' and value == 'skipped' and os.environ['MIGRATION_REQUIRED'] == 'false')
+                  for name, value in results.items()),
+              'testMode': os.environ['TEST_MODE'],
+              'migrationRequired': os.environ['MIGRATION_REQUIRED'] == 'true',
+              'fullReleaseProven': False,
               'environment': 'github-actions-source-checks',
               'productionApplied': False,
               'deviceE2eVerified': False,
@@ -116,9 +155,46 @@ jobs:
 
       - name: Retain build receipt
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: uskoci-build-receipt-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/uskoci-build-evidence/build-receipt.json
           if-no-files-found: error
           retention-days: 7
+
+  domain-auth:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.auth == 'true'
+    uses: ./.github/workflows/w01-auth-recovery-proof.yml
+
+  domain-export:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.export == 'true'
+    uses: ./.github/workflows/p2-data-export-proof.yml
+
+  domain-retention:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.retention == 'true'
+    uses: ./.github/workflows/p3-retention-schedule-proof.yml
+
+  domain-consent:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.consent == 'true'
+    uses: ./.github/workflows/p1-legal-consent-proof.yml
+
+  domain-processors:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.processors == 'true'
+    uses: ./.github/workflows/p4-processor-map-proof.yml
+
+  domain-policy:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.policy == 'true'
+    uses: ./.github/workflows/d0140a-bundle-registration-proof.yml
+
+  domain-w02:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.w02 == 'true'
+    uses: ./.github/workflows/w02-calendar-authority-proof.yml
+    with:
+      scope: ${{ needs.pre-p4-integrity.outputs.w02_scope }}

@@ -1,19 +1,7 @@
 name: P2 data export authenticated proof
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [clean-alpha-backend]
-    paths:
-      - '.github/workflows/p2-data-export-proof.yml'
-      - 'src/data/dataExportClientService.ts'
-      - 'src/data/serverReceipt.ts'
-      - 'src/contracts/dataExport.ts'
-      - 'src/data/__tests__/p2-data-export-client.test.ts'
-      - 'supabase/migrations/**'
-      - 'supabase/proofs/legal/p2_data_export*'
-  push:
-    branches:
-      - feat/p2-data-export-20260908
+  workflow_call:
 concurrency:
   group: p2-data-export-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
@@ -49,10 +37,9 @@ jobs:
           cache: npm
       - name: Locked dependencies
         run: npm ci
-      - name: TypeScript, regression and local-target guard
+      - name: Targeted client and local-target guard
         run: |
-          npx tsc --noEmit
-          npm test -- --runInBand
+          node scripts/ci/scope.cjs test export
           node --check supabase/proofs/legal/p2_data_export_proof.mjs
           node --check supabase/proofs/legal/p2_data_export_predecessor.mjs
           node --test supabase/proofs/legal/p2_data_export_predecessor.test.mjs

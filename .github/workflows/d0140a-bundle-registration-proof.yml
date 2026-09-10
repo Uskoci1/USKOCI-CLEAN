@@ -1,9 +1,7 @@
 name: D-0140-A policy bundle registration proof
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/d0140a-policy-bundle-registration-20260908
+  workflow_call:
 permissions:
   contents: read
 env:
@@ -36,10 +34,9 @@ jobs:
           cache: npm
       - name: Locked dependencies
         run: npm ci
-      - name: TypeScript, regression and local-target guard
+      - name: Targeted client and local-target guard
         run: |
-          npx tsc --noEmit
-          npm test -- --runInBand
+          node scripts/ci/scope.cjs test policy
           node --check supabase/proofs/policy/d0140a_bundle_registration_proof.mjs
           node --check supabase/proofs/policy/d0140a_bundle_registration_predecessor.mjs
           node --test supabase/proofs/policy/d0140a_bundle_registration_predecessor.test.mjs
