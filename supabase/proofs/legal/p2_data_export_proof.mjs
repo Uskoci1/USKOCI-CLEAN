@@ -24,7 +24,8 @@ assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.sha256);
 const report={unit:'P2_DATA_EXPORT',source_sha:env.GITHUB_SHA||null,run_id:env.GITHUB_RUN_ID||null,
   live_access:false,live_promotion:false,provider_called:false,mobile_proof:false,legal_content_real:false,export_artifact_generated:false,
   fixture_boundary:'REAL_LOCAL_AUTH_POSTGREST_AND_ROLE_SCOPED_PSQL_TRANSACTIONS',
-  candidate:manifest,predecessor_plan:plan,full_source_plan:boundary.fullPlan,intentional_next_delivery_forward:boundary.next,checks:[],lock_interleavings:[]};
+  candidate:manifest,predecessor_plan:plan,full_source_plan:boundary.fullPlan,intentional_next_delivery_forward:boundary.next,
+  deferred_authority_successors:boundary.deferredSuccessors,checks:[],lock_interleavings:[]};
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
 const worker=createClient(url,env.RU5_DEVICE_ANON_KEY,options),requester=createClient(url,env.RU5_DEVICE_ANON_KEY,options);
 const anon=createClient(url,env.RU5_DEVICE_ANON_KEY,options),admin=createClient(url,env.RU5_DEVICE_SERVICE_ROLE_KEY,options);

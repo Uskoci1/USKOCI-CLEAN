@@ -72,6 +72,26 @@ test('export delivery UI, file adapters and proof files select the export domain
     assert.ok(!classify([path]).includes('export'), path);
 });
 
+test('retention execution and privacy receipt tests stay in the retention domain', () => {
+  for (const path of ['src/contracts/retentionPolicy.ts', 'src/data/retentionPolicyClientService.ts',
+    'src/app/(app)/profil/privatnost.tsx',
+    'src/app/(app)/profil.tsx', 'src/app/(app)/_layout.tsx',
+    'src/data/__tests__/privacy-retention-screen.test.tsx',
+    'supabase/proofs/legal/p3_retention_execution_proof.mjs',
+    'supabase/proofs/legal/p3_retention_execution_source_boundary.mjs',
+    'supabase/migrations/20260910162955_clean_p3_retention_execution_authority.sql']) {
+    assert.ok(classify([path]).includes('retention'), path);
+  }
+  const tracked = ['src/data/__tests__/p3-retention-policy-client.test.ts',
+    'src/data/__tests__/privacy-retention-screen.test.tsx', 'src/data/__tests__/profile-hub.test.tsx'];
+  const args = testArguments(makePlan([], { domain: 'retention' }), tracked);
+  for (const path of tracked) assert.ok(args.includes(path), path);
+  for (const path of ['other/src/app/(app)/profil/privatnost.tsx', 'src/app/(app)/profil/privatnost.tsx.bak'])
+    assert.ok(!classify([path]).includes('retention'), path);
+  assert.deepEqual(classify(['src/app/(app)/profil.tsx']), ['export', 'retention']);
+  assert.deepEqual(classify(['src/app/(app)/_layout.tsx']), DOMAINS);
+});
+
 // Real Git comparison and real Actions event payloads, not a mocked classifier.
 const { fromEnvironment } = require('./scope.cjs');
 const { execFileSync } = require('node:child_process');

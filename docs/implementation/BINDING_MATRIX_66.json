@@ -721,14 +721,15 @@
     {
       "screen": "privacy",
       "group": "account",
-      "boundary": "Current legal/export/closure contracts and server status, no fabricated processing/archive",
+      "boundary": "Existing retention policy reader plus separate narrow AI-abandoned execution receipt; explicit export navigation; no closure authority or invented legal content",
       "paths": [
-        "src/data/dataExportClientService.ts",
-        "src/data/legalClientService.ts",
-        "src/data/retentionPolicyClientService.ts"
+        "src/app/(app)/profil/privatnost.tsx",
+        "src/data/retentionPolicyClientService.ts",
+        "src/contracts/retentionPolicy.ts",
+        "supabase/migrations/20260910162955_clean_p3_retention_execution_authority.sql"
       ],
-      "level": "PATH_LISTED_READ_BEFORE_BINDING",
-      "required_runtime_proof": "Authenticated real command, matching receipt and refetched projection, failure/stale/unknown, 2 accounts where applicable."
+      "level": "PARTIAL_UI_CONNECTED_RETENTION_AND_EXPORT_SOURCE_PROVEN_DB_CI_PENDING",
+      "required_runtime_proof": "Actual SQL105 execution/hold locks and original artifacts; physical privacy journey; explicit owned app abandonment writer; public-profile preview and legal/closure owners remain separate."
     },
     {
       "screen": "export",

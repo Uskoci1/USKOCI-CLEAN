@@ -8,7 +8,7 @@ const W02 = ['calendar', 'availability', 'location', 'capability'];
 const TESTS = {
   auth: /auth|password-recovery|session|return-target|entry-|w01Native/i,
   export: /p2-data-export|data-export|profile-hub|cb1-receipt/i,
-  retention: /p3-retention/i,
+  retention: /p3-retention|privacy-retention|profile-hub/i,
   consent: /p1-legal/i,
   processors: /p4-processor/i,
   policy: /publication|cb1-need-lifecycle|ru4-need-edit|ru2-ai-v2|r02-ai/i,
@@ -26,6 +26,9 @@ function classify(paths) {
   const domains = new Set();
   const add = (...items) => items.forEach(item => domains.add(item));
   for (const path of paths) {
+    if (path === 'src/app/(app)/profil/privatnost.tsx') { add('retention'); continue; }
+    if (path === 'src/app/(app)/profil.tsx') { add('export', 'retention'); continue; }
+    if (path === 'src/app/(app)/_layout.tsx') { add(...DOMAINS); continue; }
     if (path.startsWith('scripts/ci/') || path === '.github/workflows/pre-p4-integrity.yml') { add(...DOMAINS); continue; }
     if (BUILD.test(path) || /^src\/(?:store\/|data\/(?:supabaseClient|serverReceipt|ports\.ts)|app\/_layout)/.test(path)) { add(...DOMAINS); continue; }
     if (/^supabase\/migrations\/.*\.sql$/.test(path)) {

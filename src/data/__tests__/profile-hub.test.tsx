@@ -48,6 +48,14 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 
 describe('real profile hub', () => {
+  it.each(['narucilac', 'uskocer'] as const)('opens privacy once for the current %s intent', async intent => {
+    mockIntent = intent;
+    await render();
+    const open = tree.root.findByProps({ label: 'Privatnost i podaci' }).props.onPress;
+    await act(async () => { open(); open(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/privatnost']]);
+  });
+
   it.each(['narucilac', 'uskocer'] as const)('opens export once for the current %s intent', async intent => {
     mockIntent = intent;
     await render();
