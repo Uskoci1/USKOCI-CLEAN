@@ -89,12 +89,23 @@ def scroll_once(root, direction):
     time.sleep(0.5)
 
 
-def seek(anchor, *, text=None, desc=None, direction='down', attempts=28, enabled=None):
+def complete_fact_row(node, parent, width, height):
+    """Android can clip a button to 28px while its text bounds are inverted."""
+    if not visible_node(node, parent, width, height):
+        return False
+    texts = [child for child in node.iter() if child.attrib.get('text')]
+    return bool(texts) and all(visible_node(child, parent, width, height)
+                               and inside(parse_bounds(child.attrib.get('bounds')), parse_bounds(node.attrib.get('bounds')))
+                               for child in texts)
+
+
+def seek(anchor, *, text=None, desc=None, direction='down', attempts=28, enabled=None, complete_row=False):
     """Scroll only the observed real surface; return the same asserted XML tree."""
     for _ in range(attempts):
         root, parent = clean_surface(anchor)
         candidates = [n for n in root.iter() if matches(n, text=text, desc=desc)]
-        found = [n for n in candidates if visible_node(n, parent, *screen_size())]
+        visible = complete_fact_row if complete_row else visible_node
+        found = [n for n in candidates if visible(n, parent, *screen_size())]
         if found:
             if len(found) != 1:
                 raise AssertionError(f'Ambiguous visible content text={text} desc={desc}')
@@ -108,6 +119,11 @@ def seek(anchor, *, text=None, desc=None, direction='down', attempts=28, enabled
         if len(candidates) == 1 and candidates[0].attrib.get('bounds'):
             node = candidates[0]
             bounds = parse_bounds(node.attrib.get('bounds'))
+            if complete_row:
+                clipped_text = [child for child in node.iter() if child.attrib.get('text')
+                                and not visible_node(child, parent, *screen_size())]
+                if clipped_text:
+                    bounds = parse_bounds(clipped_text[0].attrib.get('bounds'))
             ancestor = parent.get(node)
             while ancestor is not None:
                 if ancestor.attrib.get('scrollable') == 'true':
@@ -126,6 +142,8 @@ def seek(anchor, *, text=None, desc=None, direction='down', attempts=28, enabled
 
 
 def press_in_review(label, *, direction='down'):
+    if label in ('Potvrdite', 'Izmenite', 'Sačuvaj ispravku'):
+        raise AssertionError('Fact action requires an explicit observed row binding')
     root, parent, node = seek('Proverite Zadatak', desc=label, direction=direction, enabled=True)
     assert_button(root, parent, label, True)
     tap_node(node, parent, hold_ms=120)
@@ -242,8 +260,91 @@ def assert_schedule_label(value, start, end):
                    for zone in (instant.tzname(), f'GMT+{offset}', f'UTC+{offset}')), 'Visible timezone required'
 
 
+def scroll_owner(node, parent):
+    while node is not None:
+        if node.attrib.get('scrollable') == 'true':
+            return node
+        node = parent.get(node)
+    return None
+
+
+def fact_action_owner(root, parent, action):
+    """RN flattens rows; bind the action to its preceding header in this scroll.
+
+    This uses the observed accessibility order, never a title text guess or a
+    screen-wide generic confirmation. Crossing the next header changes owner.
+    """
+    container = scroll_owner(action, parent)
+    if container is None:
+        raise AssertionError('Fact action is outside the actual review scroll')
+    header = None
+    for node in container.iter():
+        if node is action:
+            if header is None:
+                raise AssertionError('Fact action has no observed preceding row')
+            return header
+        if node.attrib.get('content-desc', '').startswith('Pregledajte: ') and scroll_owner(node, parent) is container:
+            header = node
+    raise AssertionError('Fact action is not in its observed scroll')
+
+
+def stable_fact_target(label, action=None, *, direction='down', attempts=8):
+    """Two consecutive fresh XML observations must agree before physical input."""
+    previous = None
+    row_label = f'Pregledajte: {label}'
+    for _ in range(attempts):
+        root, parent, node = seek('Proverite Zadatak', desc=action or row_label, direction=direction,
+                                  enabled=True, complete_row=action is None)
+        header = fact_action_owner(root, parent, node) if action else node
+        if header.attrib.get('content-desc') != row_label:
+            raise AssertionError(f'Wrong expanded fact for {action}: expected {row_label}, observed {header.attrib.get("content-desc")}')
+        # The full header must be visible when opening a row. Its expanded
+        # actions may need further scrolling (especially the correction form),
+        # so bind those to this same XML's exact header even if it is now clipped.
+        # Only the actual button about to receive input must remain fully visible.
+        assert_button(root, parent, action or row_label, True)
+        target = clickable_for(node, parent)
+        if target is not node or not visible_node(target, parent, *screen_size()):
+            raise AssertionError('Fact input must use its actual visible clickable control')
+        signature = (header.attrib.get('bounds'), node.attrib.get('bounds'),
+                     tuple((child.attrib.get('text'), child.attrib.get('bounds')) for child in header.iter() if child.attrib.get('text')))
+        if signature == previous:
+            return root, parent, node
+        previous = signature
+    raise AssertionError(f'Fact control never became stable: {label} / {action}')
+
+
+def expanded_fact(root, parent):
+    actions = [node for node in root.iter() if node.attrib.get('content-desc') in
+               ('Potvrdite', 'Izmenite', 'Izmenite mesto', 'Izmenite u razgovoru', 'Sačuvaj ispravku')]
+    owners = {fact_action_owner(root, parent, node).attrib.get('content-desc') for node in actions}
+    if len(owners) > 1:
+        raise AssertionError('Several different review facts expose actions')
+    return next(iter(owners), None)
+
+
 def open_fact(label, *, direction='down'):
-    press_in_review(f'Pregledajte: {label}', direction=direction)
+    for _ in range(3):
+        root, parent, node = stable_fact_target(label, direction=direction)
+        if expanded_fact(root, parent) == f'Pregledajte: {label}':
+            return
+        tap_node(node, parent, hold_ms=120)
+        # Expansion itself is harmless. If a moving row opened another fact,
+        # observe it and retry the exact intended header; never press its action.
+        for _ in range(4):
+            root, parent = clean_surface('Proverite Zadatak')
+            opened = expanded_fact(root, parent)
+            if opened == f'Pregledajte: {label}':
+                return
+            if opened is not None:
+                break
+    raise AssertionError(f'Intended fact did not expand: {label}')
+
+
+def press_fact_action(label, action):
+    root, parent, node = stable_fact_target(label, action)
+    # The returned control and owner belong to this last fresh stable XML.
+    tap_node(node, parent, hold_ms=120)
 
 
 def wait_pending_review():
@@ -317,14 +418,14 @@ def main():
     assert local_query(f"select count(*) from public.ai_conversations where account_id='{ACCOUNT_ID}'") == '1'
     open_review()
     open_fact('Ljudi')
-    press_in_review('Izmenite')
+    press_fact_action('Ljudi', 'Izmenite')
     seek('Proverite Zadatak', desc='Nova vrednost: Ljudi')
     fields, _ = wait_nodes(desc='Nova vrednost: Ljudi')
     assert len(fields) == 1 and entered_value_matches(fields[0], '2'), 'Correction must start from typed value, not misleading model displayValue=99'
     edit_text(0, '3')
     hide_keyboard()
     capture('AI_people_correction_input', 'Proverite Zadatak')
-    press_in_review('Sačuvaj ispravku')
+    press_fact_action('Ljudi', 'Sačuvaj ispravku')
     wait_confirmed('need.people_needed', 1)
     assert_correction(fixture_command('observe', 'PEOPLE_CORRECTED'))
     capture('AI_people_corrected', 'Proverite Zadatak')
@@ -336,7 +437,7 @@ def main():
         if key == 'task_geography':
             root, _ = clean_surface('Proverite Zadatak')
             assert any('Novi Sad · Centar' in value and 'Novi Sad · Liman' in value for value in labels(root)), 'Expanded location must show both typed public endpoints'
-        press_in_review('Potvrdite')
+        press_fact_action(label, 'Potvrdite')
         wait_confirmed(f'need.{key}', index)
     state = fixture_command('observe', 'OPTIONAL_VEHICLE_PENDING')
     assert state['review']['canSaveDraft'] is True and state['review']['safety'] == 'ALLOW'
@@ -345,20 +446,20 @@ def main():
     root, parent = capture('AI_optional_vehicle_blocks_save', 'Proverite Zadatak')
     assert_button(root, parent, 'Sačuvajte nacrt', False)
     open_fact('Vozilo', direction='up')
-    seek('Proverite Zadatak', desc='Potvrdite')
+    stable_fact_target('Vozilo', 'Potvrdite')
     unchanged = owned_state_digest()
     with LocalRestOutage().stopped():
-        press_in_review('Potvrdite')
+        press_fact_action('Vozilo', 'Potvrdite')
         wait_visible(desc='Učitajte pregled ponovo', timeout=60)
         root, parent = capture('AI_offline_confirmation_readback', 'Proverite Zadatak')
         assert_button(root, parent, 'Sačuvajte nacrt', False)
         assert owned_state_digest() == unchanged
     tap(desc='Učitajte pregled ponovo')
-    # Fresh read collapses the one expanded row. Explicit confirmation remains
-    # a separate physical user action; recovery never repeats the write.
-    open_fact('Vozilo', direction='up')
+    # Fresh read remounts the collapsed review at its top. Find the optional
+    # row below it; confirmation remains a separate physical user action.
+    open_fact('Vozilo', direction='down')
     capture('AI_restored_explicit_confirmation', 'Proverite Zadatak')
-    press_in_review('Potvrdite')
+    press_fact_action('Vozilo', 'Potvrdite')
     wait_confirmed('need.required_vehicles', 11)
     ready = fixture_command('observe', 'READY')
     assert all(f['status'] == 'CONFIRMED' for f in ready['review']['facts'])

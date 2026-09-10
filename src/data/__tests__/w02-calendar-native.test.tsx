@@ -1,21 +1,24 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerAvailability } from '../../contracts/workerAvailability';
-import { civilInstant, deviceDate, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
+import { civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
 
+let mockFontScale = 1;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'web' };
+    if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: mockFontScale });
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput', 'KeyboardAvoidingView', 'Switch', 'Modal', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowRight: 'Icon', CalendarBlank: 'Icon', PencilSimple: 'Icon', Plus: 'Icon', Trash: 'Icon', CaretRight: 'Icon', Clock: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowRight: 'Icon', CalendarBlank: 'Icon', PencilSimple: 'Icon', Plus: 'Icon', Trash: 'Icon', CaretRight: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon', Clock: 'Icon' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
+jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => true }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn() } }));
 let mockIntent = 'uskocer';
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent }));
@@ -32,7 +35,7 @@ const windowId = '00000000-0000-4000-8000-000000000002';
 const availability = (): WorkerAvailability => ({ accountId: 'owned-account', profileId: 'owned-profile', revision: 'a'.repeat(64),
   timezone: 'Europe/Belgrade', availableNow: false, rules: [], windows: [] });
 let tree: ReactTestRenderer;
-const button = (label: string) => tree.root.findByProps({ label });
+const button = (label: string) => tree.root.findAll(node => node.props.label === label || node.props.accessibilityLabel === label)[0];
 const press = async (label: string) => { await act(async () => button(label).props.onPress()); };
 const edit = async (label: string, value: string) => {
   await act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onChangeText(value));
@@ -42,7 +45,7 @@ const render = async (onSave = jest.fn(), value = availability()) => {
   await act(async () => { tree = create(<AvailabilityForm availability={value} busy={false} uncertain={false} onSave={onSave} />); });
   return onSave;
 };
-afterEach(async () => { await act(async () => tree?.unmount()); jest.clearAllMocks(); });
+afterEach(async () => { await act(async () => tree?.unmount()); jest.clearAllMocks(); mockFontScale = 1; });
 
 describe('actual availability editor interactions', () => {
   it('saves Available Now only with explicit Save and preserves existing owned data', async () => {
@@ -53,7 +56,53 @@ describe('actual availability editor interactions', () => {
     expect(onSave).not.toHaveBeenCalled();
     await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: loaded.rules, windows: [] });
+    expect(text()).not.toContain('Ne uključuje HITNO');
+    await press('O statusu Dostupan sada');
     expect(text()).toContain('Ne uključuje HITNO');
+  });
+
+  it('reveals one day at a time without changing a shared weekly rule or saving', async () => {
+    const shared = { id: ruleId, weekdays: [1, 3], startTime: '09:00:00.123456', endTime: '12:00:00.654321', startsOn: '2026-09-01', endsOn: null, label: 'Isti termin', active: true };
+    const loaded = { ...availability(), rules: [shared] }, onSave = await render(jest.fn(), loaded);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00:00.123456' })).toHaveLength(0);
+    await press('Prikaži termine — Ponedeljak');
+    expect(button('Prikaži termine — Ponedeljak').props.accessibilityState.expanded).toBe(true);
+    expect(button('Uredi Ponedeljak 09:00:00.123456')).toBeTruthy();
+    await press('Prikaži termine — Sreda');
+    expect(button('Prikaži termine — Ponedeljak').props.accessibilityState.expanded).toBe(false);
+    expect(button('Prikaži termine — Sreda').props.accessibilityState.expanded).toBe(true);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00:00.123456' })).toHaveLength(0);
+    expect(button('Uredi Sreda 09:00:00.123456')).toBeTruthy();
+    expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
+    expect(onSave).not.toHaveBeenCalled();
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
+    await press('Sačuvaj dostupnost');
+    expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: [shared], windows: [] });
+  });
+
+  it('keeps save, discard and the open editor action outside scrolling fields', async () => {
+    const onSave = await render();
+    const insideScroll = (node: ReturnType<typeof button>) => {
+      for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === 'ScrollView' as React.ElementType) return true;
+      return false;
+    };
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
+    expect(insideScroll(button('Sačuvaj dostupnost'))).toBe(false);
+    expect(insideScroll(button('Odustani od izmena'))).toBe(false);
+    await press('Dodaj — Ponedeljak');
+    expect(insideScroll(button('Primeni termin'))).toBe(false);
+    await press('Primeni termin');
+    const alert = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityRole === 'alert')[0];
+    expect(insideScroll(alert)).toBe(false);
+    expect(text()).toContain('različito vreme početka i kraja');
+    expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
+    expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
+    await press('Odustani od termina');
+    await press('Dodaj izuzetak');
+    expect(insideScroll(button('Primeni izuzetak'))).toBe(false);
+    expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
+    await press('Odustani od izuzetka');
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('splits explicit overnight input into adjacent canonical rules with shifted dates', async () => {
@@ -99,7 +148,7 @@ describe('actual availability editor interactions', () => {
   it('keeps exact historical fractional instants when only an exception label changes', async () => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: '2026-10-25T00:30:00.123456Z', endsAt: '2026-10-25T02:30:00.654321Z', state: 'UNAVAILABLE' as const, label: 'Staro' }] };
     const onSave = await render(jest.fn(), loaded);
-    await press('Uredi izuzetak 2026-10-25'); await edit('Naziv izuzetka (opciono)', 'Novo'); await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
+    await press('Prikaži posebne datume'); await press('Uredi izuzetak 2026-10-25'); await edit('Naziv izuzetka (opciono)', 'Novo'); await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
     expect(onSave.mock.calls[0][0].windows).toEqual([{ ...loaded.windows[0], label: 'Novo' }]);
   });
 
@@ -116,7 +165,7 @@ describe('actual availability editor interactions', () => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: item.startsAt, endsAt: item.endsAt,
       state: 'UNAVAILABLE' as const, label: 'Sačuvan izuzetak' }] };
     const onSave = await render(jest.fn(), loaded);
-    await press(`Uredi izuzetak ${item.date}`);
+    await press('Prikaži posebne datume'); await press(`Uredi izuzetak ${item.date}`);
     await edit(item.field, item.time);
     await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ windows: [{ ...loaded.windows[0],
@@ -169,6 +218,19 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('Nema potvrđenih tačnih termina');
     expect(button('Pokušaj ponovo')).toBeTruthy();
   });
+  it.each([{ scale: 2, fraction: '.000' }, { scale: 1, fraction: '.123456' }])('keeps full endpoints in a wider agenda card at scale $scale and precision $fraction', async ({ scale, fraction }) => {
+    mockFontScale = scale;
+    const day = deviceDate(new Date());
+    const startsAt = new Date(`${day}T09:15:00`).toISOString().replace('.000', fraction);
+    const endsAt = new Date(`${day}T10:45:00`).toISOString().replace('.000', fraction);
+    (workerCalendarClientService.readRange as jest.Mock).mockImplementation((from, to) => ({ ok: true, podatak: { from, to, authoritative: true, events: [{
+      eventId: 'event-1', agreementId: 'agreement-1', agreementVersion: 2, startsAt, endsAt, agreementStatus: 'CONFIRMED', source: 'AGREEMENT',
+    }] } }));
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text().replace(/\s+/g, ' ')).toContain(`${displayDate(day)} · ${displayTime(startsAt)} → ${displayDate(day)} · ${displayTime(endsAt)}`);
+    expect(button('Otvori Dogovor sa potvrđenim terminom').parent?.props.style.flexDirection).toBe('column');
+  });
+
   it('renders an exact receipt and never mixes an older Agreement version into it', async () => {
     const day = deviceDate(new Date());
     (workerCalendarClientService.readRange as jest.Mock).mockImplementation((from, to) => ({ ok: true, podatak: { from, to, authoritative: true, events: [{

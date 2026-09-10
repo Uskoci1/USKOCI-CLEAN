@@ -37,6 +37,11 @@ export async function boundedBody(stream,maximum=524288) {
   for await(const part of stream){size+=part.length;if(size>maximum)throw new Error('PROOF_BODY_LIMIT');parts.push(part);}
   return Buffer.concat(parts);
 }
+export function syntheticProviderEnvelope(proposals) {
+  return {status:'completed',output_text:JSON.stringify({safety:'ALLOW',
+    assistantMessage:'Pregledajte podatke i potvrdite šta vam odgovara.',
+    facts:proposals.map(({value,...fact})=>({...fact,valueJson:JSON.stringify(value)}))})};
+}
 export function startAdapter(env=process.env) {
   validateAiFixture(env);
   const out=env.RU5_DEVICE_ARTIFACT_DIR,fixture=JSON.parse(readFileSync(out+'/ai-review-fixture.json','utf8'));
@@ -52,8 +57,7 @@ export function startAdapter(env=process.env) {
         report.providerCalls++;save();
         assert.equal(report.providerCalls,1,'NO_AUTOMATIC_PROVIDER_REPLAY');
         const payload=JSON.parse(String(init.body));assert.ok(JSON.stringify(payload).includes(fixture.input));
-        return new Response(JSON.stringify({status:'completed',output_text:JSON.stringify({safety:'ALLOW',
-          assistantMessage:'Pregledajte podatke i potvrdite šta vam odgovara.',facts:fixture.proposals})}),{headers:{'Content-Type':'application/json'}});
+        return new Response(JSON.stringify(syntheticProviderEnvelope(fixture.proposals)),{headers:{'Content-Type':'application/json'}});
       }
       assert.equal(url.origin,'http://127.0.0.1:54321');
       assert.ok(url.pathname==='/auth/v1/user'||/^\/rest\/v1\/(?:ai_conversations|rpc\/[a-z_0-9]+)$/.test(url.pathname));
