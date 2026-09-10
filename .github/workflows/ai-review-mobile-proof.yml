@@ -1,11 +1,23 @@
 name: W03 native owned AI and human review
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Current AI review or same-Need native marketplace continuation'
+        required: true
+        default: intake
+        type: choice
+        options: [intake, marketplace]
   workflow_call:
+    inputs:
+      scope:
+        required: false
+        default: intake
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: w03-native-review-${{ github.head_ref || github.ref_name }}
+  group: w03-native-review-${{ inputs.scope || 'intake' }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 env:
   CI: '1'
@@ -14,6 +26,7 @@ env:
   RU5_DEVICE_PACKAGE: rs.uskoci.n04proof
   RU5_DEVICE_ARTIFACT_DIR: artifacts/ai-review-device
   W03_INTAKE_ARTIFACT_DIR: artifacts/ai-review-device/source105
+  AI_REVIEW_SCOPE: ${{ inputs.scope || 'intake' }}
 jobs:
   native-owned-intake:
     runs-on: ubuntu-latest
@@ -50,6 +63,7 @@ jobs:
       - name: Exact106 native admission and isolated fresh Auth accounts
         run: |
           node scripts/ai_review_fixture.mjs admit
+          if [[ "$AI_REVIEW_SCOPE" = 'marketplace' ]]; then node scripts/ci/owned-intake-proof.mjs prepare108; fi
           node scripts/ai_review_fixture.mjs create-account
       - name: Bind disposable native endpoint to actual-handler loopback adapter
         run: |
@@ -115,10 +129,38 @@ jobs:
           node <<'NODE'
           const assert=require('assert/strict'),fs=require('fs'),dir='artifacts/ai-review-device/';
           const r=JSON.parse(fs.readFileSync(dir+'proof-report.json'));
-          assert.equal(r.result,'PASS');assert.equal(r.sourceSha,process.env.GITHUB_SHA);assert.equal(r.historyCount,106);
+          assert.equal(r.result,'PASS');assert.equal(r.sourceSha,process.env.GITHUB_SHA);assert.equal(r.historyCount,process.env.AI_REVIEW_SCOPE==='marketplace'?108:106);
           for(const key of ['localOnly','actualAuth','actualNativeClient','actualHandler','actualSql','oneTurn','oneDraft','oneSaveReceipt','gatesUnchanged'])assert.equal(r[key],true);
           for(const key of ['providerProof','gatewayProof','publicationProof'])assert.equal(r[key],false);
           assert.equal(r.adapter.providerCalls,1);assert.equal(r.adapter.handlerCalls,1);assert.equal(r.adapter.committedResponseDropped,true);
+          NODE
+      - name: Admit same AI Need through physical publication and marketplace
+        if: inputs.scope == 'marketplace'
+        run: |
+          grep -F 'PASS MARKETPLACE_VERTICAL_PHYSICAL' artifacts/ai-review-device/ai-proof.log
+          grep -F 'PASS MARKETPLACE_SAME_AI_NEED_PUBLICATION_BINDING' artifacts/ai-review-device/ai-proof.log
+          grep -F 'PASS CORE_NATIVE_APPLY_SELECT_MAP' artifacts/ai-review-device/ai-proof.log
+          grep -F 'PASS PHYSICAL_D03_CHAT_RECOVERY' artifacts/ai-review-device/ai-proof.log
+          for checkpoint in MARKETPLACE_pin_start_confirmed MARKETPLACE_pin_end_confirmed MARKETPLACE_location_saved MARKETPLACE_draft_ready_for_evaluation MARKETPLACE_b06_allow_not_published MARKETPLACE_b07_explicit_published CORE_map_selected W05_worker_application_success CORE_selection_review AGREEMENT_created DOGOVOR_worker_opened; do
+            test -s "artifacts/ai-review-device/${checkpoint}.png"
+            test -s "artifacts/ai-review-device/${checkpoint}.xml"
+          done
+          node <<'NODE'
+          const assert=require('assert/strict'),fs=require('fs'),dir='artifacts/ai-review-device/';
+          const read=name=>JSON.parse(fs.readFileSync(dir+name));
+          const vertical=read('marketplace-vertical-report.json'),publication=read('marketplace-publication.json'),core=read('core-selection.json'),chat=read('d03-physical-chat-report.json');
+          for(const report of [vertical,publication,core,chat]){assert.equal(report.result,'PASS');assert.equal(report.sourceSha,process.env.GITHUB_SHA);assert.equal(report.localOnly,true);}
+          for(const report of [vertical,publication,core,chat])assert.equal(report.historyCount,108);
+          const successor=read('native-successors-admission.json');
+          assert.equal(successor.result,'PASS');assert.equal(successor.unit,'NATIVE_MARKETPLACE_SOURCE108');assert.equal(successor.source_sha,process.env.GITHUB_SHA);assert.equal(successor.history_count,108);
+          assert.deepEqual(publication.nativeBoundary,successor);assert.equal(successor.original_history_preserved,true);assert.equal(successor.business_and_policy_rows_preserved,true);
+          assert.equal(vertical.needId,publication.needId);assert.equal(vertical.needId,core.needId);assert.equal(vertical.agreementId,core.agreementId);assert.equal(vertical.agreementId,chat.sameAgreementId);
+          for(const key of ['actualNativeAi','actualNativePins','actualB06','actualB07','actualNativeApplySelect','actualNativeMessages','actualNativeCompletion'])assert.equal(vertical[key],true);
+          for(const key of ['providerProof','gatewayProof','productionPolicyActivation','reviewsProven'])assert.equal(vertical[key],false);
+          assert.equal(vertical.requiredSlots,3);assert.equal(core.terms.covered_slots,3);assert.equal(core.terms.schedule_source,'NEED_FIXED_WINDOW');
+          assert.equal(publication.adapter.publicationHandlerCalls,1);assert.equal(publication.adapter.publicationProviderCalls,1);
+          assert.equal(publication.privateLocationHiddenFromWorker,true);assert.equal(chat.nativeWorkerDone,true);assert.equal(chat.nativeRequesterComplete,true);
+          assert.equal(core.publicationProof,true);assert.equal(chat.publicationProof,true);
           NODE
       - name: Retain original screenshots, hierarchy and source-bound evidence
         if: always()

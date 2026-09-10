@@ -6,6 +6,7 @@ Reuses PR59 physical input/visibility helpers, without unrelated old journeys.
 import ast
 from datetime import datetime
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -237,7 +238,7 @@ def assert_saved(state, fixture):
     for column in ('starts_at', 'ends_at'):
         assert datetime.fromisoformat(need[column].replace('Z', '+00:00')) == datetime.fromisoformat(values[f'need.{column}'].replace('Z', '+00:00'))
     current = [f for f in state['facts'] if f['superseded_at'] is None]
-    assert len(current) == 11 and all(f['status'] == 'CONFIRMED' and f['confirmed_by_user_id'] == fixture['accountId'] and f['confirmed_at'] for f in current)
+    assert len(current) == (12 if fixture.get('marketplace') else 11) and all(f['status'] == 'CONFIRMED' and f['confirmed_by_user_id'] == fixture['accountId'] and f['confirmed_at'] for f in current)
     assert_correction(state)
     return need
 
@@ -358,6 +359,164 @@ def open_review():
     tap_node(node, parent, hold_ms=120)
 
 
+def return_to_saved_conversation(need_title):
+    # Detail Back returns to its actual R07 parent. A saved review remains a
+    # read-only route; its explicit Back owns the next hop to the conversation.
+    tap(desc='Nazad', prefer='top')
+    root, parent = clean_surface('Proverite Zadatak')
+    assert 'Zadatak je već sačuvan' in labels(root) and need_title in labels(root)
+    assert not any(n.attrib.get('content-desc') == 'Sačuvajte nacrt' for n in root.iter())
+    control = assert_button(root, parent, 'Nazad u razgovor', True)
+    assert visible_node(control, parent, *screen_size())
+    tap_node(control, parent, hold_ms=120)
+    wait_visible(desc='Poruka za AI')
+
+
+def assert_requester_list():
+    root, parent = clean_surface('Zadaci')
+    owned = assert_button(root, parent, 'Moji', True)
+    assert owned.attrib.get('selected') == 'true', 'Current owned List must be selected'
+    assert 'Ono što ti je potrebno' in labels(root)
+    assert_shell_tree(root, parent, *screen_size(), ('Zadaci', 'Novi Zadatak', 'Dogovori'))
+    return root, parent
+
+
+def reveal_saved_draft(need_title):
+    # Active deliberately excludes DRAFT. Select the real Nacrti view, never
+    # infer absence or replace its filter/business model for the proof.
+    root, parent = assert_requester_list()
+    tab = assert_button(root, parent, 'Nacrti', True)
+    assert visible_node(tab, parent, *screen_size())
+    tap_node(tab, parent, hold_ms=120)
+    wait_visible(desc=f'Otvorite Zadatak {need_title}', timeout=60)
+    root, parent = assert_requester_list()
+    assert assert_button(root, parent, 'Nacrti', True).attrib.get('selected') == 'true'
+
+
+def initial_world_touch(bounds, density):
+    # Actual renderer starts at [0,0], zoom1,512 logical pixel world tiles.
+    # This computes a physical touch only; the real SDK supplies all saved E6.
+    # https://maplibre.org/maplibre-native/docs/book/design/coordinate-system.html
+    assert 1 <= density <= 5
+    x1, y1, x2, y2 = bounds
+    world = 1024 * density
+    latitude, longitude = 45.25, 19.835
+    x = round((x1 + x2) / 2 + longitude / 360 * world)
+    y = round((y1 + y2) / 2 - math.asinh(math.tan(math.radians(latitude))) / (2 * math.pi) * world)
+    assert x1 + 8 < x < x2 - 8 and y1 + 8 < y < y2 - 8, 'Novi Sad touch must fit the actual neutral map'
+    return x, y
+
+
+def physical_manual_point(title, *, offset=False):
+    anchor = 'Mesto Zadatka'
+    root, parent, node = seek(anchor, desc='Mapa predložene lokacije')
+    assert not any(matches(n, desc='Predložena tačka na mapi') for n in root.iter()), 'New slot must start without a selected pin'
+    # Readiness is an observed native state, never a fixed sleep or SDK call.
+    deadline = time.monotonic() + 25
+    while any(matches(n, desc='Učitavanje mape') for n in root.iter()) and time.monotonic() < deadline:
+        root, parent, node = seek(anchor, desc='Mapa predložene lokacije')
+    assert not any(matches(n, desc='Učitavanje mape') or matches(n, text='Mapa nije učitana.') for n in root.iter())
+    density = adb('shell', 'wm', 'density').stdout
+    values = re.findall(r'(?:Physical|Override) density:\s*(\d+)', density)
+    assert values, 'Actual Android display density required'
+    x, y = initial_world_touch(parse_bounds(node.attrib['bounds']), int(values[-1]) / 160)
+    adb('shell', 'input', 'tap', str(x), str(y))
+    wait_visible(desc='Predložena tačka na mapi', timeout=30)
+    if offset:
+        # A fresh end slot initially shares the same overview. After the actual
+        # selected-pin camera jump, physically choose a distinct nearby stop.
+        previous = None
+        for _ in range(8):
+            root, parent, node = seek(anchor, desc='Mapa predložene lokacije')
+            markers = [n for n in root.iter() if matches(n, desc='Predložena tačka na mapi')]
+            assert len(markers) == 1
+            bounds = parse_bounds(node.attrib['bounds']); marker = parse_bounds(markers[0].attrib['bounds'])
+            state = (bounds, marker)
+            if state == previous and abs((marker[0] + marker[2]) / 2 - (bounds[0] + bounds[2]) / 2) < 12 and abs(marker[3] - (bounds[1] + bounds[3]) / 2) < 18:
+                x, y = (bounds[0] + bounds[2]) // 2 + 60, (bounds[1] + bounds[3]) // 2 + 50
+                adb('shell', 'input', 'tap', str(x), str(y)); break
+            previous = state
+        else:
+            raise AssertionError('Observed pin camera did not settle at selected point')
+    root, parent, button = seek(anchor, desc=f'Potvrdi tačku: {title}', enabled=True)
+    tap_node(button, parent, hold_ms=120)
+    seek(anchor, text='Tačka je potvrđena u ovom obrascu.')
+    capture(f'MARKETPLACE_pin_{"end" if offset else "start"}_confirmed', anchor)
+
+
+def physical_location_review():
+    press_in_review('Mesto Zadatka', direction='up')
+    wait_visible(text='Mesto Zadatka')
+    physical_manual_point('Polazište')
+    root, parent, node = seek('Mesto Zadatka', desc='Tačka koju uređujete', direction='up', enabled=True)
+    tap_node(node, parent, hold_ms=120)
+    tap(desc='Odredište')
+    physical_manual_point('Odredište', offset=True)
+    root, parent, checkbox = seek('Mesto Zadatka', desc='Potvrđujem unetu lokaciju', enabled=True)
+    assert checkbox.attrib.get('checked') != 'true'
+    tap_node(checkbox, parent, hold_ms=120)
+    root, parent, button = seek('Mesto Zadatka', desc='Potvrdi i sačuvaj mesto', enabled=True)
+    tap_node(button, parent, hold_ms=120)
+    wait_visible(text='Lokacija je sačuvana u pregledu Zadatka.', timeout=60)
+    state = fixture_command('observe', 'MANUAL_POINTS_CONFIRMED')
+    resolved = [f for f in state['facts'] if f['fact_key'] == 'need.resolved_location' and f['superseded_at'] is None]
+    assert len(resolved) == 1 and resolved[0]['status'] == 'CONFIRMED' and resolved[0]['source'] == 'EXPLICIT_USER_ANSWER'
+    assert [p['slot'] for p in resolved[0]['fact_value']['points']] == ['start', 'end']
+    for point in resolved[0]['fact_value']['points']:
+        assert point['origin'] == {'kind': 'MANUAL_PIN'}
+        assert 45_200_000 < point['latitudeE6'] < 45_300_000 and 19_750_000 < point['longitudeE6'] < 19_900_000
+    capture('MARKETPLACE_location_saved', 'Mesto Zadatka')
+    tap(desc='Vrati se na pregled')
+    wait_confirmed('need.resolved_location', 12)
+
+
+def marketplace_continue(fixture, need):
+    fixture_command('prepare-marketplace')
+    # Current user is the second account's empty Nova. Use actual tab/logout
+    # controls and the current signed-out Auth form before returning to owner.
+    tap(desc='Zadaci', prefer='bottom'); core_profile(); tap(desc='Odjavite se')
+    wait_visible(desc='Prijavite se', timeout=60); assert_signed_out_surface(form_open=True)
+    login(fixture['email'], form_open=True); reveal_saved_draft(need['title'])
+    tap(desc=f"Otvorite Zadatak {need['title']}")
+    wait_visible(desc='Proveri za objavu'); capture('MARKETPLACE_draft_ready_for_evaluation', 'Zadatak')
+    tap(desc='Proveri za objavu'); wait_visible(desc='Objavi Zadatak', timeout=60)
+    before = fixture_command('observe', 'B06_ALLOW_BEFORE_PUBLISH')
+    assert before['needs'][0]['id'] == need['id'] and before['needs'][0]['status'] == 'DRAFT'
+    assert local_query(f"select count(*) from private.need_publication_decisions where need_id='{need['id']}' and outcome='ALLOW' and decision_source='PUBLICATION_EVALUATOR_V1'") == '1'
+    assert local_query(f"select count(*) from private.need_publish_commands where need_id='{need['id']}'") == '0'
+    capture('MARKETPLACE_b06_allow_not_published', 'Zadatak')
+    tap(desc='Objavi Zadatak'); wait_visible(text='Objavi Zadatak?')
+    # Android Alert affirmative is separate from the sticky page action.
+    nodes, parent = wait_nodes(clazz='android.widget.Button', text='OBJAVI ZADATAK')
+    assert len(nodes) == 1; tap_node(nodes[0], parent, hold_ms=120)
+    wait_visible(text='Server je potvrdio objavu. Prikazujemo ponovo učitano stanje Zadatka.', timeout=60)
+    capture('MARKETPLACE_b07_explicit_published', 'Zadatak')
+    fixture_command('bind-marketplace')
+    core = json.loads((ARTIFACT_DIR / 'core-fixture.json').read_text(encoding='utf-8'))
+    env = {**os.environ, 'RU5_DEVICE_CORE106': '1', 'RU5_DEVICE_REQUESTER_EMAIL': fixture['email'],
+           'RU5_DEVICE_WORKER_EMAIL': fixture['other']['email'], 'RU5_DEVICE_REQUESTER_USER_ID': fixture['accountId'],
+           'RU5_DEVICE_WORKER_USER_ID': fixture['other']['accountId'], 'RU5_DEVICE_NEED_ID': need['id'], 'RU5_DEVICE_NEED_TITLE': need['title']}
+    def step(command):
+        subprocess.run(command, env=env, check=True, timeout=1500)
+    step(['python3', '-B', 'scripts/ru5_android_device_ui_journey.py'])
+    selection = json.loads((ARTIFACT_DIR / 'core-selection.json').read_text(encoding='utf-8'))
+    assert selection['needId'] == core['needId'] == need['id'] and selection['publicationProof'] is True
+    env['N04_AGREEMENT_ID'] = selection['agreementId']
+    step(['node', 'supabase/proofs/notifications/d03_chat_device_fixture.mjs'])
+    step(['python3', '-B', 'scripts/d03_chat_android_journey.py'])
+    chat = json.loads((ARTIFACT_DIR / 'd03-physical-chat-report.json').read_text(encoding='utf-8'))
+    assert chat['result'] == 'PASS' and chat['sameAgreementId'] == selection['agreementId']
+    assert chat['nativeWorkerDone'] and chat['nativeRequesterComplete'] and chat['publicationProof']
+    (ARTIFACT_DIR / 'marketplace-vertical-report.json').write_text(json.dumps({
+        'result': 'PASS', 'sourceSha': os.environ['GITHUB_SHA'], 'localOnly': True, 'historyCount': 108, 'needId': need['id'],
+        'conversationId': CONVERSATION_ID, 'agreementId': selection['agreementId'], 'requiredSlots': 3,
+        'actualNativeAi': True, 'actualNativePins': True, 'actualB06': True, 'actualB07': True,
+        'actualNativeApplySelect': True, 'actualNativeMessages': True, 'actualNativeCompletion': True,
+        'providerProof': False, 'gatewayProof': False, 'productionPolicyActivation': False, 'reviewsProven': False,
+        'reviewBoundary': 'NOT_IMPLEMENTED_OWNER_F144_PENDING'}, indent=2) + '\n', encoding='utf-8')
+    print('PASS MARKETPLACE_VERTICAL_PHYSICAL same_AI_Need real_pins_B06_B07_Apply_Select_Agreement_Chat_Completion reviewsProven=false', flush=True)
+
+
 def main():
     if __package__:
         from .ai_review_local_rest import LocalRestOutage, validate_local_targets
@@ -373,15 +532,16 @@ def main():
     load_shared_helpers()
     globals()['psql'] = local_query
     fixture = json.loads((ARTIFACT_DIR / 'ai-review-fixture.json').read_text(encoding='utf-8'))
+    marketplace = os.environ.get('AI_REVIEW_SCOPE') == 'marketplace'
     ACCOUNT_ID = fixture['accountId']
     assert fixture['sourceSha'] == os.environ['GITHUB_SHA'] and fixture['localOnly'] is True and fixture['providerProof'] is False
     assert re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', ACCOUNT_ID)
     assert ACCOUNT_ID not in (os.environ['RU5_DEVICE_REQUESTER_USER_ID'], os.environ['RU5_DEVICE_WORKER_USER_ID'])
-    print('START AI_REVIEW_PHYSICAL exact106 actual_client_handler_auth_sql synthetic_model', flush=True)
+    print(f'START AI_REVIEW_PHYSICAL exact{108 if marketplace else 106} actual_client_handler_auth_sql synthetic_model', flush=True)
     launch_clean()
     capture('AI_entry_real_native', 'Auth entry')
     login(fixture['email'])
-    assert_shell('requester')
+    assert_requester_list()
     capture('AI_owner_empty', 'Još nemate Zadatak')
     tap(desc='Novi Zadatak', prefer='bottom')
     wait_visible(desc='Poruka za AI')
@@ -461,6 +621,8 @@ def main():
     capture('AI_restored_explicit_confirmation', 'Proverite Zadatak')
     press_fact_action('Vozilo', 'Potvrdite')
     wait_confirmed('need.required_vehicles', 11)
+    if marketplace:
+        physical_location_review()
     ready = fixture_command('observe', 'READY')
     assert all(f['status'] == 'CONFIRMED' for f in ready['review']['facts'])
     root, parent = capture('AI_ready_human_confirmed', 'Proverite Zadatak')
@@ -468,26 +630,26 @@ def main():
     x1, y1, x2, y2 = parse_bounds(control.attrib['bounds'])
     for _ in range(2):
         adb('shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2))
-    wait_visible(text='Pregled Zadatka', timeout=60)
+    detail_anchor = 'Zadatak'
+    wait_visible(text=detail_anchor, timeout=60)
     saved = fixture_command('observe', 'SAVED')
     fixture = json.loads((ARTIFACT_DIR / 'ai-review-fixture.json').read_text(encoding='utf-8'))
     need = assert_saved(saved, fixture)
-    root, parent = capture('AI_saved_draft_detail', 'Pregled Zadatka')
-    assert need['title'] in labels(root) and 'Nacrt' in labels(root)
-    tap(desc='Nazad', prefer='top')
-    wait_visible(desc='Poruka za AI')
+    root, parent = capture('AI_saved_draft_detail', detail_anchor)
+    assert need['title'] in labels(root) and 'Privatan nacrt' in labels(root)
+    return_to_saved_conversation(need['title'])
     capture('AI_saved_conversation_readonly', 'Novi zadatak')
     root, parent = clean_surface('Novi zadatak')
     assert_button(root, parent, 'Pošalji poruku', False)
     tap(desc='Nazad', prefer='top')
-    assert_shell('requester')
-    wait_visible(desc=f"Otvorite Zadatak {need['title']}")
-    capture('AI_saved_in_tasks', 'MENI TREBA')
-    tap(desc='Profil', prefer='top')
+    reveal_saved_draft(need['title'])
+    capture('AI_saved_in_tasks', 'Zadaci')
+    core_profile()
     tap(desc='Odjavite se')
-    assert_signed_out_surface()
-    login(fixture['other']['email'])
-    assert_shell('requester')
+    wait_visible(desc='Prijavite se', timeout=60)
+    assert_signed_out_surface(form_open=True)
+    login(fixture['other']['email'], form_open=True)
+    assert_requester_list()
     root, parent = capture('AI_other_account_empty', 'Još nemate Zadatak')
     assert need['title'] not in labels(root)
     tap(desc='Novi Zadatak', prefer='bottom')
@@ -498,9 +660,11 @@ def main():
     final = fixture_command('observe', 'FINAL')
     assert assert_saved(final, fixture)['id'] == need['id'] and final['receipts'] == saved['receipts']
     fixture_command('verify')
-    print('PASS AI_REVIEW_PHYSICAL exact106 real_native_auth_client_handler_sql synthetic_provider '
+    print(f'PASS AI_REVIEW_PHYSICAL exact{108 if marketplace else 106} real_native_auth_client_handler_sql synthetic_provider '
           'unknown_readback_no_turn_replay correction optional_confirmation double_save_one_draft other_account_isolated '
           'gatewayProof=false providerProof=false publicationProof=false downstreamTaskDetailV2Parity=false', flush=True)
+    if marketplace:
+        marketplace_continue(fixture, need)
 
 
 if __name__ == '__main__':

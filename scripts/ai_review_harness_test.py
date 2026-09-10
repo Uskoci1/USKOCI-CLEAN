@@ -1,7 +1,11 @@
 """Proof assertion regressions; these are not substituted for Android pixels."""
+import ast
 import copy
+import hashlib
+import json
 from pathlib import Path
 import unittest
+from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 from unittest.mock import Mock, patch
 from scripts import ai_review_android_journey as journey
@@ -15,6 +19,161 @@ def tree(xml):
 
 
 class NativeAssertions(unittest.TestCase):
+    @staticmethod
+    def native108():
+        return {'result':'PASS','unit':'NATIVE_MARKETPLACE_SOURCE108','source_sha':'a'*40,'source_migration_count':108,'original_history_count':106,'history_count':108,
+                'localOnly':True,'original_history_preserved':True,'business_and_policy_rows_preserved':True,
+                'live_access':False,'live_promotion':False,'provider_called':False,'policy_activated':False,'transport_enabled':False,'concurrency_proven':False,
+                'history_sha256':'b'*64,'applied_successors':[{'ordinal':107},{'ordinal':108}],'input_sha256':{'synthetic_fixture':'c'*64}}
+
+    def test_current_ai_login_waits_for_current_shell_without_core_history_flag(self):
+        for scope in ('intake', 'marketplace'):
+            with self.subTest(scope=scope), patch.dict(journey.os.environ, {'AI_REVIEW_SCOPE':scope}), \
+                    patch.dict(journey.__dict__, {'PASSWORD':'local-fixture-only'}), \
+                    patch.object(journey, 'core_mode', return_value=False), \
+                    patch.object(journey, 'open_login_sheet') as open_sheet, \
+                    patch.object(journey, 'edit_text') as edit, patch.object(journey, 'hide_keyboard'), \
+                    patch.object(journey, 'tap') as tap, patch.object(journey, 'wait_visible') as wait:
+                journey.login('fixture@example.invalid')
+                open_sheet.assert_called_once_with()
+                self.assertEqual(edit.call_args_list, [unittest.mock.call(0, 'fixture@example.invalid'), unittest.mock.call(1, 'local-fixture-only')])
+                tap.assert_called_once_with(text='Prijavite se', prefer='bottom', timeout=30)
+                wait.assert_called_once_with(desc='Zadaci', timeout=60)
+
+    def test_unscoped_legacy_login_retains_its_exact_shell_anchor(self):
+        with patch.dict(journey.os.environ, {}, clear=True), patch.dict(journey.__dict__, {'PASSWORD':'local-fixture-only'}), \
+                patch.object(journey, 'core_mode', return_value=False), patch.object(journey, 'open_login_sheet'), \
+                patch.object(journey, 'edit_text'), patch.object(journey, 'hide_keyboard'), \
+                patch.object(journey, 'tap'), patch.object(journey, 'wait_visible') as wait:
+            journey.login('fixture@example.invalid')
+        wait.assert_called_once_with(text='MENI TREBA', timeout=60)
+
+    @staticmethod
+    def d03_switch_scope():
+        # Compile the actual helper only, without executing the physical journey.
+        source=Path(__file__).with_name('d03_chat_android_journey.py')
+        functions=[node for node in ast.parse(source.read_text(encoding='utf-8')).body
+                   if isinstance(node, ast.FunctionDef) and node.name=='switch_account']
+        assert len(functions)==1
+        names=('tap','assert_shell','core_profile','wait_visible','assert_signed_out_surface',
+               'login','switch_to_worker_workspace','open_chat')
+        flow=Mock(spec=names)
+        scope={name:getattr(flow,name) for name in names}
+        scope['core_mode']=lambda:True
+        exec(compile(ast.Module(body=functions,type_ignores=[]),str(source),'exec'),scope)
+        return scope,flow
+
+    def test_d03_account_switch_uses_observed_open_auth_form_before_real_login(self):
+        scope,flow=self.d03_switch_scope()
+        scope['switch_account']('fixture@example.invalid','worker',to_worker=True)
+        self.assertEqual(flow.mock_calls, [
+            unittest.mock.call.tap(desc='Nazad'), unittest.mock.call.assert_shell('worker'),
+            unittest.mock.call.core_profile(), unittest.mock.call.tap(desc='Odjavite se'),
+            unittest.mock.call.wait_visible(desc='Prijavite se',timeout=60),
+            unittest.mock.call.assert_signed_out_surface(form_open=True),
+            unittest.mock.call.login('fixture@example.invalid',form_open=True),
+            unittest.mock.call.assert_shell('requester'), unittest.mock.call.switch_to_worker_workspace(),
+            unittest.mock.call.assert_shell('worker'), unittest.mock.call.open_chat()])
+
+    def test_d03_missing_actual_auth_form_stops_before_login_or_chat(self):
+        scope,flow=self.d03_switch_scope()
+        flow.wait_visible.side_effect=RuntimeError('Actual Auth form not observed')
+        with self.assertRaises(RuntimeError):
+            scope['switch_account']('fixture@example.invalid','worker')
+        flow.login.assert_not_called()
+        flow.open_chat.assert_not_called()
+
+    def test_current_requester_list_uses_selected_moji_and_preserves_three_zone_assertion(self):
+        root, parents=tree('<hierarchy><node text="Zadaci"/><node text="Ono što ti je potrebno"/><node content-desc="Moji" selected="true" enabled="true" clickable="true" bounds="[20,200][200,300]"/></hierarchy>')
+        with patch.object(journey,'clean_surface',return_value=(root,parents)) as surface, patch.object(journey,'screen_size',return_value=(1080,2400)), patch.object(journey,'assert_shell_tree') as zones:
+            journey.assert_requester_list()
+            surface.assert_called_once_with('Zadaci')
+            zones.assert_called_once_with(root,parents,1080,2400,('Zadaci','Novi Zadatak','Dogovori'))
+            next(n for n in root.iter() if n.attrib.get('content-desc')=='Moji').attrib['selected']='false'
+            with self.assertRaises(AssertionError):
+                journey.assert_requester_list()
+
+    def test_saved_draft_is_revealed_only_through_actual_nacrti_tab_then_exact_card(self):
+        root, parents=tree('<hierarchy><node content-desc="Nacrti" selected="false" enabled="true" clickable="true" bounds="[200,400][400,520]"/></hierarchy>')
+        final=copy.deepcopy(root);next(n for n in final.iter() if n.attrib.get('content-desc')).attrib['selected']='true'
+        fp={child:p for p in final.iter() for child in p}
+        with patch.object(journey,'assert_requester_list',side_effect=[(root,parents),(final,fp)]),patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'tap_node') as tap,patch.object(journey,'wait_visible') as wait:
+            journey.reveal_saved_draft('Exact saved title')
+            tap.assert_called_once_with(next(n for n in root.iter() if n.attrib.get('content-desc')),parents,hold_ms=120)
+            wait.assert_called_once_with(desc='Otvorite Zadatak Exact saved title',timeout=60)
+
+    def test_observed_core_profile_selects_current_moj_profil_without_legacy_retry(self):
+        root, parents=tree('<hierarchy><node content-desc="Moj profil" enabled="true" clickable="true" bounds="[900,100][1030,230]"/></hierarchy>')
+        with patch.object(journey,'dump_tree',return_value=(root,parents,None)),patch.object(journey,'tap') as tap:
+            journey.core_profile()
+        tap.assert_called_once_with(desc='Moj profil',prefer='top')
+
+    def test_marketplace_native108_report_cannot_fall_back_to106_or_borrow_other_source(self):
+        with TemporaryDirectory() as directory,patch.dict(journey.os.environ,{'AI_REVIEW_SCOPE':'marketplace','GITHUB_SHA':'a'*40}),patch.dict(journey.__dict__,{'ARTIFACT_DIR':Path(directory)}):
+            Path(directory,'ai-review-admission.json').write_text(json.dumps({'sourceSha':'a'*40,'historyCount':106,'localOnly':True}),encoding='utf-8')
+            report=self.native108();path=Path(directory,'native-successors-admission.json');path.write_text(json.dumps(report),encoding='utf-8')
+            self.assertEqual(journey.core_native_admission(),report)
+            for patch_value in ({'source_sha':'d'*40},{'history_count':106},{'original_history_preserved':False},{'policy_activated':True}):
+                path.write_text(json.dumps({**report,**patch_value}),encoding='utf-8')
+                with self.assertRaises(AssertionError):
+                    journey.core_native_admission()
+
+    def test_marketplace_core_requires_exact_original_publication_receipt_hash_and_same_need(self):
+        publication = {'result':'PASS','sourceSha':'a'*40,'localOnly':True,'needId':'need','requesterId':'requester','workerId':'worker',
+                       'actualNativePins':True,'actualB06':True,'actualB07':True,'publicationProof':True,'privateLocationHiddenFromWorker':True,
+                       'providerProof':False,'productionPolicyActivation':False,'historyCount':108,'nativeBoundary':self.native108()}
+        fixture = {'result':'PASS','sourceSha':'a'*40,'localOnly':True,'needId':'need','requesterId':'requester','workerId':'worker',
+                   'publicationProof':True,'aiProof':True,'requiredSlots':3,'syntheticFixturePrecondition':False,'productionPolicyActivation':False,'nativeHistoryRequired':108}
+        with TemporaryDirectory() as directory, patch.dict(journey.os.environ, {'AI_REVIEW_SCOPE':'marketplace','GITHUB_SHA':'a'*40}), patch.dict(journey.__dict__, {'ARTIFACT_DIR':Path(directory),'NEED_ID':'need','REQUESTER_USER_ID':'requester','WORKER_USER_ID':'worker'}):
+            original=json.dumps(publication).encode();fixture['publicationSha256']=hashlib.sha256(original).hexdigest()
+            Path(directory,'marketplace-publication.json').write_bytes(original)
+            Path(directory,'core-fixture.json').write_text(json.dumps(fixture),encoding='utf-8')
+            Path(directory,'ai-review-admission.json').write_text(json.dumps({'sourceSha':'a'*40,'historyCount':106,'localOnly':True}),encoding='utf-8')
+            Path(directory,'native-successors-admission.json').write_text(json.dumps(self.native108()),encoding='utf-8')
+            self.assertEqual(journey.core_fixture()['requiredSlots'],3)
+            for mutation in ({'needId':'other'}, {'actualB07':False}, {'providerProof':True}):
+                changed={**publication,**mutation};data=json.dumps(changed).encode()
+                Path(directory,'marketplace-publication.json').write_bytes(data)
+                with self.assertRaises(AssertionError):
+                    journey.core_fixture()
+                fixture['publicationSha256']=hashlib.sha256(data).hexdigest()
+                Path(directory,'core-fixture.json').write_text(json.dumps(fixture),encoding='utf-8')
+                with self.assertRaises(AssertionError):
+                    journey.core_fixture()
+
+    def test_neutral_map_touch_uses_observed_frame_and_actual_density(self):
+        bounds = (84, 700, 996, 1540)
+        x, y = journey.initial_world_touch(bounds, 2.625)
+        self.assertTrue(84 < x < 996 and 700 < y < 1540)
+        self.assertGreater(x, 540)
+        self.assertLess(y, 1120)
+        for frame, density in [((84, 700, 996, 800), 2.625), (bounds, 0), (bounds, 8)]:
+            with self.assertRaises(AssertionError):
+                journey.initial_world_touch(frame, density)
+
+    def test_original_and_marketplace_submit_require_their_exact_headcount(self):
+        for mode, slots in [('intake', 1), ('marketplace', 3)]:
+            with patch.dict(journey.os.environ, {'AI_REVIEW_SCOPE': mode}), patch.object(journey, 'core_fixture', return_value={'requiredSlots': 3}), patch.dict(journey.__dict__, {'NEED_ID':'need', 'WORKER_USER_ID':'worker'}):
+                with patch.object(journey, 'psql', return_value=f'response|SUBMITTED|3000|{slots}'):
+                    self.assertEqual(journey.assert_worker_submit(), 'response')
+                with patch.object(journey, 'psql', return_value=f'response|SUBMITTED|3000|{4-slots}'), self.assertRaises(AssertionError):
+                    journey.assert_worker_submit()
+
+    def test_detail_back_requires_owned_saved_review_before_conversation_back(self):
+        root, parents = tree('<hierarchy><node text="Proverite Zadatak"/><node text="Zadatak je već sačuvan"/><node text="Owned title"/><node content-desc="Nazad u razgovor" enabled="true" clickable="true" bounds="[20,90][160,210]"/></hierarchy>')
+        with patch.object(journey, 'tap') as tap, patch.object(journey, 'clean_surface', return_value=(root, parents)), patch.object(journey, 'screen_size', return_value=(1080, 2400)), patch.object(journey, 'tap_node') as action, patch.object(journey, 'wait_visible') as wait:
+            journey.return_to_saved_conversation('Owned title')
+        tap.assert_called_once_with(desc='Nazad', prefer='top')
+        action.assert_called_once_with(next(n for n in root.iter() if n.attrib.get('content-desc')), parents, hold_ms=120)
+        wait.assert_called_once_with(desc='Poruka za AI')
+
+    def test_saved_review_back_rejects_wrong_need_or_mutable_review_before_second_navigation(self):
+        for content in ('<node text="Other title"/>', '<node text="Owned title"/><node content-desc="Sačuvajte nacrt" enabled="false"/>'):
+            root, parents = tree('<hierarchy><node text="Zadatak je već sačuvan"/>' + content + '<node content-desc="Nazad u razgovor" enabled="true" clickable="true" bounds="[20,90][160,210]"/></hierarchy>')
+            with patch.object(journey, 'tap'), patch.object(journey, 'clean_surface', return_value=(root, parents)), patch.object(journey, 'tap_node') as action, self.assertRaises(AssertionError):
+                journey.return_to_saved_conversation('Owned title')
+            action.assert_not_called()
+
     def test_disabled_save_is_checked_on_actual_control_not_an_ancestor(self):
         root, parents = tree('<hierarchy><node clickable="true" enabled="true"><node content-desc="Sačuvajte nacrt" enabled="false" clickable="false" bounds="[10,20][80,70]"/></node></hierarchy>')
         journey.assert_button(root, parents, 'Sačuvajte nacrt', False)

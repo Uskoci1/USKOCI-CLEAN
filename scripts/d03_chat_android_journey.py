@@ -33,7 +33,12 @@ for identifier in (WORKER_USER_ID,REQUESTER_USER_ID,NEED_ID,AGREEMENT_ID):
 boundary=json.loads((ARTIFACT_DIR/'d03-native-db-boundary.json').read_text(encoding='utf-8'))
 assert boundary['result']=='PASS' and boundary['localOnly']
 if CORE106:
-    assert boundary['fullCanonicalHistoryReplay'] and boundary['nativeBoundary']=='EXACT106_UI_CREATED_CORE_AGREEMENT' and boundary['historyAfter']['count']==106
+    expected_history=108 if os.environ.get('AI_REVIEW_SCOPE')=='marketplace' else 106
+    assert boundary['fullCanonicalHistoryReplay'] and boundary['nativeBoundary']==f'EXACT{expected_history}_UI_CREATED_CORE_AGREEMENT' and boundary['historyAfter']['count']==expected_history
+    assert boundary['publicationProof'] is (os.environ.get('AI_REVIEW_SCOPE')=='marketplace')
+    if os.environ.get('AI_REVIEW_SCOPE')=='marketplace':
+        assert boundary['coreSelection']['needId']==NEED_ID and boundary['coreSelection']['terms']['covered_slots']==3
+        assert boundary['successorAdmission']['history_count']==108 and boundary['successorAdmission']['source_sha']==os.environ['GITHUB_SHA']
 else:
     assert not boundary['fullCanonicalHistoryReplay']
 assert boundary['agreementId']==AGREEMENT_ID and boundary['sourceSha']==os.environ['GITHUB_SHA']
@@ -158,10 +163,10 @@ def switch_account(email,from_intent,to_worker=False):
     assert_shell(from_intent)
     core_profile() if core_mode() else tap(desc='Radni profil' if from_intent=='worker' else 'Profil',prefer='top')
     tap(desc='Odjavite se')
-    wait_visible(desc='Prijavi se',timeout=60)
-    assert_signed_out_surface()
+    wait_visible(desc='Prijavite se',timeout=60)
+    assert_signed_out_surface(form_open=True)
     # Same installation/storage. No app clear or credential/session injection.
-    login(email)
+    login(email,form_open=True)
     assert_shell('requester')
     if to_worker:switch_to_worker_workspace();assert_shell('worker')
     open_chat()
@@ -296,7 +301,7 @@ try:
     assert_gates_unchanged()
     if CORE106:
         assert psql(f"select state from public.agreement_execution where agreement_id='{AGREEMENT_ID}'")=='COMPLETED'
-        report.update({'historyCount':106,'sameAgreementId':AGREEMENT_ID,'nativeWorkerDone':True,'nativeRequesterComplete':True,'publicationProof':False,'productionPolicyActivation':False})
+        report.update({'historyCount':core_history_required(),'sameAgreementId':AGREEMENT_ID,'nativeWorkerDone':True,'nativeRequesterComplete':True,'publicationProof':boundary['publicationProof'],'productionPolicyActivation':False})
     report['messages']=expected
     report['result']='PASS'
     print('PASS PHYSICAL_D03_CHAT_RECOVERY two_real_participants rapid_taps offline_body manual_retry terminal_back three_messages_three_events no_fake_receipts no_provider',flush=True)
