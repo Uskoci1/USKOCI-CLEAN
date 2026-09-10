@@ -1,6 +1,8 @@
 """Selector regression only; never substitutes for the emulator evidence."""
 import ast
+import json
 import re
+import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -334,6 +336,8 @@ class EntrySignaturePrelude(unittest.TestCase):
                 shots = Mock()
                 patches = {
                     'record_entry_motion': lambda _, action: action(), 'launch_clean': Mock(),
+                    'prepare_entry_first_launch': Mock(return_value={'launcherClear': True}),
+                    'launch_entry_prepared': Mock(),
                     'assert_entry_welcome': Mock(), 'entry_intent_to_auth': Mock(),
                     'open_login_sheet': Mock(), 'assert_entry_password_form': Mock(),
                     'shot': shots, 'tap': Mock(), 'wait_visible': Mock(),
@@ -353,6 +357,8 @@ class EntrySignaturePrelude(unittest.TestCase):
                 self.assertFalse(report['authLoginProven'])
                 self.assertFalse(report['nativeVisualParityAccepted'])
                 self.assertFalse(report['framePerfectDurationMeasured'])
+                self.assertEqual(report['preCapture'], {'launcherClear': True})
+                self.assertFalse(report['recordedAnrRecoveryAllowed'])
                 self.assertEqual(patches['entry_intent_to_auth'].call_args_list, [
                     unittest.mock.call('Meni treba', 'ENTRY_requester'), unittest.mock.call('Ja mogu', 'ENTRY_worker'),
                     unittest.mock.call('Meni treba', 'ENTRY_reduced_requester'), unittest.mock.call('Ja mogu', 'ENTRY_reduced_worker')])
@@ -374,6 +380,8 @@ class EntrySignaturePrelude(unittest.TestCase):
                     raise RuntimeError('Actual Auth surface did not appear')
             patches = {
                 'record_entry_motion': lambda _, action: action(), 'launch_clean': Mock(),
+                'prepare_entry_first_launch': Mock(return_value={'launcherClear': True}),
+                'launch_entry_prepared': Mock(),
                 'assert_entry_welcome': Mock(), 'entry_intent_to_auth': intent,
                 'open_login_sheet': Mock(), 'assert_entry_password_form': Mock(),
                 'shot': Mock(), 'tap': Mock(), 'wait_visible': Mock(),
@@ -403,6 +411,193 @@ class EntrySignaturePrelude(unittest.TestCase):
         self.assertIn("if isinstance(node, ast.FunctionDef)", source)
         self.assertIn("package != 'rs.uskoci.n04proof'", source)
         self.assertIn("('localhost', '127.0.0.1')", source)
+
+
+class EntryPreCaptureTests(unittest.TestCase):
+    """Real helper definitions with synthetic adb replies; no native parity claim."""
+    package = 'rs.uskoci.n04proof'
+
+    @staticmethod
+    def dialog(title="Quickstep isn't responding", package='android'):
+        root = ET.Element('hierarchy')
+        for label, resource, clickable in ((title, 'alertTitle', 'false'),
+                                            ('Close app', 'aerr_close', 'true'),
+                                            ('Wait', 'aerr_wait', 'true')):
+            ET.SubElement(root, 'node', {'text': label, 'resource-id': 'android:id/' + resource,
+                                       'package': package, 'enabled': 'true', 'clickable': clickable,
+                                       'bounds': '[70,1143][1010,1269]'})
+        return root
+
+    @staticmethod
+    def windows(focus):
+        return '  mCurrentFocus=Window{cb3bd44 u0 ' + focus + '}\n'
+
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.artifacts = Path(self.folder.name)
+        self.clean = ET.fromstring('<hierarchy><node package="com.android.launcher3" /></hierarchy>')
+        self.launcher = self.windows('com.android.launcher3/.uioverrides.QuickstepLauncher')
+        self.anr = self.windows('Application Not Responding: com.android.launcher3')
+        self.calls = []
+        self.diagnostics = Mock(return_value='SYSTEM_ANR_001')
+        def command(*args, **kwargs):
+            self.calls.append(args)
+            return SimpleNamespace(stdout='Success' if args[:3] == ('shell', 'pm', 'clear') else '')
+        self.observation = Mock(return_value=(self.clean, self.launcher))
+        self.patches = patch.dict(namespace, {
+            'PACKAGE': self.package, 'MAIN_ACTIVITY': self.package + '/.MainActivity',
+            'ARTIFACT_DIR': self.artifacts, 'json': json,
+            'system_dialog_adb': command, 'entry_launcher_observation': self.observation,
+            'retain_anr_diagnostic': self.diagnostics,
+            'time': SimpleNamespace(monotonic=lambda: 0, sleep=Mock()),
+        })
+        self.patches.start()
+        self.addCleanup(self.patches.stop)
+
+    def test_clear_launcher_is_admitted_without_any_app_launch_or_recovery(self):
+        result = namespace['prepare_entry_first_launch']()
+        self.assertEqual(result, {'launcherClear': True, 'appProcessAbsent': True,
+                                  'quickstepRecoveredBeforeCapture': False})
+        self.assertEqual(self.calls, [('shell', 'am', 'force-stop', self.package),
+                                     ('shell', 'pm', 'clear', self.package)])
+        self.assertFalse((self.artifacts / 'SYSTEM_QUICKSTEP_RECOVERY_USED.json').exists())
+
+    def test_exact_quickstep_closes_once_before_first_launch_and_persists_same_run_marker(self):
+        self.observation.side_effect = [(self.dialog(), self.anr), (self.clean, self.launcher)]
+        result = namespace['prepare_entry_first_launch']()
+        self.assertTrue(result['quickstepRecoveredBeforeCapture'])
+        self.assertEqual(self.calls[-1], ('shell', 'input', 'tap', '540', '1206'))
+        self.assertFalse(any(call[:3] == ('shell', 'am', 'start') for call in self.calls))
+        receipt = json.loads((self.artifacts / 'SYSTEM_QUICKSTEP_RECOVERY_USED.json').read_text())
+        self.assertEqual(receipt, {'diagnostic': 'SYSTEM_ANR_001', 'phase': 'ENTRY_PRE_CAPTURE',
+                                   'appProcessAbsent': True, 'verified': True})
+        self.diagnostics.assert_called_once()
+
+    def test_app_unknown_system_ui_and_mismatched_quickstep_dialogs_are_never_tapped(self):
+        cases = [
+            (self.dialog('USKOČI NAV PROOF isn\'t responding'), self.anr),
+            (self.dialog('System UI isn\'t responding'), self.windows('Application Not Responding: com.android.systemui')),
+            (self.dialog('Unknown isn\'t responding'), self.anr),
+            (self.dialog(), self.windows('Application Not Responding: ' + self.package)),
+            (self.dialog(package=self.package), self.anr),
+        ]
+        disabled = self.dialog()
+        disabled[1].set('enabled', 'false')
+        cases.append((disabled, self.anr))
+        missing = self.dialog()
+        missing.remove(missing[2])
+        cases.append((missing, self.anr))
+        for root, windows in cases:
+            with self.subTest(windows=windows, title=root[0].attrib['text']):
+                self.calls.clear()
+                self.observation.return_value = root, windows
+                with self.assertRaisesRegex(RuntimeError, 'unrecognized ANR'):
+                    namespace['prepare_entry_first_launch']()
+                self.assertFalse(any(call[:2] == ('shell', 'input') for call in self.calls))
+
+    def test_prior_recovery_and_persistent_dialog_fail_without_another_tap(self):
+        marker = self.artifacts / 'SYSTEM_QUICKSTEP_RECOVERY_USED.json'
+        marker.write_text('{}')
+        self.observation.return_value = self.dialog(), self.anr
+        with self.assertRaisesRegex(RuntimeError, 'no second recovery'):
+            namespace['prepare_entry_first_launch']()
+        self.assertFalse(any(call[:2] == ('shell', 'input') for call in self.calls))
+        marker.unlink()
+        with self.assertRaisesRegex(RuntimeError, 'unobscured known launcher'):
+            namespace['prepare_entry_first_launch']()
+        self.assertEqual(sum(call[:2] == ('shell', 'input') for call in self.calls), 1)
+        self.assertFalse(json.loads(marker.read_text())['verified'])
+
+    def test_unknown_focused_surface_never_counts_as_clear_launcher(self):
+        for focus in ('com.android.systemui/.Dialog', self.package + '/.MainActivity',
+                      'com.android.launcher3/.UnverifiedActivity'):
+            self.observation.return_value = self.clean, self.windows(focus)
+            with self.subTest(focus=focus), self.assertRaisesRegex(RuntimeError, 'unobscured known launcher'):
+                namespace['prepare_entry_first_launch']()
+        self.assertFalse(any(call[:2] == ('shell', 'input') for call in self.calls))
+
+    def test_absent_process_requires_real_pidof_negative_with_finite_deadline(self):
+        command = Mock(return_value=SimpleNamespace(returncode=1, stdout=''))
+        with patch.dict(namespace, {'subprocess': SimpleNamespace(run=command)}):
+            namespace['entry_assert_process_absent'](2)
+            command.assert_called_once_with(['adb', 'shell', 'pidof', self.package], check=False,
+                                            capture_output=True, text=True, timeout=2)
+            for code, output in ((0, '123'), (0, ''), (2, ''), (1, '123')):
+                command.return_value = SimpleNamespace(returncode=code, stdout=output)
+                with self.assertRaisesRegex(RuntimeError, 'must not run'):
+                    namespace['entry_assert_process_absent'](2)
+            with self.assertRaisesRegex(RuntimeError, 'deadline exceeded'):
+                namespace['entry_assert_process_absent'](0)
+
+    def test_prepared_launch_rechecks_launcher_then_starts_without_clear_or_force_stop(self):
+        events = []
+        self.observation.side_effect = lambda _: (events.append('inspect') or self.clean, self.launcher)
+        def adb(*args, **kwargs):
+            events.append(args)
+            return SimpleNamespace(returncode=0, stdout='LaunchState: COLD', stderr='')
+        with patch.dict(namespace, {'adb': adb, 'wait_visible': lambda **_: events.append('wait'),
+                                   'assert_signed_out_surface': lambda: events.append('signedout')}):
+            namespace['launch_entry_prepared']()
+        self.assertEqual(events, ['inspect', ('shell', 'am', 'start', '-W', '-n', self.package + '/.MainActivity'),
+                                  'wait', 'signedout'])
+
+    def test_late_dialog_is_fatal_before_start_and_never_recovered(self):
+        self.observation.return_value = self.dialog(), self.anr
+        start = Mock()
+        with patch.dict(namespace, {'adb': start}):
+            with self.assertRaisesRegex(RuntimeError, 'unobscured known launcher'):
+                namespace['launch_entry_prepared']()
+        start.assert_not_called()
+        self.assertFalse(any(call[:2] == ('shell', 'input') for call in self.calls))
+
+    def test_recording_anr_cannot_be_recovered_and_original_movie_is_pulled_before_failure(self):
+        events = []
+        original_recovery = Mock()
+        process = SimpleNamespace(poll=lambda: None, wait=lambda **_: events.append('stopped') or 130)
+        pids = iter(['', '42', '42'])
+        def adb(*args, **kwargs):
+            events.append(args)
+            return SimpleNamespace(stdout=next(pids) if args == ('shell', 'pidof', 'screenrecord') else '')
+        def action():
+            namespace['dismiss_known_system_anr'](self.dialog(), {})
+        with patch.dict(namespace, {'adb': adb, 'dismiss_known_system_anr': original_recovery,
+                                   'subprocess': SimpleNamespace(Popen=Mock(return_value=process), DEVNULL=-1)}):
+            with self.assertRaisesRegex(RuntimeError, 'obscured Entry recording'):
+                namespace['record_entry_motion']('ENTRY_intro', action)
+            self.assertIs(namespace['dismiss_known_system_anr'], original_recovery)
+        original_recovery.assert_not_called()
+        self.assertLess(events.index(('shell', 'kill', '-2', '42')), events.index('stopped'))
+        self.assertEqual(events[-1], ('pull', '/sdcard/uskoci-ENTRY_intro.mp4', str(self.artifacts / 'ENTRY_intro.mp4')))
+        self.assertFalse((self.artifacts / 'entry-signature-report.json').exists())
+
+    def test_signature_preflight_runs_before_recorder_and_failure_prevents_recording(self):
+        events = []
+        def record(name, action):
+            events.append((name, action.__name__))
+            raise RuntimeError('Stop after verifying dispatch order')
+        with patch.dict(namespace, {'prepare_entry_first_launch': lambda: events.append('preflight'),
+                                   'record_entry_motion': record}):
+            with self.assertRaisesRegex(RuntimeError, 'dispatch order'):
+                namespace['prove_spoj_entry'](signature=True)
+        self.assertEqual(events, ['preflight', ('ENTRY_intro', 'launch_entry_prepared')])
+        record = Mock()
+        with patch.dict(namespace, {'prepare_entry_first_launch': Mock(side_effect=RuntimeError('launcher not ready')),
+                                   'record_entry_motion': record}):
+            with self.assertRaisesRegex(RuntimeError, 'launcher not ready'):
+                namespace['prove_spoj_entry'](signature=True)
+        record.assert_not_called()
+
+    def test_historical_full_dispatch_keeps_existing_launch_clean(self):
+        actions = []
+        def record(_, action):
+            actions.append(action.__name__)
+            raise RuntimeError('Historical dispatch verified')
+        with patch.dict(namespace, {'prepare_entry_first_launch': Mock(side_effect=AssertionError('Signature only')),
+                                   'record_entry_motion': record}):
+            with self.assertRaisesRegex(RuntimeError, 'Historical dispatch verified'):
+                namespace['prove_spoj_entry'](signature=False)
+        self.assertEqual(actions, ['launch_clean'])
 
 
 if __name__ == '__main__':

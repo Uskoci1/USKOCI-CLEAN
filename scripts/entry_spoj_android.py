@@ -50,6 +50,106 @@ def assert_entry_recovery_surface(root):
     raise AssertionError('Recovery is neither the known gated state nor the configured email form')
 
 
+def entry_assert_process_absent(deadline):
+    remaining = min(5, deadline - time.monotonic())
+    if remaining <= 0:
+        native_surface_failure('Entry pre-capture deadline exceeded')
+    observed = subprocess.run(['adb', 'shell', 'pidof', PACKAGE], check=False,
+                              capture_output=True, text=True, timeout=remaining)
+    if observed.returncode != 1 or observed.stdout.strip():
+        native_surface_failure('Entry must not run before its first recorded launch')
+
+
+def entry_launcher_observation(deadline):
+    system_dialog_adb('shell', 'uiautomator', 'dump', '/sdcard/window.xml', deadline=deadline)
+    xml = system_dialog_adb('shell', 'cat', '/sdcard/window.xml', deadline=deadline).stdout
+    root = ET.fromstring(xml)
+    dump_tree.last_observation = (root, xml)
+    windows = system_dialog_adb('shell', 'dumpsys', 'window', 'displays', deadline=deadline).stdout
+    entry_assert_process_absent(deadline)
+    return root, windows
+
+
+def entry_assert_launcher_clear(root, windows):
+    # Exact launcher component retained in run34538463761's original window dump.
+    launcher = 'com.android.launcher3'
+    if (has_native_anr(root)
+            or current_focus_name(windows) not in (
+                launcher + '/.uioverrides.QuickstepLauncher',
+                launcher + '/' + launcher + '.uioverrides.QuickstepLauncher')
+            or not any(node.attrib.get('package') == launcher for node in root.iter())):
+        retain_anr_diagnostic(root, windows)
+        native_surface_failure('Entry pre-capture requires the unobscured known launcher')
+
+
+def prepare_entry_first_launch():
+    # Signature only: no warm-up app launch, no preference/intro reset after capture starts.
+    # The historical launch_clean recovery needs an app PID and is therefore too late
+    # to establish an unobscured first-launch recording.
+    deadline = time.monotonic() + 30
+    system_dialog_adb('shell', 'am', 'force-stop', PACKAGE, deadline=deadline)
+    cleared = system_dialog_adb('shell', 'pm', 'clear', PACKAGE, deadline=deadline)
+    if cleared.stdout.strip() != 'Success':
+        native_surface_failure('Disposable Entry app data was not cleared')
+    root, windows = entry_launcher_observation(deadline)
+    recovered = False
+    if has_native_anr(root):
+        diagnostic = retain_anr_diagnostic(root, windows)
+        titles = [n for n in root.iter() if n.attrib.get('resource-id') == 'android:id/alertTitle']
+        close = [n for n in root.iter() if n.attrib.get('resource-id') == 'android:id/aerr_close']
+        wait = [n for n in root.iter() if n.attrib.get('resource-id') == 'android:id/aerr_wait']
+        if (len(titles) != 1 or titles[0].attrib.get('package') != 'android'
+                or titles[0].attrib.get('text') not in ("Quickstep isn't responding", 'Quickstep ne reaguje')
+                or current_focus_name(windows) != 'Application Not Responding: com.android.launcher3'
+                or len(close) != 1 or len(wait) != 1
+                or close[0].attrib.get('text') not in ('Close app', 'Zatvori aplikaciju')
+                or any(n.attrib.get('package') != 'android' or n.attrib.get('clickable') != 'true'
+                       or n.attrib.get('enabled') != 'true' for n in close + wait)):
+            native_surface_failure('App or unrecognized ANR before Entry recording')
+        marker = ARTIFACT_DIR / 'SYSTEM_QUICKSTEP_RECOVERY_USED.json'
+        if marker.exists():
+            native_surface_failure('Repeated Quickstep ANR; no second recovery')
+        x1, y1, x2, y2 = parse_bounds(close[0].attrib.get('bounds'))
+        if x1 >= x2 or y1 >= y2:
+            native_surface_failure('Invalid Quickstep close bounds')
+        receipt = {'diagnostic': diagnostic, 'phase': 'ENTRY_PRE_CAPTURE',
+                   'appProcessAbsent': True, 'verified': False}
+        with marker.open('x', encoding='utf-8') as handle:
+            json.dump(receipt, handle)
+        system_dialog_adb('shell', 'input', 'tap', str((x1 + x2) // 2), str((y1 + y2) // 2), deadline=deadline)
+        time.sleep(.5)
+        root, windows = entry_launcher_observation(deadline)
+        entry_assert_launcher_clear(root, windows)
+        receipt['verified'] = True
+        marker.write_text(json.dumps(receipt), encoding='utf-8')
+        recovered = True
+    else:
+        entry_assert_launcher_clear(root, windows)
+    print('CHECKPOINT ENTRY_PRE_CAPTURE clean_launcher app_absent no_warmup_launch', flush=True)
+    return {'launcherClear': True, 'appProcessAbsent': True, 'quickstepRecoveredBeforeCapture': recovered}
+
+
+def launch_entry_prepared():
+    # Recheck after recorder readiness; a newly appearing dialog must fail, not be
+    # dismissed inside the retained movie. The app has still never been launched.
+    root, windows = entry_launcher_observation(time.monotonic() + 15)
+    entry_assert_launcher_clear(root, windows)
+    started = adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
+    print(f'APP_START returncode={started.returncode} stdout={started.stdout[-500:]} stderr={started.stderr[-500:]}', flush=True)
+    if started.returncode != 0:
+        native_surface_failure('First recorded Entry launch failed')
+    wait_visible(timeout=90, desc='Prijavi se')
+    assert_signed_out_surface()
+
+
+def reject_entry_recording_anr(root, parent):
+    if not has_native_anr(root):
+        return False
+    windows = system_dialog_adb('shell', 'dumpsys', 'window', 'displays').stdout
+    retain_anr_diagnostic(root, windows)
+    native_surface_failure('ANR obscured Entry recording; original video retained without recovery')
+
+
 def record_entry_motion(name, action):
     # Original screenrecord/screencap tools, with readiness before the gesture.
     # PNG/XML pairs cannot sample a 760ms transition reliably; the original MP4
@@ -77,7 +177,12 @@ def record_entry_motion(name, action):
             time.sleep(.1)
         if recorder_pid is None:
             raise RuntimeError('Entry recorder readiness was not observed')
-        action()
+        original_recovery = globals()['dismiss_known_system_anr']
+        globals()['dismiss_known_system_anr'] = reject_entry_recording_anr
+        try:
+            action()
+        finally:
+            globals()['dismiss_known_system_anr'] = original_recovery
         if recorder.poll() is not None:
             raise RuntimeError('Entry recorder ended before the final UI surface was observed')
     finally:
@@ -112,7 +217,8 @@ def entry_intent_to_auth(label, prefix, record=True):
 
 
 def prove_spoj_entry(signature=False):
-    record_entry_motion('ENTRY_intro', launch_clean)
+    pre_capture = prepare_entry_first_launch() if signature else None
+    record_entry_motion('ENTRY_intro', launch_entry_prepared if signature else launch_clean)
     assert_entry_welcome()
     shot('ENTRY_welcome')
     if signature:
@@ -179,6 +285,7 @@ def prove_spoj_entry(signature=False):
             'productionAuthProven': False, 'nativeVisualParityAccepted': False,
             'framePerfectDurationMeasured': False,
             'osReducedMotionObserved': True, 'originalTransitionSettingRestored': previous,
+            'preCapture': pre_capture, 'recordedAnrRecoveryAllowed': False,
         }
         (ARTIFACT_DIR / 'entry-signature-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
         print('PASS SPOJ_ENTRY_SIGNATURE_PHYSICAL 13_png_xml 5_original_videos actual_auth_surfaces no_credentials', flush=True)
