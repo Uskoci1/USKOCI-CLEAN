@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView, TextInput, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
 import { T } from '../../ui/Text';
@@ -18,9 +18,15 @@ import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementChat } from '../../ui/AgreementChat';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 import { needScheduleText } from '../../data/needDetailPresentation';
+import { agreementProblemService, type AgreementProblemSnapshot } from '../../data/agreementClientService';
+import { calendarInstant } from '../../lib/calendarTime';
 
 const bodyStyle = { ...v2.text.body, color: v2.color.ink };
 const metaStyle = { ...v2.text.label, color: v2.color.muted };
+type ProblemWorkspace = DogovorProjekcija & {
+  problemReport: AgreementProblemSnapshot['report'];
+  problemReportState: AgreementProblemSnapshot['state'] | 'UNAVAILABLE';
+};
 async function bounded<T>(operation: () => Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -54,17 +60,38 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const izvor = useIzvor(), intent = useUloga();
   const [tab, setTab] = useState<AgreementTab>('pregled');
   const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
+  const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
+  const problemAttemptRef = useRef<string | null>(null);
+  const formFocus = useRef<object | null>(null);
+  useFocusEffect(useCallback(() => {
+    const focus = {}; formFocus.current = focus;
+    return () => { if (formFocus.current === focus) formFocus.current = null; };
+  }, [accountId, accountRevision, intent]));
+  const renderedFormFocus = formFocus.current;
   const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
     && ulogaSada() === intent, [accountId, accountRevision, intent]);
-  const read = useCallback(async (): Promise<Ishod<DogovorProjekcija | null>> => {
+  const read = useCallback(async (): Promise<Ishod<ProblemWorkspace | null>> => {
     if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
     try {
       const data = await bounded(() => izvor.dogovor(id));
       if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
       if (data && data.id !== id) return { ok: false, kod: 'INVALID_RESPONSE', poruka: 'Dogovor nije dostupan.' };
-      return { ok: true, podatak: data };
+      if (!data) return { ok: true, podatak: null };
+      if (data.problemOtvoren) {
+        const result = await agreementProblemService.read(id, data.verzija, data.ucesnici.map(party => party.id), { accountId, accountRevision })
+          .catch(() => null);
+        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
+        if (result?.ok && result.podatak.state === 'AVAILABLE') {
+          return { ok: true, podatak: { ...data, problemReport: result.podatak.report, problemReportState: 'AVAILABLE' } };
+        }
+        // Optional report details cannot erase an independently read Agreement.
+        // The base open flag remains authoritative; absent/conflicting detail is unknown.
+        return { ok: true, podatak: { ...data, problemReport: null,
+          problemReportState: result?.ok && result.podatak.state === 'LEGACY_UNAVAILABLE' ? 'LEGACY_UNAVAILABLE' : 'UNAVAILABLE' } };
+      }
+      return { ok: true, podatak: { ...data, problemReport: null, problemReportState: 'ABSENT' } };
     } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proverite vezu i pokušajte ponovo.' }; }
-  }, [izvor, id, ownsAccount]);
+  }, [izvor, id, accountId, accountRevision, ownsAccount]);
   const workspace = useOwnedEditor(read);
   const activeRef = useRef(!AppState.currentState || AppState.currentState === 'active');
   const freshRef = useRef(activeRef.current), resumeGeneration = useRef(0);
@@ -107,7 +134,6 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
     .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
   useEffect(() => { if (deniedAttempt) void osvezi(); }, [deniedAttempt, osvezi]);
-  useEffect(() => { setProblemOpen(false); setProblemText(''); }, [dogovor]);
   if (!foreground || resumeRequired) return <AgreementStatus loading />;
   if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 
@@ -117,6 +143,28 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const active = dogovor.stanje === 'CONFIRMED' || dogovor.stanje === 'AWAITING_REQUESTER';
   const canComplete = active && !!me && (requester || dogovor.stanje === 'CONFIRMED');
   const other = dogovor.ucesnici.find(party => !party.viSte);
+  const formCurrent = () => enabled && !!me && ownsAccount() && activeRef.current && freshRef.current &&
+    renderedFormFocus !== null && formFocus.current === renderedFormFocus;
+  const report = dogovor.problemReport;
+  const reportProblem = async () => {
+    if (!formCurrent() || !active || dogovor.problemOtvoren || !(problemAttempt ?? problemText.trim())) return;
+    await workspace.save(async () => {
+      // Keep the original description after an unknown outcome. Only explicit
+      // readback may reopen writes; a retry cannot silently replace this intent.
+      const narrative = problemAttempt ?? problemText.trim();
+      problemAttemptRef.current = narrative;
+      setProblemAttempt(narrative);
+      const receipt = await agreementProblemService.submit(id, narrative, { accountId, accountRevision });
+      if (!receipt.ok) return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Prijava nije potvrđena. Proverite status Dogovora pre ponovnog pokušaja.' };
+      const next = await read();
+      if (!next.ok) return next;
+      const stored = next.podatak?.problemReport;
+      if (!stored || stored.openedBy !== receipt.podatak.problemOpenedBy || calendarInstant(stored.openedAt) !== calendarInstant(receipt.podatak.problemOpenedAt)) {
+        return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Sačuvana prijava nije potvrđena. Osvežite status Dogovora.' };
+      }
+      return next;
+    });
+  };
   const mutate = async (command: () => Promise<Ishod<unknown>>) => {
     if (!enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
     await workspace.save(async () => {
@@ -157,20 +205,40 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
           {dogovor.hronologija.length ? <AgreementSection label="Tok Dogovora" summary="Sačuvani događaji">
             {dogovor.hronologija.map((event, index) => <View key={index} style={{ gap: 3 }}><T style={bodyStyle}>{event.tekst}</T><T style={metaStyle}>{event.vremeTekst}</T></View>)}
           </AgreementSection> : null}
+          {report ? <View style={{ gap: 10, padding: 18, borderRadius: 18, backgroundColor: v2.color.context }}>
+            <T accessibilityRole="header" style={{ ...bodyStyle, fontWeight: '700' }}>Problem je prijavljen</T>
+            <T style={metaStyle}>{report.openedBy === accountId ? 'Prijavili ste vi.' : 'Prijavila je druga strana.'}</T>
+            <T style={metaStyle}>{new Date(report.openedAt).toLocaleString('sr-Latn-RS')}</T>
+            <T style={bodyStyle}>{report.narrative}</T>
+            <T style={metaStyle}>Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
+            {problemAttempt && problemAttempt !== report.narrative ? <T style={metaStyle}>Sačuvan je prvi opis prijave. Vaš novi opis nije dodat. Za dopunu koristite Poruke.</T> : null}
+            {active ? <T style={metaStyle}>Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
+          </View> : dogovor.problemOtvoren ? <View style={{ gap: 10, padding: 18, borderRadius: 18, backgroundColor: v2.color.context }}>
+            <T accessibilityRole="header" style={{ ...bodyStyle, fontWeight: '700' }}>Problem je prijavljen</T>
+            <T style={metaStyle}>{dogovor.problemReportState === 'LEGACY_UNAVAILABLE'
+              ? 'Detalji starije prijave nisu dostupni u ovom prikazu. Postojeća prijava ostaje sačuvana.'
+              : 'Detalji prijave trenutno nisu učitani. Osvežite status Dogovora da pokušate ponovo.'}</T>
+            {active ? <T style={metaStyle}>Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
+            {dogovor.problemReportState === 'UNAVAILABLE' ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} /> : null}
+          </View> : active && me ? <View style={{ gap: 10 }}>
+            {!problemOpen ? <V2Action label="Prijavi problem" kind="quiet" disabled={!enabled}
+              onPress={() => { if (formCurrent()) setProblemOpen(true); }} /> : <>
+              <T accessibilityRole="header" style={{ ...bodyStyle, fontWeight: '700' }}>Problem u Dogovoru</T>
+              <T style={metaStyle}>Opis će videti druga strana u Porukama. Ovo nije poverljiva prijava podršci.</T>
+              <TextInput accessibilityLabel="Opišite problem" value={problemText}
+                onChangeText={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }} multiline maxLength={4000}
+                editable={enabled && !problemAttempt} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={v2.color.muted}
+                style={{ ...bodyStyle, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 11, backgroundColor: v2.color.surface }} />
+              <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Ponovi istu prijavu problema' : 'Pošalji prijavu problema'}
+                disabled={!enabled || !(problemAttempt ?? problemText.trim())} onPress={() => { void reportProblem(); }} />
+              {!problemAttempt ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled}
+                onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T style={metaStyle}>Opis je sačuvan na ovom ekranu. Pre ponavljanja proverite serverski status.</T>}
+            </>}
+          </View> : null}
           {dogovor.stanje === 'AWAITING_REQUESTER' ? <View style={{ gap: 12, padding: 18, borderRadius: 18, backgroundColor: v2.color.context }}>
             <T style={{ ...bodyStyle, fontWeight: '700' }}>{worker ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio'}</T>
-            <T style={metaStyle}>{dogovor.problemOtvoren ? 'Prijavljen je problem — Dogovor se neće zatvoriti sam dok se to ne reši.'
+            <T style={metaStyle}>{dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.'
               : `${deadline}. Bez odgovora se Dogovor zatvara sam.`}</T>
-            {requester && !dogovor.problemOtvoren ? <V2Action label="Prijavi problem" disabled={!enabled} kind="quiet" onPress={() => { if (enabled) setProblemOpen(true); }} /> : null}
-            {problemOpen && requester ? <View style={{ gap: 10 }}>
-              <TextInput accessibilityLabel="Opišite problem" value={problemText} onChangeText={setProblemText} multiline maxLength={2000}
-                editable={enabled} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={v2.color.muted}
-                style={{ ...bodyStyle, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 11, backgroundColor: v2.color.surface }} />
-              <V2Action label="Pošalji prijavu problema" disabled={!enabled || !problemText.trim()} onPress={() => {
-                if (problemText.trim()) void mutate(() => izvor.prijaviProblem(id, problemText.trim()));
-              }} />
-              <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled} onPress={() => setProblemOpen(false)} />
-            </View> : null}
           </View> : null}
           {dogovor.stanje === 'CONFIRMED' && me ? <T style={metaStyle}>{worker
             ? 'Kada završite, označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
