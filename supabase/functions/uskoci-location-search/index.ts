@@ -1,7 +1,8 @@
-/** Authenticated, read-only LocationIQ forward adapter. Deploy with verify_jwt=true.
+/** Authenticated, read-only LocationIQ forward/reverse adapter. Deploy with verify_jwt=true.
  * The owner-approved EU endpoint is fixed; only LOCATIONIQ_ACCESS_TOKEN is secret.
  * These are proposals, never pin attestation. Manual map selection stays separate.
  * API: https://docs.locationiq.com/reference/search (format=json, query key).
+ * Reverse: https://docs.locationiq.com/reference/reverse-api (lat/lon, query key).
  * place_id is an opaque, nonpersistent provider hint, not a durable place identity.
  */
 export {};
@@ -20,6 +21,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 const deadlineMs = 7_000;
 const responseBytes = 131_072;
 const providerEndpoint = 'https://eu1.locationiq.com/v1/search';
+const reverseEndpoint = 'https://eu1.locationiq.com/v1/reverse';
 const providerHint = 'locationiq';
 type SearchWindow = { start: number; last: number; count: number; busy: boolean };
 const searchWindows = new Map<string, SearchWindow>();
@@ -172,7 +174,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       let body: RecordValue | null;
       try { body = record(await boundedJson(req, 8192, controller.signal)); } catch { throw new Rejected(400, 'INVALID_QUERY'); }
       const text = locationText(body?.text, 1000), country = body?.countryCode;
-      if (!body || !only(body, ['text', 'countryCode']) || !text || typeof country !== 'string' || !/^[A-Z]{2}$/.test(country)) throw new Rejected(400, 'INVALID_QUERY');
+      const reverse = body?.mode === 'reverse', position = record(body?.position);
+      const validPosition = position && only(position, ['latitude', 'longitude'])
+        && typeof position.latitude === 'number' && Number.isFinite(position.latitude) && Math.abs(position.latitude) <= 90
+        && typeof position.longitude === 'number' && Number.isFinite(position.longitude) && Math.abs(position.longitude) <= 180;
+      if (!body || typeof country !== 'string' || !/^[A-Z]{2}$/.test(country)
+        || (reverse ? !only(body, ['mode', 'position', 'countryCode']) || !validPosition : !only(body, ['text', 'countryCode']) || !text)) throw new Rejected(400, 'INVALID_QUERY');
       const supabaseUrl = Deno.env.get('SUPABASE_URL'), anonKey = Deno.env.get('SUPABASE_ANON_KEY');
       if (!supabaseUrl || !anonKey) throw new Rejected(503, 'SERVER_CONFIG_ERROR');
       const authenticatedHeaders = { apikey: anonKey, Authorization: authorization, Accept: 'application/json' };
@@ -201,8 +208,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!token) throw new Rejected(503, 'PROVIDER_ACTIVATION_BLOCKED');
       if (controller.signal.aborted) throw new Error('CANCELLED');
       releaseSearch = reserveSearch(user.id);
-      const endpoint = new URL(providerEndpoint);
-      endpoint.search = new URLSearchParams({ key: token, format: 'json', addressdetails: '1', countrycodes: country.toLowerCase(), limit: '10', q: text }).toString();
+      const endpoint = new URL(reverse ? reverseEndpoint : providerEndpoint);
+      endpoint.search = new URLSearchParams(reverse
+        ? { key: token, format: 'json', addressdetails: '1', lat: String(position!.latitude), lon: String(position!.longitude), zoom: '18' }
+        : { key: token, format: 'json', addressdetails: '1', countrycodes: country.toLowerCase(), limit: '10', q: text! }).toString();
       // The URL now contains the provider key and submitted address. It must never
       // enter logs, errors, receipts or client output. Caller JWT/anon key stay out.
       const upstream = await fetchBound(endpoint, { method: 'GET', headers: { Accept: 'application/json' } });
@@ -214,7 +223,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
         throw new Rejected(502, 'UNAVAILABLE');
       }
       if (!upstream.ok) throw new Rejected(502, 'UNAVAILABLE');
-      const candidates = normalizeCandidates(await boundedJson(upstream, responseBytes, controller.signal), country, providerHint);
+      const raw = await boundedJson(upstream, responseBytes, controller.signal);
+      // Reverse returns one object. Its country is still checked against the
+      // user's admitted market; a nearest-place coordinate never attests a pin.
+      const candidates = normalizeCandidates(reverse ? [raw] : raw, country, providerHint);
       if (candidates === null) throw new Rejected(502, 'UNAVAILABLE');
       return response(200, { candidates });
     };
