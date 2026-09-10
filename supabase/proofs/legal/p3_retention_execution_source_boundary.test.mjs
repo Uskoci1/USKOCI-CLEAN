@@ -78,10 +78,9 @@ function cronHarness(options={}){
     sql:query=>{
       reads++;
       if(query.includes("current_setting('cron.log_run')"))return options.logRun??'on';
-      assert.match(query,/^begin;set local lock_timeout='5s';update cron\.job j set active=(true|false)/);
-      assert.ok(query.includes("where jobid='7'::bigint and to_jsonb(j)="));
-      assert.ok(!/unschedule|cron\.schedule|pg_terminate|pg_cancel/i.test(query));
-      const active=query.match(/set active=(true|false)/)[1]==='true';writes.push(active);definition.active=active;
+      assert.match(query,/^begin;set local lock_timeout='5s';select cron\.alter_job\(job_id:='7'::bigint,\s+active:=(true|false)\);commit;$/);
+      assert.ok(!/update cron\.job|unschedule|cron\.schedule|pg_terminate|pg_cancel|grant /i.test(query));
+      const active=query.match(/active:=(true|false)/)[1]==='true';writes.push(active);definition.active=active;
       if(options.pauseAckFails&&!active)throw new Error('PAUSE_ACK_UNKNOWN');
       return '';
     }};

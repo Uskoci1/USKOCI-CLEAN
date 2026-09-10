@@ -111,8 +111,11 @@ const cronDefinition=(timeout=5000)=>{
   assert.equal(found.length,1,'LOCAL_CRON_EXACT_JOB_REQUIRED');return found[0].definition;
 };
 function setCronActive(expected,active){
-  sql(`begin;set local lock_timeout='5s';update cron.job j set active=${active?'true':'false'}
-    where jobid=${q(expected.jobid)}::bigint and to_jsonb(j)=${q(JSON.stringify(expected))}::jsonb;commit;`);
+  assert.deepEqual(cronDefinition(),expected,'LOCAL_CRON_DEFINITION_CHANGED');
+  // The supported extension API checks job ownership; postgres need not have
+  // direct cron.job UPDATE. Omitted schedule/command/database/username stay intact.
+  sql(`begin;set local lock_timeout='5s';select cron.alter_job(job_id:=${q(expected.jobid)}::bigint,
+    active:=${active?'true':'false'});commit;`);
   assert.deepEqual(cronDefinition(),{...expected,active},'LOCAL_CRON_DEFINITION_CHANGED');
 }
 async function pauseLocalCron(){
