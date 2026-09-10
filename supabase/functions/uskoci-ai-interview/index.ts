@@ -73,8 +73,98 @@ function serverTimeContext(now: Date): ServerTimeContext {
 function response(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
+}
+
+const object = (value: unknown): value is Record<string, any> => !!value && typeof value === 'object' && !Array.isArray(value);
+const exact = (value: unknown, keys: string[]) => object(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
+const isUuid = (value: unknown): value is string => typeof value === 'string' && uuidPattern.test(value);
+const sameUuid = (value: unknown, expected: string) => isUuid(value) && value.toLowerCase() === expected.toLowerCase();
+
+/** Bounds both fetch and body consumption. Abort does not prove remote rollback. */
+async function boundedJson(input: string | Request, init: RequestInit = {}, limit = 524288, timeout = 8000, parent?: AbortSignal, omitErrorBody = false) {
+  const controller = new AbortController();
+  let expired = false;
+  let timer: ReturnType<typeof setTimeout>;
+  let rejectStopped: (reason: Error) => void = () => {};
+  const stopped = new Promise<never>((_resolve, reject) => { rejectStopped = reject; });
+  const stop = () => { expired = true; controller.abort(); rejectStopped(new Error('AI_TRANSPORT_STOPPED')); };
+  if (parent?.aborted) stop();
+  else parent?.addEventListener('abort', stop, { once: true });
+  timer = setTimeout(stop, timeout);
+  const work = async () => {
+    if (expired) throw new Error('AI_TRANSPORT_STOPPED');
+    const result = typeof input === 'string'
+      ? await fetch(input, { ...init, signal: controller.signal, redirect: 'error' }) : input;
+    if (expired || result instanceof Response && result.redirected) throw new Error('AI_TRANSPORT_STOPPED');
+    if (omitErrorBody && result instanceof Response && !result.ok) {
+      void result.body?.cancel().catch(() => {});
+      return { ok: false, status: result.status, data: null };
+    }
+    const size = result.headers.get('content-length');
+    if (size !== null && (!/^\d+$/.test(size) || Number(size) > limit)) throw new Error('AI_PAYLOAD_TOO_LARGE');
+    const reader = result.body?.getReader();
+    if (!reader) throw new Error('AI_PAYLOAD_EMPTY');
+    const chunks: Uint8Array[] = []; let count = 0;
+    try {
+      while (true) {
+        const part = await Promise.race([reader.read(), stopped]);
+        if (expired) throw new Error('AI_TRANSPORT_STOPPED');
+        if (part.done) break;
+        count += part.value.byteLength;
+        if (count > limit) throw new Error('AI_PAYLOAD_TOO_LARGE');
+        chunks.push(part.value);
+      }
+    } finally { if (expired || count > limit) void reader.cancel().catch(() => {}); }
+    const bytes = new Uint8Array(count); let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    const data = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    return { ok: result instanceof Response ? result.ok : true, status: result instanceof Response ? result.status : 200, data };
+  };
+  try { return await Promise.race([work(), stopped]); }
+  finally { clearTimeout(timer); parent?.removeEventListener('abort', stop); }
+}
+
+const userWindows = new Map<string, { times: number[]; busy: boolean }>();
+function admitUser(accountId: string) {
+  const now = Date.now();
+  for (const [id, value] of userWindows) if (!value.busy && !value.times.some(time => time > now - 60000)) userWindows.delete(id);
+  let value = userWindows.get(accountId);
+  if (!value) {
+    if (userWindows.size >= 2000) return null;
+    value = { times: [], busy: false }; userWindows.set(accountId, value);
+  }
+  value.times = value.times.filter(time => time > now - 60000);
+  if (value.busy || value.times.length >= 6) return null;
+  value.times.push(now); value.busy = true;
+  return () => { value!.busy = false; };
+}
+
+function validTurn(value: unknown, conversationId: string, requestId: string) {
+  if (!exact(value, ['conversationId', 'clientRequestId', 'state', 'turnId', 'retryAllowed', 'receipt']) ||
+    !sameUuid(value.conversationId, conversationId) || !sameUuid(value.clientRequestId, requestId) ||
+    !['ABSENT', 'PROCESSING', 'SUCCEEDED', 'FAILED'].includes(value.state) || typeof value.retryAllowed !== 'boolean') return false;
+  if (value.state === 'ABSENT') return value.turnId === null && value.receipt === null;
+  if (!isUuid(value.turnId)) return false;
+  if (value.state !== 'SUCCEEDED') return value.receipt === null && (value.state !== 'PROCESSING' || value.retryAllowed === false);
+  const r = value.receipt;
+  return !value.retryAllowed && exact(r, ['userMessageId', 'assistantMessageId', 'proposedCount', 'safety', 'schemaVersion', 'authoritative']) &&
+    isUuid(r.userMessageId) && isUuid(r.assistantMessageId) && r.userMessageId !== r.assistantMessageId &&
+    Number.isSafeInteger(r.proposedCount) && r.proposedCount >= 0 && r.proposedCount <= 12 &&
+    ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(r.safety) && r.schemaVersion === NEED_FACT_SCHEMA_V2 && r.authoritative === true &&
+    (r.safety !== 'BLOCK' || r.proposedCount === 0);
+}
+const turnResponse = (turn: any) => response(turn.state === 'SUCCEEDED' ? 200 : turn.state === 'PROCESSING' ? 202 : 409, turn);
+
+function validClaimContext(context: unknown) {
+  if (!exact(context, ['schemaVersion', 'history', 'activeFacts']) || context.schemaVersion !== NEED_FACT_SCHEMA_V2 ||
+    !Array.isArray(context.history) || context.history.length > 40 || !Array.isArray(context.activeFacts) || context.activeFacts.length > 64) return false;
+  return context.history.every((row: unknown) => exact(row, ['role', 'body', 'sequence_no']) &&
+    ['USER', 'ASSISTANT', 'SYSTEM'].includes(row.role) && typeof row.body === 'string' && row.body.length <= 6000 &&
+    Number.isSafeInteger(row.sequence_no) && row.sequence_no > 0) &&
+    context.activeFacts.every((row: unknown) => exact(row, ['fact_key', 'fact_value', 'value_type', 'display_value', 'fact_schema_version', 'status', 'source', 'created_at']) &&
+      isAiProposableNeedFactV2Key(row.fact_key) && row.fact_schema_version === NEED_FACT_SCHEMA_V2);
 }
 
 function outputText(payload: any): string | null {
@@ -150,7 +240,7 @@ function v2ProviderSchema() {
       assistantMessage: { type: 'STRING' },
       facts: {
         type: 'ARRAY',
-        maxItems: 20,
+        maxItems: 12,
         items: {
           type: 'OBJECT',
           additionalProperties: false,
@@ -339,24 +429,28 @@ function valueMatchesContract(key: string, value: unknown): boolean {
 
 function parseV2Output(parsed: any): ParsedTurn {
   rejectManualOnlyFacts(parsed);
+  if (!exact(parsed, ['safety', 'assistantMessage', 'facts']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
+    !Array.isArray(parsed.facts) || parsed.facts.length > 12) throw new Error('AI_V2_OUTPUT_INVALID');
   const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
-    ? parsed.assistantMessage.trim().slice(0, 1200)
+    ? parsed.assistantMessage.trim()
     : '';
-  if (!assistantMessage) throw new Error('ASSISTANT_MESSAGE_MISSING');
+  if (!assistantMessage || assistantMessage.length > 1200 || safety === 'BLOCK' && parsed.facts.length) throw new Error('ASSISTANT_MESSAGE_INVALID');
   const proposals: Array<Record<string, unknown>> = [];
   if (safety !== 'BLOCK') {
     const seen = new Set<string>();
     for (const fact of Array.isArray(parsed?.facts) ? parsed.facts : []) {
       const key = typeof fact?.key === 'string' ? fact.key : '';
-      if (!isAiProposableNeedFactV2Key(key) || seen.has(key)) continue;
+      if (!exact(fact, ['key', 'valueJson', 'displayValue', 'evidence', 'confidence']) ||
+        !isAiProposableNeedFactV2Key(key) || seen.has(key) || typeof fact.valueJson !== 'string') throw new Error('AI_V2_FACT_INVALID');
       let value: unknown;
-      try { value = JSON.parse(String(fact?.valueJson ?? '')); } catch { continue; }
-      if (!valueMatchesContract(key, value)) continue;
-      const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim().slice(0, 1000) : '';
-      const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim().slice(0, 500) : '';
-      const confidence = Number(fact?.confidence);
-      if (!displayValue || !evidence || !Number.isFinite(confidence)) continue;
+      try { value = JSON.parse(fact.valueJson); } catch { throw new Error('AI_V2_FACT_INVALID'); }
+      if (!valueMatchesContract(key, value)) throw new Error('AI_V2_FACT_INVALID');
+      const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
+      const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim() : '';
+      const confidence = fact?.confidence;
+      if (!displayValue || displayValue.length > 1000 || !evidence || evidence.length > 500 ||
+        typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) throw new Error('AI_V2_FACT_INVALID');
       seen.add(key);
       proposals.push({
         key,
@@ -378,13 +472,14 @@ async function callGemini(
   activeFacts: any[],
   text: string,
   timeContext: ServerTimeContext,
+  signal?: AbortSignal,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
     parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
   }));
   contents.push({ role: 'user', parts: [{ text }] });
-  const providerResponse = await fetch(
+  const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
       method: 'POST',
@@ -398,13 +493,13 @@ async function callGemini(
           responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2ProviderSchema() : legacyProviderSchema(),
         },
       }),
-    },
+    }, 131072, 12000, signal, true,
   );
   if (!providerResponse.ok) {
     console.error('GEMINI_GENERATE_FAILED', providerResponse.status);
     throw new Error('PROVIDER_HTTP_FAILED');
   }
-  const payload = await providerResponse.json();
+  const payload = providerResponse.data;
   const raw = geminiText(payload);
   if (!raw) {
     const blocked = Boolean(payload?.promptFeedback?.blockReason)
@@ -424,13 +519,14 @@ async function callOpenAI(
   activeFacts: any[],
   text: string,
   timeContext: ServerTimeContext,
+  signal?: AbortSignal,
 ) {
   const transcript = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'assistant' : 'user',
     content: [{ type: row.role === 'ASSISTANT' ? 'output_text' : 'input_text', text: String(row.body ?? '').slice(0, 4000) }],
   }));
   transcript.push({ role: 'user', content: [{ type: 'input_text', text }] });
-  const providerResponse = await fetch('https://api.openai.com/v1/responses', {
+  const providerResponse = await boundedJson('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -447,12 +543,13 @@ async function callOpenAI(
         },
       },
     }),
-  });
+  }, 131072, 12000, signal, true);
   if (!providerResponse.ok) {
     console.error('OPENAI_RESPONSES_FAILED', providerResponse.status);
     throw new Error('PROVIDER_HTTP_FAILED');
   }
-  const payload = await providerResponse.json();
+  const payload = providerResponse.data;
+  if (payload?.status !== undefined && payload.status !== 'completed') throw new Error('PROVIDER_OUTPUT_INCOMPLETE');
   const raw = outputText(payload);
   if (!raw) throw new Error('PROVIDER_OUTPUT_MISSING');
   const parsed = JSON.parse(raw);
@@ -462,129 +559,136 @@ async function callOpenAI(
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return response(405, { code: 'METHOD_NOT_ALLOWED', message: 'Koristite POST.' });
-
   const authorization = req.headers.get('Authorization') ?? '';
-  if (!authorization.startsWith('Bearer ')) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
-
+  if (!/^Bearer [^\s]+$/.test(authorization)) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
   let body: any;
-  try { body = await req.json(); } catch { return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' }); }
-
-  const conversationId = typeof body?.conversationId === 'string' ? body.conversationId.trim() : '';
-  const text = typeof body?.text === 'string' ? body.text.trim() : '';
-  if (!uuidPattern.test(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
-  if (!text || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: text ? 'Poruka može imati najviše 4000 znakova.' : 'Unesite poruku.' });
-
+  try { body = (await boundedJson(req, {}, 18000, 3000, req.signal)).data; }
+  catch { return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' }); }
+  if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId'].includes(key)))
+    return response(400, { code: 'REQUEST_INVALID', message: 'Zahtev nije ispravan.' });
+  const conversationId = typeof body.conversationId === 'string' ? body.conversationId.trim().toLowerCase() : '';
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!isUuid(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
+  if (!text || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova.' });
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    console.error('AI_EDGE_SUPABASE_ENV_MISSING');
-    return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
-  }
-
-  const conversationQuery = await postgrest(
-    supabaseUrl,
-    anonKey,
-    authorization,
-    `ai_conversations?id=eq.${encodeURIComponent(conversationId)}&purpose=eq.NEED_INTAKE&status=eq.OPEN&select=id,account_id,fact_schema_version&limit=1`,
-    { method: 'GET' },
-  );
-  if (!conversationQuery.ok) {
-    console.error('AI_EDGE_CONVERSATION_QUERY_FAILED', conversationQuery.status);
-    return response(502, { code: 'CONVERSATION_READ_FAILED', message: 'Nacrt nije mogao da se proveri.' });
-  }
-  const conversations = await conversationQuery.json();
-  if (!Array.isArray(conversations) || conversations.length !== 1) return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
-
-  const accountId = typeof conversations[0]?.account_id === 'string' ? conversations[0].account_id : '';
-  if (!uuidPattern.test(accountId)) return response(500, { code: 'SERVER_IDENTITY_ERROR', message: 'Serverski identitet nije mogao da se potvrdi.' });
-  const schemaVersion: FactSchemaVersion = conversations[0]?.fact_schema_version === NEED_FACT_SCHEMA_V2
-    ? NEED_FACT_SCHEMA_V2
-    : LEGACY_FACT_SCHEMA_V1;
-
-  const [historyResponse, factsResponse] = await Promise.all([
-    postgrest(
-      supabaseUrl, anonKey, authorization,
-      `ai_messages?conversation_id=eq.${encodeURIComponent(conversationId)}&select=role,body,sequence_no&order=sequence_no.desc&limit=40`,
-      { method: 'GET' },
-    ),
-    postgrest(
-      supabaseUrl, anonKey, authorization,
-      `ai_structured_facts?conversation_id=eq.${encodeURIComponent(conversationId)}&fact_key=in.(${encodeURIComponent(AI_CONTEXT_FACT_KEYS.map((key) => JSON.stringify(key)).join(','))})&superseded_at=is.null&select=fact_key,fact_value,value_type,display_value,fact_schema_version,status,source,created_at&order=created_at.asc`,
-      { method: 'GET' },
-    ),
-  ]);
-  if (!historyResponse.ok || !factsResponse.ok) {
-    console.error('AI_EDGE_CONTEXT_QUERY_FAILED', historyResponse.status, factsResponse.status);
-    return response(502, { code: 'CONVERSATION_CONTEXT_FAILED', message: 'Razgovor trenutno nije mogao da se nastavi.' });
-  }
-  const latestHistory = await historyResponse.json();
-  // Query the newest bounded window, then restore chronological provider order.
-  const history = Array.isArray(latestHistory) ? [...latestHistory].reverse() : [];
-  const activeFacts = await factsResponse.json();
-  const timeContext = serverTimeContext(new Date());
-
-  const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
-  const geminiModel = Deno.env.get('GEMINI_MODEL') ?? '';
-  const openaiKey = Deno.env.get('OPENAI_API_KEY') ?? '';
-  const openaiModel = Deno.env.get('OPENAI_MODEL') ?? '';
-  const selectedProvider = Deno.env.get('AI_PROVIDER');
-  // An absent selector preserves legacy Gemini-first configuration routing.
-  // Explicit selection never falls through to another provider or takes input
-  // from the client. Invalid selection and incomplete pairs fail before a call.
-  const provider = selectedProvider === undefined
-    ? (geminiKey && geminiModel ? 'gemini' : openaiKey && openaiModel ? 'openai' : '')
-    : selectedProvider;
-
-  let aiTurn: ParsedTurn;
+  if (!supabaseUrl || !anonKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
+  let accountId: string;
   try {
-    if (provider === 'gemini' && geminiKey && geminiModel) {
-      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, Array.isArray(activeFacts) ? activeFacts : [], text, timeContext);
-    } else if (provider === 'openai' && openaiKey && openaiModel) {
-      aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, history, Array.isArray(activeFacts) ? activeFacts : [], text, timeContext);
-    } else {
-      return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
+    // Actual Auth user verification; neither body IDs nor editable JWT metadata
+    // are accepted as the account identity used by the service-only completion.
+    const verified = await boundedJson(supabaseUrl + '/auth/v1/user', {
+      headers: { apikey: anonKey, Authorization: authorization },
+    }, 65536, 5000, req.signal, true);
+    if (!verified.ok || !isUuid(verified.data?.id)) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
+    accountId = verified.data.id.toLowerCase();
+  } catch { return response(401, { code: 'AUTH_REQUIRED', message: 'Nalog nije mogao da se proveri.' }); }
+  const release = admitUser(accountId);
+  if (!release) return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
+  let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
+  let serviceRoleKey = '';
+  const rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal) => boundedJson(supabaseUrl + '/rest/v1/rpc/' + name, {
+    method: 'POST', headers: { apikey: serviceRoleKey, Authorization: 'Bearer ' + serviceRoleKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  }, 524288, 8000, signal);
+  const identityArgs = () => ({ p_account_id: accountId, p_conversation_id: conversationId, p_client_request_id: requestId });
+  const retireAttempt = async () => {
+    if (!attemptId) return;
+    try {
+      // Metadata only; never retries the materializer after an uncertain result.
+      await rpc('rpc_ai_fail_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId });
+    } catch { /* Readback or expiry resolves an uncertain metadata acknowledgment. */ }
+  };
+  try {
+    const conversationQuery = await boundedJson(supabaseUrl + '/rest/v1/ai_conversations?id=eq.' + encodeURIComponent(conversationId) +
+      '&purpose=eq.NEED_INTAKE&select=id,account_id,fact_schema_version,status&limit=1', {
+      headers: { apikey: anonKey, Authorization: authorization },
+    }, 8192, 8000, req.signal);
+    if (!conversationQuery.ok) return response(502, { code: 'CONVERSATION_READ_FAILED', message: 'Nacrt nije mogao da se proveri.' });
+    const rows = conversationQuery.data;
+    if (!Array.isArray(rows) || rows.length !== 1 || !sameUuid(rows[0]?.id, conversationId) || !sameUuid(rows[0]?.account_id, accountId))
+      return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
+    const schemaVersion: FactSchemaVersion = rows[0].fact_schema_version === NEED_FACT_SCHEMA_V2 ? NEED_FACT_SCHEMA_V2 : LEGACY_FACT_SCHEMA_V1;
+    if (schemaVersion === NEED_FACT_SCHEMA_V2) {
+      if (!exact(body, ['conversationId', 'text', 'clientRequestId']) || !isUuid(body.clientRequestId))
+        return response(400, { code: 'CLIENT_REQUEST_ID_INVALID', message: 'Ponovo otvorite unos pre slanja.' });
+      requestId = body.clientRequestId.toLowerCase();
+    } else if (!exact(body, ['conversationId', 'text']) || rows[0].status !== 'OPEN') {
+      return response(409, { code: 'CONVERSATION_NOT_OPEN', message: 'Ovaj razgovor više nije otvoren.' });
     }
+    serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    if (!serviceRoleKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
+    let history: any[], activeFacts: any[];
+    if (schemaVersion === NEED_FACT_SCHEMA_V2) {
+      const result = await rpc('rpc_ai_claim_need_turn_v2_service', { ...identityArgs(), p_user_message: text }, req.signal);
+      if (!result.ok) {
+        const name = result.data?.message;
+        if (name === 'AI_RATE_LIMITED') return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
+        if (name === 'AI_REQUEST_ID_REUSED') return response(409, { code: 'AI_REQUEST_ID_REUSED', message: 'Ovaj pokušaj pripada drugoj poruci. Proverite razgovor.' });
+        return response(502, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
+      }
+      const value = result.data;
+      if (!exact(value, ['turn', 'claim']) || !validTurn(value.turn, conversationId, requestId)) throw new Error('AI_CLAIM_INVALID');
+      if (value.claim === null) return turnResponse(value.turn);
+      const claim = value.claim;
+      if (value.turn.state !== 'PROCESSING' || !exact(claim, ['attemptId', 'leaseExpiresAt', 'context']) || !isUuid(claim.attemptId) ||
+        typeof claim.leaseExpiresAt !== 'string' || !Number.isFinite(Date.parse(claim.leaseExpiresAt)) || Date.parse(claim.leaseExpiresAt) <= Date.now())
+        throw new Error('AI_CLAIM_INVALID');
+      attemptId = claim.attemptId; claimedTurnId = value.turn.turnId;
+      if (!validClaimContext(claim.context)) throw new Error('AI_CONTEXT_INVALID');
+      history = claim.context.history; activeFacts = claim.context.activeFacts;
+    } else {
+      const headers = { apikey: anonKey, Authorization: authorization };
+      const [messages, facts] = await Promise.all([
+        boundedJson(supabaseUrl + '/rest/v1/ai_messages?conversation_id=eq.' + encodeURIComponent(conversationId) +
+          '&select=role,body,sequence_no&order=sequence_no.desc&limit=40', { headers }, 262144, 8000, req.signal),
+        boundedJson(supabaseUrl + '/rest/v1/ai_structured_facts?conversation_id=eq.' + encodeURIComponent(conversationId) +
+          '&fact_key=in.(' + encodeURIComponent(AI_CONTEXT_FACT_KEYS.map(key => JSON.stringify(key)).join(',')) +
+          ')&superseded_at=is.null&select=fact_key,fact_value,value_type,display_value,fact_schema_version,status,source,created_at&order=created_at.asc', { headers }, 262144, 8000, req.signal),
+      ]);
+      if (!messages.ok || !facts.ok || !Array.isArray(messages.data) || !Array.isArray(facts.data)) throw new Error('AI_CONTEXT_INVALID');
+      history = [...messages.data].reverse(); activeFacts = facts.data;
+    }
+    const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '', geminiModel = Deno.env.get('GEMINI_MODEL') ?? '';
+    const openaiKey = Deno.env.get('OPENAI_API_KEY') ?? '', openaiModel = Deno.env.get('OPENAI_MODEL') ?? '';
+    const selectedProvider = Deno.env.get('AI_PROVIDER');
+    const provider = selectedProvider === undefined
+      ? (geminiKey && geminiModel ? 'gemini' : openaiKey && openaiModel ? 'openai' : '') : selectedProvider;
+    const timeContext = serverTimeContext(new Date());
+    let aiTurn: ParsedTurn;
+    try {
+      if (provider === 'gemini' && geminiKey && geminiModel)
+        aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, req.signal);
+      else if (provider === 'openai' && openaiKey && openaiModel)
+        aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, history, activeFacts, text, timeContext, req.signal);
+      else {
+        await retireAttempt();
+        return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
+      }
+    } catch {
+      console.error('AI_PROVIDER_FAILED');
+      await retireAttempt();
+      return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
+    }
+    if (req.signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
+    if (schemaVersion === NEED_FACT_SCHEMA_V2) {
+      const result = await rpc('rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
+        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals }, req.signal);
+      if (!result.ok || !validTurn(result.data, conversationId, requestId) || result.data.turnId !== claimedTurnId)
+        throw new Error('AI_TURN_RECEIPT_INVALID');
+      if (result.data.state === 'SUCCEEDED' && (result.data.receipt.proposedCount !== aiTurn.proposals.length || result.data.receipt.safety !== aiTurn.safety))
+        throw new Error('AI_TURN_RECEIPT_INVALID');
+      return turnResponse(result.data);
+    }
+    // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.
+    const result = await rpc('rpc_ai_apply_legacy_need_turn_service', { p_account_id: accountId, p_conversation_id: conversationId,
+      p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals }, req.signal);
+    if (!result.ok) throw new Error('AI_LEGACY_PERSIST_FAILED');
+    const proposedCount = Number(result.data?.proposedCount ?? result.data?.proposed_count ?? aiTurn.proposals.length);
+    return response(200, { predlozeno: Number.isFinite(proposedCount) ? Math.max(0, Math.trunc(proposedCount)) : aiTurn.proposals.length,
+      assistantMessage: aiTurn.assistantMessage, safety: aiTurn.safety, blocked: aiTurn.safety === 'BLOCK', schemaVersion, provider });
   } catch {
-    // Native fetch/JSON errors can contain provider output or request details.
-    // HTTP adapters above log only a fixed category and numeric response status.
-    console.error('AI_PROVIDER_FAILED');
-    return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela.' });
-  }
-
-  const rpc = schemaVersion === NEED_FACT_SCHEMA_V2
-    ? 'rpc/rpc_ai_apply_interview_turn_v2_service'
-    : 'rpc/rpc_ai_apply_interview_turn_service';
-  const persist = await postgrest(
-    supabaseUrl,
-    serviceRoleKey,
-    `Bearer ${serviceRoleKey}`,
-    rpc,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        p_account_id: accountId,
-        p_conversation_id: conversationId,
-        p_user_message: text,
-        p_assistant_message: aiTurn.assistantMessage,
-        p_safety: aiTurn.safety,
-        p_proposals: aiTurn.proposals,
-      }),
-    },
-  );
-  if (!persist.ok) {
-    console.error('AI_TURN_PERSIST_FAILED', persist.status, schemaVersion);
-    return response(502, { code: 'AI_TURN_PERSIST_FAILED', message: 'AI odgovor nije mogao bezbedno da se sačuva.' });
-  }
-
-  const persisted = await persist.json();
-  const proposedCount = Number(persisted?.proposedCount ?? persisted?.proposed_count ?? aiTurn.proposals.length);
-  return response(200, {
-    predlozeno: Number.isFinite(proposedCount) ? Math.max(0, Math.trunc(proposedCount)) : aiTurn.proposals.length,
-    assistantMessage: aiTurn.assistantMessage,
-    safety: aiTurn.safety,
-    blocked: aiTurn.safety === 'BLOCK',
-    schemaVersion,
-    provider,
-  });
+    await retireAttempt();
+    return response(502, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Potvrda nije stigla. Proverite ishod poruke pre nastavka.' });
+  } finally { release(); }
 });

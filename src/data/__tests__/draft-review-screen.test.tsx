@@ -21,7 +21,7 @@ jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: (
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
-    return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
+    return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput', 'KeyboardAvoidingView'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
@@ -29,6 +29,8 @@ jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', Check: 'Icon', Ch
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
+jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
+jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import Review from '../../app/(app)/pregled-nacrta';
 
 function deferred<T>() {
@@ -47,6 +49,7 @@ let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<Review />); }); };
 const update = async () => { await act(async () => tree.update(<Review />)); };
 const button = (label: string) => tree.root.findByProps({ label });
+const reveal = async (label = 'Naslov') => { await act(async () => tree.root.findByProps({ accessibilityLabel: `Pregledajte: ${label}` }).props.onPress()); };
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType)
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(() => {
@@ -63,6 +66,22 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('owned parent draft review screen', () => {
+  it.each([null, 'need-a'])('requires human confirmation of optional proposals before saving a %s review', async bound => {
+    const data = conversation('Confirmed title', bound);
+    const optional: AiNeedV2Fact = { id: 'optional-a', key: 'need.required_tools', value: ['kolica'], displayValue: 'kolica',
+      valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, source: 'AI_INFERENCE', evidence: 'fixture', status: 'NEEDS_CONFIRMATION' };
+    data.facts.push(optional); data.review.facts = data.facts;
+    mockLoad.mockResolvedValue(data); if (bound) mockNeed.mockResolvedValue({ id: bound, stanje: 'NACRT', revizija: 4 });
+    await render(); const save = button(bound ? 'Sačuvajte izmene' : 'Sačuvajte nacrt');
+    expect(save.props.disabled).toBe(true); await act(async () => save.props.onPress());
+    expect(mockSave).not.toHaveBeenCalled(); expect(mockConfirmEdit).not.toHaveBeenCalled();
+    expect(text()).toContain('Pregledajte i preostale predloge');
+  });
+  it.each(['ABANDONED', 'COMPLETED'] as const)('keeps an unbound %s conversation read-only even with a stale ready flag', async status => {
+    mockLoad.mockResolvedValue({ ...conversation(), status }); await render();
+    expect(tree.root.findAllByProps({ label: 'Sačuvajte nacrt' })).toHaveLength(0);
+    expect(text()).toContain('Ovaj razgovor je zatvoren'); expect(mockSave).not.toHaveBeenCalled();
+  });
   it('edits an actual OPEN conversation bound to a saved DRAFT through the existing confirmEdit owner', async () => {
     mockLoad.mockResolvedValue(conversation('Ispravka nacrta', 'need-a'));
     mockNeed.mockResolvedValue({ id: 'need-a', stanje: 'NACRT', revizija: 4 });
@@ -167,7 +186,7 @@ describe('owned parent draft review screen', () => {
     const pending = deferred<unknown>();
     mockLoad.mockResolvedValueOnce(conversation('Predloženi naslov', null, 'NEEDS_CONFIRMATION')).mockResolvedValueOnce(conversation('Potvrđeni naslov'));
     mockConfirm.mockReturnValueOnce(pending.promise);
-    await render(); const confirm = button('Potvrdite').props.onPress;
+    await render(); await reveal(); const confirm = button('Potvrdite').props.onPress;
     await act(async () => { confirm(); confirm(); });
     expect(mockConfirm.mock.calls).toEqual([['fact-a']]);
     await act(async () => pending.resolve({ ok: true, podatak: null }));
@@ -175,7 +194,7 @@ describe('owned parent draft review screen', () => {
   });
 
   it('blocks retained local edit/navigation actions after account changes before rerender', async () => {
-    await render(); const open = button('Mesto Zadatka').props.onPress, edit = button('Izmenite').props.onPress;
+    await render(); await reveal(); const open = button('Mesto Zadatka').props.onPress, edit = button('Izmenite').props.onPress;
     mockSession = { user: { id: 'account-b' }, accountRevision: 2, sessionEpoch: 2 };
     await act(async () => { open(); edit(); });
     expect(mockRouter.push).not.toHaveBeenCalled();
@@ -202,6 +221,7 @@ describe('owned parent draft review screen', () => {
   it('serializes corrections and does not reload their late result after leaving the screen', async () => {
     const pending = deferred<unknown>(); mockCorrect.mockReturnValueOnce(pending.promise);
     await render();
+    await reveal();
     await act(async () => button('Izmenite').props.onPress());
     await act(async () => tree.root.findByType('TextInput' as React.ElementType).props.onChangeText('Ispravljen naslov'));
     const save = button('Sačuvaj ispravku').props.onPress;
@@ -212,5 +232,22 @@ describe('owned parent draft review screen', () => {
     await act(async () => pending.resolve({ ok: true, podatak: { newFactId: 'new-fact' } }));
     expect(mockLoad).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it('shows one focused fact editor and keeps private evidence behind its row', async () => {
+    const data = conversation('Javni naslov');
+    const privateFact: AiNeedV2Fact = { ...data.facts[0], id: 'private-a', key: 'need.access_notes',
+      displayValue: 'Privatni ulaz 4', value: 'Privatni ulaz 4', evidence: 'Privatni razgovor', privacyClass: 'PRIVATE' };
+    data.facts.push(privateFact); data.review.facts = data.facts; mockLoad.mockResolvedValue(data);
+    await render(); expect(text()).not.toContain('Privatni ulaz 4'); expect(text()).not.toContain('Privatni razgovor');
+    await reveal(); expect(button('Izmenite')).toBeDefined();
+    await reveal('Pristup'); expect(tree.root.findAllByProps({ label: 'Izmenite' })).toHaveLength(0);
+    expect(text()).toContain('Privatni ulaz 4'); expect(text()).toContain('Privatni razgovor');
+  });
+
+  it('does not save the old value while a focused correction is unfinished', async () => {
+    await render(); await reveal(); await act(async () => button('Izmenite').props.onPress());
+    expect(button('Sačuvajte nacrt').props.disabled).toBe(true);
+    await act(async () => button('Sačuvajte nacrt').props.onPress()); expect(mockSave).not.toHaveBeenCalled();
   });
 });

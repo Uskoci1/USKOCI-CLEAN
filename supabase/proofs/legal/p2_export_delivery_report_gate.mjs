@@ -7,11 +7,11 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const prior = read(base + '/proof-report.json');
 assert.equal(prior.result, 'PASS');
 assert.equal(prior.source_sha, process.env.GITHUB_SHA);
-assert.equal(prior.full_source_plan.source_migration_count, 105);
+assert.equal(prior.full_source_plan.source_migration_count, 106);
 assert.equal(prior.predecessor_plan.source_migration_count, 103);
 assert.equal(prior.migration_history_count, 103);
 assert.equal(prior.intentional_next_delivery_forward.file, '20260910153005_clean_p2_export_delivery_authority.sql');
-assert.deepEqual(prior.deferred_authority_successors.map(x => x.file), ['20260910162955_clean_p3_retention_execution_authority.sql']);
+assert.deepEqual(prior.deferred_authority_successors.map(x => x.file), ['20260910162955_clean_p3_retention_execution_authority.sql','20260910172132_clean_w03_owned_ai_intake_authority.sql']);
 assert.equal(prior.checks.length, 9);
 assert.ok(prior.checks.every(check => check.result === 'PASS'));
 

@@ -83,7 +83,7 @@ jobs:
           node supabase/proofs/legal/p3_retention_schedule_proof.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/proof.log"
           grep -F 'PASS P3_RETENTION_SCHEDULE' "$P3_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P3_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.successor_replay.count!==r.predecessor_plan.pending_successor_count) process.exit(1);'
-      - name: Reuse SQL105 retention execution proof before W02 on full current source
+      - name: Reuse SQL105 retention execution proof before historical W02 on exact105;106 is separately proved by W03
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +122,7 @@ jobs:
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'location')
         run: |
           node supabase/proofs/ai/ai_edge_context_proof.mjs
-          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync("proof-out/ai-edge-context/proof-report.json")); if(r.status!=="PASS" || r.sourceCommit!==process.env.GITHUB_SHA || r.actualProviderCalled || r.databaseConnected || r.testsPassed!==58 || r.testsFailed!==0) process.exit(1); for(const f of ["proof-report.json","handler-tests.tap"]) fs.copyFileSync("proof-out/ai-edge-context/"+f,process.env.W02_CALENDAR_ARTIFACT_DIR+"/ai-location-"+f);'
+          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync("proof-out/ai-edge-context/proof-report.json")); if(r.status!=="PASS" || r.sourceCommit!==process.env.GITHUB_SHA || r.actualProviderCalled || r.databaseConnected || r.testsPassed!==98 || r.testsFailed!==0) process.exit(1); for(const f of ["proof-report.json","handler-tests.tap"]) fs.copyFileSync("proof-out/ai-edge-context/"+f,process.env.W02_CALENDAR_ARTIFACT_DIR+"/ai-location-"+f);'
       - name: Authenticated LocationIQ adapter with synthetic upstream transport
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'location')
         run: |

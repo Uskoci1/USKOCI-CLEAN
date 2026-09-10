@@ -1,3 +1,11 @@
+## Current continuation — PR93 merged and LIVE105; W03 product vertical in progress
+
+PR93 merged as `e5edbb7356ea5d622b45cdc95aa83b9b792a4805` after all13 CI checks passed, including P3 actual16 stages/two observed lock orders, independent replay, CodeQL and scoped Android Auth. SQL105 was applied once as `20260910180443_clean_p3_retention_execution_authority`. Postflight at18:05:01 UTC confirmed exact source,13 bodies,31 columns, private ACL/RLS, source-shape admission and17 unchanged preservation groups. Policy activation and production deletion were not performed. [Compact evidence](evidence/p3-live105-20260910/verification.json).
+
+The clean P3 integration boundary is complete. W03 owned AI intake backend/client are written (223 client and98 Edge transport checks pass); actual105→106 DB/Auth/concurrency and native V2 proof remain pending. Continue the conversation-first SPOJ V2 product vertical and two-account marketplace journey. Earlier entries below are historical.
+
+---
+
 ## P3 corrected candidate — PR93 / production remains104
 
 [PR93](https://github.com/Uskoci1/USKOCI-CLEAN/pull/93) initial run34507615505 passed its source checks and the real104 predecessor, then failed applying105 with SQLSTATE42725. The corrected candidate adds explicit text casts for the catalog fingerprint;35 necessary admission checks and static parsing pass. A new actual16-stage DB/CI run, observed locks, merge and promotion are still required. [The retained failure and bounded reproduction](evidence/p3-retention-source-20260910/initial-ci-failure.json) preserve the original result. P2 remains canonical/LIVE104; no production change or policy activation occurred. Earlier entries are historical checkpoints.

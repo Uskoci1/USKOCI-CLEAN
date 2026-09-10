@@ -21,7 +21,7 @@ export function readP2ExportPredecessorPlan(root = process.cwd()) {
       assert.match(file, /^\d{14}_[a-z0-9_]+\.sql$/);
       const bytes = readFileSync(resolve(root, 'supabase/migrations', file));
       assert.ok(!bytes.includes(13), `SOURCE_CR_BYTE:${file}`);
-      return { file, md5: digest('md5', bytes) };
+      return { file, md5: digest('md5', bytes), sha256:digest('sha256',bytes), bytes:bytes.length };
     });
 
   const liveEntries = provenance.live_history_snapshot.entries;
@@ -56,6 +56,8 @@ export function readP2ExportPredecessorPlan(root = process.cwd()) {
     const current = source.find(candidate => candidate.file === entry.file);
     assert.ok(current, `PENDING_PREDECESSOR_FILE_MISSING:${entry.file}`);
     assert.equal(current.md5, entry.raw_md5, `PENDING_PREDECESSOR_MD5_CHANGED:${entry.file}`);
+    assert.equal(current.sha256,entry.raw_sha256,'PENDING_SHA256_CHANGED:'+entry.file);
+    assert.equal(current.bytes,entry.raw_bytes,'PENDING_BYTES_CHANGED:'+entry.file);
     return {
       file: entry.file,
       version: String(entry.version),
@@ -73,6 +75,8 @@ export function readP2ExportPredecessorPlan(root = process.cwd()) {
     const current = source.find(candidate => candidate.file === entry.file);
     assert.ok(current, `PENDING_SUCCESSOR_FILE_MISSING:${entry.file}`);
     assert.equal(current.md5, entry.raw_md5, `PENDING_SUCCESSOR_MD5_CHANGED:${entry.file}`);
+    assert.equal(current.sha256,entry.raw_sha256,'PENDING_SHA256_CHANGED:'+entry.file);
+    assert.equal(current.bytes,entry.raw_bytes,'PENDING_BYTES_CHANGED:'+entry.file);
     return { file: entry.file, version: String(entry.version), name: entry.name, md5: entry.raw_md5 };
   });
 

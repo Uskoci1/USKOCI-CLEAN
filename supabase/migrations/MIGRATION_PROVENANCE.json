@@ -2015,6 +2015,20 @@
       "activation": "WRITTEN_NOT_LIVE_NO_POLICY_CONTENT_OR_ACTIVATION",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910172132",
+      "name": "clean_w03_owned_ai_intake_authority",
+      "file": "20260910172132_clean_w03_owned_ai_intake_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "7ec5faf05b863d64a4014fa86bca9e8d",
+      "raw_sha256": "558d06608a597724598e58c7494d1d2783b1b844a019b89e0f4ac19461988e3d",
+      "raw_bytes": 43904,
+      "live_applied": false,
+      "unit": "W03_OWNED_NEED_INTAKE",
+      "activation": "WRITTEN_NOT_LIVE_NO_PROVIDER_OR_POLICY_ACTIVATION",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {
