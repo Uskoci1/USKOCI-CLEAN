@@ -37,7 +37,9 @@ describe('RU5 physical proof response postflight schema contract', () => {
     expect(assertion).toContain("raise AssertionError('W05 UI did not create Application')");
     expect(assertion).toContain("parts[1] not in ('SUBMITTED', 'VIEWED', 'SHORTLISTED')");
     expect(assertion).toContain("parts[2] != '3000'");
-    expect(assertion).toContain("parts[3] != '1'");
+    expect(assertion).toContain("slots = core_fixture()['requiredSlots'] if os.environ.get('AI_REVIEW_SCOPE') == 'marketplace' else 1");
+    expect(driver).toContain("fixture['requiredSlots']==3");
+    expect(assertion).toContain('parts[3] != str(slots)');
     expect(assertion).toContain('raise AssertionError(f\'Unexpected W05 Application: {row}\')');
   });
 });
