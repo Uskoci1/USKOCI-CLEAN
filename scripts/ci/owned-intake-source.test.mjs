@@ -3,22 +3,23 @@ import {test} from 'node:test';
 import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {readP3RetentionPredecessorPlan} from '../../supabase/proofs/legal/p3_retention_schedule_predecessor.mjs';
-import {ownedIntakeSourceBoundary,ownedIntakeForward,retentionForward} from './owned-intake-source.mjs';
+import {ownedIntakeSourceBoundary,ownedIntakeForward,retentionForward,pushTransportForward} from './owned-intake-source.mjs';
 import {prepare105} from './owned-intake-proof.mjs';
 const require=createRequire(import.meta.url);
 const {classify,makePlan,testArguments}=require('./scope.cjs');
 
-test('exact admitted106 splits at105 without losing or applying the owned intake successor',()=>{
+test('exact admitted107 splits at105 and106 without losing the transport successor',()=>{
   const plan=readP3RetentionPredecessorPlan(),b=ownedIntakeSourceBoundary(plan);
   assert.equal(b.fullPlan,plan);assert.equal(b.predecessorPlan.source_migration_count,105);
   assert.equal(b.predecessorPlan.source_inventory.at(-1).file,retentionForward);
   assert.equal(b.next.file,ownedIntakeForward);
-  assert.deepEqual([...b.predecessorPlan.pending_successors,b.next],plan.pending_successors);
+  assert.deepEqual(b.deferredSuccessors.map(x=>x.file),[pushTransportForward]);
+  assert.deepEqual([...b.predecessorPlan.pending_successors,b.next,...b.deferredSuccessors],plan.pending_successors);
   assert.deepEqual(b.predecessorPlan.source_inventory,plan.source_inventory.slice(0,105));
 });
 test('unknown, missing, reordered or changed105/106 cannot become an admitted prefix',()=>{
   const plan=readP3RetentionPredecessorPlan();
-  for(const count of [104,105,107])assert.throws(()=>ownedIntakeSourceBoundary({...plan,source_migration_count:count}));
+  for(const count of [104,105,106,108])assert.throws(()=>ownedIntakeSourceBoundary({...plan,source_migration_count:count}));
   for(const index of [104,105])for(const key of ['file','md5','sha256','bytes']){
     const altered=structuredClone(plan);altered.source_inventory[index][key]=key==='bytes'?1:'changed';
     assert.throws(()=>ownedIntakeSourceBoundary(altered),key+':'+index);

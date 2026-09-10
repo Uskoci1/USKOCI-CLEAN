@@ -26,7 +26,7 @@ const anon = createClient(url, env.RU5_DEVICE_ANON_KEY, options);
 const requesterId = env.RU5_DEVICE_REQUESTER_USER_ID;
 const workerId = env.RU5_DEVICE_WORKER_USER_ID;
 const report = {
-  unit: 'W02_CALENDAR_AUTHORITY', admitted_source_count:106, applied_source_boundary:105, deferred_authority_successors:[sourceBoundary.next], source_sha: env.GITHUB_SHA || null, run_id: env.GITHUB_RUN_ID || null,
+  unit: 'W02_CALENDAR_AUTHORITY', admitted_source_count:107, applied_source_boundary:105, deferred_authority_successors:[sourceBoundary.next,...sourceBoundary.deferredSuccessors], source_sha: env.GITHUB_SHA || null, run_id: env.GITHUB_RUN_ID || null,
   live_access: false, live_promotion: false, provider_called: false, visual_design_changed: false,
   checks: [], race: null,
 };

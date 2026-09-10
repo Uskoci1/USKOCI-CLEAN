@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
+      push: ${{ steps.scope.outputs.push }}
       w03: ${{ steps.scope.outputs.w03 }}
       auth: ${{ steps.scope.outputs.auth }}
       export: ${{ steps.scope.outputs.export }}
@@ -164,6 +165,13 @@ jobs:
           path: ${{ runner.temp }}/uskoci-build-evidence/build-receipt.json
           if-no-files-found: error
           retention-days: 7
+
+  domain-push:
+    needs: pre-p4-integrity
+    if: needs.pre-p4-integrity.outputs.push == 'true'
+    uses: ./.github/workflows/notifications-n06-push-registry-proof.yml
+    with:
+      scope: transport
 
   domain-auth:
     needs: pre-p4-integrity

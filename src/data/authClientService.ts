@@ -4,6 +4,7 @@ import { recoveryDeadline, recoveryError } from './passwordRecoveryErrors';
 import type { AuthAccountScope, AuthClientPort } from '../contracts/auth';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
+import { revokePushBeforeLogout } from './pushDeviceClientService';
 
 function assertCurrentAccount(expected: AuthAccountScope) {
   const current = sesijaSada();
@@ -62,6 +63,11 @@ export const authClientService: AuthClientPort = {
     assertCurrentAccount(expected);
     if (sessionError) throw sessionError;
     if (data.session?.user.id !== expected.accountId) throw new Error('AUTH_ACCOUNT_CHANGED');
+    // A missing network receipt cannot indefinitely prevent local logout. A
+    // successful Auth signOut removes the bound server session independently;
+    // an already accepted external push cannot be recalled by either operation.
+    await revokePushBeforeLogout(expected);
+    assertCurrentAccount(expected);
     // Only the captured current account may begin the SDK's local logout.
     // Its Auth event, not this command or the screen, owns session cleanup.
     const { error } = await client.auth.signOut({ scope: 'local' });

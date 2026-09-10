@@ -1,4 +1,6 @@
 import { authClientService } from '../authClientService';
+const mockRevokePush = jest.fn();
+jest.mock('../pushDeviceClientService', () => ({ revokePushBeforeLogout: (scope: unknown) => mockRevokePush(scope) }));
 
 const mockAuth = {
   signInWithPassword: jest.fn(), signUp: jest.fn(), signInWithOtp: jest.fn(),
@@ -11,6 +13,7 @@ jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockCurrent }));
 const actor = { accountId: 'account-a', accountRevision: 1 };
 beforeEach(() => {
   jest.resetAllMocks();
+  mockRevokePush.mockResolvedValue(true);
   process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL = 'uskociapp://oporavak';
   mockCurrent = { user: { id: 'account-a' }, accountRevision: 1 };
   for (const method of Object.values(mockAuth)) method.mockResolvedValue({ error: null });
@@ -91,7 +94,26 @@ describe('central Auth client boundary', () => {
   it('logs out only the current account with the existing local scope', async () => {
     await expect(authClientService.signOutLocal(actor)).resolves.toBeUndefined();
     expect(mockAuth.signOut.mock.calls).toEqual([[{ scope: 'local' }]]);
+    expect(mockRevokePush).toHaveBeenCalledWith(actor);
+    expect(mockRevokePush.mock.invocationCallOrder[0]).toBeLessThan(mockAuth.signOut.mock.invocationCallOrder[0]);
     expect(mockCurrent).toEqual({ user: { id: 'account-a' }, accountRevision: 1 });
+  });
+
+  it('continues Auth logout after an unconfirmed bounded push revoke', async () => {
+    mockRevokePush.mockResolvedValue(false);
+    await expect(authClientService.signOutLocal(actor)).resolves.toBeUndefined();
+    expect(mockAuth.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('a late push revoke completion cannot log out a different account incarnation', async () => {
+    let done!: (value: boolean) => void;
+    mockRevokePush.mockImplementation(() => new Promise(resolve => { done = resolve; }));
+    const pending = authClientService.signOutLocal(actor);
+    await Promise.resolve();
+    mockCurrent = { user: { id: 'account-a' }, accountRevision: 3 };
+    done(true);
+    await expect(pending).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
+    expect(mockAuth.signOut).not.toHaveBeenCalled();
   });
 
   it('rejects a stale actor before starting any Auth read or logout', async () => {

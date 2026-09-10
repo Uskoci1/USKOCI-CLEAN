@@ -136,6 +136,8 @@ export default function Profil() {
           onPress={() => navigate(() => router.navigate('/profil/dostupnost'))} /> : null}
         <Button label="Kalendar Dogovora" kind="secondary" disabled={busy}
           onPress={() => navigate(() => router.navigate('/raspored'))} />
+        <Button label="Obaveštenja" kind="secondary" disabled={busy}
+          onPress={() => navigate(() => router.navigate('/profil/obavestenja'))} />
         <Button label="Izvoz podataka" kind="secondary" disabled={busy}
           onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
         <Button label="Privatnost i podaci" kind="secondary" disabled={busy}

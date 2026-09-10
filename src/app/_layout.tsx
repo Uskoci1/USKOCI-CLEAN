@@ -8,6 +8,7 @@ import { palette } from '../theme/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { postaviUlogu } from '../store/uloga';
+import { PushRuntime } from '../ui/notifications/PushRuntime';
 
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
@@ -100,6 +101,7 @@ export default function RootLayout() {
               fallback when Protected removes the private index route. */}
           <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
         </Stack>
+        <PushRuntime ready={routeResolved && !naAuth && !naOporavku} />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

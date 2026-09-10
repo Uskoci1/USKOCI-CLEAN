@@ -23,7 +23,7 @@ export function publicationBoundary(currentPlan) {
       assert.equal(successor[field], fullPlan.source_inventory[102 + index][field], 'W05_PENDING_IDENTITY_MISMATCH');
   }
   const successors = fullPlan.pending_successors.slice(0, -3);
-  return { next, fullPlan:intake.fullPlan, deferredSuccessors:[...deferredSuccessors,intake.next], predecessorPlan: { ...fullPlan,
+  return { next, fullPlan:intake.fullPlan, deferredSuccessors:[...deferredSuccessors,intake.next,...intake.deferredSuccessors], predecessorPlan: { ...fullPlan,
     source_migration_count: 102, source_inventory: fullPlan.source_inventory.slice(0, 102),
     pending_successors: successors, pending_successor_count: successors.length,
     proof_boundary: 'SOURCE102_BEFORE_INTENTIONAL_W05_AUTHORITY_CHANGE' } };

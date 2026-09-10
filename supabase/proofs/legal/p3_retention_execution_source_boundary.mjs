@@ -19,7 +19,7 @@ export function retentionExecutionBoundary(currentPlan) {
   }
   const next = fullPlan.pending_successors.at(-1);
   const successors = fullPlan.pending_successors.slice(0, -1);
-  return { next, fullPlan:intake.fullPlan, executionPlan:fullPlan, deferredSuccessors:[intake.next], predecessorPlan: { ...fullPlan,
+  return { next, fullPlan:intake.fullPlan, executionPlan:fullPlan, deferredSuccessors:[intake.next,...intake.deferredSuccessors], predecessorPlan: { ...fullPlan,
     source_migration_count: 104, source_inventory: fullPlan.source_inventory.slice(0, 104),
     pending_successors: successors, pending_successor_count: successors.length,
     proof_boundary: 'SOURCE104_BEFORE_INTENTIONAL_P3_EXECUTION_CHANGE' } };

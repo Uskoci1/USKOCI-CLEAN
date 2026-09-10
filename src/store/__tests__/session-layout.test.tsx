@@ -7,6 +7,7 @@ let mockPath = '/';
 const mockSegments = ['(app)'];
 const mockConsume = jest.fn();
 const mockRole = jest.fn();
+const mockPushListener = jest.fn((..._args: unknown[]) => ({ remove: jest.fn() }));
 const mockSession = { user: { id: 'account-a' } } as Session;
 let mockStackMounts = 0;
 let mockRendered: { isLoaded: boolean; session: Session | null; user: Session['user'] | null; sessionEpoch: number; accountRevision: number; returnTargetRevision: number } =
@@ -46,6 +47,18 @@ jest.mock('expo-router', () => {
   return { Stack, useRouter: () => mockRouter, useSegments: () => mockSegments, usePathname: () => mockPath };
 });
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
+// Keep the actual PushRuntime in the root render. Only native transports and
+// the separately tested device RPC are isolated from this navigation test.
+jest.mock('expo-notifications', () => ({
+  addNotificationResponseReceivedListener: (...args: unknown[]) => mockPushListener(...args),
+  addPushTokenListener: () => ({ remove: jest.fn() }),
+  getLastNotificationResponseAsync: async () => null,
+  clearLastNotificationResponseAsync: async () => undefined,
+}));
+jest.mock('../../data/pushDeviceClientService', () => ({
+  pushDeviceClientService: { sessionDevice: async () => ({ ok: true, podatak: { kind: 'NONE' } }) },
+  revokePushBeforeLogout: jest.fn(),
+}));
 jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: 'GestureHandlerRootView' }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: 'SafeAreaProvider' }));
 jest.mock('../sesija', () => ({ useSesija: () => mockRendered, sesijaSada: () => mockCurrent }));
@@ -220,6 +233,16 @@ it('resumes unauthenticated access protection once a private native destination 
   await act(async () => tree.update(<RootLayout />));
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
   expect(mockConsume).not.toHaveBeenCalled();
+});
+
+it.each(['auth', 'oporavak', 'unresolved'])('starts push listeners only after %s has left the protected routing boundary', async destination => {
+  mockSegments.splice(0, mockSegments.length, ...(destination === 'unresolved' ? [] : [destination]));
+  mockPath = destination === 'unresolved' ? '/' : '/' + destination;
+  await render();
+  expect(mockPushListener).not.toHaveBeenCalled();
+  mockSegments.splice(0, mockSegments.length, '(app)'); mockPath = '/potrebe';
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockPushListener).toHaveBeenCalledTimes(1);
 });
 
 it('consumes the completed intention after a signed-in native app destination resolves', async () => {

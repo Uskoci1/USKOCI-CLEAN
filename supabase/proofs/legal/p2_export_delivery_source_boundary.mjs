@@ -21,7 +21,7 @@ export function deliveryBoundary(currentPlan) {
   }
   const successors = fullPlan.pending_successors.slice(0, -2);
   assert.equal(successors.at(-1)?.file, '20260910144644_clean_w05_publication_evaluator_authority.sql');
-  return { next, fullPlan:intake.fullPlan, deferredSuccessors: [deferred,intake.next], predecessorPlan: { ...fullPlan,
+  return { next, fullPlan:intake.fullPlan, deferredSuccessors: [deferred,intake.next,...intake.deferredSuccessors], predecessorPlan: { ...fullPlan,
     source_migration_count: 103, source_inventory: fullPlan.source_inventory.slice(0, 103),
     pending_successors: successors, pending_successor_count: successors.length,
     proof_boundary: 'SOURCE103_BEFORE_INTENTIONAL_P2_DELIVERY_CHANGE' } };
