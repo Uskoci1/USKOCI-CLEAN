@@ -1798,37 +1798,44 @@
     "next": "PROVE_FLEXIBLE_AND_REQUESTER_SCOPE_ON_CURRENT_PR83_THEN_INTEGRATE_CONTINUE_AVAILABILITY"
   },
   "w02_remainder_checkpoint": {
-    "recorded_at": "2026-09-09T17:41:10.935124+00:00",
-    "observed_canonical_sha": "b72f79f70eeac2677ebebb3e34a93ab7677c49a0",
+    "recorded_at": "2026-09-09T19:26:14.989506+00:00",
+    "observed_canonical_sha": "5eb762695aef0059e57f3b189c0d6c425c7d3feb",
     "calendar_pr": 83,
     "calendar_source_merged": true,
-    "branch": "feat/w02-availability-20260909",
+    "availability_pr": 84,
+    "availability_merge_sha": "5eb762695aef0059e57f3b189c0d6c425c7d3feb",
+    "availability": {
+      "written": true,
+      "merged": true,
+      "live": false,
+      "new_editor_ui_connected": false,
+      "disposable_proof": "PASS",
+      "run_id": 34386790655,
+      "artifact_id": 10119323259,
+      "production_activated": false
+    },
+    "branch": "feat/w02-location-shared-20260909",
     "new_pending_versions": [
-      "20260909140000",
-      "20260909150000"
+      "20260909160000"
     ],
-    "source_count": 98,
+    "source_count": 99,
     "live_observation": {
       "count": 87,
       "latest_version": "20260907135905",
       "calendar_live": false
     },
-    "local_tests": {
-      "suites": 82,
-      "tests": 1057,
-      "availability_tests": 73,
-      "typescript": "PASS"
-    },
-    "availability": {
+    "location": {
       "written": true,
       "merged": false,
       "live": false,
-      "new_editor_ui_connected": false,
+      "ui_connected": false,
+      "local_client_tests": 94,
+      "typescript": "PASS",
       "disposable_proof": "PENDING",
-      "production_activated": false
+      "provider_activation": "BLOCKED_APPROVAL"
     },
+    "shared_normalization": "OPEN",
     "whole_w02_closed": false,
-    "location_provider_activation": "BLOCKED_APPROVAL",
     "design_frozen": true
   }
 }

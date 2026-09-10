@@ -1,3 +1,57 @@
+## 2026-09-09 — availability MERGED; manual location implementation in progress
+
+The actual canonical is 5eb762695aef0059e57f3b189c0d6c425c7d3feb after PR84.
+Calendar PR83 remains merged and unchanged. Do not use historical pending notes
+below as rollback cursors. Latest owner command keeps full W02 OPEN until shared
+semantics, manual/remote location, privacy and future UI acceptance are satisfied.
+
+PR84 source 0a002547a9c88134b1b042d05316fd7a5e9c3ecb was proven at synthetic
+merge c78c51c4ae4649685b687cde5717190d92538a41. Run34386790655 artifact10119323259
+SHA256 312c05369e8ba7f4632fb7d59eb7de5e61dbb878236a40673dc95f771ba7aaf0:
+11 availability + 9 calendar + 13 interval/scope checks PASS. Actual owned client
+save/read, exceptions, both DST transitions, two observed competing saves and
+third-account privacy passed. PRE-P4/P2/P3 and W01 Android/web recovery passed;
+CodeQL reported no new alerts. Source integration is NOT production activation.
+
+Current unit: feat/w02-location-shared-20260909, based on that actual merge.
+It adds owned manual location review over existing ai_structured_facts, not a
+second Need writer. Explicit user confirmation creates/supersedes the SAME V2
+location facts. Existing reviewed draft/edit commands remain the only business
+materializers. Public topology contains only coarse textual place refs; exact
+address and access notes stay PRIVATE. Remote has no points/address/GPS. The
+worker editor updates existing app_profiles city/radius and private coarse
+worker_match_preferences, never creates precise profile-location storage.
+
+No external geocoder/tiles choice is made. A provider-neutral boundary produces
+only proposals and is PROVIDER_ACTIVATION_BLOCKED when no approved port exists.
+Manual input needs neither that provider nor an OS location permission. New
+forward20260909160000 preserves earlier SQL and tightens the shared V2 geography
+validator for all producers. Owner revisions, identical replay, malformed fields,
+private/public separation and stale account results are validated by the clients.
+Local location client tests:94 PASS; TypeScript PASS. New runtime proof is PENDING.
+It will exercise actual client -> facts -> reviewed draft -> projections with
+normal Auth and three accounts; no location is populated by SQL. Non-location
+AI proposals and public-status setup are explicit test fixtures, NOT real W03
+model output or a user-facing publication/physical-device demonstration.
+
+### W02 location input/storage/consumer map
+| Input | Validation / confirmed command | Existing authoritative owner | Projection / consumer |
+|---|---|---|---|
+| Manual coarse Task place or REMOTE | normalizeTaskGeography; rpc_save_need_location_review | ai_structured_facts -> reviewed save -> need_geography.public_topology | Need city/area + public topology; matcher city fallback or REMOTE bypass |
+| Exact address / access notes | private text limits; same confirmed location command | PRIVATE V2 facts -> need_sensitive | owner review and existing Agreement contact-grant path; never public topology |
+| Worker city / radius | normalizeWorkerLocation; rpc_save_worker_location | app_profiles.city/radius_km | public city / private matching preferences |
+| Optional approved coarse point | two-decimal bounded coordinates + explicit confirmation | worker_match_preferences.approximate_lat/lng | private proximity matcher; manual city edit can clear stale coordinates |
+| Provider suggestion | locationResolver port; bounded sanitized response | none until human confirms | no GPS dependency, no auto-save, no default production provider |
+| Weekly rules / exceptions / now intent | PR84 existing owned save and revision | existing rules/windows/profile/preferences | matching/dispatch, separate from Agreement occupancy |
+
+Remaining shared categories/skills/tools/vehicles/licenses normalization is NOT
+claimed complete by this location unit. W03 real provider/media/voice and W04
+profile convergence remain next according to the ZIP prerequisites. Frozen
+visual inputs (.claude/, PRODUCT.md, design-reference and final composition)
+are unchanged. Latest live observation87 through20260907135905, calendar absent;
+no live write, ALLOW/HITNO/verification/positive fee or provider activation.
+New inventory99 =87 historical snapshot+12 pending. All forwards remain pending.
+
 ## 2026-09-09 W02 remainder — availability implementation, current proof pending
 
 Current canonical was physically checked as b72f79f70eeac2677ebebb3e34a93ab7677c49a0.

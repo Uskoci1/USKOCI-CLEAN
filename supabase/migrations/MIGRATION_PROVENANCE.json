@@ -1917,6 +1917,20 @@
       "activation": "SOURCE_ONLY_NOT_LIVE",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260909160000",
+      "name": "clean_w02_owned_location_review",
+      "file": "20260909160000_clean_w02_owned_location_review.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "3577662956a29766b4389cdb30a8d96c",
+      "raw_sha256": "2d5d343d8af781addf0e4ddcfea61f327f25cb68c42dcd3842974b182de5e673",
+      "raw_bytes": 19764,
+      "live_applied": false,
+      "unit": "W02_LOCATION",
+      "activation": "SOURCE_ONLY_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {
