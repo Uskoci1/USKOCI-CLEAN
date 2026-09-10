@@ -22,3 +22,20 @@ export type RetentionPolicyNotReadyReason =
 export type RetentionPolicyStatus =
   | { ready: false; reason: RetentionPolicyNotReadyReason; missingDataClasses: string[] }
   | { ready: true; policyVersion: string; effectiveAt: string; rules: RetentionRule[] };
+
+/** Capability of this one adapter. It does not admit account closure, media
+ * cleanup, other AI records, or execution for the full retention schedule. */
+export type RetentionExecutionStatus = {
+  engineVersion: 'P3_AI_ABANDONED_UNBOUND_V1';
+  executionAdmitted: boolean;
+  policyVersion: string | null;
+  datasets: [{
+    dataset: 'AI_ABANDONED_UNBOUND';
+    dataClass: 'AI_VOLATILE';
+    action: 'DELETE';
+    ready: boolean;
+    reason: null | 'POLICY_NOT_READY' | 'SOURCE_NOT_READY';
+  }];
+  unsupportedDataClasses: string[];
+  storageCleanup: 'NOT_APPLICABLE';
+};

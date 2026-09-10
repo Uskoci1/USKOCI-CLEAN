@@ -76,13 +76,21 @@ jobs:
           set -euo pipefail
           node supabase/proofs/legal/p3_retention_schedule_predecessor.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/predecessor.log"
           grep -F 'PASS P3_RETENTION_PREDECESSOR_INTEGRATION' "$P3_ARTIFACT_DIR/predecessor.log"
-      - name: Apply P3 and replay all later pending source including W02
+      - name: Apply original P3 registry and replay exact source104 including W02
         shell: bash
         run: |
           set -euo pipefail
           node supabase/proofs/legal/p3_retention_schedule_proof.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/proof.log"
           grep -F 'PASS P3_RETENTION_SCHEDULE' "$P3_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P3_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.successor_replay.count!==r.predecessor_plan.pending_successor_count) process.exit(1);'
+      - name: Reuse SQL105 retention execution proof before W02 on full current source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$P3_ARTIFACT_DIR/retention-execution"
+          node supabase/proofs/legal/p3_retention_execution_proof.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/retention-execution/proof.log"
+          grep -F 'PASS P3_RETENTION_EXECUTION' "$P3_ARTIFACT_DIR/retention-execution/proof.log"
+          node supabase/proofs/legal/p3_retention_execution_report_gate.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/retention-execution/report-gate.log"
       - name: Prove hard calendar matching selection lifecycle and own read
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'calendar')
         shell: bash

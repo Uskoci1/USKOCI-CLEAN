@@ -138,6 +138,8 @@ export default function Profil() {
           onPress={() => navigate(() => router.navigate('/raspored'))} />
         <Button label="Izvoz podataka" kind="secondary" disabled={busy}
           onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
+        <Button label="Privatnost i podaci" kind="secondary" disabled={busy}
+          onPress={() => navigate(() => router.navigate('/profil/privatnost'))} />
 
         <Press accessibilityRole="button" accessibilityLabel={`Pređite na ${nextIntent}`} disabled={busy}
           accessibilityState={{ disabled: busy }} haptic="medium" scaleTo={0.985}

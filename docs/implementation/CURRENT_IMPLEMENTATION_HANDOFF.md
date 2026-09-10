@@ -1,3 +1,17 @@
+## P3 corrected candidate — PR93 / production remains104
+
+[PR93](https://github.com/Uskoci1/USKOCI-CLEAN/pull/93) initial run34507615505 passed its source checks and the real104 predecessor, then failed applying105 with SQLSTATE42725. The corrected candidate adds explicit text casts for the catalog fingerprint;35 necessary admission checks and static parsing pass. A new actual16-stage DB/CI run, observed locks, merge and promotion are still required. [The retained failure and bounded reproduction](evidence/p3-retention-source-20260910/initial-ci-failure.json) preserve the original result. P2 remains canonical/LIVE104; no production change or policy activation occurred. Earlier entries are historical checkpoints.
+
+---
+
+## Current continuation — 2026-09-10 / P2 canonical and LIVE104; P3 source105
+
+P2 is **UI_CONNECTED / MERGED / DISPOSABLE_PROVEN / LIVE_STRUCTURAL**. [PR92](https://github.com/Uskoci1/USKOCI-CLEAN/pull/92) merged as `3d5c1b446e680bec5fe9b0fa4b8738ac92b17dc6` after all13 [exact-head checks](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34503174104) passed:9 intake,5 actual-client and17 real Auth/Storage delivery groups, both lock orders, CodeQL and scoped Android Auth recovery. SQL104 was applied once as `20260910170609_clean_p2_export_delivery_authority`; all50,251 source bytes match. Postflight preserved original103 history,65 business/security snapshots and42 existing function ACLs. Both export Edge handlers are ACTIVE v1/JWT true with exact canonical readback. [Compact live104 evidence](evidence/p2-live104-20260910/verification.json) records the source hashes and limits.
+
+P3 remains **uncommitted working source105**, with its S09 privacy surface, narrow execution receipt and export link connected. Five focused suites /107 local tests, TypeScript and architecture138/53/0 pass; its actual16-stage DB/CI proof, two observed lock orders, canonical merge and promotion remain pending. [The P3 report](P3_RETENTION_EXECUTION_20260910.md) owns that scope. Canonical/live104 has only SQL105 left unpromoted; the frozen historical87 replay is unchanged. Legal policies remain inactive, reviewed executable content and periodic export-worker wiring remain absent. Production authenticated export, physical native saving, P3 app abandonment and device journeys are not proven. Continue P3 verification and the remaining master dependencies; earlier checkpoints below retain their historical scope.
+
+---
+
 ## Current continuation — 2026-09-10 / P2 delivery ready for disposable CI
 
 The P2 technical path is connected through S09, the existing request ledger, SQL104 service-only attempts, two authenticated Edge handlers, private Storage, native/browser save adapters and revocation/cleanup. It requires an explicit reviewed binding on the existing P3 policy; no content or duration is seeded. Targeted client/UI/file236, synthetic actual-handler39 and TSC pass. The17-group real Auth/Storage proof is written and not yet executed. [The delivery report](P2_EXPORT_DELIVERY_20260910.md) records the exact SQL bytes, tested scope and operational limits.

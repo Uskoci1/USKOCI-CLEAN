@@ -2001,6 +2001,20 @@
       "activation": "WRITTEN_NOT_LIVE_NO_POLICY_CONTENT_OR_ACTIVATION",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910162955",
+      "name": "clean_p3_retention_execution_authority",
+      "file": "20260910162955_clean_p3_retention_execution_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "bad9f1317e86b2f3efaeb92f7200f0b4",
+      "raw_sha256": "7442f8bdecf59d6d66b1c51aeff2418b633d0fd74f95739bd561c2d76ac0ffe2",
+      "raw_bytes": 33748,
+      "live_applied": false,
+      "unit": "P3_RETENTION_EXECUTION",
+      "activation": "WRITTEN_NOT_LIVE_NO_POLICY_CONTENT_OR_ACTIVATION",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {

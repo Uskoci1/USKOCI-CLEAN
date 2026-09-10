@@ -10,10 +10,11 @@ import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {readP3RetentionPredecessorPlan} from './p3_retention_schedule_predecessor.mjs';
+import {retentionExecutionBoundary} from './p3_retention_execution_source_boundary.mjs';
 
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url,db);
-const plan=readP3RetentionPredecessorPlan();
+const boundary=retentionExecutionBoundary(readP3RetentionPredecessorPlan()),plan=boundary.predecessorPlan;
 const out=env.P3_ARTIFACT_DIR||'artifacts/p3-retention-schedule';mkdirSync(out,{recursive:true});
 const manifest=JSON.parse(readFileSync('supabase/proofs/legal/p3_retention_schedule_files.json','utf8'));
 const forward=`supabase/migrations/${manifest.forward_file}`,bytes=readFileSync(forward);
@@ -24,7 +25,8 @@ assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.sha256);
 const report={unit:'P3_RETENTION_SCHEDULE',source_sha:env.GITHUB_SHA||null,run_id:env.GITHUB_RUN_ID||null,
   live_access:false,live_promotion:false,provider_called:false,mobile_proof:false,legal_content_real:false,purge_executed:false,
   fixture_boundary:'REAL_LOCAL_AUTH_POSTGREST_AND_ROLE_SCOPED_PSQL_TRANSACTIONS',
-  candidate:manifest,predecessor_plan:plan,checks:[],lock_interleavings:[]};
+  candidate:manifest,predecessor_plan:plan,full_source_plan:boundary.fullPlan,
+  intentional_next_execution_forward:boundary.next,checks:[],lock_interleavings:[]};
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
 const requester=createClient(url,env.RU5_DEVICE_ANON_KEY,options),anon=createClient(url,env.RU5_DEVICE_ANON_KEY,options);
 const admin=createClient(url,env.RU5_DEVICE_SERVICE_ROLE_KEY,options);
