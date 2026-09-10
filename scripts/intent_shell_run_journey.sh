@@ -7,6 +7,7 @@ if [[ "${ENTRY_SCOPE:-full}" == signature ]]; then
   # complete branch and its pipeline in the existing Bash entrypoint.
   set -e
   git rev-parse HEAD > "$artifact_dir/proof-build.txt"
+  sha256sum app.json index.js assets/entry-splash-mark.png assets/entry-splash-mark.svg src/bootstrap/entrySplashBootstrap.ts src/app/_layout.tsx >> "$artifact_dir/proof-build.txt"
   sha256sum android/app/build/outputs/apk/release/app-release.apk src/ui/entry/*.tsx src/ui/entry/spojBrand*.ts src/ui/auth/*.tsx src/app/auth.tsx src/app/oporavak.tsx src/hooks/useEntryIntro.ts src/hooks/useEntrySplashReady.ts src/hooks/useSystemReducedMotion.ts scripts/entry_spoj_android.py scripts/ru5_android_device_ui_journey.py scripts/intent_shell_run_journey.sh >> "$artifact_dir/proof-build.txt"
   python3 scripts/entry_spoj_android.py 2>&1 | tee "$artifact_dir/proof.log"
   exit 0

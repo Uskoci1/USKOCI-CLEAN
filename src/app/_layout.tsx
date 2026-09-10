@@ -8,6 +8,7 @@ import { palette } from '../theme/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { postaviUlogu } from '../store/uloga';
+import { BrandMark } from '../ui/entry/BrandAssets';
 
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
@@ -68,8 +69,11 @@ export default function RootLayout() {
 
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={palette.ink} />
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
+        {/* Same original mark and nominal size as the padded native splash. */}
+        <BrandMark size={126} />
+        <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={palette.ink}
+          style={{ position: 'absolute', alignSelf: 'center', top: '65%' }} />
       </View>
     );
   }
