@@ -1,12 +1,12 @@
-import { useEffect, useId } from 'react';
-import Animated, { cancelAnimation, Easing, useAnimatedProps, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, { cancelAnimation, Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
+import Svg, { G, Path } from 'react-native-svg';
 import { brandParts, brandWords } from './spojBrandData';
 import { BRAND_PARTS, brandFrame, INTRO_DURATION_MS, type Box } from './spojBrandMath';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const PHONE = { x: 0, y: 0, width: 390, height: 844 };
 const LOGO = { x: 43, y: 185, width: 304, height: 98.8 };
 
@@ -37,25 +37,34 @@ function BrandPart({ index, time, phone, logo }: { index: number; time: SharedVa
 
 /** Measured phone and logo boxes share coordinates; no raster or font substitution. */
 export function BrandArtwork({ time, phone, logo }: { time: SharedValue<number>; phone: Box; logo: Box }) {
-  const clipId = `word-${useId().replace(/:/g, '')}`;
   const markProps = useAnimatedProps(() => {
     const f = brandFrame(time.get(), phone, logo).mark;
     return { opacity: 1, matrix: [f.scale, 0, 0, f.scale, f.x, f.y] };
   });
-  const clipProps = useAnimatedProps(() => ({ width: brandFrame(time.get(), phone, logo).wordClipWidth }));
-  const wordProps = useAnimatedProps(() => ({ opacity: brandFrame(time.get(), phone, logo).wordOpacity }));
   const k = logo.width / 320;
-  return <Svg width={phone.width} height={phone.height} viewBox={`0 0 ${phone.width} ${phone.height}`} pointerEvents="none" accessible={false}>
-    <Defs><ClipPath id={clipId}><AnimatedRect x={138} y={170} height={108} animatedProps={clipProps} /></ClipPath></Defs>
-    <G transform={`translate(${logo.x - 39 * k} ${logo.y - 174 * k}) scale(${k})`}>
-      <AnimatedG animatedProps={markProps}><G transform="rotate(.40107046 140 145.44829)">
-        {BRAND_PARTS.map((_, index) => <BrandPart key={index} index={index} time={time} phone={phone} logo={logo} />)}
-      </G></AnimatedG>
-      <AnimatedG clipPath={`url(#${clipId})`} animatedProps={wordProps}>
+  const wordStyle = useAnimatedStyle(() => {
+    const frame = brandFrame(time.get(), phone, logo);
+    return { width: frame.wordClipWidth * k, opacity: frame.wordOpacity };
+  });
+  return <View style={{ width: phone.width, height: phone.height }} pointerEvents="none" accessible={false}>
+    <Svg width={phone.width} height={phone.height} viewBox={`0 0 ${phone.width} ${phone.height}`} style={StyleSheet.absoluteFill} accessible={false}>
+      <G transform={`translate(${logo.x - 39 * k} ${logo.y - 174 * k}) scale(${k})`}>
+        <AnimatedG animatedProps={markProps}><G transform="rotate(.40107046 140 145.44829)">
+          {BRAND_PARTS.map((_, index) => <BrandPart key={index} index={index} time={time} phone={phone} logo={logo} />)}
+        </G></AnimatedG>
+      </G>
+    </Svg>
+    {/* The source clip (138,170,225,108) in the same transformed logo space.
+        A native view clips fixed-size SVG artwork; only its viewport changes on
+        the UI thread, independently of dynamic SVG Defs/ClipPath invalidation. */}
+    <Animated.View testID="entry-word-reveal" collapsable={false} pointerEvents="none" accessible={false}
+      style={[{ position: 'absolute', left: logo.x + 99 * k, top: logo.y - 4 * k,
+        height: 108 * k, overflow: 'hidden' }, wordStyle]}>
+      <Svg width={225 * k} height={108 * k} viewBox="138 170 225 108" style={{ flexShrink: 0 }} accessible={false}>
         {brandWords.map((word, index) => <G key={index} transform={word.transform}>{word.paths.map((path, key) => <Path key={key} {...path} />)}</G>)}
-      </AnimatedG>
-    </G>
-  </Svg>;
+      </Svg>
+    </Animated.View>
+  </View>;
 }
 
 export function BrandScene({ animate = false, paused = false, onComplete }: { animate?: boolean; paused?: boolean; onComplete?: () => void }) {
