@@ -30,6 +30,7 @@ jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
 jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { prepare: (...args: unknown[]) => mockPrepare(...args) } }));
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 jest.mock('../../ui/entry/EntryWelcome', () => ({ EntryWelcome: 'Hero' }));
+jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: () => ({ onLayout: jest.fn() }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
 jest.mock('../authAvailabilityClientService', () => ({ authAvailabilityClientService: { read: (...args: unknown[]) => mockRead(...args) } }));
 jest.mock('../authClientService', () => ({ authClientService: {

@@ -82,6 +82,7 @@ it('does not persist a delayed animation completion after leaving the screen', a
 it('holds the entire intro until splash readiness, independent of early cosmetic storage', async () => {
   await act(async () => { tree = create(<Probe readiness="pending" />); });
   expect(snapshot().phase).toBe('loading');
+  expect(snapshot().prepared).toBe(true);
   await act(async () => jest.advanceTimersByTime(4500));
   expect(snapshot().phase).toBe('loading'); expect(mockWrite).not.toHaveBeenCalled();
   await act(async () => tree.update(<Probe readiness="ready" />));

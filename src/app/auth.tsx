@@ -31,6 +31,7 @@ import { useAuthFormCommand } from '../hooks/useAuthFormCommand';
 import { EntryWelcome } from '../ui/entry/EntryWelcome';
 import { entryIntentClientService } from '../data/entryIntentClientService';
 import { sesijaSada } from '../store/sesija';
+import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
 type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT';
@@ -63,6 +64,7 @@ export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ form?: string }>();
   const [otvoren, setOtvoren] = useState(params.form === 'login' || params.form === 'recovery');
+  const { onLayout: onFormLayout } = useEntrySplashReady({ enabled: otvoren });
   const [rezim, setRezim] = useState<Rezim>('LOGIN');
   const [faza, setFaza] = useState<Faza>(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
   // Presentation only: a choice becomes visible after its owned prepare succeeds.
@@ -245,7 +247,7 @@ export default function AuthScreen() {
   if (!otvoren) return <EntryWelcome onRequester={() => izaberiNameru('REQUESTER')}
     onWorker={() => izaberiNameru('WORKER')} onSignIn={() => otvori('LOGIN')} busy={radi} error={greska} />;
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View onLayout={onFormLayout} style={[styles.screen, { paddingTop: insets.top }]}>
       <StatusBar style="dark" />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={radi}
