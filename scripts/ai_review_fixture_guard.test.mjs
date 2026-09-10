@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import { main, proposedFacts, validateAiFixture } from './ai_review_fixture.mjs';
-import { admittedPath, forwardedHeaders, boundedBody } from './ai_review_edge_server.mjs';
+import { admittedPath, localUpstream, forwardedHeaders, boundedBody } from './ai_review_edge_server.mjs';
 
 const env = { RU5_DEVICE_SUPABASE_URL: 'http://127.0.0.1:54321',
   RU5_DEVICE_DB_URL: 'postgresql://postgres:test-only@127.0.0.1:54322/postgres',
@@ -53,6 +53,16 @@ test('only application request headers pass; forwarded host and credentials cann
     'x-forwarded-host':'evil.invalid','content-length':'999','content-type':'application/json',cookie:'private'});
   assert.deepEqual([...h.keys()].sort(),['apikey','authorization','content-type']);
   assert.equal(h.get('authorization'),'Bearer fixture');
+});
+test('request paths and queries cannot control the fixed loopback upstream authority', () => {
+  for(const raw of ['//outside.invalid/auth/v1/user','http://outside.invalid/rest/v1/needs','/\\outside.invalid/auth/v1/user',
+    '/rest/v1/%2f%2foutside.invalid','/auth/v1/user#@outside.invalid'])assert.equal(localUpstream(raw),null);
+  for(const raw of ['/auth/v1/token?grant_type=password','/rest/v1/needs?select=id&x=https://outside.invalid',
+    '/rest/v1/rpc/rpc_ai_read_need_turn_v2?value=%2F%2Foutside.invalid']) {
+    const target=localUpstream(raw);assert.ok(target);
+    assert.equal(target.origin,'http://127.0.0.1:54321');assert.equal(target.username,'');assert.equal(target.password,'');
+    assert.equal(target.hash,'');assert.equal(target.pathname+target.search,raw);
+  }
 });
 test('streamed bodies are bounded by actual bytes', async () => {
   assert.equal((await boundedBody(Readable.from([Buffer.from('ab'),Buffer.from('cd')]),4)).toString(),'abcd');

@@ -17,6 +17,15 @@ export function admittedPath(raw) {
   if(/^\/rest\/v1\/(?:[a-z][a-z_0-9]*|rpc\/[a-z][a-z_0-9]*)$/.test(parsed.pathname))return 'rest';
   return null;
 }
+export function localUpstream(raw) {
+  if(!admittedPath(raw))return null;
+  const incoming=new URL(raw,'http://127.0.0.1:54329');
+  // Request data can affect only a validated route and its query, never the
+  // upstream protocol, authority, credentials, port or redirect destination.
+  const target=new URL('http://127.0.0.1:54321');
+  target.pathname=incoming.pathname;target.search=incoming.search;
+  return target;
+}
 export function forwardedHeaders(raw) {
   const headers=new Headers();
   for(const key of ['authorization','apikey','content-type','accept','prefer','accept-profile','content-profile','x-client-info','x-supabase-api-version','range','range-unit'])
@@ -52,8 +61,8 @@ export function startAdapter(env=process.env) {
     }});
   report.sourceHashes=runtime.sourceHashes;save();
   const server=createServer(async(req,res)=>{
-    const kind=admittedPath(req.url),method=req.method;
-    if(!kind||!['GET','POST','PATCH','DELETE'].includes(method)){res.writeHead(404);res.end();return;}
+    const kind=admittedPath(req.url),upstream=localUpstream(req.url),method=req.method;
+    if(!kind||!upstream||!['GET','POST','PATCH','DELETE'].includes(method)){res.writeHead(404);res.end();return;}
     const cancelled=new AbortController();req.on('aborted',()=>cancelled.abort());
     const timer=setTimeout(()=>cancelled.abort(),25000);
     try {
@@ -65,7 +74,7 @@ export function startAdapter(env=process.env) {
         response=await runtime.handler(new Request('http://127.0.0.1:54329'+req.url,{method,headers,body,signal:cancelled.signal}));
       }else{
         report[kind==='auth'?'forwardedAuth':'forwardedRest']++;save();
-        response=await fetch('http://127.0.0.1:54321'+req.url,{method,headers,body:['GET','HEAD'].includes(method)?undefined:body,
+        response=await fetch(upstream,{method,headers,body:['GET','HEAD'].includes(method)?undefined:body,
           redirect:'error',signal:cancelled.signal});
       }
       const bytes=response.body?await boundedBody(response.body,4*1024*1024):Buffer.alloc(0);
