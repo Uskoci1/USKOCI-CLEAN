@@ -15,7 +15,7 @@ import { WorkerAreaSearch } from '../../../ui/location/WorkerAreaSearch';
 import type { createConfiguredLocationResolver } from '../../../data/configuredLocationResolver';
 
 type WorkerLocationFormProps = { location: WorkerLocation; busy: boolean; uncertain: boolean;
-  resolver?: ReturnType<typeof createConfiguredLocationResolver>; onSave: (value: WorkerLocationInput) => void };
+  resolver?: Pick<ReturnType<typeof createConfiguredLocationResolver>, 'search' | 'cancel'>; onSave: (value: WorkerLocationInput) => void };
 export function WorkerLocationForm(props: WorkerLocationFormProps) {
   return <ScopedWorkerLocationForm key={`${props.location.accountId}:${props.location.profileId}:${props.location.revision}`} {...props} />;
 }

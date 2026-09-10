@@ -1,25 +1,46 @@
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CaretDown, Check, LockKey } from 'phosphor-react-native';
+import { CaretDown, Check, LockKey } from 'phosphor-react-native';
 import { palette } from '../../theme/tokens';
-import { Button } from '../Button';
+import { V2Action as Button } from '../v2/V2Action';
+import { V2Icon } from '../v2/icons';
+import { v2 } from '../v2/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
 
 /** SPOJ V2 form geometry, using the existing native typography and action owners. */
 export const locationStyles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FAFCFB' },
-  content: { padding: 20, gap: 24, paddingBottom: 36 },
+  screen: { flex: 1, backgroundColor: v2.color.canvas },
+  content: { padding: v2.space.lg, gap: v2.space.xl, paddingBottom: 36 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 8 },
   back: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   section: { gap: 12 },
-  card: { backgroundColor: '#FFFFFF', borderColor: '#E4EBE7', borderWidth: 1, borderRadius: 18, padding: 18, gap: 12 },
-  input: { minHeight: 50, borderWidth: 1, borderColor: '#B1C6BE', borderRadius: 11, paddingHorizontal: 12,
-    paddingVertical: 12, backgroundColor: '#FFFFFF', color: '#143D35', fontSize: 16 },
+  card: { backgroundColor: v2.color.surface, borderColor: v2.color.line, borderWidth: 1, borderRadius: v2.radius.card, padding: v2.space.lg, gap: v2.space.md },
+  input: { minHeight: v2.target.primary, borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: v2.radius.input, paddingHorizontal: 12,
+    paddingVertical: 12, backgroundColor: v2.color.surface, color: v2.color.ink, ...v2.text.body },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  notice: { backgroundColor: '#EEF5F1', borderRadius: 18, padding: 18, gap: 10 },
+  notice: { backgroundColor: v2.color.context, borderRadius: v2.radius.card, padding: v2.space.lg, gap: 10 },
 });
+
+/** Keep secondary fields available without competing with the current place or pin. */
+export function LocationDetails({ label, summary, children, disabled = false }: {
+  label: string; summary?: string; children: ReactNode; disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  return <View style={locationStyles.section}>
+    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open, disabled }}
+      disabled={disabled} haptic="select" onPress={() => { if (!disabled) setOpen(value => !value); }}
+      style={[locationStyles.row, { minHeight: v2.target.minimum, paddingVertical: v2.space.sm }]}>
+      <View style={{ flex: 1, gap: v2.space.xs }}>
+        <T style={[v2.text.body, { color: v2.color.ink }]}>{label}</T>
+        {!open && summary ? <T style={[v2.text.label, { color: v2.color.muted }]}>{summary}</T> : null}
+      </View>
+      <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><V2Icon name="chevron" size={18} /></View>
+    </Press>
+    {open ? children : null}
+  </View>;
+}
 
 export function LocationField({ label, hint, ...props }: TextInputProps & { label: string; hint?: string }) {
   return <View style={{ gap: 8 }}>
@@ -60,7 +81,7 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
               {value === option.value ? <Check size={18} color={palette.teal500} /> : null}
             </Press>)}
           </ScrollView>
-          <Button full kind="quiet" label="Odustani" onPress={() => setOpen(false)} />
+          <Button kind="quiet" label="Odustani" onPress={() => setOpen(false)} />
         </SafeAreaView>
       </View>
     </Modal>
@@ -94,9 +115,9 @@ export function LocationScreen({ title, onBack, loading, error, onRetry, childre
   return <SafeAreaView style={locationStyles.screen} edges={['top', 'bottom']}>
     <View style={locationStyles.header}>
       <Press accessibilityLabel="Nazad" accessibilityRole="button" onPress={onBack} style={locationStyles.back}>
-        <ArrowLeft size={22} color={palette.ink} />
+        <V2Icon name="back" />
       </Press>
-      <T variant="title" style={{ flex: 1, fontSize: 20 }}>{title}</T>
+      <T accessibilityRole="header" style={{ flex: 1, ...v2.text.title, color: v2.color.ink }}>{title}</T>
     </View>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={locationStyles.content}>

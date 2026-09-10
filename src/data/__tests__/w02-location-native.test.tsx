@@ -27,6 +27,8 @@ jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: jest.fn() }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
+jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
+jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
 
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
@@ -58,6 +60,20 @@ const text = () => tree.root.findAll(node => String(node.type) === 'T')
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('actual native Need location form', () => {
+  it('keeps private details out of the initial form and preserves edits across disclosure', async () => {
+    const onSave = jest.fn();
+    await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Tačna adresa (privatno, opciono)' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Mesto rada — deo grada (opciono)' })).toHaveLength(0);
+    await openChoice('Privatni detalji Zadatka');
+    await edit('Tačna adresa (privatno, opciono)', 'Sačuvana privatna ispravka');
+    await openChoice('Privatni detalji Zadatka'); await openChoice('Privatni detalji Zadatka');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Tačna adresa (privatno, opciono)' }).props.value).toBe('Sačuvana privatna ispravka');
+    expect(confirm().props.accessibilityState.checked).toBe(false);
+    await check(); await save();
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ exactAddress: 'Sačuvana privatna ispravka' }));
+  });
+
   it('requires point confirmation before saving and does not publish the precise point in geography', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
@@ -126,6 +142,7 @@ describe('actual native Need location form', () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     await check();
+    await openChoice('Privatni detalji Zadatka');
     await edit('Tačna adresa (privatno, opciono)', 'Nova privatna adresa 2');
     expect(confirm().props.accessibilityState.checked).toBe(false);
     await save(); expect(onSave).not.toHaveBeenCalled();
@@ -161,6 +178,8 @@ describe('actual native Need location form', () => {
     } } };
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByProps({ accessibilityLabel: 'Početna tačka — grad ili mesto' }).props.value).toBe('Novi Sad');
+    expect(text()).toContain('Liman');
+    await openChoice('Početna tačka — dodatni javni opis');
     expect(tree.root.findByProps({ accessibilityLabel: 'Početna tačka — deo grada (opciono)' }).props.value).toBe('Liman');
     await check(); await save();
     expect(onSave.mock.calls[0][0].geography).toEqual(loaded.value.geography);

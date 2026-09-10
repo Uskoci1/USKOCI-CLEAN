@@ -16,6 +16,11 @@ export type ConfiguredLocationQuery = Readonly<{
   /** Local account incarnation + point/input lifetime. Never sent to the server. */
   scopeKey: string;
 }>;
+export type ConfiguredReverseLocationQuery = Readonly<{
+  position: Readonly<{ latitude: number; longitude: number }>;
+  countryCode: CountryCode;
+  scopeKey: string;
+}>;
 export type LocationResolverCandidate = Readonly<{
   /** A private candidate label, never an automatic public place/address assignment. */
   label: string;
@@ -53,12 +58,21 @@ function query(raw: unknown): ConfiguredLocationQuery | null {
   const scopeKey = locationText(input.scopeKey, 8192);
   return text && code && scopeKey ? { text, countryCode: code, scopeKey } : null;
 }
+function reverseQuery(raw: unknown): ConfiguredReverseLocationQuery | null {
+  const input = record(raw), position = record(input?.position);
+  if (!input || !only(input, ['position', 'countryCode', 'scopeKey']) || !position || !only(position, ['latitude', 'longitude'])) return null;
+  const code = countryCode(input.countryCode), scopeKey = locationText(input.scopeKey, 8192);
+  const { latitude, longitude } = position;
+  return code && scopeKey && typeof latitude === 'number' && Number.isFinite(latitude) && Math.abs(latitude) <= 90
+    && typeof longitude === 'number' && Number.isFinite(longitude) && Math.abs(longitude) <= 180
+    ? { position: { latitude, longitude }, countryCode: code, scopeKey } : null;
+}
 
 /** The approved proxy normalizes its provider-specific response to this bounded envelope:
  * { candidates: [{ label, countryCode, position: {latitude, longitude}, providerHint, candidateId? }] }
  * No response fields are copied wholesale and no missing coordinates/identity are inferred.
  */
-function candidates(raw: unknown, input: ConfiguredLocationQuery, providerHint: string): readonly LocationResolverCandidate[] | null {
+function candidates(raw: unknown, input: Pick<ConfiguredLocationQuery, 'countryCode'>, providerHint: string): readonly LocationResolverCandidate[] | null {
   const envelope = record(raw);
   if (!envelope || !only(envelope, ['candidates']) || !Array.isArray(envelope.candidates) || envelope.candidates.length > 20) return null;
   const result: LocationResolverCandidate[] = [];
@@ -100,11 +114,9 @@ export function createConfiguredLocationResolver(rawConfig?: ConfiguredLocationR
     active = null;
     previous?.controller.abort();
   };
-  return {
-    cancel,
-    async search(rawQuery: unknown, signal?: AbortSignal): Promise<ConfiguredLocationResolution> {
+  const lookup = async (rawQuery: unknown, signal?: AbortSignal, reverse = false): Promise<ConfiguredLocationResolution> => {
       cancel();
-      const input = query(rawQuery);
+      const input = reverse ? reverseQuery(rawQuery) : query(rawQuery);
       if (!input) return { status: 'INVALID_QUERY' };
       if (signal?.aborted) return { status: 'CANCELLED' };
       if (!config) return { status: 'PROVIDER_ACTIVATION_BLOCKED' };
@@ -133,7 +145,8 @@ export function createConfiguredLocationResolver(rawConfig?: ConfiguredLocationR
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             // Neither local scope/account metadata nor access notes accompany the
             // text the user expressly submitted to the configured private proxy.
-            body: JSON.stringify({ countryCode: input.countryCode, text: input.text }),
+            body: JSON.stringify('position' in input ? { mode: 'reverse', countryCode: input.countryCode, position: input.position }
+              : { countryCode: input.countryCode, text: input.text }),
             signal: controller.signal, credentials: 'omit', redirect: 'error', cache: 'no-store', referrerPolicy: 'no-referrer',
           });
           if (!owns()) throw new Error('LOCATION_CANCELLED');
@@ -142,7 +155,7 @@ export function createConfiguredLocationResolver(rawConfig?: ConfiguredLocationR
           const raw: unknown = await response.json();
           if (!owns()) throw new Error('LOCATION_CANCELLED');
           const normalized = candidates(raw, input, config.providerHint);
-          if (normalized === null) throw new Error('LOCATION_INVALID_RESPONSE');
+          if (normalized === null || reverse && normalized.length > 1) throw new Error('LOCATION_INVALID_RESPONSE');
           return { status: 'PROPOSALS', candidates: normalized, requiresConfirmation: true };
         };
         return await Promise.race([request(), cancelled]);
@@ -156,6 +169,10 @@ export function createConfiguredLocationResolver(rawConfig?: ConfiguredLocationR
         if (rejectCancelled) controller.signal.removeEventListener('abort', rejectCancelled);
         if (active === requestScope) active = null;
       }
-    },
+    };
+  return {
+    cancel,
+    search: (rawQuery: unknown, signal?: AbortSignal) => lookup(rawQuery, signal),
+    reverse: (rawQuery: unknown, signal?: AbortSignal) => lookup(rawQuery, signal, true),
   };
 }

@@ -7,8 +7,9 @@ let mockFocused = true;
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => unknown) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
+jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', locationStyles: { card: {} } }));
+jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails', locationStyles: { card: {} } }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -26,7 +27,7 @@ const deferred = <T,>() => {
   const promise = new Promise<T>(done => { resolve = done; });
   return { promise, resolve };
 };
-const configured = (result: ConfiguredLocationResolution = proposals) => ({ search: jest.fn().mockResolvedValue(result), cancel: jest.fn() });
+const configured = (result: ConfiguredLocationResolution = proposals) => ({ search: jest.fn().mockResolvedValue(result), reverse: jest.fn().mockResolvedValue(result), cancel: jest.fn() });
 const buttons = () => tree.root.findAllByType('Button' as React.ElementType);
 const button = (label: string) => buttons().find(node => node.props.label === label)!;
 const field = (suffix: string) => tree.root.findAllByType('LocationField' as React.ElementType).find(node => node.props.label.endsWith(suffix))!;
@@ -165,4 +166,34 @@ it('a temporary disabled state invalidates an in-flight lookup before the editor
   await render({ resolver, initialQuery: 'Place' });await press('Pronađi na mapi');
   await update({ disabled: true });await update({ disabled: false });await act(async () => result.resolve(proposals));
   expect(buttons().some(node => node.props.label.startsWith('Izaberi predlog'))).toBe(false);expect(map().props.position).toBeNull();
+});
+
+
+it('looks up an address only on request, then preserves the manual pin until explicit confirmation', async () => {
+  const resolver=configured();await render({resolver});const manual={latitude:45.255,longitude:19.845};
+  await act(async()=>map().props.onChoose(manual));expect(resolver.reverse).not.toHaveBeenCalled();
+  await press('Pronađi adresu za ovaj pin');expect(resolver.reverse).toHaveBeenCalledWith({position:manual,countryCode:'RS',scopeKey:props.scopeKey});
+  expect(map().props.position).toEqual(manual);expect(field('privatna adresa (opciono)').props.value).toBe('');
+  await press('Koristi privatnu adresu: '+candidate.label);expect(field('privatna adresa (opciono)').props.value).toBe(candidate.label);
+  expect(map().props.position).toEqual(manual);expect(props.onConfirm).not.toHaveBeenCalled();
+  await press('Potvrdi tačku: Početak');expect(props.onConfirm).toHaveBeenCalledWith({slot:'start',latitudeE6:45255000,longitudeE6:19845000,origin:{kind:'MANUAL_PIN'},address:candidate.label});
+});
+
+it('reverse outage and a late result cannot remove or replace a newer manual pin',async()=>{
+  const pending=deferred<ConfiguredLocationResolution>();const resolver=configured();resolver.reverse.mockReturnValueOnce(pending.promise).mockResolvedValueOnce({status:'UNAVAILABLE'});
+  await render({resolver});await act(async()=>map().props.onChoose({latitude:45,longitude:19}));await press('Pronađi adresu za ovaj pin');
+  const newer={latitude:45.1,longitude:19.1};await act(async()=>map().props.onChoose(newer));await act(async()=>pending.resolve(proposals));
+  expect(map().props.position).toEqual(newer);expect(button('Koristi privatnu adresu: '+candidate.label)).toBeUndefined();
+  await press('Pronađi adresu za ovaj pin');expect(map().props.position).toEqual(newer);expect(button('Potvrdi tačku: Početak').props.disabled).toBe(false);
+});
+
+it('cancelling reverse lookup preserves an explicitly confirmed provider pin and rejects late proposals', async () => {
+  const pending = deferred<ConfiguredLocationResolution>(), resolver = configured(); resolver.reverse.mockReturnValue(pending.promise);
+  await render({ resolver, initialQuery: 'Place' }); await press('Pronađi na mapi'); await press(`Izaberi predlog: ${candidate.label}`);
+  await press('Potvrdi tačku: Početak'); expect(props.onConfirm).toHaveBeenCalledTimes(1);
+  const invalidations = (props.onInvalidate as jest.Mock).mock.calls.length;
+  await press('Pronađi adresu za ovaj pin'); await press('Otkaži pretragu'); await act(async () => pending.resolve(proposals));
+  expect(map().props.position).toEqual(candidate.position); expect(props.onInvalidate).toHaveBeenCalledTimes(invalidations);
+  expect(button('Koristi privatnu adresu: '+candidate.label)).toBeUndefined();
+  expect(props.onConfirm).toHaveBeenCalledTimes(1);
 });

@@ -197,3 +197,22 @@ it('blur cancellation also rejects a late response body and permits a fresh retr
   await expect(first).resolves.toEqual({ status: 'CANCELLED' });
   await expect(resolver.search(input)).resolves.toMatchObject({ status: 'PROPOSALS' });
 });
+
+
+it('reverse sends only an explicit point and country, preserving cancellation across lookup kinds', async () => {
+  const pending=deferred<ReturnType<typeof response>>();const fetcher=jest.fn().mockReturnValueOnce(pending.promise).mockResolvedValueOnce(response());
+  const resolver=createConfiguredLocationResolver(config,fetcher);
+  const reverse=resolver.reverse({position:{latitude:45.255,longitude:19.845},countryCode:'RS',scopeKey:'private-scope'});
+  await Promise.resolve();
+  expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({mode:'reverse',countryCode:'RS',position:{latitude:45.255,longitude:19.845}});
+  const forward=resolver.search(input);pending.resolve(response());
+  await expect(reverse).resolves.toEqual({status:'CANCELLED'});await expect(forward).resolves.toMatchObject({status:'PROPOSALS'});
+});
+
+it('reverse rejects extra fields, invalid coordinates and multiple results',async()=>{
+  const fetcher=jest.fn().mockResolvedValue(response({candidates:[candidate,{...candidate,candidateId:'second'}]}));
+  const resolver=createConfiguredLocationResolver(config,fetcher), valid={position:{latitude:0,longitude:0},countryCode:'RS',scopeKey:'scope'};
+  for(const raw of [{...valid,text:'private'},{...valid,position:{latitude:'0',longitude:0}},{...valid,position:{latitude:91,longitude:0}}])
+    await expect(resolver.reverse(raw)).resolves.toEqual({status:'INVALID_QUERY'});
+  expect(fetcher).not.toHaveBeenCalled();await expect(resolver.reverse(valid)).resolves.toEqual({status:'UNAVAILABLE'});
+});

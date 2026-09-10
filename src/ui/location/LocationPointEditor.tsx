@@ -4,9 +4,9 @@ import { Linking, View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationPinOrigin, LocationSlot } from '../../contracts/location';
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution, type LocationResolverCandidate } from '../../data/configuredLocationResolver';
 import { locationPrivateText } from '../../lib/location';
-import { Button } from '../Button';
+import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
-import { LocationField, locationStyles as s } from './LocationControls';
+import { LocationDetails, LocationField, locationStyles as s } from './LocationControls';
 import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
 
 type Props = {
@@ -32,6 +32,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const [error, setError] = useState(false);
   const [searchText, setSearchText] = useState(initialQuery);
   const [lookup, setLookup] = useState<ConfiguredLocationResolution | { status: 'IDLE' | 'LOADING' }>({ status: 'IDLE' });
+  const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const focus = useRef(false), requestEpoch = useRef(0), renderEpoch = useRef(0);
@@ -73,7 +74,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   const search = async () => {
     if (!owns() || lookup.status === 'LOADING') return;
-    retireSearch(); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate(); setLookup({ status: 'LOADING' });
+    retireSearch(); setLookupMode('search'); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate(); setLookup({ status: 'LOADING' });
     const epoch = requestEpoch.current;
     try {
       const result = await resolver.search({ text: searchText, countryCode, scopeKey });
@@ -83,11 +84,29 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
     }
   };
+  const reverse = async () => {
+    if (!owns() || !position || lookup.status === 'LOADING') return;
+    // Explicit lookup only; preserve the user's point throughout transport.
+    // A provider's nearest place may have different coordinates.
+    retireSearch(); setLookupMode('reverse'); setLookup({ status: 'LOADING' });
+    const epoch = requestEpoch.current;
+    try {
+      const result = await resolver.reverse({ position, countryCode, scopeKey });
+      if (!alive.current || !focus.current || current.current.disabled || epoch !== requestEpoch.current) return;
+      setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
+    } catch {
+      if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
+    }
+  };
   const selectCandidate = (candidate: LocationResolverCandidate) => {
     if (!owns()) return;
+    if (lookupMode === 'reverse') {
+      // Selecting the proposed address does not move or confirm the manual pin.
+      retireSearch(); setAddress(candidate.label); setSelectedLabel(candidate.label); invalidate(); return;
+    }
     retireSearch(); setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label); invalidate();
   };
-  const cancelSearch = () => { if (owns()) { retireSearch(true); invalidate(); } };
+  const cancelSearch = () => { if (owns()) { retireSearch(lookupMode === 'search'); if (lookupMode === 'search') invalidate(); } };
   const confirm = () => {
     if (!owns() || !position) return;
     const privateAddress = address.trim() ? locationPrivateText(address, 1000) : null;
@@ -112,23 +131,29 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi trenutno nisu dostupni. Pokušajte ponovo ili izaberite tačku na mapi.</T> : null}
     {lookup.status === 'RATE_LIMITED' ? <T variant="meta" accessibilityRole="alert">Previše pretraga za kratko vreme. Sačekajte pa pokušajte ponovo ili izaberite tačku na mapi.</T> : null}
     {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesite mesto i proverite izabranu državu.</T> : null}
-    {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">Nema predloga za uneti tekst. Precizirajte mesto ili izaberite tačku na mapi.</T> : null}
+    {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">{lookupMode === 'reverse'
+      ? 'Adresa za ovu tačku nije pronađena. Možete je uneti ručno.' : 'Nema predloga za uneti tekst. Precizirajte mesto ili izaberite tačku na mapi.'}</T> : null}
     {lookup.status === 'PROPOSALS' ? <T variant="meta" accessibilityRole="link"
       onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
     {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <Button
-      key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={`Izaberi predlog: ${candidate.label}`}
+      key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={`${lookupMode === 'reverse' ? 'Koristi privatnu adresu' : 'Izaberi predlog'}: ${candidate.label}`}
       kind="quiet" disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
     {selectedLabel ? <T variant="meta">Predlog za proveru: {selectedLabel}</T> : null}
     {lookup.status !== 'IDLE' || selectedLabel ? <Button label="Otkaži pretragu" kind="quiet" disabled={disabled || !focused} onPress={cancelSearch} /> : null}
     <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={disabled || !focused} />
+    {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}
+      kind="quiet" disabled={disabled || !focused || lookup.status === 'LOADING'} onPress={reverse} /> : null}
+    <LocationDetails label={`${title} — privatni detalji tačke`} disabled={disabled || !focused}
+      summary={address || notes ? 'Privatni detalji su uneti. Otvorite za pregled.' : 'Dodajte adresu ili napomenu po potrebi'}>
     <LocationField label={`${title} — privatna adresa (opciono)`} value={address} maxLength={1000} editable={!disabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(true); setAddress(value); invalidate(); } }} />
     <LocationField label={`${title} — privatne napomene za pristup (opciono)`} value={notes} maxLength={2000} multiline editable={!disabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(true); setNotes(value); invalidate(); } }} />
+    </LocationDetails>
     {error ? <T accessibilityRole="alert" tone="danger">Proverite izabranu tačku i privatne podatke.</T> : null}
     <T variant="meta" tone={point && !pending ? 'success' : 'muted'}>
       {point && !pending ? 'Tačka je potvrđena u ovom obrascu.' : pending ? 'Izmena tačke još nije potvrđena.' : 'Tačka još nije potvrđena.'}
     </T>
-    <Button label={`Potvrdi tačku: ${title}`} kind="secondary" disabled={disabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
+    <Button label={`Potvrdi tačku: ${title}`} kind="primary" disabled={disabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
   </View>;
 }
