@@ -1,236 +1,115 @@
-import React, { useState, useCallback, useRef } from "react";
-import { View, ScrollView, TextInput, Alert, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { T } from "../../../../ui/Text";
-import { Button } from "../../../../ui/Button";
-import { palette, space, radius } from "../../../../theme/tokens";
-import { useIzvor } from "../../../../store/uloga";
-import { noviZahtevId } from "../../../../lib/idempotencija";
-import type { PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from "../../../../contracts/projections";
+import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from '../../../../contracts/projections';
+import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
+import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../../../data/applicationSelectionClientService';
+import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
+import { noviZahtevId } from '../../../../lib/idempotencija';
+import { sesijaSada, useSesija } from '../../../../store/sesija';
+import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { ApplicationSelectionPresentation, SelectionUnavailable, type ApplicationDraft } from '../../../../ui/v2/ApplicationSelectionPresentation';
 
-export default function PrijavaEkran() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const izvor = useIzvor();
-  
-  const [prilika, setPrilika] = useState<PrilikaProjekcija | null>(null);
-  const [potreba, setPotreba] = useState<PotrebaProjekcija | null>(null);
-  const [profil, setProfil] = useState<RadnikProfilProjekcija | null>(null);
-  const [ucitavam, setUcitavam] = useState(true);
-  const [readError, setReadError] = useState(false);
-  const [readAttempt, setReadAttempt] = useState(0);
-  const readAction = useRef(false);
-  
-  const [cena, setCena] = useState("");
-  const [pokrivenaMesta, setPokrivenaMesta] = useState("1");
-  const [napomena, setNapomena] = useState("");
-  const [saljem, setSaljem] = useState(false);
-  // One screen submission attempt keeps one semantic key. If the server commits
-  // and the response is lost, a retry must replay that exact command rather
-  // than silently creating a new Application version.
-  const clientRequestIdRef = useRef<string | null>(null);
-
-  // Hidden tabs remain mounted after Back; each focus owns a fresh read.
+type Receipt = { prijavaId: string; verzija: number; hash: string };
+type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
+type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
+export default function Prijava() {
+  const params = useLocalSearchParams<{ id?: string }>();
+  const id = typeof params.id === 'string' ? params.id : undefined;
+  const izvor = useIzvor(), router = useRouter(), role = useUloga();
+  const { user, accountRevision } = useSesija();
+  // One uncertain intent survives a retained tab, but never an A→B→A transition.
+  const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }),
+    [id, izvor, user?.id, accountRevision, role]);
+  const [, render] = useState(0);
+  const [validation, setValidation] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
-    let ziv = true;
-    setUcitavam(true);
-    setReadError(false);
-    setPrilika(null);
-    setPotreba(null);
-    setProfil(null);
-    readAction.current = false;
-    
-    async function ucitajSve() {
-      if (typeof id !== 'string' || !id.trim()) { setUcitavam(false); return; }
-      try {
-        const [p, pot, prof] = await Promise.all([
-          izvor.prilika(id),
-          izvor.potreba(id),
-          izvor.mojRadnikProfil()
-        ]);
-        if (ziv) {
-          setPrilika(p);
-          setPotreba(pot);
-          setProfil(prof);
-          
-          if (p?.rezimCene === 'MY_PRICE' && p.ponudjenaCena) {
-             setCena(String(p.ponudjenaCena.iznos));
-          }
-          
-          if (!prof || prof.stanje !== 'ACTIVE') {
-             Alert.alert("Profil nije popunjen", "Morate popuniti svoj radnički profil pre nego što podnesete prijavu.");
-             router.replace("/profil/radnik" as any);
-          }
-        }
-      } catch {
-        if (ziv) setReadError(true);
-      } finally {
-        if (ziv) setUcitavam(false);
-      }
-    }
-    
-    ucitajSve();
-    
-    return () => { ziv = false; };
-  }, [id, izvor, readAttempt, router]));
-
-  const backFromRead = () => {
-    if (readAction.current) return;
-    readAction.current = true;
+    session.focused = true; session.focusToken++; render(v => v + 1);
+    return () => { session.focused = false; };
+  }, [session]));
+  const read = useCallback(async (): Promise<Ishod<Loaded>> => {
+    const generation = ++session.readRevision; session.reading = true;
+    session.navigated = false;
+    if (!id) { session.reading = false; return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni.' }; }
+    try {
+      const [liveOpportunity, liveNeed, liveProfile, applications] = await boundedApplicationSelectionRead(Promise.all([
+        izvor.prilika(id), izvor.potreba(id), izvor.mojRadnikProfil(), izvor.mojePrijave(),
+      ]));
+      // Visibility can close after a committed write. A successful owned list
+      // read still permits replay of only the frozen original request.
+      const opportunity = liveOpportunity ?? session.pending?.opportunity;
+      const need = liveNeed ?? session.pending?.need;
+      const profile = liveProfile ?? session.pending?.profile;
+      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite Zadatak i radni profil.' };
+      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelno stanje.' };
+      // Displayed terms and command revision come from the same Need read.
+      const displayedOpportunity = { ...opportunity, naslov: need.naslov, podrucjeTekst: need.podrucjeTekst, vremeTekst: need.vremeTekst,
+        pokrivenost: need.pokrivenost, rezimCene: need.rezimCene, ponudjenaCena: need.ponudjenaCena };
+      if (!session.draft) session.draft = { price: need.rezimCene === 'MY_PRICE' ? String(need.ponudjenaCena?.iznos ?? '') : '', people: '1', note: '', start: null, end: null };
+      else if (!session.pending && need.rezimCene === 'MY_PRICE') session.draft = { ...session.draft, price: String(need.ponudjenaCena?.iznos ?? '') };
+      if (session.pending) session.pending.reconciled = !session.pending.inFlight;
+      const result = session.pending?.result;
+      return { ok: true, podatak: { opportunity: displayedOpportunity, need, profile, applications, receipt: result?.ok ? result.podatak : null } };
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' }; }
+    finally { if (generation === session.readRevision) session.reading = false; }
+  }, [id, izvor, session]);
+  const editor = useOwnedEditor(read), data = editor.data;
+  const focusToken = session.focusToken, readRevision = session.readRevision;
+  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision && ulogaSada() === role;
+  const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
+  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
+  const back = () => {
+    if (!current()) return;
+    if (session.navigated) return;
+    session.navigated = true;
     if (router.canGoBack()) router.back();
-    else router.replace(typeof id === 'string' && id.trim()
-      ? { pathname: '/prilike/[id]', params: { id } } : '/prilike');
+    else if (id) router.replace({ pathname: '/prilike/[id]', params: { id } });
+    else router.replace('/prilike');
   };
-
-  const retryRead = () => {
-    if (readAction.current) return;
-    readAction.current = true;
-    setReadAttempt(attempt => attempt + 1);
+  const submit = () => {
+    if (!current() || !data || !session.draft || session.pending?.inFlight) return;
+    const draft = session.draft;
+    if (!session.pending) {
+      const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN;
+      const people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
+      if (!Number.isSafeInteger(price) || price < 1 || price > 2_147_483_647 || !Number.isSafeInteger(people) ||
+          people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesite celu cenu u RSD i broj ljudi koji staje u preostala mesta.'); return; }
+      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proverite aktuelni Zadatak i aktivan radni profil.'); return; }
+      const deadline = data.opportunity.rokZaPrijaveIso;
+      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osvežite Zadatak.'); return; }
+    }
+    void editor.save(async () => {
+      setValidation(null);
+      if (!session.pending) session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false,
+        command: Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
+          radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
+          predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null }) };
+      const pending = session.pending;
+      pending.inFlight = true; pending.reconciled = false;
+      let result: Ishod<Receipt>;
+      try { result = await izvor.podnesiPrijavu(pending.command); }
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proverite stanje.' }; }
+      finally { pending.inFlight = false; }
+      pending.result = result;
+      if (session.focused && currentAccount()) render(v => v + 1);
+      return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
+    });
   };
-
-  const podnesi = async () => {
-    if (!potreba || !prilika || !profil) {
-      Alert.alert("Greška", "Podaci o prilici nisu učitani. Pokušajte ponovo.");
-      return;
-    }
-    const cenaBroj = parseInt(cena, 10);
-    if (isNaN(cenaBroj) || cenaBroj <= 0) {
-      Alert.alert("Greška", "Unesite ispravnu cenu u RSD.");
-      return;
-    }
-    const mestaBroj = parseInt(pokrivenaMesta, 10);
-    const preostalaMesta = Math.max(0, potreba.pokrivenost.preostalo);
-    if (isNaN(mestaBroj) || mestaBroj < 1 || mestaBroj > preostalaMesta) {
-      Alert.alert("Greška", "Broj ljudi mora biti u okviru trenutno preostalih mesta.");
-      return;
-    }
-
-    if (!clientRequestIdRef.current) {
-      clientRequestIdRef.current = noviZahtevId("prijava");
-    }
-
-    setSaljem(true);
-    const k = {
-      clientRequestId: clientRequestIdRef.current,
-      potrebaId: potreba.id,
-      potrebaRevizija: potreba.revizija,
-      radnikProfilId: profil.id,
-      pokrivenaMesta: mestaBroj,
-      cenaRsd: cenaBroj,
-      predlozeniPocetak: null,
-      predlozeniKraj: null,
-      napomena: napomena.trim() ? napomena.trim() : null,
-    };
-    
-    const ishod = await izvor.podnesiPrijavu(k);
-    setSaljem(false);
-    if (ishod.ok) {
-      Alert.alert("Uspeh", "Prijava je uspešno podneta!");
-      router.replace("/moje-prijave" as any);
-    } else {
-      // A known server rejection means this semantic command definitely did not
-      // commit, so a corrected payload gets a fresh key. RPC_ERROR is the
-      // transport/unknown-outcome fallback and deliberately keeps the old key.
-      if (ishod.kod !== 'RPC_ERROR') {
-        clientRequestIdRef.current = null;
-      }
-      Alert.alert(ishod.naslov || "Greška pri slanju", ishod.poruka);
-    }
-  };
-
-  if (ucitavam) {
-    return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground, padding: space.base, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={palette.forest700} />
-        <T variant="meta" tone="muted" style={{ marginTop: space.sm }}>Učitavam...</T>
-        <Button label="Nazad na zadatak" kind="quiet" onPress={backFromRead} />
-      </SafeAreaView>
-    );
-  }
-
-  if (readError || !prilika || !potreba) {
-    return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground, padding: space.base, gap: space.md }}>
-      <Button label="Nazad na zadatak" kind="quiet" onPress={backFromRead} />
-      <T variant="heading">{readError ? 'Podatke za prijavu trenutno nije moguće učitati.' : 'Podaci za prijavu nisu dostupni.'}</T>
-      <T variant="body" tone="muted">Proverite vezu i pokušajte ponovo ili se vratite na zadatak.</T>
-      {typeof id === 'string' && id.trim() && <Button label="Pokušajte ponovo" onPress={retryRead} />}
-    </SafeAreaView>;
-  }
-
-  if (!profil || profil.stanje !== 'ACTIVE') {
-    // If not active, the useEffect redirect will trigger shortly, just return empty
-    return null;
-  }
-
-  return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <ScrollView contentContainerStyle={{ padding: space.base, gap: space.md }}>
-        <T variant="heading">Sastavi prijavu</T>
-        
-        {/* C-023: Flattened Context instead of Modal */}
-        <View style={{ backgroundColor: palette.cream050, padding: space.md, borderRadius: radius.md, marginBottom: space.md }}>
-           <T variant="meta" tone="muted" style={{ fontWeight: "700" }}>Detalji posla:</T>
-           <T variant="meta" tone="muted">{prilika.naslov}</T>
-           <T variant="meta" tone="muted">{prilika.podrucjeTekst} • {prilika.vremeTekst}</T>
-        </View>
-
-        {potreba?.pokrivenost && potreba.pokrivenost.ukupno > 1 && (
-          <View style={{ gap: space.xs, marginTop: space.sm }}>
-            <T variant="label">Koliko ljudi pokrivate? (Preostalo {potreba.pokrivenost.preostalo})</T>
-            <TextInput 
-              value={pokrivenaMesta}
-              onChangeText={setPokrivenaMesta}
-              keyboardType="numeric"
-              style={{ 
-                borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-                padding: space.sm, fontSize: 16, color: palette.ink 
-              }}
-            />
-          </View>
-        )}
-        
-        <View style={{ gap: space.xs, marginTop: space.md }}>
-          <T variant="label">
-             {prilika.rezimCene === 'MY_PRICE' ? 'Fiksna cena naručioca (RSD)' : 'Vaša cena (RSD)'}
-          </T>
-          <TextInput 
-            value={cena}
-            onChangeText={setCena}
-            keyboardType="numeric"
-            placeholder="Npr. 5000"
-            editable={prilika.rezimCene !== 'MY_PRICE'}
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: prilika.rezimCene === 'MY_PRICE' ? palette.inkMuted : palette.ink,
-              backgroundColor: prilika.rezimCene === 'MY_PRICE' ? palette.cream050 : 'transparent'
-            }}
-          />
-        </View>
-
-        <View style={{ gap: space.xs, marginTop: space.sm }}>
-          <T variant="label">Napomena za naručioca</T>
-          <TextInput 
-            value={napomena}
-            onChangeText={setNapomena}
-            multiline
-            placeholder="Opciono: Možemo se dogovoriti oko..."
-            style={{ 
-              borderWidth: 1, borderColor: palette.line100, borderRadius: radius.md,
-              padding: space.sm, fontSize: 16, color: palette.ink, minHeight: 80, textAlignVertical: "top"
-            }}
-          />
-        </View>
-
-      </ScrollView>
-
-      <View style={{ padding: space.base, borderTopWidth: 1, borderTopColor: palette.line100, backgroundColor: palette.ground }}>
-         <Button 
-           label={saljem ? "Šaljem..." : "Pošalji prijavu"} 
-           disabled={saljem || !cena || !pokrivenaMesta}
-           onPress={podnesi} 
-         />
-      </View>
-    </SafeAreaView>
-  );
+  if (!data || !session.draft) return <SelectionUnavailable loading={editor.loading} message={editor.error ?? 'Podaci za prijavu nisu dostupni.'}
+    retry={refresh} back={back} />;
+  const pending = session.pending;
+  const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
+  const reset = pending && rejection && !editor.uncertain ? () => {
+    if (!current() || editor.busy || pending.inFlight || session.pending !== pending || !pending.result || pending.result.ok) return;
+    session.pending = null;
+    session.draft = { ...session.draft!, price: data.opportunity.rezimCene === 'MY_PRICE'
+      ? String(data.opportunity.ponudjenaCena?.iznos ?? '') : session.draft!.price };
+    setValidation(null); void editor.refresh();
+  } : undefined;
+  return <ApplicationSelectionPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
+    draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = draft; setValidation(null); render(v => v + 1); } }}
+    busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
+    error={validation ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovite isti sačuvani zahtev.' : null)}
+    canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
+    submit={submit} back={back} refresh={refresh} reset={reset}
+    openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true; router.replace('/moje-prijave'); }} />;
 }

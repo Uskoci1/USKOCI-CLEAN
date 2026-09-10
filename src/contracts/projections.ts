@@ -38,6 +38,22 @@ export type StanjePotrebe =
 
 export type RezimCene = 'MY_PRICE' | 'OFFERS';
 
+/** Exact current Need schedule columns; absence never means a guessed interval. */
+export type NeedScheduleProjection = {
+  kind: 'FIXED_WINDOW' | 'FLEXIBLE' | 'REMOTE_ANYTIME' | 'TODAY_FLEXIBLE' | 'TOMORROW_FLEXIBLE' | 'WEEK_FLEXIBLE';
+  startsAt: string | null;
+  endsAt: string | null;
+};
+
+/** Existing public Need columns/relations; private addresses and pins are absent. */
+export type NeedDetailProjection = {
+  kategorija: string;
+  geografija: import('./needFactsV2').NeedTaskGeography | null;
+  rezimLokacije: import('./needFactsV2').NeedTaskGeographyMode | null;
+  zahtevi: { vestine: string[]; alati: string[]; vozila: string[]; dozvole: string[];
+    bitniUslovi: string[] | null; iskustvoGodina: number | null; potvrdjenIdentitet: boolean };
+};
+
 export type PotrebaProjekcija = {
   id: string;
   /** Tačna revizija. Izbor mora da se veže za nju. */
@@ -51,10 +67,13 @@ export type PotrebaProjekcija = {
   podrucjeTekst: string;
   taskCountryCode?: string;
   taskTimezone?: string;
+  schedule?: NeedScheduleProjection;
   uslovi: string[];
   brojPrijava: number;
   rezimCene?: RezimCene;
   ponudjenaCena?: Novac;
+  /** Missing only for earlier saved/mock projections; never infer missing topology. */
+  detalji?: NeedDetailProjection;
 };
 
 /* --------------------------------------------------------------- Prilika */
@@ -74,6 +93,7 @@ export type PrilikaProjekcija = {
   podrucjeTekst: string;
   taskCountryCode?: string;
   taskTimezone?: string;
+  schedule?: NeedScheduleProjection;
   vremeTekst: string;
   pokrivenost: Pokrivenost;
   uslovi: string[];
@@ -153,6 +173,10 @@ export type DokazPrijave = {
 export type KandidatProjekcija = {
   /** Id prijave, ne id osobe. Izbor bira prijavu. */
   prijavaId: string;
+  /** Current RPC values for this exact application; absent only in historical projections. */
+  potrebaRevizija?: number;
+  predlozeniPocetak?: string | null;
+  predlozeniKraj?: string | null;
   /** Bezbedan profile id za javni profil; nikada auth/account id. */
   radnikProfilId: string;
   /** Tačna verzija/hash prijave. Izbor se vezuje baš za njih. */
