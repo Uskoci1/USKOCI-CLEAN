@@ -86,7 +86,7 @@ describe('owned parent draft review screen', () => {
     mockLoad.mockResolvedValue(conversation('Ispravka nacrta', 'need-a'));
     mockNeed.mockResolvedValue({ id: 'need-a', stanje: 'NACRT', revizija: 4 });
     await render();
-    expect(text()).not.toContain('Nacrt je već sačuvan');
+    expect(text()).not.toContain('Zadatak je već sačuvan');
     await act(async () => { await button('Sačuvajte izmene').props.onPress(); });
     expect(mockConfirmEdit).toHaveBeenCalledWith('need-a', 4, 'conversation-a', expect.any(String));
     expect(mockSave).not.toHaveBeenCalled();
@@ -96,7 +96,7 @@ describe('owned parent draft review screen', () => {
     mockLoad.mockResolvedValue({ ...conversation('Sačuvani nacrt', 'need-a'), status });
     mockNeed.mockResolvedValue({ id: 'need-a', stanje: 'NACRT', revizija: 4 });
     await render();
-    expect(text()).toContain('Nacrt je već sačuvan');
+    expect(text()).toContain('Zadatak je već sačuvan');
     expect(tree.root.findAllByProps({ label: 'Sačuvajte izmene' })).toHaveLength(0);
     expect(mockConfirmEdit).not.toHaveBeenCalled();
   });
@@ -176,7 +176,7 @@ describe('owned parent draft review screen', () => {
     const pending = deferred<unknown>();
     mockLoad.mockResolvedValue(conversation('Izmena Zadatka', 'need-a')); mockNeed.mockReturnValueOnce(pending.promise);
     await render();
-    expect(text()).not.toContain('Nacrt je već sačuvan');
+    expect(text()).not.toContain('Zadatak je već sačuvan');
     expect(tree.root.findAllByProps({ label: 'Sačuvajte nacrt' })).toHaveLength(0);
     await act(async () => pending.resolve({ id: 'need-a', stanje: 'AKTIVAN', revizija: 3 }));
     expect(button('Sačuvajte izmene')).toBeDefined();
@@ -249,5 +249,39 @@ describe('owned parent draft review screen', () => {
     await render(); await reveal(); await act(async () => button('Izmenite').props.onPress());
     expect(button('Sačuvajte nacrt').props.disabled).toBe(true);
     await act(async () => button('Sačuvajte nacrt').props.onPress()); expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('reviews and seeds correction from the complete typed value rather than the proposed summary', async () => {
+    const data = conversation('Model summary', null, 'NEEDS_CONFIRMATION');
+    data.facts[0].value = 'Stvarni kompletan naslov';
+    mockLoad.mockResolvedValue(data); await render(); await reveal();
+    expect(text()).toContain('Stvarni kompletan naslov'); expect(text()).not.toContain('Model summary');
+    await act(async () => button('Izmenite').props.onPress());
+    expect(tree.root.findByType('TextInput' as React.ElementType).props.value).toBe('Stvarni kompletan naslov');
+    await act(async () => button('Sačuvaj ispravku').props.onPress());
+    expect(mockCorrect).toHaveBeenCalledWith('fact-a', 'Stvarni kompletan naslov', 'Stvarni kompletan naslov');
+  });
+
+  it('retains an unfinished correction when another row or a retained mutation is pressed', async () => {
+    const data = conversation('Naslov', null, 'NEEDS_CONFIRMATION');
+    data.facts.push({ ...data.facts[0], id: 'description-a', key: 'need.description', value: 'Opis', displayValue: 'Opis' });
+    data.review.facts = data.facts; mockLoad.mockResolvedValue(data); await render(); await reveal();
+    const oldConfirm = button('Potvrdite').props.onPress, oldLocation = button('Mesto Zadatka').props.onPress;
+    const oldSave = button('Sačuvajte nacrt').props.onPress;
+    const otherRow = tree.root.findByProps({ accessibilityLabel: 'Pregledajte: Opis' }).props.onPress;
+    await act(async () => button('Izmenite').props.onPress());
+    await act(async () => tree.root.findByType('TextInput' as React.ElementType).props.onChangeText('Moja nezavršena ispravka'));
+    await act(async () => { otherRow(); oldConfirm(); oldLocation(); oldSave(); });
+    expect(tree.root.findByType('TextInput' as React.ElementType).props.value).toBe('Moja nezavršena ispravka');
+    expect(mockConfirm).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
+    await act(async () => button('Odustani').props.onPress());
+    await reveal('Opis'); expect(tree.root.findByProps({ accessibilityLabel: 'Pregledajte: Opis' }).props.accessibilityState.expanded).toBe(true);
+  });
+
+  it('does not label an already published bound task as a private draft', async () => {
+    mockLoad.mockResolvedValue({ ...conversation('Objavljen zadatak', 'need-a'), status: 'COMPLETED' });
+    mockNeed.mockResolvedValue({ id: 'need-a', stanje: 'AKTIVAN', revizija: 4 }); await render();
+    expect(text()).toContain('Zadatak je već sačuvan'); expect(text()).not.toContain('Privatan nacrt');
+    expect(text()).not.toContain('Sačuvani nacrt');
   });
 });
