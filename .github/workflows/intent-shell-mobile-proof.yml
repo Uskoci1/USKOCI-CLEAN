@@ -2,6 +2,12 @@ name: Intent shell physical Android proof
 
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Signature Entry/Auth surfaces or historical full intent-shell journey
+        type: choice
+        options: [signature, full]
+        default: signature
   push:
     branches:
       - fix/intent-shell-20260907
@@ -17,6 +23,7 @@ env:
   RU5_DEVICE_PACKAGE: rs.uskoci.n04proof
   RU5_DEVICE_ARTIFACT_DIR: artifacts/intent-shell-device
   RU5_ENTRY_PROOF: '1'
+  ENTRY_SCOPE: ${{ inputs.scope || 'full' }}
 
 jobs:
   physical-device-ui-proof:
@@ -54,8 +61,13 @@ jobs:
       - name: TypeScript contract check
         run: npx tsc --noEmit
 
-      - name: Regression tests
-        run: npm test -- --runInBand
+      - name: Relevant presentation regressions
+        run: |
+          if [ "$ENTRY_SCOPE" = signature ]; then
+            node scripts/ci/scope.cjs test auth
+          else
+            npm test -- --runInBand
+          fi
 
       - name: Physical input harness regression tests
         run: python3 -m unittest scripts/test_ru5_android_input.py scripts/test_intent_shell_android.py -v
@@ -70,6 +82,7 @@ jobs:
         run: node supabase/proofs/ru5_device_ui_fixture.mjs
 
       - name: Apply N02 and N03 locally; real authenticated selection and Inbox fixture
+        if: env.ENTRY_SCOPE != 'signature'
         run: node supabase/proofs/notifications/n04_inbox_device_fixture.mjs
 
       - name: Bind proof APK to disposable emulator-host Supabase
@@ -170,9 +183,17 @@ jobs:
             mkdir -p artifacts/intent-shell-device
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell settings put system pointer_location 0 || true
-            bash scripts/intent_shell_run_journey.sh
+            if [ "$ENTRY_SCOPE" = signature ]; then
+              set -o pipefail
+              git rev-parse HEAD > artifacts/intent-shell-device/proof-build.txt
+              sha256sum android/app/build/outputs/apk/release/app-release.apk src/ui/entry/*.tsx src/ui/entry/spojBrand*.ts src/app/auth.tsx src/app/oporavak.tsx scripts/entry_spoj_android.py scripts/ru5_android_device_ui_journey.py >> artifacts/intent-shell-device/proof-build.txt
+              python3 scripts/entry_spoj_android.py 2>&1 | tee artifacts/intent-shell-device/proof.log
+            else
+              bash scripts/intent_shell_run_journey.sh
+            fi
 
       - name: Validate physical Inbox evidence chain
+        if: env.ENTRY_SCOPE != 'signature'
         run: |
           grep -F 'PASS N04_PHYSICAL_INBOX' artifacts/intent-shell-device/proof.log
           grep -F 'CHECKPOINT GATES_UNCHANGED' artifacts/intent-shell-device/proof.log
@@ -182,6 +203,7 @@ jobs:
           done
 
       - name: Validate physical three-zone navigation evidence
+        if: env.ENTRY_SCOPE != 'signature'
         run: |
           grep -F 'PASS PHYSICAL_INTENT_SHELL' artifacts/intent-shell-device/proof.log
           grep -F 'PASS NAV_LOCAL_FIXTURE' artifacts/intent-shell-device/proof.log
@@ -198,6 +220,7 @@ jobs:
           assert.equal(fixture.publicationProof, false);
           NODE
       - name: Validate SPOJ entry proof
+        if: env.ENTRY_SCOPE != 'signature'
         run: |
           grep -F 'PASS SPOJ_ENTRY_PHYSICAL' artifacts/intent-shell-device/proof.log
           test -s artifacts/intent-shell-device/ENTRY_intro.mp4
@@ -205,7 +228,25 @@ jobs:
             test -s "artifacts/intent-shell-device/${checkpoint}.png"
             test -s "artifacts/intent-shell-device/${checkpoint}.xml"
           done
+      - name: Validate signature Entry/Auth originals
+        if: env.ENTRY_SCOPE == 'signature'
+        run: |
+          grep -F 'PASS SPOJ_ENTRY_SIGNATURE_PHYSICAL' artifacts/intent-shell-device/proof.log
+          node <<'NODE'
+          const fs=require('fs'),assert=require('assert/strict'),base='artifacts/intent-shell-device/';
+          const r=JSON.parse(fs.readFileSync(base+'entry-signature-report.json','utf8'));
+          assert.equal(r.status,'PASS');assert.equal(r.scope,'SPOJ_V2_ENTRY_SIGNATURE');assert.equal(r.sourceSha,process.env.GITHUB_SHA);
+          assert.equal(r.loopbackFixtureOnly,true);assert.equal(r.authCredentialsEntered,false);assert.equal(r.authLoginProven,false);
+          assert.equal(r.signupSubmitted,false);assert.equal(r.recoveryRequested,false);assert.equal(r.productionAuthProven,false);
+          assert.equal(r.nativeVisualParityAccepted,false);assert.equal(r.osReducedMotionObserved,true);
+          const checkpoints=['ENTRY_welcome','ENTRY_requester_before','ENTRY_requester_auth','ENTRY_worker_before','ENTRY_worker_auth','ENTRY_login','ENTRY_empty_error','ENTRY_recovery_surface','ENTRY_registration','ENTRY_back_to_welcome','ENTRY_reduced_motion_welcome','ENTRY_reduced_requester_auth','ENTRY_reduced_worker_auth'];
+          const videos=['ENTRY_intro.mp4','ENTRY_requester_sweep.mp4','ENTRY_worker_sweep.mp4','ENTRY_reduced_requester.mp4','ENTRY_reduced_worker.mp4'];
+          assert.deepEqual(r.checkpoints,checkpoints);assert.deepEqual(r.videos,videos);
+          for(const name of checkpoints){assert.equal(fs.readFileSync(base+name+'.png').subarray(0,8).toString('hex'),'89504e470d0a1a0a');assert.ok(fs.readFileSync(base+name+'.xml','utf8').includes('<hierarchy'));}
+          for(const name of videos)assert.ok(fs.statSync(base+name).size>1024);
+          NODE
       - name: Validate disposable business effects
+        if: env.ENTRY_SCOPE != 'signature'
         run: |
           test "$(psql "$RU5_DEVICE_DB_URL" -Atc "
             select count(*)
