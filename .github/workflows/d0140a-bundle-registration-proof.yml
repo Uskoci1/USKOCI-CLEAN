@@ -11,6 +11,7 @@ env:
   N07_ARTIFACT_DIR: artifacts/d0140a-bundle-registration/predecessor-n07
   N08_ARTIFACT_DIR: artifacts/d0140a-bundle-registration/predecessor-n08
   D0140A_ARTIFACT_DIR: artifacts/d0140a-bundle-registration
+  W05_DISPOSABLE_PROOF: '1'
 jobs:
   policy-bundle-registration-proof:
     runs-on: ubuntu-latest
@@ -38,10 +39,18 @@ jobs:
         run: |
           node scripts/ci/scope.cjs test policy
           node --check supabase/proofs/policy/d0140a_bundle_registration_proof.mjs
+          node --check supabase/proofs/policy/publication_authority_proof.mjs
           node --check supabase/proofs/policy/d0140a_bundle_registration_predecessor.mjs
-          node --test supabase/proofs/policy/d0140a_bundle_registration_predecessor.test.mjs
+          node --test supabase/proofs/policy/d0140a_bundle_registration_predecessor.test.mjs supabase/proofs/policy/publication_source_boundary.test.mjs
           node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
           python3 supabase/migrations/check_migration_integrity.py
+      - name: Exercise actual publication Edge handler with isolated transports
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D0140A_ARTIFACT_DIR/w05"
+          node --test --test-reporter=tap supabase/proofs/policy/publication_evaluator_edge.test.mjs 2>&1 | tee "$D0140A_ARTIFACT_DIR/w05/edge-handler.tap"
+          node -e 'const fs=require("fs"),crypto=require("crypto"),path=process.env.D0140A_ARTIFACT_DIR+"/w05",tap=fs.readFileSync(path+"/edge-handler.tap","utf8"); for(const [key,n] of Object.entries({tests:31,pass:31,fail:0,cancelled:0,skipped:0,todo:0})) if(!new RegExp("^# "+key+" "+n+"$","m").test(tap))process.exit(1); const files=["supabase/functions/uskoci-publication-evaluate/index.ts","supabase/proofs/policy/publication_evaluator_edge.test.mjs"];fs.writeFileSync(path+"/edge-handler-source.json",JSON.stringify({result:"PASS",source_sha:process.env.GITHUB_SHA,tests:31,provider_called:false,mocked_transports:true,input_sha256:Object.fromEntries(files.map(f=>[f,crypto.createHash("sha256").update(fs.readFileSync(f)).digest("hex")]))},null,2)+"\n");'
       - name: Reconstruct disposable historical live79
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
       - name: Prepare existing disposable Auth fixture
@@ -67,7 +76,14 @@ jobs:
           set -euo pipefail
           node supabase/proofs/policy/d0140a_bundle_registration_proof.mjs 2>&1 | tee "$D0140A_ARTIFACT_DIR/proof.log"
           grep -F 'PASS D0140A_BUNDLE_REGISTRATION' "$D0140A_ARTIFACT_DIR/proof.log"
-          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.D0140A_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.policy_activated_live || r.rule_text_seeded || r.allow_enabled || (!r.successor_replay || !r.successor_replay.original_history_unchanged || !r.successor_replay.domain_state_security_and_projection_unchanged || r.successor_replay.count!==r.predecessor_plan.pending_successor_count || r.migration_history_count!==r.predecessor_history_count+1+r.successor_replay.count) || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==r.predecessor_plan.expected_predecessor_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==0 || r.checks.length!==6) process.exit(1);'
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.D0140A_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.full_source_plan.source_migration_count!==103 || r.predecessor_plan.source_migration_count!==102 || r.intentional_next_authority_forward.file!=="20260910144644_clean_w05_publication_evaluator_authority.sql" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.provider_called || r.legal_content_real || r.policy_activated_live || r.rule_text_seeded || r.allow_enabled || (!r.successor_replay || !r.successor_replay.original_history_unchanged || !r.successor_replay.domain_state_security_and_projection_unchanged || r.successor_replay.count!==r.predecessor_plan.pending_successor_count || r.migration_history_count!==r.predecessor_history_count+1+r.successor_replay.count) || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.predecessor_history_count!==r.predecessor_plan.expected_predecessor_count || !r.exact_forward_file_applied_disposable || !r.original_predecessor_full_history_unchanged || r.original_full_history_sha256!==r.after_original_full_history_sha256 || r.lock_interleavings.length!==0 || r.checks.length!==6) process.exit(1);'
+      - name: Apply exact W05 successor and prove authenticated publication authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          node supabase/proofs/policy/publication_authority_proof.mjs 2>&1 | tee "$D0140A_ARTIFACT_DIR/w05/publication-proof.log"
+          grep -F 'PASS W05_PUBLICATION_AUTHORITY' "$D0140A_ARTIFACT_DIR/w05/publication-proof.log"
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.D0140A_ARTIFACT_DIR+"/w05/publication-proof-report.json"));if(r.result!=="PASS"||r.source_sha!==process.env.GITHUB_SHA||r.history_count!==103||r.checks.length!==14||r.checks.some(c=>c.result!=="PASS")||new Set(r.checks.map(c=>c.name)).size!==14||r.lock_interleavings!==6||!r.old_d0140_six_checks_before_intentional_forward||!r.original_source102_history_unchanged||!r.policy_fixture_restored_inert||!r.unrelated_calendar_application_market_rows_unchanged||r.live_access||r.live_promotion||r.provider_called||r.legal_content_real||r.policy_activated_live||r.mocked_rpc_responses||r.location_fixture_sql||r.published_status_fixture_sql||r.decision_insert_fixture_sql)process.exit(1);'
       - name: Upload exact source-bound disposable evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

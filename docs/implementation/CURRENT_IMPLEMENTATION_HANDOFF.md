@@ -1,3 +1,64 @@
+## Current W05 source — 2026-09-10 / publication UI connected; DB and promotion pending
+
+W05 publication is **WRITTEN / UI_CONNECTED / TARGETED SOURCE PROVEN** on canonical `cc839c0d1f5a29a7f47b6aaf5044a81c4010101b`. R04 now performs an explicit saved-Need/revision check, then a separate user-confirmed canonical publication with no additional application deadline. Only a validated stored ALLOW enables publication. NOT_READY and other outcomes remain truthful; unknown outcomes keep the same key until readback, while known rejections require fresh evaluation. Receipt-confirmed publication is followed by a real read, with a refresh-needed message if that read fails. Account, focus/background, revision and bounded-read guards retire stale callbacks.
+
+The existing R07 correction path now recognizes an actual OPEN conversation bound to DRAFT; a completed intake stays already saved. Open-edit receipts must be authoritative and match the reviewed Need/revision. SQL103 and the authenticated Edge evaluator extend existing context/B06/B07/edit owners; provider input is limited to the public classification projection. No legacy AI publish or automatic publication is introduced.
+
+Latest client+screen checks pass **2 suites / 143 tests (102+41)**. Earlier related UI checks passed 6 suites/120 tests; the 31-test Edge actual-handler proof uses synthetic transport and no database/provider. Local TSC and AST135/51/0 pass. The earlier full Jest run is **100/101 suites, 1626/1627 tests**, with one unchanged W02 map 5000ms timeout; its isolated 21-test rerun passed. This is not a full final-source PASS. Exact source hashes and individual boundaries are in [W05 source evidence](evidence/w05-publication-20260910/verification.json).
+
+Actual SQL103 DB/CI proof, final merge, live deployment, real provider classification and native publication journey are **PENDING / NOT_OBSERVED**. Live remains the accepted PR90/SQL102 checkpoint below; do not reapply it. RC2/Retention V1 approval is already recorded; the remaining dependency is access to and reconciliation of exact approved source content and operational facts. RS BUILDING, inactive production publication policy and 0 RSD/checkout OFF remain.
+
+Separate recorded live102 observation: an unauthenticated empty POST to the existing geocoder returned HTTP401 at 15:07:29 UTC. No address or credentials were sent; this is neither an authenticated provider result nor a native pin proof.
+
+Next: review and run the exact SQL103 successor proof, preserving the D0140 source102 boundary, then final CI/review/merge and controlled deployment with postflight. The preceding PR90/live102 and older checkpoints below retain their historical evidence.
+
+---
+
+## 2026-09-10 — PR90 canonical, LIVE102 and exact Edge readback
+
+PR90 merged at `cc839c0d1f5a29a7f47b6aaf5044a81c4010101b`. All merge checks were green.
+W02 run 34487734179 at f2388d76709eb314a901721a203a6fac46c22fc6 passed; its
+PR test merge and canonical commit share tree 53c343e95b55d02a2942f92a803518d75455fddf.
+The original artifact 10156589833 is 39305 bytes, SHA256
+fe6dbc34c4c38413b1a3c42698b1f9a6b502547004cf0dfd4fd7b9bc3ebf45a7.
+All 102 migrations replayed; 54 existing W02 and 11 resolved-location Auth/SDK
+checks passed. AI 58 and LocationIQ 21 actual-handler tests use synthetic transport.
+
+Production is 102 migrations, pending 0, last alias
+20260910143934_clean_w02_resolved_location_authority. The single live statement
+matches all 100971 source bytes, MD5 fb96a85b7ef88425e4ab51afbb6aa418 and SHA256
+3aec6ef4189e0df5ce157e661a64487655645e6b6eee94675f60dcace1214dcf.
+Postflight at 14:40:32 UTC accepted 25 function bodies, 7 private helper ACLs and 6
+triggers; prior history, business-row hashes and existing security stayed equal.
+The new private envelope/fact counts remain 0. Private fingerprint helper EXECUTE
+was denied; live helper results were not observed. CI legacy compatibility and
+row/body hashes provide the recorded preservation evidence. The read-only query
+alias correction deferrable→is_deferrable changed no deployed SQL or grants.
+
+AI Edge is observed ACTIVE v16/JWT true, with exact handler and 22-key registry
+readback. Only need.resolved_location is manual-only; 21 keys remain AI-proposable,
+and private points stay out of AI context. Versions 13–15 have no observed
+provenance. LocationIQ search Edge is ACTIVE v1/JWT true with exact source
+readback. The owner confirmed LOCATIONIQ_ACCESS_TOKEN is set; its value was
+never read and credential validity was not tested. File/EZBR hashes are retained
+in [the compact evidence](evidence/w02-live102-20260910/verification.json).
+
+Native debug build, in-place install and JavaScript bundle passed at the
+recorded local boundary. This does not establish final-source APK identity or
+a successful app journey. Automated ADB launch/reverse and live-connected web
+start were policy blocked; no workaround was used. Actual authenticated
+address→LocationIQ result→coordinates→native pin remains NOT_OBSERVED.
+
+Next: W05 publication admission is being prepared on
+feat/w05-publication-admission-20260910 from this canonical commit; no new W05
+implementation or live activation exists at this checkpoint. Existing W05
+Application behavior remains intact. RS BUILDING, inactive publication policy,
+0 RSD and earlier proof limits remain; whole W02 is not declared closed. Frozen
+live87 replay metadata retains its historical meaning. Do not reapply SQL102.
+Earlier checkpoints below are historical and do not override this record.
+
+---
+
 ## 2026-09-10 — resolved private points: source ready for disposable admission
 
 Current branch: feat/w02-resolved-location-20260910, based on canonical PR89.

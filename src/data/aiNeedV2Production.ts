@@ -15,6 +15,7 @@ import {
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { normalizeNeedLocation } from '../lib/location';
+import { positiveInteger, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -164,6 +165,7 @@ export const aiNeedV2Production = {
     return {
       conversationId,
       schemaVersion: NEED_FACT_SCHEMA_V2,
+      status: ['OPEN', 'COMPLETED', 'ABANDONED'].includes(conversation.status) ? conversation.status : undefined,
       messages,
       facts: review.facts,
       review,
@@ -237,17 +239,18 @@ export const aiNeedV2Production = {
    * Refused after the first Dogovor; that is the server's rule, not the client's.
    */
   async openEditConversation(needId: string): Promise<Ishod<AiNeedEditOpened>> {
-    const { data, error } = await supabase.rpc('rpc_ai_open_need_edit_conversation_v2', { p_need_id: needId });
-    if (error) return editFailure(error, 'NEED_EDIT_OPEN_FAILED');
-    const conversationId = typeof data?.conversationId === 'string' ? data.conversationId : '';
-    const revision = Number(data?.revision);
-    if (!conversationId || !Number.isInteger(revision) || revision < 1) {
-      return fail('NEED_EDIT_INVALID_RESPONSE', 'Server nije otvorio izmenu Zadatka.');
-    }
-    return {
-      ok: true,
-      podatak: { conversationId, needId: typeof data?.needId === 'string' ? data.needId : needId, revision },
-    };
+    if (!uuid(needId)) return fail('NEED_REQUIRED', 'Učitajte Zadatak pre izmene.');
+    return readReceipt({ rpc: 'rpc_ai_open_need_edit_conversation_v2', args: { p_need_id: needId },
+      errors: NEED_EDIT_COPY, write: true, fallback: 'NEED_EDIT_OPEN_FAILED', invalid: 'NEED_EDIT_INVALID_RESPONSE',
+      decode(raw): AiNeedEditOpened | null {
+        const data = record(raw);
+        if (!data || !Object.keys(data).every(key => ['conversationId', 'needId', 'revision', 'status', 'authoritative'].includes(key))
+          || !uuid(data.conversationId) || !sameId(data.needId, needId) || !positiveInteger(data.revision)
+          || typeof data.status !== 'string' || !['DRAFT', 'PUBLISHED', 'SELECTION'].includes(data.status) || data.authoritative !== true) return null;
+        return { conversationId: data.conversationId, needId: data.needId, revision: data.revision,
+          needStatus: data.status as AiNeedEditOpened['needStatus'], authoritative: true };
+      },
+    });
   },
 
   /**

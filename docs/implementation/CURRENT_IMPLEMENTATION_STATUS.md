@@ -1,3 +1,24 @@
+## Current pointer — 2026-09-10 / W05 source written and UI connected
+
+Canonical remains PR90 `cc839c0d1f5a29a7f47b6aaf5044a81c4010101b`; accepted production remains LIVE102. W05 R04 publication and existing R07 DRAFT correction are now **WRITTEN / UI_CONNECTED**, with SQL103 and the Edge evaluator source prepared. Latest client + screen 143 and synthetic Edge 31 checks pass; earlier UI 120 and AST 135/51/0 pass. Final local TSC passes. The earlier full local Jest run passed 100/101 suites and 1626/1627 tests with one unchanged W02 map timeout; isolated map 21 passed. Final DB/CI, merge/live, real provider and native publication proof remain pending.
+
+See [the current handoff](CURRENT_IMPLEMENTATION_HANDOFF.md) and [exact W05 source evidence](evidence/w05-publication-20260910/verification.json). RC2/Retention V1 are approved; exact source-content access/reconciliation remains a dependency. No new live activation is claimed. The PR90/live102 pointer below is the preceding checkpoint.
+
+---
+
+## Current pointer — 2026-09-10 / PR90 canonical and LIVE102
+
+PR90 is merged at `cc839c0d1f5a29a7f47b6aaf5044a81c4010101b`; exact-source CI,
+SQL102 postflight and AI v16 / LocationIQ v1 exact Edge readback pass. The
+22-key registry keeps resolved points manual-only. Actual authenticated
+provider/native pin proof remains NOT_OBSERVED. W05 publication admission
+is preparation only, with no new implementation or live activation.
+See [the current handoff](CURRENT_IMPLEMENTATION_HANDOFF.md) and
+[recorded evidence](evidence/w02-live102-20260910/verification.json).
+The older PR66 and other checkpoints below retain their historical scope.
+
+---
+
 ## Current entry acceptance — original Android sequence and 34 checkpoints reviewed
 
 PR66 source `82a99fc115ff813327e9548c66fedd8413d29bff` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / CANONICAL PROMOTION PENDING**. Fresh canonical remains `80e091ee31930b28cc5c2e0af6b6e876a4926362` and is already integrated. Native run34163510260 passed; original artifact10033887904 is 5,847,655 bytes, SHA-256 `c82d1206009dd410c303b2a3517f6abbd68e4e07fbffc975bc62be8661de3386`. All 34 original PNG/XML pairs were individually reviewed: 7 entry, 17 account/navigation and 10 Inbox checkpoints. Both real local accounts, logout to the two-field login form, three-zone intents, full Agreement schedule/amount and current W04 Back pass.

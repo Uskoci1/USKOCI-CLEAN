@@ -39,7 +39,7 @@ function deferred<T>() {
 function conversation(display = 'Pregled naloga A', boundNeedId: string | null = null, status: AiNeedV2Fact['status'] = 'CONFIRMED'): AiNeedV2Conversation {
   const fact: AiNeedV2Fact = { id: 'fact-a', key: 'need.title', displayValue: display, value: display, valueType: 'TEXT',
     privacyClass: 'PUBLIC', requiredForDraft: true, source: 'EXPLICIT_USER_ANSWER', evidence: null, status };
-  return { conversationId: mockConversationId, schemaVersion: 'NEED_FACT_V2', messages: [], facts: [fact], safety: 'ALLOW',
+  return { conversationId: mockConversationId, schemaVersion: 'NEED_FACT_V2', status: 'OPEN', messages: [], facts: [fact], safety: 'ALLOW',
     review: { conversationId: mockConversationId, schemaVersion: 'NEED_FACT_V2', boundNeedId, canSaveDraft: status === 'CONFIRMED',
       missingRequired: status === 'CONFIRMED' ? [] : ['need.title'], facts: [fact] } };
 }
@@ -63,6 +63,24 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('owned parent draft review screen', () => {
+  it('edits an actual OPEN conversation bound to a saved DRAFT through the existing confirmEdit owner', async () => {
+    mockLoad.mockResolvedValue(conversation('Ispravka nacrta', 'need-a'));
+    mockNeed.mockResolvedValue({ id: 'need-a', stanje: 'NACRT', revizija: 4 });
+    await render();
+    expect(text()).not.toContain('Nacrt je već sačuvan');
+    await act(async () => { await button('Sačuvajte izmene').props.onPress(); });
+    expect(mockConfirmEdit).toHaveBeenCalledWith('need-a', 4, 'conversation-a', expect.any(String));
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it.each(['COMPLETED', 'ABANDONED', undefined, 'UNKNOWN'])('does not infer an edit from boundNeedId when status is %s', async status => {
+    mockLoad.mockResolvedValue({ ...conversation('Sačuvani nacrt', 'need-a'), status });
+    mockNeed.mockResolvedValue({ id: 'need-a', stanje: 'NACRT', revizija: 4 });
+    await render();
+    expect(text()).toContain('Nacrt je već sačuvan');
+    expect(tree.root.findAllByProps({ label: 'Sačuvajte izmene' })).toHaveLength(0);
+    expect(mockConfirmEdit).not.toHaveBeenCalled();
+  });
   it('refreshes on return from the real location editor and rejects a stale review action', async () => {
     mockLoad.mockResolvedValueOnce(conversation('Prvo mesto')).mockResolvedValueOnce(conversation('Sačuvano novo mesto'));
     await render();

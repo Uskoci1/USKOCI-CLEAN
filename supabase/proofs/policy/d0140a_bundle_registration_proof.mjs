@@ -11,10 +11,12 @@ import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {readD0140aPredecessorPlan} from './d0140a_bundle_registration_predecessor.mjs';
+import {publicationBoundary} from './publication_source_boundary.mjs';
 
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url,db);
-const plan=readD0140aPredecessorPlan();
+const boundary=publicationBoundary(readD0140aPredecessorPlan());
+const plan=boundary.predecessorPlan;
 const out=env.D0140A_ARTIFACT_DIR||'artifacts/d0140a-bundle-registration';mkdirSync(out,{recursive:true});
 const manifest=JSON.parse(readFileSync('supabase/proofs/policy/d0140a_bundle_registration_files.json','utf8'));
 const forward=`supabase/migrations/${manifest.forward_file}`,bytes=readFileSync(forward);
@@ -30,7 +32,8 @@ const report={unit:'D0140A_BUNDLE_REGISTRATION',source_sha:env.GITHUB_SHA||null,
   live_access:false,live_promotion:false,provider_called:false,mobile_proof:false,legal_content_real:false,
   policy_activated_live:false,rule_text_seeded:false,allow_enabled:false,
   fixture_boundary:'REAL_LOCAL_POSTGREST_AND_ROLE_SCOPED_PSQL_TRANSACTIONS',
-  candidate:manifest,predecessor_plan:plan,checks:[],lock_interleavings:[]};
+  candidate:manifest,predecessor_plan:plan,full_source_plan:boundary.fullPlan,
+  intentional_next_authority_forward:boundary.next,checks:[],lock_interleavings:[]};
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
 const admin=createClient(url,env.RU5_DEVICE_SERVICE_ROLE_KEY,options);
 const rid=env.RU5_DEVICE_REQUESTER_USER_ID,needId=env.RU5_DEVICE_NEED_ID;

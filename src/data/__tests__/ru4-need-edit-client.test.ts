@@ -11,6 +11,8 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+let mockOwner = { user: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }, accountRevision: 1 };
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockOwner }));
 
 jest.mock('../supabaseClient', () => {
   const mockRpc = jest.fn();
@@ -52,11 +54,33 @@ describe('RU-4 — R04 edit no longer dead-ends', () => {
 });
 
 describe('RU-4 — openEditConversation', () => {
-  it('passes the exact need id and returns the bound conversation with its revision', async () => {
-    resetRpc({ data: { conversationId: CONVERSATION, needId: NEED, revision: 3, status: 'PUBLISHED' }, error: null });
+  it.each(['DRAFT', 'PUBLISHED', 'SELECTION'])('passes the exact need id and preserves actual %s Need status, separately from conversation OPEN', async status => {
+    resetRpc({ data: { conversationId: CONVERSATION, needId: NEED, revision: 3, status, authoritative: true }, error: null });
     const result = await aiNeedV2Production.openEditConversation(NEED);
     expect(mockRpc.mock.calls).toEqual([['rpc_ai_open_need_edit_conversation_v2', { p_need_id: NEED }]]);
-    expect(result).toEqual({ ok: true, podatak: { conversationId: CONVERSATION, needId: NEED, revision: 3 } });
+    expect(result).toEqual({ ok: true, podatak: { conversationId: CONVERSATION, needId: NEED, revision: 3, needStatus: status, authoritative: true } });
+  });
+
+  it.each([
+    ['missing need', { needId: undefined }], ['foreign need', { needId: CONVERSATION }], ['invalid conversation', { conversationId: 'bad' }],
+    ['string revision', { revision: '3' }], ['unsafe revision', { revision: 2_147_483_648 }], ['missing authority', { authoritative: undefined }],
+    ['false authority', { authoritative: false }], ['conversation status used as need status', { status: 'OPEN' }],
+    ['unknown need status', { status: 'UNKNOWN' }], ['array status', { status: ['DRAFT'] }],
+    ['unexpected private payload', { privateDetails: 'secret server field' }],
+  ])('rejects %s without inventing a bound edit receipt', async (_, change) => {
+    resetRpc({ data: { conversationId: CONVERSATION, needId: NEED, revision: 3, status: 'DRAFT', authoritative: true, ...change }, error: null });
+    const result = await aiNeedV2Production.openEditConversation(NEED);
+    expect(result).toMatchObject({ ok: false, kod: 'NEED_EDIT_INVALID_RESPONSE' });
+    expect(JSON.stringify(result)).not.toContain('secret server field');
+  });
+
+  it('ignores a late open-edit receipt after the account incarnation changes', async () => {
+    let resolve!: (value: unknown) => void;
+    mockRpc.mockReset(); mockRpc.mockReturnValue(new Promise(done => { resolve = done; }));
+    const pending = aiNeedV2Production.openEditConversation(NEED);
+    mockOwner = { ...mockOwner, accountRevision: mockOwner.accountRevision + 2 };
+    resolve({ data: { conversationId: CONVERSATION, needId: NEED, revision: 3, status: 'DRAFT', authoritative: true }, error: null });
+    await expect(pending).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
   });
 
   it('translates the post-Dogovor lock into product language and keeps the server code', async () => {
