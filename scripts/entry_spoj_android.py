@@ -143,13 +143,14 @@ def prove_spoj_entry(signature=False):
     wait_visible(desc='Prijavi se')
     assert_entry_welcome()
     shot('ENTRY_back_to_welcome')
-    # Read and restore the actual device preference, never assume it began at 1.
-    previous = adb('shell', 'settings', 'get', 'global', 'animator_duration_scale').stdout.strip()
+    # Both installed RN AccessibilityInfo and Reanimated read TRANSITION_ANIMATION_SCALE.
+    # Preserve the actual preference; animator_duration_scale is a different setting.
+    previous = adb('shell', 'settings', 'get', 'global', 'transition_animation_scale').stdout.strip()
     if previous != 'null' and not re.fullmatch(r'(?:0|[1-9][0-9]*)(?:\.[0-9]+)?', previous):
-        raise RuntimeError('Unexpected original animator duration setting')
-    adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', '0')
+        raise RuntimeError('Unexpected original transition animation setting')
+    adb('shell', 'settings', 'put', 'global', 'transition_animation_scale', '0')
     try:
-        if adb('shell', 'settings', 'get', 'global', 'animator_duration_scale').stdout.strip() != '0':
+        if adb('shell', 'settings', 'get', 'global', 'transition_animation_scale').stdout.strip() != '0':
             raise RuntimeError('Reduced-motion OS setting was not observed')
         launch_clean()
         assert_entry_welcome()
@@ -159,10 +160,10 @@ def prove_spoj_entry(signature=False):
             entry_intent_to_auth('Ja mogu', 'ENTRY_reduced_worker')
     finally:
         if previous == 'null':
-            adb('shell', 'settings', 'delete', 'global', 'animator_duration_scale')
+            adb('shell', 'settings', 'delete', 'global', 'transition_animation_scale')
         else:
-            adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', previous)
-        if adb('shell', 'settings', 'get', 'global', 'animator_duration_scale').stdout.strip() != previous:
+            adb('shell', 'settings', 'put', 'global', 'transition_animation_scale', previous)
+        if adb('shell', 'settings', 'get', 'global', 'transition_animation_scale').stdout.strip() != previous:
             raise RuntimeError('Original animator duration setting was not restored')
     if signature:
         import json
@@ -177,7 +178,7 @@ def prove_spoj_entry(signature=False):
             'signupSubmitted': False, 'recoveryRequested': False,
             'productionAuthProven': False, 'nativeVisualParityAccepted': False,
             'framePerfectDurationMeasured': False,
-            'osReducedMotionObserved': True, 'originalAnimatorSettingRestored': previous,
+            'osReducedMotionObserved': True, 'originalTransitionSettingRestored': previous,
         }
         (ARTIFACT_DIR / 'entry-signature-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
         print('PASS SPOJ_ENTRY_SIGNATURE_PHYSICAL 13_png_xml 5_original_videos actual_auth_surfaces no_credentials', flush=True)

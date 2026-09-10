@@ -325,6 +325,7 @@ class EntrySignaturePrelude(unittest.TestCase):
             with self.subTest(original=original), tempfile.TemporaryDirectory() as folder:
                 setting = [original]
                 def adb(*args, **kwargs):
+                    self.assertEqual(args[4], 'transition_animation_scale')
                     if args[:4] == ('shell', 'settings', 'put', 'global'):
                         setting[0] = args[5]
                     elif args[:4] == ('shell', 'settings', 'delete', 'global'):
@@ -346,7 +347,7 @@ class EntrySignaturePrelude(unittest.TestCase):
                 patches['tap'].assert_any_call(text='Napravi nalog')
                 self.assertNotIn(unittest.mock.call(text='Registracija'), patches['tap'].call_args_list)
                 report = json.loads((Path(folder) / 'entry-signature-report.json').read_text())
-                self.assertEqual(report['originalAnimatorSettingRestored'], original)
+                self.assertEqual(report['originalTransitionSettingRestored'], original)
                 self.assertEqual(report['sourceSha'], 'a' * 40)
                 self.assertEqual(report['videos'], ['ENTRY_intro.mp4', 'ENTRY_requester_sweep.mp4', 'ENTRY_worker_sweep.mp4', 'ENTRY_reduced_requester.mp4', 'ENTRY_reduced_worker.mp4'])
                 self.assertFalse(report['authLoginProven'])
@@ -364,6 +365,7 @@ class EntrySignaturePrelude(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             setting = ['1.5']
             def adb(*args, **kwargs):
+                self.assertEqual(args[4], 'transition_animation_scale')
                 if args[:4] == ('shell', 'settings', 'put', 'global'):
                     setting[0] = args[5]
                 return SimpleNamespace(stdout=setting[0])

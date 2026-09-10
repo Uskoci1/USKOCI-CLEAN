@@ -4,6 +4,12 @@ import { StyleSheet } from 'react-native';
 
 let mockPhase: 'loading' | 'intro' | 'welcome' = 'welcome';
 let mockReduced = false;
+let mockFrameTime: number | null = null;
+jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
+jest.mock('../../ui/entry/spojBrandMath', () => {
+  const actual = jest.requireActual('../../ui/entry/spojBrandMath');
+  return { ...actual, brandFrame: (time: number, ...args: unknown[]) => actual.brandFrame(mockFrameTime ?? time, ...args) };
+});
 let mockAccount = { accountRevision: 0, user: null as null | { id: string } };
 let mockFontScale = 1;
 const mockFinish = jest.fn();
@@ -24,7 +30,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true,
   default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   useReducedMotion: () => mockReduced,
   Easing: { linear: (t: number) => t, bezierFn: () => (t: number) => t },
-  useAnimatedProps: () => ({}), useAnimatedStyle: () => ({}),
+  useAnimatedProps: () => ({}), useAnimatedStyle: (read: () => unknown) => read(),
   useSharedValue: (value: number) => {
     const React = jest.requireActual('react');
     return React.useRef({ get: () => value, set: jest.fn() }).current;
@@ -47,7 +53,7 @@ const button = (label: string) => tree.root.findAll(node => String(node.type) ==
 const press = async (label: string) => { await act(async () => button(label).props.onPress()); };
 const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
 const render = async () => { await act(async () => { tree = create(element()); }); };
-beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
+beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockFrameTime = null; mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
 it('shows the vector lockup and two real intent controls without dispatching on mount', async () => {
@@ -57,6 +63,21 @@ it('shows the vector lockup and two real intent controls without dispatching on 
   expect(tree.root.findAll(node => node.props.accessibilityLabel === 'USKOČI').length).toBeGreaterThan(0);
   expect(requester).not.toHaveBeenCalled(); expect(worker).not.toHaveBeenCalled();
   await press('Prijavi se'); expect(signIn).toHaveBeenCalledTimes(1);
+});
+it.each([[0, 0], [3500, 0], [3590, 0], [3895, .039375], [4200, .045], [4380, .045]])('keeps the panel boundary synchronized with original rIntroFrame at %i ms', async (time, alpha) => {
+  mockFrameTime = time; await render();
+  const style = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-brand-panel' }).props.style);
+  expect(style.backgroundColor).toBe('#FFFFFF');
+  expect(style.boxShadow[0]).toMatchObject({ offsetX: 0, offsetY: 16, blurRadius: 36 });
+  expect(Number(style.boxShadow[0].color.match(/,([^,]+)\)$/)[1])).toBeCloseTo(alpha, 10);
+});
+it.each(['Meni treba', 'Ja mogu'])('visually removes both lower text groups during %s sweep, keeping the white lockup', async label => {
+  mockFrameTime = 4380; await render();
+  const groups = () => tree.root.findAll(node => String(node.type) === 'AnimatedView' && node.props.importantForAccessibility);
+  expect(groups().map(node => StyleSheet.flatten(node.props.style).opacity)).toEqual([1, 1]);
+  await press(label);
+  expect(groups().map(node => StyleSheet.flatten(node.props.style).opacity)).toEqual([0, 0]);
+  expect(tree.root.findByProps({ testID: 'entry-brand-panel' })).toBeTruthy();
 });
 it.each([['Meni treba', requester], ['Ja mogu', worker]] as const)('hides both choices immediately and delivers %s exactly once after 760ms', async (label, callback) => {
   await render(); const oldPress = button(label).props.onPress;
@@ -96,6 +117,13 @@ it('does not deliver after unmount', async () => {
 it('reduces selection motion to an immediate real callback', async () => {
   mockReduced = true; await render(); await press('Ja mogu');
   expect(worker).toHaveBeenCalledTimes(1); expect(mockTiming).not.toHaveBeenCalled();
+});
+it('cancels an in-progress sweep when the system preference changes and accepts an immediate fresh choice', async () => {
+  await render(); await press('Meni treba');
+  mockReduced = true; await act(async () => tree.update(element()));
+  await advance(1000); expect(requester).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ testID: 'entry-intent-fill' })).toHaveLength(0);
+  await press('Ja mogu'); expect(worker).toHaveBeenCalledTimes(1);
 });
 it('retains all controls with a vertical large-text composition', async () => {
   mockFontScale = 2; await render();

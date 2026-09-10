@@ -3,7 +3,8 @@ import { AppState, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'phosphor-react-native';
 import { SvgXml } from 'react-native-svg';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { useEntryIntro } from '../../hooks/useEntryIntro';
 import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -20,7 +21,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
   onRequester: () => void | Promise<void>; onWorker: () => void | Promise<void>; onSignIn: () => void; busy?: boolean; error?: string | null;
 }) {
   const { width, height, fontScale } = useWindowDimensions();
-  const insets = useSafeAreaInsets(), reduced = useReducedMotion();
+  const insets = useSafeAreaInsets(), reduced = useSystemReducedMotion();
   const { readiness, onLayout } = useEntrySplashReady();
   const { phase, finish } = useEntryIntro(readiness);
   const account = useSesija().accountRevision;
@@ -39,8 +40,13 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
   const time = useBrandClock(intro && !!logo, phase === 'loading' || (intro && !logo), finish);
   const green = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.greenPercent * width / 200 }] }));
   const orange = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.orangePercent * width / 200 }] }));
+  const panel = useAnimatedStyle(() => {
+    const background = brandFrame(time.get(), phone, measuredLogo).background;
+    const alpha = .045 * (1 + background.greenPercent / 101);
+    return { boxShadow: [{ offsetX: 0, offsetY: 16, blurRadius: 36, color: `rgba(20,61,53,${alpha})` }] };
+  });
   const slogan = useAnimatedStyle(() => { const f = brandFrame(time.get(), phone, measuredLogo).slogan; return { opacity: f.opacity, transform: [{ translateY: f.y }] }; });
-  const choices = useAnimatedStyle(() => { const f = brandFrame(time.get(), phone, measuredLogo).choices; return { opacity: f.opacity, transform: [{ translateY: f.y }] }; });
+  const choices = useAnimatedStyle(() => { const f = brandFrame(time.get(), phone, measuredLogo).choices; return { opacity: selected ? 0 : f.opacity, transform: [{ translateY: f.y }] }; });
   const sweep = useAnimatedStyle(() => {
     const q = fillEase(Math.max(0, Math.min(1, (selectionTime.get() - 110) / 530)));
     return { transform: [{ translateX: (selected === 'REQUESTER' ? -1 : 1) * width / 2 * (1 - q) }] };
@@ -60,7 +66,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
       if (pending.current?.timer) clearTimeout(pending.current.timer);
       pending.current = null; cancelAnimation(selectionTime); subscription.remove();
     };
-  }, [account, selectionTime]);
+  }, [account, selectionTime, reduced]);
 
   const choose = (intent: Intent) => {
     if (phase !== 'welcome' || busy || pending.current || sesijaSada().accountRevision !== account || sesijaSada().user) return;
@@ -98,11 +104,11 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
       </> : null}
     </View>
     <ScrollView scrollEnabled={!intro && !selected} contentContainerStyle={[styles.scroll, { minHeight: height, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View testID="entry-brand-panel" onLayout={event => {
+      <Animated.View testID="entry-brand-panel" onLayout={event => {
         const box = event.nativeEvent.layout;
         const next = { x: box.x + (large ? 16 : 19), y: box.y + (large ? 20 : 26), width: logoWidth, height: logoWidth * 104 / 320 };
         setLogo(previous => previous && Object.keys(next).every(key => previous[key as keyof Box] === next[key as keyof Box]) ? previous : next);
-      }} style={[styles.panel, { width: panelWidth }, large && styles.largePanel]}>
+      }} style={[styles.panel, { width: panelWidth }, large && styles.largePanel, panel]}>
         <View style={{ width: logoWidth, height: logoWidth * 104 / 320 }}>
           {phase === 'welcome' ? <BrandLockup width={logoWidth} /> : null}
         </View>
@@ -110,9 +116,9 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
           <Text style={[styles.tagline, width <= 380 && styles.smallTagline]}>Tvoj partner</Text>
           <Text style={[styles.tagline, styles.orangeText, width <= 380 && styles.smallTagline]}>za svaki zadatak.</Text>
         </Animated.View>
-      </View>
+      </Animated.View>
       <Animated.View pointerEvents={enabled ? 'auto' : 'none'} accessibilityElementsHidden={!enabled} importantForAccessibility={enabled ? 'auto' : 'no-hide-descendants'}
-        style={[styles.choices, large && styles.largeChoices, choices, selected && styles.hidden]}>
+        style={[styles.choices, large && styles.largeChoices, choices]}>
         <Press accessibilityRole="button" accessibilityLabel="Meni treba" disabled={!enabled} haptic={enabled ? 'light' : 'none'} scaleTo={1} hitSlop={0}
           onPress={() => choose('REQUESTER')} style={[styles.intent, large && styles.largeRequester]}>
           <Text style={[styles.kicker, styles.whiteText]}>Meni treba</Text>
@@ -129,7 +135,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
         </Press>
       </Animated.View>
       <Animated.View pointerEvents={enabled ? 'auto' : 'none'} accessibilityElementsHidden={!enabled} importantForAccessibility={enabled ? 'auto' : 'no-hide-descendants'}
-        style={[styles.footer, large && styles.largeWorker, choices, selected && styles.hidden]}>
+        style={[styles.footer, large && styles.largeWorker, choices]}>
         <Press accessibilityRole="button" accessibilityLabel="Prijavi se" disabled={!enabled} haptic={enabled ? 'select' : 'none'} onPress={onSignIn} style={styles.signIn}>
           <Text style={styles.signInText}>Već imaš nalog? Prijavi se</Text>
         </Press>
@@ -148,8 +154,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF', overflow: 'hidden' },
   half: { position: 'absolute', top: 0, bottom: 0 },
   scroll: { flexGrow: 1, alignItems: 'center' },
-  panel: { backgroundColor: '#FFFFFF', marginTop: 'auto', marginBottom: 28, paddingTop: 26, paddingHorizontal: 19, paddingBottom: 25, borderRadius: 30,
-    boxShadow: '0 16px 36px rgba(20,61,53,0.045)' },
+  panel: { backgroundColor: '#FFFFFF', marginTop: 'auto', marginBottom: 28, paddingTop: 26, paddingHorizontal: 19, paddingBottom: 25, borderRadius: 30 },
   largePanel: { marginTop: 24, marginBottom: 20, paddingVertical: 20, paddingHorizontal: 16 },
   slogan: { marginTop: 18, alignItems: 'center', gap: 1 },
   tagline: { color: '#2E7A6A', fontSize: 24, lineHeight: 29.28, fontWeight: '700', fontStyle: 'italic', letterSpacing: -.65, textAlign: 'center' },
@@ -175,7 +180,6 @@ const styles = StyleSheet.create({
   error: { marginTop: 12, color: '#943A30', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, fontSize: 14, lineHeight: 21 },
   skip: { position: 'absolute', right: 16, minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, backgroundColor: '#FFFFFF', borderRadius: 24 },
   skipText: { color: '#143D35', fontSize: 14, lineHeight: 22, fontWeight: '600' },
-  hidden: { opacity: 0 },
   motif: { position: 'absolute', left: '15%', bottom: '11%', width: '70%', height: '25%' },
   ring: { position: 'absolute', right: '-20%', bottom: '6%', borderWidth: 1, borderColor: '#FFFFFF14' },
 });
