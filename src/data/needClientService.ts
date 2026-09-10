@@ -1,5 +1,10 @@
-import type { PotrebaProjekcija, StanjePotrebe } from '../contracts/projections';
+import type { NeedDetailProjection, NeedScheduleProjection, PotrebaProjekcija, StanjePotrebe } from '../contracts/projections';
 import type { Izvor } from './ports';
+import { capabilityTerms } from '../lib/capabilityTerms';
+import { calendarInstant } from '../lib/calendarTime';
+import { countryCode, timeZone } from '../lib/market';
+import { normalizeTaskGeography } from '../lib/location';
+import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -7,10 +12,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 });
 
 type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'potreba'>;
-
-function vreme(iso: string | null | undefined) {
-  return iso ? new Date(iso).toLocaleString('sr-Latn-RS') : 'Fleksibilno';
-}
 
 function podrucje(area: string | null | undefined, city: string | null | undefined) {
   return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
@@ -42,7 +43,39 @@ function stanje(
   }
 }
 
+function detail(raw: Record<string, any>): { detail: NeedDetailProjection; schedule: NeedScheduleProjection } {
+  const invalid = (): never => { throw new Error('NEED_DETAIL_INVALID_PROJECTION'); };
+  const array = (value: unknown): string[] => capabilityTerms(value) ?? invalid();
+  const nullableDate = (value: unknown): string | null => value === null ? null
+    : typeof value === 'string' && calendarInstant(value) !== null ? value : invalid();
+  const relation = (value: unknown): Record<string, unknown> | null => value === null ? null
+    : value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : invalid();
+  const geographyRow = relation(raw.need_geography), conditions = relation(raw.need_requirement_details);
+  const topology = geographyRow ? relation(geographyRow.public_topology) ?? invalid() : null;
+  const normalizedGeography = topology ? normalizeTaskGeography(topology) : null;
+  // Historical rows predate current normalized topology and may have no witness.
+  // Keep the Need readable; never invent or display an incompatible topology.
+  const geography = normalizedGeography?.mode === raw.execution_location_mode ? normalizedGeography : null;
+  const category = typeof raw.category === 'string' ? raw.category.replace(/^ +| +$/g, '') : null;
+  const kinds = ['FIXED_WINDOW','FLEXIBLE','REMOTE_ANYTIME','TODAY_FLEXIBLE','TOMORROW_FLEXIBLE','WEEK_FLEXIBLE'];
+  const modes = ['STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED','REMOTE'];
+  if (category === null || Array.from(category).length < 1 || Array.from(category).length > 120
+    || !kinds.includes(raw.schedule_kind) || (raw.execution_location_mode !== null && !modes.includes(raw.execution_location_mode))
+    || typeof raw.verified_identity_required !== 'boolean'
+    || (raw.minimum_experience_years !== null && (!Number.isInteger(raw.minimum_experience_years) || raw.minimum_experience_years < 0))
+    || (raw.task_country_code !== null && countryCode(raw.task_country_code) !== raw.task_country_code)
+    || (raw.task_timezone !== null && !timeZone(raw.task_timezone))) invalid();
+  const od = nullableDate(raw.starts_at), end = nullableDate(raw.ends_at);
+  if (od && end && calendarInstant(od)! >= calendarInstant(end)!) invalid();
+  return { schedule: { kind: raw.schedule_kind, startsAt: od, endsAt: end },
+    detail: { kategorija: raw.category, geografija: geography, rezimLokacije: raw.execution_location_mode,
+    zahtevi: { vestine: array(raw.required_skills), alati: array(raw.required_tools), vozila: array(raw.required_vehicles),
+      dozvole: array(raw.required_licenses), bitniUslovi: conditions ? array(conditions.critical_conditions) : null,
+      iskustvoGodina: raw.minimum_experience_years, potvrdjenIdentitet: raw.verified_identity_required } } };
+}
+
 function mapNeed(raw: any): PotrebaProjekcija {
+  const { detail: detalji, schedule } = detail(raw);
   const ukupno = Math.max(1, Number(raw.required_slots ?? 1));
   const popunjeno = Math.max(0, Math.min(ukupno, Number(raw.covered_slots ?? 0)));
   const brojPrijava = Array.isArray(raw.marketplace_responses)
@@ -63,8 +96,11 @@ function mapNeed(raw: any): PotrebaProjekcija {
       preostalo: Math.max(0, ukupno - popunjeno),
       udeo: ukupno > 0 ? popunjeno / ukupno : 0,
     },
-    vremeTekst: vreme(raw.starts_at),
-    podrucjeTekst: podrucje(raw.approximate_area, raw.approximate_city),
+    vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
+    taskCountryCode: raw.task_country_code ?? undefined, taskTimezone: raw.task_timezone ?? undefined,
+    schedule,
+    detalji,
+    podrucjeTekst: detalji.rezimLokacije === 'REMOTE' ? 'Na daljinu' : podrucje(raw.approximate_area, raw.approximate_city),
     uslovi: [
       ...(raw.required_skills ?? []),
       ...(raw.required_tools ?? []),
@@ -84,18 +120,20 @@ function mapNeed(raw: any): PotrebaProjekcija {
 }
 
 const NEED_SELECT = `
-  id, revision, title, description, status, starts_at,
+  id, revision, title, description, category, status, schedule_kind, starts_at, ends_at,
+  task_country_code, task_timezone, execution_location_mode,
   approximate_area, approximate_city,
-  required_slots, required_skills, required_tools, required_vehicles,
+  required_slots, required_skills, required_tools, required_vehicles, required_licenses,
+  minimum_experience_years, verified_identity_required,
   covered_slots, mode, requester_price_rsd,
-  marketplace_responses(id)
+  marketplace_responses(id), need_geography(public_topology), need_requirement_details(critical_conditions)
 `;
 
 /**
  * Canonical production client boundary for Need read operations.
- * This intentionally preserves the exact active behavior previously owned by
- * needProductionOverrides. Database authority remains in live RLS; this service
- * only performs approved reads and maps them to the Izvor projection contract.
+ * Existing RLS owns access. Public topology/requirements are embedded in the same
+ * Need query, so detail review never joins a second revision or private location.
+ * Publication still uses its separate context/decision/command authority.
  */
 export const needClientService: NeedReadService = {
   async mojePotrebe() {
