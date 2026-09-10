@@ -118,4 +118,3 @@ export function readPendingSourcePlan({ root = process.cwd(), unitManifest, pred
     ai_draft: admitted.ai_draft,
   };
 }
-

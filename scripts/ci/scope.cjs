@@ -53,7 +53,7 @@ function classify(paths) {
     if (/calendar|Calendar|agreementClient|calendarErrors|m02-atomski/.test(path)) add('calendar');
     if (/Availability|availability|calendarTime/.test(path)) add('calendar', 'availability');
     if (/location|Location|needFactsV2|aiNeedV2Ui|needClientService/.test(path)) add('location');
-    if (/capability|Capability|workerProfile|capabilityTerms|\/ports\.ts$/.test(path)) add('capability', 'location');
+    if (/capability|Capability|workerProfile|capabilityTerms/.test(path) || path.endsWith('/ports.ts')) add('capability', 'location');
     if (/^src\/data\/supabaseIzvor\.ts$/.test(path)) add(...W02, 'auth', 'export');
     // Changing a proof workflow must execute that proof once at the ready boundary.
     if (/\.github\/workflows\/w01-/.test(path)) add('auth');

@@ -83,3 +83,12 @@ test('draft, ready, release and source mismatch use the actual event and checkou
     assert.equal(fromEnvironment({ ...env, GITHUB_EVENT_NAME: 'workflow_dispatch', CI_LEVEL: 'domain' }).runDomains, true);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+test('capability names are substrings while ports.ts is an exact filename suffix', () => {
+  for (const path of ['other/capabilityResource.ts', 'other/CapabilityContract.ts', 'other/workerProfileExtra.ts', 'other/capabilityTerms.ts', 'other/ports.ts']) {
+    assert.ok(classify([path]).includes('capability'));
+  }
+  for (const path of ['other/ports.ts.bak', 'other/ports.tsx', 'other/portsXts']) {
+    assert.ok(!classify([path]).includes('capability'));
+  }
+});
