@@ -18,6 +18,8 @@ function receipt() {
   const edges = [first,second].map((edge,index)=>({...edge,mode:'ShareLock',transaction_id:400+index}));
   return {unit:'W02_DISPATCH_NEED_LOCK_ORDER',source_sha:sha,result:'PASS',source_migration_count:108,registry_history_count:105,
     applied_authority:'REGISTRY105_PLUS_UNRECORDED_DISPATCH108',actual_postgres_major:17,
+    observed_predecessor_body_md5:{'private.dispatch_tick(integer,timestamptz)':'6bbd8765aa833b3c27209c82da99e5e4',
+      'private.expire_lifecycle(timestamptz)':'fa0ae36b9d1c63ebe4b8f9a7c3b1e26d'},
     ...Object.fromEntries(['candidate_applied','actual_auth','original_selection_rolled_back','original_cancellation_rolled_back',
       'original_history_preserved','all_function_metadata_preserved_except_two_named_bodies','all_existing_rows_preserved_at_apply',
       'same_request_key_selected_once','actual_owner_cancellation_preserved','no_fixture_blocking_calendar_events',
@@ -53,6 +55,8 @@ for (const [name,change] of [
   ['foreign cycle process',r=>r.lock_interleavings[1].waiting_expiry={...r.lock_interleavings[1].waiting_expiry,waiter_pid:99}],
   ['batch queue starvation',r=>r.lock_interleavings[3].next_free_target_processed=false],
   ['retained skipped Need lock',r=>r.lock_interleavings[3].skipped_need_lock_released=false],
+  ['legacy expiry predecessor',r=>r.observed_predecessor_body_md5['private.expire_lifecycle(timestamptz)']='3aba08b19f04bd19c06452bcd6e2e3a9'],
+  ['missing observed predecessor',r=>delete r.observed_predecessor_body_md5],
   ['wrong current body',r=>r.candidate.changed_bodies[0].current_md5='0'.repeat(32)],
   ['missing metadata preservation',r=>delete r.all_function_metadata_preserved_except_two_named_bodies],
   ['changed source bytes',r=>r.input_sha256[sqlFile]='0'.repeat(64)],
@@ -80,6 +84,15 @@ test('deadlock parser keeps exact two observed process edges and omits raw SQL',
 
 const source=file=>readFileSync(file,'utf8').replaceAll('\r\n','\n');
 const definition=(text,name)=>text.match(new RegExp('create or replace function '+name.replaceAll('.','\\.')+'\\s*\\(.*?\\bas (\\$[a-zA-Z_]*\\$)(.*?)\\1;','si'))?.[2];
+function currentExpiryPredecessor() {
+  const original=definition(source('supabase/migrations/20260830172000_clean_p1_cancel_withdraw_closure.sql'),'private.expire_lifecycle');
+  const migration=source('supabase/migrations/20260909150000_clean_w02_persistent_availability_matching.sql');
+  const patch=migration.slice(migration.indexOf("signature:='private.expire_lifecycle"));
+  const anchor=patch.match(/anchor:=\$code\$([\s\S]*?)\$code\$;/)?.[1];
+  const replacement=patch.match(/replacement:='([^']*)';/)?.[1];
+  assert.ok(anchor&&replacement); assert.equal(original.split(anchor).length-1,1);
+  return original.replace(anchor,replacement);
+}
 test('dispatch processing, retries, exceptions and return stay byte-identical to their predecessor',()=>{
   const old=definition(source('supabase/migrations/20260829212146_clean_scheduled_lifecycle.sql'),'private.dispatch_tick');
   const current=definition(source(sqlFile),'private.dispatch_tick');
@@ -87,7 +100,7 @@ test('dispatch processing, retries, exceptions and return stay byte-identical to
   assert.equal(current.slice(current.indexOf(tail)),old.slice(old.indexOf(tail)));
 });
 test('expiry body differs only by parent acquisition and original predicate scope',()=>{
-  const old=definition(source('supabase/migrations/20260830172000_clean_p1_cancel_withdraw_closure.sql'),'private.expire_lifecycle');
+  const old=currentExpiryPredecessor();
   let current=definition(source(sqlFile),'private.expire_lifecycle');
   current=current.replace('  locked_needs uuid[];\n','');
   const start=current.indexOf('\n\n  -- Parent fencing'),end=current.indexOf('\n\n  with expired_needs',start);
@@ -96,6 +109,14 @@ test('expiry body differs only by parent acquisition and original predicate scop
     .replace("where need_id = any(locked_needs)\n     and status in ('READY','SEEN')","where status in ('READY','SEEN')")
     .replace("where need_id = any(locked_needs)\n     and status = 'SENT'","where status = 'SENT'");
   assert.equal(current,old);
+});
+test('current dynamic availability owner remains persistent before and after SQL108',()=>{
+  const predecessor=currentExpiryPredecessor();
+  assert.equal(digest(predecessor,'md5'),'fa0ae36b9d1c63ebe4b8f9a7c3b1e26d');
+  for(const body of [predecessor,definition(source(sqlFile),'private.expire_lifecycle')]) {
+    assert.ok(body.includes('av := 0; -- Persistent owner intent has no automatic expiration.'));
+    assert.doesNotMatch(body,/update public\.app_profiles|available_now_expires_at/i);
+  }
 });
 test('six exact predecessor guards and two actual body fingerprints match source',()=>{
   const text=source(sqlFile),m=receipt().candidate;

@@ -8,7 +8,7 @@ declare expected record;
 begin
   for expected in select * from (values
     ('private.dispatch_tick(integer,timestamptz)','6bbd8765aa833b3c27209c82da99e5e4'),
-    ('private.expire_lifecycle(timestamptz)','3aba08b19f04bd19c06452bcd6e2e3a9'),
+    ('private.expire_lifecycle(timestamptz)','fa0ae36b9d1c63ebe4b8f9a7c3b1e26d'),
     ('public.rpc_cancel_need(uuid,integer,text)','b6896803455751f0df87f5e778b1bd15'),
     ('private.enqueue_dispatch(uuid,timestamptz)','470ed6ab6501c69bf9ebbfe057ccd0fb'),
     ('private.enqueue_on_need_change()','6c0259533eb97a46244be256667ffac6'),
@@ -238,12 +238,7 @@ begin
   get diagnostics changed = row_count;
   rr := rr + changed;
 
-  update public.app_profiles
-     set available_now = false
-   where available_now = true
-     and available_now_expires_at is not null
-     and available_now_expires_at <= p_at;
-  get diagnostics av = row_count;
+  av := 0; -- Persistent owner intent has no automatic expiration.
 
   ur := private.expire_urgent(p_at);
 
@@ -270,7 +265,7 @@ begin
   ) then raise exception 'DISPATCH_LOCK_METADATA_CHANGED'; end if;
   for expected in select * from (values
     ('private.dispatch_tick(integer,timestamptz)','d3ef4a0b0b63bcfaffd84547a2ad863b'),
-    ('private.expire_lifecycle(timestamptz)','dee7ea3dff5129da34be3e6977ad50af')
+    ('private.expire_lifecycle(timestamptz)','c9e69fe79781da56eb7bb3853e75c798')
   ) as p(signature,body_md5) loop
     if (select md5(prosrc) from pg_proc where oid=to_regprocedure(expected.signature))
        is distinct from expected.body_md5 then

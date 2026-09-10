@@ -13,8 +13,8 @@ const signature = 'private.dispatch_tick(integer,timestamptz)';
 const oldBody = '6bbd8765aa833b3c27209c82da99e5e4';
 const newBody = 'd3ef4a0b0b63bcfaffd84547a2ad863b';
 const expirySignature = 'private.expire_lifecycle(timestamptz)';
-const oldExpiryBody = '3aba08b19f04bd19c06452bcd6e2e3a9';
-const newExpiryBody = 'dee7ea3dff5129da34be3e6977ad50af';
+const oldExpiryBody = 'fa0ae36b9d1c63ebe4b8f9a7c3b1e26d';
+const newExpiryBody = 'c9e69fe79781da56eb7bb3853e75c798';
 const hash = value => createHash('sha256').update(value).digest('hex');
 const q = value => "'" + String(value).replaceAll("'", "''") + "'";
 const uuid = value => { assert.match(value ?? '', /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i); return value; };
@@ -44,6 +44,7 @@ export function admitDispatchLockReport(report, sourceSha, {root = process.cwd()
   assert.equal(report.source_migration_count, 108); assert.equal(report.registry_history_count, 105);
   assert.equal(report.applied_authority, 'REGISTRY105_PLUS_UNRECORDED_DISPATCH108');
   assert.equal(report.actual_postgres_major, 17);
+  assert.deepEqual(report.observed_predecessor_body_md5, {[signature]:oldBody,[expirySignature]:oldExpiryBody});
   for (const name of ['candidate_applied','actual_auth','original_selection_rolled_back','original_cancellation_rolled_back',
     'original_history_preserved','all_function_metadata_preserved_except_two_named_bodies','all_existing_rows_preserved_at_apply',
     'same_request_key_selected_once','actual_owner_cancellation_preserved','no_fixture_blocking_calendar_events',
@@ -231,8 +232,13 @@ export async function main(env = process.env) {
     assert.match(env.GITHUB_SHA ?? '', /^[0-9a-f]{40}$/);
     assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'), '105');
     assert.equal(sql('select md5(statements[1]) from supabase_migrations.schema_migrations order by version desc limit 1'), 'bad9f1317e86b2f3efaeb92f7200f0b4');
-    assert.equal(sql(`select md5(prosrc) from pg_proc where oid=${q(signature)}::regprocedure`), oldBody);
-    assert.equal(sql(`select md5(prosrc) from pg_proc where oid=${q(expirySignature)}::regprocedure`), oldExpiryBody);
+    // Retain safe observed catalog values before asserting, including on failure.
+    report.observed_predecessor_body_md5 = {
+      [signature]: sql(`select md5(prosrc) from pg_proc where oid=${q(signature)}::regprocedure`),
+      [expirySignature]: sql(`select md5(prosrc) from pg_proc where oid=${q(expirySignature)}::regprocedure`),
+    };
+    assert.equal(report.observed_predecessor_body_md5[signature], oldBody);
+    assert.equal(report.observed_predecessor_body_md5[expirySignature], oldExpiryBody);
     assert.equal(sql("select current_setting('server_version_num')::integer / 10000"), '17');
     report.actual_postgres_major = 17;
     for (const [client, email, id] of [[requester, env.RU5_DEVICE_REQUESTER_EMAIL, requesterId], [worker, env.RU5_DEVICE_WORKER_EMAIL, workerId]]) {
