@@ -76,7 +76,7 @@ def clean_surface(anchor):
     return root, parent
 
 
-def scroll_once(root, direction):
+def scroll_once(root, direction, distance=None):
     choices = [parse_bounds(n.attrib.get('bounds')) for n in root.iter()
                if n.attrib.get('scrollable') == 'true']
     if not choices:
@@ -85,7 +85,24 @@ def scroll_once(root, direction):
     if x2 <= x1 or y2 - y1 < 100:
         raise AssertionError('Invalid physical scroll bounds')
     x, high, low = (x1 + x2) // 2, y1 + (y2 - y1) // 5, y2 - (y2 - y1) // 5
+    maps = [parse_bounds(n.attrib.get('bounds')) for n in root.iter()
+            if matches(n, desc='Mapa predložene lokacije') and n.attrib.get('bounds')]
+    if maps:
+        # A swipe beginning on MapLibre pans its camera instead of the form.
+        # Use the observed outer gutter; never change the neutral map camera.
+        assert len(maps) == 1, 'Ambiguous map while scrolling the location form'
+        left, _, right, _ = maps[0]
+        gaps = [(x1, min(left, x2)), (max(right, x1), x2)]
+        start_x, end_x = max(gaps, key=lambda gap: gap[1] - gap[0])
+        assert end_x > start_x, 'No observed outer scroll gutter beside the map'
+        x = (start_x + end_x) // 2
+        assert x1 < x < x2 and (x < left or x > right)
     start, end = (low, high) if direction == 'down' else (high, low)
+    if distance is not None:
+        assert distance > 0
+        amount = min(round(distance), low - high)
+        assert amount > 0
+        end = start - amount if direction == 'down' else start + amount
     adb('shell', 'input', 'touchscreen', 'swipe', str(x), str(start), str(x), str(end), '450')
     time.sleep(0.5)
 
@@ -407,19 +424,60 @@ def initial_world_touch(bounds, density):
     return x, y
 
 
+def full_map_surface(density, attempts=12):
+    # ResolvedPinMap's source-bound frame is 320dp. Android reports a clipped
+    # accessibility rectangle, so mere containment is not its camera viewport.
+    assert 1 <= density <= 5
+    expected_height = 320 * density
+    previous = None
+    for _ in range(attempts):
+        root, parent, node = seek('Mesto Zadatka', desc='Mapa predložene lokacije')
+        bounds = parse_bounds(node.attrib['bounds'])
+        width, height = screen_size()
+        ancestor = parent.get(node)
+        clips = [(0, 0, width, height)]
+        while ancestor is not None:
+            if ancestor.attrib.get('scrollable') == 'true':
+                clips.append(parse_bounds(ancestor.attrib.get('bounds')))
+            ancestor = parent.get(ancestor)
+        assert len(clips) > 1, 'Actual location form scroll viewport required'
+        clip = (max(b[0] for b in clips), max(b[1] for b in clips),
+                min(b[2] for b in clips), min(b[3] for b in clips))
+        assert clip[3] - clip[1] > expected_height, 'Full map cannot fit the observed form viewport'
+        if inside(bounds, clip) and abs(bounds[3] - bounds[1] - expected_height) <= 2:
+            if bounds == previous:
+                return root, parent, node
+            previous = bounds
+            continue
+        previous = None
+        assert bounds[3] - bounds[1] < expected_height + 2, 'Observed map differs from its bound native frame'
+        if bounds[3] >= clip[3] - 2:
+            delta = bounds[1] + expected_height / 2 - (clip[1] + clip[3]) / 2
+            assert delta > 0
+            scroll_once(root, 'down', distance=delta)
+        elif bounds[1] <= clip[1] + 2:
+            delta = (clip[1] + clip[3]) / 2 - (bounds[3] - expected_height / 2)
+            assert delta > 0
+            scroll_once(root, 'up', distance=delta)
+        else:
+            raise AssertionError('Map frame is incomplete without an observed clipping edge')
+    raise AssertionError('Full map frame did not become stable before physical input')
+
+
 def physical_manual_point(title, *, offset=False):
     anchor = 'Mesto Zadatka'
-    root, parent, node = seek(anchor, desc='Mapa predložene lokacije')
+    density = adb('shell', 'wm', 'density').stdout
+    values = re.findall(r'(?:Physical|Override) density:\s*(\d+)', density)
+    assert values, 'Actual Android display density required'
+    scale = int(values[-1]) / 160
+    root, parent, node = full_map_surface(scale)
     assert not any(matches(n, desc='Predložena tačka na mapi') for n in root.iter()), 'New slot must start without a selected pin'
     # Readiness is an observed native state, never a fixed sleep or SDK call.
     deadline = time.monotonic() + 25
     while any(matches(n, desc='Učitavanje mape') for n in root.iter()) and time.monotonic() < deadline:
-        root, parent, node = seek(anchor, desc='Mapa predložene lokacije')
+        root, parent, node = full_map_surface(scale)
     assert not any(matches(n, desc='Učitavanje mape') or matches(n, text='Mapa nije učitana.') for n in root.iter())
-    density = adb('shell', 'wm', 'density').stdout
-    values = re.findall(r'(?:Physical|Override) density:\s*(\d+)', density)
-    assert values, 'Actual Android display density required'
-    x, y = initial_world_touch(parse_bounds(node.attrib['bounds']), int(values[-1]) / 160)
+    x, y = initial_world_touch(parse_bounds(node.attrib['bounds']), scale)
     adb('shell', 'input', 'tap', str(x), str(y))
     wait_visible(desc='Predložena tačka na mapi', timeout=30)
     if offset:
@@ -427,7 +485,7 @@ def physical_manual_point(title, *, offset=False):
         # selected-pin camera jump, physically choose a distinct nearby stop.
         previous = None
         for _ in range(8):
-            root, parent, node = seek(anchor, desc='Mapa predložene lokacije')
+            root, parent, node = full_map_surface(scale)
             markers = [n for n in root.iter() if matches(n, desc='Predložena tačka na mapi')]
             assert len(markers) == 1
             bounds = parse_bounds(node.attrib['bounds']); marker = parse_bounds(markers[0].attrib['bounds'])
