@@ -112,12 +112,12 @@ create function private.retention_ai_source_ready() returns boolean language sql
   or inhrelid in('public.ai_conversations'::regclass,'public.ai_messages'::regclass,'public.ai_structured_facts'::regclass,
   'public.ai_action_proposals'::regclass,'private.need_draft_save_commands'::regclass))
  and
- (select array_agg(attname::text||':'||format_type(atttypid,atttypmod)||':'||attnotnull::text||':'||attidentity||':'||attgenerated order by attname)
+ (select array_agg(attname::text||':'||format_type(atttypid,atttypmod)||':'||attnotnull::text||':'||attidentity::text||':'||attgenerated::text order by attname)
   from pg_attribute where attrelid='public.ai_conversations'::regclass and attnum>0 and not attisdropped)
  =array['account_id:uuid:true::','bound_need_id:uuid:false::','completed_at:timestamp with time zone:false::','created_at:timestamp with time zone:true::',
  'fact_schema_version:text:true::','id:uuid:true::','need_edit_base_fingerprint:text:false::','purpose:text:true::',
  'retention_abandoned_at:timestamp with time zone:false::','retention_unbound_origin:boolean:true::','status:text:true::']::text[]
- and (select array_agg(attname::text||':'||format_type(atttypid,atttypmod)||':'||attnotnull::text||':'||attidentity||':'||attgenerated order by attname)
+ and (select array_agg(attname::text||':'||format_type(atttypid,atttypmod)||':'||attnotnull::text||':'||attidentity::text||':'||attgenerated::text order by attname)
   from pg_attribute where attrelid='public.ai_messages'::regclass and attnum>0 and not attisdropped)
  =array['account_id:uuid:true::','body:text:true::','conversation_id:uuid:true::','created_at:timestamp with time zone:true::','id:uuid:true::',
  'proposed_fact_ids:uuid[]:true::','role:text:true::','safety:text:false::','sequence_no:bigint:true:a:']::text[]

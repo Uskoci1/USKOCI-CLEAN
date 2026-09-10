@@ -1,3 +1,9 @@
+## P3 corrected candidate — PR93 / production remains104
+
+[PR93](https://github.com/Uskoci1/USKOCI-CLEAN/pull/93) initial run34507615505 passed its source checks and the real104 predecessor, then failed applying105 with SQLSTATE42725. The corrected candidate adds explicit text casts for the catalog fingerprint;35 necessary admission checks and static parsing pass. A new actual16-stage DB/CI run, observed locks, merge and promotion are still required. [The retained failure and bounded reproduction](evidence/p3-retention-source-20260910/initial-ci-failure.json) preserve the original result. P2 remains canonical/LIVE104; no production change or policy activation occurred. Earlier entries are historical checkpoints.
+
+---
+
 ## Current continuation — 2026-09-10 / P2 canonical and LIVE104; P3 source105
 
 P2 is **UI_CONNECTED / MERGED / DISPOSABLE_PROVEN / LIVE_STRUCTURAL**. [PR92](https://github.com/Uskoci1/USKOCI-CLEAN/pull/92) merged as `3d5c1b446e680bec5fe9b0fa4b8738ac92b17dc6` after all13 [exact-head checks](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34503174104) passed:9 intake,5 actual-client and17 real Auth/Storage delivery groups, both lock orders, CodeQL and scoped Android Auth recovery. SQL104 was applied once as `20260910170609_clean_p2_export_delivery_authority`; all50,251 source bytes match. Postflight preserved original103 history,65 business/security snapshots and42 existing function ACLs. Both export Edge handlers are ACTIVE v1/JWT true with exact canonical readback. [Compact live104 evidence](evidence/p2-live104-20260910/verification.json) records the source hashes and limits.

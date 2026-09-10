@@ -1,3 +1,9 @@
+## P3 corrected candidate — PR93 / production remains104
+
+[PR93](https://github.com/Uskoci1/USKOCI-CLEAN/pull/93) initial run34507615505 passed its source checks and the real104 predecessor, then failed applying105 with SQLSTATE42725. The corrected candidate adds explicit text casts for the catalog fingerprint;35 necessary admission checks and static parsing pass. A new actual16-stage DB/CI run, observed locks, merge and promotion are still required. [The retained failure and bounded reproduction](evidence/p3-retention-source-20260910/initial-ci-failure.json) preserve the original result. P2 remains canonical/LIVE104; no production change or policy activation occurred. Earlier entries are historical checkpoints.
+
+---
+
 ## CURRENT POINTER — 2026-09-10 / P2 CANONICAL AND LIVE104; P3 SOURCE105 PENDING DB CI
 
 Continue from [CURRENT_IMPLEMENTATION_HANDOFF.md](CURRENT_IMPLEMENTATION_HANDOFF.md) and [P3 source scope](P3_RETENTION_EXECUTION_20260910.md). P2 [PR92](https://github.com/Uskoci1/USKOCI-CLEAN/pull/92) is canonical at `3d5c1b446e680bec5fe9b0fa4b8738ac92b17dc6`; all13 [exact-head checks](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34503174104), SQL104 postflight and both Edge v1/JWT readbacks pass. [Live104 evidence](evidence/p2-live104-20260910/verification.json) preserves the boundary. Working P3 source105 is uncommitted, locally107 tests passed, and actual DB/CI remains pending. Only SQL105 is unpromoted; do not reapply SQL104 or infer legal activation, production authenticated export, app abandonment or native-save proof. The frozen87 replay and earlier checkpoints remain historical.

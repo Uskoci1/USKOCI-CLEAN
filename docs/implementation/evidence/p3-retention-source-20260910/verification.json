@@ -7,9 +7,9 @@
     "forward_version": "20260910162955",
     "forward_name": "clean_p3_retention_execution_authority",
     "candidate_file": "supabase/proofs/legal/p3_retention_execution_candidate.sql",
-    "bytes": 33724,
-    "md5": "2a903fede05bce550c74ae8cb43c8552",
-    "sha256": "adb8201dca15ce650c5558bbb95bf45c71cade4b76a24d4eb71b451bd5cfa1f1",
+    "bytes": 33748,
+    "md5": "bad9f1317e86b2f3efaeb92f7200f0b4",
+    "sha256": "7442f8bdecf59d6d66b1c51aeff2418b633d0fd74f95739bd561c2d76ac0ffe2",
     "expected_predecessor_count": 104,
     "expected_history_count": 105,
     "source_only": true
@@ -91,15 +91,16 @@
       "historicalSnapshot": 87,
       "historicalPendingSuffix": 18,
       "passed": true
-    }
+    },
+    "necessaryChecksRepeatedAfterInternalCharFix": 35
   },
   "staticSQLParsing": {
-    "source_sha256": "adb8201dca15ce650c5558bbb95bf45c71cade4b76a24d4eb71b451bd5cfa1f1",
+    "source_sha256": "7442f8bdecf59d6d66b1c51aeff2418b633d0fd74f95739bd561c2d76ac0ffe2",
     "parser": "libpg-query18.1.4",
     "top_level_statements": 58,
-    "plpgsql_functions": 15,
     "source_guard_query": "PASS",
-    "actual_database_execution": false
+    "actual_database_execution": false,
+    "plpgsql_functions": 15
   },
   "proofBoundaries": {
     "D0140": 102,
@@ -132,5 +133,26 @@
     "guard": "Exact named trigger and attributes; other nine require empty attributes",
     "actualRegressionStage": 14,
     "actualDatabasePending": true
+  },
+  "initialSourceMigration": {
+    "unit": "P3_RETENTION_EXECUTION",
+    "forward_file": "20260910162955_clean_p3_retention_execution_authority.sql",
+    "forward_version": "20260910162955",
+    "forward_name": "clean_p3_retention_execution_authority",
+    "candidate_file": "supabase/proofs/legal/p3_retention_execution_candidate.sql",
+    "bytes": 33724,
+    "md5": "2a903fede05bce550c74ae8cb43c8552",
+    "sha256": "adb8201dca15ce650c5558bbb95bf45c71cade4b76a24d4eb71b451bd5cfa1f1",
+    "expected_predecessor_count": 104,
+    "expected_history_count": 105,
+    "source_only": true
+  },
+  "initialActualCIFailure": {
+    "run": 34507615505,
+    "head": "66b235973b8dbb601248ab20ac94e9114fcad06e",
+    "stage": 2,
+    "sqlstate": "42725",
+    "receipt": "initial-ci-failure.json",
+    "correctedActualCIStillPending": true
   }
 }
