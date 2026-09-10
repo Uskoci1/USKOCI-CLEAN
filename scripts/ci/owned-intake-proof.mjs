@@ -93,8 +93,97 @@ export function admitOwnedIntake(env=process.env) {
   console.log('PASS W03_OWNED_INTAKE_RETAINED_REPORT');
 }
 
+// The complete native marketplace uses the ordered current schema, while the
+// original intake proof keeps its explicit106 boundary. Only disposable targets
+// are accepted; this is the same exact-byte replay used by prepare105 above.
+function nativeSuccessorContext(env) {
+  assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL,env.RU5_DEVICE_DB_URL);
+  assert.equal(env.AI_REVIEW_SCOPE,'marketplace');
+  assert.equal(env.RU5_DEVICE_ARTIFACT_DIR,'artifacts/ai-review-device');
+  assert.match(env.GITHUB_SHA??'',/^[0-9a-f]{40}$/);
+  const boundary=ownedIntakeSourceBoundary(readP3RetentionPredecessorPlan());
+  const successors=boundary.fullPlan.source_inventory.slice(106);
+  assert.equal(successors.length,2);
+  for(const entry of successors) {
+    const path='supabase/migrations/'+entry.file,bytes=readFileSync(path);
+    assert.equal(bytes.length,entry.bytes);assert.equal(hash(bytes),entry.sha256);assert.equal(hash(bytes,'md5'),entry.md5);
+    assert.deepEqual(bytes,execFileSync('git',['show',`${env.GITHUB_SHA}:${path}`]));
+  }
+  const sql=query=>{try{return execFileSync('psql',[env.RU5_DEVICE_DB_URL,'-X','-v','ON_ERROR_STOP=1','-At'],
+    {input:query,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:32*1024*1024,timeout:30000}).trim();}
+    catch{throw new Error('NATIVE_SUCCESSOR_LOCAL_SQL_FAILED');}};
+  const history=()=>JSON.parse(sql('select jsonb_agg(to_jsonb(m) order by version) from supabase_migrations.schema_migrations m'));
+  const manifestFile='supabase/proofs/calendar/w02_dispatch_lock_files.json';
+  const manifest=JSON.parse(readFileSync(manifestFile,'utf8'));
+  assert.equal(manifest.sha256,successors[1].sha256);
+  const inputPaths=['scripts/ci/owned-intake-proof.mjs',manifestFile,...successors.map(entry=>'supabase/migrations/'+entry.file)];
+  for(const path of inputPaths)
+    assert.deepEqual(readFileSync(path),execFileSync('git',['show',`${env.GITHUB_SHA}:${path}`]),path);
+  const inputHashes=()=>Object.fromEntries(inputPaths.map(path=>[path,hash(readFileSync(path))]));
+  const verifyBodies=()=>{
+    for(const body of manifest.changed_bodies)
+      assert.equal(sql(`select md5(prosrc) from pg_proc where oid=${quote(body.signature)}::regprocedure`),body.current_md5);
+    assert.equal(sql("select to_regprocedure('public.rpc_get_push_session_device(uuid)') is not null"),'t');
+  };
+  return {boundary,successors,sql,history,inputHashes,verifyBodies,file:env.RU5_DEVICE_ARTIFACT_DIR+'/native-successors-admission.json'};
+}
+
+export function prepareNativeSuccessors(env=process.env) {
+  const context=nativeSuccessorContext(env),{boundary,successors,sql,history}=context;
+  const prior=JSON.parse(readFileSync(env.RU5_DEVICE_ARTIFACT_DIR+'/ai-review-admission.json','utf8'));
+  assert.equal(prior.sourceSha,env.GITHUB_SHA);assert.equal(prior.historyCount,106);
+  assert.equal(prior.localOnly,true);assert.equal(prior.predecessor105Preserved,true);
+  assert.deepEqual(prior.manifest,boundary.manifest);
+  const original=history();assert.equal(original.length,106);
+  assert.equal(hash(original.at(-1).statements[0]),boundary.manifest.sha256);
+  const report={unit:'NATIVE_MARKETPLACE_SOURCE108',source_sha:env.GITHUB_SHA,result:'RUNNING',
+    source_migration_count:108,original_history_count:106,history_count:106,applied_successors:[],
+    localOnly:true,live_access:false,live_promotion:false,provider_called:false,policy_activated:false,
+    transport_enabled:false,concurrency_proven:false,input_sha256:context.inputHashes()};
+  const tables=['public.needs','public.need_selections','public.agreements','private.need_publication_decisions',
+    'private.publication_policy_bundles','private.retention_policy_sets','private.location_market_configs'];
+  const preservation=()=>Object.fromEntries(tables.map(table=>[table,sql(`select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]'::jsonb)::text) from ${table} x`)]));
+  try {
+    const before=preservation();
+    for(const entry of successors) {
+      const bytes=readFileSync('supabase/migrations/'+entry.file),version=entry.file.slice(0,14),name=entry.file.slice(15,-4);
+      assert.equal(sql(`select count(*) from supabase_migrations.schema_migrations where version=${quote(version)}`),'0');
+      sql(bytes.toString('utf8'));
+      sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${quote(version)},${quote(name)},array[${quote(bytes.toString('utf8'))}])`);
+      report.applied_successors.push(entry);
+    }
+    const after=history();assert.equal(after.length,108);assert.deepEqual(after.slice(0,106),original);
+    for(const [i,entry]of successors.entries())assert.equal(hash(after[106+i].statements[0]),entry.sha256);
+    assert.deepEqual(preservation(),before);context.verifyBodies();
+    sql("notify pgrst,'reload schema'");
+    report.history_count=108;report.original_history_preserved=true;report.business_and_policy_rows_preserved=true;
+    report.history_sha256=hash(JSON.stringify(after));report.result='PASS';
+  } catch(error) {
+    report.result='FAIL';report.failure_category=error?.code==='ERR_ASSERTION'?'ASSERTION':'EXECUTION';
+    throw new Error('NATIVE_SOURCE108_PREPARATION_FAILED');
+  } finally {writeFileSync(context.file,JSON.stringify(report,null,2)+'\n');}
+  console.log('PASS NATIVE_MARKETPLACE_EXACT108_PREPARATION');
+  return report;
+}
+
+export function admitNativeSuccessors(env=process.env) {
+  const context=nativeSuccessorContext(env),report=JSON.parse(readFileSync(context.file,'utf8'));
+  assert.equal(report.result,'PASS');assert.equal(report.unit,'NATIVE_MARKETPLACE_SOURCE108');
+  assert.equal(report.source_sha,env.GITHUB_SHA);assert.equal(report.source_migration_count,108);
+  assert.equal(report.original_history_count,106);assert.equal(report.history_count,108);
+  for(const key of ['localOnly','original_history_preserved','business_and_policy_rows_preserved'])assert.equal(report[key],true);
+  for(const key of ['live_access','live_promotion','provider_called','policy_activated','transport_enabled','concurrency_proven'])assert.equal(report[key],false);
+  assert.deepEqual(report.applied_successors,context.successors);assert.deepEqual(report.input_sha256,context.inputHashes());
+  const actual=context.history();assert.equal(actual.length,108);assert.equal(hash(JSON.stringify(actual)),report.history_sha256);
+  context.verifyBodies();
+  console.log('PASS NATIVE_MARKETPLACE_EXACT108_ADMISSION');
+  return report;
+}
+
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   if(process.argv[2]==='prepare105')prepare105();
   else if(process.argv[2]==='admit')admitOwnedIntake();
-  else throw new Error('Use prepare105 or admit');
+  else if(process.argv[2]==='prepare108')prepareNativeSuccessors();
+  else if(process.argv[2]==='admit108')admitNativeSuccessors();
+  else throw new Error('Use prepare105, admit, prepare108 or admit108');
 }

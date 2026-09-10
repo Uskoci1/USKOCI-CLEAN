@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {readP3RetentionPredecessorPlan} from '../../supabase/proofs/legal/p3_retention_schedule_predecessor.mjs';
 import {ownedIntakeSourceBoundary,ownedIntakeForward,retentionForward,pushTransportForward,dispatchLockForward} from './owned-intake-source.mjs';
-import {prepare105} from './owned-intake-proof.mjs';
+import {prepare105,prepareNativeSuccessors,admitNativeSuccessors} from './owned-intake-proof.mjs';
 const require=createRequire(import.meta.url);
 const {classify,makePlan,testArguments}=require('./scope.cjs');
 
@@ -29,7 +29,16 @@ test('unknown, missing, reordered or changed105/106 cannot become an admitted pr
   assert.throws(()=>ownedIntakeSourceBoundary(reordered));
 });
 test('shared native/bootstrap entry refuses non-loopback targets before any database call',()=>{
-  assert.throws(()=>prepare105({RU5_DEVICE_SUPABASE_URL:'https://example.com',RU5_DEVICE_DB_URL:'postgresql://postgres:example@example.com/postgres'}));
+  for(const run of [prepare105,prepareNativeSuccessors,admitNativeSuccessors])
+    assert.throws(()=>run({RU5_DEVICE_SUPABASE_URL:'https://example.com',RU5_DEVICE_DB_URL:'postgresql://postgres:example@example.com/postgres'}));
+});
+test('current native schema cannot be prepared or admitted outside explicit marketplace scope',()=>{
+  const local={RU5_DEVICE_SUPABASE_URL:'http://127.0.0.1:54321',RU5_DEVICE_DB_URL:'postgresql://postgres:example@127.0.0.1:54322/postgres'};
+  for(const run of [prepareNativeSuccessors,admitNativeSuccessors]){
+    for(const scope of [undefined,'intake','core'])assert.throws(()=>run({...local,AI_REVIEW_SCOPE:scope}),{code:'ERR_ASSERTION'});
+    assert.throws(()=>run({...local,AI_REVIEW_SCOPE:'marketplace',RU5_DEVICE_ARTIFACT_DIR:'artifacts/other'}),{code:'ERR_ASSERTION'});
+    assert.throws(()=>run({...local,AI_REVIEW_SCOPE:'marketplace',RU5_DEVICE_ARTIFACT_DIR:'artifacts/ai-review-device',GITHUB_SHA:'main'}),{code:'ERR_ASSERTION'});
+  }
 });
 test('known intake edits select affected local tests without an unrelated native Auth run',()=>{
   for(const path of ['src/app/(app)/nova.tsx','src/app/(app)/pregled-nacrta.tsx','src/data/aiNeedV2Production.ts',
