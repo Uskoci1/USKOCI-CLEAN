@@ -1,6 +1,8 @@
 import type { DokazPrijave, KandidatProjekcija, StanjePrijave } from '../contracts/projections';
 import type { Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { positiveInteger, readOwnedResult, uuid } from './serverReceipt';
+import { calendarInstant } from '../lib/calendarTime';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -80,10 +82,14 @@ function dokaz(raw: any): DokazPrijave {
 
 function mapCandidate(raw: any): KandidatProjekcija {
   if (!raw || typeof raw !== 'object') throw new Error('CANDIDATE_INVALID_PROJECTION');
-  if (typeof raw.responseId !== 'string' || !raw.responseId) throw new Error('CANDIDATE_RESPONSE_ID_MISSING');
-  if (typeof raw.workerProfileId !== 'string' || !raw.workerProfileId) throw new Error('CANDIDATE_PROFILE_ID_MISSING');
+  if (!uuid(raw.responseId)) throw new Error('CANDIDATE_RESPONSE_ID_MISSING');
+  if (!uuid(raw.workerProfileId)) throw new Error('CANDIDATE_PROFILE_ID_MISSING');
+  if (!positiveInteger(raw.needRevision)) throw new Error('CANDIDATE_NEED_REVISION_INVALID');
   if (!Number.isInteger(raw.version) || raw.version < 1) throw new Error('CANDIDATE_VERSION_INVALID');
-  if (typeof raw.contentHash !== 'string' || raw.contentHash.length < 16) throw new Error('CANDIDATE_HASH_INVALID');
+  if (typeof raw.contentHash !== 'string' || !/^[a-f0-9]{64}$/.test(raw.contentHash)) throw new Error('CANDIDATE_HASH_INVALID');
+  const from = calendarInstant(raw.proposedStartAt), to = calendarInstant(raw.proposedEndAt);
+  if (!(raw.proposedStartAt === null && raw.proposedEndAt === null) &&
+      (from === null || to === null || from >= to)) throw new Error('CANDIDATE_INTERVAL_INVALID');
   if (!STATES.has(raw.state)) throw new Error('CANDIDATE_STATE_UNSUPPORTED');
   if (!Number.isInteger(raw.priceRsd) || raw.priceRsd <= 0) throw new Error('CANDIDATE_PRICE_INVALID');
   if (!Number.isInteger(raw.coveredSlots) || raw.coveredSlots < 1) throw new Error('CANDIDATE_COVERAGE_INVALID');
@@ -94,7 +100,7 @@ function mapCandidate(raw: any): KandidatProjekcija {
     ? profile.displayName.trim()
     : 'Uskočer';
   const trust = profile?.trust;
-  const rating = typeof trust?.ratingAverage === 'number' ? trust.ratingAverage : null;
+  const rating = typeof trust?.ratingAverage === 'number' && Number.isFinite(trust.ratingAverage) && trust.ratingAverage >= 0 && trust.ratingAverage <= 5 ? trust.ratingAverage : null;
   const reviews = Number.isInteger(trust?.reviewCount) && trust.reviewCount >= 0 ? trust.reviewCount : null;
   const completed = Number.isInteger(trust?.completedCount) && trust.completedCount >= 0 ? trust.completedCount : 0;
   const evidence = dokaz(raw.applicationEvidence);
@@ -105,6 +111,9 @@ function mapCandidate(raw: any): KandidatProjekcija {
     radnikProfilId: raw.workerProfileId,
     verzija: raw.version,
     hash: raw.contentHash,
+    potrebaRevizija: raw.needRevision,
+    predlozeniPocetak: raw.proposedStartAt,
+    predlozeniKraj: raw.proposedEndAt,
     ime,
     inicijali: inicijali(ime),
     ocenaTekst: rating === null ? '—' : rating.toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 }),
@@ -132,11 +141,18 @@ export const candidateClientService: CandidateService = {
     const id = potrebaId.trim();
     if (!id) return [];
 
-    const { data, error } = await supabase.rpc('rpc_list_need_candidates', {
-      p_need_id: id,
+    const result = await readOwnedResult({
+      request: () => supabase.rpc('rpc_list_need_candidates', { p_need_id: id }),
+      errors: {}, fallback: 'CANDIDATE_READ_FAILED', invalid: 'CANDIDATE_LIST_INVALID_PROJECTION',
+      decode(data) {
+        if (!Array.isArray(data)) return null;
+        try {
+          const rows = data.map(mapCandidate);
+          return new Set(rows.map(row => row.prijavaId.toLowerCase())).size === rows.length ? rows : null;
+        } catch { return null; }
+      },
     });
-    if (error) throw new Error(error.message || error.code || 'CANDIDATE_READ_FAILED');
-    if (!Array.isArray(data)) throw new Error('CANDIDATE_LIST_INVALID_PROJECTION');
-    return data.map(mapCandidate);
+    if (!result.ok) throw new Error('Prijave trenutno nije moguće učitati. Pokušajte ponovo.');
+    return result.podatak;
   },
 };

@@ -1,4 +1,4 @@
-import { Izvor, Ishod, IzborKomanda, PodnesiPrijavuKomanda } from './ports';
+import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
 import { record } from './serverReceipt';
 import { publicProfileClientService } from './publicProfileClientService';
@@ -101,6 +101,8 @@ type SupabaseIzvor = Omit<
   | 'objaviPotrebu'
   | 'mojePrijave'
   | 'povuciPrijavu'
+  | 'podnesiPrijavu'
+  | 'izaberiPrijavu'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -225,58 +227,6 @@ export const supabaseIzvor: SupabaseIzvor = {
         procitano: null,
       };
     });
-  },
-
-  async podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>> {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user?.user) return { ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se pre slanja ponude.' };
-
-    let workerProfileId = k.radnikProfilId;
-    if (!workerProfileId) {
-      const { data: prof } = await supabase.from('app_profiles')
-        .select('id')
-        .eq('account_id', user.user.id)
-        .eq('kind', 'WORKER')
-        .maybeSingle();
-      if (!prof?.id) {
-        return { ok: false, kod: 'WORKER_PROFILE_REQUIRED', poruka: 'Potreban je profil Uskočera za slanje ponude.' };
-      }
-      workerProfileId = prof.id;
-    }
-
-    const { data, error } = await supabase.rpc('rpc_submit_response', {
-      p_need_id: k.potrebaId,
-      p_need_revision: k.potrebaRevizija,
-      p_worker_profile_id: workerProfileId,
-      p_covered_slots: k.pokrivenaMesta,
-      p_price_rsd: k.cenaRsd,
-      p_proposed_start_at: k.predlozeniPocetak,
-      p_proposed_end_at: k.predlozeniKraj,
-      p_scope_note: k.napomena,
-      p_client_request_id: k.clientRequestId,
-    });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška pri slanju prijave.');
-    return {
-      ok: true,
-      podatak: {
-        prijavaId: data.responseId,
-        verzija: data.version,
-        hash: data.contentHash,
-      },
-    };
-  },
-
-  async izaberiPrijavu(k: IzborKomanda) {
-    const { data, error } = await supabase.rpc('rpc_select_response', {
-      p_need_id: k.potrebaId,
-      p_need_revision: k.potrebaRevizija,
-      p_response_id: k.prijavaId,
-      p_response_version: k.prijavaVerzija,
-      p_content_hash: k.prijavaHash,
-      p_client_request_id: k.clientRequestId,
-    });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška pri izboru.');
-    return { ok: true, podatak: { dogovorId: data } };
   },
 
   async otkaziDogovor(dogovorId: string, razlog: string) {
