@@ -19,29 +19,44 @@ export function timestamp(value: unknown): value is string {
 }
 export function failure(kod: string, poruka: string): Ishod<never> { return { ok: false, kod, poruka }; }
 
-/** This boundary validates receipts, not business permissions. The RPC remains authority. */
-export async function readReceipt<T>(options: {
-  rpc: string;
-  args: Record<string, unknown>;
+export type ReceiptOptions<T> = {
   decode: (raw: unknown) => T | null;
   errors: Readonly<Record<string, string>>;
   fallback: string;
   invalid: string;
   write?: boolean;
+};
+export type ReceiptAccount = { accountId: string; accountRevision: number };
+
+/** RPC wrapper retains the same server authority and receipt validation. */
+export function readReceipt<T>(options: ReceiptOptions<T> & {
+  rpc: string;
+  args: Record<string, unknown>;
+}): Promise<Ishod<T>> {
+  return readOwnedResult({ ...options, request: () => supabaseKlijent().rpc(options.rpc, options.args) });
+}
+
+/** Shared Auth/REST/RPC result fence; not a second business writer. An explicit
+ * scope keeps every stage of a multi-request command bound to its original user. */
+export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
+  request: () => PromiseLike<unknown>;
+  account?: ReceiptAccount;
 }): Promise<Ishod<T>> {
   const owner = sesijaSada();
-  const accountId = owner.user?.id;
+  const accountId = options.account?.accountId ?? owner.user?.id;
+  const accountRevision = options.account?.accountRevision ?? owner.accountRevision;
   if (!accountId) return failure('AUTH_REQUIRED', 'Prijavite se da biste nastavili.');
-  const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === owner.accountRevision;
+  const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvorite Zadatak.');
   const unconfirmed = () => failure(options.fallback, options.write
     ? 'Ishod radnje nije potvrđen. Osvežite prikaz pre ponovnog pokušaja; za ponavljanje koristite isti zahtev.'
     : 'Podaci trenutno nisu dostupni. Proverite vezu i pokušajte ponovo.');
+  if (!current()) return changed();
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     // No automatic write replay. A timeout bounds the caller, not server execution.
     const response: unknown = await Promise.race([
-      Promise.resolve(supabaseKlijent().rpc(options.rpc, options.args)),
+      Promise.resolve(options.request()),
       new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('RPC_RECEIPT_TIMEOUT')), 15_000); }),
     ]);
     if (!current()) return changed();

@@ -1,0 +1,138 @@
+name: TEMP bounded W02 shared checkpoint
+on:
+  push:
+    branches: [feat/w02-shared-capability-validation-20260910]
+permissions:
+  contents: write
+concurrency:
+  group: w02-shared-checkpoint
+  cancel-in-progress: false
+jobs:
+  checkpoint:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          persist-credentials: true
+      - name: Complete only hash-bound existing records and retire this writer
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/feat/w02-shared-capability-validation-20260910"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD^)" = bf6d1734710433b00f7d4e17f9cddccda740c8f4
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          import hashlib
+          expected={
+            'docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md':'fa4f8cc03e21d285a95113ff9b32bc662ecdff5a65d76276d8382162efb01465',
+            'docs/implementation/LIVE_IMPLEMENTATION_NETWORK.md':'24272881bb4a79255248d8f037ca50bc1dc5b2492a543348bf251970a961b59a',
+            'docs/implementation/LIVE_MIGRATION_STATE.json':'1307804828ffe438dd2024ef607e76ec7a9c946e9901f59ce7e836f9adb85032',
+            'docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv':'27d3a482443938864ed66a164a729494b544d29ac38baa8971bb11fa8a40b201',
+            'supabase/migrations/MIGRATION_PROVENANCE.json':'033067fe71f26aa3f3d318734d72a09615c1ab206560ee576c3ddb47709414c1',
+            'supabase/migrations/MD5_MANIFEST.txt':'8d5516726c0efa8571d64ae1f1476c627dfa26fa94c91575b5ae513bf1f5036d',
+            'supabase/DONOR_COVERAGE_AUDIT.md':'be5d12aafc785519b8ef13f76784c937d26dd1df87406ceb38f919e9b6c8c512'
+          }
+          for path,digest in expected.items():
+              assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==digest, 'Input changed: '+path+'; no write'
+          p=Path('src/data/ports.ts');s=p.read_text();old='  vozila?: string[];\n  dostupanOdmah?'
+          assert s.count(old)==1
+          p.write_text(s.replace(old,'  vozila?: string[];\n  licence?: string[]; // Self-declared resources, never verification authority.\n  dostupanOdmah?'))
+          p=Path('src/data/aiNeedV2Ui.ts');s=p.read_text()
+          old="      const values = text.split(',').map((item) => item.trim()).filter(Boolean);\n      if (!values.length) return { ok: false, message: 'Unesite bar jednu stavku.' };"
+          assert s.count(old)==1
+          s="import { capabilityTerms } from '../lib/capabilityTerms';\n"+s.replace(old,"      const values = capabilityTerms(text.split(',').map((item) => item.trim()).filter(Boolean));\n      if (!values?.length) return { ok: false, message: 'Unesite najviše 50 stavki, do 500 znakova po stavci.' };")
+          p.write_text(s)
+          p=Path('.github/workflows/w02-calendar-authority-proof.yml');s=p.read_text()
+          s=s.replace("      - 'src/data/locationResolver.ts'","      - 'src/data/locationResolver.ts'\n      - 'src/data/serverReceipt.ts'\n      - 'src/data/workerProfileClientService.ts'\n      - 'src/lib/capabilityTerms.ts'\n      - 'src/data/aiNeedV2Ui.ts'\n      - 'src/data/ports.ts'\n      - 'src/data/__tests__/w02-profile-write-safety.test.ts'\n      - 'src/data/__tests__/w02-capability-terms.test.ts'\n      - 'src/data/__tests__/cdl-a09-worker-profile-equivalence.test.ts'")
+          s=s.replace('      - name: Upload exact source-bound calendar evidence', '''      - name: Reused Need and Worker capability validation and actual profile client
+                  run: |
+                    node --check supabase/proofs/calendar/w02_shared_capability_proof.mjs
+                    node supabase/proofs/calendar/w02_shared_capability_proof.mjs
+                    node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/shared-capability-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.profile_fixture_sql || r.verification_activated || !r.calendar_and_snapshots_unchanged || r.checks.length!==7) process.exit(1);'
+                - name: Upload exact source-bound calendar evidence''')
+          p.write_text(s)
+          import csv,io,json
+          root=Path('.')
+          unit='W02_SHARED_CAPABILITY_VALIDATION_20260910'
+          base='bf6d1734710433b00f7d4e17f9cddccda740c8f4'
+          branch='feat/w02-shared-capability-validation-20260910'
+          name='20260910053000_clean_w02_shared_capability_validation.sql'
+          raw=(root/'supabase/migrations'/name).read_bytes()
+          entry={
+           'version':'20260910053000','name':'clean_w02_shared_capability_validation','file':name,'classification':'PENDING_FORWARD_MIGRATION',
+           'raw_md5':hashlib.md5(raw).hexdigest(),'raw_sha256':hashlib.sha256(raw).hexdigest(),'raw_bytes':len(raw),'live_applied':False,
+           'unit':'W02_SHARED_CAPABILITY_VALIDATION','activation':'SOURCE_ONLY_NOT_LIVE','predecessor_live_migration_count':87,'predecessor_live_head':'20260907135905'
+          }
+          p=root/'supabase/migrations/MD5_MANIFEST.txt'
+          if name not in p.read_text():p.write_text(p.read_text()+entry['raw_md5']+'  '+name+'\n')
+          p=root/'supabase/migrations/MIGRATION_PROVENANCE.json';data=json.loads(p.read_text())
+          if not any(item['version']==entry['version'] for item in data['pending_forward_migrations']):data['pending_forward_migrations'].append(entry)
+          assert data['pending_forward_migrations'][-1]==entry
+          p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          text=Path('_tmp/w02-shared-checkpoint.txt').read_text()
+          assert hashlib.sha256(text.encode()).hexdigest()=='63c1294144f3c84fc21f3cd3b58f6ddd92c362826c32e078f3c1e2ccadf65963'
+          for name_ in ['CURRENT_IMPLEMENTATION_HANDOFF.md','LIVE_IMPLEMENTATION_NETWORK.md']:
+           p=root/'docs/implementation'/name_
+           assert not p.read_text().startswith('## 2026-09-10 — REUSE-first;')
+           p.write_text(text+p.read_text())
+          p=root/'docs/implementation/LIVE_MIGRATION_STATE.json';data=json.loads(p.read_text())
+          data['reuse_first_continuation_20260910']={
+           'observed_canonical_sha':base,'location_pr':85,'location_status':'MERGED_SOURCE_AND_DISPOSABLE_PROVEN_NOT_LIVE',
+           'location_proof_run':34397439552,'location_artifact':10122216941,'source_inventory':100,'live_snapshot_count':87,'pending_count':13,
+           'current_unit':unit,'branch':branch,'runtime_status':'PENDING_CURRENT_CLEAN_PROOF','ui_finalized':False,'live_write_performed':False,
+           'shared_existing_owners':['app_profiles','private.guard_profile_write','private.validate_need_v2_fact','private.lower_arr','workerProfileClientService','serverReceipt'],
+           'donor_code_copied':False,'reuse_priority':['EXISTING_CLEAN','ADAPT_VERIFIED_DONOR','EXTEND_CANONICAL_OWNER','NEW_ONLY_NECESSARY'],
+           'owner_lock':'LATEST_OWNER_APPROVED_20260910','controlled_live_promotion':'APPROVED_CONDITIONAL_ON_INTEGRATED_PROOF_AND_PREFLIGHT',
+           'positive_platform_fees':'OFF','whole_w02':'OPEN','next':'PROVE_CURRENT_UNIT_THEN_REMAINING_W02_AND_CURRENT_DEBT_BEFORE_W03'
+          }
+          p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          p=root/'docs/implementation/IMPLEMENTATION_STATUS_LEDGER.csv';old=p.read_text();rows=list(csv.reader(io.StringIO(old)))
+          assert len(rows[0])==11 and not any(row[0]==unit for row in rows)
+          newrows=[
+           ['W02_LOCATION_MERGE_20260910','MERGED_SOURCE_AND_DISPOSABLE_PROVEN',base,'20260909160000_PENDING_NOT_LIVE','EXISTING_NEED_FACT_V2_AND_GEOGRAPHY','TYPED_LOCATION_CLIENT_FINAL_UI_OPEN','run34397439552;artifact10122216941','10_LOCATION_9_CALENDAR_13_SCOPE_11_AVAILABILITY_PASS','NO','PRODUCTION_AND_FINAL_UI_NOT_PROVEN','FINISH_SHARED_W02_AND_CURRENT_DEBT'],
+           [unit,'WRITTEN_LOCAL_PROVEN_RUNTIME_PENDING',branch,'20260910053000_PENDING_NOT_LIVE','EXISTING_PROFILE_GUARD_AND_V2_VALIDATOR','EXISTING_PROFILE_CLIENT_AND_NEED_CORRECTION','85_SUITES_1192_TESTS;7_REAL_CHECKS_PENDING','LOCAL_SOURCE_ONLY_UNTIL_CURRENT_RUNTIME_PASSES','NO','CURRENT_CLEAN_RUNTIME_AND_INTEGRATION_PENDING','RUN_EXACT_PROOF_REVIEW_MERGE'],
+          ]
+          s=io.StringIO();csv.writer(s,lineterminator='\n').writerows(newrows);p.write_text(old.rstrip('\n')+'\n'+s.getvalue())
+          p=root/'supabase/DONOR_COVERAGE_AUDIT.md';p.write_text(p.read_text()+'''
+
+          ## 2026-09-10 bounded reuse review — historical inventory is not product authority
+
+          This dated addition does not recertify the older donor table above. Latest owner
+          rules and current CLEAN override its historical AUTO_FILL/reveal/status suggestions.
+          PR85 location was reviewed and merged at bf6d173 by reusing existing V2 facts,
+          need_geography/need_sensitive and profile preferences, with current-CLEAN proof.
+          The next shared-resource repair reuses the Cloud Profile1.3b columns, RU1 guard,
+          existing Need V2 validator, lower_arr matcher, CDL-A09 client owner and receipt fence.
+          The historical proposed worker_capability_facts table is NOT reintroduced: existing
+          app_profiles resource columns remain authoritative and preserve Application snapshots.
+          No donor code was copied in this review. A future port must name its source/version,
+          record adaptations and superseded rules, then pass current-CLEAN proof.
+          Order: REUSE CLEAN -> ADAPT VERIFIED DONOR -> EXTEND CANONICAL -> NEW IF NECESSARY.
+          ''')
+          Path('.github/workflows/_tmp_w02_shared_checkpoint.yml').unlink()
+          Path('_tmp/w02-shared-checkpoint.txt').unlink()
+          PYTHON
+          git add -A
+          test "$(git write-tree)" = 421fd7afb588d56688803c1d5aa7136c1120bb7a
+          python3 supabase/migrations/check_migration_integrity.py
+          node --check supabase/proofs/calendar/w02_shared_capability_proof.mjs
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(w02): reuse shared capability validation and record exact nonvisual continuation' -m 'Existing guard, V2 registry, profile writer, matcher and receipt boundary extended. No new model or live mutation. TypeScript and85 suites/1192 tests passed locally. Current Auth/SDK/database proof remains mandatory; no runtime or activation claim. Temporary checkpoint writer removed.'
+          test "$(git ls-remote origin refs/heads/feat/w02-shared-capability-validation-20260910 | cut -f1)" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/feat/w02-shared-capability-validation-20260910
+          mkdir -p "$RUNNER_TEMP/w02-shared-checkpoint"
+          git rev-parse HEAD > "$RUNNER_TEMP/w02-shared-checkpoint/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/w02-shared-checkpoint/source-tree.txt"
+      - name: Retain exact resulting source identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: W02-SHARED-CHECKPOINT-${{ github.run_id }}
+          path: ${{ runner.temp }}/w02-shared-checkpoint/
+          if-no-files-found: error
+          retention-days: 7
