@@ -5,7 +5,12 @@ const mockConstants = { easConfig: { projectId: '11111111-1111-4111-8111-1111111
 jest.mock('expo-notifications', () => ({ getPermissionsAsync: () => mockPermissions(), requestPermissionsAsync: () => mockRequest(), getExpoPushTokenAsync: (args: unknown) => mockToken(args), setNotificationChannelAsync: (...args: unknown[]) => mockChannel(...args), AndroidImportance: { DEFAULT: 3 }, AndroidNotificationVisibility: { PRIVATE: 0 } }));
 jest.mock('expo-device', () => ({ get isDevice() { return mockDevice; } }));
 jest.mock('expo-constants', () => ({ __esModule: true, get default() { return mockConstants; } }));
-jest.mock('react-native', () => ({ Platform: { get OS() { return mockPlatform; } } }));
+jest.mock('react-native', () => {
+ const native = jest.requireActual('react-native');
+ return new Proxy(native, { get(target, key) {
+  return key === 'Platform' ? { ...native.Platform, OS: mockPlatform } : Reflect.get(target, key);
+ } });
+});
 beforeEach(() => { jest.resetAllMocks(); mockPlatform = 'android'; mockDevice = true; mockChannel.mockResolvedValue({}); mockPermissions.mockResolvedValue({ granted: false, canAskAgain: true }); mockRequest.mockResolvedValue({ granted: true, canAskAgain: true }); mockToken.mockResolvedValue({ type: 'expo', data: 'ExpoPushToken[synthetic]' }); });
 it('reading settings never asks for permission or a token without consent', async () => {
  expect(await nativePushDevice(false, () => true)).toEqual({ kind: 'PERMISSION_REQUIRED' }); expect(mockRequest).not.toHaveBeenCalled(); expect(mockToken).not.toHaveBeenCalled();
