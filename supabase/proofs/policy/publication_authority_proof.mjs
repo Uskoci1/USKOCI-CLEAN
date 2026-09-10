@@ -37,7 +37,14 @@ function sql(query) {
 }
 function sqlState(query){try{sql(query);return 'OK';}catch(error){return error.message.replace('LOCAL_SQL_','');}}
 const tableHash=(table,where='true')=>sql(`select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]'::jsonb)::text) from ${table} x where ${where}`);
-const ok=async promise=>{const r=await promise;if(r.error){report.last_rpc_error={code:r.error.code,message:/^[A-Z0-9_]+$/.test(r.error.message)?r.error.message:'REDACTED'};throw new Error('LOCAL_RPC_FAILED');}return r.data;};
+const ok=async(promise,operation='RPC_OR_SDK')=>{
+  const invocation=new Error();
+  const caller=Array.from(String(invocation.stack).matchAll(/publication_authority_proof\.mjs:(\d+):/g))[1];
+  const r=await promise;
+  if(r.error){report.last_rpc_error={operation,caller_line:caller?Number(caller[1]):null,code:r.error.code,
+    message:/^[A-Z0-9_]+$/.test(r.error.message)?r.error.message:'REDACTED'};throw new Error('LOCAL_RPC_FAILED');}
+  return r.data;
+};
 const reject=async(promise,code,message)=>{const r=await promise;assert.ok(r.error,'EXPECTED_RPC_REJECTION');if(code)assert.equal(r.error.code,code);if(message)assert.equal(r.error.message,message);return r.error;};
 const localFetch=(input,init)=>{
   const target=new URL(typeof input==='string'||input instanceof URL?input:input.url);
@@ -68,8 +75,8 @@ const record=(draft,ctx,patch={})=>service.rpc('rpc_record_need_publication_deci
 const publish=(draft,sequence,key='w05-publish-'+randomUUID(),deadline=null,client=owner)=>client.rpc('rpc_publish_need_canonical',{
   p_need_id:draft.needId,p_expected_revision:draft.revision,p_decision_sequence:sequence,p_response_deadline:deadline,p_client_request_id:key});
 async function saveLocation(cid,value) {
-  const previous=await ok(owner.rpc('rpc_get_need_location_review',{p_conversation_id:cid}));
-  const saved=await ok(owner.rpc('rpc_save_need_location_review',{p_conversation_id:cid,p_expected_revision:previous.revision,p_confirmed:true,p_value:value}));
+  const previous=await ok(owner.rpc('rpc_get_need_location_review',{p_conversation_id:cid}),'READ_LOCATION_REVIEW');
+  const saved=await ok(owner.rpc('rpc_save_need_location_review',{p_conversation_id:cid,p_expected_revision:previous.revision,p_confirmed:true,p_value:value}),'SAVE_CONFIRMED_LOCATION_REVIEW');
   assert.equal(saved.saved,true);return saved;
 }
 async function createDraft(location=locationCases.at(-1).value) {
@@ -86,7 +93,7 @@ async function createDraft(location=locationCases.at(-1).value) {
   needIds.push(draft.needId);return {...draft,revision:n.revision,conversationId:cid};
 }
 async function edit(draft) {
-  const opened=await ok(owner.rpc('rpc_ai_open_need_edit_conversation_v2',{p_need_id:draft.needId}));
+  const opened=await ok(owner.rpc('rpc_ai_open_need_edit_conversation_v2',{p_need_id:draft.needId}),'OPEN_OWNED_EDIT_CONVERSATION');
   const conversation=await ok(owner.from('ai_conversations').select('status,bound_need_id').eq('id',opened.conversationId).single());
   assert.equal(conversation.status,'OPEN');assert.equal(conversation.bound_need_id,draft.needId);
   return opened;
@@ -97,8 +104,16 @@ async function changeFact(cid,key,value) {
 }
 const confirmEdit=(draft,opened,key='w05-edit-'+randomUUID())=>owner.rpc('rpc_confirm_need_edit_from_review_v2',{
   p_need_id:draft.needId,p_expected_revision:opened.revision,p_conversation_id:opened.conversationId,p_client_request_id:key});
+async function correctPrivateAccess(draft,accessNotes) {
+  const opened=await edit(draft);
+  const current=await ok(owner.rpc('rpc_get_need_location_review',{p_conversation_id:opened.conversationId}),'READ_PRIVATE_CORRECTION_BASE');
+  await saveLocation(opened.conversationId,{...current.value,accessNotes});
+  const saved=await ok(confirmEdit(draft,opened),'CONFIRM_PRIVATE_CORRECTION');
+  assert.equal(saved.revision,draft.revision+1);assert.equal(saved.status,'DRAFT');assert.equal(saved.requiresReadmission,true);
+  return {...draft,revision:saved.revision};
+}
 async function rawTitle(draft,title) {
-  const data=await ok(owner.from('needs').update({title}).eq('id',draft.needId).select('id,revision,title'));
+  const data=await ok(owner.from('needs').update({title}).eq('id',draft.needId).select('id,revision,title'),'OWNER_RAW_DRAFT_TITLE');
   assert.equal(data.length,1,'DRAFT_UPDATE_FILTERED');assert.equal(data[0].revision,draft.revision);assert.equal(data[0].title,title);
 }
 function activateMetadata() {
@@ -219,15 +234,18 @@ try {
   let before=snapshot(draft.needId);await reject(record(draft,ready),'40001','PUBLICATION_CONTEXT_STALE');assert.equal(snapshot(draft.needId),before);
   const pd=physical.find(x=>x.sample.id==='stationary-zero-valid').d;
   const privateContext=await ok(context(pd));
-  const changed=await ok(owner.from('need_sensitive').update({access_notes:'Private material changed after context'}).eq('need_id',pd.needId).select('need_id'));
-  assert.equal(changed.length,1,'PRIVATE_UPDATE_FILTERED');
-  before=snapshot(pd.needId);await reject(record(pd,privateContext),'40001','PUBLICATION_CONTEXT_STALE');assert.equal(snapshot(pd.needId),before);
-  const current=await ok(context(pd));assert.notEqual(current.binding.privateMaterialityMarker,privateContext.binding.privateMaterialityMarker);
-  for(const patch of [{taskCountryCode:'BA'},{taskTimezone:'UTC'},{needId:randomUUID()},{needRevision:2},{policyContentSha256:'0'.repeat(64)}]){
-    await reject(record(pd,{binding:{...current.binding,...patch}}),'40001','PUBLICATION_CONTEXT_STALE');assert.equal(snapshot(pd.needId),before);
+  before=snapshot(pd.needId);
+  await reject(owner.from('need_sensitive').update({access_notes:'Forbidden raw private write'}).eq('need_id',pd.needId).select('need_id'),'42501');
+  assert.equal(snapshot(pd.needId),before,'FORBIDDEN_PRIVATE_WRITE_CHANGED_STATE');
+  const revisedPrivate=await correctPrivateAccess(pd,'Private material changed through confirmed review');
+  before=snapshot(pd.needId);await reject(record(pd,privateContext),'40001','NEED_REVISION_STALE');assert.equal(snapshot(pd.needId),before);
+  await reject(record(revisedPrivate,privateContext),'40001','PUBLICATION_CONTEXT_STALE');assert.equal(snapshot(pd.needId),before);
+  const current=await ok(context(revisedPrivate));assert.notEqual(current.binding.privateMaterialityMarker,privateContext.binding.privateMaterialityMarker);
+  for(const patch of [{taskCountryCode:'BA'},{taskTimezone:'UTC'},{needId:randomUUID()},{needRevision:current.binding.needRevision+1},{policyContentSha256:'0'.repeat(64)}]){
+    await reject(record(revisedPrivate,{binding:{...current.binding,...patch}}),'40001','PUBLICATION_CONTEXT_STALE');assert.equal(snapshot(pd.needId),before);
   }
   sql(`update private.publication_policy_bundles set review_provenance=review_provenance||'{"review_epoch":"SECOND_DISPOSABLE_REVIEW"}'::jsonb where id=${q(bundle)}`);
-  await reject(record(pd,current),'40001','PUBLICATION_CONTEXT_STALE');assert.equal(snapshot(pd.needId),before);
+  await reject(record(revisedPrivate,current),'40001','PUBLICATION_CONTEXT_STALE');assert.equal(snapshot(pd.needId),before);
   pass();
 
   begin('CONTEXT_LOCKS_POLICY_PHANTOMS_CONFIG_NEED_AND_PRIVATE_MATERIAL');
@@ -310,7 +328,7 @@ try {
   assert.deepEqual(await ok(confirmEdit(d,fresh,correctionKey)),{...edited,idempotentReplay:true});
   const privateDraft=physical.find(x=>x.sample.id==='route-complete-reordered').d,privateEdit=await edit(privateDraft);
   await changeFact(privateEdit.conversationId,'need.title','Private stale correction');
-  assert.equal((await ok(owner.from('need_sensitive').update({access_notes:'Concurrent private context'}).eq('need_id',privateDraft.needId).select('need_id'))).length,1);
+  await correctPrivateAccess(privateDraft,'Concurrent private context through second confirmed editor');
   before=snapshot(privateDraft.needId);await reject(confirmEdit(privateDraft,privateEdit),'40001','STALE_REVIEW_REQUIRED');assert.equal(snapshot(privateDraft.needId),before);
   pass();
 
@@ -360,7 +378,7 @@ try {
   pass();report.result='PASS';
 }catch(error){report.result='FAIL';report.failed_stage=stage;
   report.failure_category=error?.code==='ERR_ASSERTION'?'ASSERTION':/^[A-Z0-9_]+$/.test(error.message)?error.message:'SAFE_EXECUTION_FAILURE';
-  report.failed_source_line=Number(error?.stack?.match(/publication_authority_proof\.mjs:(\d+):/)?.[1])||null;
+  report.failed_source_line=report.last_rpc_error?.caller_line??(Number(error?.stack?.match(/publication_authority_proof\.mjs:(\d+):/)?.[1])||null);
   process.exitCode=1;
 }finally{
   for(const child of children)if(child.exitCode===null)child.kill();

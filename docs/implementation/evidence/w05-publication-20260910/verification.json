@@ -141,9 +141,9 @@
     },
     {
       "path": "supabase/proofs/policy/publication_authority_proof.mjs",
-      "bytes": 35367,
-      "sha256": "8ca433ce35fea4a661b7ad85a3f6f5bcb4005101806e5b2a1e353bae99732323",
-      "git_clean_blob_oid": "9db25a04b4c536cb08e1c87cf3ac7a1760181805"
+      "bytes": 36586,
+      "sha256": "64eb2d77b2f8db6edc3608dc275726550b434495ac40489da0e7486619f03476",
+      "git_clean_blob_oid": "6edde77b536fe714806357a46ed3cfd2a8017afe"
     },
     {
       "path": "supabase/proofs/policy/publication_fixtures.mjs",
@@ -321,5 +321,28 @@
     "Current working source inventory103 is separate from live102 and from older proof-local87 pending16 inventory metadata.",
     "No positive fees, checkout, fabricated ALLOW, legal retention value or new product route is activated by this record."
   ],
-  "source_hash_basis": "bytes/sha256 identify Git-clean LF blob content, independently checked against git hash-object --path for each file without writing Git objects. Raw Windows working-byte size/hash is included only when different. These are proposed commit blobs, not a claim they are canonical."
+  "source_hash_basis": "bytes/sha256 identify Git-clean LF blob content, independently checked against git hash-object --path for each file without writing Git objects. Raw Windows working-byte size/hash is included only when different. These are proposed commit blobs, not a claim they are canonical.",
+  "ci_attempts": [
+    {
+      "run_id": 34495398211,
+      "head": "388b65ef9dfe19e30921d108cfe2076ef26473d6",
+      "tested_merge": "02ab9d572c6060c4939cdbe1157180f01e6a67dd",
+      "policy_job_result": "FAIL",
+      "stage": "EVALUATOR_CONTEXT_STALE_PUBLIC_PRIVATE_POLICY_AND_COUNTRY_IS_ATOMIC",
+      "w05_checks_passed": 5,
+      "prior_d0140_checks_passed": 6,
+      "prior_history_count": 102,
+      "sql103_applied_and_acls_preserved": true,
+      "edge_handler_tests_passed": 31,
+      "failure_sqlstate": "42501",
+      "failure_reason": "Proof attempted authenticated raw UPDATE of need_sensitive, forbidden by existing 20260903190000_clean_ru2_need_v2_draft.sql:958. This is a proof fixture defect; SQL103 and ACLs remain unchanged.",
+      "correction": "Assert raw private write denial/unchanged state; perform private correction through openEdit, human-confirmed saveLocation and confirmEdit. Prove new revision, changed private marker, old revision rejection, and old binding rejection at new revision.",
+      "artifact_id": 10159762182,
+      "artifact_bytes": 39740,
+      "artifact_sha256": "d143e1bb7c6ec9cc01b51211a2bbef30a48e59cdc46e46778a56cd36321f6d0b",
+      "artifact_input_hash_references_verified": 496,
+      "source_relation_verified": true,
+      "corrected_proof_db_result": "PENDING_NEW_SOURCE_CI"
+    }
+  ]
 }
