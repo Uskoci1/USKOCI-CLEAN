@@ -9,7 +9,7 @@ jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockOwner }));
 
 const query = { text: 'Novi Sad', countryCode: 'RS', scopeKey: 'LOCAL_ACCOUNT_AND_POINT_MUST_NOT_BE_SENT' };
 const candidates = [{ label: 'Synthetic public city', countryCode: 'RS', position: { latitude: 45.251234, longitude: 19.831234 },
-  providerHint: 'approved-provider', candidateId: 'synthetic-candidate' }];
+  providerHint: 'locationiq', candidateId: 'synthetic-candidate' }];
 const session = (account = 'account-A', token = 'SYNTHETIC_USER_JWT') => ({ data: { session: { user: { id: account }, access_token: token } }, error: null });
 const oldUrl = process.env.EXPO_PUBLIC_SUPABASE_URL, oldHint = process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;
 const deferred = <T,>() => { let resolve!: (value: T) => void;const promise = new Promise<T>(done => { resolve = done; });return { promise, resolve }; };
@@ -23,12 +23,27 @@ afterAll(() => {
   if (oldHint === undefined) delete process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;else process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT = oldHint;
 });
 
-it.each(['url', 'hint', 'supabase'])('keeps missing %s configuration blocked without Auth/provider calls', async missing => {
+it.each(['url', 'supabase'])('keeps missing %s configuration blocked without Auth/provider calls', async missing => {
   if (missing === 'url') delete process.env.EXPO_PUBLIC_SUPABASE_URL;
-  if (missing === 'hint') delete process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;
   if (missing === 'supabase') mockConfigured = false;
   await expect(createProductionLocationResolver().search(query)).resolves.toEqual({ status: 'PROVIDER_ACTIVATION_BLOCKED' });
   expect(mockGetSession).not.toHaveBeenCalled();expect(mockInvoke).not.toHaveBeenCalled();
+});
+
+it('uses the approved public provider identity without a client token or optional hint variable', async () => {
+  delete process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;
+  await expect(createProductionLocationResolver().search(query)).resolves.toMatchObject({ status: 'PROPOSALS', candidates: [
+    { origin: { providerHint: 'locationiq' } },
+  ] });
+  expect(JSON.stringify(mockInvoke.mock.calls)).not.toMatch(/LOCATIONIQ_ACCESS_TOKEN|locationiq\.com|[?&]key=/);
+});
+
+it('preserves the Edge rate limit without reading its response body or retrying', async () => {
+  const context = new Response('PRIVATE_UPSTREAM_ERROR', { status: 429 });
+  const readBody = jest.spyOn(context, 'json');
+  mockInvoke.mockResolvedValue({ data: null, error: { context } });
+  await expect(createProductionLocationResolver().search(query)).resolves.toEqual({ status: 'RATE_LIMITED' });
+  expect(readBody).not.toHaveBeenCalled();expect(mockInvoke).toHaveBeenCalledTimes(1);
 });
 
 it('invokes only the owned Edge function with fresh JWT, body allowlist and AbortSignal', async () => {

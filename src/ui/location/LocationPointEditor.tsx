@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationPinOrigin, LocationSlot } from '../../contracts/location';
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution, type LocationResolverCandidate } from '../../data/configuredLocationResolver';
 import { locationPrivateText } from '../../lib/location';
@@ -110,8 +110,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {lookup.status === 'LOADING' ? <T variant="meta" accessibilityLiveRegion="polite">Tražimo predloge za uneto mesto…</T> : null}
     {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga mesta još nije aktivirana. Tačku možete izabrati na mapi.</T> : null}
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi trenutno nisu dostupni. Pokušajte ponovo ili izaberite tačku na mapi.</T> : null}
+    {lookup.status === 'RATE_LIMITED' ? <T variant="meta" accessibilityRole="alert">Previše pretraga za kratko vreme. Sačekajte pa pokušajte ponovo ili izaberite tačku na mapi.</T> : null}
     {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesite mesto i proverite izabranu državu.</T> : null}
     {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">Nema predloga za uneti tekst. Precizirajte mesto ili izaberite tačku na mapi.</T> : null}
+    {lookup.status === 'PROPOSALS' ? <T variant="meta" accessibilityRole="link"
+      onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
     {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <Button
       key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={`Izaberi predlog: ${candidate.label}`}
       kind="quiet" disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}

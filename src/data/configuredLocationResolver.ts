@@ -25,8 +25,8 @@ export type LocationResolverCandidate = Readonly<{
 }>;
 export type ConfiguredLocationResolution =
   | Readonly<{ status: 'PROPOSALS'; candidates: readonly LocationResolverCandidate[]; requiresConfirmation: true }>
-  | Readonly<{ status: 'PROVIDER_ACTIVATION_BLOCKED' | 'INVALID_QUERY' | 'UNAVAILABLE' | 'CANCELLED' }>;
-export type LocationResolverFetch = (url: string, init: RequestInit) => Promise<Pick<Response, 'ok' | 'redirected' | 'json'>>;
+  | Readonly<{ status: 'PROVIDER_ACTIVATION_BLOCKED' | 'INVALID_QUERY' | 'UNAVAILABLE' | 'RATE_LIMITED' | 'CANCELLED' }>;
+export type LocationResolverFetch = (url: string, init: RequestInit) => Promise<Pick<Response, 'ok' | 'redirected' | 'json'> & Partial<Pick<Response, 'status'>>>;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
@@ -137,6 +137,7 @@ export function createConfiguredLocationResolver(rawConfig?: ConfiguredLocationR
             signal: controller.signal, credentials: 'omit', redirect: 'error', cache: 'no-store', referrerPolicy: 'no-referrer',
           });
           if (!owns()) throw new Error('LOCATION_CANCELLED');
+          if (!response.redirected && response.status === 429) return { status: 'RATE_LIMITED' };
           if (!response.ok || response.redirected) throw new Error('LOCATION_UNAVAILABLE');
           const raw: unknown = await response.json();
           if (!owns()) throw new Error('LOCATION_CANCELLED');

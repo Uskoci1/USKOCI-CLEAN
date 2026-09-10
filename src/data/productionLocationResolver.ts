@@ -4,9 +4,10 @@ import { sesijaSada } from '../store/sesija';
 
 /** Only the app's authenticated Edge endpoint is reachable from the native editor. */
 export function createProductionLocationResolver() {
-  const providerHint = process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;
+  // Owner-approved provider identity is public. Its access token exists only in Edge.
+  const providerHint = 'locationiq';
   const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  if (!providerHint || !baseUrl || !supabaseKonfigurisan()) return createConfiguredLocationResolver();
+  if (!baseUrl || !supabaseKonfigurisan()) return createConfiguredLocationResolver();
   const owner = sesijaSada(), accountId = owner.user?.id, incarnation = owner.accountRevision;
   const owns = () => !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === incarnation;
   return createConfiguredLocationResolver({ endpoint: `${baseUrl.replace(/\/$/, '')}/functions/v1/uskoci-location-search`, providerHint,
@@ -24,6 +25,7 @@ export function createProductionLocationResolver() {
       signal: init.signal ?? undefined,
     });
     if (!owns() || init.signal?.aborted) throw new Error('LOCATION_SESSION_CHANGED');
-    return { ok: !error, redirected: false, json: async () => data };
+    const status = error && 'context' in error && error.context instanceof Response ? error.context.status : undefined;
+    return { ok: !error, status, redirected: false, json: async () => data };
   });
 }

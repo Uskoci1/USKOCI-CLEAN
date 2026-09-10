@@ -24,17 +24,18 @@ function fixture(options = {}) {
   const calls = [], logs = [], envReads = [], timers = new Map();
   const env = { SUPABASE_URL: 'https://database.test.invalid', SUPABASE_ANON_KEY: 'SYNTHETIC_ANON_KEY',
     SUPABASE_SERVICE_ROLE_KEY: 'SYNTHETIC_SERVICE_KEY_MUST_NEVER_BE_READ',
-    GEOCODER_ENDPOINT: 'https://geocoder.test.invalid/nominatim/search', GEOCODER_PROVIDER_HINT: 'synthetic-provider',
-    GEOCODER_USER_AGENT: 'USKOCI-Synthetic/1 (test.invalid)', GEOCODER_BEARER_TOKEN: 'SYNTHETIC_PROVIDER_SECRET', ...options.env };
-  let handler, timerId = 0;
-  const context = vm.createContext({ exports: {}, Request, Response, Headers, URL, URLSearchParams, TextDecoder, AbortController, Intl,
+    LOCATIONIQ_ACCESS_TOKEN: 'SYNTHETIC_PROVIDER_SECRET', ...options.env };
+  let handler, timerId = 0, now = 1_000_000;
+  class FixedDate extends Date { static now() { return now; } }
+  const context = vm.createContext({ exports: {}, Request, Response, Headers, URL, URLSearchParams, TextDecoder, AbortController, Intl, Date: FixedDate,
     setTimeout: (fn, ms) => { assert.equal(ms, 7000); const id = ++timerId; timers.set(id, fn); return id; },
     clearTimeout: id => timers.delete(id),
     console: { log: (...args) => logs.push(args), error: (...args) => logs.push(args), warn: (...args) => logs.push(args) },
     Deno: { env: { get: key => { envReads.push(key); return env[key]; } }, serve: fn => { handler = fn; } },
     fetch: async (url, init = {}) => {
       const path = new URL(url).pathname;
-      const kind = path === '/auth/v1/user' ? 'auth' : path === '/rest/v1/rpc/rpc_list_location_markets' ? 'markets' : path === '/nominatim/search' ? 'provider' : null;
+      const kind = path === '/auth/v1/user' ? 'auth' : path === '/rest/v1/rpc/rpc_list_location_markets' ? 'markets'
+        : new URL(url).origin === 'https://eu1.locationiq.com' && path === '/v1/search' ? 'provider' : null;
       assert.ok(kind, 'unexpected route: no writer or provider fallback is allowed');
       calls.push({ kind, url: String(url), ...init, headers: Object.fromEntries(new Headers(init.headers)) });
       if (options[kind]) return options[kind](calls.at(-1));
@@ -52,7 +53,7 @@ function fixture(options = {}) {
       body: typeof body === 'string' || body instanceof ReadableStream ? body : JSON.stringify(body), ...requestOverrides });
     return handler(request);
   };
-  return { calls, logs, envReads, timers, invoke, expire: () => { for (const fn of timers.values()) fn(); },
+  return { calls, logs, envReads, timers, invoke, advance: ms => { now += ms; }, expire: () => { for (const fn of timers.values()) fn(); },
     handle: request => handler(request) };
 }
 async function assertRejected(f, status, code, request) {
@@ -70,12 +71,12 @@ async function reached(f, kind) {
   assert.ok(f.calls.some(call => call.kind === kind), `did not reach ${kind}`);
 }
 
-test('authenticated Nominatim GET emits only the client envelope, with separated credentials and no writes', async () => {
+test('authenticated LocationIQ EU GET emits only the client envelope, with query-key isolation and no writes', async () => {
   const f = fixture(), result = await f.invoke();
   assert.equal(result.status, 200);
   const body = await result.json();
   assert.deepEqual(body, { candidates: [{ label: defaultPlace.display_name, countryCode: 'RS',
-    position: { latitude: 44.123456, longitude: 20.654321 }, providerHint: 'synthetic-provider', candidateId: '123456' }] });
+    position: { latitude: 44.123456, longitude: 20.654321 }, providerHint: 'locationiq', candidateId: '123456' }] });
   assert.deepEqual(f.calls.map(call => call.kind), ['auth', 'markets', 'provider']);
   for (const call of f.calls.slice(0, 2)) {
     assert.equal(call.headers.authorization, 'Bearer SYNTHETIC_USER_SESSION');
@@ -86,14 +87,16 @@ test('authenticated Nominatim GET emits only the client envelope, with separated
   assert.equal(f.calls[0].method, 'GET'); assert.equal(f.calls[1].method, 'POST'); assert.equal(f.calls[1].body, '{}');
   const provider = providerCalls(f)[0];
   assert.equal(provider.method, 'GET'); assert.equal(provider.body, undefined);
-  assert.deepEqual(Object.fromEntries(new URL(provider.url).searchParams), { format: 'jsonv2', addressdetails: '1', countrycodes: 'rs', limit: '10', q: 'SYNTHETIC_PRIVATE_QUERY &countrycodes=xx' });
-  assert.deepEqual(provider.headers, { accept: 'application/json', authorization: 'Bearer SYNTHETIC_PROVIDER_SECRET', 'user-agent': 'USKOCI-Synthetic/1 (test.invalid)' });
+  assert.equal(new URL(provider.url).origin + new URL(provider.url).pathname, 'https://eu1.locationiq.com/v1/search');
+  assert.deepEqual(Object.fromEntries(new URL(provider.url).searchParams), { key: 'SYNTHETIC_PROVIDER_SECRET', format: 'json', addressdetails: '1', countrycodes: 'rs', limit: '10', q: 'SYNTHETIC_PRIVATE_QUERY &countrycodes=xx' });
+  assert.deepEqual(provider.headers, { accept: 'application/json' });
+  assert.ok(!provider.url.includes('SYNTHETIC_USER_SESSION')); assert.ok(!provider.url.includes('SYNTHETIC_ANON_KEY'));
   for (const call of f.calls) {
     assert.equal(call.redirect, 'error'); assert.equal(call.cache, 'no-store'); assert.equal(call.credentials, 'omit');
     assert.equal(call.referrerPolicy, 'no-referrer'); assert.ok(call.signal instanceof AbortSignal);
   }
   for (const marker of ['SYNTHETIC_USER_SESSION', 'SYNTHETIC_ANON_KEY', 'PRIVATE_USER_', 'PROVIDER_PRIVATE_EXTRA', 'PRIVATE_BOUNDING_BOX', 'SYNTHETIC_PROVIDER_SECRET']) assert.ok(!JSON.stringify(body).includes(marker));
-  assert.ok(!f.envReads.includes('SUPABASE_SERVICE_ROLE_KEY'));
+  assert.deepEqual([...new Set(f.envReads)].sort(), ['LOCATIONIQ_ACCESS_TOKEN', 'SUPABASE_ANON_KEY', 'SUPABASE_URL']);
   assert.deepEqual(f.logs, []); assert.equal(f.timers.size, 0);
 });
 
@@ -112,7 +115,9 @@ test('required input, exact keys, country and Unicode limits reject before any t
     { text: 'x', countryCode: 'rs' }, { text: 'x', countryCode: 'RS,GB' }, { text: 'x\n', countryCode: 'RS' },
     { text: '😀'.repeat(1001), countryCode: 'RS' },
     { text: 'x', countryCode: 'RS', endpoint: 'https://attacker.test.invalid/search' },
-    { text: 'x', countryCode: 'RS', accountId: userId }, { text: 'x', countryCode: 'RS', scopeKey: 'PRIVATE_SCOPE' }];
+    { text: 'x', countryCode: 'RS', accountId: userId }, { text: 'x', countryCode: 'RS', scopeKey: 'PRIVATE_SCOPE' },
+    { text: 'x', countryCode: 'RS', key: 'ATTACKER_KEY' }, { text: 'x', countryCode: 'RS', format: 'jsonv2' },
+    { countryCode: 'RS', position: { latitude: 44, longitude: 20 }, mode: 'reverse' }];
   for (const body of invalid) {
     const f = fixture(); await assertRejected(f, 400, 'INVALID_QUERY', { body }); assert.deepEqual(f.calls, []);
   }
@@ -173,29 +178,27 @@ test('market RPC auth denial, error or corrupt authority never falls back to RS 
   assert.equal((await f.invoke()).status, 200); await assertRejected(f, 401, 'AUTH_REQUIRED'); assert.equal(providerCalls(f).length, 1);
 });
 
-test('absent/invalid provider configuration remains explicitly blocked, with no fallback', async () => {
-  const endpoints = [undefined, 'http://geocoder.test.invalid/search', 'https://nominatim.openstreetmap.org/search',
-    'https://NOMINATIM.OPENSTREETMAP.ORG./search', 'https://sub.nominatim.openstreetmap.org/search',
-    'https://127.0.0.1/search', 'https://2130706433/search', 'https://[::1]/search', 'https://10.0.0.1/search',
-    'https://localhost/search', 'https://geocoder.local/search', 'https://geocoder.internal/search',
-    'https://secret@geocoder.test.invalid/search', 'https://geocoder.test.invalid/search?q=secret',
-    'https://geocoder.test.invalid/search#secret', 'https://geocoder.test.invalid/reverse'];
-  for (const GEOCODER_ENDPOINT of endpoints) {
-    const f = fixture({ env: { GEOCODER_ENDPOINT } }); await assertRejected(f, 503, 'PROVIDER_ACTIVATION_BLOCKED'); assert.equal(providerCalls(f).length, 0);
-  }
-  for (const env of [{ GEOCODER_PROVIDER_HINT: undefined }, { GEOCODER_PROVIDER_HINT: 'bad hint' },
-    { GEOCODER_USER_AGENT: undefined }, { GEOCODER_USER_AGENT: 'bad\nagent' }, { GEOCODER_BEARER_TOKEN: '' }, { GEOCODER_BEARER_TOKEN: 'bad token' }]) {
-    const f = fixture({ env }); await assertRejected(f, 503, 'PROVIDER_ACTIVATION_BLOCKED'); assert.equal(providerCalls(f).length, 0);
+test('absent/invalid LocationIQ token remains explicitly blocked without any secret fallback', async () => {
+  for (const LOCATIONIQ_ACCESS_TOKEN of [undefined, '', ' ', 'bad token', 'bad\nkey', 'bad\u0000key', 'x'.repeat(4097)]) {
+    const f = fixture({ env: { LOCATIONIQ_ACCESS_TOKEN, GEOCODER_BEARER_TOKEN: 'OBSOLETE_SECRET' } });
+    await assertRejected(f, 503, 'PROVIDER_ACTIVATION_BLOCKED'); assert.equal(providerCalls(f).length, 0);
+    assert.ok(!f.envReads.includes('GEOCODER_BEARER_TOKEN')); assert.ok(!f.envReads.includes('SUPABASE_SERVICE_ROLE_KEY'));
   }
 });
 
-test('optional provider credential does not default to a Supabase or caller token', async () => {
-  const f = fixture({ env: { GEOCODER_BEARER_TOKEN: undefined }, places: [] });
+test('fixed provider cannot be changed by old generic configuration; key remains a single encoded parameter', async () => {
+  const f = fixture({ env: { GEOCODER_ENDPOINT: 'https://nominatim.openstreetmap.org/search', GEOCODER_PROVIDER_HINT: 'wrong',
+    GEOCODER_USER_AGENT: 'OBSOLETE_UA', GEOCODER_BEARER_TOKEN: 'OBSOLETE_SECRET', LOCATIONIQ_ACCESS_TOKEN: 'SYNTHETIC_KEY&q=must-not-replace' }, places: [] });
   const result = await f.invoke(); assert.equal(result.status, 200); assert.deepEqual(await result.json(), { candidates: [] });
-  assert.equal(providerCalls(f)[0].headers.authorization, undefined);
+  const provider = providerCalls(f)[0], url = new URL(provider.url);
+  assert.equal(url.origin + url.pathname, 'https://eu1.locationiq.com/v1/search');
+  assert.equal(url.searchParams.get('key'), 'SYNTHETIC_KEY&q=must-not-replace');
+  assert.equal(url.searchParams.getAll('q').length, 1); assert.equal(url.searchParams.get('q'), 'SYNTHETIC_PRIVATE_QUERY &countrycodes=xx');
+  assert.equal(provider.headers.authorization, undefined);
+  assert.ok(f.envReads.every(key => !key.startsWith('GEOCODER_')));
 });
 
-test('corrupt JSONv2 results reject the entire response, including a preceding valid candidate', async () => {
+test('corrupt LocationIQ JSON results reject the entire response, including a preceding valid candidate', async () => {
   const corrupt = [{ lat: undefined }, { lat: 44 }, { lon: null }, { lat: '' }, { lat: ' 44 ' }, { lat: '0x10' },
     { lat: '1e2' }, { lat: 'NaN' }, { lat: 'Infinity' }, { lat: '90.000001' }, { lon: '-180.000001' },
     { display_name: '' }, { display_name: 'bad\nlabel' }, { display_name: '😀'.repeat(1001) },
@@ -210,13 +213,72 @@ test('corrupt JSONv2 results reject the entire response, including a preceding v
   }
 });
 
-test('upstream errors, redirects and non-JSON payloads are sanitized without retry', async () => {
-  for (const provider of [() => json({ private: 'PRIVATE_PROVIDER_BODY' }, 429), () => json({}, 500),
+test('upstream errors, redirects and non-JSON payloads are sanitized without retry or URL disclosure', async () => {
+  for (const provider of [() => json({ private: 'PRIVATE_PROVIDER_BODY' }, 401), () => json({}, 403), () => json({}, 500),
     () => new Response('PRIVATE_PROVIDER_BODY SYNTHETIC_PROVIDER_SECRET'),
     () => { throw new Error('PRIVATE_PROVIDER_BODY SYNTHETIC_PRIVATE_QUERY'); },
+    call => { throw new Error(`PROVIDER_REQUEST_FAILED ${call.url}`); },
     () => { const result = json([defaultPlace]); Object.defineProperty(result, 'redirected', { value: true }); return result; }]) {
     const f = fixture({ provider }); await assertRejected(f, 502, 'UNAVAILABLE'); assert.equal(providerCalls(f).length, 1);
   }
+});
+
+test('LocationIQ quota responses become bounded RATE_LIMITED with no body or retry', async () => {
+  const f = fixture({ provider: call => json({ error: 'Rate Limited Day', private: call.url }, 429) });
+  await assertRejected(f, 429, 'RATE_LIMITED');
+  assert.equal(providerCalls(f).length, 1);
+});
+
+test('only documented LocationIQ no-match 404 becomes an empty candidate result', async () => {
+  const f = fixture({ provider: () => json({ error: 'Unable to geocode' }, 404) });
+  const result = await f.invoke(); assert.equal(result.status, 200); assert.deepEqual(await result.json(), { candidates: [] });
+  for (const payload of [{ error: 'Imagery not found' }, { error: 'PRIVATE_UNKNOWN_ERROR' }, { error: 'Unable to geocode', extra: 'PRIVATE_ERROR' }]) {
+    const g = fixture({ provider: () => json(payload, 404) }); await assertRejected(g, 502, 'UNAVAILABLE');
+  }
+});
+
+test('authenticated-user burst and minute limits do not depend on session-token rotation', async () => {
+  const f = fixture({ places: [] });
+  assert.equal((await f.invoke()).status, 200);
+  await assertRejected(f, 429, 'RATE_LIMITED');
+  f.advance(999); await assertRejected(f, 429, 'RATE_LIMITED');
+  f.advance(1); assert.equal((await f.invoke()).status, 200);
+  for (let i = 0; i < 8; i++) { f.advance(1000); assert.equal((await f.invoke()).status, 200); }
+  f.advance(1000);
+  await assertRejected(f, 429, 'RATE_LIMITED', { headers: { Authorization: 'Bearer DIFFERENT_TOKEN_SAME_USER', 'Content-Type': 'application/json' } });
+  assert.equal(providerCalls(f).length, 10);
+  f.advance(60_000); assert.equal((await f.invoke()).status, 200);
+  assert.equal(providerCalls(f).length, 11); assert.deepEqual(f.logs, []);
+});
+
+test('one in-flight request per user is released after completion without blocking another user', async () => {
+  let release, authId = userId;
+  const f = fixture({ auth: () => json({ id: authId, role: 'authenticated' }),
+    provider: () => new Promise(resolve => { release = resolve; }) });
+  const pending = f.invoke(); await reached(f, 'provider'); f.advance(5000);
+  const blocked = await f.invoke(); assert.equal(blocked.status, 429); assert.deepEqual(await blocked.json(), { code: 'RATE_LIMITED' });
+  assert.equal(providerCalls(f).length, 1);
+  const releaseFirst = release;
+  authId = '22222222-2222-4222-8222-222222222222';
+  const other = f.invoke();
+  for (let i = 0; i < 100 && providerCalls(f).length < 2; i++) await Promise.resolve();
+  assert.equal(providerCalls(f).length, 2);
+  release(json([])); releaseFirst(json([]));
+  assert.equal((await other).status, 200); assert.equal((await pending).status, 200);
+  authId = userId; f.advance(1000);
+  const next = f.invoke();
+  for (let i = 0; i < 100 && providerCalls(f).length < 3; i++) await Promise.resolve();
+  release(json([])); assert.equal((await next).status, 200);
+  assert.deepEqual(f.logs, []); assert.equal(f.timers.size, 0);
+});
+
+test('authenticated rate cache is bounded and expires inactive user entries', async () => {
+  let id = 0;
+  const f = fixture({ auth: () => json({ id: `${String(++id).padStart(8, '0')}-1111-4111-8111-111111111111`, role: 'authenticated' }), places: [] });
+  for (let i = 0; i < 1024; i++) assert.equal((await f.invoke()).status, 200);
+  await assertRejected(f, 429, 'RATE_LIMITED'); assert.equal(providerCalls(f).length, 1024);
+  f.advance(60_000); assert.equal((await f.invoke()).status, 200);
+  assert.equal(providerCalls(f).length, 1025); assert.deepEqual(f.logs, []);
 });
 
 test('declared and streamed body byte limits reject without trusting Content-Length', async () => {

@@ -76,10 +76,10 @@ it('uses the real configured adapter and emits a provider pin only on explicit c
     origin: candidate.origin, address: 'Manually typed private address' });
 });
 
-it.each(['UNAVAILABLE', 'PROVIDER_ACTIVATION_BLOCKED', 'INVALID_QUERY'] as const)('shows the %s state without inventing a candidate', async status => {
+it.each(['UNAVAILABLE', 'PROVIDER_ACTIVATION_BLOCKED', 'INVALID_QUERY', 'RATE_LIMITED'] as const)('shows the %s state without inventing a candidate', async status => {
   await render({ resolver: configured({ status }), initialQuery: 'Place' });await press('Pronađi na mapi');
   expect(text()).toContain(status === 'UNAVAILABLE' ? 'Predlozi trenutno nisu dostupni' : status === 'INVALID_QUERY'
-    ? 'Unesite mesto i proverite izabranu državu' : 'Pretraga mesta još nije aktivirana');
+    ? 'Unesite mesto i proverite izabranu državu' : status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme' : 'Pretraga mesta još nije aktivirana');
   expect(map().props.position).toBeNull();expect(button('Potvrdi tačku: Početak').props.disabled).toBe(true);
   expect(props.onConfirm).not.toHaveBeenCalled();
 });

@@ -8,20 +8,24 @@ address or topology changes retire old pins; Remote removes physical location.
 The existing Agreement grant/reveal/revoke path covers coordinate-only locations.
 Exact points remain private and are excluded from AI proposals and structured context.
 
-The authenticated uskoci-location-search Edge source accepts explicit searches
-through a configured Nominatim-compatible service. It has no public fallback.
-The owner endpoint is still pending; manual map selection remains independent.
-Client configuration uses EXPO_PUBLIC_LOCATION_PROVIDER_HINT. Server configuration
-uses GEOCODER_ENDPOINT, GEOCODER_PROVIDER_HINT, GEOCODER_USER_AGENT and optional
-GEOCODER_BEARER_TOKEN. Never put the server token in a client build or documentation.
+The owner selected LocationIQ on 2026-09-10 and confirmed that the production
+LOCATIONIQ_ACCESS_TOKEN Edge secret is set. The existing authenticated search
+adapter is being adapted to https://eu1.locationiq.com/v1/search, format=json,
+with server-only key authentication. Client provider identity is locationiq;
+no client provider secret or extra hint variable is needed. Reverse endpoint
+https://eu1.locationiq.com/v1/reverse is recorded for an explicit reverse intent;
+map taps do not send automatic reverse requests. Manual selection remains available.
+Actual provider proof needs the deployed exact source and a signed-in app session.
 
 Source migration 20260910130851 is pending; SHA256
 3aec6ef4189e0df5ce157e661a64487655645e6b6eee94675f60dcace1214dcf.
 Local TypeScript, location/grant/editor/adapter regressions and strict Edge checks
-pass. The actual-handler synthetic tests pass58 AI and16 geocoder cases; they do
+pass. The actual-handler synthetic tests pass58 AI and21 LocationIQ cases; they do
 not prove a real provider. The existing W02 workflow now includes11 real
 Auth/SDK/PostgREST resolved-location stages; runtime admission is still pending.
-Android debug build is in progress. No native journey or store readiness claimed.
+Android debug build and safe in-place install passed. Automated ADB launch and
+starting the live-connected web app were rejected by tool policy; native map
+rendering and the actual authenticated provider journey remain unproven.
 Live remains101 / AI Edge v12 with21 keys until this successor is admitted,
 merged, promoted and independently read back. Continue the same W02 unit.
 

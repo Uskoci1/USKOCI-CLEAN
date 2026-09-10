@@ -1,8 +1,7 @@
-/** Authenticated, read-only Nominatim JSONv2 adapter. Deploy with verify_jwt=true.
- * Server configuration: GEOCODER_ENDPOINT (approved HTTPS /search URL),
- * GEOCODER_PROVIDER_HINT, GEOCODER_USER_AGENT, optional GEOCODER_BEARER_TOKEN.
- * No provider is selected by default. These are proposals, never pin attestation.
- * API: https://nominatim.org/release-docs/latest/api/Search/
+/** Authenticated, read-only LocationIQ forward adapter. Deploy with verify_jwt=true.
+ * The owner-approved EU endpoint is fixed; only LOCATIONIQ_ACCESS_TOKEN is secret.
+ * These are proposals, never pin attestation. Manual map selection stays separate.
+ * API: https://docs.locationiq.com/reference/search (format=json, query key).
  * place_id is an opaque, nonpersistent provider hint, not a durable place identity.
  */
 export {};
@@ -20,6 +19,10 @@ const corsHeaders = {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const deadlineMs = 7_000;
 const responseBytes = 131_072;
+const providerEndpoint = 'https://eu1.locationiq.com/v1/search';
+const providerHint = 'locationiq';
+type SearchWindow = { start: number; last: number; count: number; busy: boolean };
+const searchWindows = new Map<string, SearchWindow>();
 type RecordValue = Record<string, unknown>;
 type Candidate = {
   label: string; countryCode: string; position: { latitude: number; longitude: number };
@@ -46,24 +49,36 @@ function locationText(value: unknown, max: number): string | null {
   const text = value.replace(/^ +| +$/g, '');
   return text.length && Array.from(text).length <= max ? text : null;
 }
-function providerConfig(): { endpoint: URL; hint: string; userAgent: string; token?: string } | null {
-  const raw = Deno.env.get('GEOCODER_ENDPOINT'), hint = Deno.env.get('GEOCODER_PROVIDER_HINT');
-  const userAgent = Deno.env.get('GEOCODER_USER_AGENT'), token = Deno.env.get('GEOCODER_BEARER_TOKEN');
-  if (!raw || raw.length > 2048 || raw !== raw.trim() || !hint || hint.length > 64
-    || !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(hint)
-    || !userAgent || userAgent.length > 256 || userAgent !== userAgent.trim() || !/^[\x20-\x7e]+$/.test(userAgent)
-    || (token !== undefined && (!token.length || token.length > 4096 || !/^[\x21-\x7e]+$/.test(token)))) return null;
-  try {
-    const endpoint = new URL(raw), host = endpoint.hostname.toLowerCase().replace(/\.$/, '');
-    // Only an owner-configured external DNS endpoint. No IP literals, local names,
-    // public OSM endpoint, embedded credentials or preloaded query parameters.
-    // DNS/network admission belongs to provider setup; this is not DNS attestation.
-    if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash
-      || !/\/search\/?$/.test(endpoint.pathname) || !host.includes('.')
-      || !/^[a-z0-9.-]+$/.test(host) || /^[0-9.]+$/.test(host)
-      || ['localhost', 'local', 'internal', 'lan', 'home', 'nominatim.openstreetmap.org'].some(suffix => host === suffix || host.endsWith(`.${suffix}`))) return null;
-    return { endpoint, hint, userAgent, ...(token ? { token } : {}) };
-  } catch { return null; }
+function providerToken(): string | null {
+  const token = Deno.env.get('LOCATIONIQ_ACCESS_TOKEN');
+  return token && token.length <= 4096 && /^[\x21-\x7e]+$/.test(token) ? token : null;
+}
+/** Per authenticated user: one in flight, >=1s between calls, <=10/minute.
+ * Bounded isolate-local burst protection, not a distributed quota or provider-plan
+ * guarantee. Cold starts reset this cache; upstream 429 remains authoritative.
+ * No addresses, session tokens or provider responses are retained here.
+ */
+function reserveSearch(userId: string): () => void {
+  const now = Date.now();
+  for (const [id, window] of searchWindows) {
+    if (!window.busy && now - window.last >= 60_000) searchWindows.delete(id);
+  }
+  let window = searchWindows.get(userId);
+  if (window?.busy || (window && now - window.last < 1000)) throw new Rejected(429, 'RATE_LIMITED');
+  if (!window) {
+    if (searchWindows.size >= 1024) throw new Rejected(429, 'RATE_LIMITED');
+    window = { start: now, last: now, count: 0, busy: false };
+    searchWindows.set(userId, window);
+  } else if (now - window.start >= 60_000) {
+    window.start = now;
+    window.count = 0;
+  }
+  if (window.count >= 10) throw new Rejected(429, 'RATE_LIMITED');
+  window.last = now;
+  window.count++;
+  window.busy = true;
+  const reserved = window;
+  return () => { reserved.busy = false; };
 }
 async function boundedJson(message: Request | Response, maxBytes: number, signal: AbortSignal): Promise<unknown> {
   const length = message.headers.get('content-length');
@@ -145,6 +160,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   req.signal.addEventListener('abort', abort, { once: true });
   if (req.signal.aborted) abort();
   const timer = setTimeout(abort, deadlineMs);
+  let releaseSearch: (() => void) | undefined;
   let rejectAborted: (() => void) | undefined;
   const aborted = new Promise<never>((_resolve, reject) => {
     rejectAborted = () => reject(new Rejected(req.signal.aborted ? 499 : 504, req.signal.aborted ? 'CANCELLED' : 'UNAVAILABLE'));
@@ -181,14 +197,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const available = availableCountry(await boundedJson(markets, responseBytes, controller.signal), country);
       if (available === null) throw new Rejected(502, 'UNAVAILABLE');
       if (!available) throw new Rejected(403, 'COUNTRY_NOT_AVAILABLE');
-      const config = providerConfig();
-      if (!config) throw new Rejected(503, 'PROVIDER_ACTIVATION_BLOCKED');
-      config.endpoint.search = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', countrycodes: country.toLowerCase(), limit: '10', q: text }).toString();
-      const upstream = await fetchBound(config.endpoint, { method: 'GET', headers: {
-        Accept: 'application/json', 'User-Agent': config.userAgent, ...(config.token ? { Authorization: `Bearer ${config.token}` } : {}),
-      } });
+      const token = providerToken();
+      if (!token) throw new Rejected(503, 'PROVIDER_ACTIVATION_BLOCKED');
+      if (controller.signal.aborted) throw new Error('CANCELLED');
+      releaseSearch = reserveSearch(user.id);
+      const endpoint = new URL(providerEndpoint);
+      endpoint.search = new URLSearchParams({ key: token, format: 'json', addressdetails: '1', countrycodes: country.toLowerCase(), limit: '10', q: text }).toString();
+      // The URL now contains the provider key and submitted address. It must never
+      // enter logs, errors, receipts or client output. Caller JWT/anon key stay out.
+      const upstream = await fetchBound(endpoint, { method: 'GET', headers: { Accept: 'application/json' } });
+      if (upstream.status === 429) throw new Rejected(429, 'RATE_LIMITED');
+      if (upstream.status === 404) {
+        const missing = record(await boundedJson(upstream, responseBytes, controller.signal));
+        // Only the documented geocoder no-match response is an empty result.
+        if (missing && only(missing, ['error']) && missing.error === 'Unable to geocode') return response(200, { candidates: [] });
+        throw new Rejected(502, 'UNAVAILABLE');
+      }
       if (!upstream.ok) throw new Rejected(502, 'UNAVAILABLE');
-      const candidates = normalizeCandidates(await boundedJson(upstream, responseBytes, controller.signal), country, config.hint);
+      const candidates = normalizeCandidates(await boundedJson(upstream, responseBytes, controller.signal), country, providerHint);
       if (candidates === null) throw new Rejected(502, 'UNAVAILABLE');
       return response(200, { candidates });
     };
@@ -198,6 +224,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // or Auth responses. No database writer exists in this handler.
     return error instanceof Rejected ? response(error.status, { code: error.code }) : response(502, { code: 'UNAVAILABLE' });
   } finally {
+    releaseSearch?.();
     clearTimeout(timer);
     req.signal.removeEventListener('abort', abort);
     if (rejectAborted) controller.signal.removeEventListener('abort', rejectAborted);

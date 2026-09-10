@@ -119,6 +119,13 @@ it('loading, cancellation, error/retry and empty states do not autochoose a poin
   expect(map().props.position).toEqual(location.approximatePosition);expect(props.onSave).not.toHaveBeenCalled();
 });
 
+it('shows a rate limit and keeps manual base selection available without an automatic retry', async () => {
+  const search = resolver();search.search.mockResolvedValue({ status: 'RATE_LIMITED' });
+  await render({ resolver: search });await press('Pronađi područje za uneti grad');
+  expect(text()).toContain('Previše pretraga za kratko vreme');expect(search.search).toHaveBeenCalledTimes(1);
+  expect(map().props.disabled).toBeFalsy();expect(props.onSave).not.toHaveBeenCalled();
+});
+
 it('blur/refocus drops candidates and a retained click cannot select a point', async () => {
   await render({ resolver: resolver() });await press('Pronađi područje za uneti grad');
   const retained = button('Izaberi područje: Synthetic public city').props.onPress;

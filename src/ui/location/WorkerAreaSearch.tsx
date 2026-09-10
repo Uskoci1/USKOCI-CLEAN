@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import type { CoarsePosition } from '../../contracts/location';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
@@ -10,7 +10,7 @@ import { displayedPinPosition } from './ResolvedPinMap.types';
 import { locationStyles as s } from './LocationControls';
 
 type CoarseCandidate = Readonly<{ label: string; position: CoarsePosition }>;
-type Lookup = { status: 'IDLE' | 'LOADING' | 'PROVIDER_ACTIVATION_BLOCKED' | 'INVALID_QUERY' | 'UNAVAILABLE' }
+type Lookup = { status: 'IDLE' | 'LOADING' | 'PROVIDER_ACTIVATION_BLOCKED' | 'INVALID_QUERY' | 'UNAVAILABLE' | 'RATE_LIMITED' }
   | { status: 'PROPOSALS'; candidates: readonly CoarseCandidate[] };
 type Props = { city: string; countryCode: string; scopeKey: string; disabled: boolean;
   resolver?: ReturnType<typeof createConfiguredLocationResolver>; onChoose: (position: CoarsePosition) => void };
@@ -70,8 +70,11 @@ function ScopedAreaSearch({ city, countryCode, scopeKey, disabled, resolver: inj
     {lookup.status === 'LOADING' ? <T variant="meta" accessibilityLiveRegion="polite">Tražimo predloge za grad ili mesto rada…</T> : null}
     {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga područja još nije aktivirana. Približnu tačku možeš izabrati na mapi.</T> : null}
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi područja trenutno nisu dostupni. Pokušaj ponovo ili označi područje na mapi.</T> : null}
+    {lookup.status === 'RATE_LIMITED' ? <T variant="meta" accessibilityRole="alert">Previše pretraga za kratko vreme. Sačekaj pa pokušaj ponovo ili označi područje na mapi.</T> : null}
     {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesi grad ili mesto rada i proveri državu.</T> : null}
     {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">Nema predloga za uneti grad. Proveri naziv ili označi područje na mapi.</T> : null}
+    {lookup.status === 'PROPOSALS' ? <T variant="meta" accessibilityRole="link"
+      onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
     {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <Button key={index}
       label={`Izaberi područje: ${candidate.label}`} kind="quiet" disabled={disabled || !focused} onPress={() => select(candidate)} />) : null}
     {lookup.status !== 'IDLE' ? <Button label="Otkaži pretragu područja" kind="quiet" disabled={disabled || !focused}

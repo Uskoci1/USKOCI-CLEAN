@@ -13,6 +13,12 @@ const deferred = <T,>() => {
 };
 afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
 
+it('preserves a 429 limit without reading provider error text or retrying', async () => {
+  const json = jest.fn(), fetcher = jest.fn().mockResolvedValue({ ok: false, status: 429, redirected: false, json });
+  await expect(createConfiguredLocationResolver(config, fetcher).search(input)).resolves.toEqual({ status: 'RATE_LIMITED' });
+  expect(json).not.toHaveBeenCalled();expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
 it.each([undefined, { ...config, endpoint: '' }, { ...config, endpoint: 'http://approved-proxy.test.invalid/search' },
   { ...config, endpoint: 'https://token:secret@approved-proxy.test.invalid/search' },
   { ...config, endpoint: 'https://approved-proxy.test.invalid/search?key=secret' },
