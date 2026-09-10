@@ -35,7 +35,7 @@ function fixture(options = {}) {
     fetch: async (url, init = {}) => {
       const path = new URL(url).pathname;
       const kind = path === '/auth/v1/user' ? 'auth' : path === '/rest/v1/rpc/rpc_list_location_markets' ? 'markets'
-        : new URL(url).origin === 'https://eu1.locationiq.com' && path === '/v1/search' ? 'provider' : null;
+        : new URL(url).origin === 'https://eu1.locationiq.com' && ['/v1/search', '/v1/reverse'].includes(path) ? 'provider' : null;
       assert.ok(kind, 'unexpected route: no writer or provider fallback is allowed');
       calls.push({ kind, url: String(url), ...init, headers: Object.fromEntries(new Headers(init.headers)) });
       if (options[kind]) return options[kind](calls.at(-1));
@@ -117,7 +117,7 @@ test('required input, exact keys, country and Unicode limits reject before any t
     { text: 'x', countryCode: 'RS', endpoint: 'https://attacker.test.invalid/search' },
     { text: 'x', countryCode: 'RS', accountId: userId }, { text: 'x', countryCode: 'RS', scopeKey: 'PRIVATE_SCOPE' },
     { text: 'x', countryCode: 'RS', key: 'ATTACKER_KEY' }, { text: 'x', countryCode: 'RS', format: 'jsonv2' },
-    { countryCode: 'RS', position: { latitude: 44, longitude: 20 }, mode: 'reverse' }];
+    { countryCode: 'RS', position: { latitude: 44, longitude: 20 }, mode: 'unknown' }];
   for (const body of invalid) {
     const f = fixture(); await assertRejected(f, 400, 'INVALID_QUERY', { body }); assert.deepEqual(f.calls, []);
   }
@@ -314,4 +314,37 @@ test('deadline interrupts response body streaming, and caller cancellation cance
   const cancelled = g.invoke({ signal: controller.signal }); await reached(g, 'provider'); controller.abort();
   const result = await cancelled; assert.equal(result.status, 499); assert.deepEqual(await result.json(), { code: 'CANCELLED' });
   assert.equal(providerCalls(g)[0].signal.aborted, true); assert.deepEqual(g.logs, []); assert.equal(g.timers.size, 0);
+});
+
+
+test('reverse uses fixed EU endpoint and query key after Auth/market admission, returning only a private proposal', async () => {
+  const f = fixture({ places: defaultPlace });
+  const result = await f.invoke({ body: { mode: 'reverse', position: { latitude: 45.255, longitude: 19.845 }, countryCode: 'RS' } });
+  assert.equal(result.status, 200);const body=await result.json();assert.equal(body.candidates.length,1);
+  assert.deepEqual(f.calls.map(c=>c.kind),['auth','markets','provider']);
+  const request=providerCalls(f)[0],url=new URL(request.url);
+  assert.equal(url.origin+url.pathname,'https://eu1.locationiq.com/v1/reverse');
+  assert.deepEqual(Object.fromEntries(url.searchParams),{key:'SYNTHETIC_PROVIDER_SECRET',format:'json',addressdetails:'1',lat:'45.255',lon:'19.845',zoom:'18'});
+  assert.deepEqual(request.headers,{accept:'application/json'});assert.deepEqual(f.logs,[]);
+  assert.equal(body.candidates[0].label,defaultPlace.display_name);
+  assert.ok(!JSON.stringify(body).includes('SYNTHETIC_PROVIDER_SECRET'));
+});
+
+test('reverse rejects malformed/private extra input before any network',async()=>{
+  for(const position of [null,[],{}, {latitude:'45',longitude:19},{latitude:91,longitude:19},{latitude:45,longitude:181}, {latitude:45,longitude:19,address:'PRIVATE'}]){
+    const f=fixture();await assertRejected(f,400,'INVALID_QUERY',{body:{mode:'reverse',countryCode:'RS',position}});assert.deepEqual(f.calls,[]);
+  }
+  const f=fixture();await assertRejected(f,400,'INVALID_QUERY',{body:{mode:'reverse',countryCode:'RS',position:{latitude:45,longitude:19},text:'PRIVATE'}});assert.deepEqual(f.calls,[]);
+});
+
+test('reverse preserves authentication, country and whole-result validation',async()=>{
+  const query={body:{mode:'reverse',countryCode:'RS',position:{latitude:45,longitude:19}}};
+  const unauth=fixture({auth:()=>json({error:'PRIVATE'},401)});await assertRejected(unauth,401,'AUTH_REQUIRED',query);assert.equal(providerCalls(unauth).length,0);
+  const disabled=fixture({marketRows:[{...defaultMarket,productStatus:'WAITLIST'}]});await assertRejected(disabled,403,'COUNTRY_NOT_AVAILABLE',query);assert.equal(providerCalls(disabled).length,0);
+  for(const places of [[defaultPlace],{...defaultPlace,address:{country_code:'hr'}},{...defaultPlace,lat:'NaN'}])await assertRejected(fixture({places}),502,'UNAVAILABLE',query);
+});
+
+test('forward and reverse share one authenticated burst/concurrency quota',async()=>{
+  const f=fixture({places:defaultPlace});const body={mode:'reverse',countryCode:'RS',position:{latitude:0,longitude:0}};
+  assert.equal((await f.invoke({body})).status,200);await assertRejected(f,429,'RATE_LIMITED');assert.equal(providerCalls(f).length,1);
 });
