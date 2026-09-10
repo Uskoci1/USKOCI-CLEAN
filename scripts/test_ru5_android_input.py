@@ -55,11 +55,11 @@ class NativeInputModel:
         elif args[-1] == 'KEYCODE_DEL' and self.selected:
             self.value = ''
             self.selected = False
-        elif args[:3] == ('shell', 'input', 'text'):
+        elif args[:3] == ('shell', 'input', 'text') or args[-1] == 'KEYCODE_SPACE':
             if self.dropped_inputs:
                 self.dropped_inputs -= 1
             else:
-                self.value += args[-1]
+                self.value += ' ' if args[-1] == 'KEYCODE_SPACE' else args[-1]
 
     def namespace(self):
         import re
@@ -84,6 +84,19 @@ class AndroidInputHarnessTests(unittest.TestCase):
         self.assertEqual(model.value, value)
         self.assertIn('CHECKPOINT UI_TEXT_ENTERED field=0 attempt=1', log)
         self.assertNotIn('characters=', log)
+        self.assertNotIn(value, log)
+
+    def test_ai_sentence_uses_real_space_key_events_and_exact_readback(self):
+        model = NativeInputModel()
+        value = 'Dve osobe i kombi za prenos stvari u Novom Sadu.'
+        log = self.exercise(model, value)
+        commands = [args for _, args in model.commands]
+        expected = [('shell', 'input', 'keyevent', 'KEYCODE_SPACE') if char == ' '
+                    else ('shell', 'input', 'text', char) for char in value]
+        self.assertEqual(commands[-len(value):], expected)
+        self.assertEqual(model.value, value)
+        self.assertGreaterEqual(model.clock, len(value) * 0.15)
+        self.assertIn('CHECKPOINT UI_TEXT_ENTERED field=0 attempt=1', log)
         self.assertNotIn(value, log)
 
     def test_long_email_with_dropped_character_retries_the_whole_value(self):
