@@ -1,0 +1,25 @@
+{
+  "unit": "W02_DISPATCH_NEED_LOCK_ORDER",
+  "forward_file": "supabase/migrations/20260910214845_clean_dispatch_need_lock_order.sql",
+  "forward_version": "20260910214845",
+  "forward_name": "clean_dispatch_need_lock_order",
+  "bytes": 11130,
+  "md5": "7f0ec074e46a19756155c18c2e8b37ba",
+  "sha256": "f447ce144ca59e91e9929e52b8cd206a9a27549eacc2fccb44c3f4d096a3a416",
+  "expected_registered_history_count": 105,
+  "admitted_source_count": 108,
+  "applied_authority": "REGISTRY105_PLUS_UNRECORDED_DISPATCH108",
+  "changed_bodies": [
+    {
+      "signature": "private.dispatch_tick(integer,timestamptz)",
+      "predecessor_md5": "6bbd8765aa833b3c27209c82da99e5e4",
+      "current_md5": "d3ef4a0b0b63bcfaffd84547a2ad863b"
+    },
+    {
+      "signature": "private.expire_lifecycle(timestamptz)",
+      "predecessor_md5": "3aba08b19f04bd19c06452bcd6e2e3a9",
+      "current_md5": "dee7ea3dff5129da34be3e6977ad50af"
+    }
+  ],
+  "source_only": true
+}
