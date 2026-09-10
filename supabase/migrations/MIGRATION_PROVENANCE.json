@@ -1945,6 +1945,20 @@
       "activation": "SOURCE_ONLY_NOT_LIVE",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910121926",
+      "name": "clean_w02_regional_country_authority",
+      "file": "20260910121926_clean_w02_regional_country_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "ac3096ab5fda7761c5d6477a063b0011",
+      "raw_sha256": "19c84eec4c15a8eca507dc44c50800bd0b4022fcfcdaf281e91bc4a532c34363",
+      "raw_bytes": 64814,
+      "live_applied": false,
+      "unit": "W02_REGIONAL_COUNTRY_AUTHORITY",
+      "activation": "WRITTEN_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {
@@ -1971,5 +1985,68 @@
     "live_applied": false,
     "scope": "AGREEMENT_BACKED_HARD_CALENDAR_MATCHING_SELECTION_AND_OWN_READ",
     "visual_design_changed": false
+  },
+  "physical_live_readmission": {
+    "observed_at_utc": "2026-09-10 12:15:55 UTC",
+    "project_ref": "leqcwgzvjsxugfgzdmth",
+    "canonical_source": "5645f0f4cdaa268a36171aa741beceb681e5cfec",
+    "mode": "READ_ONLY",
+    "migration_count": 88,
+    "latest_version": "20260910111126",
+    "latest_name": "clean_p0e_completion_guards",
+    "source_migration_count": 100,
+    "remaining_forward_count": 12,
+    "pending_source_files": [
+      "20260908130000_clean_p1_legal_consent_ledger.sql",
+      "20260908140000_clean_p4_processor_map_registry.sql",
+      "20260908150000_clean_p3_retention_schedule_registry.sql",
+      "20260908160000_clean_p2_data_export_requests.sql",
+      "20260908170000_clean_d0140a_policy_bundle_registration.sql",
+      "20260909110000_clean_w02_calendar_authority.sql",
+      "20260909120000_clean_w02_calendar_interval_integrity.sql",
+      "20260909130000_clean_w02_flexible_calendar_scope.sql",
+      "20260909140000_clean_w02_availability_commands.sql",
+      "20260909150000_clean_w02_persistent_availability_matching.sql",
+      "20260909160000_clean_w02_owned_location_review.sql",
+      "20260910053000_clean_w02_shared_capability_validation.sql"
+    ],
+    "edge": {
+      "name": "uskoci-ai-interview",
+      "version": 11,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    "storage": {
+      "profile_media_public": false,
+      "owner_scoped_policies": 4
+    },
+    "need_worker_location_rpcs_present": false,
+    "publication_policy_bundle_rows": 0,
+    "secret_values_read": false,
+    "edge_secret_names_reobserved": false,
+    "live_write_performed": false,
+    "physical_live_business_rpc_proven": false,
+    "evidence": "docs/implementation/evidence/live-readmission-20260910/readmission.json"
+  },
+  "historical_replay_baseline_explanation": "live_history_snapshot=87 and pending_forward_migrations=13 describe the existing frozen disposable replay chain, not current physical deployment. physical_live_readmission is authoritative for current observed applied/pending counts.",
+  "p0e_completion_guards_merge": {
+    "status": "PHYSICAL_LIVE_APPLIED_EXACT_SOURCE_BYTES_REOBSERVED",
+    "live_version": "20260910111126",
+    "live_applied": true,
+    "live_observed_at_utc": "2026-09-10 12:15:55 UTC",
+    "live_recorded_statement_md5": "aeb81a26c7015ebf2370968c9b9b5b98",
+    "recorded_statement_utf8_bytes": 16541,
+    "exact_byte_mirror": true,
+    "readmission_evidence": "docs/implementation/evidence/live-readmission-20260910/readmission.json",
+    "physical_live_runtime_reproof": false
+  },
+  "w02_regional_country_provenance": {
+    "base_canonical": "5645f0f4cdaa268a36171aa741beceb681e5cfec",
+    "reused": "Current CLEAN Need/Worker location RPCs; NEED_FACT_V2; current draft/edit materializers; immutable snapshots and guards",
+    "recovered": "PR87 complete source hunks validated against embedded Git blob SHA1; corrupted partial SQL was not applied",
+    "donor": "R47 country separation semantics only; obsolete paid model and country activation rejected",
+    "raw_md5": "ac3096ab5fda7761c5d6477a063b0011",
+    "raw_sha256": "19c84eec4c15a8eca507dc44c50800bd0b4022fcfcdaf281e91bc4a532c34363",
+    "status": "WRITTEN_TARGETED_CLIENT_TESTED_DATABASE_REPLAY_PENDING"
   }
 }

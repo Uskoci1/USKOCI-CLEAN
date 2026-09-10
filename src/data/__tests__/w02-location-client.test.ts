@@ -12,16 +12,45 @@ const mockRpc = jest.fn();
 let mockOwner: { user: { id: string } | null; accountRevision: number };
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ rpc: mockRpc }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockOwner }));
-const input = () => ({ geography: { mode: 'STATIONARY' as const, start: { city: 'Novi Sad', area: 'Liman' } }, exactAddress: 'Privatna 12', accessNotes: 'Privatno uputstvo' });
+const input = () => ({ taskCountryCode: 'RS', geography: { mode: 'STATIONARY' as const, start: { city: 'Novi Sad', area: 'Liman' } }, exactAddress: 'Privatna 12', accessNotes: 'Privatno uputstvo' });
 const command = (): NeedLocationSave => ({ conversationId: C, expectedRevision: revision, confirmed: true, value: input() });
 const document = () => ({ accountId: A, conversationId: C, revision, editable: true, confirmed: true, value: input() });
 const receipt = () => ({ saved: true, idempotentReplay: false, review: document() });
-const workerInput = () => ({ city: 'Novi Sad', radiusKm: 15, approximatePosition: null });
+const workerInput = () => ({ operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 15, approximatePosition: null });
 const workerCommand = (): WorkerLocationSave => ({ expectedRevision: revision, confirmed: true, value: workerInput() });
 const workerDoc = () => ({ accountId: A, profileId: P, revision, ...workerInput() });
 const workerReceipt = () => ({ saved: true, idempotentReplay: false, location: workerDoc() });
 beforeEach(() => { jest.resetAllMocks(); mockOwner = { user: { id: A }, accountRevision: 1 }; });
 afterEach(() => jest.useRealTimers());
+
+it.each([undefined, null, '', 'SRB', 'Serbia', '1S', '\nRS'])('requires an explicit syntactically valid country before a save: %p', async country => {
+  await expect(needLocationClientService.save({ ...command(), value: { ...input(), taskCountryCode: country } as never }))
+    .resolves.toMatchObject({ ok: false, kod: 'LOCATION_INPUT_INVALID' });
+  await expect(workerLocationClientService.save({ ...workerCommand(), value: { ...workerInput(), operatingCountryCode: country } as never }))
+    .resolves.toMatchObject({ ok: false, kod: 'LOCATION_INPUT_INVALID' });
+  expect(mockRpc).not.toHaveBeenCalled();
+});
+it('normalizes explicit country codes without using the city or account as authority', () => {
+  expect(normalizeNeedLocation({ ...input(), taskCountryCode: ' rs ' })?.taskCountryCode).toBe('RS');
+  expect(normalizeWorkerLocation({ ...workerInput(), operatingCountryCode: 'ba' })?.operatingCountryCode).toBe('BA');
+});
+it.each([null, undefined])('preserves historical unknown country without assigning Serbia: %p', async country => {
+  mockRpc.mockResolvedValueOnce({ data: { ...document(), value: { ...input(), taskCountryCode: country } }, error: null });
+  await expect(needLocationClientService.read(C)).resolves.toMatchObject({ ok: true,
+    podatak: { confirmed: false, value: { taskCountryCode: null } } });
+  mockRpc.mockResolvedValueOnce({ data: { ...workerDoc(), operatingCountryCode: country }, error: null });
+  await expect(workerLocationClientService.read()).resolves.toMatchObject({ ok: true, podatak: { operatingCountryCode: null } });
+});
+it('does not accept a missing or changed country as a matching write receipt', async () => {
+  mockRpc.mockResolvedValueOnce({ data: { ...receipt(), review: { ...document(), value: { ...input(), taskCountryCode: null } } }, error: null });
+  await expect(needLocationClientService.save(command())).resolves.toMatchObject({ ok: false, kod: 'LOCATION_INVALID_RESPONSE' });
+  mockRpc.mockResolvedValueOnce({ data: { ...workerReceipt(), location: { ...workerDoc(), operatingCountryCode: 'BA' } }, error: null });
+  await expect(workerLocationClientService.save(workerCommand())).resolves.toMatchObject({ ok: false, kod: 'LOCATION_INVALID_RESPONSE' });
+});
+it('shows the known unavailable-country error without exposing arbitrary backend text', async () => {
+  mockRpc.mockResolvedValue({ data: null, error: { message: 'LOCATION_COUNTRY_UNAVAILABLE' } });
+  await expect(needLocationClientService.save(command())).resolves.toMatchObject({ ok: false, kod: 'LOCATION_COUNTRY_UNAVAILABLE' });
+});
 
 it('manual geography is the existing textual topology with private fields kept separate', () => {
   expect(normalizeNeedLocation({ ...input(), geography: { mode: 'STATIONARY', start: { city: ' Novi Sad ', area: ' Liman ' } } })).toEqual(input());
@@ -52,8 +81,8 @@ it.each([
   expect(normalizeTaskGeography(value)).toBeNull();
 });
 it('REMOTE explicitly requires no address/GPS and never supplies a synthetic position', () => {
-  expect(normalizeNeedLocation({ geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null }))
-    .toEqual({ geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null });
+  expect(normalizeNeedLocation({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null }))
+    .toEqual({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null });
   expect(normalizeNeedLocation({ ...input(), geography: { mode: 'REMOTE' } })).toBeNull();
   expect(normalizeTaskGeography({ mode: 'REMOTE', start: null, end: null, waypoints: [], serviceArea: null })).toEqual({ mode: 'REMOTE' });
 });
@@ -62,7 +91,7 @@ it.each([{ exactAddress: undefined }, { accessNotes: '' }, { exactAddress: 'x'.r
   expect(normalizeNeedLocation({ ...input(), ...patch })).toBeNull();
 });
 it('reads an empty or partial preparation so a user can manually fill missing location', async () => {
-  for (const value of [{ geography: null, exactAddress: null, accessNotes: null }, { geography: null, exactAddress: 'Private', accessNotes: null }]) {
+  for (const value of [{ taskCountryCode: null, geography: null, exactAddress: null, accessNotes: null }, { taskCountryCode: null, geography: null, exactAddress: 'Private', accessNotes: null }]) {
     mockRpc.mockResolvedValue({ data: { ...document(), confirmed: false, value }, error: null });
     await expect(needLocationClientService.read(C)).resolves.toMatchObject({ ok: true, podatak: { value, confirmed: false } });
   }
@@ -156,7 +185,7 @@ it('sanitizes raw provider errors and exposes the recognized version conflict wi
 });
 it('does not choose an external provider, request GPS or make network calls for manual/remote input', async () => {
   await expect(createLocationResolver().search({ city: 'Novi Sad' })).resolves.toEqual({ status: 'PROVIDER_ACTIVATION_BLOCKED' });
-  const remote = normalizeNeedLocation({ geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null });
+  const remote = normalizeNeedLocation({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null });
   expect(remote?.geography.mode).toBe('REMOTE');
   expect(mockRpc).not.toHaveBeenCalled();
 });

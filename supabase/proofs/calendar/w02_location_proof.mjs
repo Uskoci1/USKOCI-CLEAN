@@ -30,6 +30,7 @@ const hash=table=>sql(`select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jso
 function linked(client,id){
   const state={user:{id},accountRevision:1},cache=new Map();
   const paths={'./locationClientService':'src/data/locationClientService.ts','../lib/location':'src/lib/location.ts',
+    '../lib/market':'src/lib/market.ts','./market':'src/lib/market.ts','./marketClientService':'src/data/marketClientService.ts',
     './serverReceipt':'src/data/serverReceipt.ts','./locationResolver':'src/data/locationResolver.ts'};
   function load(name){
     const path=paths[name];assert.ok(path,'UNEXPECTED_DEPENDENCY');if(cache.has(path))return cache.get(path).exports;
@@ -39,10 +40,10 @@ function linked(client,id){
     const code=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
     new Function('require','module','exports',code)(binding,module,module.exports);return module.exports;
   }
-  return {...load('./locationClientService'),...load('./locationResolver'),state};
+  return {...load('./marketClientService'),...load('./locationClientService'),...load('./locationResolver'),state};
 }
-const remote={geography:{mode:'REMOTE'},exactAddress:null,accessNotes:null};
-const manual={geography:{mode:'STATIONARY',start:{city:'Novi Sad',area:'Liman'}},exactAddress:'ISOLATED PRIVATE ADDRESS 12',accessNotes:'ISOLATED PRIVATE ACCESS\nSecond line'};
+const remote={taskCountryCode:'RS',geography:{mode:'REMOTE'},exactAddress:null,accessNotes:null};
+const manual={taskCountryCode:'RS',geography:{mode:'STATIONARY',start:{city:'Novi Sad',area:'Liman'}},exactAddress:'ISOLATED PRIVATE ADDRESS 12',accessNotes:'ISOLATED PRIVATE ACCESS\nSecond line'};
 const review=(client,id)=>value(client.needLocationClientService.read(id));
 async function save(client,id,input,revision){const previous=await review(client,id);return value(client.needLocationClientService.save({conversationId:id,
   expectedRevision:revision??previous.revision,value:input,confirmed:true}));}
@@ -78,12 +79,34 @@ try{
   const preserved=Object.fromEntries(['private.worker_calendar_events','private.response_application_snapshots',
     'public.profile_availability_rules','public.profile_availability_windows'].map(t=>[t,hash(t)]));
 
+  begin('COUNTRY_METADATA_IS_AUTHENTICATED_BUILDING_ONLY_AND_LEGACY_WORKER_STAYS_UNKNOWN');
+  const marketRows=await value(a.marketClientService.list());
+  assert.deepEqual(marketRows,[{countryCode:'RS',productStatus:'BUILDING',defaultCurrencyCode:'RSD',defaultLanguageTag:'sr-Latn-RS',defaultTimezone:'Europe/Belgrade'}]);
+  assert.ok((await anon.rpc('rpc_list_location_markets')).error);
+  const oldWorker=await value(b.workerLocationClientService.read());
+  assert.equal(oldWorker.operatingCountryCode,null);
+  const countryConfigHash=hash('private.location_market_configs');
+  const profileWithoutCountry=JSON.parse(sql(`select to_jsonb(p)-'updated_at' from public.app_profiles p where id=${q(oldWorker.profileId)}::uuid`));
+  const rawProfileCountry=await worker.from('app_profiles').update({operating_country_code:'RS'}).eq('id',oldWorker.profileId);
+  assert.ok(rawProfileCountry.error);
+  assert.deepEqual(JSON.parse(sql(`select to_jsonb(p)-'updated_at' from public.app_profiles p where id=${q(oldWorker.profileId)}::uuid`)),profileWithoutCountry);
+  pass();
+
   begin('MANUAL_LOCATION_STARTS_EMPTY_AND_SAVES_CONFIRMED_V2_FACTS');
   const conversation=await open(),empty=await review(a,conversation);
-  assert.deepEqual(empty.value,{geography:null,exactAddress:null,accessNotes:null});assert.equal(empty.confirmed,false);
+  assert.deepEqual(empty.value,{taskCountryCode:null,geography:null,exactAddress:null,accessNotes:null});assert.equal(empty.confirmed,false);
   const first=await save(a,conversation,manual);assert.deepEqual(first.review.value,manual);assert.equal(first.review.confirmed,true);
   const facts=await ok(owner.from('ai_structured_facts').select('fact_key,scope,source,status,confirmed_by_user_id').eq('conversation_id',conversation).is('superseded_at',null));
-  assert.equal(facts.length,3);for(const f of facts){assert.equal(f.source,'EXPLICIT_USER_ANSWER');assert.equal(f.scope,'NEED_DRAFT');assert.equal(f.status,'CONFIRMED');assert.equal(f.confirmed_by_user_id,env.RU5_DEVICE_REQUESTER_USER_ID);}
+  assert.equal(facts.length,4);for(const f of facts){assert.equal(f.source,'EXPLICIT_USER_ANSWER');assert.equal(f.scope,'NEED_DRAFT');assert.equal(f.status,'CONFIRMED');assert.equal(f.confirmed_by_user_id,env.RU5_DEVICE_REQUESTER_USER_ID);}
+  pass();
+
+  begin('EXPLICIT_COUNTRY_CANNOT_BE_GUESSED_ERASED_OR_SET_TO_AN_UNAVAILABLE_MARKET');
+  for(const country of [undefined,null,'SRB','ZZ','BA']){
+    const invalidCountry={...manual,taskCountryCode:country};
+    if(country===undefined)delete invalidCountry.taskCountryCode;
+    assert.ok((await owner.rpc('rpc_save_need_location_review',{p_conversation_id:conversation,p_expected_revision:first.review.revision,p_confirmed:true,p_value:invalidCountry})).error);
+  }
+  assert.deepEqual(await review(a,conversation),first.review);
   pass();
 
   begin('REPEATED_SAVE_IS_NOOP_AND_CORRECTION_PRESERVES_HISTORY');
@@ -126,9 +149,9 @@ try{
   begin('MANUAL_REVIEW_MATERIALIZES_THROUGH_EXISTING_DRAFT_AUTHORITY');
   await save(a,conversation,manual);
   const draft=await completeDraft(conversation);
-  const stored=await ok(owner.from('needs').select('id,status,approximate_city,approximate_lat,approximate_lng,execution_location_mode').eq('id',draft).single());
+  const stored=await ok(owner.from('needs').select('id,status,task_country_code,task_timezone,approximate_city,approximate_lat,approximate_lng,execution_location_mode').eq('id',draft).single());
   assert.equal(stored.status,'DRAFT');assert.equal(stored.approximate_city,'Novi Sad');assert.equal(stored.approximate_lat,null);assert.equal(stored.approximate_lng,null);
-  assert.equal(stored.execution_location_mode,'STATIONARY');
+  assert.equal(stored.execution_location_mode,'STATIONARY');assert.equal(stored.task_country_code,'RS');assert.equal(stored.task_timezone,'Europe/Belgrade');
   assert.deepEqual((await ok(owner.from('need_geography').select('public_topology').eq('need_id',draft).single())).public_topology,manual.geography);
   assert.equal((await ok(owner.from('need_sensitive').select('exact_address').eq('need_id',draft).single())).exact_address,manual.exactAddress);
   const locked=await review(a,conversation);assert.equal(locked.editable,false);
@@ -143,13 +166,32 @@ try{
   assert.deepEqual(await ok(third.from('need_sensitive').select('*').eq('need_id',draft)),[]);
   assert.deepEqual(await ok(worker.from('need_sensitive').select('*').eq('need_id',draft)),[]);pass();
 
+  begin('COUNTRY_PERSISTS_IN_OWNED_EDIT_REVIEW_AND_CANNOT_BE_DIRECTLY_ERASED');
+  const edit=await ok(owner.rpc('rpc_ai_open_need_edit_conversation_v2',{p_need_id:draft}));
+  const editReview=await review(a,edit.conversationId);
+  assert.equal(editReview.value.taskCountryCode,'RS');assert.equal(editReview.confirmed,true);
+  const material=JSON.parse(sql(`select private.need_full_edit_snapshot(${q(draft)}::uuid)`));
+  assert.equal(material.taskCountryCode,'RS');assert.equal(material.taskTimezone,'Europe/Belgrade');
+  const clearCountry=await owner.from('needs').update({task_country_code:null,task_timezone:null}).eq('id',draft);
+  assert.ok(clearCountry.error);
+  assert.deepEqual(JSON.parse(sql(`select private.need_full_edit_snapshot(${q(draft)}::uuid)`)),material);
+  const changedLocation={...manual,geography:{mode:'STATIONARY',start:{city:'Novi Sad',area:'Centar'}}};
+  await save(a,edit.conversationId,changedLocation);
+  const updated=await ok(owner.rpc('rpc_confirm_need_edit_from_review_v2',{p_need_id:draft,p_expected_revision:edit.revision,
+    p_conversation_id:edit.conversationId,p_client_request_id:'w02-country-edit-'+randomUUID()}));
+  assert.equal(updated.status,'DRAFT');
+  const changedNeed=await ok(owner.from('needs').select('task_country_code,task_timezone,approximate_area').eq('id',draft).single());
+  assert.deepEqual(changedNeed,{task_country_code:'RS',task_timezone:'Europe/Belgrade',approximate_area:'Centar'});
+  publishFixture(draft);
+  pass();
+
   begin('WORKER_MANUAL_CITY_AND_RADIUS_USE_EXISTING_PRIVATE_GEO_PREFERENCES');
   const initial=await value(b.workerLocationClientService.read());
   let w=await value(b.workerLocationClientService.save({expectedRevision:initial.revision,confirmed:true,
-    value:{city:'Novi Sad',radiusKm:25,approximatePosition:{latitude:45.25,longitude:19.83}}}));
-  const manualWorker={city:'Novi Sad',radiusKm:25,approximatePosition:null};
+    value:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:25,approximatePosition:{latitude:45.25,longitude:19.83}}}));
+  const manualWorker={operatingCountryCode:'RS',city:'Novi Sad',radiusKm:25,approximatePosition:null};
   w=await value(b.workerLocationClientService.save({expectedRevision:w.location.revision,confirmed:true,value:manualWorker}));
-  assert.deepEqual(w.location.approximatePosition,null);
+  assert.deepEqual(w.location.approximatePosition,null);assert.equal(w.location.operatingCountryCode,'RS');
   const coords=await ok(worker.from('worker_match_preferences').select('approximate_lat,approximate_lng').eq('worker_profile_id',w.location.profileId).single());
   assert.deepEqual(coords,{approximate_lat:null,approximate_lng:null});
   assert.deepEqual(await ok(third.from('worker_match_preferences').select('*').eq('worker_profile_id',w.location.profileId)),[]);
@@ -158,6 +200,16 @@ try{
   const invalidPosition=await worker.rpc('rpc_save_worker_location',{p_expected_revision:w.location.revision,p_confirmed:true,
     p_value:{...manualWorker,approximatePosition:{latitude:45.251234,longitude:19.831234}}});assert.ok(invalidPosition.error);
   report.worker_profile_id=w.location.profileId;pass();
+
+  begin('WORKER_COUNTRY_WRITE_REJECTS_OLD_CLIENT_ERASURE_AND_UNKNOWN_MARKET');
+  const stableWorker=await value(b.workerLocationClientService.read());
+  const {operatingCountryCode:omittedCountry,...legacyWorkerValue}=manualWorker;
+  for(const p_value of [legacyWorkerValue,{...manualWorker,operatingCountryCode:null},{...manualWorker,operatingCountryCode:'ZZ'}]){
+    assert.ok((await worker.rpc('rpc_save_worker_location',{p_expected_revision:stableWorker.revision,p_confirmed:true,p_value})).error);
+  }
+  assert.deepEqual(await value(b.workerLocationClientService.read()),stableWorker);
+  assert.equal(hash('private.location_market_configs'),countryConfigHash);
+  pass();
 
   begin('MATCHING_CONSUMES_MANUAL_CITY_AND_REMOTE_NEEDS_WITHOUT_GPS');
   const match=JSON.parse(sql(`select private.match_detail(${q(draft)}::uuid,${q(report.worker_profile_id)}::uuid)`));
@@ -173,7 +225,7 @@ try{
   begin('REMOTE_CONVERSION_SUPERSEDES_PRIVATE_FACTS_WITHOUT_DELETING_HISTORY');
   const c=await open();await save(a,c,manual);await save(a,c,remote);
   const currentFacts=await ok(owner.from('ai_structured_facts').select('fact_key').eq('conversation_id',c).is('superseded_at',null));
-  assert.deepEqual(currentFacts,[{fact_key:'need.task_geography'}]);
+  assert.deepEqual(currentFacts.map(x=>x.fact_key).sort(),['need.task_country_code','need.task_geography']);
   const oldPrivate=await ok(owner.from('ai_structured_facts').select('id,superseded_at').eq('conversation_id',c).eq('fact_key','need.exact_address'));
   assert.equal(oldPrivate.length,1);assert.ok(oldPrivate[0].superseded_at);pass();
 

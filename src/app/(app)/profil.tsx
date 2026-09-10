@@ -130,6 +130,13 @@ export default function Profil() {
           </Press>
         </Card>}
 
+        {!narucilac ? <Button label="Područje rada" kind="secondary" disabled={busy}
+          onPress={() => navigate(() => router.navigate('/profil/lokacija'))} /> : null}
+        {!narucilac ? <Button label="Dostupnost" kind="secondary" disabled={busy}
+          onPress={() => navigate(() => router.navigate('/profil/dostupnost'))} /> : null}
+        <Button label="Kalendar Dogovora" kind="secondary" disabled={busy}
+          onPress={() => navigate(() => router.navigate('/raspored'))} />
+
         <Press accessibilityRole="button" accessibilityLabel={`Pređite na ${nextIntent}`} disabled={busy}
           accessibilityState={{ disabled: busy }} haptic="medium" scaleTo={0.985}
           onPress={() => navigate(() => {

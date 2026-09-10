@@ -27,8 +27,8 @@ function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
 }
 
 describe('RU-2 typed R02 → R07 contract', () => {
-  it('keeps exactly the canonical 20 V2 fact keys and required draft keys', () => {
-    expect(NEED_FACT_V2_KEYS).toHaveLength(20);
+  it('keeps exactly the canonical 21 V2 fact keys and required draft keys', () => {
+    expect(NEED_FACT_V2_KEYS).toHaveLength(21);
     expect(REQUIRED_NEED_FACT_V2_KEYS).toEqual(expect.arrayContaining([
       'need.title',
       'need.description',
@@ -36,6 +36,7 @@ describe('RU-2 typed R02 → R07 contract', () => {
       'need.price_mode',
       'need.schedule_kind',
       'need.people_needed',
+      'need.task_country_code',
       'need.task_geography',
     ]));
     expect(NEED_FACT_V2_DEFINITIONS['need.exact_address'].privacyClass).toBe('PRIVATE');
@@ -71,6 +72,14 @@ describe('RU-2 typed R02 → R07 contract', () => {
       value: 'TOMORROW_FLEXIBLE',
       displayValue: 'sutra',
     });
+  });
+
+
+  it('normalizes the explicit task country fact without inferring it from the account city', () => {
+    expect(correctionFromText(fact({ key: 'need.task_country_code', valueType: 'TEXT' }), ' rs ')).toEqual({
+      ok: true, value: 'RS', displayValue: 'RS',
+    });
+    expect(correctionFromText(fact({ key: 'need.task_country_code', valueType: 'TEXT' }), 'Serbia')).toMatchObject({ ok: false });
   });
 
   it('does not allow raw inline editing of structured geography', () => {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft,
   Check,
@@ -15,6 +15,10 @@ import {
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import { aiNeedV2Izvor, izvor } from '../../data';
+import type { Ishod } from '../../data/ports';
+import { useOwnedEditor } from '../../hooks/useOwnedEditor';
+import { sesijaSada, useSesija } from '../../store/sesija';
+import { ulogaSada, useUloga } from '../../store/uloga';
 import {
   canEditFactInline,
   correctionFromText,
@@ -32,161 +36,130 @@ type EditState = {
   text: string;
   error: string | null;
 };
+type ReviewSnapshot = { conversation: AiNeedV2Conversation; need: PotrebaProjekcija | null };
 
 export default function PregledNacrtaR07() {
   const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
-  const conversationId = Array.isArray(params.conversationId) ? params.conversationId[0] : params.conversationId;
-  const [stanje, setStanje] = useState<AiNeedV2Conversation | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busyFactId, setBusyFactId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [greska, setGreska] = useState<string | null>(null);
+  const conversationId = typeof params.conversationId === 'string' ? params.conversationId : undefined;
+  const { user, accountRevision } = useSesija();
+  const intent = useUloga();
+  const accountId = user?.id;
+  const routeIdentity = useMemo(() => ({}), [conversationId, accountId, accountRevision, intent]);
+  const currentRoute = useRef(routeIdentity);
+  currentRoute.current = routeIdentity;
+  const focused = useRef(false);
+  const focusScope = useRef<object | null>(null);
+  const navigating = useRef(false);
+  useFocusEffect(useCallback(() => {
+    focused.current = true; focusScope.current = {}; navigating.current = false;
+    return () => { focused.current = false; focusScope.current = null; };
+  }, [routeIdentity]));
+  const read = useCallback(async (): Promise<Ishod<ReviewSnapshot>> => {
+    if (!conversationId) return { ok: false, kod: 'REVIEW_REQUIRED', poruka: 'Nacrt nije izabran.' };
+    const readScope = focusScope.current;
+    const current = () => focused.current && focusScope.current === readScope && currentRoute.current === routeIdentity &&
+      sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    try {
+      const conversation = await aiNeedV2Izvor.loadConversation(conversationId);
+      if (!current()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      if (!conversation || conversation.conversationId !== conversationId) {
+        return { ok: false, kod: 'REVIEW_UNAVAILABLE', poruka: 'Nacrt nije dostupan ovom nalogu.' };
+      }
+      const need = conversation.review.boundNeedId ? await izvor.potreba(conversation.review.boundNeedId) : null;
+      if (!current()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      if (conversation.review.boundNeedId && (!need || need.id !== conversation.review.boundNeedId)) {
+        return { ok: false, kod: 'BOUND_NEED_UNAVAILABLE', poruka: 'Zadatak trenutno nije dostupan. Učitajte pregled ponovo.' };
+      }
+      return { ok: true, podatak: { conversation, need } };
+    } catch {
+      return { ok: false, kod: 'REVIEW_READ_FAILED', poruka: 'Pregled trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' };
+    }
+  }, [conversationId, routeIdentity, accountId, accountRevision, intent]);
+  const editor = useOwnedEditor(read);
+  const stanje = editor.data?.conversation ?? null;
+  const vezanZadatak = editor.data?.need ?? null;
+  const loading = editor.loading;
+  const saving = editor.busy;
+  const greska = editor.error;
   const [edit, setEdit] = useState<EditState | null>(null);
-  const requestId = useRef(`ru2-r07-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+  useEffect(() => { setEdit(null); }, [editor.data]);
 
-  const osvezi = useCallback(async () => {
-    if (!conversationId) {
-      setGreska('Nacrt nije izabran.');
-      setLoading(false);
-      return false;
-    }
-    try {
-      const result = await aiNeedV2Izvor.loadConversation(conversationId);
-      if (!result) {
-        setGreska('Nacrt nije dostupan ovom nalogu.');
-        setStanje(null);
-        return false;
-      }
-      setStanje(result);
-      setGreska(null);
-      return true;
-    } catch (error: any) {
-      setGreska(error?.message || 'Pregled trenutno nije mogao da se učita.');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [conversationId]);
-
-  useEffect(() => {
-    void osvezi();
-  }, [osvezi]);
-
-  const potvrdi = useCallback(async (fact: AiNeedV2Fact) => {
-    setBusyFactId(fact.id);
-    setGreska(null);
-    try {
-      const result = await aiNeedV2Izvor.confirmFact(fact.id);
-      if (!result.ok) {
-        setGreska(result.poruka);
-        return;
-      }
-      await osvezi();
-    } finally {
-      setBusyFactId(null);
-    }
-  }, [osvezi]);
-
-  const sacuvajIspravku = useCallback(async () => {
-    if (!edit) return;
-    const parsed = correctionFromText(edit.fact, edit.text);
-    if (!parsed.ok) {
-      setEdit({ ...edit, error: parsed.message });
-      return;
-    }
-    setBusyFactId(edit.fact.id);
-    setGreska(null);
-    try {
-      const result = await aiNeedV2Izvor.correctFact(edit.fact.id, parsed.value, parsed.displayValue);
-      if (!result.ok) {
-        setEdit({ ...edit, error: result.poruka });
-        return;
-      }
-      setEdit(null);
-      await osvezi();
-    } finally {
-      setBusyFactId(null);
-    }
-  }, [edit, osvezi]);
-
-  const sacuvajNacrt = useCallback(async () => {
-    if (!conversationId || !stanje?.review.canSaveDraft || saving) return;
-    setSaving(true);
-    setGreska(null);
-    try {
-      const result = await aiNeedV2Izvor.saveDraft(conversationId, requestId.current);
-      if (!result.ok) {
-        setGreska(result.poruka);
-        return;
-      }
-      router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: result.podatak.needId } });
-    } finally {
-      setSaving(false);
-    }
-  }, [conversationId, saving, stanje?.review.canSaveDraft]);
-
-  const vratiSeURazgovor = useCallback(() => {
-    if (!conversationId) {
-      router.back();
-      return;
-    }
-    router.replace({ pathname: '/nova', params: { conversationId } });
-  }, [conversationId]);
+  // Navigation and local edit callbacks belong to the same visible, focused review.
+  const viewIdentity = useMemo(() => ({}), [editor.data, conversationId, accountId, accountRevision, intent]);
+  const currentView = useRef(viewIdentity);
+  currentView.current = viewIdentity;
+  const isCurrent = () => focused.current && currentView.current === viewIdentity &&
+    !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+  const canAct = () => isCurrent() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
+  const navigate = (action: () => void) => {
+    if (!isCurrent() || navigating.current) return;
+    navigating.current = true; action();
+  };
+  const requestId = useMemo(() => `ru2-r07-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    [conversationId, accountId, accountRevision]);
+  const editRequestId = useMemo(() => `ru4-edit-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    [conversationId, accountId, accountRevision]);
 
   const facts = useMemo(() => sortFacts(stanje?.facts ?? []), [stanje?.facts]);
-  const confirmed = facts.filter((fact) => fact.status === 'CONFIRMED').length;
+  const confirmed = facts.filter(fact => fact.status === 'CONFIRMED').length;
   const safetyCopy = stanje ? safetyMessage(stanje.safety) : null;
   const boundNeedId = stanje?.review.boundNeedId ?? null;
-
-  // A bound conversation is either a saved DRAFT (R07 → R04 replay) or an RU-4
-  // edit of a public Zadatak. The bound Zadatak's own state decides which;
-  // the review payload alone cannot.
-  const [vezanZadatak, setVezanZadatak] = useState<PotrebaProjekcija | null>(null);
-  useEffect(() => {
-    let ziv = true;
-    if (!boundNeedId) {
-      setVezanZadatak(null);
-      return () => {
-        ziv = false;
-      };
-    }
-    void izvor.potreba(boundNeedId).then((zadatak) => {
-      if (ziv) setVezanZadatak(zadatak);
-    }).catch(() => {
-      if (ziv) setVezanZadatak(null);
-    });
-    return () => {
-      ziv = false;
-    };
-  }, [boundNeedId]);
-
   const editMode = Boolean(boundNeedId && vezanZadatak && vezanZadatak.stanje !== 'NACRT');
   const alreadySaved = editMode ? null : boundNeedId;
   const saveAllowed = Boolean(stanje?.review.canSaveDraft && stanje?.safety !== 'BLOCK' && !alreadySaved);
-  const editRequestId = useRef(`ru4-edit-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+  const blocked = saving || editor.uncertain || loading;
 
-  const sacuvajIzmene = useCallback(async () => {
-    if (!conversationId || !boundNeedId || !editMode || !saveAllowed || saving) return;
-    setSaving(true);
-    setGreska(null);
-    try {
-      // Re-read the revision the owner is editing at the moment of confirmation;
-      // the server refuses a moved revision instead of overwriting it.
-      const current = await izvor.potreba(boundNeedId);
-      if (!current) {
-        setGreska('Zadatak trenutno nije dostupan. Pokušajte ponovo.');
-        return;
+  const potvrdi = async (fact: AiNeedV2Fact) => {
+    if (!canAct() || !stanje?.facts.includes(fact)) return;
+    await editor.save(async () => {
+      const result = await aiNeedV2Izvor.confirmFact(fact.id);
+      if (!result.ok) return result;
+      if (!isCurrent()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      return read();
+    });
+  };
+  const sacuvajIspravku = async () => {
+    if (!canAct() || !edit || !stanje?.facts.includes(edit.fact)) return;
+    const parsed = correctionFromText(edit.fact, edit.text);
+    if (!parsed.ok) { setEdit({ ...edit, error: parsed.message }); return; }
+    await editor.save(async () => {
+      const result = await aiNeedV2Izvor.correctFact(edit.fact.id, parsed.value, parsed.displayValue);
+      if (!result.ok) return result;
+      if (!isCurrent()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      return read();
+    });
+  };
+  const sacuvajNacrt = async () => {
+    if (!canAct() || !conversationId || !saveAllowed || editMode) return;
+    await editor.save(async () => {
+      const result = await aiNeedV2Izvor.saveDraft(conversationId, requestId);
+      if (!result.ok) return result;
+      if (isCurrent() && !navigating.current) {
+        navigating.current = true;
+        router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: result.podatak.needId } });
       }
-      const result = await aiNeedV2Izvor.confirmEdit(boundNeedId, current.revizija, conversationId, editRequestId.current);
-      if (!result.ok) {
-        setGreska(result.poruka);
-        return;
+      return { ok: true, podatak: editor.data! };
+    });
+  };
+  const sacuvajIzmene = async () => {
+    if (!canAct() || !conversationId || !boundNeedId || !vezanZadatak || !editMode || !saveAllowed) return;
+    // Send the revision loaded with this visible review. Never adopt a newer
+    // revision at confirmation time; the server must reject a stale review.
+    const reviewedRevision = vezanZadatak.revizija;
+    await editor.save(async () => {
+      const result = await aiNeedV2Izvor.confirmEdit(boundNeedId, reviewedRevision, conversationId, editRequestId);
+      if (!result.ok) return result;
+      if (isCurrent() && !navigating.current) {
+        navigating.current = true;
+        router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: result.podatak.needId } });
       }
-      router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: result.podatak.needId } });
-    } finally {
-      setSaving(false);
-    }
-  }, [boundNeedId, conversationId, editMode, saveAllowed, saving]);
+      return { ok: true, podatak: editor.data! };
+    });
+  };
+  const vratiSeURazgovor = () => navigate(() => {
+    if (!conversationId) router.back();
+    else router.replace({ pathname: '/nova', params: { conversationId } });
+  });
 
   if (loading) {
     return (
@@ -202,7 +175,8 @@ export default function PregledNacrtaR07() {
         <View style={{ alignItems: 'center', gap: space.base }}>
           <Warning size={30} color={palette.danger} weight="fill" />
           <T variant="body" tone="danger" style={{ textAlign: 'center' }}>{greska ?? 'Nacrt nije dostupan.'}</T>
-          <Button label="Nazad" kind="secondary" onPress={() => router.back()} />
+          <Button label="Učitajte pregled ponovo" onPress={() => { void editor.refresh(); }} />
+          <Button label="Nazad" kind="secondary" onPress={() => navigate(() => router.back())} />
         </View>
       </SafeAreaView>
     );
@@ -251,7 +225,7 @@ export default function PregledNacrtaR07() {
           <View style={{ padding: space.base, gap: space.md }}>
             <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <T variant="label" tone="muted">HUMAN REVIEW</T>
+                <T variant="label" tone="muted">VAŠA POTVRDA</T>
                 <T variant="heading">{confirmed} od {facts.length} podataka potvrđeno</T>
               </View>
               <CheckCircle
@@ -272,7 +246,7 @@ export default function PregledNacrtaR07() {
               <View style={{ backgroundColor: palette.successBg, borderRadius: radius.md, padding: space.md, flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
                 <Check size={17} color={palette.success} weight="bold" />
                 <T variant="meta" tone="success" style={{ flex: 1, fontWeight: '700' }}>
-                  Obavezni podaci su potvrđeni. Server može da napravi DRAFT.
+                  Obavezni podaci su potvrđeni. Zadatak možete sačuvati kao nacrt.
                 </T>
               </View>
             )}
@@ -302,20 +276,24 @@ export default function PregledNacrtaR07() {
             <View style={{ padding: space.base, gap: space.md }}>
               <T variant="heading">Nacrt je već sačuvan</T>
               <T variant="body" tone="muted">
-                Ovaj razgovor je već vezan za jedan DRAFT Zadatak. Ne pravimo drugi.
+                Zadatak iz ovog razgovora je sačuvan i možete mu se vratiti.
               </T>
               <Button
                 full
                 label="Otvorite sačuvani Zadatak"
-                onPress={() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: alreadySaved } })}
+                onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: alreadySaved } }))}
               />
             </View>
           </Card>
         ) : null}
 
+        {!alreadySaved && conversationId ? <Button label="Mesto Zadatka" kind="secondary" disabled={blocked}
+          onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/mesto-zadatka', params: { conversationId } })); }} /> : null}
+
         {facts.map((fact) => {
+          const locationFact = ['need.task_geography', 'need.task_country_code', 'need.exact_address', 'need.access_notes'].includes(fact.key);
           const potvrdjen = fact.status === 'CONFIRMED';
-          const busy = busyFactId === fact.id;
+          const busy = blocked;
           const editing = edit?.fact.id === fact.id;
           return (
             <Card key={fact.id}>
@@ -343,7 +321,8 @@ export default function PregledNacrtaR07() {
                   <View style={{ gap: space.sm }}>
                     <TextInput
                       value={edit.text}
-                      onChangeText={(text) => setEdit({ ...edit, text, error: null })}
+                      onChangeText={(text) => { if (canAct()) setEdit({ ...edit, text, error: null }); }}
+                      editable={!blocked}
                       autoFocus
                       multiline={fact.valueType === 'TEXT' || fact.valueType === 'TEXT_ARRAY'}
                       style={{
@@ -360,17 +339,23 @@ export default function PregledNacrtaR07() {
                     />
                     {edit.error ? <T variant="meta" tone="danger">{edit.error}</T> : null}
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm }}>
-                      <Button label="Odustani" kind="quiet" onPress={() => setEdit(null)} />
+                      <Button label="Odustani" kind="quiet" disabled={blocked} onPress={() => { if (canAct()) setEdit(null); }} />
                       <Button label="Sačuvaj ispravku" disabled={busy} onPress={sacuvajIspravku} />
                     </View>
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                     <Button
-                      label={canEditFactInline(fact) ? 'Izmenite' : 'Izmenite u razgovoru'}
+                      label={locationFact ? 'Izmenite mesto' : canEditFactInline(fact) ? 'Izmenite' : 'Izmenite u razgovoru'}
                       kind="quiet"
                       icon={<PencilSimple size={16} color={palette.inkMuted} />}
+                      disabled={blocked}
                       onPress={() => {
+                        if (!canAct()) return;
+                        if (locationFact && conversationId) {
+                          navigate(() => router.push({ pathname: '/mesto-zadatka', params: { conversationId } }));
+                          return;
+                        }
                         if (!canEditFactInline(fact)) {
                           vratiSeURazgovor();
                           return;
@@ -407,6 +392,7 @@ export default function PregledNacrtaR07() {
         {greska ? (
           <View style={{ backgroundColor: palette.dangerBg, borderRadius: radius.md, padding: space.md }}>
             <T variant="meta" tone="danger">{greska}</T>
+            <Button label="Učitajte pregled ponovo" kind="secondary" onPress={() => { void editor.refresh(); }} />
           </View>
         ) : null}
 
@@ -423,7 +409,7 @@ export default function PregledNacrtaR07() {
                 label={saving ? 'Čuvanje...' : 'Sačuvajte izmene'}
                 full
                 haptic="success"
-                disabled={!saveAllowed || saving}
+                disabled={!saveAllowed || blocked}
                 onPress={() => { void sacuvajIzmene(); }}
               />
               {!saveAllowed && stanje.safety !== 'BLOCK' ? (
@@ -441,14 +427,14 @@ export default function PregledNacrtaR07() {
               <View style={{ gap: space.xs }}>
                 <T variant="heading">Sačuvajte kao nacrt</T>
                 <T variant="body" tone="muted">
-                  Ovo još nije objava. Server pravi samo DRAFT Zadatak; admission i objava ostaju poseban sledeći korak.
+                  Zadatak ostaje privatan nacrt. Pregled i objava dolaze u sledećem koraku.
                 </T>
               </View>
               <Button
-                label={saving ? 'Čuvanje...' : 'Sačuvajte DRAFT'}
+                label={saving ? 'Čuvanje...' : 'Sačuvajte nacrt'}
                 full
                 haptic="success"
-                disabled={!saveAllowed || saving}
+                disabled={!saveAllowed || blocked}
                 onPress={sacuvajNacrt}
               />
               {!saveAllowed && stanje.safety !== 'BLOCK' ? (

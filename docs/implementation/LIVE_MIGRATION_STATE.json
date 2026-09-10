@@ -422,7 +422,7 @@
     "next": "NATIVE_PUSH_LIFECYCLE_DISPATCH_AND_REMAINING_CHAT_PRODUCT_UNITS"
   },
   "format_version": 3,
-  "updated_at": "2026-09-07T14:04:10Z",
+  "updated_at": "2026-09-10 12:15:55 UTC",
   "historical_notification_checkpoint_before_live84_20260907": {
     "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
     "n01": {
@@ -530,10 +530,10 @@
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
-    "migration_count": 87,
-    "head": "20260907135905_clean_ai_need_draft_safety_authority",
-    "pending_forward_migrations": 0,
-    "observed_at_utc": "2026-09-07T14:04:10Z"
+    "migration_count": 88,
+    "head": "20260910111126_clean_p0e_completion_guards",
+    "pending_forward_migrations": 12,
+    "observed_at_utc": "2026-09-10 12:15:55 UTC"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
@@ -1872,5 +1872,48 @@
     "positive_platform_fees": "OFF",
     "whole_w02": "OPEN",
     "next": "PROVE_CURRENT_UNIT_THEN_REMAINING_W02_AND_CURRENT_DEBT_BEFORE_W03"
-  }
+  },
+  "physical_live_readmission_20260910": {
+    "observed_at_utc": "2026-09-10 12:15:55 UTC",
+    "project_ref": "leqcwgzvjsxugfgzdmth",
+    "canonical_source": "5645f0f4cdaa268a36171aa741beceb681e5cfec",
+    "mode": "READ_ONLY",
+    "migration_count": 88,
+    "latest_version": "20260910111126",
+    "latest_name": "clean_p0e_completion_guards",
+    "source_migration_count": 100,
+    "remaining_forward_count": 12,
+    "pending_source_files": [
+      "20260908130000_clean_p1_legal_consent_ledger.sql",
+      "20260908140000_clean_p4_processor_map_registry.sql",
+      "20260908150000_clean_p3_retention_schedule_registry.sql",
+      "20260908160000_clean_p2_data_export_requests.sql",
+      "20260908170000_clean_d0140a_policy_bundle_registration.sql",
+      "20260909110000_clean_w02_calendar_authority.sql",
+      "20260909120000_clean_w02_calendar_interval_integrity.sql",
+      "20260909130000_clean_w02_flexible_calendar_scope.sql",
+      "20260909140000_clean_w02_availability_commands.sql",
+      "20260909150000_clean_w02_persistent_availability_matching.sql",
+      "20260909160000_clean_w02_owned_location_review.sql",
+      "20260910053000_clean_w02_shared_capability_validation.sql"
+    ],
+    "edge": {
+      "name": "uskoci-ai-interview",
+      "version": 11,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    "storage": {
+      "profile_media_public": false,
+      "owner_scoped_policies": 4
+    },
+    "need_worker_location_rpcs_present": false,
+    "publication_policy_bundle_rows": 0,
+    "secret_values_read": false,
+    "edge_secret_names_reobserved": false,
+    "live_write_performed": false,
+    "physical_live_business_rpc_proven": false,
+    "evidence": "docs/implementation/evidence/live-readmission-20260910/readmission.json"
+  },
+  "migration_provenance_state": "LIVE_88_P0E_APPLIED_EXACT_BYTES_READ_ONLY_REOBSERVED"
 }

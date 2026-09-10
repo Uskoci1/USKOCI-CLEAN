@@ -49,6 +49,8 @@ export type PotrebaProjekcija = {
   vremeTekst: string;
   /** Javno bezbedna geografija. Tačna adresa NIJE ovde. */
   podrucjeTekst: string;
+  taskCountryCode?: string;
+  taskTimezone?: string;
   uslovi: string[];
   brojPrijava: number;
   rezimCene?: RezimCene;
@@ -70,6 +72,8 @@ export type PrilikaProjekcija = {
   /** Public server-owned deadline. Null means no cutoff; undefined means unknown. */
   rokZaPrijaveIso?: string | null;
   podrucjeTekst: string;
+  taskCountryCode?: string;
+  taskTimezone?: string;
   vremeTekst: string;
   pokrivenost: Pokrivenost;
   uslovi: string[];

@@ -1,5 +1,6 @@
 import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../contracts/needFactsV2';
 import type { CoarsePosition, NeedLocationInput, WorkerLocationInput } from '../contracts/location';
+import { countryCode } from './market';
 
 function object(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -64,13 +65,14 @@ export function normalizeTaskGeography(value: unknown): NeedTaskGeography | null
 }
 export function normalizeNeedLocation(value: unknown): NeedLocationInput | null {
   const input = object(value);
-  if (!input || !only(input, ['geography', 'exactAddress', 'accessNotes'])) return null;
+  if (!input || !only(input, ['taskCountryCode', 'geography', 'exactAddress', 'accessNotes'])) return null;
+  const taskCountryCode = countryCode(input.taskCountryCode);
   const geography = normalizeTaskGeography(input.geography);
   const exactAddress = locationPrivateText(input.exactAddress, 1000);
   const accessNotes = locationPrivateText(input.accessNotes, 2000);
-  if (!geography || exactAddress === undefined || accessNotes === undefined) return null;
+  if (!taskCountryCode || !geography || exactAddress === undefined || accessNotes === undefined) return null;
   if (geography.mode === 'REMOTE' && (exactAddress !== null || accessNotes !== null)) return null;
-  return { geography, exactAddress, accessNotes };
+  return { taskCountryCode, geography, exactAddress, accessNotes };
 }
 export function coarsePosition(value: unknown): CoarsePosition | null {
   const input = object(value);
@@ -82,13 +84,14 @@ export function coarsePosition(value: unknown): CoarsePosition | null {
 }
 export function normalizeWorkerLocation(value: unknown, allowIncomplete = false): WorkerLocationInput | null {
   const input = object(value);
-  if (!input || !only(input, ['city', 'radiusKm', 'approximatePosition'])) return null;
+  if (!input || !only(input, ['operatingCountryCode', 'city', 'radiusKm', 'approximatePosition'])) return null;
+  const operatingCountryCode = countryCode(input.operatingCountryCode);
   const city = allowIncomplete && input.city === '' ? '' : locationText(input.city, 160);
   const radiusKm = input.radiusKm;
   const position = input.approximatePosition === null ? null : coarsePosition(input.approximatePosition);
-  if (city === null || typeof radiusKm !== 'number' || !Number.isInteger(radiusKm) || radiusKm < 1 || radiusKm > 200
+  if (!operatingCountryCode || city === null || typeof radiusKm !== 'number' || !Number.isInteger(radiusKm) || radiusKm < 1 || radiusKm > 200
     || (input.approximatePosition !== null && !position)) return null;
-  return { city, radiusKm, approximatePosition: position };
+  return { operatingCountryCode, city, radiusKm, approximatePosition: position };
 }
 export const locationRevision = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 export function sameNeedLocation(left: NeedLocationInput, right: unknown): boolean {

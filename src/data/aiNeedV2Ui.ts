@@ -1,4 +1,5 @@
 import { capabilityTerms } from '../lib/capabilityTerms';
+import { countryCode } from '../lib/market';
 import type { AiNeedSafety, AiNeedV2Fact } from '../contracts/aiNeedV2';
 import {
   NEED_FACT_V2_DEFINITIONS,
@@ -105,6 +106,10 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       return { ok: false, message: 'Lokaciju izmenite kroz razgovor da bi struktura ostala bezbedna.' };
     case 'TEXT':
     default:
+      if (fact.key === 'need.task_country_code') {
+        const value = countryCode(text);
+        return value ? { ok: true, value, displayValue: value } : { ok: false, message: 'Unesite dvoslovnu oznaku države, npr. RS.' };
+      }
       return { ok: true, value: text, displayValue: text };
   }
 }

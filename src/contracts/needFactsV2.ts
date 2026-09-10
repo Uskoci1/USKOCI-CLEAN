@@ -28,6 +28,7 @@ export const NEED_FACT_V2_DEFINITIONS = {
   'need.required_licenses': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Dozvole' },
   'need.minimum_experience_years': { valueType: 'INTEGER', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Iskustvo' },
   'need.verified_identity_required': { valueType: 'BOOLEAN', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Potvrđen identitet' },
+  'need.task_country_code': { valueType: 'TEXT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Država zadatka' },
   'need.task_geography': { valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Lokacija' },
   'need.critical_conditions': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Bitni uslovi' },
   'need.public_photo_paths': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Fotografije' },
