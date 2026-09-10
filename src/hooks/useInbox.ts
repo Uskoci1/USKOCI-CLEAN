@@ -7,15 +7,15 @@ import { inboxClientService } from '../data/inboxClientService';
 import { sesijaSada, useSesija } from '../store/sesija';
 
 export function useInbox(role: InboxRole | null) {
-  const {user} = useSesija();
+  const {user, accountRevision} = useSesija();
   const accountId = user?.id;
   const model = useMemo(() => createInboxModel(inboxClientService,role,
-    () => !!accountId && sesijaSada().user?.id===accountId),[accountId,role]);
+    () => !!accountId && sesijaSada().user?.id===accountId && sesijaSada().accountRevision===accountRevision),[accountId,accountRevision,role]);
   const state = useSyncExternalStore(model.subscribe,model.snapshot,model.snapshot);
   useFocusEffect(useCallback(() => {
-    model.start();
+    if (!AppState.currentState || AppState.currentState==='active') model.start();
     const sub = AppState.addEventListener('change', value => {
-      if (value==='active') void model.refresh();
+      if (value==='active') model.start(); else model.stop();
     });
     return () => {sub.remove(); model.stop();};
   },[model]));

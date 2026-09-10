@@ -81,10 +81,11 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
     }
   }
   return {
+    canNavigate: () => active && isCurrent(),
     snapshot: () => state,
     subscribe(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; },
-    start() { active=true; set({acting:null}); void refresh(); },
-    stop() { active=false; epoch++; },
+    start() { if (active) return; active=true; set({acting:null}); void refresh(); },
+    stop() { active=false; epoch++; set({page:null,loading:false,paging:false,acting:null,error:null,unavailable:false}); },
     refresh,more,open,readAll,
   };
 }

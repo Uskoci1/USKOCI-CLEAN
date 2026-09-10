@@ -14,9 +14,13 @@ function item(v: unknown): InboxItem {
 }
 export function createInboxService(rpc: Rpc): InboxPort {
   async function call(name: string, args: Record<string, unknown>): Promise<unknown> {
-    const { data,error }=await rpc(name,args);
-    if (error) throw new Error('INBOX_REQUEST_FAILED');
-    return data;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const { data,error }=await Promise.race([Promise.resolve(rpc(name,args)),
+        new Promise<never>((_, reject) => { timer=setTimeout(() => reject(new Error('INBOX_REQUEST_UNCONFIRMED')),15_000); })]);
+      if (error) throw new Error('INBOX_REQUEST_FAILED');
+      return data;
+    } finally { if (timer!==undefined) clearTimeout(timer); }
   }
   return {
     async list(role,cursor,limit=30): Promise<InboxPage> {
