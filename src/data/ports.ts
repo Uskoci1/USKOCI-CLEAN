@@ -216,6 +216,7 @@ export type AzurirajProfilKomanda = {
   vestine?: string[];
   alati?: string[];
   vozila?: string[];
+  licence?: string[]; // Self-declared resources, never verification authority.
   dostupanOdmah?: boolean;
   radijusKm?: number;
   zavrsi?: boolean; // Setuje DRAFT u ACTIVE

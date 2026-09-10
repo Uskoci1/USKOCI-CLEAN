@@ -1,3 +1,4 @@
+import { capabilityTerms } from '../lib/capabilityTerms';
 import type { AiNeedSafety, AiNeedV2Fact } from '../contracts/aiNeedV2';
 import {
   NEED_FACT_V2_DEFINITIONS,
@@ -71,8 +72,8 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       return { ok: false, message: 'Unesite „da“ ili „ne“.' };
     }
     case 'TEXT_ARRAY': {
-      const values = text.split(',').map((item) => item.trim()).filter(Boolean);
-      if (!values.length) return { ok: false, message: 'Unesite bar jednu stavku.' };
+      const values = capabilityTerms(text.split(',').map((item) => item.trim()).filter(Boolean));
+      if (!values?.length) return { ok: false, message: 'Unesite najviše 50 stavki, do 500 znakova po stavci.' };
       return { ok: true, value: values, displayValue: values.join(', ') };
     }
     case 'TIMESTAMPTZ': {

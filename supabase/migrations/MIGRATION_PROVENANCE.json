@@ -1931,6 +1931,20 @@
       "activation": "SOURCE_ONLY_NOT_LIVE",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910053000",
+      "name": "clean_w02_shared_capability_validation",
+      "file": "20260910053000_clean_w02_shared_capability_validation.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "c888c770130162f98d3f870676ca0408",
+      "raw_sha256": "c6acc86f85412d69d6f620a2df6c3f0b8d3da7bfcfd267e397720d3fecfffc76",
+      "raw_bytes": 4065,
+      "live_applied": false,
+      "unit": "W02_SHARED_CAPABILITY_VALIDATION",
+      "activation": "SOURCE_ONLY_NOT_LIVE",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {
