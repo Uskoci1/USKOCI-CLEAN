@@ -4,9 +4,9 @@ import { Linking, View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationPinOrigin, LocationSlot } from '../../contracts/location';
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution, type LocationResolverCandidate } from '../../data/configuredLocationResolver';
 import { locationPrivateText } from '../../lib/location';
-import { Button } from '../Button';
+import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
-import { LocationField, locationStyles as s } from './LocationControls';
+import { LocationDetails, LocationField, locationStyles as s } from './LocationControls';
 import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
 
 type Props = {
@@ -143,14 +143,17 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={disabled || !focused} />
     {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}
       kind="quiet" disabled={disabled || !focused || lookup.status === 'LOADING'} onPress={reverse} /> : null}
+    <LocationDetails label={`${title} — privatni detalji tačke`} disabled={disabled || !focused}
+      summary={address || notes ? 'Privatni detalji su uneti. Otvorite za pregled.' : 'Dodajte adresu ili napomenu po potrebi'}>
     <LocationField label={`${title} — privatna adresa (opciono)`} value={address} maxLength={1000} editable={!disabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(true); setAddress(value); invalidate(); } }} />
     <LocationField label={`${title} — privatne napomene za pristup (opciono)`} value={notes} maxLength={2000} multiline editable={!disabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(true); setNotes(value); invalidate(); } }} />
+    </LocationDetails>
     {error ? <T accessibilityRole="alert" tone="danger">Proverite izabranu tačku i privatne podatke.</T> : null}
     <T variant="meta" tone={point && !pending ? 'success' : 'muted'}>
       {point && !pending ? 'Tačka je potvrđena u ovom obrascu.' : pending ? 'Izmena tačke još nije potvrđena.' : 'Tačka još nije potvrđena.'}
     </T>
-    <Button label={`Potvrdi tačku: ${title}`} kind="secondary" disabled={disabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
+    <Button label={`Potvrdi tačku: ${title}`} kind="primary" disabled={disabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
   </View>;
 }

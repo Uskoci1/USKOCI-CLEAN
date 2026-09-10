@@ -7,8 +7,9 @@ let mockFocused = true;
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => unknown) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
+jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', locationStyles: { card: {} } }));
+jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails', locationStyles: { card: {} } }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
