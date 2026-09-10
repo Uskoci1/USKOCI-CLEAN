@@ -377,7 +377,9 @@ class Core106HarnessTests(unittest.TestCase):
         ns['core_switch_account']('synthetic@example.invalid',worker=True)
         self.assertEqual(events[0],('tap',(),{'desc':'Zadaci','prefer':'bottom'}))
         self.assertEqual(events[1],('core_profile',(),{}))
-        self.assertEqual(events[-2],('login',('synthetic@example.invalid',),{}))
+        self.assertEqual(events[3],('wait_visible',(),{'desc':'Prijavite se','timeout':60}))
+        self.assertEqual(events[4],('assert_signed_out_surface',(),{'form_open':True}))
+        self.assertEqual(events[-2],('login',('synthetic@example.invalid',),{'form_open':True}))
         self.assertEqual(events[-1],('switch_to_worker_workspace',(),{}))
 
     def test_core_flow_has_no_business_rpc_or_session_injection(self):
