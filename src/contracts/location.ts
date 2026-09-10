@@ -1,7 +1,9 @@
 import type { NeedTaskGeography } from './needFactsV2';
+import type { CountryCode } from './market';
 
 /** The existing public topology contains coarse text, never private addresses or GPS. */
 export type NeedLocationInput = Readonly<{
+  taskCountryCode: CountryCode;
   geography: NeedTaskGeography;
   exactAddress: string | null;
   accessNotes: string | null;
@@ -12,7 +14,7 @@ export type NeedLocationReview = Readonly<{
   editable: boolean;
   confirmed: boolean;
   revision: string;
-  value: Readonly<{ geography: NeedTaskGeography | null; exactAddress: string | null; accessNotes: string | null }>;
+  value: Readonly<{ taskCountryCode: CountryCode | null; geography: NeedTaskGeography | null; exactAddress: string | null; accessNotes: string | null }>;
 }>;
 export type NeedLocationSave = Readonly<{
   conversationId: string; expectedRevision: string; confirmed: true; value: NeedLocationInput;
@@ -24,9 +26,11 @@ export type NeedLocationReceipt = Readonly<{
 /** Coordinates, when explicitly supplied, are coarse two-decimal preferences only. */
 export type CoarsePosition = Readonly<{ latitude: number; longitude: number }>;
 export type WorkerLocationInput = Readonly<{
+  operatingCountryCode: CountryCode;
   city: string; radiusKm: number; approximatePosition: CoarsePosition | null;
 }>;
-export type WorkerLocation = WorkerLocationInput & Readonly<{
+export type WorkerLocation = Omit<WorkerLocationInput, 'operatingCountryCode'> & Readonly<{
+  operatingCountryCode: CountryCode | null;
   accountId: string; profileId: string; revision: string;
 }>;
 export type WorkerLocationSave = Readonly<{

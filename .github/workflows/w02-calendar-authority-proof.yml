@@ -108,7 +108,7 @@ jobs:
         run: |
           node --check supabase/proofs/calendar/w02_location_proof.mjs
           node supabase/proofs/calendar/w02_location_proof.mjs
-          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/location-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.location_fixture_sql || r.gps_permission_requested || r.geocoder_called || r.provider_activated || !r.calendar_and_application_snapshots_unchanged || r.observed_waiters<2 || r.checks.length!==10) process.exit(1);'
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/location-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.location_fixture_sql || r.gps_permission_requested || r.geocoder_called || r.provider_activated || !r.calendar_and_application_snapshots_unchanged || r.observed_waiters<2 || r.checks.length!==14) process.exit(1);'
       - name: Reused Need and Worker capability validation and actual profile client
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'capability')
         run: |

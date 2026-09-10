@@ -1,11 +1,14 @@
 import type { NeedLocationReceipt, NeedLocationReview, NeedLocationSave, WorkerLocation, WorkerLocationReceipt, WorkerLocationSave } from '../contracts/location';
-import { locationPrivateText, normalizeTaskGeography, locationRevision, normalizeNeedLocation, normalizeWorkerLocation, sameNeedLocation, sameWorkerLocation } from '../lib/location';
+import { coarsePosition, locationText, locationPrivateText, normalizeTaskGeography, locationRevision, normalizeNeedLocation, normalizeWorkerLocation, sameNeedLocation, sameWorkerLocation } from '../lib/location';
+import { countryCode } from '../lib/market';
 import { sesijaSada } from '../store/sesija';
 import type { Ishod } from './ports';
 import { failure, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const COPY: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavite se da biste uredili lokaciju.',
+  LOCATION_COUNTRY_UNAVAILABLE: 'U ovoj državi priprema lokacije trenutno nije dostupna.',
+  LOCATION_COUNTRY_REQUIRED: 'Izaberite državu lokacije pre čuvanja.',
   LOCATION_INPUT_INVALID: 'Proverite javno mesto, privatnu adresu i način rada.',
   LOCATION_CONFIRMATION_REQUIRED: 'Potvrdite lokaciju pre čuvanja.',
   LOCATION_REVIEW_NOT_FOUND: 'Priprema Zadatka nije pronađena.',
@@ -19,18 +22,30 @@ function review(raw: unknown, accountId: string | undefined, conversationId: str
   const input = record(raw), val = record(input?.value);
   if (!input || !val || !accountId || !sameId(input.accountId, accountId) || !sameId(input.conversationId, conversationId)
     || !locationRevision(input.revision) || typeof input.editable !== 'boolean' || typeof input.confirmed !== 'boolean') return null;
+  const taskCountryCode = val.taskCountryCode == null ? null : countryCode(val.taskCountryCode);
   const geography = val.geography === null ? null : normalizeTaskGeography(val.geography);
   const exactAddress = locationPrivateText(val.exactAddress, 1000);
   const accessNotes = locationPrivateText(val.accessNotes, 2000);
-  if ((val.geography !== null && !geography) || exactAddress === undefined || accessNotes === undefined
+  if ((val.taskCountryCode != null && (!taskCountryCode || val.taskCountryCode !== taskCountryCode)) || (val.geography !== null && !geography) || exactAddress === undefined || accessNotes === undefined
     || (input.confirmed && !geography)) return null;
   return { accountId: input.accountId, conversationId: input.conversationId, revision: input.revision,
-    editable: input.editable, confirmed: input.confirmed, value: { geography, exactAddress, accessNotes } };
+    editable: input.editable, confirmed: input.confirmed && taskCountryCode !== null, value: { taskCountryCode, geography, exactAddress, accessNotes } };
 }
 function worker(raw: unknown, accountId: string | undefined): WorkerLocation | null {
   const input = record(raw);
   if (!input || !accountId || !sameId(input.accountId, accountId) || !uuid(input.profileId) || !locationRevision(input.revision)) return null;
-  const value = normalizeWorkerLocation({ city: input.city, radiusKm: input.radiusKm, approximatePosition: input.approximatePosition }, true);
+  if (input.operatingCountryCode == null) {
+    // Decode legacy coordinates without assigning an operating country.
+    const partial = record(input);
+    const position = partial?.approximatePosition === null ? null : coarsePosition(partial?.approximatePosition);
+    const city = partial?.city === '' ? '' : locationText(partial?.city, 160);
+    if (!partial || city === null || typeof partial.radiusKm !== 'number' || !Number.isInteger(partial.radiusKm)
+      || partial.radiusKm < 1 || partial.radiusKm > 200 || (partial.approximatePosition !== null && !position)) return null;
+    return { operatingCountryCode: null, city, radiusKm: partial.radiusKm, approximatePosition: position,
+      profileId: input.profileId, accountId: input.accountId, revision: input.revision };
+  }
+  if (input.operatingCountryCode !== countryCode(input.operatingCountryCode)) return null;
+  const value = normalizeWorkerLocation({ operatingCountryCode: input.operatingCountryCode, city: input.city, radiusKm: input.radiusKm, approximatePosition: input.approximatePosition }, true);
   return value ? { ...value, profileId: input.profileId, accountId: input.accountId, revision: input.revision } : null;
 }
 async function receipt<T>(options: Parameters<typeof readReceipt<T>>[0]): Promise<Ishod<T>> {
@@ -81,7 +96,7 @@ export const workerLocationClientService = {
       errors: COPY, fallback: 'WORKER_LOCATION_SAVE_UNCONFIRMED', invalid: INVALID, write: true,
       decode(raw): WorkerLocationReceipt | null {
         const input = record(raw), location = worker(input?.location, account);
-        if (!input || input.saved !== true || typeof input.idempotentReplay !== 'boolean' || !location || !sameWorkerLocation(value, { city: location.city, radiusKm: location.radiusKm, approximatePosition: location.approximatePosition })) return null;
+        if (!input || input.saved !== true || typeof input.idempotentReplay !== 'boolean' || !location || !sameWorkerLocation(value, { operatingCountryCode: location.operatingCountryCode, city: location.city, radiusKm: location.radiusKm, approximatePosition: location.approximatePosition })) return null;
         return { saved: true, idempotentReplay: input.idempotentReplay, location };
       } });
   },

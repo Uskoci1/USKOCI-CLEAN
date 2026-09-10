@@ -9,7 +9,7 @@ import { T } from '../../ui/Text';
 import { WorkspaceHeader } from '../../ui/WorkspaceHeader';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { Press } from '../../ui/Press';
-import { Card } from '../../ui/Button';
+import { Button, Card } from '../../ui/Button';
 import { palette, space, radius, elevation, motion } from '../../theme/tokens';
 import { useIzvor, useUloga } from '../../store/uloga';
 
@@ -31,6 +31,7 @@ export default function Dogovori() {
         contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.xxl, gap: space.base }}
         showsVerticalScrollIndicator={false}
       >
+        <Button label="Kalendar Dogovora" kind="secondary" onPress={() => router.navigate('/raspored')} />
 
         {ucitavanje && <ActivityIndicator color={palette.teal500} style={{ marginTop: space.xl }} />}
 
