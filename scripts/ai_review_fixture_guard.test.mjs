@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import { main, proposedFacts, validateAiFixture } from './ai_review_fixture.mjs';
-import { admittedPath, localUpstream, forwardedHeaders, boundedBody } from './ai_review_edge_server.mjs';
+import { admittedPath, localUpstream, forwardedHeaders, boundedBody, syntheticProviderEnvelope } from './ai_review_edge_server.mjs';
+import { loadOwnedIntakeHandler } from '../supabase/proofs/ai/owned_intake_edge_runtime.mjs';
 
 const env = { RU5_DEVICE_SUPABASE_URL: 'http://127.0.0.1:54321',
   RU5_DEVICE_DB_URL: 'postgresql://postgres:test-only@127.0.0.1:54322/postgres',
@@ -40,6 +41,40 @@ test('synthetic proposals preserve typed people, vehicle, route, OFFERS and fixe
   }
   assert.throws(() => proposedFacts('../bad', '2026-10-12T07:00:00Z', '2026-10-12T09:00:00Z'));
   assert.throws(() => proposedFacts('a1b2c3d4', '2026-10-12T09:00:00Z', '2026-10-12T07:00:00Z'));
+});
+
+test('the native fixture passes the actual strict Edge provider parser and preserves typed values', async () => {
+  const proposals=proposedFacts('a1b2c3d4','2026-10-12T07:00:00Z','2026-10-12T09:00:00Z');
+  const [accountId,conversationId,clientRequestId,turnId,attemptId,userMessageId,assistantMessageId]=[1,2,3,4,5,6,7]
+    .map(n=>`${String(n).repeat(8)}-1111-4111-8111-111111111111`);
+  const json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
+  for(const oldInvalidEnvelope of [false,true]) {
+    let completed=null,failed=0;
+    const turn=state=>({conversationId,clientRequestId,turnId,state,retryAllowed:state==='FAILED',receipt:state==='SUCCEEDED'
+      ? {userMessageId,assistantMessageId,proposedCount:proposals.length,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true}:null});
+    const runtime=loadOwnedIntakeHandler({env:name=>({SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_ANON_KEY:'synthetic-anon',
+      SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',AI_PROVIDER:'openai',OPENAI_API_KEY:'synthetic-provider',OPENAI_MODEL:'synthetic-model'})[name],
+      fetch:async(input,init={})=>{
+        const url=new URL(String(input));
+        if(url.href==='https://api.openai.com/v1/responses') {
+          const payload=syntheticProviderEnvelope(proposals);
+          if(oldInvalidEnvelope){const output=JSON.parse(payload.output_text);output.facts=proposals;payload.output_text=JSON.stringify(output);}
+          return json(payload);
+        }
+        assert.equal(url.origin,'http://127.0.0.1:54321');
+        if(url.pathname==='/auth/v1/user')return json({id:accountId});
+        if(url.pathname==='/rest/v1/ai_conversations')return json([{id:conversationId,account_id:accountId,fact_schema_version:'NEED_FACT_V2',status:'OPEN'}]);
+        if(url.pathname.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn('PROCESSING'),claim:{attemptId,
+          leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
+        if(url.pathname.endsWith('/rpc_ai_complete_need_turn_v2_service')){completed=JSON.parse(init.body);return json(turn('SUCCEEDED'));}
+        if(url.pathname.endsWith('/rpc_ai_fail_need_turn_v2_service')){failed++;return json(turn('FAILED'));}
+        assert.fail('UNEXPECTED_SYNTHETIC_ROUTE');
+      }});
+    const response=await runtime.handler(new Request('http://127.0.0.1:54329/functions/v1/uskoci-ai-interview',{
+      method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({conversationId,clientRequestId,text:'Dve osobe i kombi za prenos stvari u Novom Sadu.'})}));
+    if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,1);}
+    else {assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');assert.deepEqual(completed.p_proposals,proposals);assert.equal(failed,0);}
+  }
 });
 
 test('proof adapter admits only exact Auth/REST/current handler routes', () => {
