@@ -276,3 +276,48 @@ describe('R04 explicit canonical publication', () => {
     await act(async () => retained()); expect(mockEdit).not.toHaveBeenCalled(); expect(mockClose).not.toHaveBeenCalled();
   });
 });
+
+
+describe('V2 saved Need presentation', () => {
+  it('shows authoritative detail values and every location/requirement on explicit disclosure', async () => {
+    mockNeed.mockResolvedValue({ ...need(), opis: 'Čćšžđ '.repeat(800), rezimCene: 'OFFERS', taskCountryCode: 'RS',
+      vremeTekst: '10. sep 2026 · 18:00 – 10. sep 2026 · 19:00 (Europe/Belgrade)',
+      schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-10T16:00:00Z', endsAt: '2026-09-10T17:00:00Z' },
+      detalji: { kategorija: 'Prevoz', geografija: { mode: 'MULTI_STOP', start: { city: 'Novi Sad' },
+        waypoints: [{ city: 'Beočin' }, { city: 'Petrovaradin' }], end: { city: 'Kamenica' } }, rezimLokacije: 'MULTI_STOP',
+        zahtevi: { vestine: [], alati: ['Alat, jedan', 'Alat, jedan'], vozila: [], dozvole: ['B kategorija'],
+          bitniUslovi: ['Bez lifta'], iskustvoGodina: 3, potvrdjenIdentitet: true } } });
+    await render();
+    expect(texts()).toContain('Prevoz'); expect(texts()).toContain('Tražim ponude');
+    expect(texts()).toContain('19:00'); expect(texts()).toContain('Čćšžđ '.repeat(800));
+    expect(texts()).not.toContain('Petrovaradin');
+    await act(async () => press('Mesto izvršenja').props.onPress());
+    for (const value of ['Stanica 1', 'Stanica 2', 'Odredište', 'Beočin', 'Petrovaradin', 'Kamenica', 'RS']) expect(texts()).toContain(value);
+    await act(async () => press('Svi uslovi').props.onPress());
+    expect(texts()).not.toContain('Petrovaradin');
+    for (const value of ['• Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
+    expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
+    expect(texts()).not.toContain('Revizija 7');
+  });
+  it('keeps one primary publication action outside the scroll with bottom safe area', async () => {
+    await render(); const action = button('Proveri za objavu');
+    let parent = action.parent;
+    while (parent) { expect(parent.type).not.toBe('ScrollView'); parent = parent.parent; }
+    expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom']);
+    expect(tree.root.findAllByProps({ label: 'Proveri za objavu' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ label: 'Pogledaj prijave' })).toHaveLength(0);
+    expect(texts()).not.toContain('HITNO'); expect(texts()).not.toContain('Pitanja i odgovori');
+  });
+  it('does not display a raw transport secret attached outside the public projection', async () => {
+    mockNeed.mockResolvedValue({ ...need(), need_sensitive: { exact_address: 'SECRET address', exact_lat: 45.123456 }, resolved_location: 'SECRET pin' });
+    await render(); await act(async () => press('Mesto izvršenja').props.onPress());
+    expect(texts()).not.toMatch(/SECRET|45.123456/);
+    expect(texts()).toContain('Javna struktura lokacije nije dostupna. Prikazano je približno područje.');
+  });
+  it('provides the real candidates route after publication and no duplicate publication action', async () => {
+    mockNeed.mockResolvedValue({ ...need(7, 'OBJAVLJENA'), brojPrijava: 3 }); await render();
+    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
+    await tap('Pogledaj prijave');
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: NEED } });
+  });
+});

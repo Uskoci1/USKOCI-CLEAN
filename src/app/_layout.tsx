@@ -8,6 +8,9 @@ import { palette } from '../theme/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { postaviUlogu } from '../store/uloga';
+import { PushRuntime } from '../ui/notifications/PushRuntime';
+import { BrandMark } from '../ui/entry/BrandAssets';
+import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
@@ -20,6 +23,9 @@ export default function RootLayout() {
   const routeResolved = segments.length > 0;
   const naAuth = segments[0] === 'auth';
   const naOporavku = segments[0] === 'oporavak';
+  const { onLayout: onRouteLayout } = useEntrySplashReady({
+    enabled: isLoaded && routeResolved && (naOporavku || (!!session && !naAuth)),
+  });
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
@@ -68,25 +74,28 @@ export default function RootLayout() {
 
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={palette.ink} />
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
+        {/* Same original mark and nominal size as the padded native splash. */}
+        <BrandMark size={126} />
+        <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={palette.ink}
+          style={{ position: 'absolute', alignSelf: 'center', top: '65%' }} />
       </View>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.ground }}>
+      <GestureHandlerRootView onLayout={onRouteLayout} style={{ flex: 1, backgroundColor: palette.ground }}>
         <StatusBar style="dark" />
         <Stack
           key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
+          initialRouteName={session ? '(app)' : 'auth'}
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: palette.ground },
             animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
           <Stack.Protected guard={!session}>
             <Stack.Screen name="auth" options={{ animation: 'none' }} />
           </Stack.Protected>
@@ -96,7 +105,11 @@ export default function RootLayout() {
             <Stack.Screen name="obavestenja" />
             <Stack.Screen name="prijave" />
           </Stack.Protected>
+          {/* Recovery remains a public link destination, never the cold-start
+              fallback when Protected removes the private index route. */}
+          <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
         </Stack>
+        <PushRuntime ready={routeResolved && !naAuth && !naOporavku} />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

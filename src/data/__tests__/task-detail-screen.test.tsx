@@ -34,6 +34,7 @@ jest.mock('../../store/sesija', () => ({
 }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent, useIzvor: () => mockSource }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
+jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 
@@ -251,6 +252,19 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(text()).toContain('Učitavamo zadatak');
     expect(buttons('Sastavi prijavu')).toHaveLength(0);
     await act(async () => back()); expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('bounds a hanging read and ignores the expired result after explicit retry', async () => {
+    jest.useFakeTimers();
+    const old = deferred<PrilikaProjekcija>();
+    mockLoad.mockReturnValueOnce(old.promise).mockResolvedValueOnce({ ...detail(), naslov: 'Sveži Zadatak' });
+    await render();
+    await act(async () => jest.advanceTimersByTime(15_000));
+    expect(text()).toContain('Zadatak trenutno nije moguće učitati');
+    await act(async () => buttons('Pokušajte ponovo')[0].props.onPress());
+    expect(text()).toContain('Sveži Zadatak');
+    await act(async () => old.resolve({ ...detail(), naslov: 'Istekli Zadatak' }));
+    expect(text()).not.toContain('Istekli Zadatak');
   });
 
   it('clears task A immediately on id B and ignores A finishing after B', async () => {

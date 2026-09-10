@@ -25,6 +25,7 @@ env:
   N08_ARTIFACT_DIR: artifacts/w02-calendar-authority/predecessor-n08
   P3_ARTIFACT_DIR: artifacts/w02-calendar-authority/predecessor-p3
   W02_CALENDAR_ARTIFACT_DIR: artifacts/w02-calendar-authority/final
+  W02_DISPATCH_ARTIFACT_DIR: artifacts/w02-calendar-authority/final/dispatch-lock
 jobs:
   calendar-authority-proof:
     runs-on: ubuntu-latest
@@ -56,6 +57,7 @@ jobs:
         run: |
           node scripts/ci/scope.cjs test w02
           node --check supabase/proofs/calendar/w02_calendar_authority_proof.mjs
+          node --test supabase/proofs/calendar/w02_dispatch_lock_proof.test.mjs
           python3 supabase/migrations/check_migration_integrity.py
       - name: Reconstruct disposable historical live79
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
@@ -83,7 +85,7 @@ jobs:
           node supabase/proofs/legal/p3_retention_schedule_proof.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/proof.log"
           grep -F 'PASS P3_RETENTION_SCHEDULE' "$P3_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P3_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.successor_replay.count!==r.predecessor_plan.pending_successor_count) process.exit(1);'
-      - name: Reuse SQL105 retention execution proof before W02 on full current source
+      - name: Reuse SQL105 retention execution proof before dispatch correction;106 is separately proved by W03
         shell: bash
         run: |
           set -euo pipefail
@@ -91,6 +93,14 @@ jobs:
           node supabase/proofs/legal/p3_retention_execution_proof.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/retention-execution/proof.log"
           grep -F 'PASS P3_RETENTION_EXECUTION' "$P3_ARTIFACT_DIR/retention-execution/proof.log"
           node supabase/proofs/legal/p3_retention_execution_report_gate.mjs 2>&1 | tee "$P3_ARTIFACT_DIR/retention-execution/report-gate.log"
+      - name: Prove original dispatch deadlocks and exact SQL108 correction on preserved registry105
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$W02_DISPATCH_ARTIFACT_DIR"
+          node supabase/proofs/calendar/w02_dispatch_lock_proof.mjs 2>&1 | tee "$W02_DISPATCH_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS W02_DISPATCH_NEED_LOCK_ORDER' "$W02_DISPATCH_ARTIFACT_DIR/proof.log"
+          node --input-type=module -e 'import {readFileSync} from "node:fs"; import {admitDispatchLockReport} from "./supabase/proofs/calendar/w02_dispatch_lock_proof.mjs"; admitDispatchLockReport(JSON.parse(readFileSync(process.env.W02_DISPATCH_ARTIFACT_DIR+"/proof-report.json","utf8")),process.env.GITHUB_SHA);'
       - name: Prove hard calendar matching selection lifecycle and own read
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'calendar')
         shell: bash
@@ -122,12 +132,12 @@ jobs:
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'location')
         run: |
           node supabase/proofs/ai/ai_edge_context_proof.mjs
-          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync("proof-out/ai-edge-context/proof-report.json")); if(r.status!=="PASS" || r.sourceCommit!==process.env.GITHUB_SHA || r.actualProviderCalled || r.databaseConnected || r.testsPassed!==58 || r.testsFailed!==0) process.exit(1); for(const f of ["proof-report.json","handler-tests.tap"]) fs.copyFileSync("proof-out/ai-edge-context/"+f,process.env.W02_CALENDAR_ARTIFACT_DIR+"/ai-location-"+f);'
+          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync("proof-out/ai-edge-context/proof-report.json")); if(r.status!=="PASS" || r.sourceCommit!==process.env.GITHUB_SHA || r.actualProviderCalled || r.databaseConnected || r.testsPassed!==98 || r.testsFailed!==0) process.exit(1); for(const f of ["proof-report.json","handler-tests.tap"]) fs.copyFileSync("proof-out/ai-edge-context/"+f,process.env.W02_CALENDAR_ARTIFACT_DIR+"/ai-location-"+f);'
       - name: Authenticated LocationIQ adapter with synthetic upstream transport
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'location')
         run: |
           node --test --test-reporter=tap supabase/proofs/location/location_search_edge.test.mjs > "$W02_CALENDAR_ARTIFACT_DIR/geocoder-handler-tests.tap"
-          node -e 'const fs=require("fs"),crypto=require("crypto"),files=["supabase/functions/uskoci-location-search/index.ts","supabase/proofs/location/location_search_edge.test.mjs"],tap=fs.readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/geocoder-handler-tests.tap","utf8"); if(!/^# pass 21$/m.test(tap)||!/^# fail 0$/m.test(tap)) process.exit(1); fs.writeFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/geocoder-source-proof.json",JSON.stringify({result:"PASS",source_sha:process.env.GITHUB_SHA,provider:"locationiq",provider_called:false,database_connected:false,tests:21,files:files.map(path=>({path,sha256:crypto.createHash("sha256").update(fs.readFileSync(path)).digest("hex")}))},null,2));'
+          node -e 'const fs=require("fs"),crypto=require("crypto"),files=["supabase/functions/uskoci-location-search/index.ts","supabase/proofs/location/location_search_edge.test.mjs"],tap=fs.readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/geocoder-handler-tests.tap","utf8"); if(!/^# pass 25$/m.test(tap)||!/^# fail 0$/m.test(tap)) process.exit(1); fs.writeFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/geocoder-source-proof.json",JSON.stringify({result:"PASS",source_sha:process.env.GITHUB_SHA,provider:"locationiq",provider_called:false,database_connected:false,tests:25,files:files.map(path=>({path,sha256:crypto.createHash("sha256").update(fs.readFileSync(path)).digest("hex")}))},null,2));'
       - name: Reused Need and Worker capability validation and actual profile client
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'capability')
         run: |

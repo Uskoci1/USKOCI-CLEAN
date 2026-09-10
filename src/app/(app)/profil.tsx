@@ -1,17 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, View, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowLeft, ArrowsLeftRight, User, CaretRight, SignOut } from 'phosphor-react-native';
+import { ArrowsLeftRight, User, SignOut, MapPin, CalendarBlank, Bell, DownloadSimple, ShieldCheck, Clock } from 'phosphor-react-native';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { T } from '../../ui/Text';
+import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction, settingsStyles as styles } from '../../ui/settings/SettingsPresentation';
+import { v2 } from '../../ui/v2/tokens';
 import { BuildIdentity } from '../../ui/BuildIdentity';
-import { Press } from '../../ui/Press';
-import { Button, Card } from '../../ui/Button';
-import { palette, space, radius, elevation, touch } from '../../theme/tokens';
 import { useUloga, postaviUlogu, ulogaSada } from '../../store/uloga';
 
 type ActionScope = { accountId: string; accountRevision: number; intent: ReturnType<typeof useUloga>; busy: boolean };
@@ -74,101 +71,54 @@ export default function Profil() {
   const currentIntent = narucilac ? 'MENI TREBA' : 'JA MOGU';
   const nextIntent = narucilac ? 'JA MOGU' : 'MENI TREBA';
 
-  return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <ScrollView contentContainerStyle={{ padding: space.base, paddingBottom: space.xxl, gap: space.base }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-          <Press accessibilityRole="button" accessibilityLabel="Nazad" disabled={busy}
-            accessibilityState={{ disabled: busy }}
-            onPress={() => navigate(() => router.canGoBack() ? router.back() : router.replace(narucilac ? '/potrebe' : '/moje-prijave'))}
-            style={{ width: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' }}>
-            <ArrowLeft size={24} color={palette.ink} />
-          </Press>
-          <T variant="title" style={{ flex: 1 }}>{narucilac ? 'Profil' : 'Radni profil'}</T>
-        </View>
+  return <SettingsScreen title={narucilac ? 'Profil' : 'Radni profil'} disabled={busy}
+    onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace(narucilac ? '/potrebe' : '/moje-prijave'))}>
+    <View style={styles.identity}>
+      {profile.loading ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" style={styles.gap}>
+        <ActivityIndicator color={v2.color.teal} /><T tone="muted">Učitavamo profil…</T>
+      </View> : profile.error ? <View style={styles.gap}>
+        <T>Profil trenutno nije dostupan.</T><T variant="meta" tone="muted">Proverite vezu i pokušajte ponovo.</T>
+        <SettingsAction label="Pokušajte ponovo" kind="secondary" onPress={() => { void profile.refresh(); }} />
+      </View> : <>
+        <View style={styles.avatar}>{initials ? <T variant="heading">{initials}</T> : <User size={28} color={v2.color.teal} />}</View>
+        <T variant="display" accessibilityRole="header" style={{ textAlign: 'center', fontSize: 25, lineHeight: 30 }}>{profile.data?.ime ?? 'Ime još nije uneto'}</T>
+        <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>{profile.data?.grad ?? 'Grad još nije unet'}</T>
+      </>}
+      <View style={styles.intent}><T variant="meta">{currentIntent}</T></View>
+      <SettingsAction label={`Pređite na ${nextIntent}`} kind="quiet" disabled={busy}
+        icon={<ArrowsLeftRight size={20} color={v2.color.teal} />}
+        onPress={() => navigate(() => {
+          postaviUlogu(narucilac ? 'uskocer' : 'narucilac');
+          router.replace(narucilac ? '/prilike' : '/potrebe');
+        })} />
+      <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Isti nalog možete koristiti na oba načina.</T>
+    </View>
 
-        <Card style={elevation.card}>
-          <View style={{ padding: space.base, gap: space.md }}>
-            <T variant="label" tone="muted">{currentIntent}</T>
-            {profile.loading ? (
-              <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" style={{ flexDirection: 'row', gap: space.md }}>
-                <ActivityIndicator color={palette.ink} />
-                <T variant="body" tone="muted">Učitavamo profil…</T>
-              </View>
-            ) : profile.error ? (
-              <View style={{ gap: space.sm }}>
-                <T variant="body">Profil trenutno nije dostupan.</T>
-                <T variant="meta" tone="muted">Proverite vezu i pokušajte ponovo.</T>
-                <Button label="Pokušajte ponovo" kind="secondary" onPress={() => { void profile.refresh(); }} />
-              </View>
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                <View style={{ width: 56, height: 56, borderRadius: radius.lg, backgroundColor: palette.forest800,
-                  alignItems: 'center', justifyContent: 'center' }}>
-                  {initials ? <T variant="heading" tone="onDark">{initials}</T> : <User size={28} color={palette.onDark} />}
-                </View>
-                <View style={{ flex: 1, gap: space.xs }}>
-                  <T variant="heading">{profile.data?.ime ?? 'Ime još nije uneto'}</T>
-                  <T variant="meta" tone="muted">{profile.data?.grad ?? 'Grad još nije unet'}</T>
-                </View>
-              </View>
-            )}
-          </View>
-        </Card>
-
-        {!narucilac && <Card>
-          <Press accessibilityRole="button" accessibilityLabel="Uredite Radni profil" disabled={busy}
-            accessibilityState={{ disabled: busy }} haptic="select"
-            onPress={() => navigate(() => router.navigate('/profil/radnik'))}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.base, minHeight: touch.min }}>
-            <User size={22} color={palette.teal500} />
-            <View style={{ flex: 1, gap: space.xs }}>
-              <T variant="bodyStrong">Uredite Radni profil</T>
-              <T variant="meta" tone="muted">Ime, grad i veštine za prijavljivanje na Zadatke.</T>
-            </View>
-            <CaretRight size={18} color={palette.inkMuted} />
-          </Press>
-        </Card>}
-
-        {!narucilac ? <Button label="Područje rada" kind="secondary" disabled={busy}
-          onPress={() => navigate(() => router.navigate('/profil/lokacija'))} /> : null}
-        {!narucilac ? <Button label="Dostupnost" kind="secondary" disabled={busy}
-          onPress={() => navigate(() => router.navigate('/profil/dostupnost'))} /> : null}
-        <Button label="Kalendar Dogovora" kind="secondary" disabled={busy}
-          onPress={() => navigate(() => router.navigate('/raspored'))} />
-        <Button label="Izvoz podataka" kind="secondary" disabled={busy}
-          onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
-        <Button label="Privatnost i podaci" kind="secondary" disabled={busy}
-          onPress={() => navigate(() => router.navigate('/profil/privatnost'))} />
-
-        <Press accessibilityRole="button" accessibilityLabel={`Pređite na ${nextIntent}`} disabled={busy}
-          accessibilityState={{ disabled: busy }} haptic="medium" scaleTo={0.985}
-          onPress={() => navigate(() => {
-            postaviUlogu(narucilac ? 'uskocer' : 'narucilac');
-            router.replace(narucilac ? '/prilike' : '/potrebe');
-          })}>
-          <Card style={{ borderColor: palette.orange }}>
-            <View style={{ padding: space.base, flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-              <View style={{ width: 40, height: 40, borderRadius: radius.md, backgroundColor: palette.orangeSoft,
-                alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowsLeftRight size={20} color={palette.orangeInk} weight="bold" />
-              </View>
-              <View style={{ flex: 1, gap: space.xs }}>
-                <T variant="bodyStrong">Pređite na {nextIntent}</T>
-                <T variant="meta" tone="muted">Isti nalog možete koristiti na oba načina.</T>
-              </View>
-              <CaretRight size={18} color={palette.orangeInk} />
-            </View>
-          </Card>
-        </Press>
-
-        <View style={{ gap: space.sm, paddingTop: space.sm }}>
-          {logoutError && <T variant="body" tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Pokušajte ponovo.</T>}
-          <Button label={busy ? 'Sačekajte…' : 'Odjavite se'} kind="quiet" disabled={busy}
-            icon={<SignOut size={20} color={palette.inkMuted} />} onPress={() => { void logout(); }} />
-        </View>
-        <BuildIdentity />
-      </ScrollView>
-    </SafeAreaView>
-  );
+    <SettingsGroup title={narucilac ? 'Tvoji Dogovori' : 'Rad i dostupnost'}>
+      {!narucilac ? <>
+        <SettingsRow label="Uredite Radni profil" detail="Ime, grad i veštine za prijavljivanje na Zadatke."
+          icon={<User size={22} color={v2.color.teal} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/radnik'))} />
+        <SettingsRow label="Područje rada" detail="Gde možete da uskočite." icon={<MapPin size={22} color={v2.color.teal} />}
+          disabled={busy} onPress={() => navigate(() => router.navigate('/profil/lokacija'))} />
+        <SettingsRow label="Dostupnost" detail="Nedeljni raspored i izuzeci." icon={<Clock size={22} color={v2.color.teal} />}
+          disabled={busy} onPress={() => navigate(() => router.navigate('/profil/dostupnost'))} />
+      </> : null}
+      <SettingsRow label="Kalendar Dogovora" detail="Termini potvrđenih saradnji." icon={<CalendarBlank size={22} color={v2.color.teal} />}
+        disabled={busy} last onPress={() => navigate(() => router.navigate('/raspored'))} />
+    </SettingsGroup>
+    <SettingsGroup title="Nalog i podaci">
+      <SettingsRow label="Obaveštenja" detail="Promene i poruke u saradnji." icon={<Bell size={22} color={v2.color.teal} />}
+        disabled={busy} onPress={() => navigate(() => router.navigate('/profil/obavestenja'))} />
+      <SettingsRow label="Privatnost i podaci" detail="Šta je javno i kako se podaci čuvaju." icon={<ShieldCheck size={22} color={v2.color.teal} />}
+        disabled={busy} onPress={() => navigate(() => router.navigate('/profil/privatnost'))} />
+      <SettingsRow label="Izvoz podataka" detail="Zahtev i preuzimanje svoje kopije." icon={<DownloadSimple size={22} color={v2.color.teal} />}
+        disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
+    </SettingsGroup>
+    <View style={styles.logout}>
+      {logoutError ? <T tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Pokušajte ponovo.</T> : null}
+      <SettingsAction label={busy ? 'Sačekajte…' : 'Odjavite se'} kind="quiet" disabled={busy}
+        icon={<SignOut size={20} color={v2.color.muted} />} onPress={() => { void logout(); }} />
+    </View>
+    <BuildIdentity />
+  </SettingsScreen>;
 }

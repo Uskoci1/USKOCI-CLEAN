@@ -8,6 +8,46 @@ export type AiNeedV2FactStatus = 'NEEDS_CONFIRMATION' | 'INFERRED' | 'CONFIRMED'
 export type AiNeedV2FactSource = 'EXPLICIT_USER_ANSWER' | 'CONFIRMED_PROFILE' | 'AI_INFERENCE' | 'SYSTEM';
 export type AiNeedSafety = 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
 
+export type AiNeedConversationOpened = {
+  conversationId: string;
+  clientRequestId: string;
+  authoritative: true;
+  idempotentReplay: boolean;
+};
+
+export type AiNeedTurnReceipt = {
+  userMessageId: string;
+  assistantMessageId: string;
+  proposedCount: number;
+  safety: AiNeedSafety;
+  schemaVersion: 'NEED_FACT_V2';
+  authoritative: true;
+};
+
+export type AiNeedTurnStatus = {
+  conversationId: string;
+  clientRequestId: string;
+} & (
+  | { state: 'ABSENT'; turnId: null; retryAllowed: boolean; receipt: null }
+  | { state: 'PROCESSING' | 'FAILED'; turnId: string; retryAllowed: boolean; receipt: null }
+  | { state: 'SUCCEEDED'; turnId: string; retryAllowed: false; receipt: AiNeedTurnReceipt }
+);
+
+export type AiNeedConversationAbandoned = {
+  conversationId: string;
+  status: 'ABANDONED';
+  authoritative: true;
+  idempotentReplay: boolean;
+};
+
+export type AiNeedDraftSaved = {
+  needId: string;
+  conversationId: string;
+  status: 'DRAFT';
+  revision: 1;
+  authoritative: true;
+};
+
 export type AiNeedV2Fact = {
   id: string;
   key: NeedFactV2Key;
@@ -67,4 +107,8 @@ export type AiNeedEditConfirmed = {
   revision: number;
   requiresReadmission: boolean;
   idempotentReplay: boolean;
+  status: 'DRAFT';
+  conversationId: string;
+  revisionEventId: string;
+  authoritative: true;
 };

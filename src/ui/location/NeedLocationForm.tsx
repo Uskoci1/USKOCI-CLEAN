@@ -3,9 +3,10 @@ import { View } from 'react-native';
 import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationInput, NeedLocationReview } from '../../contracts/location';
 import { locationSlots, normalizeNeedLocation } from '../../lib/location';
-import { Button } from '../Button';
+import { V2Action as Button } from '../v2/V2Action';
+import { v2 } from '../v2/tokens';
 import { T } from '../Text';
-import { LocationChoice, LocationConfirmation, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
+import { LocationChoice, LocationConfirmation, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
 import { CountryField, selectableCountry, useCountryOptions } from './CountryField';
 import { LocationPointEditor } from './LocationPointEditor';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
@@ -22,15 +23,17 @@ function PlaceFields({ title, value, disabled, onChange }: { title: string; valu
     if (text) next[key] = text; else delete next[key];
     onChange(next);
   };
-  return <View style={s.card}>
+  return <View style={[s.section, { borderBottomWidth: 1, borderColor: v2.color.line, paddingBottom: v2.space.lg }]}>
     <T variant="heading">{title}</T>
     <LocationField label={`${title} — grad ili mesto`} value={value.city ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('city', text)} />
+    <LocationDetails label={`${title} — dodatni javni opis`} disabled={disabled} summary={[value.area, value.label].filter(Boolean).join(' · ') || 'Deo grada i opis područja, opciono'}>
     <LocationField label={`${title} — deo grada (opciono)`} value={value.area ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('area', text)} />
     <LocationField label={`${title} — javni opis (opciono)`} value={value.label ?? ''} maxLength={240}
       hint="Ovo je javno. Unesite samo približno područje, bez adrese, broja stana ili kontakta."
       editable={!disabled} onChangeText={text => field('label', text)} />
+    </LocationDetails>
   </View>;
 }
 
@@ -91,7 +94,7 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: 
 
   return <View style={{ gap: 24 }}>
     <View style={s.section}>
-      <T variant="heading" style={{ fontSize: 25, lineHeight: 31 }}>Gde treba uskočiti?</T>
+      <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>Gde treba uskočiti?</T>
       <T tone="muted">Unesite mesto gde je potrebna pomoć. GPS dozvola nije potrebna.</T>
     </View>
     {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vratite se na Zadatak.</T> : null}
@@ -125,11 +128,13 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: 
       </View> : null}
       {mode === 'POINT_TO_POINT' || mode === 'MULTI_STOP' ? <PlaceFields title="Odredište" value={end}
         disabled={disabled} onChange={value => change(() => setEnd(value))} /> : null}
+      <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvorite za pregled.' : 'Tačna adresa i pristup, opciono'}>
       <PrivateLocationNote />
       <LocationField label="Tačna adresa (privatno, opciono)" value={address} maxLength={1000}
         editable={!disabled} onChangeText={text => change(() => setAddress(text))} />
       <LocationField label="Napomene za pristup (privatno, opciono)" value={notes} maxLength={2000} multiline
         editable={!disabled} onChangeText={text => change(() => setNotes(text), false)} />
+      </LocationDetails>
       <View style={s.section}>
         <T variant="heading">Potvrdite tačke na mapi</T>
         <T variant="meta" tone="muted">Promena države, javnog mesta, redosleda stanica ili tačne adrese traži novu potvrdu tačaka.</T>
@@ -155,7 +160,7 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: 
     <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>
       {mode === 'REMOTE' ? 'Potvrđujem da se Zadatak radi na daljinu.' : 'Proverio/la sam javno mesto i privatne podatke.'}
     </LocationConfirmation>
-    <Button full label={busy ? 'Čuvamo lokaciju…' : 'Potvrdi i sačuvaj mesto'}
+    <Button kind="primary" label={busy ? 'Čuvamo lokaciju…' : 'Potvrdi i sačuvaj mesto'}
       disabled={disabled || pendingPoint || !confirmed || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
     <T variant="meta" tone="muted">Čuva se mesto u istom pregledu. Zadatak još nije objavljen.</T>
   </View>;

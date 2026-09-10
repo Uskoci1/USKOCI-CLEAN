@@ -36,14 +36,17 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFF5EC",
-          "android": {
-            "drawable": {
-              "icon": "./assets/entry-splash-empty.xml"
-            }
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/entry-splash-mark.png",
+          "imageWidth": 144,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#FFFFFF",
+            "image": "./assets/entry-splash-mark.png"
           }
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

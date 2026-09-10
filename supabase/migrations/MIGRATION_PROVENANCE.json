@@ -2015,6 +2015,48 @@
       "activation": "WRITTEN_NOT_LIVE_NO_POLICY_CONTENT_OR_ACTIVATION",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910172132",
+      "name": "clean_w03_owned_ai_intake_authority",
+      "file": "20260910172132_clean_w03_owned_ai_intake_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "7ec5faf05b863d64a4014fa86bca9e8d",
+      "raw_sha256": "558d06608a597724598e58c7494d1d2783b1b844a019b89e0f4ac19461988e3d",
+      "raw_bytes": 43904,
+      "live_applied": false,
+      "unit": "W03_OWNED_NEED_INTAKE",
+      "activation": "WRITTEN_NOT_LIVE_NO_PROVIDER_OR_POLICY_ACTIVATION",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910193029",
+      "name": "clean_n09_expo_push_transport",
+      "file": "20260910193029_clean_n09_expo_push_transport.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "197242ad0b1e7453c7116e703f1c16df",
+      "raw_sha256": "0207da265567a31b6f35b185694040554ee8800f16508e5fc5be1ff0b309f53e",
+      "raw_bytes": 30061,
+      "live_applied": false,
+      "unit": "N09_EXPO_PUSH_TRANSPORT",
+      "activation": "WRITTEN_NOT_LIVE_TRANSPORT_DISABLED_PHYSICAL_PUSH_UNPROVEN",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910214845",
+      "name": "clean_dispatch_need_lock_order",
+      "file": "20260910214845_clean_dispatch_need_lock_order.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "c2b752ce505a04ddc2467af83f7e48c3",
+      "raw_sha256": "276ee2f40a15c01c258f106ea3dfbc23c57a1d4f1c3a93b21428d865730f5896",
+      "raw_bytes": 10984,
+      "live_applied": false,
+      "unit": "W02_DISPATCH_NEED_LOCK_ORDER",
+      "activation": "WRITTEN_NOT_LIVE_CONCURRENCY_PROOF_PENDING",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {

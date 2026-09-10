@@ -13,7 +13,7 @@ type CoarseCandidate = Readonly<{ label: string; position: CoarsePosition }>;
 type Lookup = { status: 'IDLE' | 'LOADING' | 'PROVIDER_ACTIVATION_BLOCKED' | 'INVALID_QUERY' | 'UNAVAILABLE' | 'RATE_LIMITED' }
   | { status: 'PROPOSALS'; candidates: readonly CoarseCandidate[] };
 type Props = { city: string; countryCode: string; scopeKey: string; disabled: boolean;
-  resolver?: ReturnType<typeof createConfiguredLocationResolver>; onChoose: (position: CoarsePosition) => void };
+  resolver?: Pick<ReturnType<typeof createConfiguredLocationResolver>, 'search' | 'cancel'>; onChoose: (position: CoarsePosition) => void };
 
 /** Public city lookup only. Precise candidate coordinates never enter Worker state. */
 export function WorkerAreaSearch(props: Props) {

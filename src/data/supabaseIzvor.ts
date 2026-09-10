@@ -1,7 +1,10 @@
-import { Izvor, Ishod, IzborKomanda, PodnesiPrijavuKomanda } from './ports';
+import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
-import { record } from './serverReceipt';
+import { readOwnedResult, record, sameId, uuid } from './serverReceipt';
+import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
+import { readPublicNeedDetail } from './needClientService';
+import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 import type {
   JavniProfilProjekcija,
@@ -41,7 +44,20 @@ function fTime(iso: string | null): string {
 }
 
 function fLoc(area: string, city: string) {
-  return area ? `${area}, ${city}` : city;
+  return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
+}
+
+function publicTaskContext(raw: Record<string, any>) {
+  const { detail: detalji, schedule } = readPublicNeedDetail(raw);
+  if (typeof raw.description !== 'string') throw new Error('TASK_DESCRIPTION_INVALID');
+  const remote = detalji.rezimLokacije === 'REMOTE';
+  const lat = raw.approximate_lat, lng = raw.approximate_lng;
+  const priblizno = !remote && typeof lat === 'number' && Number.isFinite(lat) && Math.abs(lat) <= 90
+    && typeof lng === 'number' && Number.isFinite(lng) && Math.abs(lng) <= 180
+    ? { lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) } : null;
+  return { opis: raw.description, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
+    taskTimezone: raw.task_timezone ?? undefined, vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
+    podrucjeTekst: remote ? 'Na daljinu' : fLoc(raw.approximate_area, raw.approximate_city), priblizno };
 }
 
 function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): string | null {
@@ -101,6 +117,8 @@ type SupabaseIzvor = Omit<
   | 'objaviPotrebu'
   | 'mojePrijave'
   | 'povuciPrijavu'
+  | 'podnesiPrijavu'
+  | 'izaberiPrijavu'
 >;
 
 export const supabaseIzvor: SupabaseIzvor = {
@@ -111,7 +129,10 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id
+        covered_slots, mode, requester_price_rsd, requester_profile_id,
+        description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
+        required_licenses, minimum_experience_years, verified_identity_required,
+        need_geography(public_topology), need_requirement_details(critical_conditions)
       `)
       .in('status', ['PUBLISHED', 'SELECTION'])
       .order('created_at', { ascending: false });
@@ -127,14 +148,12 @@ export const supabaseIzvor: SupabaseIzvor = {
         id: r.id,
         naslov: r.title,
         statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
-        podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
-        vremeTekst: fTime(r.starts_at),
+        ...publicTaskContext(r),
         pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
         uslovi: [...(r.required_skills || []), ...(r.required_tools || []), ...(r.required_vehicles || [])],
         narucilacProfilId: r.requester_profile_id,
         narucilacIme: narucilac?.ime || '',
         narucilacOcena: formatPublicRating(narucilac),
-        priblizno: (r.approximate_lat && r.approximate_lng) ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
         rezimCene: r.mode,
         ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
       };
@@ -146,7 +165,10 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline
+        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline,
+        description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
+        required_licenses, minimum_experience_years, verified_identity_required,
+        need_geography(public_topology), need_requirement_details(critical_conditions)
       `)
       .eq('id', id).maybeSingle();
 
@@ -173,14 +195,12 @@ export const supabaseIzvor: SupabaseIzvor = {
       primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
         && data.required_slots > data.covered_slots && (rok === null || Date.parse(rok) > Date.now()),
       rokZaPrijaveIso: rok,
-      podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
-      vremeTekst: fTime(data.starts_at),
+      ...publicTaskContext(data),
       pokrivenost: pokrivenost(data.required_slots, data.covered_slots),
       uslovi: [...(data.required_skills || []), ...(data.required_tools || []), ...(data.required_vehicles || [])],
       narucilacProfilId: data.requester_profile_id,
       narucilacIme: narucilac?.ime || '',
       narucilacOcena: formatPublicRating(narucilac),
-      priblizno: data.approximate_lat ? { lat: data.approximate_lat, lng: data.approximate_lng } : null,
       rezimCene: data.mode as any,
       ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
     };
@@ -227,58 +247,6 @@ export const supabaseIzvor: SupabaseIzvor = {
     });
   },
 
-  async podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>> {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user?.user) return { ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se pre slanja ponude.' };
-
-    let workerProfileId = k.radnikProfilId;
-    if (!workerProfileId) {
-      const { data: prof } = await supabase.from('app_profiles')
-        .select('id')
-        .eq('account_id', user.user.id)
-        .eq('kind', 'WORKER')
-        .maybeSingle();
-      if (!prof?.id) {
-        return { ok: false, kod: 'WORKER_PROFILE_REQUIRED', poruka: 'Potreban je profil Uskočera za slanje ponude.' };
-      }
-      workerProfileId = prof.id;
-    }
-
-    const { data, error } = await supabase.rpc('rpc_submit_response', {
-      p_need_id: k.potrebaId,
-      p_need_revision: k.potrebaRevizija,
-      p_worker_profile_id: workerProfileId,
-      p_covered_slots: k.pokrivenaMesta,
-      p_price_rsd: k.cenaRsd,
-      p_proposed_start_at: k.predlozeniPocetak,
-      p_proposed_end_at: k.predlozeniKraj,
-      p_scope_note: k.napomena,
-      p_client_request_id: k.clientRequestId,
-    });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška pri slanju prijave.');
-    return {
-      ok: true,
-      podatak: {
-        prijavaId: data.responseId,
-        verzija: data.version,
-        hash: data.contentHash,
-      },
-    };
-  },
-
-  async izaberiPrijavu(k: IzborKomanda) {
-    const { data, error } = await supabase.rpc('rpc_select_response', {
-      p_need_id: k.potrebaId,
-      p_need_revision: k.potrebaRevizija,
-      p_response_id: k.prijavaId,
-      p_response_version: k.prijavaVerzija,
-      p_content_hash: k.prijavaHash,
-      p_client_request_id: k.clientRequestId,
-    });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška pri izboru.');
-    return { ok: true, podatak: { dogovorId: data } };
-  },
-
   async otkaziDogovor(dogovorId: string, razlog: string) {
     const { error } = await supabase.rpc('rpc_cancel_agreement', { p_agreement_id: dogovorId, p_reason: razlog });
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
@@ -292,28 +260,31 @@ export const supabaseIzvor: SupabaseIzvor = {
   },
 
   async mojRadnikProfil() {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return null;
-    const { data, error } = await supabase
-      .from('app_profiles')
-      .select('*')
-      .eq('account_id', user.id)
-      .eq('kind', 'WORKER')
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return {
-      id: data.id,
-      ime: data.display_name || '',
-      grad: data.city || '',
-      biografija: data.bio || '',
-      vestine: data.skills || [],
-      alati: data.tools || [],
-      vozila: data.vehicles || [],
-      stanje: data.profile_status as any,
-      dostupanOdmah: data.available_now || false,
-      radijusKm: data.radius_km || 15,
-    };
+    const owner = sesijaSada();
+    if (!owner.user) throw new Error('WORKER_PROFILE_AUTH_REQUIRED');
+    const account = { accountId: owner.user.id, accountRevision: owner.accountRevision };
+    const options = { account, errors: {}, fallback: 'WORKER_PROFILE_READ_FAILED', invalid: 'WORKER_PROFILE_INVALID' };
+    const auth = await readOwnedResult({ ...options, request: () => supabase.auth.getUser(),
+      decode: raw => sameId(record(record(raw)?.user)?.id, account.accountId) ? true : null });
+    if (!auth.ok) throw new Error('WORKER_PROFILE_READ_FAILED');
+    const result = await readOwnedResult({ ...options, request: () => supabase.from('app_profiles')
+      .select('id,account_id,kind,display_name,city,bio,skills,tools,vehicles,profile_status,available_now,radius_km')
+      .eq('account_id', account.accountId).eq('kind', 'WORKER').maybeSingle(),
+      decode: raw => {
+        if (raw === null) return { profile: null };
+        const data = record(raw);
+        if (!data || !uuid(data.id) || !sameId(data.account_id, account.accountId) || data.kind !== 'WORKER' ||
+          !['DRAFT', 'ACTIVE', 'SUSPENDED'].includes(String(data.profile_status)) || typeof data.available_now !== 'boolean' ||
+          typeof data.radius_km !== 'number' || !Number.isInteger(data.radius_km) || data.radius_km < 1 || data.radius_km > 200 ||
+          !['display_name', 'city', 'bio'].every(key => data[key] === null || typeof data[key] === 'string') ||
+          !['skills', 'tools', 'vehicles'].every(key => Array.isArray(data[key]) && data[key].every((item: unknown) => typeof item === 'string'))) return null;
+        return { profile: { id: data.id, ime: data.display_name as string ?? '', grad: data.city as string ?? '',
+          biografija: data.bio as string ?? '', vestine: data.skills as string[], alati: data.tools as string[], vozila: data.vehicles as string[],
+          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: data.available_now, radijusKm: data.radius_km } };
+      },
+    });
+    if (!result.ok) throw new Error('WORKER_PROFILE_READ_FAILED');
+    return result.podatak.profile;
   },
 
   async potvrdiCinjenicu(cinjenicaId: string) {

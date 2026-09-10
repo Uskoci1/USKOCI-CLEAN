@@ -37,7 +37,8 @@ try {
     assert.deepEqual(actual, file, `FROZEN_SOURCE_CHANGED:${file.path}`);
     report.files.push(actual);
   }
-  const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', 'supabase/proofs/ai/ai_edge_context.test.mjs'], {
+  const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', 'supabase/proofs/ai/ai_edge_context.test.mjs',
+    'supabase/proofs/ai/owned_intake_edge.test.mjs'], {
     cwd: root, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
   });
   writeFileSync(resolve(output, 'handler-tests.tap'), result.stdout ?? '');

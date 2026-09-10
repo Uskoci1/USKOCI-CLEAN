@@ -74,7 +74,7 @@ describe('actual package-aware Firebase config', () => {
     expect(configure({ config: first }).plugins.filter((plugin: string) => plugin === enrollmentPlugin)).toHaveLength(1);
   });
 
-  it('actual installed Expo introspection generates disabled native enrollment without messaging components', () => {
+  it('installed notification support retains disabled automatic Firebase enrollment', () => {
     const script = `const { getPrebuildConfigAsync } = require('@expo/prebuild-config');
       const { compileModsAsync } = require('expo/config-plugins');
       (async () => {
@@ -92,6 +92,6 @@ describe('actual package-aware Firebase config', () => {
       ]);
     }
     expect(JSON.stringify(application.service ?? [])).not.toMatch(/FirebaseMessaging|MESSAGING_EVENT/);
-    expect(autolinked).not.toContain('expo-notifications');
+    expect(autolinked).toContain('expo-notifications');
   }, 40000);
 });

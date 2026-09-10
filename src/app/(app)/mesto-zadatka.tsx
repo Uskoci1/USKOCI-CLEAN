@@ -5,7 +5,7 @@ import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { LocationScreen } from '../../ui/location/LocationControls';
 import { T } from '../../ui/Text';
-import { Button } from '../../ui/Button';
+import { V2Action as Button } from '../../ui/v2/V2Action';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 
 export default function MestoZadatka() {

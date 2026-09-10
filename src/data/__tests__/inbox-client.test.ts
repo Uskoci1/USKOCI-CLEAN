@@ -15,6 +15,27 @@ describe('Inbox production adapter',()=>{
     const rpc=jest.fn().mockResolvedValue({data:null,error:{message:'private SQL error'}});
     await expect(createInboxService(rpc).list(null)).rejects.toThrow('INBOX_REQUEST_FAILED');
   });
+  it('bounds a hung command without inventing its acknowledgment and allows a fresh authoritative read',async()=>{
+    jest.useFakeTimers();
+    try {
+      let resolve!: (value: {data:unknown;error:null}) => void;
+      const rpc=jest.fn().mockReturnValueOnce(new Promise<{data:unknown;error:null}>(done=>{resolve=done;}));
+      const service=createInboxService(rpc), pending=service.read(id);
+      const rejected=expect(pending).rejects.toThrow('INBOX_REQUEST_UNCONFIRMED');
+      await jest.advanceTimersByTimeAsync(15_000); await rejected;
+      resolve({data:at,error:null}); await Promise.resolve();
+      rpc.mockResolvedValueOnce({data:{items:[{...event,readAt:at}],unreadCount:0,hasMore:false,asOf:at},error:null});
+      expect((await service.list(null)).items[0].readAt).toBe(at);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally { jest.useRealTimers(); }
+  });
+  it('invokes mark-all transport synchronously before another account can replace the model owner',async()=>{
+    let actor='account-a';const requests:{name:string;actor:string}[]=[];
+    const rpc=jest.fn((name:string)=>{requests.push({name,actor});return Promise.resolve({data:1,error:null});});
+    const pending=createInboxService(rpc).readAll(at,'WORKER');actor='account-b';
+    expect(requests).toEqual([{name:'rpc_mark_inbox_read',actor:'account-a'}]);
+    expect(await pending).toBe(1);
+  });
   it.each([null,{}, {items:[],unreadCount:0,hasMore:true,asOf:at},
     {items:[event,event],unreadCount:1,hasMore:false,asOf:at},
     {items:[{...event,readAt:'invalid'}],unreadCount:1,hasMore:false,asOf:at}])('rejects malformed results',async(data)=>{

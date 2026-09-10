@@ -77,19 +77,26 @@ describe('RU-5 P0C-01 public-safe profile projection', () => {
   it('locks marketplace consumers to profile ids plus the public-profile RPC, never raw cross-account joins', () => {
     const root = join(__dirname, '../../..');
     const source = readFileSync(join(root, 'src/data/supabaseIzvor.ts'), 'utf8');
+    const candidates = readFileSync(join(root, 'src/data/candidateClientService.ts'), 'utf8');
+    const selection = readFileSync(join(root, 'src/data/applicationSelectionClientService.ts'), 'utf8');
     const ports = readFileSync(join(root, 'src/data/ports.ts'), 'utf8');
     const index = readFileSync(join(root, 'src/data/index.ts'), 'utf8');
     const projections = readFileSync(join(root, 'src/contracts/projections.ts'), 'utf8');
 
-    expect(source).not.toContain('app_profiles!requester_profile_id');
-    expect(source).not.toContain('app_profiles!worker_profile_id');
+    for (const consumer of [source, candidates, selection]) {
+      expect(consumer).not.toContain('app_profiles!requester_profile_id');
+      expect(consumer).not.toContain('app_profiles!worker_profile_id');
+    }
     expect(source).toContain('requester_profile_id');
-    expect(source).toContain('worker_profile_id');
+    expect(candidates).toContain('radnikProfilId: raw.workerProfileId');
+    expect(selection).toContain('p_worker_profile_id: k.radnikProfilId');
     expect(source).toContain('publicProfileClientService.javniProfil');
     expect(source).toContain("| 'javniProfil'");
 
     expect(ports).toContain('javniProfil(profileId: string)');
     expect(index).toContain('...publicProfileClientService');
+    expect(index).toContain('...candidateClientService');
+    expect(index).toContain('...applicationSelectionClientService');
     expect(projections).toContain('narucilacProfilId: string');
     expect(projections).toContain('radnikProfilId: string');
   });

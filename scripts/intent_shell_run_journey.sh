@@ -2,6 +2,16 @@
 set -uo pipefail
 artifact_dir="${RU5_DEVICE_ARTIFACT_DIR:?}"
 mkdir -p "$artifact_dir"
+if [[ "${ENTRY_SCOPE:-full}" == signature ]]; then
+  # emulator-runner executes each input line in a separate shell. Keep this
+  # complete branch and its pipeline in the existing Bash entrypoint.
+  set -e
+  git rev-parse HEAD > "$artifact_dir/proof-build.txt"
+  sha256sum app.json index.js assets/entry-splash-mark.png assets/entry-splash-mark.svg src/bootstrap/entrySplashBootstrap.ts src/app/_layout.tsx >> "$artifact_dir/proof-build.txt"
+  sha256sum android/app/build/outputs/apk/release/app-release.apk src/ui/entry/*.tsx src/ui/entry/spojBrand*.ts src/ui/auth/*.tsx src/app/auth.tsx src/app/oporavak.tsx src/hooks/useEntryIntro.ts src/hooks/useEntrySplashReady.ts src/hooks/useSystemReducedMotion.ts scripts/entry_spoj_android.py scripts/ru5_android_device_ui_journey.py scripts/intent_shell_run_journey.sh >> "$artifact_dir/proof-build.txt"
+  python3 scripts/entry_spoj_android.py 2>&1 | tee "$artifact_dir/proof.log"
+  exit 0
+fi
 printf 'run=%s\nsha=%s\npackage=%s\n' "${GITHUB_RUN_ID:?}" "${GITHUB_SHA:?}" "${RU5_DEVICE_PACKAGE:?}" > "$artifact_dir/proof-build.txt"
 sha256sum android/app/build/outputs/apk/release/app-release.apk >> "$artifact_dir/proof-build.txt"
 sha256sum scripts/intent_shell_android_journey.py scripts/intent_shell_discovery_fixture.mjs scripts/n04_android_inbox_journey.py scripts/ru5_android_device_ui_journey.py >> "$artifact_dir/proof-build.txt"

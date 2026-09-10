@@ -7,6 +7,7 @@ let mockPath = '/';
 const mockSegments = ['(app)'];
 const mockConsume = jest.fn();
 const mockRole = jest.fn();
+const mockPushListener = jest.fn((..._args: unknown[]) => ({ remove: jest.fn() }));
 const mockSession = { user: { id: 'account-a' } } as Session;
 let mockStackMounts = 0;
 let mockRendered: { isLoaded: boolean; session: Session | null; user: Session['user'] | null; sessionEpoch: number; accountRevision: number; returnTargetRevision: number } =
@@ -24,12 +25,20 @@ jest.mock('expo-router', () => {
   const { Screen } = require('expo-router/build/views/Screen');
   const { Protected } = require('expo-router/build/views/Protected');
   const { useFilterScreenChildren } = require('expo-router/build/layouts/withLayoutContext');
-  const Stack = ({ children }: { children?: React.ReactNode }) => {
+  const { StackRouter } = require('expo-router/build/react-navigation/routers/StackRouter');
+  const Stack = ({ children, initialRouteName }: { children?: React.ReactNode; initialRouteName?: string }) => {
     const filtered = useFilterScreenChildren(children);
     const [instance] = React.useState(() => ++mockStackMounts);
+    const screens = filtered.screens.map((screen: { name: string }) => screen.name);
+    const config = { routeNames: screens, routeParamList: {}, routeGetIdList: {} };
+    const router = StackRouter({ initialRouteName });
+    const cold = router.getInitialState(config);
+    const linked = router.getRehydratedState({ stale: true, index: 0, routes: [{ name: mockSegments[0] }] }, config);
     return React.createElement('Stack', {
       instance,
-      screens: filtered.screens.map((screen: { name: string }) => screen.name),
+      screens,
+      coldRoute: cold.routes[cold.index].name,
+      linkedRoute: linked.routes[linked.index].name,
       protectedScreens: Array.from(filtered.protectedScreens),
     });
   };
@@ -38,6 +47,18 @@ jest.mock('expo-router', () => {
   return { Stack, useRouter: () => mockRouter, useSegments: () => mockSegments, usePathname: () => mockPath };
 });
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
+// Keep the actual PushRuntime in the root render. Only native transports and
+// the separately tested device RPC are isolated from this navigation test.
+jest.mock('expo-notifications', () => ({
+  addNotificationResponseReceivedListener: (...args: unknown[]) => mockPushListener(...args),
+  addPushTokenListener: () => ({ remove: jest.fn() }),
+  getLastNotificationResponseAsync: async () => null,
+  clearLastNotificationResponseAsync: async () => undefined,
+}));
+jest.mock('../../data/pushDeviceClientService', () => ({
+  pushDeviceClientService: { sessionDevice: async () => ({ ok: true, podatak: { kind: 'NONE' } }) },
+  revokePushBeforeLogout: jest.fn(),
+}));
 jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: 'GestureHandlerRootView' }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: 'SafeAreaProvider' }));
 jest.mock('../sesija', () => ({ useSesija: () => mockRendered, sesijaSada: () => mockCurrent }));
@@ -59,6 +80,15 @@ afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 async function render() { await act(async () => { tree = create(<RootLayout />); }); }
 
 describe('session-owned root return navigation', () => {
+  it.each([false, true])('cold launch selects the admitted entry route instead of recovery: signedIn=%s', async signedIn => {
+    mockSegments.splice(0, mockSegments.length);
+    if (!signedIn) mockRendered = { ...mockRendered, session: null, user: null };
+    mockCurrent = mockRendered; await render();
+    const stack = tree.root.findByType('Stack' as React.ElementType);
+    expect(stack.props.coldRoute).toBe(signedIn ? '(app)' : 'auth');
+    expect(stack.props.coldRoute).not.toBe('oporavak');
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
   it('replaces private navigation state after batched A→B→A even when the rendered account id matches', async () => {
     await render();
     const before = tree.root.findByType('Stack' as React.ElementType).props.instance;
@@ -166,6 +196,7 @@ it.each([true, false])('keeps the recovery route public without consuming a save
   expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(mockConsume).not.toHaveBeenCalled();
   const stack = tree.root.findByType('Stack' as React.ElementType);
+  expect(stack.props.linkedRoute).toBe('oporavak');
   expect(stack.props.screens).toContain('oporavak');
   if (!signedIn) expect(stack.props.screens).not.toContain('(app)');
 });
@@ -202,6 +233,16 @@ it('resumes unauthenticated access protection once a private native destination 
   await act(async () => tree.update(<RootLayout />));
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
   expect(mockConsume).not.toHaveBeenCalled();
+});
+
+it.each(['auth', 'oporavak', 'unresolved'])('starts push listeners only after %s has left the protected routing boundary', async destination => {
+  mockSegments.splice(0, mockSegments.length, ...(destination === 'unresolved' ? [] : [destination]));
+  mockPath = destination === 'unresolved' ? '/' : '/' + destination;
+  await render();
+  expect(mockPushListener).not.toHaveBeenCalled();
+  mockSegments.splice(0, mockSegments.length, '(app)'); mockPath = '/potrebe';
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockPushListener).toHaveBeenCalledTimes(1);
 });
 
 it('consumes the completed intention after a signed-in native app destination resolves', async () => {

@@ -3,9 +3,11 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const { readFileSync, appendFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 
-const DOMAINS = ['auth', 'export', 'retention', 'consent', 'processors', 'policy', 'calendar', 'availability', 'location', 'capability'];
+const DOMAINS = ['auth', 'export', 'retention', 'consent', 'processors', 'policy', 'calendar', 'availability', 'location', 'capability', 'w03', 'push'];
 const W02 = ['calendar', 'availability', 'location', 'capability'];
 const TESTS = {
+  push: /push|notification|auth-client|profile-hub/i,
+  w03: /w03|ai-owned|ai-need|ai-conversation|aiNeed|ru2-ai|r02-ai|draft-review|ru4-need-edit|location|m04-privatnost/i,
   auth: /auth|password-recovery|session|return-target|entry-|w01Native/i,
   export: /p2-data-export|data-export|profile-hub|cb1-receipt/i,
   retention: /p3-retention|privacy-retention|profile-hub/i,
@@ -27,7 +29,7 @@ function classify(paths) {
   const add = (...items) => items.forEach(item => domains.add(item));
   for (const path of paths) {
     if (path === 'src/app/(app)/profil/privatnost.tsx') { add('retention'); continue; }
-    if (path === 'src/app/(app)/profil.tsx') { add('export', 'retention'); continue; }
+    if (path === 'src/app/(app)/profil.tsx') { add('export', 'retention', 'push'); continue; }
     if (path === 'src/app/(app)/_layout.tsx') { add(...DOMAINS); continue; }
     if (path.startsWith('scripts/ci/') || path === '.github/workflows/pre-p4-integrity.yml') { add(...DOMAINS); continue; }
     if (BUILD.test(path) || /^src\/(?:store\/|data\/(?:supabaseClient|serverReceipt|ports\.ts)|app\/_layout)/.test(path)) { add(...DOMAINS); continue; }
@@ -36,6 +38,8 @@ function classify(paths) {
       else if (/clean_w02_.*availability/.test(path)) add('calendar', 'availability');
       else if (/clean_w02_.*(?:location|regional)/.test(path)) add('location', 'capability');
       else if (/clean_w02_.*capability/.test(path)) add('location', 'capability', 'availability');
+      else if (/clean_w03_owned_ai_intake_authority/.test(path)) add('w03');
+      else if (/clean_n09_expo_push_transport/.test(path)) add('auth', 'push');
       else if (/clean_p2_/.test(path)) add('export');
       else if (/clean_p3_/.test(path)) add('retention');
       else if (/clean_p1_/.test(path)) add('consent');
@@ -46,8 +50,15 @@ function classify(paths) {
     }
     if (/^supabase\/proofs\/(?:ru5_device|notifications\/n0[78])/.test(path) ||
         /^supabase\/proofs\/legal\/(?:p3_retention_pending|pending_)/.test(path)) { add(...DOMAINS); continue; }
+    if (path === 'supabase/functions/uskoci-ai-interview/index.ts' || /^supabase\/proofs\/ai\/(?:owned_intake|ai_edge_context)/.test(path) || path === '.github/workflows/ai-edge-context-proof.yml') { add('w03'); continue; }
+    if (path === 'supabase/functions/uskoci-push-transport/index.ts' || /^supabase\/proofs\/notifications\/n09_/.test(path)
+      || path === '.github/workflows/notifications-n06-push-registry-proof.yml') { add('push'); continue; }
     if (/^supabase\/functions\//.test(path)) { add(...DOMAINS); continue; }
+    if (/^src\/(?:ui\/notifications\/|data\/(?:pushDeviceClientService|nativePushDevice)|data\/__tests__\/(?:push-|native-push-))/.test(path)
+      || path === 'src/app/(app)/profil/obavestenja.tsx' || path === 'src/data/authClientService.ts') add('push');
     if (/^src\/(?:app\/(?:auth|oporavak|\+native-intent)|hooks\/usePasswordRecovery|ui\/auth\/|data\/(?:auth|passwordRecovery)|data\/__tests__\/(?:auth|password-recovery))/.test(path) || /^supabase\/proofs\/auth\//.test(path)) add('auth');
+    if (/^src\/(?:data\/(?:aiNeedV2Production\.ts|__tests__\/(?:w03-ai-need-client|ai-owned-intake-screen|ai-conversation-status|draft-review-screen))|contracts\/aiNeedV2\.ts|app\/\(app\)\/(?:nova|pregled-nacrta)\.tsx)$/.test(path) || path === 'src/contracts/needFactsV2.ts') add('w03');
+    if (/^src\/data\/__tests__\/(?:w03-[a-z-]+|ai-owned-intake-screen|ai-conversation-status|draft-review-screen)\.test\.tsx?$/.test(path)) add('w03');
     if (/dataExport|data-export|data_export|p2_export_delivery|p2-data-export/.test(path)
       || path === 'src/app/(app)/profil/izvoz.tsx') add('export');
     if (/retention|p3-retention/.test(path)) add('retention');

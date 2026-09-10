@@ -17,7 +17,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
   if (key === 'Alert') return { alert: mockAlert }; return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CheckCircle: 'Icon', DownloadSimple: 'Icon', ShieldCheck: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon', MapPin: 'Icon', CalendarBlank: 'Icon', Bell: 'Icon', DownloadSimple: 'Icon', ShieldCheck: 'Icon', Clock: 'Icon', Eye: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' })); jest.mock('../../ui/Press', () => ({ Press: 'Press' })); jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 import ExportScreen from '../../app/(app)/profil/izvoz';
 const ok = (podatak: unknown) => ({ ok: true, podatak });
@@ -47,6 +47,22 @@ afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTime
 it.each(['narucilac', 'uskocer'])('reads actual account status for %s without requesting or preparing on mount', async intent => {
   mockIntent = intent; await render(); expect(mockStatus).toHaveBeenCalledTimes(1); expect(button('Zatražite izvoz')).toBeTruthy();
   expect(mockRequest).not.toHaveBeenCalled(); expect(mockPrepare).not.toHaveBeenCalled(); expect(mockDownload).not.toHaveBeenCalled();
+});
+it('keeps one actual primary action outside scrolling content and cancellation secondary', async () => {
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render();
+  const footer = tree.root.findByProps({ testID: 'settings-primary-footer' });
+  expect(footer.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel))
+    .toEqual(['Pripremite kopiju']);
+  expect(footer.findAllByProps({ label: 'Otkažite zahtev' })).toHaveLength(0);
+  const scroll = tree.root.findByType('ScrollView' as React.ElementType);
+  expect(scroll.findAllByProps({ label: 'Otkažite zahtev' }).length).toBeGreaterThan(0);
+  expect(mockPrepare).not.toHaveBeenCalled(); expect(mockCancel).not.toHaveBeenCalled();
+});
+it('keeps the primary footer absent while the account export state is unresolved', async () => {
+  const pending = deferred(); mockStatus.mockReturnValueOnce(pending.promise); await render();
+  expect(tree.root.findAllByProps({ testID: 'settings-primary-footer' })).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Učitavanje stanja izvoza' })).toBeTruthy();
+  expect(mockRequest).not.toHaveBeenCalled(); expect(mockPrepare).not.toHaveBeenCalled();
 });
 it('serializes request double taps and reads back the accepted request', async () => {
   const pending = deferred(); mockRequest.mockReturnValueOnce(pending.promise); await render(); const action = button('Zatražite izvoz').props.onPress;

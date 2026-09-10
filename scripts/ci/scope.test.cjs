@@ -50,6 +50,20 @@ test('deleted source is not passed as a nonexistent Jest source, critical tests 
 test('an empty scope is not reported as successful testing', () => {
   assert.throws(() => testArguments(makePlan([]), []), /NO_TARGETED/);
 });
+test('push transport source keeps its actual Auth/SQL proof and affected clients selected', () => {
+  for (const path of ['supabase/functions/uskoci-push-transport/index.ts',
+    'supabase/proofs/notifications/n09_push_transport_proof.mjs',
+    '.github/workflows/notifications-n06-push-registry-proof.yml',
+    'src/ui/notifications/PushRuntime.tsx', 'src/data/pushDeviceClientService.ts',
+    'src/app/(app)/profil/obavestenja.tsx']) assert.deepEqual(classify([path]), ['push'], path);
+  assert.deepEqual(classify(['src/data/authClientService.ts']), ['auth', 'push']);
+  assert.deepEqual(classify(['supabase/migrations/20260910193029_clean_n09_expo_push_transport.sql']), ['auth', 'push']);
+  const paths = ['src/data/__tests__/auth-client.test.ts', 'src/data/__tests__/push-runtime.test.tsx',
+    'src/data/__tests__/native-push-device.test.ts', 'src/data/__tests__/push-preferences-native.test.tsx'];
+  const args = testArguments(makePlan([], { domain: 'push' }), paths);
+  for (const path of paths) assert.ok(args.includes(path), path);
+});
+
 test('invalid domain cannot silently turn off tests', () => assert.throws(() => makePlan([], { domain: 'skip-all' }), /UNKNOWN/));
 test('manual W02 runs retain every sub-domain', () => assert.deepEqual(makePlan([], { domain: 'w02' }).domains, W02));
 test('workflow changes select their own runtime verification at batch boundary', () => {
@@ -88,7 +102,7 @@ test('retention execution and privacy receipt tests stay in the retention domain
   for (const path of tracked) assert.ok(args.includes(path), path);
   for (const path of ['other/src/app/(app)/profil/privatnost.tsx', 'src/app/(app)/profil/privatnost.tsx.bak'])
     assert.ok(!classify([path]).includes('retention'), path);
-  assert.deepEqual(classify(['src/app/(app)/profil.tsx']), ['export', 'retention']);
+  assert.deepEqual(classify(['src/app/(app)/profil.tsx']), ['export', 'retention', 'push']);
   assert.deepEqual(classify(['src/app/(app)/_layout.tsx']), DOMAINS);
 });
 

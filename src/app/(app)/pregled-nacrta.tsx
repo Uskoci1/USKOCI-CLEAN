@@ -1,16 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import {
-  ArrowLeft,
-  Check,
-  CheckCircle,
-  LockKey,
-  PencilSimple,
-  ShieldCheck,
-  Warning,
-} from 'phosphor-react-native';
 
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { PotrebaProjekcija } from '../../contracts/projections';
@@ -23,13 +14,16 @@ import {
   canEditFactInline,
   correctionFromText,
   factLabel,
+  factReviewValue,
+  factCorrectionValue,
   safetyMessage,
   sortFacts,
 } from '../../data/aiNeedV2Ui';
-import { palette, radius, space, touch } from '../../theme/tokens';
-import { Button, Card } from '../../ui/Button';
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
+import { v2 } from '../../ui/v2/tokens';
+import { V2Action } from '../../ui/v2/V2Action';
+import { V2Icon } from '../../ui/v2/icons';
 
 type EditState = {
   fact: AiNeedV2Fact;
@@ -82,15 +76,20 @@ export default function PregledNacrtaR07() {
   const saving = editor.busy;
   const greska = editor.error;
   const [edit, setEdit] = useState<EditState | null>(null);
-  useEffect(() => { setEdit(null); }, [editor.data]);
+  const currentEdit = useRef<EditState | null>(null);
+  currentEdit.current = edit;
+  const [expandedFactId, setExpandedFactId] = useState<string | null>(null);
+  useEffect(() => { setEdit(null); setExpandedFactId(null); }, [editor.data]);
 
   // Navigation and local edit callbacks belong to the same visible, focused review.
   const viewIdentity = useMemo(() => ({}), [editor.data, conversationId, accountId, accountRevision, intent]);
   const currentView = useRef(viewIdentity);
   currentView.current = viewIdentity;
-  const isCurrent = () => focused.current && currentView.current === viewIdentity &&
+  const renderedFocus = focusScope.current;
+  const isCurrent = () => focused.current && renderedFocus !== null && focusScope.current === renderedFocus && currentView.current === viewIdentity &&
     !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
-  const canAct = () => isCurrent() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
+  const canAct = () => isCurrent() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain
+    && editor.data?.conversation.status === 'OPEN';
   const navigate = (action: () => void) => {
     if (!isCurrent() || navigating.current) return;
     navigating.current = true; action();
@@ -102,15 +101,17 @@ export default function PregledNacrtaR07() {
 
   const facts = useMemo(() => sortFacts(stanje?.facts ?? []), [stanje?.facts]);
   const confirmed = facts.filter(fact => fact.status === 'CONFIRMED').length;
+  const pendingFacts = facts.length - confirmed;
   const safetyCopy = stanje ? safetyMessage(stanje.safety) : null;
   const boundNeedId = stanje?.review.boundNeedId ?? null;
   const editMode = Boolean(boundNeedId && vezanZadatak && stanje?.status === 'OPEN');
   const alreadySaved = editMode ? null : boundNeedId;
-  const saveAllowed = Boolean(stanje?.review.canSaveDraft && stanje?.safety !== 'BLOCK' && !alreadySaved);
-  const blocked = saving || editor.uncertain || loading;
+  const saveAllowed = Boolean(stanje?.status === 'OPEN' && stanje.review.canSaveDraft && stanje.safety !== 'BLOCK'
+    && pendingFacts === 0 && !alreadySaved);
+  const blocked = saving || editor.uncertain || loading || stanje?.status !== 'OPEN';
 
   const potvrdi = async (fact: AiNeedV2Fact) => {
-    if (!canAct() || !stanje?.facts.includes(fact)) return;
+    if (!canAct() || currentEdit.current || !stanje?.facts.includes(fact)) return;
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.confirmFact(fact.id);
       if (!result.ok) return result;
@@ -130,7 +131,7 @@ export default function PregledNacrtaR07() {
     });
   };
   const sacuvajNacrt = async () => {
-    if (!canAct() || !conversationId || !saveAllowed || editMode) return;
+    if (!canAct() || !conversationId || !saveAllowed || editMode || currentEdit.current) return;
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.saveDraft(conversationId, requestId);
       if (!result.ok) return result;
@@ -142,7 +143,7 @@ export default function PregledNacrtaR07() {
     });
   };
   const sacuvajIzmene = async () => {
-    if (!canAct() || !conversationId || !boundNeedId || !vezanZadatak || !editMode || !saveAllowed) return;
+    if (!canAct() || !conversationId || !boundNeedId || !vezanZadatak || !editMode || !saveAllowed || currentEdit.current) return;
     // Send the revision loaded with this visible review. Never adopt a newer
     // revision at confirmation time; the server must reject a stale review.
     const reviewedRevision = vezanZadatak.revizija;
@@ -161,291 +162,120 @@ export default function PregledNacrtaR07() {
     else router.replace({ pathname: '/nova', params: { conversationId } });
   });
 
-  if (loading) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={palette.teal500} />
-      </SafeAreaView>
-    );
-  }
+  const titleFact = facts.find(fact => fact.key === 'need.title');
+  const descriptionFact = facts.find(fact => fact.key === 'need.description');
+  const title = titleFact ? factReviewValue(titleFact) : undefined;
+  const description = descriptionFact ? factReviewValue(descriptionFact) : undefined;
+  const textStyle = { ...v2.text.body, color: v2.color.ink };
+  const metaStyle = { ...v2.text.label, color: v2.color.muted };
+  const openLocation = () => { if (canAct() && !currentEdit.current && conversationId) navigate(() => router.push({ pathname: '/mesto-zadatka', params: { conversationId } })); };
+  const retry = () => { if (isCurrent() && !saving && !navigating.current) void editor.refresh(); };
 
-  if (!stanje) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.ground, padding: space.xl, justifyContent: 'center' }}>
-        <View style={{ alignItems: 'center', gap: space.base }}>
-          <Warning size={30} color={palette.danger} weight="fill" />
-          <T variant="body" tone="danger" style={{ textAlign: 'center' }}>{greska ?? 'Nacrt nije dostupan.'}</T>
-          <Button label="Učitajte pregled ponovo" onPress={() => { void editor.refresh(); }} />
-          <Button label="Nazad" kind="secondary" onPress={() => navigate(() => router.back())} />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  if (loading || !stanje) return <SafeAreaView style={{ flex: 1, backgroundColor: v2.color.canvas, justifyContent: 'center', padding: v2.space.xl }}>
+    <View style={{ gap: v2.space.lg }}>
+      {loading ? <ActivityIndicator accessibilityLabel="Učitavamo pregled" color={v2.color.teal} /> : <>
+        <T accessibilityRole="alert" style={textStyle}>{greska ?? 'Nacrt nije dostupan.'}</T>
+        <V2Action label="Učitajte pregled ponovo" onPress={retry} />
+      </>}
+      <V2Action label="Nazad" kind="quiet" onPress={() => navigate(() => router.back())} />
+    </View>
+  </SafeAreaView>;
 
-  return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.ground }}>
-      <View
-        style={{
-          paddingHorizontal: space.base,
-          paddingVertical: space.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: space.md,
-        }}
-      >
-        <Press
-          accessibilityRole="button"
-          accessibilityLabel="Nazad u razgovor"
-          haptic="select"
-          onPress={vratiSeURazgovor}
-          style={{
-            width: touch.min,
-            height: touch.min,
-            borderRadius: radius.md,
-            borderWidth: 1,
-            borderColor: palette.line100,
-            backgroundColor: palette.surface,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ArrowLeft size={20} color={palette.ink} weight="bold" />
+  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: v2.space.sm, paddingHorizontal: v2.space.md, paddingVertical: v2.space.sm }}>
+        <Press accessibilityRole="button" accessibilityLabel="Nazad u razgovor" onPress={vratiSeURazgovor} haptic="select"
+          style={{ width: v2.target.minimum, height: v2.target.minimum, alignItems: 'center', justifyContent: 'center' }}>
+          <V2Icon name="back" />
         </Press>
         <View style={{ flex: 1 }}>
-          <T variant="label" tone="orange">PREGLED PRE ČUVANJA</T>
-          <T variant="title">Proverite Zadatak</T>
+          <T style={metaStyle}>{editMode ? 'Pregled izmena' : alreadySaved ? 'Sačuvani Zadatak' : 'Još ništa nije objavljeno'}</T>
+          <T accessibilityRole="header" style={{ ...v2.text.title, color: v2.color.ink }}>Proverite Zadatak</T>
         </View>
       </View>
-
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: space.base, paddingBottom: space.huge, gap: space.base }}
-        showsVerticalScrollIndicator={false}
-      >
-        <Card>
-          <View style={{ padding: space.base, gap: space.md }}>
-            <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
-              <View style={{ flex: 1 }}>
-                <T variant="label" tone="muted">VAŠA POTVRDA</T>
-                <T variant="heading">{confirmed} od {facts.length} podataka potvrđeno</T>
-              </View>
-              <CheckCircle
-                size={28}
-                color={stanje.review.canSaveDraft ? palette.success : palette.orangeInk}
-                weight="fill"
-              />
-            </View>
-
-            {stanje.review.missingRequired.length > 0 ? (
-              <View style={{ backgroundColor: palette.warnBg, borderRadius: radius.md, padding: space.md, gap: space.xs }}>
-                <T variant="meta" style={{ fontWeight: '800' }}>Još treba potvrditi ili dopuniti:</T>
-                <T variant="meta" tone="muted">
-                  {stanje.review.missingRequired.map(factLabel).join(' · ')}
-                </T>
-              </View>
-            ) : (
-              <View style={{ backgroundColor: palette.successBg, borderRadius: radius.md, padding: space.md, flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
-                <Check size={17} color={palette.success} weight="bold" />
-                <T variant="meta" tone="success" style={{ flex: 1, fontWeight: '700' }}>
-                  Obavezni podaci su potvrđeni. Zadatak možete sačuvati kao nacrt.
-                </T>
-              </View>
-            )}
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: v2.space.lg, gap: v2.space.xl, paddingBottom: v2.space.xl }}>
+        <View style={{ gap: v2.space.md }}>
+          <T style={{ ...metaStyle, color: v2.color.teal }}>{alreadySaved ? 'Zadatak je već sačuvan' : editMode ? 'Izmene čekaju vašu potvrdu' : 'Privatan nacrt · pre objave'}</T>
+          <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>{title ?? 'Vaš novi zadatak'}</T>
+          {description ? <T style={textStyle}>{description}</T> : null}
+          <T style={metaStyle}>{confirmed} od {facts.length} podataka potvrđeno</T>
+          <View style={{ height: 3, backgroundColor: v2.color.line, borderRadius: 2 }}>
+            <View style={{ height: 3, width: `${facts.length ? confirmed / facts.length * 100 : 0}%`, backgroundColor: v2.color.teal, borderRadius: 2 }} />
           </View>
-        </Card>
+          {stanje.review.missingRequired.length ? <T style={metaStyle}>Još treba potvrditi ili dopuniti: {stanje.review.missingRequired.map(factLabel).join(' · ')}</T>
+            : pendingFacts ? <T style={metaStyle}>Obavezni podaci su potvrđeni. Pregledajte i preostale predloge pre čuvanja.</T> : null}
+        </View>
 
-        {safetyCopy ? (
-          <View
-            style={{
-              padding: space.md,
-              borderRadius: radius.md,
-              backgroundColor: stanje.safety === 'BLOCK' ? palette.dangerBg : palette.warnBg,
-              flexDirection: 'row',
-              gap: space.sm,
-              alignItems: 'center',
-            }}
-          >
-            <ShieldCheck size={18} color={stanje.safety === 'BLOCK' ? palette.danger : palette.warn} weight="fill" />
-            <T variant="meta" tone={stanje.safety === 'BLOCK' ? 'danger' : 'muted'} style={{ flex: 1 }}>
-              {safetyCopy}
-            </T>
-          </View>
-        ) : null}
+        {safetyCopy ? <View style={{ padding: v2.space.md, backgroundColor: v2.color.warm, borderRadius: v2.radius.input }}>
+          <T accessibilityRole="alert" style={{ ...textStyle, color: stanje.safety === 'BLOCK' ? v2.color.danger : v2.color.ink }}>{safetyCopy}</T>
+        </View> : null}
 
-        {alreadySaved ? (
-          <Card raised>
-            <View style={{ padding: space.base, gap: space.md }}>
-              <T variant="heading">Nacrt je već sačuvan</T>
-              <T variant="body" tone="muted">
-                Zadatak iz ovog razgovora je sačuvan i možete mu se vratiti.
-              </T>
-              <Button
-                full
-                label="Otvorite sačuvani Zadatak"
-                onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: alreadySaved } }))}
-              />
-            </View>
-          </Card>
-        ) : null}
-
-        {!alreadySaved && conversationId ? <Button label="Mesto Zadatka" kind="secondary" disabled={blocked}
-          onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/mesto-zadatka', params: { conversationId } })); }} /> : null}
-
-        {facts.map((fact) => {
-          const locationFact = ['need.task_geography', 'need.task_country_code', 'need.exact_address', 'need.access_notes', 'need.resolved_location'].includes(fact.key);
-          const potvrdjen = fact.status === 'CONFIRMED';
-          const busy = blocked;
-          const editing = edit?.fact.id === fact.id;
-          return (
-            <Card key={fact.id}>
-              <View style={{ padding: space.base, gap: space.md }}>
-                <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start' }}>
-                  <View style={{ flex: 1, gap: space.xs }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' }}>
-                      <T variant="label" tone="muted">{factLabel(fact.key).toUpperCase()}</T>
-                      {fact.privacyClass === 'PRIVATE' ? (
-                        <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: palette.cream050, borderRadius: radius.pill, paddingHorizontal: space.sm, paddingVertical: 3 }}>
-                          <LockKey size={12} color={palette.inkMuted} weight="fill" />
-                          <T variant="meta" tone="muted">privatno</T>
-                        </View>
-                      ) : null}
-                    </View>
-                    <T variant="bodyStrong">{fact.displayValue}</T>
-                    {fact.evidence ? (
-                      <T variant="meta" tone="muted">Iz razgovora: „{fact.evidence}“</T>
-                    ) : null}
-                  </View>
-                  {potvrdjen ? <CheckCircle size={22} color={palette.success} weight="fill" /> : null}
+        {!alreadySaved && conversationId ? <V2Action label="Mesto Zadatka" disabled={blocked || !!edit} onPress={openLocation} /> : null}
+        {facts.length ? <View style={{ backgroundColor: v2.color.surface, borderColor: v2.color.line, borderWidth: 1, borderRadius: v2.radius.card, overflow: 'hidden' }}>
+          {facts.map((fact, index) => {
+            const label = factLabel(fact.key), confirmedFact = fact.status === 'CONFIRMED';
+            const expanded = expandedFactId === fact.id, editing = edit?.fact.id === fact.id;
+            const locationFact = ['need.task_geography', 'need.task_country_code', 'need.exact_address', 'need.access_notes', 'need.resolved_location'].includes(fact.key);
+            return <View key={fact.id} style={{ borderTopWidth: index ? 1 : 0, borderColor: v2.color.line }}>
+              <Press accessibilityRole="button" accessibilityLabel={`Pregledajte: ${label}`} accessibilityState={{ expanded, disabled: !!edit }} disabled={!!edit}
+                onPress={() => { if (isCurrent() && !saving && !editor.uncertain && !navigating.current && !currentEdit.current) setExpandedFactId(expanded ? null : fact.id); }}
+                style={{ minHeight: 76, padding: v2.space.lg, flexDirection: 'row', alignItems: 'center', gap: v2.space.md }}>
+                <View style={{ flex: 1, gap: v2.space.xs }}>
+                  <T style={metaStyle}>{label}{fact.privacyClass === 'PRIVATE' ? ' · privatno' : ''}</T>
+                  <T style={textStyle} numberOfLines={expanded ? undefined : 2}>{fact.privacyClass === 'PRIVATE' && !expanded ? 'Prikažite privatni podatak' : factReviewValue(fact)}</T>
+                  <T style={{ ...metaStyle, color: confirmedFact ? v2.color.teal : v2.color.muted }}>{confirmedFact ? 'Potvrđeno' : 'Predlog · čeka vašu potvrdu'}</T>
                 </View>
-
-                {editing ? (
-                  <View style={{ gap: space.sm }}>
-                    <TextInput
-                      value={edit.text}
-                      onChangeText={(text) => { if (canAct()) setEdit({ ...edit, text, error: null }); }}
-                      editable={!blocked}
-                      autoFocus
-                      multiline={fact.valueType === 'TEXT' || fact.valueType === 'TEXT_ARRAY'}
-                      style={{
-                        minHeight: touch.min,
-                        borderWidth: 1,
-                        borderColor: edit.error ? palette.danger : palette.line100,
-                        borderRadius: radius.md,
-                        backgroundColor: palette.raised,
-                        color: palette.ink,
-                        paddingHorizontal: space.md,
-                        paddingVertical: space.sm,
-                        fontSize: 16,
-                      }}
-                    />
-                    {edit.error ? <T variant="meta" tone="danger">{edit.error}</T> : null}
-                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm }}>
-                      <Button label="Odustani" kind="quiet" disabled={blocked} onPress={() => { if (canAct()) setEdit(null); }} />
-                      <Button label="Sačuvaj ispravku" disabled={busy} onPress={sacuvajIspravku} />
-                    </View>
+                <View style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }}><V2Icon name="chevron" size={18} /></View>
+              </Press>
+              {expanded ? <View style={{ paddingHorizontal: v2.space.lg, paddingBottom: v2.space.lg, gap: v2.space.md }}>
+                {fact.evidence ? <T style={metaStyle}>Iz razgovora: „{fact.evidence}“</T> : null}
+                {editing ? <>
+                  <T style={metaStyle}>Nova vrednost: {label}</T>
+                  <TextInput accessibilityLabel={`Nova vrednost: ${label}`} value={edit.text}
+                    onChangeText={value => { if (canAct()) setEdit({ ...edit, text: value, error: null }); }}
+                    editable={!blocked} autoFocus multiline={fact.valueType === 'TEXT' || fact.valueType === 'TEXT_ARRAY'}
+                    style={{ ...textStyle, minHeight: v2.target.minimum, padding: v2.space.md, borderWidth: 1,
+                      borderColor: edit.error ? v2.color.danger : v2.color.teal, backgroundColor: v2.color.canvas, borderRadius: v2.radius.input }} />
+                  {edit.error ? <T accessibilityRole="alert" style={{ ...metaStyle, color: v2.color.danger }}>{edit.error}</T> : null}
+                  <View style={{ gap: v2.space.sm }}>
+                    <V2Action label="Sačuvaj ispravku" kind="primary" disabled={blocked} onPress={sacuvajIspravku} />
+                    <V2Action label="Odustani" kind="quiet" disabled={blocked} onPress={() => { if (canAct()) setEdit(null); }} />
                   </View>
-                ) : (
-                  <View style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                    <Button
-                      label={locationFact ? 'Izmenite mesto' : canEditFactInline(fact) ? 'Izmenite' : 'Izmenite u razgovoru'}
-                      kind="quiet"
-                      icon={<PencilSimple size={16} color={palette.inkMuted} />}
-                      disabled={blocked}
-                      onPress={() => {
-                        if (!canAct()) return;
-                        if (locationFact && conversationId) {
-                          navigate(() => router.push({ pathname: '/mesto-zadatka', params: { conversationId } }));
-                          return;
-                        }
-                        if (!canEditFactInline(fact)) {
-                          vratiSeURazgovor();
-                          return;
-                        }
-                        setEdit({ fact, text: fact.displayValue, error: null });
-                      }}
-                    />
-                    {!potvrdjen && fact.key !== 'need.resolved_location' ? (
-                      <Button
-                        label="Potvrdite"
-                        kind="secondary"
-                        disabled={busy}
-                        icon={<Check size={16} color={palette.ink} weight="bold" />}
-                        onPress={() => void potvrdi(fact)}
-                      />
-                    ) : null}
-                  </View>
-                )}
-              </View>
-            </Card>
-          );
-        })}
+                </> : <View style={{ gap: v2.space.sm }}>
+                  {!confirmedFact && fact.key !== 'need.resolved_location' ? <V2Action label="Potvrdite" disabled={blocked}
+                    onPress={() => void potvrdi(fact)} /> : null}
+                  <V2Action label={locationFact ? 'Izmenite mesto' : canEditFactInline(fact) ? 'Izmenite' : 'Izmenite u razgovoru'} kind="quiet" disabled={blocked}
+                    onPress={() => {
+                      if (!canAct() || currentEdit.current) return;
+                      if (locationFact) { openLocation(); return; }
+                      if (!canEditFactInline(fact)) { vratiSeURazgovor(); return; }
+                      const nextEdit = { fact, text: factCorrectionValue(fact), error: null };
+                      currentEdit.current = nextEdit; setEdit(nextEdit);
+                    }} />
+                </View>}
+              </View> : null}
+            </View>;
+          })}
+        </View> : <View style={{ gap: v2.space.md }}>
+          <T style={textStyle}>Još nema podataka za pregled</T>
+          <T style={metaStyle}>Vratite se u razgovor i opišite šta Vam treba.</T>
+          <V2Action label="Nazad u razgovor" onPress={vratiSeURazgovor} />
+        </View>}
 
-        {facts.length === 0 ? (
-          <Card>
-            <View style={{ padding: space.base, gap: space.md }}>
-              <T variant="heading">Još nema podataka za pregled</T>
-              <T variant="body" tone="muted">Vratite se u razgovor i opišite šta Vam treba.</T>
-              <Button label="Nazad u razgovor" kind="secondary" onPress={vratiSeURazgovor} />
-            </View>
-          </Card>
-        ) : null}
-
-        {greska ? (
-          <View style={{ backgroundColor: palette.dangerBg, borderRadius: radius.md, padding: space.md }}>
-            <T variant="meta" tone="danger">{greska}</T>
-            <Button label="Učitajte pregled ponovo" kind="secondary" onPress={() => { void editor.refresh(); }} />
-          </View>
-        ) : null}
-
-        {editMode ? (
-          <Card raised>
-            <View style={{ padding: space.base, gap: space.md }}>
-              <View style={{ gap: space.xs }}>
-                <T variant="heading">Sačuvajte izmene</T>
-                <T variant="body" tone="muted">
-                  Zadatak se vraća u nacrt i prolazi ponovnu proveru pre nego što ponovo bude vidljiv. Postojeće Prijave će morati da se osveže; Dogovori se ne menjaju.
-                </T>
-              </View>
-              <Button
-                label={saving ? 'Čuvanje...' : 'Sačuvajte izmene'}
-                full
-                haptic="success"
-                disabled={!saveAllowed || blocked}
-                onPress={() => { void sacuvajIzmene(); }}
-              />
-              {!saveAllowed && stanje.safety !== 'BLOCK' ? (
-                <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>
-                  Potvrdite sve podatke pre čuvanja izmena.
-                </T>
-              ) : null}
-            </View>
-          </Card>
-        ) : null}
-
-        {!alreadySaved && !editMode ? (
-          <Card raised>
-            <View style={{ padding: space.base, gap: space.md }}>
-              <View style={{ gap: space.xs }}>
-                <T variant="heading">Sačuvajte kao nacrt</T>
-                <T variant="body" tone="muted">
-                  Zadatak ostaje privatan nacrt. Pregled i objava dolaze u sledećem koraku.
-                </T>
-              </View>
-              <Button
-                label={saving ? 'Čuvanje...' : 'Sačuvajte nacrt'}
-                full
-                haptic="success"
-                disabled={!saveAllowed || blocked}
-                onPress={sacuvajNacrt}
-              />
-              {!saveAllowed && stanje.safety !== 'BLOCK' ? (
-                <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>
-                  Potvrdite sve obavezne podatke pre čuvanja.
-                </T>
-              ) : null}
-            </View>
-          </Card>
-        ) : null}
+        {editMode ? <T style={metaStyle}>Zadatak se vraća u nacrt i prolazi ponovnu proveru pre nego što ponovo bude vidljiv. Postojeće Prijave će morati da se osveže; Dogovori se ne menjaju.</T> : null}
+        {!alreadySaved && !editMode && stanje.status !== 'OPEN' ? <T style={metaStyle}>Ovaj razgovor je zatvoren. Prikazane podatke možete pregledati.</T> : null}
       </ScrollView>
-    </SafeAreaView>
-  );
+      <View style={{ paddingHorizontal: v2.space.lg, paddingVertical: v2.space.md, gap: v2.space.sm, backgroundColor: v2.color.canvas, borderTopWidth: 1, borderColor: v2.color.line }}>
+        {greska ? <><T accessibilityRole="alert" style={{ ...metaStyle, color: v2.color.danger }}>{greska}</T>
+          <V2Action label="Učitajte pregled ponovo" disabled={saving || loading} onPress={retry} /></> : null}
+        {alreadySaved ? <V2Action label="Otvorite sačuvani Zadatak" kind="primary"
+          onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: alreadySaved } }))} />
+          : stanje.status === 'OPEN' ? <>
+            <V2Action label={saving ? 'Čuvanje...' : editMode ? 'Sačuvajte izmene' : 'Sačuvajte nacrt'} kind="primary"
+              disabled={!saveAllowed || blocked || !!edit} onPress={editMode ? sacuvajIzmene : sacuvajNacrt} />
+            <T style={{ ...metaStyle, textAlign: 'center' }}>{saveAllowed ? 'Nacrt ostaje privatan. Objava je sledeći korak.' : 'Potvrdite ili ispravite sve prikazane predloge pre čuvanja.'}</T>
+          </> : null}
+      </View>
+    </KeyboardAvoidingView>
+  </SafeAreaView>;
 }

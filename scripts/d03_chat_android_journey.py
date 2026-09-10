@@ -17,6 +17,7 @@ from d03_chat_outbox_observer import read_scoped_outbox
 from d03_chat_keyboard_bounds import observe_ime_frame, assert_composer_above_ime
 
 validate_local_targets(os.environ)
+CORE106=os.environ.get('RU5_DEVICE_CORE106')=='1'
 PACKAGE=os.environ['RU5_DEVICE_PACKAGE']
 MAIN_ACTIVITY=f'{PACKAGE}/.MainActivity'
 PASSWORD=os.environ['RU5_DEVICE_PASSWORD']
@@ -30,7 +31,16 @@ AGREEMENT_ID=os.environ['N04_AGREEMENT_ID']
 for identifier in (WORKER_USER_ID,REQUESTER_USER_ID,NEED_ID,AGREEMENT_ID):
     assert re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}',identifier)
 boundary=json.loads((ARTIFACT_DIR/'d03-native-db-boundary.json').read_text(encoding='utf-8'))
-assert boundary['result']=='PASS' and boundary['localOnly'] and not boundary['fullCanonicalHistoryReplay']
+assert boundary['result']=='PASS' and boundary['localOnly']
+if CORE106:
+    expected_history=108 if os.environ.get('AI_REVIEW_SCOPE')=='marketplace' else 106
+    assert boundary['fullCanonicalHistoryReplay'] and boundary['nativeBoundary']==f'EXACT{expected_history}_UI_CREATED_CORE_AGREEMENT' and boundary['historyAfter']['count']==expected_history
+    assert boundary['publicationProof'] is (os.environ.get('AI_REVIEW_SCOPE')=='marketplace')
+    if os.environ.get('AI_REVIEW_SCOPE')=='marketplace':
+        assert boundary['coreSelection']['needId']==NEED_ID and boundary['coreSelection']['terms']['covered_slots']==3
+        assert boundary['successorAdmission']['history_count']==108 and boundary['successorAdmission']['source_sha']==os.environ['GITHUB_SHA']
+else:
+    assert not boundary['fullCanonicalHistoryReplay']
 assert boundary['agreementId']==AGREEMENT_ID and boundary['sourceSha']==os.environ['GITHUB_SHA']
 for filename in ('ru5_android_device_ui_journey.py','intent_shell_android_journey.py'):
     source=Path(__file__).with_name(filename)
@@ -100,7 +110,7 @@ def open_chat():
     wait_visible(text=NEED_TITLE)
     tap(desc='Poruke')
     wait_visible(desc='Napišite poruku')
-    wait_visible(text='Poruke vide učesnici ovog Dogovora. Povucite naniže za nove poruke.')
+    wait_visible(text='Razgovor o ovom Dogovoru. Povucite naniže za nove poruke.' if core_mode() else 'Poruke vide učesnici ovog Dogovora. Povucite naniže za nove poruke.')
 
 
 def assert_body_once(body):
@@ -151,12 +161,12 @@ def rapid_send():
 def switch_account(email,from_intent,to_worker=False):
     tap(desc='Nazad')
     assert_shell(from_intent)
-    tap(desc='Radni profil' if from_intent=='worker' else 'Profil',prefer='top')
+    core_profile() if core_mode() else tap(desc='Radni profil' if from_intent=='worker' else 'Profil',prefer='top')
     tap(desc='Odjavite se')
-    wait_visible(desc='Prijavi se',timeout=60)
-    assert_signed_out_surface()
+    wait_visible(desc='Prijavite se',timeout=60)
+    assert_signed_out_surface(form_open=True)
     # Same installation/storage. No app clear or credential/session injection.
-    login(email)
+    login(email,form_open=True)
     assert_shell('requester')
     if to_worker:switch_to_worker_workspace();assert_shell('worker')
     open_chat()
@@ -190,7 +200,7 @@ try:
     assert_shell('worker')
     open_chat()
     wait_visible(text='Još nema poruka.')
-    assert psql('select count(*) from public.agreement_messages')=='0'
+    assert psql(f"select count(*) from public.agreement_messages where agreement_id='{AGREEMENT_ID}'" if CORE106 else 'select count(*) from public.agreement_messages')=='0'
     prepare_body(WORKER_BODY,keyboard_evidence=True);rapid_send()
     worker_message=wait_message(WORKER_BODY,WORKER_USER_ID)
     time.sleep(1);assert message_rows(WORKER_BODY)==[worker_message]
@@ -246,6 +256,15 @@ try:
     shot('D03_refresh_single_copy')
     checkpoint('MANUAL_RETRY_AND_REFRESH_ONE_ACKNOWLEDGED_ROW')
 
+    if CORE106:
+        tap(desc='Pregled');scroll_to(desc='Završio sam');tap(desc='Završio sam')
+        until=time.monotonic()+40
+        while psql(f"select state from public.agreement_execution where agreement_id='{AGREEMENT_ID}'")!='AWAITING_REQUESTER':
+            if time.monotonic()>until:raise AssertionError('Native worker completion did not persist')
+            time.sleep(.3)
+        assert psql(f"select status from public.agreements where id='{AGREEMENT_ID}'")=='CONFIRMED'
+        wait_visible(text='Čeka se potvrda završetka');shot('CORE_worker_done');checkpoint('WORKER_MARKED_DONE_REAL_UI')
+        tap(desc='Poruke')
     switch_account(os.environ['RU5_DEVICE_REQUESTER_EMAIL'],'worker')
     for body in (WORKER_BODY,REQUESTER_BODY,OFFLINE_BODY):assert_body_once(body)
     shot('D03_requester_all_messages')
@@ -274,12 +293,15 @@ try:
     for item in expected:
         assert message_rows(item['body'])==[item]
         assert psql(f"select count(*) from public.user_activity_events where event_type='MESSAGE_RECEIVED' and payload->>'message_id'={q(item['id'])}")=='1'
-    assert psql('select count(*) from public.agreement_messages')=='3'
-    assert psql("select count(*) from public.user_activity_events where event_type='MESSAGE_RECEIVED'")=='3'
-    assert psql('select count(*) from public.agreement_messages where read_at is not null')=='0'
+    assert psql(f"select count(*) from public.agreement_messages where agreement_id='{AGREEMENT_ID}'" if CORE106 else 'select count(*) from public.agreement_messages')=='3'
+    assert int(psql("select count(*) from public.user_activity_events where event_type='MESSAGE_RECEIVED'"))==(boundary['messageEventsBefore']+3 if CORE106 else 3)
+    assert psql(f"select count(*) from public.agreement_messages where agreement_id='{AGREEMENT_ID}' and read_at is not null" if CORE106 else 'select count(*) from public.agreement_messages where read_at is not null')=='0'
     assert psql('select count(*) from public.notification_deliveries where read_at is not null')=='0'
     assert psql('select count(*) from public.notification_push_attempts')=='0'
     assert_gates_unchanged()
+    if CORE106:
+        assert psql(f"select state from public.agreement_execution where agreement_id='{AGREEMENT_ID}'")=='COMPLETED'
+        report.update({'historyCount':core_history_required(),'sameAgreementId':AGREEMENT_ID,'nativeWorkerDone':True,'nativeRequesterComplete':True,'publicationProof':boundary['publicationProof'],'productionPolicyActivation':False})
     report['messages']=expected
     report['result']='PASS'
     print('PASS PHYSICAL_D03_CHAT_RECOVERY two_real_participants rapid_taps offline_body manual_retry terminal_back three_messages_three_events no_fake_receipts no_provider',flush=True)

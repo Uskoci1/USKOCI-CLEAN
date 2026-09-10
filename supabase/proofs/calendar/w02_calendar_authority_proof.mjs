@@ -3,9 +3,11 @@
 // file runs. Published Needs are explicit isolated SQL fixtures, not UI publication.
 // No production project or external provider is accessed.
 import assert from 'node:assert/strict';
+import {ownedIntakeSourceBoundary,dispatchLockForward} from '../../../scripts/ci/owned-intake-source.mjs';
+import {admitDispatchLockReport} from './w02_dispatch_lock_proof.mjs';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { readP3RetentionPredecessorPlan } from '../legal/p3_retention_schedule_predecessor.mjs';
 import { assertLocalDeviceProofTargets } from '../ru5_device_ui_local_guard.mjs';
@@ -14,7 +16,8 @@ const env = process.env;
 const url = env.RU5_DEVICE_SUPABASE_URL;
 const db = env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url, db);
-const sourceCount = readP3RetentionPredecessorPlan().source_migration_count;
+const sourceBoundary=ownedIntakeSourceBoundary(readP3RetentionPredecessorPlan());
+const sourceCount=sourceBoundary.predecessorPlan.source_migration_count;
 const out = env.W02_CALENDAR_ARTIFACT_DIR || 'artifacts/w02-calendar-authority';
 mkdirSync(out, { recursive: true });
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
@@ -24,7 +27,9 @@ const anon = createClient(url, env.RU5_DEVICE_ANON_KEY, options);
 const requesterId = env.RU5_DEVICE_REQUESTER_USER_ID;
 const workerId = env.RU5_DEVICE_WORKER_USER_ID;
 const report = {
-  unit: 'W02_CALENDAR_AUTHORITY', source_sha: env.GITHUB_SHA || null, run_id: env.GITHUB_RUN_ID || null,
+  unit: 'W02_CALENDAR_AUTHORITY', admitted_source_count:108, registry_history_count:105,
+  deferred_authority_successors:[sourceBoundary.next,...sourceBoundary.deferredSuccessors.filter(item=>item.file!==dispatchLockForward)],
+  source_sha: env.GITHUB_SHA || null, run_id: env.GITHUB_RUN_ID || null,
   live_access: false, live_promotion: false, provider_called: false, visual_design_changed: false,
   checks: [], race: null,
 };
@@ -100,6 +105,10 @@ async function calendar(from, to) {
 
 try {
   check('EXACT_SOURCE_OBJECTS_PRIVILEGES_AND_EMPTY_BACKFILL');
+  report.dispatch_lock_admission=admitDispatchLockReport(JSON.parse(readFileSync((env.W02_DISPATCH_ARTIFACT_DIR||out+'/dispatch-lock')+'/proof-report.json','utf8')),env.GITHUB_SHA);
+  report.applied_authority=report.dispatch_lock_admission.applied_authority;
+  for(const body of report.dispatch_lock_admission.changed_bodies)
+    assert.equal(sql(`select md5(prosrc) from pg_proc where oid=${q(body.signature)}::regprocedure`),body.current_md5);
   assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')), sourceCount);
   for (const object of [
     "to_regclass('private.worker_calendar_events') is not null",
