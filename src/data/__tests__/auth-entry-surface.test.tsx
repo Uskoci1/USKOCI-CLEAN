@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockRead = jest.fn();
@@ -22,7 +23,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   Easing: { bezier: () => undefined }, interpolate: () => 0, useAnimatedStyle: () => ({}),
   useSharedValue: () => ({ value: 0 }), withTiming: (value: unknown) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Defs: 'Defs', LinearGradient: 'LinearGradient',
-  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop' }));
+  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
   LockKey: 'Icon', MapPin: 'Icon', Phone: 'Icon', User: 'Icon', X: 'Icon' }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
@@ -70,8 +71,29 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it('shows actual email-only entry without provider placeholders or invented saved targets', async () => {
   await render();
   expect(input('ime@primer.rs')).toBeDefined(); expect(button('Prijavite se')).toBeDefined();
+  expect(button('Napravi nalog').props.accessibilityRole).toBe('button');
+  expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
+  expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
+  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
   for (const fake of ['Google', 'Apple', 'Telefon', 'Sačuvali smo', 'istu Priliku', 'ili nastavite preko']) expect(text()).not.toContain(fake);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
+});
+
+it('uses the flatter signup stage while retaining all real fields and the explicit primary command', async () => {
+  await render();
+  const heading = (value: string) => host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === value)!;
+  expect(StyleSheet.flatten(heading('Dobro došao.').props.style).fontSize).toBe(31);
+  await press('Napravi nalog');
+  expect(StyleSheet.flatten(heading('Napravite nalog').props.style)).toMatchObject({ fontSize: 27, lineHeight: 30.51 });
+  expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka', 'Potvrdite lozinku']);
+  const form = host('View').find(node => node.findAllByType('TextInput' as React.ElementType).length === 6 && StyleSheet.flatten(node.props.style)?.borderBottomWidth === 1)!;
+  expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
+  expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(1);
+  expect(button('Napravite nalog')).toBeDefined();
+  expect(text()).not.toContain('Korak 1 od 3');
+  expect(mockAuth.signUp).not.toHaveBeenCalled();
+  await press('Već imaš nalog? Prijavi se');
+  expect(StyleSheet.flatten(heading('Dobro došao.').props.style).fontSize).toBe(31);
 });
 
 it('keeps an empty password submission local and immediately editable', async () => {
@@ -86,13 +108,14 @@ it('hides a revealed password when switching form mode, preserving the entered v
   const toggle = () => host('Pressable').find(node => node.props.accessibilityLabel === 'Prikaži lozinku')!;
   await act(async () => toggle().props.onPress());
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(false);
-  await press('Registracija');
-  expect(button('Registracija').props.accessibilityState.selected).toBe(true);
-  expect(button('Prijava').props.accessibilityState.selected).toBe(false);
+  await press('Napravi nalog');
+  expect(button('Već imaš nalog? Prijavi se').props.accessibilityRole).toBe('button');
+  expect(button('Napravi nalog')).toBeUndefined();
+  expect(host('Pressable').some(node => node.props.accessibilityRole === 'tab')).toBe(false);
   expect(input('Unesite lozinku').props.value).toBe('local-dummy-value');
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
   await act(async () => toggle().props.onPress());
-  await press('Prijava');
+  await press('Već imaš nalog? Prijavi se');
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });
@@ -114,7 +137,7 @@ it('does not offer signup when disabled, while existing email login remains avai
 });
 
 it('gives an explicit route back if signup is disabled while the signup form is open', async () => {
-  await render(); await press('Registracija');
+  await render(); await press('Napravi nalog');
   mockRead.mockResolvedValue({ ...emailOnly, emailSignup: false });
   await act(async () => mockForeground('active'));
   expect(button('Nazad na prijavu')).toBeDefined(); await press('Nazad na prijavu');
@@ -122,7 +145,7 @@ it('gives an explicit route back if signup is disabled while the signup form is 
 });
 
 it('blocks duplicate signup, conflicting navigation and editing, then shows accurate confirmation with a real login Back', async () => {
-  await render(); await press('Registracija');
+  await render(); await press('Napravi nalog');
   for (const [placeholder, value] of [['Ime', 'Ana'], ['Prezime', 'Petrović'], ['Vaš grad', 'Novi Sad'],
     ['ime@primer.rs', 'ana@example.test'], ['Unesite lozinku', 'password'], ['Ponovite lozinku', 'password']]) await fill(placeholder, value);
   await act(async () => host('Pressable').find(node => node.props.accessibilityRole === 'checkbox')!.props.onPress());
@@ -142,6 +165,10 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
 it('visibly gates unfinished recovery and never sends a broken reset link', async () => {
   await render(); await press('Zaboravili ste lozinku?');
   expect(text()).toContain('Oporavak lozinke još nije dostupan');
+  expect(host('Text').some(node => textOf(node) === 'Oporavak pristupa')).toBe(true);
+  const title = host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Vratite pristup nalogu.')!;
+  expect(StyleSheet.flatten(title.props.style).fontSize).toBe(27);
+  expect(textOf(title)).not.toContain('\n');
   expect(host('TextInput')).toHaveLength(0); expect(button('Pošaljite link')).toBeUndefined();
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
   await press('Nazad na prijavu'); expect(button('Prijavite se')).toBeDefined();
@@ -149,7 +176,7 @@ it('visibly gates unfinished recovery and never sends a broken reset link', asyn
 
 it('does not promise a confirmation email when autoconfirm is enabled but signup returns no session', async () => {
   mockRead.mockResolvedValue({ ...emailOnly, emailConfirmationRequired: false });
-  await render(); await press('Registracija');
+  await render(); await press('Napravi nalog');
   for (const [placeholder, value] of [['Ime', 'Ana'], ['Prezime', 'Petrović'], ['Vaš grad', 'Novi Sad'],
     ['ime@primer.rs', 'ana@example.test'], ['Unesite lozinku', 'password'], ['Ponovite lozinku', 'password']]) await fill(placeholder, value);
   await act(async () => host('Pressable').find(node => node.props.accessibilityRole === 'checkbox')!.props.onPress());
@@ -161,7 +188,7 @@ it('does not promise a confirmation email when autoconfirm is enabled but signup
 it('rejects an old login press after the form changes to signup', async () => {
   await render(); await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesite lozinku', 'password');
   const oldPress = button('Prijavite se').props.onPress;
-  await press('Registracija'); await act(async () => oldPress());
+  await press('Napravi nalog'); await act(async () => oldPress());
   expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
 });
 
@@ -203,8 +230,11 @@ it.each([['onRequester', 'REQUESTER'], ['onWorker', 'WORKER']])('prepares %s onc
   expect(mockPrepare).toHaveBeenCalledTimes(1);
   expect(mockPrepare).toHaveBeenCalledWith(intent);
   expect(host('TextInput')).toHaveLength(0);
+  expect(text()).not.toContain('ISTI NALOG');
   await act(async () => pending.resolve());
   expect(input('ime@primer.rs')).toBeDefined();
+  expect(text()).toContain(intent === 'REQUESTER' ? 'MENI TREBA · ISTI NALOG' : 'JA MOGU · ISTI NALOG');
+  expect(text()).toContain(intent === 'REQUESTER' ? 'Nastavi do svojih Zadataka i Dogovora.' : 'Nastavi do Prijava, Zadataka i Dogovora.');
 });
 
 it('retains the entry and exposes retry after failed intent storage', async () => {
@@ -214,6 +244,56 @@ it('retains the entry and exposes retry after failed intent storage', async () =
   expect(tree.root.findByType('Hero' as React.ElementType).props.error).toContain('Pokušajte ponovo');
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   expect(input('ime@primer.rs')).toBeDefined();
+});
+
+it('keeps prepared intent through signup and recovery but clears it for explicit plain sign-in', async () => {
+  await act(async () => { tree = create(<AuthScreen />); });
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
+  await press('Napravi nalog');
+  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+  await press('Već imaš nalog? Prijavi se');
+  expect(text()).toContain('JA MOGU · ISTI NALOG');
+  await press('Zaboravili ste lozinku?');
+  expect(text()).toContain('BEZBEDAN POVRATAK');
+  await press('Nazad na prijavu');
+  expect(text()).toContain('JA MOGU · ISTI NALOG');
+  await act(async () => host('Pressable').find(node => node.props.accessibilityLabel === 'Nazad')!.props.onPress());
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignIn());
+  expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
+  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+});
+
+it('does not carry a prepared label across an account incarnation change', async () => {
+  await act(async () => { tree = create(<AuthScreen />); });
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onRequester());
+  expect(text()).toContain('MENI TREBA · ISTI NALOG');
+  mockSession = { user: { id: 'other-account' }, accountRevision: 1 };
+  await act(async () => tree.update(<AuthScreen />));
+  expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
+  mockSession = { user: null, accountRevision: 2 };
+  await act(async () => tree.update(<AuthScreen />));
+  expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
+});
+
+it('does not accept a late prepare or show its label after signed-out account ABA', async () => {
+  const pending = deferred<void>(); mockPrepare.mockReturnValueOnce(pending.promise);
+  await act(async () => { tree = create(<AuthScreen />); });
+  await act(async () => { tree.root.findByType('Hero' as React.ElementType).props.onWorker(); });
+  mockSession = { user: null, accountRevision: 2 };
+  await act(async () => pending.resolve());
+  expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
+  expect(host('TextInput')).toHaveLength(0);
+  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+});
+
+it('uses neutral presentation for a new direct Auth destination after a prepared selection', async () => {
+  await act(async () => { tree = create(<AuthScreen />); });
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
+  mockParams = { form: 'login' };
+  await act(async () => tree.update(<AuthScreen />));
+  expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
+  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+  expect(mockPrepare).toHaveBeenCalledTimes(1);
 });
 
 

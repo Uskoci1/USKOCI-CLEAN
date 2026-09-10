@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
+import { useSystemReducedMotion } from './useSystemReducedMotion';
 import type { EntrySplashReadiness } from './useEntrySplashReady';
 
 const KEY = 'uskoci.presentation.intro-seen.v1';
 export function useEntryIntro(readiness: EntrySplashReadiness) {
-  const reduced = useReducedMotion();
+  const reduced = useSystemReducedMotion();
   const [phase, setPhase] = useState<'loading' | 'intro' | 'welcome'>(reduced ? 'welcome' : 'loading');
   const lifetime = useRef(0);
   const mounted = useRef(false);
