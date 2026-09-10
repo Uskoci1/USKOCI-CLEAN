@@ -249,16 +249,26 @@ try {
   pass();
 
   begin('CONTEXT_LOCKS_POLICY_PHANTOMS_CONFIG_NEED_AND_PRIVATE_MATERIAL');
-  const release=await heldContext(draft);
+  // Remote drafts legitimately omit need_sensitive; use the existing physical
+  // draft after its canonical private correction to test a real locked row.
+  const lockDraft=revisedPrivate;
+  assert.equal(sql(`select count(*) from public.need_sensitive where need_id=${q(lockDraft.needId)}`),'1','PRIVATE_LOCK_FIXTURE_ROW_MISSING');
+  assert.equal((await ok(context(lockDraft))).kind,'READY');
+  const release=await heldContext(lockDraft);
+  report.lock_attempts=[];
   try{
-    for(const statement of [
-      `update private.publication_policy_bundles set is_active=false where id=${q(bundle)}`,
-      `update private.publication_policy_rule_refs set rule_provenance=rule_provenance||'{"race":true}' where bundle_id=${q(bundle)}`,
-      `insert into private.publication_policy_rule_refs(bundle_id,rule_id) values(${q(bundle)},'TEST-PHANTOM')`,
-      "update private.location_market_configs set product_status='BUILDING' where country_code='RS'",
-      `update public.needs set title='BLOCKED CONCURRENT CHANGE' where id=${q(draft.needId)}`,
-      `update public.need_sensitive set access_notes='BLOCKED CONCURRENT PRIVATE' where need_id=${q(draft.needId)}`,
-    ])assert.equal(sqlState(`begin;set local lock_timeout='150ms';${statement};rollback;`),'55P03','CONCURRENT_CONTEXT_WRITE_WAS_NOT_LOCKED');
+    for(const [operation,statement] of [
+      ['POLICY_BUNDLE_UPDATE',`update private.publication_policy_bundles set is_active=false where id=${q(bundle)}`],
+      ['POLICY_RULE_UPDATE',`update private.publication_policy_rule_refs set rule_provenance=rule_provenance||'{"race":true}' where bundle_id=${q(bundle)}`],
+      ['POLICY_RULE_PHANTOM_INSERT',`insert into private.publication_policy_rule_refs(bundle_id,rule_id) values(${q(bundle)},'TEST-PHANTOM')`],
+      ['MARKET_CONFIG_UPDATE',"update private.location_market_configs set product_status='BUILDING' where country_code='RS'"],
+      ['NEED_PUBLIC_UPDATE',`update public.needs set title='BLOCKED CONCURRENT CHANGE' where id=${q(lockDraft.needId)}`],
+      ['NEED_PRIVATE_UPDATE',`update public.need_sensitive set access_notes='BLOCKED CONCURRENT PRIVATE' where need_id=${q(lockDraft.needId)}`],
+    ]){
+      const sqlstate=sqlState(`begin;set local lock_timeout='150ms';${statement};rollback;`);
+      report.lock_attempts.push({operation,sqlstate});
+      assert.equal(sqlstate,'55P03','CONCURRENT_CONTEXT_WRITE_WAS_NOT_LOCKED_'+operation);
+    }
   }finally{await release();}
   report.lock_interleavings=6;pass();
 

@@ -141,9 +141,9 @@
     },
     {
       "path": "supabase/proofs/policy/publication_authority_proof.mjs",
-      "bytes": 36586,
-      "sha256": "64eb2d77b2f8db6edc3608dc275726550b434495ac40489da0e7486619f03476",
-      "git_clean_blob_oid": "6edde77b536fe714806357a46ed3cfd2a8017afe"
+      "bytes": 37293,
+      "sha256": "31a3c468a20db007aeae250286573cd7c035d72501d90804fd878ed7293bfb1f",
+      "git_clean_blob_oid": "450b9636a1eea809830253a50c668b4815c07cff"
     },
     {
       "path": "supabase/proofs/policy/publication_fixtures.mjs",
@@ -340,6 +340,27 @@
       "artifact_id": 10159762182,
       "artifact_bytes": 39740,
       "artifact_sha256": "d143e1bb7c6ec9cc01b51211a2bbef30a48e59cdc46e46778a56cd36321f6d0b",
+      "artifact_input_hash_references_verified": 496,
+      "source_relation_verified": true,
+      "corrected_proof_db_result": "PENDING_NEW_SOURCE_CI"
+    },
+    {
+      "run_id": 34496562106,
+      "head": "8dfea3a88b44ec1f74832af75cbca199a59b17db",
+      "tested_merge": "6f14913accc0722f9ea856f87c9b8bf8db39f64b",
+      "policy_job_result": "FAIL",
+      "stage": "CONTEXT_LOCKS_POLICY_PHANTOMS_CONFIG_NEED_AND_PRIVATE_MATERIAL",
+      "failed_source_line": 261,
+      "w05_checks_passed": 6,
+      "prior_d0140_checks_passed": 6,
+      "prior_history_count": 102,
+      "sql103_applied_and_acls_preserved": true,
+      "edge_handler_tests_passed": 31,
+      "failure_reason": "The default Remote draft has no need_sensitive row, so its private UPDATE affects zero rows and cannot test an existing row lock. This fixture diagnosis follows exact source; the old report identifies the loop line and prior 55P03, not the individual failed subcase.",
+      "correction": "Use the existing current revisedPrivate physical draft for all six held-context lock attempts; assert its exact private row exists and context is READY, record a static operation label and actual SQLSTATE for each attempt, and retain mandatory 55P03. SQL103 and ACLs unchanged.",
+      "artifact_id": 10160703453,
+      "artifact_bytes": 39859,
+      "artifact_sha256": "b6e59659e93557b86cea5207a33b4c4996c696a2a61ba69bd41fbda8c36cdade",
       "artifact_input_hash_references_verified": 496,
       "source_relation_verified": true,
       "corrected_proof_db_result": "PENDING_NEW_SOURCE_CI"
