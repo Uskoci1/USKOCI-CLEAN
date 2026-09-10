@@ -4,6 +4,7 @@
 // decision, and that ALLOW stays refused by the RU-3 service gate. No policy
 // bundle is activated on any live target; no rule text is seeded.
 import assert from 'node:assert/strict';
+import { replayPendingDomain } from '../legal/pending_domain_replay.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
@@ -140,13 +141,31 @@ try{
   assert.equal(tableHash('supabase_migrations.schema_migrations',`version<>${q(manifest.forward_version)}`),history);
   report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
   assert.equal(report.migration_history_count,predecessorCount+1);
-  assert.equal(report.migration_history_count,plan.source_migration_count);
+  assert.equal(report.migration_history_count + plan.pending_successor_count,plan.source_migration_count);
   assert.equal(sql('select count(*) from private.publication_policy_bundles where is_active'),'0');
   assert.equal(sql("select count(*) from private.publication_policy_rule_refs where rule_provenance ? 'text' or rule_provenance ? 'rule_text'"),'0');
   assert.equal(sql('select count(*) from private.need_publication_decisions'),'0');
   assert.equal(sql('select count(*) from private.preselection_qa_policy_decisions'),'0');
   pass();
   }
+
+  current='ADMITTED_SUCCESSOR_DOMAIN_INTEGRATION';
+  report.successor_replay=await replayPendingDomain({plan,sql,db,url,snapshot:async()=>({
+    tables: (manifest.new_tables ?? ['private.publication_policy_bundles','private.publication_policy_rule_refs']).map(table=>[table,tableHash(table)]),
+    security: sql(`select coalesce(jsonb_agg(to_jsonb(p) order by n.nspname,p.proname,p.oid),'[]'::jsonb)::text
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname in ('public','private') and p.proname ~ 'publication_policy|ru4b_has_exact_policy_allow|record_need_publication_decision'`),
+    tableGrants: sql(`select coalesce(jsonb_agg(jsonb_build_array(n.nspname,c.relname,c.relrowsecurity,c.relforcerowsecurity,c.relacl) order by n.nspname,c.relname),'[]'::jsonb)::text
+      from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relname ~ 'publication_policy'`),
+    columnGrants: sql(`select coalesce(jsonb_agg(jsonb_build_array(n.nspname,c.relname,a.attname,a.attacl) order by n.nspname,c.relname,a.attnum),'[]'::jsonb)::text
+      from pg_class c join pg_namespace n on n.oid=c.relnamespace join pg_attribute a on a.attrelid=c.oid
+      where n.nspname in ('public','private') and c.relname ~ 'publication_policy' and a.attnum>0 and not a.attisdropped`),
+    policies: sql(`select coalesce(jsonb_agg(to_jsonb(p) order by schemaname,tablename,policyname),'[]'::jsonb)::text
+      from pg_policies p where tablename ~ 'publication_policy'`),
+    projection: [resolver(),sql('select count(*) from private.need_publication_decisions'),sql('select count(*) from private.preselection_qa_policy_decisions')],
+  })});
+  report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
+  assert.equal(report.migration_history_count,plan.source_migration_count);
   report.result='PASS';
 }catch(error){
   report.result='FAIL';report.failed_check=current;

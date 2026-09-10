@@ -74,8 +74,10 @@ jobs:
           CI_LEVEL: ${{ inputs.level || 'fast' }}
         run: node scripts/ci/scope.cjs plan
 
-      - name: Verify CI routing invariants
-        run: node --test scripts/ci/*.test.cjs
+      - name: Verify CI routing and source admission invariants
+        run: |
+          node --test scripts/ci/*.test.cjs
+          node --test supabase/proofs/legal/pending_source_plan.test.mjs
 
       - name: Verify migration bytes and provenance
         id: migration
