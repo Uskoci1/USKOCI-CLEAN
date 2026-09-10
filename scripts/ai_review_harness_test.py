@@ -15,6 +15,21 @@ def tree(xml):
 
 
 class NativeAssertions(unittest.TestCase):
+    def test_detail_back_requires_owned_saved_review_before_conversation_back(self):
+        root, parents = tree('<hierarchy><node text="Proverite Zadatak"/><node text="Zadatak je već sačuvan"/><node text="Owned title"/><node content-desc="Nazad u razgovor" enabled="true" clickable="true" bounds="[20,90][160,210]"/></hierarchy>')
+        with patch.object(journey, 'tap') as tap, patch.object(journey, 'clean_surface', return_value=(root, parents)), patch.object(journey, 'screen_size', return_value=(1080, 2400)), patch.object(journey, 'tap_node') as action, patch.object(journey, 'wait_visible') as wait:
+            journey.return_to_saved_conversation('Owned title')
+        tap.assert_called_once_with(desc='Nazad', prefer='top')
+        action.assert_called_once_with(next(n for n in root.iter() if n.attrib.get('content-desc')), parents, hold_ms=120)
+        wait.assert_called_once_with(desc='Poruka za AI')
+
+    def test_saved_review_back_rejects_wrong_need_or_mutable_review_before_second_navigation(self):
+        for content in ('<node text="Other title"/>', '<node text="Owned title"/><node content-desc="Sačuvajte nacrt" enabled="false"/>'):
+            root, parents = tree('<hierarchy><node text="Zadatak je već sačuvan"/>' + content + '<node content-desc="Nazad u razgovor" enabled="true" clickable="true" bounds="[20,90][160,210]"/></hierarchy>')
+            with patch.object(journey, 'tap'), patch.object(journey, 'clean_surface', return_value=(root, parents)), patch.object(journey, 'tap_node') as action, self.assertRaises(AssertionError):
+                journey.return_to_saved_conversation('Owned title')
+            action.assert_not_called()
+
     def test_disabled_save_is_checked_on_actual_control_not_an_ancestor(self):
         root, parents = tree('<hierarchy><node clickable="true" enabled="true"><node content-desc="Sačuvajte nacrt" enabled="false" clickable="false" bounds="[10,20][80,70]"/></node></hierarchy>')
         journey.assert_button(root, parents, 'Sačuvajte nacrt', False)

@@ -358,6 +358,19 @@ def open_review():
     tap_node(node, parent, hold_ms=120)
 
 
+def return_to_saved_conversation(need_title):
+    # Detail Back returns to its actual R07 parent. A saved review remains a
+    # read-only route; its explicit Back owns the next hop to the conversation.
+    tap(desc='Nazad', prefer='top')
+    root, parent = clean_surface('Proverite Zadatak')
+    assert 'Zadatak je već sačuvan' in labels(root) and need_title in labels(root)
+    assert not any(n.attrib.get('content-desc') == 'Sačuvajte nacrt' for n in root.iter())
+    control = assert_button(root, parent, 'Nazad u razgovor', True)
+    assert visible_node(control, parent, *screen_size())
+    tap_node(control, parent, hold_ms=120)
+    wait_visible(desc='Poruka za AI')
+
+
 def main():
     if __package__:
         from .ai_review_local_rest import LocalRestOutage, validate_local_targets
@@ -474,8 +487,7 @@ def main():
     need = assert_saved(saved, fixture)
     root, parent = capture('AI_saved_draft_detail', 'Pregled Zadatka')
     assert need['title'] in labels(root) and 'Nacrt' in labels(root)
-    tap(desc='Nazad', prefer='top')
-    wait_visible(desc='Poruka za AI')
+    return_to_saved_conversation(need['title'])
     capture('AI_saved_conversation_readonly', 'Novi zadatak')
     root, parent = clean_surface('Novi zadatak')
     assert_button(root, parent, 'Pošalji poruku', False)
