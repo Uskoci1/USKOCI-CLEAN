@@ -474,7 +474,10 @@ def login(email, form_open=False):
     hide_keyboard()
     tap(text='Prijavite se', prefer='bottom', timeout=30)
     # Current three-zone shell; login is still through the real Auth sheet.
-    wait_visible(desc='Zadaci', timeout=60) if core_mode() else wait_visible(text='MENI TREBA', timeout=60)
+    # W03 native scope identifies the current List presentation independently
+    # from the core/SQL history boundary. Legacy journeys retain their anchor.
+    current_ai = os.environ.get('AI_REVIEW_SCOPE') in ('intake', 'marketplace')
+    wait_visible(desc='Zadaci', timeout=60) if core_mode() or current_ai else wait_visible(text='MENI TREBA', timeout=60)
 
 
 def switch_to_worker_workspace():
@@ -508,13 +511,15 @@ where r.need_id='{NEED_ID}'::uuid and p.account_id='{WORKER_USER_ID}'::uuid;
     if not row:
         raise AssertionError('W05 UI did not create Application')
     parts = row.split('|')
-    if parts[1] not in ('SUBMITTED', 'VIEWED', 'SHORTLISTED') or parts[2] != '3000' or parts[3] != '1':
+    slots = core_fixture()['requiredSlots'] if os.environ.get('AI_REVIEW_SCOPE') == 'marketplace' else 1
+    if parts[1] not in ('SUBMITTED', 'VIEWED', 'SHORTLISTED') or parts[2] != '3000' or parts[3] != str(slots):
         raise AssertionError(f'Unexpected W05 Application: {row}')
     print(f'CHECKPOINT W05_RESPONSE_CREATED response={parts[0]} state={parts[1]}', flush=True)
     return parts[0]
 
 
 def assert_final_selection(response_id):
+    slots = core_fixture()['requiredSlots'] if os.environ.get('AI_REVIEW_SCOPE') == 'marketplace' else 1
     row = psql(f"""
 select a.id::text || '|' || a.requester_account_id::text || '|' || a.worker_account_id::text || '|' || a.selected_response_id::text
 from public.agreements a
@@ -533,7 +538,7 @@ where a.agreement_id='{agreement_id}'::uuid
   and a.beneficiary_account_id='{REQUESTER_USER_ID}'::uuid
   and a.worker_account_id='{WORKER_USER_ID}'::uuid
   and a.activation_reason='SELECTION'
-  and a.units=1
+  and a.units={slots}
   and a.platform_cost_rsd=0
   and a.state='SATISFIED'
   and a.policy_key='REQUESTER_SELECTION_V1'
@@ -599,8 +604,43 @@ def core_fixture():
     fixture=json.loads((ARTIFACT_DIR/'core-fixture.json').read_text(encoding='utf-8'))
     assert fixture['result']=='PASS' and fixture['sourceSha']==os.environ['GITHUB_SHA'] and fixture['localOnly']
     assert fixture['needId']==NEED_ID and fixture['requesterId']==REQUESTER_USER_ID and fixture['workerId']==WORKER_USER_ID
-    assert fixture['publicationProof'] is False and fixture['productionPolicyActivation'] is False
+    assert fixture['productionPolicyActivation'] is False
+    if os.environ.get('AI_REVIEW_SCOPE') == 'marketplace':
+        from hashlib import sha256
+        original=(ARTIFACT_DIR/'marketplace-publication.json').read_bytes()
+        publication=json.loads(original)
+        assert sha256(original).hexdigest()==fixture['publicationSha256']
+        assert publication['result']=='PASS' and publication['sourceSha']==os.environ['GITHUB_SHA'] and publication['localOnly']
+        assert publication['needId']==NEED_ID and publication['requesterId']==REQUESTER_USER_ID and publication['workerId']==WORKER_USER_ID
+        assert all(publication[k] is True for k in ('actualNativePins','actualB06','actualB07','publicationProof','privateLocationHiddenFromWorker'))
+        assert publication['providerProof'] is False and publication['productionPolicyActivation'] is False
+        assert publication['historyCount']==108 and publication['nativeBoundary']==core_native_admission()
+        assert fixture['publicationProof'] is True and fixture['aiProof'] is True and fixture['requiredSlots']==3
+        assert fixture['syntheticFixturePrecondition'] is False
+        assert fixture['nativeHistoryRequired']==108
+    else:
+        assert fixture['publicationProof'] is False
     return fixture
+
+
+def core_history_required():
+    return 108 if os.environ.get('AI_REVIEW_SCOPE')=='marketplace' else 106
+
+
+def core_native_admission():
+    original_path=ARTIFACT_DIR/'ai-review-admission.json' if os.environ.get('AI_REVIEW_SCOPE')=='marketplace' else Path('artifacts/ai-review-device/ai-review-admission.json')
+    original=json.loads(original_path.read_text(encoding='utf-8'))
+    assert original['sourceSha']==os.environ['GITHUB_SHA'] and original['historyCount']==106 and original['localOnly']
+    if os.environ.get('AI_REVIEW_SCOPE')!='marketplace':
+        return original
+    report=json.loads((ARTIFACT_DIR/'native-successors-admission.json').read_text(encoding='utf-8'))
+    assert report['result']=='PASS' and report['unit']=='NATIVE_MARKETPLACE_SOURCE108'
+    assert report['source_sha']==os.environ['GITHUB_SHA'] and report['source_migration_count']==report['history_count']==108
+    assert report['original_history_count']==106
+    assert all(report[k] is True for k in ('localOnly','original_history_preserved','business_and_policy_rows_preserved'))
+    assert all(report[k] is False for k in ('live_access','live_promotion','provider_called','policy_activated','transport_enabled','concurrency_proven'))
+    assert re.fullmatch('[a-f0-9]{64}',report['history_sha256']) and len(report['applied_successors'])==2 and report['input_sha256']
+    return report
 
 
 def assert_core_gates():
@@ -609,13 +649,13 @@ def assert_core_gates():
             'retention':'private.retention_policy_sets','markets':'private.location_market_configs'}
     for key,table in tables.items():
         actual=psql(f"select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]'::jsonb)::text) from {table} x")
-        assert actual==fixture['baseline'][key], 'Inert canonical registry/decision baseline changed'
+        assert actual==fixture['baseline'][key], 'Admitted core registry/decision baseline changed'
     for table in ('preselection_qa_questions','preselection_qa_answer_versions','preselection_qa_policy_decisions','preselection_qa_materiality_decisions','preselection_qa_commands'):
         assert psql(f'select count(*) from private.{table}')=='0'
     assert psql("select count(*) from public.needs where mode='FASTEST'")=='0'
     assert psql("select count(*) from public.need_selections where selection_mode='AUTO_FILL'")=='0'
-    assert psql('select count(*) from supabase_migrations.schema_migrations')=='106'
-    print('CHECKPOINT GATES_UNCHANGED exact106 inert_registry_baseline zero_policy_activation',flush=True)
+    assert psql('select count(*) from supabase_migrations.schema_migrations')==str(core_history_required())
+    print(f'CHECKPOINT GATES_UNCHANGED exact{core_history_required()} admitted_registry_baseline production_policy_activation=false',flush=True)
 
 
 def core_map_preview():
@@ -653,16 +693,16 @@ def core_selection_receipt(response_id,agreement_id):
     assert data['needRevision']==data['commandNeedRevision']==data['activationNeedRevision']==fixture['needRevision']
     assert data['responseVersion']==data['commandVersion']==data['activationVersion']
     assert data['responseHash']==data['agreementHash']==data['commandHash']==data['activationHash']
-    terms=data['terms'];assert terms['price_rsd']==3000 and terms['covered_slots']==1 and terms['schedule_source']=='NEED_FIXED_WINDOW'
+    terms=data['terms'];assert terms['price_rsd']==3000 and terms['covered_slots']==fixture.get('requiredSlots',1) and terms['schedule_source']=='NEED_FIXED_WINDOW'
     assert psql(f"select ({repr(terms['proposed_start_at'])}::timestamptz='{fixture['startAt']}'::timestamptz and {repr(terms['proposed_end_at'])}::timestamptz='{fixture['endAt']}'::timestamptz)::text")=='true'
     for query in [f"select count(*) from private.response_submit_commands where response_id='{response_id}'",
                   f"select count(*) from private.response_application_snapshots where response_id='{response_id}'",
                   f"select count(*) from private.selection_commands where agreement_id='{agreement_id}'",
                   f"select count(*) from public.agreements where need_id='{NEED_ID}'"]:
         assert psql(query)=='1'
-    report={'result':'PASS','sourceSha':os.environ['GITHUB_SHA'],'localOnly':True,'historyCount':106,
+    report={'result':'PASS','sourceSha':os.environ['GITHUB_SHA'],'localOnly':True,'historyCount':core_history_required(),
             'actualNativeApply':True,'actualNativeSelect':True,'actualNativeMapSelection':True,
-            'publicationProof':False,'productionPolicyActivation':False,'providerProof':False,**data}
+            'publicationProof':fixture['publicationProof'],'productionPolicyActivation':False,'providerProof':False,**data}
     (ARTIFACT_DIR/'core-selection.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     return data
 
@@ -728,9 +768,10 @@ def core_capture_application_success(timeout=40):
 
 def core_journey():
     from d03_chat_local_rest import validate_local_targets
-    validate_local_targets(os.environ);fixture=core_fixture()
-    admission=json.loads(Path('artifacts/ai-review-device/ai-review-admission.json').read_text(encoding='utf-8'))
-    assert admission['sourceSha']==os.environ['GITHUB_SHA'] and admission['historyCount']==106 and admission['localOnly']
+    validate_local_targets(os.environ)
+    if os.environ.get('AI_REVIEW_SCOPE')=='marketplace':
+        subprocess.run(['node','scripts/ci/owned-intake-proof.mjs','admit108'],check=True,timeout=60)
+    core_native_admission();fixture=core_fixture()
     assert_core_gates()
     assert psql(f"select count(*) from public.marketplace_responses where need_id='{NEED_ID}'")=='0'
     print('START CORE_NATIVE_TWO_ACCOUNT',flush=True)
@@ -738,7 +779,14 @@ def core_journey():
     tap(desc='Zadaci',prefer='bottom');wait_visible(desc=f'Otvorite priliku {NEED_TITLE}',timeout=45)
     shot('W03_worker_opportunity_list');core_map_preview();shot('W04_worker_need_detail')
     tap(desc='Sastavi prijavu');wait_visible(text='Tvoja prijava');wait_visible(desc='Cena za ponuđeni obim (RSD)')
-    edit_text(0,'3000');hide_keyboard();shot('W05_worker_application_draft');tap(desc='Pošalji ovu Prijavu')
+    edit_text(0,'3000');hide_keyboard()
+    if os.environ.get('AI_REVIEW_SCOPE')=='marketplace':
+        root,parent=wait_surface(desc='Ljudi')
+        inputs=[n for n in root.iter() if n.attrib.get('class')=='android.widget.EditText']
+        people=[n for n in inputs if n.attrib.get('content-desc')=='Ljudi']
+        assert len(people)==1, 'Actual people field required for preserved3-slot Need'
+        edit_text(inputs.index(people[0]),str(fixture['requiredSlots']));hide_keyboard()
+    shot('W05_worker_application_draft');tap(desc='Pošalji ovu Prijavu')
     core_capture_application_success();tap(desc='Otvori moje prijave')
     wait_visible(text=NEED_TITLE);wait_visible(text='Poslata');shot('W06_worker_own_application');response_id=assert_worker_submit()
     core_switch_account(REQUESTER_EMAIL);shot('AUTH_requester_authenticated');tap(desc='Zadaci',prefer='bottom')

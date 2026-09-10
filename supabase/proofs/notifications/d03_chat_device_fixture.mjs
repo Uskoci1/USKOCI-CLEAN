@@ -6,6 +6,7 @@ import {readFileSync,writeFileSync,existsSync,realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {readD03ChatSourceAdmission} from './d03_chat_device_source_admission.mjs';
+import {createHash} from 'node:crypto';
 
 const env=process.env,out=env.RU5_DEVICE_ARTIFACT_DIR;
 assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL,env.RU5_DEVICE_DB_URL);
@@ -25,6 +26,9 @@ const sql=query=>execFileSync('psql',[env.RU5_DEVICE_DB_URL,'-X','-v','ON_ERROR_
 const rows=query=>JSON.parse(sql(`select coalesce(json_agg(x),'[]'::json) from (${query}) x`));
 
 if(env.RU5_DEVICE_CORE106==='1') {
+  const marketplace=env.AI_REVIEW_SCOPE==='marketplace';
+  const nativeBoundary=marketplace?await (await import('../../../scripts/ai_review_fixture.mjs')).admitMarketplaceNativeBoundary(env):null;
+  const historyRequired=marketplace?108:106;
   const fixture=JSON.parse(readFileSync(join(out,'core-fixture.json'),'utf8'));
   const core=JSON.parse(readFileSync(join(out,'core-selection.json'),'utf8'));
   const admission=JSON.parse(readFileSync('artifacts/ai-review-device/ai-review-admission.json','utf8'));
@@ -32,8 +36,19 @@ if(env.RU5_DEVICE_CORE106==='1') {
   assert.equal(core.result,'PASS');assert.equal(core.actualNativeApply,true);assert.equal(core.actualNativeSelect,true);assert.equal(core.actualNativeMapSelection,true);
   assert.equal(core.agreementId,agreement);assert.equal(core.needId,need);assert.equal(core.requesterId,requester);assert.equal(core.workerId,worker);
   assert.equal(admission.historyCount,106);assert.equal(admission.localOnly,true);assert.equal(fixture.productionPolicyActivation,false);
+  if(marketplace) {
+    const bytes=readFileSync(join(out,'marketplace-publication.json')),publication=JSON.parse(bytes);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'),fixture.publicationSha256);
+    assert.equal(publication.result,'PASS');assert.equal(publication.sourceSha,env.GITHUB_SHA);assert.equal(publication.needId,need);
+    assert.equal(publication.requesterId,requester);assert.equal(publication.workerId,worker);
+    assert.equal(publication.historyCount,108);assert.deepEqual(publication.nativeBoundary,nativeBoundary);
+    assert.equal(core.historyCount,108);assert.equal(fixture.nativeHistoryRequired,108);
+    assert.equal(publication.actualB06,true);assert.equal(publication.actualB07,true);assert.equal(publication.actualNativePins,true);
+    assert.equal(publication.productionPolicyActivation,false);assert.equal(fixture.publicationProof,true);assert.equal(core.publicationProof,true);
+    assert.equal(core.terms.covered_slots,3);assert.equal(fixture.requiredSlots,3);
+  } else {assert.equal(fixture.publicationProof,false);assert.equal(core.publicationProof,false);}
   const before=rows('select count(*)::int count,max(version) head,md5(jsonb_agg(to_jsonb(m) order by version)::text) full_metadata_md5 from supabase_migrations.schema_migrations m')[0];
-  assert.equal(before.count,106);
+  assert.equal(before.count,historyRequired);
   assert.equal(sql(`select count(*) from public.agreements where id='${agreement}' and need_id='${need}' and requester_account_id='${requester}' and worker_account_id='${worker}' and status='CONFIRMED'`),'1');
   assert.equal(sql(`select count(*) from public.agreement_messages where agreement_id='${agreement}'`),'0');
   assert.equal(sql(`select count(*) from private.connection_activations where agreement_id='${agreement}' and response_content_hash='${core.responseHash}' and response_version=${core.responseVersion} and platform_cost_rsd=0 and policy_key='REQUESTER_SELECTION_V1' and state='SATISFIED'`),'1');
@@ -41,12 +56,12 @@ if(env.RU5_DEVICE_CORE106==='1') {
   assert.equal(sql("select md5(prosrc) from pg_proc where oid='public.rpc_send_agreement_message_v2(uuid,uuid,text,text)'::regprocedure"),'8020a93751f4915bffff0fac5524ad64');
   assert.equal(sql("select md5(prosrc) from pg_proc where oid='public.rpc_send_agreement_message(uuid,text)'::regprocedure"),'d9a3733814e3101a3941284c07dc2bed');
   const report={result:'PASS',sourceSha:env.GITHUB_SHA,runId:env.GITHUB_RUN_ID,localOnly:true,liveAccess:false,providerCalled:false,
-    fullCanonicalHistoryReplay:true,nativeBoundary:'EXACT106_UI_CREATED_CORE_AGREEMENT',agreementId:agreement,requesterId:requester,workerId:worker,
+    fullCanonicalHistoryReplay:true,nativeBoundary:`EXACT${historyRequired}_UI_CREATED_CORE_AGREEMENT`,...(nativeBoundary?{successorAdmission:nativeBoundary}:{}),agreementId:agreement,requesterId:requester,workerId:worker,
     historyBefore:before,historyAfter:before,alreadyApplied:[...sources.alreadyApplied,...sources.additions],applied:[],
     messageEventsBefore:Number(sql("select count(*) from public.user_activity_events where event_type='MESSAGE_RECEIVED'")),
-    publicationProof:false,productionPolicyActivation:false,coreSelection:core};
+    publicationProof:core.publicationProof,productionPolicyActivation:false,coreSelection:core};
   writeFileSync(join(out,'d03-native-db-boundary.json'),JSON.stringify(report,null,2)+'\n');
-  console.log('PASS D03_NATIVE_CORE106_ADMISSION actual_UI_agreement no_DDL history_unchanged');
+  console.log(`PASS D03_NATIVE_CORE${historyRequired}_ADMISSION actual_UI_agreement no_DDL history_unchanged`);
 } else {
 const inbox=readFileSync(join(out,'proof-inbox.log'),'utf8'),navigation=readFileSync(join(out,'proof-navigation.log'),'utf8');
 assert.ok(inbox.includes('PASS N04_PHYSICAL_INBOX'));assert.ok(navigation.includes('PASS PHYSICAL_INTENT_SHELL'));
