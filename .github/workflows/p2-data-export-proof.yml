@@ -43,6 +43,9 @@ jobs:
           node --check supabase/proofs/legal/p2_data_export_proof.mjs
           node --check supabase/proofs/legal/p2_data_export_predecessor.mjs
           node --test supabase/proofs/legal/p2_data_export_predecessor.test.mjs
+          node --test supabase/proofs/legal/p2_export_delivery_source_boundary.test.mjs
+          node --check supabase/proofs/legal/p2_export_delivery_proof.mjs
+          node --test supabase/proofs/legal/data_export_edge.test.mjs
           node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
           python3 supabase/migrations/check_migration_integrity.py
       - name: Reconstruct disposable historical live79
@@ -76,6 +79,16 @@ jobs:
           node --check supabase/proofs/legal/p2_data_export_client_proof.cjs
           node supabase/proofs/legal/p2_data_export_client_proof.cjs
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P2_ARTIFACT_DIR+"/client-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.mocked_rpc_responses || r.client_path_sql_writes || r.live_access || r.live_promotion || r.export_artifact_generated || r.checks.length!==5) process.exit(1);'
+      - name: Apply exact delivery104 and prove real Auth, Storage, download and cleanup
+        shell: bash
+        env:
+          P2_DELIVERY_DISPOSABLE_PROOF: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p "$P2_ARTIFACT_DIR/delivery"
+          node supabase/proofs/legal/p2_export_delivery_proof.mjs 2>&1 | tee "$P2_ARTIFACT_DIR/delivery/proof.log"
+          grep -F 'PASS P2_EXPORT_DELIVERY' "$P2_ARTIFACT_DIR/delivery/proof.log"
+          node supabase/proofs/legal/p2_export_delivery_report_gate.mjs
       - name: Upload exact source-bound disposable evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

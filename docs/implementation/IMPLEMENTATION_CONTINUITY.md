@@ -1,8 +1,8 @@
-## CURRENT POINTER — 2026-09-07 / NOTIFICATIONS + ANDROID INBOX
+## CURRENT POINTER — 2026-09-10 / W05 CANONICAL AND LIVE103; P2 DELIVERY NEXT
 
-Current status and proof owner: `docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md` (top checkpoint). N02/N03/N05/N06 backend source and N04 real Inbox/bell are CANONICAL / PROVEN at recorded boundaries; N04 native Android run34096462936 has all10 original PNG/XML pairs reviewed. N07 five exact forward migrations are canonical at PR #46 / 4858370610192b88112673b08bde151793409e99, with combined proof run34099067010 and canonical PRE-P4/CodeQL/Control-0 PASS. Fresh limited configured Supabase reads succeeded; live still79/head20260906141409, no production write. Explicit authorization and a new exact preflight/postflight are required for live apply. Do not restart closed RU-5 physical/N01–N06 units or mistake source/proof for live/Store readiness.
+Current status and proof owner: [CURRENT_IMPLEMENTATION_STATUS.md](CURRENT_IMPLEMENTATION_STATUS.md). [PR91](https://github.com/Uskoci1/USKOCI-CLEAN/pull/91) is canonical at `eb125177050d77be8ea5192d1fb83d6b94e54e04`; [exact-head CI](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34498940991) and CodeQL pass. SQL103 and publication Edge v1 have exact source readback and accepted metadata postflight. [Live103 evidence](evidence/w05-live103-20260910/verification.json) records the completed technical promotion; executable policy activation, real provider and native publication proof remain deferred.
 
-Older cursor/read-blocked claims below are retained historical provenance, not active instructions. Follow the current status owner for exact SHAs, jobs/artifacts/checksums, pending files and remaining independent work.
+Continue the existing P2 delivery batch: working source104 is the one unpromoted forward after canonical/live103. Preserve the frozen historical87 replay metadata and earlier accepted units. Older checkpoints below keep their historical scope and do not override the current status owner.
 
 ---
 

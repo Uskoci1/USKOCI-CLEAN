@@ -1,6 +1,6 @@
 {
   "unit": "W05_PUBLICATION_ADMISSION_20260910",
-  "state": "WRITTEN_UI_CONNECTED_TARGETED_SOURCE_PROVEN_DB_CI_MERGE_LIVE_PENDING",
+  "state": "HISTORICAL_SOURCE_RECORD_SUPERSEDED_BY_VERIFIED_PR91_LIVE103",
   "recordedAt": "2026-09-10T15:21:32.255Z",
   "evidence_kind": "CURRENT_SOURCE_HASHES_AND_RECORDED_LOCAL_CHECKS",
   "base_canonical": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
@@ -365,5 +365,12 @@
       "source_relation_verified": true,
       "corrected_proof_db_result": "PENDING_NEW_SOURCE_CI"
     }
-  ]
+  ],
+  "promotion_checkpoint": {
+    "evidence": "docs/implementation/evidence/w05-live103-20260910/verification.json",
+    "canonical": "eb125177050d77be8ea5192d1fb83d6b94e54e04",
+    "pr": 91,
+    "live_migration_count": 103,
+    "scope": "The local-check and failed-CI entries below retain their original historical boundaries. The linked checkpoint records completed exact-head CI, merge and controlled SQL/Edge promotion."
+  }
 }

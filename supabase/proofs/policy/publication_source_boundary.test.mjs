@@ -1,23 +1,51 @@
 import assert from 'node:assert/strict';
+import {copyFileSync,mkdirSync,mkdtempSync,readFileSync,readdirSync,renameSync,rmSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {basename,dirname,join,resolve,sep} from 'node:path';
 import {test} from 'node:test';
 import {readD0140aPredecessorPlan} from './d0140a_bundle_registration_predecessor.mjs';
-import {publicationBoundary,publicationForward} from './publication_source_boundary.mjs';
+import {publicationBoundary,publicationForward,exportDeliveryForward} from './publication_source_boundary.mjs';
 
-test('source103 is fully admitted while old D0140 assertions retain the exact102 boundary',()=>{
+test('source104 is fully admitted while D0140 stays at102 and W05 applies only103',()=>{
   const plan=readD0140aPredecessorPlan(),result=publicationBoundary(plan);
-  assert.equal(plan.source_migration_count,103);
+  assert.equal(plan.source_migration_count,104);
   assert.deepEqual(result.fullPlan,plan);
   assert.equal(result.predecessorPlan.source_migration_count,102);
-  assert.deepEqual(result.predecessorPlan.pending_successors.concat(result.next),plan.pending_successors);
+  assert.deepEqual(result.predecessorPlan.pending_successors.concat(result.next,result.deferredSuccessors),plan.pending_successors);
   assert.equal(result.next.file,publicationForward);
+  assert.deepEqual(result.deferredSuccessors.map(x=>x.file),[exportDeliveryForward]);
   assert.equal(result.predecessorPlan.source_inventory.at(-1).file,'20260910130851_clean_w02_resolved_location_authority.sql');
+  assert.equal(result.predecessorPlan.source_inventory.length,102);
 });
 
 test('unknown or additional authority successors cannot silently evade old invariants',()=>{
   const plan=readD0140aPredecessorPlan();
-  assert.throws(()=>publicationBoundary({...plan,source_migration_count:104}));
-  const unknown=structuredClone(plan);unknown.pending_successors.at(-1).file='20260910144645_unknown.sql';
+  for(const count of [102,103,105])assert.throws(()=>publicationBoundary({...plan,source_migration_count:count}));
+  const unknown=structuredClone(plan);unknown.pending_successors.at(-1).file='20260910153006_unknown.sql';
   assert.throws(()=>publicationBoundary(unknown));
-  const wrongInventory=structuredClone(plan);wrongInventory.source_inventory.at(-1).file='20260910144645_unknown.sql';
+  const wrongInventory=structuredClone(plan);wrongInventory.source_inventory.at(-1).file='20260910153006_unknown.sql';
   assert.throws(()=>publicationBoundary(wrongInventory));
+  const reordered=structuredClone(plan);reordered.pending_successors.splice(-2,2,...reordered.pending_successors.slice(-2).reverse());
+  assert.throws(()=>publicationBoundary(reordered));
+  const changedDigest=structuredClone(plan);changedDigest.pending_successors.at(-1).md5='0'.repeat(32);
+  assert.throws(()=>publicationBoundary(changedDigest));
+});
+
+for(const mutation of ['missing','changed','unknown'])test('full admission rejects '+mutation+' SQL104 before the W05 boundary',()=>{
+  const root=mkdtempSync(join(tmpdir(),'w05-admission-'));
+  assert.ok(root.startsWith(resolve(tmpdir())+sep)&&basename(root).startsWith('w05-admission-'));
+  try{
+    const predecessor='supabase/proofs/policy/d0140a_bundle_registration_predecessor_files.json';
+    const admitted=JSON.parse(readFileSync(predecessor,'utf8'));
+    const paths=[predecessor,'supabase/proofs/policy/d0140a_bundle_registration_files.json',
+      admitted.d03.manifest,admitted.ai_draft.manifest,'supabase/migrations/MIGRATION_PROVENANCE.json',
+      ...readdirSync('supabase/migrations').filter(x=>x.endsWith('.sql')).map(x=>'supabase/migrations/'+x)];
+    for(const path of paths){const target=join(root,path);mkdirSync(dirname(target),{recursive:true});copyFileSync(path,target);}
+    assert.equal(publicationBoundary(readD0140aPredecessorPlan(root)).fullPlan.source_migration_count,104);
+    const target=join(root,'supabase/migrations',exportDeliveryForward);
+    if(mutation==='missing')rmSync(target);
+    if(mutation==='changed')writeFileSync(target,'-- altered SQL104 bytes\n');
+    if(mutation==='unknown')renameSync(target,join(dirname(target),'20260910153006_unknown.sql'));
+    assert.throws(()=>publicationBoundary(readD0140aPredecessorPlan(root)),/SOURCE_PROVENANCE_INVENTORY_MISMATCH|PENDING_MD5_CHANGED/);
+  }finally{rmSync(root,{recursive:true,force:true});}
 });

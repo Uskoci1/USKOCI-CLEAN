@@ -19,6 +19,8 @@ const out=(env.D0140A_ARTIFACT_DIR||'artifacts/d0140a-bundle-registration')+'/w0
 mkdirSync(out,{recursive:true});
 const report={unit:'W05_PUBLICATION_AUTHORITY',source_sha:env.GITHUB_SHA??null,run_id:env.GITHUB_RUN_ID??null,
   result:'RUNNING',checks:[],input_sha256:{},source_inventory:boundary.fullPlan.source_inventory,
+  admitted_source_count:boundary.fullPlan.source_migration_count,applied_source_boundary:103,
+  deferred_authority_successors:boundary.deferredSuccessors,
   live_access:false,live_promotion:false,provider_called:false,legal_content_real:false,
   policy_activated_live:false,policy_fixture:'EXPLICIT_SYNTHETIC_DISPOSABLE_REVIEW_ONLY',
   mocked_rpc_responses:false,location_fixture_sql:false,published_status_fixture_sql:false,
@@ -159,7 +161,8 @@ try {
   assert.equal(JSON.parse(history).length,102);
   const beforeAcl=sql("select jsonb_agg(jsonb_build_array(oid,proacl) order by oid)::text from pg_proc where pronamespace in ('public'::regnamespace,'private'::regnamespace)");
   preserved=Object.fromEntries(['private.worker_calendar_events','private.response_application_snapshots','public.profile_availability_rules','public.profile_availability_windows','private.location_market_configs','public.agreements'].map(table=>[table,tableHash(table)]));
-  const file='supabase/migrations/'+publicationForward,bytes=readFileSync(file),entry=boundary.fullPlan.source_inventory.at(-1);
+  const file='supabase/migrations/'+publicationForward,bytes=readFileSync(file),entry=boundary.fullPlan.source_inventory[102];
+  assert.equal(entry.file,publicationForward);
   assert.equal(digest('md5',bytes),boundary.next.md5);assert.equal(digest('sha256',bytes),entry.sha256);assert.equal(bytes.length,entry.bytes);
   try{execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f',file],{stdio:'pipe'});}catch(error){const stderr=String(error.stderr);report.apply_failure={sqlstate:stderr.match(/ERROR:\s+([A-Z0-9]{5}):/)?.[1]??'UNKNOWN',line:Number(stderr.match(/\.sql:(\d+):/)?.[1])||null};throw new Error('EXACT_SQL103_APPLY_FAILED');}
   sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(boundary.next.version)},${q(boundary.next.name)},array[${q(bytes.toString('utf8'))}])`);
