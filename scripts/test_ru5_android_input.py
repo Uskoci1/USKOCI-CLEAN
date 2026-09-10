@@ -4,13 +4,14 @@ import contextlib
 import io
 from pathlib import Path
 import subprocess
+import tempfile
 import types
 import unittest
 from xml.etree import ElementTree as ET
 
 SOURCE = Path(__file__).with_name('ru5_android_device_ui_journey.py')
 # Load function definitions only; never execute top-level Auth/device/DB journey.
-DEFINITIONS = ast.Module(body=[node for node in ast.parse(SOURCE.read_text()).body
+DEFINITIONS = ast.Module(body=[node for node in ast.parse(SOURCE.read_text(encoding='utf-8')).body
                                if isinstance(node, ast.FunctionDef)], type_ignores=[])
 
 
@@ -246,6 +247,230 @@ class AndroidInputHarnessTests(unittest.TestCase):
         bottom = ET.SubElement(root, 'node', {'class': 'android.widget.EditText', 'bounds': '[0,200][400,300]'})
         top = ET.SubElement(root, 'node', {'class': 'android.widget.EditText', 'bounds': '[0,100][400,150]'})
         self.assertEqual(ns['ordered_edit_fields'](root), [top, bottom])
+
+
+class Core106HarnessTests(unittest.TestCase):
+    def namespace(self):
+        import json, re
+        from unittest.mock import Mock
+        ns={'CORE106':True,'re':re,'json':json,'run':Mock()}
+        exec(compile(DEFINITIONS,str(SOURCE),'exec'),ns)
+        return ns
+
+    def test_historical_path_remains_default_and_core_is_explicit(self):
+        ns=self.namespace();self.assertTrue(ns['core_mode']());ns['CORE106']=False;self.assertFalse(ns['core_mode']())
+
+    def test_core_profile_uses_observed_actionable_control_only(self):
+        from unittest.mock import Mock
+        ns=self.namespace();root=ET.fromstring('<hierarchy><node content-desc="Moj profil" clickable="true" enabled="true" bounds="[0,0][50,50]" /></hierarchy>')
+        ns['dump_tree']=Mock(return_value=(root,{root[0]:root},''));ns['tap']=Mock()
+        ns['core_profile']();ns['tap'].assert_called_once_with(desc='Moj profil',prefer='top')
+        ns['dump_tree']=Mock(return_value=(ET.fromstring('<hierarchy/>'),{},''))
+        with self.assertRaises(AssertionError):ns['core_profile']()
+
+    def test_core_account_switch_reaches_real_list_before_profile(self):
+        from unittest.mock import Mock
+        ns=self.namespace(); events=[]
+        for name in ('tap','core_profile','wait_visible','assert_signed_out_surface','login','switch_to_worker_workspace'):
+            ns[name]=Mock(side_effect=lambda *args,_name=name,**kwargs:events.append((_name,args,kwargs)))
+        ns['core_switch_account']('synthetic@example.invalid',worker=True)
+        self.assertEqual(events[0],('tap',(),{'desc':'Zadaci','prefer':'bottom'}))
+        self.assertEqual(events[1],('core_profile',(),{}))
+        self.assertEqual(events[-2],('login',('synthetic@example.invalid',),{}))
+        self.assertEqual(events[-1],('switch_to_worker_workspace',(),{}))
+
+    def test_core_flow_has_no_business_rpc_or_session_injection(self):
+        source=SOURCE.read_text(encoding='utf-8')
+        core=next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=='core_journey')
+        rendered=ast.unparse(core)
+        self.assertNotIn('rpc_',rendered);self.assertNotIn('set_config',rendered);self.assertNotIn('am start',rendered)
+        for label in ['Pošalji ovu Prijavu','Pregledaj povezivanje','Izaberi ovu Prijavu','Otvori Dogovor']:
+            self.assertIn(label,rendered)
+        self.assertEqual(rendered.count('launch_clean()'),1)
+
+
+class SystemDialogModel:
+    """Actual helper functions, fake adb transport; no device or Auth operations."""
+    package = 'rs.uskoci.n04proof'
+
+    def __init__(self, directory):
+        import json, re
+        self.clock = 0.0
+        self.closed = False
+        self.persistent = False
+        self.changed_pid = False
+        self.restore_focus = True
+        self.calls = []
+        self.root = self.dialog()
+        self.initial_focus = 'Application Not Responding: com.android.launcher3'
+        self.ns = {'re': re, 'json': json, 'ET': ET, 'PACKAGE': self.package,
+                   'MAIN_ACTIVITY': self.package + '/.MainActivity', 'ARTIFACT_DIR': Path(directory),
+                   'time': types.SimpleNamespace(monotonic=lambda: self.clock, time=lambda: self.clock, sleep=self.sleep),
+                   'subprocess': types.SimpleNamespace(run=self.run, CalledProcessError=subprocess.CalledProcessError)}
+        exec(compile(DEFINITIONS, str(SOURCE), 'exec'), self.ns)
+
+        def dump(name=None):
+            root = self.root
+            raw = ET.tostring(root, encoding='unicode')
+            dump.last_observation = (root, raw)
+            if name:
+                (Path(directory) / (name + '.xml')).write_text(raw, encoding='utf-8')
+            return root, {child: p for p in root.iter() for child in p}, raw
+        self.ns['dump_tree'] = dump
+
+    def sleep(self, seconds):
+        self.clock += seconds
+
+    @staticmethod
+    def dialog(title="Quickstep isn't responding", package='android'):
+        root = ET.Element('hierarchy')
+        for text, resource, clickable, bounds in (
+                (title, 'alertTitle', 'false', '[133,1033][947,1104]'),
+                ('Close app', 'aerr_close', 'true', '[70,1143][1010,1269]'),
+                ('Wait', 'aerr_wait', 'true', '[70,1269][1010,1395]')):
+            ET.SubElement(root, 'node', {'text': text, 'resource-id': 'android:id/' + resource,
+                                        'package': package, 'clickable': clickable, 'enabled': 'true', 'bounds': bounds})
+        return root
+
+    def app(self):
+        return ET.fromstring('<hierarchy><node package="rs.uskoci.n04proof" text="Target" '
+                             'clickable="true" enabled="true" bounds="[0,0][100,100]" /></hierarchy>')
+
+    def run(self, args, **kwargs):
+        self.calls.append((args, kwargs))
+        if kwargs.get('timeout') is not None:
+            assert 0 < kwargs['timeout'] <= 5
+        command = args[1:]
+        if command == ['shell', 'dumpsys', 'window', 'displays']:
+            focus = self.initial_focus
+            if self.closed and not self.persistent:
+                focus = self.package + '/' + self.package + '.MainActivity' if self.restore_focus else 'com.android.launcher3/.Home'
+            return types.SimpleNamespace(stdout=f'  mCurrentFocus=Window{{f852081 u0 {focus}}}\n')
+        if command == ['exec-out', 'screencap', '-p']:
+            return types.SimpleNamespace(stdout=b'ORIGINAL_SCREEN_BYTES')
+        if command == ['shell', 'pidof', self.package]:
+            return types.SimpleNamespace(stdout='456\n' if self.closed and self.changed_pid else '123\n')
+        if command[:3] == ['shell', 'input', 'tap']:
+            assert command == ['shell', 'input', 'tap', '540', '1206'], 'Only observed Close app coordinates allowed'
+            self.closed = True
+            return types.SimpleNamespace(stdout='')
+        if command == ['shell', 'uiautomator', 'dump', '/sdcard/window.xml']:
+            return types.SimpleNamespace(stdout='')
+        if command == ['shell', 'cat', '/sdcard/window.xml']:
+            return types.SimpleNamespace(stdout=ET.tostring(self.root if self.persistent else self.app(), encoding='unicode'))
+        raise AssertionError('Unexpected adb operation')
+
+    def recover(self):
+        root, parent, _ = self.ns['dump_tree']()
+        return self.ns['dismiss_known_system_anr'](root, parent)
+
+
+class QuickstepRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.model = SystemDialogModel(self.directory.name)
+
+    def assert_fatal(self, action):
+        with self.assertRaises(RuntimeError) as caught:
+            action()
+        self.assertTrue(getattr(caught.exception, 'native_surface_fatal', False))
+
+    def test_exact_original_quickstep_geometry_closes_once_and_verifies_live_app(self):
+        import json
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertTrue(self.model.recover())
+        self.assertIn('unchanged_app_pid focused_app no_anr', output.getvalue())
+        p = Path(self.directory.name)
+        self.assertEqual((p / 'SYSTEM_ANR_001.png').read_bytes(), b'ORIGINAL_SCREEN_BYTES')
+        self.assertIn('Quickstep', (p / 'SYSTEM_ANR_001.xml').read_text())
+        self.assertIn('com.android.launcher3', (p / 'SYSTEM_ANR_001.windows.txt').read_text())
+        marker = json.loads((p / 'SYSTEM_QUICKSTEP_RECOVERY_USED.json').read_text())
+        self.assertTrue(marker['verified'])
+        self.assertEqual(marker['appPid'], '123')
+        commands = [c[0] for c in self.model.calls]
+        self.assertEqual(sum(c[1:4] == ['shell', 'input', 'tap'] for c in commands), 1)
+        self.assertFalse(any(x in c for c in commands for x in ['am', 'pm', 'force-stop', 'clear']))
+
+    def test_no_dialog_path_has_no_extra_adb_or_artifact_operations(self):
+        self.model.root = self.model.app()
+        # Ordinary application content is not a system error dialog.
+        self.model.root[0].set('text', "A tool isn't responding")
+        self.assertFalse(self.model.recover())
+        self.assertEqual(self.model.calls, [])
+        self.assertEqual(list(Path(self.directory.name).iterdir()), [])
+
+    def test_persistent_anr_fails_without_claiming_recovery_or_second_close(self):
+        self.model.persistent = True
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assert_fatal(self.model.recover)
+        self.assertNotIn('RECOVERED', output.getvalue())
+        self.assertEqual(len(list(Path(self.directory.name).glob('SYSTEM_ANR_*.xml'))), 2)
+        self.assertEqual(sum(c[0][1:4] == ['shell', 'input', 'tap'] for c in self.model.calls), 1)
+
+    def test_repeated_dialog_in_later_python_phase_cannot_restart_budget(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.model.recover()
+        later = SystemDialogModel(self.directory.name)
+        self.assert_fatal(later.recover)
+        self.assertFalse(later.closed)
+
+    def test_changed_app_pid_is_fatal_even_when_app_surface_is_visible(self):
+        self.model.changed_pid = True
+        self.assert_fatal(self.model.recover)
+
+    def test_missing_app_focus_has_bounded_readback_and_never_relaunches(self):
+        self.model.restore_focus = False
+        self.assert_fatal(self.model.recover)
+        self.assertLessEqual(self.model.clock, 15.5)
+        self.assertFalse(any('am' in c[0] for c in self.model.calls))
+
+    def test_app_unknown_systemui_and_spoofed_anr_never_receive_close(self):
+        for title, package, focus in (
+                ("USKOČI isn't responding", 'android', 'Application Not Responding: rs.uskoci.n04proof'),
+                ("Other app isn't responding", 'android', 'Application Not Responding: unknown'),
+                ("System UI isn't responding", 'android', 'Application Not Responding: com.android.systemui'),
+                ("Quickstep isn't responding", self.model.package, 'Application Not Responding: com.android.launcher3'),
+                ("Quickstep isn't responding", 'android', 'Application Not Responding: rs.uskoci.n04proof')):
+            with self.subTest(title=title, package=package, focus=focus):
+                self.model.root = self.model.dialog(title, package)
+                self.model.initial_focus = focus
+                self.assert_fatal(self.model.recover)
+                self.assertFalse(self.model.closed)
+
+    def test_missing_wrong_or_disabled_system_control_cannot_be_closed(self):
+        for attr, value in [('resource-id', 'fake:id/aerr_close'), ('enabled', 'false'), ('text', 'Wait'), ('bounds', '[0,0][0,0]')]:
+            with self.subTest(attr=attr):
+                self.model.root = self.model.dialog()
+                self.model.root[1].set(attr, value)
+                self.assert_fatal(self.model.recover)
+                self.assertFalse(self.model.closed)
+
+    def test_app_control_below_anr_is_not_accepted_or_tapped_and_fatal_escapes(self):
+        self.model.root = self.model.dialog("USKOČI isn't responding")
+        ET.SubElement(self.model.root, 'node', {'text': 'Target', 'class': 'android.widget.EditText',
+                      'package': self.model.package, 'clickable': 'true', 'enabled': 'true', 'bounds': '[0,0][100,100]'})
+        for name, args, kwargs in [('wait_nodes', (), {'text': 'Target'}), ('tap', (), {'text': 'Target'}),
+                                  ('edit_text', (0, 'synthetic'), {}), ('dismiss_ok', (), {})]:
+            with self.subTest(helper=name):
+                self.assert_fatal(lambda: self.model.ns[name](*args, **kwargs))
+        self.assertFalse(self.model.closed)
+
+    def test_capture_of_anr_is_retained_but_never_an_evidence_pass(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assert_fatal(lambda: self.model.ns['shot']('rejected'))
+        self.assertNotIn('EVIDENCE', output.getvalue())
+        self.assertTrue((Path(self.directory.name) / 'rejected.png').exists())
+        self.assertTrue((Path(self.directory.name) / 'rejected.xml').exists())
+
+    def test_timeout_is_fatal_and_not_swallowed_by_retry_helpers(self):
+        def timeout(*args, **kwargs):
+            raise subprocess.TimeoutExpired('adb', 5)
+        self.model.ns['system_dialog_adb'] = timeout
+        self.assert_fatal(lambda: self.model.ns['wait_nodes'](text='Target'))
 
 
 if __name__ == '__main__':

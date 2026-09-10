@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 import os
+import ast
+import json
 import re
 import subprocess
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+CORE106 = os.environ.get('RU5_DEVICE_CORE106') == '1'
 PACKAGE = os.environ.get('RU5_DEVICE_PACKAGE', 'rs.uskoci.ru5proof')
 MAIN_ACTIVITY = f'{PACKAGE}/.MainActivity'
 WORKER_EMAIL = os.environ['RU5_DEVICE_WORKER_EMAIL']
@@ -40,6 +43,7 @@ def dump_tree(save_name=None):
         (ARTIFACT_DIR / f'{save_name}.xml').write_text(xml_text, encoding='utf-8')
     root = ET.fromstring(xml_text)
     parent = {child: p for p in root.iter() for child in p}
+    dump_tree.last_observation = (root, xml_text)
     return root, parent, xml_text
 
 
@@ -97,34 +101,99 @@ def tap_node(node, parent, hold_ms=0):
     time.sleep(0.8)
 
 
-def dismiss_known_system_anr(root, parent):
-    """Dismiss only launcher/System UI starvation dialogs, never an USKOČI ANR."""
-    labels = [
-        f"{n.attrib.get('text', '')} {n.attrib.get('content-desc', '')}".strip()
-        for n in root.iter()
-        if n.attrib.get('text') or n.attrib.get('content-desc')
-    ]
-    system_anr = any(
-        ("Quickstep isn't responding" in label)
-        or ('Quickstep ne reaguje' in label)
-        or ("System UI isn't responding" in label)
-        or ('Sistemski korisnički interfejs ne reaguje' in label)
-        for label in labels
-    )
-    if not system_anr:
-        return False
+def native_surface_failure(reason):
+    # Function-only AST loaders share this marker without needing a new class.
+    error = RuntimeError(reason)
+    error.native_surface_fatal = True
+    raise error
 
-    wait_nodes = [
-        n for n in root.iter()
-        if n.attrib.get('text') in ('Wait', 'Sačekaj', 'Čekaj')
-        or n.attrib.get('content-desc') in ('Wait', 'Sačekaj', 'Čekaj')
-    ]
-    if not wait_nodes:
-        raise RuntimeError(f'Known system ANR present without safe Wait action: {labels[-30:]}')
-    tap_node(wait_nodes[-1], parent)
-    print('RECOVERED known_system_anr via Wait', flush=True)
-    time.sleep(1.5)
-    return True
+
+def has_native_anr(root):
+    return any(n.attrib.get('resource-id') in ('android:id/aerr_close', 'android:id/aerr_wait')
+               or (n.attrib.get('resource-id') == 'android:id/alertTitle'
+                   and ("isn't responding" in n.attrib.get('text', '')
+                        or 'ne reaguje' in n.attrib.get('text', ''))) for n in root.iter())
+
+
+def system_dialog_adb(*args, text=True, deadline=None):
+    remaining = 5 if deadline is None else min(5, deadline - time.monotonic())
+    if remaining <= 0:
+        native_surface_failure('Quickstep recovery deadline exceeded')
+    return subprocess.run(['adb', *args], check=True, capture_output=True, text=text, timeout=remaining)
+
+
+def current_focus_name(windows):
+    matches = re.findall(r'^\s*mCurrentFocus=Window\{[^{}\r\n]*\bu\d+ ([^{}\r\n]+)\}\s*$', windows, re.M)
+    return matches[0].strip() if len(matches) == 1 else None
+
+
+def retain_anr_diagnostic(root, windows):
+    index = len(list(ARTIFACT_DIR.glob('SYSTEM_ANR_*.xml'))) + 1
+    stem = ARTIFACT_DIR / f'SYSTEM_ANR_{index:03d}'
+    observed_root, raw = getattr(dump_tree, 'last_observation', (None, None))
+    # Preserve the actual raw hierarchy that triggered the rejection.
+    if observed_root is not root:
+        raw = ET.tostring(root, encoding='unicode')
+    stem.with_suffix('.xml').write_text(raw, encoding='utf-8')
+    stem.with_suffix('.windows.txt').write_text(windows, encoding='utf-8')
+    stem.with_suffix('.png').write_bytes(system_dialog_adb('exec-out', 'screencap', '-p', text=False).stdout)
+    return stem.name
+
+
+def dismiss_known_system_anr(root, parent):
+    """One verified Quickstep close; app, unknown or recurring ANRs are fatal."""
+    if not has_native_anr(root):
+        return False
+    try:
+        windows = system_dialog_adb('shell', 'dumpsys', 'window', 'displays').stdout
+        diagnostic = retain_anr_diagnostic(root, windows)
+        titles = [n for n in root.iter() if n.attrib.get('resource-id') == 'android:id/alertTitle']
+        close = [n for n in root.iter() if n.attrib.get('resource-id') == 'android:id/aerr_close']
+        wait = [n for n in root.iter() if n.attrib.get('resource-id') == 'android:id/aerr_wait']
+        if (len(titles) != 1 or titles[0].attrib.get('package') != 'android'
+                or titles[0].attrib.get('text') not in ("Quickstep isn't responding", 'Quickstep ne reaguje')
+                or current_focus_name(windows) != 'Application Not Responding: com.android.launcher3'
+                or len(close) != 1 or len(wait) != 1
+                or close[0].attrib.get('text') not in ('Close app', 'Zatvori aplikaciju')
+                or any(n.attrib.get('package') != 'android' or n.attrib.get('clickable') != 'true'
+                       or n.attrib.get('enabled') != 'true' for n in close + wait)):
+            native_surface_failure('App or unrecognized ANR; original diagnostic retained')
+        marker = ARTIFACT_DIR / 'SYSTEM_QUICKSTEP_RECOVERY_USED.json'
+        if marker.exists():
+            native_surface_failure('Repeated Quickstep ANR; no second recovery')
+        pid = system_dialog_adb('shell', 'pidof', PACKAGE).stdout.strip()
+        if not re.fullmatch(r'[1-9][0-9]*', pid):
+            native_surface_failure('USKOCI process unavailable before Quickstep recovery')
+        # This persists across the separate RU5/chat Python phases of one run.
+        with marker.open('x', encoding='utf-8') as handle:
+            json.dump({'diagnostic': diagnostic, 'appPid': pid, 'verified': False}, handle)
+        x1, y1, x2, y2 = parse_bounds(close[0].attrib.get('bounds'))
+        if x1 >= x2 or y1 >= y2:
+            native_surface_failure('Invalid Quickstep close bounds')
+        system_dialog_adb('shell', 'input', 'tap', str((x1 + x2) // 2), str((y1 + y2) // 2))
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            time.sleep(0.5)
+            system_dialog_adb('shell', 'uiautomator', 'dump', '/sdcard/window.xml', deadline=deadline)
+            xml = system_dialog_adb('shell', 'cat', '/sdcard/window.xml', deadline=deadline).stdout
+            fresh = ET.fromstring(xml)
+            focus = system_dialog_adb('shell', 'dumpsys', 'window', 'displays', deadline=deadline).stdout
+            if system_dialog_adb('shell', 'pidof', PACKAGE, deadline=deadline).stdout.strip() != pid:
+                native_surface_failure('USKOCI process changed during Quickstep recovery')
+            if has_native_anr(fresh):
+                dump_tree.last_observation = (fresh, xml)
+                retain_anr_diagnostic(fresh, focus)
+                native_surface_failure('ANR remains after the single Quickstep close')
+            if (current_focus_name(focus) in (MAIN_ACTIVITY, f'{PACKAGE}/{PACKAGE}.MainActivity')
+                    and any(n.attrib.get('package') == PACKAGE for n in fresh.iter())):
+                marker.write_text(json.dumps({'diagnostic': diagnostic, 'appPid': pid, 'verified': True}), encoding='utf-8')
+                print('RECOVERED exact_quickstep_close unchanged_app_pid focused_app no_anr', flush=True)
+                return True
+        native_surface_failure('App focus not restored after Quickstep close')
+    except Exception as exc:
+        if getattr(exc, 'native_surface_fatal', False):
+            raise
+        native_surface_failure('Quickstep diagnostic or bounded recovery failed')
 
 
 def find_nodes(**criteria):
@@ -139,13 +208,15 @@ def wait_nodes(timeout=40, minimum=1, save_timeout=True, **criteria):
     while time.time() < end:
         try:
             root, parent, _ = dump_tree()
+            if dismiss_known_system_anr(root, parent):
+                continue
             nodes = [n for n in root.iter() if matches(n, **criteria)]
             last = nodes
             if len(nodes) >= minimum:
                 return nodes, parent
-            if dismiss_known_system_anr(root, parent):
-                adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
         except Exception as exc:
+            if getattr(exc, 'native_surface_fatal', False):
+                raise
             print(f'WAIT_RETRY criteria={criteria} error={type(exc).__name__}:{exc}', flush=True)
         time.sleep(1)
 
@@ -167,6 +238,8 @@ def tap(prefer='bottom', timeout=40, hold_ms=0, **criteria):
     while time.time() < end:
         try:
             root, parent, _ = dump_tree()
+            if dismiss_known_system_anr(root, parent):
+                continue
             nodes = [n for n in root.iter() if matches(n, **criteria)]
             last_visible = len(nodes)
             unique = {}
@@ -182,9 +255,9 @@ def tap(prefer='bottom', timeout=40, hold_ms=0, **criteria):
                 )
                 tap_node(options[0][0], options[0][1], hold_ms=hold_ms)
                 return
-            if dismiss_known_system_anr(root, parent):
-                adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
         except Exception as exc:
+            if getattr(exc, 'native_surface_fatal', False):
+                raise
             print(f'TAP_RETRY criteria={criteria} error={type(exc).__name__}:{exc}', flush=True)
         time.sleep(0.5)
 
@@ -292,6 +365,8 @@ def edit_text(index, value, timeout=180):
             last_error = 'native readback mismatch'
             print(f'RETRY UI_TEXT_READBACK field={index} attempt={attempt}', flush=True)
         except (RuntimeError, subprocess.CalledProcessError, ET.ParseError) as exc:
+            if getattr(exc, 'native_surface_fatal', False):
+                raise
             # Do not include subprocess arguments: one may contain a password.
             last_error = type(exc).__name__
             print(f'RETRY UI_TEXT_INPUT field={index} attempt={attempt} error={last_error}', flush=True)
@@ -309,7 +384,9 @@ def hide_keyboard():
 def shot(name):
     png = subprocess.run(['adb', 'exec-out', 'screencap', '-p'], check=True, capture_output=True).stdout
     (ARTIFACT_DIR / f'{name}.png').write_bytes(png)
-    dump_tree(name)
+    root, _, _ = dump_tree(name)
+    if has_native_anr(root):
+        native_surface_failure('ANR visible in captured checkpoint; original PNG/XML retained')
     print(f'EVIDENCE {name}', flush=True)
 
 
@@ -343,12 +420,8 @@ def launch_clean():
     adb('shell', 'pm', 'clear', PACKAGE, check=False)
     time.sleep(1)
 
-    try:
-        root, parent, _ = dump_tree()
-        dismiss_known_system_anr(root, parent)
-    except Exception:
-        pass
-
+    # Recover a launcher dialog only after our process exists, so recovery can
+    # prove it did not kill/restart the app. wait_visible performs that check.
     started = adb('shell', 'am', 'start', '-W', '-n', MAIN_ACTIVITY, check=False)
     print(
         f'APP_START returncode={started.returncode} stdout={started.stdout[-500:]} stderr={started.stderr[-500:]}',
@@ -382,6 +455,8 @@ def open_login_sheet():
             print(f'CHECKPOINT AUTH_SHEET_OPEN attempt={attempt}', flush=True)
             return nodes, parent
         except RuntimeError as exc:
+            if getattr(exc, 'native_surface_fatal', False):
+                raise
             last_error = exc
             dump_tree(f'AUTH_entry_attempt_{attempt}_after')
             print(f'RETRY AUTH_ENTRY_PRESS attempt={attempt}', flush=True)
@@ -399,23 +474,27 @@ def login(email, form_open=False):
     hide_keyboard()
     tap(text='Prijavite se', prefer='bottom', timeout=30)
     # Current three-zone shell; login is still through the real Auth sheet.
-    wait_visible(text='MENI TREBA', timeout=60)
+    wait_visible(desc='Zadaci', timeout=60) if core_mode() else wait_visible(text='MENI TREBA', timeout=60)
 
 
 def switch_to_worker_workspace():
-    tap(desc='Profil', prefer='top')
+    core_profile() if core_mode() else tap(desc='Profil', prefer='top')
     wait_visible(desc='Pređite na JA MOGU')
     tap(desc='Pređite na JA MOGU')
-    wait_visible(text='JA MOGU', timeout=45)
+    wait_visible(desc='Prijave', timeout=45) if core_mode() else wait_visible(text='JA MOGU', timeout=45)
 
 
 def dismiss_ok(timeout=15):
     try:
         tap(text='OK', prefer='bottom', timeout=timeout)
-    except Exception:
+    except Exception as exc:
+        if getattr(exc, 'native_surface_fatal', False):
+            raise
         try:
             tap(text='U redu', prefer='bottom', timeout=3)
-        except Exception:
+        except Exception as exc:
+            if getattr(exc, 'native_surface_fatal', False):
+                raise
             pass
 
 
@@ -472,6 +551,8 @@ where a.agreement_id='{agreement_id}'::uuid
 
 
 def assert_gates_unchanged():
+    if core_mode():
+        assert_core_gates(); return
     checks = {
         'publication_policy_bundles': 'select count(*) from private.publication_policy_bundles;',
         'publication_decisions': 'select count(*) from private.need_publication_decisions;',
@@ -489,6 +570,137 @@ def assert_gates_unchanged():
         raise AssertionError(f'Gated/retired inventory changed: {bad}')
     print(f'CHECKPOINT GATES_UNCHANGED {observed}', flush=True)
 
+
+
+def core_mode():
+    return globals().get('CORE106', False)
+
+
+def core_profile():
+    # Use the actual current surface's public profile button, not navigation injection.
+    root, parent, _ = dump_tree()
+    for label in ('Moj profil', 'Radni profil', 'Profil'):
+        nodes = [n for n in root.iter() if matches(n, desc=label) and clickable_for(n,parent) is not None]
+        if nodes:
+            tap(desc=label, prefer='top'); return
+    raise AssertionError('No observed current profile control')
+
+
+def core_switch_account(email, worker=False):
+    # Agreement Back may return the saved Need detail after selection replaced
+    # its route. Reach the actual list tab before using its profile control.
+    tap(desc='Zadaci',prefer='bottom'); core_profile()
+    tap(desc='Odjavite se'); wait_visible(desc='Prijavi se',timeout=60)
+    assert_signed_out_surface(); login(email)
+    if worker: switch_to_worker_workspace()
+
+
+def core_fixture():
+    fixture=json.loads((ARTIFACT_DIR/'core-fixture.json').read_text(encoding='utf-8'))
+    assert fixture['result']=='PASS' and fixture['sourceSha']==os.environ['GITHUB_SHA'] and fixture['localOnly']
+    assert fixture['needId']==NEED_ID and fixture['requesterId']==REQUESTER_USER_ID and fixture['workerId']==WORKER_USER_ID
+    assert fixture['publicationProof'] is False and fixture['productionPolicyActivation'] is False
+    return fixture
+
+
+def assert_core_gates():
+    fixture=core_fixture()
+    tables={'publication':'private.publication_policy_bundles','decisions':'private.need_publication_decisions',
+            'retention':'private.retention_policy_sets','markets':'private.location_market_configs'}
+    for key,table in tables.items():
+        actual=psql(f"select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]'::jsonb)::text) from {table} x")
+        assert actual==fixture['baseline'][key], 'Inert canonical registry/decision baseline changed'
+    for table in ('preselection_qa_questions','preselection_qa_answer_versions','preselection_qa_policy_decisions','preselection_qa_materiality_decisions','preselection_qa_commands'):
+        assert psql(f'select count(*) from private.{table}')=='0'
+    assert psql("select count(*) from public.needs where mode='FASTEST'")=='0'
+    assert psql("select count(*) from public.need_selections where selection_mode='AUTO_FILL'")=='0'
+    assert psql('select count(*) from supabase_migrations.schema_migrations')=='106'
+    print('CHECKPOINT GATES_UNCHANGED exact106 inert_registry_baseline zero_policy_activation',flush=True)
+
+
+def core_map_preview():
+    fixture=core_fixture()
+    wait_visible(desc='Pretraži zadatke'); edit_text(0,fixture['searchToken']); hide_keyboard()
+    wait_visible(desc=f'Otvorite priliku {NEED_TITLE}'); shot('CORE_list_filtered')
+    tap(desc='Mapa'); wait_visible(desc='Pretraži ovu oblast',timeout=60); shot('CORE_map_ready')
+    root,parent=wait_surface(desc='Mapa približnih lokacija Zadatka')
+    nodes=[n for n in root.iter() if matches(n,desc='Mapa približnih lokacija Zadatka')]
+    assert len(nodes)==1, 'One observed actual native map required'
+    x1,y1,x2,y2=parse_bounds(nodes[0].attrib['bounds']);assert x2-x1>100 and y2-y1>100
+    # A single existing public point is camera-fitted by production code. Touch
+    # observed native map centre; no SDK selection/viewport injection.
+    adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
+    wait_visible(desc='Otvori detalj Zadatka',timeout=30);wait_visible(text=NEED_TITLE);shot('CORE_map_selected')
+    tap(desc='Otvori detalj Zadatka');wait_visible(desc='Sastavi prijavu',timeout=45)
+
+
+def core_selection_receipt(response_id,agreement_id):
+    fixture=core_fixture()
+    raw=psql(f"""select jsonb_build_object('agreementId',a.id,'needId',a.need_id,'responseId',a.selected_response_id,
+      'requesterId',a.requester_account_id,'workerId',a.worker_account_id,'needRevision',v.need_revision,
+      'responseVersion',v.version,'responseHash',v.content_hash,'agreementHash',av.content_hash,
+      'terms',av.terms,'commandHash',c.response_content_hash,'commandVersion',c.response_version,
+      'commandNeedRevision',c.need_revision,'activationHash',ca.response_content_hash,
+      'activationVersion',ca.response_version,'activationNeedRevision',ca.need_revision)
+    from public.agreements a join public.marketplace_responses r on r.id=a.selected_response_id
+    join public.marketplace_response_versions v on v.response_id=r.id and v.version=r.current_version
+    join public.agreement_versions av on av.agreement_id=a.id and av.version=a.current_version
+    join private.selection_commands c on c.agreement_id=a.id
+    join private.connection_activations ca on ca.agreement_id=a.id
+    where a.id='{agreement_id}' and a.need_id='{NEED_ID}'""")
+    data=json.loads(raw);assert data['responseId']==response_id
+    assert data['requesterId']==REQUESTER_USER_ID and data['workerId']==WORKER_USER_ID
+    assert data['needRevision']==data['commandNeedRevision']==data['activationNeedRevision']==fixture['needRevision']
+    assert data['responseVersion']==data['commandVersion']==data['activationVersion']
+    assert data['responseHash']==data['agreementHash']==data['commandHash']==data['activationHash']
+    terms=data['terms'];assert terms['price_rsd']==3000 and terms['covered_slots']==1 and terms['schedule_source']=='NEED_FIXED_WINDOW'
+    assert psql(f"select ({repr(terms['proposed_start_at'])}::timestamptz='{fixture['startAt']}'::timestamptz and {repr(terms['proposed_end_at'])}::timestamptz='{fixture['endAt']}'::timestamptz)::text")=='true'
+    for query in [f"select count(*) from private.response_submit_commands where response_id='{response_id}'",
+                  f"select count(*) from private.response_application_snapshots where response_id='{response_id}'",
+                  f"select count(*) from private.selection_commands where agreement_id='{agreement_id}'",
+                  f"select count(*) from public.agreements where need_id='{NEED_ID}'"]:
+        assert psql(query)=='1'
+    report={'result':'PASS','sourceSha':os.environ['GITHUB_SHA'],'localOnly':True,'historyCount':106,
+            'actualNativeApply':True,'actualNativeSelect':True,'actualNativeMapSelection':True,
+            'publicationProof':False,'productionPolicyActivation':False,'providerProof':False,**data}
+    (ARTIFACT_DIR/'core-selection.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    return data
+
+
+def core_journey():
+    from d03_chat_local_rest import validate_local_targets
+    validate_local_targets(os.environ);fixture=core_fixture()
+    admission=json.loads(Path('artifacts/ai-review-device/ai-review-admission.json').read_text(encoding='utf-8'))
+    assert admission['sourceSha']==os.environ['GITHUB_SHA'] and admission['historyCount']==106 and admission['localOnly']
+    assert_core_gates()
+    assert psql(f"select count(*) from public.marketplace_responses where need_id='{NEED_ID}'")=='0'
+    print('START CORE_NATIVE_TWO_ACCOUNT',flush=True)
+    launch_clean();login(WORKER_EMAIL);shot('AUTH_worker_authenticated');switch_to_worker_workspace()
+    tap(desc='Zadaci',prefer='bottom');wait_visible(desc=f'Otvorite priliku {NEED_TITLE}',timeout=45)
+    shot('W03_worker_opportunity_list');core_map_preview();shot('W04_worker_need_detail')
+    tap(desc='Sastavi prijavu');wait_visible(text='Tvoja prijava');wait_visible(desc='Cena za ponuđeni obim (RSD)')
+    edit_text(0,'3000');hide_keyboard();shot('W05_worker_application_draft');tap(desc='Pošalji ovu Prijavu')
+    wait_visible(text='Prijava je poslata.');shot('W05_worker_application_success');tap(desc='Otvori moje prijave')
+    wait_visible(text=NEED_TITLE);wait_visible(text='Poslata');shot('W06_worker_own_application');response_id=assert_worker_submit()
+    core_switch_account(REQUESTER_EMAIL);shot('AUTH_requester_authenticated');tap(desc='Zadaci',prefer='bottom')
+    wait_visible(desc=f'Otvorite Zadatak {NEED_TITLE}');tap(desc=f'Otvorite Zadatak {NEED_TITLE}')
+    wait_visible(desc='Otvori prijave, ukupno 1');shot('CORE_requester_need_detail');tap(desc='Otvori prijave, ukupno 1')
+    worker_name=psql(f"select display_name from public.app_profiles where kind='WORKER' and account_id='{WORKER_USER_ID}'")
+    wait_visible(desc=f'Pogledaj ponudu: {worker_name}');shot('CORE_candidate_list');tap(desc=f'Pogledaj ponudu: {worker_name}')
+    wait_visible(desc='Pregledaj povezivanje');shot('R05_requester_candidate_selection');tap(desc='Pregledaj povezivanje')
+    wait_visible(desc='Izaberi ovu Prijavu');shot('CORE_selection_review');tap(desc='Izaberi ovu Prijavu')
+    wait_visible(text='Dogovor je sklopljen.');shot('R05_requester_selection_success')
+    agreement_id=assert_final_selection(response_id);core_selection_receipt(response_id,agreement_id)
+    tap(desc='Otvori Dogovor');wait_visible(text=NEED_TITLE);shot('AGREEMENT_created');tap(desc='Nazad')
+    core_switch_account(WORKER_EMAIL,worker=True);shot('AUTH_worker_reauthenticated')
+    tap(desc='Prijave',prefer='bottom');wait_visible(text=NEED_TITLE);wait_visible(text='Izabrani ste');shot('W06_worker_selected_state')
+    tap(desc='Otvorite Dogovor');wait_visible(text=NEED_TITLE);shot('DOGOVOR_worker_opened');tap(desc='Nazad')
+    assert_core_gates();print('PASS CORE_NATIVE_APPLY_SELECT_MAP same_agreement two_real_auth_accounts',flush=True)
+
+
+if CORE106:
+    core_journey()
+    raise SystemExit(0)
 
 print('START RU5_PHYSICAL_ANDROID_DEVICE_UI_JOURNEY', flush=True)
 
