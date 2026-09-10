@@ -12,7 +12,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: (...args: unknown[]) => mockRead(...args),
   setItem: (...args: unknown[]) => mockWrite(...args),
 }));
-jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => mockReduced }));
+jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -46,6 +46,13 @@ it('skips motion for accessibility without waiting on storage', async () => {
 });
 it('does not replay after the persisted first visit', async () => {
   mockRead.mockResolvedValue('1'); await mount(); expect(snapshot().phase).toBe('welcome');
+});
+it('finishes an active intro when reduced motion changes and never replays when disabled again', async () => {
+  await mount(); expect(snapshot().phase).toBe('intro');
+  mockReduced = true; await act(async () => tree.update(<Probe />));
+  expect(snapshot().phase).toBe('welcome');
+  mockReduced = false; await act(async () => tree.update(<Probe />));
+  expect(snapshot().phase).toBe('welcome'); expect(mockWrite).toHaveBeenCalledTimes(1);
 });
 it('opens welcome if storage hangs and rejects the late first-visit response', async () => {
   let resolve!: (value: null) => void;

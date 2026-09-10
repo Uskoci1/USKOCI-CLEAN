@@ -2,9 +2,14 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { LayoutChangeEvent } from 'react-native';
 import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { brandParts } from '../../ui/entry/spojBrandData';
+import { BRAND_PARTS } from '../../ui/entry/spojBrandMath';
 
 const mockHide = jest.fn();
 const mockOptions = jest.fn();
+const mockStartupOrder: string[] = [];
 jest.mock('expo-splash-screen', () => ({
   hideAsync: () => mockHide(), setOptions: (options: unknown) => mockOptions(options),
 }));
@@ -103,4 +108,44 @@ it('cancels the second frame on unmount and rejects an already queued callback',
   await act(async () => tree.unmount()); expect(frames.size).toBe(0);
   await act(async () => queued(0)); expect(frames.size).toBe(0);
   expectDeadlineCleared();
+});
+
+it.each([false, true])('configures zero fade before Router startup while preserving recovery capture (bridge failure %s)', bridgeFailure => {
+  mockStartupOrder.length = 0;
+  mockOptions.mockImplementationOnce(options => {
+    expect(options).toEqual({ duration: 0, fade: false }); mockStartupOrder.push('splash');
+    if (bridgeFailure) throw new Error('cosmetic bridge unavailable');
+  });
+  jest.doMock('../../bootstrap/passwordRecoveryBootstrap', () => { mockStartupOrder.push('recovery'); return {}; });
+  jest.doMock('expo-router/entry', () => { mockStartupOrder.push('router'); return {}; });
+  try {
+    // Execute the actual entry/import order. The Router and URL-capture module
+    // boundaries are isolated; the new splash bootstrap itself is real.
+    jest.isolateModules(() => { require('../../../index'); });
+    expect(mockStartupOrder).toEqual(['recovery', 'splash', 'router']);
+    expect(mockHide).not.toHaveBeenCalled();
+  } finally {
+    jest.dontMock('../../bootstrap/passwordRecoveryBootstrap');
+    jest.dontMock('expo-router/entry');
+  }
+});
+
+it('uses a visible original mark on white for both native themes instead of an empty drawable', () => {
+  const project = resolve(__dirname, '../../..');
+  const config = JSON.parse(readFileSync(resolve(project, 'app.json'), 'utf8')).expo;
+  const splash = config.plugins.find((item: unknown) => Array.isArray(item) && item[0] === 'expo-splash-screen')[1];
+  expect(splash).toEqual({ backgroundColor: '#FFFFFF', image: './assets/entry-splash-mark.png',
+    imageWidth: 144, resizeMode: 'contain', dark: { backgroundColor: '#FFFFFF', image: './assets/entry-splash-mark.png' } });
+  const png = readFileSync(resolve(project, splash.image));
+  expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect(png.readUInt32BE(16)).toBe(640); expect(png.readUInt32BE(20)).toBe(640);
+  expect(png.byteLength).toBeGreaterThan(1000);
+  const svg = readFileSync(resolve(project, 'assets/entry-splash-mark.svg'), 'utf8');
+  // Exact same paths/fills/translations as the real BrandMark; only an outer
+  // centered safe-area pad is added for the native OS icon canvas.
+  const paths = [...svg.matchAll(/<path d="([^"]+)" fill="([^"]+)"\/>/g)].map(match => ({ d: match[1], fill: match[2] }));
+  expect(paths).toEqual(brandParts.flat());
+  const transforms = [...svg.matchAll(/<g transform="([^"]+)"/g)].map(match => match[1]);
+  expect(transforms).toEqual(['translate(20 14.5)', ...BRAND_PARTS.map(part => `translate(${part[0]} ${part[1]})`)]);
+  expect(svg).toContain('25162f9bc7e7f822e77bd4ff078b8295a50796e9af49ffbdac98dac04d17ae97');
 });
