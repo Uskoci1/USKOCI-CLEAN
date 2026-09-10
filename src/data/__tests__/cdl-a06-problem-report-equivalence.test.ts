@@ -2,12 +2,14 @@
  * CDL-A06 — canonical Agreement problem-report contract.
  *
  * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33959818756.
- * After deletion these tests lock the canonical RPC/validation/error contract
- * and prove prijaviProblem has one physical production owner.
+ * The P0E receipt extension keeps this RPC and its single production owner;
+ * malformed receipts and arbitrary backend errors no longer imply success.
  */
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: '10000000-0000-4000-8000-000000000001' }, accountRevision: 1 }) }));
+const agreementId = '20000000-0000-4000-8000-000000000001';
 
 jest.mock('../supabaseClient', () => {
   const mockRpc = jest.fn();
@@ -45,13 +47,14 @@ describe('CDL-A06 — canonical problem-report contract', () => {
   });
 
   it('trims narrative and preserves exact rpc_report_problem params/success', async () => {
-    resetRpc({ data: null, error: null });
+    resetRpc({ data: { agreementId, problemOpenedAt: '2026-09-10T12:00:00Z', problemOpenedBy: '10000000-0000-4000-8000-000000000001',
+      idempotentReplay: false, authoritative: true, noAutomaticFaultOrDebt: true }, error: null });
 
-    const result = await agreementClientService.prijaviProblem('agr-1', '  Oštećen ormar.  ');
+    const result = await agreementClientService.prijaviProblem(agreementId, '  Oštećen ormar.  ');
 
     expect(mockRpc.mock.calls).toEqual([
       ['rpc_report_problem', {
-        p_agreement_id: 'agr-1',
+        p_agreement_id: agreementId,
         p_narrative: 'Oštećen ormar.',
       }],
     ]);
@@ -71,15 +74,12 @@ describe('CDL-A06 — canonical problem-report contract', () => {
     });
   });
 
-  it.each([
-    ['message wins', { message: 'PROBLEM_DENIED', code: '42501' }, { ok: false, kod: 'PROBLEM_DENIED', poruka: 'PROBLEM_DENIED' }],
-    ['code fallback', { code: '42501' }, { ok: false, kod: '42501', poruka: 'Problem nije mogao da se sačuva.' }],
-    ['full fallback', {}, { ok: false, kod: 'PROBLEM_REPORT_FAILED', poruka: 'Problem nije mogao da se sačuva.' }],
-  ])('preserves active error mapping: %s', async (_label, error, expected) => {
+  it.each([{ message: 'PRIVATE_BACKEND_DETAIL', code: '42501' }, { code: '42501' }, {}])('keeps unrecognized errors private %#', async error => {
     resetRpc({ data: null, error });
 
-    const result = await agreementClientService.prijaviProblem('agr-error', 'Problem');
+    const result = await agreementClientService.prijaviProblem(agreementId, 'Problem');
 
-    expect(result).toEqual(expected);
+    expect(result).toMatchObject({ ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED' });
+    expect(JSON.stringify(result)).not.toContain('PRIVATE_BACKEND_DETAIL');
   });
 });

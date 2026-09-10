@@ -1,6 +1,7 @@
 import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
-import { record } from './serverReceipt';
+import { readOwnedResult, record, sameId, uuid } from './serverReceipt';
+import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
 import { readPublicNeedDetail } from './needClientService';
 import { needScheduleText } from './needDetailPresentation';
@@ -259,28 +260,31 @@ export const supabaseIzvor: SupabaseIzvor = {
   },
 
   async mojRadnikProfil() {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return null;
-    const { data, error } = await supabase
-      .from('app_profiles')
-      .select('*')
-      .eq('account_id', user.id)
-      .eq('kind', 'WORKER')
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return {
-      id: data.id,
-      ime: data.display_name || '',
-      grad: data.city || '',
-      biografija: data.bio || '',
-      vestine: data.skills || [],
-      alati: data.tools || [],
-      vozila: data.vehicles || [],
-      stanje: data.profile_status as any,
-      dostupanOdmah: data.available_now || false,
-      radijusKm: data.radius_km || 15,
-    };
+    const owner = sesijaSada();
+    if (!owner.user) throw new Error('WORKER_PROFILE_AUTH_REQUIRED');
+    const account = { accountId: owner.user.id, accountRevision: owner.accountRevision };
+    const options = { account, errors: {}, fallback: 'WORKER_PROFILE_READ_FAILED', invalid: 'WORKER_PROFILE_INVALID' };
+    const auth = await readOwnedResult({ ...options, request: () => supabase.auth.getUser(),
+      decode: raw => sameId(record(record(raw)?.user)?.id, account.accountId) ? true : null });
+    if (!auth.ok) throw new Error('WORKER_PROFILE_READ_FAILED');
+    const result = await readOwnedResult({ ...options, request: () => supabase.from('app_profiles')
+      .select('id,account_id,kind,display_name,city,bio,skills,tools,vehicles,profile_status,available_now,radius_km')
+      .eq('account_id', account.accountId).eq('kind', 'WORKER').maybeSingle(),
+      decode: raw => {
+        if (raw === null) return { profile: null };
+        const data = record(raw);
+        if (!data || !uuid(data.id) || !sameId(data.account_id, account.accountId) || data.kind !== 'WORKER' ||
+          !['DRAFT', 'ACTIVE', 'SUSPENDED'].includes(String(data.profile_status)) || typeof data.available_now !== 'boolean' ||
+          typeof data.radius_km !== 'number' || !Number.isInteger(data.radius_km) || data.radius_km < 1 || data.radius_km > 200 ||
+          !['display_name', 'city', 'bio'].every(key => data[key] === null || typeof data[key] === 'string') ||
+          !['skills', 'tools', 'vehicles'].every(key => Array.isArray(data[key]) && data[key].every((item: unknown) => typeof item === 'string'))) return null;
+        return { profile: { id: data.id, ime: data.display_name as string ?? '', grad: data.city as string ?? '',
+          biografija: data.bio as string ?? '', vestine: data.skills as string[], alati: data.tools as string[], vozila: data.vehicles as string[],
+          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: data.available_now, radijusKm: data.radius_km } };
+      },
+    });
+    if (!result.ok) throw new Error('WORKER_PROFILE_READ_FAILED');
+    return result.podatak.profile;
   },
 
   async potvrdiCinjenicu(cinjenicaId: string) {

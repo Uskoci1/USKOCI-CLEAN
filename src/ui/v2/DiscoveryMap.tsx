@@ -35,7 +35,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!owns() || load.current !== 'ready' || !Array.isArray(features)) return;
     const feature = features[0]; if (!feature || feature.geometry?.type !== 'Point') return;
     const coordinates = feature.geometry.coordinates;
-    if (coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite) || Math.abs(coordinates[0]) > 180 || Math.abs(coordinates[1]) > 90) return;
+    if (!Array.isArray(coordinates) || coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite) || Math.abs(coordinates[0]) > 180 || Math.abs(coordinates[1]) > 90) return;
     const properties = feature.properties;
     if (properties?.cluster === true && Number.isInteger(properties.cluster_id)) {
       try {
@@ -46,7 +46,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       } catch { /* Native source may retire during a refresh; no invented selection. */ }
     } else if (typeof properties?.needId === 'string') {
       const actual = latest.current.props.items.find(item => item.id === properties.needId), point = actual && publicPoint(actual);
-      if (point && coordinates[0] === point.lng && coordinates[1] === point.lat) latest.current.props.onSelect(actual.id);
+      // Android reports rendered/tile geometry, which need not equal source
+      // doubles. Resolve the current public item by ID; its canonical coarse
+      // point owns the selected annotation. Never adopt native coordinates.
+      if (point) latest.current.props.onSelect(actual.id);
     }
   };
   const selected = props.items.find(item => item.id === props.selectedId), point = selected && publicPoint(selected);

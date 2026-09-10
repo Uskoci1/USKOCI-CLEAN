@@ -354,9 +354,9 @@ def main():
         assert_button(root, parent, 'Sačuvajte nacrt', False)
         assert owned_state_digest() == unchanged
     tap(desc='Učitajte pregled ponovo')
-    # Fresh read collapses the one expanded row. Explicit confirmation remains
-    # a separate physical user action; recovery never repeats the write.
-    open_fact('Vozilo', direction='up')
+    # Fresh read remounts the collapsed review at its top. Find the optional
+    # row below it; confirmation remains a separate physical user action.
+    open_fact('Vozilo', direction='down')
     capture('AI_restored_explicit_confirmation', 'Proverite Zadatak')
     press_in_review('Potvrdite')
     wait_confirmed('need.required_vehicles', 11)

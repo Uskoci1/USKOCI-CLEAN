@@ -39,9 +39,30 @@ test('native clustering contains only rounded existing public points; zero is ad
  expect(source().props.data.features[0].geometry.coordinates).toEqual([0, 0]); expect(source().props.data.features[1].geometry.coordinates).toEqual([19.83, 45.25]);
  expect(source().props.data.features[0].properties).toEqual({ needId: 'one' }); expect(JSON.stringify(source().props.data)).not.toContain('Privatan');
 });
-test('only matching public ID and exact public coordinates select; arbitrary/native malformed features are rejected', async () => {
+test('only an existing current public ID selects; unknown and malformed features are rejected', async () => {
  await render(); await ready(); const feature = source().props.data.features[0]; await pressFeature([feature]); expect(select).toHaveBeenCalledWith('one'); select.mockClear();
- await pressFeature([{ ...feature, properties: { needId: 'unknown' } }]); await pressFeature([{ ...feature, geometry: { type: 'Point', coordinates: [1, 1] } }]); await pressFeature([{ ...feature, geometry: { type: 'Point', coordinates: [181, 0] } }]); await pressFeature([]); expect(select).not.toHaveBeenCalled();
+ await pressFeature([{ ...feature, properties: { needId: 'unknown' } }]);
+ for (const coordinates of [[181, 0], [0, 91], [NaN, 0], [0], null]) await pressFeature([{ ...feature, geometry: { type: 'Point', coordinates } }]);
+ await pressFeature([]); expect(select).not.toHaveBeenCalled();
+});
+test('rendered geometry resolves only the owned ID; selected pin keeps the canonical coarse point', async () => {
+ rows = [row('novi-sad', 45.25444, 19.83444)]; await render(); await ready();
+ const feature = source().props.data.features[0];
+ await pressFeature([{ ...feature, geometry: { type: 'Point', coordinates: [19.830093383789, 45.249960548] } }]);
+ expect(select).toHaveBeenCalledTimes(1); expect(select).toHaveBeenCalledWith('novi-sad');
+ selectedId = 'novi-sad'; await update();
+ expect(tree.root.findByType('Annotation' as React.ElementType).props.lngLat).toEqual([19.83, 45.25]);
+ expect(rows[0]).toMatchObject({ priblizno: { lat: 45.25444, lng: 19.83444 } });
+});
+test.each(['dataset', 'account', 'blur', 'remote'])('old rendered pin cannot select after %s changes', async kind => {
+ await render(); await ready(); const callback = source().props.onPress, feature = source().props.data.features[0];
+ if (kind === 'dataset') rows = [row('new', 45, 19)];
+ if (kind === 'account') key = 'owner:2';
+ if (kind === 'blur') mockFocused = false;
+ if (kind === 'remote') rows = [{ ...row(), detalji: { rezimLokacije: 'REMOTE' } } as MarketplaceItem];
+ await update();
+ await act(async () => callback({ nativeEvent: { features: [feature] }, stopPropagation: jest.fn() }));
+ expect(select).not.toHaveBeenCalled();
 });
 test('cluster expands installed v11 cluster ID; reduced motion jumps without animation', async () => {
  mockReduced = true; mockExpand.mockResolvedValue(11); await render(); await ready(); await pressFeature([cluster]);
