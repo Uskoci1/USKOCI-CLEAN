@@ -2,6 +2,8 @@ import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
 import { record } from './serverReceipt';
 import { publicProfileClientService } from './publicProfileClientService';
+import { readPublicNeedDetail } from './needClientService';
+import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 import type {
   JavniProfilProjekcija,
@@ -41,7 +43,20 @@ function fTime(iso: string | null): string {
 }
 
 function fLoc(area: string, city: string) {
-  return area ? `${area}, ${city}` : city;
+  return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
+}
+
+function publicTaskContext(raw: Record<string, any>) {
+  const { detail: detalji, schedule } = readPublicNeedDetail(raw);
+  if (typeof raw.description !== 'string') throw new Error('TASK_DESCRIPTION_INVALID');
+  const remote = detalji.rezimLokacije === 'REMOTE';
+  const lat = raw.approximate_lat, lng = raw.approximate_lng;
+  const priblizno = !remote && typeof lat === 'number' && Number.isFinite(lat) && Math.abs(lat) <= 90
+    && typeof lng === 'number' && Number.isFinite(lng) && Math.abs(lng) <= 180
+    ? { lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) } : null;
+  return { opis: raw.description, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
+    taskTimezone: raw.task_timezone ?? undefined, vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
+    podrucjeTekst: remote ? 'Na daljinu' : fLoc(raw.approximate_area, raw.approximate_city), priblizno };
 }
 
 function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): string | null {
@@ -113,7 +128,10 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id
+        covered_slots, mode, requester_price_rsd, requester_profile_id,
+        description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
+        required_licenses, minimum_experience_years, verified_identity_required,
+        need_geography(public_topology), need_requirement_details(critical_conditions)
       `)
       .in('status', ['PUBLISHED', 'SELECTION'])
       .order('created_at', { ascending: false });
@@ -129,14 +147,12 @@ export const supabaseIzvor: SupabaseIzvor = {
         id: r.id,
         naslov: r.title,
         statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
-        podrucjeTekst: fLoc(r.approximate_area, r.approximate_city),
-        vremeTekst: fTime(r.starts_at),
+        ...publicTaskContext(r),
         pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
         uslovi: [...(r.required_skills || []), ...(r.required_tools || []), ...(r.required_vehicles || [])],
         narucilacProfilId: r.requester_profile_id,
         narucilacIme: narucilac?.ime || '',
         narucilacOcena: formatPublicRating(narucilac),
-        priblizno: (r.approximate_lat && r.approximate_lng) ? { lat: r.approximate_lat, lng: r.approximate_lng } : null,
         rezimCene: r.mode,
         ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
       };
@@ -148,7 +164,10 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline
+        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline,
+        description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
+        required_licenses, minimum_experience_years, verified_identity_required,
+        need_geography(public_topology), need_requirement_details(critical_conditions)
       `)
       .eq('id', id).maybeSingle();
 
@@ -175,14 +194,12 @@ export const supabaseIzvor: SupabaseIzvor = {
       primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
         && data.required_slots > data.covered_slots && (rok === null || Date.parse(rok) > Date.now()),
       rokZaPrijaveIso: rok,
-      podrucjeTekst: fLoc(data.approximate_area, data.approximate_city),
-      vremeTekst: fTime(data.starts_at),
+      ...publicTaskContext(data),
       pokrivenost: pokrivenost(data.required_slots, data.covered_slots),
       uslovi: [...(data.required_skills || []), ...(data.required_tools || []), ...(data.required_vehicles || [])],
       narucilacProfilId: data.requester_profile_id,
       narucilacIme: narucilac?.ime || '',
       narucilacOcena: formatPublicRating(narucilac),
-      priblizno: data.approximate_lat ? { lat: data.approximate_lat, lng: data.approximate_lng } : null,
       rezimCene: data.mode as any,
       ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
     };

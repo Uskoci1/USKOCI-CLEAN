@@ -10,7 +10,7 @@ from xml.etree import ElementTree as ET
 
 SOURCE = Path(__file__).with_name('ru5_android_device_ui_journey.py')
 # Load function definitions only; never execute top-level Auth/device/DB journey.
-DEFINITIONS = ast.Module(body=[node for node in ast.parse(SOURCE.read_text()).body
+DEFINITIONS = ast.Module(body=[node for node in ast.parse(SOURCE.read_text(encoding='utf-8')).body
                                if isinstance(node, ast.FunctionDef)], type_ignores=[])
 
 
@@ -55,11 +55,11 @@ class NativeInputModel:
         elif args[-1] == 'KEYCODE_DEL' and self.selected:
             self.value = ''
             self.selected = False
-        elif args[:3] == ('shell', 'input', 'text'):
+        elif args[:3] == ('shell', 'input', 'text') or args[-1] == 'KEYCODE_SPACE':
             if self.dropped_inputs:
                 self.dropped_inputs -= 1
             else:
-                self.value += args[-1]
+                self.value += ' ' if args[-1] == 'KEYCODE_SPACE' else args[-1]
 
     def namespace(self):
         import re
@@ -84,6 +84,19 @@ class AndroidInputHarnessTests(unittest.TestCase):
         self.assertEqual(model.value, value)
         self.assertIn('CHECKPOINT UI_TEXT_ENTERED field=0 attempt=1', log)
         self.assertNotIn('characters=', log)
+        self.assertNotIn(value, log)
+
+    def test_ai_sentence_uses_real_space_key_events_and_exact_readback(self):
+        model = NativeInputModel()
+        value = 'Dve osobe i kombi za prenos stvari u Novom Sadu.'
+        log = self.exercise(model, value)
+        commands = [args for _, args in model.commands]
+        expected = [('shell', 'input', 'keyevent', 'KEYCODE_SPACE') if char == ' '
+                    else ('shell', 'input', 'text', char) for char in value]
+        self.assertEqual(commands[-len(value):], expected)
+        self.assertEqual(model.value, value)
+        self.assertGreaterEqual(model.clock, len(value) * 0.15)
+        self.assertIn('CHECKPOINT UI_TEXT_ENTERED field=0 attempt=1', log)
         self.assertNotIn(value, log)
 
     def test_long_email_with_dropped_character_retries_the_whole_value(self):
@@ -237,3 +250,43 @@ class AndroidInputHarnessTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class Core106HarnessTests(unittest.TestCase):
+    def namespace(self):
+        import json, re
+        from unittest.mock import Mock
+        ns={'CORE106':True,'re':re,'json':json,'run':Mock()}
+        exec(compile(DEFINITIONS,str(SOURCE),'exec'),ns)
+        return ns
+
+    def test_historical_path_remains_default_and_core_is_explicit(self):
+        ns=self.namespace();self.assertTrue(ns['core_mode']());ns['CORE106']=False;self.assertFalse(ns['core_mode']())
+
+    def test_core_profile_uses_observed_actionable_control_only(self):
+        from unittest.mock import Mock
+        ns=self.namespace();root=ET.fromstring('<hierarchy><node content-desc="Moj profil" clickable="true" enabled="true" bounds="[0,0][50,50]" /></hierarchy>')
+        ns['dump_tree']=Mock(return_value=(root,{root[0]:root},''));ns['tap']=Mock()
+        ns['core_profile']();ns['tap'].assert_called_once_with(desc='Moj profil',prefer='top')
+        ns['dump_tree']=Mock(return_value=(ET.fromstring('<hierarchy/>'),{},''))
+        with self.assertRaises(AssertionError):ns['core_profile']()
+
+    def test_core_account_switch_reaches_real_list_before_profile(self):
+        from unittest.mock import Mock
+        ns=self.namespace(); events=[]
+        for name in ('tap','core_profile','wait_visible','assert_signed_out_surface','login','switch_to_worker_workspace'):
+            ns[name]=Mock(side_effect=lambda *args,_name=name,**kwargs:events.append((_name,args,kwargs)))
+        ns['core_switch_account']('synthetic@example.invalid',worker=True)
+        self.assertEqual(events[0],('tap',(),{'desc':'Zadaci','prefer':'bottom'}))
+        self.assertEqual(events[1],('core_profile',(),{}))
+        self.assertEqual(events[-2],('login',('synthetic@example.invalid',),{}))
+        self.assertEqual(events[-1],('switch_to_worker_workspace',(),{}))
+
+    def test_core_flow_has_no_business_rpc_or_session_injection(self):
+        source=SOURCE.read_text(encoding='utf-8')
+        core=next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=='core_journey')
+        rendered=ast.unparse(core)
+        self.assertNotIn('rpc_',rendered);self.assertNotIn('set_config',rendered);self.assertNotIn('am start',rendered)
+        for label in ['Pošalji ovu Prijavu','Pregledaj povezivanje','Izaberi ovu Prijavu','Otvori Dogovor']:
+            self.assertIn(label,rendered)
+        self.assertEqual(rendered.count('launch_clean()'),1)

@@ -85,6 +85,8 @@ export type PotrebaProjekcija = {
 export type PrilikaProjekcija = {
   id: string;
   naslov: string;
+  opis?: string;
+  detalji?: NeedDetailProjection;
   statusTekst: string;
   /** Task-level read gate only; recheck its server deadline before navigation. Not worker eligibility. */
   primaNovePrijave?: boolean;

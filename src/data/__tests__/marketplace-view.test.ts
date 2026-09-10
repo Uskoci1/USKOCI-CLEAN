@@ -1,6 +1,12 @@
 import { initialMarketplaceView, marketplaceItems, publicBounds, publicFeatures, publicInitialBounds, publicPoint, publicViewport, type MarketplaceItem } from '../marketplaceView';
 const item = (id: string, patch = {}): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat'], statusTekst: 'Otvoren', rezimCene: 'MY_PRICE', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25456, lng: 19.83456 }, ...patch } as MarketplaceItem);
 const ids = (items: MarketplaceItem[]) => items.map(row => row.id);
+test('Remote never contributes a map feature even with a stale supplied approximation', () => {
+  const remote = item('remote', { detalji: { rezimLokacije: 'REMOTE' } });
+  expect(publicPoint(remote)).toBeNull();
+  expect(publicFeatures([remote]).features).toEqual([]);
+  expect(ids(marketplaceItems([remote], initialMarketplaceView(), false))).toEqual(['remote']);
+});
 test('one result order and filter subset is shared by List and Map; viewport alone does not filter', () => {
  const rows = [item('a'), item('b', { rezimCene: 'OFFERS' }), item('c', { priblizno: null })];
  const view = { ...initialMarketplaceView(), query: 'nOVI sad', price: 'MY_PRICE' as const };
