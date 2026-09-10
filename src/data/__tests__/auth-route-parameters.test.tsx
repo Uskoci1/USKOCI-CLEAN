@@ -3,6 +3,8 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 
 const mockRead = jest.fn();
 const mockPrepare = jest.fn();
+const mockFormLayout = jest.fn();
+const mockSplashOptions = jest.fn();
 let mockParams: { form?: string } = {};
 const mockAuth = { signInWithPassword: jest.fn(), signUp: jest.fn(), sendPhoneOtp: jest.fn(),
   verifyPhoneOtp: jest.fn(), requestPasswordRecovery: jest.fn() };
@@ -24,6 +26,9 @@ jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
 jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { prepare: (...args: unknown[]) => mockPrepare(...args) } }));
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 jest.mock('../../ui/entry/EntryWelcome', () => ({ EntryWelcome: 'Hero' }));
+jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: (options: unknown) => {
+  mockSplashOptions(options); return { onLayout: mockFormLayout };
+} }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
 jest.mock('../authAvailabilityClientService', () => ({ authAvailabilityClientService: { read: (...args: unknown[]) => mockRead(...args) } }));
 jest.mock('../authClientService', () => ({ authClientService: {
@@ -60,11 +65,14 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it('opens a cold native login destination whose query arrives after the Auth screen mounts', async () => {
   await act(async () => { tree = create(<AuthScreen />); });
   expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
+  expect(mockSplashOptions).toHaveBeenLastCalledWith({ enabled: false });
   mockParams = { form: 'login' };
   await act(async () => tree.update(<AuthScreen />));
   expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(0);
   expect(input('ime@primer.rs')).toBeDefined();
   expect(button('Prijavite se')).toBeDefined();
+  expect(mockSplashOptions).toHaveBeenLastCalledWith({ enabled: true });
+  expect(host('View').some(node => node.props.onLayout === mockFormLayout)).toBe(true);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });
 

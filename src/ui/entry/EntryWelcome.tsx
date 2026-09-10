@@ -22,8 +22,8 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
 }) {
   const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets(), reduced = useSystemReducedMotion();
-  const { readiness, onLayout } = useEntrySplashReady();
-  const { phase, finish } = useEntryIntro(readiness);
+  const { readiness, onLayout, onSceneReady } = useEntrySplashReady({ waitForScene: true });
+  const { phase, prepared, finish } = useEntryIntro(readiness);
   const account = useSesija().accountRevision;
   const [logo, setLogo] = useState<Box | null>(null);
   const [selected, setSelected] = useState<Intent | null>(null);
@@ -52,6 +52,12 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
     return { transform: [{ translateX: (selected === 'REQUESTER' ? -1 : 1) * width / 2 * (1 - q) }] };
   });
   const motif = useAnimatedStyle(() => ({ opacity: motifEase(Math.max(0, Math.min(1, (selectionTime.get() - 250) / 240))) }));
+
+  useEffect(() => {
+    // The paused artwork and final geometry are committed before native reveal.
+    // Cosmetic storage resolves independently; no part of the clock runs hidden.
+    if (logo && prepared) onSceneReady();
+  }, [logo, prepared, onSceneReady]);
 
   useEffect(() => {
     const cancel = () => {

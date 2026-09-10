@@ -17,6 +17,7 @@ const mockForeground = new Set<(state: string) => void>();
 const mockTiming = jest.fn((value: number) => value);
 const mockCancel = jest.fn();
 const mockReadyLayout = jest.fn();
+const mockSceneReady = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -40,8 +41,8 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true,
 jest.mock('react-native-worklets', () => ({ scheduleOnRN: (fn: () => void) => fn() }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', SvgXml: 'SvgXml', G: 'G', Path: 'Path', Rect: 'Rect', Defs: 'Defs', ClipPath: 'ClipPath' }));
 jest.mock('phosphor-react-native', () => ({ ArrowRight: 'Icon', ArrowLeft: 'Icon' }));
-jest.mock('../../hooks/useEntryIntro', () => ({ useEntryIntro: () => ({ phase: mockPhase, finish: mockFinish }) }));
-jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: () => ({ readiness: 'ready', onLayout: mockReadyLayout }) }));
+jest.mock('../../hooks/useEntryIntro', () => ({ useEntryIntro: () => ({ phase: mockPhase, prepared: mockPhase !== 'loading', finish: mockFinish }) }));
+jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: () => ({ readiness: 'ready', onLayout: mockReadyLayout, onSceneReady: mockSceneReady }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockAccount, useSesija: () => mockAccount }));
 jest.mock('../../ui/Press', () => ({ Press: 'Pressable' }));
 import { EntryWelcome } from '../../ui/entry/EntryWelcome';
@@ -134,8 +135,10 @@ it('retains all controls with a vertical large-text composition', async () => {
 });
 it('waits for measured geometry before starting the intro and keeps actions unavailable', async () => {
   mockPhase = 'intro'; await render(); expect(mockTiming).not.toHaveBeenCalled();
+  expect(mockSceneReady).not.toHaveBeenCalled();
   expect(button('Meni treba').props.disabled).toBe(true);
   await act(async () => tree.root.findByProps({ testID: 'entry-brand-panel' }).props.onLayout({ nativeEvent: { layout: { x: 24, y: 158.765625, width: 342, height: 227.328125 } } }));
+  expect(mockSceneReady).toHaveBeenCalledTimes(1);
   expect(mockTiming).toHaveBeenCalledWith(4380, expect.objectContaining({ duration: 4380 }), expect.any(Function));
   await press('Preskoči uvod'); expect(mockFinish).toHaveBeenCalledTimes(1);
 });

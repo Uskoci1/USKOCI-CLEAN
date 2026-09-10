@@ -41,5 +41,5 @@ export function useEntryIntro(readiness: EntrySplashReadiness) {
   const visiblePhase = phase === 'intro' && readiness !== 'ready'
     ? readiness === 'skip' ? 'welcome' : 'loading'
     : phase;
-  return { phase: visiblePhase, finish };
+  return { phase: visiblePhase, prepared: phase !== 'loading', finish };
 }

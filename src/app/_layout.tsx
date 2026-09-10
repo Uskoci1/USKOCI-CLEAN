@@ -10,6 +10,7 @@ import { povratniCilj } from '../store/povratniCilj';
 import { postaviUlogu } from '../store/uloga';
 import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
+import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
@@ -22,6 +23,9 @@ export default function RootLayout() {
   const routeResolved = segments.length > 0;
   const naAuth = segments[0] === 'auth';
   const naOporavku = segments[0] === 'oporavak';
+  const { onLayout: onRouteLayout } = useEntrySplashReady({
+    enabled: isLoaded && routeResolved && (naOporavku || (!!session && !naAuth)),
+  });
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
@@ -81,7 +85,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.ground }}>
+      <GestureHandlerRootView onLayout={onRouteLayout} style={{ flex: 1, backgroundColor: palette.ground }}>
         <StatusBar style="dark" />
         <Stack
           key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
