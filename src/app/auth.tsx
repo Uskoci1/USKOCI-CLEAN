@@ -1,4 +1,4 @@
-import { AuthIntro } from '../ui/auth/AuthPresentation';
+import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import {
@@ -216,7 +216,7 @@ export default function AuthScreen() {
       : faza === 'OTP'
         ? 'Unesite kod'
         : faza === 'RECOVERY'
-          ? 'Vratite pristup\nnalogu.'
+          ? 'Vratite pristup nalogu.'
           : faza === 'RECOVERY_SENT' ? 'Proverite email'
           : faza === 'SIGNUP_NEXT_STEP'
             ? confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'
@@ -238,6 +238,10 @@ export default function AuthScreen() {
               ? 'Unesite osnovne podatke za nalog.'
               : 'Unesite email i lozinku.';
 
+  const recoveryStage = faza === 'RECOVERY' || faza === 'RECOVERY_SENT';
+  const stageComposition = recoveryStage || (rezim === 'SIGNUP' && (faza === 'EMAIL' || faza === 'SIGNUP_NEXT_STEP'));
+  const formStyle = [styles.form, stageComposition && authStageForm];
+
   if (!otvoren) return <EntryWelcome onRequester={() => izaberiNameru('REQUESTER')}
     onWorker={() => izaberiNameru('WORKER')} onSignIn={() => otvori('LOGIN')} busy={radi} error={greska} />;
   return (
@@ -252,24 +256,24 @@ export default function AuthScreen() {
           })} style={styles.backButton}><ArrowLeft size={22} color="#143D35" /></Pressable>
         <View style={styles.headerTitles}>
           {faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? <Text style={styles.headerEyeline}>{intentLabel}</Text> : null}
-          <Text style={styles.headerTitle}>{rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
+          <Text style={styles.headerTitle}>{recoveryStage ? 'Oporavak pristupa' : rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
         </View>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
           <View style={styles.formColumn}>
-            <AuthIntro title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Dobro došao.' : naslov}
+            <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Dobro došao.' : naslov}
               copy={faza === 'EMAIL' && rezim === 'LOGIN' ? selectedIntent === 'WORKER' ? 'Nastavi do Prijava, Zadataka i Dogovora.' : 'Nastavi do svojih Zadataka i Dogovora.' : podnaslov}
               eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? `${intentLabel.toUpperCase()} · ISTI NALOG` : undefined} />
             {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
 
             {availability.status === 'loading' ? (
-              <View accessibilityRole="progressbar" style={styles.form}>
+              <View accessibilityRole="progressbar" style={formStyle}>
                 <ActivityIndicator color="#5D6E6D" />
                 <Text style={styles.stateCopy}>Proveravamo dostupne načine prijave…</Text>
               </View>
             ) : availability.status === 'error' ? (
-              <View style={styles.form}>
+              <View style={formStyle}>
                 <Text style={styles.stateCopy}>Ne možemo da proverimo dostupne načine prijave. Proverite vezu i pokušajte ponovo.</Text>
                 <PrimaryButton title="Pokušajte ponovo" busy={radi} onPress={() => void availability.retry()} />
               </View>
@@ -277,7 +281,7 @@ export default function AuthScreen() {
 
             {faza === 'EMAIL' && methods ? (
               <>
-                {methods.emailPassword ? <View style={styles.form}>
+                {methods.emailPassword ? <View style={formStyle}>
                   {rezim === 'SIGNUP' && methods.emailSignup ? (
                     <>
                       <AuthField
@@ -394,7 +398,7 @@ export default function AuthScreen() {
             ) : null}
 
             {faza === 'PHONE' && methods?.phoneOtp ? (
-              <View style={styles.form}>
+              <View style={formStyle}>
                 <Pressable disabled={radi} onPress={nazadNaEmail} style={styles.backRow}>
                   <ArrowLeft size={16} color="#5D6E6D" />
                   <Text style={styles.backText}>Nazad na prijavu</Text>
@@ -414,7 +418,7 @@ export default function AuthScreen() {
             ) : null}
 
             {faza === 'OTP' && methods?.phoneOtp ? (
-              <View style={styles.form}>
+              <View style={formStyle}>
                 <Pressable disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
                   <ArrowLeft size={16} color="#5D6E6D" />
                   <Text style={styles.backText}>Promenite broj</Text>
@@ -439,14 +443,14 @@ export default function AuthScreen() {
             ) : null}
 
             {(faza === 'PHONE' || faza === 'OTP') && methods && !methods.phoneOtp ? (
-              <View style={styles.form}>
+              <View style={formStyle}>
                 <Text style={styles.stateCopy}>Prijava telefonom trenutno nije dostupna.</Text>
                 <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
               </View>
             ) : null}
 
             {faza === 'RECOVERY' && methods ? (
-              <View style={styles.form}>
+              <View style={formStyle}>
                 <View style={styles.stateIcon}><LockKey size={28} color="#5D6E6D" /></View>
                 {methods.passwordRecovery ? <>
                   <AuthField label="Email" value={email} onChangeText={value => commands.changeForm(() => setEmail(value))}
@@ -460,7 +464,7 @@ export default function AuthScreen() {
               </View>
             ) : null}
 
-            {faza === 'RECOVERY_SENT' ? <View style={styles.form}>
+            {faza === 'RECOVERY_SENT' ? <View style={formStyle}>
               <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
               <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićete link za novu lozinku. Proverite i neželjenu poštu.</Text>
               <Text style={styles.smallNote}>{email.trim()}</Text>
@@ -471,7 +475,7 @@ export default function AuthScreen() {
             </View> : null}
 
             {faza === 'SIGNUP_NEXT_STEP' ? (
-              <View style={styles.form}>
+              <View style={formStyle}>
                 <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
                 <Text style={styles.stateTitle}>{confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'}</Text>
                 <Text style={styles.stateCopy}>{confirmationRequired

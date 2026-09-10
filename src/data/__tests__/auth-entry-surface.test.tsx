@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockRead = jest.fn();
@@ -78,6 +79,23 @@ it('shows actual email-only entry without provider placeholders or invented save
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });
 
+it('uses the flatter signup stage while retaining all real fields and the explicit primary command', async () => {
+  await render();
+  const heading = (value: string) => host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === value)!;
+  expect(StyleSheet.flatten(heading('Dobro došao.').props.style).fontSize).toBe(31);
+  await press('Napravi nalog');
+  expect(StyleSheet.flatten(heading('Napravite nalog').props.style)).toMatchObject({ fontSize: 27, lineHeight: 30.51 });
+  expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka', 'Potvrdite lozinku']);
+  const form = host('View').find(node => node.findAllByType('TextInput' as React.ElementType).length === 6 && StyleSheet.flatten(node.props.style)?.borderBottomWidth === 1)!;
+  expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
+  expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(1);
+  expect(button('Napravite nalog')).toBeDefined();
+  expect(text()).not.toContain('Korak 1 od 3');
+  expect(mockAuth.signUp).not.toHaveBeenCalled();
+  await press('Već imaš nalog? Prijavi se');
+  expect(StyleSheet.flatten(heading('Dobro došao.').props.style).fontSize).toBe(31);
+});
+
 it('keeps an empty password submission local and immediately editable', async () => {
   await render(); await press('Prijavite se');
   expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
@@ -147,6 +165,10 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
 it('visibly gates unfinished recovery and never sends a broken reset link', async () => {
   await render(); await press('Zaboravili ste lozinku?');
   expect(text()).toContain('Oporavak lozinke još nije dostupan');
+  expect(host('Text').some(node => textOf(node) === 'Oporavak pristupa')).toBe(true);
+  const title = host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Vratite pristup nalogu.')!;
+  expect(StyleSheet.flatten(title.props.style).fontSize).toBe(27);
+  expect(textOf(title)).not.toContain('\n');
   expect(host('TextInput')).toHaveLength(0); expect(button('Pošaljite link')).toBeUndefined();
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
   await press('Nazad na prijavu'); expect(button('Prijavite se')).toBeDefined();

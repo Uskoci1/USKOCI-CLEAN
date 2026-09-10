@@ -1,4 +1,4 @@
-import { AuthIntro } from '../ui/auth/AuthPresentation';
+import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'expo-router';
 import { passwordRecoveryIntent } from '../store/passwordRecoveryIntent';
@@ -64,9 +64,9 @@ export default function PasswordRecoveryScreen() {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(32, insets.bottom + 24) }]}>
         <View style={styles.column}>
-          <AuthIntro title={state.status === 'success' ? 'Lozinka je promenjena.' : 'Postavi novu lozinku.'}
+          <AuthIntro composition="stage" title={state.status === 'success' ? 'Lozinka je promenjena.' : 'Postavi novu lozinku.'}
             copy={state.status === 'success' ? 'Isti nalog. Tvoji Zadaci i Dogovori.' : 'Bezbedan povratak u isti USKOČI nalog.'} eyebrow="BEZBEDAN POVRATAK" />
-          <View accessibilityLiveRegion="polite" style={styles.content}>
+          <View accessibilityLiveRegion="polite" style={[styles.content, authStageForm]}>
             {state.status === 'verifying' ? <>
               <ActivityIndicator accessibilityLabel="Provera linka" color={palette.ink} />
               <Text style={styles.copy}>Proveravamo link za oporavak…</Text>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
 
@@ -59,6 +60,12 @@ it('does not render password controls or success before server verification fini
   expect(field('Nova lozinka').props.secureTextEntry).toBe(true);
   expect(field('Nova lozinka').props.autoComplete).toBe('new-password');
   expect(text()).toContain('account-a@example.test');
+  const title = hosts('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Postavi novu lozinku.')!;
+  expect(StyleSheet.flatten(title.props.style).fontSize).toBe(27);
+  const form = hosts('View').find(node => node.props.accessibilityLiveRegion === 'polite')!;
+  expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
+  expect(field('Potvrdite novu lozinku').props.secureTextEntry).toBe(true);
+  expect(mockSave).not.toHaveBeenCalled();
 });
 it('validates confirmation locally, single-flights the write and waits for confirmed success', async () => {
   await render(); await fill('Nova lozinka', '  Nova Lozinka!  '); await fill('Potvrdite novu lozinku', 'different');
