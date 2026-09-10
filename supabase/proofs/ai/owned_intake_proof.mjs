@@ -72,22 +72,32 @@ try{
  const oldTables=rows("select schemaname||'.'||tablename as name from pg_tables where schemaname in('public','private') order by 1").map(x=>x.name);
  for(const name of oldTables)assert.match(name,/^(?:public|private)\.[a-z_0-9]+$/);
  const priorHashes=Object.fromEntries(oldTables.map(name=>[name,hashTable(name)]));
- const oldFunctions=rows("select oid,md5(prosrc) body_md5,proacl,prosecdef,proconfig,proowner from pg_proc where pronamespace in('public'::regnamespace,'private'::regnamespace) order by oid");
+ const oldFunctions=rows("select oid::text oid,md5(prosrc) body_md5,proacl,prosecdef,proconfig,proowner from pg_proc where pronamespace in('public'::regnamespace,'private'::regnamespace) order by pg_proc.oid");
+ for(const f of oldFunctions)assert.match(f.oid,/^[1-9][0-9]*$/);
  const beforeReady=sql('select private.retention_ai_source_ready()');assert.equal(beforeReady,'t');
  const policyHash=hashTable('private.retention_policy_sets'),legalHash=hashTable('private.legal_document_versions');
- const directOids=rows("select 'public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)'::regprocedure::oid id union all select 'public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb)'::regprocedure::oid").map(x=>x.id);
+ const directOids=rows("select 'public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)'::regprocedure::oid::text id union all select 'public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb)'::regprocedure::oid::text").map(x=>x.id);
  const changedBodySignatures=['public.rpc_save_need_draft_from_review(uuid,uuid,text)',
   'public.rpc_ai_confirm_fact(uuid)','public.rpc_ai_correct_fact_v2(uuid,jsonb,text)','public.rpc_ai_correct_fact(uuid,text)'];
- const changedBodyOids=changedBodySignatures.map(signature=>Number(sql(`select ${q(signature)}::regprocedure::oid`)));
+ const changedBodyOids=changedBodySignatures.map(signature=>sql(`select ${q(signature)}::regprocedure::oid::text`));
+ for(const id of [...directOids,...changedBodyOids])assert.match(id,/^[1-9][0-9]*$/);
+ assert.equal(new Set(directOids).size,2);assert.equal(new Set(changedBodyOids).size,4);
+ const priorFunctionIds=new Set(oldFunctions.map(f=>f.oid));
+ assert.ok([...directOids,...changedBodyOids].every(id=>priorFunctionIds.has(id)));
+ assert.ok(changedBodyOids.every(id=>!directOids.includes(id)));
  sql(source.toString('utf8'));
  sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(manifest.forward_version)},${q(manifest.forward_name)},array[${q(source.toString('utf8'))}])`);
  assert.deepEqual(rows(`select * from supabase_migrations.schema_migrations where version<>${q(manifest.forward_version)} order by version`),originalHistory);
  assert.deepEqual(Object.fromEntries(oldTables.map(name=>[name,hashTable(name)])),priorHashes);
- const afterFunctions=new Map(rows(`select oid,md5(prosrc) body_md5,proacl,prosecdef,proconfig,proowner from pg_proc where oid in(${oldFunctions.map(f=>f.oid).join(',')})`).map(x=>[x.oid,x]));
+ const afterFunctions=new Map(rows(`select oid::text oid,md5(prosrc) body_md5,proacl,prosecdef,proconfig,proowner from pg_proc where oid in(${oldFunctions.map(f=>f.oid).join(',')})`).map(x=>[x.oid,x]));
  for(const old of oldFunctions){const after=afterFunctions.get(old.oid);
-  if(directOids.includes(old.oid)){assert.deepEqual({...after,proacl:old.proacl},old);}
-  else if(changedBodyOids.includes(old.oid))assert.deepEqual({...after,body_md5:old.body_md5},old);
-  else assert.deepEqual(after,old);}
+  try {
+   if(directOids.includes(old.oid)){assert.deepEqual({...after,proacl:old.proacl},old);}
+   else if(changedBodyOids.includes(old.oid))assert.deepEqual({...after,body_md5:old.body_md5},old);
+   else assert.deepEqual(after,old);
+  }catch(error){report.failed_function={oid:old.oid,signature:sql(`select ${old.oid}::oid::regprocedure::text`),
+    beforeBodyMd5:old.body_md5,afterBodyMd5:after?.body_md5??null,
+    aclChanged:JSON.stringify(old.proacl)!==JSON.stringify(after?.proacl)};throw error;}}
  assert.equal(sql('select private.retention_ai_source_ready()'),'t');
  report.original_history_unchanged=true;report.original_table_count=oldTables.length;report.original_table_hashes=priorHashes;
  report.original_functions_unchanged_except_two_closed_acls_and_four_named_bodies=true;
