@@ -590,8 +590,8 @@ def core_switch_account(email, worker=False):
     # Agreement Back may return the saved Need detail after selection replaced
     # its route. Reach the actual list tab before using its profile control.
     tap(desc='Zadaci',prefer='bottom'); core_profile()
-    tap(desc='Odjavite se'); wait_visible(desc='Prijavi se',timeout=60)
-    assert_signed_out_surface(); login(email)
+    tap(desc='Odjavite se'); wait_visible(desc='Prijavite se',timeout=60)
+    assert_signed_out_surface(form_open=True); login(email,form_open=True)
     if worker: switch_to_worker_workspace()
 
 
