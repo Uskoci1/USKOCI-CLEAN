@@ -1951,9 +1951,9 @@
       "name": "clean_w02_regional_country_authority",
       "file": "20260910121926_clean_w02_regional_country_authority.sql",
       "classification": "PENDING_FORWARD_MIGRATION",
-      "raw_md5": "ac3096ab5fda7761c5d6477a063b0011",
-      "raw_sha256": "19c84eec4c15a8eca507dc44c50800bd0b4022fcfcdaf281e91bc4a532c34363",
-      "raw_bytes": 64814,
+      "raw_md5": "1e253a861c4dab2f7886e1b65e9e3807",
+      "raw_sha256": "a160164c3fab232761cabe245787c09610426f9001bc588e8bbf69d1c8c35d18",
+      "raw_bytes": 64944,
       "live_applied": false,
       "unit": "W02_REGIONAL_COUNTRY_AUTHORITY",
       "activation": "WRITTEN_NOT_LIVE",
@@ -2045,8 +2045,8 @@
     "reused": "Current CLEAN Need/Worker location RPCs; NEED_FACT_V2; current draft/edit materializers; immutable snapshots and guards",
     "recovered": "PR87 complete source hunks validated against embedded Git blob SHA1; corrupted partial SQL was not applied",
     "donor": "R47 country separation semantics only; obsolete paid model and country activation rejected",
-    "raw_md5": "ac3096ab5fda7761c5d6477a063b0011",
-    "raw_sha256": "19c84eec4c15a8eca507dc44c50800bd0b4022fcfcdaf281e91bc4a532c34363",
+    "raw_md5": "1e253a861c4dab2f7886e1b65e9e3807",
+    "raw_sha256": "a160164c3fab232761cabe245787c09610426f9001bc588e8bbf69d1c8c35d18",
     "status": "WRITTEN_TARGETED_CLIENT_TESTED_DATABASE_REPLAY_PENDING"
   }
 }

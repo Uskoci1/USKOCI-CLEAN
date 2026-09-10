@@ -1174,7 +1174,7 @@ revoke all on function private.guard_profile_write() from public,anon,authentica
 revoke all on function private.guard_need_write() from public,anon,authenticated,service_role;
 revoke all on function private.need_material_snapshot(uuid) from public,anon,authenticated,service_role;
 revoke all on function public.rpc_save_need_draft_from_review(uuid,uuid,text) from public,anon,authenticated,service_role;
-grant execute on function public.rpc_save_need_draft_from_review(uuid,uuid,text) to authenticated;
+grant execute on function public.rpc_save_need_draft_from_review(uuid,uuid,text) to authenticated,service_role;
 revoke all on function public.rpc_ai_open_need_edit_conversation_v2(uuid) from public,anon,authenticated,service_role;
 grant execute on function public.rpc_ai_open_need_edit_conversation_v2(uuid) to authenticated;
 revoke all on function public.rpc_confirm_need_edit_from_review(uuid,integer,uuid,text) from public,anon,authenticated,service_role;
@@ -1185,6 +1185,7 @@ begin
     or exists(select 1 from private.location_market_configs m where not exists(select 1 from pg_timezone_names t where t.name=m.default_timezone))
     or has_table_privilege('authenticated','private.location_market_configs','UPDATE')
     or has_function_privilege('anon','public.rpc_list_location_markets()','EXECUTE')
+    or not has_function_privilege('service_role','public.rpc_save_need_draft_from_review(uuid,uuid,text)','EXECUTE')
     or has_function_privilege('authenticated','public.rpc_confirm_need_edit_from_review(uuid,integer,uuid,text)','EXECUTE') then
     raise exception 'W02_COUNTRY_SECURITY_POSTCONDITION';
   end if;
