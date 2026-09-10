@@ -134,7 +134,7 @@ def prove_spoj_entry(signature=False):
         raise AssertionError('Historical full proof expects its known gated recovery fixture')
     tap(text='Nazad na prijavu')
     assert_entry_password_form()
-    tap(text='Registracija')
+    tap(text='Napravi nalog')
     wait_visible(desc='Napravite nalog')
     shot('ENTRY_registration')
     tap(desc='Nazad')

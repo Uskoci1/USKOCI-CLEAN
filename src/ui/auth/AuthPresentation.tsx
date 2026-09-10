@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { BrandMark } from '../entry/BrandAssets';
 
-/** Executable SPOJ V2 .fp-auth-* composition, with real owned Auth state supplied by the route. */
+/** Executable SPOJ V2, including final .lineage/.v2 overrides; route supplies real owned Auth state. */
 export function AuthIntro({ title, copy, eyebrow = 'JEDAN NALOG · OBE MOGUĆNOSTI' }: { title: string; copy: string; eyebrow?: string }) {
   return <View style={styles.intro}>
     <View style={styles.badge}>
@@ -15,9 +15,9 @@ export function AuthIntro({ title, copy, eyebrow = 'JEDAN NALOG · OBE MOGUĆNOS
   </View>;
 }
 const styles = StyleSheet.create({
-  intro: { paddingTop: 8, paddingBottom: 16 },
-  badge: { width: 58, height: 58, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginBottom: 21 },
-  eyebrow: { color: '#52665E', fontSize: 10, lineHeight: 15, fontWeight: '700', letterSpacing: .8, marginBottom: 8 },
+  intro: { paddingBottom: 16 },
+  badge: { width: 58, height: 58, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginBottom: 29 },
+  eyebrow: { color: '#2E7A6A', fontSize: 10, lineHeight: 15, fontWeight: '700', letterSpacing: 1, marginBottom: 7 },
   title: { color: '#143D35', fontSize: 31, lineHeight: 34.72, letterSpacing: -1, fontWeight: '700', marginBottom: 9 },
-  copy: { color: '#52665E', fontSize: 15, lineHeight: 22.5 },
+  copy: { color: '#5D7067', fontSize: 15, lineHeight: 22.5 },
 });

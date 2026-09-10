@@ -183,14 +183,7 @@ jobs:
             mkdir -p artifacts/intent-shell-device
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell settings put system pointer_location 0 || true
-            if [ "$ENTRY_SCOPE" = signature ]; then
-              set -o pipefail
-              git rev-parse HEAD > artifacts/intent-shell-device/proof-build.txt
-              sha256sum android/app/build/outputs/apk/release/app-release.apk src/ui/entry/*.tsx src/ui/entry/spojBrand*.ts src/app/auth.tsx src/app/oporavak.tsx scripts/entry_spoj_android.py scripts/ru5_android_device_ui_journey.py >> artifacts/intent-shell-device/proof-build.txt
-              python3 scripts/entry_spoj_android.py 2>&1 | tee artifacts/intent-shell-device/proof.log
-            else
-              bash scripts/intent_shell_run_journey.sh
-            fi
+            bash scripts/intent_shell_run_journey.sh
 
       - name: Validate physical Inbox evidence chain
         if: env.ENTRY_SCOPE != 'signature'

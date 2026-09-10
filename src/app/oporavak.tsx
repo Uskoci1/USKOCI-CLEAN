@@ -57,7 +57,7 @@ export default function PasswordRecoveryScreen() {
   return <View style={[styles.screen, { paddingTop: insets.top }]}>
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={busy} onPress={back} style={styles.back}>
-        <ArrowLeft size={22} color={palette.ink} />
+        <ArrowLeft size={22} color="#143D35" />
       </Pressable>
       <Text style={styles.headerLabel}>Oporavak naloga</Text>
     </View>
@@ -103,18 +103,18 @@ export default function PasswordRecoveryScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F5F7F6' },
+  screen: { flex: 1, backgroundColor: '#FBFCFB' },
   flex: { flex: 1 },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 68, alignItems: 'center', paddingHorizontal: space.md },
-  back: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  headerLabel: { flex: 1, color: palette.ink, textAlign: 'left', fontSize: 19, fontWeight: '700' },
+  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 65, alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingTop: 9, paddingBottom: 12, backgroundColor: '#FAFCFB' },
+  back: { width: 44, minHeight: 44, marginLeft: -8, alignItems: 'center', justifyContent: 'center' },
+  headerLabel: { flex: 1, color: '#143D35', textAlign: 'left', fontSize: 20, lineHeight: 23.2, letterSpacing: -.55, fontWeight: '700' },
   scroll: { flexGrow: 1, paddingHorizontal: 20, alignItems: 'center' },
   column: { width: '100%', maxWidth: 412 },
   content: { gap: space.base, padding: 18, borderWidth: 1, borderColor: '#D8E5DD', backgroundColor: '#FFFFFF', borderRadius: 22, marginTop: 6 },
-  copy: { color: palette.inkMuted, ...type.body },
-  email: { color: palette.ink, ...type.bodyStrong, marginBottom: space.sm },
-  note: { color: palette.inkMuted, ...type.meta },
+  copy: { color: '#5D7067', fontSize: 15, lineHeight: 22.5 },
+  email: { color: '#143D35', ...type.bodyStrong, marginBottom: space.sm },
+  note: { color: '#5D7067', ...type.meta },
   error: { color: palette.danger, ...type.body },
   link: { minHeight: 48, justifyContent: 'center' },
-  linkText: { color: palette.ink, ...type.action },
+  linkText: { color: '#143D35', ...type.action },
 });

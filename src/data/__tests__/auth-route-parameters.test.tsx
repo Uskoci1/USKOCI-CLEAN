@@ -88,9 +88,10 @@ it('handles a later recovery destination without remounting or carrying an enter
 it('does not replay an unchanged route parameter over the user-selected registration form', async () => {
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
-  await press('Registracija'); await fill('Ime', 'Ana');
+  await press('Napravi nalog'); await fill('Ime', 'Ana');
   await act(async () => tree.update(<AuthScreen />));
-  expect(button('Registracija').props.accessibilityState.selected).toBe(true);
+  expect(button('Već imaš nalog? Prijavi se')).toBeDefined();
+  expect(button('Napravi nalog')).toBeUndefined();
   expect(input('Ime').props.value).toBe('Ana');
 });
 

@@ -30,6 +30,7 @@ import { useAuthAvailability } from '../hooks/useAuthAvailability';
 import { useAuthFormCommand } from '../hooks/useAuthFormCommand';
 import { EntryWelcome } from '../ui/entry/EntryWelcome';
 import { entryIntentClientService } from '../data/entryIntentClientService';
+import { sesijaSada } from '../store/sesija';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
 type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT';
@@ -64,6 +65,11 @@ export default function AuthScreen() {
   const [otvoren, setOtvoren] = useState(params.form === 'login' || params.form === 'recovery');
   const [rezim, setRezim] = useState<Rezim>('LOGIN');
   const [faza, setFaza] = useState<Faza>(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
+  // Presentation only: a choice becomes visible after its owned prepare succeeds.
+  const [preparedIntent, setPreparedIntent] = useState<{ intent: 'REQUESTER' | 'WORKER'; accountRevision: number } | null>(null);
+  const session = sesijaSada();
+  const selectedIntent = !session.user && preparedIntent?.accountRevision === session.accountRevision ? preparedIntent.intent : null;
+  const intentLabel = selectedIntent === 'REQUESTER' ? 'Meni treba' : selectedIntent === 'WORKER' ? 'Ja mogu' : null;
 
   const [ime, setIme] = useState('');
   const [prezime, setPrezime] = useState('');
@@ -92,6 +98,7 @@ export default function AuthScreen() {
     // this screen. Consume each change once, without interrupting an Auth write
     // or replaying the parameter over a form the person selected themselves.
     commands.changeForm(() => {
+      setPreparedIntent(null);
       setRezim('LOGIN');
       setFaza(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
       setLozinka(''); setPotvrda(''); setGreska(null); setPoruka(null);
@@ -114,6 +121,7 @@ export default function AuthScreen() {
 
   function otvori(mode: Rezim = 'LOGIN') {
     commands.changeForm(() => {
+      setPreparedIntent(null);
       setRezim(mode);
       setFaza('EMAIL');
       setGreska(null);
@@ -137,6 +145,7 @@ export default function AuthScreen() {
 
   async function izaberiNameru(intent: 'REQUESTER' | 'WORKER') {
     await commands.run(() => entryIntentClientService.prepare(intent), () => {
+      setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
       setRezim('LOGIN'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
     }, () => setGreska('Izbor nije sačuvan. Pokušajte ponovo.'));
   }
@@ -240,15 +249,18 @@ export default function AuthScreen() {
             if (faza !== 'EMAIL' || rezim !== 'LOGIN') { setFaza('EMAIL'); setRezim('LOGIN'); }
             else setOtvoren(false);
             setGreska(null); setPoruka(null);
-          })} style={styles.backButton}><ArrowLeft size={22} color="#142F30" /></Pressable>
-        <Text style={styles.headerTitle}>{rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
+          })} style={styles.backButton}><ArrowLeft size={22} color="#143D35" /></Pressable>
+        <View style={styles.headerTitles}>
+          {faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? <Text style={styles.headerEyeline}>{intentLabel}</Text> : null}
+          <Text style={styles.headerTitle}>{rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
+        </View>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
           <View style={styles.formColumn}>
             <AuthIntro title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Dobro došao.' : naslov}
-              copy={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Nastavi do svojih Zadataka i Dogovora.' : podnaslov}
-              eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : undefined} />
+              copy={faza === 'EMAIL' && rezim === 'LOGIN' ? selectedIntent === 'WORKER' ? 'Nastavi do Prijava, Zadataka i Dogovora.' : 'Nastavi do svojih Zadataka i Dogovora.' : podnaslov}
+              eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? `${intentLabel.toUpperCase()} · ISTI NALOG` : undefined} />
             {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
 
             {availability.status === 'loading' ? (
@@ -488,14 +500,12 @@ export default function AuthScreen() {
               onPress={() => void emailAkcija()}
               busy={radi}
             />
-            {methods.emailSignup ? <View style={styles.tabs}>
-              {(['LOGIN', 'SIGNUP'] as const).map(mode => <Pressable key={mode} accessibilityRole="tab"
-                accessibilityState={{ selected: rezim === mode, disabled: radi }} disabled={radi}
-                onPress={() => commands.changeForm(() => { setRezim(mode); setGreska(null); setPoruka(null); })}
-                style={[styles.tab, rezim === mode && styles.selectedTab]}>
-                <Text style={styles.tabLabel}>{mode === 'LOGIN' ? 'Prijava' : 'Registracija'}</Text>
-              </Pressable>)}
-            </View> : null}
+            {methods.emailSignup ? <Pressable accessibilityRole="button"
+              accessibilityState={{ disabled: radi }} disabled={radi}
+              onPress={() => commands.changeForm(() => { setRezim(rezim === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setGreska(null); setPoruka(null); })}
+              style={styles.alternateAction}>
+              <Text style={styles.alternateLabel}>{rezim === 'LOGIN' ? 'Napravi nalog' : 'Već imaš nalog? Prijavi se'}</Text>
+            </Pressable> : null}
           </View>
         </View> : null}
       </KeyboardAvoidingView>
@@ -504,18 +514,18 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  authFooter: { borderTopWidth: 1, borderTopColor: '#DFE7E2', backgroundColor: '#FFFFFF', paddingTop: 12, paddingHorizontal: 20 },
+  authFooter: { borderTopWidth: 1, borderTopColor: '#E8EDEA', backgroundColor: '#FFFFFF', paddingTop: 12, paddingHorizontal: 18 },
   footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center' },
-  screen: { flex: 1, backgroundColor: '#F5F7F6' },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', paddingHorizontal: 12 },
-  backButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'left', fontSize: 19, fontWeight: '700', color: '#143D35' },
+  screen: { flex: 1, backgroundColor: '#FBFCFB' },
+  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 65, alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingTop: 9, paddingBottom: 12, backgroundColor: '#FAFCFB' },
+  backButton: { width: 44, height: 44, marginLeft: -8, alignItems: 'center', justifyContent: 'center' },
+  headerTitles: { flex: 1 },
+  headerEyeline: { color: '#58736A', fontSize: 11, lineHeight: 14.85, marginBottom: 4 },
+  headerTitle: { textAlign: 'left', fontSize: 20, lineHeight: 23.2, letterSpacing: -.55, fontWeight: '700', color: '#143D35' },
   sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 20, paddingTop: 0 },
   formColumn: { width: '100%', maxWidth: 412 },
-  tabs: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#FFFFFF', marginTop: 6 },
-  tab: { flex: 1, minHeight: 48, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', borderRadius: 11 },
-  selectedTab: { backgroundColor: '#E9F3EE' },
-  tabLabel: { color: '#143D35', fontSize: 14, fontWeight: '600' },
+  alternateAction: { minHeight: 44, paddingVertical: 9, paddingHorizontal: 2, justifyContent: 'center', alignSelf: 'flex-start' },
+  alternateLabel: { color: '#143D35', fontSize: 14, lineHeight: 18.9, fontWeight: '600' },
   form: { gap: 16, backgroundColor: '#FFFFFF', borderColor: '#D8E5DD', borderWidth: 1, borderRadius: 22, padding: 18, marginTop: 6 },
   feedback: { marginTop: -6 },
   banner: { marginBottom: 12, borderRadius: 14, padding: 12 },

@@ -38,7 +38,7 @@ export function AuthField({
         {secure ? <Pressable accessibilityRole="button" disabled={!editable}
           accessibilityLabel={vidljivo ? 'Sakrij lozinku' : 'Prikaži lozinku'}
           onPress={() => setVidljivo(x => !x)} style={styles.passToggle}>
-          {vidljivo ? <EyeSlash size={21} color="#5D6E6D" /> : <Eye size={21} color="#5D6E6D" />}
+          {vidljivo ? <EyeSlash size={21} color="#143D35" /> : <Eye size={21} color="#143D35" />}
         </Pressable> : null}
       </View>
     </View>

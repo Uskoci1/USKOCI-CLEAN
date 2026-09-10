@@ -343,6 +343,8 @@ class EntrySignaturePrelude(unittest.TestCase):
                 with patch.dict(namespace, patches), patch('builtins.print'):
                     namespace['prove_spoj_entry'](signature=True)
                 self.assertEqual(setting[0], original)
+                patches['tap'].assert_any_call(text='Napravi nalog')
+                self.assertNotIn(unittest.mock.call(text='Registracija'), patches['tap'].call_args_list)
                 report = json.loads((Path(folder) / 'entry-signature-report.json').read_text())
                 self.assertEqual(report['originalAnimatorSettingRestored'], original)
                 self.assertEqual(report['sourceSha'], 'a' * 40)
