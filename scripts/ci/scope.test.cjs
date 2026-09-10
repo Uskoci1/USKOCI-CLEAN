@@ -68,6 +68,8 @@ test('export delivery UI, file adapters and proof files select the export domain
     'src/lib/__tests__/data-export-file-web.test.ts', 'src/data/__tests__/profile-hub.test.tsx'];
   const args = testArguments(makePlan([], { domain: 'export' }), tracked);
   for (const path of tracked) assert.ok(args.includes(path), path);
+  for (const path of ['other/src/app/(app)/profil/izvoz.tsx', 'src/app/(app)/profil/izvoz.tsx.bak'])
+    assert.ok(!classify([path]).includes('export'), path);
 });
 
 // Real Git comparison and real Actions event payloads, not a mocked classifier.

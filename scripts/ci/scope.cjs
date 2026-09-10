@@ -45,7 +45,8 @@ function classify(paths) {
         /^supabase\/proofs\/legal\/(?:p3_retention_pending|pending_)/.test(path)) { add(...DOMAINS); continue; }
     if (/^supabase\/functions\//.test(path)) { add(...DOMAINS); continue; }
     if (/^src\/(?:app\/(?:auth|oporavak|\+native-intent)|hooks\/usePasswordRecovery|ui\/auth\/|data\/(?:auth|passwordRecovery)|data\/__tests__\/(?:auth|password-recovery))/.test(path) || /^supabase\/proofs\/auth\//.test(path)) add('auth');
-    if (/dataExport|data-export|data_export|p2_export_delivery|p2-data-export|src\/app\/\(app\)\/profil\/izvoz\.tsx$/.test(path)) add('export');
+    if (/dataExport|data-export|data_export|p2_export_delivery|p2-data-export/.test(path)
+      || path === 'src/app/(app)/profil/izvoz.tsx') add('export');
     if (/retention|p3-retention/.test(path)) add('retention');
     if (/legalConsent|legalClient|contracts\/legal|p1_legal|p1-legal/.test(path)) add('consent');
     if (/processorMap|p4_processor|p4-processor/.test(path)) add('processors');

@@ -22,7 +22,7 @@ const report={unit:'P2_EXPORT_DELIVERY',source_sha:env.GITHUB_SHA??null,run_id:e
   ready_fixture_sql:false,auth_fixture:'EXISTING_LOOPBACK_REQUESTER_WORKER',policy_fixture:'EXPLICIT_SYNTHETIC_P1_P3_DELIVERY_REVIEW',
   actual_handler:true,edge_gateway_proven:false,physical_device_proven:false,production_scheduler_wired:false,
   binary_media_export:false,full_account_completeness_claim:false,technical_scope:'REVIEWED_COMPILED_JSON_FIELDS_ONLY',
-  input_sha256:{[sourcePath]:digest(source)},transport_counts:{auth:0,rpc:0,storage:0},candidate:manifest};
+  input_sha256:{[sourcePath]:digest(source)},transport_counts:{auth:0,rpc:0,storage:0},cleanup_transport:[],candidate:manifest};
 const q=x=>"'"+String(x).replaceAll("'","''")+"'";
 function sql(query){try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-At'],{input:query,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:24*1024*1024}).trim();}
 catch(e){report.failed_sql={state:String(e.stderr).match(/ERROR:\s+([A-Z0-9]{5}):/)?.[1]??'UNAVAILABLE',query_sha256:digest(query)};throw new Error('DISPOSABLE_SQL_FAILED');}}
@@ -49,18 +49,37 @@ function reviewDelivery(patch={}){
   sql(`update private.retention_policy_sets set export_delivery=${q(JSON.stringify(policy))}::jsonb where id=${q(policyId)};
        update private.retention_policy_sets set export_delivery=export_delivery||jsonb_build_object('contentSha256',encode(extensions.digest(convert_to(export_delivery::text,'UTF8'),'sha256'),'hex')) where id=${q(policyId)}`);
 }
+const safeErrorToken=value=>typeof value==='string'&&/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(value)?value:value==null?null:'UNRECOGNIZED';
+const safeHttpStatus=value=>/^[1-5][0-9]{2}$/.test(String(value))?Number(value):null;
+async function observeCleanupResponse(u,init,response){
+  // Safe transport diagnostics only: no request IDs, paths, headers, messages,
+  // private row values, JWTs or arbitrary upstream bodies enter the report.
+  if(u.pathname.startsWith('/storage/v1/object/')&&!response.ok){
+    let body;try{body=await response.clone().json();}catch{body=null;}
+    report.cleanup_transport.push({check:current,stage:'STORAGE_ERROR',method:init.method,status:response.status,
+      code:safeErrorToken(body?.code),error:safeErrorToken(body?.error),statusCode:safeHttpStatus(body?.statusCode),httpStatusCode:safeHttpStatus(body?.httpStatusCode)});
+  }
+  if(u.pathname.endsWith('/rpc_complete_data_export_cleanup')){
+    let body;try{body=await response.clone().json();}catch{body=null;}
+    const sent=JSON.parse(init.body);
+    report.cleanup_transport.push({check:current,stage:'CLEANUP_COMPLETE',status:response.status,submittedDeleted:sent.p_deleted===true,
+      returnedDeleted:typeof body?.deleted==='boolean'?body.deleted:null,errorCode:safeErrorToken(body?.code)});
+  }
+}
 async function handler(kind,token,body,intercept){
   const runtime=loadExportHandler(kind,{env:name=>({SUPABASE_URL:url,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY})[name],
     fetch:async(target,init)=>{const u=new URL(target);assert.equal(u.origin,origin);assert.ok(['/auth/v1/user','/rest/v1/rpc/','/storage/v1/object/'].some(p=>u.pathname.startsWith(p)),'UNDECLARED_LOCAL_TRANSPORT');
       const channel=u.pathname.startsWith('/auth/')?'auth':u.pathname.startsWith('/rest/')?'rpc':'storage';report.transport_counts[channel]++;
-      assert.equal(init.redirect,'error');const response=await fetch(target,init);if(intercept)await intercept(u,init,response);return response;}});
+      assert.equal(init.redirect,'error');const response=await fetch(target,init);
+      if(kind==='worker'&&(body.action==='cleanup'||body.action==='tick'))await observeCleanupResponse(u,init,response);
+      if(intercept)await intercept(u,init,response);return response;}});
   Object.assign(report.input_sha256,runtime.sourceHashes);
   return runtime.handler(new Request(origin+'/functions/v1/uskoci-data-export-'+kind,{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)}));
 }
 async function prepare(id,intercept){const r=await handler('worker',ownerToken,{action:'prepare',receiptId:id},intercept);assert.equal(r.status,200);return r.json();}
 async function downloaded(id,generation,token=ownerToken){return handler('download',token,{receiptId:id,artifactGeneration:generation});}
 async function awaitExpired(iso){const deadline=Date.parse(iso)+100;while(Date.now()<deadline)await sleep(Math.min(500,deadline-Date.now()));}
-async function cleanup(id){const r=await handler('worker',ownerToken,{action:'cleanup',receiptId:id});assert.equal(r.status,200);await r.arrayBuffer();}
+async function cleanup(id){const r=await handler('worker',ownerToken,{action:'cleanup',receiptId:id});assert.equal(r.status,200,'CLEANUP_HANDLER_HTTP_STATUS');await r.arrayBuffer();}
 const children=[];
 async function holdAccount(label,accountId=rid){
   const child=spawn('psql',[db,'-X','-qAt','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']});children.push(child);
@@ -165,8 +184,10 @@ try{
 
   check('ACTUAL_EXACT_OBJECT_CLEANUP_AFTER_WRITER_LEASE_AND_SNAPSHOT_PURGE');
   await awaitExpired(descriptor.artifactExpiresAt);await cleanup(draft.receiptId);
-  const absent=await admin.storage.from('data-export-artifacts').download(path);assert.ok(absent.error);
-  assert.equal(sql(`select deleted_at is not null from private.data_export_artifacts where id=${q(descriptor.artifactGeneration)}`),'t');
+  const absent=await admin.storage.from('data-export-artifacts').download(path);
+  report.cleanup_transport.push({check:current,stage:'INDEPENDENT_STORAGE_READBACK',missing:!!absent.error,statusCode:safeHttpStatus(absent.error?.statusCode),errorCode:safeErrorToken(absent.error?.code)});
+  assert.ok(absent.error,'EXACT_OBJECT_STILL_PRESENT');
+  assert.equal(sql(`select deleted_at is not null from private.data_export_artifacts where id=${q(descriptor.artifactGeneration)}`),'t','CLEANUP_ABSENCE_NOT_ATTESTED');
   const snapshotDeadline=sql(`select snapshot_expires_at::text from private.data_export_artifacts where id=${q(descriptor.artifactGeneration)}`);await awaitExpired(snapshotDeadline);
   const maintenance=JSON.parse(sql('select private.data_export_maintenance(100)'));assert.equal(maintenance.storageDeletionPerformed,false);
   assert.equal(sql(`select snapshot_text is null from private.data_export_artifacts where id=${q(descriptor.artifactGeneration)}`),'t');
@@ -284,7 +305,10 @@ try{
   assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')),104);
   report.history_count=104;report.policy_fixture_restored_inert=true;report.production_scheduler_wired=false;pass();
   report.result='PASS';
-}catch(error){report.result='FAIL';report.failed_check=current;report.failure=error?.code==='ERR_ASSERTION'?'ASSERTION_FAILED':/^[A-Z0-9_]{1,96}$/.test(String(error.message))?error.message:'UNEXPECTED_PROOF_ERROR';process.exitCode=1;}
+}catch(error){report.result='FAIL';report.failed_check=current;report.failure=error?.code==='ERR_ASSERTION'?'ASSERTION_FAILED':/^[A-Z0-9_]{1,96}$/.test(String(error.message))?error.message:'UNEXPECTED_PROOF_ERROR';
+  const location=String(error?.stack??'').match(/p2_export_delivery_proof\.mjs:(\d+):(\d+)/);
+  if(location)report.failure_location={file:'supabase/proofs/legal/p2_export_delivery_proof.mjs',line:Number(location[1]),column:Number(location[2])};
+  process.exitCode=1;}
 finally{
   for(const child of children)if(child.exitCode===null)child.stdin.end('rollback;\n');
   for(const client of [owner,other,admin,anon])await client.auth.stopAutoRefresh();
