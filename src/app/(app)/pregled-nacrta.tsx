@@ -291,7 +291,7 @@ export default function PregledNacrtaR07() {
           onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/mesto-zadatka', params: { conversationId } })); }} /> : null}
 
         {facts.map((fact) => {
-          const locationFact = ['need.task_geography', 'need.task_country_code', 'need.exact_address', 'need.access_notes'].includes(fact.key);
+          const locationFact = ['need.task_geography', 'need.task_country_code', 'need.exact_address', 'need.access_notes', 'need.resolved_location'].includes(fact.key);
           const potvrdjen = fact.status === 'CONFIRMED';
           const busy = blocked;
           const editing = edit?.fact.id === fact.id;
@@ -363,7 +363,7 @@ export default function PregledNacrtaR07() {
                         setEdit({ fact, text: fact.displayValue, error: null });
                       }}
                     />
-                    {!potvrdjen ? (
+                    {!potvrdjen && fact.key !== 'need.resolved_location' ? (
                       <Button
                         label="Potvrdite"
                         kind="secondary"

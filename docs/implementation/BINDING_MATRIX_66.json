@@ -106,9 +106,15 @@
         "empty": "Actual empty or missing data",
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
-        "status": "WRITTEN_NOT_MERGED_NOT_LIVE",
-        "proven": "Targeted component checks; integrated runtime proof pending",
-        "activation_blocker": "Pending ordered live migrations; location geocoder/resolved pin remains separate"
+        "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
+        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
+        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
+        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "merged": true,
+        "live": true,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
       }
     },
     {
@@ -423,9 +429,15 @@
         "empty": "Actual empty or missing data",
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
-        "status": "WRITTEN_NOT_MERGED_NOT_LIVE",
-        "proven": "Targeted component checks; integrated runtime proof pending",
-        "activation_blocker": "Pending ordered live migrations; location geocoder/resolved pin remains separate"
+        "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
+        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
+        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
+        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "merged": true,
+        "live": true,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
       }
     },
     {
@@ -487,9 +499,15 @@
         "empty": "Actual empty or missing data",
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
-        "status": "WRITTEN_NOT_MERGED_NOT_LIVE",
-        "proven": "Targeted component checks; integrated runtime proof pending",
-        "activation_blocker": "Pending ordered live migrations; location geocoder/resolved pin remains separate"
+        "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
+        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
+        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
+        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "merged": true,
+        "live": true,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
       }
     },
     {
@@ -515,9 +533,15 @@
         "empty": "Actual empty or missing data",
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
-        "status": "WRITTEN_NOT_MERGED_NOT_LIVE",
-        "proven": "Targeted component checks; integrated runtime proof pending",
-        "activation_blocker": "Pending ordered live migrations; location geocoder/resolved pin remains separate"
+        "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
+        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
+        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
+        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "merged": true,
+        "live": true,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
       }
     },
     {
@@ -543,9 +567,15 @@
         "empty": "Actual empty or missing data",
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
-        "status": "WRITTEN_NOT_MERGED_NOT_LIVE",
-        "proven": "Targeted component checks; integrated runtime proof pending",
-        "activation_blocker": "Pending ordered live migrations; location geocoder/resolved pin remains separate"
+        "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
+        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
+        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
+        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "merged": true,
+        "live": true,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
       }
     },
     {
@@ -838,9 +868,15 @@
         "empty": "Actual empty or missing data",
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
-        "status": "WRITTEN_NOT_MERGED_NOT_LIVE",
-        "proven": "Targeted component checks; integrated runtime proof pending",
-        "activation_blocker": "Pending ordered live migrations; location geocoder/resolved pin remains separate"
+        "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
+        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
+        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
+        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "merged": true,
+        "live": true,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
       }
     },
     {
@@ -889,10 +925,16 @@
     }
   ],
   "native_admission": {
-    "canonical": "5645f0f4cdaa268a36171aa741beceb681e5cfec",
+    "canonical": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
     "visual": "USKOCI_SPOJ_V2_20260910",
     "source": "Supplied BINDING_MATRIX_66 extended in place as canonical binding map; other historical rows retain original evidence limits.",
-    "physical_live_migration_count": 88,
-    "live_write_performed": false
+    "physical_live_migration_count": 101,
+    "live_write_performed": true,
+    "working_source_migration_count": 102,
+    "working_pending_forward_count": 1,
+    "device_proven": false,
+    "provider_execution_proven": false,
+    "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json",
+    "status_scope": "UI_CONNECTED/MERGED/LIVE refers to canonical PR89 source42fbf789; unmerged resolved UI and provider changes are excluded."
   }
 }

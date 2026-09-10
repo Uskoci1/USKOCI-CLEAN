@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   CaretLeft, Clock, ArrowRight, ClockCountdown, CheckCircle,
-  Phone, MapPin,
+  Phone,
 } from 'phosphor-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -17,6 +17,7 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
 import { useSesija } from '../../store/sesija';
 import { AgreementChat } from '../../ui/AgreementChat';
+import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 import { useUloga } from '../../store/uloga';
 
 const naUredjaju = Platform.OS !== 'web';
@@ -329,38 +330,7 @@ function DogovorContent({ id, accountId }: { id: string; accountId: string }) {
                   </View>
                 </View>
 
-                {dogovor.kontakt.lokacijaPostoji && (
-                  <View
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md }}
-                  >
-                    <MapPin size={17} color={palette.teal500} />
-                    <View style={{ flex: 1, gap: 1 }}>
-                      <T variant="meta" style={{ fontWeight: '700' }}>Tačna lokacija</T>
-                      <T variant="meta" tone="muted">
-                        {dogovor.kontakt.tacnaLokacija ?? 'Otkriva se po pravilima Dogovora'}
-                      </T>
-                    </View>
-                    {!dogovor.kontakt.tacnaLokacija && (
-                      <Press
-                        accessibilityRole="button"
-                        accessibilityLabel="Prikaži tačnu lokaciju"
-                        haptic="light"
-                        onPress={async () => {
-                          if (!id) return;
-                          await izvor.otkrijTacnuLokaciju(id);
-                          osvezi();
-                        }}
-                        style={{
-                          minHeight: 40, paddingHorizontal: space.base, borderRadius: radius.md,
-                          borderWidth: 1, borderColor: palette.line100,
-                          backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        <T variant="meta" style={{ fontWeight: '800' }}>Prikaži</T>
-                      </Press>
-                    )}
-                  </View>
-                )}
+                <AgreementPrivateLocation agreement={dogovor} enabled={!workspace.loading && !workspace.error} />
               </View>
             </Card>
 

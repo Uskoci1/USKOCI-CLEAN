@@ -1414,7 +1414,7 @@
     "live_writes": "ONE_PREVIOUSLY_COMPLETED_EXACT_CANONICAL_D03_FORWARD_DDL",
     "production_business_rpc_called": false,
     "provider_called": false,
-    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71→72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
+    "note": "Supplied D03 narrow catalog/aggregate postflight and final13:18:42Z gates; exact live86 alias, original85 full history records unchanged. Advisor71â†’72 adds only the intentional authenticated SECURITY DEFINER boundary; original warnings remain. This documentation reconciliation executes no production SQL."
   },
   "historical_edge_before_context_v7": {
     "slug": "uskoci-ai-interview",
@@ -1874,46 +1874,175 @@
     "next": "PROVE_CURRENT_UNIT_THEN_REMAINING_W02_AND_CURRENT_DEBT_BEFORE_W03"
   },
   "physical_live_readmission_20260910": {
-    "observed_at_utc": "2026-09-10 12:15:55 UTC",
+    "observed_at_utc": "2026-09-10 13:25:24 UTC",
     "project_ref": "leqcwgzvjsxugfgzdmth",
-    "canonical_source": "5645f0f4cdaa268a36171aa741beceb681e5cfec",
-    "mode": "READ_ONLY",
-    "migration_count": 88,
-    "latest_version": "20260910111126",
-    "latest_name": "clean_p0e_completion_guards",
-    "source_migration_count": 100,
-    "remaining_forward_count": 12,
+    "canonical_source": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+    "mode": "READ_ONLY_POSTFLIGHT_AFTER_AUTHORIZED_PROMOTION",
+    "migration_count": 101,
+    "latest_version": "20260910132345",
+    "latest_name": "clean_w02_regional_country_authority",
+    "source_migration_count": 102,
+    "remaining_forward_count": 1,
     "pending_source_files": [
-      "20260908130000_clean_p1_legal_consent_ledger.sql",
-      "20260908140000_clean_p4_processor_map_registry.sql",
-      "20260908150000_clean_p3_retention_schedule_registry.sql",
-      "20260908160000_clean_p2_data_export_requests.sql",
-      "20260908170000_clean_d0140a_policy_bundle_registration.sql",
-      "20260909110000_clean_w02_calendar_authority.sql",
-      "20260909120000_clean_w02_calendar_interval_integrity.sql",
-      "20260909130000_clean_w02_flexible_calendar_scope.sql",
-      "20260909140000_clean_w02_availability_commands.sql",
-      "20260909150000_clean_w02_persistent_availability_matching.sql",
-      "20260909160000_clean_w02_owned_location_review.sql",
-      "20260910053000_clean_w02_shared_capability_validation.sql"
+      "20260910130851_clean_w02_resolved_location_authority.sql"
     ],
     "edge": {
       "name": "uskoci-ai-interview",
-      "version": 11,
+      "version": 12,
       "status": "ACTIVE",
-      "verify_jwt": true
+      "verify_jwt": true,
+      "ezbr_sha256": "1bf02fbfa924c8b94f62bd1f80b928951c5a63eba2f3e40a0fbdfdced5d9b8a4",
+      "exact_source_readback": true,
+      "registry_key_count": 21,
+      "evidence_owner": "root deployment receipt"
     },
     "storage": {
       "profile_media_public": false,
-      "owner_scoped_policies": 4
+      "owner_scoped_policies": 4,
+      "file_size_limit": 5242880,
+      "allowed_mime_types": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ],
+      "owner_policy_count_source": "Preserved prior readmission; root per-file security snapshots unchanged"
     },
-    "need_worker_location_rpcs_present": false,
-    "publication_policy_bundle_rows": 0,
+    "need_worker_location_rpcs_present": true,
+    "publication_policy_bundle_rows": 1,
     "secret_values_read": false,
     "edge_secret_names_reobserved": false,
-    "live_write_performed": false,
+    "live_write_performed": true,
     "physical_live_business_rpc_proven": false,
-    "evidence": "docs/implementation/evidence/live-readmission-20260910/readmission.json"
+    "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json",
+    "canonical_source_migration_count": 101,
+    "canonical_remaining_forward_count": 0,
+    "pending_source_status": "UNMERGED_WORKING_SUCCESSOR_NOT_PROVEN_NOT_LIVE",
+    "publication_policy_bundle_status": "UNREVIEWED_INCOMPLETE_INACTIVE",
+    "postflight_live_writes": false,
+    "device_proven": false,
+    "provider_execution_proven": false,
+    "previous_readmission_evidence": "docs/implementation/evidence/live-readmission-20260910/readmission.json",
+    "promoted_aliases": [
+      {
+        "source_file": "20260908130000_clean_p1_legal_consent_ledger.sql",
+        "version": "20260910131320",
+        "name": "clean_p1_legal_consent_ledger",
+        "statements_count": 1,
+        "raw_md5": "6d32b1a05622b232ca54658f7f70f8a5",
+        "raw_sha256": "fa9be26fd9006d8af271384c3ed344be72b51531b49450cbc6c89f3bc1b653e7",
+        "raw_bytes": 11829
+      },
+      {
+        "source_file": "20260908140000_clean_p4_processor_map_registry.sql",
+        "version": "20260910131325",
+        "name": "clean_p4_processor_map_registry",
+        "statements_count": 1,
+        "raw_md5": "244ca4d495de073dc6137c2a799d3fa8",
+        "raw_sha256": "24e191c1436a9ddd010310576f0d571945eff6fcc7b08cb0d004e0fd1ebcf26e",
+        "raw_bytes": 18537
+      },
+      {
+        "source_file": "20260908150000_clean_p3_retention_schedule_registry.sql",
+        "version": "20260910131331",
+        "name": "clean_p3_retention_schedule_registry",
+        "statements_count": 1,
+        "raw_md5": "65d50eeca8481233a466a3eaa5c458bf",
+        "raw_sha256": "e7ce87db536a72d4d49742bb6bfbd752fc06e7cd838b2c8b373095dd6140a521",
+        "raw_bytes": 16046
+      },
+      {
+        "source_file": "20260908160000_clean_p2_data_export_requests.sql",
+        "version": "20260910131336",
+        "name": "clean_p2_data_export_requests",
+        "statements_count": 1,
+        "raw_md5": "51b1cb1aea386a5bd2a596c89b58dd97",
+        "raw_sha256": "f5e25e2e6dde212103d9c81a4b34ea75ee772c80123d85d513af169fb80099b5",
+        "raw_bytes": 9956
+      },
+      {
+        "source_file": "20260908170000_clean_d0140a_policy_bundle_registration.sql",
+        "version": "20260910131342",
+        "name": "clean_d0140a_policy_bundle_registration",
+        "statements_count": 1,
+        "raw_md5": "48b05badae57b036537072b18cdac313",
+        "raw_sha256": "ed81b57d5270dab7470edf8434639598aa55260077b73dfcc010256280ddec71",
+        "raw_bytes": 4353
+      },
+      {
+        "source_file": "20260909110000_clean_w02_calendar_authority.sql",
+        "version": "20260910132014",
+        "name": "clean_w02_calendar_authority",
+        "statements_count": 1,
+        "raw_md5": "ee35d301baa3cb5abf8d1ed4b1706146",
+        "raw_sha256": "a7d716a3dc342f1391bcee23f66946173d58c7d1fa514a5ad8d9339e1e350493",
+        "raw_bytes": 17134
+      },
+      {
+        "source_file": "20260909120000_clean_w02_calendar_interval_integrity.sql",
+        "version": "20260910132019",
+        "name": "clean_w02_calendar_interval_integrity",
+        "statements_count": 1,
+        "raw_md5": "9aa0e4c174cb3eacb5b2cc119186ed26",
+        "raw_sha256": "6fd21825d1fa61448b126b87b57cbb0eb97fd90bd642ef18ae4e69b3bc5b162c",
+        "raw_bytes": 15227
+      },
+      {
+        "source_file": "20260909130000_clean_w02_flexible_calendar_scope.sql",
+        "version": "20260910132025",
+        "name": "clean_w02_flexible_calendar_scope",
+        "statements_count": 1,
+        "raw_md5": "af5ce8da2e202414c518d7a06b42c25f",
+        "raw_sha256": "a1c971461d3bd6e5c00031bf6925dbad61a7e728824a6bca78f81d4ef37e29e0",
+        "raw_bytes": 2638
+      },
+      {
+        "source_file": "20260909140000_clean_w02_availability_commands.sql",
+        "version": "20260910132055",
+        "name": "clean_w02_availability_commands",
+        "statements_count": 1,
+        "raw_md5": "16570a62aa121859faf60e4e329de0a0",
+        "raw_sha256": "06bee424ee3e781bd6753878d8f89ddedd27d0a14df575018c3d06153c89415b",
+        "raw_bytes": 15755
+      },
+      {
+        "source_file": "20260909150000_clean_w02_persistent_availability_matching.sql",
+        "version": "20260910132100",
+        "name": "clean_w02_persistent_availability_matching",
+        "statements_count": 1,
+        "raw_md5": "4d860dd6cba2958b3e993ff5f8e80fe2",
+        "raw_sha256": "82dee81a7d16ff42006c425b65dbcaa44ff2829bbe78944cf051733a6438aec9",
+        "raw_bytes": 10106
+      },
+      {
+        "source_file": "20260909160000_clean_w02_owned_location_review.sql",
+        "version": "20260910132106",
+        "name": "clean_w02_owned_location_review",
+        "statements_count": 1,
+        "raw_md5": "3577662956a29766b4389cdb30a8d96c",
+        "raw_sha256": "2d5d343d8af781addf0e4ddcfea61f327f25cb68c42dcd3842974b182de5e673",
+        "raw_bytes": 19764
+      },
+      {
+        "source_file": "20260910053000_clean_w02_shared_capability_validation.sql",
+        "version": "20260910132340",
+        "name": "clean_w02_shared_capability_validation",
+        "statements_count": 1,
+        "raw_md5": "c888c770130162f98d3f870676ca0408",
+        "raw_sha256": "c6acc86f85412d69d6f620a2df6c3f0b8d3da7bfcfd267e397720d3fecfffc76",
+        "raw_bytes": 4065
+      },
+      {
+        "source_file": "20260910121926_clean_w02_regional_country_authority.sql",
+        "version": "20260910132345",
+        "name": "clean_w02_regional_country_authority",
+        "statements_count": 1,
+        "raw_md5": "1e253a861c4dab2f7886e1b65e9e3807",
+        "raw_sha256": "a160164c3fab232761cabe245787c09610426f9001bc588e8bbf69d1c8c35d18",
+        "raw_bytes": 64944
+      }
+    ],
+    "frozen_replay_baseline": "live_history_snapshot=87 remains unchanged; pending_forward_migrations belongs to historical replay, not physical pending state",
+    "native_w02_status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL"
   },
-  "migration_provenance_state": "LIVE_88_P0E_APPLIED_EXACT_BYTES_READ_ONLY_REOBSERVED"
+  "migration_provenance_state": "PHYSICAL_LIVE101_CANONICAL101_WORKING102_PENDING_RESOLVED_FROZEN_REPLAY87"
 }

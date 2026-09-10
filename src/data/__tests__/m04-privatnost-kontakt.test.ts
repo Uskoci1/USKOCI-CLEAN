@@ -78,13 +78,13 @@ describe('M04 — lokacija je vezana za režim', () => {
     expect(d.kontakt.tacnaLokacija).toBeNull();
   });
 
-  it('otkrivanje daje adresu za fizički Dogovor', async () => {
+  it('demo ne izmišlja serversku dozvolu za privatnu lokaciju', async () => {
     const id = await napraviDogovor();
     const ishod = await izvor.otkrijTacnuLokaciju(id);
-    expect(ishod.ok).toBe(true);
+    expect(ishod).toMatchObject({ ok: false, kod: 'DEMO_LOCATION_UNAVAILABLE' });
 
     const d = (await izvor.dogovor(id))!;
-    expect(d.kontakt.tacnaLokacija).not.toBeNull();
+    expect(d.kontakt.tacnaLokacija).toBeNull();
   });
 });
 

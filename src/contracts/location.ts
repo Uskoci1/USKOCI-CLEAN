@@ -1,5 +1,6 @@
-import type { NeedTaskGeography } from './needFactsV2';
+import type { NeedTaskGeography, ResolvedLocationValue } from './needFactsV2';
 import type { CountryCode } from './market';
+export type { LocationSlot, LocationPinOrigin, ConfirmedLocationPoint, ResolvedLocationValue } from './needFactsV2';
 
 /** The existing public topology contains coarse text, never private addresses or GPS. */
 export type NeedLocationInput = Readonly<{
@@ -7,6 +8,7 @@ export type NeedLocationInput = Readonly<{
   geography: NeedTaskGeography;
   exactAddress: string | null;
   accessNotes: string | null;
+  resolvedLocation?: ResolvedLocationValue | null;
 }>;
 export type NeedLocationReview = Readonly<{
   accountId: string;
@@ -14,7 +16,7 @@ export type NeedLocationReview = Readonly<{
   editable: boolean;
   confirmed: boolean;
   revision: string;
-  value: Readonly<{ taskCountryCode: CountryCode | null; geography: NeedTaskGeography | null; exactAddress: string | null; accessNotes: string | null }>;
+  value: Readonly<{ taskCountryCode: CountryCode | null; geography: NeedTaskGeography | null; exactAddress: string | null; accessNotes: string | null; resolvedLocation?: ResolvedLocationValue | null }>;
 }>;
 export type NeedLocationSave = Readonly<{
   conversationId: string; expectedRevision: string; confirmed: true; value: NeedLocationInput;

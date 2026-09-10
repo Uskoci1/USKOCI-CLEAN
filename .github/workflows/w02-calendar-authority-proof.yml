@@ -109,6 +109,17 @@ jobs:
           node --check supabase/proofs/calendar/w02_location_proof.mjs
           node supabase/proofs/calendar/w02_location_proof.mjs
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/location-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.location_fixture_sql || r.gps_permission_requested || r.geocoder_called || r.provider_activated || !r.calendar_and_application_snapshots_unchanged || r.observed_waiters<2 || r.checks.length!==14) process.exit(1);'
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/resolved-location-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.location_fixture_sql || r.provider_called || r.provider_attestation || r.ui_journey || !r.real_response_selection_agreement || r.checks.length!==11 || r.checks.some(c=>c.result!=="PASS")) process.exit(1);'
+      - name: Private location remains outside AI proposal and context boundaries
+        if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'location')
+        run: |
+          node supabase/proofs/ai/ai_edge_context_proof.mjs
+          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync("proof-out/ai-edge-context/proof-report.json")); if(r.status!=="PASS" || r.sourceCommit!==process.env.GITHUB_SHA || r.actualProviderCalled || r.databaseConnected || r.testsPassed!==58 || r.testsFailed!==0) process.exit(1); for(const f of ["proof-report.json","handler-tests.tap"]) fs.copyFileSync("proof-out/ai-edge-context/"+f,process.env.W02_CALENDAR_ARTIFACT_DIR+"/ai-location-"+f);'
+      - name: Authenticated geocoder adapter with synthetic upstream transport
+        if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'location')
+        run: |
+          node --test --test-reporter=tap supabase/proofs/location/location_search_edge.test.mjs > "$W02_CALENDAR_ARTIFACT_DIR/geocoder-handler-tests.tap"
+          node -e 'const fs=require("fs"),crypto=require("crypto"),files=["supabase/functions/uskoci-location-search/index.ts","supabase/proofs/location/location_search_edge.test.mjs"],tap=fs.readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/geocoder-handler-tests.tap","utf8"); if(!/^# pass 16$/m.test(tap)||!/^# fail 0$/m.test(tap)) process.exit(1); fs.writeFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/geocoder-source-proof.json",JSON.stringify({result:"PASS",source_sha:process.env.GITHUB_SHA,provider_called:false,database_connected:false,tests:16,files:files.map(path=>({path,sha256:crypto.createHash("sha256").update(fs.readFileSync(path)).digest("hex")}))},null,2));'
       - name: Reused Need and Worker capability validation and actual profile client
         if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'capability')
         run: |

@@ -1,21 +1,21 @@
 {
-  "unit": "AI_EDGE_CONTEXT_AND_PROVIDER_SELECTION_20260907",
-  "boundary": "SOURCE_ONLY_NOT_DEPLOYED",
+  "unit": "W02_RESOLVED_LOCATION_MANUAL_ONLY_AI_BOUNDARY_20260910",
+  "boundary": "ACTUAL_HANDLER_MOCKED_TRANSPORT_NOT_PROVIDER_PROVEN",
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 26775,
-      "sha256": "4421fd3fe16399bfcc6e4820218f080008f6eefd09784b2b08039fe267f3726c"
+      "bytes": 28041,
+      "sha256": "2c89b2337d388ccf032c230de1398b7ef4826e0ca6e0e8b3be09417021c911f8"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
-      "bytes": 4097,
-      "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
+      "bytes": 5523,
+      "sha256": "fb4b145a1f9aebe5d8b72339125153c6401ec8323f4a0107946766ab28f0218c"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-      "bytes": 14863,
-      "sha256": "fc9611e91902de6f5d844e0d78994ee2460fe001d73893800471b6e189a0085a"
+      "bytes": 19782,
+      "sha256": "0bba2f6e348b63d527c5a626bd7a14f9bd6dadddda64fe004f021e5d483621e2"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",

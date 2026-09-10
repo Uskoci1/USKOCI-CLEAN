@@ -34,15 +34,22 @@ export const NEED_FACT_V2_DEFINITIONS = {
   'need.public_photo_paths': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Fotografije' },
   'need.exact_address': { valueType: 'TEXT', privacyClass: 'PRIVATE', requiredForDraft: false, label: 'Tačna adresa' },
   'need.access_notes': { valueType: 'TEXT', privacyClass: 'PRIVATE', requiredForDraft: false, label: 'Pristup' },
+  'need.resolved_location': { valueType: 'OBJECT', privacyClass: 'PRIVATE', requiredForDraft: false, manualOnly: true, label: 'Potvrđene tačke' },
 } as const satisfies Record<string, {
   valueType: NeedFactValueType;
   privacyClass: NeedFactPrivacyClass;
   requiredForDraft: boolean;
   label: string;
+  manualOnly?: boolean;
 }>;
 
 export type NeedFactV2Key = keyof typeof NEED_FACT_V2_DEFINITIONS;
 export const NEED_FACT_V2_KEYS = Object.keys(NEED_FACT_V2_DEFINITIONS) as NeedFactV2Key[];
+export const AI_PROPOSABLE_NEED_FACT_V2_KEYS = NEED_FACT_V2_KEYS.filter(key =>
+  !('manualOnly' in NEED_FACT_V2_DEFINITIONS[key]));
+export function isAiProposableNeedFactV2Key(value: string): value is NeedFactV2Key {
+  return AI_PROPOSABLE_NEED_FACT_V2_KEYS.some(key => key === value);
+}
 export const REQUIRED_NEED_FACT_V2_KEYS = NEED_FACT_V2_KEYS.filter(
   (key) => NEED_FACT_V2_DEFINITIONS[key].requiredForDraft,
 );
@@ -68,7 +75,23 @@ export type NeedTaskGeography = {
   serviceArea?: NeedTaskGeographyPoint;
 };
 
-export type NeedFactV2Value = string | number | boolean | string[] | NeedTaskGeography;
+export type LocationSlot = 'start' | 'end' | 'serviceArea' | `waypoints/${number}`;
+export type LocationPinOrigin = Readonly<{ kind: 'MANUAL_PIN' }> | Readonly<{
+  kind: 'PROVIDER_CANDIDATE'; providerHint: string; candidateHint: string | null;
+}>;
+/** Coordinates chosen by the owner; provider hints never attest accuracy. */
+export type ConfirmedLocationPoint = Readonly<{
+  slot: LocationSlot; latitudeE6: number; longitudeE6: number; origin: LocationPinOrigin;
+  address?: string; accessNotes?: string;
+}>;
+/** Private witness references the existing topology; it never owns that topology. */
+export type ResolvedLocationValue = Readonly<{
+  version: 1;
+  binding: Readonly<{ taskCountryCode: string; geography: NeedTaskGeography; exactAddress: string | null }>;
+  points: readonly ConfirmedLocationPoint[];
+}>;
+
+export type NeedFactV2Value = string | number | boolean | string[] | NeedTaskGeography | ResolvedLocationValue;
 
 export function isNeedFactV2Key(value: string): value is NeedFactV2Key {
   return Object.prototype.hasOwnProperty.call(NEED_FACT_V2_DEFINITIONS, value);

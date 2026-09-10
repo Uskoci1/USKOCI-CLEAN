@@ -20,6 +20,7 @@ supabase/proofs/ai/*.json text eol=lf
 supabase/proofs/ai/*.mjs text eol=lf
 docs/implementation/evidence/ai-authority-20260907/*.log -text -whitespace
 supabase/functions/uskoci-ai-interview/index.ts text eol=lf
+supabase/functions/uskoci-location-search/index.ts text eol=lf
 src/contracts/needFactsV2.ts text eol=lf
 docs/implementation/evidence/ai-edge-context-20260907/** -text -whitespace
 docs/implementation/evidence/task-detail-recovery-20260907/retained-tab-fix/** -text whitespace=cr-at-eol

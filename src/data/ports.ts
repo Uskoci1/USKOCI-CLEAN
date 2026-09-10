@@ -9,6 +9,7 @@
  * rpc_select_response, rpc_propose_agreement_change_v2, ...
  */
 
+import type { ExactLocationReveal, LocationGrantState } from '../contracts/contact';
 import type {
   DogovorProjekcija,
   JavniProfilProjekcija,
@@ -159,7 +160,10 @@ export interface Komande {
   opoziviTelefon(dogovorId: string): Promise<Ishod<null>>;
 
   /** M04 — tačna lokacija je vezana za režim; daljinski Dogovor je nema. */
-  otkrijTacnuLokaciju(dogovorId: string): Promise<Ishod<{ adresa: string }>>;
+  lokacijskaDozvola(dogovorId: string): Promise<Ishod<LocationGrantState>>;
+  podeliTacnuLokaciju(dogovorId: string): Promise<Ishod<null>>;
+  opoziviTacnuLokaciju(dogovorId: string): Promise<Ishod<null>>;
+  otkrijTacnuLokaciju(dogovorId: string): Promise<Ishod<ExactLocationReveal>>;
 }
 
 /* ----------------------------------------------------- R02 — AI intake */

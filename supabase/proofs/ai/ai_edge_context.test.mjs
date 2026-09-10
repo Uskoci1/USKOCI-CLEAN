@@ -17,7 +17,7 @@ const providerResult={safety:'ALLOW',assistantMessage:'Pregledajte predloženi b
   {key:'need.people_needed',valueJson:'2',displayValue:'2 osobe',evidence:userText,confidence:0.9},
 ]};
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
-function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,schema='NEED_FACT_V2'}={}){
+function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,schema='NEED_FACT_V2',activeFacts=[],providerOutput}={}){
   const calls=[],logs=[],env={SUPABASE_URL:'https://database.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC_KEY',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE_KEY',GEMINI_API_KEY:provider==='gemini'?'SYNTHETIC_GEMINI_KEY':'',
     GEMINI_MODEL:provider==='gemini'?'synthetic-gemini-model':'',OPENAI_API_KEY:'SYNTHETIC_OPENAI_KEY',OPENAI_MODEL:'synthetic-openai-model'};
@@ -33,13 +33,15 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
       const rows=Array.from({length:historyCount},(_,i)=>({sequence_no:i+1,role:i%2?'ASSISTANT':'USER',body:`SYNTHETIC_HISTORY_${i+1}`}));
       return json(rows.reverse().slice(0,40));
     }
-    if(url.includes('/rest/v1/ai_structured_facts?'))return json([]);
+    // Intentionally ignore the query allowlist: the handler must also filter
+    // unexpected/manual-only rows returned by the context transport.
+    if(url.includes('/rest/v1/ai_structured_facts?'))return json(activeFacts);
     if(url.includes('/rest/v1/rpc/rpc_ai_apply_interview_turn'))return json({proposedCount:body.p_proposals.length});
     if(url.startsWith('https://generativelanguage.googleapis.com/')||url==='https://api.openai.com/v1/responses'){
       if(failure==='network')throw new Error('SYNTHETIC_GEMINI_KEY '+userText+' PRIVATE_PROVIDER_OUTPUT');
       if(failure==='http')return new Response('PRIVATE_PROVIDER_OUTPUT',{status:429});
       if(failure==='json')return new Response('PRIVATE_PROVIDER_OUTPUT '+userText+' SYNTHETIC_GEMINI_KEY',{status:200});
-      const result=schema==='NEED_FACT_V2'?providerResult:{safety:'ALLOW',assistantMessage:'Potreban je pregled.',facts:[]};
+      const result=providerOutput??(schema==='NEED_FACT_V2'?providerResult:{safety:'ALLOW',assistantMessage:'Potreban je pregled.',facts:[]});
       const output=failure==='output'?'PRIVATE_PROVIDER_OUTPUT '+userText:JSON.stringify(result);
       return url.includes('googleapis')?json({candidates:[{content:{parts:[{text:output}]}}]}):json({output_text:output});
     }
@@ -62,11 +64,68 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
   const request=overrides=>new Request('https://edge.test.invalid/uskoci-ai-interview',{method:'POST',
     headers:{Authorization:'Bearer SYNTHETIC_USER_SESSION','Content-Type':'application/json'},
     body:JSON.stringify({conversationId:conversation,text:userText,...overrides})});
-  return {calls,logs,env,invoke:overrides=>handler(request(overrides))};
+  return {calls,logs,env,registry:load(registry),invoke:overrides=>handler(request(overrides))};
 }
 const providerCall=fixture=>fixture.calls.find(x=>x.url.includes('googleapis')||x.url==='https://api.openai.com/v1/responses');
 const prompt=call=>call.body.systemInstruction?.parts[0].text??call.body.instructions;
 const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{[^}]+\})\./)[1]);
+
+const resolvedWitness={version:1,binding:{taskCountryCode:'RS',geography:{mode:'STATIONARY',start:{city:'SYNTHETIC_CITY'}},
+  exactAddress:'PRIVATE_RESOLVED_BINDING_ADDRESS'},points:[{slot:'start',latitudeE6:44123456,longitudeE6:20123456,
+  origin:{kind:'PROVIDER_CANDIDATE',providerHint:'PRIVATE_RESOLVED_PROVIDER',candidateHint:'PRIVATE_RESOLVED_CANDIDATE'},
+  address:'PRIVATE_RESOLVED_POINT_ADDRESS',accessNotes:'PRIVATE_RESOLVED_ACCESS_NOTES'}]};
+const manualFact={key:'need.resolved_location',valueJson:JSON.stringify(resolvedWitness),value:JSON.stringify(resolvedWitness),
+  displayValue:'PRIVATE_RESOLVED_DISPLAY',evidence:'PRIVATE_RESOLVED_EVIDENCE',confidence:1};
+
+for(const provider of ['gemini','openai'])test(`${provider} outbound V2 schema and prompt registry exclude manual-only facts`,async()=>{
+  const f=fixture({provider});assert.equal((await f.invoke()).status,200);
+  const call=providerCall(f),schema=call.body.generationConfig?.responseSchema??call.body.text.format.schema;
+  const allowedKeys=schema.properties.facts.items.properties.key.enum;
+  const promptRegistry=JSON.parse(prompt(call).split('Jedini podržani V2 fact registry: ')[1]);
+  assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS]);
+  assert.deepEqual(promptRegistry.map(fact=>fact.key),allowedKeys);
+  assert.ok(allowedKeys.includes('need.task_geography'));assert.ok(allowedKeys.includes('need.task_country_code'));
+  assert.ok(allowedKeys.includes('need.exact_address'));assert.ok(!allowedKeys.includes('need.resolved_location'));
+  assert.equal(f.registry.NEED_FACT_V2_DEFINITIONS['need.resolved_location'].manualOnly,true);
+  assert.ok(f.registry.NEED_FACT_V2_KEYS.includes('need.resolved_location'),'manual form still owns the full registry key');
+});
+
+for(const provider of ['gemini','openai'])for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
+  test(`${provider} ${schema} context query and defensive prompt omit complete resolved witness`,async()=>{
+    const activeFacts=[
+      {fact_key:'need.people_needed',fact_value:2,display_value:'2 osobe',status:'CONFIRMED'},
+      {fact_key:'naslov',fact_value:'SYNTHETIC_LEGACY_TITLE',status:'CONFIRMED'},
+      {fact_key:'need.exact_address',fact_value:'SYNTHETIC_EXISTING_PRIVATE_ADDRESS',status:'CONFIRMED'},
+      {fact_key:'need.resolved_location',fact_value:resolvedWitness,display_value:manualFact.displayValue,status:'CONFIRMED'},
+      {fact_key:'unknown.private_fact',fact_value:'PRIVATE_UNKNOWN_FACT',status:'CONFIRMED'},
+    ];
+    const f=fixture({provider,schema,activeFacts});assert.equal((await f.invoke()).status,200);
+    const query=new URL(f.calls.find(call=>call.url.includes('/ai_structured_facts?')).url).searchParams;
+    assert.equal(query.get('conversation_id'),`eq.${conversation}`);assert.equal(query.get('superseded_at'),'is.null');
+    const filter=query.get('fact_key');assert.match(filter??'',/^in\.\(.+\)$/);
+    const fetchedKeys=JSON.parse(`[${filter.slice(4,-1)}]`);
+    assert.ok(fetchedKeys.includes('naslov'));assert.ok(fetchedKeys.includes('need.people_needed'));
+    assert.ok(fetchedKeys.includes('need.exact_address'));assert.ok(!fetchedKeys.includes('need.resolved_location'));
+    assert.ok(!fetchedKeys.includes('unknown.private_fact'));
+    const payload=JSON.stringify(providerCall(f).body);
+    for(const privateMarker of ['need.resolved_location','PRIVATE_RESOLVED_','44123456','20123456','latitudeE6','longitudeE6','PRIVATE_UNKNOWN_FACT']){
+      assert.ok(!payload.includes(privateMarker),`outbound provider payload contains ${privateMarker}`);
+    }
+    assert.ok(payload.includes('SYNTHETIC_LEGACY_TITLE'));assert.ok(payload.includes('SYNTHETIC_EXISTING_PRIVATE_ADDRESS'));
+    assert.ok(payload.includes('need.people_needed'));assert.deepEqual(f.logs,[]);
+  });
+}
+
+for(const provider of ['gemini','openai'])for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1'])for(const safety of ['ALLOW','BLOCK']){
+  test(`${provider} ${schema} ${safety} manual-only proposal rejects whole turn before SQL writer`,async()=>{
+    const ordinaryFact=schema==='NEED_FACT_V2'?providerResult.facts[0]:{key:'osoba',value:'2',evidence:userText,confidence:0.9};
+    const f=fixture({provider,schema,providerOutput:{safety,assistantMessage:'PRIVATE_RESOLVED_ASSISTANT',facts:[ordinaryFact,manualFact]}});
+    const response=await f.invoke();assert.equal(response.status,502);
+    assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');assert.equal(providerCalls(f).length,1);
+    assert.ok(!f.calls.some(call=>new URL(call.url).pathname.includes('/rpc/')),'no valid subset or empty BLOCK turn may be persisted');
+    assert.deepEqual(f.logs,[['AI_PROVIDER_FAILED']]);
+  });
+}
 
 for(const [now,date,time,offset] of [
   ['2026-09-07T21:59:59.000Z','2026-09-07','23:59:59','+02:00'],
