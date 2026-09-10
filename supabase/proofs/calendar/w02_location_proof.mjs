@@ -172,8 +172,10 @@ try{
   assert.equal(editReview.value.taskCountryCode,'RS');assert.equal(editReview.confirmed,true);
   const material=JSON.parse(sql(`select private.need_full_edit_snapshot(${q(draft)}::uuid)`));
   assert.equal(material.taskCountryCode,'RS');assert.equal(material.taskTimezone,'Europe/Belgrade');
-  const clearCountry=await owner.from('needs').update({task_country_code:null,task_timezone:null}).eq('id',draft);
-  assert.ok(clearCountry.error);
+  const clearCountry=await owner.from('needs').update({task_country_code:null,task_timezone:null}).eq('id',draft).select('id');
+  // Published rows are hidden by the existing DRAFT-only UPDATE policy. RLS
+  // may deny with zero affected rows rather than reaching the write trigger.
+  assert.ok(clearCountry.error || (Array.isArray(clearCountry.data) && clearCountry.data.length===0));
   assert.deepEqual(JSON.parse(sql(`select private.need_full_edit_snapshot(${q(draft)}::uuid)`)),material);
   const changedLocation={...manual,geography:{mode:'STATIONARY',start:{city:'Novi Sad',area:'Centar'}}};
   await save(a,edit.conversationId,changedLocation);
@@ -182,6 +184,12 @@ try{
   assert.equal(updated.status,'DRAFT');
   const changedNeed=await ok(owner.from('needs').select('task_country_code,task_timezone,approximate_area').eq('id',draft).single());
   assert.deepEqual(changedNeed,{task_country_code:'RS',task_timezone:'Europe/Belgrade',approximate_area:'Centar'});
+  // DRAFT is visible to the UPDATE policy, so the canonical write guard itself
+  // must refuse clearing country outside the reviewed command authority.
+  const draftSnapshot=JSON.parse(sql(`select private.need_full_edit_snapshot(${q(draft)}::uuid)`));
+  const clearDraftCountry=await owner.from('needs').update({task_country_code:null,task_timezone:null}).eq('id',draft).select('id');
+  assert.ok(clearDraftCountry.error);
+  assert.deepEqual(JSON.parse(sql(`select private.need_full_edit_snapshot(${q(draft)}::uuid)`)),draftSnapshot);
   publishFixture(draft);
   pass();
 
@@ -238,7 +246,8 @@ try{
     for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_function_privilege(${q(role)},${q(signature)},'EXECUTE')`),'f');
   }
   pass();report.result='PASS';
-}catch(error){report.result='FAIL';report.failed_stage=stage;report.error_type=error?.code==='ERR_ASSERTION'?'ASSERTION':error?.message==='LOCAL_SQL_FAILED'?'LOCAL_SQL':'CLIENT_OR_RPC';}
+}catch(error){report.result='FAIL';report.failed_stage=stage;report.error_type=error?.code==='ERR_ASSERTION'?'ASSERTION':error?.message==='LOCAL_SQL_FAILED'?'LOCAL_SQL':'CLIENT_OR_RPC';
+  report.failed_source_line=Number(error?.stack?.match(/w02_location_proof\.mjs:(\d+):/)?.[1])||null;}
 finally{
   for(const child of children)if(child.exitCode===null)child.kill();
   for(const c of [owner,worker,third,anon,fixtureService])await c.auth.stopAutoRefresh();
