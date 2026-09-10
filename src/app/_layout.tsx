@@ -80,13 +80,13 @@ export default function RootLayout() {
         <StatusBar style="dark" />
         <Stack
           key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
+          initialRouteName={session ? '(app)' : 'auth'}
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: palette.ground },
             animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
           <Stack.Protected guard={!session}>
             <Stack.Screen name="auth" options={{ animation: 'none' }} />
           </Stack.Protected>
@@ -96,6 +96,9 @@ export default function RootLayout() {
             <Stack.Screen name="obavestenja" />
             <Stack.Screen name="prijave" />
           </Stack.Protected>
+          {/* Recovery remains a public link destination, never the cold-start
+              fallback when Protected removes the private index route. */}
+          <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
         </Stack>
       </GestureHandlerRootView>
     </SafeAreaProvider>

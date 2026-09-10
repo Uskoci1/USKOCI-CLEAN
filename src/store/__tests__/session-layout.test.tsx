@@ -24,12 +24,20 @@ jest.mock('expo-router', () => {
   const { Screen } = require('expo-router/build/views/Screen');
   const { Protected } = require('expo-router/build/views/Protected');
   const { useFilterScreenChildren } = require('expo-router/build/layouts/withLayoutContext');
-  const Stack = ({ children }: { children?: React.ReactNode }) => {
+  const { StackRouter } = require('expo-router/build/react-navigation/routers/StackRouter');
+  const Stack = ({ children, initialRouteName }: { children?: React.ReactNode; initialRouteName?: string }) => {
     const filtered = useFilterScreenChildren(children);
     const [instance] = React.useState(() => ++mockStackMounts);
+    const screens = filtered.screens.map((screen: { name: string }) => screen.name);
+    const config = { routeNames: screens, routeParamList: {}, routeGetIdList: {} };
+    const router = StackRouter({ initialRouteName });
+    const cold = router.getInitialState(config);
+    const linked = router.getRehydratedState({ stale: true, index: 0, routes: [{ name: mockSegments[0] }] }, config);
     return React.createElement('Stack', {
       instance,
-      screens: filtered.screens.map((screen: { name: string }) => screen.name),
+      screens,
+      coldRoute: cold.routes[cold.index].name,
+      linkedRoute: linked.routes[linked.index].name,
       protectedScreens: Array.from(filtered.protectedScreens),
     });
   };
@@ -59,6 +67,15 @@ afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 async function render() { await act(async () => { tree = create(<RootLayout />); }); }
 
 describe('session-owned root return navigation', () => {
+  it.each([false, true])('cold launch selects the admitted entry route instead of recovery: signedIn=%s', async signedIn => {
+    mockSegments.splice(0, mockSegments.length);
+    if (!signedIn) mockRendered = { ...mockRendered, session: null, user: null };
+    mockCurrent = mockRendered; await render();
+    const stack = tree.root.findByType('Stack' as React.ElementType);
+    expect(stack.props.coldRoute).toBe(signedIn ? '(app)' : 'auth');
+    expect(stack.props.coldRoute).not.toBe('oporavak');
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
   it('replaces private navigation state after batched A→B→A even when the rendered account id matches', async () => {
     await render();
     const before = tree.root.findByType('Stack' as React.ElementType).props.instance;
@@ -166,6 +183,7 @@ it.each([true, false])('keeps the recovery route public without consuming a save
   expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(mockConsume).not.toHaveBeenCalled();
   const stack = tree.root.findByType('Stack' as React.ElementType);
+  expect(stack.props.linkedRoute).toBe('oporavak');
   expect(stack.props.screens).toContain('oporavak');
   if (!signedIn) expect(stack.props.screens).not.toContain('(app)');
 });
