@@ -15,7 +15,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
   return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', Eye: 'Icon', MapPin: 'Icon', DownloadSimple: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon', MapPin: 'Icon', CalendarBlank: 'Icon', Bell: 'Icon', DownloadSimple: 'Icon', ShieldCheck: 'Icon', Clock: 'Icon', Eye: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
@@ -54,14 +54,40 @@ it('keeps unpublished retention and unavailable closure explicit with no fake de
   await render(); expect(texts()).toContain('Potpun raspored rokova čuvanja još nije dostupan.');
   expect(texts()).toContain('Zatvaranje naloga trenutno nije dostupno');
   expect(texts()).not.toContain('fixture duration');
-  expect(tree.root.findAll(node => node.type === 'Button' as React.ElementType).map(node => node.props.label))
+  expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label !== 'Nazad'))
     .toEqual(['Otvorite izvoz', 'Osvežite stanje']);
 });
 it('renders every published rule field and only the narrow matching capability', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
+  expect(texts()).not.toContain('fixture duration');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
   for (const value of ['synthetic purpose', 'fixture duration', 'fixture trigger', 'fixture exception', 'fixture basis',
     'samo za napuštene AI razgovore', 'Ovo nije potvrda da je određeni razgovor obrisan']) expect(texts()).toContain(value);
   expect(texts()).not.toContain('P3_AI_ABANDONED_UNBOUND_V1'); expect(texts()).not.toContain('AI_VOLATILE');
+});
+it('opens one published rule at a time without turning the row into a data mutation', async () => {
+  const value = policy();
+  value.rules.push({ ...value.rules[0], dataClass: 'PROFILE_DATA', retentionPeriod: 'second fixture duration' });
+  mockPolicy.mockResolvedValue(ok(value)); await render();
+  const first = () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' });
+  const second = () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: Podaci profila' });
+  expect(first().props.accessibilityState.expanded).toBe(false);
+  await act(async () => first().props.onPress());
+  expect(first().props.accessibilityState.expanded).toBe(true);
+  await act(async () => second().props.onPress());
+  expect(first().props.accessibilityState.expanded).toBe(false);
+  expect(second().props.accessibilityState.expanded).toBe(true);
+  expect(texts()).toContain('second fixture duration');
+  expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+});
+it('does not carry expanded legal content across a newly read policy version', async () => {
+  mockPolicy.mockResolvedValue(ok(policy())); await render();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
+  expect(texts()).toContain('fixture duration');
+  mockPolicy.mockResolvedValue(ok(policy('fixture-v2')));
+  await act(async () => button('Osvežite stanje').onPress());
+  expect(texts()).toContain('fixture-v2'); expect(texts()).not.toContain('fixture duration');
 });
 it('does not combine different policy versions into an admission', async () => {
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2'))); mockExecution.mockResolvedValue(ok(execution('fixture-v1'))); await render();
@@ -72,7 +98,10 @@ it.each(['policy', 'execution'])('keeps the other reader usable after %s fails w
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution()));
   (failed === 'policy' ? mockPolicy : mockExecution).mockRejectedValueOnce(new Error('private transport diagnostic'));
   await render(); expect(texts()).not.toContain('private transport'); expect(texts()).not.toContain('brisanje je omogućeno');
-  if (failed === 'execution') expect(texts()).toContain('fixture duration');
+  if (failed === 'execution') {
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
+    expect(texts()).toContain('fixture duration');
+  }
   await act(async () => button('Osvežite stanje').onPress());
   expect(mockPolicy).toHaveBeenCalledTimes(2); expect(mockExecution).toHaveBeenCalledTimes(2);
 });

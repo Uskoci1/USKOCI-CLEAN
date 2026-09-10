@@ -18,7 +18,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon', MapPin: 'Icon', CalendarBlank: 'Icon', Bell: 'Icon', DownloadSimple: 'Icon', ShieldCheck: 'Icon', Clock: 'Icon', Eye: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }),
   sesijaSada: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }) }));
@@ -48,6 +48,21 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 
 describe('real profile hub', () => {
+  it.each(['narucilac', 'uskocer'] as const)('keeps the existing notification entry in the grouped %s hub', async intent => {
+    mockIntent = intent; await render();
+    const open = tree.root.findByProps({ label: 'Obaveštenja' }).props.onPress;
+    await act(async () => { open(); open(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/obavestenja']]);
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  it.each([['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Kalendar Dogovora', '/raspored']])
+    ('preserves the actual Worker %s destination', async (label, route) => {
+      mockIntent = 'uskocer'; await render();
+      await act(async () => tree.root.findByProps({ label }).props.onPress());
+      expect(mockRouter.navigate.mock.calls).toEqual([[route]]);
+    });
+
   it.each(['narucilac', 'uskocer'] as const)('opens privacy once for the current %s intent', async intent => {
     mockIntent = intent;
     await render();
