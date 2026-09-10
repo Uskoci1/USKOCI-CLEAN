@@ -89,7 +89,7 @@ def assert_shell_tree(root, parent, width, height, expected):
 
 
 def assert_shell(intent):
-    root, parent = wait_surface(text='MENI TREBA' if intent == 'requester' else 'JA MOGU', timeout=45)
+    root, parent = wait_surface(desc='Zadaci', timeout=45) if core_mode() else wait_surface(text='MENI TREBA' if intent == 'requester' else 'JA MOGU', timeout=45)
     expected = ('Zadaci', 'Novi Zadatak', 'Dogovori') if intent == 'requester' else ('Prijave', 'Zadaci', 'Dogovori')
     assert_shell_tree(root, parent, *screen_size(), expected)
     print(f'CHECKPOINT THREE_ZONES intent={intent} labels={expected}', flush=True)

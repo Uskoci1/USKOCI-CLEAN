@@ -5,13 +5,36 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join, resolve } from 'node:path';
+import { join, resolve, posix } from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../supabase/proofs/ru5_device_ui_local_guard.mjs';
 
-const modules = ['supabaseIzvor', 'needClientService', 'publicProfileClientService'];
+const modules = ['data/supabaseIzvor', 'data/needClientService', 'data/publicProfileClientService',
+  'data/calendarErrors', 'data/serverReceipt', 'data/needDetailPresentation', 'lib/capabilityTerms',
+  'lib/calendarTime', 'lib/market', 'lib/location', 'ui/calendar/calendarPresentation'];
+export function readSourceAdapters(sourceRoot, worker, workerId, trace = []) {
+  const source = Object.fromEntries(modules.map(name => [name, readFileSync(join(sourceRoot, 'src', name + '.ts'), 'utf8')]));
+  const cache = new Map();
+  const load = name => {
+    assert.ok(modules.includes(name), 'W05_PROBE_UNKNOWN_SOURCE_MODULE');
+    if (cache.has(name)) return cache.get(name);
+    const exports = {}; cache.set(name, exports);
+    const javascript = ts.transpileModule(source[name], { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: name + '.ts' }).outputText;
+    const require = dependency => {
+      const target = posix.normalize(posix.join(posix.dirname(name), dependency));
+      if (target === 'data/supabaseClient') return { supabaseKlijent: () => worker };
+      if (target === 'store/sesija') return { sesijaSada: () => ({ user: { id: workerId }, accountRevision: 1, sessionEpoch: 1 }) };
+      return load(target);
+    };
+    vm.runInNewContext(javascript, { exports, require, setTimeout, clearTimeout, AbortController, Intl,
+      console: { error: () => trace.push({ sourceDiagnostic: 'SUPPRESSED_SAFE_SOURCE_ERROR' }) } }, { filename: name + '.ts', timeout: 1000 });
+    return exports;
+  };
+  return { baseline: load('data/supabaseIzvor').supabaseIzvor, needService: load('data/needClientService').needClientService,
+    sources: modules.map(name => ({ path: 'src/' + name + '.ts', sha256: createHash('sha256').update(source[name]).digest('hex') })) };
+}
 export function assertReadProbeRequest(input, init = {}) {
   const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
   assert.equal(url.origin, 'http://127.0.0.1:54321', 'W05_PROBE_REQUEST_NOT_LOCAL');
@@ -42,7 +65,6 @@ async function main() {
   };
   const needId = uuid(env.RU5_DEVICE_NEED_ID), workerId = uuid(env.RU5_DEVICE_WORKER_USER_ID);
   const sourceRoot = resolve(fileURLToPath(new URL('../', import.meta.url)));
-  const source = Object.fromEntries(modules.map(name => [name, readFileSync(join(sourceRoot, 'src/data', name + '.ts'), 'utf8')]));
   const trace = [];
   const nativeFetch = globalThis.fetch;
   const worker = createClient(env.RU5_DEVICE_SUPABASE_URL, env.RU5_DEVICE_ANON_KEY, {
@@ -69,26 +91,7 @@ async function main() {
     'agreements',(select count(*) from public.agreements),'history',(select count(*) from supabase_migrations.schema_migrations),
     'bundles',(select count(*) from private.publication_policy_bundles),'decisions',(select count(*) from private.need_publication_decisions))`;
   const before = sql(countQuery);
-  const cache = new Map();
-  const load = name => {
-    assert.ok(modules.includes(name), 'W05_PROBE_UNKNOWN_SOURCE_MODULE');
-    if (cache.has(name)) return cache.get(name);
-    const exports = {};
-    cache.set(name, exports);
-    const javascript = ts.transpileModule(source[name], {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-      fileName: name + '.ts',
-    }).outputText;
-    // Only transport factory injection. Request/mapping/error code is actual source.
-    const require = dependency => dependency === './supabaseClient'
-      ? { supabaseKlijent: () => worker }
-      : load(dependency.replace(/^\.\//, ''));
-    vm.runInNewContext(javascript, { exports, require, console: { error: () => trace.push({ sourceDiagnostic: 'SUPPRESSED_SAFE_SOURCE_ERROR' }) } },
-      { filename: name + '.ts', timeout: 1000 });
-    return exports;
-  };
-  const baseline = load('supabaseIzvor').supabaseIzvor;
-  const needService = load('needClientService').needClientService;
+  const { baseline, needService, sources } = readSourceAdapters(sourceRoot, worker, workerId, trace);
   const reads = [['prilika', () => baseline.prilika(needId)], ['potreba', () => needService.potreba(needId)],
     ['mojRadnikProfil', () => baseline.mojRadnikProfil()]];
   const observations = await Promise.all(reads.map(async ([operation, run]) => {
@@ -110,8 +113,10 @@ async function main() {
   }));
   const after = sql(countQuery);
   const report = { observedAt: new Date().toISOString(), sourceSha: env.GITHUB_SHA, localOnly: true, liveAccess: false,
-    boundary: 'actual source adapters / real local Auth and PostgREST / pre-N04 original published fixture / no business write',
-    sources: modules.map(name => ({ path: 'src/data/' + name + '.ts', sha256: createHash('sha256').update(source[name]).digest('hex') })),
+    boundary: env.RU5_DEVICE_CORE106 === '1'
+      ? 'actual source adapters / real local Auth and PostgREST / exact106 synthetic published precondition / no business write'
+      : 'actual source adapters / real local Auth and PostgREST / pre-N04 original published fixture / no business write',
+    sources,
     observations, trace, countsUnchanged: before === after, counts: JSON.parse(after),
     result: observations.every(item => item.result === 'PASS') && before === after ? 'PASS' : 'FAIL' };
   writeFileSync(join(env.RU5_DEVICE_ARTIFACT_DIR, 'w05-source-read-preflight.json'), JSON.stringify(report, null, 2) + '\n');

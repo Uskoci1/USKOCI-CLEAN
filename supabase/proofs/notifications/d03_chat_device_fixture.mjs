@@ -23,6 +23,31 @@ const agreement=uuid(env.N04_AGREEMENT_ID),need=uuid(env.RU5_DEVICE_NEED_ID);
 const worker=uuid(env.RU5_DEVICE_WORKER_USER_ID),requester=uuid(env.RU5_DEVICE_REQUESTER_USER_ID);
 const sql=query=>execFileSync('psql',[env.RU5_DEVICE_DB_URL,'-X','-v','ON_ERROR_STOP=1','-At','-c',query],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
 const rows=query=>JSON.parse(sql(`select coalesce(json_agg(x),'[]'::json) from (${query}) x`));
+
+if(env.RU5_DEVICE_CORE106==='1') {
+  const fixture=JSON.parse(readFileSync(join(out,'core-fixture.json'),'utf8'));
+  const core=JSON.parse(readFileSync(join(out,'core-selection.json'),'utf8'));
+  const admission=JSON.parse(readFileSync('artifacts/ai-review-device/ai-review-admission.json','utf8'));
+  for(const report of [fixture,core,admission])assert.equal(report.sourceSha,env.GITHUB_SHA);
+  assert.equal(core.result,'PASS');assert.equal(core.actualNativeApply,true);assert.equal(core.actualNativeSelect,true);assert.equal(core.actualNativeMapSelection,true);
+  assert.equal(core.agreementId,agreement);assert.equal(core.needId,need);assert.equal(core.requesterId,requester);assert.equal(core.workerId,worker);
+  assert.equal(admission.historyCount,106);assert.equal(admission.localOnly,true);assert.equal(fixture.productionPolicyActivation,false);
+  const before=rows('select count(*)::int count,max(version) head,md5(jsonb_agg(to_jsonb(m) order by version)::text) full_metadata_md5 from supabase_migrations.schema_migrations m')[0];
+  assert.equal(before.count,106);
+  assert.equal(sql(`select count(*) from public.agreements where id='${agreement}' and need_id='${need}' and requester_account_id='${requester}' and worker_account_id='${worker}' and status='CONFIRMED'`),'1');
+  assert.equal(sql(`select count(*) from public.agreement_messages where agreement_id='${agreement}'`),'0');
+  assert.equal(sql(`select count(*) from private.connection_activations where agreement_id='${agreement}' and response_content_hash='${core.responseHash}' and response_version=${core.responseVersion} and platform_cost_rsd=0 and policy_key='REQUESTER_SELECTION_V1' and state='SATISFIED'`),'1');
+  const sources=readD03ChatSourceAdmission(); // Validate frozen raw bytes/candidates; do not reapply any source.
+  assert.equal(sql("select md5(prosrc) from pg_proc where oid='public.rpc_send_agreement_message_v2(uuid,uuid,text,text)'::regprocedure"),'8020a93751f4915bffff0fac5524ad64');
+  assert.equal(sql("select md5(prosrc) from pg_proc where oid='public.rpc_send_agreement_message(uuid,text)'::regprocedure"),'d9a3733814e3101a3941284c07dc2bed');
+  const report={result:'PASS',sourceSha:env.GITHUB_SHA,runId:env.GITHUB_RUN_ID,localOnly:true,liveAccess:false,providerCalled:false,
+    fullCanonicalHistoryReplay:true,nativeBoundary:'EXACT106_UI_CREATED_CORE_AGREEMENT',agreementId:agreement,requesterId:requester,workerId:worker,
+    historyBefore:before,historyAfter:before,alreadyApplied:[...sources.alreadyApplied,...sources.additions],applied:[],
+    messageEventsBefore:Number(sql("select count(*) from public.user_activity_events where event_type='MESSAGE_RECEIVED'")),
+    publicationProof:false,productionPolicyActivation:false,coreSelection:core};
+  writeFileSync(join(out,'d03-native-db-boundary.json'),JSON.stringify(report,null,2)+'\n');
+  console.log('PASS D03_NATIVE_CORE106_ADMISSION actual_UI_agreement no_DDL history_unchanged');
+} else {
 const inbox=readFileSync(join(out,'proof-inbox.log'),'utf8'),navigation=readFileSync(join(out,'proof-navigation.log'),'utf8');
 assert.ok(inbox.includes('PASS N04_PHYSICAL_INBOX'));assert.ok(navigation.includes('PASS PHYSICAL_INTENT_SHELL'));
 const n04=['INBOX_requester_one_event','INBOX_role_empty','INBOX_requester_read_all','INBOX_bell_zero','INBOX_worker_selection_unread','INBOX_selection_opens_real_agreement','INBOX_selection_read_confirmed','INBOX_next_page_available','INBOX_second_page_loaded','INBOX_worker_read_all'];
@@ -60,3 +85,5 @@ try{
   report.result='PASS';console.log('PASS D03_NATIVE_EXACT_ADMISSION history79_unchanged seven_explicit_extensions no_production_no_provider');
 }catch(error){report.result='FAIL';throw error;}
 finally{writeFileSync(join(out,'d03-native-db-boundary.json'),JSON.stringify(report,null,2)+'\n');}
+
+}
