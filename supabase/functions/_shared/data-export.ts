@@ -64,13 +64,18 @@ export async function sha256(bytes: Uint8Array) {
   const digest = await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>);
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
-/** Documented Storage NoSuchKey, including its legacy 404 payload. */
+/** Storage v1.70.3 renders NoSuchKey/404 in an HTTP400 envelope; retain
+ * its explicit object code and payload status, never infer absence from a 4xx.
+ * https://github.com/supabase/storage/blob/v1.70.3/src/internal/errors/storage-error.ts */
 export async function objectAbsent(response: Response, signal: AbortSignal) {
   if (![400, 404].includes(response.status)) { void response.body?.cancel().catch(() => undefined); return false; }
   const error = row(await parseJSON(response.body, 4096, signal));
   const code = error?.code ?? error?.error;
-  return response.status === 404 && code === 'NoSuchKey'
-    || code === 'not_found' && String(error?.statusCode ?? error?.httpStatusCode ?? response.status) === '404';
+  if (code !== 'NoSuchKey' && code !== 'not_found') return false;
+  if (error?.error !== undefined && error.error !== 'NoSuchKey' && error.error !== 'not_found') return false;
+  const statuses = [error?.statusCode, error?.httpStatusCode].filter(value => value !== undefined);
+  if (statuses.some(value => String(value) !== '404')) return false;
+  return response.status === 404 || statuses.length > 0;
 }
 type Window = { busy: boolean; count: number; start: number; last: number };
 const windows = new Map<string, Window>();

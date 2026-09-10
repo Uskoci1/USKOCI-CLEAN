@@ -77,7 +77,15 @@ test('cleanup proves missing exact object before recording deleted',async()=>{
   const f=fixture();await f.invoke({action:'cleanup',receiptId:R});assert.equal(JSON.parse(f.calls.find(c=>c.name==='delete').body).prefixes[0],PATH);
   assert.equal(JSON.parse(f.calls.find(c=>c.name==='rpc_complete_data_export_cleanup').body).p_deleted,true);
 });
-for(const [status,body,deleted] of [[404,{code:'TenantNotFound'},false],[404,{code:'NoSuchBucket'},false],[500,{code:'NoSuchKey'},false],[403,{code:'NoSuchKey'},false],[400,{statusCode:'404',error:'not_found'},true],[404,{message:'proxy missing'},false]])test('cleanup absence interpretation '+status+' '+JSON.stringify(body),async()=>{
+for(const [status,body,deleted] of [[404,{code:'TenantNotFound'},false],[404,{code:'NoSuchBucket'},false],[500,{code:'NoSuchKey'},false],[403,{code:'NoSuchKey'},false],[400,{statusCode:'404',error:'not_found'},true],[404,{message:'proxy missing'},false],
+  [400,{statusCode:'404',code:'NoSuchKey',error:'NoSuchKey'},true],
+  [400,{statusCode:'404',code:'NoSuchKey',error:'not_found'},true],
+  [400,{httpStatusCode:404,code:'NoSuchKey'},true],
+  [400,{code:'NoSuchKey'},false],
+  [404,{code:'NoSuchKey',statusCode:'403'},false],
+  [400,{code:'NoSuchKey',statusCode:'404',httpStatusCode:403},false],
+  [400,{code:'NoSuchKey',statusCode:'404',error:'AccessDenied'},false],
+  [400,{code:'NoSuchBucket',statusCode:'404'},false]])test('cleanup absence interpretation '+status+' '+JSON.stringify(body),async()=>{
   const f=fixture('worker',{object:()=>reply(body,status)});await f.invoke({action:'cleanup',receiptId:R});assert.equal(JSON.parse(f.calls.find(c=>c.name==='rpc_complete_data_export_cleanup').body).p_deleted,deleted);
 });
 test('download authenticates same owner, verifies actual bytes and rechecks grant before release',async()=>{
