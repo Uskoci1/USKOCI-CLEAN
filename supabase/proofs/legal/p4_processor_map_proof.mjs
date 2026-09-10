@@ -4,6 +4,7 @@
 // clearly labeled, with https://proof.invalid URLs; no counsel content, no
 // production or device call.
 import assert from 'node:assert/strict';
+import { replayPendingDomain } from './pending_domain_replay.mjs';
 import {execFile,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
@@ -215,11 +216,29 @@ try{
   assert.equal(tableHash('supabase_migrations.schema_migrations',`version<>${q(manifest.forward_version)}`),history);
   report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
   assert.equal(report.migration_history_count,predecessorCount+1);
-  assert.equal(report.migration_history_count,plan.source_migration_count);
+  assert.equal(report.migration_history_count + plan.pending_successor_count,plan.source_migration_count);
   assert.equal(sql("select count(*) from private.processor_map_entries where privacy_notice_url not like 'https://proof.invalid/%'"),'0');
   assert.equal(sql("select count(*) from private.processor_map_sets where counsel_reference not like 'PROOF%'"),'0');
   pass();
   }
+
+  current='ADMITTED_SUCCESSOR_DOMAIN_INTEGRATION';
+  report.successor_replay=await replayPendingDomain({plan,sql,db,url,snapshot:async()=>({
+    tables: (manifest.new_tables ?? ['private.publication_policy_bundles','private.publication_policy_rule_refs']).map(table=>[table,tableHash(table)]),
+    security: sql(`select coalesce(jsonb_agg(to_jsonb(p) order by n.nspname,p.proname,p.oid),'[]'::jsonb)::text
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname in ('public','private') and p.proname ~ 'processor'`),
+    tableGrants: sql(`select coalesce(jsonb_agg(jsonb_build_array(n.nspname,c.relname,c.relrowsecurity,c.relforcerowsecurity,c.relacl) order by n.nspname,c.relname),'[]'::jsonb)::text
+      from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relname ~ 'processor'`),
+    columnGrants: sql(`select coalesce(jsonb_agg(jsonb_build_array(n.nspname,c.relname,a.attname,a.attacl) order by n.nspname,c.relname,a.attnum),'[]'::jsonb)::text
+      from pg_class c join pg_namespace n on n.oid=c.relnamespace join pg_attribute a on a.attrelid=c.oid
+      where n.nspname in ('public','private') and c.relname ~ 'processor' and a.attnum>0 and not a.attisdropped`),
+    policies: sql(`select coalesce(jsonb_agg(to_jsonb(p) order by schemaname,tablename,policyname),'[]'::jsonb)::text
+      from pg_policies p where tablename ~ 'processor'`),
+    projection: [await ok(status(requester))],
+  })});
+  report.migration_history_count=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
+  assert.equal(report.migration_history_count,plan.source_migration_count);
   report.result='PASS';
 }catch(error){
   report.result='FAIL';report.failed_check=current;

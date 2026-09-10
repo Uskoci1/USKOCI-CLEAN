@@ -12,12 +12,14 @@ test('plan admits frozen live87 plus the ordered earlier pending stack and P1', 
   const plan = readP1LegalPredecessorPlan();
   assert.equal(plan.historical_predecessor_count, 87);
   assert.equal(plan.pending_predecessor_count, 1);
-  assert.equal(plan.source_migration_count, 89);
+  assert.equal(plan.source_migration_count, plan.expected_predecessor_count + 1 + plan.pending_successor_count);
   assert.equal(plan.expected_predecessor_count, 88);
   assert.deepEqual(plan.pending_predecessors.map(entry => entry.file), [
     '20260908120000_clean_p0e_completion_guards.sql',
   ]);
-  assert.equal(plan.source_inventory.at(-1).file, unit.forward_file);
+  assert.equal(plan.source_inventory[plan.expected_predecessor_count].file, unit.forward_file);
+  assert.ok(plan.pending_successors.every(entry => entry.version > String(unit.forward_version)));
+  assert.equal(plan.pending_successors.length, plan.pending_successor_count);
 });
 
 test('candidate and forward bytes are identical and match the manifest digests', () => {

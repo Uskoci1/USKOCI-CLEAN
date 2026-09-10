@@ -1,38 +1,17 @@
 name: W02 calendar authority proof
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/w02-calendar-authority-20260909]
-  pull_request:
-    branches: [clean-alpha-backend]
-    paths:
-      - '.github/workflows/w02-calendar-authority-proof.yml'
-      - 'supabase/migrations/**'
-      - 'supabase/proofs/calendar/**'
-      - 'src/contracts/workerCalendar.ts'
-      - 'src/data/workerCalendarClientService.ts'
-      - 'src/data/__tests__/w02-worker-calendar-client.test.ts'
-      - 'src/data/agreementClientService.ts'
-      - 'src/data/supabaseIzvor.ts'
-      - 'src/data/calendarErrors.ts'
-      - 'src/lib/calendarTime.ts'
-      - 'src/lib/location.ts'
-      - 'src/contracts/location.ts'
-      - 'src/data/locationClientService.ts'
-      - 'src/data/locationResolver.ts'
-      - 'src/data/serverReceipt.ts'
-      - 'src/data/workerProfileClientService.ts'
-      - 'src/lib/capabilityTerms.ts'
-      - 'src/data/aiNeedV2Ui.ts'
-      - 'src/data/ports.ts'
-      - 'src/data/__tests__/w02-profile-write-safety.test.ts'
-      - 'src/data/__tests__/w02-capability-terms.test.ts'
-      - 'src/data/__tests__/cdl-a09-worker-profile-equivalence.test.ts'
-      - 'src/data/__tests__/w02-location-client.test.ts'
-      - 'src/lib/workerAvailability.ts'
-      - 'src/contracts/workerAvailability.ts'
-      - 'src/data/workerAvailabilityClientService.ts'
-      - 'src/data/__tests__/w02-worker-availability-client.test.ts'
+    inputs:
+      scope:
+        description: Comma-separated calendar,availability,location,capability or all
+        type: string
+        default: all
+  workflow_call:
+    inputs:
+      scope:
+        description: Comma-separated calendar,availability,location,capability or all
+        type: string
+        default: all
 concurrency:
   group: w02-calendar-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
@@ -55,6 +34,10 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Validate explicit W02 proof scope
+        env:
+          W02_SCOPE: ${{ inputs.scope || 'all' }}
+        run: node scripts/ci/scope.cjs validate-w02
       - name: Verify migration bytes and provenance
         run: sh supabase/migrations/check_md5.sh
       - name: Set up proven Supabase CLI
@@ -69,10 +52,9 @@ jobs:
           cache: npm
       - name: Locked dependencies
         run: npm ci
-      - name: TypeScript regression client and proof admission
+      - name: Targeted W02 client and proof admission
         run: |
-          npx tsc --noEmit
-          npm test -- --runInBand
+          node scripts/ci/scope.cjs test w02
           node --check supabase/proofs/calendar/w02_calendar_authority_proof.mjs
           python3 supabase/migrations/check_migration_integrity.py
       - name: Reconstruct disposable historical live79
@@ -102,6 +84,7 @@ jobs:
           grep -F 'PASS P3_RETENTION_SCHEDULE' "$P3_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.P3_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.migration_history_count!==r.predecessor_plan.source_migration_count || r.successor_replay.count!==r.predecessor_plan.pending_successor_count) process.exit(1);'
       - name: Prove hard calendar matching selection lifecycle and own read
+        if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'calendar')
         shell: bash
         run: |
           set -euo pipefail
@@ -109,21 +92,25 @@ jobs:
           grep -F 'PASS W02_CALENDAR_AUTHORITY' "$W02_CALENDAR_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.provider_called || r.visual_design_changed || r.checks.length!==9) process.exit(1);'
       - name: Exact intervals, observed concurrency, completion and actual client
+        if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'calendar')
         run: |
           node --check supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
           node supabase/proofs/calendar/w02_calendar_integrity_proof.mjs
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/integrity-proof-report.json")); if(r.result!=="PASS" || r.live_access || r.live_promotion || r.mocked_rpc_responses || !r.actual_client_verified || !r.application_snapshot_unchanged || r.repeatable_read_sqlstate!=="40001" || r.lock_observations.length!==1 || r.lock_observations[0].blocked_calls<2 || r.checks.length!==13 || !r.flexible_windows_do_not_block || !r.unknown_duration_not_inferred || !r.later_exact_time_guarded || !r.explicit_flexible_proposal_guarded || !r.requester_parallel_bookings_allowed) process.exit(1);'
       - name: Actual availability editor, matching, privacy, DST and concurrent saves
+        if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'availability')
         run: |
           node --check supabase/proofs/calendar/w02_availability_proof.mjs
           node supabase/proofs/calendar/w02_availability_proof.mjs
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/availability-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.availability_fixture_sql || !r.calendar_unchanged || r.observed_waiters<2 || r.checks.length!==11) process.exit(1);'
       - name: Manual location, remote draft, privacy and actual client commands
+        if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'location')
         run: |
           node --check supabase/proofs/calendar/w02_location_proof.mjs
           node supabase/proofs/calendar/w02_location_proof.mjs
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.W02_CALENDAR_ARTIFACT_DIR+"/location-proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.live_promotion || r.mocked_rpc_responses || r.location_fixture_sql || r.gps_permission_requested || r.geocoder_called || r.provider_activated || !r.calendar_and_application_snapshots_unchanged || r.observed_waiters<2 || r.checks.length!==10) process.exit(1);'
       - name: Reused Need and Worker capability validation and actual profile client
+        if: inputs.scope == '' || inputs.scope == 'all' || contains(inputs.scope, 'capability')
         run: |
           node --check supabase/proofs/calendar/w02_shared_capability_proof.mjs
           node supabase/proofs/calendar/w02_shared_capability_proof.mjs
