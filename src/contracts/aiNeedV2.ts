@@ -41,6 +41,8 @@ export type AiNeedV2Review = {
 export type AiNeedV2Conversation = {
   conversationId: string;
   schemaVersion: 'NEED_FACT_V2';
+  /** Actual conversation lifecycle; unknown legacy values grant no edit capability. */
+  status?: 'OPEN' | 'COMPLETED' | 'ABANDONED';
   messages: AiNeedMessage[];
   facts: AiNeedV2Fact[];
   review: AiNeedV2Review;
@@ -53,6 +55,9 @@ export type AiNeedEditOpened = {
   needId: string;
   /** Exact revision the owner is editing; confirm must carry it back. */
   revision: number;
+  /** Need status returned by open-edit, not the conversation lifecycle. */
+  needStatus: 'DRAFT' | 'PUBLISHED' | 'SELECTION';
+  authoritative: true;
 };
 
 /** RU-4: confirmed material edit — the Zadatak returned to DRAFT and needs re-admission. */

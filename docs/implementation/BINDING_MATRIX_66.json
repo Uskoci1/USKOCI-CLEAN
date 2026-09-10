@@ -107,14 +107,32 @@
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
         "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
-        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
-        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
-        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "proven": "PR90 actual-DB replay: 54 existing W02 plus 11 resolved checks PASS; live102 exact-byte/body/ACL/trigger/aggregate postflight PASS; native source build/install/bundle only.",
+        "activation_blocker": "Authenticated LocationIQ response-to-native-pin journey remains NOT_OBSERVED. Automated launch/reverse/web start were policy blocked; no workaround.",
+        "source_commit": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
         "merged": true,
         "live": true,
         "device_proven": false,
         "provider_execution_proven": false,
-        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
+        "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json"
+      },
+      "publication_correction_implementation": {
+        "status": "WRITTEN_UI_CONNECTED_DB_CI_MERGE_LIVE_PENDING",
+        "implemented": true,
+        "ui_connected": true,
+        "source_base": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
+        "source_commit": null,
+        "merged": false,
+        "live": false,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w05-publication-20260910/verification.json",
+        "proven": "Final client+screen143 PASS; earlier related six-suite120 PASS; Edge31 synthetic PASS; TSC and AST135/51/0 PASS. Earlier full Jest has one unchanged W02 map timeout; isolated map21 PASS.",
+        "activation_blocker": "Actual SQL103 proof/final CI, merge/deployment and approved source-content reconciliation pending; no authenticated provider/native publication proof.",
+        "route": "/pregled-nacrta?conversationId",
+        "authority": "Existing rpc_ai_open_need_edit_conversation_v2 and rpc_confirm_need_edit_from_review_v2 with SQL103 DRAFT extension",
+        "action": "Actual OPEN lifecycle plus bound Need permits existing DRAFT correction; COMPLETED/ABANDONED/unknown status does not grant edit; exact reviewed revision required",
+        "historical_native_implementation_preserved": "native_implementation retains the prior PR90/W02 evidence boundary; it does not prove this SQL103 correction."
       }
     },
     {
@@ -134,10 +152,37 @@
       "boundary": "Existing Need read/lifecycle service and current publication authority; do not use legacy AI publish for V2",
       "paths": [
         "src/data/needClientService.ts",
-        "src/data/needLifecycleClientService.ts"
+        "src/data/needLifecycleClientService.ts",
+        "src/contracts/publication.ts",
+        "src/data/publicationClientService.ts",
+        "src/app/(app)/potrebe/[id]/pregled.tsx",
+        "src/ui/NeedPublicationPanel.tsx"
       ],
-      "level": "PATH_LISTED_READ_BEFORE_BINDING",
-      "required_runtime_proof": "Authenticated real command, matching receipt and refetched projection, failure/stale/unknown, 2 accounts where applicable."
+      "level": "CURRENT_SOURCE_UI_CONNECTED_RUNTIME_PENDING",
+      "required_runtime_proof": "Authenticated real command, matching receipt and refetched projection, failure/stale/unknown, 2 accounts where applicable.",
+      "native_implementation": {
+        "status": "WRITTEN_UI_CONNECTED_DB_CI_MERGE_LIVE_PENDING",
+        "implemented": true,
+        "ui_connected": true,
+        "source_base": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
+        "source_commit": null,
+        "merged": false,
+        "live": false,
+        "device_proven": false,
+        "provider_execution_proven": false,
+        "evidence": "docs/implementation/evidence/w05-publication-20260910/verification.json",
+        "proven": "Final client+screen143 PASS; earlier related six-suite120 PASS; Edge31 synthetic PASS; TSC and AST135/51/0 PASS. Earlier full Jest has one unchanged W02 map timeout; isolated map21 PASS.",
+        "activation_blocker": "Actual SQL103 proof/final CI, merge/deployment and approved source-content reconciliation pending; no authenticated provider/native publication proof.",
+        "route": "/potrebe/[id]/pregled",
+        "component": "PregledPotrebe + NeedPublicationPanel",
+        "client": "publicationClientService.evaluate / publish; aiNeedV2Izvor.openEditConversation",
+        "authority": "Authenticated publication context; existing service-only B06 decision and explicit B07 canonical publish; existing open-edit",
+        "action": "Explicit evaluate then user confirmation with no additional application deadline; same-intent unknown retry after readback; accepted receipt then fresh Need read",
+        "loading": "15-second bounded owned read and command single-flight",
+        "empty": "Actual missing or unavailable Need",
+        "error": "Safe NOT_READY/CLARIFY/REVIEW/BLOCK or explicit retry; no fabricated ALLOW or card",
+        "offline": "No success claim; retained command/key for unknown outcome; account/focus/revision guards"
+      }
     },
     {
       "screen": "candidates",
@@ -301,7 +346,26 @@
         "src/ui/AgreementChat.tsx"
       ],
       "level": "PATH_LISTED_READ_BEFORE_BINDING",
-      "required_runtime_proof": "Authenticated real command, matching receipt and refetched projection, failure/stale/unknown, 2 accounts where applicable."
+      "required_runtime_proof": "Authenticated real command, matching receipt and refetched projection, failure/stale/unknown, 2 accounts where applicable.",
+      "resolved_location_implementation": {
+        "route": "/dogovor/[id]",
+        "component": "AgreementPrivateLocation",
+        "paths": [
+          "src/ui/AgreementPrivateLocation.tsx",
+          "src/data/contactClientService.ts",
+          "src/ui/location/ResolvedPinMap.tsx"
+        ],
+        "authority": "Existing EXACT_LOCATION grant/reveal/revoke RPCs; authoritative participant/current Agreement scope",
+        "implemented": true,
+        "ui_connected": true,
+        "merged": true,
+        "live": true,
+        "source_commit": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
+        "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+        "proven": "Coordinate-only grant/reveal/revoke/expiry/terminal actual DB checks; client/component lifecycle regressions",
+        "device_proven": false,
+        "privacy": "Private point set renders only after authorized server projection; focus/refresh/expiry/account/revision fencing. No instant remote-revocation claim."
+      }
     },
     {
       "screen": "chat",
@@ -421,7 +485,7 @@
         "component": "WorkerLocationForm",
         "client": "workerLocationClientService + marketClientService",
         "authority": "rpc_get_worker_location / rpc_save_worker_location / rpc_list_location_markets",
-        "action": "Explicit operating country/city/radius confirmation",
+        "action": "Explicit operating country/city/radius and coarse map base confirmation; changed country/city retires old coordinates",
         "classification": "C_CLIENT_EXISTS_UI_BINDING_WRITTEN",
         "implemented": true,
         "ui_connected": true,
@@ -430,14 +494,14 @@
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
         "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
-        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
-        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
-        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "proven": "PR90 actual-DB replay: 54 existing W02 plus 11 resolved checks PASS; live102 exact-byte/body/ACL/trigger/aggregate postflight PASS; native source build/install/bundle only.",
+        "activation_blocker": "Authenticated LocationIQ response-to-native-pin journey remains NOT_OBSERVED. Automated launch/reverse/web start were policy blocked; no workaround.",
+        "source_commit": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
         "merged": true,
         "live": true,
         "device_proven": false,
         "provider_execution_proven": false,
-        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
+        "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json"
       }
     },
     {
@@ -858,9 +922,9 @@
       "native_implementation": {
         "route": "/mesto-zadatka?conversationId",
         "component": "NeedLocationForm",
-        "client": "needLocationClientService + marketClientService",
+        "client": "needLocationClientService + marketClientService + authenticated location resolver",
         "authority": "rpc_get_need_location_review / rpc_save_need_location_review / rpc_list_location_markets",
-        "action": "Explicit location/country confirmation in existing conversation",
+        "action": "Explicit country/topology/address-bound private E6 slot confirmation through existing review; provider candidates require user confirmation",
         "classification": "C_CLIENT_EXISTS_UI_BINDING_WRITTEN",
         "implemented": true,
         "ui_connected": true,
@@ -869,14 +933,14 @@
         "error": "Readable server error and explicit retry",
         "offline": "No success claim; reconcile unknown outcome before next command",
         "status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL",
-        "proven": "Targeted component/client checks; exact-source run34480194857 has9 calendar+13 interval+11 availability+14 location+7 capability PASS; live101 catalog/aggregate postflight PASS.",
-        "activation_blocker": "No pending backend migration for this admitted binding. D0140/provider activation and physical-device acceptance remain separate.",
-        "source_commit": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+        "proven": "PR90 actual-DB replay: 54 existing W02 plus 11 resolved checks PASS; live102 exact-byte/body/ACL/trigger/aggregate postflight PASS; native source build/install/bundle only.",
+        "activation_blocker": "Authenticated LocationIQ response-to-native-pin journey remains NOT_OBSERVED. Automated launch/reverse/web start were policy blocked; no workaround.",
+        "source_commit": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
         "merged": true,
         "live": true,
         "device_proven": false,
         "provider_execution_proven": false,
-        "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json"
+        "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json"
       }
     },
     {
@@ -925,16 +989,39 @@
     }
   ],
   "native_admission": {
-    "canonical": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+    "canonical": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
     "visual": "USKOCI_SPOJ_V2_20260910",
     "source": "Supplied BINDING_MATRIX_66 extended in place as canonical binding map; other historical rows retain original evidence limits.",
-    "physical_live_migration_count": 101,
+    "physical_live_migration_count": 102,
     "live_write_performed": true,
     "working_source_migration_count": 102,
-    "working_pending_forward_count": 1,
+    "working_pending_forward_count": 0,
     "device_proven": false,
     "provider_execution_proven": false,
-    "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json",
-    "status_scope": "UI_CONNECTED/MERGED/LIVE refers to canonical PR89 source42fbf789; unmerged resolved UI and provider changes are excluded."
+    "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+    "status_scope": "PR90 resolved Need pins, coarse Worker map and Agreement exact-location bindings are canonical; actual DB proof and live structural readback pass. Authenticated provider/native rendering remains unobserved.",
+    "native_build_install_bundle": "PASS_AT_RECORDED_LOCAL_BOUNDARY",
+    "actual_provider_call": "NOT_OBSERVED",
+    "native_pin_journey": "NOT_OBSERVED",
+    "inventory_scope": "PR90 canonical/live admission snapshot; subsequent W05 working files are not admitted by these counts."
+  },
+  "current_w05_source": {
+    "status": "WRITTEN_UI_CONNECTED_DB_CI_MERGE_LIVE_PENDING",
+    "implemented": true,
+    "ui_connected": true,
+    "source_base": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
+    "source_commit": null,
+    "merged": false,
+    "live": false,
+    "device_proven": false,
+    "provider_execution_proven": false,
+    "evidence": "docs/implementation/evidence/w05-publication-20260910/verification.json",
+    "proven": "Final client+screen143 PASS; earlier related six-suite120 PASS; Edge31 synthetic PASS; TSC and AST135/51/0 PASS. Earlier full Jest has one unchanged W02 map timeout; isolated map21 PASS.",
+    "activation_blocker": "Actual SQL103 proof/final CI, merge/deployment and approved source-content reconciliation pending; no authenticated provider/native publication proof.",
+    "working_source_migration_count": 103,
+    "known_live_migration_count": 102,
+    "working_pending_forward_count": 1,
+    "pending_forward": "20260910144644_clean_w05_publication_evaluator_authority.sql",
+    "inventory_scope": "Current working W05 source only. Prior native_admission remains the PR90/live102 historical snapshot."
   }
 }

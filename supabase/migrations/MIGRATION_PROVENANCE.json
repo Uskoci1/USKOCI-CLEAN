@@ -1973,6 +1973,20 @@
       "activation": "WRITTEN_NOT_LIVE",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260910144644",
+      "name": "clean_w05_publication_evaluator_authority",
+      "file": "20260910144644_clean_w05_publication_evaluator_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "d202ef982a457dc396e6914d0761aa29",
+      "raw_sha256": "0fb44625a7520c0fecfba38f34b326c057020dae5226798e1d43e8f79e045057",
+      "raw_bytes": 67989,
+      "live_applied": false,
+      "unit": "W05_PUBLICATION_EVALUATOR_AUTHORITY",
+      "activation": "WRITTEN_NOT_LIVE_NO_POLICY_CONTENT_OR_ACTIVATION",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {

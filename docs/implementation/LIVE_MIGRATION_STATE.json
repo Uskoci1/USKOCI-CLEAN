@@ -422,7 +422,7 @@
     "next": "NATIVE_PUSH_LIFECYCLE_DISPATCH_AND_REMAINING_CHAT_PRODUCT_UNITS"
   },
   "format_version": 3,
-  "updated_at": "2026-09-10 12:15:55 UTC",
+  "updated_at": "2026-09-10 14:40:32 UTC",
   "historical_notification_checkpoint_before_live84_20260907": {
     "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
     "n01": {
@@ -530,41 +530,55 @@
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
-    "migration_count": 88,
-    "head": "20260910111126_clean_p0e_completion_guards",
-    "pending_forward_migrations": 12,
-    "observed_at_utc": "2026-09-10 12:15:55 UTC"
+    "migration_count": 102,
+    "head": "20260910143934_clean_w02_resolved_location_authority",
+    "pending_forward_migrations": 0,
+    "observed_at_utc": "2026-09-10 14:40:32 UTC"
   },
   "edge": {
     "slug": "uskoci-ai-interview",
-    "version": 11,
+    "version": 16,
     "status": "ACTIVE",
     "verify_jwt": true,
-    "ezbr_sha256": "28f00dc1c969e08122cd5468fb6f3de23119a5ddf6642b376f7a0575a1f6078a",
+    "ezbr_sha256": "82f7afdb329aaf7ec655abc018a4769694c8950d61072113b4a8294e08d1dd82",
     "price_modes": [
       "MY_PRICE",
       "OFFERS"
     ],
     "canonical_source_retirement_pending_live_deploy": false,
     "name": "uskoci-ai-interview",
-    "canonical_source": "27688086e7e53a9f6644a4fcf1c74c241c982da3",
+    "canonical_source": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
     "files": [
       {
         "name": "supabase/functions/uskoci-ai-interview/index.ts",
-        "bytes": 26775,
-        "sha256": "4421fd3fe16399bfcc6e4820218f080008f6eefd09784b2b08039fe267f3726c"
+        "readbackName": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytes": 28041,
+        "sha256": "2c89b2337d388ccf032c230de1398b7ef4826e0ca6e0e8b3be09417021c911f8",
+        "exactReadback": true
       },
       {
         "name": "src/contracts/needFactsV2.ts",
-        "bytes": 4097,
-        "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
+        "readbackName": "src/contracts/needFactsV2.ts",
+        "bytes": 5523,
+        "sha256": "fb4b145a1f9aebe5d8b72339125153c6401ec8323f4a0107946766ab28f0218c",
+        "exactReadback": true
       }
     ],
     "actual_provider_proven": false,
-    "promotion_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/edge-v8-selector-promotion.json",
+    "promotion_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
     "owner_configuration_observed_at": "2026-09-07T14:44:00Z",
     "configuration_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/openai-configuration-metadata.json",
-    "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK"
+    "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK",
+    "registry_key_count": 22,
+    "manual_only_fact_keys": [
+      "need.resolved_location"
+    ],
+    "version_observation_note": "AI deployment returned version16; recorded actual metadata rather than inferring sequential version from earlier observed v12.",
+    "unobserved_versions": [
+      13,
+      14,
+      15
+    ]
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
@@ -1304,16 +1318,17 @@
     "service_offer_listing_supported": false
   },
   "monetization": "FREE_0_RSD",
-  "next_allowed_action": "AI review/save authority is canonical and live87; Edge context is canonical and active v7. Do not reapply completed SQL. Continue actual owner provider/human review/DRAFT proof and independent mobile/native work. UI remains scaffold.",
+  "next_allowed_action": "Prepare W05 publication admission using existing authority; not implemented or live at this checkpoint. Preserve live102 and closed migrations. Actual authenticated LocationIQ/native pin proof remains NOT_OBSERVED; no policy workaround.",
   "canonical_physical_ui_proof_merge_head": "940fd1fdf34a314f5d8a0c0fdb9cc3753e55ce01",
   "production_observation": {
-    "status": "AI_FRESH_PREFLIGHT_AND_EXACT_FORWARD_POSTFLIGHT_PASS",
-    "observed_at_utc": "2026-09-07T14:04:10Z",
+    "status": "PR90_EXACT_FORWARD_AND_EDGE_READBACK_PASS",
+    "observed_at_utc": "2026-09-10 14:40:32 UTC",
     "sql_executed": true,
-    "live_writes": "ALREADY_COMPLETED_EXACT_TWO_RPC_FORWARD_AND_EDGE_CONTEXT_V7",
+    "live_writes": "AUTHORIZED_RESOLVED_SQL102_AND_AI16_LOCATIONIQ1_EDGE_DEPLOYMENTS_ALREADY_COMPLETED",
     "production_business_rpc_called": false,
     "actual_provider_proven": false,
-    "report": "docs/implementation/AI_LIVE87_EDGE7_PROMOTION_20260907.md"
+    "report": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+    "documentation_pass_live_call": false
   },
   "historical_production_observation_before_authorized_promotions": {
     "status": "OWNER_ACTION_SAFETY_BLOCKED_NOT_FRESHLY_VERIFIED",
@@ -1874,27 +1889,33 @@
     "next": "PROVE_CURRENT_UNIT_THEN_REMAINING_W02_AND_CURRENT_DEBT_BEFORE_W03"
   },
   "physical_live_readmission_20260910": {
-    "observed_at_utc": "2026-09-10 13:25:24 UTC",
+    "observed_at_utc": "2026-09-10 14:40:32 UTC",
     "project_ref": "leqcwgzvjsxugfgzdmth",
-    "canonical_source": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+    "canonical_source": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
     "mode": "READ_ONLY_POSTFLIGHT_AFTER_AUTHORIZED_PROMOTION",
-    "migration_count": 101,
-    "latest_version": "20260910132345",
-    "latest_name": "clean_w02_regional_country_authority",
+    "migration_count": 102,
+    "latest_version": "20260910143934",
+    "latest_name": "clean_w02_resolved_location_authority",
     "source_migration_count": 102,
-    "remaining_forward_count": 1,
-    "pending_source_files": [
-      "20260910130851_clean_w02_resolved_location_authority.sql"
-    ],
+    "remaining_forward_count": 0,
+    "pending_source_files": [],
     "edge": {
       "name": "uskoci-ai-interview",
-      "version": 12,
+      "version": 16,
       "status": "ACTIVE",
       "verify_jwt": true,
-      "ezbr_sha256": "1bf02fbfa924c8b94f62bd1f80b928951c5a63eba2f3e40a0fbdfdced5d9b8a4",
+      "ezbr_sha256": "82f7afdb329aaf7ec655abc018a4769694c8950d61072113b4a8294e08d1dd82",
       "exact_source_readback": true,
-      "registry_key_count": 21,
-      "evidence_owner": "root deployment receipt"
+      "registry_key_count": 22,
+      "manual_only_fact_keys": [
+        "need.resolved_location"
+      ],
+      "evidence_owner": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+      "unobserved_versions": [
+        13,
+        14,
+        15
+      ]
     },
     "storage": {
       "profile_media_public": false,
@@ -1913,15 +1934,15 @@
     "edge_secret_names_reobserved": false,
     "live_write_performed": true,
     "physical_live_business_rpc_proven": false,
-    "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json",
-    "canonical_source_migration_count": 101,
+    "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+    "canonical_source_migration_count": 102,
     "canonical_remaining_forward_count": 0,
-    "pending_source_status": "UNMERGED_WORKING_SUCCESSOR_NOT_PROVEN_NOT_LIVE",
+    "pending_source_status": "NONE_AT_PR90_CANONICAL",
     "publication_policy_bundle_status": "UNREVIEWED_INCOMPLETE_INACTIVE",
     "postflight_live_writes": false,
     "device_proven": false,
     "provider_execution_proven": false,
-    "previous_readmission_evidence": "docs/implementation/evidence/live-readmission-20260910/readmission.json",
+    "previous_readmission_evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json",
     "promoted_aliases": [
       {
         "source_file": "20260908130000_clean_p1_legal_consent_ledger.sql",
@@ -2039,10 +2060,157 @@
         "raw_md5": "1e253a861c4dab2f7886e1b65e9e3807",
         "raw_sha256": "a160164c3fab232761cabe245787c09610426f9001bc588e8bbf69d1c8c35d18",
         "raw_bytes": 64944
+      },
+      {
+        "source_file": "20260910130851_clean_w02_resolved_location_authority.sql",
+        "version": "20260910143934",
+        "name": "clean_w02_resolved_location_authority",
+        "statements_count": 1,
+        "raw_md5": "fb96a85b7ef88425e4ab51afbb6aa418",
+        "raw_sha256": "3aec6ef4189e0df5ce157e661a64487655645e6b6eee94675f60dcace1214dcf",
+        "raw_bytes": 100971
       }
     ],
     "frozen_replay_baseline": "live_history_snapshot=87 remains unchanged; pending_forward_migrations belongs to historical replay, not physical pending state",
-    "native_w02_status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL"
+    "native_w02_status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_NATIVE_RUNTIME_OPEN",
+    "location_search_edge": {
+      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
+      "slug": "uskoci-location-search",
+      "name": "uskoci-location-search",
+      "status": "ACTIVE",
+      "version": 1,
+      "created_at": 1789051259284,
+      "updated_at": 1789051259284,
+      "verify_jwt": true,
+      "import_map": false,
+      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_bbadc4c5-81c7-490c-8549-69aa533be329_1/source/supabase/functions/uskoci-location-search/index.ts",
+      "ezbr_sha256": "ce12bb6fb3e321eb26dc0052ec9ee5b032039c71f1780c1f41bce0be68a2a1cc",
+      "files": [
+        {
+          "name": "supabase/functions/uskoci-location-search/index.ts",
+          "readbackName": "uskoci-location-search/index.ts",
+          "bytes": 13752,
+          "sha256": "67bbac43258da8d1dbceab630e6192dde62f13018480bcfeb5d7917d1221fa5e",
+          "exactReadback": true
+        }
+      ],
+      "canonical_source": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
+      "promotion_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+      "provider_configuration": {
+        "provider": "LocationIQ",
+        "secret_name": "LOCATIONIQ_ACCESS_TOKEN",
+        "status": "OWNER_CONFIRMED_SET_NOT_INDEPENDENTLY_READ_BACK",
+        "secret_value_read": false,
+        "credential_validity": "NOT_OBSERVED"
+      },
+      "actual_provider_proven": false
+    },
+    "native_build_install_bundle": {
+      "build": "PASS",
+      "install": "PASS",
+      "bundle": "PASS",
+      "source_boundary": "Earlier local W02 boundary; final PR90 APK byte identity not asserted",
+      "runtime": "NOT_OBSERVED",
+      "launch_reverse_web_start": "POLICY_BLOCKED_NO_WORKAROUND",
+      "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json"
+    },
+    "inherited_storage_note": "Storage metadata remains the earlier readmission; this PR90 postflight did not reread storage buckets.",
+    "inventory_scope": "PR90 canonical/live admission at 2026-09-10 14:40:32 UTC; subsequent uncommitted W05 drafts are outside this snapshot."
   },
-  "migration_provenance_state": "PHYSICAL_LIVE101_CANONICAL101_WORKING102_PENDING_RESOLVED_FROZEN_REPLAY87"
+  "migration_provenance_state": "PHYSICAL_LIVE102_CANONICAL102_PENDING0_FROZEN_REPLAY87",
+  "historical_physical_live101_before_pr90_20260910": {
+    "observed_at_utc": "2026-09-10 13:25:24 UTC",
+    "canonical_source": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
+    "migration_count": 101,
+    "latest_version": "20260910132345",
+    "latest_name": "clean_w02_regional_country_authority",
+    "edge_version": 12,
+    "evidence": "docs/implementation/evidence/w02-live101-20260910/verification.json",
+    "pending_source_files": [
+      "20260910130851_clean_w02_resolved_location_authority.sql"
+    ]
+  },
+  "historical_live_header_before_pr90_20260910": {
+    "migration_count": 88,
+    "head": "20260910111126_clean_p0e_completion_guards",
+    "pending_forward_migrations": 12,
+    "observed_at_utc": "2026-09-10 12:15:55 UTC"
+  },
+  "historical_edge_header_before_pr90_20260910": {
+    "slug": "uskoci-ai-interview",
+    "version": 11,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "ezbr_sha256": "28f00dc1c969e08122cd5468fb6f3de23119a5ddf6642b376f7a0575a1f6078a",
+    "price_modes": [
+      "MY_PRICE",
+      "OFFERS"
+    ],
+    "canonical_source_retirement_pending_live_deploy": false,
+    "name": "uskoci-ai-interview",
+    "canonical_source": "27688086e7e53a9f6644a4fcf1c74c241c982da3",
+    "files": [
+      {
+        "name": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytes": 26775,
+        "sha256": "4421fd3fe16399bfcc6e4820218f080008f6eefd09784b2b08039fe267f3726c"
+      },
+      {
+        "name": "src/contracts/needFactsV2.ts",
+        "bytes": 4097,
+        "sha256": "382bd2c78cdc340207f6986eb2dccb4ca15a94ab3aadd3a1e230a8c9053fcd79"
+      }
+    ],
+    "actual_provider_proven": false,
+    "promotion_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/edge-v8-selector-promotion.json",
+    "owner_configuration_observed_at": "2026-09-07T14:44:00Z",
+    "configuration_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/openai-configuration-metadata.json",
+    "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK"
+  },
+  "location_search_edge": {
+    "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
+    "slug": "uskoci-location-search",
+    "name": "uskoci-location-search",
+    "status": "ACTIVE",
+    "version": 1,
+    "created_at": 1789051259284,
+    "updated_at": 1789051259284,
+    "verify_jwt": true,
+    "import_map": false,
+    "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_bbadc4c5-81c7-490c-8549-69aa533be329_1/source/supabase/functions/uskoci-location-search/index.ts",
+    "ezbr_sha256": "ce12bb6fb3e321eb26dc0052ec9ee5b032039c71f1780c1f41bce0be68a2a1cc",
+    "files": [
+      {
+        "name": "supabase/functions/uskoci-location-search/index.ts",
+        "readbackName": "uskoci-location-search/index.ts",
+        "bytes": 13752,
+        "sha256": "67bbac43258da8d1dbceab630e6192dde62f13018480bcfeb5d7917d1221fa5e",
+        "exactReadback": true
+      }
+    ],
+    "canonical_source": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
+    "promotion_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+    "provider_configuration": {
+      "provider": "LocationIQ",
+      "secret_name": "LOCATIONIQ_ACCESS_TOKEN",
+      "status": "OWNER_CONFIRMED_SET_NOT_INDEPENDENTLY_READ_BACK",
+      "secret_value_read": false,
+      "credential_validity": "NOT_OBSERVED"
+    },
+    "actual_provider_proven": false
+  },
+  "w02_resolved_checkpoint_20260910": {
+    "canonical_merge": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
+    "state": "CANONICAL_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_EDGE_EXACT_READBACK",
+    "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+    "whole_w02_closed": false,
+    "provider_native_proof": "NOT_OBSERVED",
+    "next": {
+      "unit": "W05_PUBLICATION_ADMISSION",
+      "state": "PREPARING_NOT_IMPLEMENTED_NOT_LIVE",
+      "branch": "feat/w05-publication-admission-20260910",
+      "original_w05_application_flow_preserved": true,
+      "whole_w02_closed": false
+    }
+  }
 }

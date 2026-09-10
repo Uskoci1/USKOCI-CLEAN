@@ -104,7 +104,7 @@ export default function PregledNacrtaR07() {
   const confirmed = facts.filter(fact => fact.status === 'CONFIRMED').length;
   const safetyCopy = stanje ? safetyMessage(stanje.safety) : null;
   const boundNeedId = stanje?.review.boundNeedId ?? null;
-  const editMode = Boolean(boundNeedId && vezanZadatak && vezanZadatak.stanje !== 'NACRT');
+  const editMode = Boolean(boundNeedId && vezanZadatak && stanje?.status === 'OPEN');
   const alreadySaved = editMode ? null : boundNeedId;
   const saveAllowed = Boolean(stanje?.review.canSaveDraft && stanje?.safety !== 'BLOCK' && !alreadySaved);
   const blocked = saving || editor.uncertain || loading;

@@ -11,7 +11,7 @@ const TESTS = {
   retention: /p3-retention/i,
   consent: /p1-legal/i,
   processors: /p4-processor/i,
-  policy: /cb1-need-lifecycle|ru4-need-edit|ru2-ai-v2|r02-ai/i,
+  policy: /publication|cb1-need-lifecycle|ru4-need-edit|ru2-ai-v2|r02-ai/i,
   calendar: /calendar|agreement|selection|atomski|zavrsetak|completion/i,
   availability: /availability|calendarTime/i,
   location: /location|task-detail-read|ru2-ai-v2/i,
