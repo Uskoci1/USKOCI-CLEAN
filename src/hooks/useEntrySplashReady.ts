@@ -5,7 +5,7 @@ import { releaseEntrySplash } from '../bootstrap/entrySplashBootstrap';
 
 export type EntrySplashReadiness = 'pending' | 'ready' | 'skip';
 
-/** Entry also requires its visible UI frame signal; this never controls Auth. */
+/** Entry requires prepared source artwork; this never controls Auth. */
 export function useEntrySplashReady({ enabled = true, waitForScene = false }: {
   enabled?: boolean; waitForScene?: boolean;
 } = {}) {
@@ -71,9 +71,9 @@ export function useEntrySplashReady({ enabled = true, waitForScene = false }: {
         SplashScreen.setOptions({ duration: 0, fade: false });
         await releaseEntrySplash();
         if (!active || settled) return;
-        // Entry's clock is already running and has acknowledged a nonzero
-        // artwork frame before hide. These JS frames settle cover readiness;
-        // they no longer mount/start the intro after exposing an empty scene.
+        // Entry holds the first nonempty source sample throughout this request.
+        // SDK57 acknowledgement is not an overlay-removal fence. The clock also
+        // waits for later UI frames before resuming the unchanged remaining time.
         frame = requestAnimationFrame(() => {
           if (!active || settled) return;
           frame = requestAnimationFrame(() => settle('ready'));
