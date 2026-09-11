@@ -1,0 +1,96 @@
+name: PRE-V3 exact proof repair
+on:
+  push:
+    branches: [work/pre-v3-exact-verifier-20260911]
+    paths: [.pre-v3/request.json]
+permissions:
+  contents: read
+concurrency:
+  group: pre-v3-proof-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: control
+          persist-credentials: false
+      - name: Read explicit repair request
+        id: request
+        run: python control/scripts/pre_v3_candidate.py request
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.request.outputs.base }}
+          path: candidate
+          persist-credentials: false
+      - name: Create exact hash-bound candidate without updating refs
+        id: candidate
+        working-directory: candidate
+        env:
+          CANDIDATE_GITHUB_TOKEN: ${{ github.token }}
+        run: python ../control/scripts/pre_v3_candidate.py candidate
+      - name: Check out candidate before any acceptance test
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.candidate.outputs.candidate }}
+          path: verified
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: verified/package-lock.json
+      - name: Install unchanged locked dependencies
+        working-directory: verified
+        run: npm ci
+      - name: Exact-commit complete source checks
+        working-directory: verified
+        env:
+          EXPECTED_COMMIT: ${{ steps.candidate.outputs.candidate }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, subprocess, sys
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'pre-v3-evidence'
+          out.mkdir(exist_ok=True)
+          source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if source != os.environ['EXPECTED_COMMIT']: raise ValueError('WRONG_TESTED_COMMIT')
+          files = sorted(str(p) for root in ('scripts', 'supabase') for p in pathlib.Path(root).rglob('*') if p.is_file() and p.name.endswith(('.test.cjs', '.test.mjs')))
+          commands = [
+            ('typescript', ['npx', '--no-install', 'tsc', '--noEmit']),
+            ('jest', ['npx', '--no-install', 'jest', '--runInBand', '--silent', '--json', '--outputFile=' + str(out / 'jest-results.json')]),
+            ('node_edge', ['node', '--test', '--test-concurrency=2', '--test-reporter=tap', *files]),
+            ('inventory', ['node', 'scripts/pre_html_source_inventory.cjs', str(out / 'inventory.json')]),
+            ('migration_integrity', ['sh', 'supabase/migrations/check_md5.sh']),
+            ('diff_check', ['git', 'diff', '--check', 'HEAD^', 'HEAD']),
+            ('lock_unchanged', ['git', 'diff', '--exit-code', 'HEAD^', 'HEAD', '--', 'package.json', 'package-lock.json']),
+            ('tested_source_unchanged', ['git', 'diff', '--exit-code', 'HEAD']),
+          ]
+          gates = {}
+          for name, command in commands:
+            with (out / (name + '.log')).open('w') as log:
+              log.write(json.dumps(command) + '\n'); log.flush()
+              try: code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=600).returncode
+              except subprocess.TimeoutExpired: code = 124; log.write('\nTIMED OUT; NOT PASS\n')
+            gates[name] = code
+            print(name, code, flush=True)
+          raw = json.loads((out / 'jest-results.json').read_text())
+          jest = {k: raw.get(k) for k in ('success','numTotalTests','numPassedTests','numFailedTests','numTotalTestSuites','numPassedTestSuites','numFailedTestSuites','numPendingTests','numPendingTestSuites','numTodoTests')}
+          passed = all(v == 0 for v in gates.values()) and jest['success'] and all((jest.get(k) or 0) == 0 for k in ('numPendingTests','numPendingTestSuites','numTodoTests'))
+          receipt = {'sourceCommit': source, 'sourceTree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(), 'workflowCommit': os.environ['GITHUB_SHA'], 'runId': os.environ['GITHUB_RUN_ID'], 'gates': gates, 'jest': jest, 'nodeFileCount':len(files), 'PACKAGE_SOURCE_CHECKS':'PASS' if passed else 'FAIL', 'productionChanged':False, 'nativeProven':False, 'providerProven':False, 'limits':['Source and synthetic Edge checks only; no live SQL or hardware proof.','Original PR101 baseline failure remains preserved.']}
+          (out / 'repair-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(receipt,indent=2))
+          sys.exit(0 if passed else 1)
+          PY
+      - name: Retain original repair results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pre-v3-proof-repair-${{ github.run_id }}
+          path: ${{ runner.temp }}/pre-v3-evidence/
+          retention-days: 7
+          if-no-files-found: error
