@@ -102,7 +102,9 @@ function nativeSuccessorContext(env) {
   assert.equal(env.RU5_DEVICE_ARTIFACT_DIR,'artifacts/ai-review-device');
   assert.match(env.GITHUB_SHA??'',/^[0-9a-f]{40}$/);
   const boundary=ownedIntakeSourceBoundary(readP3RetentionPredecessorPlan());
-  const successors=boundary.fullPlan.source_inventory.slice(106);
+  // This existing entrypoint is the exact registered108 boundary. The M05
+  // proof separately admits109; do not silently apply it as part of108.
+  const successors=boundary.fullPlan.source_inventory.slice(106,108);
   assert.equal(successors.length,2);
   for(const entry of successors) {
     const path='supabase/migrations/'+entry.file,bytes=readFileSync(path);
@@ -137,7 +139,9 @@ export function prepareNativeSuccessors(env=process.env) {
   const original=history();assert.equal(original.length,106);
   assert.equal(hash(original.at(-1).statements[0]),boundary.manifest.sha256);
   const report={unit:'NATIVE_MARKETPLACE_SOURCE108',source_sha:env.GITHUB_SHA,result:'RUNNING',
-    source_migration_count:108,original_history_count:106,history_count:106,applied_successors:[],
+    source_migration_count:108,source_inventory_count:boundary.fullPlan.source_migration_count,
+    deferred_source_successors:boundary.fullPlan.source_inventory.slice(108),
+    original_history_count:106,history_count:106,applied_successors:[],
     localOnly:true,live_access:false,live_promotion:false,provider_called:false,policy_activated:false,
     transport_enabled:false,concurrency_proven:false,input_sha256:context.inputHashes()};
   const tables=['public.needs','public.need_selections','public.agreements','private.need_publication_decisions',
@@ -170,6 +174,8 @@ export function admitNativeSuccessors(env=process.env) {
   const context=nativeSuccessorContext(env),report=JSON.parse(readFileSync(context.file,'utf8'));
   assert.equal(report.result,'PASS');assert.equal(report.unit,'NATIVE_MARKETPLACE_SOURCE108');
   assert.equal(report.source_sha,env.GITHUB_SHA);assert.equal(report.source_migration_count,108);
+  assert.equal(report.source_inventory_count,context.boundary.fullPlan.source_migration_count);
+  assert.deepEqual(report.deferred_source_successors,context.boundary.fullPlan.source_inventory.slice(108));
   assert.equal(report.original_history_count,106);assert.equal(report.history_count,108);
   for(const key of ['localOnly','original_history_preserved','business_and_policy_rows_preserved'])assert.equal(report[key],true);
   for(const key of ['live_access','live_promotion','provider_called','policy_activated','transport_enabled','concurrency_proven'])assert.equal(report[key],false);

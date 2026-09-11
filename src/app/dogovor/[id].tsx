@@ -234,6 +234,9 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
           <AgreementHero agreement={dogovor} />
           <AgreementPeople agreement={dogovor} />
+          {me ? <V2Action label="Izmene Dogovora" disabled={!enabled} onPress={() => {
+            if (formCurrent()) router.push({ pathname: '/dogovor/izmene/[id]', params: { id } });
+          }} /> : null}
           <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Vaš broj je podeljen' : 'Podelite svoj broj kada vam odgovara'}>
             <T style={metaStyle}>Deljenje je odvojeno u oba smera. Kada podelite svoj broj, druga strana ne deli automatski svoj.</T>
             <T style={bodyStyle}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>

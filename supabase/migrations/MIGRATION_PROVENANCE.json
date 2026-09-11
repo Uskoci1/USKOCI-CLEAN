@@ -2057,6 +2057,20 @@
       "activation": "WRITTEN_NOT_LIVE_CONCURRENCY_PROOF_PENDING",
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905"
+    },
+    {
+      "version": "20260911035330",
+      "name": "clean_m05_agreement_change_authority",
+      "file": "20260911035330_clean_m05_agreement_change_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "c4affca77a69fa720ee3f3bfbf486a55",
+      "raw_sha256": "bc7dfa77aab4d035cf83ea4c2911aead669371a0fbfb2d18faa63b9b726cf435",
+      "raw_bytes": 14507,
+      "live_applied": false,
+      "unit": "M05_AGREEMENT_CHANGE_AUTHORITY",
+      "activation": "WRITTEN_NOT_LIVE_ACTUAL_AUTH_CONCURRENCY_PENDING",
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905"
     }
   ],
   "p2_data_export_requests": {

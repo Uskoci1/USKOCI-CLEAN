@@ -1,5 +1,6 @@
 import {readFileSync} from 'fs';
 import {join} from 'path';
+import {runInNewContext} from 'vm';
 const sql=readFileSync(join(__dirname,'../supabase/proofs/notifications/n05_agreement_change_candidate.sql'),'utf8');
 const proof=readFileSync(join(__dirname,'../supabase/proofs/notifications/n05_agreement_change_proof.mjs'),'utf8');
 describe('N05 bilateral change event boundary',()=>{
@@ -19,5 +20,24 @@ describe('N05 bilateral change event boundary',()=>{
     expect(proof).toContain('PROPOSAL_EVENT_FAILURE_ROLLS_BACK_COMMAND');
     expect(proof).toContain('REVERSE_PARTY_PROPOSAL_AND_ACCEPT_FAILURE_FULL_ROLLBACK');
     expect(proof).toContain('assert.deepEqual(snapshot(),before)');
+  });
+});
+
+describe('M05 actual responder lock observation',()=>{
+  const source=proof.split('// BEGIN_M05_OBSERVED_WAITER_GRAPH')[1].split('// END_M05_OBSERVED_WAITER_GRAPH')[0];
+  const observe=runInNewContext(source+'\nobservedResponderWaitGraph');
+  const row=(waiter_pid:number,blocking_pids:number[])=>({waiter_pid,holder_pid:10,wait_event_type:'Lock',blocking_pids});
+  it('admits two direct waits and the actual row-lock queue through the other observed responder',()=>{
+    for(const rows of [[row(20,[10]),row(30,[10])],[row(20,[10]),row(30,[20])],[row(20,[30]),row(30,[10])]]){
+      const result=observe(rows,10);expect(result).toHaveLength(2);
+      expect(result.every((x:{blocker_graph_reaches_holder:boolean})=>x.blocker_graph_reaches_holder)).toBe(true);
+    }
+  });
+  it('rejects missing or duplicated observations, unknown blockers, cycles and non-lock waits',()=>{
+    for(const rows of [[],[row(20,[10])],[row(20,[10]),row(20,[10])],
+      [row(20,[10]),row(30,[99])],[row(20,[30]),row(30,[20])],
+      [row(20,[10]),{...row(30,[20]),wait_event_type:'Client'}],
+      [row(20,[10]),{...row(30,[20]),holder_pid:99}],
+      [row(20,[10]),row(30,[])],[row(20,[10]),row(30,[30])]])expect(observe(rows,10)).toBeNull();
   });
 });

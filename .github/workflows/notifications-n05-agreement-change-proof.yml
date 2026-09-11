@@ -1,6 +1,12 @@
 name: N05 Agreement change authenticated proof
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Historical notification owner or current Agreement change authority
+        type: choice
+        options: [authority, historical]
+        default: authority
   push:
     branches:
       - proof/notifications-n05-agreement-change-20260907
@@ -10,11 +16,15 @@ env:
   CI: '1'
   SUPABASE_TELEMETRY_DISABLED: '1'
   DO_NOT_TRACK: '1'
-  N05_ARTIFACT_DIR: artifacts/notifications-n05
+  N05_ARTIFACT_DIR: ${{ inputs.scope == 'authority' && 'artifacts/notifications-n05-authority' || 'artifacts/notifications-n05' }}
+  RU5_DEVICE_PACKAGE: rs.uskoci.n04proof
+  RU5_DEVICE_ARTIFACT_DIR: artifacts/ai-review-device
+  W03_INTAKE_ARTIFACT_DIR: artifacts/ai-review-device/source105
+  AI_REVIEW_SCOPE: marketplace
 jobs:
   authenticated-agreement-change-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout exact proof source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -35,16 +45,26 @@ jobs:
       - name: Locked dependencies
         run: npm ci
       - name: TypeScript and full regression suite
+        if: inputs.scope != 'authority'
         run: |
           npx tsc --noEmit
           npm test -- --runInBand
           node --check supabase/proofs/notifications/n05_agreement_change_proof.mjs
           node --test supabase/proofs/ru5_device_ui_local_guard.test.mjs
+      - name: Current source and affected Agreement checks
+        if: inputs.scope == 'authority'
+        run: |
+          python3 supabase/migrations/check_migration_integrity.py
+          npx tsc --noEmit
+          npx jest --runInBand --runTestsByPath src/data/__tests__/agreement-change-client.test.ts src/data/__tests__/agreement-change-screen.test.tsx src/data/__tests__/agreement-cancellation-screen.test.tsx src/data/__tests__/agreement-screen-recovery.test.tsx
+          node --check supabase/proofs/notifications/n05_agreement_change_proof.mjs
+          node --test scripts/ci/owned-intake-source.test.mjs supabase/proofs/ru5_device_ui_local_guard.test.mjs
       - name: Reconstruct disposable historical live-79 baseline
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
       - name: Prepare real disposable accounts and seeded Need
         run: node supabase/proofs/ru5_device_ui_fixture.mjs
       - name: Apply guarded candidate locally and prove authenticated effects
+        if: inputs.scope != 'authority'
         shell: bash
         run: |
           set -euo pipefail
@@ -52,12 +72,32 @@ jobs:
           node supabase/proofs/notifications/n05_agreement_change_proof.mjs 2>&1 | tee "$N05_ARTIFACT_DIR/proof.log"
           grep -F 'PASS N05_AGREEMENT_CHANGE_AUTHENTICATED_PROOF' "$N05_ARTIFACT_DIR/proof.log"
           node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.N05_ARTIFACT_DIR+"/proof-report.json")); if(r.result!=="PASS" || r.source_sha!==process.env.GITHUB_SHA || r.live_access || r.migration_history_count!==79) process.exit(1);'
+      - name: Reuse exact registered108 predecessor
+        if: inputs.scope == 'authority'
+        run: |
+          node scripts/ci/owned-intake-proof.mjs prepare105
+          node scripts/ai_review_fixture.mjs admit
+          node scripts/ci/owned-intake-proof.mjs prepare108
+          node scripts/ci/owned-intake-proof.mjs admit108
+      - name: Prove current Agreement authority with real Auth and database sessions
+        if: inputs.scope == 'authority'
+        env:
+          N05_AUTHORITY_CANDIDATE: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$N05_ARTIFACT_DIR"
+          node supabase/proofs/notifications/n05_agreement_change_proof.mjs 2>&1 | tee "$N05_ARTIFACT_DIR/proof.log"
+          grep -F 'PASS M05_AGREEMENT_CHANGE_AUTHORITY' "$N05_ARTIFACT_DIR/proof.log"
       - name: Upload exact source-bound proof evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: N05-AGREEMENT-CHANGE-AUTHENTICATED-EVIDENCE
-          path: artifacts/notifications-n05/
+          path: |
+            artifacts/notifications-n05/
+            artifacts/notifications-n05-authority/
+            artifacts/ai-review-device/
           if-no-files-found: warn
           retention-days: 14
       - name: Teardown disposable Supabase
