@@ -44,7 +44,9 @@ const ERRORS: Readonly<Record<string, string>> = {
   REQUESTER_PROFILE_NOT_READY: 'Profil za MENI TREBA nije spreman.',
   NEED_REVISION_STALE: 'Zadatak je u međuvremenu promenjen. Ponovo proverite podatke.',
   CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvorite razgovor.',
-  AI_RATE_LIMITED: 'Sačekajte malo pre novog pokušaja.',
+  AI_RATE_LIMITED: 'Zahtevi su trenutno ograničeni. Proverite ishod pre ponovnog pokušaja.',
+  AI_ACCESS_DENIED: 'Pristup razgovoru nije odobren. Ponovo otvorite razgovor.',
+  AI_SERVICE_UNAVAILABLE: 'Obrada razgovora trenutno nije dostupna. Proverite ishod pre ponavljanja.',
   AI_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj poruci. Proverite prethodni rezultat.',
   CONVERSATION_NOT_ABANDONABLE: 'Ovaj razgovor više ne može da se napusti. Proverite njegovo stanje.',
   CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT: 'Ovaj zahtev već pripada drugom pregledu. Proverite sačuvano stanje.',
@@ -113,6 +115,17 @@ function turnStatus(raw: unknown, conversationId: string, clientRequestId: strin
   const receipt = turnReceipt(r.receipt);
   return r.state === 'SUCCEEDED' && r.retryAllowed === false && receipt
     ? { ...ids, state: r.state, turnId: r.turnId, retryAllowed: false, receipt } : null;
+}
+
+/** HTTP status is diagnostic, never a write receipt or permission to retry.
+ * Do not read provider/Auth response bodies to obtain user-facing copy. */
+function transportErrorName(error: unknown): string | null {
+  const status = record(record(error)?.context)?.status;
+  if (status === 401) return 'AUTH_REQUIRED';
+  if (status === 403) return 'AI_ACCESS_DENIED';
+  if (status === 429) return 'AI_RATE_LIMITED';
+  if (status === 502 || status === 503 || status === 504) return 'AI_SERVICE_UNAVAILABLE';
+  return null;
 }
 
 /** Only the documented HTTP409 terminal envelope can turn an SDK error into a
@@ -294,7 +307,9 @@ export const aiNeedV2Production = {
         if (Date.now() >= deadline) return invalidResponse();
         if (response.error) {
           const envelope = await failedTurnEnvelope(response.error, conversationId, clientRequestId, deadline, account);
-          return envelope ? { data: envelope, error: null } : response;
+          if (envelope) return { data: envelope, error: null };
+          const name = transportErrorName(response.error);
+          return name ? { data: null, error: { message: name } } : response;
         }
         const envelope = turnStatus(response.data, conversationId, clientRequestId);
         return envelope && (envelope.state === 'SUCCEEDED' || envelope.state === 'PROCESSING') ? { data: envelope, error: null } : invalidResponse();

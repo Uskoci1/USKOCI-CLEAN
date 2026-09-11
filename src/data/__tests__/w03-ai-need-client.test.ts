@@ -151,11 +151,14 @@ describe('turn receipt contract and SDK error transport', () => {
     await expect(pending).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
     expect(transport.cancel).toHaveBeenCalled();
   });
-  it.each([401, 403, 429, 500])('never reads or exposes HTTP%s error body', async status => {
-    const transport = httpError(status, { code: 'secret', message: 'private provider detail' });
+  it.each([[401, 'AUTH_REQUIRED'], [403, 'AI_ACCESS_DENIED'], [429, 'AI_RATE_LIMITED'],
+    [502, 'AI_SERVICE_UNAVAILABLE'], [503, 'AI_SERVICE_UNAVAILABLE'], [504, 'AI_SERVICE_UNAVAILABLE'],
+    [500, 'AI_TURN_SEND_UNCONFIRMED']])('classifies HTTP%s without reading its body or implying success', async (status, code) => {
+    const transport = httpError(status as number, { code: 'secret', message: 'private provider detail' });
     mockInvoke.mockResolvedValue({ data: null, error: transport.error });
     const result = await client.sendMessage(C, 'text', K);
-    expect(result).toMatchObject({ ok: false, kod: 'AI_TURN_SEND_UNCONFIRMED' });
+    expect(result).toMatchObject({ ok: false, kod: code });
+    expect(mockInvoke).toHaveBeenCalledTimes(1); expect(mockRpc).not.toHaveBeenCalled();
     expect(JSON.stringify(result)).not.toContain('private'); expect(transport.clone).not.toHaveBeenCalled();
   });
   it.each([turn('ABSENT'), turn('SUCCEEDED'), { ...turn('FAILED'), clientRequestId: C }, { code: 'secret', message: 'secret' }])('does not trust arbitrary409 payload %j', async value => {

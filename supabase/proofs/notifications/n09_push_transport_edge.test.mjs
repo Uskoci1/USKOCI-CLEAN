@@ -49,7 +49,7 @@ test('disabled deployment consumes no work or provider secret',async()=>{const h
 test('reject recipients, URL, payload and unexpected input before claim',async()=>{for(const input of [{action:'send'},{action:'tick',to:token},{action:'tick',url:'https://evil.test'},[]]){const h=harness();assert.equal((await h.run(input)).response.status,400);assert.equal(h.calls.length,0);}});
 test('actual send revalidates exact lease then submits constant minimal privacy-safe payload',async()=>{
  const h=harness();const r=await h.run();assert.equal(r.response.status,200);assert.equal(r.body.send,'TICKET_PENDING');
- const send=h.calls.find(x=>x.url.includes('exp.host'));assert.deepEqual(send.body,[{to:token,title:'USKOČI',body:'Imate novo obaveštenje. Otvorite aplikaciju.',data:{kind:'INBOX'},sound:'default',priority:'normal',ttl:0}]);
+ const send=h.calls.find(x=>x.url.includes('exp.host'));assert.deepEqual(send.body,[{to:token,title:'USKOČI',body:'Imate novo obaveštenje. Otvorite aplikaciju.',data:{kind:'INBOX'},channelId:'default',sound:'default',priority:'normal',ttl:0}]);
  assert.deepEqual(h.calls.filter(x=>x.url.includes('/rpc/')).map(x=>x.url.split('/').pop()),['rpc_claim_push_transport','rpc_claim_push_transport','rpc_begin_push_send','rpc_complete_push_transport']);
  assert.deepEqual(completion(h),{p_attempt_id:id,p_lease_id:lease,p_result:'TICKET',p_ticket_id:'ticket_1'});
 });

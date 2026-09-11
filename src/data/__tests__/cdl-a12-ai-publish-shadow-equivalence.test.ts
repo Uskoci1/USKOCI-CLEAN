@@ -82,7 +82,7 @@ describe('CDL-A12 — legacy AI publish single owner after shadow deletion', () 
     expect(result).toEqual({
       ok: false,
       kod: 'PACKAGE_4_NOT_READY',
-      poruka: 'PACKAGE_4_NOT_READY',
+      poruka: 'Objava trenutno nije dostupna.',
     });
   });
 

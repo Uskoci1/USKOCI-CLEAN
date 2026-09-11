@@ -1,12 +1,13 @@
-﻿
+
 import { useSyncExternalStore } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabaseKlijent } from '../data/supabaseClient';
 import { povratniCilj } from './povratniCilj';
-import { postaviUlogu } from './uloga';
+import { postaviUlogu, vezujUloguZaNalog } from './uloga';
 
 type SesijaStanje = {
   isLoaded: boolean;
+  intentReady: boolean;
   session: Session | null;
   user: User | null;
   sessionEpoch: number;
@@ -16,6 +17,7 @@ type SesijaStanje = {
 
 let trenutna: SesijaStanje = {
   isLoaded: false,
+  intentReady: false,
   session: null,
   user: null,
   sessionEpoch: 0,
@@ -65,6 +67,7 @@ function acceptSession(session: Session | null, signedOut = false) {
   trenutna = {
     ...trenutna,
     isLoaded: true,
+    intentReady: !session || (identityChanged ? false : trenutna.intentReady),
     session,
     user: session?.user ?? null,
     sessionEpoch: trenutna.sessionEpoch + 1,
@@ -73,8 +76,17 @@ function acceptSession(session: Session | null, signedOut = false) {
     accountRevision: trenutna.accountRevision + (identityChanged ? 1 : 0),
   };
   const epoch = trenutna.sessionEpoch;
+  if (identityChanged || signedOut) {
+    const revision = trenutna.accountRevision;
+    const accountId = session?.user.id ?? null;
+    void vezujUloguZaNalog(accountId).then(() => {
+      // Token refresh is not an identity change and must not cancel this restore.
+      if (trenutna.accountRevision !== revision || (trenutna.user?.id ?? null) !== accountId) return;
+      trenutna = { ...trenutna, intentReady: true };
+      obavesti();
+    });
+  }
   if (signedOut || changedAccount) {
-    postaviUlogu('narucilac');
     pendingTargetCleanup = povratniCilj.captureSessionCleanup();
   }
   // Enqueue cleanup before a new account can prepare its own target. Retain

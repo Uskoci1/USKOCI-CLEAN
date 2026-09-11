@@ -1,3 +1,4 @@
+import { legacyRpcFailure } from './legacyRpcFailure';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 
@@ -5,12 +6,8 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-function fail<T>(error: any, fallbackCode: string, fallbackMessage: string): Ishod<T> {
-  return {
-    ok: false,
-    kod: error?.message || error?.code || fallbackCode,
-    poruka: error?.message || fallbackMessage,
-  };
+function fail<T>(error: unknown, fallbackCode: string, fallbackMessage: string): Ishod<T> {
+  return legacyRpcFailure(error, fallbackCode, fallbackMessage);
 }
 
 export type Ru4RazresiPrijavuInput = {
@@ -33,7 +30,7 @@ export const ru4Production = {
       .select('remaining_search_closed_at')
       .eq('id', needId)
       .maybeSingle();
-    if (error) throw new Error(error.message || 'REMAINING_SEARCH_STATE_READ_FAILED');
+    if (error) throw new Error('REMAINING_SEARCH_STATE_READ_FAILED');
     const closedAt = typeof data?.remaining_search_closed_at === 'string' ? data.remaining_search_closed_at : null;
     return { closed: !!closedAt, closedAt };
   },
