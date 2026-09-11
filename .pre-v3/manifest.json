@@ -1,0 +1,37 @@
+{
+  "base":"0b9943b3404d647e2fd8898a80b5d49e02765d44",
+  "destination":"work/pre-v3-engine-closure-20260911",
+  "patches":[
+    {"path":".pre-v3/patches/01-client-types.patch","sha256":"844d0406166f85e27566e8fc4c56833bf34172fcbe2e4e8aa61aa1ac7d068be8"},
+    {"path":".pre-v3/patches/02-new-client.patch","sha256":"62811101be1c631671e1c79642334cf8add70beb390cb11fd9ccb0c2a6c77c0d"},
+    {"path":".pre-v3/patches/03-client-writer.patch","sha256":"5ae630e31686e157345e097de571c673e52affa2ae634a1a85570be3fba83637"},
+    {"path":".pre-v3/patches/04-client-form.patch","sha256":"4f1491a954baeb61e22a8f41d66a42ddeea00b644ddef114197e3a53b45b699f"},
+    {"path":".pre-v3/patches/051-test.patch","sha256":"390ba26a6f23863b43bfdc6c5653840cd76b1748e9da36d1db9e7ff68c7fbb2c"},
+    {"path":".pre-v3/patches/052-test.patch","sha256":"c9a131290801dcb7d90be206ab73fc5357374742106c96b42c91a17c73d4b718"},
+    {"path":".pre-v3/patches/053-test.patch","sha256":"5682db64a397d42ad3a5d7cd41e78f2a31bbb3e4fb3558bb63419b38b3797f09"},
+    {"path":".pre-v3/patches/054-test.patch","sha256":"5ff4f1016d366b75dae052623485aedee8c8b6b15a5fac2c03c2e2743266227d"},
+    {"path":".pre-v3/patches/055-test.patch","sha256":"c50d0c5958ec94e2b9b87d569e6312eef69eaab9440777f865c3fb57e7399880"},
+    {"path":".pre-v3/patches/06-capacity-sql.patch","sha256":"2134ad5cb58647004d589b99d70251accb0db86fc02926304531fe55e9398bd2"},
+    {"path":".pre-v3/patches/07-enforcement-sql.patch","sha256":"20dbfc889fd7271267816c5e5d26f4f1a291045a7e74916b81364d9588663afb"},
+    {"path":".pre-v3/patches/08-proof.patch","sha256":"5a76fbfc005062ca7f116faaa893fe8fcf4717ebc31ca5363c4ec0500d44c8fa"}
+  ],
+  "files":{
+    "src/contracts/projections.ts":"627892794e69897026007d6135ead98f663b60036d3a43447a6c65fad98dd782",
+    "src/data/ports.ts":"7915bcf374e8151d88595c883911df346f7d4f5fdbce4ac78529f4cc6f2c95ee",
+    "src/data/supabaseIzvor.ts":"4b2e91bb27cae8c98b8997096bc162069aed5003d98b155b5290e89250c849d7",
+    "src/contracts/workerCapacity.ts":"119c4c6a8eba254bc237d67e3f0e505e93d3e41f33a4e0aec51d44bbd11e25d3",
+    "src/data/workerCapacityClientService.ts":"c7565dbc58a425a63a943e6e5b1992d9dc45b38c2b6cb3f8bb73ba28e683f983",
+    "src/data/workerProfileClientService.ts":"b7c483fa94d580a9c1ebbaf76d65fbd05d1c776962db1d95509401603cff40ad",
+    "src/ui/workerProfile/WorkerProfilePresentation.tsx":"fa63b521cb1379add0e5213df86ea8024f4d28da6998e9583c8980730838a462",
+    "src/ui/workerProfile/workerProfileDraft.ts":"8fff5f120cd3902d279f5ecacd1d1253959fc57a77275a1a691509ae3d28a5ff",
+    "src/data/__tests__/cdl-a09-worker-profile-equivalence.test.ts":"2e71593eebdd6b29397a506a52b091e065cd3207381e842cfc4aef647c66ed23",
+    "src/data/__tests__/w02-profile-write-safety.test.ts":"18b92b85a0247c6105713c3106ad28cb578673dda6e96887a5f8dac47b64859d",
+    "src/data/__tests__/worker-capacity-client.test.ts":"3bc2e431ec43f6b3f8c9a441c816904caddd709fa7a92fff7f64411695f10795",
+    "src/data/__tests__/worker-profile-native.test.tsx":"83e4d61a0d5f0fa249189314efaa798176e90085c184a332daade89273f78f6b",
+    "src/data/__tests__/worker-profile-read.test.ts":"6a18543d3a6be0a4a661392b9d2399c0e76778837285582273de915b895302e1",
+    "supabase/migrations/20260911174500_clean_pre_v3_worker_capacity.sql":"3a8e8741650fe7bbf917c85febfd281908e0788ea555017cc2e6fadfb52ab5bc",
+    "supabase/migrations/20260911174600_clean_pre_v3_worker_single_authority.sql":"e2b381b62bb11ab26cb3fbef9dd168c96075766cd79a905c55753ee1ce27d2af",
+    "supabase/proofs/pre_v3/worker_authority_proof.mjs":"7524fbfcc3720b3bf60699d9c3f18719927cd7f7f63685047f363e1fba21361f"
+  },
+  "newMigrations":["20260911174500_clean_pre_v3_worker_capacity.sql","20260911174600_clean_pre_v3_worker_single_authority.sql"]
+}
