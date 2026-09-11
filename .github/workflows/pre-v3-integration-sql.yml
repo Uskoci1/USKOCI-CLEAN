@@ -79,12 +79,17 @@ jobs:
         run: |
           git worktree add --detach ../baseline 1138d4f727735519b15d9b834bf261954e8013fe
           ln -s "$PWD/node_modules" ../baseline/node_modules
-      - name: Disposable full stack through live79 and real local Auth fixture
+      - name: Disposable full stack through live79
         working-directory: baseline
         run: |
           export GITHUB_WORKSPACE="$PWD"
           export GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe
           bash supabase/proofs/ru5_device_ui_live79_env.sh > "$RUNNER_TEMP/pre-v3-evidence/bootstrap.log" 2>&1
+      - name: Real local Auth fixture after bootstrap environment is exported
+        working-directory: baseline
+        run: |
+          export GITHUB_WORKSPACE="$PWD"
+          export GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe
           node supabase/proofs/ru5_device_ui_fixture.mjs > "$RUNNER_TEMP/pre-v3-evidence/fixture.log" 2>&1
       - name: Exact105,106,108 predecessor reconstruction
         working-directory: baseline
