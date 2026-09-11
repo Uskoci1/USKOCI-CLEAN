@@ -1,0 +1,86 @@
+name: PRE-V3 save exact integration commits
+on:
+  push:
+    branches: [work/pre-v3-exact-verifier-20260911]
+    paths: [.pre-v3/integration-bundle.json]
+permissions:
+  contents: write
+concurrency:
+  group: pre-v3-single-integration-writer
+  cancel-in-progress: false
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: control
+          persist-credentials: false
+      - name: Validate bounded request
+        id: request
+        run: |
+          python3 - <<'PY'
+          import json,os,re
+          d=json.load(open('control/.pre-v3/integration-bundle.json'))
+          for k in ('base','commit','tree'): assert re.fullmatch('[0-9a-f]{40}',d[k]),k
+          assert re.fullmatch('[0-9a-f]{64}',d['bundleSha256'])
+          assert d['branch']=='work/pre-v3-engine-integration-20260911'
+          assert isinstance(d['bundleBase64'],str) and len(d['bundleBase64'])<3000000
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('base='+d['base']+'\n')
+          PY
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: source
+          ref: ${{ steps.request.outputs.base }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact bundle, frozen SQL and fixed target then fast-forward
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,os,pathlib,subprocess
+          def git(*a):return subprocess.check_output(['git',*a],text=True).strip()
+          d=json.load(open('../control/.pre-v3/integration-bundle.json'))
+          assert git('rev-parse','HEAD')==d['base']
+          b=base64.b64decode(d['bundleBase64'],validate=True)
+          assert len(b)<2000000 and hashlib.sha256(b).hexdigest()==d['bundleSha256']
+          bundle=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration.bundle';bundle.write_bytes(b)
+          subprocess.run(['git','bundle','verify',str(bundle)],check=True)
+          assert git('bundle','list-heads',str(bundle))==d['commit']+' refs/heads/'+d['branch']
+          subprocess.run(['git','fetch','--no-tags',str(bundle),'refs/heads/'+d['branch']],check=True)
+          assert git('rev-parse','FETCH_HEAD')==d['commit']
+          assert git('rev-parse','FETCH_HEAD^{tree}')==d['tree']
+          subprocess.run(['git','merge-base','--is-ancestor',d['base'],d['commit']],check=True)
+          assert not git('rev-list','--merges',d['base']+'..'+d['commit'])
+          paths=git('diff','--name-only',d['base'],d['commit']).splitlines()
+          allowed=('src/data/','src/contracts/','src/hooks/','src/store/','supabase/migrations/','supabase/proofs/','supabase/functions/','scripts/','docs/implementation/pre-v3/')
+          assert paths and all(p.startswith(allowed) and '..' not in p.split('/') for p in paths),paths
+          subprocess.run(['git','diff','--check',d['base'],d['commit']],check=True)
+          frozen='1138d4f727735519b15d9b834bf261954e8013fe'
+          for p in git('ls-tree','-r','--name-only',frozen,'supabase/migrations').splitlines():
+            if p.endswith('.sql'): assert git('rev-parse',frozen+':'+p)==git('rev-parse',d['commit']+':'+p),p
+          subprocess.run(['git','diff','--exit-code',frozen,d['commit'],'--','package.json','package-lock.json'],check=True)
+          repo='Uskoci1/USKOCI-CLEAN';ref='refs/heads/'+d['branch']
+          current=json.loads(subprocess.check_output(['gh','api','repos/'+repo+'/git/ref/heads/'+d['branch']],text=True))['object']['sha']
+          assert current==d['base'],'INTEGRATION_BRANCH_MOVED'
+          env=os.environ.copy();env['GIT_CONFIG_COUNT']='1';env['GIT_CONFIG_KEY_0']='http.https://github.com/.extraheader'
+          env['GIT_CONFIG_VALUE_0']='AUTHORIZATION: basic '+base64.b64encode(('x-access-token:'+env['GH_TOKEN']).encode()).decode()
+          subprocess.run(['git','push','origin',d['commit']+':'+ref],env=env,check=True)
+          actual=json.loads(subprocess.check_output(['gh','api','repos/'+repo+'/git/ref/heads/'+d['branch']],text=True))['object']['sha']
+          assert actual==d['commit']
+          receipt={k:d[k] for k in ('base','commit','tree','branch','bundleSha256')}
+          receipt.update(saved=True,runId=os.environ['GITHUB_RUN_ID'],changedFiles=paths,canonicalChanged=False,liveChanged=False,testedByThisWorkflow=False)
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration-save';out.mkdir(exist_ok=True)
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(receipt,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pre-v3-integration-save-${{ github.run_id }}
+          path: ${{ runner.temp }}/integration-save/
+          retention-days: 14
+          if-no-files-found: warn
