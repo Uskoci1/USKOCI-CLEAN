@@ -1,0 +1,138 @@
+name: PRE-V3 integrity supplement (no runtime or live writes)
+on:
+  push:
+    branches: [proof/pre-v3-pr101-exact-baseline-20260911]
+    paths: [.github/workflows/pre-v3-integrity-supplement.yml]
+permissions:
+  contents: read
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: pr101
+            source: 1138d4f727735519b15d9b834bf261954e8013fe
+          - label: existing-engine
+            source: 94bda947c68b981972c53d4372a7e4bc8549b542
+    env:
+      SOURCE_SHA: ${{ matrix.source }}
+      SOURCE_LABEL: ${{ matrix.label }}
+      CANONICAL_SHA: 916ffb498ba5ad47a307a3c66477757b6753095a
+      PR100_SHA: df167547c469f5b4cb5679058526b697dae8ba48
+      PR101_SHA: 1138d4f727735519b15d9b834bf261954e8013fe
+      SQL_PROVEN_SHA: d00769b89f208e854acf74614f0eb363203c91cc
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ matrix.source }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Independent exact-object and archived-source checks
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime,hashlib,json,os,pathlib,subprocess,re
+          root=pathlib.Path.cwd(); out=pathlib.Path(os.environ['RUNNER_TEMP'])/'integrity';out.mkdir()
+          def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('rev-parse','HEAD')==os.environ['SOURCE_SHA']
+          assert not git('status','--porcelain=v1')
+          assert git('hash-object','package.json')=='c1687486b2eb48808a4742ac9a2979e7491b67dd'
+          assert git('hash-object','package-lock.json')=='204c748dd85340da8f4dca32fb40c79826238af9'
+          manifest=json.loads((root/'docs/authority/AUTHORITY_MANIFEST.json').read_text())
+          checked=[]; failures=[]; unsupported=[]
+          for entry in manifest['sources']:
+            rel=entry['path']; path=(root/rel).resolve()
+            assert path.is_relative_to(root)
+            expected=entry.get('sha256','')
+            if not re.fullmatch('[a-f0-9]{64}',expected):
+              unsupported.append({'path':rel,'reason':'No exact SHA256 in manifest'});continue
+            if not path.is_file():
+              failures.append({'path':rel,'reason':'missing'});continue
+            raw=path.read_bytes();actual=hashlib.sha256(raw).hexdigest()
+            match=actual==expected and (entry.get('bytes') is None or len(raw)==entry['bytes'])
+            checked.append({'path':rel,'bytes':len(raw),'sha256':actual,'match':match,'recorded_hash_basis':entry.get('hash_basis')})
+            if not match:failures.append({'path':rel,'reason':'byte/hash mismatch'})
+          report={'source':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),'control_sha':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'observed_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'recorded_source_count':manifest.get('source_count'),'checked':checked,'failures':failures,'unsupported':unsupported,'scope':'Raw source bytes only; not policy approval, live SQL parity, provider or device proof.'}
+          (out/'authority-bytes.json').write_text(json.dumps(report,indent=2)+'\n')
+          (out/'identity.json').write_text(json.dumps({k:v for k,v in report.items() if k not in ['checked','failures','unsupported']},indent=2)+'\n')
+          print(json.dumps({'source':report['source'],'tree':report['tree'],'checked':len(checked),'failures':len(failures),'unsupported':len(unsupported)}))
+          assert not failures and not unsupported
+          assert len(checked)==manifest['source_count']
+          PY
+      - name: All source migration bytes and metadata
+        id: migrations
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/integrity"
+          python3 supabase/migrations/check_migration_integrity.py 2>&1 | tee "$RUNNER_TEMP/integrity/migration-integrity.log"
+      - name: Preserve cumulative failure and independently check implementation diff
+        id: diff
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib,re,subprocess
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'integrity';out.mkdir(exist_ok=True)
+          def check(name,*args):
+            p=subprocess.run(['git','diff','--check',*args],text=True,capture_output=True)
+            (out/(name+'.log')).write_text(p.stdout+p.stderr)
+            return {'exit_code':p.returncode,'passed':p.returncode==0,'output':p.stdout+p.stderr}
+          historical=check('cumulative-whitespace',os.environ['CANONICAL_SHA'],os.environ['SOURCE_SHA'])
+          package=check('package-whitespace',os.environ['PR100_SHA'] if os.environ['SOURCE_LABEL']=='pr101' else os.environ['PR101_SHA'],os.environ['SOURCE_SHA'])
+          runtime=check('runtime-whitespace',os.environ['CANONICAL_SHA'],os.environ['SOURCE_SHA'],'--','src','scripts','supabase','assets','.github','package.json','package-lock.json')
+          findings=[line for line in historical['output'].splitlines() if re.match(r'^.+:[0-9]+: ',line)]
+          unexpected=[line for line in findings if not line.startswith('docs/authority/sources/')]
+          summary={'source':os.environ['SOURCE_SHA'],'original_run':34643531317,'original_baseline_verdict':'FAIL; remains unchanged','cumulative_whitespace_pass':historical['passed'],'cumulative_whitespace_exit':historical['exit_code'],'archived_source_diagnostics':len(findings),'unexpected_diagnostics':unexpected,'implementation_package_diff_pass':package['passed'],'runtime_diff_pass':runtime['passed'],'historical_documents_modified':False,'limitations':['Independent source inspection, not a re-execution of Jest or SQL.','Original run did not record final post-test working tree because cumulative diff failed.','Archived-source whitespace is retained and not mislabelled as a clean full diff.']}
+          if os.environ['SOURCE_LABEL']=='existing-engine':
+            changed=subprocess.check_output(['git','diff','--name-only',os.environ['SQL_PROVEN_SHA'],os.environ['SOURCE_SHA']],text=True).splitlines()
+            allowed={'supabase/migrations/MD5_MANIFEST.txt','supabase/migrations/MIGRATION_PROVENANCE.json'}
+            summary['changes_since_sql_test']=changed
+            summary['runtime_and_sql_blobs_identical_to_tested_source']=not(set(changed)-allowed)
+            assert not(set(changed)-allowed)
+          (out/'diff-verdict.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary,indent=2))
+          assert historical['exit_code'] in (0,2)
+          assert package['passed'] and runtime['passed'] and not unexpected
+          assert historical['passed'] or findings
+          PY
+      - name: Final independent tracked-tree and lock identity
+        id: final_tree
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --porcelain=v1 | tee "$RUNNER_TEMP/integrity/working-tree.txt"
+          test -z "$(git status --porcelain=v1)"
+          git diff --exit-code HEAD
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object package-lock.json)" = 204c748dd85340da8f4dca32fb40c79826238af9
+      - name: Explicit supplemental verdict
+        if: always()
+        env:
+          IDENTITY: ${{ steps.identity.outcome }}
+          MIGRATIONS: ${{ steps.migrations.outcome }}
+          DIFF: ${{ steps.diff.outcome }}
+          FINAL_TREE: ${{ steps.final_tree.outcome }}
+        run: |
+          python3 - <<'PY'
+          import os,pathlib,json,hashlib
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'integrity';out.mkdir(exist_ok=True)
+          gates={k:os.environ.get(k) for k in ['IDENTITY','MIGRATIONS','DIFF','FINAL_TREE']}
+          d={'source':os.environ['SOURCE_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'gates':gates,'INDEPENDENT_INTEGRITY_SUPPLEMENT':'PASS' if all(v=='success' for v in gates.values()) else 'FAIL','PR101_ORIGINAL_BASELINE':'FAIL remains preserved','new_tests_executed':False,'live_mutations':False,'purpose':'Do not repeat unchanged full suites; supplement source integrity and classify original archived whitespace explicitly.'}
+          (out/'supplement-verdict.json').write_text(json.dumps(d,indent=2)+'\n');print(json.dumps(d,indent=2))
+          (out/'SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in sorted(out.iterdir()) if p.is_file() and p.name!='SHA256SUMS'))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pre-v3-integrity-${{ matrix.label }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/integrity/
+          if-no-files-found: error
+          retention-days: 14
