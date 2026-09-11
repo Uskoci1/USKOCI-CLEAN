@@ -32,6 +32,10 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true,
   useReducedMotion: () => mockReduced,
   Easing: { linear: (t: number) => t, bezierFn: () => (t: number) => t },
   useAnimatedProps: () => ({}), useAnimatedStyle: (read: () => unknown) => read(),
+  useFrameCallback: () => {
+    const React = jest.requireActual('react');
+    return React.useRef({ setActive: jest.fn() }).current;
+  },
   useSharedValue: (value: number) => {
     const React = jest.requireActual('react');
     return React.useRef({ get: () => value, set: jest.fn() }).current;
@@ -138,7 +142,9 @@ it('waits for measured geometry before starting the intro and keeps actions unav
   expect(mockSceneReady).not.toHaveBeenCalled();
   expect(button('Meni treba').props.disabled).toBe(true);
   await act(async () => tree.root.findByProps({ testID: 'entry-brand-panel' }).props.onLayout({ nativeEvent: { layout: { x: 24, y: 158.765625, width: 342, height: 227.328125 } } }));
-  expect(mockSceneReady).toHaveBeenCalledTimes(1);
+  // Layout alone cannot release the cover: the source t=0 artwork is empty.
+  // The real clock's UI-frame acknowledgement is covered in its focused suite.
+  expect(mockSceneReady).not.toHaveBeenCalled();
   expect(mockTiming).toHaveBeenCalledWith(4380, expect.objectContaining({ duration: 4380 }), expect.any(Function));
   await press('Preskoči uvod'); expect(mockFinish).toHaveBeenCalledTimes(1);
 });

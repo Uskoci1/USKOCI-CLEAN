@@ -6,9 +6,14 @@ import type { ResolvedPinMapProps } from '../../ResolvedPinMap.types';
 
 let mockFocused = true;
 const mockJump = jest.fn();
+const mockRefresh = jest.fn();
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => unknown) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
-jest.mock('@maplibre/maplibre-react-native', () => ({ Map: 'NativeMap', ViewAnnotation: 'NativeAnnotation',
+jest.mock('@maplibre/maplibre-react-native', () => ({ Map: 'NativeMap',
+  ViewAnnotation: require('react').forwardRef((props: object, ref: unknown) => {
+    require('react').useImperativeHandle(ref, () => ({ refresh: mockRefresh }));
+    return require('react').createElement('NativeAnnotation', props);
+  }),
   Camera: require('react').forwardRef((props: object, ref: unknown) => {
     require('react').useImperativeHandle(ref, () => ({ jumpTo: mockJump }));
     return require('react').createElement('NativeCamera', props);
@@ -129,4 +134,69 @@ it('web fallback reports native map requirement without rendering or choosing a 
   expect(text()).toContain('mobilnu aplikaciju');
   expect(tree.root.findAllByType('NativeMap' as React.ElementType)).toHaveLength(0);
   expect(JSON.stringify(tree.toJSON())).not.toContain('45.123456'); expect(onChoose).not.toHaveBeenCalled();
+});
+
+it('announces real selected coordinates outside the Android bitmap and updates only after parent acceptance', async () => {
+  await render(); await ready();
+  await act(async () => map().props.onPress(tap(19.8312344, 45.2512344)));
+  expect(text()).not.toContain('Geografska širina');
+  const position = onChoose.mock.calls[0][0];
+  await act(async () => tree.update(<ResolvedPinMap {...initial} position={position} />));
+  const status = tree.root.findByProps({ accessibilityLabel: 'Predložena tačka na mapi. Geografska širina 45.251234; geografska dužina 19.831234.' });
+  expect(status.props.accessible).toBe(true);
+  expect(annotation().findAllByProps({ accessibilityRole: 'text' })).toHaveLength(0);
+  expect(text()).toContain('Proverite položaj oznake');
+  await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.8312344, 45.2512344], zoom: 15 } }));
+  expect(text()).toContain('Mapa je centrirana na izabranu tačku.');
+});
+
+it('camera readiness requires the current native center and zoom, then clears on movement', async () => {
+  await render({ position: { latitude: 45.25, longitude: 19.83 } }); await ready();
+  for (const state of [{ center: [19.83, 45.25], zoom: 1 }, { center: [0, 0], zoom: 15 }, { center: [NaN, 45.25], zoom: 15 }, null]) {
+    await act(async () => map().props.onRegionDidChange({ nativeEvent: state }));
+    expect(text()).not.toContain('Mapa je centrirana');
+  }
+  await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
+  expect(text()).toContain('Mapa je centrirana');
+  await act(async () => map().props.onRegionWillChange());
+  expect(text()).not.toContain('Mapa je centrirana');
+});
+
+it('coarse accessibility rounds both coordinates and never announces private precision', async () => {
+  await render({ position: { latitude: 45.123456, longitude: 19.654321 }, coarse: true }); await ready();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Približna tačka na mapi. Geografska širina 45.12; geografska dužina 19.65.' })).toBeTruthy();
+  expect(JSON.stringify(tree.toJSON())).not.toContain('45.123456');
+  expect(JSON.stringify(tree.toJSON())).not.toContain('19.654321');
+});
+
+it('clears selected-coordinate and idle state on point removal, account switch, blur and unmount', async () => {
+  const position = { latitude: 45.25, longitude: 19.83 };
+  await render({ position }); await ready(); const oldIdle = map().props.onRegionDidChange;
+  await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
+  await act(async () => tree.update(<ResolvedPinMap {...initial} />));
+  await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
+  expect(text()).not.toContain('Geografska'); expect(text()).not.toContain('Mapa je centrirana');
+  await act(async () => tree.update(<ResolvedPinMap {...initial} position={position} scopeKey="other-account" />));
+  await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
+  expect(text()).not.toContain('Mapa je centrirana');
+  mockFocused = false;
+  await act(async () => tree.update(<ResolvedPinMap {...initial} position={position} scopeKey="other-account" />));
+  expect(text()).not.toContain('Geografska');
+  await act(async () => tree.unmount());
+  await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
+});
+
+it('refreshes the supported annotation bitmap after layout and paint without changing its original colors', async () => {
+  await render({ position: { latitude: 45.25, longitude: 19.83 } }); await ready();
+  const marker = annotation().findByProps({ accessible: false });
+  expect(marker.children[0]).toMatchObject({ props: { style: expect.objectContaining({ backgroundColor: '#FF7908' }) } });
+  await act(async () => marker.props.onLayout());
+  expect(mockRefresh).not.toHaveBeenCalled();
+  await act(async () => jest.advanceTimersByTime(50));
+  expect(mockRefresh).toHaveBeenCalledTimes(1);
+  const oldLayout = marker.props.onLayout;
+  mockFocused = false;
+  await act(async () => tree.update(<ResolvedPinMap {...initial} />));
+  await act(async () => { oldLayout(); jest.advanceTimersByTime(50); });
+  expect(mockRefresh).toHaveBeenCalledTimes(1);
 });

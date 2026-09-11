@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Camera, Map, ViewAnnotation, type CameraRef } from '@maplibre/maplibre-react-native';
+import { Camera, Map, ViewAnnotation, type CameraRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
 import { palette, radius, space } from '../../theme/tokens';
 import { Button } from '../Button';
 import { T } from '../Text';
@@ -20,12 +20,29 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const active = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const camera = useRef<CameraRef>(null);
+  const annotation = useRef<ViewAnnotationRef>(null);
+  const paint = useRef<{ frame: number } | null>(null);
+  const [centeredToken, setCenteredToken] = useState<object | null>(null);
   const token = useMemo(() => ({}), [position?.latitude, position?.longitude, coarse, disabled]);
   const latest = useRef({ token, props }); latest.current = { token, props };
   // The neutral world viewport is an overview only. It never becomes a selected pin.
   const initial = useRef(pin ? { center: [pin.longitude, pin.latitude] as [number, number], zoom: coarse ? 10 : 15 }
     : { center: [0, 0] as [number, number], zoom: 1 });
   const owns = () => active.current && props.owns() && latest.current.token === token;
+  const refreshMarker = () => {
+    if (!owns() || !pin || load.current !== 'ready') return;
+    if (paint.current) cancelAnimationFrame(paint.current.frame);
+    const pending = { frame: 0 }; paint.current = pending;
+    // Android snapshots annotation children offscreen. Refresh after their
+    // native layout and paint, while retaining the existing draggable marker.
+    pending.frame = requestAnimationFrame(() => {
+      if (paint.current !== pending || !owns() || load.current !== 'ready') return;
+      pending.frame = requestAnimationFrame(() => {
+        if (paint.current !== pending || !owns() || load.current !== 'ready') return;
+        paint.current = null; annotation.current?.refresh();
+      });
+    });
+  };
   const mark = (next: MapStatus) => {
     if (!owns() || (next === 'ready' && load.current !== 'loading')) return;
     load.current = next; clearTimeout(timer.current); setStatus(next);
@@ -37,11 +54,26 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         load.current = 'failed'; setStatus('failed');
       }
     }, 15_000);
-    return () => { active.current = false; clearTimeout(timer.current); };
+    return () => { active.current = false; clearTimeout(timer.current);
+      if (paint.current) cancelAnimationFrame(paint.current.frame); paint.current = null; };
   }, []);
   useEffect(() => {
-    if (pin && status === 'ready' && owns()) camera.current?.jumpTo({ center: [pin.longitude, pin.latitude], zoom: coarse ? 10 : 15 });
+    if (pin && status === 'ready' && owns()) {
+      camera.current?.jumpTo({ center: [pin.longitude, pin.latitude], zoom: coarse ? 10 : 15 });
+      refreshMarker();
+    }
   }, [pin?.latitude, pin?.longitude, coarse, status]);
+  const observeCenter = (value: unknown) => {
+    if (!owns() || !pin || load.current !== 'ready') return;
+    const state = value as { center?: unknown; zoom?: unknown } | null;
+    const center = Array.isArray(state?.center) && state.center.length === 2
+      ? displayedPinPosition({ longitude: state.center[0], latitude: state.center[1] }) : null;
+    const centered = center && typeof state?.zoom === 'number' && Number.isFinite(state.zoom)
+      && Math.abs(state.zoom - (coarse ? 10 : 15)) < 0.01
+      && Math.abs(center.latitude - pin.latitude) < 0.00001 && Math.abs(center.longitude - pin.longitude) < 0.00001;
+    setCenteredToken(centered ? token : null);
+  };
+  const coordinateText = pin ? `Geografska širina ${(Math.round(pin.latitude * 1e6) / 1e6).toFixed(coarse ? 2 : 6)}; geografska dužina ${(Math.round(pin.longitude * 1e6) / 1e6).toFixed(coarse ? 2 : 6)}.` : null;
   const choose = (lngLat: unknown) => {
     if (!owns() || load.current !== 'ready' || latest.current.props.disabled
       || !Array.isArray(lngLat) || lngLat.length !== 2) return;
@@ -56,16 +88,18 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
         touchPitch={false} touchRotate={false} accessibilityLabel={coarse ? 'Mapa približnog područja rada' : 'Mapa predložene lokacije'}
         onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
+        onRegionWillChange={() => { if (owns()) setCenteredToken(null); }}
+        onRegionDidChange={event => observeCenter(event.nativeEvent)}
         onPress={event => choose(event.nativeEvent.lngLat)}>
         <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={coarse ? 13 : 18} />
-        {pin ? <ViewAnnotation id="location-proposal" lngLat={[pin.longitude, pin.latitude]} anchor="bottom"
+        {pin ? <ViewAnnotation ref={annotation} id="location-proposal" lngLat={[pin.longitude, pin.latitude]} anchor="bottom"
           draggable={!disabled && status === 'ready'}
           onDragStart={() => { drag.current = owns() && !disabled && load.current === 'ready' ? token : null; }}
           onDragEnd={event => {
             const started = drag.current; drag.current = null;
             if (started === token) choose(event.nativeEvent.lngLat);
           }}>
-          <View collapsable={false} accessible accessibilityRole="image" accessibilityLabel="Predložena tačka na mapi" style={styles.marker}>
+          <View collapsable={false} accessible={false} onLayout={refreshMarker} style={styles.marker}>
             <View style={styles.markerDot} /><View style={styles.markerTip} />
           </View>
         </ViewAnnotation> : null}
@@ -76,6 +110,13 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
     </View>
+    {pin ? <View style={{ gap: space.xs }}>
+      <T accessible accessibilityRole="text" accessibilityLiveRegion="polite"
+        accessibilityLabel={`${coarse ? 'Približna tačka na mapi' : 'Predložena tačka na mapi'}. ${coordinateText}`}
+        variant="meta" tone="muted">{coordinateText}</T>
+      <T accessibilityLiveRegion="polite" variant="meta" tone="muted">{centeredToken === token && status === 'ready'
+        ? 'Mapa je centrirana na izabranu tačku.' : 'Proverite položaj oznake na mapi.'}</T>
+    </View> : null}
     {!pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađite područje i dodirnite mapu.</T>
       : <T variant="meta" tone="muted">{disabled ? 'Prikazana je izabrana lokacija.'
         : coarse ? 'Prikazana je približna tačka. Dodirnite mapu ili prevucite oznaku da predložite drugu.'

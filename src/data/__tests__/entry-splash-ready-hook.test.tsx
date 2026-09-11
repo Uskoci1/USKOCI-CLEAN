@@ -126,6 +126,33 @@ it('retains the cover until Entry geometry and cosmetic intro decision are prepa
   await draw(); await draw(); expect(snapshot().readiness).toBe('ready');
 });
 
+it('bounds a missing visible-frame acknowledgement, renders skip before releasing and ignores late ack', async () => {
+  await act(async () => { tree = create(<Probe waitForScene />); });
+  await act(async () => snapshot().onLayout(layout()));
+  const lateAck = snapshot().onSceneReady;
+  await act(async () => jest.advanceTimersByTime(999));
+  expect(snapshot().readiness).toBe('pending'); expect(mockHide).not.toHaveBeenCalled();
+  await act(async () => jest.advanceTimersByTime(1));
+  expect(snapshot().readiness).toBe('skip'); expect(mockHide).not.toHaveBeenCalled();
+  await act(async () => lateAck());
+  expect(snapshot().readiness).toBe('skip');
+  await draw(); expect(mockHide).not.toHaveBeenCalled();
+  await draw(); expect(mockHide).toHaveBeenCalledTimes(1);
+  await act(async () => lateAck()); await draw();
+  expect(snapshot().readiness).toBe('skip'); expect(mockHide).toHaveBeenCalledTimes(1);
+});
+
+it('cancels scene wait and queued fallback release on unmount', async () => {
+  await act(async () => { tree = create(<Probe waitForScene />); });
+  await act(async () => snapshot().onLayout(layout()));
+  const lateAck = snapshot().onSceneReady;
+  await act(async () => jest.advanceTimersByTime(1000));
+  const queued = [...frames.values()][0];
+  await act(async () => tree.unmount());
+  await act(async () => { queued(0); lateAck(); jest.advanceTimersByTime(5000); });
+  expect(frames.size).toBe(0); expect(mockHide).not.toHaveBeenCalled();
+});
+
 it('does not reveal an unresolved or redirected route and releases once the real route owns it', async () => {
   await act(async () => { tree = create(<Probe enabled={false} />); });
   await act(async () => snapshot().onLayout(layout()));
