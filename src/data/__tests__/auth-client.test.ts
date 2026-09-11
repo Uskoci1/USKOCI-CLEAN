@@ -29,7 +29,7 @@ describe('central Auth client boundary', () => {
 
   it.each([null, { access_token: 'never-projected', user: { id: 'account-a' } }])(
     'preserves signup metadata and projects only the presence of its session', async session => {
-      mockAuth.signUp.mockResolvedValue({ data: { session, user: { id: 'account-a' } } }, error: null });
+      mockAuth.signUp.mockResolvedValue({ data: { session, user: { id: 'account-a' } }, error: null });
       const result = await authClientService.signUp({ email: 'ana@example.test', password: 'password',
         firstName: 'Ana', lastName: 'Petrović', city: 'Novi Sad' });
       expect(mockAuth.signUp.mock.calls).toEqual([[{
