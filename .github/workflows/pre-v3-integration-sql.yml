@@ -1,0 +1,132 @@
+name: PRE-V3 exact integration SQL proof
+on:
+  push:
+    branches: [work/pre-v3-exact-verifier-20260911]
+    paths: [.pre-v3/integration-sql.json]
+permissions:
+  contents: read
+concurrency:
+  group: pre-v3-integration-disposable-sql
+  cancel-in-progress: false
+env:
+  CI: '1'
+  SUPABASE_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
+  RU5_DEVICE_PACKAGE: rs.uskoci.n04proof
+  RU5_DEVICE_ARTIFACT_DIR: artifacts/ai-review-device
+  W03_INTAKE_ARTIFACT_DIR: artifacts/ai-review-device/source105
+  AI_REVIEW_SCOPE: marketplace
+jobs:
+  sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: control
+          persist-credentials: false
+      - name: Validate exact source pin
+        id: pin
+        run: |
+          python3 - <<'PY'
+          import json,os,re,pathlib
+          d=json.load(open('control/.pre-v3/integration-sql.json'))
+          for k in ('sourceSha','treeSha'):assert re.fullmatch('[a-f0-9]{40}',d[k])
+          assert isinstance(d['additionalProofs'],list) and len(d['additionalProofs'])<=16
+          assert all(re.fullmatch('[a-z0-9_]+',p) for p in d['additionalProofs'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('source='+d['sourceSha']+'\n')
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence';out.mkdir(exist_ok=True)
+          (out/'requested-pin.json').write_text(json.dumps(d,indent=2)+'\n')
+          PY
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.pin.outputs.source }}
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Verify exact source and immutable historical SQL
+        working-directory: source
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib,subprocess
+          def git(*a):return subprocess.check_output(['git',*a],text=True).strip()
+          d=json.load(open('../control/.pre-v3/integration-sql.json'))
+          assert git('rev-parse','HEAD')==d['sourceSha'] and git('rev-parse','HEAD^{tree}')==d['treeSha']
+          base='1138d4f727735519b15d9b834bf261954e8013fe'
+          subprocess.run(['git','merge-base','--is-ancestor',base,'HEAD'],check=True)
+          for p in git('ls-tree','-r','--name-only',base,'supabase/migrations').splitlines():
+            if p.endswith('.sql'):assert git('rev-parse',base+':'+p)==git('rev-parse','HEAD:'+p),p
+          subprocess.run(['git','diff','--exit-code',base,'HEAD','--','package.json','package-lock.json'],check=True)
+          receipt={**d,'runId':os.environ['GITHUB_RUN_ID'],'environment':'isolated-github-actions-real-local-Auth-and-PostgreSQL','liveChanged':False,'sourceWrittenByRunner':False,'providerProven':False,'nativeProven':False}
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence'
+          (out/'source-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('PRE_V3_SOURCE_SHA='+d['sourceSha']+'\n')
+          PY
+          npm ci > "$RUNNER_TEMP/pre-v3-evidence/dependencies.log" 2>&1
+          python3 supabase/migrations/check_migration_integrity.py | tee "$RUNNER_TEMP/pre-v3-evidence/integrity.log"
+          git diff --exit-code HEAD
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - name: Reuse frozen historical bootstrap worktree
+        working-directory: source
+        run: |
+          git worktree add --detach ../baseline 1138d4f727735519b15d9b834bf261954e8013fe
+          ln -s "$PWD/node_modules" ../baseline/node_modules
+      - name: Disposable full stack through live79 and real local Auth fixture
+        working-directory: baseline
+        run: |
+          export GITHUB_WORKSPACE="$PWD"
+          export GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe
+          bash supabase/proofs/ru5_device_ui_live79_env.sh > "$RUNNER_TEMP/pre-v3-evidence/bootstrap.log" 2>&1
+          node supabase/proofs/ru5_device_ui_fixture.mjs > "$RUNNER_TEMP/pre-v3-evidence/fixture.log" 2>&1
+      - name: Exact105,106,108 predecessor reconstruction
+        working-directory: baseline
+        run: |
+          export GITHUB_WORKSPACE="$PWD"
+          export GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe
+          node scripts/ci/owned-intake-proof.mjs prepare105 > "$RUNNER_TEMP/pre-v3-evidence/prepare105.log" 2>&1
+          node scripts/ai_review_fixture.mjs admit > "$RUNNER_TEMP/pre-v3-evidence/admit106.log" 2>&1
+          node scripts/ci/owned-intake-proof.mjs prepare108 > "$RUNNER_TEMP/pre-v3-evidence/prepare108.log" 2>&1
+      - name: Actual authenticated integration SQL proofs
+        working-directory: source
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib,subprocess,sys,time
+          pin=json.load(open('../control/.pre-v3/integration-sql.json'))
+          names=['worker_authority','inbox_visibility','agreement_core']+pin['additionalProofs']
+          assert len(names)==len(set(names))
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence'
+          env=os.environ.copy();env['GITHUB_SHA']=pin['sourceSha'];env['PRE_V3_ARTIFACT_DIR']=str(out)
+          results=[];failed=False
+          for name in names:
+            if failed:results.append({'name':name,'status':'NOT_RUN_PREDECESSOR_FAILED'});continue
+            started=time.monotonic()
+            with (out/(name+'-sql.log')).open('w') as log:
+              try:code=subprocess.run(['node','supabase/proofs/pre_v3/'+name+'_proof.mjs'],env=env,stdout=log,stderr=subprocess.STDOUT,timeout=600).returncode
+              except subprocess.TimeoutExpired:code=124
+            failed=code!=0;results.append({'name':name,'exitCode':code,'seconds':round(time.monotonic()-started,2)})
+            print(json.dumps(results[-1]),flush=True)
+          clean=subprocess.run(['git','diff','--exit-code','HEAD'],stdout=subprocess.DEVNULL).returncode==0
+          report={**pin,'runId':os.environ['GITHUB_RUN_ID'],'SQL_RESULT':'PASS' if not failed and clean else 'FAIL','proofs':results,'trackedSourceUnchanged':clean,'liveChanged':False,'providerProven':False,'physicalDeviceProven':False}
+          (out/'integration-sql-receipt.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+          sys.exit(0 if report['SQL_RESULT']=='PASS' else 1)
+          PY
+      - name: Preserve original evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pre-v3-integration-sql-${{ github.run_id }}
+          path: ${{ runner.temp }}/pre-v3-evidence/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Stop disposable Supabase
+        if: always()
+        run: |
+          if [[ -n "${RU5_DEVICE_PROOF_DIR:-}" && -d "$RU5_DEVICE_PROOF_DIR" ]]; then cd "$RU5_DEVICE_PROOF_DIR"; supabase stop --no-backup; fi
