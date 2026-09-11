@@ -2,7 +2,7 @@ name: PRE-V3 save exact integration commits
 on:
   push:
     branches: [work/pre-v3-exact-verifier-20260911]
-    paths: [.pre-v3/integration-bundle.json]
+    paths: [.pre-v3/integration-save.json]
 permissions:
   contents: write
 concurrency:
@@ -17,16 +17,15 @@ jobs:
         with:
           path: control
           persist-credentials: false
-      - name: Validate bounded request
+      - name: Read bounded source pin
         id: request
         run: |
           python3 - <<'PY'
           import json,os,re
-          d=json.load(open('control/.pre-v3/integration-bundle.json'))
-          for k in ('base','commit','tree'): assert re.fullmatch('[0-9a-f]{40}',d[k]),k
-          assert re.fullmatch('[0-9a-f]{64}',d['bundleSha256'])
+          d=json.load(open('control/.pre-v3/integration-save.json'))
+          assert re.fullmatch('[a-f0-9]{40}',d['base'])
           assert d['branch']=='work/pre-v3-engine-integration-20260911'
-          assert isinstance(d['bundleBase64'],str) and len(d['bundleBase64'])<3000000
+          assert 0<len(d['commits'])<=16
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('base='+d['base']+'\n')
           PY
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -35,47 +34,52 @@ jobs:
           ref: ${{ steps.request.outputs.base }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify exact bundle, frozen SQL and fixed target then fast-forward
+      - name: Validate exact Git objects and frozen SQL, then fast-forward fixed integration ref
         working-directory: source
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
-          import base64,hashlib,json,os,pathlib,subprocess
+          import base64,hashlib,json,os,pathlib,re,subprocess,zlib
           def git(*a):return subprocess.check_output(['git',*a],text=True).strip()
-          d=json.load(open('../control/.pre-v3/integration-bundle.json'))
+          d=json.load(open('../control/.pre-v3/integration-save.json'))
           assert git('rev-parse','HEAD')==d['base']
-          b=base64.b64decode(d['bundleBase64'],validate=True)
-          assert len(b)<2000000 and hashlib.sha256(b).hexdigest()==d['bundleSha256']
-          bundle=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration.bundle';bundle.write_bytes(b)
-          subprocess.run(['git','bundle','verify',str(bundle)],check=True)
-          assert git('bundle','list-heads',str(bundle))==d['commit']+' refs/heads/'+d['branch']
-          subprocess.run(['git','fetch','--no-tags',str(bundle),'refs/heads/'+d['branch']],check=True)
-          assert git('rev-parse','FETCH_HEAD')==d['commit']
-          assert git('rev-parse','FETCH_HEAD^{tree}')==d['tree']
-          subprocess.run(['git','merge-base','--is-ancestor',d['base'],d['commit']],check=True)
-          assert not git('rev-list','--merges',d['base']+'..'+d['commit'])
-          paths=git('diff','--name-only',d['base'],d['commit']).splitlines()
+          current=d['base']; receipts=[]
           allowed=('src/data/','src/contracts/','src/hooks/','src/store/','supabase/migrations/','supabase/proofs/','supabase/functions/','scripts/','docs/implementation/pre-v3/')
-          assert paths and all(p.startswith(allowed) and '..' not in p.split('/') for p in paths),paths
-          subprocess.run(['git','diff','--check',d['base'],d['commit']],check=True)
+          for c in d['commits']:
+            assert all(re.fullmatch('[0-9a-f]{40}',c[k]) for k in ('commit','tree','parent'))
+            assert c['parent']==current and len(c['compressedPatch'])<3000000
+            stream=zlib.decompressobj();patch=stream.decompress(base64.b64decode(c['compressedPatch'],validate=True),2000001)
+            assert len(patch)<=2000000 and stream.eof and not stream.unused_data and not stream.unconsumed_tail
+            assert hashlib.sha256(patch).hexdigest()==c['patchSha256']
+            p=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration.patch';p.write_bytes(patch)
+            subprocess.run(['git','apply','--check','--index',str(p)],check=True)
+            subprocess.run(['git','apply','--index',str(p)],check=True)
+            paths=git('diff','--cached','--name-only').splitlines()
+            assert paths and all(x.startswith(allowed) and '..' not in x.split('/') for x in paths),paths
+            subprocess.run(['git','diff','--cached','--check'],check=True)
+            assert git('write-tree')==c['tree']
+            raw=c['rawCommit'].encode();assert len(raw)<10000
+            obj=subprocess.check_output(['git','hash-object','-t','commit','-w','--stdin'],input=raw).decode().strip()
+            assert obj==c['commit'] and git('show','-s','--format=%P',obj)==current
+            assert git('rev-parse',obj+'^{tree}')==c['tree']
+            subprocess.run(['git','reset','--hard',obj],check=True)
+            current=obj;receipts.append({'commit':obj,'tree':c['tree'],'changedFiles':paths,'patchSha256':c['patchSha256']})
           frozen='1138d4f727735519b15d9b834bf261954e8013fe'
           for p in git('ls-tree','-r','--name-only',frozen,'supabase/migrations').splitlines():
-            if p.endswith('.sql'): assert git('rev-parse',frozen+':'+p)==git('rev-parse',d['commit']+':'+p),p
-          subprocess.run(['git','diff','--exit-code',frozen,d['commit'],'--','package.json','package-lock.json'],check=True)
+            if p.endswith('.sql'): assert git('rev-parse',frozen+':'+p)==git('rev-parse','HEAD:'+p),p
+          subprocess.run(['git','diff','--exit-code',frozen,'HEAD','--','package.json','package-lock.json'],check=True)
           repo='Uskoci1/USKOCI-CLEAN';ref='refs/heads/'+d['branch']
-          current=json.loads(subprocess.check_output(['gh','api','repos/'+repo+'/git/ref/heads/'+d['branch']],text=True))['object']['sha']
-          assert current==d['base'],'INTEGRATION_BRANCH_MOVED'
+          remote=json.loads(subprocess.check_output(['gh','api','repos/'+repo+'/git/ref/heads/'+d['branch']],text=True))['object']['sha']
+          assert remote==d['base'],'INTEGRATION_BRANCH_MOVED'
           env=os.environ.copy();env['GIT_CONFIG_COUNT']='1';env['GIT_CONFIG_KEY_0']='http.https://github.com/.extraheader'
           env['GIT_CONFIG_VALUE_0']='AUTHORIZATION: basic '+base64.b64encode(('x-access-token:'+env['GH_TOKEN']).encode()).decode()
-          subprocess.run(['git','push','origin',d['commit']+':'+ref],env=env,check=True)
+          subprocess.run(['git','push','origin',current+':'+ref],env=env,check=True)
           actual=json.loads(subprocess.check_output(['gh','api','repos/'+repo+'/git/ref/heads/'+d['branch']],text=True))['object']['sha']
-          assert actual==d['commit']
-          receipt={k:d[k] for k in ('base','commit','tree','branch','bundleSha256')}
-          receipt.update(saved=True,runId=os.environ['GITHUB_RUN_ID'],changedFiles=paths,canonicalChanged=False,liveChanged=False,testedByThisWorkflow=False)
+          assert actual==current
+          receipt={'base':d['base'],'commit':current,'tree':git('rev-parse','HEAD^{tree}'),'branch':d['branch'],'saved':True,'runId':os.environ['GITHUB_RUN_ID'],'commits':receipts,'canonicalChanged':False,'liveChanged':False,'testedByThisWorkflow':False}
           out=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration-save';out.mkdir(exist_ok=True)
-          (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
-          print(json.dumps(receipt,indent=2))
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt,indent=2))
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
