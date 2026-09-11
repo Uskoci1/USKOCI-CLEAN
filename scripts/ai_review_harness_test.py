@@ -307,6 +307,45 @@ class NativeAssertions(unittest.TestCase):
         self.assertEqual(point, {'latitudeE6':45_251_234,'longitudeE6':19_831_234})
         self.assertIs(node, ready[2])
 
+    def marker_surface(self, bounds='[482,914][598,1040]', *, duplicate=False, label=None):
+        root, _, map_node = self.selected_map_surface(label=label or self.pin_status('45.277831','19.752165'))
+        if bounds:
+            ET.SubElement(map_node, 'node', {'content-desc':'Oznaka izabrane tačke na mapi','bounds':bounds})
+            if duplicate:ET.SubElement(map_node, 'node', {'content-desc':'Oznaka izabrane tačke na mapi','bounds':bounds})
+        return root, {child:p for p in root.iter() for child in p}, map_node
+
+    def test_actual_marker_drag_uses_stable_native_hit_bounds_and_changed_sdk_readback(self):
+        surface=self.marker_surface();before={'latitudeE6':45277831,'longitudeE6':19752165};after={**before,'longitudeE6':19752640}
+        with patch.object(journey,'full_map_surface',return_value=surface) as full, \
+                patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'adb') as adb, \
+                patch.object(journey,'observed_native_pin',return_value=(after,surface[2])) as observe,patch.object(journey,'capture') as capture:
+            self.assertEqual(journey.drag_native_marker(2.625,before)[0],after)
+        self.assertEqual(full.call_count,2)
+        adb.assert_called_once_with('shell','input','touchscreen','swipe','540','977','598','977','600')
+        observe.assert_called_once_with(2.625,different_from=before)
+        capture.assert_called_once_with('MARKETPLACE_pin_start_dragged','Mesto Zadatka')
+
+    def test_marker_missing_clipped_wrong_size_or_ambiguous_stops_before_any_physical_drag(self):
+        before={'latitudeE6':45277831,'longitudeE6':19752165}
+        for surface in [self.marker_surface(None),self.marker_surface('[482,570][598,696]'),
+                        self.marker_surface('[482,914][590,1040]'),self.marker_surface(duplicate=True),
+                        self.marker_surface(label=self.pin_status('45.277831','19.752166'))]:
+            with patch.object(journey,'full_map_surface',return_value=surface), \
+                    patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'adb') as adb, \
+                    patch.object(journey,'capture') as capture,self.assertRaises(AssertionError):
+                journey.drag_native_marker(2.625,before)
+            adb.assert_not_called();capture.assert_not_called()
+
+    def test_marker_drag_without_changed_native_result_or_outside_strict_region_cannot_claim_success(self):
+        surface=self.marker_surface();before={'latitudeE6':45277831,'longitudeE6':19752165}
+        for result in [AssertionError('No changed native coordinate'),({'latitudeE6':45277831,'longitudeE6':19749999},surface[2])]:
+            with patch.object(journey,'full_map_surface',return_value=surface), \
+                    patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'adb'), \
+                    patch.object(journey,'observed_native_pin',side_effect=[result]),patch.object(journey,'capture') as capture, \
+                    self.assertRaises(AssertionError):
+                journey.drag_native_marker(2.625,before)
+            capture.assert_not_called()
+
     def test_end_camera_cannot_accept_previous_pin_and_duplicate_or_missing_status_fails_closed(self):
         old = self.selected_map_surface(label=self.pin_status())
         new = self.selected_map_surface(label=self.pin_status('45.251100'))
@@ -350,6 +389,38 @@ class NativeAssertions(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(AssertionError):
                 journey.assert_saved_native_points(invalid,start,end)
 
+    def test_destination_selector_binds_android_confirmed_value_and_scrolls_observed_clipping(self):
+        label='Tačka koju uređujete, Polazište · potvrđeno'
+        def surface(bounds, description=label, enabled='true'):
+            return tree(f'<hierarchy><node text="Mesto Zadatka"/><node scrollable="true" bounds="[0,286][1080,1975]">'
+                        f'<node content-desc="{description}" clickable="true" enabled="{enabled}" bounds="{bounds}"/>'
+                        '<node text="Odredište na mapi" enabled="true" bounds="[97,1100][983,1170]"/></node></hierarchy>')
+        for clipped_bounds, direction in [('[47,286][1033,126]','up'),('[47,2020][1033,1975]','down')]:
+            clipped=surface(clipped_bounds);visible=surface('[47,850][1033,990]')
+            with patch.object(journey,'clean_surface',side_effect=[clipped,visible,visible]), \
+                    patch.object(journey,'screen_size',return_value=(1080,2400)), \
+                    patch.object(journey,'scroll_once') as scroll,patch.object(journey,'tap_node') as select, \
+                    patch.object(journey,'tap') as option:
+                journey.select_native_destination()
+            scroll.assert_called_once_with(clipped[0],direction)
+            self.assertEqual(select.call_args.args[0].attrib['content-desc'],label)
+            option.assert_called_once_with(desc='Odredište')
+        for wrong in ['Tačka koju uređujete, Polazište','Tačka koju uređujete, Odredište · potvrđeno']:
+            with patch.object(journey,'clean_surface',return_value=surface('[47,850][1033,990]',wrong)), \
+                    patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'scroll_once'), \
+                    patch.object(journey,'tap_node') as select,patch.object(journey,'tap') as option, \
+                    self.assertRaises(AssertionError):
+                journey.select_native_destination()
+            select.assert_not_called();option.assert_not_called()
+
+    def test_destination_must_be_observed_before_any_end_pin_gesture(self):
+        with patch.object(journey,'press_in_review'),patch.object(journey,'wait_visible'), \
+                patch.object(journey,'physical_manual_point',return_value={'latitudeE6':45277831,'longitudeE6':19752165}) as point, \
+                patch.object(journey,'select_native_destination',side_effect=AssertionError('Destination heading absent')), \
+                self.assertRaisesRegex(AssertionError,'Destination heading absent'):
+            journey.physical_location_review()
+        point.assert_called_once_with('Polazište')
+
     def test_physical_confirmation_requires_same_coordinates_in_the_retained_capture(self):
         empty = self.map_surface('[97,620][983,1460]')
         selected = self.selected_map_surface(label=self.pin_status())
@@ -359,12 +430,14 @@ class NativeAssertions(unittest.TestCase):
             with patch.object(journey,'adb',return_value=Mock(stdout='Physical density: 420\n')), \
                     patch.object(journey,'full_map_surface',return_value=empty), \
                     patch.object(journey,'observed_native_pin',return_value=(point,selected[2])), \
+                    patch.object(journey,'drag_native_marker',return_value=(point,selected[2])) as drag, \
                     patch.object(journey,'capture',return_value=original[:2]), \
                     patch.object(journey,'screen_size',return_value=(1080,2400)), \
                     patch.object(journey,'seek',return_value=selected),patch.object(journey,'tap_node') as confirm:
                 if success:
                     self.assertEqual(journey.physical_manual_point('Polazište'),point)
                     confirm.assert_called_once()
+                    drag.assert_called_once_with(2.625,point)
                 else:
                     with self.assertRaisesRegex(AssertionError,'Captured native coordinates'):
                         journey.physical_manual_point('Polazište')
