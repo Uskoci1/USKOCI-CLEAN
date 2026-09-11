@@ -1,0 +1,100 @@
+diff --git a/src/ui/workerProfile/WorkerProfilePresentation.tsx b/src/ui/workerProfile/WorkerProfilePresentation.tsx
+index b34f580..5153b65 100644
+--- a/src/ui/workerProfile/WorkerProfilePresentation.tsx
++++ b/src/ui/workerProfile/WorkerProfilePresentation.tsx
+@@ -71,6 +71,9 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate }:
+       <T style={caption}>{status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Dopunite ključne sposobnosti pre prijave'}</T>
+     </View>
+     <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} />
++    <Field label="Koliko ljudi možeš da obezbediš" value={draft.capacity} change={capacity => patch({ capacity })}
++      disabled={disabled || draft.capacityRevision === null} numeric
++      hint={draft.capacityRevision === null ? 'Sačuvajte profil i učitajte kapacitet sa servera.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
+     <Terms label="Veštine i usluge" values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
+       change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} />
+     <Press accessibilityRole="button" accessibilityLabel="Alat i vozila" accessibilityState={{ expanded: resourcesOpen }}
+@@ -82,8 +85,8 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate }:
+       <Terms label="Vozila" values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}
+         change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} /></> : null}
+     <View style={{ gap: 16 }}><T style={{ ...v2.text.title, color: v2.color.ink }}>Područje rada</T>
+-      <Field label="Grad ili mesto rada" value={draft.grad} change={grad => patch({ grad })} disabled={disabled} />
+-      <Field label="Radijus rada (km)" value={draft.radius} change={radius => patch({ radius })} disabled={disabled} numeric hint="Ceo broj od 1 do 200 km oko područja rada." />
++      <Field label="Grad ili mesto rada" value={draft.grad} change={() => {}} disabled={true} hint="Menja se kroz područje rada na mapi." />
++      <Field label="Radijus rada (km)" value={draft.radius} change={() => {}} disabled={true} numeric hint="Ceo broj od 1 do 200 km oko područja rada." />
+       <V2Action label="Država i područje na mapi" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/lokacija')} />
+     </View>
+     <Press accessibilityRole="button" accessibilityLabel="Kratko predstavljanje" accessibilityState={{ expanded: bioOpen }}
+@@ -92,10 +95,10 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate }:
+     {bioOpen ? <Field label="O vašem iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline /> : null}
+     <View style={{ padding: 16, gap: 8, borderRadius: 18, backgroundColor: v2.color.context }}>
+       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><View style={{ flex: 1 }}><T style={body}>Dostupan sam</T>
+-        <T style={caption}>{draft.dostupanOdmah ? 'Uključeno u ovom unosu' : 'Isključeno u ovom unosu'}</T></View>
+-        <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={disabled}
+-          trackColor={{ true: v2.color.teal, false: v2.color.controlLine }} onValueChange={dostupanOdmah => patch({ dostupanOdmah })} /></View>
+-      <T style={caption}>Ovu dostupnost uključujete i isključujete sami, pa čuvate profil. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
++        <T style={caption}>{draft.dostupanOdmah ? 'Uključeno · sačuvano stanje' : 'Isključeno · sačuvano stanje'}</T></View>
++        <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={true}
++          trackColor={{ true: v2.color.teal, false: v2.color.controlLine }} onValueChange={() => {}} /></View>
++      <T style={caption}>Ovu dostupnost menjate kroz „Redovna dostupnost“, jednim zajedničkim načinom čuvanja. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
+     </View>
+     <V2Action label="Redovna dostupnost" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/dostupnost')} />
+     <V2Action label="Pogledaj raspored" kind="quiet" disabled={disabled} onPress={() => navigate('/raspored')} />
+diff --git a/src/ui/workerProfile/workerProfileDraft.ts b/src/ui/workerProfile/workerProfileDraft.ts
+index 3619895..c183dd7 100644
+--- a/src/ui/workerProfile/workerProfileDraft.ts
++++ b/src/ui/workerProfile/workerProfileDraft.ts
+@@ -1,39 +1,47 @@
++import { workerCapacityRevision, workerCapacityValue } from '../../contracts/workerCapacity';
+ import type { RadnikProfilProjekcija } from '../../contracts/projections';
+ import type { AzurirajProfilKomanda } from '../../data/ports';
+ import { capabilityTerms } from '../../lib/capabilityTerms';
+ 
+ export type WorkerDraft = { ime: string; grad: string; biografija: string; vestine: string[]; alati: string[];
+-  vozila: string[]; radius: string; dostupanOdmah: boolean; newSkill: string; newTool: string; newVehicle: string };
++  vozila: string[]; capacity: string; capacityRevision: string | null; radius: string; dostupanOdmah: boolean; newSkill: string; newTool: string; newVehicle: string };
+ export function workerDraft(profile: RadnikProfilProjekcija | null): WorkerDraft {
+   return profile ? { ime: profile.ime, grad: profile.grad, biografija: profile.biografija, vestine: [...profile.vestine],
+     alati: [...profile.alati], vozila: [...profile.vozila], radius: String(profile.radijusKm), dostupanOdmah: profile.dostupanOdmah,
++    capacity: profile.kapacitetTima === undefined ? '' : String(profile.kapacitetTima), capacityRevision: profile.capacityRevision ?? null,
+     newSkill: '', newTool: '', newVehicle: '' }
+-    : { ime: '', grad: '', biografija: '', vestine: [], alati: [], vozila: [], radius: '', dostupanOdmah: false, newSkill: '', newTool: '', newVehicle: '' };
++    : { capacity: '', capacityRevision: null, ime: '', grad: '', biografija: '', vestine: [], alati: [], vozila: [], radius: '', dostupanOdmah: false, newSkill: '', newTool: '', newVehicle: '' };
+ }
+ const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+ export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate: boolean): { command?: AzurirajProfilKomanda; expected?: AzurirajProfilKomanda; error?: string } {
+   if ([draft.newSkill, draft.newTool, draft.newVehicle].some(value => value.trim())) return { error: 'Uneta stavka još nije dodata. Dodajte je u listu pre čuvanja.' };
+-  if (!/^[0-9]{1,3}$/.test(draft.radius) || Number(draft.radius) < 1 || Number(draft.radius) > 200) {
+-    return { error: 'Unesite ceo broj od 1 do 200 km. Radijus se ne podrazumeva.' };
++  if (draft.grad !== initial.grad || draft.radius !== initial.radius || draft.dostupanOdmah !== initial.dostupanOdmah) {
++    return { error: 'Mesto i radijus menjajte u području rada, a dostupnost u podešavanju dostupnosti.' };
++  }
++  const capacityChanged = draft.capacity !== initial.capacity;
++  if ((capacityChanged || activate) && (!/^[0-9]{1,2}$/.test(draft.capacity) ||
++      !workerCapacityValue(Number(draft.capacity)) || !workerCapacityRevision(initial.capacityRevision))) {
++    return { error: 'Najpre sačuvajte i učitajte profil, zatim unesite kapacitet od 1 do 50 ljudi.' };
+   }
+   const lists = { vestine: capabilityTerms(draft.vestine), alati: capabilityTerms(draft.alati), vozila: capabilityTerms(draft.vozila) };
+   if (Object.values(lists).some(value => value === null)) return { error: 'Svaka lista može imati do 50 stavki, do 500 znakova po stavci.' };
+   const values = { ime: draft.ime.trim(), grad: draft.grad.trim(), biografija: draft.biografija.trim(),
+     vestine: lists.vestine!, alati: lists.alati!, vozila: lists.vozila!, radijusKm: Number(draft.radius), dostupanOdmah: draft.dostupanOdmah };
+-  if (activate && (!values.ime || !values.grad || !values.vestine.length)) return { error: 'Za aktivaciju unesite ime, grad i bar jednu veštinu.' };
++  if (activate && (!values.ime || !values.grad || !values.vestine.length)) return { error: 'Za aktivaciju unesite ime i bar jednu veštinu; mesto potvrdite u području rada.' };
+   const before = { ...initial, radijusKm: Number(initial.radius) };
+   const command: AzurirajProfilKomanda = { zavrsi: activate };
+   // Only changed fields are written. A location edit elsewhere cannot be
+   // silently overwritten by untouched inputs from this retained form.
+   for (const key of Object.keys(values) as (keyof typeof values)[]) {
+-    if (!equal(values[key], before[key])) Object.assign(command, { [key]: values[key] });
++    if (!['grad', 'radijusKm', 'dostupanOdmah'].includes(key) && !equal(values[key], before[key])) Object.assign(command, { [key]: values[key] });
+   }
++  if (capacityChanged) Object.assign(command, { kapacitetTima: Number(draft.capacity), capacityRevision: initial.capacityRevision });
+   // Activation confirms the visible profile, including unchanged fields. A
+   // concurrent edit must not turn a different profile into a claimed success.
+-  return { command, expected: activate ? { ...values, zavrsi: true } : command };
++  return { command, expected: activate ? { ...values, kapacitetTima: Number(draft.capacity), zavrsi: true } : command };
+ }
+ export function workerReadbackMatches(profile: RadnikProfilProjekcija | null, command: AzurirajProfilKomanda, expectedId: string | null): boolean {
+   if (!profile || (expectedId !== null && profile.id !== expectedId) || (command.zavrsi && profile.stanje !== 'ACTIVE')) return false;
+-  return (Object.keys(command) as (keyof AzurirajProfilKomanda)[]).every(key => key === 'zavrsi' ||
++  return (Object.keys(command) as (keyof AzurirajProfilKomanda)[]).every(key => key === 'zavrsi' || key === 'capacityRevision' ||
+     (key !== 'licence' && equal(command[key], profile[key as keyof RadnikProfilProjekcija])));
+ }
