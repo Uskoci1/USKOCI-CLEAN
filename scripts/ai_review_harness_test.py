@@ -218,6 +218,131 @@ class NativeAssertions(unittest.TestCase):
         adb.assert_called_once_with('shell','wm','density')
         full.assert_called_once_with(2.625)
 
+    @staticmethod
+    def pin_status(latitude='45.251234', longitude='19.831234'):
+        return f'Predložena tačka na mapi. Geografska širina {latitude}; geografska dužina {longitude}.'
+
+    def selected_map_surface(self, *, label=None, idle=True, duplicate=False):
+        root, parents, node = self.map_surface('[97,620][983,1460]')
+        scroll = parents[node]
+        if label:
+            ET.SubElement(scroll, 'node', {'content-desc': label, 'bounds': '[97,1480][983,1550]'})
+            if duplicate:
+                ET.SubElement(scroll, 'node', {'content-desc': label, 'bounds': '[97,1560][983,1630]'})
+        if idle:
+            ET.SubElement(scroll, 'node', {'text': 'Mapa je centrirana na izabranu tačku.', 'bounds': '[97,1650][983,1710]'})
+        return root, {child: p for p in root.iter() for child in p}, node
+
+    def test_precise_native_coordinate_status_is_strict_and_never_a_button_or_bitmap_claim(self):
+        self.assertEqual(journey.native_pin_coordinates(self.pin_status()), {'latitudeE6':45_251_234, 'longitudeE6':19_831_234})
+        for label in ('Predložena tačka na mapi', 'Pronađi adresu za ovaj pin',
+                      self.pin_status().replace('Predložena', 'Približna'), self.pin_status('45.25'),
+                      self.pin_status('NaN'), self.pin_status('45.2512345'), self.pin_status('0.000000'),
+                      self.pin_status('45.200000'), self.pin_status(longitude='19.900000'),
+                      self.pin_status()+' extra'):
+            with self.subTest(label=label), self.assertRaises(AssertionError):
+                journey.native_pin_coordinates(label)
+
+    def test_selected_pin_requires_native_idle_and_two_equal_observations_without_bitmap_descendant(self):
+        pending = self.selected_map_surface(label=self.pin_status(), idle=False)
+        ready = self.selected_map_surface(label=self.pin_status())
+        self.assertFalse(any(n.attrib.get('content-desc')=='Predložena tačka na mapi' for n in ready[0].iter()))
+        with patch.object(journey,'full_map_surface',side_effect=[pending,ready,ready]) as full, \
+                patch.object(journey,'screen_size',return_value=(1080,2400)):
+            point, node = journey.observed_native_pin(2.625)
+        self.assertEqual(full.call_count,3)
+        self.assertEqual(point, {'latitudeE6':45_251_234,'longitudeE6':19_831_234})
+        self.assertIs(node, ready[2])
+
+    def test_end_camera_cannot_accept_previous_pin_and_duplicate_or_missing_status_fails_closed(self):
+        old = self.selected_map_surface(label=self.pin_status())
+        new = self.selected_map_surface(label=self.pin_status('45.251100'))
+        point = journey.native_pin_coordinates(self.pin_status())
+        with patch.object(journey,'full_map_surface',side_effect=[old,new,new]) as full, \
+                patch.object(journey,'screen_size',return_value=(1080,2400)):
+            result, _ = journey.observed_native_pin(2.625,different_from=point)
+        self.assertEqual(full.call_count,3);self.assertEqual(result['latitudeE6'],45_251_100)
+        for surface in (old, self.selected_map_surface(), self.selected_map_surface(label=self.pin_status(),idle=False),
+                        self.selected_map_surface(label=self.pin_status(),duplicate=True)):
+            with patch.object(journey,'full_map_surface',return_value=surface), \
+                    patch.object(journey,'screen_size',return_value=(1080,2400)), self.assertRaises(AssertionError):
+                journey.observed_native_pin(2.625,different_from=point,attempts=3)
+
+    def test_pin_ack_failure_stops_before_confirmation_and_end_wait_uses_actual_previous_coordinates(self):
+        surface = self.map_surface('[97,620][983,1460]')
+        first = journey.native_pin_coordinates(self.pin_status())
+        with patch.object(journey,'adb',return_value=Mock(stdout='Physical density: 420\n')) as adb, \
+                patch.object(journey,'full_map_surface',return_value=surface), \
+                patch.object(journey,'observed_native_pin',side_effect=[(first,surface[2]),AssertionError('No new native coordinate')]) as observe, \
+                patch.object(journey,'seek') as seek, patch.object(journey,'tap_node') as confirm, \
+                self.assertRaises(AssertionError):
+            journey.physical_manual_point('Odredište',offset=True)
+        self.assertEqual(observe.call_args_list,[unittest.mock.call(2.625),unittest.mock.call(2.625,different_from=first)])
+        self.assertEqual(adb.call_args_list[-1],unittest.mock.call('shell','input','tap','600','1090'))
+        seek.assert_not_called();confirm.assert_not_called()
+
+    def test_saved_points_must_equal_actual_native_e6_for_each_confirmed_manual_slot(self):
+        start = journey.native_pin_coordinates(self.pin_status())
+        end = journey.native_pin_coordinates(self.pin_status('45.251100','19.831300'))
+        state = {'facts':[{'fact_key':'need.resolved_location','superseded_at':None,'status':'CONFIRMED',
+                          'source':'EXPLICIT_USER_ANSWER','fact_value':{'points':[
+                              {'slot':'start',**start,'origin':{'kind':'MANUAL_PIN'}},
+                              {'slot':'end',**end,'origin':{'kind':'MANUAL_PIN'}}]}}]}
+        journey.assert_saved_native_points(state,start,end)
+        altered = copy.deepcopy(state);altered['facts'][0]['fact_value']['points'][1]['latitudeE6'] += 1
+        swapped = copy.deepcopy(state);swapped['facts'][0]['fact_value']['points'].reverse()
+        pending = copy.deepcopy(state);pending['facts'][0]['status'] = 'PROPOSED'
+        provider = copy.deepcopy(state);provider['facts'][0]['fact_value']['points'][0]['origin'] = {'kind':'PROVIDER_CANDIDATE'}
+        for invalid in (altered,swapped,pending,provider,{'facts':[]}):
+            with self.subTest(invalid=invalid), self.assertRaises(AssertionError):
+                journey.assert_saved_native_points(invalid,start,end)
+
+    def test_physical_confirmation_requires_same_coordinates_in_the_retained_capture(self):
+        empty = self.map_surface('[97,620][983,1460]')
+        selected = self.selected_map_surface(label=self.pin_status())
+        other = self.selected_map_surface(label=self.pin_status('45.251100'))
+        point = journey.native_pin_coordinates(self.pin_status())
+        for original, success in ((selected,True),(other,False)):
+            with patch.object(journey,'adb',return_value=Mock(stdout='Physical density: 420\n')), \
+                    patch.object(journey,'full_map_surface',return_value=empty), \
+                    patch.object(journey,'observed_native_pin',return_value=(point,selected[2])), \
+                    patch.object(journey,'capture',return_value=original[:2]), \
+                    patch.object(journey,'screen_size',return_value=(1080,2400)), \
+                    patch.object(journey,'seek',return_value=selected),patch.object(journey,'tap_node') as confirm:
+                if success:
+                    self.assertEqual(journey.physical_manual_point('Polazište'),point)
+                    confirm.assert_called_once()
+                else:
+                    with self.assertRaisesRegex(AssertionError,'Captured native coordinates'):
+                        journey.physical_manual_point('Polazište')
+                    confirm.assert_not_called()
+
+    def test_current_selected_application_uses_exact_title_specific_agreement_action(self):
+        with patch.dict(journey.__dict__,{'NEED_TITLE':'Owned AI Need'}),patch.object(journey,'tap') as tap, \
+                patch.object(journey,'wait_visible') as wait,patch.object(journey,'shot'):
+            journey.core_open_selected_agreement()
+        self.assertEqual(tap.call_args_list,[unittest.mock.call(desc='Prijave',prefer='bottom'),
+                         unittest.mock.call(desc='Otvori Dogovor: Owned AI Need'),unittest.mock.call(desc='Nazad')])
+        self.assertEqual(wait.call_args_list,[unittest.mock.call(text='Owned AI Need'),unittest.mock.call(text='Izabrana'),
+                                            unittest.mock.call(text='Owned AI Need')])
+
+    def test_completed_agreement_return_uses_actual_history_tab_only_for_current_collection(self):
+        source = Path(__file__).with_name('d03_chat_android_journey.py')
+        definitions = [n for n in ast.parse(source.read_text(encoding='utf-8')).body
+                       if isinstance(n,ast.FunctionDef) and n.name=='return_to_completed_agreement_list']
+        self.assertEqual(len(definitions),1)
+        for current in (True,False):
+            flow = Mock(spec=['tap','assert_shell','wait_visible','shot'])
+            scope = {name:getattr(flow,name) for name in ('tap','assert_shell','wait_visible','shot')}
+            scope.update(CORE106=current,NEED_TITLE='Owned AI Need')
+            exec(compile(ast.Module(body=definitions,type_ignores=[]),str(source),'exec'),scope)
+            scope['return_to_completed_agreement_list']()
+            expected = [unittest.mock.call.tap(desc='Nazad'),unittest.mock.call.assert_shell('requester')]
+            if current:expected.append(unittest.mock.call.tap(desc='Istorija'))
+            expected.extend([unittest.mock.call.wait_visible(desc='Otvorite Dogovor Owned AI Need'),
+                             unittest.mock.call.shot('D03_terminal_back')])
+            self.assertEqual(flow.mock_calls,expected)
+
     def test_original_and_marketplace_submit_require_their_exact_headcount(self):
         for mode, slots in [('intake', 1), ('marketplace', 3)]:
             with patch.dict(journey.os.environ, {'AI_REVIEW_SCOPE': mode}), patch.object(journey, 'core_fixture', return_value={'requiredSlots': 3}), patch.dict(journey.__dict__, {'NEED_ID':'need', 'WORKER_USER_ID':'worker'}):
