@@ -48,13 +48,20 @@ jobs:
           allowed=('src/data/','src/contracts/','src/hooks/','src/store/','supabase/migrations/','supabase/proofs/','supabase/functions/','scripts/','docs/implementation/pre-v3/')
           for c in d['commits']:
             assert all(re.fullmatch('[0-9a-f]{40}',c[k]) for k in ('commit','tree','parent'))
-            assert c['parent']==current and len(c['compressedPatch'])<3000000
-            stream=zlib.decompressobj();patch=stream.decompress(base64.b64decode(c['compressedPatch'],validate=True),2000001)
-            assert len(patch)<=2000000 and stream.eof and not stream.unused_data and not stream.unconsumed_tail
-            assert hashlib.sha256(patch).hexdigest()==c['patchSha256']
-            p=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration.patch';p.write_bytes(patch)
-            subprocess.run(['git','apply','--check','--index',str(p)],check=True)
-            subprocess.run(['git','apply','--index',str(p)],check=True)
+            assert c['parent']==current
+            if c.get('generator') is not None:
+              assert c['generator']=='c09' and current=='9426e46e40909189bf65ccd18d7d109a78782797'
+              assert c['commit']=='7c29abfaf4836157b8c0ebc043aed1f8e4a88e64' and c['tree']=='cf2105694612446ec28f36065b0732f18c97fc40'
+              subprocess.run(['python3','../control/.pre-v3/build_c09.py'],check=True)
+              subprocess.run(['git','add','docs/implementation/pre-v3/C09_PROVENANCE_LEDGER.json'],check=True)
+            else:
+              assert len(c['compressedPatch'])<3000000
+              stream=zlib.decompressobj();patch=stream.decompress(base64.b64decode(c['compressedPatch'],validate=True),2000001)
+              assert len(patch)<=2000000 and stream.eof and not stream.unused_data and not stream.unconsumed_tail
+              assert hashlib.sha256(patch).hexdigest()==c['patchSha256']
+              p=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration.patch';p.write_bytes(patch)
+              subprocess.run(['git','apply','--check','--index',str(p)],check=True)
+              subprocess.run(['git','apply','--index',str(p)],check=True)
             paths=git('diff','--cached','--name-only').splitlines()
             assert paths and all(x.startswith(allowed) and '..' not in x.split('/') for x in paths),paths
             subprocess.run(['git','diff','--cached','--check'],check=True)
@@ -64,7 +71,7 @@ jobs:
             assert obj==c['commit'] and git('show','-s','--format=%P',obj)==current
             assert git('rev-parse',obj+'^{tree}')==c['tree']
             subprocess.run(['git','reset','--hard',obj],check=True)
-            current=obj;receipts.append({'commit':obj,'tree':c['tree'],'changedFiles':paths,'patchSha256':c['patchSha256']})
+            current=obj;receipts.append({'commit':obj,'tree':c['tree'],'changedFiles':paths,'patchSha256':c.get('patchSha256'),'generator':c.get('generator')})
           frozen='1138d4f727735519b15d9b834bf261954e8013fe'
           for p in git('ls-tree','-r','--name-only',frozen,'supabase/migrations').splitlines():
             if p.endswith('.sql'): assert git('rev-parse',frozen+':'+p)==git('rev-parse','HEAD:'+p),p
