@@ -1,0 +1,1 @@
+{"sourceBase":"72cdc8cc4bbf4d1876bb742ca40218e2426cf612","purpose":"Correct test-only RLS zero-row denial assertion, then prove single-authority Worker and Inbox visibility in reconstructed local108","applicationSourceUnchanged":true,"sourcePassRun":34632479450,"noLiveWrite":true,"noProvider":true,"noDevice":true}
