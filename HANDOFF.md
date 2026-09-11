@@ -1,3 +1,13 @@
+## CURRENT SAFE HANDOFF — 2026-09-11T05:17:57.138Z
+
+**Owner-requested stop.** Canonical `916ffb498ba5ad47a307a3c66477757b6753095a` / `clean-alpha-backend`; freshLIVE108/head`20260911031713_clean_dispatch_need_lock_order`. Canonical/PR99source108pending0; remoteM05source109 has one unmerged/unappliedcandidate. PR99head`58e842e883db71f9118efc474c5011f3b261824c`; savedM05/M06`60a3ce68e52cbf461639f392db877d93ba0405c7`; savedforeground/channel`cba0a2645fdb31d9f19414ca7afe6a6bc93f1e0f`. No merge/live write was done forhandoff.
+
+Read [NEXT_AI_HANDOFF_20260911_0504.md](docs/implementation/NEXT_AI_HANDOFF_20260911_0504.md) and [NEXT_AI_HANDOFF_MANIFEST.json](docs/implementation/NEXT_AI_HANDOFF_MANIFEST.json), then [AUTHORITY_INDEX.md](docs/authority/AUTHORITY_INDEX.md). These are the latestphysicalsnapshot/cursor; the authoritymap preserves full originalsources andcurrentownerprecedence. Current native run34562264364 is FAIL: marker visible, accessibility hit target absent, no drag sent. N05run34562970333 ended in a30-minute timeout after1 observed group; no final report or admitted lock graphs, SQL109 not admitted. Read original artifacts; do not redispatch during SAFE STOP. Entryoriginalsequencehasalreadybeenreviewed; old6f/prefix-pendingcursorbelowissuperseded.
+
+**All checkpoints below are HISTORICAL. Their “Current”, “Next”, oldHEAD/livecounts, 4500ms/Figma/pixelproofandpendingclaims apply only at their originaldates and do not override this topcheckpoint. Do not execute their instructions as the nextcursor.** Theiroriginaltextisretainedtoavoidlosinghistory.
+
+---
+
 ## Current entry acceptance — original Android sequence and 34 checkpoints reviewed
 
 PR66 source `82a99fc115ff813327e9548c66fedd8413d29bff` is **IMPLEMENTED / SOURCE PROVEN / SCOPED ANDROID PROVEN / ROOT REVIEW ACCEPTED / CANONICAL PROMOTION PENDING**. Fresh canonical remains `80e091ee31930b28cc5c2e0af6b6e876a4926362` and is already integrated. Native run34163510260 passed; original artifact10033887904 is 5,847,655 bytes, SHA-256 `c82d1206009dd410c303b2a3517f6abbd68e4e07fbffc975bc62be8661de3386`. All 34 original PNG/XML pairs were individually reviewed: 7 entry, 17 account/navigation and 10 Inbox checkpoints. Both real local accounts, logout to the two-field login form, three-zone intents, full Agreement schedule/amount and current W04 Back pass.

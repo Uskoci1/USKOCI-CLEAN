@@ -37,7 +37,8 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
   const phone = { x: 0, y: 0, width, height };
   const measuredLogo = logo ?? { x: (width - logoWidth) / 2, y: 180, width: logoWidth, height: logoWidth * 104 / 320 };
   const intro = phase === 'intro';
-  const time = useBrandClock(intro && !!logo, phase === 'loading' || (intro && !logo), finish);
+  const time = useBrandClock(intro && !!logo, phase === 'loading' || (intro && !logo), finish,
+    logo && prepared ? onSceneReady : undefined, logo && prepared ? { readiness, phone, logo } : undefined);
   const green = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.greenPercent * width / 200 }] }));
   const orange = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.orangePercent * width / 200 }] }));
   const panel = useAnimatedStyle(() => {
@@ -52,12 +53,6 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, busy = false, er
     return { transform: [{ translateX: (selected === 'REQUESTER' ? -1 : 1) * width / 2 * (1 - q) }] };
   });
   const motif = useAnimatedStyle(() => ({ opacity: motifEase(Math.max(0, Math.min(1, (selectionTime.get() - 250) / 240))) }));
-
-  useEffect(() => {
-    // The paused artwork and final geometry are committed before native reveal.
-    // Cosmetic storage resolves independently; no part of the clock runs hidden.
-    if (logo && prepared) onSceneReady();
-  }, [logo, prepared, onSceneReady]);
 
   useEffect(() => {
     const cancel = () => {

@@ -10,7 +10,7 @@ sha256sum android/app/build/outputs/apk/release/app-release.apk >> "$artifact_di
 sha256sum scripts/ai_review_android_journey.py scripts/ai_review_fixture.mjs scripts/ai_review_local_rest.py scripts/ai_review_edge_server.mjs scripts/ai_review_run_journey.sh .github/workflows/ai-review-mobile-proof.yml supabase/functions/uskoci-ai-interview/index.ts supabase/migrations/20260910172132_clean_w03_owned_ai_intake_authority.sql >> "$artifact_dir/ai-proof-build.txt"
 if [[ "${AI_REVIEW_SCOPE:-intake}" = 'marketplace' ]]; then
   printf 'scope=marketplace\nreviews_proven=false\n' >> "$artifact_dir/ai-proof-build.txt"
-  sha256sum scripts/ru5_android_device_ui_journey.py scripts/d03_chat_android_journey.py supabase/proofs/notifications/d03_chat_device_fixture.mjs supabase/functions/uskoci-publication-evaluate/index.ts src/ui/location/NeedLocationForm.tsx src/ui/location/LocationPointEditor.tsx src/ui/location/ResolvedPinMap.tsx src/ui/v2/NeedPresentation.tsx src/data/publicationClientService.ts >> "$artifact_dir/ai-proof-build.txt"
+  sha256sum scripts/ru5_android_device_ui_journey.py scripts/d03_chat_android_journey.py supabase/proofs/notifications/d03_chat_device_fixture.mjs supabase/functions/uskoci-publication-evaluate/index.ts src/ui/location/NeedLocationForm.tsx src/ui/location/LocationPointEditor.tsx src/ui/location/ResolvedPinMap.tsx assets/resolved-location-pin.png assets/resolved-location-pin.svg src/ui/v2/NeedPresentation.tsx src/data/publicationClientService.ts >> "$artifact_dir/ai-proof-build.txt"
 fi
 
 node scripts/ai_review_edge_server.mjs > "$artifact_dir/ai-adapter.log" 2>&1 &

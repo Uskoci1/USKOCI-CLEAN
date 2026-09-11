@@ -1,4 +1,15 @@
 {
+  "current_live108_checkpoint": {
+    "canonical": "916ffb498ba5ad47a307a3c66477757b6753095a",
+    "source": 108,
+    "live": 108,
+    "pending_sql": 0,
+    "ai_edge_version": 17,
+    "location_edge_version": 2,
+    "push": "UNDEPLOYED_NO_PUSH_JOBS_ENV_SWITCH_UNREAD",
+    "evidence": "docs/implementation/evidence/live108-20260911/verification.json",
+    "next": "Complete current native/product fixes and approved-content dependencies; no full milestone/release/parity claim"
+  },
   "spoj_entry_acceptance_20260907": {
     "state": "IMPLEMENTED_SOURCE_AND_SCOPED_ANDROID_PROVEN_ROOT_ACCEPTED_CANONICAL_PROMOTION_PENDING",
     "source": "82a99fc115ff813327e9548c66fedd8413d29bff",
@@ -422,7 +433,7 @@
     "next": "NATIVE_PUSH_LIFECYCLE_DISPATCH_AND_REMAINING_CHAT_PRODUCT_UNITS"
   },
   "format_version": 3,
-  "updated_at": "2026-09-10 17:06:29 UTC",
+  "updated_at": "2026-09-11 03:17:18 UTC",
   "historical_notification_checkpoint_before_live84_20260907": {
     "canonical_source_head": "4858370610192b88112673b08bde151793409e99",
     "n01": {
@@ -530,61 +541,51 @@
   "canonical_retirement_merge_head": "6ee5c611fadf6861b7cc029ffda77437a847ca8c",
   "canonical_two_account_proof_merge_head": "55f218d1f2cd9a79fdaba9b8c058e92664be758f",
   "live": {
-    "migration_count": 105,
-    "head": "20260910180443_clean_p3_retention_execution_authority",
-    "pending_forward_migrations": 1,
-    "observed_at_utc": "2026-09-10 18:05:01 UTC",
-    "canonical_source_migration_count": 105,
-    "working_source_migration_count": 106,
+    "migration_count": 108,
+    "head": "20260911031713_clean_dispatch_need_lock_order",
+    "pending_forward_migrations": 0,
+    "observed_at_utc": "2026-09-11 03:17:18 UTC",
+    "canonical_source_migration_count": 108,
+    "working_source_migration_count": 108,
     "canonical_pending_forward_migrations": 0,
-    "working_pending_source_files": [
-      "20260910172132_clean_w03_owned_ai_intake_authority.sql"
-    ]
+    "working_pending_source_files": []
   },
   "edge": {
     "slug": "uskoci-ai-interview",
-    "version": 16,
+    "name": "uskoci-ai-interview",
+    "version": 17,
     "status": "ACTIVE",
     "verify_jwt": true,
-    "ezbr_sha256": "82f7afdb329aaf7ec655abc018a4769694c8950d61072113b4a8294e08d1dd82",
+    "ezbr_sha256": "273f52ab8df599b9658e2c77800af6d3910bd8f0fe8a7ef9770dd99e22f452a0",
+    "canonical_source": "916ffb498ba5ad47a307a3c66477757b6753095a",
+    "canonical_source_retirement_pending_live_deploy": false,
+    "files": [
+      {
+        "file": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytes": 38731,
+        "sha256": "9b274ae5523b7973b7c13e55b83195db622712c694602d6f3e6900a8c23c15fb"
+      },
+      {
+        "file": "src/contracts/needFactsV2.ts",
+        "bytes": 5523,
+        "sha256": "fb4b145a1f9aebe5d8b72339125153c6401ec8323f4a0107946766ab28f0218c"
+      }
+    ],
+    "exact_source_readback": true,
+    "actual_provider_proven": false,
+    "promotion_evidence": "docs/implementation/evidence/live108-20260911/verification.json",
     "price_modes": [
       "MY_PRICE",
       "OFFERS"
     ],
-    "canonical_source_retirement_pending_live_deploy": false,
-    "name": "uskoci-ai-interview",
-    "canonical_source": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
-    "files": [
-      {
-        "name": "supabase/functions/uskoci-ai-interview/index.ts",
-        "readbackName": "supabase/functions/uskoci-ai-interview/index.ts",
-        "bytes": 28041,
-        "sha256": "2c89b2337d388ccf032c230de1398b7ef4826e0ca6e0e8b3be09417021c911f8",
-        "exactReadback": true
-      },
-      {
-        "name": "src/contracts/needFactsV2.ts",
-        "readbackName": "src/contracts/needFactsV2.ts",
-        "bytes": 5523,
-        "sha256": "fb4b145a1f9aebe5d8b72339125153c6401ec8323f4a0107946766ab28f0218c",
-        "exactReadback": true
-      }
-    ],
-    "actual_provider_proven": false,
-    "promotion_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
-    "owner_configuration_observed_at": "2026-09-07T14:44:00Z",
-    "configuration_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/openai-configuration-metadata.json",
-    "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK",
     "registry_key_count": 22,
     "manual_only_fact_keys": [
       "need.resolved_location"
     ],
-    "version_observation_note": "AI deployment returned version16; recorded actual metadata rather than inferring sequential version from earlier observed v12.",
-    "unobserved_versions": [
-      13,
-      14,
-      15
-    ]
+    "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK",
+    "owner_configuration_observed_at": "2026-09-07T14:44:00Z",
+    "configuration_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/openai-configuration-metadata.json",
+    "retained_configuration_provenance": "Configuration status and owner observation are retained from the prior record, not re-tested by the v17 deployment/readback; provider execution remains unproven."
   },
   "migration_provenance": {
     "file": "supabase/migrations/MIGRATION_PROVENANCE.json",
@@ -1328,18 +1329,18 @@
     "evidence": "docs/implementation/evidence/w05-live103-20260910/verification.json"
   },
   "monetization": "FREE_0_RSD",
-  "next_allowed_action": "Finish the existing uncommitted P3 source105 actual disposable DB/CI proof, then review canonical integration and promotion. Do not reapply SQL104. Approved policy content, periodic export worker wiring, authenticated production export and native-save journeys remain deferred; legal policies remain inactive.",
+  "next_allowed_action": "Continue the current PR99 native/product corrections from source108/LIVE108, then review the same-Need two-account journey through completion and review. No SQL forward remains pending; do not reapply106/107/108. Resolve F144 and approved RC2/Retention V1 content access/reconciliation before executable policy activation. Push Edge remains undeployed with no push jobs; its environment flag is unread. Provider, scheduler, physical-device, release and visual-parity boundaries remain unproven.",
   "canonical_physical_ui_proof_merge_head": "940fd1fdf34a314f5d8a0c0fdb9cc3753e55ce01",
   "production_observation": {
-    "status": "PR92_EXACT_SQL104_POSTFLIGHT_AND_TWO_EDGE_READBACK_PASS",
-    "observed_at_utc": "2026-09-10 17:06:29 UTC",
+    "status": "EXACT_LIVE106_107_108_POSTFLIGHTS_AND_AI17_LOCATION2_READBACK_PASS",
+    "observed_at_utc": "2026-09-11 03:17:18 UTC",
     "sql_executed": true,
-    "live_writes": "AUTHORIZED_P2_SQL104_AND_EXPORT_EDGE_V1_DEPLOYMENTS_ALREADY_COMPLETED",
+    "live_writes": "AUTHORIZED_ROOT_SQL106_107_108_AND_AI17_LOCATION2_DEPLOYMENTS_COMPLETED",
     "production_business_rpc_called": false,
-    "authenticated_production_export_proven": false,
-    "native_save_journey_proven": false,
     "policy_activated": false,
-    "report": "docs/implementation/evidence/p2-live104-20260910/verification.json",
+    "actual_provider_proven": false,
+    "push_function_deployed": false,
+    "report": "docs/implementation/evidence/live108-20260911/verification.json",
     "documentation_pass_live_call": false
   },
   "historical_production_observation_before_authorized_promotions": {
@@ -1901,35 +1902,52 @@
     "next": "PROVE_CURRENT_UNIT_THEN_REMAINING_W02_AND_CURRENT_DEBT_BEFORE_W03"
   },
   "physical_live_readmission_20260910": {
-    "observed_at_utc": "2026-09-10 18:05:01 UTC",
+    "observed_at_utc": "2026-09-11 03:17:18 UTC",
     "project_ref": "leqcwgzvjsxugfgzdmth",
-    "canonical_source": "e5edbb7356ea5d622b45cdc95aa83b9b792a4805",
+    "canonical_source": "916ffb498ba5ad47a307a3c66477757b6753095a",
     "mode": "READ_ONLY_POSTFLIGHT_AFTER_AUTHORIZED_PROMOTION",
-    "migration_count": 105,
-    "latest_version": "20260910180443",
-    "latest_name": "clean_p3_retention_execution_authority",
-    "source_migration_count": 106,
-    "remaining_forward_count": 1,
-    "pending_source_files": [
-      "20260910172132_clean_w03_owned_ai_intake_authority.sql"
-    ],
+    "migration_count": 108,
+    "latest_version": "20260911031713",
+    "latest_name": "clean_dispatch_need_lock_order",
+    "source_migration_count": 108,
+    "remaining_forward_count": 0,
+    "pending_source_files": [],
     "edge": {
+      "slug": "uskoci-ai-interview",
       "name": "uskoci-ai-interview",
-      "version": 16,
+      "version": 17,
       "status": "ACTIVE",
       "verify_jwt": true,
-      "ezbr_sha256": "82f7afdb329aaf7ec655abc018a4769694c8950d61072113b4a8294e08d1dd82",
+      "ezbr_sha256": "273f52ab8df599b9658e2c77800af6d3910bd8f0fe8a7ef9770dd99e22f452a0",
+      "canonical_source": "916ffb498ba5ad47a307a3c66477757b6753095a",
+      "canonical_source_retirement_pending_live_deploy": false,
+      "files": [
+        {
+          "file": "supabase/functions/uskoci-ai-interview/index.ts",
+          "bytes": 38731,
+          "sha256": "9b274ae5523b7973b7c13e55b83195db622712c694602d6f3e6900a8c23c15fb"
+        },
+        {
+          "file": "src/contracts/needFactsV2.ts",
+          "bytes": 5523,
+          "sha256": "fb4b145a1f9aebe5d8b72339125153c6401ec8323f4a0107946766ab28f0218c"
+        }
+      ],
       "exact_source_readback": true,
+      "actual_provider_proven": false,
+      "promotion_evidence": "docs/implementation/evidence/live108-20260911/verification.json",
+      "price_modes": [
+        "MY_PRICE",
+        "OFFERS"
+      ],
       "registry_key_count": 22,
       "manual_only_fact_keys": [
         "need.resolved_location"
       ],
-      "evidence_owner": "docs/implementation/evidence/w02-live102-20260910/verification.json",
-      "unobserved_versions": [
-        13,
-        14,
-        15
-      ]
+      "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK",
+      "owner_configuration_observed_at": "2026-09-07T14:44:00Z",
+      "configuration_evidence": "docs/implementation/evidence/task-detail-recovery-20260907/openai-configuration-metadata.json",
+      "retained_configuration_provenance": "Configuration status and owner observation are retained from the prior record, not re-tested by the v17 deployment/readback; provider execution remains unproven."
     },
     "storage": {
       "profile_media_public": false,
@@ -1948,15 +1966,15 @@
     "edge_secret_names_reobserved": false,
     "live_write_performed": true,
     "physical_live_business_rpc_proven": false,
-    "evidence": "docs/implementation/evidence/p3-live105-20260910/verification.json",
-    "canonical_source_migration_count": 105,
+    "evidence": "docs/implementation/evidence/live108-20260911/verification.json",
+    "canonical_source_migration_count": 108,
     "canonical_remaining_forward_count": 0,
-    "pending_source_status": "W03_OWNED_INTAKE_WRITTEN_CLIENT_EDGE_TARGETED_PASS_DB_CI_PENDING",
+    "pending_source_status": "SOURCE108_LIVE108_NO_PENDING_SQL_NATIVE_PRODUCT_BOUNDARIES_OPEN",
     "publication_policy_bundle_status": "UNREVIEWED_INCOMPLETE_INACTIVE",
     "postflight_live_writes": false,
     "device_proven": false,
     "provider_execution_proven": false,
-    "previous_readmission_evidence": "docs/implementation/evidence/p2-live104-20260910/verification.json",
+    "previous_readmission_evidence": "docs/implementation/evidence/p3-live105-20260910/verification.json",
     "promoted_aliases": [
       {
         "source_file": "20260908130000_clean_p1_legal_consent_ledger.sql",
@@ -2110,33 +2128,58 @@
         "raw_md5": "bad9f1317e86b2f3efaeb92f7200f0b4",
         "raw_sha256": "7442f8bdecf59d6d66b1c51aeff2418b633d0fd74f95739bd561c2d76ac0ffe2",
         "raw_bytes": 33748
+      },
+      {
+        "source_file": "20260910172132_clean_w03_owned_ai_intake_authority.sql",
+        "name": "clean_w03_owned_ai_intake_authority",
+        "raw_md5": "7ec5faf05b863d64a4014fa86bca9e8d",
+        "version": "20260910235154",
+        "raw_bytes": 43904,
+        "raw_sha256": "558d06608a597724598e58c7494d1d2783b1b844a019b89e0f4ac19461988e3d",
+        "full_record_md5": "cc02d32adc970262f344fcf62a98e7c2",
+        "statement_count": 1
+      },
+      {
+        "source_file": "20260910193029_clean_n09_expo_push_transport.sql",
+        "name": "clean_n09_expo_push_transport",
+        "raw_md5": "197242ad0b1e7453c7116e703f1c16df",
+        "version": "20260911031301",
+        "raw_bytes": 30061,
+        "raw_sha256": "0207da265567a31b6f35b185694040554ee8800f16508e5fc5be1ff0b309f53e",
+        "full_record_md5": "a8e7683b5410d7445bed8e072a6a331d",
+        "statement_count": 1
+      },
+      {
+        "source_file": "20260910214845_clean_dispatch_need_lock_order.sql",
+        "name": "clean_dispatch_need_lock_order",
+        "raw_md5": "c2b752ce505a04ddc2467af83f7e48c3",
+        "version": "20260911031713",
+        "raw_bytes": 10984,
+        "raw_sha256": "276ee2f40a15c01c258f106ea3dfbc23c57a1d4f1c3a93b21428d865730f5896",
+        "full_record_md5": "001a4228f6300f2f066461df3fe03fce",
+        "statement_count": 1
       }
     ],
     "frozen_replay_baseline": "live_history_snapshot=87 remains unchanged; pending_forward_migrations belongs to historical replay, not physical pending state",
     "native_w02_status": "UI_CONNECTED_MERGED_DISPOSABLE_PROVEN_LIVE_STRUCTURAL_NATIVE_RUNTIME_OPEN",
     "location_search_edge": {
-      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
       "slug": "uskoci-location-search",
       "name": "uskoci-location-search",
+      "version": 2,
       "status": "ACTIVE",
-      "version": 1,
-      "created_at": 1789051259284,
-      "updated_at": 1789051259284,
       "verify_jwt": true,
-      "import_map": false,
-      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_bbadc4c5-81c7-490c-8549-69aa533be329_1/source/supabase/functions/uskoci-location-search/index.ts",
-      "ezbr_sha256": "ce12bb6fb3e321eb26dc0052ec9ee5b032039c71f1780c1f41bce0be68a2a1cc",
+      "ezbr_sha256": "fbbbde04842356594b8408cec04e3d33b13d3248e459e26d5c08204c75ce8434",
+      "canonical_source": "916ffb498ba5ad47a307a3c66477757b6753095a",
       "files": [
         {
-          "name": "supabase/functions/uskoci-location-search/index.ts",
-          "readbackName": "uskoci-location-search/index.ts",
-          "bytes": 13752,
-          "sha256": "67bbac43258da8d1dbceab630e6192dde62f13018480bcfeb5d7917d1221fa5e",
-          "exactReadback": true
+          "file": "supabase/functions/uskoci-location-search/index.ts",
+          "bytes": 14804,
+          "sha256": "6c1e968536c5069b510cc674d9f5c709615957e95ba799b9451c03652bfe15d9"
         }
       ],
-      "canonical_source": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
-      "promotion_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+      "exact_source_readback": true,
+      "actual_provider_proven": false,
+      "promotion_evidence": "docs/implementation/evidence/live108-20260911/verification.json",
       "provider_configuration": {
         "provider": "LocationIQ",
         "secret_name": "LOCATIONIQ_ACCESS_TOKEN",
@@ -2144,7 +2187,10 @@
         "secret_value_read": false,
         "credential_validity": "NOT_OBSERVED"
       },
-      "actual_provider_proven": false
+      "retained_configuration_provenance": {
+        "source_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+        "scope": "Prior owner-confirmed LocationIQ secret-name configuration; the v2 source readback did not read the secret value or test credential validity/provider execution."
+      }
     },
     "native_build_install_bundle": {
       "build": "PASS",
@@ -2155,8 +2201,8 @@
       "launch_reverse_web_start": "POLICY_BLOCKED_NO_WORKAROUND",
       "evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json"
     },
-    "inherited_storage_note": "Storage metadata remains the earlier readmission; this PR90 postflight did not reread storage buckets.",
-    "inventory_scope": "PR92 canonical104/live104 exact postflight and export Edge readback; working P3 source105 remains uncommitted and DB-CI pending. Earlier AI/LocationIQ/Storage records retain their evidence dates.",
+    "inherited_storage_note": "Fresh106/107/108 postflights preserve exact Storage object/bucket/policy aggregate hashes; no Storage contents copied.",
+    "inventory_scope": "Physical LIVE108 matches canonical source108; immutable replay87 metadata is unchanged. PR99 product/native work is separate.",
     "publication_evaluator_edge": {
       "id": "daaabf21-7be3-48d6-b49c-ad2472b832b9",
       "slug": "uskoci-publication-evaluate",
@@ -2240,9 +2286,24 @@
       "artifact_row_count": 0,
       "object_count": 0,
       "evidence": "docs/implementation/evidence/p2-live104-20260910/verification.json"
+    },
+    "policy_flags": {
+      "active_legal_documents": 0,
+      "active_retention_policies": 0,
+      "active_publication_bundles": 0
+    },
+    "retention_execution_binding_count": 0,
+    "push_transport": {
+      "state": "UNDEPLOYED",
+      "edge_function_absent": true,
+      "scheduled_jobs": 0,
+      "env_switch_read": false,
+      "provider_call": false,
+      "evidence": "docs/implementation/evidence/live108-20260911/verification.json",
+      "execution_state": "UNDEPLOYED_NO_PUSH_JOBS_ENV_SWITCH_UNREAD"
     }
   },
-  "migration_provenance_state": "PHYSICAL_LIVE104_CANONICAL104_WORKING105_PENDING1_FROZEN_REPLAY87",
+  "migration_provenance_state": "PHYSICAL_LIVE108_CANONICAL_SOURCE108_PENDING0_FROZEN_REPLAY87_UNCHANGED",
   "historical_physical_live101_before_pr90_20260910": {
     "observed_at_utc": "2026-09-10 13:25:24 UTC",
     "canonical_source": "42fbf789fa7c8b5bad0b75eba3e12da9c176a3b9",
@@ -2293,28 +2354,23 @@
     "provider_configuration_status": "REQUIRED_NAMES_PRESENT_VALUES_OWNER_CONFIRMED_NOT_READ_BACK"
   },
   "location_search_edge": {
-    "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
     "slug": "uskoci-location-search",
     "name": "uskoci-location-search",
+    "version": 2,
     "status": "ACTIVE",
-    "version": 1,
-    "created_at": 1789051259284,
-    "updated_at": 1789051259284,
     "verify_jwt": true,
-    "import_map": false,
-    "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_bbadc4c5-81c7-490c-8549-69aa533be329_1/source/supabase/functions/uskoci-location-search/index.ts",
-    "ezbr_sha256": "ce12bb6fb3e321eb26dc0052ec9ee5b032039c71f1780c1f41bce0be68a2a1cc",
+    "ezbr_sha256": "fbbbde04842356594b8408cec04e3d33b13d3248e459e26d5c08204c75ce8434",
+    "canonical_source": "916ffb498ba5ad47a307a3c66477757b6753095a",
     "files": [
       {
-        "name": "supabase/functions/uskoci-location-search/index.ts",
-        "readbackName": "uskoci-location-search/index.ts",
-        "bytes": 13752,
-        "sha256": "67bbac43258da8d1dbceab630e6192dde62f13018480bcfeb5d7917d1221fa5e",
-        "exactReadback": true
+        "file": "supabase/functions/uskoci-location-search/index.ts",
+        "bytes": 14804,
+        "sha256": "6c1e968536c5069b510cc674d9f5c709615957e95ba799b9451c03652bfe15d9"
       }
     ],
-    "canonical_source": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
-    "promotion_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+    "exact_source_readback": true,
+    "actual_provider_proven": false,
+    "promotion_evidence": "docs/implementation/evidence/live108-20260911/verification.json",
     "provider_configuration": {
       "provider": "LocationIQ",
       "secret_name": "LOCATIONIQ_ACCESS_TOKEN",
@@ -2322,7 +2378,10 @@
       "secret_value_read": false,
       "credential_validity": "NOT_OBSERVED"
     },
-    "actual_provider_proven": false
+    "retained_configuration_provenance": {
+      "source_evidence": "docs/implementation/evidence/w02-live102-20260910/verification.json",
+      "scope": "Prior owner-confirmed LocationIQ secret-name configuration; the v2 source readback did not read the secret value or test credential validity/provider execution."
+    }
   },
   "w02_resolved_checkpoint_20260910": {
     "canonical_merge": "cc839c0d1f5a29a7f47b6aaf5044a81c4010101b",
@@ -2817,5 +2876,26 @@
     "authenticated_production_export_proven": false,
     "native_save_journey_proven": false,
     "next_unit": "EXISTING_P3_RETENTION_EXECUTION"
+  },
+  "historical_live_header_before_live108_20260911": {
+    "migration_count": 105,
+    "head": "20260910180443_clean_p3_retention_execution_authority",
+    "pending_forward_migrations": 1,
+    "observed_at_utc": "2026-09-10 18:05:01 UTC",
+    "canonical_source_migration_count": 105,
+    "working_source_migration_count": 106,
+    "canonical_pending_forward_migrations": 0,
+    "working_pending_source_files": [
+      "20260910172132_clean_w03_owned_ai_intake_authority.sql"
+    ]
+  },
+  "push_transport": {
+    "state": "UNDEPLOYED",
+    "edge_function_absent": true,
+    "scheduled_jobs": 0,
+    "env_switch_read": false,
+    "provider_call": false,
+    "evidence": "docs/implementation/evidence/live108-20260911/verification.json",
+    "execution_state": "UNDEPLOYED_NO_PUSH_JOBS_ENV_SWITCH_UNREAD"
   }
 }

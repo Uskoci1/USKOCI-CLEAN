@@ -36,10 +36,9 @@ export function useEntryIntro(readiness: EntrySplashReadiness) {
     const subscription = AppState.addEventListener('change', state => { if (state !== 'active') finish(); });
     return () => { lifetime.current++; clearTimeout(timer); subscription.remove(); };
   }, [finish, reduced]);
-  // Storage may finish while the native splash is still covering this screen.
-  // Hold the scene at its first frame until its full timeline can be visible.
-  const visiblePhase = phase === 'intro' && readiness !== 'ready'
-    ? readiness === 'skip' ? 'welcome' : 'loading'
-    : phase;
+  // Mount the original scene beneath the native cover. The clock holds its
+  // prepared source sample until the cover handshake; hiding before mounting
+  // exposes empty t=0, while running ahead consumes the assembly under the cover.
+  const visiblePhase = phase === 'intro' && readiness === 'skip' ? 'welcome' : phase;
   return { phase: visiblePhase, prepared: phase !== 'loading', finish };
 }

@@ -26,7 +26,14 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
     snapshot: () => state,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     start() { active = true; void refresh(); },
-    stop() { active = false; generation++; },
+    stop() {
+      active = false; generation++;
+      // A background/blurred view must not retain an apparently current private
+      // projection. The next start obtains a new generation before displaying it.
+      if (state.data !== null || !state.loading || state.error) {
+        publish({ data: null, loading: true, error: false });
+      }
+    },
     refresh,
   };
 }

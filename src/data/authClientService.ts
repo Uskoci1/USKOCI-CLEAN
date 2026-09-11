@@ -24,7 +24,10 @@ export const authClientService: AuthClientPort = {
   async signUp({ email, password, firstName, lastName, city }) {
     const { data, error } = await supabaseKlijent().auth.signUp({
       email, password,
-      options: { data: { first_name: firstName, last_name: lastName, city } },
+      // The existing signup trigger reads full_name. Keep the split metadata
+      // as well; neither credentials nor historical profile rows are rewritten.
+      options: { data: { first_name: firstName, last_name: lastName,
+        full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), city } },
     });
     if (error) throw error;
     return { hasSession: !!data.session };

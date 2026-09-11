@@ -5,6 +5,7 @@ Reuses PR59 physical input/visibility helpers, without unrelated old journeys.
 """
 import ast
 from datetime import datetime
+from decimal import Decimal
 import json
 import math
 import os
@@ -464,6 +465,128 @@ def full_map_surface(density, attempts=12):
     raise AssertionError('Full map frame did not become stable before physical input')
 
 
+def native_pin_coordinates(label):
+    # This normal native accessibility status is rendered from the actual SDK
+    # selection. An Android annotation child bitmap is not an accessibility node.
+    match = re.fullmatch(r'Predložena tačka na mapi\. Geografska širina (-?\d{1,2}\.\d{6}); geografska dužina (-?\d{1,3}\.\d{6})\.', label)
+    assert match, 'Expected one complete precise native coordinate status'
+    point = {'latitudeE6': int(Decimal(match[1]) * 1_000_000), 'longitudeE6': int(Decimal(match[2]) * 1_000_000)}
+    assert abs(point['latitudeE6']) <= 90_000_000 and abs(point['longitudeE6']) <= 180_000_000, 'Actual native coordinates must be globally valid'
+    return point
+
+
+def inside_novi_sad(point):
+    return 45_200_000 < point['latitudeE6'] < 45_300_000 and 19_750_000 < point['longitudeE6'] < 19_900_000
+
+
+def projected_native_point(point):
+    return (point['longitudeE6'] / 1e6 / 360,
+            -math.asinh(math.tan(math.radians(point['latitudeE6'] / 1e6))) / (2 * math.pi))
+
+
+def native_region_distance(point):
+    target = {'latitudeE6': min(45_295_000,max(45_205_000,point['latitudeE6'])),
+              'longitudeE6': min(19_895_000,max(19_755_000,point['longitudeE6']))}
+    destination = projected_native_point(target)
+    return math.dist(projected_native_point(point),destination), destination
+
+
+def refine_native_pin(density, point, node):
+    # Zoom1 gives only ~0.134 degrees per physical px at this device density.
+    # Its first touch is navigation, not an exact point ready for confirmation.
+    # Admit only its bounded quantization error, then use actual zoom15 state.
+    expected = projected_native_point({'latitudeE6':45_250_000,'longitudeE6':19_835_000})
+    initial = projected_native_point(point)
+    assert max(abs(a-b) for a,b in zip(initial,expected)) * 1024 * density <= 2, 'Initial SDK point is inconsistent with the neutral overview touch'
+    world = 512 * (2 ** 15) * density  # Actual centered camera status binds zoom15.
+    for attempt in range(12):
+        if inside_novi_sad(point):
+            return point, node
+        current = projected_native_point(point)
+        distance, destination = native_region_distance(point)
+        bounds = parse_bounds(node.attrib['bounds'])
+        left, top, right, bottom = bounds
+        center = ((left+right)/2, (top+bottom)/2)
+        # A physical touch inside the observed map moves the selection; the
+        # actual SDK supplies the next coordinates and camera idle receipt.
+        x = round(min(right-(right-left)*.1,max(left+(right-left)*.1,center[0]+(destination[0]-current[0])*world)))
+        y = round(min(bottom-(bottom-top)*.1,max(top+(bottom-top)*.1,center[1]+(destination[1]-current[1])*world)))
+        assert left < x < right and top < y < bottom
+        adb('shell','input','tap',str(x),str(y))
+        next_point, next_node = observed_native_pin(density,different_from=point)
+        assert native_region_distance(next_point)[0] < distance, 'Physical correction did not advance toward the same interior box'
+        point, node = next_point, next_node
+        print(f'CHECKPOINT NATIVE_MAP_CORRECTION step={attempt+1}',flush=True)
+    assert inside_novi_sad(point), 'Bounded physical corrections did not reach Novi Sad'
+    return point, node
+
+
+def observed_native_pin(density, *, different_from=None, attempts=12):
+    previous = None
+    for _ in range(attempts):
+        root, parent, node = full_map_surface(density)
+        statuses = [n for n in root.iter() if n.attrib.get('content-desc', '').startswith(('Predložena tačka na mapi', 'Približna tačka na mapi'))]
+        assert len(statuses) <= 1, 'Ambiguous native selected coordinate status'
+        if not statuses:
+            previous = None
+            continue
+        status = statuses[0]
+        point = native_pin_coordinates(status.attrib['content-desc'])
+        idle = [n for n in root.iter() if matches(n, text='Mapa je centrirana na izabranu tačku.')]
+        assert len(idle) <= 1, 'Ambiguous native camera status'
+        if point == different_from or not idle:
+            previous = None
+            continue
+        if not all(visible_node(n, parent, *screen_size()) for n in (status, idle[0])):
+            # The form and the camera are different scroll surfaces. Reveal the
+            # observed status via the outer form gutter, then recheck full map.
+            seek('Mesto Zadatka', text='Mapa je centrirana na izabranu tačku.')
+            previous = None
+            continue
+        signature = (point['latitudeE6'], point['longitudeE6'], parse_bounds(node.attrib['bounds']))
+        if signature == previous:
+            return point, node
+        previous = signature
+    raise AssertionError('Actual precise point and native centered camera did not become stable')
+
+
+def drag_native_marker(scale, before):
+    """Drag the actual native overlay hit target, then read native coordinates."""
+    previous = None
+    for _ in range(12):
+        root, parent, map_node = full_map_surface(scale)
+        markers = [n for n in root.iter() if matches(n, desc='Oznaka izabrane tačke na mapi')]
+        assert len(markers) <= 1, 'Ambiguous native marker hit target'
+        status = [n for n in root.iter() if n.attrib.get('content-desc', '').startswith('Predložena tačka na mapi.')]
+        if len(markers) != 1 or len(status) != 1 or not visible_node(markers[0], parent, *screen_size()):
+            continue
+        marker, bounds = markers[0], parse_bounds(map_node.attrib['bounds'])
+        hit = parse_bounds(marker.attrib['bounds'])
+        if not inside(hit, bounds) or abs(hit[2] - hit[0] - 44 * scale) > 2 or abs(hit[3] - hit[1] - 48 * scale) > 2:
+            continue
+        if native_pin_coordinates(status[0].attrib['content-desc']) != before:
+            raise AssertionError('Native selected point changed before marker drag')
+        if not any(matches(n, text='Mapa je centrirana na izabranu tačku.') and visible_node(n, parent, *screen_size()) for n in root.iter()):
+            continue
+        current = (hit, bounds)
+        if current == previous:
+            break
+        previous = current
+    else:
+        raise AssertionError('Actual full native marker hit target did not become stable')
+    x, y = (hit[0] + hit[2]) // 2, (hit[1] + hit[3]) // 2
+    # Half the observed marker width is a short real drag toward the interior.
+    # No geographic value is supplied to the app: the SDK determines the result.
+    dx = (hit[2] - hit[0]) // 2 * (1 if before['longitudeE6'] < 19_825_000 else -1)
+    assert bounds[0] < x + dx < bounds[2] and bounds[1] < y < bounds[3]
+    adb('shell', 'input', 'touchscreen', 'swipe', str(x), str(y), str(x + dx), str(y), '600')
+    point, map_node = observed_native_pin(scale, different_from=before)
+    assert inside_novi_sad(point), 'Actual dragged point must remain in Novi Sad'
+    capture('MARKETPLACE_pin_start_dragged', 'Mesto Zadatka')
+    print('CHECKPOINT NATIVE_MARKER_DRAG_CONFIRMED', flush=True)
+    return point, map_node
+
+
 def physical_manual_point(title, *, offset=False):
     anchor = 'Mesto Zadatka'
     density = adb('shell', 'wm', 'density').stdout
@@ -471,7 +594,7 @@ def physical_manual_point(title, *, offset=False):
     assert values, 'Actual Android display density required'
     scale = int(values[-1]) / 160
     root, parent, node = full_map_surface(scale)
-    assert not any(matches(n, desc='Predložena tačka na mapi') for n in root.iter()), 'New slot must start without a selected pin'
+    assert not any(n.attrib.get('content-desc', '').startswith(('Predložena tačka na mapi', 'Približna tačka na mapi')) for n in root.iter()), 'New slot must start without a selected pin'
     # Readiness is an observed native state, never a fixed sleep or SDK call.
     deadline = time.monotonic() + 25
     while any(matches(n, desc='Učitavanje mape') for n in root.iter()) and time.monotonic() < deadline:
@@ -479,37 +602,59 @@ def physical_manual_point(title, *, offset=False):
     assert not any(matches(n, desc='Učitavanje mape') or matches(n, text='Mapa nije učitana.') for n in root.iter())
     x, y = initial_world_touch(parse_bounds(node.attrib['bounds']), scale)
     adb('shell', 'input', 'tap', str(x), str(y))
-    wait_visible(desc='Predložena tačka na mapi', timeout=30)
+    point, node = observed_native_pin(scale)
+    point, node = refine_native_pin(scale, point, node)
+    assert inside_novi_sad(point), 'Actual final point must be in Novi Sad before marker gesture'
+    if not offset:
+        point, node = drag_native_marker(scale, point)
     if offset:
         # A fresh end slot initially shares the same overview. After the actual
         # selected-pin camera jump, physically choose a distinct nearby stop.
-        previous = None
-        for _ in range(8):
-            root, parent, node = full_map_surface(scale)
-            markers = [n for n in root.iter() if matches(n, desc='Predložena tačka na mapi')]
-            assert len(markers) == 1
-            bounds = parse_bounds(node.attrib['bounds']); marker = parse_bounds(markers[0].attrib['bounds'])
-            state = (bounds, marker)
-            if state == previous and abs((marker[0] + marker[2]) / 2 - (bounds[0] + bounds[2]) / 2) < 12 and abs(marker[3] - (bounds[1] + bounds[3]) / 2) < 18:
-                x, y = (bounds[0] + bounds[2]) // 2 + 60, (bounds[1] + bounds[3]) // 2 + 50
-                adb('shell', 'input', 'tap', str(x), str(y)); break
-            previous = state
-        else:
-            raise AssertionError('Observed pin camera did not settle at selected point')
+        bounds = parse_bounds(node.attrib['bounds'])
+        x, y = (bounds[0] + bounds[2]) // 2 + 60, (bounds[1] + bounds[3]) // 2 + 50
+        assert bounds[0] < x < bounds[2] and bounds[1] < y < bounds[3]
+        adb('shell', 'input', 'tap', str(x), str(y))
+        point, node = observed_native_pin(scale, different_from=point)
+    assert inside_novi_sad(point), 'Actual final point must be in Novi Sad before confirmation'
+    captured, captured_parent = capture(f'MARKETPLACE_pin_{"end" if offset else "start"}_proposed', anchor)
+    captured_status = [n for n in captured.iter() if n.attrib.get('content-desc', '').startswith('Predložena tačka na mapi')]
+    assert len(captured_status) == 1 and visible_node(captured_status[0], captured_parent, *screen_size())
+    assert native_pin_coordinates(captured_status[0].attrib['content-desc']) == point, 'Captured native coordinates must match the point being confirmed'
+    assert any(matches(n, text='Mapa je centrirana na izabranu tačku.') and visible_node(n, captured_parent, *screen_size()) for n in captured.iter())
     root, parent, button = seek(anchor, desc=f'Potvrdi tačku: {title}', enabled=True)
     tap_node(button, parent, hold_ms=120)
     seek(anchor, text='Tačka je potvrđena u ovom obrascu.')
     capture(f'MARKETPLACE_pin_{"end" if offset else "start"}_confirmed', anchor)
+    return point
+
+
+def assert_saved_native_points(state, observed_start, observed_end):
+    assert observed_start != observed_end, 'Physical route stops must be distinct'
+    resolved = [f for f in state['facts'] if f['fact_key'] == 'need.resolved_location' and f['superseded_at'] is None]
+    assert len(resolved) == 1 and resolved[0]['status'] == 'CONFIRMED' and resolved[0]['source'] == 'EXPLICIT_USER_ANSWER'
+    assert [p['slot'] for p in resolved[0]['fact_value']['points']] == ['start', 'end']
+    for point, observed in zip(resolved[0]['fact_value']['points'], (observed_start, observed_end)):
+        assert point['origin'] == {'kind': 'MANUAL_PIN'}
+        assert 45_200_000 < point['latitudeE6'] < 45_300_000 and 19_750_000 < point['longitudeE6'] < 19_900_000
+        assert {key: point[key] for key in ('latitudeE6', 'longitudeE6')} == observed, 'Saved point must equal the actual native selected coordinates'
+
+
+def select_native_destination():
+    # Android appends LocationChoice's current accessibilityValue to its label.
+    # Bind the confirmed start, so clipped selector bounds guide the real scroll.
+    root, parent, node = seek('Mesto Zadatka', desc='Tačka koju uređujete, Polazište · potvrđeno', direction='up', enabled=True)
+    tap_node(node, parent, hold_ms=120)
+    tap(desc='Odredište')
+    seek('Mesto Zadatka', text='Odredište na mapi', enabled=True)
 
 
 def physical_location_review():
     press_in_review('Mesto Zadatka', direction='up')
     wait_visible(text='Mesto Zadatka')
-    physical_manual_point('Polazište')
-    root, parent, node = seek('Mesto Zadatka', desc='Tačka koju uređujete', direction='up', enabled=True)
-    tap_node(node, parent, hold_ms=120)
-    tap(desc='Odredište')
-    physical_manual_point('Odredište', offset=True)
+    observed_start = physical_manual_point('Polazište')
+    select_native_destination()
+    observed_end = physical_manual_point('Odredište', offset=True)
+    assert observed_start != observed_end, 'Physical route stops must be distinct'
     root, parent, checkbox = seek('Mesto Zadatka', desc='Potvrđujem unetu lokaciju', enabled=True)
     assert checkbox.attrib.get('checked') != 'true'
     tap_node(checkbox, parent, hold_ms=120)
@@ -517,12 +662,7 @@ def physical_location_review():
     tap_node(button, parent, hold_ms=120)
     wait_visible(text='Lokacija je sačuvana u pregledu Zadatka.', timeout=60)
     state = fixture_command('observe', 'MANUAL_POINTS_CONFIRMED')
-    resolved = [f for f in state['facts'] if f['fact_key'] == 'need.resolved_location' and f['superseded_at'] is None]
-    assert len(resolved) == 1 and resolved[0]['status'] == 'CONFIRMED' and resolved[0]['source'] == 'EXPLICIT_USER_ANSWER'
-    assert [p['slot'] for p in resolved[0]['fact_value']['points']] == ['start', 'end']
-    for point in resolved[0]['fact_value']['points']:
-        assert point['origin'] == {'kind': 'MANUAL_PIN'}
-        assert 45_200_000 < point['latitudeE6'] < 45_300_000 and 19_750_000 < point['longitudeE6'] < 19_900_000
+    assert_saved_native_points(state, observed_start, observed_end)
     capture('MARKETPLACE_location_saved', 'Mesto Zadatka')
     tap(desc='Vrati se na pregled')
     wait_confirmed('need.resolved_location', 12)
