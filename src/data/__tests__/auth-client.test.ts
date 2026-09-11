@@ -29,16 +29,27 @@ describe('central Auth client boundary', () => {
 
   it.each([null, { access_token: 'never-projected', user: { id: 'account-a' } }])(
     'preserves signup metadata and projects only the presence of its session', async session => {
-      mockAuth.signUp.mockResolvedValue({ data: { session, user: { id: 'account-a' } }, error: null });
+      mockAuth.signUp.mockResolvedValue({ data: { session, user: { id: 'account-a' } } }, error: null });
       const result = await authClientService.signUp({ email: 'ana@example.test', password: 'password',
         firstName: 'Ana', lastName: 'Petrović', city: 'Novi Sad' });
       expect(mockAuth.signUp.mock.calls).toEqual([[{
         email: 'ana@example.test', password: 'password',
-        options: { data: { first_name: 'Ana', last_name: 'Petrović', city: 'Novi Sad' } },
+        options: { data: { first_name: 'Ana', last_name: 'Petrović', full_name: 'Ana Petrović', city: 'Novi Sad' } },
       }]]);
       expect(result).toEqual({ hasSession: !!session });
     },
   );
+
+  it('supplies the trigger display name from explicit Unicode names, never from email', async () => {
+    mockAuth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    await authClientService.signUp({ email: 'private-prefix@example.test', password: '  untouched  ',
+      firstName: '  Đorđe ', lastName: ' Ćurčić  ', city: 'Žabalj' });
+    expect(mockAuth.signUp.mock.calls[0][0]).toEqual({
+      email: 'private-prefix@example.test', password: '  untouched  ', options: { data: {
+        first_name: '  Đorđe ', last_name: ' Ćurčić  ', full_name: 'Đorđe Ćurčić', city: 'Žabalj',
+      } },
+    });
+  });
 
   it('keeps existing phone OTP options and explicitly verifies an sms token', async () => {
     await authClientService.sendPhoneOtp({ phone: '+381601234567' });
