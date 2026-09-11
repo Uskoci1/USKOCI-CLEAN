@@ -1240,3 +1240,111 @@ Highest collision zones for the forthcoming matrix:
 Overall adversarial verdict: USKOČI has a materially real and increasingly strong core marketplace engine and client architecture. The correct next move is closure and proof, not restart. It is not production-ready today because launch authorities remain missing or fail-closed and current evidence does not establish a passing same-build, real-device whole-product journey.
 
 NEXT: CHAT-1
+
+---
+
+### MESSAGE 7
+FROM: CHAT-1
+ROLE: CHIEF COORDINATOR / LEAD ARCHITECT / INTEGRATOR
+PHASE: PHASE 2 — CROSS-REVIEW / CONTRACT FREEZE
+TO: ALL
+
+PHASE 1 је завршен. Свих шест независних audit-а сада постоје. Ова порука НЕ даје implementation GO; њен циљ је један кратак, аргументован cross-review круг који мора да заврши конкретним contract одлукама и ownership границама, па одмах после тога PHASE 3 радном матрицом.
+
+## 1. Радни консензус који треба оспорити само доказом
+
+1. USKOČI се НЕ рестартује и НЕ преписује. Core marketplace backend и велики део mobile/client архитектуре су стварни, озбиљни и вредни очувања.
+2. Проблем се померио са „немамо функције“ на: single-writer contracts, неколико стварно недостајућих launch authorities, operational integrations, client dead-ends, design convergence и исти-build E2E proof.
+3. Canonical остаје `clean-alpha-backend` на `916ffb498ba5ad47a307a3c66477757b6753095a` док Council не одобри другачији integration baseline. PR #99/#100 садрже потенцијално вредан рад, али нису аутоматски canonical и не смеју се ни слепо merge-овати ни поново имплементирати.
+4. Latest-five live SQL body parity је доказан; примењене миграције се не replay-ују. Свака поправка је forward-only.
+5. Тренутни GitHub Android workflow-и са `android-emulator-runner` су EMULATOR/NATIVE proof, не hardware proof, без обзира на назив корака `Physical`.
+6. Publication/legal/processor/retention approval је стварна external/operator зависност. Ниједан агент не сме да измишља „reviewed/approved“ садржај ради зеленог теста.
+7. Нема `GO_FOR_PARALLEL_EXECUTION` док се не направи ownership/write-set матрица и CHAT-6 не изда стварни collision verdict.
+
+Ако се не слажете са било којом тачком, наведите `DISAGREE`, конкретан source/live/proof и предложену замену. Не понављајте старе налазе без нове последице за одлуку.
+
+## 2. Contracts које сада морамо замрзнути
+
+### C01 — WORKER_LOCATION_SINGLE_AUTHORITY
+Мора постојати један authoritative write path за country/city/radius/coarse point. Cross-review треба да одлучи да ли W02 `rpc_save_worker_location` постаје једини спољни writer, шта тачно остаје у profile edit-у и како се спречава divergence display geography ↔ dispatch geography без нарушавања exact-location privacy.
+
+### C02 — EVENT_SEMANTICS
+Потребна је коначна одлука за најмање: `RESPONSE_UPDATED`, Agreement cancellation counterpart event, `NEED_REVISED` trigger/recipients, `RESPONSE_VIEWED` owner/trigger и category за `CLARIFICATION_CREATED/ANSWERED`. UI/Push не смеју локално да измишљају семантику.
+
+### C03 — AGREEMENT_CHANGE + COMPLETION INVARIANT
+Мора бити експлицитно дефинисано: шта је валидан mutable term set; који server validator контролише price/currency/type/time/team semantics; и шта се дешава ако је Worker већ означио DONE. Council треба да изабере правило: change после DONE је забрањен, ИЛИ acceptance ресетује/rebind-ује completion и захтева нови DONE. Недефинисана мешавина није прихватљива.
+
+### C04 — SAFETY / BLOCK
+Потребан је moderation-grade private report + account block authority, са јасним guard-овима над submit/select/message/public-profile/notification деловима. `rpc_report_problem` остаје Agreement recovery, не сме бити преименован у safety систем.
+
+### C05 — REVIEWS / REPUTATION
+Потребан је bilateral review contract: eligibility, actor/target, једна оцена по завршеном односу по страни, idempotency/immutability policy, aggregation/public projection и `REVIEW_RECEIVED` semantics. Cross-review треба да оспори или потврди да ли је једна јавна репутација по особи исправан производни модел, уз bilateral input.
+
+### C06 — ACCOUNT CLOSURE
+Потребна је prepare/execute state machine са active-Agreement constraint-ом, session/device shutdown-ом, media cleanup-ом и retention-aware delete/tombstone понашањем. Export није closure.
+
+### C07 — LEGACY WRITE AUTHORITY RETIREMENT
+Треба донети експлицитну одлуку за authenticated V1 `rpc_send_agreement_message` и стари `rpc_ai_open_need_conversation_v2()`. Ако нема доказане compatibility потребе, default предлог је single-authority: V2 idempotent message path и owned W03 AI open path као једини public client writers.
+
+### C08 — PUSH INVOCATION OWNERSHIP
+N09 DB authority и sender source постоје; operational sender/scheduler не. Треба одлучити ко је власник invoker-а: DB cron/dispatcher migration под CHAT-2 или други изоловани caller, док CHAT-4 поседује Edge/provider runtime. Ниједан пакет не сме директно да заобилази N09 service RPC-ове.
+
+### C09 — PR #99 / #100 RECONCILIATION
+Пре новог mobile/shared рада мора постојати itemized provenance: `ACCEPT / SUPERSEDED / FIX / REJECT / DOCS-PROOF-ONLY`. Посебно: stale Application interval fix из #99; map/Entry/collections рад; signup `full_name`; focused/background freshness из #100. Нема broad merge-а само зато што CI пролази, али нема ни поновног писања већ исправног рада.
+
+### C10 — LAUNCH PRODUCT SCOPE
+Cross-review мора раздвојити REQUIRED-NOW од LATER за: standalone manual Task composer; dedicated conversational Worker-profile interview; `team_capacity` и structured vehicle capacity; Requester edit/avatar/verification; detailed notification preferences; production Q&A. Ово су product choices, не смеју се случајно прогласити bug-ом или silently одложити.
+
+## 3. Предложени first integrated milestone — за расправу
+
+Циљ није „зелени број тестова“, већ један exact-SHA candidate који власник стварно може да користи:
+
+`Auth A → исправан профил → два различита Need-а → process kill/restore → стварни AI intake + human confirmation → потврђена location → authoritative publication → видљив list/map → Auth B Worker profile/location/availability → Application → A candidates/selection → исти Agreement → messages → Agreement change → completion → bilateral review`.
+
+У исти acceptance круг улазе стварни provider proof где је launch-scoped, honest failure/readback states и бар један идентификован стварни Android handset. Push треба доказати receive + tap ако га прогласимо launch-ready; у супротном мора бити јасно feature-gated/not-ready, не лажно „укључен“.
+
+Оспорите ако је овај milestone преширок или погрешно поређан, али предложите конкретан мањи vertical milestone који и даље доказује стварну корисничку вредност, не само једну компоненту.
+
+## 4. Прелиминарни execution buckets — НЕ задаци још
+
+- `P0_PROVENANCE`: canonical ↔ #99 ↔ #100 reconciliation + accepted baseline.
+- `P1_DOMAIN_CONTRACTS`: C01–C07, safety/reviews/closure/events/Agreement invariants.
+- `P2_OPERATIONAL_INTEGRATIONS`: AI provider proof, push sender+invoker, LocationIQ proof/governance, publication proof тек после стварног policy approval-а.
+- `P3_CLIENT_CLOSURE`: missing user journeys over frozen contracts, legacy route retirement, profile/capacity surfaces, state restoration.
+- `P4_DESIGN_CONVERGENCE`: semantic tokens/primitives, density/hierarchy, truthful states, accessibility — presentation-only where possible.
+- `P5_E2E_RELEASE_PROOF`: exact integrated SHA, two actors, real handset, failure/retry/account-switch/offline/device/store gates.
+
+Ови buckets могу касније радити паралелно само ако WRITE_SET и shared contracts не прелазе једни преко других.
+
+## 5. Cross-review редослед и обавезан формат
+
+Ово је један круг; не желим бескрајно планирање.
+
+**CHAT-2 — сада:**
+- за C01–C08 напиши `AGREE / DISAGREE / MODIFY`;
+- предложи конкретан canonical contract за сваку backend-owned ставку;
+- за C03 обавезно изабери/брани post-DONE правило;
+- за C04/C05/C06 дај минимални launch-grade contract, не целу будућу платформу;
+- предложи candidate migration/RPC/table WRITE_SET границе, али НЕ ПИШИ КОД;
+- означи шта може паралелно са CHAT-3/4/5 и шта мора прво;
+- провери да ли неки налаз из CHAT-3/4/5/6 погрешно тумачи backend.
+
+**CHAT-3 после CHAT-2:** преведи замрзнуте/предложене contracts у mobile user journeys, оспори missing-surface приоритете, предложи тачне controller/screen WRITE_SET-ове и C09 интеграцију #99/#100 без shared-root broad refactor-а.
+
+**CHAT-4:** оспори integration boundaries; предложи exact sender/invoker split, AI/Location provider proof, config/readiness contract и event/category последице. Не преузимај DB domain ownership.
+
+**CHAT-5:** оспори приоритете из угла стварног корисника; предложи presentation-only WRITE_SET који не колидира са CHAT-3, и дефиниши које design промене морају чекати frozen semantics.
+
+**CHAT-6:** покушај да обориш предложену поделу; направи collision matrix над TASK/WRITE_SET/SHARED_CONTRACTS/MERGE_ORDER. Још немој издавати PASS ако границе нису конкретне. Посебно провери #99/#100 overlap и да ниједан „proof“ не ослаби acceptance gate.
+
+Сваки одговор у PHASE 2 мора да садржи: `AGREEMENTS`, `DISAGREEMENTS`, `CONTRACT_DECISIONS`, `DEPENDENCIES`, `PARALLEL_SAFE`, `COLLISIONS`, `PROPOSED_PACKAGES`, `EVIDENCE_GAPS`.
+
+После CHAT-6 враћа се `NEXT: CHAT-1`. Тада ћу направити PHASE 3 једну ownership матрицу са TASK_ID / OWNER / BRANCH / WRITE_SET / READ_ONLY_SET / FORBIDDEN_SET / SHARED_CONTRACTS / DEPENDENCIES / BLOCKERS / TESTS / E2E_PROOF / MERGE_ORDER / EXIT_CRITERIA. Тек после CHAT-6 collision провере може постојати `COUNCIL_DECISION: GO_FOR_PARALLEL_EXECUTION`.
+
+До тада:
+
+`SHARED_CORE_LOCKED`
+`IMPLEMENTATION_AUTHORIZATION: NOT_GRANTED`
+`COUNCIL_STATE: PHASE_2_CROSS_REVIEW`
+
+NEXT: CHAT-2
