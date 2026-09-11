@@ -1,3 +1,6 @@
+jest.mock('../../store/sesija', () => ({ sesijaSada: jest.fn() }));
+import { sesijaSada } from '../../store/sesija';
+const session = sesijaSada as jest.Mock;
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
   const mockFrom = jest.fn();
@@ -29,7 +32,7 @@ function configure(result: unknown = {
   return { eq, select, maybeSingle };
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => { jest.clearAllMocks(); session.mockReturnValue({ user: { id: 'account-a' }, accountRevision: 1 }); });
 
 describe('own profile identity boundary', () => {
   it('reads only the authenticated account and intended profile kind, excluding trust/private fields', async () => {
@@ -100,4 +103,29 @@ describe('own profile identity boundary', () => {
     await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
     expect(model.snapshot().data).toBeNull();
   });
+});
+
+describe('own-profile service generation fencing independent of the screen', () => {
+  it.each(['account-b', 'account-a'])('rejects a late response after an account transition ending in %s', async accountId => {
+    const { maybeSingle } = configure(); let resolve!: (x: unknown) => void;
+    maybeSingle.mockImplementation(() => new Promise(done => { resolve = done; }));
+    const request = ownProfileClientService.read('account-a', 'narucilac');
+    await Promise.resolve();
+    session.mockReturnValue({ user: { id: accountId }, accountRevision: 3 });
+    resolve({ data: { id: 'profile-a', account_id: 'account-a', kind: 'REQUESTER', display_name: 'PRIVATE OLD NAME', city: 'OLD CITY' }, error: null });
+    await expect(request).rejects.toThrow('PROFILE_ACCOUNT_CHANGED');
+  });
+  it('does not query a private profile when getUser was in flight during A to B to A', async () => {
+    configure(); let resolve!: (x: unknown) => void;
+    mockGetUser.mockImplementation(() => new Promise(done => { resolve = done; }));
+    const request = ownProfileClientService.read('account-a', 'narucilac');
+    session.mockReturnValue({ user: { id: 'account-a' }, accountRevision: 3 });
+    resolve({ data: { user: { id: 'account-a' } }, error: null });
+    await expect(request).rejects.toThrow('PROFILE_ACCOUNT_CHANGED'); expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+it('never leaks rejected provider/database exceptions from the own identity service', async () => {
+  configure(); mockGetUser.mockRejectedValue(new Error('RAW PRIVATE TOKEN'));
+  await expect(ownProfileClientService.read('account-a', 'narucilac')).rejects.toThrow('OWN_PROFILE_READ_FAILED');
 });
