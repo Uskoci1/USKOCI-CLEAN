@@ -28,3 +28,17 @@ supabase/functions/uskoci-data-export-download/index.ts text eol=lf
 src/contracts/needFactsV2.ts text eol=lf
 docs/implementation/evidence/ai-edge-context-20260907/** -text -whitespace
 docs/implementation/evidence/task-detail-recovery-20260907/retained-tab-fix/** -text whitespace=cr-at-eol
+
+# Preserve imported owner/design authority bytes and their recorded SHA256 values.
+docs/authority/sources/** -text whitespace=cr-at-eol
+docs/authority/history/** -text whitespace=cr-at-eol
+# Keep authored handoff hashes stable across Windows and other checkouts.
+.gitattributes text eol=lf
+AGENTS.md text eol=lf
+HANDOFF.md text eol=lf
+docs/authority/AUTHORITY_INDEX.md text eol=lf
+docs/authority/AUTHORITY_MANIFEST.json text eol=lf
+docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md text eol=lf
+docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md text eol=lf
+docs/implementation/IMPLEMENTATION_CONTINUITY.md text eol=lf
+docs/implementation/NEXT_AI_HANDOFF* text eol=lf

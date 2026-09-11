@@ -1,3 +1,13 @@
+## CURRENT SAFE HANDOFF — 2026-09-11T05:17:57.138Z
+
+**Owner-requested stop.** Canonical `916ffb498ba5ad47a307a3c66477757b6753095a` / `clean-alpha-backend`; freshLIVE108/head`20260911031713_clean_dispatch_need_lock_order`. Canonical/PR99source108pending0; remoteM05source109 has one unmerged/unappliedcandidate. PR99head`58e842e883db71f9118efc474c5011f3b261824c`; savedM05/M06`60a3ce68e52cbf461639f392db877d93ba0405c7`; savedforeground/channel`cba0a2645fdb31d9f19414ca7afe6a6bc93f1e0f`. No merge/live write was done forhandoff.
+
+Read [NEXT_AI_HANDOFF_20260911_0504.md](NEXT_AI_HANDOFF_20260911_0504.md) and [NEXT_AI_HANDOFF_MANIFEST.json](NEXT_AI_HANDOFF_MANIFEST.json), then [AUTHORITY_INDEX.md](../authority/AUTHORITY_INDEX.md). These are the latestphysicalsnapshot/cursor; the authoritymap preserves full originalsources andcurrentownerprecedence. Current native run34562264364 is FAIL: marker visible, accessibility hit target absent, no drag sent. N05run34562970333 ended in a30-minute timeout after1 observed group; no final report or admitted lock graphs, SQL109 not admitted. Read original artifacts; do not redispatch during SAFE STOP. Entryoriginalsequencehasalreadybeenreviewed; old6f/prefix-pendingcursorbelowissuperseded.
+
+**All checkpoints below are HISTORICAL. Their “Current”, “Next”, oldHEAD/livecounts, 4500ms/Figma/pixelproofandpendingclaims apply only at their originaldates and do not override this topcheckpoint. Do not execute their instructions as the nextcursor.** Theiroriginaltextisretainedtoavoidlosinghistory.
+
+---
+
 ## Current continuation — 2026-09-11 / canonical PR97 and LIVE108
 
 PR97 is merged at `916ffb498ba5ad47a307a3c66477757b6753095a`, with the same tree as accepted CI. **Source108 / LIVE108 / pending SQL0**. SQL106,107,108 were applied once in order as `20260910235154_clean_w03_owned_ai_intake_authority`, `20260911031301_clean_n09_expo_push_transport` and `20260911031713_clean_dispatch_need_lock_order`. Their exact-source postflights passed38,44,51 checks; the paired107 POST/108 PRE snapshot passed152 comparisons. Historical migration records, permitted metadata/grant boundaries and business/policy/Storage projections are preserved. The first107 PRE remains a recorded preparation failure, corrected before any107 apply. [Compact evidence](evidence/live108-20260911/verification.json).
