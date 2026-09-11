@@ -1,0 +1,83 @@
+name: Owner completion isolated source verifier
+on:
+  push:
+    branches: [work/owner-completion-runner-20260911]
+    paths:
+      - .owner-completion/request.json
+      - scripts/owner_completion_candidate.py
+      - .github/workflows/owner-completion-isolated.yml
+permissions:
+  contents: read
+concurrency:
+  group: owner-completion-isolated-verifier
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: control
+          persist-credentials: false
+      - name: Validate one explicit source request
+        id: request
+        run: python control/scripts/owner_completion_candidate.py request
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.request.outputs.base }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: candidate/package-lock.json
+      - name: Apply hash-bound source-only patch
+        working-directory: candidate
+        run: python ../control/scripts/owner_completion_candidate.py apply
+      - name: Install unchanged locked dependencies
+        working-directory: candidate
+        run: npm ci
+      - name: Retain isolated dependencies for offline verification
+        working-directory: candidate
+        run: |
+          mkdir -p "$RUNNER_TEMP/owner-completion-deps"
+          tar --zstd --exclude='*.ttf' --exclude='*.otf' --exclude='*.woff' --exclude='*.woff2' -cf "$RUNNER_TEMP/owner-completion-deps/node_modules.tar.zst" node_modules
+          cp "$(command -v node)" "$RUNNER_TEMP/owner-completion-deps/node"
+          cp package-lock.json "$RUNNER_TEMP/owner-completion-deps/package-lock.json"
+          (cd "$RUNNER_TEMP/owner-completion-deps" && sha256sum node_modules.tar.zst node package-lock.json > SHA256SUMS)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: owner-completion-offline-deps-${{ github.run_id }}
+          path: ${{ runner.temp }}/owner-completion-deps/
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 6
+      - name: TypeScript contracts
+        working-directory: candidate
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/owner-completion-evidence"
+          npx tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/owner-completion-evidence/typescript.log"
+      - name: Entire Jest regression suite
+        working-directory: candidate
+        run: |
+          set -o pipefail
+          npx jest --runInBand --silent --json --outputFile="$RUNNER_TEMP/owner-completion-evidence/jest-results.json" 2>&1 | tee "$RUNNER_TEMP/owner-completion-evidence/jest.log"
+      - name: Create tested candidate object without moving any branch
+        working-directory: candidate
+        env:
+          CANDIDATE_GITHUB_TOKEN: ${{ github.token }}
+        run: python ../control/scripts/owner_completion_candidate.py publish
+      - name: Retain original verification results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: owner-completion-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/owner-completion-evidence/
+          retention-days: 7
+          if-no-files-found: warn
