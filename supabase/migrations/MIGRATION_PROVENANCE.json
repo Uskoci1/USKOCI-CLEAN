@@ -2135,6 +2135,19 @@
       "raw_md5": "6ebd95b05034179348f23ee2e27e6e9f",
       "raw_sha256": "6f893d96dfc94b2fab38365676f1b8627089fce7903e619dbcdf9438253a647d",
       "raw_bytes": 2474
+    },
+    {
+      "version": "20260911213000",
+      "name": "clean_pre_v3_agreement_replay_guards",
+      "file": "20260911213000_clean_pre_v3_agreement_replay_guards.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied P5 replay-order correction after source114. Old87 metadata describes the historical replay root, not current live108. No activation or permission change.",
+      "raw_md5": "198f5fb00aea90a8342d1c0acd707b27",
+      "raw_sha256": "ca4f3b132e706759515efd75b468a607160b992caa8c0df3fe3f6a68e471c4eb",
+      "raw_bytes": 2668
     }
   ],
   "p2_data_export_requests": {

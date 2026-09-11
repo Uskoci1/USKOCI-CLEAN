@@ -18,3 +18,10 @@ test('real lifecycle controller and service share the bounded native session sub
  assert.equal(c.snapshot().phase,'REJECTED');await c.submit();assert.equal(calls(),0);
  assert.ok(r.sourceHashes['src/data/needLifecycleClientService.ts']);assert.ok(r.sourceHashes['src/data/serverReceipt.ts']);
 });
+
+test('saved Agreement seam loads exact safe mapper and rejects undeclared external writes',async()=>{
+ const {r,calls}=runtime();const changes=r.load('src/data/agreementClientService.ts').agreementChangeService;
+ const result=await changes.withdraw('invalid',{accountId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',accountRevision:1});
+ assert.equal(result.ok,false);assert.equal(calls(),0);assert.ok(r.sourceHashes['src/data/legacyRpcFailure.ts']);
+ assert.ok(r.sourceHashes['src/lib/calendarTime.ts']);
+});
