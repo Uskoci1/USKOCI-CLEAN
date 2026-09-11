@@ -2122,6 +2122,19 @@
       "raw_md5": "50a8695e94f24ec618465c588945c1e1",
       "raw_sha256": "e80b76b2ec10882e066d6f7b4dc5683ba8b5317a4448c0a9045cf06be5cb23f9",
       "raw_bytes": 17678
+    },
+    {
+      "version": "20260911210000",
+      "name": "clean_pre_v3_need_lifecycle_receipt",
+      "file": "20260911210000_clean_pre_v3_need_lifecycle_receipt.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied PRE-V3 P6 readback candidate after source113. Historical87 replay metadata is not current live108. No new terminal writer; no deployment.",
+      "raw_md5": "6ebd95b05034179348f23ee2e27e6e9f",
+      "raw_sha256": "6f893d96dfc94b2fab38365676f1b8627089fce7903e619dbcdf9438253a647d",
+      "raw_bytes": 2474
     }
   ],
   "p2_data_export_requests": {

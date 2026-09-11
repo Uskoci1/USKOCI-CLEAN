@@ -1,4 +1,4 @@
-import type { DraftDeletionReceipt, NeedCancellationReceipt } from '../contracts/needLifecycle';
+import type { DraftDeletionReceipt, NeedCancellationReceipt, NeedLifecycleCommand, NeedLifecycleReadback } from '../contracts/needLifecycle';
 import type { Ishod } from './ports';
 import { failure, positiveInteger, readReceipt, record, sameId, uuid } from './serverReceipt';
 
@@ -13,12 +13,45 @@ const LIFECYCLE_COPY: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
 };
 function invalidInput(needId: string, revision: number, reason: string): Ishod<never> | null {
-  return uuid(needId) && positiveInteger(revision) && typeof reason === 'string' ? null
+  return uuid(needId) && positiveInteger(revision) && typeof reason === 'string' && Array.from(reason).length <= 500 ? null
     : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvorite Zadatak i pregledajte aktuelne podatke.');
 }
 
 /** Revision-bound terminal commands. No defaults may manufacture a server outcome. */
 export const needLifecycleClientService = {
+  /** A missing list item is never a mutation receipt. NOT_CONFIRMED is only this
+   * read's observation; an earlier network-timed-out command may still commit. */
+  async readCommandReceipt(command: NeedLifecycleCommand): Promise<Ishod<NeedLifecycleReadback>> {
+    const invalid = invalidInput(command.needId, command.expectedRevision, command.reason);
+    if (invalid) return invalid;
+    if (command.action !== 'CANCEL' && command.action !== 'DELETE_DRAFT')
+      return failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvorite Zadatak i pregledajte aktuelne podatke.');
+    return readReceipt({
+      rpc: 'rpc_get_need_lifecycle_receipt',
+      args: { p_need_id: command.needId, p_need_revision: command.expectedRevision, p_action: command.action },
+      errors: LIFECYCLE_COPY, fallback: 'NEED_RECEIPT_READ_FAILED', invalid: 'NEED_RECEIPT_INVALID_RESPONSE',
+      decode(raw): NeedLifecycleReadback | null {
+        const data = record(raw);
+        if (!data || data.authoritative !== true || data.action !== command.action) return null;
+        if (data.state === 'NOT_CONFIRMED') return { state: 'NOT_CONFIRMED' };
+        if (data.state !== 'CONFIRMED') return null;
+        const receipt = record(data.receipt);
+        if (!receipt || !sameId(receipt.needId, command.needId) || !positiveInteger(receipt.revision) ||
+          receipt.idempotentReplay !== true) return null;
+        if (command.action === 'DELETE_DRAFT') {
+          if (receipt.deleted !== true || receipt.revision !== command.expectedRevision) return null;
+          return { state: 'CONFIRMED', confirmation: { action: 'DELETE_DRAFT', receipt: {
+            needId: receipt.needId, revision: receipt.revision, deleted: true, idempotentReplay: true,
+          } } };
+        }
+        if (receipt.status !== 'CANCELLED' || receipt.affectedResponses !== 0) return null;
+        return { state: 'CONFIRMED', confirmation: { action: 'CANCEL', receipt: {
+          needId: receipt.needId, revision: receipt.revision, status: 'CANCELLED', affectedResponses: 0, idempotentReplay: true,
+        } } };
+      },
+    });
+  },
+
   async cancelNeed(needId: string, expectedRevision: number, reason = ''): Promise<Ishod<NeedCancellationReceipt>> {
     const invalid = invalidInput(needId, expectedRevision, reason);
     if (invalid) return invalid;
