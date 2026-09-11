@@ -22,7 +22,7 @@ jest.mock('@maplibre/maplibre-react-native', () => ({ Map: 'NativeMap',
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
-    return ['View', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
+    return ['View', 'ActivityIndicator', 'Image'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('../../../Text', () => ({ T: 'T' }));
@@ -34,6 +34,7 @@ const onChoose = jest.fn();
 const initial: ResolvedPinMapProps = { position: null, onChoose, scopeKey: 'account-incarnation:point:revision' };
 const map = () => tree.root.findByType('NativeMap' as React.ElementType);
 const annotation = () => tree.root.findByType('NativeAnnotation' as React.ElementType);
+const markerImage = () => tree.root.findByType('Image' as React.ElementType);
 const tap = (longitude: number, latitude: number) => ({ nativeEvent: { lngLat: [longitude, latitude], point: [1, 1] } });
 const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 async function render(props: Partial<ResolvedPinMapProps> = {}) {
@@ -142,6 +143,7 @@ it('announces real selected coordinates outside the Android bitmap and updates o
   expect(text()).not.toContain('Geografska širina');
   const position = onChoose.mock.calls[0][0];
   await act(async () => tree.update(<ResolvedPinMap {...initial} position={position} />));
+  await act(async () => markerImage().props.onLoad());
   const status = tree.root.findByProps({ accessibilityLabel: 'Predložena tačka na mapi. Geografska širina 45.251234; geografska dužina 19.831234.' });
   expect(status.props.accessible).toBe(true);
   expect(annotation().findAllByProps({ accessibilityRole: 'text' })).toHaveLength(0);
@@ -152,6 +154,7 @@ it('announces real selected coordinates outside the Android bitmap and updates o
 
 it('camera readiness requires the current native center and zoom, then clears on movement', async () => {
   await render({ position: { latitude: 45.25, longitude: 19.83 } }); await ready();
+  await act(async () => markerImage().props.onLoad());
   for (const state of [{ center: [19.83, 45.25], zoom: 1 }, { center: [0, 0], zoom: 15 }, { center: [NaN, 45.25], zoom: 15 }, null]) {
     await act(async () => map().props.onRegionDidChange({ nativeEvent: state }));
     expect(text()).not.toContain('Mapa je centrirana');
@@ -172,6 +175,7 @@ it('coarse accessibility rounds both coordinates and never announces private pre
 it('clears selected-coordinate and idle state on point removal, account switch, blur and unmount', async () => {
   const position = { latitude: 45.25, longitude: 19.83 };
   await render({ position }); await ready(); const oldIdle = map().props.onRegionDidChange;
+  await act(async () => markerImage().props.onLoad());
   await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
   await act(async () => tree.update(<ResolvedPinMap {...initial} />));
   await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
@@ -186,17 +190,56 @@ it('clears selected-coordinate and idle state on point removal, account switch, 
   await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
 });
 
-it('refreshes the supported annotation bitmap after layout and paint without changing its original colors', async () => {
+it('refreshes the draggable annotation only after actual local image load, without a fade or frame guess', async () => {
   await render({ position: { latitude: 45.25, longitude: 19.83 } }); await ready();
-  const marker = annotation().findByProps({ accessible: false });
-  expect(marker.children[0]).toMatchObject({ props: { style: expect.objectContaining({ backgroundColor: '#FF7908' }) } });
-  await act(async () => marker.props.onLayout());
+  const marker = markerImage();
+  expect(marker.props).toMatchObject({ accessible: false, fadeDuration: 0, resizeMode: 'contain', style: { width: 44, height: 48 } });
+  expect(annotation().props.draggable).toBe(true);
+  await act(async () => {
+    map().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } });
+    jest.advanceTimersByTime(500);
+  });
   expect(mockRefresh).not.toHaveBeenCalled();
-  await act(async () => jest.advanceTimersByTime(50));
+  expect(text()).not.toContain('Mapa je centrirana');
+  await act(async () => marker.props.onLoad());
   expect(mockRefresh).toHaveBeenCalledTimes(1);
-  const oldLayout = marker.props.onLayout;
+  expect(text()).toContain('Mapa je centrirana');
+});
+
+it('retains early decoded pixels until map readiness but rejects stale image events after point or scope changes', async () => {
+  await render({ position: { latitude: 45.25, longitude: 19.83 } });
+  const oldImage = markerImage().props;
+  await act(async () => oldImage.onLoad());
+  expect(mockRefresh).not.toHaveBeenCalled();
+  await ready(); expect(mockRefresh).toHaveBeenCalledTimes(1);
+  await act(async () => tree.update(<ResolvedPinMap {...initial} position={{ latitude: 45.26, longitude: 19.84 }} />));
+  await act(async () => { oldImage.onLoad(); oldImage.onError(); });
+  expect(mockRefresh).toHaveBeenCalledTimes(1); expect(text()).not.toContain('Mapa nije učitana');
+  await act(async () => markerImage().props.onLoad());
+  expect(mockRefresh).toHaveBeenCalledTimes(2);
+  const currentImage = markerImage().props;
+  await act(async () => tree.update(<ResolvedPinMap {...initial} position={{ latitude: 45.26, longitude: 19.84 }} disabled />));
+  await act(async () => { currentImage.onLoad(); currentImage.onError(); });
+  expect(mockRefresh).toHaveBeenCalledTimes(2); expect(annotation().props.draggable).toBe(false);
+  await act(async () => markerImage().props.onLoad());
+  expect(mockRefresh).toHaveBeenCalledTimes(3);
+  await act(async () => tree.update(<ResolvedPinMap {...initial} scopeKey="other-account" />));
+  await act(async () => { currentImage.onLoad(); currentImage.onError(); });
+  expect(mockRefresh).toHaveBeenCalledTimes(3); expect(text()).not.toContain('Mapa nije učitana');
   mockFocused = false;
   await act(async () => tree.update(<ResolvedPinMap {...initial} />));
-  await act(async () => { oldLayout(); jest.advanceTimersByTime(50); });
-  expect(mockRefresh).toHaveBeenCalledTimes(1);
+  await act(async () => { oldImage.onLoad(); currentImage.onLoad(); });
+  await act(async () => tree.unmount());
+  await act(async () => { currentImage.onLoad(); currentImage.onError(); });
+  expect(mockRefresh).toHaveBeenCalledTimes(3);
+});
+
+it('fails the map visibly if its local marker cannot load and does not accept late image success as recovery', async () => {
+  await render({ position: { latitude: 45.25, longitude: 19.83 } }); await ready();
+  const marker = markerImage().props;
+  await act(async () => marker.onError());
+  expect(text()).toContain('Mapa nije učitana'); expect(annotation().props.draggable).toBe(false);
+  await act(async () => { marker.onLoad(); map().props.onPress(tap(19.84, 45.26)); });
+  expect(mockRefresh).not.toHaveBeenCalled(); expect(onChoose).not.toHaveBeenCalled();
+  expect(text()).not.toContain('Mapa je centrirana');
 });

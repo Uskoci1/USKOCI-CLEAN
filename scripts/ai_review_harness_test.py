@@ -237,11 +237,64 @@ class NativeAssertions(unittest.TestCase):
         self.assertEqual(journey.native_pin_coordinates(self.pin_status()), {'latitudeE6':45_251_234, 'longitudeE6':19_831_234})
         for label in ('Predložena tačka na mapi', 'Pronađi adresu za ovaj pin',
                       self.pin_status().replace('Predložena', 'Približna'), self.pin_status('45.25'),
-                      self.pin_status('NaN'), self.pin_status('45.2512345'), self.pin_status('0.000000'),
-                      self.pin_status('45.200000'), self.pin_status(longitude='19.900000'),
+                      self.pin_status('NaN'), self.pin_status('45.2512345'), self.pin_status('90.000001'),
+                      self.pin_status(longitude='180.000001'),
                       self.pin_status()+' extra'):
             with self.subTest(label=label), self.assertRaises(AssertionError):
                 journey.native_pin_coordinates(label)
+
+    def test_rough_global_coordinate_is_navigation_only_and_final_novi_sad_limits_remain_strict(self):
+        for latitude,longitude in [('0.000000','0.000000'),('45.200000','19.831234'),('45.251234','19.900000'),('45.277831','19.737721')]:
+            point=journey.native_pin_coordinates(self.pin_status(latitude,longitude))
+            self.assertFalse(journey.inside_novi_sad(point))
+        self.assertTrue(journey.inside_novi_sad(journey.native_pin_coordinates(self.pin_status())))
+
+    def test_original_low_zoom_error_is_corrected_only_by_changed_sdk_points_and_physical_touches(self):
+        # First point is actual10179265854; following SDK events are synthetic
+        # regression inputs, not claimed physical evidence.
+        point={'latitudeE6':45_277_831,'longitudeE6':19_737_721}
+        frame=self.map_surface('[97,890][983,1730]')[2]
+        next_points=[{**point,'longitudeE6':value} for value in (19_740_600,19_743_500,19_746_400,19_749_300,19_752_200)]
+        with patch.object(journey,'observed_native_pin',side_effect=[(p,frame) for p in next_points]) as observe, \
+                patch.object(journey,'adb') as adb,patch('builtins.print'):
+            selected,_=journey.refine_native_pin(2.625,point,frame)
+        self.assertEqual(selected,next_points[-1]);self.assertNotEqual(selected['longitudeE6'],19_755_000)
+        self.assertEqual(adb.call_count,5)
+        for call in adb.call_args_list:
+            self.assertEqual(call.args[:3],('shell','input','tap'))
+            self.assertTrue(540<int(call.args[3])<983);self.assertEqual(int(call.args[4]),1310)
+        self.assertEqual([c.kwargs['different_from'] for c in observe.call_args_list],[point,*next_points[:-1]])
+        # Measured frame and first point need about six full safe taps to the
+        # nearest interior longitude19.755, not ~34 taps to distant19.835.
+        safe_step=int(adb.call_args_list[0].args[3])-540
+        remaining=(19.755-19.737721)/360*(512*(2**15)*2.625)
+        self.assertEqual(journey.math.ceil(remaining/safe_step),6)
+        self.assertLess(journey.math.ceil(remaining/safe_step),12)
+
+    def test_correction_rejects_wrong_overview_nonprogress_and_unbounded_small_steps(self):
+        point={'latitudeE6':45_277_831,'longitudeE6':19_737_721};frame=self.map_surface('[97,890][983,1730]')[2]
+        with patch.object(journey,'adb') as adb,self.assertRaisesRegex(AssertionError,'neutral overview'):
+            journey.refine_native_pin(2.625,{'latitudeE6':0,'longitudeE6':0},frame)
+        adb.assert_not_called()
+        wrong={**point,'longitudeE6':19_737_000}
+        with patch.object(journey,'adb') as adb,patch.object(journey,'observed_native_pin',return_value=(wrong,frame)),self.assertRaisesRegex(AssertionError,'did not advance'):
+            journey.refine_native_pin(2.625,point,frame)
+        self.assertEqual(adb.call_count,1)
+        tiny=[({**point,'longitudeE6':point['longitudeE6']+i},frame) for i in range(1,13)]
+        with patch.object(journey,'adb') as adb,patch.object(journey,'observed_native_pin',side_effect=tiny),patch('builtins.print'),self.assertRaisesRegex(AssertionError,'Bounded physical'):
+            journey.refine_native_pin(2.625,point,frame)
+        self.assertEqual(adb.call_count,12)
+
+    def test_point_still_outside_region_cannot_reach_confirmation_or_capture(self):
+        frame=self.map_surface('[97,620][983,1460]');rough={'latitudeE6':45_277_831,'longitudeE6':19_737_721}
+        with patch.object(journey,'adb',return_value=Mock(stdout='Physical density: 420\n')), \
+                patch.object(journey,'full_map_surface',return_value=frame), \
+                patch.object(journey,'observed_native_pin',return_value=(rough,frame[2])), \
+                patch.object(journey,'refine_native_pin',return_value=(rough,frame[2])), \
+                patch.object(journey,'capture') as capture,patch.object(journey,'tap_node') as confirm, \
+                self.assertRaisesRegex(AssertionError,'final point must be in Novi Sad'):
+            journey.physical_manual_point('Polazište')
+        capture.assert_not_called();confirm.assert_not_called()
 
     def test_selected_pin_requires_native_idle_and_two_equal_observations_without_bitmap_descendant(self):
         pending = self.selected_map_surface(label=self.pin_status(), idle=False)

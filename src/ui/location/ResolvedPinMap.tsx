@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Camera, Map, ViewAnnotation, type CameraRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
 import { palette, radius, space } from '../../theme/tokens';
@@ -21,7 +21,8 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const camera = useRef<CameraRef>(null);
   const annotation = useRef<ViewAnnotationRef>(null);
-  const paint = useRef<{ frame: number } | null>(null);
+  const bitmapReady = useRef<object | null>(null);
+  const [bitmapToken, setBitmapToken] = useState<object | null>(null);
   const [centeredToken, setCenteredToken] = useState<object | null>(null);
   const token = useMemo(() => ({}), [position?.latitude, position?.longitude, coarse, disabled]);
   const latest = useRef({ token, props }); latest.current = { token, props };
@@ -30,18 +31,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     : { center: [0, 0] as [number, number], zoom: 1 });
   const owns = () => active.current && props.owns() && latest.current.token === token;
   const refreshMarker = () => {
-    if (!owns() || !pin || load.current !== 'ready') return;
-    if (paint.current) cancelAnimationFrame(paint.current.frame);
-    const pending = { frame: 0 }; paint.current = pending;
-    // Android snapshots annotation children offscreen. Refresh after their
-    // native layout and paint, while retaining the existing draggable marker.
-    pending.frame = requestAnimationFrame(() => {
-      if (paint.current !== pending || !owns() || load.current !== 'ready') return;
-      pending.frame = requestAnimationFrame(() => {
-        if (paint.current !== pending || !owns() || load.current !== 'ready') return;
-        paint.current = null; annotation.current?.refresh();
-      });
-    });
+    if (owns() && pin && load.current === 'ready' && bitmapReady.current === token) annotation.current?.refresh();
   };
   const mark = (next: MapStatus) => {
     if (!owns() || (next === 'ready' && load.current !== 'loading')) return;
@@ -54,15 +44,14 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         load.current = 'failed'; setStatus('failed');
       }
     }, 15_000);
-    return () => { active.current = false; clearTimeout(timer.current);
-      if (paint.current) cancelAnimationFrame(paint.current.frame); paint.current = null; };
+    return () => { active.current = false; clearTimeout(timer.current); bitmapReady.current = null; };
   }, []);
   useEffect(() => {
     if (pin && status === 'ready' && owns()) {
       camera.current?.jumpTo({ center: [pin.longitude, pin.latitude], zoom: coarse ? 10 : 15 });
       refreshMarker();
     }
-  }, [pin?.latitude, pin?.longitude, coarse, status]);
+  }, [pin?.latitude, pin?.longitude, coarse, disabled, status]);
   const observeCenter = (value: unknown) => {
     if (!owns() || !pin || load.current !== 'ready') return;
     const state = value as { center?: unknown; zoom?: unknown } | null;
@@ -99,9 +88,14 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             const started = drag.current; drag.current = null;
             if (started === token) choose(event.nativeEvent.lngLat);
           }}>
-          <View collapsable={false} accessible={false} onLayout={refreshMarker} style={styles.marker}>
-            <View style={styles.markerDot} /><View style={styles.markerTip} />
-          </View>
+          {/* Android captures annotation children into a bitmap. The SDK's
+              documented Image.onLoad refresh waits for actual decoded pixels.
+              Local SVG source preserves the original marker geometry/colors. */}
+          <Image key={`${pin.latitude}:${pin.longitude}:${coarse}:${disabled}`}
+            source={require('../../../assets/resolved-location-pin.png')}
+            accessible={false} fadeDuration={0} resizeMode="contain" style={styles.marker}
+            onLoad={() => { if (owns()) { bitmapReady.current = token; setBitmapToken(token); refreshMarker(); } }}
+            onError={() => { if (owns()) { bitmapReady.current = null; setBitmapToken(null); mark('failed'); } }} />
         </ViewAnnotation> : null}
       </Map>
       {status !== 'ready' ? <View style={styles.feedback}>
@@ -114,7 +108,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
       <T accessible accessibilityRole="text" accessibilityLiveRegion="polite"
         accessibilityLabel={`${coarse ? 'Približna tačka na mapi' : 'Predložena tačka na mapi'}. ${coordinateText}`}
         variant="meta" tone="muted">{coordinateText}</T>
-      <T accessibilityLiveRegion="polite" variant="meta" tone="muted">{centeredToken === token && status === 'ready'
+      <T accessibilityLiveRegion="polite" variant="meta" tone="muted">{centeredToken === token && bitmapToken === token && status === 'ready'
         ? 'Mapa je centrirana na izabranu tačku.' : 'Proverite položaj oznake na mapi.'}</T>
     </View> : null}
     {!pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađite područje i dodirnite mapu.</T>
@@ -155,8 +149,5 @@ const styles = StyleSheet.create({
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: space.lg,
     gap: space.md, backgroundColor: palette.surface },
   attribution: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, paddingTop: space.xs },
-  marker: { width: 44, height: 48, alignItems: 'center', paddingTop: 2 },
-  markerDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 4, borderColor: palette.raised, backgroundColor: palette.orange },
-  markerTip: { width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 12,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: palette.orange, marginTop: -3 },
+  marker: { width: 44, height: 48 },
 });
