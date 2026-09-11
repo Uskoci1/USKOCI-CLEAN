@@ -1,0 +1,103 @@
+name: PRE-V3 existing engine exact checkpoint
+on:
+  push:
+    branches: [proof/pre-v3-pr101-exact-baseline-20260911]
+    paths: [.github/workflows/pre-v3-existing-engine-checkpoint.yml]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      SOURCE_SHA: 94bda947c68b981972c53d4372a7e4bc8549b542
+      SOURCE_TREE: 15fe6002ca981ba6dfa2bedd60f194eecae94fac
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 94bda947c68b981972c53d4372a7e4bc8549b542
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Identity, parentage, migration integrity
+        id: identity
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/engine-checkpoint"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$SOURCE_TREE"
+          test -z "$(git status --porcelain=v1)"
+          git merge-base --is-ancestor 1138d4f727735519b15d9b834bf261954e8013fe HEAD
+          test "$(git hash-object package-lock.json)" = 204c748dd85340da8f4dca32fb40c79826238af9
+          git diff --check 1138d4f727735519b15d9b834bf261954e8013fe HEAD
+          python3 supabase/migrations/check_migration_integrity.py | tee "$RUNNER_TEMP/engine-checkpoint/migration-integrity.log"
+          python3 - <<'PY'
+          import os,json,pathlib,datetime
+          d={'source_sha':os.environ['SOURCE_SHA'],'source_tree':os.environ['SOURCE_TREE'],'control_sha':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'observed_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'previous_exact_sql_run':34637105559,'independent_integrity_run':34644284423,'live_access':False,'provider_calls':False,'native_execution':False}
+          (pathlib.Path(os.environ['RUNNER_TEMP'])/'engine-checkpoint/identity.json').write_text(json.dumps(d,indent=2)+'\n');print(json.dumps(d,indent=2))
+          PY
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Locked dependency installation
+        id: dependencies
+        run: |
+          set -euo pipefail
+          npm ci 2>&1 | tee "$RUNNER_TEMP/engine-checkpoint/npm-ci.log"
+          git diff --exit-code HEAD
+      - name: TypeScript
+        id: typescript
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          npx --no-install tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/engine-checkpoint/typescript.log"
+      - name: Complete unchanged Jest suite on exact newer source
+        id: jest
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          npx --no-install jest --runInBand --silent --json --outputFile="$RUNNER_TEMP/engine-checkpoint/jest-results.json" 2>&1 | tee "$RUNNER_TEMP/engine-checkpoint/jest.log"
+          node -e 'const r=require(process.env.RUNNER_TEMP+"/engine-checkpoint/jest-results.json");if(!r.success||r.numFailedTests||r.numFailedTestSuites||r.numPendingTests||r.numPendingTestSuites||r.numTodoTests)process.exit(1);console.log(JSON.stringify({suites:r.numTotalTestSuites,tests:r.numTotalTests,skipped:r.numPendingTests,todo:r.numTodoTests}));'
+      - name: Node and synthetic Edge regression plus literal inventory
+        id: node_inventory
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          node --test scripts/build-identity.test.cjs supabase/proofs/notifications/n09_push_transport_edge.test.mjs 2>&1 | tee "$RUNNER_TEMP/engine-checkpoint/node-edge.log"
+          node scripts/pre_html_source_inventory.cjs "$RUNNER_TEMP/engine-checkpoint/source-inventory.json"
+      - name: Post-test exact tracked tree and lock
+        id: final_tree
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          git status --porcelain=v1 | tee "$RUNNER_TEMP/engine-checkpoint/working-tree.txt"
+          test -z "$(git status --porcelain=v1)"
+          git diff --exit-code HEAD
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object package-lock.json)" = 204c748dd85340da8f4dca32fb40c79826238af9
+      - name: Verdict and hash evidence
+        if: always()
+        env:
+          IDENTITY: ${{ steps.identity.outcome }}
+          DEPENDENCIES: ${{ steps.dependencies.outcome }}
+          TYPESCRIPT: ${{ steps.typescript.outcome }}
+          JEST: ${{ steps.jest.outcome }}
+          NODE_INVENTORY: ${{ steps.node_inventory.outcome }}
+          FINAL_TREE: ${{ steps.final_tree.outcome }}
+        run: |
+          python3 - <<'PY'
+          import os,json,pathlib,hashlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'engine-checkpoint';p.mkdir(exist_ok=True)
+          g={k:os.environ.get(k) for k in ['IDENTITY','DEPENDENCIES','TYPESCRIPT','JEST','NODE_INVENTORY','FINAL_TREE']}
+          r={'source':os.environ['SOURCE_SHA'],'tree':os.environ['SOURCE_TREE'],'gates':g,'EXACT_ENGINE_CHECKPOINT_SOURCE_REGRESSION':'PASS' if all(v=='success' for v in g.values()) else 'FAIL','limitations':['Existing runtime implementation was preserved, not authored again in this run.','SQL proof is separately archived in run 34637105559 on the same source.','No live mutation, external provider, emulator or handset proof.','Original PR101 run 34643531317 remains FAIL for archived cumulative whitespace; this is a newer source checkpoint.']}
+          (p/'verdict.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r,indent=2))
+          (p/'SHA256SUMS').write_text(''.join(hashlib.sha256(f.read_bytes()).hexdigest()+'  '+f.name+'\n' for f in sorted(p.iterdir()) if f.is_file() and f.name!='SHA256SUMS'))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pre-v3-existing-engine-checkpoint-${{ github.run_id }}
+          path: ${{ runner.temp }}/engine-checkpoint/
+          retention-days: 14
+          if-no-files-found: error
