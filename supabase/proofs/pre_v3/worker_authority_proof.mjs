@@ -80,7 +80,7 @@ try {
  let avail=await ok(A.client.rpc('rpc_get_worker_availability',{}));
  const ruleId=randomUUID(),windowId=randomUUID();
  const wantedAvailability={timezone:'UTC',availableNow:true,
-  rules:[{id:ruleId,weekdays:[1,3],startTime:'08:00:00',endTime:'18:00:00',startsOn:null,endsOn:null,label:'Rule',active:true}],
+  rules:[{id:ruleId,weekdays:[1,3],startTime:'08:00:00',endTime:'18:00:00',startsOn:'2026-01-01',endsOn:null,label:'Rule',active:true}],
   windows:[{id:windowId,startsAt:'2030-01-01T08:00:00Z',endsAt:'2030-01-01T10:00:00Z',state:'UNAVAILABLE',label:'Exception'}]};
  const savedAvail=await ok(A.client.rpc('rpc_save_worker_availability',{p_expected_revision:avail.revision,p_value:wantedAvailability}));
  assert.equal(savedAvail.availability.availableNow,true);assert.equal(savedAvail.availability.timezone,'UTC');
@@ -96,7 +96,7 @@ try {
  // Canonical mutations cannot leave a usable bypass token for the next REST call.
  await denied(A.client.from('app_profiles').update({radius_km:99}).eq('id',A.profile.id),'PROFILE_LOCATION_REQUIRES_REVIEW');
  await denied(A.client.from('app_profiles').update({team_capacity:8}).eq('id',A.profile.id),'PROFILE_CAPACITY_REQUIRES_REVIEW');
- check('MUTATION_TOKENS_ARE_TRANSACTION_LOCAL_AND_RESTORED');
+ check('SUBSEQUENT_REST_CALLS_CANNOT_REUSE_MUTATION_TOKEN');
  // Different canonical fact groups serialize on the same row without erasing
  // each other's unrelated facts or falsely sharing a content revision.
  geo=await ok(A.client.rpc('rpc_get_worker_location',{}));avail=await ok(A.client.rpc('rpc_get_worker_availability',{}));
