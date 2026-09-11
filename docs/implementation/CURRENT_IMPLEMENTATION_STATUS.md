@@ -1,3 +1,13 @@
+## Current continuation — 2026-09-11 / canonical PR97 and LIVE108
+
+PR97 is merged at `916ffb498ba5ad47a307a3c66477757b6753095a`, with the same tree as accepted CI. **Source108 / LIVE108 / pending SQL0**. SQL106,107,108 were applied once in order as `20260910235154_clean_w03_owned_ai_intake_authority`, `20260911031301_clean_n09_expo_push_transport` and `20260911031713_clean_dispatch_need_lock_order`. Their exact-source postflights passed38,44,51 checks; the paired107 POST/108 PRE snapshot passed152 comparisons. Historical migration records, permitted metadata/grant boundaries and business/policy/Storage projections are preserved. The first107 PRE remains a recorded preparation failure, corrected before any107 apply. [Compact evidence](evidence/live108-20260911/verification.json).
+
+AI interview v17 and location search v2 are ACTIVE/JWT true with exact source readback. Push Edge remains **UNDEPLOYED**, with zero push jobs; its environment switch was not read. Active legal/publication/retention bindings remain0. Frozen historical replay87 and migration provenance files are unchanged.
+
+Continue PR99 product/native work from `6f4266305d07733080c29b5e112dd61f1cab48ab`. Entry run34544807416 still hid the animation prefix; marketplace run34544810119 failed before pin confirmation. Their fixes and original native review remain pending. F144 and approved RC2/Retention V1 content access/reconciliation, executable policy bindings, scheduler admission, actual provider/physical-device proof and the complete two-account journey through review remain open. This checkpoint makes no milestone, release or visual-parity claim. Earlier checkpoints below retain their historical scope.
+
+---
+
 ## Current continuation — PR93 merged and LIVE105; W03 product vertical in progress
 
 PR93 merged as `e5edbb7356ea5d622b45cdc95aa83b9b792a4805` after all13 CI checks passed, including P3 actual16 stages/two observed lock orders, independent replay, CodeQL and scoped Android Auth. SQL105 was applied once as `20260910180443_clean_p3_retention_execution_authority`. Postflight at18:05:01 UTC confirmed exact source,13 bodies,31 columns, private ACL/RLS, source-shape admission and17 unchanged preservation groups. Policy activation and production deletion were not performed. [Compact evidence](evidence/p3-live105-20260910/verification.json).
