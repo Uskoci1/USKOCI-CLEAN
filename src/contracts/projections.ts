@@ -124,6 +124,9 @@ export type RadnikProfilProjekcija = {
   stanje: StanjeProfila;
   dostupanOdmah: boolean;
   radijusKm: number;
+  /** Present only after authoritative capacity readback; never inferred from a vehicle. */
+  kapacitetTima?: number;
+  capacityRevision?: string;
 };
 
 /**

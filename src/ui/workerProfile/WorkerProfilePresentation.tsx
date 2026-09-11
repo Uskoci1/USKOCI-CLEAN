@@ -71,6 +71,9 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate }:
       <T style={caption}>{status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Dopunite ključne sposobnosti pre prijave'}</T>
     </View>
     <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} />
+    <Field label="Koliko ljudi možeš da obezbediš" value={draft.capacity} change={capacity => patch({ capacity })}
+      disabled={disabled || draft.capacityRevision === null} numeric
+      hint={draft.capacityRevision === null ? 'Sačuvajte profil i učitajte kapacitet sa servera.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
     <Terms label="Veštine i usluge" values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
       change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} />
     <Press accessibilityRole="button" accessibilityLabel="Alat i vozila" accessibilityState={{ expanded: resourcesOpen }}
@@ -82,8 +85,8 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate }:
       <Terms label="Vozila" values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}
         change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} /></> : null}
     <View style={{ gap: 16 }}><T style={{ ...v2.text.title, color: v2.color.ink }}>Područje rada</T>
-      <Field label="Grad ili mesto rada" value={draft.grad} change={grad => patch({ grad })} disabled={disabled} />
-      <Field label="Radijus rada (km)" value={draft.radius} change={radius => patch({ radius })} disabled={disabled} numeric hint="Ceo broj od 1 do 200 km oko područja rada." />
+      <Field label="Grad ili mesto rada" value={draft.grad} change={() => {}} disabled={true} hint="Menja se kroz područje rada na mapi." />
+      <Field label="Radijus rada (km)" value={draft.radius} change={() => {}} disabled={true} numeric hint="Ceo broj od 1 do 200 km oko područja rada." />
       <V2Action label="Država i područje na mapi" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/lokacija')} />
     </View>
     <Press accessibilityRole="button" accessibilityLabel="Kratko predstavljanje" accessibilityState={{ expanded: bioOpen }}
@@ -92,10 +95,10 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate }:
     {bioOpen ? <Field label="O vašem iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline /> : null}
     <View style={{ padding: 16, gap: 8, borderRadius: 18, backgroundColor: v2.color.context }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><View style={{ flex: 1 }}><T style={body}>Dostupan sam</T>
-        <T style={caption}>{draft.dostupanOdmah ? 'Uključeno u ovom unosu' : 'Isključeno u ovom unosu'}</T></View>
-        <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={disabled}
-          trackColor={{ true: v2.color.teal, false: v2.color.controlLine }} onValueChange={dostupanOdmah => patch({ dostupanOdmah })} /></View>
-      <T style={caption}>Ovu dostupnost uključujete i isključujete sami, pa čuvate profil. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
+        <T style={caption}>{draft.dostupanOdmah ? 'Uključeno · sačuvano stanje' : 'Isključeno · sačuvano stanje'}</T></View>
+        <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={true}
+          trackColor={{ true: v2.color.teal, false: v2.color.controlLine }} onValueChange={() => {}} /></View>
+      <T style={caption}>Ovu dostupnost menjate kroz „Redovna dostupnost“, jednim zajedničkim načinom čuvanja. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
     </View>
     <V2Action label="Redovna dostupnost" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/dostupnost')} />
     <V2Action label="Pogledaj raspored" kind="quiet" disabled={disabled} onPress={() => navigate('/raspored')} />

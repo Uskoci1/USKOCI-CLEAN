@@ -107,8 +107,8 @@ it('never invokes Auth for a signed-out caller', async () => {
   await expect(workerProfileClientService.azurirajRadnikProfil({ime:'Ana'})).resolves.toMatchObject({ok:false,kod:'AUTH_REQUIRED'});
   expect(mockAuth).not.toHaveBeenCalled();
 });
-it.each([0,201,1.5,NaN,Infinity])('rejects a radius outside the existing DB constraint: %p', async value => {
-  await expect(workerProfileClientService.azurirajRadnikProfil({radijusKm:value})).resolves.toMatchObject({ok:false,kod:'PROFILE_INPUT_INVALID'});
+it.each([0,15,201,1.5,NaN,Infinity])('refuses generic radius writes independently of numeric validity: %p', async value => {
+  await expect(workerProfileClientService.azurirajRadnikProfil({radijusKm:value})).resolves.toMatchObject({ok:false,kod:'PROFILE_LOCATION_REQUIRES_REVIEW'});
   expect(mockWrite).not.toHaveBeenCalled();
 });
 it.each(['read','write'] as const)('rejects foreign-account data in the %s receipt', async stage => {

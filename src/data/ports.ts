@@ -223,6 +223,8 @@ export type AzurirajProfilKomanda = {
   licence?: string[]; // Self-declared resources, never verification authority.
   dostupanOdmah?: boolean;
   radijusKm?: number;
+  kapacitetTima?: number;
+  capacityRevision?: string; // Required together with an explicit team capacity edit.
   zavrsi?: boolean; // Setuje DRAFT u ACTIVE
 };
 
