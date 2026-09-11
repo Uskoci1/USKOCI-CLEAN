@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView, TextInput, AppState } from 'react-native';
+import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView, TextInput, AppState, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
@@ -62,15 +62,21 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);
+  const [cancellationOpen, setCancellationOpen] = useState(false), [cancellationReason, setCancellationReason] = useState('');
+  const [cancellationAttempt, setCancellationAttempt] = useState<string | null>(null);
+  const cancellationReasonRef = useRef(''), cancellationAttemptRef = useRef<string | null>(null);
+  const cancellationDialog = useRef<object | null>(null), readGeneration = useRef(0);
   const formFocus = useRef<object | null>(null);
   useFocusEffect(useCallback(() => {
     const focus = {}; formFocus.current = focus;
-    return () => { if (formFocus.current === focus) formFocus.current = null; };
+    return () => { if (formFocus.current === focus) { formFocus.current = null; cancellationDialog.current = null; } };
   }, [accountId, accountRevision, intent]));
   const renderedFormFocus = formFocus.current;
   const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
     && ulogaSada() === intent, [accountId, accountRevision, intent]);
   const read = useCallback(async (): Promise<Ishod<ProblemWorkspace | null>> => {
+    // A refresh retires a native confirmation synchronously, before React commits.
+    readGeneration.current++; cancellationDialog.current = null;
     if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
     try {
       const data = await bounded(() => izvor.dogovor(id));
@@ -100,6 +106,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const [resumeEpoch, setResumeEpoch] = useState(0);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
+      cancellationDialog.current = null;
       activeRef.current = state === 'active';
       freshRef.current = false;
       resumeGeneration.current++;
@@ -122,6 +129,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
   const messages = useFocusedResource(useCallback(() => izvor.poruke(id, accountId), [izvor, id, accountId]));
   const dogovor = workspace.data;
+  const renderedReadGeneration = readGeneration.current;
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
   const writable = enabled && dogovor?.chatDostupan === true;
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
@@ -174,10 +182,43 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     });
   };
   const complete = () => { if (canComplete) void mutate(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id)); };
+  const cancellationCurrent = () => formCurrent() && active && readGeneration.current === renderedReadGeneration;
+  const confirmCancellation = () => {
+    if (!cancellationCurrent() || cancellationDialog.current) return;
+    const reason = cancellationAttemptRef.current ?? cancellationReasonRef.current.trim();
+    if (!reason) return;
+    const dialog = {}; cancellationDialog.current = dialog;
+    const retire = () => { if (cancellationDialog.current === dialog) cancellationDialog.current = null; };
+    Alert.alert('Otkaži ovaj Dogovor?', 'Otkazivanje zatvara ovaj Dogovor. Potvrdite ako ne želite da ga nastavite.', [
+      { text: 'Zadrži Dogovor', style: 'cancel', onPress: retire },
+      { text: 'Otkaži Dogovor', style: 'destructive', onPress: () => {
+        if (cancellationDialog.current !== dialog || !cancellationCurrent()) return;
+        retire();
+        const foregroundGeneration = resumeGeneration.current;
+        const current = () => ownsAccount() && formFocus.current === renderedFormFocus &&
+          activeRef.current && freshRef.current && resumeGeneration.current === foregroundGeneration;
+        void workspace.save(async () => {
+          // The existing void RPC has no command key or version receipt. Freeze
+          // its actual payload and require a server read before any unknown retry.
+          cancellationAttemptRef.current = reason; setCancellationAttempt(reason);
+          const unconfirmed = { ok: false as const, kod: 'AGREEMENT_CANCEL_UNCONFIRMED',
+            poruka: 'Otkazivanje nije potvrđeno. Osvežite status Dogovora pre ponovnog pokušaja.' };
+          try {
+            const result = await bounded(() => izvor.otkaziDogovor(id, reason));
+            if (!current() || result?.ok !== true || result.podatak !== null) return unconfirmed;
+            const next = await read();
+            // An acknowledged command alone is never a manufactured CANCELLED card.
+            if (!current() || !next.ok || next.podatak?.stanje !== 'CANCELLED') return unconfirmed;
+            return next;
+          } catch { return unconfirmed; }
+        });
+      } },
+    ], { cancelable: true, onDismiss: retire });
+  };
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
   return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
-    <KeyboardAvoidingView style={{ flex: 1 }} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={{ flex: 1 }} enabled={tab === 'poruke' || problemOpen || cancellationOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
         <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={backToAgreements}
           style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><V2Icon name="back" /></Press>
@@ -243,6 +284,24 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
           {dogovor.stanje === 'CONFIRMED' && me ? <T style={metaStyle}>{worker
             ? 'Kada završite, označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
             : 'Završetak možete potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.'}</T> : null}
+          {active && me ? <View style={{ gap: 10 }}>
+            {!cancellationOpen ? <V2Action label="Otkaži Dogovor" kind="destructive" disabled={!enabled}
+              onPress={() => { if (cancellationCurrent()) setCancellationOpen(true); }} /> : <>
+              <T accessibilityRole="header" style={{ ...bodyStyle, fontWeight: '700' }}>Otkazivanje Dogovora</T>
+              <T style={metaStyle}>Za otkazivanje je potreban razlog. U sledećem koraku potvrđujete odluku.</T>
+              <TextInput accessibilityLabel="Razlog otkazivanja" value={cancellationAttempt ?? cancellationReason}
+                onChangeText={value => { if (!cancellationCurrent() || cancellationAttemptRef.current) return;
+                  cancellationDialog.current = null; cancellationReasonRef.current = value; setCancellationReason(value); }}
+                editable={enabled && !cancellationAttempt} multiline placeholder="Zašto otkazujete Dogovor?" placeholderTextColor={v2.color.muted}
+                style={{ ...bodyStyle, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 11, backgroundColor: v2.color.surface }} />
+              <V2Action label={workspace.busy ? 'Proveravamo otkazivanje…' : cancellationAttempt ? 'Ponovi isto otkazivanje' : 'Potvrdi otkazivanje'}
+                kind="destructive" disabled={!enabled || !(cancellationAttempt ?? cancellationReason.trim())} onPress={confirmCancellation} />
+              {!cancellationAttempt ? <V2Action label="Zadrži Dogovor" kind="quiet" disabled={!enabled} onPress={() => {
+                if (!cancellationCurrent() || cancellationAttemptRef.current) return;
+                cancellationDialog.current = null; setCancellationOpen(false);
+              }} /> : <T style={metaStyle}>Razlog ostaje isti pri ponavljanju. Prvo osvežite status Dogovora; otkazivanje je potvrđeno tek kada piše „Dogovor je otkazan“.</T>}
+            </>}
+          </View> : null}
           {dogovor.stanje === 'COMPLETED' ? <T style={{ ...bodyStyle, color: v2.color.teal }}>Dogovor je završen</T> : null}
           {dogovor.stanje === 'CANCELLED' ? <T style={metaStyle}>Dogovor je otkazan.</T> : null}
           {workspace.error ? <View style={{ gap: 8 }}><T accessibilityRole="alert" style={{ ...bodyStyle, color: v2.color.danger }}>{workspace.error}</T>
