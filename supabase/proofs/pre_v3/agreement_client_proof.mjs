@@ -67,7 +67,7 @@ try{
  wp=(await ok(worker.rpc('rpc_get_worker_profile_for_edit',{}))).id;
  const id=await agreement('actual client actions');
  const first=await accepted(R.read(id,userScope));assert.equal(first.actions.canProposeChange,true);
- assert.equal(first.actions.authoritative,true);assert.equal(first.terms.priceRsd,3000);assert.equal(first.terms.scopeNote,null);
+ assert.equal(first.actions.authoritative,true);assert.equal(first.terms.priceRsd,3000);assert.equal(first.terms.scopeNote,''); // The selected empty scope is canonical, not an invented null.
  const command={dogovorId:id,ocekivanaVerzija:1,clientRequestId:randomUUID(),izmena:{cenaIznos:4321,obim:'Privatan dogovoreni obim'},razlog:'Privatan razlog'};
  const proposal=await accepted(R.propose(command,userScope));
  assert.deepEqual(same(await accepted(R.propose(command,userScope))),same(proposal));
@@ -99,7 +99,7 @@ try{
  assert.deepEqual(same(await accepted(R.propose(command,userScope))),same(proposal));
  assert.deepEqual(same(await accepted(W.respond(wSnapshot.proposals[0],true,workerScope))),same(decision));
  assert.equal((await accepted(R.read(id,userScope))).agreementStatus,'COMPLETED');
- const second=await agreement('withdraw and cancelled replay');
+ const second=await agreement('withdraw replay');
  const withdrawCommand={...command,dogovorId:second,clientRequestId:randomUUID()};
  const withdrawId=(await accepted(R.propose(withdrawCommand,userScope))).proposalId;
  const withdrawReceipt=await accepted(R.withdraw(withdrawId,userScope));assert.equal(withdrawReceipt.idempotentReplay,false);
