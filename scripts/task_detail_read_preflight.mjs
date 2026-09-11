@@ -12,7 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../supabase/proofs/ru5_device_ui_local_guard.mjs';
 
 const modules = ['data/supabaseIzvor', 'data/needClientService', 'data/publicProfileClientService',
-  'data/calendarErrors', 'data/serverReceipt', 'data/needDetailPresentation', 'lib/capabilityTerms',
+  'data/calendarErrors', 'data/legacyRpcFailure', 'data/serverReceipt', 'data/needDetailPresentation', 'lib/capabilityTerms',
   'lib/calendarTime', 'lib/market', 'lib/location', 'ui/calendar/calendarPresentation'];
 export function readSourceAdapters(sourceRoot, worker, workerId, trace = []) {
   const source = Object.fromEntries(modules.map(name => [name, readFileSync(join(sourceRoot, 'src', name + '.ts'), 'utf8')]));

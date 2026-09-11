@@ -4,16 +4,20 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { readP0eCompletionPredecessorPlan } from './p0e_completion_guards_predecessor.mjs';
+import { historicalPredecessorFixture } from '../historical_predecessor_fixture.mjs';
 
 const unit = JSON.parse(readFileSync('supabase/proofs/completion/p0e_completion_guards_files.json', 'utf8'));
 const md5 = bytes => createHash('md5').update(bytes).digest('hex');
 
-test('plan admits exactly the frozen live87 inventory plus one pending forward file', () => {
-  const plan = readP0eCompletionPredecessorPlan();
+test('plan admits exactly the frozen live87 fixture plus one pending forward file', () => historicalPredecessorFixture('completion', root => {
+  const plan = readP0eCompletionPredecessorPlan(root);
   assert.equal(plan.historical_predecessor_count, 87);
   assert.equal(plan.source_migration_count, 88);
   assert.equal(plan.expected_predecessor_count, 87);
   assert.equal(plan.source_inventory.at(-1).file, unit.forward_file);
+}));
+test('historical completion planner rejects the larger current integration source', () => {
+  assert.throws(() => readP0eCompletionPredecessorPlan(), /UNKNOWN_MISSING_OR_CHANGED_PREDECESSOR_SOURCE/);
 });
 
 test('candidate and forward bytes are identical and match the manifest digests', () => {
