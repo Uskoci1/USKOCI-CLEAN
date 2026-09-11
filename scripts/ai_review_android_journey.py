@@ -471,8 +471,54 @@ def native_pin_coordinates(label):
     match = re.fullmatch(r'Predložena tačka na mapi\. Geografska širina (-?\d{1,2}\.\d{6}); geografska dužina (-?\d{1,3}\.\d{6})\.', label)
     assert match, 'Expected one complete precise native coordinate status'
     point = {'latitudeE6': int(Decimal(match[1]) * 1_000_000), 'longitudeE6': int(Decimal(match[2]) * 1_000_000)}
-    assert 45_200_000 < point['latitudeE6'] < 45_300_000 and 19_750_000 < point['longitudeE6'] < 19_900_000, 'Actual native point must be in Novi Sad'
+    assert abs(point['latitudeE6']) <= 90_000_000 and abs(point['longitudeE6']) <= 180_000_000, 'Actual native coordinates must be globally valid'
     return point
+
+
+def inside_novi_sad(point):
+    return 45_200_000 < point['latitudeE6'] < 45_300_000 and 19_750_000 < point['longitudeE6'] < 19_900_000
+
+
+def projected_native_point(point):
+    return (point['longitudeE6'] / 1e6 / 360,
+            -math.asinh(math.tan(math.radians(point['latitudeE6'] / 1e6))) / (2 * math.pi))
+
+
+def native_region_distance(point):
+    target = {'latitudeE6': min(45_295_000,max(45_205_000,point['latitudeE6'])),
+              'longitudeE6': min(19_895_000,max(19_755_000,point['longitudeE6']))}
+    destination = projected_native_point(target)
+    return math.dist(projected_native_point(point),destination), destination
+
+
+def refine_native_pin(density, point, node):
+    # Zoom1 gives only ~0.134 degrees per physical px at this device density.
+    # Its first touch is navigation, not an exact point ready for confirmation.
+    # Admit only its bounded quantization error, then use actual zoom15 state.
+    expected = projected_native_point({'latitudeE6':45_250_000,'longitudeE6':19_835_000})
+    initial = projected_native_point(point)
+    assert max(abs(a-b) for a,b in zip(initial,expected)) * 1024 * density <= 2, 'Initial SDK point is inconsistent with the neutral overview touch'
+    world = 512 * (2 ** 15) * density  # Actual centered camera status binds zoom15.
+    for attempt in range(12):
+        if inside_novi_sad(point):
+            return point, node
+        current = projected_native_point(point)
+        distance, destination = native_region_distance(point)
+        bounds = parse_bounds(node.attrib['bounds'])
+        left, top, right, bottom = bounds
+        center = ((left+right)/2, (top+bottom)/2)
+        # A physical touch inside the observed map moves the selection; the
+        # actual SDK supplies the next coordinates and camera idle receipt.
+        x = round(min(right-(right-left)*.1,max(left+(right-left)*.1,center[0]+(destination[0]-current[0])*world)))
+        y = round(min(bottom-(bottom-top)*.1,max(top+(bottom-top)*.1,center[1]+(destination[1]-current[1])*world)))
+        assert left < x < right and top < y < bottom
+        adb('shell','input','tap',str(x),str(y))
+        next_point, next_node = observed_native_pin(density,different_from=point)
+        assert native_region_distance(next_point)[0] < distance, 'Physical correction did not advance toward the same interior box'
+        point, node = next_point, next_node
+        print(f'CHECKPOINT NATIVE_MAP_CORRECTION step={attempt+1}',flush=True)
+    assert inside_novi_sad(point), 'Bounded physical corrections did not reach Novi Sad'
+    return point, node
 
 
 def observed_native_pin(density, *, different_from=None, attempts=12):
@@ -520,6 +566,7 @@ def physical_manual_point(title, *, offset=False):
     x, y = initial_world_touch(parse_bounds(node.attrib['bounds']), scale)
     adb('shell', 'input', 'tap', str(x), str(y))
     point, node = observed_native_pin(scale)
+    point, node = refine_native_pin(scale, point, node)
     if offset:
         # A fresh end slot initially shares the same overview. After the actual
         # selected-pin camera jump, physically choose a distinct nearby stop.
@@ -528,6 +575,7 @@ def physical_manual_point(title, *, offset=False):
         assert bounds[0] < x < bounds[2] and bounds[1] < y < bounds[3]
         adb('shell', 'input', 'tap', str(x), str(y))
         point, node = observed_native_pin(scale, different_from=point)
+    assert inside_novi_sad(point), 'Actual final point must be in Novi Sad before confirmation'
     captured, captured_parent = capture(f'MARKETPLACE_pin_{"end" if offset else "start"}_proposed', anchor)
     captured_status = [n for n in captured.iter() if n.attrib.get('content-desc', '').startswith('Predložena tačka na mapi')]
     assert len(captured_status) == 1 and visible_node(captured_status[0], captured_parent, *screen_size())

@@ -143,8 +143,9 @@ it('waits for measured geometry before starting the intro and keeps actions unav
   expect(button('Meni treba').props.disabled).toBe(true);
   await act(async () => tree.root.findByProps({ testID: 'entry-brand-panel' }).props.onLayout({ nativeEvent: { layout: { x: 24, y: 158.765625, width: 342, height: 227.328125 } } }));
   // Layout alone cannot release the cover: the source t=0 artwork is empty.
-  // The real clock's UI-frame acknowledgement is covered in its focused suite.
+  // Layout only mounts prepared artwork. The real clock's cover acknowledgement
+  // and later UI-frame resume are covered in its focused suite.
   expect(mockSceneReady).not.toHaveBeenCalled();
-  expect(mockTiming).toHaveBeenCalledWith(4380, expect.objectContaining({ duration: 4380 }), expect.any(Function));
+  expect(mockTiming).not.toHaveBeenCalled();
   await press('Preskoči uvod'); expect(mockFinish).toHaveBeenCalledTimes(1);
 });

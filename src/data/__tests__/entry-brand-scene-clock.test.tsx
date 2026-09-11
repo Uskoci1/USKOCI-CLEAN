@@ -2,8 +2,10 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { StyleSheet } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
-import { BrandArtwork, BrandScene, useBrandClock } from '../../ui/entry/BrandScene';
+import { BrandArtwork, BrandScene, entryPreparationSourceTime, useBrandClock } from '../../ui/entry/BrandScene';
 import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
+import type { EntrySplashReadiness } from '../../hooks/useEntrySplashReady';
+import { brandFrame } from '../../ui/entry/spojBrandMath';
 import { brandWords } from '../../ui/entry/spojBrandData';
 import referenceFrames from './fixtures/spoj-brand-reference-frames.json';
 
@@ -140,26 +142,129 @@ it('never releases from an unmounted frame callback and never observes paused ge
 
 function HandoffProbe() {
   const splash = useEntrySplashReady({ waitForScene: true });
-  useBrandClock(true, false, undefined, splash.onSceneReady);
+  useBrandClock(true, false, undefined, splash.onSceneReady,
+    { readiness: splash.readiness, phone: testPhone, logo: testLogo });
   return React.createElement('Snapshot', { splash });
 }
-it('starts the complete original clock while holding native cover, then hides only after its UI-frame acknowledgement', async () => {
+const testPhone = { x: 0, y: 0, width: 390, height: 844 };
+const testLogo = { x: 43, y: 185, width: 304, height: 98.8 };
+function HeldProbe({ readiness = 'pending', animate = true, paused = false, prepared, complete }: {
+  readiness?: EntrySplashReadiness; animate?: boolean; paused?: boolean;
+  prepared?: (time: number) => void; complete?: () => void;
+}) {
+  useBrandClock(animate, paused, complete, prepared, { readiness, phone: testPhone, logo: testLogo });
+  return null;
+}
+
+it('derives the first in-viewport 8-bit source sample, preserving the empty0-40 boundary and every following track', () => {
+  expect(brandFrame(40, testPhone, testLogo).parts.every(part => part.opacity === 0)).toBe(true);
+  for (const frame of referenceFrames) expect(entryPreparationSourceTime(frame.phone, frame.logo)).toBe(41);
+  const first = brandFrame(41, testPhone, testLogo);
+  expect(first.parts.map(part => Math.floor(part.opacity * 255))).toEqual([0, 0, 0, 0, 0, 1, 1]);
+  expect(first.wordOpacity).toBe(0); expect(first.slogan.opacity).toBe(0);
+  expect(first.background.greenPercent).toBe(-101); expect(first.choices.opacity).toBe(0);
+});
+
+it('holds the exact prepared source state across delayed RN delivery, without allocating a running timeline', async () => {
+  const prepared = jest.fn();
+  await act(async () => { tree = create(<HeldProbe prepared={prepared} />); });
+  expect(mockClock.get()).toBe(41); expect(mockTiming).not.toHaveBeenCalled();
+  mockFrame({ timestamp: 10 }); mockFrame({ timestamp: 26 });
+  expect(mockSchedule).toHaveBeenCalledTimes(1);
+  const queued = mockSchedule.mock.calls[0];
+  // The RN queue may be busy. UI frames keep the original preparation sample;
+  // no absolute wall-clock catch-up is allowed under the native cover.
+  for (const timestamp of [42, 100, 500, 1500, 2500]) mockFrame({ timestamp });
+  expect(mockClock.get()).toBe(41); expect(mockTiming).not.toHaveBeenCalled();
+  await act(async () => queued[0](...queued.slice(1)));
+  expect(prepared).toHaveBeenCalledWith(41);
+  expect(mockObserver.setActive).toHaveBeenLastCalledWith(true);
+  mockFrame({ timestamp: 3000 }); expect(mockTiming).not.toHaveBeenCalled();
+});
+
+it('resumes the same source sample once after acknowledgement and later UI frames, without replay or acceleration', async () => {
+  const prepared = jest.fn(), complete = jest.fn();
+  await act(async () => { tree = create(<HeldProbe prepared={prepared} complete={complete} />); });
+  mockFrame({ timestamp: 10 }); mockFrame({ timestamp: 26 });
+  await act(async () => deliverFrame());
+  await act(async () => tree.update(<HeldProbe readiness="ready" prepared={prepared} complete={complete} />));
+  expect(mockClock.get()).toBe(41); expect(mockTiming).not.toHaveBeenCalled();
+  mockFrame({ timestamp: 1600 }); mockFrame({ timestamp: 1600 });
+  expect(mockTiming).not.toHaveBeenCalled();
+  mockFrame({ timestamp: 1616 });
+  expect(mockTiming).toHaveBeenCalledTimes(1);
+  expect(mockTiming).toHaveBeenCalledWith(4380, expect.objectContaining({ duration: 4339 }), expect.any(Function));
+  expect(mockClock.set.mock.calls.filter(([value]) => value === 0)).toHaveLength(0);
+  mockFrame({ timestamp: 1632 }); mockFrame({ timestamp: 1800 });
+  await act(async () => tree.update(<HeldProbe readiness="ready" prepared={prepared} complete={complete} />));
+  expect(mockTiming).toHaveBeenCalledTimes(1);
+  const done = mockTiming.mock.calls[0][2];
+  done(false); expect(complete).not.toHaveBeenCalled();
+  done(true); await act(async () => deliverFrame());
+  expect(complete).toHaveBeenCalledTimes(1);
+});
+
+it('holds preparation until the real hide request settles and later frame handoff completes', async () => {
   jest.useFakeTimers();
   try {
+    let acknowledge!: () => void;
+    mockHide.mockReturnValue(new Promise<void>(resolve => { acknowledge = resolve; }));
     await act(async () => { tree = create(<HandoffProbe />); });
     const state = () => tree.root.findByType('Snapshot' as React.ElementType).props.splash;
     await act(async () => state().onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 844 } } }));
-    expect(mockTiming).toHaveBeenCalledWith(4380, expect.objectContaining({ duration: 4380 }), expect.any(Function));
+    expect(mockTiming).not.toHaveBeenCalled(); expect(mockClock.get()).toBe(41);
     expect(mockHide).not.toHaveBeenCalled(); expect(state().readiness).toBe('pending');
-    uiFrame(40, 40); uiFrame(50, 50);
+    mockFrame({ timestamp: 0 });
     expect(mockHide).not.toHaveBeenCalled(); expect(mockSchedule).not.toHaveBeenCalled();
-    uiFrame(66, 66);
+    mockFrame({ timestamp: 16 });
     expect(mockHide).not.toHaveBeenCalled();
     await act(async () => deliverFrame());
     expect(mockHide).toHaveBeenCalledTimes(1);
-    expect(mockTiming).toHaveBeenCalledTimes(1);
+    for (const timestamp of [100, 250, 500]) mockFrame({ timestamp });
+    expect(mockClock.get()).toBe(41); expect(mockTiming).not.toHaveBeenCalled();
+    await act(async () => acknowledge());
+    expect(state().readiness).toBe('pending'); expect(mockTiming).not.toHaveBeenCalled();
+    await act(async () => jest.advanceTimersByTime(40));
+    expect(state().readiness).toBe('ready'); expect(mockTiming).not.toHaveBeenCalled();
+    mockFrame({ timestamp: 600 }); expect(mockTiming).not.toHaveBeenCalled();
+    mockFrame({ timestamp: 616 });
+    expect(mockTiming).toHaveBeenCalledWith(4380, expect.objectContaining({ duration: 4339 }), expect.any(Function));
     await act(async () => tree.unmount());
   } finally { jest.useRealTimers(); }
+});
+
+it.each(['skip', 'reduced'] as const)('discards a delayed prepared acknowledgement after %s, showing static welcome with no replay', async reason => {
+  const prepared = jest.fn();
+  await act(async () => { tree = create(<HeldProbe prepared={prepared} />); });
+  mockFrame({ timestamp: 0 }); mockFrame({ timestamp: 16 });
+  const old = mockSchedule.mock.calls[0];
+  await act(async () => tree.update(<HeldProbe animate={false} readiness={reason === 'skip' ? 'skip' : 'pending'} prepared={prepared} />));
+  await act(async () => old[0](...old.slice(1)));
+  expect(prepared).not.toHaveBeenCalled(); expect(mockClock.get()).toBe(4380);
+  expect(mockTiming).not.toHaveBeenCalled();
+  mockFrame({ timestamp: 32 }); mockFrame({ timestamp: 48 });
+  await act(async () => deliverFrame());
+  expect(prepared).toHaveBeenCalledWith(4380);
+  await act(async () => tree.update(<HeldProbe animate={false} readiness="ready" prepared={prepared} />));
+  mockFrame({ timestamp: 64 }); mockFrame({ timestamp: 80 });
+  expect(mockTiming).not.toHaveBeenCalled();
+});
+
+it('invalidates queued preparation and completion when the lifetime ends', async () => {
+  const prepared = jest.fn(), complete = jest.fn();
+  await act(async () => { tree = create(<HeldProbe prepared={prepared} complete={complete} />); });
+  mockFrame({ timestamp: 0 }); mockFrame({ timestamp: 16 });
+  const old = mockSchedule.mock.calls[0];
+  await act(async () => tree.unmount());
+  await act(async () => old[0](...old.slice(1)));
+  expect(prepared).not.toHaveBeenCalled(); expect(mockTiming).not.toHaveBeenCalled();
+  await act(async () => { tree = create(<HeldProbe readiness="ready" prepared={prepared} complete={complete} />); });
+  mockFrame({ timestamp: 32 }); mockFrame({ timestamp: 48 });
+  mockFrame({ timestamp: 64 }); mockFrame({ timestamp: 80 });
+  const done = mockTiming.mock.calls[0][2];
+  await act(async () => tree.unmount());
+  done(true); await act(async () => deliverFrame());
+  expect(complete).not.toHaveBeenCalled();
 });
 
 // These clip widths are original browser observations, not a second evaluation of brandFrame.
