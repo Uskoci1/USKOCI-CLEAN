@@ -20,7 +20,7 @@ const path=fileURLToPath(new URL(authorityMode?'../../migrations/20260911035330_
 const report={unit:authorityMode?'M05_AGREEMENT_CHANGE_AUTHORITY':'N05_AGREEMENT_CHANGE_EVENTS',source_sha:env.GITHUB_SHA||null,run_id:env.GITHUB_RUN_ID||null,
   candidate_sha256:createHash('sha256').update(readFileSync(path)).digest('hex'),live_access:false,live_promotion:false,
   push_provider_called:false,mobile_proof:false,checks:[]};
-let current='PREFLIGHT';let fault=false;
+let current='PREFLIGHT',operation=null;let fault=false;
 const check=(name)=>{current=name;console.log(`START_CHECK ${name}`);};
 const pass=()=>{report.checks.push({name:current,result:'PASS'});console.log(`PASS_CHECK ${current}`);};
 function sql(query){try{return execFileSync('psql',[db,'-X','-v','ON_ERROR_STOP=1','-At','-c',query],
@@ -136,6 +136,7 @@ try {
   }
 } catch(error) {report.result='FAIL';report.failed_check=current;
   if(authorityMode){
+    report.failed_operation=operation;
     report.failure_category=error?.code==='ERR_ASSERTION'?'ASSERTION':'EXECUTION';
     report.failure_line=String(error?.stack??'').match(/n05_agreement_change_proof\.mjs:(\d+):\d+/)?.[1]??null;
     report.sqlstate=String(error?.stderr??'').match(/ERROR:\s+([A-Z0-9]{5}):/)?.[1]??null;
@@ -146,6 +147,23 @@ try {
 
 // Explicit successor mode uses the existing registered108 local preparation.
 // The original historical79/N05 branch and its assertions above stay intact.
+// BEGIN_M05_OWNED_PREFERENCES
+async function prepareOwnedNotificationPreferences(client,userId,role,perform){
+  const read=await perform(role+'_PREFERENCES_READ',()=>client.rpc('rpc_get_notification_preferences',{
+    p_expected_user_id:userId,p_role:role}));
+  assert.equal(read.userId,userId);assert.equal(read.roleContext,role);
+  assert.ok(Number.isSafeInteger(read.revision)&&read.revision>=0);
+  assert.ok(read.settings&&typeof read.settings==='object'&&!Array.isArray(read.settings));
+  const settings={...read.settings,in_app_enabled:false,push_enabled:false};
+  const written=await perform(role+'_PREFERENCES_WRITE',()=>client.rpc('rpc_set_notification_preferences',{
+    p_expected_user_id:userId,p_role:role,p_settings:settings,p_expected_revision:read.revision}));
+  assert.equal(written.userId,userId);assert.equal(written.roleContext,role);
+  assert.equal(written.revision,read.revision+1);assert.deepEqual(written.settings,settings);
+  const verified=await perform(role+'_PREFERENCES_READBACK',()=>client.rpc('rpc_get_notification_preferences',{
+    p_expected_user_id:userId,p_role:role}));
+  assert.deepEqual(verified,written);
+}
+// END_M05_OWNED_PREFERENCES
 // BEGIN_M05_OBSERVED_WAITER_GRAPH
 function observedResponderWaitGraph(waiters,holderPid){
   if(!Number.isInteger(holderPid)||holderPid<=0||!Array.isArray(waiters)||waiters.length!==2)return null;
@@ -174,6 +192,7 @@ async function proveAuthority(){
   const hash=v=>createHash('sha256').update(v).digest('hex');
   const forward='supabase/migrations/20260911035330_clean_m05_agreement_change_authority.sql';
   const bytes=readFileSync(path),children=new Set(),fixtureIds=[];
+  const perform=async(label,call)=>{operation=label;const result=await ok(call());operation=null;return result;};
   const history=()=>rows('select * from supabase_migrations.schema_migrations order by version');
   const functions=()=>rows("select (to_jsonb(p)-'prosrc')||jsonb_build_object('oid',p.oid::text,'signature',format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)),'body_md5',md5(prosrc)) as value from pg_proc p join pg_namespace n on n.oid=p.pronamespace where pronamespace in ('public'::regnamespace,'private'::regnamespace) order by p.oid").map(x=>x.value);
   const currentVersion=id=>Number(sql(`select current_version from public.agreements where id=${q(uuid(id))}::uuid`));
@@ -239,14 +258,15 @@ async function proveAuthority(){
     assert.equal(Math.trunc(Number(sql('show server_version_num'))/10000),17);
     const oldHistory=history();assert.equal(oldHistory.length,108);
     for(const [client,email,id] of [[worker,env.RU5_DEVICE_WORKER_EMAIL,workerId],[requester,env.RU5_DEVICE_REQUESTER_EMAIL,requesterId]]){
-      await ok(client.auth.signInWithPassword({email,password:env.RU5_DEVICE_PASSWORD}));
-      assert.equal((await ok(client.auth.getUser())).user.id,id);
-      await ok(client.from('notification_preferences').upsert({user_id:id,role_context:id===workerId?'WORKER':'REQUESTER',in_app_enabled:false,push_enabled:false},{onConflict:'user_id,role_context'}));
+      const role=id===workerId?'WORKER':'REQUESTER';
+      await perform(role+'_AUTH_SIGN_IN',()=>client.auth.signInWithPassword({email,password:env.RU5_DEVICE_PASSWORD}));
+      assert.equal((await perform(role+'_AUTH_GET_USER',()=>client.auth.getUser())).user.id,id);
+      await prepareOwnedNotificationPreferences(client,id,role,perform);
     }
     report.actual_auth=true;
     const outsiderEmail='m05-outsider-'+randomUUID()+'@proof.invalid';
-    await ok(admin.auth.admin.createUser({email:outsiderEmail,password:env.RU5_DEVICE_PASSWORD,email_confirm:true}));
-    await ok(outsider.auth.signInWithPassword({email:outsiderEmail,password:env.RU5_DEVICE_PASSWORD}));
+    await perform('OUTSIDER_AUTH_CREATE',()=>admin.auth.admin.createUser({email:outsiderEmail,password:env.RU5_DEVICE_PASSWORD,email_confirm:true}));
+    await perform('OUTSIDER_AUTH_SIGN_IN',()=>outsider.auth.signInWithPassword({email:outsiderEmail,password:env.RU5_DEVICE_PASSWORD}));
     workerProfile=uuid(sql(`select id from public.app_profiles where account_id=${q(workerId)}::uuid and kind='WORKER'`));
     requesterProfile=uuid(sql(`select id from public.app_profiles where account_id=${q(requesterId)}::uuid and kind='REQUESTER'`));
     const legacy=await agreement('legacy-invalid');

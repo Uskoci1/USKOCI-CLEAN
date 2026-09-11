@@ -1,6 +1,7 @@
 import {readFileSync} from 'fs';
 import {join} from 'path';
 import {runInNewContext} from 'vm';
+import assert from 'node:assert/strict';
 const sql=readFileSync(join(__dirname,'../supabase/proofs/notifications/n05_agreement_change_candidate.sql'),'utf8');
 const proof=readFileSync(join(__dirname,'../supabase/proofs/notifications/n05_agreement_change_proof.mjs'),'utf8');
 describe('N05 bilateral change event boundary',()=>{
@@ -39,5 +40,30 @@ describe('M05 actual responder lock observation',()=>{
       [row(20,[10]),{...row(30,[20]),wait_event_type:'Client'}],
       [row(20,[10]),{...row(30,[20]),holder_pid:99}],
       [row(20,[10]),row(30,[])],[row(20,[10]),row(30,[30])]])expect(observe(rows,10)).toBeNull();
+  });
+});
+
+describe('M05 current108 preference fixture owner',()=>{
+  const source=proof.split('// BEGIN_M05_OWNED_PREFERENCES')[1].split('// END_M05_OWNED_PREFERENCES')[0];
+  const prepare=runInNewContext(source+'\nprepareOwnedNotificationPreferences',{assert});
+  it('uses the actual owner read/write/readback with exact revision and preserves other settings',async()=>{
+    const before={userId:'owner',roleContext:'WORKER',revision:7,settings:{in_app_enabled:true,push_enabled:true,
+      quiet_timezone:'Europe/Belgrade',quiet_hours_enabled:false,dogovor_enabled:true}};
+    const calls:Array<{name:string,args:any}>=[];let written:any;
+    const client={rpc:async(name:string,args:any)=>{calls.push({name,args});
+      if(name==='rpc_set_notification_preferences')return written={...before,revision:8,settings:args.p_settings};
+      return written??before;
+    }};
+    const labels:string[]=[];await prepare(client,'owner','WORKER',async(label:string,call:()=>Promise<any>)=>{labels.push(label);return call();});
+    expect(calls.map(x=>x.name)).toEqual(['rpc_get_notification_preferences','rpc_set_notification_preferences','rpc_get_notification_preferences']);
+    expect(calls[1].args).toEqual({p_expected_user_id:'owner',p_role:'WORKER',p_expected_revision:7,
+      p_settings:{...before.settings,in_app_enabled:false,push_enabled:false}});
+    expect(labels).toEqual(['WORKER_PREFERENCES_READ','WORKER_PREFERENCES_WRITE','WORKER_PREFERENCES_READBACK']);
+    expect(proof.split('async function proveAuthority()')[1]).not.toContain("from('notification_preferences').upsert");
+  });
+  it('refuses a foreign owner read before any preference write',async()=>{
+    const rpc=jest.fn().mockResolvedValue({userId:'different-owner',roleContext:'WORKER',revision:2,settings:{}});
+    await expect(prepare({rpc},'owner','WORKER',async(_label:string,call:()=>Promise<any>)=>call())).rejects.toThrow();
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 });
