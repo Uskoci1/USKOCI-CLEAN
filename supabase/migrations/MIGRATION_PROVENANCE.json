@@ -2064,12 +2064,12 @@
       "file": "20260911174500_clean_pre_v3_worker_capacity.sql",
       "classification": "PENDING_FORWARD_MIGRATION",
       "raw_md5": "4a49ade59b9d80d9de481c0ece297325",
-      "sha256": "3a8e8741650fe7bbf917c85febfd281908e0788ea555017cc2e6fadfb52ab5bc",
-      "bytes": 5864,
       "live_applied": false,
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
-      "note": "PRE-V3 candidate; historic87 field is the existing replay manifest, NOT current live108 observation. Apply only after exact108 admission and per-package rollout gates."
+      "note": "PRE-V3 candidate; historic87 field is the existing replay manifest, NOT current live108 observation. Apply only after exact108 admission and per-package rollout gates.",
+      "raw_sha256": "3a8e8741650fe7bbf917c85febfd281908e0788ea555017cc2e6fadfb52ab5bc",
+      "raw_bytes": 5864
     },
     {
       "version": "20260911174600",
@@ -2077,12 +2077,12 @@
       "file": "20260911174600_clean_pre_v3_worker_single_authority.sql",
       "classification": "PENDING_FORWARD_MIGRATION",
       "raw_md5": "c121386b4f8258fd21933eb52099c1a0",
-      "sha256": "e2b381b62bb11ab26cb3fbef9dd168c96075766cd79a905c55753ee1ce27d2af",
-      "bytes": 6399,
       "live_applied": false,
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
-      "note": "PRE-V3 candidate; historic87 field is the existing replay manifest, NOT current live108 observation. Apply only after exact108 admission and per-package rollout gates."
+      "note": "PRE-V3 candidate; historic87 field is the existing replay manifest, NOT current live108 observation. Apply only after exact108 admission and per-package rollout gates.",
+      "raw_sha256": "e2b381b62bb11ab26cb3fbef9dd168c96075766cd79a905c55753ee1ce27d2af",
+      "raw_bytes": 6399
     },
     {
       "version": "20260911183000",
@@ -2090,12 +2090,38 @@
       "file": "20260911183000_clean_pre_v3_inbox_delivery_visibility.sql",
       "classification": "PENDING_FORWARD_MIGRATION",
       "raw_md5": "1b175a0e2136f9569f95b9f1302b69c1",
-      "sha256": "0f7470f6d95c79b0c6d93384f797dbf0397033e21c2316f649d8b31f59f3c3f4",
-      "bytes": 6549,
       "live_applied": false,
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
-      "note": "PRE-V3 delivery-aware Inbox candidate; historic87 replay metadata is not current live count. Independently body-bound to existing Inbox functions; no production activation yet."
+      "note": "PRE-V3 delivery-aware Inbox candidate; historic87 replay metadata is not current live count. Independently body-bound to existing Inbox functions; no production activation yet.",
+      "raw_sha256": "0f7470f6d95c79b0c6d93384f797dbf0397033e21c2316f649d8b31f59f3c3f4",
+      "raw_bytes": 6549
+    },
+    {
+      "version": "20260911190000",
+      "name": "clean_pre_v3_m05_admitted_source",
+      "file": "20260911190000_clean_pre_v3_m05_admitted_source.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied PRE-V3 candidate. Historical87 replay metadata is not the current live108 count. Exact predecessor/rollout admission required.",
+      "raw_md5": "c4affca77a69fa720ee3f3bfbf486a55",
+      "raw_sha256": "bc7dfa77aab4d035cf83ea4c2911aead669371a0fbfb2d18faa63b9b726cf435",
+      "raw_bytes": 14507
+    },
+    {
+      "version": "20260911190100",
+      "name": "clean_pre_v3_agreement_execution_guards",
+      "file": "20260911190100_clean_pre_v3_agreement_execution_guards.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied PRE-V3 candidate. Historical87 replay metadata is not the current live108 count. Exact predecessor/rollout admission required.",
+      "raw_md5": "50a8695e94f24ec618465c588945c1e1",
+      "raw_sha256": "e80b76b2ec10882e066d6f7b4dc5683ba8b5317a4448c0a9045cf06be5cb23f9",
+      "raw_bytes": 17678
     }
   ],
   "p2_data_export_requests": {
