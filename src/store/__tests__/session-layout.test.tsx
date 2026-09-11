@@ -8,6 +8,7 @@ const mockSegments = ['(app)'];
 const mockConsume = jest.fn();
 const mockRole = jest.fn();
 const mockPushListener = jest.fn((..._args: unknown[]) => ({ remove: jest.fn() }));
+const mockNotificationHandler = jest.fn();
 const mockSession = { user: { id: 'account-a' } } as Session;
 let mockStackMounts = 0;
 let mockRendered: { isLoaded: boolean; session: Session | null; user: Session['user'] | null; sessionEpoch: number; accountRevision: number; returnTargetRevision: number } =
@@ -50,6 +51,7 @@ jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 // Keep the actual PushRuntime in the root render. Only native transports and
 // the separately tested device RPC are isolated from this navigation test.
 jest.mock('expo-notifications', () => ({
+  setNotificationHandler: (...args: unknown[]) => mockNotificationHandler(...args),
   addNotificationResponseReceivedListener: (...args: unknown[]) => mockPushListener(...args),
   addPushTokenListener: () => ({ remove: jest.fn() }),
   getLastNotificationResponseAsync: async () => null,
@@ -240,9 +242,14 @@ it.each(['auth', 'oporavak', 'unresolved'])('starts push listeners only after %s
   mockPath = destination === 'unresolved' ? '/' : '/' + destination;
   await render();
   expect(mockPushListener).not.toHaveBeenCalled();
+  expect(mockNotificationHandler).not.toHaveBeenCalled();
   mockSegments.splice(0, mockSegments.length, '(app)'); mockPath = '/potrebe';
   await act(async () => tree.update(<RootLayout />));
   expect(mockPushListener).toHaveBeenCalledTimes(1);
+  expect(mockNotificationHandler).toHaveBeenLastCalledWith(expect.objectContaining({ handleNotification: expect.any(Function) }));
+  mockSegments.splice(0, mockSegments.length, 'oporavak'); mockPath = '/oporavak';
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockNotificationHandler).toHaveBeenLastCalledWith(null);
 });
 
 it('consumes the completed intention after a signed-in native app destination resolves', async () => {

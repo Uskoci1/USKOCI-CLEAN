@@ -153,7 +153,7 @@ describe('actual session store ownership', () => {
     expect(store.sesijaSada().user?.id).toBe('account-b');
   });
 
-  it('logout immediately resets role and invalidates A work even if the same account signs in again', async () => {
+  it('logout resets role and invalidates A target; a new login restores only its saved local preference', async () => {
     await targets.povratniCilj.prepare({ intent: 'WORKER' });
     const pending = await targets.povratniCilj.snapshot();
     const snapshot = deferred<AuthReturnTargetRecordV2 | null>();
@@ -167,7 +167,7 @@ describe('actual session store ownership', () => {
     emit('SIGNED_IN', session('account-a', 'new-login'));
     snapshot.resolve(pending);
     await runDeferredWork();
-    expect(roles.ulogaSada()).toBe('narucilac');
+    expect(roles.ulogaSada()).toBe('uskocer');
     expect(await targets.povratniCilj.snapshot()).toBeNull();
   });
 
@@ -230,4 +230,18 @@ describe('actual session store ownership', () => {
     expect(roles.ulogaSada()).toBe('narucilac');
     expect(await targets.povratniCilj.snapshot()).toBeNull();
   });
+});
+
+it('restores a saved Worker intention before revealing the restored session workspace', async () => {
+  mockRecords['uskoci:account-intent:v1:account-a'] = JSON.stringify({ version: 1, accountId: 'account-a', role: 'uskocer' });
+  store.inicijalizujSesiju(); emit('INITIAL_SESSION', session('account-a'));
+  expect(store.sesijaSada().intentReady).toBe(false); await runDeferredWork();
+  expect(store.sesijaSada().intentReady).toBe(true); expect(roles.ulogaSada()).toBe('uskocer');
+});
+it('an explicit pending Requester choice wins over a previously saved Worker preference', async () => {
+  mockRecords['uskoci:account-intent:v1:account-a'] = JSON.stringify({ version: 1, accountId: 'account-a', role: 'uskocer' });
+  await targets.povratniCilj.prepare({ intent: 'REQUESTER' });
+  store.inicijalizujSesiju(); emit('SIGNED_IN', session('account-a')); await runDeferredWork();
+  expect(roles.ulogaSada()).toBe('narucilac'); expect(store.sesijaSada().intentReady).toBe(true);
+  expect(JSON.parse(mockRecords['uskoci:account-intent:v1:account-a']).role).toBe('narucilac');
 });

@@ -17,11 +17,13 @@ type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStat
 type PendingTurn = { id: string; body: string };
 
 export default function NovaPotrebaV2() {
-  const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
+  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[] }>();
   const { user, accountRevision } = useSesija(), intent = useUloga();
   const resumeId = typeof params.conversationId === 'string' ? params.conversationId : undefined;
-  const invalidRoute = params.conversationId !== undefined && (!resumeId || !uuid(resumeId));
-  return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${intent}:${resumeId ?? ''}:${invalidRoute}`}
+  const entryKey = typeof params.entryKey === 'string' ? params.entryKey : undefined;
+  const invalidRoute = (params.conversationId !== undefined && (!resumeId || !uuid(resumeId)))
+    || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)));
+  return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${intent}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
     resumeId={resumeId} invalidRoute={invalidRoute} />;
 }
 
@@ -99,6 +101,12 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       return read();
     });
   };
+  const noviZadatak = () => {
+    if (!canAct() || request.current || (stanje?.status !== 'COMPLETED' && stanje?.status !== 'ABANDONED')) return;
+    // Replace drops the old resume parameter. Keying the retained tab starts a
+    // fresh owned opener; it does not delete or reopen the terminal conversation.
+    navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }));
+  };
   const osvezi = () => { if (!isCurrent() || navigating.current || radi || editor.loading) return; void editor.refresh(); };
   const napusti = () => {
     if (!canAct() || !razgovorId || stanje?.status !== 'OPEN' || stanje.review.boundNeedId) return;
@@ -139,6 +147,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     showAbandon={stanje.status === 'OPEN' && !stanje.review.boundNeedId}
     abandonDisabled={radi || editor.loading || editor.uncertain}
     abandonLabel={abandoning.current ? 'Ponovite napuštanje razgovora' : 'Napusti razgovor'}
+    onNewTask={stanje.status === 'COMPLETED' || stanje.status === 'ABANDONED' ? noviZadatak : undefined}
+    newTaskDisabled={!canAct() || !!request.current}
     onBack={back} onSend={posalji} onRefresh={osvezi} onAbandon={napusti}
     onChange={value => { if (canAct() && writable && !request.current) setUnos(value); }}
     onReview={() => {

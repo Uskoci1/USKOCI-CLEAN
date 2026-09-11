@@ -75,17 +75,8 @@ function mapFact(raw: any): Cinjenica | null {
 
 export const aiProductionOverrides: AiOverrides = {
   async otvoriRazgovor() {
-    const { data, error } = await supabase.rpc('rpc_ai_open_conversation', {
-      p_purpose: 'NEED_INTAKE',
-    });
-    if (error || !data) {
-      return {
-        ok: false,
-        kod: error?.message || error?.code || 'AI_CONVERSATION_OPEN_FAILED',
-        poruka: error?.message || 'Nacrt Potrebe nije mogao da se otvori.',
-      };
-    }
-    return { ok: true, podatak: { razgovorId: data as string } };
+    return { ok: false, kod: 'OWNED_CONVERSATION_REQUIRED',
+      poruka: 'Otvorite Novi Zadatak da započnete razgovor.' };
   },
 
   async razgovor(razgovorId) {
@@ -96,7 +87,7 @@ export const aiProductionOverrides: AiOverrides = {
       .eq('purpose', 'NEED_INTAKE')
       .maybeSingle();
 
-    if (conversationError) throw new Error(conversationError.message || 'AI_CONVERSATION_READ_FAILED');
+    if (conversationError) throw new Error('AI_CONVERSATION_READ_FAILED');
     if (!conversation) return null;
 
     const [factsResult, messagesResult] = await Promise.all([
@@ -113,8 +104,8 @@ export const aiProductionOverrides: AiOverrides = {
         .order('sequence_no', { ascending: true }),
     ]);
 
-    if (factsResult.error) throw new Error(factsResult.error.message || 'AI_FACTS_READ_FAILED');
-    if (messagesResult.error) throw new Error(messagesResult.error.message || 'AI_MESSAGES_READ_FAILED');
+    if (factsResult.error) throw new Error('AI_FACTS_READ_FAILED');
+    if (messagesResult.error) throw new Error('AI_MESSAGES_READ_FAILED');
 
     const latest = new Map<KljucCinjenice, Cinjenica>();
     for (const row of factsResult.data ?? []) {

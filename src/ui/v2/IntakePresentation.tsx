@@ -21,6 +21,7 @@ type Props = {
   showAbandon: boolean; abandonDisabled: boolean; abandonLabel: string;
   onBack: () => void; onChange: (value: string) => void; onSend: () => void;
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
+  onNewTask?: () => void; newTaskDisabled?: boolean;
 };
 
 const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Bilo kada',
@@ -139,6 +140,8 @@ export function IntakePresentation(props: Props) {
           {busy ? <View accessibilityLiveRegion="polite" style={s.row}>
             <ActivityIndicator color={v2.color.teal} /><T style={s.label}>Čekamo potvrdu…</T></View> : null}
           {props.canReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} style={{ alignSelf: 'flex-start' }} /> : null}
+          {props.onNewTask ? <V2Action label="Novi Zadatak" kind="primary"
+            disabled={props.newTaskDisabled} onPress={props.onNewTask} /> : null}
         </Animated.View>
         {conversation.messages.length ? <V2Action kind="quiet" label={`Razgovor · ${conversation.messages.length}`}
           icon={<V2Icon name="chat" size={18} />} onPress={() => open('history')} style={{ alignSelf: 'flex-end' }} /> : null}

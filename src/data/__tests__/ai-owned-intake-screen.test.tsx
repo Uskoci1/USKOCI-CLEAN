@@ -4,7 +4,7 @@ import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../contracts/needFactsV2';
 
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
-let mockParams: { conversationId?: string | string[] } = {}, mockCounter = 0;
+let mockParams: { conversationId?: string | string[]; entryKey?: string | string[] } = {}, mockCounter = 0;
 let mockReduced = false;
 const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn(), mockAlert = jest.fn();
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
@@ -237,4 +237,48 @@ it('omits an incomplete fixed interval without inventing an end time', async () 
 it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])('uses the correct people label for %s', async (count, label) => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.people_needed', count)] }));
   await render(); expect(text()).toContain(label as string);
+});
+
+// Owner-requested pre-HTML stabilization: terminal conversation is not a dead end.
+it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after %s without changing the first one', async status => {
+  const saved = conversation({ status }); saved.review.boundNeedId = status === 'COMPLETED' ? other : null;
+  mockParams = { conversationId: id }; mockLoad.mockResolvedValue(saved); await render();
+  const start = button('Novi Zadatak').onPress;
+  await act(async () => { start(); start(); }); expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  const destination = mockRouter.replace.mock.calls[0][0];
+  expect(destination.pathname).toBe('/nova'); expect(destination.params.conversationId).toBeUndefined();
+  expect(destination.params.entryKey).toMatch(/^[a-f0-9-]{36}$/);
+  mockParams = destination.params;
+  mockOpen.mockImplementation(requestId => Promise.resolve(ok({ conversationId: other, clientRequestId: requestId })));
+  mockLoad.mockResolvedValue(conversation({ conversationId: other })); await update();
+  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockLoad).toHaveBeenLastCalledWith(other);
+  expect(input().value).toBe(''); expect(input().editable).toBe(true);
+  expect(mockAbandon).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  await blur(); await focus(); expect(mockOpen).toHaveBeenCalledTimes(1);
+});
+it('retains the new owned-open request after an unknown second-Task open outcome', async () => {
+  mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await render();
+  const firstKey = mockOpen.mock.calls[0][0]; await act(async () => button('Novi Zadatak').onPress());
+  mockParams = mockRouter.replace.mock.calls[0][0].params; mockOpen.mockResolvedValueOnce(unknown());
+  await update(); const nextKey = mockOpen.mock.calls[1][0]; expect(nextKey).not.toBe(firstKey);
+  mockLoad.mockResolvedValue(conversation()); await act(async () => button('Učitajte razgovor ponovo').onPress());
+  expect(mockOpen.mock.calls[2][0]).toBe(nextKey);
+});
+it('cannot use a retained new-Task action after losing its account or focus', async () => {
+  mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await render();
+  const old = button('Novi Zadatak').onPress; await blur(); await focus(); await act(async () => old());
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+it('does not advertise a new-Task bypass for an open safety-blocked conversation', async () => {
+  mockLoad.mockResolvedValue(conversation({ safety: 'BLOCK' })); await render();
+  expect(tree.root.findAllByProps({ label: 'Novi Zadatak' })).toHaveLength(0);
+});
+it.each(['invalid', [id]])('rejects malformed new-entry key %s without creating a conversation', async entryKey => {
+  mockParams = { entryKey }; await render(); expect(mockOpen).not.toHaveBeenCalled();
+});
+it('normal successful send clears the composer after the actual turn readback', async () => {
+  mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  await render(); await type(); await act(async () => submit().onPress());
+  expect(input().value).toBe(''); expect(input().editable).toBe(true); expect(mockSend).toHaveBeenCalledTimes(1);
 });

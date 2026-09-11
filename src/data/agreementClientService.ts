@@ -1,3 +1,4 @@
+import { legacyRpcFailure } from './legacyRpcFailure';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../contracts/projections';
 import type { Ishod, IzmenaKomanda, Izvor } from './ports';
 import { calendarFailure } from './calendarErrors';
@@ -18,10 +19,7 @@ type AgreementService = Pick<
 function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
   const calendar = calendarFailure(error);
   if (calendar) return calendar;
-  const value = record(error);
-  const name = typeof value?.message === 'string' ? value.message : undefined;
-  const errorCode = typeof value?.code === 'string' ? value.code : undefined;
-  return { ok: false, kod: name || errorCode || code, poruka: name || message };
+  return legacyRpcFailure(error, code, message);
 }
 
 function novac(iznos: number, valuta = 'RSD') {
@@ -201,7 +199,7 @@ export const agreementClientService: AgreementService = {
   async mojiDogovori() {
     const uid = await userId();
     const { data, error } = await supabase.rpc('rpc_list_my_agreements');
-    if (error) throw new Error(error.message || 'AGREEMENT_LIST_FAILED');
+    if (error) throw new Error('AGREEMENT_LIST_FAILED');
     if (!Array.isArray(data)) throw new Error('AGREEMENT_LIST_INVALID_PROJECTION');
     return data.map((row) => mapAgreement(row, uid));
   },
@@ -211,20 +209,15 @@ export const agreementClientService: AgreementService = {
     const { data, error } = await supabase.rpc('rpc_get_agreement_workspace', {
       p_agreement_id: id,
     });
-    if (error) throw new Error(error.message || 'AGREEMENT_READ_FAILED');
+    if (error) throw new Error('AGREEMENT_READ_FAILED');
     if (!data) return null;
     return mapAgreement(data, uid);
   },
 
-  async posaljiPoruku(dogovorId, telo) {
-    const body = telo.trim();
-    if (!body) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
-    const { data, error } = await supabase.rpc('rpc_send_agreement_message', {
-      p_agreement_id: dogovorId,
-      p_body: body,
-    });
-    if (error || !data) return fail(error, 'MESSAGE_SEND_FAILED', 'Poruka nije poslata.');
-    return { ok: true, podatak: { porukaId: data } };
+  async posaljiPoruku(_dogovorId, telo) {
+    if (!telo.trim()) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
+    return { ok: false, kod: 'MESSAGE_RETRY_KEY_REQUIRED',
+      poruka: 'Otvorite Poruke u Dogovoru i pošaljite poruku iz tog prikaza.' };
   },
 
   async predloziIzmenu(k: IzmenaKomanda) {

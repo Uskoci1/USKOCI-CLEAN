@@ -26,7 +26,7 @@ jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({
 jest.mock('../../store/povratniCilj', () => ({ povratniCilj: {
   captureSessionCleanup: () => () => Promise.resolve(), snapshot: () => Promise.resolve(null),
 } }));
-jest.mock('../../store/uloga', () => ({ postaviUlogu: jest.fn() }));
+jest.mock('../../store/uloga', () => ({ postaviUlogu: jest.fn(), vezujUloguZaNalog: jest.fn(() => Promise.resolve()) }));
 
 const session = (id = A): Session => ({ user: { id }, access_token: 'synthetic-owner-token',
   refresh_token: 'synthetic-refresh', expires_in: 3600, token_type: 'bearer' } as Session);

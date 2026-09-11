@@ -13,7 +13,7 @@ import { BrandMark } from '../ui/entry/BrandAssets';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 export default function RootLayout() {
-  const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
+  const { isLoaded, intentReady, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();
   const segments = useSegments();
   const pathname = usePathname();
@@ -24,13 +24,13 @@ export default function RootLayout() {
   const naAuth = segments[0] === 'auth';
   const naOporavku = segments[0] === 'oporavak';
   const { onLayout: onRouteLayout } = useEntrySplashReady({
-    enabled: isLoaded && routeResolved && (naOporavku || (!!session && !naAuth)),
+    enabled: isLoaded && intentReady !== false && routeResolved && (naOporavku || (!!session && !naAuth)),
   });
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
   useEffect(() => {
-    if (!isLoaded || !routeResolved) return;
+    if (!isLoaded || !routeResolved || (session && intentReady === false)) return;
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
       sesijaSada().user?.id !== session?.user.id) return;
     if (!session && !naAuth && !naOporavku) {
@@ -40,12 +40,12 @@ export default function RootLayout() {
     if (session && naAuth) {
       router.replace('/');
     }
-  }, [isLoaded, routeResolved, session, sessionEpoch, naAuth, naOporavku, pathname, router]);
+  }, [isLoaded, intentReady, routeResolved, session, sessionEpoch, naAuth, naOporavku, pathname, router]);
 
   // Consume a completed pre-auth intent exactly once after a real session has
   // been restored/created. The store itself guards which user completed it.
   useEffect(() => {
-    if (!isLoaded || !routeResolved || !session || naOporavku) return;
+    if (!isLoaded || !routeResolved || !session || naOporavku || intentReady === false) return;
     let aktivan = true;
     const isCurrent = () => aktivan && sesijaSada().sessionEpoch === sessionEpoch &&
       sesijaSada().user?.id === session.user.id;
@@ -70,9 +70,9 @@ export default function RootLayout() {
     return () => {
       aktivan = false;
     };
-  }, [isLoaded, routeResolved, session, sessionEpoch, returnTargetRevision, naOporavku, router]);
+  }, [isLoaded, intentReady, routeResolved, session, sessionEpoch, returnTargetRevision, naOporavku, router]);
 
-  if (!isLoaded) {
+  if (!isLoaded || (session && intentReady === false)) {
     return (
       <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
         {/* Same original mark and nominal size as the padded native splash. */}
