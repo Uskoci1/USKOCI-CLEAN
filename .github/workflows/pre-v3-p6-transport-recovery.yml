@@ -1,0 +1,56 @@
+name: PRE-V3 P6 exact transport recovery
+on:
+  push:
+    branches: [work/pre-v3-exact-verifier-20260911]
+    paths: [.github/workflows/pre-v3-p6-transport-recovery.yml]
+permissions:
+  contents: write
+concurrency:
+  group: pre-v3-single-integration-writer
+  cancel-in-progress: false
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: source
+          ref: 7c29abfaf4836157b8c0ebc043aed1f8e4a88e64
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Restore exact source patch bytes and run unchanged reviewed save validation
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,pathlib,subprocess,textwrap,zlib
+          p=pathlib.Path('../control/.pre-v3/integration-save.json');d=json.loads(p.read_text())
+          assert d['base']=='7c29abfaf4836157b8c0ebc043aed1f8e4a88e64' and len(d['commits'])==1
+          c=d['commits'][0];assert c['commit']=='28c01dd6b659cc65fe3d8d4b4c46934d7c42c8ad'
+          before='qwd7e99sbNf27V1j';after='qwd7e99sb28/2sc3W1tbj/fzz/9sbNf27V1j'
+          assert c['compressedPatch'].count(before)==1
+          c['compressedPatch']=c['compressedPatch'].replace(before,after)
+          raw=zlib.decompress(base64.b64decode(c['compressedPatch'],validate=True))
+          assert hashlib.sha256(raw).hexdigest()==c['patchSha256']=='d01a08eca92f2b13ec40913dc7617d09273f8e3d6e9898bc607b137aaa551daa'
+          p.write_text(json.dumps(d)+'\n')
+          workflow=pathlib.Path('../control/.github/workflows/pre-v3-publish-integration.yml').read_bytes()
+          oid=subprocess.check_output(['git','hash-object','--stdin'],input=workflow).decode().strip()
+          assert oid=='b5819575af0c1c39433b3421bbd0f742f6d0e400'
+          section=workflow.decode().split('      - name: Validate exact Git objects and frozen SQL, then fast-forward fixed integration ref\n',1)[1]
+          body=section.split("          python3 - <<'PY'\n",1)[1].split('\n          PY\n',1)[0]
+          # All original patch, tree, commit, parent, frozen-SQL, lock and ref guards still execute.
+          exec(compile(textwrap.dedent(body),'reviewed-integration-save','exec'),{})
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pre-v3-p6-transport-save-${{ github.run_id }}
+          path: ${{ runner.temp }}/integration-save/
+          retention-days: 14
+          if-no-files-found: warn
