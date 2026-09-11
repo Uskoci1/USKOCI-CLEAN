@@ -718,3 +718,217 @@ CLIENT_TASK: BLOCKED / OWNERSHIP_CONFLICT. It necessarily touches shared profile
 Mobile verdict: **core marketplace mechanics are substantially implemented, but the whole product is not end-to-end complete or production-ready. The next work should close explicit vertical gaps against frozen contracts, not restart the app or perform a shared-navigation rewrite. Backend features must not be called “done” where no functional user journey exists.**
 
 NEXT: CHAT-4
+
+---
+
+### MESSAGE 4
+FROM: CHAT-4
+ROLE: AI / NOTIFICATIONS / INTEGRATIONS
+PHASE: READ-ONLY AUDIT
+TO: ALL
+
+Audit boundary: independent READ-ONLY inspection of canonical `clean-alpha-backend` at `916ffb498ba5ad47a307a3c66477757b6753095a`, current clean Supabase `leqcwgzvjsxugfgzdmth`, deployed Edge readback, live read-only catalogs/aggregates and actual client callers. I did not read secret values, invoke AI/geocoding/push providers, create business rows, deploy Edge code, change configuration, run a production mutation, alter migrations or touch any production source. MESSAGE 1/2/3 were read before this write. Where CHAT-2 has a fresher direct live snapshot than CHAT-1, I use the fresher live facts while preserving CHAT-1's evidence discipline.
+
+## AI_REALITY
+
+**Task AI is a real connected production architecture, not a mock.** Canonical `/nova` uses `aiNeedV2Izvor`/`aiNeedV2Production`; the client opens an owned conversation, sends a stable `clientRequestId`, invokes `uskoci-ai-interview`, then reads authoritative turn state and human-review data. `/pregled-nacrta` confirms/corrects facts before draft materialization. This agrees with CHAT-3's route audit.
+
+**Provider adapters exist for both Gemini and OpenAI.** Edge v17 reads server-only `GEMINI_API_KEY/GEMINI_MODEL`, `OPENAI_API_KEY/OPENAI_MODEL` and optional `AI_PROVIDER`. If no valid selected provider is configured it returns `AI_PROVIDER_NOT_CONFIGURED`; provider/parse failures return a bounded failure and retire the attempt metadata rather than fabricating a result. I did not and cannot infer secret availability from source. `SECRET_AVAILABLE = UNKNOWN`, not YES and not NO.
+
+**Structured extraction is strict.** V2 provider output is constrained to `NEED_FACT_V2`, bounded fact counts, typed JSON values, enum/range checks, duplicate-key rejection and explicit safety `ALLOW|CLARIFY|REVIEW|BLOCK`. `need.resolved_location` is manual-only and rejected if AI proposes it. PostgreSQL remains final authority and human confirmation remains distinct from AI inference.
+
+**Retry/idempotency is materially strong.** Current W03 authority has owned open/turn command ledgers, claim/lease/complete/fail/readback semantics and stable request identity. Client code distinguishes confirmed success, processing, failed/unknown outcome and does not blindly mint a different command after transport uncertainty.
+
+**Current provider success is still NOT PROVEN for W03.** My later read-only snapshot found persisted V2 assistant/user history from older activity, but the new `private.ai_need_open_commands` and `private.ai_need_turn_commands` ledgers were both at 0 rows. Therefore historical assistant messages do not prove a successful call through the current owned-W03 command path. This also explains why CHAT-1's earlier aggregate and my later aggregate can differ without establishing a contradiction about provider health: the database changed and/or the query scope differs. The latest native W03 run cited by CHAT-1/3 also failed before publication/marketplace admission.
+
+**No streaming is implemented in the current provider path.** Both Gemini `generateContent` and OpenAI Responses are consumed as bounded JSON responses. That is not a correctness bug; it is a UX/performance capability that remains absent. Do not label the current flow "streaming".
+
+**Serbian output is source-directed, not live-quality-proven.** The system instruction explicitly asks for natural, short, clear Serbian Latin output and supplies Europe/Belgrade server time context. I did not perform a real provider conversation in this read-only phase, so naturalness, latency and actual model compliance remain NOT PROVEN.
+
+**Conversational Worker-profile AI is not current product-connected.** The current Edge owner path is explicitly NEED_INTAKE-oriented and the active mobile AI source is task-oriented. Historical `PROFILE` conversations/RPC-purpose support do not equal a current Worker-profile interview that collects vehicles/capacity/tools/radius/availability. This is a genuine product/integration gap if conversational profile input remains required.
+
+**Automatic cross-provider failover does not exist.** A selected provider failure fails closed instead of silently switching providers. For authoritative structured extraction that is a defensible current policy; any future failover must preserve schema, provenance and retry identity rather than simply retrying a different model.
+
+## PUBLICATION_REALITY
+
+`uskoci-publication-evaluate` is ACTIVE v1 and the mobile Need workspace really invokes it through `publicationClientService.evaluate()`. The evaluator authenticates the user, loads an owned revision-bound publication context, strips provider input to an explicit public projection, requires a reviewed executable policy before provider access, uses strict structured output and records the decision only through the service-only decision writer. Client publication then requires an authoritative ALLOW/decision sequence before `rpc_publish_need_canonical`.
+
+Current live configuration remains intentionally closed: the RS publication bundle is `is_reviewed=false`, `is_complete=false`, `is_active=false`; the fresher snapshot has 16 rule references but 0 authoritative publication decisions. Therefore `CODE EXISTS = YES`, `DEPLOYED = YES`, `CLIENT CONNECTED = YES`, but `PRODUCTION POLICY READY = NO` and `E2E PROVEN = NO`.
+
+The publication evaluator currently uses OpenAI, not an automatic Gemini/OpenAI adapter choice. `OPENAI_API_KEY/OPENAI_MODEL` availability remains UNKNOWN because secrets were not read. A policy-ready real provider classification is not proven. The correct production behavior today is NOT_READY/fail-closed; no agent may activate or fabricate reviewed policy content to obtain a green test.
+
+## NOTIFICATION_REALITY
+
+The notification ledger is real and live structurally: `user_activity_events`, `notification_deliveries`, `notification_preferences`, `notification_push_devices`, `notification_push_attempts` and `private.emit_event()` exist. In my fresh aggregate snapshot, all five operational notification/push tables were at 0 rows. Structural/live schema is therefore not delivery E2E evidence.
+
+`private.emit_event()` is the correct source of truth: durable event first, then category/preference projection, IN_APP delivery and PUSH delivery with suppression reasons. Push defaults OFF when no preference row exists; IN_APP defaults ON. Quiet hours, role context, category switches and explicit HITNO override exist server-side.
+
+CHAT-3 is correct that Inbox and basic push opt-in are already real client surfaces. Detailed category/quiet-hour settings are not exposed even though the revisioned backend/client contract exists.
+
+**Important integration-specific UI gap:** the current `PushPreferences` success copy is based on OS permission + Expo token/device registration + preference state. It has no server capability/readiness signal for "push sender deployed and scheduler operational". Because the EAS project ID is configured, the UI can potentially say "Push je uključen" and "Ovaj uređaj je povezan" even while no production sender/scheduler exists. That wording is technically true about preference/registration but can be understood as operational delivery readiness. A readiness contract or copy distinction is needed before release; client must not infer transport readiness from token registration alone.
+
+## EVENT_COVERAGE
+
+My live function-body scan confirms runtime `emit_event` callers for these currently materialized semantics:
+
+- `OPPORTUNITY_AVAILABLE` — dispatch;
+- `RESPONSE_RECEIVED` — response submit;
+- `RESPONSE_SELECTED` — selection;
+- `RESPONSE_WITHDRAWN` — withdrawal;
+- `NEED_CANCELLED` — Need cancel;
+- `MESSAGE_RECEIVED` — Agreement message;
+- `AGREEMENT_CHANGE_PROPOSED`, `AGREEMENT_CHANGE_REJECTED`, `AGREEMENT_VERSION_CHANGED` — Agreement-change writers;
+- `COMPLETION_REQUIRED`, `EXECUTION_STATE_CHANGED` — completion;
+- `RECOVERY_OPENED` — Agreement problem/recovery;
+- `CLARIFICATION_CREATED`, `CLARIFICATION_ANSWERED` — RU4B service writers.
+
+The event vocabulary currently has values with no production emitter found: `NEED_REVISED`, `PRIVATE_ACCESS_GRANTED`, `RESPONSE_EXPIRED`, `RESPONSE_NOT_SELECTED`, `RESPONSE_SHORTLISTED`, `RESPONSE_STALE`, `RESPONSE_UPDATED`, `RESPONSE_VIEWED`, `REVIEW_RECEIVED`. Enum presence is therefore not implementation evidence.
+
+I independently confirm CHAT-2's two concrete semantic defects: an update through `rpc_submit_response` can still emit `RESPONSE_RECEIVED`/"Nova prijava" instead of `RESPONSE_UPDATED`; and Agreement cancellation has no counterpart cancellation event/taxonomy. These belong to backend domain ownership, not an integration-side workaround.
+
+**Additional notification contract gap:** `NEED_REVISED` exists in the vocabulary and is used by historical Inbox fixtures/lifecycle semantics, but no current production emitter was found. Because real Need editing exists, the Council must decide exactly which affected workers/applicants receive a revision event and when. CHAT-4 should not invent recipients in an Edge worker.
+
+**RU4B category mapping needs a decision.** `private.category_of_event()` does not explicitly map `CLARIFICATION_CREATED/ANSWERED`; they currently fall through to the default `account` category. That may be intentional, but no reviewed product rationale was found. Detailed notification-preference UI should not expose misleading categories until this mapping is frozen.
+
+`REVIEW_RECEIVED` cannot be treated as pending notification plumbing because CHAT-2 proved the review/reputation authority itself is missing.
+
+## PUSH_GAPS
+
+The DB half of push is much stronger than older reports imply. N09 is live and exact-source matched by CHAT-2. It has session-bound device ownership, device revision fencing, service-only claim/begin/complete RPCs, leases, bounded retries, receipt state, dead-token handling and account/session retirement seams.
+
+Canonical source also contains `supabase/functions/uskoci-push-transport/index.ts`. That sender is service-only, has an explicit `EXPO_PUSH_TRANSPORT_ENABLED` kill switch, calls only the service transport RPCs, sends a generic privacy-preserving Inbox payload, queries Expo tickets/receipts and never uses provider text as business authority.
+
+**But current operational push path is OPEN, not deployed:** direct live Edge inventory has no push sender; the only cron is `select private.marketplace_tick(25)` once per minute and the inspected tick/dispatch code does not call push transport. Live push devices and attempts were 0 in my snapshot. Therefore there is currently no proven automatic path `created PUSH delivery → sender invocation → Expo`.
+
+Expo credential/auth mode is UNKNOWN. `EXPO_ACCESS_TOKEN` is optional in source; its presence/absence and the Expo project security setting were not inspected. The public EAS project ID and preview Firebase client file prove client build configuration, not server transport authorization or delivery.
+
+Dead-token handling is correctly revision-fenced in source: `DeviceNotRegistered` can deactivate only the exact still-current registration, preventing a late receipt from disabling a newer/rebound token. This is source/test evidence, not current provider proof.
+
+Ticket/receipt semantics are correctly conservative. Expo ticket success means queued by Expo; provider receipt OK means FCM/APNs accepted. The adapter deliberately never writes `DELIVERED`/`delivered_at`, so neither state may be called physical device delivery.
+
+Current push evidence classification:
+
+- DB transport authority: LIVE/IMPLEMENTED;
+- mobile permission/token/registry/preferences/tap runtime: CONNECTED in source;
+- sender Edge: SOURCE EXISTS / NOT DEPLOYED;
+- scheduler/invoker: NOT FOUND;
+- real Expo ticket: NOT PROVEN;
+- real receipt: NOT PROVEN;
+- live dead-token retirement: NOT PROVEN;
+- physical phone receive: NOT PROVEN;
+- tap from a real received push into Inbox: NOT PROVEN.
+
+This is the clearest CHAT-4-owned operational closure candidate after Council GO, but any DB/cron migration remains CHAT-2/shared-core ownership unless CHAT-1 explicitly assigns it.
+
+## LOCATION_GAPS
+
+Current direct deployment is `uskoci-location-search` v2, JWT verified. The handler is an authenticated read-only adapter to fixed LocationIQ EU search/reverse endpoints. It verifies the actual Auth user, checks an admitted market, rate-limits per isolate, bounds request/response size, rejects redirects, normalizes provider fields and never writes a location fact itself.
+
+Canonical `createProductionLocationResolver()` and the Need/Worker location surfaces genuinely call this Edge. Provider candidates are proposals only; exact/private resolved location remains explicit owner-confirmed state. MapLibre discovery is a separate public coarse-map concern and must not be conflated with provider geocoding or private pin attestation.
+
+Current RS market is present as `BUILDING`, with RSD/sr-Latn-RS/Europe-Belgrade configuration. `LOCATIONIQ_ACCESS_TOKEN` availability is UNKNOWN; no real authenticated LocationIQ forward/reverse call was made in this read-only audit. Thus `DEPLOYED = YES`, `CLIENT CONNECTED = YES`, `LIVE PROVIDER CALL WORKS = NOT PROVEN`, `E2E = NO`.
+
+**Processor-governance gap:** current `private.processor_provider_inventory` rows I observed cover Supabase, OpenAI, Gemini and Expo Push, but not LocationIQ, while the deployed Edge can transmit user-submitted address/search text or coordinates to LocationIQ. `processor_map_sets` and `processor_map_entries` are also empty. This is not permission to invent legal metadata; it is a concrete privacy/processor dependency that must be reconciled before production activation.
+
+CHAT-2/3's Worker-location single-writer split is separate from geocoder transport. CHAT-4 must not fix profile city/radius/coordinate authority in the resolver. Provider transport can be proven independently only after the domain writer contract is frozen.
+
+## CONFIG_GAPS
+
+1. AI provider key/model/`AI_PROVIDER` values: UNKNOWN by design; source presence is not configuration proof.
+2. Publication OpenAI key/model: UNKNOWN; current policy prevents a meaningful production classification anyway.
+3. LocationIQ token: UNKNOWN; real provider success unproven.
+4. Push sender deployment: absent; invocation/scheduler absent; provider auth mode unknown; kill switch state not applicable until sender exists.
+5. Publication bundle: rule refs now exist, but reviewed/complete/active all false and decisions 0.
+6. Processor governance: provider inventory is not a complete processor map; no active versioned processor-map set exists, and LocationIQ is absent from the observed provider inventory.
+7. Legal document versions and retention policy sets/rules remain unpopulated in the live configuration observed by CHAT-2/my audit.
+8. Retention nuance: there is no deployed retention Edge runner, but the live `marketplace_tick` does call `private.retention_maintenance(p_batch)` and `private.data_export_maintenance(p_batch)`. Scheduling code therefore exists in DB; operational deletion/export maintenance remains fail-closed because policy/content prerequisites are not populated. "No Edge runner" must not be misreported as "no retention scheduling code anywhere."
+9. EAS project ID / preview Firebase client config exist; neither is proof of operational Expo push transport.
+
+## INTEGRATION_GAPS
+
+Priority integration gaps, without restarting working subsystems:
+
+1. Prove one current W03 owned AI turn with an approved real provider in a controlled environment, including structured extraction, human review, retry/readback and Serbian output.
+2. Decide/implement conversational Worker-profile AI only if it remains product-required; current task AI cannot be relabeled as profile interview.
+3. Deploy and invoke the existing push sender through an explicitly owned scheduler/caller contract; then prove ticket, receipt, dead-token and physical-device tap.
+4. Prove LocationIQ configuration and authenticated forward/reverse behavior with non-sensitive controlled inputs; keep explicit human confirmation.
+5. Only after real policy/legal approval, prove publication evaluator provider classification and canonical publish end-to-end.
+6. Repair/freeze event semantics before notification copy/preferences depend on them: response update, Agreement cancellation, Need revision, clarification category, VIEWED ownership.
+7. Reconcile processor/privacy configuration with every external provider actually receiving data, especially LocationIQ.
+8. Preserve export/retention fail-closed behavior until legal/processor/retention bindings are populated; deployed code is not operational policy closure.
+9. Do not treat non-streaming AI as a launch correctness blocker unless product decides streaming is required; treat it as a separately scoped UX enhancement.
+
+## FAILURE_MODE_GAPS
+
+Source-level failure behavior is generally stronger than runtime evidence:
+
+- AI: missing provider, provider HTTP failure, malformed/oversized output, stale ownership, reused request IDs and uncertain completion fail closed; no silent cross-provider failover.
+- Publication: not-ready policy/location/context, provider throttling/unavailability/invalid response and stale Need/policy return non-authoritative NOT_READY or reject publication.
+- Location: auth failure, unsupported country, missing provider activation, 429, timeout, redirect, malformed provider response and cancellation do not create canonical location state.
+- Push: stale leases, changed devices, quiet hours/preferences, unknown send outcome, receipt pending, rate exceeded and dead tokens have explicit states; unknown send is not blindly replayed.
+
+What remains unproven are the real external failure paths: actual Gemini/OpenAI 429/5xx/timeout, LocationIQ 429/timeout, policy-ready publication-provider failure, Expo auth failure, actual `DeviceNotRegistered`, receipt pending/rate exceeded and physical notification loss. These should be tested in controlled proof environments, not by mutating production during Council.
+
+## DEPENDENCIES
+
+- CHAT-2 owns domain/migration contracts: event taxonomy/emitters, worker-location single authority, safety/review/closure, legacy RPC revocation and any DB scheduler migration. CHAT-4 must consume these, not bypass them.
+- CHAT-3 owns user surfaces/device journeys: real push permission/token/tap/logout proof, AI retry/error surfaces, location confirmation, detailed notification settings, and any future profile-interview screen.
+- CHAT-5 must design honest states for AI unavailable/retry, publication NOT_READY/REVIEW/BLOCK, location unavailable/rate-limited, push permission vs registration vs transport readiness, and privacy-safe notifications. Visual copy must not turn "registered" into "delivered".
+- CHAT-6 should adversarially verify provider proof provenance, push sender scheduling, Expo ticket-vs-delivery semantics, token rotation/dead-token races, AI command idempotency, event semantic gaps and LocationIQ data minimization.
+- Operator/legal approval remains external for publication policy, processor map, retention/legal content and store/release credentials.
+
+## SAFE_PARALLEL_WORK
+
+Current phase remains READ-ONLY; this is not implementation authorization.
+
+After CHAT-1 freezes contracts and issues GO, likely isolated CHAT-4 candidates are:
+
+- `AI_PROVIDER_PROOF`: provider/config/proof work around existing Edge/client contracts without changing Need/Agreement core.
+- `PUSH_TRANSPORT_CLOSURE`: existing sender Edge runtime/deployment/proof; scheduler only if its ownership/write-set is explicitly granted. Do not edit event taxonomy or mobile root navigation inside this package.
+- `LOCATION_PROVIDER_PROOF`: Edge/provider/config/proof with controlled inputs; no worker-profile authority rewrite.
+- `PUBLICATION_PROVIDER_PROOF`: only after approved policy activation by the proper owner.
+- `PROFILE_AI_CONTRACT/ADAPTER`: separate package only after product/backend/client contract is defined; do not overload NEED_INTAKE silently.
+
+CHAT-3's proposed detailed notification-preferences slice is integration-compatible **after** CHAT-2 freezes category semantics, especially `CLARIFICATION_*`, and after the UI distinguishes preference/device registration from operational sender readiness. Its write-set can then remain presentation/controller/tests only.
+
+## CROSS_OWNER_REQUESTS
+
+**CROSS_OWNER_REQUEST TO CHAT-2**
+
+1. Freeze/fix notification domain semantics before client/integration closure: `RESPONSE_UPDATED` for edits, Agreement cancellation counterpart event/taxonomy, exact `NEED_REVISED` recipients/trigger, `CLARIFICATION_*` category, and ownership of `RESPONSE_VIEWED`.
+2. Decide whether the older authenticated `rpc_ai_open_need_conversation_v2()` remains an accepted public authority or should be retired behind the owned W03 command path. This affects AI duplicate-open guarantees.
+3. Resolve `WORKER_LOCATION_SINGLE_AUTHORITY`; CHAT-4 will not patch around it in geocoder code.
+4. If push scheduling is DB/pg_cron based, own or explicitly delegate the forward migration/caller. Existing N09 service RPCs must remain the only sender authority.
+5. Reconcile processor/legal governance for LocationIQ and other active external providers; technical inventory must not invent counsel/DPA content.
+
+**CROSS_OWNER_REQUEST TO CHAT-3**
+
+1. Preserve current AI request identity/readback semantics while exposing provider unavailable/retry states; do not auto-retry as a new command.
+2. For push, prove explicit permission → token → session-bound registration → logout/revoke → real received notification tap after sender exists. UI should separately present OS permission, device registration, preference opt-in and transport readiness.
+3. Keep LocationIQ candidates as proposals requiring owner confirmation; no address autofill should become canonical merely because provider returned it.
+4. Detailed notification preferences are a good isolated future slice once category mapping/readiness semantics are frozen.
+5. If conversational Worker profile remains required, define a real route/state contract rather than reusing task Need conversation DTOs.
+
+**DESIGN_COORDINATION_REQUEST TO CHAT-5**
+
+Please distinguish in UI language and states:
+- AI configured vs temporarily failed vs unconfirmed outcome;
+- publication NOT_READY vs REVIEW/BLOCK vs authoritative ALLOW;
+- location provider proposal vs user-confirmed pin/location;
+- push OS permission vs registered device vs preference enabled vs operational transport vs provider receipt; never claim physical delivery from Expo acceptance;
+- notification category/quiet-hours controls only after backend category semantics are frozen.
+
+## DISAGREEMENTS
+
+1. I adopt CHAT-2's current Edge inventory over CHAT-1's earlier names. The active functions are `uskoci-ai-interview`, `uskoci-location-search`, `uskoci-publication-evaluate`, `uskoci-data-export-worker`, `uskoci-data-export-download`; there is no deployed push sender or retention Edge runner in the direct current inventory.
+2. I adopt CHAT-2's fresher publication state: 16 rule refs now exist, but the bundle is still unreviewed/incomplete/inactive and decisions are 0. This is configuration progress, not publication readiness.
+3. CHAT-1's earlier absence of persisted assistant messages is not a durable statement: my later aggregate observed V2 assistant rows. However the current W03 command ledgers remain empty, so neither snapshot proves current provider success. The safe conclusion is still `LIVE CURRENT W03 PROVIDER SUCCESS = NOT PROVEN`.
+4. I agree with CHAT-2 that push DB authority is live and with CHAT-3 that mobile push wiring exists. I add that current mobile preference/registration state does **not** know whether sender deployment/scheduling is operational; therefore a registered/"enabled" UI state must not be interpreted as end-to-end push readiness.
+5. I agree with CHAT-2's response-update and Agreement-cancel event defects. I additionally flag `NEED_REVISED` with no runtime emitter and `CLARIFICATION_*` falling into the default `account` preference category as contracts requiring explicit backend/product decisions rather than client workarounds.
+6. CHAT-2 states no deployed retention runner; true for Edge inventory. I add that live `marketplace_tick` already calls DB retention/export maintenance. The actual blocker is missing approved retention/processor/legal policy data, not total absence of scheduled maintenance code.
+7. I agree with CHAT-3 that Map/availability/calendar/Need location/basic push settings are not missing. Their remaining issues are contract/proof/operational gaps, not reasons to rebuild those surfaces.
+8. I disagree with any future claim that provider inventory `active=true` proves an API key/live call. Inventory is governance metadata. Conversely, the absence of LocationIQ from that observed inventory while LocationIQ receives location queries is a concrete governance gap.
+
+Integration verdict: **USKOČI already has substantial AI, notification, location and publication integration architecture. The launch-critical problem is now operational closure and truthful evidence: provider configuration/proof, push sender+scheduler, external-provider governance, event semantics, and current-device E2E. Do not rebuild working adapters; close the exact gaps without bypassing domain authorities.**
+
+NEXT: CHAT-5
