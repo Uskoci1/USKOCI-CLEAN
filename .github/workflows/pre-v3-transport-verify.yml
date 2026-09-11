@@ -1,0 +1,69 @@
+name: PRE-V3 verified patch transport
+on:
+  push:
+    branches: [work/pre-v3-exact-verifier-20260911]
+    paths: [.pre-v3/transport-correction.json]
+permissions:
+  contents: write
+concurrency:
+  group: pre-v3-single-integration-writer
+  cancel-in-progress: false
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: control
+          persist-credentials: false
+      - name: Validate fixed integration target
+        id: pin
+        run: |
+          python3 - <<'PY'
+          import json,os,re
+          d=json.load(open('control/.pre-v3/integration-save.json'))
+          assert d['branch']=='work/pre-v3-engine-integration-20260911'
+          assert re.fullmatch('[0-9a-f]{40}',d['base'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('base='+d['base']+'\n')
+          PY
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: source
+          ref: ${{ steps.pin.outputs.base }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate repaired transport then run original reviewed source admission
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,os,pathlib,subprocess,textwrap,zlib
+          p=pathlib.Path('../control/.pre-v3/integration-save.json');original=p.read_bytes();d=json.loads(original)
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration-save';out.mkdir(exist_ok=True)
+          (out/'received-source-request.json').write_bytes(original)
+          correction=json.load(open('../control/.pre-v3/transport-correction.json'))
+          assert len(d['commits'])==1 and correction['commit']==d['commits'][0]['commit']
+          c=d['commits'][0]
+          assert len(correction['replacements'])<=30
+          for old,new in correction['replacements']:
+            assert isinstance(old,str) and isinstance(new,str) and old and len(old)<300 and len(new)<300
+            assert c['compressedPatch'].count(old)==1
+            c['compressedPatch']=c['compressedPatch'].replace(old,new)
+          raw=zlib.decompress(base64.b64decode(c['compressedPatch'],validate=True))
+          assert len(raw)<2000000 and hashlib.sha256(raw).hexdigest()==c['patchSha256']
+          p.write_text(json.dumps(d)+'\n')
+          workflow=pathlib.Path('../control/.github/workflows/pre-v3-publish-integration.yml').read_bytes()
+          assert subprocess.check_output(['git','hash-object','--stdin'],input=workflow).decode().strip()=='b5819575af0c1c39433b3421bbd0f742f6d0e400'
+          section=workflow.decode().split('      - name: Validate exact Git objects and frozen SQL, then fast-forward fixed integration ref\n',1)[1]
+          body=section.split("          python3 - <<'PY'\n",1)[1].split('\n          PY\n',1)[0]
+          exec(compile(textwrap.dedent(body),'unchanged-reviewed-admission','exec'),{})
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pre-v3-verified-transport-${{ github.run_id }}
+          path: ${{ runner.temp }}/integration-save/
+          retention-days: 14
+          if-no-files-found: warn
