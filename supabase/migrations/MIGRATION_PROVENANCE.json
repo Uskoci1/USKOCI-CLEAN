@@ -2148,6 +2148,21 @@
       "raw_md5": "198f5fb00aea90a8342d1c0acd707b27",
       "raw_sha256": "ca4f3b132e706759515efd75b468a607160b992caa8c0df3fe3f6a68e471c4eb",
       "raw_bytes": 2668
+    },
+    {
+      "version": "20260911220000",
+      "name": "clean_pre_v3_requester_identity",
+      "file": "20260911220000_clean_pre_v3_requester_identity.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied P7 existing REQUESTER display-name CAS/receipt authority after source115. Historical87 is replay-root metadata, not current live108.",
+      "raw_md5": "7cb73975081ae298b754c5866f8cfa33",
+      "raw_sha256": "15520f052d3d9688ef180cceb1991b45066a26c0b8f3cffed7f6f6279fdeb48a",
+      "raw_bytes": 6790,
+      "source": "PRE-V3 P7 owner-authorized REQUESTER display-name correction; existing profile schema and public projection only.",
+      "notes": "Candidate116. Strict original command replay/CAS; private receipt ledger; no account/Worker city, KYC, rating, legal or live change."
     }
   ],
   "p2_data_export_requests": {
