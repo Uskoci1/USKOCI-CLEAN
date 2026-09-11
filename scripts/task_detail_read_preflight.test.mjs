@@ -30,5 +30,6 @@ test('current actual source dependency graph loads with only transport/account i
   assert.equal(typeof adapters.baseline.prilika, 'function');
   assert.equal(typeof adapters.needService.potreba, 'function');
   assert.ok(adapters.sources.some(item => item.path === 'src/lib/location.ts'));
+  assert.ok(adapters.sources.some(item => item.path === 'src/data/legacyRpcFailure.ts'));
   assert.ok(adapters.sources.every(item => /^[a-f0-9]{64}$/.test(item.sha256)));
 });
