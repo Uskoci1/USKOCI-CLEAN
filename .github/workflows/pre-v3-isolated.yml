@@ -5,7 +5,7 @@ on:
     paths: ['.pre-v3/run.json']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: pre-v3-isolated-worker-admission
   cancel-in-progress: false
@@ -34,8 +34,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json,re,os
-          d=json.load(open('control/.pre-v3/run.json'))
-          s=d['sourceSha'];assert re.fullmatch('[a-f0-9]{40}',s)
+          d=json.load(open('control/.pre-v3/run.json'));s=d['sourceSha'];assert re.fullmatch('[a-f0-9]{40}',s)
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('source='+s+'\n')
           PY
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -49,22 +48,16 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: source/package-lock.json
-      - name: Record exact source and retain passed application-source binding
+      - name: Exact source and candidate-only migration inventory
         working-directory: source
         env:
           SOURCE_SHA: ${{ steps.pin.outputs.source }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          test "$(git merge-base 1138d4f727735519b15d9b834bf261954e8013fe HEAD)" = 1138d4f727735519b15d9b834bf261954e8013fe
-          mkdir -p "$RUNNER_TEMP/pre-v3-evidence"
-          echo "PRE_V3_SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
-          python3 - <<'PY'
-          import json,subprocess,os,pathlib
-          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence'
-          p.joinpath('candidate.json').write_text(json.dumps({'sourceSha':os.environ['SOURCE_SHA'],'sourceTree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'sourceTestsFrom':'72cdc8cc4bbf4d1876bb742ca40218e2426cf612','sourceTestRun':34632479450,'liveChanged':False,'deviceProven':False,'providerProven':False},indent=2)+'\n')
-          PY
-          git diff --exit-code 72cdc8cc4bbf4d1876bb742ca40218e2426cf612 HEAD -- src package.json package-lock.json supabase/functions
-          git bundle create "$RUNNER_TEMP/pre-v3-evidence/candidate.bundle" HEAD ^1138d4f727735519b15d9b834bf261954e8013fe
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          python3 ../control/.pre-v3/record_source.py
       - name: Unchanged dependencies, proof syntax and migration integrity
         working-directory: source
         run: |
@@ -72,6 +65,7 @@ jobs:
           python3 supabase/migrations/check_migration_integrity.py | tee "$RUNNER_TEMP/pre-v3-evidence/integrity.log"
           node --check supabase/proofs/pre_v3/worker_authority_proof.mjs
           node --check supabase/proofs/pre_v3/inbox_visibility_proof.mjs
+          node --check supabase/proofs/pre_v3/agreement_core_proof.mjs
           git diff --exit-code HEAD
       - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
         with:
@@ -82,19 +76,21 @@ jobs:
         run: |
           git worktree add --detach ../baseline 1138d4f727735519b15d9b834bf261954e8013fe
           ln -s "$PWD/node_modules" ../baseline/node_modules
-      - name: Existing disposable full stack and real local Auth fixture
+      - name: Existing disposable full stack through live79
         working-directory: baseline
         run: |
           export GITHUB_WORKSPACE="$PWD"
           export GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe
           bash supabase/proofs/ru5_device_ui_live79_env.sh > "$RUNNER_TEMP/pre-v3-evidence/bootstrap.log" 2>&1
-      - name: Fixture and exact105,106,108 predecessor reconstruction
+      - name: Export real disposable Auth fixture to following steps
+        working-directory: baseline
+        run: env GITHUB_WORKSPACE="$PWD" GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe node supabase/proofs/ru5_device_ui_fixture.mjs > "$RUNNER_TEMP/pre-v3-evidence/fixture.log" 2>&1
+      - name: Exact105,106,108 predecessor reconstruction
         id: reconstruct
         working-directory: baseline
         run: |
           export GITHUB_WORKSPACE="$PWD"
           export GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe
-          node supabase/proofs/ru5_device_ui_fixture.mjs > "$RUNNER_TEMP/pre-v3-evidence/fixture.log" 2>&1
           node scripts/ci/owned-intake-proof.mjs prepare105 > "$RUNNER_TEMP/pre-v3-evidence/prepare105.log" 2>&1
           node scripts/ai_review_fixture.mjs admit > "$RUNNER_TEMP/pre-v3-evidence/admit106.log" 2>&1
           node scripts/ci/owned-intake-proof.mjs prepare108 > "$RUNNER_TEMP/pre-v3-evidence/prepare108.log" 2>&1
@@ -107,6 +103,23 @@ jobs:
         if: always() && steps.reconstruct.outcome == 'success'
         working-directory: source
         run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/inbox_visibility_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/inbox-sql.log"
+      - name: Actual Agreement invariants, capacity selection and races
+        id: agreement_sql
+        if: always() && steps.worker_sql.outcome == 'success' && steps.inbox_sql.outcome == 'success'
+        working-directory: source
+        run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/agreement_core_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/agreement-sql.log"
+      - name: Retain bounded predecessor diagnostics and exact verdicts
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,os
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence';out.mkdir(exist_ok=True)
+          reports=[]
+          for p in pathlib.Path('baseline/artifacts').rglob('proof-report.json'):
+            d=json.loads(p.read_text())
+            reports.append({'path':str(p),'result':d.get('result'),'failure':d.get('failure'),'failed_stage':d.get('failed_stage'), 'sqlstate':d.get('sqlstate'),'checks':d.get('checks')})
+          out.joinpath('predecessor-verdicts.json').write_text(json.dumps(reports,indent=2)+'\n')
+          PY
       - name: Retain original evidence and failures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
