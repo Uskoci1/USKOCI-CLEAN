@@ -137,7 +137,16 @@ try{
  assert.equal((await intake.loadConversation(open2.conversationId)).review.canSaveDraft,true);
  const need2=await accepted(intake.saveDraft(open2.conversationId,randomUUID()));assert.notEqual(need1.needId,need2.needId);
  assert.equal((await intake.loadConversation(open1.conversationId)).status,'COMPLETED');
- assert.equal((await intake.sendMessage(open1.conversationId,'Ne sme otvoriti stari razgovor.',randomUUID())).ok,false);
+ const firstSnapshot=rows(`select status,bound_need_id,(select count(*) from public.ai_messages m where m.conversation_id=c.id) message_count,
+  (select count(*) from public.ai_structured_facts f where f.conversation_id=c.id) fact_count from public.ai_conversations c where c.id=${q(open1.conversationId)}::uuid`);
+ const terminalKey=randomUUID(),terminal=await accepted(intake.sendMessage(open1.conversationId,'Ne sme otvoriti stari razgovor.',terminalKey));
+ // W03 deliberately returns an authoritative FAILED command receipt on HTTP409,
+ // not an unknown transport failure. This is rejection, not permission to write.
+ assert.equal(terminal.state,'FAILED');assert.equal(terminal.retryAllowed,false);assert.equal(terminal.receipt,null);
+ assert.deepEqual(plain(await accepted(intake.readTurn(open1.conversationId,terminalKey))),plain(terminal));
+ assert.deepEqual(rows(`select status,bound_need_id,(select count(*) from public.ai_messages m where m.conversation_id=c.id) message_count,
+  (select count(*) from public.ai_structured_facts f where f.conversation_id=c.id) fact_count from public.ai_conversations c where c.id=${q(open1.conversationId)}::uuid`),firstSnapshot);
+ assert.equal(providerCalls,2);
  assert.equal((await intake.abandonConversation(open1.conversationId)).ok,false);
  const needs=await ok(owner.from('needs').select('id,requester_account_id,title,status').in('id',[need1.needId,need2.needId]));
  assert.equal(needs.length,2);assert.equal(needs.find(x=>x.id===need1.needId).title,'Prvi sačuvani Zadatak');
