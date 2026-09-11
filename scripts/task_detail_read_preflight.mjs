@@ -11,7 +11,7 @@ import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../supabase/proofs/ru5_device_ui_local_guard.mjs';
 
-const modules = ['data/supabaseIzvor', 'data/needClientService', 'data/publicProfileClientService',
+const modules = ['contracts/workerCapacity', 'data/supabaseIzvor', 'data/needClientService', 'data/publicProfileClientService',
   'data/calendarErrors', 'data/legacyRpcFailure', 'data/serverReceipt', 'data/needDetailPresentation', 'lib/capabilityTerms',
   'lib/calendarTime', 'lib/market', 'lib/location', 'ui/calendar/calendarPresentation'];
 export function readSourceAdapters(sourceRoot, worker, workerId, trace = []) {

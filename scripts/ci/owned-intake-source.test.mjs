@@ -1,12 +1,21 @@
+import { historicalSource108Fixture } from '../../supabase/proofs/historical_source108_fixture.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
-import {readP3RetentionPredecessorPlan} from '../../supabase/proofs/legal/p3_retention_schedule_predecessor.mjs';
+import {readP3RetentionPredecessorPlan as readCurrentPlan} from '../../supabase/proofs/legal/p3_retention_schedule_predecessor.mjs';
 import {ownedIntakeSourceBoundary,ownedIntakeForward,retentionForward,pushTransportForward,dispatchLockForward} from './owned-intake-source.mjs';
 import {prepare105,prepareNativeSuccessors,admitNativeSuccessors} from './owned-intake-proof.mjs';
 const require=createRequire(import.meta.url);
 const {classify,makePlan,testArguments}=require('./scope.cjs');
+
+// This historical planner intentionally remains closed to the larger integration source.
+const readP3RetentionPredecessorPlan = (root) => root ? readCurrentPlan(root) : historicalSource108Fixture(readCurrentPlan);
+test('expanded current source is rejected by the unchanged SQL108 boundary', () => {
+  const current = readCurrentPlan();
+  assert.ok(current.source_migration_count > 108);
+  assert.throws(() => ownedIntakeSourceBoundary(current), /W03_EXACT_SOURCE108_REQUIRED/);
+});
 
 test('exact admitted108 splits at105 and106 without losing the transport successor',()=>{
   const plan=readP3RetentionPredecessorPlan(),b=ownedIntakeSourceBoundary(plan);
