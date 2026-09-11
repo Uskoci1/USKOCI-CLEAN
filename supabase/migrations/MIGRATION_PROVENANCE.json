@@ -2083,6 +2083,19 @@
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
       "note": "PRE-V3 candidate; historic87 field is the existing replay manifest, NOT current live108 observation. Apply only after exact108 admission and per-package rollout gates."
+    },
+    {
+      "version": "20260911183000",
+      "name": "clean_pre_v3_inbox_delivery_visibility",
+      "file": "20260911183000_clean_pre_v3_inbox_delivery_visibility.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "raw_md5": "1b175a0e2136f9569f95b9f1302b69c1",
+      "sha256": "0f7470f6d95c79b0c6d93384f797dbf0397033e21c2316f649d8b31f59f3c3f4",
+      "bytes": 6549,
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "PRE-V3 delivery-aware Inbox candidate; historic87 replay metadata is not current live count. Independently body-bound to existing Inbox functions; no production activation yet."
     }
   ],
   "p2_data_export_requests": {
