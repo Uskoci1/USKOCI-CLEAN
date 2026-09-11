@@ -915,7 +915,7 @@ Please distinguish in UI language and states:
 - AI configured vs temporarily failed vs unconfirmed outcome;
 - publication NOT_READY vs REVIEW/BLOCK vs authoritative ALLOW;
 - location provider proposal vs user-confirmed pin/location;
-- push OS permission vs registered device vs preference enabled vs operational transport vs provider receipt; never claim physical delivery from Expo acceptance;
+- push OS permission vs registered device vs preference enabled vs operational transport vs provider ticket/receipt; never claim physical delivery from Expo acceptance;
 - notification category/quiet-hours controls only after backend category semantics are frozen.
 
 ## DISAGREEMENTS
@@ -961,15 +961,15 @@ A separate correctness rule follows from CHAT-2/4: UI state must describe author
 
 3. **AI intake can become vertically overloaded.** Conversation, live task summary, assistant question, previous context, composer and review/progress information compete for a small viewport. Preserve the strong source semantics, but visually enforce `one question → one user decision → one next state`; the live summary should collapse to a compact strip/card and history should stay secondary rather than turning `/nova` into chat + form + dashboard simultaneously.
 
-4. **Human draft review risks looking like an internal fact ledger.** Provenance, confirmation and correction are domain-critical, but every fact should not become an equally heavy bordered object. Group confirmed facts into user language (`Шта`, `Где`, `Када`, `Цена`, `Људи`), visually elevate only missing/uncertain/blocked facts and keep explicit correction without weakening revision-bound human confirmation.
+4. **Human draft review risks looking like an internal fact ledger.** Provenance, confirmation and correction are domain-critical, but every fact should not become an equally heavy bordered object. Group confirmed facts into user language (`Šta`, `Gde`, `Kada`, `Cena`, `Ljudi`), visually elevate only missing/uncertain/blocked facts and keep explicit correction without weakening revision-bound human confirmation.
 
-5. **Agreement must have a state-aware primary action.** `Поруке` are important but cannot visually outrank a required state transition such as completion confirmation, a pending change decision or recovery action. The dominant CTA should answer `Шта сада треба да урадим да би Договор напредовао?`; communication remains continuously reachable but not automatically primary.
+5. **Agreement must have a state-aware primary action.** `Poruke` are important but cannot visually outrank a required state transition such as completion confirmation, a pending change decision or recovery action. The dominant CTA should answer `Šta sada treba da uradim da bi Dogovor napredovao?`; communication remains continuously reachable but not automatically primary.
 
 6. **`Moje prijave` can combine too many responsibilities in one card.** Scan summary, status, offer data, stale resolution, editing and destructive withdrawal compete in one list object. List rows should stay scannable; stale/conflict resolution and edits should become focused secondary surfaces/sheets after ownership is assigned.
 
 7. **Worker profile is functionally real but still form-first.** Long manual groups for skills/tools/vehicles/city/radius/bio/availability are useful as a precision editor, but they are not the intended conversational profile experience. CHAT-4 confirms current Need AI cannot simply be relabeled as Worker-profile AI. If product keeps conversational profile creation, it needs its own contract; design can then make conversation + live profile preview primary and retain the form as advanced/manual edit.
 
-8. **Availability exposes scheduler complexity too early.** Timezone, available-now, recurring rules, exceptions, one-off windows and overnight intervals are valid capabilities, but consumer UX should first answer `Када углавном можеш?`; advanced exception/rule editing should be progressive disclosure.
+8. **Availability exposes scheduler complexity too early.** Timezone, available-now, recurring rules, exceptions, one-off windows and overnight intervals are valid capabilities, but consumer UX should first answer `Kada uglavnom možeš?`; advanced exception/rule editing should be progressive disclosure.
 
 9. **Manual-only Task composition is a product-contract question, not a presentation patch.** CHAT-3 did not find an independent manual composer. CHAT-5 should not invent one by bypassing the confirmed AI/human-review authority; CHAT-1 must decide whether manual-only is required and who owns that contract.
 
