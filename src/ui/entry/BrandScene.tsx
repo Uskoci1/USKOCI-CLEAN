@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedProps, useAnimatedStyle, useFrameCallback, useSharedValue, withTiming, type FrameCallback, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { G, Path } from 'react-native-svg';
 import { brandParts, brandWords } from './spojBrandData';
@@ -11,8 +11,44 @@ const PHONE = { x: 0, y: 0, width: 390, height: 844 };
 const LOGO = { x: 43, y: 185, width: 304, height: 98.8 };
 
 /** One UI-runtime clock for the exact executable V2 rIntroFrame timeline. */
-export function useBrandClock(animate: boolean, paused: boolean, onComplete?: () => void) {
+export function useBrandClock(animate: boolean, paused: boolean, onComplete?: () => void,
+  onVisibleFrame?: (sourceTimeMs: number) => void) {
   const time = useSharedValue(animate || paused ? 0 : INTRO_DURATION_MS);
+  const firstVisibleTimestamp = useSharedValue<number | null>(null);
+  const frameDelivered = useSharedValue(false);
+  const uiOwner = useSharedValue(0);
+  const lifetime = useRef({ active: false, owner: 0 });
+  const observerRef = useRef<FrameCallback | null>(null);
+  const deliverVisible = useCallback((owner: number, sourceTimeMs: number) => {
+    if (!lifetime.current.active || lifetime.current.owner !== owner) return;
+    lifetime.current.active = false;
+    observerRef.current?.setActive(false);
+    onVisibleFrame?.(sourceTimeMs);
+  }, [onVisibleFrame]);
+  const observer = useFrameCallback(frame => {
+    if (frameDelivered.get()) return;
+    // Use the actual source tracks, not a guessed delay. At exactly 40ms the
+    // first arms still have opacity zero. Geometry does not alter their opacity.
+    const sourceTime = time.get();
+    const visible = brandFrame(sourceTime, PHONE, LOGO).parts.some(part => part.opacity > 0);
+    if (!visible) { firstVisibleTimestamp.set(null); return; }
+    const previous = firstVisibleTimestamp.get();
+    if (previous === null) { firstVisibleTimestamp.set(frame.timestamp); return; }
+    // A later UI frame follows the draw opportunity for the preceding nonzero
+    // artwork. A React layout, shared-value write or two JS RAFs is insufficient.
+    if (frame.timestamp <= previous) return;
+    frameDelivered.set(true);
+    scheduleOnRN(deliverVisible, uiOwner.get(), sourceTime);
+  }, false);
+  observerRef.current = observer;
+  useEffect(() => {
+    const owner = lifetime.current.owner + 1;
+    const active = !!onVisibleFrame && !paused;
+    lifetime.current = { active, owner };
+    uiOwner.set(owner); firstVisibleTimestamp.set(null); frameDelivered.set(false);
+    observer.setActive(active);
+    return () => { lifetime.current.active = false; observer.setActive(false); };
+  }, [animate, paused, onVisibleFrame, observer, uiOwner, firstVisibleTimestamp, frameDelivered]);
   useEffect(() => {
     if (!animate) { time.set(paused ? 0 : INTRO_DURATION_MS); return; }
     time.set(0);
