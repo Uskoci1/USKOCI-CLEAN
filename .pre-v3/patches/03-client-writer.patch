@@ -1,0 +1,93 @@
+diff --git a/src/data/workerProfileClientService.ts b/src/data/workerProfileClientService.ts
+index 2e2cf88..d56c902 100644
+--- a/src/data/workerProfileClientService.ts
++++ b/src/data/workerProfileClientService.ts
+@@ -1,3 +1,5 @@
++import { workerCapacityRevision, workerCapacityValue } from '../contracts/workerCapacity';
++import { workerCapacityClientService } from './workerCapacityClientService';
+ import type { AzurirajProfilKomanda, Ishod, Izvor } from './ports';
+ import { sesijaSada } from '../store/sesija';
+ import { capabilityTerms } from '../lib/capabilityTerms';
+@@ -19,7 +21,7 @@ const COPY: Readonly<Record<string, string>> = {
+   V2_FACT_VALUE_REQUIRED: 'Unesite ispravne podatke profila.',
+ };
+ const RESOURCE_FIELDS = { vestine: 'skills', alati: 'tools', vozila: 'vehicles', licence: 'licenses' } as const;
+-const TEXT_FIELDS = { ime: 'display_name', grad: 'city', biografija: 'bio' } as const;
++const TEXT_FIELDS = { ime: 'display_name', biografija: 'bio' } as const;
+ 
+ function profileRow(raw: unknown, account: string, expectedId?: string): { id: string } | null {
+   const row = record(raw);
+@@ -28,7 +30,8 @@ function profileRow(raw: unknown, account: string, expectedId?: string): { id: s
+   return { id: row.id };
+ }
+ 
+-/** Existing profile writer and activation RPC, now using the same owned-result
++/** Profile capabilities/identity only; location and availability writes are refused.
++ * Existing activation RPC and the same owned-result
+  * fence as location/calendar/availability. Captured owner filters also protect
+  * REST writes if the SDK token changes while the request is being prepared. */
+ export const workerProfileClientService: WorkerProfileClientService = {
+@@ -39,9 +42,21 @@ export const workerProfileClientService: WorkerProfileClientService = {
+     const lock = `${account.accountId}:${account.accountRevision}`;
+     if (inFlight.has(lock)) return failure('PROFILE_BUSY', 'Prethodno čuvanje profila se još obrađuje.');
+     const input = record(k);
+-    if (!input || Object.keys(input).some(key => !['ime','grad','biografija','vestine','alati','vozila','licence','dostupanOdmah','radijusKm','zavrsi'].includes(key))) {
++    if (!input || Object.keys(input).some(key => !['ime','grad','biografija','vestine','alati','vozila','licence','dostupanOdmah','radijusKm','kapacitetTima','capacityRevision','zavrsi'].includes(key))) {
+       return failure('PROFILE_INPUT_INVALID', 'Podaci profila nisu ispravni.');
+     }
++    // Geography and availability have their own revision-bound canonical RPCs.
++    // Reject old callers explicitly; never silently drop or rewrite their input.
++    if (input.grad !== undefined || input.radijusKm !== undefined) {
++      return failure('PROFILE_LOCATION_REQUIRES_REVIEW', 'Mesto i radijus menjaju se u podešavanju područja rada.');
++    }
++    if (input.dostupanOdmah !== undefined) {
++      return failure('PROFILE_AVAILABILITY_REQUIRES_REVIEW', 'Dostupnost menjajte kroz podešavanje dostupnosti.');
++    }
++    const capacityEdit = input.kapacitetTima !== undefined || input.capacityRevision !== undefined;
++    if (capacityEdit && (!workerCapacityValue(input.kapacitetTima) || !workerCapacityRevision(input.capacityRevision))) {
++      return failure('WORKER_CAPACITY_INPUT_INVALID', 'Unesite ceo broj od 1 do 50 ljudi i učitajte aktuelni profil.');
++    }
+     const patch: Record<string, unknown> = {};
+     for (const [field, column] of Object.entries(TEXT_FIELDS)) {
+       if (input[field] === undefined) continue;
+@@ -54,16 +69,6 @@ export const workerProfileClientService: WorkerProfileClientService = {
+       if (!terms) return failure('PROFILE_CAPABILITY_INPUT_INVALID', 'Unesite do 50 nepraznih stavki, do 500 znakova po stavci.');
+       patch[column] = terms;
+     }
+-    if (input.dostupanOdmah !== undefined) {
+-      if (typeof input.dostupanOdmah !== 'boolean') return failure('PROFILE_INPUT_INVALID', 'Dostupnost nije ispravna.');
+-      patch.available_now = input.dostupanOdmah;
+-    }
+-    if (input.radijusKm !== undefined) {
+-      if (typeof input.radijusKm !== 'number' || !Number.isInteger(input.radijusKm) || input.radijusKm < 1 || input.radijusKm > 200) {
+-        return failure('PROFILE_INPUT_INVALID', 'Radijus mora biti ceo broj od 1 do 200 km.');
+-      }
+-      patch.radius_km = input.radijusKm;
+-    }
+     if (input.zavrsi !== undefined && typeof input.zavrsi !== 'boolean') return failure('PROFILE_INPUT_INVALID', 'Radnja profila nije ispravna.');
+     const activate = input.zavrsi === true;
+     inFlight.add(lock);
+@@ -94,8 +99,8 @@ export const workerProfileClientService: WorkerProfileClientService = {
+       if (!profileId) {
+         const inserted = await run({
+           request: () => supabase.from('app_profiles').insert({
+-            account_id: account.accountId, kind: 'WORKER', display_name: '', city: '', bio: '',
+-            skills: [], tools: [], vehicles: [], available_now: false, radius_km: 15,
++            account_id: account.accountId, kind: 'WORKER', display_name: '', bio: '',
++            skills: [], tools: [], vehicles: [],
+             ...patch, profile_status: 'DRAFT',
+           }).select('id,account_id,kind').single(),
+           fallback: 'PROFILE_CREATE_FAILED', invalid: 'PROFILE_INVALID_RESPONSE', write: true,
+@@ -113,6 +118,12 @@ export const workerProfileClientService: WorkerProfileClientService = {
+         });
+         if (!updated.ok) return updated;
+       }
++      if (capacityEdit) {
++        const result = await workerCapacityClientService.save({ teamCapacity: input.kapacitetTima as number,
++          expectedRevision: input.capacityRevision as string }, account);
++        if (!result.ok) return result;
++        if (!sameId(result.podatak.capacity.profileId, profileId)) return failure('PROFILE_INVALID_RESPONSE', 'Ponovo učitajte radni profil.');
++      }
+       if (activate) {
+         const result = await run({ request: () => supabase.rpc('rpc_complete_worker_profile', { p_profile_id: profileId }),
+           fallback: 'PROFILE_ACTIVATION_FAILED', invalid: 'PROFILE_INVALID_RESPONSE', write: true, decode: raw => raw === null ? true : null });
