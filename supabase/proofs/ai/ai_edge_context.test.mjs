@@ -20,7 +20,7 @@ const providerResult={safety:'ALLOW',assistantMessage:'Pregledajte predloženi b
 ]};
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,schema='NEED_FACT_V2',activeFacts=[],providerOutput}={}){
-  const calls=[],logs=[],env={SUPABASE_URL:'https://database.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC_KEY',
+  const calls=[],logs=[],env={AI_PROVIDER:provider,SUPABASE_URL:'https://database.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC_KEY',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE_KEY',GEMINI_API_KEY:provider==='gemini'?'SYNTHETIC_GEMINI_KEY':'',
     GEMINI_MODEL:provider==='gemini'?'synthetic-gemini-model':'',OPENAI_API_KEY:'SYNTHETIC_OPENAI_KEY',OPENAI_MODEL:'synthetic-openai-model'};
   let handler;
@@ -227,15 +227,15 @@ for(const selected of ['openai','gemini'])test(`explicit ${selected} chooses onl
   assert.deepEqual(f.logs,[]);assert.ok(!JSON.stringify(body).includes('SYNTHETIC_'));
 });
 
-test('absent selector preserves legacy Gemini-first selection and rejects client provider fields',async()=>{
-  const f=fixture();assert.equal(f.env.AI_PROVIDER,undefined);
+test('absent selector uses owner-approved OpenAI primary and rejects client provider fields',async()=>{
+  const f=fixture();delete f.env.AI_PROVIDER;assert.equal(f.env.AI_PROVIDER,undefined);
   assert.equal((await f.invoke({provider:'openai',AI_PROVIDER:'openai'})).status,400);assert.equal(f.calls.length,0);
   const response=await f.invoke();assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');
-  assert.equal(providerCalls(f).length,1);assert.equal(new URL(providerCalls(f)[0].url).hostname,hostFor.gemini);
+  assert.equal(providerCalls(f).length,1);assert.equal(new URL(providerCalls(f)[0].url).hostname,hostFor.openai);
 });
 
-for(const missing of ['GEMINI_API_KEY','GEMINI_MODEL'])test(`legacy selection uses OpenAI when ${missing} is absent`,async()=>{
-  const f=fixture();delete f.env[missing];
+for(const missing of ['GEMINI_API_KEY','GEMINI_MODEL'])test(`implicit selection uses OpenAI when ${missing} is absent`,async()=>{
+  const f=fixture();delete f.env.AI_PROVIDER;delete f.env[missing];
   const response=await f.invoke();assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');
   assert.equal(providerCalls(f).length,1);assert.equal(new URL(providerCalls(f)[0].url).hostname,hostFor.openai);
 });
@@ -258,7 +258,7 @@ for(const selected of ['openai','gemini'])for(const suffix of ['API_KEY','MODEL'
 }
 
 test('absent selector with neither complete pair retains the known pre-provider 503',async()=>{
-  const f=fixture();delete f.env.GEMINI_MODEL;delete f.env.OPENAI_MODEL;
+  const f=fixture();delete f.env.AI_PROVIDER;delete f.env.GEMINI_MODEL;delete f.env.OPENAI_MODEL;
   const response=await f.invoke();assert.equal(response.status,503);
   assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');assert.deepEqual(providerCalls(f),[]);
   assert.deepEqual(materialWrites(f),[]);assert.deepEqual(f.logs,[]);
