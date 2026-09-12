@@ -1,7 +1,8 @@
 {
-  "sourceSha": "ee3518a70f22868971c4de29780c63f8c49e9491",
-  "sourceTree": "551023cfdef6294fc2d2cf70e36919789ceb191c",
-  "purpose": "P9 corrected unapplied CASE target syntax; keep hostile review, real bilateral roles and P8 composition assertions unchanged",
+  "sourceSha": "248579a2781375bfafe263f5fdb523555fead853",
+  "sourceTree": "cc46b3508cc604bc1278495279c56e15bb32e0fc",
+  "purpose": "Export exact tracked continuation source for offline P10 work; preserve all existing P9 package and composition gates",
+  "exportSource": true,
   "regressionScope": "PACKAGE",
   "focusedJest": ["src/data/__tests__/reviews-authority.test.ts","src/data/__tests__/public-reputation-boundary.test.ts","src/data/__tests__/ru5-p0c01-public-profile.test.ts","src/data/__tests__/safety-authority.test.ts"],
   "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"},{"script":"safety_authority_proof.mjs","report":"safety-authority-report.json"},{"script":"reviews_authority_proof.mjs","report":"reviews-authority-report.json"}],
