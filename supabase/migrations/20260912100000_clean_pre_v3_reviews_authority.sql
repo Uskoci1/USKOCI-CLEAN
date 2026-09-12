@@ -93,7 +93,7 @@ begin
  end if;
  select * into a from public.agreements where id=p_agreement_id and u in(requester_account_id,worker_account_id) for share;
  if not found then raise exception 'REVIEW_NOT_ALLOWED' using errcode='42501'; end if;
- if p_target_account_id<>case when u=a.requester_account_id then a.worker_account_id else a.requester_account_id end then
+ if p_target_account_id<>(case when u=a.requester_account_id then a.worker_account_id else a.requester_account_id end) then
   raise exception 'REVIEW_NOT_ALLOWED' using errcode='42501';
  end if;
  if a.status<>'COMPLETED' or not exists(select 1 from public.agreement_execution where agreement_id=a.id and state='COMPLETED') then
