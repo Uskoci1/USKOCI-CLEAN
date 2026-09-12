@@ -5,7 +5,7 @@ on:
     paths: ['.pre-v3/run.json']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: pre-v3-integration-staged-sql
   cancel-in-progress: false
@@ -51,32 +51,26 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: source/package-lock.json
-      - name: Pin exact integration source without branch mutation
+      - name: Pin exact integration source and admit candidate-only hash inventory
         working-directory: source
         env:
           SOURCE_SHA: ${{ steps.pin.outputs.source }}
           SOURCE_TREE: ${{ steps.pin.outputs.tree }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git rev-parse HEAD^{tree})" = "$SOURCE_TREE"
-          git merge-base --is-ancestor 1138d4f727735519b15d9b834bf261954e8013fe HEAD
-          git merge-base --is-ancestor 94bda947c68b981972c53d4372a7e4bc8549b542 HEAD
-          mkdir -p "$RUNNER_TEMP/pre-v3-evidence"
-          printf '%s\n' "$SOURCE_SHA" > "$RUNNER_TEMP/pre-v3-evidence/source-commit.txt"
-          printf '%s\n' "$SOURCE_TREE" > "$RUNNER_TEMP/pre-v3-evidence/source-tree.txt"
-          git status --porcelain | tee "$RUNNER_TEMP/pre-v3-evidence/source-status.txt"
-          test ! -s "$RUNNER_TEMP/pre-v3-evidence/source-status.txt"
-      - name: Unchanged dependencies, proof syntax and migration integrity
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          python3 ../control/.pre-v3/finalize_inventory.py
+      - name: Install locked dependencies and verify exact source regression
         working-directory: source
         run: |
           npm ci > "$RUNNER_TEMP/pre-v3-evidence/dependencies.log" 2>&1
-          python3 supabase/migrations/check_migration_integrity.py | tee "$RUNNER_TEMP/pre-v3-evidence/integrity.log"
-          for f in worker_authority_proof.mjs inbox_visibility_proof.mjs agreement_core_proof.mjs need_lifecycle_proof.mjs agreement_client_proof.mjs requester_identity_proof.mjs; do
-            node --check "supabase/proofs/pre_v3/$f"
-          done
-          git diff --check HEAD
-          git diff --exit-code HEAD
+          python3 ../control/.pre-v3/package_checks.py source
+          for f in supabase/proofs/pre_v3/*.mjs; do node --check "$f"; done
       - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
         with:
           version: 2.116.0
@@ -96,7 +90,6 @@ jobs:
         working-directory: baseline
         run: env GITHUB_WORKSPACE="$PWD" GITHUB_SHA=1138d4f727735519b15d9b834bf261954e8013fe node supabase/proofs/ru5_device_ui_fixture.mjs > "$RUNNER_TEMP/pre-v3-evidence/fixture.log" 2>&1
       - name: Reconstruct exact historical source through108
-        id: reconstruct
         working-directory: baseline
         run: |
           export GITHUB_WORKSPACE="$PWD"
@@ -104,47 +97,21 @@ jobs:
           node scripts/ci/owned-intake-proof.mjs prepare105 > "$RUNNER_TEMP/pre-v3-evidence/prepare105.log" 2>&1
           node scripts/ai_review_fixture.mjs admit > "$RUNNER_TEMP/pre-v3-evidence/admit106.log" 2>&1
           node scripts/ci/owned-intake-proof.mjs prepare108 > "$RUNNER_TEMP/pre-v3-evidence/prepare108.log" 2>&1
-      - name: Stage109-110 Worker location availability capacity authority
-        id: worker_sql
+      - name: Reuse ordered candidate109-116 invariants
         working-directory: source
-        run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/worker_authority_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/worker-sql.log"
-      - name: Stage111 Inbox visibility truth
-        id: inbox_sql
+        run: |
+          export GITHUB_SHA="$PRE_V3_SOURCE_SHA"
+          export PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence"
+          for f in worker_authority_proof.mjs inbox_visibility_proof.mjs agreement_core_proof.mjs need_lifecycle_proof.mjs agreement_client_proof.mjs requester_identity_proof.mjs; do
+            node "supabase/proofs/pre_v3/$f" 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/$f.log"
+          done
+      - name: Execute ordered closure package SQL proofs
         working-directory: source
-        run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/inbox_visibility_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/inbox-sql.log"
-      - name: Stage112-113 Agreement core and hostile races
-        id: agreement_sql
-        working-directory: source
-        run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/agreement_core_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/agreement-sql.log"
-      - name: Stage114 Need lifecycle and second Task engine proof
-        id: need_sql
-        working-directory: source
-        run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/need_lifecycle_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/need-sql.log"
-      - name: Stage115 Agreement production-client replay proof
-        id: agreement_client_sql
-        working-directory: source
-        run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/agreement_client_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/agreement-client-sql.log"
-      - name: Stage116 Requester identity authority proof
-        id: requester_sql
-        working-directory: source
-        run: env GITHUB_SHA="$PRE_V3_SOURCE_SHA" PRE_V3_ARTIFACT_DIR="$RUNNER_TEMP/pre-v3-evidence" node supabase/proofs/pre_v3/requester_identity_proof.mjs 2>&1 | tee "$RUNNER_TEMP/pre-v3-evidence/requester-sql.log"
-      - name: Bind final staged history and proof verdict
+        run: python3 ../control/.pre-v3/package_checks.py extras
+      - name: Bind final exact-source package verdict
         working-directory: source
         if: always()
-        run: |
-          python3 - <<'PY'
-          import json,os,pathlib
-          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence';reports={}
-          for name in ['worker-authority-report.json','inbox-visibility-report.json','agreement-core-report.json','need-lifecycle-report.json','agreement-client-report.json','requester-identity-report.json']:
-            p=out/name
-            reports[name]=json.loads(p.read_text()) if p.exists() else {'result':'MISSING'}
-          ok=all(v.get('result')=='PASS' for v in reports.values()) and reports['requester-identity-report.json'].get('historyCount')==116
-          receipt={'sourceCommit':os.environ['PRE_V3_SOURCE_SHA'],'reports':reports,'finalHistoryCount':reports['requester-identity-report.json'].get('historyCount'),
-            'PRE_V3_STAGED_SQL_108_116':'PASS' if ok else 'FAIL','liveChanged':False,'providerProven':False,'deviceProven':False}
-          (out/'staged-108-116-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
-          print(json.dumps({'PRE_V3_STAGED_SQL_108_116':receipt['PRE_V3_STAGED_SQL_108_116'],'finalHistoryCount':receipt['finalHistoryCount']}))
-          if not ok: raise SystemExit(1)
-          PY
+        run: python3 ../control/.pre-v3/package_checks.py receipt
       - name: Retain exact proof evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
