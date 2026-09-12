@@ -1,7 +1,7 @@
 {
-  "sourceSha": "6c599057461e771718d93a112e74dd8191355f67",
-  "sourceTree": "d1993a9f965f87c9ba9f1d2ad68f146c3ca0a236",
-  "purpose": "Full exact-head regression through candidate124 owner product-policy activation; no live DB write/provider/device",
+  "sourceSha": "1a37c423ff77a88e805f0440aaad47da8d6ece46",
+  "sourceTree": "d4b4caa7054817d89b06096e1a4bc537aaefeb3b",
+  "purpose": "Full exact-head regression through candidate124 after non-semantic proof naming correction; no live DB write/provider/device",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": false,
