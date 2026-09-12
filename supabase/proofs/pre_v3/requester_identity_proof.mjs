@@ -35,7 +35,11 @@ try{
  const initial=await ok(requester.rpc('rpc_get_requester_profile_for_edit',{}));
  assert.equal(initial.schema,'REQUESTER_IDENTITY_V1');assert.equal(initial.accountId,requesterId);assert.match(initial.profileId,/^[0-9a-f-]{36}$/);
  assert.match(initial.revision,/^[a-f0-9]{64}$/);assert.deepEqual(initial.writableFields,['displayName']);
- assert.equal((await worker.rpc('rpc_get_requester_profile_for_edit',{})).error?.message,'REQUESTER_PROFILE_REQUIRED');
+ // One account may legitimately have both REQUESTER and WORKER intent/profile material.
+ // A second actor may therefore have its own Requester identity; it must never receive A's.
+ const other=await worker.rpc('rpc_get_requester_profile_for_edit',{});
+ if(other.error)assert.equal(other.error.message,'REQUESTER_PROFILE_REQUIRED');
+ else {assert.equal(other.data.accountId,workerId);assert.notEqual(other.data.accountId,requesterId);assert.notEqual(other.data.profileId,initial.profileId);}
  await denied(anon.rpc('rpc_get_requester_profile_for_edit',{}),'AUTH_REQUIRED');
  pass('OWNER_ONLY_READBACK_AND_NO_CROSS_ACCOUNT_REQUESTER_PROJECTION');
  const key=randomUUID(),wanted='  PRE-V3 Ime '+randomUUID().slice(0,8)+'  ';
