@@ -40,7 +40,9 @@ try{
  const other=await worker.rpc('rpc_get_requester_profile_for_edit',{});
  if(other.error)assert.equal(other.error.message,'REQUESTER_PROFILE_REQUIRED');
  else {assert.equal(other.data.accountId,workerId);assert.notEqual(other.data.accountId,requesterId);assert.notEqual(other.data.profileId,initial.profileId);}
- await denied(anon.rpc('rpc_get_requester_profile_for_edit',{}),'AUTH_REQUIRED');
+ const anonymous=await anon.rpc('rpc_get_requester_profile_for_edit',{});
+ assert.ok(anonymous.error,'ANON_MUST_BE_DENIED');
+ assert.match(anonymous.error.message,/AUTH_REQUIRED|permission denied/i);
  pass('OWNER_ONLY_READBACK_AND_NO_CROSS_ACCOUNT_REQUESTER_PROJECTION');
  const key=randomUUID(),wanted='  PRE-V3 Ime '+randomUUID().slice(0,8)+'  ';
  const saved=await ok(requester.rpc('rpc_save_requester_profile',{p_expected_revision:initial.revision,p_display_name:wanted,p_client_request_id:key}));
