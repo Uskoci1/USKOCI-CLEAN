@@ -1,9 +1,9 @@
 {
-  "sourceSha": "e6ab2dc2032f6df7d0d8b36c8dc9056c1f68f6f7",
-  "sourceTree": "4eda4799ac224d43546743fbb06888a380cb3d92",
-  "purpose": "P4 candidate117 exact source regression and staged Auth/Postgres event semantics; metadata-only inventory admission on existing integration line",
-  "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"}],
-  "finalHistoryCount": 117,
+  "sourceSha": "1187840442c97bbd2eae61e24f41ca54dfefb702",
+  "sourceTree": "c7840c3c57a52f2623f72278b44d5641f3b3c261",
+  "purpose": "P8 candidate118 exact typed-client source and staged SQL safety/block integration on existing line",
+  "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"},{"script":"safety_authority_proof.mjs","report":"safety-authority-report.json"}],
+  "finalHistoryCount": 118,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
