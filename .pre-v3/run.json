@@ -1,7 +1,9 @@
 {
-  "sourceSha": "74b63c4de3578da4cf2531639c53fe18bc92f448",
-  "sourceTree": "3c31e0d4fa1654d4c9c60dfc3aa6b3eca3f85a37",
-  "purpose": "P8 candidate118 plus forward-only audit vocabulary119 exact-source safety/report/block and observed race proof; existing integration only",
+  "sourceSha": "05dc06f4b244528df91699445a572dd5722a6d40",
+  "sourceTree": "4c1684586c1b60016cbd6c2c9ddb252ff8b502eb",
+  "purpose": "P8 candidate118/119 proof infrastructure correction: full-row history fingerprints, no weakened domain assertions",
+  "regressionScope": "PACKAGE",
+  "focusedJest": ["src/data/__tests__/safety-authority.test.ts"],
   "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"},{"script":"safety_authority_proof.mjs","report":"safety-authority-report.json"}],
   "finalHistoryCount": 119,
   "noLiveWrite": true,
