@@ -1,9 +1,9 @@
 {
-  "sourceSha": "1187840442c97bbd2eae61e24f41ca54dfefb702",
-  "sourceTree": "c7840c3c57a52f2623f72278b44d5641f3b3c261",
-  "purpose": "P8 candidate118 exact typed-client source and staged SQL safety/block integration on existing line",
+  "sourceSha": "74b63c4de3578da4cf2531639c53fe18bc92f448",
+  "sourceTree": "3c31e0d4fa1654d4c9c60dfc3aa6b3eca3f85a37",
+  "purpose": "P8 candidate118 plus forward-only audit vocabulary119 exact-source safety/report/block and observed race proof; existing integration only",
   "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"},{"script":"safety_authority_proof.mjs","report":"safety-authority-report.json"}],
-  "finalHistoryCount": 118,
+  "finalHistoryCount": 119,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
