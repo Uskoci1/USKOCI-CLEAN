@@ -1,4 +1,4 @@
-import json,os,re,subprocess,sys,time
+import hashlib,json,os,re,subprocess,sys,time
 from pathlib import Path
 out=Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence';out.mkdir(exist_ok=True)
 config=json.loads(Path('../control/.pre-v3/run.json').read_text())
@@ -6,6 +6,14 @@ source=os.environ['PRE_V3_SOURCE_SHA']
 assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==source
 mode=sys.argv[1]
 if mode=='source':
+ # Optional source-only snapshot: tracked Git tree, never .git credentials or runtime secrets.
+ # This export is evidence/input for offline work, never a test or deployment PASS.
+ assert isinstance(config.get('exportSource',False),bool)
+ if config.get('exportSource',False):
+  archive=out/'exact-source.tar.gz'
+  subprocess.run(['git','archive','--format=tar.gz','--output='+str(archive),'HEAD'],check=True)
+  digest=hashlib.sha256(archive.read_bytes()).hexdigest()
+  (out/'exact-source-snapshot.json').write_text(json.dumps({'sourceCommit':source,'sourceTree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'archive':archive.name,'sha256':digest,'trackedOnly':True,'isTestVerdict':False},indent=2)+'\n')
  scope=config.get('regressionScope','FULL');assert scope in ('FULL','PACKAGE')
  focused=config.get('focusedJest',[])
  assert isinstance(focused,list) and (scope=='FULL' and not focused or scope=='PACKAGE' and focused)
