@@ -5,6 +5,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
+import {migrationSnapshotQuery,sqlProcessFailure} from './history_snapshot.mjs';
 export {assert,randomUUID};
 export const env=process.env,sha=env.GITHUB_SHA;
 assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL,env.RU5_DEVICE_DB_URL);
@@ -13,7 +14,7 @@ export const out=env.PRE_V3_ARTIFACT_DIR??'artifacts/pre-v3';mkdirSync(out,{recu
 export const q=x=>"'"+String(x).replaceAll("'","''")+"'";
 export function sql(s){try{return execFileSync('psql',[env.RU5_DEVICE_DB_URL,'-X','-q','-v','ON_ERROR_STOP=1','-At'],
  {input:s,encoding:'utf8',stdio:['pipe','pipe','pipe'],timeout:20000}).trim();}
- catch(e){throw new Error('LOCAL_SQL:'+String(e.stderr).slice(0,900));}}
+ catch(e){throw new Error(sqlProcessFailure(e));}}
 export const rows=s=>JSON.parse(sql(`select coalesce(jsonb_agg(to_jsonb(r)),'[]') from (${s}) r`));
 export const ok=async p=>{const r=await p;if(r.error)throw new Error('LOCAL_RPC:'+r.error.code+':'+r.error.message);return r.data;};
 export const denied=async(p,message)=>{const r=await p;assert.ok(r.error,'EXPECTED_DENIAL:'+message);if(message)assert.equal(r.error.message,message);return r.error;};
@@ -41,10 +42,14 @@ export async function prove(unit,file,fn){const r=report(unit);try{await fn(r);r
  catch(e){r.result='FAIL';r.failure=String(e.message).slice(0,1100);process.exitCode=1;console.error(r.failure);}
  finally{writeFileSync(out+'/'+file,JSON.stringify(r,null,2)+'\n');console.log(r.result+' '+unit);}}
 export async function apply(r,file,predecessor){
- const before=rows('select * from supabase_migrations.schema_migrations order by version');assert.equal(before.length,predecessor);
+ r.migrationStage={file,phase:'HISTORY_BEFORE'};
+ const before=rows(migrationSnapshotQuery());assert.equal(before.length,predecessor);
  const path='supabase/migrations/'+file,b=readFileSync(path);assert.deepEqual(b,execFileSync('git',['show',sha+':'+path]));
+ r.migrationStage.phase='APPLY_AND_RECORD';
  sql(b.toString());sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(file.slice(0,14))},${q(file.slice(15,-4))},array[${q(b.toString())}]);notify pgrst,'reload schema'`);
- assert.deepEqual(rows(`select * from supabase_migrations.schema_migrations where version<>${q(file.slice(0,14))} order by version`),before);
+ r.migrationStage.phase='VERIFY_HISTORY';
+ assert.deepEqual(rows(migrationSnapshotQuery(file.slice(0,14))),before);
+ r.migrationStage.phase='VERIFIED';
  r.migrations.push({file,sha256:createHash('sha256').update(b).digest('hex')});r.historyCount=predecessor+1;
  await new Promise(resolve=>setTimeout(resolve,1000));
 }
