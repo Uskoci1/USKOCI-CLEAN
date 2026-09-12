@@ -1,6 +1,7 @@
-import {assert,rows,sql,prove,pass} from './closure_runtime.mjs';
+import {assert,rows,sql,prove,pass,apply} from './closure_runtime.mjs';
 import {migrationSnapshotQuery} from './history_snapshot.mjs';
 await prove('PRE_V3_PUBLICATION_OWNER_ACTIVATION','publication-owner-activation-report.json',async report=>{
+  await apply(report,'20260912193000_clean_pre_v3_publication_owner_product_activation.sql',123);
   const history=rows(migrationSnapshotQuery());assert.equal(history.length,124);report.historyCount=124;
   const bundles=rows(`select id,policy_id,version,jurisdiction,is_reviewed,is_complete,is_active,review_provenance,reviewed_at,effective_from,activated_at
     from private.publication_policy_bundles where policy_id='RS_PUBLICATION_POLICY_MINIMUM' and jurisdiction='RS' order by version`);
