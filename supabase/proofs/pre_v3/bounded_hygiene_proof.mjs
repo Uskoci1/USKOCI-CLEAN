@@ -71,7 +71,7 @@ await prove('PRE_V3_BOUNDED_HYGIENE','bounded-hygiene-report.json',async report=
  report.queryPlans={
   accountReputation:JSON.parse(sql(`explain (format json) select count(*),avg(rating) from private.agreement_reviews where target_account_id=${q(workerId)}::uuid`)),
   reviewReplay:JSON.parse(sql(`explain (format json) select id from private.agreement_reviews where reviewer_account_id=${q(requesterId)}::uuid and client_request_id='00000000-0000-4000-8000-000000000000'::uuid`)),
-  boundedPushBacklog:JSON.parse(sql("explain (format json) select id from public.notification_deliveries where channel='PUSH' and state='PENDING' order by created_at,id limit 101"))
+  overduePushBacklog:JSON.parse(sql("explain (format json) select exists(select 1 from public.notification_deliveries d where d.channel='PUSH' and d.state in('CREATED','QUEUED','FAILED_RETRYABLE') and d.created_at<statement_timestamp()-interval '15 minutes' and (d.expires_at is null or d.expires_at>statement_timestamp()))"))
  };
  report.performanceLimitations=['Disposable fixture cardinality only; not a production latency/load benchmark.','No indexes added or dropped. Review aggregate/replay paths reuse existing target/unique indexes; queue EXPLAIN is a bounded diagnostic, not a new claim of transport capacity.'];
  pass(report,'NEW_INDEXES_VALID_NO_EXACT_DUPLICATES_AND_ACTUAL_TOUCHED_QUERY_EXPLAIN_RECORDED_WITHOUT_SPECULATIVE_TUNING');
