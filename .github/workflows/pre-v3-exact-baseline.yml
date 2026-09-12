@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ef99fc37bea1391b8a63836705f815d6d4881423
+          ref: 06d51ecb1438a93a4ecce64692ff868474fca598
           path: source
           fetch-depth: 0
           persist-credentials: false
@@ -29,8 +29,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = ef99fc37bea1391b8a63836705f815d6d4881423
-          test "$(git rev-parse HEAD^{tree})" = cbf064d9c6d1df5dca7f4249cbc357ed00bcb1a4
+          test "$(git rev-parse HEAD)" = 06d51ecb1438a93a4ecce64692ff868474fca598
+          test "$(git rev-parse HEAD^{tree})" = 6831740cd008075cb79040d2a059e23493b4a51e
           git merge-base --is-ancestor 1138d4f727735519b15d9b834bf261954e8013fe HEAD
           git merge-base --is-ancestor 94bda947c68b981972c53d4372a7e4bc8549b542 HEAD
           mkdir -p "$RUNNER_TEMP/pre-v3-evidence"
