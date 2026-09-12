@@ -1,0 +1,40 @@
+name: PRE-V3 pinned source transfer
+on:
+  push:
+    branches: [work/pre-v3-exact-verifier-20260911]
+    paths: [.github/workflows/pre-v3-source-transfer.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 06d51ecb1438a93a4ecce64692ff868474fca598
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Export exact source without credentials or untracked files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 06d51ecb1438a93a4ecce64692ff868474fca598
+          test -z "$(git status --porcelain)"
+          mkdir -p "$RUNNER_TEMP/transfer"
+          git bundle create "$RUNNER_TEMP/transfer/integration.bundle" HEAD
+          git log -8 --format=fuller > "$RUNNER_TEMP/transfer/lineage.txt"
+          npm ci > "$RUNNER_TEMP/transfer/dependencies.log" 2>&1
+          tar czf "$RUNNER_TEMP/transfer/typescript.tgz" node_modules/typescript
+          git diff --exit-code HEAD
+          sha256sum "$RUNNER_TEMP/transfer/integration.bundle" "$RUNNER_TEMP/transfer/typescript.tgz" > "$RUNNER_TEMP/transfer/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pre-v3-source-transfer
+          path: ${{ runner.temp }}/transfer/
+          retention-days: 7
+          if-no-files-found: error
