@@ -1,7 +1,7 @@
 {
-  "sourceSha": "8001172aa739ee3b609e0d2e1905aae1723bd764",
-  "sourceTree": "e4c01315899ea370990958ed6af63a7d46825044",
-  "purpose": "Final complete exact-head regression after saved P11/P12/P13 evidence and proof-only queue predicate alignment; no source mutation, no live access, no provider",
+  "sourceSha": "6c599057461e771718d93a112e74dd8191355f67",
+  "sourceTree": "d1993a9f965f87c9ba9f1d2ad68f146c3ca0a236",
+  "purpose": "Full exact-head regression through candidate124 owner product-policy activation; no live DB write/provider/device",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": false,
@@ -14,9 +14,10 @@
     {"script":"account_closure_proof.mjs","report":"account-closure-report.json"},
     {"script":"push_readiness_proof.mjs","report":"push-readiness-report.json"},
     {"script":"provider_boundaries_proof.mjs","report":"provider-boundaries-report.json"},
-    {"script":"bounded_hygiene_proof.mjs","report":"bounded-hygiene-report.json"}
+    {"script":"bounded_hygiene_proof.mjs","report":"bounded-hygiene-report.json"},
+    {"script":"publication_owner_activation_proof.mjs","report":"publication-owner-activation-report.json"}
   ],
-  "finalHistoryCount": 123,
+  "finalHistoryCount": 124,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
