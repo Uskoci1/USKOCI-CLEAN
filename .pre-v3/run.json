@@ -1,11 +1,11 @@
 {
-  "sourceSha": "05dc06f4b244528df91699445a572dd5722a6d40",
-  "sourceTree": "4c1684586c1b60016cbd6c2c9ddb252ff8b502eb",
-  "purpose": "P8 candidate118/119 proof infrastructure correction: full-row history fingerprints, no weakened domain assertions",
+  "sourceSha": "04c0000a0b9b66f4b3d62cdd1a123b0d056f5904",
+  "sourceTree": "2b312fcd392a051b0383faa1d28d6a56de97f751",
+  "purpose": "P9 immutable bilateral reviews, real opposite product roles, account reputation, exact client lost-ack recovery and P8 safety composition",
   "regressionScope": "PACKAGE",
-  "focusedJest": ["src/data/__tests__/safety-authority.test.ts"],
-  "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"},{"script":"safety_authority_proof.mjs","report":"safety-authority-report.json"}],
-  "finalHistoryCount": 119,
+  "focusedJest": ["src/data/__tests__/reviews-authority.test.ts","src/data/__tests__/public-reputation-boundary.test.ts","src/data/__tests__/ru5-p0c01-public-profile.test.ts","src/data/__tests__/safety-authority.test.ts"],
+  "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"},{"script":"safety_authority_proof.mjs","report":"safety-authority-report.json"},{"script":"reviews_authority_proof.mjs","report":"reviews-authority-report.json"}],
+  "finalHistoryCount": 120,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
