@@ -55,8 +55,9 @@ Deno.serve(async req => {
  if (req.method !== 'POST') return json({ code: 'METHOD_NOT_ALLOWED' }, 405);
  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
  if (!service || req.headers.get('authorization') !== `Bearer ${service}`) return json({ code: 'FORBIDDEN' }, 403);
- // Trusted deployment kill switch: omitted/false performs no claim or provider IO.
- if (Deno.env.get('EXPO_PUSH_TRANSPORT_ENABLED') !== 'true') return json({ kind: 'DISABLED' });
+ // A disabled tick performs no DB/provider IO; a service-only probe may
+ // record its actual disabled state without claiming work or reading Expo keys.
+ const enabled = Deno.env.get('EXPO_PUSH_TRANSPORT_ENABLED') === 'true';
  if (running) return json({ kind: 'BUSY' }, 429);
  running = true;
  const controller = new AbortController();
@@ -64,19 +65,32 @@ Deno.serve(async req => {
  if (req.signal.aborted) cancel();
  const timer = setTimeout(cancel, 25000);
  const signal = controller.signal;
+ let reportFailure: (() => Promise<void>) | undefined;
  try {
   const input = await read(req.body, 256, signal);
-  if (!row(input) || !only(input, ['action']) || input.action !== 'tick') return json({ code: 'INVALID_REQUEST' }, 400);
+  if (!row(input) || !only(input, ['action']) || !['tick', 'probe'].includes(String(input.action))) return json({ code: 'INVALID_REQUEST' }, 400);
+  if (!enabled && input.action === 'tick') return json({ kind: 'DISABLED' });
   const rawURL = Deno.env.get('SUPABASE_URL'); if (!rawURL) throw new Invalid();
   const base = new URL(rawURL);
   if (base.protocol !== 'https:' || !/^[a-z0-9-]+\.supabase\.co$/.test(base.hostname) || base.username || base.password || base.port || base.pathname !== '/' || base.search || base.hash) throw new Invalid();
-  async function rpc(name: 'rpc_claim_push_transport' | 'rpc_begin_push_send' | 'rpc_complete_push_transport', args: Row) {
+  async function rpc(name: 'rpc_claim_push_transport' | 'rpc_begin_push_send' | 'rpc_complete_push_transport' | 'rpc_record_push_readiness', args: Row) {
    if (signal.aborted) throw new Invalid();
    const result = await request(`${base.origin}/rest/v1/rpc/${name}`, { method: 'POST', redirect: 'error', signal,
     headers: { apikey: service!, Authorization: `Bearer ${service}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
    if (!result.ok) { void result.body?.cancel().catch(() => undefined); throw new Invalid(); }
    return read(result.body, 16384, signal);
   }
+  async function observe(observation: 'PROBE_ENABLED' | 'PROBE_DISABLED' | 'TICK_OK' | 'TICK_DEGRADED' | 'TICK_FAILED') {
+   const receipt = await rpc('rpc_record_push_readiness', { p_sender_version: 'PRE_V3_PUSH_READINESS_V1', p_observation: observation });
+   if (!row(receipt) || !only(receipt, ['recorded', 'observation', 'observedAt', 'authoritative']) || receipt.recorded !== true ||
+    receipt.observation !== observation || receipt.authoritative !== true || typeof receipt.observedAt !== 'string' ||
+    !Number.isFinite(Date.parse(receipt.observedAt))) throw new Invalid();
+  }
+  if (input.action === 'probe') {
+   await observe(enabled ? 'PROBE_ENABLED' : 'PROBE_DISABLED');
+   return json({ kind: 'READINESS_RECORDED', enabled });
+  }
+  reportFailure = () => observe('TICK_FAILED');
   async function once(kind: 'SEND' | 'RECEIPT') {
    const claim = await rpc('rpc_claim_push_transport', { p_kind: kind });
    if (row(claim) && only(claim, ['kind']) && claim.kind === 'NONE') return 'NONE';
@@ -128,7 +142,14 @@ Deno.serve(async req => {
    return String(done.state);
   }
   const receipt = await once('RECEIPT'); const send = await once('SEND');
+  const unhealthy = [receipt, send].some(state => ['UNKNOWN', 'FINAL', 'RETRYABLE'].includes(state));
+  await observe(unhealthy ? 'TICK_DEGRADED' : 'TICK_OK');
   return json({ kind: 'TICK_COMPLETED', receipt, send });
- } catch { return json({ code: 'PUSH_UNAVAILABLE' }, signal.aborted ? 504 : 503); }
+ } catch {
+  // No late writes after cancellation; failed telemetry never masks the original
+  // unknown outcome and never causes a resend. Stale/no observation stays UNKNOWN.
+  if (!signal.aborted && reportFailure) { try { await reportFailure(); } catch { /* bounded, no raw error */ } }
+  return json({ code: 'PUSH_UNAVAILABLE' }, signal.aborted ? 504 : 503);
+ }
  finally { clearTimeout(timer); req.signal.removeEventListener('abort', cancel); controller.abort(); running = false; }
 });

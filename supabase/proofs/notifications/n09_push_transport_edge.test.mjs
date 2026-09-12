@@ -18,6 +18,7 @@ function harness(options={}) {
   const body=JSON.parse(init.body);calls.push({url,init,body});
   if(String(url).includes('/rest/v1/rpc/')) {
    assert.equal(init.headers.Authorization,`Bearer ${secret}`);assert.equal(init.headers.apikey,secret);
+   if(url.endsWith('rpc_record_push_readiness'))return json(options.health??{recorded:true,observation:body.p_observation,observedAt:new Date().toISOString(),authoritative:true});
    if(url.endsWith('rpc_claim_push_transport'))return json(options.claim??(body.p_kind==='RECEIPT'?(options.receipt?{...claim,kind:'RECEIPT',ticketId:'ticket_1'}:{kind:'NONE'}):options.receipt?{kind:'NONE'}:claim));
    if(url.endsWith('rpc_begin_push_send'))return json(options.begin??begun);
    if(url.endsWith('rpc_complete_push_transport')) {
@@ -50,7 +51,7 @@ test('reject recipients, URL, payload and unexpected input before claim',async()
 test('actual send revalidates exact lease then submits constant minimal privacy-safe payload',async()=>{
  const h=harness();const r=await h.run();assert.equal(r.response.status,200);assert.equal(r.body.send,'TICKET_PENDING');
  const send=h.calls.find(x=>x.url.includes('exp.host'));assert.deepEqual(send.body,[{to:token,title:'USKOČI',body:'Imate novo obaveštenje. Otvorite aplikaciju.',data:{kind:'INBOX'},channelId:'default',sound:'default',priority:'normal',ttl:0}]);
- assert.deepEqual(h.calls.filter(x=>x.url.includes('/rpc/')).map(x=>x.url.split('/').pop()),['rpc_claim_push_transport','rpc_claim_push_transport','rpc_begin_push_send','rpc_complete_push_transport']);
+ assert.deepEqual(h.calls.filter(x=>x.url.includes('/rpc/')).map(x=>x.url.split('/').pop()),['rpc_claim_push_transport','rpc_claim_push_transport','rpc_begin_push_send','rpc_complete_push_transport','rpc_record_push_readiness']);
  assert.deepEqual(completion(h),{p_attempt_id:id,p_lease_id:lease,p_result:'TICKET',p_ticket_id:'ticket_1'});
 });
 test('receipt accepted is provider acceptance, never physical delivery',async()=>{const h=harness({receipt:true});const r=await h.run();assert.equal(r.body.receipt,'PROVIDER_ACCEPTED');assert.deepEqual(h.calls.find(x=>x.url.includes('exp.host')).body,{ids:['ticket_1']});assert.equal(completion(h).p_result,'PROVIDER_ACCEPTED');assert.ok(!JSON.stringify(r.body).includes('DELIVERED'));});
@@ -81,4 +82,21 @@ test('deadline returns even when provider transport ignores cancellation; late r
  let timeout,release;const h=harness({setTimeout:callback=>{timeout=callback;return 1;},provider:()=>new Promise(r=>release=r)});
  const first=h.run();for(let i=0;i<30&&!release;i++)await new Promise(r=>setTimeout(r,0));assert.ok(release);timeout();
  assert.equal((await first).response.status,504);assert.equal(completion(h),undefined);release(json({data:[{status:'ok',id:'late_ticket'}]}));await new Promise(r=>setTimeout(r,0));assert.equal(completion(h),undefined);
+});
+
+for(const enabled of ['true','false'])test(`service-only ${enabled} probe records config without claim/provider/key`,async()=>{
+ const h=harness({env:{EXPO_PUSH_TRANSPORT_ENABLED:enabled}});const r=await h.run({action:'probe'});
+ assert.deepEqual(r.body,{kind:'READINESS_RECORDED',enabled:enabled==='true'});
+ assert.equal(h.calls.length,1);assert.ok(h.calls[0].url.endsWith('rpc_record_push_readiness'));
+ assert.equal(h.calls[0].body.p_observation,enabled==='true'?'PROBE_ENABLED':'PROBE_DISABLED');
+ assert.ok(!h.envReads.includes('EXPO_ACCESS_TOKEN'));
+});
+test('unknown provider outcome records degraded transport, never a healthy tick',async()=>{
+ const h=harness({provider:()=>{throw Error('SECRET');}});await h.run();
+ assert.equal(h.calls.find(c=>c.url.endsWith('rpc_record_push_readiness')).body.p_observation,'TICK_DEGRADED');
+});
+test('a mismatched health receipt cannot produce successful readiness acknowledgement',async()=>{
+ const h=harness({health:{recorded:true,observation:'TICK_OK',observedAt:new Date().toISOString(),authoritative:true}});
+ assert.equal((await h.run({action:'probe'})).response.status,503);
+ assert.ok(!h.calls.some(c=>c.url.includes('exp.host')));
 });
