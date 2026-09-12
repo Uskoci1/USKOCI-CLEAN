@@ -45,7 +45,7 @@ if mode=='source':
  (out/'source-baseline-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');sys.exit(0 if passed else 1)
 elif mode=='extras':
  for item in config['proofs']:
-  name=item['script'];assert re.fullmatch('[a-z_]+_proof[.]mjs',name)
+  name=item['script'];assert re.fullmatch('[a-z_]+_proof[.]mjs',name) or name in ('v5_review_acceptance_proof.mjs','v5_ai_test_budget_proof.mjs')
   env=dict(os.environ,GITHUB_SHA=source,PRE_V3_ARTIFACT_DIR=str(out))
   with (out/(name+'.log')).open('w') as log:
    code=subprocess.run(['node','supabase/proofs/pre_v3/'+name],stdout=log,stderr=subprocess.STDOUT,env=env,timeout=600).returncode

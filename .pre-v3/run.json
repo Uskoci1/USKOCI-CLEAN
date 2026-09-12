@@ -1,7 +1,7 @@
 {
-  "sourceSha": "59101f38e8ae549ade434cae758938582fba2233",
-  "sourceTree": "b311f62a26eb2805b81e21a2a98503d6347147bd",
-  "purpose": "Exact59101f38 candidate125 correction replay: full source and real disposable Auth/Postgres proof; no source mutation, live access, provider, device, deployment or release.",
+  "sourceSha": "4b4873b1cbfeefc261f2c404342a87a68726a5aa",
+  "sourceTree": "2649385fee01fb34815fb8637dbb7fbaa8c0422b",
+  "purpose": "Exact saved V5 source: full regression and disposable Auth/Postgres proofs through candidate127; no source mutation, live access, provider calls, device, deployment or release.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": false,
@@ -43,9 +43,17 @@
     {
       "script": "publication_executable_policy_proof.mjs",
       "report": "publication-executable-policy-report.json"
+    },
+    {
+      "script": "v5_review_acceptance_proof.mjs",
+      "report": "v5-review-acceptance-report.json"
+    },
+    {
+      "script": "v5_ai_test_budget_proof.mjs",
+      "report": "v5-ai-test-budget-report.json"
     }
   ],
-  "finalHistoryCount": 125,
+  "finalHistoryCount": 127,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
