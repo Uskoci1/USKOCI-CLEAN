@@ -10,6 +10,8 @@ export type AccountBlockReceipt = AccountBlockState & { clientRequestId: string;
 export type SafetyReportCommand = { targetAccountId: string; needId: string | null; agreementId: string | null;
   category: SafetyCategory; reason: string; narrative: string; clientRequestId: string };
 export type SafetyReportReceipt = { reportId: string; received: true; createdAt: string; clientRequestId: string; idempotentReplay: boolean; authoritative: true };
+export type MyBlockedAccounts = { accountId: string; items: Array<AccountBlockState & { displayName: string | null }>; nextCursor: string | null; authoritative: true };
+export type MySafetyReportCommand = { accountId: string; clientRequestId: string; found: boolean; receipt: SafetyReportReceipt | null; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
   BLOCK_INPUT_INVALID: 'Ponovo otvorite profil korisnika.',
@@ -35,9 +37,49 @@ function block(raw: unknown, accountId: string, target: string): AccountBlockSta
   return { accountId, targetAccountId: target, blocked: r.blocked, revision: r.revision, authoritative: true };
 }
 function bad<T>(name: keyof typeof errors): Promise<Ishod<T>> { return Promise.resolve(failure(name, errors[name])); }
+function reportReceipt(raw: unknown, requestId: string): SafetyReportReceipt | null {
+  const r = record(raw);
+  if (!r || !uuid(r.reportId) || r.received !== true || !timestamp(r.createdAt) || !sameId(r.clientRequestId, requestId) ||
+      typeof r.idempotentReplay !== 'boolean' || r.authoritative !== true) return null;
+  return { reportId: r.reportId, received: true, createdAt: r.createdAt, clientRequestId: requestId,
+    idempotentReplay: r.idempotentReplay, authoritative: true };
+}
 /** Private report and outgoing block choice only. No narrative readback to a target,
  * incoming-block disclosure, UI optimism, automatic retry, or Agreement recovery writer. */
 export const safetyClientService = {
+  listMyBlocks(after: string | null = null, explicit?: ReceiptAccount): Promise<Ishod<MyBlockedAccounts>> {
+    const account = scope(explicit); if (!account) return bad('AUTH_REQUIRED');
+    if (after !== null && !uuid(after)) return bad('BLOCK_INPUT_INVALID');
+    return readOwnedResult({ account, request: () => supabaseKlijent().rpc('rpc_list_my_account_blocks', { p_after: after }),
+      errors, fallback: 'BLOCK_READ_UNAVAILABLE', invalid: 'BLOCK_INVALID_RECEIPT', decode: raw => {
+        const r = record(raw);
+        if (!r || !sameId(r.accountId, account.accountId) || r.authoritative !== true || !Array.isArray(r.items) || r.items.length > 50 ||
+            (r.nextCursor !== null && !uuid(r.nextCursor))) return null;
+        const items: MyBlockedAccounts['items'] = [];
+        let previous = after?.toLowerCase() ?? '';
+        for (const value of r.items) {
+          const row = record(value); if (!row || !uuid(row.targetAccountId) || sameId(row.targetAccountId, account.accountId)) return null;
+          const state = block(row, account.accountId, row.targetAccountId);
+          if (!state || !state.blocked || state.revision < 1 || state.targetAccountId.toLowerCase() <= previous ||
+              (row.displayName !== null && (typeof row.displayName !== 'string' || row.displayName.length > 200))) return null;
+          previous = state.targetAccountId.toLowerCase(); items.push({ ...state, displayName: row.displayName as string | null });
+        }
+        if (r.nextCursor !== null && (items.length !== 50 || !sameId(r.nextCursor, previous))) return null;
+        return { accountId: account.accountId, items, nextCursor: r.nextCursor, authoritative: true };
+      } });
+  },
+  readReportCommand(requestId: string, explicit?: ReceiptAccount): Promise<Ishod<MySafetyReportCommand>> {
+    const account = scope(explicit); if (!account) return bad('AUTH_REQUIRED');
+    if (!uuid(requestId)) return bad('SAFETY_REPORT_INPUT_INVALID');
+    return readOwnedResult({ account, request: () => supabaseKlijent().rpc('rpc_read_my_safety_report_command', { p_client_request_id: requestId }),
+      errors, fallback: 'SAFETY_REPORT_READ_UNAVAILABLE', invalid: 'SAFETY_REPORT_INVALID_RECEIPT', decode: raw => {
+        const r = record(raw);
+        if (!r || !sameId(r.accountId, account.accountId) || !sameId(r.clientRequestId, requestId) || r.authoritative !== true || typeof r.found !== 'boolean') return null;
+        const receipt = r.found ? reportReceipt(r.receipt, requestId) : null;
+        if (r.found ? !receipt : r.receipt !== null) return null;
+        return { accountId: account.accountId, clientRequestId: requestId, found: r.found, receipt, authoritative: true };
+      } });
+  },
   readBlock(target: string, explicit?: ReceiptAccount): Promise<Ishod<AccountBlockState>> {
     const account = scope(explicit); if (!account) return bad('AUTH_REQUIRED');
     if (!uuid(target) || sameId(target, account.accountId)) return bad('BLOCK_INPUT_INVALID');
@@ -66,11 +108,7 @@ export const safetyClientService = {
       p_category: input.category, p_reason: input.reason.trim(), p_narrative: input.narrative.trim(), p_client_request_id: input.clientRequestId };
     return readOwnedResult({ account, write: true, request: () => supabaseKlijent().rpc('rpc_submit_safety_report', args), errors,
       fallback: 'SAFETY_REPORT_OUTCOME_UNKNOWN', invalid: 'SAFETY_REPORT_INVALID_RECEIPT', decode: raw => {
-        const r = record(raw);
-        if (!r || !uuid(r.reportId) || r.received !== true || !timestamp(r.createdAt) || !sameId(r.clientRequestId, args.p_client_request_id) ||
-            typeof r.idempotentReplay !== 'boolean' || r.authoritative !== true) return null;
-        return { reportId: r.reportId, received: true, createdAt: r.createdAt, clientRequestId: args.p_client_request_id,
-          idempotentReplay: r.idempotentReplay, authoritative: true };
+        return reportReceipt(raw, args.p_client_request_id);
       } });
   },
 };

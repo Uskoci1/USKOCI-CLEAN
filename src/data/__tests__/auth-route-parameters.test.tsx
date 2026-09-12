@@ -26,6 +26,7 @@ jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
 jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { prepare: (...args: unknown[]) => mockPrepare(...args) } }));
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 jest.mock('../../ui/entry/EntryWelcome', () => ({ EntryWelcome: 'Hero' }));
+jest.mock('../../ui/legal/LegalDocuments', () => ({ PublicLegalModal: 'LegalModal' }));
 jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: (options: unknown) => {
   mockSplashOptions(options); return { onLayout: mockFormLayout };
 } }));
@@ -62,13 +63,32 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
+it('opens published-document reading without toggling consent or losing Auth input', async () => {
+  mockParams = { form: 'login' };
+  await act(async () => { tree = create(<AuthScreen />); });
+  await press('Napravi nalog');
+  await fill('ime@primer.rs', 'ana@example.test');
+  const consent = host('Pressable').find(node => node.props.accessibilityRole === 'checkbox')!;
+  const terms = host('Text').find(node => node.props.accessibilityRole === 'link' && textOf(node) === 'Uslove korišćenja')!;
+  const stopPropagation = jest.fn();
+  await act(async () => terms.props.onPress({ stopPropagation }));
+  expect(stopPropagation).toHaveBeenCalledTimes(1);
+  expect(host('LegalModal')[0].props.kind).toBe('TERMS');
+  expect(consent.props.accessibilityState.checked).toBe(false);
+  await act(async () => host('LegalModal')[0].props.onClose());
+  expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
+  expect(mockAuth.signUp).not.toHaveBeenCalled();
+});
+
 it('opens a cold native login destination whose query arrives after the Auth screen mounts', async () => {
   await act(async () => { tree = create(<AuthScreen />); });
   expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
   expect(mockSplashOptions).toHaveBeenLastCalledWith({ enabled: false });
   mockParams = { form: 'login' };
   await act(async () => tree.update(<AuthScreen />));
-  expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(0);
+  // An already displayed original entry stays behind the V5 sheet but is inaccessible.
+  expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
+  expect(host('View').some(node => node.props.importantForAccessibility === 'no-hide-descendants' && node.props.pointerEvents === 'none')).toBe(true);
   expect(input('ime@primer.rs')).toBeDefined();
   expect(button('Prijavite se')).toBeDefined();
   expect(mockSplashOptions).toHaveBeenLastCalledWith({ enabled: true });

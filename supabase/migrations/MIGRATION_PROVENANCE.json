@@ -2306,6 +2306,32 @@
       "raw_md5": "f39457328b2d4807c9ec2c2c1a39882a",
       "raw_sha256": "ca85c6d62a2ea77574edf405d95719b5dc5776bceaaa1d99848e083dba99a650",
       "raw_bytes": 5217
+    },
+    {
+      "version": "20260912220506",
+      "name": "clean_v5_owned_worker_profile",
+      "file": "20260912220506_clean_v5_owned_worker_profile.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "01bf149a5105cba37dc5c860ddc1be2e",
+      "raw_sha256": "dd46d5e9007aba9335dfaf5debd240598daf26feb775918156304772d06cc4da",
+      "raw_bytes": 36998
+    },
+    {
+      "version": "20260912222338",
+      "name": "clean_v5_owner_safety_legal_reads",
+      "file": "20260912222338_clean_v5_owner_safety_legal_reads.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "daaa46573f23f6a44f535389c61df214",
+      "raw_sha256": "69d853540660f8e72fb30b5588b928c6d513fcb3fd3684be9984719506e1e2eb",
+      "raw_bytes": 5666
     }
   ],
   "p2_data_export_requests": {

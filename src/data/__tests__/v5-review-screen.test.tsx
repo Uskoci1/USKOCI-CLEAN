@@ -23,6 +23,7 @@ jest.mock('../locationClientService', () => ({ needLocationClientService: {
 } }));
 jest.mock('../productionLocationResolver', () => ({ createProductionLocationResolver: () => ({ cancel: mockCancelResolver }) }));
 jest.mock('../../ui/location/NeedLocationForm', () => ({ NeedLocationForm: 'LocationForm' }));
+jest.mock('../../ui/aiFirst/ResponseDeadlineEditor', () => ({ ResponseDeadlineEditor: 'DeadlineEditor' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
@@ -177,6 +178,38 @@ it('passes reviewOnly to the location editor and prepares the proposed location 
   expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+});
+
+it('prepares a new immutable review for an explicit deadline without publishing while the editor is open', async () => {
+  await render(); const retainedPublish = publish().onPress, retainedLocation = action('Dodaj mesto').onPress;
+  await act(async () => action('Uredi rok za prijave').onPress());
+  expect(publish().disabled).toBe(true);
+  await act(async () => { void retainedPublish(); void retainedLocation(); });
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockLocationRead).not.toHaveBeenCalled();
+  const deadline = '2026-10-12T10:15:00.000Z';
+  mockPrepare.mockResolvedValue(ok({ ...review(), reviewId: OTHER, responseDeadline: deadline }));
+  await act(async () => tree.root.findByType('DeadlineEditor' as React.ElementType).props.apply(deadline));
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: deadline });
+  expect(tree.root.findAllByType('DeadlineEditor' as React.ElementType)).toHaveLength(0);
+  expect(publish().disabled).toBe(false); expect(mockAccept).not.toHaveBeenCalled();
+  await act(async () => publish().onPress());
+  expect(mockAccept.mock.calls[0][0].review).toMatchObject({ reviewId: OTHER, responseDeadline: deadline });
+});
+
+it('restores the server review deadline and allows its explicit removal without inventing a duration', async () => {
+  const deadline = '2026-10-12T10:15:00.000Z';
+  mockLatest.mockResolvedValue(ok({ review: { ...review(), responseDeadline: deadline }, command: null }));
+  mockPrepare.mockResolvedValue(ok({ ...review(), responseDeadline: deadline }));
+  await render();
+  expect(mockPrepare).toHaveBeenCalledWith({ conversationId: CONVERSATION, responseDeadline: deadline });
+  await act(async () => action('Uredi rok za prijave').onPress());
+  const form = tree.root.findByType('DeadlineEditor' as React.ElementType).props;
+  expect(form.value).toBe(deadline);
+  mockPrepare.mockResolvedValue(ok(review()));
+  await act(async () => form.apply(null));
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
+  expect(text()).toContain('do popune, zaustavljanja potrage ili isteka zadatka');
+  expect(mockAccept).not.toHaveBeenCalled();
 });
 
 it.each([undefined, 'malformed', [CONVERSATION]])('invalid conversation route performs no review or publication I/O', async value => {

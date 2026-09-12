@@ -193,6 +193,9 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
           <AgreementHero agreement={dogovor} />
           <AgreementPeople agreement={dogovor} />
+          {other && me ? <V2Action label="Bezbednost i privatna prijava" kind="quiet" disabled={!enabled}
+            onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
+              router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
           <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Vaš broj je podeljen' : 'Podelite svoj broj kada vam odgovara'}>
             <T style={metaStyle}>Deljenje je odvojeno u oba smera. Kada podelite svoj broj, druga strana ne deli automatski svoj.</T>
             <T style={bodyStyle}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>

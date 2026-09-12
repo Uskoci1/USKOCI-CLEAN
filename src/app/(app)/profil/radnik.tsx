@@ -135,6 +135,13 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   </> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} /> : <>
       {message ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.teal }}>{message}</T> : null}
+      <V2Action label="Uredi profil kroz razgovor" disabled={!enabled || !!pending} onPress={() => {
+        if (!enabled || !current() || transportRef.current || pendingRef.current) return;
+        if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
+          setValidation('Sačuvajte unos pre otvaranja razgovora.'); return;
+        }
+        router.push('/profil/razgovor');
+      }} />
       {validation || editor.error ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.danger }}>{validation ?? editor.error}</T> : null}
       {pending && !transportBusy ? <T style={{ ...v2.text.label, color: v2.color.muted }}>Vaš unos je zadržan. Prikaz potvrđuje samo podatke koji su ponovo pročitani sa servera.</T> : null}
       <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} />

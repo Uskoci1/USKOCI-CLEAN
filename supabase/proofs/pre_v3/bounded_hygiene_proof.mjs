@@ -1,10 +1,10 @@
 // P13: exact-source, read-only catalog and bounded EXPLAIN verification after123.
 // No production connection, DDL, index tuning, legal seed, provider call or retirement.
-import {readFileSync,readdirSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
 import {assert,sha,q,sql,rows,login,prove,pass,requester,worker,anon,ok,denied,requesterId,workerId} from './closure_runtime.mjs';
 import {migrationSnapshotQuery} from './history_snapshot.mjs';
+import {partitionHygieneInventory,assertPrivateHygieneTables} from './hygiene_inventory.mjs';
 const base='06d51ecb1438a93a4ecce64692ff868474fca598';
 const source=path=>{const b=readFileSync(path);assert.deepEqual(b,execFileSync('git',['show',sha+':'+path]));return b.toString();};
 const key=(schema,name)=>schema+'.'+name;
@@ -12,10 +12,15 @@ await prove('PRE_V3_BOUNDED_HYGIENE','bounded-hygiene-report.json',async report=
  await login();const before=rows(migrationSnapshotQuery());assert.equal(before.length,123);report.historyCount=123;
  const files=execFileSync('git',['diff','--name-only',base,sha,'--','supabase/migrations'],{encoding:'utf8'}).trim().split('\n').filter(p=>p.endsWith('.sql'));
  assert.ok(files.length>=7&&files.length<=30);const functions=new Set(),tables=new Set();
- report.inspectedMigrations=[];
- for(const file of files){
-  assert.match(file,/^supabase\/migrations\/20260912\d{6}_clean_pre_v3_[a-z0-9_]+\.sql$/);
-  const text=source(file);report.inspectedMigrations.push({file,sha256:createHash('sha256').update(text).digest('hex')});
+ const inventory=partitionHygieneInventory({candidates:files.map(file=>({file,bytes:Buffer.from(source(file))})),
+  manifest:source('supabase/migrations/MD5_MANIFEST.txt'),
+  provenance:JSON.parse(source('supabase/migrations/MIGRATION_PROVENANCE.json')).pending_forward_migrations,history:before});
+ report.inspectedMigrations=[...inventory.applied,...inventory.future].map(({file,sha256})=>({file,sha256}));
+ report.futureCandidateMigrations=inventory.future.map(({file,version,sha256})=>({file,version,sha256,
+  classification:'EXACT_SOURCE_PENDING_APPLY_NOT_CATALOG_PROVEN'}));
+ report.appliedCatalogMigrations=inventory.applied.map(({file,version,sha256})=>({file,version,sha256}));
+ for(const {bytes} of inventory.applied){
+  const text=bytes.toString();
   for(const m of text.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(public|private)\.([a-z0-9_]+)/gi))functions.add(key(m[1].toLowerCase(),m[2].toLowerCase()));
   for(const m of text.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(public|private)\.([a-z0-9_]+)/gi))tables.add(key(m[1].toLowerCase(),m[2].toLowerCase()));
  }
@@ -49,8 +54,7 @@ await prove('PRE_V3_BOUNDED_HYGIENE','bounded-hygiene-report.json',async report=
  has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE') authenticated_data,
  (select count(*) from pg_policy p where p.polrelid=c.oid) policy_count
  from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname||'.'||c.relname in (${relationList}) and c.relkind='r' order by n.nspname,c.relname`);
- assert.equal(rels.length,tables.size);
- for(const t of rels){assert.equal(t.schema,'private');assert.equal(t.rls,true,'RLS:'+t.name);assert.equal(t.anon_data,false,'ANON_DATA:'+t.name);assert.equal(t.authenticated_data,false,'RAW_CLIENT_DATA:'+t.name);}
+ assertPrivateHygieneTables(rels,tables);
  report.privateTableCatalog=rels;
  const audit=rows("select pg_get_expr(conbin,conrelid) expression from pg_constraint where conrelid='private.marketplace_audit_log'::regclass and conname='marketplace_audit_log_entity_type_check'");
  assert.equal(audit.length,1);const expression=audit[0].expression;
@@ -87,5 +91,5 @@ await prove('PRE_V3_BOUNDED_HYGIENE','bounded-hygiene-report.json',async report=
  assert.deepEqual(rows(migrationSnapshotQuery()),before);
  assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
  pass(report,'LEGACY_SOURCE_CALLER_FREEZE_PRESERVED_WITHOUT_REVOKE_AND_EXACT_MIGRATION_HISTORY_UNCHANGED');
- report.scope='Explicit function/table declarations in post-P0 PRE-V3 migrations; service transport RPCs; bounded review/queue paths. Earlier domain proofs separately exercise dynamic guards, ownership, CAS, privacy and races.';
+ report.scope='All post-P0 candidate source bytes match committed manifest/provenance. Catalog assertions cover explicit declarations in migrations present in the exact stage123 history; future candidates remain separately reported pending apply. Service transport and bounded review/queue checks remain unchanged. Later candidate proofs apply and check their own authority.';
 });

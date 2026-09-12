@@ -8,28 +8,31 @@ const deny = (status: number, code: string) => new Response(JSON.stringify({ cod
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 });
 
-async function readBounded(url: string, headers: Record<string,string>, signal: AbortSignal, maxBytes: number) {
+async function readBounded(url: string, headers: Record<string,string>, signal: AbortSignal, maxBytes: number, body?: unknown) {
   const controller = new AbortController();
   const stop = () => controller.abort();
   const timer = setTimeout(stop, 5000);
   signal.addEventListener('abort', stop, { once: true });
   if (signal.aborted) stop();
+  const assertActive = () => { if (controller.signal.aborted) throw new Error('SPEECH_NOT_READY'); };
   try {
-    const response = await fetch(url, { headers, signal: controller.signal, redirect: 'error' });
-    if (!response.ok || !response.body) { void response.body?.cancel(); throw new Error('SPEECH_NOT_READY'); }
+    assertActive();
+    const response = await fetch(url, { headers, signal: controller.signal, redirect: 'error',
+      method: body === undefined ? 'GET' : 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
+    if (controller.signal.aborted || !response.ok || !response.body) { void response.body?.cancel(); throw new Error('SPEECH_NOT_READY'); }
     const reader = response.body.getReader();
     let bytes = 0, text = '';
     const decoder = new TextDecoder();
     try {
       while (true) {
-        const part = await reader.read(); if (part.done) break;
+        const part = await reader.read(); assertActive(); if (part.done) break;
         bytes += part.value.byteLength;
         if (bytes > maxBytes) throw new Error('SPEECH_NOT_READY');
         text += decoder.decode(part.value, { stream: true });
       }
-      text += decoder.decode(); return JSON.parse(text);
+      text += decoder.decode(); assertActive(); return JSON.parse(text);
     } finally { void reader.cancel().catch(() => undefined); }
-  } finally { clearTimeout(timer); signal.removeEventListener('abort', stop); }
+  } finally { clearTimeout(timer); signal.removeEventListener('abort', stop); stop(); }
 }
 
 Deno.serve(async (req: Request) => {
@@ -45,7 +48,10 @@ Deno.serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const providerKey = Deno.env.get('GEMINI_API_KEY') ?? '';
   // Named operator acknowledgement of the approved paid service; no free-tier/personal-data assumption.
-  if (!supabaseUrl || !anonKey || !serviceRoleKey || !providerKey || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true') {
+  // Owner-approved controlled short probes with an internal reservation budget.
+  // An operator verifies actual spend after each probe; this is not a provider billing guarantee.
+  if (!supabaseUrl || !anonKey || !serviceRoleKey || !providerKey || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true'
+    || Deno.env.get('USKOCI_SPEECH_CONTROLLED_TEST_ENABLED') !== 'true') {
     return deny(503, 'SPEECH_NOT_READY');
   }
   try {
@@ -57,6 +63,15 @@ Deno.serve(async (req: Request) => {
     const conversation = Array.isArray(conversations) && conversations.length === 1 ? conversations[0] : null;
     if (!conversation || conversation.id !== conversationId || conversation.account_id !== account.id
       || conversation.status !== 'OPEN' || !['NEED_INTAKE','PROFILE'].includes(conversation.purpose)) return deny(404, 'CONVERSATION_NOT_FOUND');
+    if (conversation.purpose === 'PROFILE') {
+      const context = await readBounded(supabaseUrl + '/rest/v1/rpc/rpc_read_worker_ai_context_service',
+        { apikey: serviceRoleKey, Authorization: 'Bearer ' + serviceRoleKey, 'Content-Type': 'application/json' }, req.signal, 524288,
+        { p_account_id: account.id, p_conversation_id: conversationId });
+      if (context?.schemaVersion !== 'WORKER_PROFILE_V1' || context.accountId !== account.id || context.conversationId !== conversationId
+        || context.status !== 'OPEN' || context.stale !== false || !['ALLOW','CLARIFY'].includes(context.safety)) {
+        return deny(409, 'WORKER_AI_NOT_EDITABLE');
+      }
+    }
     const budget = await reserveAiTestBudget({ supabaseUrl, serviceRoleKey, accountId: account.id, operationId, kind: 'STT', signal: req.signal });
     if (!budget.admitted || budget.replay) return deny(409, budget.code);
     if (req.signal.aborted) return deny(409, 'SPEECH_CANCELLED');
@@ -64,6 +79,13 @@ Deno.serve(async (req: Request) => {
     // Browser/native peer sends only our allowlisted audio protocol; it never controls this URL or setup.
     const upstream = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(providerKey));
     bridgeSpeech(socket, upstream, conversationId, operationId);
+    // The HTTP request ends at upgrade, while the bounded socket session remains active.
+    // Hold the worker until the actual close event, including delivery of its final frame.
+    const closed = new Promise<void>(resolve => {
+      const onClose = socket.onclose;
+      socket.onclose = event => { try { onClose?.call(socket, event); } finally { resolve(); } };
+    });
+    if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(closed);
     return response;
   } catch { return deny(503, 'SPEECH_UNAVAILABLE'); }
 });

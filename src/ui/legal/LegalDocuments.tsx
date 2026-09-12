@@ -1,0 +1,58 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Linking, Modal, View } from 'react-native';
+import { FileText, ShieldCheck } from 'phosphor-react-native';
+import type { LegalBundleStatus, LegalDocument, LegalDocumentKind } from '../../contracts/legal';
+import { legalClientService } from '../../data/legalClientService';
+import { sesijaSada } from '../../store/sesija';
+import { SettingsAction, SettingsGroup, SettingsIntro, SettingsPanel, SettingsRow, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
+import { v2 } from '../v2/tokens';
+import { boundedLegalRead, legalHttpsUrl, reviewedDocuments } from './legalReview';
+
+export const legalTitle = (kind: LegalDocumentKind) => kind === 'TERMS' ? 'Uslovi korišćenja' : 'Politika privatnosti';
+export function LegalDocumentRows({ bundle, onOpen, disabled = false }: {
+  bundle: LegalBundleStatus | null; onOpen: (document: LegalDocument) => void; disabled?: boolean;
+}) {
+  const documents = reviewedDocuments(bundle);
+  return documents ? <SettingsGroup title="Objavljeni dokumenti">{documents.map((document, index) =>
+    <SettingsRow key={document.kind} label={legalTitle(document.kind)} detail={`Verzija ${document.version} · Otvara se u pregledaču`}
+      icon={document.kind === 'TERMS' ? <FileText size={23} color={v2.color.teal} /> : <ShieldCheck size={23} color={v2.color.teal} />}
+      onPress={() => onOpen(document)} disabled={disabled} last={index === 1} />)}</SettingsGroup>
+    : <SettingsPanel soft><T>{bundle ? 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.' : 'Dokumenti trenutno nisu dostupni.'}</T></SettingsPanel>;
+}
+
+/** Public read-only sheet. Closing it leaves every Auth field and checkbox in place. */
+export function PublicLegalModal({ kind, onClose }: { kind: LegalDocumentKind | null; onClose: () => void }) {
+  return kind ? <Modal visible onRequestClose={onClose} animationType="none" presentationStyle="fullScreen">
+    <PublicLegalContents kind={kind} onClose={onClose} />
+  </Modal> : null;
+}
+function PublicLegalContents({ kind, onClose }: { kind: LegalDocumentKind; onClose: () => void }) {
+  const [bundle, setBundle] = useState<LegalBundleStatus | null>(null), [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null); const scope = useRef<object | null>(null);
+  const owner = useRef(sesijaSada()); const opening = useRef(false);
+  const current = (token: object | null) => !!token && scope.current === token &&
+    sesijaSada().user?.id === owner.current.user?.id && sesijaSada().accountRevision === owner.current.accountRevision;
+  const read = useCallback(async () => {
+    const token = {}; scope.current = token; setLoading(true); setError(null); setBundle(null);
+    try { const result = await boundedLegalRead(() => legalClientService.readBundle());
+      if (!current(token)) return;
+      if (result.ok) setBundle(result.podatak); else setError(result.poruka);
+    } catch { if (current(token)) setError('Dokumenti trenutno nisu dostupni. Pokušajte ponovo.'); }
+    finally { if (current(token)) setLoading(false); }
+  }, []);
+  useEffect(() => { void read(); return () => { scope.current = null; }; }, [read]);
+  const open = async (document: LegalDocument) => {
+    const token = scope.current, url = legalHttpsUrl(document.url);
+    if (!current(token) || !url || opening.current) return;
+    opening.current = true; setError(null);
+    try { await Linking.openURL(url); }
+    catch { if (current(token)) setError('Dokument nije otvoren. Pokušajte ponovo.'); }
+    finally { opening.current = false; }
+  };
+  return <SettingsScreen title={legalTitle(kind)} onBack={onClose}>
+    <SettingsIntro kicker="USKOČI DOKUMENTI" title="Sve na jednom mestu.">Otvorite objavljene dokumente. Posle čitanja možete nastaviti svoj formular.</SettingsIntro>
+    {loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={v2.color.teal} /> : <LegalDocumentRows bundle={bundle} onOpen={doc => { void open(doc); }} />}
+    {error ? <View accessibilityLiveRegion="polite"><T accessibilityRole="alert">{error}</T></View> : null}
+    {!loading ? <SettingsAction label="Učitajte dokumente ponovo" kind="quiet" onPress={() => { void read(); }} /> : null}
+  </SettingsScreen>;
+}

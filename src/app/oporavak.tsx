@@ -1,4 +1,6 @@
 import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
+import { authTheme as c } from '../ui/auth/authTheme';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'expo-router';
 import { passwordRecoveryIntent } from '../store/passwordRecoveryIntent';
@@ -9,7 +11,7 @@ import { usePasswordRecovery } from '../hooks/usePasswordRecovery';
 import { useSesija } from '../store/sesija';
 import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
 import { BuildIdentity } from '../ui/BuildIdentity';
-import { palette, space, type } from '../theme/tokens';
+import { space, type } from '../theme/tokens';
 
 export default function PasswordRecoveryScreen() {
   const router = useRouter();
@@ -55,9 +57,10 @@ export default function PasswordRecoveryScreen() {
 
   const state = recovery.state;
   return <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <StatusBar style="light" />
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={busy} onPress={back} style={styles.back}>
-        <ArrowLeft size={22} color="#143D35" />
+        <ArrowLeft size={22} color={c.ink} />
       </Pressable>
       <Text style={styles.headerLabel}>Oporavak naloga</Text>
     </View>
@@ -68,7 +71,7 @@ export default function PasswordRecoveryScreen() {
             copy={state.status === 'success' ? 'Isti nalog. Tvoji Zadaci i Dogovori.' : 'Bezbedan povratak u isti USKOČI nalog.'} eyebrow="BEZBEDAN POVRATAK" />
           <View accessibilityLiveRegion="polite" style={[styles.content, authStageForm]}>
             {state.status === 'verifying' ? <>
-              <ActivityIndicator accessibilityLabel="Provera linka" color={palette.ink} />
+              <ActivityIndicator accessibilityLabel="Provera linka" color={c.muted} />
               <Text style={styles.copy}>Proveravamo link za oporavak…</Text>
             </> : null}
             {state.status === 'ready' || state.status === 'saving' ? <>
@@ -95,7 +98,7 @@ export default function PasswordRecoveryScreen() {
               </Pressable>
             </> : null}
           </View>
-          <BuildIdentity />
+          <View style={styles.versionSurface}><BuildIdentity /></View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -103,18 +106,19 @@ export default function PasswordRecoveryScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FBFCFB' },
+  screen: { flex: 1, backgroundColor: c.surface },
   flex: { flex: 1 },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 65, alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingTop: 9, paddingBottom: 12, backgroundColor: '#FAFCFB' },
-  back: { width: 44, minHeight: 44, marginLeft: -8, alignItems: 'center', justifyContent: 'center' },
-  headerLabel: { flex: 1, color: '#143D35', textAlign: 'left', fontSize: 20, lineHeight: 23.2, letterSpacing: -.55, fontWeight: '700' },
+  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
+  back: { width: 48, minHeight: 48, borderRadius: 16, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+  headerLabel: { flex: 1, color: c.ink, textAlign: 'left', fontSize: 20, lineHeight: 26, letterSpacing: -.55, fontWeight: '700' },
   scroll: { flexGrow: 1, paddingHorizontal: 20, alignItems: 'center' },
   column: { width: '100%', maxWidth: 412 },
-  content: { gap: space.base, padding: 18, borderWidth: 1, borderColor: '#D8E5DD', backgroundColor: '#FFFFFF', borderRadius: 22, marginTop: 6 },
-  copy: { color: '#5D7067', fontSize: 15, lineHeight: 22.5 },
-  email: { color: '#143D35', ...type.bodyStrong, marginBottom: space.sm },
-  note: { color: '#5D7067', ...type.meta },
-  error: { color: palette.danger, ...type.body },
+  content: { gap: space.base, backgroundColor: 'transparent', marginTop: 6 },
+  copy: { color: c.muted, fontSize: 15, lineHeight: 22.5 },
+  email: { color: c.ink, ...type.bodyStrong, marginBottom: space.sm },
+  note: { color: c.muted, ...type.meta },
+  error: { color: c.error, ...type.body },
   link: { minHeight: 48, justifyContent: 'center' },
-  linkText: { color: '#143D35', ...type.action },
+  linkText: { color: c.accentLight, ...type.action },
+  versionSurface: { backgroundColor: c.cream, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 4, marginTop: 16 },
 });

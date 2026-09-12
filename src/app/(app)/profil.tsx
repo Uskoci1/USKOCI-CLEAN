@@ -109,12 +109,18 @@ export default function Profil() {
         disabled={busy} last onPress={() => navigate(() => router.navigate('/raspored'))} />
     </SettingsGroup>
     <SettingsGroup title="Nalog i podaci">
+      {narucilac ? <SettingsRow label="Ime na profilu" detail="Ime koje prikazuješ uz svoje zadatke."
+        icon={<User size={22} color={v2.color.teal} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/podaci'))} /> : null}
       <SettingsRow label="Obaveštenja" detail="Promene i poruke u saradnji." icon={<Bell size={22} color={v2.color.teal} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/obavestenja'))} />
       <SettingsRow label="Privatnost i podaci" detail="Šta je javno i kako se podaci čuvaju." icon={<ShieldCheck size={22} color={v2.color.teal} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/privatnost'))} />
       <SettingsRow label="Izvoz podataka" detail="Zahtev i preuzimanje svoje kopije." icon={<DownloadSimple size={22} color={v2.color.teal} />}
-        disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
+        disabled={busy} onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
+      <SettingsRow label="Blokirani korisnici" detail="Tvoja blokiranja i privatne prijave." icon={<ShieldCheck size={22} color={v2.color.teal} />}
+        disabled={busy} onPress={() => navigate(() => router.navigate('/profil/blokirani'))} />
+      <SettingsRow label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka." icon={<ShieldCheck size={22} color={v2.color.teal} />}
+        disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/pravna'))} />
     </SettingsGroup>
     <View style={styles.logout}>
       {logoutError ? <T tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Pokušajte ponovo.</T> : null}

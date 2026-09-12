@@ -41,6 +41,11 @@ export default function TabLayout() {
       tabBarIcon: ({ color, focused }) => <Handshake size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="profil" options={{ href: null }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null }} />
+    <Tabs.Screen name="profil/razgovor" options={{ href: null }} />
+    <Tabs.Screen name="profil/podaci" options={{ href: null }} />
+    <Tabs.Screen name="profil/blokirani" options={{ href: null }} />
+    <Tabs.Screen name="profil/pravna" options={{ href: null }} />
+    <Tabs.Screen name="bezbednost" options={{ href: null }} />
     <Tabs.Screen name="profil/lokacija" options={{ href: null }} />
     <Tabs.Screen name="profil/dostupnost" options={{ href: null }} />
     <Tabs.Screen name="profil/izvoz" options={{ href: null }} />

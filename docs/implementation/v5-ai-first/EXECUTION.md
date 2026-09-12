@@ -64,3 +64,83 @@ missing exact approved retention/legal content;
 remaining Worker/media/identity/multi-person capabilities; full native/device proof.
 No provider cost, raw audio retention or live rollout is inferred from prototype tests.
 Product scope remains OPEN and Android owner test build NOT_READY until real artifact/journey evidence.
+
+## Owner clarification: controlled Gemini test budget (2026-09-13)
+
+The owner explicitly accepted an internal conservative reservation budget of
+USD 5 shared across all admitted test accounts and both approved Gemini models,
+controlled short provider probes, and inspection of actual provider spend after
+each probe. This supersedes the earlier requirement to prove an absolute Google
+billing ceiling before a speech probe. It is not authorization for an unlimited
+batch, a provider change, a privacy change, or live configuration outside the
+concrete owner-approved batch.
+
+SQL127 records allocated maxima, not measured charges: USD 0.25 per LLM
+operation and USD 0.20 per STT operation, with no refund after uncertain I/O.
+The test ledger stays closed by default. Speech separately requires the explicit
+operator gate `USKOCI_SPEECH_CONTROLLED_TEST_ENABLED=true` together with
+`USKOCI_GEMINI_PAID_TEST_ENABLED=true`. Neither flag has been activated by the
+voice implementation agent. The obsolete name `USKOCI_SPEECH_PRICE_BOUND_VERIFIED`
+was removed because it would imply evidence that has not been established.
+
+Google's published ~USD 0.009/min Live Transcribe rate is an estimate based on
+25 input audio tokens/sec and 175 output text tokens/min. Actual token pricing
+is USD 3.50/M audio input and USD 21/M text output. `maxOutputTokens` is documented
+for response candidates; its relationship to billed `inputTranscription` is not
+explicitly guaranteed by the reviewed documentation. Google's prepaid and
+project spending controls can lag about 10 minutes and allow overages. These
+limitations are why the accepted plan uses short supervised probes and actual
+spend inspection, rather than claiming a hard provider billing guarantee.
+
+Primary sources checked 2026-09-13:
+- https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-transcribe-live
+- https://ai.google.dev/api/live
+- https://ai.google.dev/api/generate-content
+- https://ai.google.dev/gemini-api/docs/billing#project-spend-caps
+
+No provider invocation, paid configuration, balance purchase, or production
+activation occurred during this source-only implementation and documentation.
+
+## Owner decisions: media and application deadline (2026-09-13)
+
+- AF-D07 MEDIA: explicitly approved up to six photographs per Task and one
+  profile photograph, input up to 10 MB per image, removal of metadata and
+  reduction to at most 1600 px on the longest edge. Draft photographs are
+  owner-only; final Task publication makes their authorized detail view
+  available. Use existing private Supabase Storage without changing the paid
+  plan. This does not publish attachments merely because upload finished, or
+  invent legal retention/hold durations. Actual media implementation/proof is
+  still in progress, not inferred from this decision.
+- AF-D08 / F144: owner explicitly approved an optional application deadline in
+  detailed Task review. Without an explicit deadline, applications stay open
+  until capacity is filled, the search is stopped, or canonical Task expiry.
+  Do not invent a duration or reuse the unrelated 48-hour completion window.
+- Fresh Google Drive search for USKOCI/RC2/Retention returned
+  USER_NOT_LOGGED_IN on 2026-09-13. The four recovered immutable GitHub
+  checkpoints provide technical donors but no exact approved policy content.
+  See workspace sibling V5_RC2_DONOR_RECOVERY/REPORT.md and MANIFEST.json.
+  This source-locator gap was resolved by the owner's RC2 files below;
+  reuse approval itself is not being asked again.
+
+## Owner approval and RC2 source recovery (2026-09-13)
+
+- AF-D09: the owner explicitly approved sending selected, sanitized Task
+  photographs to the already approved Gemini 3.8 Flash model for content review
+  before publication, under the same accepted Google processing framework and
+  shared internal USD 5 test reservation budget. This does not authorize a new
+  provider, plan, or an unspecified live batch.
+- Owner-supplied `USKOCI_LEGAL_SVE_RC2.zip` SHA256:
+  `5863ad8e3d32858148bde2c24217650a3ef5bca6c62c4ef1d34133e10d909ff2`.
+- Owner-supplied RC2 master DOCX SHA256:
+  `a981b0601ae3f639b099a37730302214e6c8b0ee8a34b7eef56c34f31cfc2e80`.
+  The same master bytes occur inside the archive. All 18 entries in the outer
+  SHA256 manifest match. Safe recursive extraction and ordered DOCX text reads
+  are recorded in workspace sibling `V5_RC2_APPROVED_SOURCE`, with an extraction
+  manifest and `RECONCILIATION.md` / `RECONCILIATION_EVIDENCE.json`.
+- The complete 860-line RC2 text and relevant earlier privacy sources were read.
+  RC2 requires a retention schedule but does not supply concrete durations;
+  operator and processor publication fields also remain explicit P0 entries.
+  This is a missing executable policy binding, not a missing RC2 source locator.
+  Current owner decisions supersede incompatible historical RC2 flow details.
+  Policy-bound executor implementation can proceed; no legal publication,
+  retention activation, or deletion follows from merely extracting this source.

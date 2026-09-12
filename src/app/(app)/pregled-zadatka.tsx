@@ -23,6 +23,7 @@ import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
+import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 
 type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean };
 type Edit = { fact: AiNeedV2Fact; text: string; error: string | null };
@@ -47,10 +48,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
   const [edit, setEdit] = useState<Edit | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
+  const [deadlineEditor, setDeadlineEditor] = useState(false);
+  const deadlineProposal = useRef<string | null | undefined>(undefined);
+  const [deadlineTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
   const locationProposal = useRef<{ expectedRevision: string; value: NeedLocationInput } | null>(null);
   const resolver = useMemo(() => createProductionLocationResolver(), [accountId, accountRevision, conversationId]);
   useFocusEffect(useCallback(() => { const scope = {}; focus.current = scope; navigating.current = false;
-    return () => { if (focus.current === scope) focus.current = null; setEdit(null); setLocationEditor(null); resolver.cancel(); };
+    return () => { if (focus.current === scope) focus.current = null; setEdit(null); setLocationEditor(null); setDeadlineEditor(false); resolver.cancel(); };
   }, [accountId, accountRevision, intent, resolver]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const scope = focus.current;
@@ -73,7 +77,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
       }
       return { ok: true, podatak: { review, command, publishedReadback } };
     }
-    const prepared = await aiTaskReviewClientService.prepare({ conversationId, responseDeadline: null,
+    const prepared = await aiTaskReviewClientService.prepare({ conversationId,
+      responseDeadline: deadlineProposal.current !== undefined ? deadlineProposal.current : latest.podatak?.review.responseDeadline ?? null,
       ...(locationProposal.current ? { location: locationProposal.current } : {}) });
     if (!current()) return changed();
     if (!prepared.ok) return prepared;
@@ -82,7 +87,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   }, [conversationId, accountId, accountRevision, intent]);
   const editor = useOwnedEditor(read);
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
-  const view = useMemo(() => ({}), [snapshot]), currentView = useRef(view); currentView.current = view;
+  const view = useMemo(() => ({}), [snapshot, edit, locationEditor, deadlineEditor]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
@@ -92,7 +97,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     ? router.replace({ pathname: '/nova', params: { conversationId } }) : router.replace('/nova'));
   const refresh = () => { if (current() && !editor.busy && !editor.loading && !navigating.current) void editor.refresh(); };
   const publish = async () => {
-    if (!canAct() || !review || !review.canAccept || edit || locationEditor || command || review.accountId !== accountId) return;
+    if (!canAct() || !review || !review.canAccept || edit || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() }; pending.current = accepted;
     await editor.save(async () => {
       const result = await aiTaskReviewClientService.acceptAndPublish({ review: accepted.review, clientRequestId: accepted.id });
@@ -123,7 +128,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     });
   };
   const openLocation = async () => {
-    if (!canAct() || !conversationId || !review || command) return;
+    if (!canAct() || !conversationId || !review || command || edit || deadlineEditor) return;
     const result = await needLocationClientService.read(conversationId);
     if (!current() || !result.ok) return;
     setEdit(null);
@@ -135,6 +140,15 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     await editor.save(async () => {
       const result = await read();
       if (current() && result.ok) setLocationEditor(null);
+      return result;
+    });
+  };
+  const proposeDeadline = async (value: string | null) => {
+    if (!canAct() || !deadlineEditor || command) return;
+    deadlineProposal.current = value;
+    await editor.save(async () => {
+      const result = await read();
+      if (current() && result.ok) setDeadlineEditor(false);
       return result;
     });
   };
@@ -165,8 +179,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     return <View key={fact.key} style={s.field}>
       <View style={s.row}><T style={[s.meta, { flex: 1 }]}>{factLabel(fact.key)}</T>
         {!command && fact.id ? <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${factLabel(fact.key)}`}
-          disabled={disabled || !!edit} style={s.editButton} onPress={() => {
-            if (!canAct()) return;
+          disabled={disabled || !!edit || !!locationEditor || deadlineEditor} style={s.editButton} onPress={() => {
+            if (!canAct() || edit || locationEditor || deadlineEditor) return;
             if (['need.task_country_code', 'need.task_geography', 'need.exact_address', 'need.access_notes', 'need.resolved_location'].includes(fact.key)) { void openLocation(); return; }
             if (!canEditFactInline(shown)) { back(); return; }
             setEdit({ fact: shown, text: factCorrectionValue(shown), error: null });
@@ -201,11 +215,19 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             <T accessibilityRole="header" style={s.sectionTitle}>Privatni podaci</T>
             <T style={s.meta}>Ovi podaci nisu deo javnog zadatka. Pristup ostaje prema pravilima Dogovora.</T>
             {rows(review.ownerPrivateProjection)}</View> : null}
+          <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Prijave na zadatak</T>
+            {deadlineEditor ? <ResponseDeadlineEditor value={review.responseDeadline} timezone={deadlineTimezone} disabled={disabled}
+              apply={value => { void proposeDeadline(value); }} cancel={() => { if (canAct()) setDeadlineEditor(false); }} /> : <>
+              <T style={s.body}>{review.responseDeadline ? `Rok: ${new Date(review.responseDeadline).toLocaleString('sr-Latn-RS', { timeZone: deadlineTimezone })} (${deadlineTimezone})`
+                : 'Bez posebnog roka — do popune, zaustavljanja potrage ili isteka zadatka.'}</T>
+              {!command ? <V2Action label="Uredi rok za prijave" kind="quiet" disabled={disabled || !!edit || !!locationEditor}
+                onPress={() => { if (canAct()) setDeadlineEditor(true); }} /> : null}
+            </>}</View>
           {review.missingRequired.length ? <View style={s.notice}><T style={s.body}>Još nedostaje: {review.missingRequired.map(factLabel).join(', ')}.</T>
             <V2Action label="Dopuni u razgovoru" disabled={disabled} onPress={back} /></View> : null}
           {resultCopy ? <View style={s.notice}><T accessibilityLiveRegion="polite" style={s.body}>{resultCopy}</T></View> : null}
           {!command ? <V2Action label="Izmeni u razgovoru" kind="quiet" disabled={disabled} onPress={back} /> : null}
-          {!command && !locationEditor ? <V2Action label={review.location ? 'Uredi mesto' : 'Dodaj mesto'} kind="quiet" disabled={disabled} onPress={openLocation} /> : null}
+          {!command && !locationEditor ? <V2Action label={review.location ? 'Uredi mesto' : 'Dodaj mesto'} kind="quiet" disabled={disabled || !!edit || deadlineEditor} onPress={openLocation} /> : null}
         </> : null}
       </ScrollView>
       <View style={s.footer}>
@@ -218,9 +240,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
               <V2Action label="Nastavi istu objavu" disabled={disabled} onPress={resume} /> : null}
             {outcome && outcome !== 'ALLOW' ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
           </> : review ? <>
-            <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" disabled={disabled || !review.canAccept || !!edit || !!locationEditor}
-              accessibilityState={{ disabled: disabled || !review.canAccept || !!edit || !!locationEditor }} onPress={publish}
-              style={[s.publish, (disabled || !review.canAccept || !!edit || !!locationEditor) && { opacity: 0.45 }]}>
+            <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" disabled={disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor}
+              accessibilityState={{ disabled: disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
+              style={[s.publish, (disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
               {editor.busy ? <ActivityIndicator color={a.color.surface} /> : <T style={s.publishLabel}>Objavi zadatak</T>}
             </Press><T style={[s.meta, { textAlign: 'center' }]}>Klikom prihvataš ovu prikazanu verziju i tražiš objavu.</T>
           </> : null}

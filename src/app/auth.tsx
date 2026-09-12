@@ -1,4 +1,8 @@
 import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
+import { AuthSheet } from '../ui/auth/AuthSheet';
+import { PublicLegalModal } from '../ui/legal/LegalDocuments';
+import type { LegalDocumentKind } from '../contracts/legal';
+import { authTheme as authColors } from '../ui/auth/authTheme';
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import {
@@ -50,6 +54,7 @@ function MethodButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [styles.method, pressed && styles.methodPressed]}
@@ -64,6 +69,8 @@ export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ form?: string }>();
   const [otvoren, setOtvoren] = useState(params.form === 'login' || params.form === 'recovery');
+  const [entrySeen, setEntrySeen] = useState(!otvoren);
+  useEffect(() => { if (!otvoren) setEntrySeen(true); }, [otvoren]);
   const { onLayout: onFormLayout } = useEntrySplashReady({ enabled: otvoren });
   const [rezim, setRezim] = useState<Rezim>('LOGIN');
   const [faza, setFaza] = useState<Faza>(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
@@ -82,6 +89,7 @@ export default function AuthScreen() {
   const [telefon, setTelefon] = useState('');
   const [otp, setOtp] = useState('');
   const [saglasnost, setSaglasnost] = useState(false);
+  const [legalDocument, setLegalDocument] = useState<LegalDocumentKind | null>(null);
   const [confirmationRequired, setConfirmationRequired] = useState(true);
 
   const commands = useAuthFormCommand();
@@ -244,24 +252,26 @@ export default function AuthScreen() {
   const stageComposition = recoveryStage || (rezim === 'SIGNUP' && (faza === 'EMAIL' || faza === 'SIGNUP_NEXT_STEP'));
   const formStyle = [styles.form, stageComposition && authStageForm];
 
-  if (!otvoren) return <EntryWelcome onRequester={() => izaberiNameru('REQUESTER')}
-    onWorker={() => izaberiNameru('WORKER')} onSignIn={() => otvori('LOGIN')} busy={radi} error={greska} />;
   return (
-    <View onLayout={onFormLayout} style={[styles.screen, { paddingTop: insets.top }]}>
-      <StatusBar style="dark" />
+    <><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+    <AuthSheet visible={otvoren} expanded={rezim === 'SIGNUP'} backdrop={entrySeen ? <EntryWelcome
+      onRequester={() => izaberiNameru('REQUESTER')} onWorker={() => izaberiNameru('WORKER')}
+      onSignIn={() => otvori('LOGIN')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
+    <View onLayout={onFormLayout} style={styles.screen}>
+      <StatusBar style="light" />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={radi}
           onPress={() => commands.changeForm(() => {
             if (faza !== 'EMAIL' || rezim !== 'LOGIN') { setFaza('EMAIL'); setRezim('LOGIN'); }
             else setOtvoren(false);
             setGreska(null); setPoruka(null);
-          })} style={styles.backButton}><ArrowLeft size={22} color="#143D35" /></Pressable>
+          })} style={({ pressed }) => [styles.backButton, pressed && styles.methodPressed]}><ArrowLeft size={22} color={authColors.ink} /></Pressable>
         <View style={styles.headerTitles}>
           {faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? <Text style={styles.headerEyeline}>{intentLabel}</Text> : null}
           <Text style={styles.headerTitle}>{recoveryStage ? 'Oporavak pristupa' : rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
         </View>
       </View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <View style={{ flex: 1, minHeight: 0 }}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
           <View style={styles.formColumn}>
             <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Dobro došao.' : naslov}
@@ -271,7 +281,7 @@ export default function AuthScreen() {
 
             {availability.status === 'loading' ? (
               <View accessibilityRole="progressbar" style={formStyle}>
-                <ActivityIndicator color="#5D6E6D" />
+                <ActivityIndicator color={authColors.muted} />
                 <Text style={styles.stateCopy}>Proveravamo dostupne načine prijave…</Text>
               </View>
             ) : availability.status === 'error' ? (
@@ -293,7 +303,7 @@ export default function AuthScreen() {
                         editable={!radi}
                         autoCapitalize="words"
                         placeholder="Ime"
-                        icon={<User size={21} color="#5D6E6D" />}
+                        icon={<User size={21} color={authColors.muted} />}
                       />
                       <AuthField
                         label="Prezime"
@@ -302,7 +312,7 @@ export default function AuthScreen() {
                         editable={!radi}
                         autoCapitalize="words"
                         placeholder="Prezime"
-                        icon={<User size={21} color="#5D6E6D" />}
+                        icon={<User size={21} color={authColors.muted} />}
                       />
                       <AuthField
                         label="Grad"
@@ -311,7 +321,7 @@ export default function AuthScreen() {
                         editable={!radi}
                         autoCapitalize="words"
                         placeholder="Vaš grad"
-                        icon={<MapPin size={21} color="#5D6E6D" />}
+                        icon={<MapPin size={21} color={authColors.muted} />}
                       />
                     </>
                   ) : null}
@@ -323,7 +333,7 @@ export default function AuthScreen() {
                     editable={!radi}
                     keyboardType="email-address"
                     placeholder="ime@primer.rs"
-                    icon={<EnvelopeSimple size={21} color="#5D6E6D" />}
+                    icon={<EnvelopeSimple size={21} color={authColors.muted} />}
                   />
                   <AuthField
                     key={`password:${rezim}`}
@@ -333,7 +343,7 @@ export default function AuthScreen() {
                     editable={!radi}
                     placeholder="Unesite lozinku"
                     secure
-                    icon={<LockKey size={21} color="#5D6E6D" />}
+                    icon={<LockKey size={21} color={authColors.muted} />}
                   />
 
                   {rezim === 'SIGNUP' && methods.emailSignup ? (
@@ -345,7 +355,7 @@ export default function AuthScreen() {
                         editable={!radi}
                         placeholder="Ponovite lozinku"
                         secure
-                        icon={<LockKey size={21} color="#5D6E6D" />}
+                        icon={<LockKey size={21} color={authColors.muted} />}
                       />
                       <Pressable
                         accessibilityRole="checkbox"
@@ -358,7 +368,11 @@ export default function AuthScreen() {
                           {saglasnost ? <Text style={styles.checkmark}>✓</Text> : null}
                         </View>
                         <Text style={styles.consentText}>
-                          Prihvatam <Text style={styles.legalLink}>Uslove korišćenja</Text> i potvrđujem da sam pročitao/la <Text style={styles.legalLink}>Politiku privatnosti</Text>.
+                          Prihvatam <Text style={styles.legalLink} accessibilityRole="link" onPress={event => {
+                            event.stopPropagation(); if (!radi) setLegalDocument('TERMS');
+                          }}>Uslove korišćenja</Text> i potvrđujem da sam pročitao/la <Text style={styles.legalLink} accessibilityRole="link" onPress={event => {
+                            event.stopPropagation(); if (!radi) setLegalDocument('PRIVACY');
+                          }}>Politiku privatnosti</Text>.
                         </Text>
                       </Pressable>
                     </>
@@ -402,7 +416,7 @@ export default function AuthScreen() {
             {faza === 'PHONE' && methods?.phoneOtp ? (
               <View style={formStyle}>
                 <Pressable disabled={radi} onPress={nazadNaEmail} style={styles.backRow}>
-                  <ArrowLeft size={16} color="#5D6E6D" />
+                  <ArrowLeft size={16} color={authColors.muted} />
                   <Text style={styles.backText}>Nazad na prijavu</Text>
                 </Pressable>
                 <AuthField
@@ -412,7 +426,7 @@ export default function AuthScreen() {
                   editable={!radi}
                   keyboardType="phone-pad"
                   placeholder="+381 6x xxx xxxx"
-                  icon={<Phone size={21} color="#5D6E6D" />}
+                  icon={<Phone size={21} color={authColors.muted} />}
                 />
                 <Text style={styles.smallNote}>Poslaćemo Vam jednokratni kod.</Text>
                 <PrimaryButton title="Pošaljite kod" onPress={() => void posaljiTelefon()} busy={radi} />
@@ -422,10 +436,10 @@ export default function AuthScreen() {
             {faza === 'OTP' && methods?.phoneOtp ? (
               <View style={formStyle}>
                 <Pressable disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
-                  <ArrowLeft size={16} color="#5D6E6D" />
+                  <ArrowLeft size={16} color={authColors.muted} />
                   <Text style={styles.backText}>Promenite broj</Text>
                 </Pressable>
-                <View style={styles.stateIcon}><Phone size={28} color="#5D6E6D" /></View>
+                <View style={styles.stateIcon}><Phone size={28} color={authColors.muted} /></View>
                 <Text style={styles.stateTitle}>Unesite kod</Text>
                 <Text style={styles.stateCopy}>Unesite primljeni kod. Ako ne stigne, možete zatražiti novi.</Text>
                 <AuthField
@@ -435,7 +449,7 @@ export default function AuthScreen() {
                   editable={!radi}
                   keyboardType="number-pad"
                   placeholder="123456"
-                  icon={<LockKey size={21} color="#5D6E6D" />}
+                  icon={<LockKey size={21} color={authColors.muted} />}
                 />
                 <PrimaryButton title="Potvrdite kod" onPress={() => void potvrdiOtp()} busy={radi} />
                 <Pressable disabled={radi} onPress={() => void posaljiTelefon()} style={styles.linkButton}>
@@ -453,7 +467,7 @@ export default function AuthScreen() {
 
             {faza === 'RECOVERY' && methods ? (
               <View style={formStyle}>
-                <View style={styles.stateIcon}><LockKey size={28} color="#5D6E6D" /></View>
+                <View style={styles.stateIcon}><LockKey size={28} color={authColors.muted} /></View>
                 {methods.passwordRecovery ? <>
                   <AuthField label="Email" value={email} onChangeText={value => commands.changeForm(() => setEmail(value))}
                     editable={!radi} keyboardType="email-address" placeholder="ime@primer.rs" />
@@ -467,7 +481,7 @@ export default function AuthScreen() {
             ) : null}
 
             {faza === 'RECOVERY_SENT' ? <View style={formStyle}>
-              <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
+              <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
               <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićete link za novu lozinku. Proverite i neželjenu poštu.</Text>
               <Text style={styles.smallNote}>{email.trim()}</Text>
               <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} />
@@ -478,7 +492,7 @@ export default function AuthScreen() {
 
             {faza === 'SIGNUP_NEXT_STEP' ? (
               <View style={formStyle}>
-                <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
+                <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
                 <Text style={styles.stateTitle}>{confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'}</Text>
                 <Text style={styles.stateCopy}>{confirmationRequired
                   ? 'Ako je registracija prihvaćena, dobićete poruku sa daljim uputstvom. Posle potvrde emaila vratite se na prijavu.'
@@ -514,52 +528,55 @@ export default function AuthScreen() {
             </Pressable> : null}
           </View>
         </View> : null}
-      </KeyboardAvoidingView>
+      </View>
     </View>
+    </AuthSheet>
+    </KeyboardAvoidingView>
+    <PublicLegalModal kind={legalDocument} onClose={() => setLegalDocument(null)} /></>
   );
 }
 
 const styles = StyleSheet.create({
-  authFooter: { borderTopWidth: 1, borderTopColor: '#E8EDEA', backgroundColor: '#FFFFFF', paddingTop: 12, paddingHorizontal: 18 },
+  authFooter: { borderTopWidth: 1, borderTopColor: '#345D50', backgroundColor: authColors.surface, paddingTop: 12, paddingHorizontal: 22 },
   footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center' },
-  screen: { flex: 1, backgroundColor: '#FBFCFB' },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 65, alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingTop: 9, paddingBottom: 12, backgroundColor: '#FAFCFB' },
-  backButton: { width: 44, height: 44, marginLeft: -8, alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
+  backButton: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, borderColor: '#527469', backgroundColor: authColors.input, alignItems: 'center', justifyContent: 'center' },
   headerTitles: { flex: 1 },
-  headerEyeline: { color: '#58736A', fontSize: 11, lineHeight: 14.85, marginBottom: 4 },
-  headerTitle: { textAlign: 'left', fontSize: 20, lineHeight: 23.2, letterSpacing: -.55, fontWeight: '700', color: '#143D35' },
-  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 20, paddingTop: 0 },
+  headerEyeline: { color: authColors.accentLight, fontSize: 12, lineHeight: 17, marginBottom: 3 },
+  headerTitle: { textAlign: 'left', fontSize: 18, lineHeight: 25, letterSpacing: -.3, fontWeight: '600', color: authColors.ink },
+  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 22, paddingTop: 4 },
   formColumn: { width: '100%', maxWidth: 412 },
-  alternateAction: { minHeight: 44, paddingVertical: 9, paddingHorizontal: 2, justifyContent: 'center', alignSelf: 'flex-start' },
-  alternateLabel: { color: '#143D35', fontSize: 14, lineHeight: 18.9, fontWeight: '600' },
-  form: { gap: 16, backgroundColor: '#FFFFFF', borderColor: '#D8E5DD', borderWidth: 1, borderRadius: 22, padding: 18, marginTop: 6 },
+  alternateAction: { minHeight: 48, paddingVertical: 10, paddingHorizontal: 2, justifyContent: 'center', alignSelf: 'center' },
+  alternateLabel: { color: authColors.accentLight, fontSize: 14, lineHeight: 21, fontWeight: '600', textAlign: 'center' },
+  form: { gap: 14, backgroundColor: 'transparent', borderWidth: 0, padding: 0, marginTop: 0 },
   feedback: { marginTop: -6 },
   banner: { marginBottom: 12, borderRadius: 14, padding: 12 },
-  bannerOk: { backgroundColor: '#E6F3EC' },
-  bannerOkText: { color: '#265B40', fontSize: 14, lineHeight: 21 },
-  bannerErrorText: { color: '#A03328', fontSize: 14, lineHeight: 21 },
-  forgot: { minHeight: 48, justifyContent: 'center', marginTop: -6 },
-  forgotText: { color: '#143D35', fontSize: 14, fontWeight: '600', lineHeight: 21 },
+  bannerOk: { backgroundColor: authColors.soft },
+  bannerOkText: { color: authColors.ink, fontSize: 14, lineHeight: 21 },
+  bannerErrorText: { color: authColors.error, fontSize: 14, lineHeight: 21 },
+  forgot: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-end', marginTop: -6 },
+  forgotText: { color: authColors.accentLight, fontSize: 14, fontWeight: '600', lineHeight: 21 },
   methods: { marginTop: 16 },
   method: { minHeight: 56, borderRadius: 16, borderWidth: 1, borderColor: '#DCE3DE', backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
   methodPressed: { opacity: 0.76 },
   methodIcon: { width: 24, height: 24 },
   methodText: { color: '#143D35', fontSize: 16, fontWeight: '600' },
-  consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 8 },
-  checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: '#78938A', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  checkboxChecked: { backgroundColor: '#143D35' },
-  checkmark: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  consentText: { flex: 1, color: '#52665E', fontSize: 13, lineHeight: 21 },
-  legalLink: { color: '#143D35' },
+  consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 15, backgroundColor: authColors.input },
+  checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: authColors.muted, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: authColors.surface },
+  checkboxChecked: { backgroundColor: authColors.accent },
+  checkmark: { color: authColors.buttonInk, fontSize: 16, fontWeight: '700' },
+  consentText: { flex: 1, color: authColors.muted, fontSize: 13, lineHeight: 21 },
+  legalLink: { color: authColors.ink, textDecorationLine: 'underline' },
   backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
-  backText: { color: '#143D35', fontSize: 14, fontWeight: '600' },
-  smallNote: { color: '#52665E', fontSize: 13, lineHeight: 20, marginVertical: 12 },
+  backText: { color: authColors.accentLight, fontSize: 14, fontWeight: '600' },
+  smallNote: { color: authColors.muted, fontSize: 13, lineHeight: 20, marginVertical: 12 },
   stateIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4EDE8' },
-  stateTitle: { color: '#143D35', fontSize: 23, fontWeight: '700', lineHeight: 29 },
-  stateCopy: { color: '#52665E', fontSize: 15, lineHeight: 23 },
+  stateTitle: { color: authColors.ink, fontSize: 23, fontWeight: '700', lineHeight: 29 },
+  stateCopy: { color: authColors.muted, fontSize: 15, lineHeight: 23 },
   linkButton: { minHeight: 48, justifyContent: 'center' },
-  linkText: { color: '#143D35', fontSize: 14, fontWeight: '600' },
-  notice: { backgroundColor: '#E9F3EE', padding: 16, borderRadius: 16, marginTop: 16, gap: 6 },
-  noticeTitle: { color: '#2E7A6A', fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  noticeCopy: { color: '#2E7A6A', fontSize: 13, lineHeight: 20 },
+  linkText: { color: authColors.accentLight, fontSize: 14, fontWeight: '600' },
+  notice: { backgroundColor: authColors.soft, padding: 16, borderRadius: 16, marginTop: 16, gap: 6 },
+  noticeTitle: { color: authColors.ink, fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  noticeCopy: { color: authColors.muted, fontSize: 13, lineHeight: 20 },
 });
