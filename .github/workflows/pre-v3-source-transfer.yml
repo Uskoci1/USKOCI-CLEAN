@@ -8,11 +8,11 @@ permissions:
 jobs:
   source:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 06d51ecb1438a93a4ecce64692ff868474fca598
+          ref: 74b63c4de3578da4cf2531639c53fe18bc92f448
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -23,18 +23,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 06d51ecb1438a93a4ecce64692ff868474fca598
+          test "$(git rev-parse HEAD)" = 74b63c4de3578da4cf2531639c53fe18bc92f448
           test -z "$(git status --porcelain)"
           mkdir -p "$RUNNER_TEMP/transfer"
           git bundle create "$RUNNER_TEMP/transfer/integration.bundle" HEAD
-          git log -8 --format=fuller > "$RUNNER_TEMP/transfer/lineage.txt"
+          git log -12 --format=fuller > "$RUNNER_TEMP/transfer/lineage.txt"
           npm ci > "$RUNNER_TEMP/transfer/dependencies.log" 2>&1
-          tar czf "$RUNNER_TEMP/transfer/typescript.tgz" node_modules/typescript
+          tar czf "$RUNNER_TEMP/transfer/dependencies.tgz" node_modules
           git diff --exit-code HEAD
-          sha256sum "$RUNNER_TEMP/transfer/integration.bundle" "$RUNNER_TEMP/transfer/typescript.tgz" > "$RUNNER_TEMP/transfer/SHA256SUMS.txt"
+          sha256sum "$RUNNER_TEMP/transfer/integration.bundle" "$RUNNER_TEMP/transfer/dependencies.tgz" > "$RUNNER_TEMP/transfer/SHA256SUMS.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pre-v3-source-transfer
+          name: pre-v3-source-transfer-74b63c4
           path: ${{ runner.temp }}/transfer/
           retention-days: 7
           if-no-files-found: error
