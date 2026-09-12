@@ -6,7 +6,8 @@ const blockStatement=async()=>{const s=await state();return `select set_config('
  select public.rpc_set_account_block(${q(workerId)}::uuid,true,${s.revision},${q(randomUUID())}::uuid)`;};
 const send=(id,key=randomUUID(),client=requester,uid=requesterId)=>client.rpc('rpc_send_agreement_message_v2',{p_expected_user_id:uid,p_agreement_id:id,p_client_message_id:key,p_body:'Obična poruka'});
 await prove('PRE_V3_SAFETY_AUTHORITY','safety-authority-report.json',async report=>{
- await apply(report,'20260912091000_clean_pre_v3_safety_authority.sql',117);await login();
+ await apply(report,'20260912091000_clean_pre_v3_safety_authority.sql',117);
+ await apply(report,'20260912091100_clean_pre_v3_safety_audit_vocabulary.sql',118);await login();
  const a=await agreement('safety escape'),b=await agreement('safety completion'),pendingNeed=need('safety selection'),pending=await submit(pendingNeed);
  const n=need('blocked new application');const beforeMessage=await ok(send(a.id,'safety-before-block-key'));
  sql(`insert into public.need_sensitive(need_id,exact_address,access_notes) values(${q(a.needId)}::uuid,'PRIVATE_ADDRESS_SENTINEL','PRIVATE_ACCESS_SENTINEL')
