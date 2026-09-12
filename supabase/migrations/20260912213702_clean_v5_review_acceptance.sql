@@ -299,7 +299,7 @@ end $f$;
 
 create function public.rpc_publish_accepted_ai_task_review(p_review_id uuid,p_client_request_id uuid) returns jsonb
 language plpgsql security definer set search_path=pg_catalog as $f$
-declare u uuid:=auth.uid(); r private.ai_task_reviews; c private.ai_task_review_commands; published jsonb;
+declare u uuid:=auth.uid(); r private.ai_task_reviews; c private.ai_task_review_commands; v_published jsonb;
 begin
  if u is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
  perform private.closure_assert_open(u);
@@ -312,9 +312,9 @@ begin
  if c.state<>'EVALUATED' or c.evaluation#>>'{decision,outcome}' is distinct from 'ALLOW' then raise exception 'PUBLICATION_DECISION_NOT_ALLOW' using errcode='55000'; end if;
  if r.policy_binding is distinct from private.ai_task_review_policy(r.envelope#>>'{location,taskCountryCode}')
  then raise exception 'TASK_REVIEW_POLICY_STALE' using errcode='40001'; end if;
- published:=public.rpc_publish_need_canonical(c.need_id,c.need_revision,(c.evaluation#>>'{decision,decisionSequence}')::bigint,
+ v_published:=public.rpc_publish_need_canonical(c.need_id,c.need_revision,(c.evaluation#>>'{decision,decisionSequence}')::bigint,
   (r.envelope->>'responseDeadline')::timestamptz,'v5-publish:'||r.id::text);
- update private.ai_task_review_commands set state='PUBLISHED',published=published where review_id=r.id;
+ update private.ai_task_review_commands set state='PUBLISHED',published=v_published where review_id=r.id;
  return private.ai_task_review_command_document(r.id);
 end $f$;
 
