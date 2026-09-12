@@ -1,12 +1,12 @@
 {
-  "sourceSha": "eb7af88e62cd05648af5942ca412350d4dc001e4",
-  "sourceTree": "b54defb20ea8934331b5c4a7b6814dad50a90200",
-  "purpose": "P11 canonical observed push readiness, exact sender non-sending probe and real SQL block recheck; preserve P8-P10 composition",
+  "sourceSha": "887a2f20a7b2430b76432a618934dd002bd7bd38",
+  "sourceTree": "6f6689f8341799931c2f6e9b95855cfe7bb0b7b0",
+  "purpose": "P11 real SQL42702 correction, ordered122-123; preserve actual Edge, Auth, readiness and block recheck gates",
   "exportSource": false,
   "regressionScope": "PACKAGE",
   "focusedJest": ["src/data/__tests__/push-readiness.test.ts","src/data/__tests__/account-closure.test.ts","src/data/__tests__/reviews-authority.test.ts","src/data/__tests__/public-reputation-boundary.test.ts","src/data/__tests__/ru5-p0c01-public-profile.test.ts","src/data/__tests__/safety-authority.test.ts"],
   "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"},{"script":"safety_authority_proof.mjs","report":"safety-authority-report.json"},{"script":"reviews_authority_proof.mjs","report":"reviews-authority-report.json"},{"script":"account_closure_proof.mjs","report":"account-closure-report.json"},{"script":"push_readiness_proof.mjs","report":"push-readiness-report.json"}],
-  "finalHistoryCount": 122,
+  "finalHistoryCount": 123,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
