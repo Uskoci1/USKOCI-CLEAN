@@ -16,9 +16,13 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => `aaaaaaaa-aaaa-4aaa-8aaa-${String(++mockCounter).padStart(12, '0')}` }));
+jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: () => ({ controller: { resolveSubmission: jest.fn() },
+  state: { phase: 'IDLE', submission: null } }) }));
+jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'Alert') return { alert: (...args: unknown[]) => mockAlert(...args) };
-  if (key === 'Keyboard') return { dismiss: jest.fn() };
+  if (key === 'Keyboard') return { dismiss: jest.fn(), addListener: jest.fn(() => ({ remove: jest.fn() })) };
+  if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 1, fontScale: 1 });
   return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
@@ -100,7 +104,8 @@ it('keeps a failed resume as a read failure and does not create another conversa
 it('serializes two retained send taps before render and keeps the original body and key', async () => {
   const held = deferred(); mockSend.mockReturnValueOnce(held.promise); await render(); await type(); const send = submit().onPress;
   await act(async () => { void send(); void send(); }); expect(mockSend).toHaveBeenCalledTimes(1);
-  expect(mockSend.mock.calls[0]).toEqual([id, 'Treba preneti ormar sutra.', expect.stringMatching(/^[a-f0-9-]{36}$/)]);
+  expect(mockSend.mock.calls[0].slice(0,3)).toEqual([id, 'Treba preneti ormar sutra.', expect.stringMatching(/^[a-f0-9-]{36}$/)]);
+  expect(typeof mockSend.mock.calls[0][3].onText).toBe('function');
   await act(async () => held.resolve(unknown())); expect(input().value).toBe('Treba preneti ormar sutra.'); expect(input().editable).toBe(false);
 });
 it('requires real readback after unknown and retries the same key/body only when the server permits', async () => {
@@ -108,7 +113,7 @@ it('requires real readback after unknown and retries the same key/body only when
   await act(async () => submit().onPress()); expect(mockSend).toHaveBeenCalledTimes(1);
   await act(async () => button('Proverite ishod').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
   await act(async () => input().onChangeText('different body')); expect(input().value).toBe(sent[1]);
-  await act(async () => submit().onPress()); expect(mockSend.mock.calls[1]).toEqual(sent);
+  await act(async () => submit().onPress()); expect(mockSend.mock.calls[1].slice(0,3)).toEqual(sent.slice(0,3));
 });
 it('keeps an in-progress server receipt read-only and never polls or retries automatically', async () => {
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
@@ -175,18 +180,18 @@ it('does not expose abandonment for an edit conversation bound to a Zadatak', as
   expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
 });
 
-it('shows one current question and last answer, with the complete history available on demand', async () => {
+it('keeps the complete conversation in its own scroll area beneath the pinned card', async () => {
   const messages = [
     { id: 'old-ai', fromAi: true, body: 'Ranije pitanje' }, { id: 'old-user', fromAi: false, body: 'Raniji odgovor' },
     { id: 'new-ai', fromAi: true, body: 'Koliko ljudi je potrebno?' }, { id: 'new-user', fromAi: false, body: 'Dve osobe.' },
   ].map(message => ({ ...message, safety: null, proposedFactIds: [] }));
   mockLoad.mockResolvedValue(conversation({ messages })); await render();
   expect(text()).toContain('Koliko ljudi je potrebno?'); expect(text()).toContain('Dve osobe.');
-  expect(text()).not.toContain('Ranije pitanje'); expect(text()).not.toContain('Raniji odgovor');
-  await act(async () => button('Razgovor · 4').onPress());
   expect(text()).toContain('Ranije pitanje'); expect(text()).toContain('Raniji odgovor');
-  await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose());
-  expect(text()).not.toContain('Ranije pitanje'); expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
+  const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
+  expect(thread.findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'ai-pinned-card' }).findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(1);
+  expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
 });
 
 it('keeps private address and resolved coordinates out of the compact live card and preserves the review destination', async () => {
@@ -199,14 +204,14 @@ it('keeps private address and resolved coordinates out of the compact live card 
       requiredForDraft: false, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null },
   ];
   mockLoad.mockResolvedValue(conversation({ facts })); await render();
-  expect(text()).toContain('Unos ormara'); expect(text()).toContain('Predlog iz razgovora');
+  expect(text()).toContain('Unos ormara'); expect(text()).toContain('NACRT');
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   const card = tree.root.findByProps({ testID: 'intake-task-summary' });
   expect(card.props.accessibilityLabel).toBe('Otvori sažetak Zadatka');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pregledajte nacrt' })).toHaveLength(1);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pregledaj zadatak' })).toHaveLength(1);
   await act(async () => { card.props.onPress(); card.props.onPress(); });
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-nacrta', params: { conversationId: id } });
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
 });
 
 it('offers options without unbound voice, attachment or automatic abandonment controls', async () => {
@@ -219,7 +224,7 @@ it('offers options without unbound voice, attachment or automatic abandonment co
 
 it('respects reduced motion for screen entry and the options panel', async () => {
   mockReduced = true; await render();
-  expect(tree.root.findByType('AnimatedView' as React.ElementType).props.entering).toBeUndefined();
+  expect(tree.root.findAllByType('AnimatedView' as React.ElementType)).toHaveLength(0);
   await options(); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
 });
 

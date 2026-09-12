@@ -7,6 +7,7 @@ import { NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { sesijaSada } from '../store/sesija';
+import { requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
 import { capabilityTerms } from '../lib/capabilityTerms';
 import { countryCode } from '../lib/market';
 import { locationPayloadFits, normalizeNeedLocation, normalizeTaskGeography } from '../lib/location';
@@ -191,7 +192,7 @@ function mapFact(raw: unknown): AiNeedV2Fact | null {
   if (!r || !uuid(r.id) || typeof r.key !== 'string' || !isNeedFactV2Key(r.key) || r.schemaVersion !== NEED_FACT_SCHEMA_V2
     || !boundedText(r.displayValue, 1000) || typeof r.material !== 'boolean'
     || !['NEEDS_CONFIRMATION', 'INFERRED', 'CONFIRMED', 'UNKNOWN'].some(item => item === r.status)
-    || !['EXPLICIT_USER_ANSWER', 'CONFIRMED_PROFILE', 'AI_INFERENCE', 'SYSTEM'].some(item => item === r.source)
+    || !['EXPLICIT_USER_ANSWER', 'CONFIRMED_PROFILE', 'AI_INFERENCE', 'SYSTEM', 'SYSTEM_DERIVED'].some(item => item === r.source)
     || !(r.evidence === null || boundedText(r.evidence, 4000))) return null;
   const definition = NEED_FACT_V2_DEFINITIONS[r.key];
   if (r.valueType !== definition.valueType || r.privacyClass !== definition.privacyClass
@@ -293,7 +294,7 @@ export const aiNeedV2Production = {
       errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE', decode: raw => turnStatus(raw, conversationId, clientRequestId) });
   },
 
-  async sendMessage(conversationId: string, body: string, clientRequestId: string): Promise<Ishod<AiNeedTurnStatus>> {
+  async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions): Promise<Ishod<AiNeedTurnStatus>> {
     if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     const text = typeof body === 'string' ? body.trim() : '';
     if (!text) return fail('MESSAGE_REQUIRED', 'Unesite poruku.');
@@ -302,6 +303,13 @@ export const aiNeedV2Production = {
     return readOwnedResult({ account, write: true, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
       request: async () => {
         if (!account) return scopeChanged();
+        if (stream) {
+          const session = sesijaSada().session;
+          const url = process.env.EXPO_PUBLIC_SUPABASE_URL, anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          if (!session?.access_token || !url || !anonKey) return scopeChanged();
+          return requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
+            conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account) });
+        }
         const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', { body: { conversationId, text, clientRequestId } });
         if (!scopeCurrent(account)) return scopeChanged();
         if (Date.now() >= deadline) return invalidResponse();

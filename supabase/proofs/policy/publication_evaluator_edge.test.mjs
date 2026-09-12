@@ -19,6 +19,8 @@ const NEED = '22222222-2222-4222-8222-222222222222';
 const BUNDLE = '33333333-3333-4333-8333-333333333333';
 const DECISION = '44444444-4444-4444-8444-444444444444';
 const OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const REVIEW = '55555555-5555-4555-8555-555555555555';
+const ATTEMPT = '66666666-6666-4666-8666-666666666666';
 const OUTCOMES = ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'];
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 const evaluation = (outcome = 'ALLOW') => ({ outcome, ruleIds: ['SYNTHETIC_RULE_1'], safeReasonCodes: ['SYNTHETIC_REASON_1'] });
@@ -60,7 +62,9 @@ function fixture(options = {}) {
       const parsed = new URL(url), pathname = parsed.pathname;
       const kind = parsed.origin === 'https://database.test.invalid'
         ? pathname === '/auth/v1/user' ? 'auth' : pathname === '/rest/v1/rpc/rpc_get_need_publication_context' ? 'context'
-          : pathname === '/rest/v1/rpc/rpc_record_need_publication_decision_service' ? 'writer' : null
+          : pathname === '/rest/v1/rpc/rpc_record_need_publication_decision_service' ? 'writer'
+            : pathname === '/rest/v1/rpc/rpc_claim_ai_task_review_evaluation_service' ? 'reviewClaim'
+              : pathname === '/rest/v1/rpc/rpc_complete_ai_task_review_evaluation_service' ? 'reviewComplete' : null
         : parsed.origin === 'https://api.openai.com' && pathname === '/v1/responses' ? 'provider' : null;
       assert.ok(kind, 'Unexpected transport: no B07 publish, direct table write, alternate provider, or network fallback is allowed');
       const call = { kind, url: String(url), ...init, headers: Object.fromEntries(new Headers(init.headers)) };
@@ -68,6 +72,13 @@ function fixture(options = {}) {
       if (options[kind]) return options[kind](call);
       if (kind === 'auth') return json({ id: USER, role: 'authenticated', email: 'PRIVATE_USER_EMAIL', user_metadata: { extra: 'PRIVATE_USER_METADATA' } });
       if (kind === 'context') return json(contextDocument);
+      if (kind === 'reviewClaim') return json({ acquired: true, attemptId: ATTEMPT,
+        command: { reviewId: REVIEW, needId: NEED, needRevision: 7, state: 'EVALUATING', evaluation: null, authoritative: true } });
+      if (kind === 'reviewComplete') {
+        const body = JSON.parse(init.body);
+        return json(body.p_not_ready_code ? { kind: 'NOT_READY', needId: NEED, needRevision: 7, authoritativeDecision: false, code: body.p_not_ready_code }
+          : { kind: 'DECISION', decision: storedReceipt(contextDocument, evaluated) });
+      }
       if (kind === 'provider') return json(providerResponse(evaluated));
       return json(storedReceipt(contextDocument, evaluated));
     },
@@ -135,6 +146,66 @@ test('owned same-JWT context is admitted before credentials; provider gets only 
   }
   for (const marker of ['PRIVATE_', 'SYNTHETIC_SERVICE_SECRET', 'SYNTHETIC_PROVIDER_SECRET', 'SYNTHETIC_USER_SESSION']) assert.ok(!JSON.stringify(body).includes(marker));
   quiet(f);
+});
+
+test('accepted V5 review claims once before provider and completes through canonical decision wrapper', async () => {
+  const f = fixture();
+  const response = await f.invoke({ body: { needId: NEED, expectedRevision: 7, acceptedReviewId: REVIEW } });
+  assert.equal(response.status, 200); assert.deepEqual(await response.json(), { kind: 'DECISION', decision: storedReceipt() });
+  assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim', 'provider', 'reviewComplete']);
+  const claim = JSON.parse(f.calls.find(x => x.kind === 'reviewClaim').body);
+  assert.deepEqual(claim, { p_account_id: USER, p_review_id: REVIEW, p_need_id: NEED, p_need_revision: 7, p_binding: ready().binding });
+  const complete = JSON.parse(f.calls.find(x => x.kind === 'reviewComplete').body);
+  assert.equal(complete.p_attempt_id, ATTEMPT); assert.equal(complete.p_outcome, 'ALLOW'); assert.equal(complete.p_not_ready_code, null);
+  quiet(f);
+});
+
+test('durable other-isolate evaluating and unknown claims cannot issue another provider request', async () => {
+  for (const state of ['EVALUATING', 'UNKNOWN_OUTCOME']) {
+    const f = fixture({ reviewClaim: () => json({ acquired: false, attemptId: null,
+      command: { reviewId: REVIEW, needId: NEED, needRevision: 7, state, evaluation: null, authoritative: true } }) });
+    const response = await f.invoke({ body: { needId: NEED, expectedRevision: 7, acceptedReviewId: REVIEW } });
+    assert.equal((await response.json()).code, 'EVALUATOR_UNAVAILABLE');
+    assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim']); quiet(f);
+  }
+});
+
+test('durable decided review replays exact evaluation without another provider or writer', async () => {
+  const result = { kind: 'DECISION', decision: storedReceipt() };
+  const f = fixture({ reviewClaim: () => json({ acquired: false, attemptId: null,
+    command: { reviewId: REVIEW, needId: NEED, needRevision: 7, state: 'EVALUATED', evaluation: result, authoritative: true } }) });
+  const response = await f.invoke({ body: { needId: NEED, expectedRevision: 7, acceptedReviewId: REVIEW } });
+  assert.deepEqual(await response.json(), result);
+  assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim']); quiet(f);
+});
+
+test('V5 claim ownership and binding failure never reaches provider and raw private errors stay hidden', async () => {
+  const f = fixture({ reviewClaim: () => json({ message: 'TASK_REVIEW_NOT_FOUND', detail: 'PRIVATE_REVIEW_SENTINEL' }, 403) });
+  const response = await f.invoke({ body: { needId: NEED, expectedRevision: 7, acceptedReviewId: REVIEW } });
+  assert.equal((await response.json()).code, 'NEED_NOT_OWNED');
+  assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim']); quiet(f);
+});
+
+test('definitive V5 provider failure stores bounded not-ready result instead of retrying', async () => {
+  for (const status of [429, 500]) {
+    const f = fixture({ provider: () => json({ private: 'NEVER_READ' }, status) });
+    const response = await f.invoke({ body: { needId: NEED, expectedRevision: 7, acceptedReviewId: REVIEW } });
+    const code = status === 429 ? 'RATE_LIMITED' : 'EVALUATOR_UNAVAILABLE';
+    assert.equal((await response.json()).code, code);
+    assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim', 'provider', 'reviewComplete']);
+    assert.equal(JSON.parse(f.calls.at(-1).body).p_not_ready_code, code); quiet(f);
+  }
+});
+
+test('V5 provider timeout leaves durable claim unresolved and cannot complete a late response', async () => {
+  let finish;
+  const f = fixture({ provider: () => new Promise(resolve => { finish = resolve; }) });
+  const response = f.invoke({ body: { needId: NEED, expectedRevision: 7, acceptedReviewId: REVIEW } });
+  for (let i = 0; i < 80 && !finish; i++) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(typeof finish, 'function'); f.expire();
+  assert.equal((await (await response).json()).code, 'EVALUATOR_UNAVAILABLE');
+  finish(json(providerResponse())); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim', 'provider']); quiet(f);
 });
 
 for (const outcome of OUTCOMES) test(`${outcome} stores exactly its validated B06 decision without automatic publication`, async () => {

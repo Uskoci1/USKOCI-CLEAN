@@ -1,5 +1,16 @@
 # USKOČI — repository entry map
 
+Current resume: owner explicitly requested V5 AI-FIRST implementation on 2026-09-12.
+Read `docs/implementation/v5-ai-first/EXECUTION.md` first for the active package,
+known AF-01–AF-06 decisions and current work. This supersedes the historical SAFE
+STOP and older auth/per-fact UX locks below. The existing CLEAN authority,
+integration branch, private boundaries and concrete live approval gate remain.
+
+Owner persistent skill selection (2026-09-13): read
+`docs/implementation/v5-ai-first/DESIGN_SKILLS.md` and apply its nine locally
+installed design/native skills to relevant USKOČI work. User/V5 decisions win
+over skill examples; preserve the original entry/mascot/motion/HOME.
+
 This is an existing Expo/React Native marketplace with Supabase authority. Do not restart it or create another product master.
 
 Read in this order:

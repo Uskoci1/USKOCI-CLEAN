@@ -57,12 +57,29 @@ await prove('PRE_V3_PUBLICATION_EXECUTABLE_POLICY','publication-executable-polic
   }));
   assert.equal(decision.outcome,'ALLOW');assert.equal(decision.publishable,true);assert.equal(decision.authoritative,true);
   assert.equal(decision.policyBundleId,bundle.id);assert.equal(decision.needId,need.id);assert.equal(decision.needRevision,need.revision);
-  const published=await ok(requester.rpc('rpc_publish_need_canonical',{
+  const publishKey='policy-publish-'+randomUUID();
+  const publishArgs={
     p_need_id:need.id,p_expected_revision:need.revision,p_decision_sequence:decision.decisionSequence,
-    p_response_deadline:null,p_client_request_id:'policy-publish-'+randomUUID()
-  }));
-  assert.equal(published.status,'PUBLISHED');assert.equal(published.authoritative,true);
-  assert.equal(sql(`select status from public.needs where id=${q(need.id)}::uuid`),'PUBLISHED');
+    p_response_deadline:null,p_client_request_id:publishKey
+  };
+  const published=await ok(requester.rpc('rpc_publish_need_canonical',publishArgs));
+  // Canonical publication returns its persisted command result. The decision
+  // receipt above has an authoritative flag; this distinct RPC never had one.
+  assert.deepEqual(Object.keys(published).sort(),['idempotentReplay','needId','publishedAt','responseDeadline','status']);
+  assert.equal(published.needId,need.id);assert.equal(published.status,'PUBLISHED');
+  assert.equal(published.idempotentReplay,false);assert.equal(published.responseDeadline,null);
+  assert.ok(Number.isFinite(Date.parse(published.publishedAt)));
+  const persistedNeed=rows(`select status,published_at,response_deadline from public.needs where id=${q(need.id)}::uuid`)[0];
+  assert.equal(persistedNeed.status,'PUBLISHED');assert.equal(persistedNeed.response_deadline,null);
+  assert.equal(Date.parse(persistedNeed.published_at),Date.parse(published.publishedAt));
+  const publishCommands=()=>rows(`select need_id,expected_revision,decision_sequence,result from private.need_publish_commands
+    where requester_account_id=${q(requesterId)}::uuid and client_request_id=${q(publishKey)}`);
+  const commandsBeforeReplay=publishCommands();assert.equal(commandsBeforeReplay.length,1);
+  assert.equal(commandsBeforeReplay[0].need_id,need.id);assert.equal(commandsBeforeReplay[0].expected_revision,need.revision);
+  assert.equal(commandsBeforeReplay[0].decision_sequence,decision.decisionSequence);assert.deepEqual(commandsBeforeReplay[0].result,published);
+  const replayed=await ok(requester.rpc('rpc_publish_need_canonical',publishArgs));
+  assert.deepEqual(replayed,{...published,idempotentReplay:true});
+  assert.deepEqual(publishCommands(),commandsBeforeReplay);
   pass(report,'OWNER_APPROVED_RS_MINIMUM_ACCEPTS_CLEAR_TASK_DECISION_AND_CANONICAL_PUBLISH_PATH');
 
   const stored=rows(`select outcome,rule_ids,safe_reason_codes,provider_ref,model_ref from private.need_publication_decisions where need_id=${q(need.id)}::uuid order by decision_sequence`);

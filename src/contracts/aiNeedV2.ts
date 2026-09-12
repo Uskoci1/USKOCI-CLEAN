@@ -5,7 +5,7 @@ import type {
 } from './needFactsV2';
 
 export type AiNeedV2FactStatus = 'NEEDS_CONFIRMATION' | 'INFERRED' | 'CONFIRMED' | 'UNKNOWN';
-export type AiNeedV2FactSource = 'EXPLICIT_USER_ANSWER' | 'CONFIRMED_PROFILE' | 'AI_INFERENCE' | 'SYSTEM';
+export type AiNeedV2FactSource = 'EXPLICIT_USER_ANSWER' | 'CONFIRMED_PROFILE' | 'AI_INFERENCE' | 'SYSTEM' | 'SYSTEM_DERIVED';
 export type AiNeedSafety = 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
 
 export type AiNeedConversationOpened = {

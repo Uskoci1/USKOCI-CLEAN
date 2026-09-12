@@ -22,6 +22,9 @@ export function loadOwnedIntakeHandler(options){
   return new vm.Script(`(function(exports,require){${compiled.outputText}\nreturn exports;})`,{filename:file}).runInContext(context)({},require);
  }
  const shared=evaluate(registry,()=>assert.fail('UNDECLARED_REGISTRY_IMPORT'));
- evaluate(entry,name=>{assert.equal(name,'../../../src/contracts/needFactsV2.ts');return shared;});
+ const budget=evaluate('supabase/functions/_shared/aiTestBudget.ts',()=>assert.fail('UNDECLARED_BUDGET_IMPORT'));
+ const stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',()=>assert.fail('UNDECLARED_STREAM_IMPORT'));
+ const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream};
+ evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes};
 }

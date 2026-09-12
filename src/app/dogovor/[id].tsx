@@ -251,6 +251,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <View style={{ padding: 18, gap: 6, borderTopWidth: 1, borderColor: v2.color.line, backgroundColor: v2.color.surface }}>
           <V2Action label="Otvori poruke" kind="primary" onPress={() => setTab('poruke')} style={{ backgroundColor: v2.color.orange, borderWidth: 0, minHeight: 50, borderRadius: 16 }} />
           {canComplete ? <V2Action label={workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak'} kind="quiet" disabled={!enabled} onPress={complete} /> : null}
+          {dogovor.stanje === 'COMPLETED' && me ? <V2Action label="Oceni saradnju" kind="quiet" disabled={!enabled}
+            onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); }} /> : null}
         </View>
       </>}
     </KeyboardAvoidingView>

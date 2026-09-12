@@ -12,6 +12,9 @@ import {
   isNeedFactV2Key,
 } from '../../../src/contracts/needFactsV2.ts';
 
+import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
+import { streamGeminiTask } from '../_shared/geminiTaskStream.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
@@ -295,7 +298,9 @@ function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
     `Serverski vremenski kontekst za trenutni unos u Srbiji: ${JSON.stringify(timeContext)}.`,
     'Relativne datume poput danas, sutra i prekosutra tumačite prema ovom serverskom lokalnom datumu, a ne prema sopstvenoj memoriji ili datumu koji klijent tvrdi da je sada. Ako je relevantna druga vremenska zona ili je datum dvosmislen, tražite razjašnjenje.',
     'Ovaj vremenski kontekst je referenca za predlog, nikada potvrđen termin Zadatka. Datum i vreme jasno prikažite korisniku radi potvrde. Ne izmišljajte nedostajući čas, trajanje, kraj termina ili nejasnu lokaciju; postavite sledeće potrebno pitanje. Timestamp predlozi moraju sadržati eksplicitni vremenski pomak za taj datum.',
-    'AI predlog nikada nije ljudska potvrda i nikada nije dozvola za objavu.',
+    'AI predlog nikada nije ljudska potvrda i nikada nije dozvola za objavu. Jasne podatke ne potvrđujemo pojedinačno: korisnik pregleda celinu i jednom bira Objavi zadatak.',
+    'Ne pitajte Da li je tačno za već jasno navedene podatke. Kada je sve jasno, kratko navedite promenu i uputite na Pregledaj zadatak. Reč objavi u poruci nije dozvola za objavu.',
+    'Ako korisnik menja termin, ispravite i stari datum u sintezi need.description bez gubitka ostalih detalja. AssistantMessage je kratak prirodan odgovor bez JSON-a, internog prompta, privatne adrese ili serverskih detalja.',
     'Safety je samo razgovorni signal. Ne tvrdite da je nešto zakonski dozvoljeno na osnovu sopstvene memorije. Ako je pravno/policy nejasno ili regulisano, koristite REVIEW; ako se bezbedno pitanje može razjasniti, CLARIFY.',
     `Aktuelne server-side činjenice: ${JSON.stringify(known).slice(0, 8000)}`,
   ];
@@ -473,27 +478,31 @@ async function callGemini(
   text: string,
   timeContext: ServerTimeContext,
   signal?: AbortSignal,
+  onText?: (delta: string) => void,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
     parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
   }));
   contents.push({ role: 'user', parts: [{ text }] });
+  const payloadBody = JSON.stringify({
+    systemInstruction: { parts: [{ text: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext) : legacyInstruction(activeFacts, timeContext) }] },
+    contents,
+    generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
+      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2ProviderSchema() : legacyProviderSchema() },
+  });
+  if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
+  if (onText) {
+    const raw = await streamGeminiTask({
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      key, body: payloadBody, signal, onText,
+    });
+    return parseV2Output(JSON.parse(raw));
+  }
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    {
-      method: 'POST',
-      headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext) : legacyInstruction(activeFacts, timeContext) }] },
-        contents,
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-          responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2ProviderSchema() : legacyProviderSchema(),
-        },
-      }),
-    }, 131072, 12000, signal, true,
+    { method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, body: payloadBody },
+    131072, 12000, signal, true,
   );
   if (!providerResponse.ok) {
     console.error('GEMINI_GENERATE_FAILED', providerResponse.status);
@@ -585,6 +594,8 @@ Deno.serve(async (req: Request) => {
   } catch { return response(401, { code: 'AUTH_REQUIRED', message: 'Nalog nije mogao da se proveri.' }); }
   const release = admitUser(accountId);
   if (!release) return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
+  const wantsStream = req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream') === true;
+  let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
   let serviceRoleKey = '';
   const rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal) => boundedJson(supabaseUrl + '/rest/v1/rpc/' + name, {
@@ -655,12 +666,26 @@ Deno.serve(async (req: Request) => {
     const provider = selectedProvider === undefined
       ? (openaiKey && openaiModel ? 'openai' : geminiKey && geminiModel ? 'gemini' : '') : selectedProvider;
     const timeContext = serverTimeContext(new Date());
+    const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
     let aiTurn: ParsedTurn;
     try {
+      if (wantsStream && (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash')) {
+        await retireAttempt();
+        return response(503, { code: 'AI_STREAM_NOT_CONFIGURED', message: 'Razgovor uživo još nije podešen.' });
+      }
+      if (wantsStream || (provider === 'gemini' && geminiModel === 'gemini-3.8-flash') || Deno.env.get('AI_TEST_BUDGET_REQUIRED') === 'true') {
+        if (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash'
+          || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true') throw new Error('AI_TEST_MODEL_NOT_ADMITTED');
+        const budget = await reserveAiTestBudget({ supabaseUrl, serviceRoleKey, accountId, operationId: requestId, kind: 'LLM', signal });
+        if (!budget.admitted || budget.replay) {
+          await retireAttempt();
+          return response(503, { code: budget.code, message: 'Probni AI zahtev nije odobren. Proverite prethodni ishod ili test limit.' });
+        }
+      }
       if (provider === 'gemini' && geminiKey && geminiModel)
-        aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, req.signal);
+        aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText);
       else if (provider === 'openai' && openaiKey && openaiModel)
-        aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, history, activeFacts, text, timeContext, req.signal);
+        aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, history, activeFacts, text, timeContext, signal);
       else {
         await retireAttempt();
         return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
@@ -670,10 +695,10 @@ Deno.serve(async (req: Request) => {
       await retireAttempt();
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
     }
-    if (req.signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
+    if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       const result = await rpc('rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
-        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals }, req.signal);
+        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals }, signal);
       if (!result.ok || !validTurn(result.data, conversationId, requestId) || result.data.turnId !== claimedTurnId)
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (result.data.state === 'SUCCEEDED' && (result.data.receipt.proposedCount !== aiTurn.proposals.length || result.data.receipt.safety !== aiTurn.safety))
@@ -682,13 +707,46 @@ Deno.serve(async (req: Request) => {
     }
     // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.
     const result = await rpc('rpc_ai_apply_legacy_need_turn_service', { p_account_id: accountId, p_conversation_id: conversationId,
-      p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals }, req.signal);
+      p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals }, signal);
     if (!result.ok) throw new Error('AI_LEGACY_PERSIST_FAILED');
     const proposedCount = Number(result.data?.proposedCount ?? result.data?.proposed_count ?? aiTurn.proposals.length);
     return response(200, { predlozeno: Number.isFinite(proposedCount) ? Math.max(0, Math.trunc(proposedCount)) : aiTurn.proposals.length,
       assistantMessage: aiTurn.assistantMessage, safety: aiTurn.safety, blocked: aiTurn.safety === 'BLOCK', schemaVersion, provider });
+    };
+    if (!wantsStream) return await execute();
+    detachedRelease = true;
+    const abort = new AbortController(), abortFromRequest = () => abort.abort();
+    req.signal.addEventListener('abort', abortFromRequest, { once: true });
+    if (req.signal.aborted) abort.abort();
+    let closed = false;
+    const stream = new ReadableStream({
+      async start(controller) {
+        let sequence = 0;
+        const emit = (event: Record<string, unknown>) => {
+          if (closed || abort.signal.aborted) return;
+          controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({
+            conversationId, clientRequestId: requestId, turnId: claimedTurnId, attemptId, sequence: ++sequence, ...event,
+          }) + '\n\n'));
+        };
+        emit({ kind: 'accepted' });
+        try {
+          const result = await execute(text => emit({ kind: 'text_delta', text }), abort.signal);
+          const data = await result.json();
+          if (result.ok && validTurn(data, conversationId, requestId) && data.state === 'SUCCEEDED') emit({ kind: 'final', turn: data });
+          else emit({ kind: 'safe_error', code: 'AI_TURN_NOT_CONFIRMED' });
+        } catch {
+          await retireAttempt();
+          emit({ kind: 'safe_error', code: 'AI_TURN_NOT_CONFIRMED' });
+        } finally {
+          if (!closed) { closed = true; controller.close(); }
+          abort.abort(); req.signal.removeEventListener('abort', abortFromRequest); release();
+        }
+      },
+      cancel() { closed = true; abort.abort(); },
+    });
+    return new Response(stream, { headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' } });
   } catch {
     await retireAttempt();
     return response(502, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Potvrda nije stigla. Proverite ishod poruke pre nastavka.' });
-  } finally { release(); }
+  } finally { if (!detachedRelease) release(); }
 });

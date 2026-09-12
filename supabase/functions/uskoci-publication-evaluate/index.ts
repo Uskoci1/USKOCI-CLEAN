@@ -203,7 +203,8 @@ async function rpcFailure(result: Response, signal: AbortSignal): Promise<never>
   const body = row(await boundedJson(result, 8192, signal));
   if (['AUTH_REQUIRED'].includes(String(body?.message)) || result.status === 401) throw new Rejected(401, 'AUTH_REQUIRED');
   if (['NEED_NOT_OWNED', 'NEED_NOT_FOUND'].includes(String(body?.message))) throw new Rejected(403, 'NEED_NOT_OWNED');
-  if (['NEED_REVISION_STALE', 'NEED_NOT_DRAFT', 'PUBLICATION_CONTEXT_STALE', 'PUBLICATION_EVALUATION_CONTEXT_STALE'].includes(String(body?.message))) throw new Rejected(409, 'NEED_CHANGED');
+  if (['TASK_REVIEW_NOT_FOUND', 'TASK_REVIEW_COMMAND_MISMATCH'].includes(String(body?.message))) throw new Rejected(403, 'NEED_NOT_OWNED');
+  if (['NEED_REVISION_STALE', 'NEED_NOT_DRAFT', 'PUBLICATION_CONTEXT_STALE', 'PUBLICATION_EVALUATION_CONTEXT_STALE', 'TASK_REVIEW_STALE', 'TASK_REVIEW_POLICY_STALE', 'TASK_REVIEW_ATTEMPT_STALE'].includes(String(body?.message))) throw new Rejected(409, 'NEED_CHANGED');
   throw new Rejected(503, 'EVALUATOR_UNAVAILABLE');
 }
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -225,8 +226,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const work = async (): Promise<Response> => {
       let input: Row | null;
       try { input = row(await boundedJson(req, 2048, controller.signal)); } catch { throw new Rejected(400, 'INVALID_REQUEST'); }
-      if (!input || !only(input, ['needId', 'expectedRevision']) || !uuid(input.needId) || !positive(input.expectedRevision) || input.expectedRevision > 2147483647) throw new Rejected(400, 'INVALID_REQUEST');
+      if (!input || !only(input, ['needId', 'expectedRevision', 'acceptedReviewId']) || !uuid(input.needId) || !positive(input.expectedRevision) || input.expectedRevision > 2147483647
+        || (input.acceptedReviewId !== undefined && !uuid(input.acceptedReviewId))) throw new Rejected(400, 'INVALID_REQUEST');
       const needId = input.needId.toLowerCase(), revision = input.expectedRevision;
+      const acceptedReviewId = typeof input.acceptedReviewId === 'string' ? input.acceptedReviewId.toLowerCase() : null;
       requested = { needId, revision };
       const configuredUrl = Deno.env.get('SUPABASE_URL'), anonKey = Deno.env.get('SUPABASE_ANON_KEY');
       if (!configuredUrl || !anonKey) throw new Rejected(503, 'EVALUATOR_UNAVAILABLE');
@@ -262,6 +265,52 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // reviewed executable policy and canonical prerequisites are admitted.
       const providerKey = Deno.env.get('OPENAI_API_KEY'), model = Deno.env.get('OPENAI_MODEL'), serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
       if (!providerKey || !serviceKey || !model || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(model)) return notReady(needId, revision, 'EVALUATOR_UNAVAILABLE');
+      const serviceHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' };
+      let reviewAttemptId: string | null = null;
+      if (acceptedReviewId) {
+        const claimed = await fetchBound(`${base.origin}/rest/v1/rpc/rpc_claim_ai_task_review_evaluation_service`, {
+          method: 'POST', headers: serviceHeaders,
+          body: JSON.stringify({ p_account_id: user.id, p_review_id: acceptedReviewId, p_need_id: needId, p_need_revision: revision, p_binding: ctx.binding }),
+        });
+        if (!claimed.ok) return await rpcFailure(claimed, controller.signal);
+        const claim = row(await boundedJson(claimed, 32768, controller.signal)), command = row(claim?.command);
+        if (!claim || !only(claim, ['acquired', 'attemptId', 'command']) || typeof claim.acquired !== 'boolean' || !command
+          || command.reviewId !== acceptedReviewId || command.needId !== needId || command.needRevision !== revision || command.authoritative !== true) throw new Error('INVALID_REVIEW_CLAIM');
+        if (!claim.acquired) {
+          if (claim.attemptId !== null) throw new Error('INVALID_REVIEW_CLAIM');
+          const prior = row(command.evaluation), decision = row(prior?.decision);
+          if (prior?.kind === 'DECISION' && decision) {
+            const saved = receipt(decision, ctx, { outcome: decision.outcome as Outcome, ruleIds: decision.ruleIds as string[], safeReasonCodes: decision.safeReasonCodes as string[] });
+            if (!saved) throw new Error('INVALID_REVIEW_RECEIPT');
+            return response(200, { kind: 'DECISION', decision: saved });
+          }
+          if (prior?.kind === 'NOT_READY' && prior.needId === needId && prior.needRevision === revision && prior.authoritativeDecision === false
+            && ['EVALUATOR_UNAVAILABLE', 'EVALUATOR_INVALID_RESPONSE', 'RATE_LIMITED'].includes(String(prior.code))) return notReady(needId, revision, String(prior.code));
+          // Durable PROCESSING/UNKNOWN is recovery-only. A second Edge isolate
+          // cannot start another provider request for the same owner acceptance.
+          if (!['EVALUATING', 'UNKNOWN_OUTCOME'].includes(String(command.state)) || command.evaluation !== null) throw new Error('INVALID_REVIEW_CLAIM');
+          return notReady(needId, revision, 'EVALUATOR_UNAVAILABLE');
+        }
+        if (!uuid(claim.attemptId) || command.state !== 'EVALUATING') throw new Error('INVALID_REVIEW_CLAIM');
+        reviewAttemptId = claim.attemptId;
+      }
+      const reviewComplete = async (evaluated: Decision | null, code: string | null): Promise<Response> => {
+        const stored = await fetchBound(`${base.origin}/rest/v1/rpc/rpc_complete_ai_task_review_evaluation_service`, {
+          method: 'POST', headers: serviceHeaders, body: JSON.stringify({ p_account_id: user.id, p_review_id: acceptedReviewId,
+            p_attempt_id: reviewAttemptId, p_outcome: evaluated?.outcome ?? null, p_rule_ids: evaluated?.ruleIds ?? [],
+            p_safe_reason_codes: evaluated?.safeReasonCodes ?? [], p_provider_ref: 'openai', p_model_ref: model, p_not_ready_code: code }),
+        });
+        if (!stored.ok) return await rpcFailure(stored, controller.signal);
+        const result = row(await boundedJson(stored, 32768, controller.signal));
+        if (code) {
+          if (!result || !only(result, ['kind', 'needId', 'needRevision', 'authoritativeDecision', 'code']) || result.kind !== 'NOT_READY'
+            || result.needId !== needId || result.needRevision !== revision || result.authoritativeDecision !== false || result.code !== code) throw new Error('INVALID_REVIEW_RECEIPT');
+          return notReady(needId, revision, code);
+        }
+        const saved = evaluated && result?.kind === 'DECISION' && only(result, ['kind', 'decision']) ? receipt(result.decision, ctx, evaluated) : null;
+        if (!saved) throw new Error('INVALID_REVIEW_RECEIPT');
+        return response(200, { kind: 'DECISION', decision: saved });
+      };
       const upstream = await fetchBound('https://api.openai.com/v1/responses', {
         method: 'POST', headers: { Authorization: `Bearer ${providerKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, store: false, max_output_tokens: 2048,
@@ -274,10 +323,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
           } } },
         }),
       });
-      if (upstream.status === 429) return notReady(needId, revision, 'RATE_LIMITED');
-      if (!upstream.ok) return notReady(needId, revision, 'EVALUATOR_UNAVAILABLE');
+      if (upstream.status === 429) return reviewAttemptId ? reviewComplete(null, 'RATE_LIMITED') : notReady(needId, revision, 'RATE_LIMITED');
+      if (!upstream.ok) return reviewAttemptId ? reviewComplete(null, 'EVALUATOR_UNAVAILABLE') : notReady(needId, revision, 'EVALUATOR_UNAVAILABLE');
       const evaluated = providerOutput(await boundedJson(upstream, 131072, controller.signal), ctx.policy);
-      if (!evaluated) return notReady(needId, revision, 'EVALUATOR_INVALID_RESPONSE');
+      if (!evaluated) return reviewAttemptId ? reviewComplete(null, 'EVALUATOR_INVALID_RESPONSE') : notReady(needId, revision, 'EVALUATOR_INVALID_RESPONSE');
+      if (reviewAttemptId) return reviewComplete(evaluated, null);
       const stored = await fetchBound(`${base.origin}/rest/v1/rpc/rpc_record_need_publication_decision_service`, {
         method: 'POST', headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ p_need_id: needId, p_expected_revision: revision, p_policy_id: ctx.binding.policyId,

@@ -9,6 +9,7 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction, settingsStyles as styles } from '../../ui/settings/SettingsPresentation';
 import { v2 } from '../../ui/v2/tokens';
 import { BuildIdentity } from '../../ui/BuildIdentity';
+import { AccountReputation } from '../../ui/reviews/AccountReputation';
 import { useUloga, postaviUlogu, ulogaSada } from '../../store/uloga';
 
 type ActionScope = { accountId: string; accountRevision: number; intent: ReturnType<typeof useUloga>; busy: boolean };
@@ -85,6 +86,7 @@ export default function Profil() {
         <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>{profile.data?.grad ?? 'Grad još nije unet'}</T>
       </>}
       <View style={styles.intent}><T variant="meta">{currentIntent}</T></View>
+      {accountId ? <AccountReputation accountId={accountId} /> : null}
       <SettingsAction label={`Pređite na ${nextIntent}`} kind="quiet" disabled={busy}
         icon={<ArrowsLeftRight size={20} color={v2.color.teal} />}
         onPress={() => navigate(() => {

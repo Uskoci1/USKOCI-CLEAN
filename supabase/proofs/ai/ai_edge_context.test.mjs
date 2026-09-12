@@ -58,11 +58,11 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     }
     assert.fail('UNEXPECTED_SYNTHETIC_FETCH_ROUTE');
   };
-  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,Date:FixedDate,TextEncoder,TextDecoder,AbortController,setTimeout,clearTimeout,
+  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,Date:FixedDate,TextEncoder,TextDecoder,ReadableStream,AbortController,setTimeout,clearTimeout,
     fetch:fakeFetch,console:{error:(...args)=>logs.push(args)},Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
   const cache=new Map();
   function load(file){
-    assert.ok([entry,registry].includes(file),'test loader may evaluate only exact source entry/shared registry');
+    assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts')].includes(file),'test loader may evaluate only exact source entry/shared helpers');
     if(cache.has(file))return cache.get(file).exports;
     const source=readFileSync(file,'utf8');
     const result=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true,fileName:file});
