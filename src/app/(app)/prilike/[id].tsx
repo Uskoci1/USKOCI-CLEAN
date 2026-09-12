@@ -1,4 +1,5 @@
 import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
+import { NeedPhotos } from '../../../ui/media/ContextPhotos';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useIzvor, useUloga, ulogaSada } from '../../../store/uloga';
@@ -95,6 +96,7 @@ export default function PrilikaDetaljiEkran() {
   }
 
   return <PublicNeedPresentation key={`${accountId}:${epoch}:${intent}:${id}`}
+    photos={fresh && !resource.loading && !resource.error ? <NeedPhotos needId={fresh.id} /> : undefined}
     need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
     canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && intent === 'uskocer'}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, MapPin, Users } from 'phosphor-react-native';
@@ -30,6 +30,7 @@ export type NeedPresentationProps = {
   evaluation: PublicationEvaluation | null; retrying: boolean;
   onBack: () => void; onRefresh: () => void; onEvaluate: () => void; onPublish: () => void;
   onRetry: () => void; onEdit: () => void; onCloseRemaining: () => void; onCandidates: () => void;
+  photos?: ReactNode;
 };
 function DetailRows({ rows }: { rows: { label: string; value: string }[] }) {
   return <View style={s.details}>{rows.map((row, index) => <View key={`${index}:${row.label}`} style={s.detailRow}>
@@ -89,6 +90,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <T style={s.caption}>{needPeopleText(need.pokrivenost.ukupno)} potrebno</T>
         </View>
         <T style={s.description}>{need.opis}</T>
+        {props.photos}
         {draft ? <View style={s.publication}>
           <T style={s.sectionTitle}>Objava Zadatka</T><T accessibilityLiveRegion="polite" style={s.body}>{publicationCopy}</T>
           {retrying ? <T style={s.caption}>Prethodna objava nije potvrđena. Provereno je trenutno stanje; možete ponoviti isti zahtev.</T> : null}

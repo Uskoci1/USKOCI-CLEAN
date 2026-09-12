@@ -31,7 +31,7 @@ export const NEED_FACT_V2_DEFINITIONS = {
   'need.task_country_code': { valueType: 'TEXT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Država zadatka' },
   'need.task_geography': { valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Lokacija' },
   'need.critical_conditions': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Bitni uslovi' },
-  'need.public_photo_paths': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Fotografije' },
+  'need.public_photo_paths': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, manualOnly: true, label: 'Fotografije' },
   'need.exact_address': { valueType: 'TEXT', privacyClass: 'PRIVATE', requiredForDraft: false, label: 'Tačna adresa' },
   'need.access_notes': { valueType: 'TEXT', privacyClass: 'PRIVATE', requiredForDraft: false, label: 'Pristup' },
   'need.resolved_location': { valueType: 'OBJECT', privacyClass: 'PRIVATE', requiredForDraft: false, manualOnly: true, label: 'Potvrđene tačke' },

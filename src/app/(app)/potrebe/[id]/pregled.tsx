@@ -10,6 +10,7 @@ import { failure, positiveInteger, sameId, timestamp, uuid } from '../../../../d
 import { ru4Production } from '../../../../data/ru4Production';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
+import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
@@ -202,6 +203,7 @@ function OwnedNeed({ id }: { id: string }) {
   };
 
   return <NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
+    photos={potreba ? <NeedPhotos needId={potreba.id} /> : undefined}
     error={greska} busy={akcijaUToku} ownerIntent={intent === 'narucilac'} remainingClosed={preostalaPotragaZatvorena}
     publishedReceipt={publishedReceipt} evaluation={editor.data?.evaluation ?? null}
     retrying={!!attempt.current && !attempt.current.needsReadback}

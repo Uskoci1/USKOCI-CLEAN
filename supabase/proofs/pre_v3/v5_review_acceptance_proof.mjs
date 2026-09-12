@@ -115,6 +115,7 @@ await prove('V5_REVIEW_ACCEPTANCE','v5-review-acceptance-report.json',async repo
  pass(report,'ALLOW_FINALIZE_CONCURRENT_REPLAY_ONE_CANONICAL_PUBLICATION_DISPATCH_SECOND_ACCOUNT_READ_NO_PRIVATE_GRANT');
 
  const edit=await ok(requester.rpc('rpc_ai_open_need_edit_conversation_v2',{p_need_id:c.needId}));
+ assert.equal(sql(`select need_edit_base_fingerprint=private.need_edit_base_marker(bound_need_id) from public.ai_conversations where id=${q(edit.conversationId)}::uuid`),'t');
  const editTitle=rows(`select id from public.ai_structured_facts where conversation_id=${q(edit.conversationId)}::uuid and fact_key='need.title' and superseded_at is null`)[0];
  await ok(requester.rpc('rpc_ai_correct_fact_v2',{p_fact_id:editTitle.id,p_value:'V5 uređivanje istog zadatka',p_display_value:'V5 uređivanje istog zadatka'}));
  const editReview=await ok(requester.rpc('rpc_prepare_ai_task_review',{p_conversation_id:edit.conversationId,p_response_deadline:null,p_location:null}));
@@ -125,6 +126,8 @@ await prove('V5_REVIEW_ACCEPTANCE','v5-review-acceptance-report.json',async repo
  const editKey=randomUUID(),edited=await Promise.all([ok(accept(editReview,editKey)),ok(accept(editReview,editKey))]);
  assert.deepEqual(edited[0],edited[1]);const editCommand=edited[0];assert.equal(editCommand.needId,c.needId);assert.equal(editCommand.needRevision,2);
  await denied(accept(competingReview),'TASK_REVIEW_STALE');
+ // A fresh prepare must not silently rebase an old edit after a competing save.
+ await denied(requester.rpc('rpc_prepare_ai_task_review',{p_conversation_id:competing.conversationId,p_response_deadline:null,p_location:null}),'TASK_REVIEW_STALE');
  assert.equal(sql(`select count(*) from private.need_edit_commands where need_id=${q(c.needId)}::uuid and client_request_id=${q('v5-edit:'+editReview.reviewId)}`),'1');
  const editContext=await context(editCommand),editClaim=await ok(claim(editReview,editCommand,editContext.binding));
  await ok(complete(editReview,editClaim.attemptId));const editedPublished=await ok(publish(editCommand));

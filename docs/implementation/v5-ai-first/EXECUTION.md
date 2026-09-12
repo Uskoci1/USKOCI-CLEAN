@@ -144,3 +144,30 @@ activation occurred during this source-only implementation and documentation.
   Current owner decisions supersede incompatible historical RC2 flow details.
   Policy-bound executor implementation can proceed; no legal publication,
   retention activation, or deletion follows from merely extracting this source.
+
+## Current integration and operator answer (2026-09-13)
+
+- AF-D10: the owner explicitly answered that the operator is not registered yet.
+  Do not invent a legal entity, registered address, tax numbers or contact email.
+  Legal publication and policy activation remain open inputs; technical preview
+  implementation and installation testing continue.
+- Disposable source checkpoint b8d6faee0a27 passed159 Jest suites/3253 tests,
+  554 Node tests and all10 source gates. Actual SQL passed through125.126
+  reached real concurrent publication and second-account public read, then
+  exposed a missing base fingerprint on published edit conversations. The
+  unapplied126 candidate now captures the existing edit base for admitted
+  DRAFT/PUBLISHED/SELECTION edits and retains strict stale-version rejection.
+  P3 admits only that checked trigger body; no retention policy is activated.
+- Media130 and closure131 are source candidates, with focused native/client,
+  Edge and real local WASM checks; their actual disposable database/Auth/Storage
+  proofs have not yet run. They do not establish live availability. The closure
+  adapter explicitly retains policy-bound relational evidence, deletes owned
+  objects and erases Auth credentials while retaining the subject UUID; later
+  relational expiry/purge remains separate unfinished work.
+- Shared central Mapa is now wired for both intentions using existing discovery
+  authority, camera/filter/selected-pin state and protected entry assets. The
+  legacy intake/discovery URLs remain reachable through their existing flows.
+- The signed warm129 APK installed and cold-launched on the isolated Android
+  emulator. Login and signup actions remain visible above the keyboard at
+  font scale1.3. This was a warm build, not the final source-bound test artifact.
+  Photos/closure/AI provider/physical-device journeys remain to be verified.

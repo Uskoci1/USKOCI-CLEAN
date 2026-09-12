@@ -12,6 +12,7 @@ jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: (
 jest.mock('../../ui/v2/MarketplacePresentation', () => ({ MarketplacePresentation: 'Marketplace' }));
 import Owned from '../../app/(app)/potrebe';
 import Public from '../../app/(app)/prilike';
+import SharedMap from '../../app/(app)/mapa';
 const deferred = () => { let resolve!: (rows: any[]) => void; const promise = new Promise<any[]>(done => { resolve = done; }); return { promise, resolve }; };
 let tree: ReactTestRenderer, Component: typeof Owned;
 const props = () => tree.root.findByType('Marketplace' as React.ElementType).props;
@@ -47,4 +48,15 @@ test('hung source fails at bounded deadline; late completion is ignored and expl
 test('intent change clears presentation state and blocks previous owner callbacks', async () => {
  await render(); const old = props(); await act(async () => old.onView({ ...old.view, query: 'owned query' })); mockIntent = 'uskocer'; await update();
  expect(props().view.query).toBe(''); expect(props().onNew).toBeUndefined(); await act(async () => old.onOpen(old.items[0])); expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+test.each(['narucilac', 'uskocer'])('central map opens actual public pins for %s and retains its camera across detail focus', async intent => {
+ Component = SharedMap; mockIntent = intent; await render();
+ expect(props().view.mode).toBe('map'); expect(mockPublic).toHaveBeenCalledTimes(1); expect(mockMine).not.toHaveBeenCalled();
+ const viewport = { center: [19.83, 45.25], zoom: 13, bounds: [19, 45, 20, 46] };
+ await act(async () => props().onView({ ...props().view, viewport, selectedId: 'public' }));
+ mockFocused = false; await update(); mockFocused = true; await update();
+ expect(props().view.viewport).toEqual(viewport); expect(props().view.selectedId).toBe('public');
+ await act(async () => props().onOpen(props().items[0]));
+ expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: 'public' } });
 });

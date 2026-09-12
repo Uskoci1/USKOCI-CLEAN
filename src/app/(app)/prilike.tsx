@@ -7,14 +7,14 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 
-export default function Prilike() {
+export default function Prilike({ initialMode = 'list' }: { initialMode?: 'map' | 'list' } = {}) {
   const { user, accountRevision } = useSesija(), intent = useUloga();
-  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}:${intent}`} />;
+  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}:${intent}`} initialMode={initialMode} />;
 }
-function OwnedCollection() {
+function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
   const source = useIzvor(), intent = useUloga(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
-  const [view, setView] = useState(initialMarketplaceView);
+  const [view, setView] = useState(() => ({ ...initialMarketplaceView(), mode: initialMode }));
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
     return () => { if (focus.current === owner) focus.current = null; };

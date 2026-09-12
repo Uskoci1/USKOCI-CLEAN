@@ -24,6 +24,7 @@ import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
+import { AuthorizedPhoto, mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 
 type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean };
 type Edit = { fact: AiNeedV2Fact; text: string; error: string | null };
@@ -208,13 +209,25 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             resolver={resolver} busy={editor.busy} uncertain={editor.uncertain} onSave={proposeLocation} />
             <V2Action label="Vrati se na pregled" kind="quiet" disabled={disabled} onPress={() => { resolver.cancel(); setLocationEditor(null); }} /></View> : null}
           <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Ovako će drugi videti zadatak</T>
-            {rows(review.publicProjection)}
+            {rows(review.publicProjection.filter(fact => fact.key !== 'need.public_photo_paths'))}
             {review.location?.resolvedLocation?.points.length ? <T style={s.meta}>Na javnoj mapi prikazuje se približno područje. Tačne tačke ostaju privatne.</T> : null}
           </View>
           {review.ownerPrivateProjection.length ? <View style={[s.section, s.private]}>
             <T accessibilityRole="header" style={s.sectionTitle}>Privatni podaci</T>
             <T style={s.meta}>Ovi podaci nisu deo javnog zadatka. Pristup ostaje prema pravilima Dogovora.</T>
             {rows(review.ownerPrivateProjection)}</View> : null}
+          <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Fotografije zadatka</T>
+            {(() => {
+              const paths = review.publicProjection.find(fact => fact.key === 'need.public_photo_paths')?.value;
+              return Array.isArray(paths) && paths.length ? paths.map((path, i) => {
+                const assetId = typeof path === 'string' ? mediaAssetId(path) : null;
+                return assetId ? <AuthorizedPhoto key={assetId} assetId={assetId} label={`Fotografija zadatka ${i + 1}`} /> : null;
+              }) : <T style={s.meta}>Fotografije nisu dodate.</T>;
+            })()}
+            {!command ? <V2Action label="Uredi fotografije" kind="quiet" disabled={disabled || !!edit || !!locationEditor || deadlineEditor}
+              onPress={() => { if (!canAct() || !conversationId || edit || locationEditor || deadlineEditor) return;
+                navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); }} /> : null}
+          </View>
           <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Prijave na zadatak</T>
             {deadlineEditor ? <ResponseDeadlineEditor value={review.responseDeadline} timezone={deadlineTimezone} disabled={disabled}
               apply={value => { void proposeDeadline(value); }} cancel={() => { if (canAct()) setDeadlineEditor(false); }} /> : <>

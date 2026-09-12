@@ -24,6 +24,7 @@ type Props = {
   onBack: () => void; onChange: (value: string) => void; onSend: () => void;
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
   onNewTask?: () => void; newTaskDisabled?: boolean; voice?: ReactNode; streamingText?: string;
+  onPhotos?: () => void; photosDisabled?: boolean;
 };
 
 const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Bilo kada',
@@ -116,6 +117,7 @@ export function IntakePresentation(props: Props) {
       {safetyCopy ? <T accessibilityRole={conversation.safety === 'BLOCK' ? 'alert' : undefined}
         style={[s.label, conversation.safety === 'BLOCK' ? { color: a.color.danger } : null]}>{safetyCopy}</T> : null}
       {props.canReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} /> : null}
+      {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled} onPress={props.onPhotos} /> : null}
       {props.onNewTask ? <V2Action label="Novi Zadatak" kind="primary" disabled={props.newTaskDisabled} onPress={props.onNewTask} /> : null}
     </>}
     status={<>

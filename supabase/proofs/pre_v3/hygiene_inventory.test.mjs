@@ -31,8 +31,9 @@ test('rejects missing historical candidate, duplicate history and version/name r
  for(const field of ['version','name']){const input=fixture();input.provenance[0][field]='wrong';assert.throws(()=>partitionHygieneInventory(input),/MISMATCH/);}
 });
 test('every explicitly admitted V5 migration still requires manifest, provenance and future chronology',()=>{
- const names=[future,'20260912214126_clean_v5_bounded_ai_test_budget.sql','20260912220506_clean_v5_owned_worker_profile.sql','20260912222338_clean_v5_owner_safety_legal_reads.sql'];
- const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,4);assert.equal(result.applied.length,1);
+ const names=[future,'20260912214126_clean_v5_bounded_ai_test_budget.sql','20260912220506_clean_v5_owned_worker_profile.sql','20260912222338_clean_v5_owner_safety_legal_reads.sql',
+  '20260912224647_clean_v5_owned_media.sql','20260912230039_clean_v5_policy_bound_closure.sql'];
+ const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,6);assert.equal(result.applied.length,1);
 });
 test('catalog assertion retains exact applied table membership, RLS and no raw anon/authenticated access',()=>{
  const row={schema:'private',name:'safety_reports',rls:true,anon_data:false,authenticated_data:false};

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { ProfilePhoto } from '../../../../ui/media/ContextPhotos';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod, IzborKomanda } from '../../../../data/ports';
@@ -78,6 +79,7 @@ export default function Kandidati() {
     open={k => { if (current() && !editor.busy) setOpened({ data, candidate: k }); }} />;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
+    publicPhoto={profileId => <ProfilePhoto profileId={profileId} fallback={null} />}
     readAgreement={async () => {
       if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite Prijavu.' };
       const result = await readSelectedAgreement(data.need.id, candidate.prijavaId);

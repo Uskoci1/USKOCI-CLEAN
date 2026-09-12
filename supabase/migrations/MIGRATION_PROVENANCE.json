@@ -2290,9 +2290,9 @@
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
       "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
-      "raw_md5": "a21171b17a8d2e7ad7a5370ea38efced",
-      "raw_sha256": "78801aea732e093a083f2afadc84535965da82bf8d567c61fd6235ded1a1c336",
-      "raw_bytes": 27291
+      "raw_md5": "984e2841a5bf000474382f1238dcfa28",
+      "raw_sha256": "cc837755330127fd272188195cf7e4fcb09ad8b908d0cc6a279ef036e4c5d4ac",
+      "raw_bytes": 28789
     },
     {
       "version": "20260912214126",
@@ -2332,6 +2332,32 @@
       "raw_md5": "daaa46573f23f6a44f535389c61df214",
       "raw_sha256": "69d853540660f8e72fb30b5588b928c6d513fcb3fd3684be9984719506e1e2eb",
       "raw_bytes": 5666
+    },
+    {
+      "version": "20260912224647",
+      "name": "clean_v5_owned_media",
+      "file": "20260912224647_clean_v5_owned_media.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "156a14688952b3a63e24f35b0d97b744",
+      "raw_sha256": "870e05ac9b2ceec202eb938c37de1a4e8f18365babc210f7842041dac66e3216",
+      "raw_bytes": 30677
+    },
+    {
+      "version": "20260912230039",
+      "name": "clean_v5_policy_bound_closure",
+      "file": "20260912230039_clean_v5_policy_bound_closure.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "34def5ebabdcdd9e61774471b08299fb",
+      "raw_sha256": "bfd4741f02716ae01fc24fda28bc0caf0225a6a00555a43f4a2bca6f05221574",
+      "raw_bytes": 36660
     }
   ],
   "p2_data_export_requests": {

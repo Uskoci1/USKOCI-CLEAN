@@ -99,6 +99,8 @@ for(const provider of ['gemini','openai'])test(`${provider} outbound V2 schema a
   assert.ok(allowedKeys.includes('need.task_geography'));assert.ok(allowedKeys.includes('need.task_country_code'));
   assert.ok(allowedKeys.includes('need.exact_address'));assert.ok(!allowedKeys.includes('need.resolved_location'));
   assert.equal(f.registry.NEED_FACT_V2_DEFINITIONS['need.resolved_location'].manualOnly,true);
+  assert.ok(!allowedKeys.includes('need.public_photo_paths'));
+  assert.equal(f.registry.NEED_FACT_V2_DEFINITIONS['need.public_photo_paths'].manualOnly,true);
   assert.ok(f.registry.NEED_FACT_V2_KEYS.includes('need.resolved_location'),'manual form still owns the full registry key');
 });
 

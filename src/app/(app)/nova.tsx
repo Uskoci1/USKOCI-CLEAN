@@ -177,6 +177,11 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}
     streamingText={streamingText}
+    photosDisabled={!canAct() || !writable || !!request.current || voiceBusy}
+    onPhotos={writable ? () => {
+      if (!canAct() || !razgovorId || !writable || request.current || voiceBusy) return;
+      navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId: razgovorId } }));
+    } : undefined}
     voice={stanje.status === 'OPEN' ? <VoiceComposer controller={voice.controller} state={voice.state} disabled={!canSubmit || !!request.current}
       onKeepText={value => { if (canAct() && writable && !request.current) setUnos(previous => previous ? previous + '\n' + value : value); }} /> : undefined}
     canReview={!!razgovorId && stanje.facts.length > 0 && !radi && !editor.loading && !editor.uncertain && !request.current}

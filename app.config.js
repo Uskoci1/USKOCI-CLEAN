@@ -9,6 +9,14 @@ module.exports = ({ config }) => {
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
   const mapPlugin = '@maplibre/maplibre-react-native';
+  const photoPlugin = 'expo-image-picker';
+  if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === photoPlugin)) {
+    plugins.push([photoPlugin, {
+      photosPermission: 'Izaberi fotografiju za svoj zadatak ili profil.',
+      cameraPermission: 'USKOČI koristi kameru kada želiš da dodaš fotografiju zadatka ili profila.',
+      microphonePermission: 'Drži mikrofon za razgovor sa USKOČI asistentom. Puštanje šalje poruku, a ne objavljuje zadatak.',
+    }]);
+  }
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === mapPlugin)) {
     plugins.push(mapPlugin);
   }

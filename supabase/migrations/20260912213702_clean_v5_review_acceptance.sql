@@ -14,6 +14,26 @@ do $pre$ begin
  then raise exception 'V5_SOURCE125_REQUIRED'; end if;
 end $pre$;
 
+-- Capture the immutable edit base for every status admitted by the existing
+-- edit opener. Historical published conversations with NULL bases stay stale;
+-- they must be reopened, never silently rebased over a newer Task revision.
+do $edit_base$ declare d text; new_guard_hash text;
+begin
+ if (select md5(prosrc) from pg_proc where oid='private.guard_need_edit_base_marker()'::regprocedure)
+  is distinct from '033e9307815212049bdf083c7083959b'
+ or (select md5(prosrc) from pg_proc where oid='private.retention_ai_source_ready()'::regprocedure)
+  is distinct from 'f5339ad7d679c6f00c2f41f630bcec2f' then raise exception 'V5_EDIT_BASE_PREDECESSOR_DRIFT'; end if;
+ d:=pg_get_functiondef('private.guard_need_edit_base_marker()'::regprocedure);
+ if strpos(d,$n$if found and n.status='DRAFT' then$n$)=0 then raise exception 'V5_EDIT_BASE_PREDECESSOR_DRIFT'; end if;
+ execute replace(d,$n$if found and n.status='DRAFT' then$n$,$n$if found and n.status in('DRAFT','PUBLISHED','SELECTION') then$n$);
+ select md5(prosrc) into new_guard_hash from pg_proc where oid='private.guard_need_edit_base_marker()'::regprocedure;
+ -- P3 still requires its exact trigger topology. Admit this checked body only;
+ -- no retention policy, duration, job or source relation is activated here.
+ d:=pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure);
+ execute replace(d,'guard_need_edit_base_marker:033e9307815212049bdf083c7083959b',
+  'guard_need_edit_base_marker:'||new_guard_hash);
+end $edit_base$;
+
 -- Private bounded review snapshots are never a public projection. No parent FK
 -- is introduced into P3's AI child topology. Every read rechecks the owned parent.
 create table private.ai_task_reviews (
