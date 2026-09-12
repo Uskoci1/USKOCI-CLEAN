@@ -30,6 +30,7 @@ if mode=='source':
   ('diff_check',['git','diff','--check','06d51ecb1438a93a4ecce64692ff868474fca598','HEAD']),
   ('dependency_contract_tests',['python3','../control/.pre-v3/validate-approved-dependencies.test.py']),
   ('dependency_lock',['python3','../control/.pre-v3/validate-approved-dependencies.py']),
+  ('deno_media_runtime',['npx','--yes','deno@2.9.6','test','--no-lock','--node-modules-dir=none','--no-check','--allow-read','supabase/proofs/ai/v5_media_deno_runtime.test.ts']),
   ('tracked_source',['git','diff','--exit-code','HEAD'])]
  gates={}
  for name,cmd in commands:
@@ -46,7 +47,7 @@ if mode=='source':
  (out/'source-baseline-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');sys.exit(0 if passed else 1)
 elif mode=='extras':
  for item in config['proofs']:
-  name=item['script'];assert re.fullmatch('[a-z_]+_proof[.]mjs',name) or name in ('v5_review_acceptance_proof.mjs','v5_ai_test_budget_proof.mjs','v5_worker_profile_proof.mjs','v5_owner_safety_legal_proof.mjs')
+  name=item['script'];assert re.fullmatch('[a-z_]+_proof[.]mjs',name) or name in ('v5_review_acceptance_proof.mjs','v5_ai_test_budget_proof.mjs','v5_worker_profile_proof.mjs','v5_owner_safety_legal_proof.mjs','v5_owned_media_proof.mjs','v5_account_closure_execution_proof.mjs')
   env=dict(os.environ,GITHUB_SHA=source,PRE_V3_ARTIFACT_DIR=str(out))
   with (out/(name+'.log')).open('w') as log:
    code=subprocess.run(['node','supabase/proofs/pre_v3/'+name],stdout=log,stderr=subprocess.STDOUT,env=env,timeout=600).returncode
