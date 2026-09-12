@@ -5,7 +5,7 @@ on:
     paths: ['.pre-v3/run.json']
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: pre-v3-integration-staged-sql
   cancel-in-progress: false
@@ -51,23 +51,16 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: source/package-lock.json
-      - name: Pin source, apply explicitly requested correction, admit candidate-only inventory
+      - name: Pin unchanged exact source and validate candidate-only inventory
         working-directory: source
         env:
           SOURCE_SHA: ${{ steps.pin.outputs.source }}
           SOURCE_TREE: ${{ steps.pin.outputs.tree }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git rev-parse HEAD^{tree})" = "$SOURCE_TREE"
-          export GIT_CONFIG_COUNT=1
-          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
-          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-          python3 ../control/.pre-v3/apply_p12_source_correction.py
-          export SOURCE_SHA="$(git rev-parse HEAD)"
-          export SOURCE_TREE="$(git rev-parse HEAD^{tree})"
-          python3 ../control/.pre-v3/finalize_inventory.py
+          python3 ../control/.pre-v3/validate_inventory.py
       - name: Install locked dependencies and verify exact source regression
         working-directory: source
         run: |
