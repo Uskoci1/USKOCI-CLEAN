@@ -245,7 +245,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
             {profile.data.grad ? <T style={s.caption}>{profile.data.grad}</T> : null}
             {profile.data.naslov ? <T style={s.title}>{profile.data.naslov}</T> : null}
             {profile.data.biografija ? <T style={s.body}>{profile.data.biografija}</T> : null}
-            {profile.data.poverenje.ocenaDostupna ? <T style={s.body}>Ocena: {profile.data.poverenje.ocenaProsek ?? '—'}</T> : <T style={s.caption}>Ocena nije dostupna.</T>}
+            {profile.data.poverenje.recenzijeDostupne && profile.data.poverenje.brojRecenzija === 0 ? <T style={s.caption}>Još nema ocena</T> : profile.data.poverenje.ocenaDostupna ? <T style={s.body}>Ocena: {profile.data.poverenje.ocenaProsek ?? '—'}</T> : <T style={s.caption}>Ocena nije dostupna.</T>}
             {profile.data.poverenje.verifikacijaIdentitetaDostupna && profile.data.poverenje.identitetVerifikovan ? <T style={s.strong}>Identitet je potvrđen.</T> : null}
           </View>}
       </SelectionFrame>

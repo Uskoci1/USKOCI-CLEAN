@@ -16,9 +16,21 @@ function mapPublicProfile(raw: any): JavniProfilProjekcija {
   const trust = raw.trust;
   if (!trust || typeof trust !== 'object') throw new Error('PUBLIC_PROFILE_TRUST_INVALID');
 
-  const completedCount = Number(trust.completedCount);
-  if (!Number.isInteger(completedCount) || completedCount < 0) {
+  const completedCount = trust.completedCount;
+  if (typeof completedCount !== 'number' || !Number.isSafeInteger(completedCount) || completedCount < 0) {
     throw new Error('PUBLIC_PROFILE_COMPLETED_COUNT_INVALID');
+  }
+
+  const reviewsAvailable = trust.reviewsAvailable === true;
+  const count = trust.reviewCount, average = trust.ratingAverage;
+  if (reviewsAvailable) {
+    if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0 ||
+        (count === 0 ? average !== null || trust.ratingAvailable !== false
+          : typeof average !== 'number' || !Number.isFinite(average) || average < 1 || average > 5 || trust.ratingAvailable !== true)) {
+      throw new Error('PUBLIC_PROFILE_RATING_INVALID');
+    }
+  } else if (count !== null || average !== null || trust.ratingAvailable !== false) {
+    throw new Error('PUBLIC_PROFILE_RATING_INVALID');
   }
 
   return {
@@ -53,11 +65,11 @@ export const publicProfileClientService: PublicProfileService = {
     const id = profileId.trim();
     if (!id) return null;
 
-    const { data, error } = await supabase.rpc('rpc_get_public_profile', {
-      p_profile_id: id,
-    });
-
-    if (error) throw new Error(error.message || error.code || 'PUBLIC_PROFILE_READ_FAILED');
+    let result;
+    try { result = await supabase.rpc('rpc_get_public_profile', { p_profile_id: id }); }
+    catch { throw new Error('PUBLIC_PROFILE_READ_FAILED'); }
+    const { data, error } = result;
+    if (error) throw new Error(error.message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : 'PUBLIC_PROFILE_READ_FAILED');
     return data ? mapPublicProfile(data) : null;
   },
 };
