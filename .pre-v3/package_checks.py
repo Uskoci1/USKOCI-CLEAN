@@ -6,9 +6,15 @@ source=os.environ['PRE_V3_SOURCE_SHA']
 assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==source
 mode=sys.argv[1]
 if mode=='source':
+ scope=config.get('regressionScope','FULL');assert scope in ('FULL','PACKAGE')
+ focused=config.get('focusedJest',[])
+ assert isinstance(focused,list) and (scope=='FULL' and not focused or scope=='PACKAGE' and focused)
+ for p in focused: assert isinstance(p,str) and re.fullmatch(r'[a-zA-Z0-9_./-]+[.]test[.]tsx?',p) and '..' not in p and Path(p).is_file()
  tests=sorted(str(p) for base in ('scripts','supabase') for p in Path(base).rglob('*') if p.is_file() and p.name.endswith(('.test.cjs','.test.mjs')))
  (out/'node-test-manifest.json').write_text(json.dumps(tests,indent=2)+'\n')
- commands=[('typescript',['npx','--no-install','tsc','--noEmit']),('jest',['npx','--no-install','jest','--runInBand','--silent','--json','--outputFile='+str(out/'jest-results.json')]),
+ jest_command=['npx','--no-install','jest','--runInBand','--silent','--json','--outputFile='+str(out/'jest-results.json')]
+ if focused: jest_command+=['--runTestsByPath',*focused]
+ commands=[('typescript',['npx','--no-install','tsc','--noEmit']),('jest',jest_command),
   ('node_edge',['node','--test','--test-concurrency=2','--test-reporter=tap',*tests]),
   ('source_inventory',['node','scripts/pre_html_source_inventory.cjs',str(out/'source-inventory.json')]),
   ('migration_integrity',['python3','supabase/migrations/check_migration_integrity.py']),
@@ -27,7 +33,7 @@ if mode=='source':
  jest={k:j.get(k) for k in ['success','numTotalTestSuites','numPassedTestSuites','numFailedTestSuites','numPendingTestSuites','numTotalTests','numPassedTests','numFailedTests','numPendingTests','numTodoTests']}
  tap=(out/'node_edge.log').read_text();node={k:int(v) for k,v in re.findall(r'^# (tests|pass|fail|cancelled|skipped|todo) (\d+)$',tap,re.M)}
  passed=all(x['exitCode']==0 for x in gates.values()) and jest.get('success') is True and all(jest.get(k)==0 for k in ['numFailedTestSuites','numPendingTestSuites','numFailedTests','numPendingTests','numTodoTests']) and node.get('tests',0)>0 and node.get('pass')==node.get('tests') and all(node.get(k)==0 for k in ['fail','cancelled','skipped','todo'])
- receipt={'sourceCommit':source,'sourceTree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'runId':os.environ['GITHUB_RUN_ID'],'gates':gates,'jest':jest,'node':node,'nodeFiles':len(tests),'result':'PASS' if passed else 'FAIL','liveChanged':False}
+ receipt={'sourceCommit':source,'sourceTree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'runId':os.environ['GITHUB_RUN_ID'],'regressionScope':scope,'focusedJest':focused,'gates':gates,'jest':jest,'node':node,'nodeFiles':len(tests),'result':'PASS' if passed else 'FAIL','liveChanged':False}
  (out/'source-baseline-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');sys.exit(0 if passed else 1)
 elif mode=='extras':
  for item in config['proofs']:
