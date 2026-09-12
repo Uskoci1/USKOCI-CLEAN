@@ -20,12 +20,20 @@ await prove('PRE_V3_PUBLICATION_EXECUTABLE_POLICY','publication-executable-polic
   const review0=await ok(requester.rpc('rpc_get_need_location_review',{p_conversation_id:conversationId}));
   const locationSaved=await ok(requester.rpc('rpc_save_need_location_review',{p_conversation_id:conversationId,p_expected_revision:review0.revision,p_confirmed:true,p_value:loc}));
   assert.equal(locationSaved.saved,true);
-  await ok(service.rpc('rpc_ai_apply_interview_turn_v2_service',{
-    p_account_id:requesterId,p_conversation_id:conversationId,
-    p_user_message:'Treba mi neko sutra da prenese ormar iz sobe u kombi.',
-    p_assistant_message:'Razumem. Proverite podatke pre čuvanja.',p_safety:'ALLOW',
-    p_proposals:syntheticNonlocationFacts.map(([key,value])=>({key,value,displayValue:String(value),evidence:'Disposable owner-policy proof',confidence:1}))
+  // W03 deliberately revoked the historical direct apply RPC. Exercise the
+  // current leased claim -> complete service authority exactly as production Edge does.
+  const turnKey=randomUUID();
+  const userMessage='Treba mi neko sutra da prenese ormar iz sobe u kombi.';
+  const proposals=syntheticNonlocationFacts.map(([key,value])=>({key,value,displayValue:typeof value==='object'?JSON.stringify(value):String(value),evidence:'Disposable owner-policy proof',confidence:1}));
+  const claimed=await ok(service.rpc('rpc_ai_claim_need_turn_v2_service',{
+    p_account_id:requesterId,p_conversation_id:conversationId,p_client_request_id:turnKey,p_user_message:userMessage
   }));
+  assert.equal(claimed.turn.state,'PROCESSING');assert.ok(claimed.claim?.attemptId);
+  const completed=await ok(service.rpc('rpc_ai_complete_need_turn_v2_service',{
+    p_account_id:requesterId,p_conversation_id:conversationId,p_client_request_id:turnKey,p_attempt_id:claimed.claim.attemptId,
+    p_user_message:userMessage,p_assistant_message:'Razumem. Proverite podatke pre čuvanja.',p_safety:'ALLOW',p_proposals:proposals
+  }));
+  assert.equal(completed.state,'SUCCEEDED');assert.equal(completed.receipt.proposedCount,proposals.length);
   let review=await ok(requester.rpc('rpc_ai_need_review_v2',{p_conversation_id:conversationId}));
   for(const fact of review.facts) if(fact.status!=='CONFIRMED') await ok(requester.rpc('rpc_ai_confirm_fact',{p_fact_id:fact.id}));
   review=await ok(requester.rpc('rpc_ai_need_review_v2',{p_conversation_id:conversationId}));
