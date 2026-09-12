@@ -653,7 +653,7 @@ Deno.serve(async (req: Request) => {
     const openaiKey = Deno.env.get('OPENAI_API_KEY') ?? '', openaiModel = Deno.env.get('OPENAI_MODEL') ?? '';
     const selectedProvider = Deno.env.get('AI_PROVIDER');
     const provider = selectedProvider === undefined
-      ? (geminiKey && geminiModel ? 'gemini' : openaiKey && openaiModel ? 'openai' : '') : selectedProvider;
+      ? (openaiKey && openaiModel ? 'openai' : geminiKey && geminiModel ? 'gemini' : '') : selectedProvider;
     const timeContext = serverTimeContext(new Date());
     let aiTurn: ParsedTurn;
     try {
