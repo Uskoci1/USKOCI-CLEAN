@@ -1,7 +1,8 @@
 {
-  "sourceSha": "887a2f20a7b2430b76432a618934dd002bd7bd38",
-  "sourceTree": "6f6689f8341799931c2f6e9b95855cfe7bb0b7b0",
-  "purpose": "P11 real SQL42702 correction, ordered122-123; preserve actual Edge, Auth, readiness and block recheck gates",
+  "sourceSha": "7b089cfe8e4ae8f3063505aba2607c4821b192b4",
+  "sourceTree": "637f87949229c7102b7874cc8c95db7f3813444c",
+  "purpose": "P12 exact one-expression OpenAI-primary correction plus production Edge synthetic failure matrix and candidate123 Auth/Postgres composition",
+  "applyP12OpenAIPrimary": true,
   "exportSource": false,
   "regressionScope": "PACKAGE",
   "focusedJest": ["src/data/__tests__/push-readiness.test.ts","src/data/__tests__/account-closure.test.ts","src/data/__tests__/reviews-authority.test.ts","src/data/__tests__/public-reputation-boundary.test.ts","src/data/__tests__/ru5-p0c01-public-profile.test.ts","src/data/__tests__/safety-authority.test.ts"],
