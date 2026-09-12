@@ -1,6 +1,6 @@
 {
-  "sourceSha": "8eb7ca642c1aee5eb01ead65c5097b2e26f24355",
-  "sourceTree": "4355986539e86ec9b749cdd0bed67f1979b626d8",
+  "sourceSha": "b8d6faee0a27da7f0f302c979084b86284184980",
+  "sourceTree": "99aa59e43b502cede5ef926078552842138d2ad7",
   "purpose": "Exact saved V5 source: full regression and disposable Auth/Postgres proofs through candidate129; no source mutation, live access, provider calls, device, deployment or release.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
