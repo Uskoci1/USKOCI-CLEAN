@@ -13,7 +13,8 @@ const version='PRE_V3_PUSH_READINESS_V1';
 const observe=x=>service.rpc('rpc_record_push_readiness',{p_sender_version:version,p_observation:x});
 const read=()=>ok(requester.rpc('rpc_get_push_readiness',{}));
 await prove('PRE_V3_PUSH_READINESS','push-readiness-report.json',async report=>{
- await apply(report,'20260912131000_clean_pre_v3_push_readiness.sql',121);await login();
+ await apply(report,'20260912131000_clean_pre_v3_push_readiness.sql',121);
+ await apply(report,'20260912131100_clean_pre_v3_push_readiness_column_qualification.sql',122);await login();
  const initial=await read();assert.equal(initial.state,'UNKNOWN');assert.equal(initial.observedAt,null);assert.equal(initial.lastSuccessAt,null);
  await denied(anon.rpc('rpc_get_push_readiness',{}));
  await denied(requester.rpc('rpc_record_push_readiness',{p_sender_version:version,p_observation:'TICK_OK'}));
