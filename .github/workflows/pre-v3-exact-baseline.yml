@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: e7d173a6ad38bc112ad717d7e6f96cb9deaeed3a
+          ref: 93fb1748104e1f21344d35a1d62b3a9bd672f747
           path: source
           fetch-depth: 0
           persist-credentials: false
@@ -29,8 +29,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = e7d173a6ad38bc112ad717d7e6f96cb9deaeed3a
-          test "$(git rev-parse HEAD^{tree})" = c583d28018fcf3923eaf13904b0cacc523dfc49e
+          test "$(git rev-parse HEAD)" = 93fb1748104e1f21344d35a1d62b3a9bd672f747
+          test "$(git rev-parse HEAD^{tree})" = db89de68d006d3247212c5313746ba7bdf5c6587
           git merge-base --is-ancestor 1138d4f727735519b15d9b834bf261954e8013fe HEAD
           git merge-base --is-ancestor 94bda947c68b981972c53d4372a7e4bc8549b542 HEAD
           mkdir -p "$RUNNER_TEMP/pre-v3-evidence"
@@ -71,24 +71,13 @@ jobs:
               except subprocess.TimeoutExpired: code=124; log.write('\nTIMED OUT; NOT PASS\n')
             results[name]={'exitCode':code,'seconds':round(time.monotonic()-start,3)}
             print(name,results[name],flush=True)
-          jest={}
-          jp=out/'jest-results.json'
+          jest={}; jp=out/'jest-results.json'
           if jp.exists():
-            raw=json.loads(jp.read_text())
-            jest={k:raw.get(k) for k in ('success','numTotalTestSuites','numPassedTestSuites','numFailedTestSuites','numPendingTestSuites','numTotalTests','numPassedTests','numFailedTests','numPendingTests','numTodoTests')}
+            raw=json.loads(jp.read_text()); jest={k:raw.get(k) for k in ('success','numTotalTestSuites','numPassedTestSuites','numFailedTestSuites','numPendingTestSuites','numTotalTests','numPassedTests','numFailedTests','numPendingTests','numTodoTests')}
           pending=any((jest.get(k) or 0)!=0 for k in ('numPendingTestSuites','numPendingTests','numTodoTests'))
           passed=all(v['exitCode']==0 for v in results.values()) and bool(jest.get('success')) and not pending and bool(tests)
-          receipt={
-            'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
-            'sourceTree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
-            'workflowCommit':os.environ['GITHUB_SHA'],'runId':os.environ['GITHUB_RUN_ID'],
-            'gates':results,'jest':jest,'nodeTestFileCount':len(tests),
-            'PRE_V3_INTEGRATION_SOURCE_BASELINE':'PASS' if passed else 'FAIL',
-            'environment':'github-actions-exact-source','productionChanged':False,'providerProven':False,'physicalDeviceProven':False,
-            'limits':['Source/Jest/Node checks only in this job; isolated authenticated SQL runs separately.','No canonical merge, live migration, scheduler activation or provider/device claim.']}
-          (out/'integration-baseline-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
-          print(json.dumps(receipt,indent=2))
-          sys.exit(0 if passed else 1)
+          receipt={'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'sourceTree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'workflowCommit':os.environ['GITHUB_SHA'],'runId':os.environ['GITHUB_RUN_ID'],'gates':results,'jest':jest,'nodeTestFileCount':len(tests),'PRE_V3_INTEGRATION_SOURCE_BASELINE':'PASS' if passed else 'FAIL','environment':'github-actions-exact-source','productionChanged':False,'providerProven':False,'physicalDeviceProven':False,'limits':['Source/Jest/Node checks only in this job; isolated authenticated SQL runs separately.','No canonical merge, live migration, scheduler activation or provider/device claim.']}
+          (out/'integration-baseline-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n'); print(json.dumps(receipt,indent=2)); sys.exit(0 if passed else 1)
           PY
       - name: Retain exact evidence
         if: always()
