@@ -2212,9 +2212,9 @@
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
       "note": "Unapplied PRE-V3 candidate. Historical87 inventory metadata is preserved; actual observed production is108. Deployment gate required.",
-      "raw_md5": "1faf7021d02f3d3c836d7e70a532cf3e",
-      "raw_sha256": "1721ced4e851c72f58c7968f4b3f20964a63d46fd822d6521670364a5d5ea4d2",
-      "raw_bytes": 11856
+      "raw_md5": "76135a1514ec630606147583d5021c7b",
+      "raw_sha256": "0c480147a498bb48db02adee9c0dd6c4c7d2ce322e99424f6f8351f956fc0f80",
+      "raw_bytes": 11858
     }
   ],
   "p2_data_export_requests": {
