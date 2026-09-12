@@ -2163,6 +2163,19 @@
       "raw_bytes": 6790,
       "source": "PRE-V3 P7 owner-authorized REQUESTER display-name correction; existing profile schema and public projection only.",
       "notes": "Candidate116. Strict original command replay/CAS; private receipt ledger; no account/Worker city, KYC, rating, legal or live change."
+    },
+    {
+      "version": "20260912090000",
+      "name": "clean_pre_v3_event_semantics",
+      "file": "20260912090000_clean_pre_v3_event_semantics.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied PRE-V3 candidate. Historical87 inventory metadata is preserved; actual observed production is108. Deployment gate required.",
+      "raw_md5": "33939e958e7ded94a0c0d376faea7399",
+      "raw_sha256": "a3dd146c4ecf4ac67b547f9ea1ab6f5a9d2adc68a67c40e6f24e0b19c4f0963d",
+      "raw_bytes": 12704
     }
   ],
   "p2_data_export_requests": {
