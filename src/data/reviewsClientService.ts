@@ -24,6 +24,7 @@ const errors: Readonly<Record<string, string>> = {
   REVIEW_ALREADY_SUBMITTED: 'Već ste ocenili ovaj Dogovor. Uspešna ocena se ne menja.',
   REQUEST_ID_REUSED: 'Zahtev je već upotrebljen. Proverite potvrdu prethodne ocene.',
   REPUTATION_NOT_AVAILABLE: 'Reputacija ovog naloga trenutno nije dostupna.',
+  ACCOUNT_CLOSING: 'Nalog je u postupku zatvaranja.',
   ACCOUNT_CLOSURE_RESTRICTED: 'Nalog je u postupku zatvaranja.',
 };
 const rating = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 1 && x <= 5;
