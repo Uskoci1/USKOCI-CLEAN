@@ -1,10 +1,10 @@
 {
-  "sourceSha": "394a546ef7a383757f04954364f71f946425df1d",
-  "sourceTree": "e4e3f2fc8b839df36903bbc6dbf3e2a8204bec66",
-  "purpose": "Complete exact current-head source regression plus ordered123 composition, actual Auth location confirmation, fail-closed publication, and touched-domain P13 catalog/query hygiene",
+  "sourceSha": "8001172aa739ee3b609e0d2e1905aae1723bd764",
+  "sourceTree": "e4c01315899ea370990958ed6af63a7d46825044",
+  "purpose": "Final complete exact-head regression after saved P11/P12/P13 evidence and proof-only queue predicate alignment; no source mutation, no live access, no provider",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
-  "exportSource": true,
+  "exportSource": false,
   "regressionScope": "FULL",
   "focusedJest": [],
   "proofs": [
