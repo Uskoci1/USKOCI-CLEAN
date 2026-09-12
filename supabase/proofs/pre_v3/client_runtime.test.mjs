@@ -9,6 +9,7 @@ test('bounded client loader reads current committed service graph, rejects undec
  const {r,calls}=runtime();const ai=r.load('src/data/aiNeedV2Production.ts').aiNeedV2Production;
  const result=await ai.openConversation('not-a-request-id');assert.equal(result.ok,false);assert.equal(result.kod,'CLIENT_REQUEST_ID_INVALID');assert.equal(calls(),0);
  assert.ok(r.sourceHashes['src/contracts/needFactsV2.ts']);assert.ok(r.sourceHashes['src/lib/location.ts']);
+ assert.ok(r.sourceHashes['src/data/aiNeedTurnStream.ts']);
  assert.throws(()=>r.load('src/app/(app)/nova.tsx'),/UNDECLARED_CLIENT_SOURCE/);
 });
 test('real lifecycle controller and service share the bounded native session substitute',async()=>{

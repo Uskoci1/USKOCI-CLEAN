@@ -4,13 +4,13 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
-import {dirname,resolve,relative} from 'node:path';
+import {dirname,resolve,relative,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 import ts from 'typescript';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const allowed=new Set(['src/data/serverReceipt.ts','src/data/needLifecycleClientService.ts',
- 'src/data/needLifecycleController.ts','src/data/aiNeedV2Production.ts','src/contracts/needFactsV2.ts',
+ 'src/data/needLifecycleController.ts','src/data/aiNeedV2Production.ts','src/data/aiNeedTurnStream.ts','src/contracts/needFactsV2.ts',
  'src/lib/market.ts','src/lib/location.ts','src/lib/capabilityTerms.ts',
  'src/data/locationClientService.ts','src/data/configuredLocationResolver.ts','src/data/publicationClientService.ts',
  'src/data/pushReadinessClientService.ts','src/data/accountClosureClientService.ts','src/data/reviewsClientService.ts','src/data/agreementClientService.ts','src/data/legacyRpcFailure.ts','src/data/calendarErrors.ts',
@@ -34,7 +34,7 @@ export function loadPreV3Clients({client,session,sourceSha}) {
   assert.deepEqual(compiled.diagnostics?.filter(x=>x.category===ts.DiagnosticCategory.Error),[]);
   const exports={};cache.set(path,exports);
   const require=name=>{assert.ok(name.startsWith('.'),'NO_EXTERNAL_RUNTIME_IMPORT');
-   const resolved=relative(root,resolve(root,dirname(path),name+(name.endsWith('.ts')?'':'.ts')));
+   const resolved=relative(root,resolve(root,dirname(path),name+(name.endsWith('.ts')?'':'.ts'))).split(sep).join('/');
    return load(resolved);};
   new vm.Script(`(function(exports,require){${compiled.outputText}\n})`,{filename:path}).runInContext(context)(exports,require);
   return exports;
