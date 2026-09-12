@@ -1,7 +1,7 @@
 {
-  "sourceSha": "4849cd86cbdf1330b794b95582dfa0bd21bf8619",
-  "sourceTree": "0620a143bdffb7a103ce1feb85db7d5f6a7f2e4c",
-  "purpose": "Exact saved V5 source: full regression and disposable Auth/Postgres proofs through candidate127; no source mutation, live access, provider calls, device, deployment or release.",
+  "sourceSha": "a5bd754d3c672fcd97b6208eb7cc15d7608b298b",
+  "sourceTree": "065231de5018fdfe773cb83ccf1f27f6cd360ad6",
+  "purpose": "Exact saved V5 source: full regression and disposable Auth/Postgres proofs through candidate129; no source mutation, live access, provider calls, device, deployment or release.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": false,
@@ -51,9 +51,17 @@
     {
       "script": "v5_ai_test_budget_proof.mjs",
       "report": "v5-ai-test-budget-report.json"
+    },
+    {
+      "script": "v5_worker_profile_proof.mjs",
+      "report": "v5-worker-profile-report.json"
+    },
+    {
+      "script": "v5_owner_safety_legal_proof.mjs",
+      "report": "v5-owner-safety-legal-report.json"
     }
   ],
-  "finalHistoryCount": 127,
+  "finalHistoryCount": 129,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
