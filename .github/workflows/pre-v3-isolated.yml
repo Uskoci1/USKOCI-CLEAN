@@ -51,7 +51,7 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: source/package-lock.json
-      - name: Pin exact integration source and admit candidate-only hash inventory
+      - name: Pin source, apply explicitly requested correction, admit candidate-only inventory
         working-directory: source
         env:
           SOURCE_SHA: ${{ steps.pin.outputs.source }}
@@ -64,6 +64,9 @@ jobs:
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
           export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          python3 ../control/.pre-v3/apply_p12_source_correction.py
+          export SOURCE_SHA="$(git rev-parse HEAD)"
+          export SOURCE_TREE="$(git rev-parse HEAD^{tree})"
           python3 ../control/.pre-v3/finalize_inventory.py
       - name: Install locked dependencies and verify exact source regression
         working-directory: source
@@ -112,6 +115,23 @@ jobs:
         working-directory: source
         if: always()
         run: python3 ../control/.pre-v3/package_checks.py receipt
+      - name: Print bounded evidence summary
+        if: always()
+        working-directory: source
+        run: |
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          out=Path(os.environ['RUNNER_TEMP'])/'pre-v3-evidence'
+          p=out/'package-integration-receipt.json'
+          if not p.exists():
+            print('PRE_V3_SUMMARY_MISSING');raise SystemExit(0)
+          d=json.loads(p.read_text());s=d.get('sourceRegression',{})
+          safe={k:d.get(k) for k in ('sourceCommit','sourceTree','runId','finalHistoryCount','result','liveChanged','providerProven','deviceProven')}
+          safe['sourceRegression']={k:s.get(k) for k in ('regressionScope','result','gates','jest','node','nodeFiles')}
+          safe['reports']={k:{f:v.get(f) for f in ('unit','result','sourceSha','historyCount','actualAuth','actualDatabase','actualClient','providerCalled','liveAccess','deviceProven','checks')} for k,v in d.get('reports',{}).items()}
+          print('PRE_V3_BOUNDED_SUMMARY='+json.dumps(safe,separators=(',',':')))
+          PY
       - name: Retain exact proof evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
