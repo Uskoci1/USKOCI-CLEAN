@@ -2228,6 +2228,19 @@
       "raw_md5": "caa185117e0d2479305c47ac2c683ae3",
       "raw_sha256": "a8637d8d5a0d08a640c410bc3fcae9f26207c94307c2cb5153ca1d5949cafa14",
       "raw_bytes": 26184
+    },
+    {
+      "version": "20260912131000",
+      "name": "clean_pre_v3_push_readiness",
+      "file": "20260912131000_clean_pre_v3_push_readiness.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied PRE-V3 candidate. Historical87 inventory metadata is preserved; actual observed production is108. Deployment gate required.",
+      "raw_md5": "44b11fe622f9fe723d74739da3822077",
+      "raw_sha256": "385e77bfaf5c27823c8e6d6d51f2c9068325fbc29b552083c6b366f253cc2166",
+      "raw_bytes": 5263
     }
   ],
   "p2_data_export_requests": {
