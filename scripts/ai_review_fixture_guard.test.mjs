@@ -152,30 +152,36 @@ test('actual publication handler accepts native adapter provider shape and only 
   for(const corrupt of [false,true]) {
     const calls=[],json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
     const runtime=loadPublicationHandler({env:name=>({SUPABASE_URL:PUBLICATION_PROOF_ORIGIN,SUPABASE_ANON_KEY:'synthetic-anon',
-      SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',OPENAI_API_KEY:'synthetic-provider',OPENAI_MODEL:'SYNTHETIC_NATIVE_PUBLICATION_PROOF'})[name],
+      SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',GEMINI_API_KEY:'synthetic-provider',GEMINI_MODEL:'gemini-3.8-flash',
+      AI_PROVIDER:'gemini',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'})[name],
       fetch:async(input,init={})=>{
         const url=new URL(String(input));calls.push(url.pathname);
-        if(url.href==='https://api.openai.com/v1/responses') {
-          const payload=JSON.parse(String(init.body));assert.equal(payload.store,false);
+        if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent') {
+          const payload=JSON.parse(String(init.body));assert.equal(payload.generationConfig.responseMimeType,'application/json');
           for(const forbidden of ['approximateLat','approximateLng',need,user,'canonicalFingerprint','privateMaterialityMarker'])assert.ok(!String(init.body).includes(forbidden));
-          const envelope=syntheticPublicationEnvelope();if(corrupt)envelope.output[0].content[0].text=JSON.stringify({outcome:'ALLOW',ruleIds:['UNKNOWN_RULE'],safeReasonCodes:['TEST_ALLOW']});
+          const envelope=syntheticPublicationEnvelope();if(corrupt)envelope.candidates[0].content.parts[0].text=JSON.stringify({outcome:'ALLOW',ruleIds:['UNKNOWN_RULE'],safeReasonCodes:['TEST_ALLOW']});
           return json(envelope);
         }
         assert.equal(publicationUpstream(url).origin,'http://127.0.0.1:54321');
         if(url.pathname==='/auth/v1/user')return json({id:user,role:'authenticated'});
         if(url.pathname==='/rest/v1/rpc/rpc_get_need_publication_context'){assert.deepEqual(JSON.parse(init.body),{p_need_id:need,p_expected_revision:1});return json(ctx);}
+        if(url.pathname==='/rest/v1/rpc/rpc_ai_test_budget_reserve_service'){
+          const reservation=JSON.parse(init.body);assert.equal(reservation.p_account_id,user);assert.equal(reservation.p_kind,'LLM');
+          assert.equal(reservation.p_max_cost_microusd,250000);
+          return json({admitted:true,reservationId:decision,replay:false,code:'AI_TEST_RESERVED'});
+        }
         assert.equal(url.pathname,'/rest/v1/rpc/rpc_record_need_publication_decision_service');
         const write=JSON.parse(init.body);assert.equal(write.p_outcome,'ALLOW');assert.deepEqual(write.p_service_provenance.evaluationContext,ctx.binding);return json(receipt);
       }});
     const result=await runtime.handler(new Request('http://127.0.0.1:54329/functions/v1/uskoci-publication-evaluate',{method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({needId:need,expectedRevision:1})}));
     const body=await result.json();assert.equal(result.status,200);
-    if(corrupt){assert.equal(body.kind,'NOT_READY');assert.equal(body.code,'EVALUATOR_INVALID_RESPONSE');assert.equal(calls.length,3);}
-    else {assert.deepEqual(body,{kind:'DECISION',decision:receipt});assert.equal(calls.length,4);}
-    assert.equal(Object.keys(runtime.sourceHashes).length,1);
+    if(corrupt){assert.equal(body.kind,'NOT_READY');assert.equal(body.code,'EVALUATOR_INVALID_RESPONSE');assert.equal(calls.length,4);}
+    else {assert.deepEqual(body,{kind:'DECISION',decision:receipt});assert.equal(calls.length,5);}
+    assert.deepEqual(Object.keys(runtime.sourceHashes).sort(),['supabase/functions/_shared/aiTestBudget.ts','supabase/functions/uskoci-publication-evaluate/index.ts']);
   }
 });
 
-test('publication proof transport maps only3 fixed handler paths without altering production TLS guard',()=>{
-  for(const path of ['/auth/v1/user','/rest/v1/rpc/rpc_get_need_publication_context','/rest/v1/rpc/rpc_record_need_publication_decision_service'])assert.equal(publicationUpstream(PUBLICATION_PROOF_ORIGIN+path).href,'http://127.0.0.1:54321'+path);
+test('publication proof transport maps only four fixed handler paths without altering production TLS guard',()=>{
+  for(const path of ['/auth/v1/user','/rest/v1/rpc/rpc_get_need_publication_context','/rest/v1/rpc/rpc_record_need_publication_decision_service','/rest/v1/rpc/rpc_ai_test_budget_reserve_service'])assert.equal(publicationUpstream(PUBLICATION_PROOF_ORIGIN+path).href,'http://127.0.0.1:54321'+path);
   for(const url of ['https://outside.invalid/auth/v1/user',PUBLICATION_PROOF_ORIGIN+'/auth/v1/user?target=remote',PUBLICATION_PROOF_ORIGIN+'/rest/v1/needs',PUBLICATION_PROOF_ORIGIN+'/rest/v1/rpc/rpc_publish_need_canonical'])assert.throws(()=>publicationUpstream(url));
 });

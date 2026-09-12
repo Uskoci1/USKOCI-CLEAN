@@ -28,10 +28,12 @@ function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
 }
 
 describe('RU-2 typed R02 → R07 contract', () => {
-  it('keeps 22 canonical facts, with the private resolved fact outside the 21 AI proposals', () => {
+  it('keeps 22 canonical facts with resolved geography and owned photo paths outside the 20 AI proposals', () => {
     expect(NEED_FACT_V2_KEYS).toHaveLength(22);
-    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(21);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(20);
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.resolved_location');
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.public_photo_paths');
+    expect(NEED_FACT_V2_DEFINITIONS['need.public_photo_paths'].manualOnly).toBe(true);
     expect(NEED_FACT_V2_DEFINITIONS['need.resolved_location']).toMatchObject({ privacyClass: 'PRIVATE', manualOnly: true, requiredForDraft: false });
     expect(REQUIRED_NEED_FACT_V2_KEYS).toEqual(expect.arrayContaining([
       'need.title',

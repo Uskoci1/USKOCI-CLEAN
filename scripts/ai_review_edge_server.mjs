@@ -5,7 +5,7 @@ import {createServer} from 'node:http';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createHash} from 'node:crypto';
+import {createHash,webcrypto} from 'node:crypto';
 import vm from 'node:vm';
 import ts from 'typescript';
 import {validateAiFixture} from './ai_review_fixture.mjs';
@@ -47,16 +47,18 @@ export function syntheticProviderEnvelope(proposals) {
     facts:proposals.map(({value,...fact})=>({...fact,valueJson:JSON.stringify(value)}))})};
 }
 export function syntheticPublicationEnvelope() {
-  return {status:'completed',error:null,incomplete_details:null,output:[{type:'message',role:'assistant',status:'completed',
-    content:[{type:'output_text',text:JSON.stringify({outcome:'ALLOW',ruleIds:['RS-MIN-001'],safeReasonCodes:['TEST_ALLOW']})}]}]};
+  return {candidates:[{finishReason:'STOP',content:{role:'model',parts:[{
+    text:JSON.stringify({outcome:'ALLOW',ruleIds:['RS-MIN-001'],safeReasonCodes:['TEST_ALLOW']})}]}}]};
 }
 export const PUBLICATION_PROOF_ORIGIN='https://publication-db.proof.invalid';
 export function publicationUpstream(input) {
   const url=new URL(String(input));assert.equal(url.origin,PUBLICATION_PROOF_ORIGIN);
   assert.equal(url.username,'');assert.equal(url.password,'');assert.equal(url.search,'');assert.equal(url.hash,'');
-  assert.ok(['/auth/v1/user','/rest/v1/rpc/rpc_get_need_publication_context','/rest/v1/rpc/rpc_record_need_publication_decision_service'].includes(url.pathname));
+  assert.ok(['/auth/v1/user','/rest/v1/rpc/rpc_get_need_publication_context','/rest/v1/rpc/rpc_record_need_publication_decision_service',
+    '/rest/v1/rpc/rpc_ai_test_budget_reserve_service'].includes(url.pathname));
   // HTTPS remains a production handler requirement. This labelled test
-  // transport maps only3 fixed paths to real local Auth/DB, never remote TLS.
+  // transport maps only four fixed paths to real local Auth/DB, never remote TLS.
+  // Budget admission must come from that actual disposable DB, never the adapter.
   const target=new URL('http://127.0.0.1:54321');target.pathname=url.pathname;return target;
 }
 export function loadPublicationHandler({env,fetch:transport}) {
@@ -66,12 +68,19 @@ export function loadPublicationHandler({env,fetch:transport}) {
     compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});
   assert.deepEqual(compiled.diagnostics?.filter(x=>x.category===ts.DiagnosticCategory.Error),[]);
   let handler;
-  const context=vm.createContext({exports:{},Request,Response,Headers,URL,TextDecoder,TextEncoder,AbortController,Intl,Date,
+  const context=vm.createContext({exports:{},Request,Response,Headers,URL,TextDecoder,TextEncoder,AbortController,Intl,Date,crypto:webcrypto,btoa,
     setTimeout,clearTimeout,fetch:transport,
     console:Object.fromEntries(['log','error','warn','info','debug'].map(key=>[key,()=>{throw new Error('UNEXPECTED_HANDLER_LOG');}])),
     Deno:{env:{get:env},serve:fn=>{handler=fn;}}});
+  const budgetPath='supabase/functions/_shared/aiTestBudget.ts',budgetBytes=readFileSync(budgetPath);
+  const budgetCompiled=ts.transpileModule(budgetBytes.toString('utf8'),{fileName:budgetPath,reportDiagnostics:true,
+    compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});
+  assert.deepEqual(budgetCompiled.diagnostics?.filter(x=>x.category===ts.DiagnosticCategory.Error),[]);
+  const budget=new vm.Script(`(function(exports){${budgetCompiled.outputText};return exports;})`,{filename:budgetPath}).runInContext(context)({});
+  context.require=name=>{assert.equal(name,'../_shared/aiTestBudget.ts','UNADMITTED_PUBLICATION_IMPORT');return budget;};
   new vm.Script(compiled.outputText,{filename:path}).runInContext(context);assert.equal(typeof handler,'function');
-  return {handler,sourceHashes:{[path]:createHash('sha256').update(bytes).digest('hex')}};
+  return {handler,sourceHashes:{[path]:createHash('sha256').update(bytes).digest('hex'),
+    [budgetPath]:createHash('sha256').update(budgetBytes).digest('hex')}};
 }
 export function startAdapter(env=process.env) {
   validateAiFixture(env);
@@ -98,12 +107,13 @@ export function startAdapter(env=process.env) {
   report.sourceHashes=runtime.sourceHashes;save();
   const publication=marketplace?loadPublicationHandler({env:name=>({SUPABASE_URL:PUBLICATION_PROOF_ORIGIN,
     SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,
-    OPENAI_API_KEY:'SYNTHETIC_NOT_A_SECRET',OPENAI_MODEL:'SYNTHETIC_NATIVE_PUBLICATION_PROOF'})[name],
+    GEMINI_API_KEY:'SYNTHETIC_NOT_A_SECRET',GEMINI_MODEL:'gemini-3.8-flash',AI_PROVIDER:'gemini',
+    USKOCI_GEMINI_PAID_TEST_ENABLED:'true'})[name],
     fetch:async(input,init={})=>{
       const url=new URL(String(input));
-      if(url.href==='https://api.openai.com/v1/responses') {
+      if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent') {
         report.publicationProviderCalls++;save();assert.equal(report.publicationProviderCalls,1,'NO_PUBLICATION_PROVIDER_REPLAY');
-        const payload=JSON.parse(String(init.body)),publicInput=JSON.parse(payload.input[0].content[0].text);
+        const payload=JSON.parse(String(init.body)),publicInput=JSON.parse(payload.contents[0].parts[0].text);
         assert.equal(publicInput.need.title,fixture.proposals.find(p=>p.key==='need.title').value);
         assert.equal(publicInput.need.requiredSlots,3);assert.equal(publicInput.need.publicGeography.topology.mode,'POINT_TO_POINT');
         for(const forbidden of ['latitudeE6','longitudeE6','resolvedLocation','privateMaterialityMarker','canonicalFingerprint'])assert.ok(!String(init.body).includes(forbidden));
