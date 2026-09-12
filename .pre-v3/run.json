@@ -1,1 +1,10 @@
-{"sourceSha":"06d51ecb1438a93a4ecce64692ff868474fca598","sourceTree":"6831740cd008075cb79040d2a059e23493b4a51e","purpose":"Exact proof-only staged disposable SQL chain 108->116 after anon grant-level denial proof correction; no branch/source mutation, no live write/provider/device claim","noLiveWrite":true,"noProvider":true,"noDevice":true}
+{
+  "sourceSha": "e6ab2dc2032f6df7d0d8b36c8dc9056c1f68f6f7",
+  "sourceTree": "4eda4799ac224d43546743fbb06888a380cb3d92",
+  "purpose": "P4 candidate117 exact source regression and staged Auth/Postgres event semantics; metadata-only inventory admission on existing integration line",
+  "proofs": [{"script":"event_semantics_proof.mjs","report":"event-semantics-report.json"}],
+  "finalHistoryCount": 117,
+  "noLiveWrite": true,
+  "noProvider": true,
+  "noDevice": true
+}
