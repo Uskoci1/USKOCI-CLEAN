@@ -28,7 +28,8 @@ if mode=='source':
   ('migration_integrity',['python3','supabase/migrations/check_migration_integrity.py']),
   ('provenance',['python3','-m','json.tool','docs/implementation/pre-v3/C09_PROVENANCE_LEDGER.json']),
   ('diff_check',['git','diff','--check','06d51ecb1438a93a4ecce64692ff868474fca598','HEAD']),
-  ('dependency_lock',['git','diff','--exit-code','06d51ecb1438a93a4ecce64692ff868474fca598','HEAD','--','package.json','package-lock.json']),
+  ('dependency_contract_tests',['python3','../control/.pre-v3/validate-approved-dependencies.test.py']),
+  ('dependency_lock',['python3','../control/.pre-v3/validate-approved-dependencies.py']),
   ('tracked_source',['git','diff','--exit-code','HEAD'])]
  gates={}
  for name,cmd in commands:
