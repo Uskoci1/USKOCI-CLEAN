@@ -1,5 +1,6 @@
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { correctionFromText, factCorrectionValue, factReviewValue } from '../aiNeedV2Ui';
+import { AI_PROPOSABLE_NEED_FACT_V2_KEYS, NEED_FACT_V2_DEFINITIONS } from '../../contracts/needFactsV2';
 
 const priceModeFact: AiNeedV2Fact = {
   id: 'price-mode-proof',
@@ -60,10 +61,10 @@ describe('authoritative fact review and correction values', () => {
     expect(correctionFromText(fact, factCorrectionValue(fact))).toMatchObject({ ok: true, value });
     expect(factReviewValue(fact)).not.toBe(fact.displayValue);
   });
-  it.each([true, false])('renders and round-trips actual boolean %s', value => {
+  it.each([true, false])('renders historical identity requirement %s without silently changing its value', value => {
     const fact = typedFact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN', value });
     expect(factReviewValue(fact)).toBe(value ? 'Da' : 'Ne');
-    expect(correctionFromText(fact, factCorrectionValue(fact))).toMatchObject({ ok: true, value });
+    expect(factCorrectionValue(fact)).toBe(value ? 'Da' : 'Ne');
   });
   it('keeps number input parseable while showing the known RSD unit', () => {
     const fact = typedFact({ key: 'need.price_rsd', valueType: 'INTEGER', value: 500 });
@@ -116,5 +117,20 @@ describe('authoritative fact review and correction values', () => {
     const rendered = factReviewValue(typedFact({ key: 'need.resolved_location', valueType: 'OBJECT', privacyClass: 'PRIVATE', value }));
     for (const fragment of ['1 od 1', 'RS', 'Novi Sad', 'Privatna 42', '45.255123', '19.845123', 'Ulaz A', 'Drugi sprat']) expect(rendered).toContain(fragment);
     expect(rendered).not.toContain('secret-hint');
+  });
+});
+
+describe('AF-D23 unavailable external identity requirement', () => {
+  const identity = typedFact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN', value: true });
+  it.each(['Da', 'yes', 'true', '1'])('rejects explicit true alias %s with a truthful explanation', text => {
+    expect(correctionFromText(identity, text)).toEqual({ ok: false, message: expect.stringContaining('nije dostupna') });
+  });
+  it.each(['Ne', 'no', 'false', '0'])('permits explicit false alias %s for historical correction', text => {
+    expect(correctionFromText(identity, text)).toMatchObject({ ok: true, value: false });
+  });
+  it('retains the typed historical key while removing it from provider proposals', () => {
+    expect(NEED_FACT_V2_DEFINITIONS['need.verified_identity_required']).toMatchObject({ valueType: 'BOOLEAN', requiredForDraft: false, manualOnly: true });
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.verified_identity_required');
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.required_vehicles');
   });
 });

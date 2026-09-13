@@ -36,6 +36,7 @@ const NEED_EDIT_COPY: Record<string, string> = {
 
 const ERRORS: Readonly<Record<string, string>> = {
   ...NEED_EDIT_COPY,
+  IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu uklonite taj uslov da biste nastavili običnim zadatkom.',
   AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
   AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvorite razgovor.',
   CONVERSATION_NOT_FOUND: 'Razgovor nije pronađen.',

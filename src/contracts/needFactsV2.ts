@@ -27,7 +27,9 @@ export const NEED_FACT_V2_DEFINITIONS = {
   'need.required_vehicles': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Vozilo' },
   'need.required_licenses': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Dozvole' },
   'need.minimum_experience_years': { valueType: 'INTEGER', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Iskustvo' },
-  'need.verified_identity_required': { valueType: 'BOOLEAN', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Potvrđen identitet' },
+  // AF-D23 keeps the historical key readable; only explicit false correction is
+  // available while external identity verification is not offered in this test.
+  'need.verified_identity_required': { valueType: 'BOOLEAN', privacyClass: 'PUBLIC', requiredForDraft: false, manualOnly: true, label: 'Uslov provere identiteta' },
   'need.task_country_code': { valueType: 'TEXT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Država zadatka' },
   'need.task_geography': { valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Lokacija' },
   'need.critical_conditions': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Bitni uslovi' },
@@ -44,6 +46,7 @@ export const NEED_FACT_V2_DEFINITIONS = {
 }>;
 
 export type NeedFactV2Key = keyof typeof NEED_FACT_V2_DEFINITIONS;
+export const IDENTITY_VERIFICATION_UNAVAILABLE_COPY = 'Provera identiteta dokumentom ili selfijem nije dostupna u ovoj test verziji. Podatke o identitetu učesnici navode sami.';
 export const NEED_FACT_V2_KEYS = Object.keys(NEED_FACT_V2_DEFINITIONS) as NeedFactV2Key[];
 export const AI_PROPOSABLE_NEED_FACT_V2_KEYS = NEED_FACT_V2_KEYS.filter(key =>
   !('manualOnly' in NEED_FACT_V2_DEFINITIONS[key]));

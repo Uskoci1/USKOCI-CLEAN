@@ -8,7 +8,7 @@ import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReview
 import { aiNeedV2Izvor, izvor } from '../../data';
 import { correctionFromText, factCorrectionValue, factLabel, factReviewValue, canEditFactInline } from '../../data/aiNeedV2Ui';
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
-import { NEED_FACT_V2_DEFINITIONS } from '../../contracts/needFactsV2';
+import { IDENTITY_VERIFICATION_UNAVAILABLE_COPY, NEED_FACT_V2_DEFINITIONS } from '../../contracts/needFactsV2';
 import type { Ishod } from '../../data/ports';
 import { uuid } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
@@ -116,8 +116,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const back = () => navigate(() => conversationId
     ? router.replace({ pathname: '/nova', params: { conversationId } }) : router.replace('/nova'));
   const refresh = () => { if (current() && !editor.busy && !editor.loading && !navigating.current) void editor.refresh(); };
+  const unavailableIdentityFact = review?.publicProjection.find(fact => fact.key === 'need.verified_identity_required' && fact.value === true);
   const publish = async () => {
-    if (!canAct() || !review || !review.canAccept || edit || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
+    if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || edit || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() }; pending.current = accepted;
     await editor.save(async () => {
       const result = await aiTaskReviewClientService.acceptAndPublish({ review: accepted.review, clientRequestId: accepted.id });
@@ -127,7 +128,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     });
   };
   const resume = async () => {
-    if (!canAct() || !command || !review) return;
+    if (!canAct() || !command || !review || unavailableIdentityFact) return;
     await editor.save(async () => {
       const result = await aiTaskReviewClientService.resume(command);
       if (!current()) return changed();
@@ -144,6 +145,17 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
       if (!current()) return changed();
       if (!result.ok) return result;
       setEdit(null); pending.current = null;
+      return read();
+    });
+  };
+  const removeUnavailableIdentityRequirement = async () => {
+    if (!canAct() || !unavailableIdentityFact?.id || command || edit || locationEditor || deadlineEditor) return;
+    const factId = unavailableIdentityFact.id;
+    await editor.save(async () => {
+      const result = await aiNeedV2Izvor.correctFact(factId, false, 'Ne');
+      if (!current()) return changed();
+      if (!result.ok) return result;
+      pending.current = null;
       return read();
     });
   };
@@ -173,9 +185,14 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     });
   };
   const revisePublishedDraft = async () => {
-    if (!canAct() || !command || command.state !== 'EVALUATED'
-      || (command.evaluation?.kind !== 'NOT_READY'
-        && !(command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome !== 'ALLOW'))) return;
+    if (!canAct() || !command) return;
+    const supportedEditExit = command.state === 'EVALUATED' && (command.evaluation?.kind === 'NOT_READY'
+      || (command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome !== 'ALLOW'));
+    // The canonical ACCEPTED state has no evaluation dispatch;145 also blocks
+    // any later claim for this immutable unsupported review. Unknown stays read-only.
+    const unavailableEditExit = !!unavailableIdentityFact && command.authoritative === true
+      && (command.state === 'EVALUATED' || command.state === 'ACCEPTED');
+    if (!supportedEditExit && !unavailableEditExit) return;
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.openEditConversation(command.needId);
       if (!current()) return changed();
@@ -234,6 +251,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             <V2Action label="Vrati se na pregled" kind="quiet" disabled={disabled} onPress={() => { resolver.cancel(); setLocationEditor(null); }} /></View> : null}
           <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Ovako će drugi videti zadatak</T>
             {rows(review.publicProjection.filter(fact => fact.key !== 'need.public_photo_paths'))}
+            <View style={s.notice}><T style={s.meta}>{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
+              {unavailableIdentityFact ? <>
+                <T>U ovom pregledu je ostao uslov koji aplikacija ne može da proveri. Uklonite ga izričito da biste nastavili običnim zadatkom.</T>
+                {!command && unavailableIdentityFact.id ? <V2Action label="Nastavi bez uslova provere identiteta" kind="quiet"
+                  disabled={disabled || !!edit || !!locationEditor || deadlineEditor} onPress={removeUnavailableIdentityRequirement} /> : null}
+              </> : null}
+            </View>
             {review.location?.resolvedLocation?.points.length ? <T style={s.meta}>Na javnoj mapi prikazuje se približno područje. Tačne tačke ostaju privatne.</T> : null}
           </View>
           {review.ownerPrivateProjection.length ? <View style={[s.section, s.private]}>
@@ -276,14 +300,15 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         {published && command ? <V2Action label="Otvori zadatak" kind="primary" onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: command.needId } }))} />
           : command ? <>
             <V2Action label="Proveri objavu" disabled={editor.busy || editor.loading} onPress={refresh} />
-            {command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW') ?
+            {!unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW')) ?
               <V2Action label="Nastavi istu objavu" disabled={disabled} onPress={resume} /> : null}
-            {command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (outcome && outcome !== 'ALLOW'))
+            {((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (outcome && outcome !== 'ALLOW')))
+              || (!!unavailableIdentityFact && command.authoritative && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')))
               ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
           </> : review ? <>
-            <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" disabled={disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor}
-              accessibilityState={{ disabled: disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
-              style={[s.publish, (disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
+            <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" disabled={disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
+              accessibilityState={{ disabled: disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
+              style={[s.publish, (disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
               {editor.busy ? <ActivityIndicator color={a.color.surface} /> : <T style={s.publishLabel}>Objavi zadatak</T>}
             </Press><T style={[s.meta, { textAlign: 'center' }]}>Klikom prihvataš ovu prikazanu verziju i tražiš objavu.</T>
           </> : null}

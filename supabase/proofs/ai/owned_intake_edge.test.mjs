@@ -126,3 +126,22 @@ test('provider timeout/error after dispatch leaves durable unresolved command in
  assert.equal(providers(f).length,1);assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
  assert.ok(f.calls.findIndex(c=>c.url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))<f.calls.findIndex(c=>c.url==='https://api.openai.com/v1/responses'));
 });
+
+test('AF-D23 real provider request excludes unavailable identity fact and explains self-reported status',async()=>{
+ const f=fixture();assert.equal((await f.invoke()).status,200);
+ const body=providers(f)[0].body;
+ assert.ok(!body.text.format.schema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
+ assert.match(body.instructions,/identitet je samostalno naveden/);
+ assert.match(body.instructions,/provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna/);
+ assert.match(body.instructions,/može nastaviti običnim Zadatkom/);
+ assert.match(body.instructions,/Ne predlažite need\.verified_identity_required/);
+ assert.equal(completes(f)[0].body.p_proposals.length,0);
+});
+for(const value of [true,false])test(`provider cannot bypass manual-only historical identity key with ${value}`,async()=>{
+ const f=fixture({provider:()=>json({status:'completed',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic unavailable explanation',facts:[
+  {key:'need.title',valueJson:'"Ordinary task"',displayValue:'Ordinary task',evidence:'synthetic',confidence:1},
+  {key:'need.verified_identity_required',valueJson:JSON.stringify(value),displayValue:value?'Da':'Ne',evidence:'synthetic',confidence:1},
+ ]})})});
+ assert.equal((await f.invoke()).status,502);assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);
+ assert.equal(f.calls.filter(x=>x.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
+});

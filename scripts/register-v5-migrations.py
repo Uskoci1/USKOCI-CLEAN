@@ -27,7 +27,7 @@ for name in sys.argv[1:]:
                classification='PENDING_FORWARD_MIGRATION', live_applied=False,
                predecessor_live_migration_count=baseline['migration_count'],
                predecessor_live_head=baseline['last']['version'],
-               note='Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.',
+               note='Unapplied V5 candidate. Frozen historical87 replay preserved; physical canonical108 at V5 start. Requires exact-source proof. Owner AF-D26 authorizes canonical DEV/ALPHA promotion; separate production remains outside scope.',
                raw_md5=md5, raw_sha256=hashlib.sha256(data).hexdigest(), raw_bytes=len(data))
     if existing:
         existing.update(row)

@@ -327,6 +327,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
     'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva i starts_at i ends_at, sa krajem posle početka.',
     'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. Objekat sme imati samo mode/start/end/waypoints/serviceArea; lokacijske tačke samo label/city/area. REMOTE nema fizičke tačke. AREA_BASED koristi start ili serviceArea. Tačnu adresu stavljajte isključivo u need.exact_address.',
     'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis.',
+    'U ovoj test verziji identitet je samostalno naveden; provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna. Ne predlažite need.verified_identity_required niti tvrdite da je bilo čiji identitet proveren. Ako korisnik traži provereni identitet, u odgovoru jasno objasnite da ta provera nije dostupna i da može nastaviti običnim Zadatkom. Nedostupni zahtev ne prenosite u naslov, opis, veštine ili bitne uslove kao da je ispunjen ili podržan. Postojeći takav uslov vlasnik uklanja izričitom ručnom ispravkom u pregledu.',
     `Jedini podržani V2 fact registry: ${JSON.stringify(registry)}`,
   ].join(' ');
 }

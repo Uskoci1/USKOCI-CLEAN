@@ -9,6 +9,24 @@ Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALP
 Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
 STT before explicit sending are approved for this cycle. Implementation continues.
 
+Unapplied145 implements the remaining AF-D23 basic-flow correction: no new
+external-identity requirement may make all self-reported workers ineligible.
+Historical true facts/reviews remain readable, with explicit owner correction
+to false; an old ACCEPTED true review cannot dispatch evaluation and an old
+EVALUATED true draft cannot publish. Ordinary no-identity-fact/default-false
+creation and existing cancellation exits remain. Native and AI instructions
+state that document/selfie verification is unavailable without inventing a badge.
+Independent focused checks pass106 Jest tests,112 Node tests and TypeScript;
+root review and6 exact-source guards pass. Actual145 Auth/SQL proof is prepared
+but not executed. Its control extension preserves FULL regression and all prior
+proofs, adding the one new actual report for a total35.146 account erasure and147
+approved Q&A document activation remain separate unfinished candidates.
+
+Saved143 correction3fa11c8b6c5357fb90a3f4fd05e80b5634a37619 is running the
+unchanged FULL144/34-report plan34748075434. Its registered144 bytes pass
+integrity and5 guard tests;17 targeted143/144 source tests pass. No hosted
+migration is applied. This CI source excludes the later145 candidate.
+
 Latest tested source6d369b89f20bc108e624dcdace0c8e59e09d3d8a,
 tree7b822567b9e09aa498b7e365367a0b569e92ba3d, passed all11 source gates,
 195 Jest suites/4030 tests,768 Node tests and32 actual SQL reports through142

@@ -146,6 +146,8 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
     case 'BOOLEAN': {
       const normalized = text.toLocaleLowerCase('sr-Latn-RS');
       if (['da', 'yes', 'true', '1'].includes(normalized)) {
+        if (fact.key === 'need.verified_identity_required') return { ok: false,
+          message: 'Provera identiteta nije dostupna u ovoj test verziji. Izaberite „Ne“ da biste nastavili bez tog uslova.' };
         return { ok: true, value: true, displayValue: 'Da' };
       }
       if (['ne', 'no', 'false', '0'].includes(normalized)) {

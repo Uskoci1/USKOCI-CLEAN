@@ -35,6 +35,7 @@ export type AiTaskReviewPrepare = Readonly<{
 }>;
 
 const COPY: Readonly<Record<string, string>> = {
+  IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu uklonite taj uslov da biste nastavili običnim zadatkom.',
   AUTH_REQUIRED: 'Prijavite se da biste nastavili.', AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvorite zadatak.',
   TASK_REVIEW_NOT_FOUND: 'Pregled nije pronađen. Ponovo otvorite zadatak.',
   TASK_REVIEW_NOT_EDITABLE: 'Ovaj razgovor je već sačuvan. Učitajte njegov zadatak.',
@@ -152,6 +153,10 @@ async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): 
   if (!read.ok) return read;
   let stored = read.podatak.command;
   if (!stored || stored.clientRequestId !== command.clientRequestId) return failure('TASK_REVIEW_COMMAND_MISMATCH', COPY.TASK_REVIEW_COMMAND_MISMATCH);
+  if ((stored.state === 'ACCEPTED' || stored.state === 'EVALUATED')
+    && read.podatak.review.publicProjection.some(f => f.key === 'need.verified_identity_required' && f.value === true)) {
+    return failure('IDENTITY_VERIFICATION_UNAVAILABLE', COPY.IDENTITY_VERIFICATION_UNAVAILABLE);
+  }
   if (stored.state === 'ACCEPTED') {
     const request = { needId: stored.needId, expectedRevision: stored.needRevision, acceptedReviewId: stored.reviewId };
     const evaluated = await readOwnedResult({ account: s, errors: COPY, write: true, fallback: 'TASK_REVIEW_OUTCOME_UNCONFIRMED', invalid: 'TASK_REVIEW_INVALID_RESPONSE',

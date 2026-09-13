@@ -81,6 +81,17 @@ it('stored ALLOW survives app kill and resumes canonical publish without another
   expect(mockInvoke).not.toHaveBeenCalled();
 });
 
+it.each(['ACCEPTED', 'EVALUATED'] as const)('canonical historical true %s is readable but does not resume impossible paid work or publish', async state => {
+  stored = state === 'ACCEPTED' ? accepted() : evaluated();
+  const historical = { ...review(), publicProjection: [{ id: NEED, key: 'need.verified_identity_required', value: true, displayValue: 'Da',
+    privacyClass: 'PUBLIC', source: 'SYSTEM_DERIVED', status: 'CONFIRMED' }] };
+  mockRpc.mockResolvedValue(answer({ review: historical, command: stored }));
+  expect(decodeAiTaskReview(historical, OWNER)).toMatchObject({ canAccept: true, publicProjection: [{ value: true }] });
+  await expect(service.resume(stored)).resolves.toMatchObject({ ok: false, kod: 'IDENTITY_VERIFICATION_UNAVAILABLE' });
+  expect(mockRpc.mock.calls.map(c => c[0])).toEqual(['rpc_read_ai_task_review']);
+  expect(mockInvoke).not.toHaveBeenCalled(); expect(mockGetSession).not.toHaveBeenCalled();
+});
+
 it('late acceptance after an account round trip cannot invoke the evaluator in the new incarnation', async () => {
   mockRpc.mockImplementation(async () => { mockSession = { user: { id: OWNER }, accountRevision: 3 }; return answer(accepted()); });
   await expect(service.acceptAndPublish({ review: review(), clientRequestId: KEY })).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });

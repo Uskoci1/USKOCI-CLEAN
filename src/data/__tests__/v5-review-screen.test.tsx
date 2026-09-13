@@ -396,3 +396,72 @@ it.each(['CLARIFY', 'BLOCK', 'ALLOW', 'NOT_READY', 'UNKNOWN_OUTCOME'] as const)(
   mockLatest.mockResolvedValue(ok({ review: review(), command: stored })); await render();
   expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
 });
+
+const identityLabel = 'Nastavi bez uslova provere identiteta';
+const identityReview = (value = true): AiTaskReviewEnvelope => ({ ...review(), publicProjection: [
+  ...review().publicProjection, { id: 'identity-fact', key: 'need.verified_identity_required', value,
+    displayValue: value ? 'Da' : 'Ne', privacyClass: 'PUBLIC', source: 'SYSTEM_DERIVED', status: 'CONFIRMED' },
+] });
+
+it('blocks even an old canAccept=true identity requirement and explains unavailable verification without changing it', async () => {
+  mockPrepare.mockResolvedValue(ok(identityReview())); await render();
+  expect(text()).toContain('učesnici navode sami');
+  expect(text()).toContain('nije dostupna'); expect(publish().disabled).toBe(true);
+  await act(async () => publish().onPress()); expect(mockAccept).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
+  expect(action(identityLabel).disabled).toBe(false);
+});
+
+it('serializes explicit false correction and requires fresh authoritative review before publication is enabled', async () => {
+  const write = deferred(), fresh = deferred(); mockCorrect.mockReturnValue(write.promise);
+  mockPrepare.mockResolvedValueOnce(ok(identityReview())).mockReturnValueOnce(fresh.promise); await render();
+  const retained = action(identityLabel).onPress;
+  await act(async () => { void retained(); void retained(); });
+  expect(mockCorrect).toHaveBeenCalledTimes(1); expect(mockCorrect).toHaveBeenCalledWith('identity-fact', false, 'Ne');
+  expect(publish().disabled).toBe(true); expect(mockAccept).not.toHaveBeenCalled();
+  await act(async () => write.resolve(ok({}))); expect(publish().disabled).toBe(true);
+  expect(mockPrepare).toHaveBeenCalledTimes(2);
+  await act(async () => fresh.resolve(ok(identityReview(false)))); expect(publish().disabled).toBe(false);
+  expect(tree.root.findAllByProps({ label: identityLabel })).toHaveLength(0);
+  await act(async () => retained()); expect(mockCorrect).toHaveBeenCalledTimes(1); expect(mockAccept).not.toHaveBeenCalled();
+});
+
+it('keeps unknown identity correction visible and frozen until explicit read, without retry or publication', async () => {
+  mockPrepare.mockResolvedValue(ok(identityReview())); mockCorrect.mockResolvedValue(unknownOutcome()); await render();
+  const retained = action(identityLabel).onPress; await act(async () => retained());
+  expect(action(identityLabel).disabled).toBe(true); expect(publish().disabled).toBe(true);
+  await act(async () => retained()); expect(mockCorrect).toHaveBeenCalledTimes(1); expect(mockPrepare).toHaveBeenCalledTimes(1);
+  mockPrepare.mockResolvedValue(ok(identityReview(false)));
+  await act(async () => action('Učitaj pregled i proveri ishod').onPress());
+  expect(publish().disabled).toBe(false); expect(mockCorrect).toHaveBeenCalledTimes(1); expect(mockAccept).not.toHaveBeenCalled();
+});
+
+it.each(['blur-focus', 'account-ABA'] as const)('fences a retained correction and its late ACK after %s', async boundary => {
+  const write = deferred(); mockPrepare.mockResolvedValue(ok(identityReview())); mockCorrect.mockReturnValue(write.promise); await render();
+  const retained = action(identityLabel).onPress; await act(async () => { void retained(); });
+  if (boundary === 'blur-focus') { await blur(); await focus(); }
+  else { mockSession = { user: { id: OTHER }, accountRevision: 2 }; await update();
+    mockSession = { user: { id: OWNER }, accountRevision: 3 }; await update(); }
+  const readCount = mockPrepare.mock.calls.length;
+  await act(async () => { await retained(); write.resolve(ok({})); });
+  expect(mockPrepare).toHaveBeenCalledTimes(readCount); expect(mockCorrect).toHaveBeenCalledTimes(1);
+  expect(publish().disabled).toBe(true); expect(action(identityLabel).disabled).toBe(false);
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
+it.each(['ACCEPTED', 'EVALUATED'] as const)('offers exact owned edit for historical true %s, with no unavailable paid resume', async state => {
+  const stored = state === 'ACCEPTED' ? command(state) : { ...command(state), evaluation: { kind: 'DECISION', decision: { outcome: 'ALLOW' } } };
+  mockLatest.mockResolvedValue(ok({ review: identityReview(), command: stored }));
+  mockOpenEdit.mockResolvedValue(ok({ conversationId: CONVERSATION })); await render();
+  expect(tree.root.findAllByProps({ label: 'Nastavi istu objavu' })).toHaveLength(0);
+  expect(mockCorrect).not.toHaveBeenCalled(); await act(async () => action('Izmeni zadatak').onPress());
+  expect(mockOpenEdit).toHaveBeenCalledWith(NEED); expect(mockResume).not.toHaveBeenCalled();
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+});
+
+it.each(['EVALUATING', 'UNKNOWN_OUTCOME'] as const)('does not turn historical true %s into permission to edit or retry', async state => {
+  mockLatest.mockResolvedValue(ok({ review: identityReview(), command: command(state) })); await render();
+  expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: identityLabel })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Nastavi istu objavu' })).toHaveLength(0);
+  expect(mockOpenEdit).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+});

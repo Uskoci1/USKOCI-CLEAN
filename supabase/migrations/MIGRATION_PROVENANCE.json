@@ -2527,6 +2527,19 @@
       "raw_md5": "77d385ff29ff4d4eb1b0ec54bfc70a60",
       "raw_sha256": "6403a3d39479d3c180f4acdf005f187fb4052ced33ca3efaaa4ae57f73e0f56c",
       "raw_bytes": 40120
+    },
+    {
+      "version": "20260913080237",
+      "name": "clean_v5_self_reported_identity_requirement",
+      "file": "20260913080237_clean_v5_self_reported_identity_requirement.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical canonical108 at V5 start. Requires exact-source proof. Owner AF-D26 authorizes canonical DEV/ALPHA promotion; separate production remains outside scope.",
+      "raw_md5": "9d275091fe891b311f9a7f2add99ea3b",
+      "raw_sha256": "e5720596b81c0c735caf6e3ba9a056fa990863fa54ea361a4e54fe96e8f442fd",
+      "raw_bytes": 8819
     }
   ],
   "p2_data_export_requests": {
