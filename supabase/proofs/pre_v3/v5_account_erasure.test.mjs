@@ -40,7 +40,9 @@ test('photo Storage hold correction binds exact144 source and only changes the A
  assert.ok(photo.includes('8b182e1817cfdfdafb620fe92296bf51'));
  assert.ok(photo.includes("e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'"));
  assert.ok(photo.includes('private.closure_erasure_media_protected_v5(a.account_id,old.name)'));
- assert.ok(photo.includes('else exists(select 1 from private.media_evidence_refs_v5'));
+ assert.ok(photo.includes("e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'"));
+ assert.ok(photo.includes('exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)'));
+ assert.ok(photo.includes('exists(select 1 from private.retention_holds where account_id=a.account_id and active)'));
 });
 test('owner event provenance does not create a legal policy and exact predecessor source remains sealed',()=>{
  assert.ok(sql.includes('9da5b89c314e6a04b7ec48a16778eed2'));

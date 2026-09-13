@@ -428,9 +428,11 @@ do $photo_hold$ declare d text;needle text;begin
  d:=pg_get_functiondef('private.agreement_photo_storage_guard_v5()'::regprocedure);
  needle:=$a$if exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id) or exists(select 1 from private.retention_holds where account_id=a.account_id and active)$a$;
  if length(d)-length(replace(d,needle,''))<>length(needle) then raise exception 'ERASURE_PHOTO_STORAGE_PREDECESSOR_DRIFT';end if;
- execute replace(d,needle,$a$if case when e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'
-  then private.closure_erasure_media_protected_v5(a.account_id,old.name)
-  else exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id) or exists(select 1 from private.retention_holds where account_id=a.account_id and active) end$a$);
+ execute replace(d,needle,$a$if (e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'
+  and private.closure_erasure_media_protected_v5(a.account_id,old.name))
+  or (e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'
+   and (exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)
+    or exists(select 1 from private.retention_holds where account_id=a.account_id and active)))$a$);
 end $photo_hold$;
 
 create function private.closure_erasure_hard_blockers_v5(a uuid) returns text[] language sql stable security definer set search_path=pg_catalog as $f$

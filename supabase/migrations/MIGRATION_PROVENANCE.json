@@ -2550,9 +2550,9 @@
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
       "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical canonical108 at V5 start. Requires exact-source proof. Owner AF-D26 authorizes canonical DEV/ALPHA promotion; separate production remains outside scope.",
-      "raw_md5": "01bc2a40287ef4b5c32153843492bbeb",
-      "raw_sha256": "129bd52470a9abeba82e340caed4ba428cb0f1ecbe6c8e146f9334dd79fe66ca",
-      "raw_bytes": 82252
+      "raw_md5": "7f72e248235ea1c74f359d836043cfcc",
+      "raw_sha256": "eb460de58bf7c93dd297824a5d2d9fd0144668c6e67b065ecefc3198cc21e8b1",
+      "raw_bytes": 82330
     },
     {
       "version": "20260913081242",
