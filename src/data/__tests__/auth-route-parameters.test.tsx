@@ -20,7 +20,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ bottom: 0 }) }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', AppleLogo: 'Icon', GoogleLogo: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
   LockKey: 'Icon', MapPin: 'Icon', Phone: 'Icon', User: 'Icon', X: 'Icon' }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
 jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { prepare: (...args: unknown[]) => mockPrepare(...args) } }));

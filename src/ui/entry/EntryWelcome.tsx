@@ -58,7 +58,7 @@ function IntentColumn({ intent, selected, enabled, layout: g, time, selectionTim
       <Defs>
         <LinearGradient id={`${intent}-field`} gradientUnits="userSpaceOnUse" {...gradientLine(g.half, phone.height, requester ? 160 : 210)}>
           <Stop offset="0" stopColor={requester ? '#123D31' : '#FFF1D2'} stopOpacity={requester ? 28 / 255 : 16 / 255} />
-          <Stop offset={requester ? '.4' : '.55'} stopColor="#FFFFFF" stopOpacity={0} />
+          <Stop offset={requester ? 0.4 : 0.55} stopColor="#FFFFFF" stopOpacity={0} />
           <Stop offset="1" stopColor={requester ? '#102F24' : '#A63C06'} stopOpacity={requester ? 22 / 255 : 16 / 255} />
         </LinearGradient>
         <LinearGradient id={`${intent}-curve`} x1="0%" y1="0%" x2="100%" y2="100%">

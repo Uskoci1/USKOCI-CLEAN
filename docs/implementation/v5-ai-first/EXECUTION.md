@@ -283,3 +283,13 @@ The existing recovery flow is implicit, not PKCE. Changing the shared singleton
 to PKCE would affect recovery and is not a harmless toggle. Owner was asked which
 additional methods to activate; no provider enable, OTP, Auth submit or secret
 read occurred. Redacted snapshot is auth-public-settings-20260913.json in evidence.
+
+The auth surface now retains Google/Apple/phone tiles as required by V5§9.
+Before: unavailable methods disappeared. After: each unavailable tile names its
+state and has no callable handler; configured SMS retains its existing command,
+and email remains usable. This corrects readiness presentation without enabling
+an OAuth provider or changing the shared recovery/session engine.46 focused auth
+tests pass. A real react-native-svg parser warning also exposed fractional stop
+strings without a leading zero: `.56`, `.4`, `.55` became0 instead of their
+intended values. Auth/Entry now pass numeric stops;61 focused auth/reference tests
+pass without that warning. New exact Android comparison is still required.

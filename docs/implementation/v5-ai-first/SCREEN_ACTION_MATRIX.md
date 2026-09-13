@@ -54,6 +54,13 @@ new private attachment purposes, identity provider, support handling and legal
 publication/retention inputs still need their specific decision records.
 No current source checkpoint establishes live rollout or a final Android build.
 
+Auth row3 now preserves visibly unavailable Google/Apple/phone tiles instead of
+silently hiding them; unavailable entries cannot dispatch. Email/configured SMS
+and the existing implicit recovery engine are unchanged.46 focused auth tests
+PASS; subsequent native gradient-offset correction passes61 auth/reference tests.
+OAuth implementation/provider activation and the new native rendering remain
+unproved; the AuthMethods owner question is still pending.
+
 Read-only inventory, 2026-09-13. Source checkpoint: `b8d6faee0a27da7f0f302c979084b86284184980`, tree `99aa59e43b502cede5ef926078552842138d2ad7`. Working-tree media130 and closure131 are identified separately as **in flight**, not included in that checkpoint. No implementation or live inspection was performed by this audit.
 
 Authority: supplied V5 `03_SPECIFIKACIJE/04_MATRICA_71_PRIKAZA.md`, complete `01_CODEX_OBAVEZUJUCA_KOMANDA_AI_FIRST.md`, and `02_UX_TOKOVI_I_STANJA.md`. The 71 keys are views/states; they do not imply 71 routes. This document records source connections and gaps, not 71 completed native journeys.

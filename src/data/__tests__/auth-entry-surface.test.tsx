@@ -25,7 +25,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   useSharedValue: () => ({ value: 0 }), withTiming: (value: unknown) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Defs: 'Defs', LinearGradient: 'LinearGradient',
   RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', AppleLogo: 'Icon', GoogleLogo: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
   LockKey: 'Icon', MapPin: 'Icon', Phone: 'Icon', User: 'Icon', X: 'Icon' }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
 jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { prepare: (...args: unknown[]) => mockPrepare(...args) } }));
@@ -70,14 +70,21 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('shows actual email-only entry without provider placeholders or invented saved targets', async () => {
+it('keeps email functional and required provider tiles visibly unavailable without a command', async () => {
   await render();
   expect(input('ime@primer.rs')).toBeDefined(); expect(button('Prijavite se')).toBeDefined();
   expect(button('Napravi nalog').props.accessibilityRole).toBe('button');
   expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
   expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
   expect(text()).not.toContain('JA MOGU · ISTI NALOG');
-  for (const fake of ['Google', 'Apple', 'Telefon', 'Sačuvali smo', 'istu Priliku', 'ili nastavite preko']) expect(text()).not.toContain(fake);
+  for (const provider of ['Google', 'Apple', 'Telefon']) {
+    const tile = host('Pressable').find(node => node.props.accessibilityLabel === provider)!;
+    expect(tile.props.accessibilityState).toEqual({ disabled: true });
+    expect(tile.props.disabled).toBe(true);
+    expect(tile.props.onPress).toBeUndefined();
+    expect(textOf(tile)).toContain('Trenutno nije dostupno');
+  }
+  for (const fake of ['Sačuvali smo', 'istu Priliku', 'ili nastavite preko']) expect(text()).not.toContain(fake);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });
 it('connects the V4.9 welcome signup action to the existing real signup sheet without submitting', async () => {
