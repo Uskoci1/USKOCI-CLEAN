@@ -26,8 +26,12 @@ def fail(message: str) -> None:
 
 def check_later_participant_contract(filename: str, sql: str) -> None:
     remaining = sql.lower()
-    if filename == "20260913045824_clean_v5_support_case_authority.sql":
-        # Support evidence reuses the existing participant visibility predicate.
+    if filename in (
+        "20260913045824_clean_v5_support_case_authority.sql",
+        "20260913081147_clean_v5_event_bound_account_erasure.sql",
+    ):
+        # Support evidence and its AF22 source-copy fence each reuse the existing
+        # participant visibility predicate once in their reviewed migration.
         # Permit this one read dependency, not a replacement policy/function or
         # any additional reference. Applied participant authority stays intact.
         call = "rls_private.need_participant_can_read(n.id)"

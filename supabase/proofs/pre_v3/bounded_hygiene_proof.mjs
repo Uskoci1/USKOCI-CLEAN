@@ -11,7 +11,7 @@ const key=(schema,name)=>schema+'.'+name;
 await prove('PRE_V3_BOUNDED_HYGIENE','bounded-hygiene-report.json',async report=>{
  await login();const before=rows(migrationSnapshotQuery());assert.equal(before.length,123);report.historyCount=123;
  const files=execFileSync('git',['diff','--name-only',base,sha,'--','supabase/migrations'],{encoding:'utf8'}).trim().split('\n').filter(p=>p.endsWith('.sql'));
- assert.ok(files.length>=7&&files.length<=30);const functions=new Set(),tables=new Set();
+ assert.ok(files.length>=7&&files.length<=32);const functions=new Set(),tables=new Set();
  const inventory=partitionHygieneInventory({candidates:files.map(file=>({file,bytes:Buffer.from(source(file))})),
   manifest:source('supabase/migrations/MD5_MANIFEST.txt'),
   provenance:JSON.parse(source('supabase/migrations/MIGRATION_PROVENANCE.json')).pending_forward_migrations,history:before});

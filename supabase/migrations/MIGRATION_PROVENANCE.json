@@ -2540,6 +2540,32 @@
       "raw_md5": "2189779df4e06186c3fb50e635dcc90a",
       "raw_sha256": "3f1bda1559e2e778c0a5c8f18a41c3a11246257443f356eb29295a71a22a5c62",
       "raw_bytes": 9832
+    },
+    {
+      "version": "20260913081147",
+      "name": "clean_v5_event_bound_account_erasure",
+      "file": "20260913081147_clean_v5_event_bound_account_erasure.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical canonical108 at V5 start. Requires exact-source proof. Owner AF-D26 authorizes canonical DEV/ALPHA promotion; separate production remains outside scope.",
+      "raw_md5": "01bc2a40287ef4b5c32153843492bbeb",
+      "raw_sha256": "129bd52470a9abeba82e340caed4ba428cb0f1ecbe6c8e146f9334dd79fe66ca",
+      "raw_bytes": 82252
+    },
+    {
+      "version": "20260913081242",
+      "name": "clean_v5_qa_owner_product_activation",
+      "file": "20260913081242_clean_v5_qa_owner_product_activation.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical canonical108 at V5 start. Requires exact-source proof. Owner AF-D26 authorizes canonical DEV/ALPHA promotion; separate production remains outside scope.",
+      "raw_md5": "b7538df7d24d247bb1f74ee4ba74accd",
+      "raw_sha256": "809db3120ebf82de5c62c16b7c9c070ce155e2f197a3debbc43598b7a71a91f8",
+      "raw_bytes": 9640
     }
   ],
   "p2_data_export_requests": {

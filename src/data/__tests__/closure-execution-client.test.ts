@@ -21,3 +21,21 @@ it('shows the media policy barrier without exposing its private evidence context
 it.each([{accountId:R},{requestId:G},{policySha256:'b'.repeat(64)},{state:'CLOSED'},{generation:null},{clientRequestId:G}])('rejects unrelated start receipt %j',async patch=>{mockRpc.mockResolvedValue({data:{...receipt(),...patch},error:null});expect((await service.start(intent())).ok).toBe(false);});
 it('rejects ABA account receipt after the request crossed identity incarnation',async()=>{let done!:(v:unknown)=>void;mockRpc.mockReturnValue(new Promise(resolve=>{done=resolve;}));const p=service.start(intent());mockOwner={user:{id:A},accountRevision:3};done({data:receipt(),error:null});expect(await p).toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});});
 it('does not expose arbitrary server narrative',async()=>{mockRpc.mockResolvedValue({data:null,error:{message:'PRIVATE_NARRATIVE'}});const r=await service.start(intent());expect(r).toMatchObject({ok:false,kod:'CLOSURE_OUTCOME_UNKNOWN'});expect(JSON.stringify(r)).not.toContain('PRIVATE_NARRATIVE');});
+const erasedReview=()=>({...review(),adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',retainedDatasets:null,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED'],mediaAction:'DELETE_UNPROTECTED_OWNED_OBJECTS',relationalAction:'ERASE_ORDINARY_PERSONAL_CONTENT'});
+const erasureState=()=>({accountId:A,requestId:R,generation:G,state:'EXECUTING',policySha256:'a'.repeat(64),adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',ordinaryContentErased:true,completedSteps:74,totalSteps:74,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED'],authoritative:true});
+it('decodes approved event-bound partial erasure without inventing dates or claiming complete closure',async()=>{
+ mockRpc.mockResolvedValue({data:erasedReview(),error:null});expect(await service.review()).toMatchObject({ok:true,podatak:{ready:true,retainedDatasets:null,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED']}});
+ mockRpc.mockResolvedValue({data:{accountId:A,clientRequestId:K,found:true,receipt:receipt(),execution:erasureState(),authoritative:true},error:null});
+ expect(await service.read(K)).toMatchObject({ok:true,podatak:{execution:{state:'EXECUTING',ordinaryContentErased:true,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED']}}});
+});
+it.each([{adapterVersion:'FUTURE'},{retainedDatasets:datasets()},{exceptions:['UNKNOWN']},{exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED','SCOPED_EVIDENCE_REVIEW_REQUIRED']},{relationalAction:'RETAIN_ALL'},{privateCase:'RAW'}])('rejects unreviewed erasure readiness %j',async patch=>{
+ mockRpc.mockResolvedValue({data:{...erasedReview(),...patch},error:null});expect((await service.review()).ok).toBe(false);
+});
+it.each([{generation:R},{policySha256:'b'.repeat(64)},{completedSteps:75},{totalSteps:0},{ordinaryContentErased:false},{state:'CLOSED'},{exceptions:['CASE_ID']},{privateCopy:'RAW'}])('rejects conflicting erasure recovery %j',async patch=>{
+ mockRpc.mockResolvedValue({data:{accountId:A,clientRequestId:K,found:true,receipt:receipt(),execution:{...erasureState(),...patch},authoritative:true},error:null});expect((await service.read(K)).ok).toBe(false);
+});
+it('accepts a complete AF22 receipt only with empty exceptions and the honest pseudonymous outcome',async()=>{
+ const closed={accountId:A,requestId:R,generation:G,state:'CLOSED',policySha256:'a'.repeat(64),closedAt:'2026-09-13T09:00:00Z',adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',authOutcome:'AUTH_IDENTITY_ERASED_SUBJECT_RETAINED',mediaOutcome:'OWNED_OBJECTS_DELETED',relationalOutcome:'ORDINARY_PERSONAL_CONTENT_ERASED',retainedDatasets:[],exceptions:[],pseudonymousAuditRetained:true,authoritative:true};
+ mockRpc.mockResolvedValue({data:{accountId:A,clientRequestId:K,found:true,receipt:receipt(),execution:closed,authoritative:true},error:null});expect(await service.read(K)).toMatchObject({ok:true,podatak:{execution:{state:'CLOSED',ordinaryContentErased:true,pseudonymousAuditRetained:true}}});
+ mockRpc.mockResolvedValue({data:{accountId:A,clientRequestId:K,found:true,receipt:receipt(),execution:{...closed,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED']},authoritative:true},error:null});expect((await service.read(K)).ok).toBe(false);
+});

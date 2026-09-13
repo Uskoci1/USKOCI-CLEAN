@@ -1,7 +1,7 @@
 {
-  "status": "DEV_ALPHA_AUTHORIZED_SOURCE_PREPARATION_NOT_APPLIED",
-  "sourceCommit": "78bbd1cb338ea0d51e4924f16bf8f1a34a241c8d",
-  "sourceTree": "2ac97f7b45d96f2bc187429ca1d69d2e23c6fce7",
+  "status": "MIGRATIONS_109_144_APPLIED_EDGE_PREPARATION_HISTORICAL",
+  "sourceCommit": "3fa11c8b6c5357fb90a3f4fd05e80b5634a37619",
+  "sourceTree": "5a6e92eb41e32c0a4f02a24abc3e4d7c9a0d34d1",
   "projectRef": "leqcwgzvjsxugfgzdmth",
   "observedBaseline": {
     "count": 108,
@@ -322,9 +322,18 @@
       "file": "supabase/migrations/20260913045824_clean_v5_support_case_authority.sql",
       "version": "20260913045824",
       "name": "clean_v5_support_case_authority",
-      "sha256": "04fccf338a482849ef08fcbc0a0ceeef9354e0b02105d0eaa101dcd05ccaaed5",
-      "md5": "3f3f25fc910b8b64f97a0b41f9683288",
-      "bytes": 65032
+      "sha256": "faa7f00cde1b063930e8c21eb9b4586877aa60c3a17c4293aa2091c8abe30211",
+      "md5": "888e39864ae25eb4cffeb081aa88484b",
+      "bytes": 65040
+    },
+    {
+      "ordinal": 144,
+      "file": "supabase/migrations/20260913065130_clean_v5_agreement_private_photos.sql",
+      "version": "20260913065130",
+      "name": "clean_v5_agreement_private_photos",
+      "sha256": "6403a3d39479d3c180f4acdf005f187fb4052ced33ca3efaaa4ae57f73e0f56c",
+      "md5": "77d385ff29ff4d4eb1b0ec54bfc70a60",
+      "bytes": 40120
     }
   ],
   "edgeEntrypoints": [
@@ -446,10 +455,10 @@
     {
       "name": "uskoci-media",
       "entrypoint": "supabase/functions/uskoci-media/index.ts",
-      "entrypointSha256": "b057c5ccb3d12c6d979322d3e74d1742696e7f1f161edd497d2bf434de56b096",
+      "entrypointSha256": "5eeecc43478aa144ff7237ff4a45d15ec6e7beb83c61ba8fe173e169f5cb5abc",
       "preparedVerifyJwt": true,
-      "preparedPayloadSha256": "028a6798135a1b38ff25417c058d5c325e36b239d075023a16664809faa638cc",
-      "preparedPayloadBytes": 21685,
+      "preparedPayloadSha256": "7e80632c0711f5d65f23a872c0945718d67b0e9bbda8e145677ba70976d5a486",
+      "preparedPayloadBytes": 31557,
       "sourceFiles": [
         {
           "name": "supabase/functions/_shared/mediaImageSanitizer.mjs",
@@ -458,8 +467,8 @@
         },
         {
           "name": "supabase/functions/uskoci-media/index.ts",
-          "sha256": "b057c5ccb3d12c6d979322d3e74d1742696e7f1f161edd497d2bf434de56b096",
-          "bytes": 17937
+          "sha256": "5eeecc43478aa144ff7237ff4a45d15ec6e7beb83c61ba8fe173e169f5cb5abc",
+          "bytes": 27718
         }
       ],
       "externalDependencies": [
@@ -606,8 +615,8 @@
   ],
   "edgeDependencyBinding": "Complete exact source tree; entrypoint hashes alone are not deployed bundle proof",
   "edgePayloadPreparation": {
-    "manifest": "artifacts/v5-edge-payloads/78bbd1cb338ea0d51e4924f16bf8f1a34a241c8d/manifest.json",
-    "manifestSha256": "7585a0d68300f383367b721db0f2b85773ef6d3eba00983c178a71c8f714fe91",
+    "manifest": "artifacts/v5-edge-payloads/3fa11c8b6c5357fb90a3f4fd05e80b5634a37619/manifest.json",
+    "manifestSha256": "0ae27b0bad3919ff95b62769b88040ddf39d4f78a2c43ea95aa3dbea0a81eb51",
     "status": "LOCAL_EXACT_SOURCE_PAYLOADS_NOT_DEPLOYED"
   },
   "authorization": {
@@ -630,7 +639,19 @@
     "Applicable executable product policy and exact source/APK"
   ],
   "operationsPerformed": [
-    "Read local Git objects and previously observed baseline",
-    "Write this candidate manifest"
-  ]
+    "Read exact source Git objects and fresh canonical DEV/ALPHA predecessor",
+    "Verified FULL144 run34748075434",
+    "Applied exact36 forward SQL files109-144 with per-file source/history checks",
+    "Independent bounded hosted144 postflight; business14 and prior108 history preserved",
+    "Deployed10 Edge functions with source readback; separate evidence binds later695f4df source"
+  ],
+  "actualPromotion": {
+    "migrationJournal": "DEV_ALPHA_PROMOTION_EXECUTION_20260913.json",
+    "postflight": "DEV_ALPHA_PREFIX144_READ_ONLY_POSTFLIGHT_20260913.json",
+    "protectiveAi": "DEV_ALPHA_AI_GUARD_DEPLOYMENT_20260913.json",
+    "additionalEdges": "DEV_ALPHA_EDGE_DEPLOYMENTS_20260913.json",
+    "migrationCount": 144,
+    "providerCalls": 0,
+    "edgeSourceCommit": "695f4df7033855bbac147076c4521e9c42a5cf47"
+  }
 }

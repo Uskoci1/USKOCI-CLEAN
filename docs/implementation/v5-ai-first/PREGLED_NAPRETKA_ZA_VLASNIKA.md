@@ -1,6 +1,6 @@
 # USKOČI V5 — pregled napretka za vlasnika
 
-Stanje 13. septembra 2026, posle stvarne DEV/ALPHA provere u 08:55 UTC.
+Stanje 13. septembra 2026, posle stvarnih DEV/ALPHA provera do 09:26 UTC.
 Pregled objedinjuje nezavisni izveštaj subagenta i proverene CI/server/Android dokaze.
 Aplikacija još nije spremna za završni povezani test na vlasnikovom telefonu.
 
@@ -19,17 +19,19 @@ testova, 768 Node testova i svih 34 stvarna izolovana bazna izveštaja do migrac
 144. [Tačan CI rezultat](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34748075434).
 
 **Stvarno primenjeno:** canonical DEV/ALPHA `leqcwgzvjsxugfgzdmth` sada ima
-123 migracije. Novih 15 datoteka109–123 tačno odgovaraju Git izvoru; prethodna
+144 migracije. Novih 36 datoteka109–144 tačno odgovaraju Git izvoru; prethodna
 108 zapisa i svih 14 praćenih poslovnih redova ostali su identični. Postoje
 3 Auth naloga, 7 zadataka i 2 Dogovora. Pristup novim funkcijama i privatnim
-tabelama prošao je zasebnu proveru na tom serveru.
+tabelama prošao je zasebnu proveru na tom serveru. Deset serverskih funkcija je
+postavljeno, njihov kod proveren čitanjem sa servera i odbijanje zahteva bez
+prijave potvrđeno. Stvarna prijavljena AI/govorna/foto proba još nije izvršena.
 
 **Android:** potpisan, instalabilan APK izvora `6d8f640` već je napravljen i
 instaliran na test emulator. Njegov dokaz obuhvata originalni ulaz i prijavu.
 Završni APK će sadržati i kasnije ispravke i biti potvrđen nad povezanim backendom.
 
-Pre vlasničkog testa ostaju: završetak i provera preostalih migracija, obavezna
-AI kontrola providera/budžeta, primena serverskih funkcija, odobrena konfiguracija,
+Pre vlasničkog testa ostaju: završetak i provera preostalih migracija, funkcija
+zatvaranja naloga, odobrena konfiguracija,
 kratke Gemini/govorne probe, interni QA nalog, stvaran tok sa dva naloga i novi APK.
 Poznate vlasničke odluke su prihvaćene; ne čeka se njihovo ponovno odobravanje.
 

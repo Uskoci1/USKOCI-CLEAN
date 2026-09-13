@@ -1,51 +1,78 @@
-# Predlog malog Gemini testa kroz stvarnu aplikaciju
+# Kontrolisana Gemini proba na canonical DEV/ALPHA
 
-Aktuelna dopuna AF-D24/26: canonical `leqcwgzvjsxugfgzdmth` je odobreni
-DEV/ALPHA cilj, uključujući potrebnu konfiguraciju i jednog internog QA korisnika.
-Raniji zahtevi za novo staging/live odobrenje tog istog cilja u istorijskom
-preflight-u ispod su zamenjeni vlasničkom odlukom. Veza postojećeg ključa sa
-plaćenim projektom je naknadno proverena u memoriji; ne ponavljati ključ.
-Važe postojeći $5 interni limit i kontrolisane kratke probe sa proverom potrošnje.
-Nijedna plaćena proba nije ovim zapisom proglašena izvršenom. AF-D24 menja govor:
-release daje izmenjiv tekst; novi AI operation nastaje tek izričitim Pošalji.
-Pre izvođenja vezati plan za novi provereni source/APK i stvarno očitan ledger.
+## Važeća odluka i dokazni status
 
-Pripremljeno 2026-09-13, samo pregled izvora i plan. Nisu pročitani ključevi, menjani secrets/config, pozvani modeli niti izvršen live batch. Aktuelni source kandidat je28c47c01a3637e67ce767910ed213477a9a933b1/SQL141. CI34734349508 je prošao11 source gates,185 Jest suites/3711 testova,686 Node testova i25 actual izveštaja do135;136 je stao na SQL timeout-u posle2 provere, pa137–141 nisu dostignuti. Konkretan batch još zahteva završne dokaze, APK i tačne test naloge.
+Owner AF-D26 odobrava backend, konfiguraciju i završno povezano testiranje na
+`leqcwgzvjsxugfgzdmth`. AF-D20 odobrava postojeći owner/test nalog i jedan jasno
+obeležen interni QA nalog. Ne praviti dodatni staging niti ponovo tražiti
+odobrenje providera, namene ili poznatih product odluka. Zaseban budući
+production projekat sa stvarnim korisnicima nije cilj ove probe.
 
-Već odobreno: `gemini-3.8-flash`, `gemini-3.5-transcribe-live`, prihvaćen Google paid processing okvir, prolazan govor bez USKOČI audio arhive, AF-D09 pregled sanitizovanih Task fotografija, AF-D12 javni Q&A, zajednički interni test limit USD 5 i stvarna kontrola troška posle svake probe. Nema novih svrha/providera/cena. Paid1 / Prepay USD 5.00 / Auto-reload Off za `Uskoci-clean` / `gen-lang-client-0693119686` potvrdio je root u AI Studio; veza postojećeg Supabase `GEMINI_API_KEY` sa tim projektom još nije dokazana. Sufiks `…FZZg` je trag za nalaženje, ne dokaz identičnog ključa.
+Izvor `3fa11c8b6c5357fb90a3f4fd05e80b5634a37619` prošao je FULL144
+CI34748075434 sa34 stvarna izolovana bazna izveštaja. Njegove migracije109–144
+stvarno su primenjene i nezavisno proverene na canonical DEV/ALPHA. Deset Edge
+funkcija iz695f4df je postavljeno; provider pozivi, stvarna naplata i povezani
+Android E2E još nisu izvršeni. Konačne probe
+moraju vezati poslednji provereni Git izvor, stvarne Edge verzije i APK receipt;
+144 nije unapred proglašen konačnim izvorom dok145/146 ispravke traju.
 
-## 1. Najpre veza ključa i plaćenog projekta — bez prikazivanja tajne
+Već su odobreni `gemini-3.8-flash`, `gemini-3.5-transcribe-live`, Google paid
+processing okvir, prolazan audio bez USKOČI arhive, provera izabranih Task
+fotografija i javnog Q&A. Sve namene dele USD5 internih rezervacija; to nije
+garantovan računovodstveni plafon. Kratke probe se izvode redom uz proveru stvarne
+potrošnje posle svake. Privatne Agreement fotografije ne šalju se Gemini-ju.
 
-Read-only UI provera13.09 ponovo prikazuje odobreni Uskoci-clean kao Tier1/Prepay.
-Supabase secrets URL se, međutim, preusmerava na prijavu; raspoloživi Supabase
-konektor nema secrets metadata API, a gcloud/Supabase CLI nisu u lokalnom PATH-u.
-Vlasniku je poslat zahtev da se prijavi u postojeći Supabase kontrolni panel,
-bez slanja tajni u čet. To nije dokaz podudarnosti ključa, nova uplata ili
-odobrenje izmene konfiguracije. Izolovani CI i Android build nastavljaju se.
+AF-D24: hold-to-talk → završni vidljiv/izmenjiv tekst → izričito Pošalji.
+Puštanje mikrofona završava transkript bez novog AI turn-a ili objave zadatka.
+Ne uvodi se potvrđivanje svakog podatka.
 
-Predlog postupka za kasniji odobreni preflight, ne izvršen nalog:
+## 1. Plaćeni projekat i tehnički preduslovi
 
-1. Root sa već odobrenim read-only pristupom uzima samo metadata red `GEMINI_API_KEY` iz Supabase projekta `leqcwgzvjsxugfgzdmth`, uključujući njegov puni SHA256 digest. Ne čita ostale secret vrednosti i ne koristi `secrets set`. Supabase Management API vraća digeste, ne plaintext; to dokumentuje njegov [zvanični provider izvor](https://github.com/supabase/terraform-provider-supabase/blob/main/docs/resources/edge_function_secrets.md). CLI flagove prethodno proveriti preko lokalnog `--help`.
-2. U Google metapodacima potvrditi baš ID `gen-lang-client-0693119686`, njegov project number i postojeći key resource u tom projektu. [Google keys.list](https://docs.cloud.google.com/api-keys/docs/reference/rest/v2/projects.locations.keys/list) daje projektno ograničen inventar. Prikaz imena projekta/sufiksa bez pune podudarnosti nije dovoljan. Ne kreirati drugi ključ ili billing projekat radi probe.
-3. Kada konkretan preflight odobri tajnu samo u kontrolisanoj memoriji, kratak lokalni helper sa postojećim Google OAuth read-only pristupom poziva [getKeyString](https://docs.cloud.google.com/api-keys/docs/reference/rest/v2/projects.locations.keys/getKeyString) za tačno navedeni key resource. Potreban je postojeći `apikeys.keys.getKeyString` IAM permission. URL sadrži resource ID, ne API ključ. Helper odmah računa SHA256 iz vraćenih bajtova i poredi ceo digest sa Supabase digestom. Ne koristi `lookupKey?keyString=...`, clipboard, shell argument sa ključem, HTTP debug, ispis response-a ili fajl sa tajnom.
-4. Helper sme da vrati samo `{projectId, projectNumber, keyResourceName, digestMatched, checkedAt}`; greška je neutralni kod. Key/OAuth token ostaju u memoriji, bez stdout/stderr/screenshot/log/traces, i brišu se iz dostupnih bafera u `finally`; to nije tvrdnja o garantovanom fizičkom brisanju svih kopija iz managed-runtime memorije. Nije potreban dijagnostički Edge deploy niti zamena postojećeg Supabase ključa da bi se proverila podudarnost.
-5. Ako nema potrebnog Google pristupa, digest se razlikuje ili se key resource ne može sigurno vezati za pravi projekat, status je `KEY_PROJECT_ASSOCIATION_UNPROVEN` i plaćeni pozivi ostaju zatvoreni. Rotacija ključa/IAM/billing promena zahteva svoj konkretan batch, ne prikriven fallback. Neposredno pre probe ponovo proveriti isti digest, paid status i Auto-reload Off.
+Ranije je stvarno proveren `Uskoci-clean` / `gen-lang-client-0693119686`, broj
+projekta705329837232, Paid Tier1 / Prepay USD5 / Auto-reload Off. Veza postojećeg
+Supabase Gemini ključa sa tim plaćenim projektom proverena je u kontrolisanoj
+memoriji. Ne prepisivati ključ, njegove delove, OAuth/JWT ili privatne odgovore
+u dokumentaciju, shell argumente ili logove. Vlasnik ne treba ponovo da šalje ključ.
 
-Proveriti i tip/restrikcije tog postojećeg ključa. Aktuelna [Google API key dokumentacija](https://ai.google.dev/gemini-api/docs/api-key) opisuje prelazak sa standardnih na authorization keys tokom septembra 2026; paid status sam ne dokazuje da stari ključ i dalje radi. Ovaj plan ne menja vrstu ključa i ne pretpostavlja uspešan pristup.
+Pre prvog inference-a proveriti sveže dostupne metadata o plaćenom projektu,
+postojećem ključu i dva tačna modela. Najviše po jedan `models.get` za svaki
+odobreni model, sa ključem samo u header-u; izveštaj sadrži samo ime/verziju,
+limite i podržane metode. Metadata odgovor nije dokaz srpskog streaming govora.
+Ako model nije dostupan, ne zameniti model/provider niti koristiti plaćeni ping
+kao nedokumentovan fallback. [Models API](https://ai.google.dev/api/models).
 
-## 2. Metadata dostupnost modela i zatvoreni preduslovi
+Ovaj turn ima zaustavljen Computer Use zbog nepouzdanog prepoznavanja browser
+URL-a. Dostupni Supabase konektor nema set-secrets ni Auth-admin alat. Repo,
+CI i dozvoljeni Supabase pozivi nastavljaju se. Potrebnu ručnu konfiguraciju
+zatražiti tek kada je konkretan backend spreman; to je ograničenje alata, a ne
+novo traženje već dobijene owner dozvole. Ne zaobilaziti blok browser pristupom,
+izvlačenjem akreditiva ili dijagnostičkim endpoint-om koji vraća tajne.
 
-Posle dokazane veze ključa, u odobrenom read-only preflight-u najviše dva `models.get` zahteva, po jedan za tačno `models/gemini-3.8-flash` i `models/gemini-3.5-transcribe-live`, sa ključem samo u sanitizovanom `x-goog-api-key` header-u. Izlaz allowlist: ime/verzija modela, token limiti i podržane metode. [Models API](https://ai.google.dev/api/models) opisuje ove metadata pozive; oni nisu generisanje i ne troše SQL127 inference rezervaciju. Ako metadata nije dostupna, evidentirati neprovereno; ne zameniti model niti pokušati plaćeni „ping“. Live protokol i stvarni srpski interim/final potvrđuje tek odobrena audio proba. [Zvanični Live Transcribe ugovor](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe) pokriva PCM16kHz, tekstualni izlaz i manual activityStart/activityEnd.
+## 2. Zatvoreni gate-ovi pre prve probe
 
-Pre aktivacije root vezuje konačne Edge verzije svih pet pozivalaca iz odeljka 4 i sve SQL/proof uslove. Sam broj migracija ili postojanje funkcije nije PASS. Za live test moraju biti imenovana dva postojeća kontrolisana naloga: `R` za naručioca i `W` za radnika/Q&A. Plan ne odobrava pravljenje naloga ili uzimanje kredencijala. Tačne UUID vrednosti ulaze u zaseban batch / SQL127 allowlist, nikada u javni test Task. Proveriti postojeću potrošnju, otvorene/unknown pokušaje i normalne AI/Q&A kvote; ništa se ne resetuje da bi test prošao.
-
-R mora imati stvarni ACTIVE Requester profil za objavu. P8 zahteva stvarni ACTIVE Worker profil naloga W; čuvanje Worker pregleda kao DRAFT samo po sebi ne ispunjava taj uslov. Ako W nema ACTIVE profil, konkretan batch mora navesti stvarni pregled i odobreno čuvanje/aktivaciju profila pre P8, ili je QA scenario blokiran. To je postojeći produktni uslov, ne razlog za dodatni LLM poziv ili lažno podešavanje profila.
-
-Task publication i Q&A traže svoj stvarni važeći izvršivi policy/context. Za osnovni RS Task već postoje odobrena produktna pravila: migracije124/125 aktiviraju i vezuju njihov izvršivi sadržaj; tačan forward paket ulazi u zasebno odobrenje live izvršenja. Ne treba ponovo odobravati poznata pravila niti koristiti sintetičke CI policy zapise. P1 Terms/Privacy, P3 retention i P4 processor mapa imaju odvojene ugovore: nedostajuća firma/kontakt/pravna objava nisu pronađeni kao tehnički uslov Task publication chain-a, a uspešna objava ne dokazuje pravnu spremnost platforme. Precizne kapije i preostali ulazi su u [PUBLICATION_ACTIVATION_READINESS](PUBLICATION_ACTIVATION_READINESS.md).
-
-Konkretan live batch mora izričito navesti i odobriti stvarnu publiku objave i canonical dispatch. Na postojećem neizolovanom projektu `needs_public_discovery` omogućava drugim authenticated nalozima da vide `PUBLISHED|SELECTION`; SQL127 nema filter za njihovo čitanje ili sve primaoce dispatch-a. Privatna distribucija APK-a i AI allowlist zato ne izoluju vidljivost Task-a, fotografije ili javnog Q&A. Pre P2/P7/P8/P9 treba dokazati izolaciju celog okruženja ili odobriti opisanu stvarnu javnu objavu i dispatch na tom projektu. Ovaj plan ne uvodi novu politiku vidljivosti.
-
-Potrebna eksplicitna konfiguracija u odobrenom batch-u: `AI_PROVIDER=gemini`, `GEMINI_MODEL=gemini-3.8-flash`, `AI_TEST_BUDGET_REQUIRED=true`, `USKOCI_GEMINI_PAID_TEST_ENABLED=true`; speech koristi `USKOCI_SPEECH_CONTROLLED_TEST_ENABLED=true`, fotografija `USKOCI_GEMINI_IMAGE_REVIEW_ENABLED=true`, Q&A `USKOCI_QA_CLASSIFIER_ENABLED=true`. To su potrebni gate-ovi, ne nalog da ih sada uključimo. SQL127 global `enabled` i tačan allowlist aktiviraju se tek po odobrenju; postojeći ključ se ne menja. Generički OpenAI/provider fallback nije deo ovog batch-a.
+- Kompletan izolovani dokaz konačnog izvora i proverena forward promocija na
+  canonical DEV/ALPHA. Istorija108 i postojeći poslovni podaci se ne resetuju.
+- Stvarni Auth/session nalog R je odobreni owner; W je jedan jasno označen
+  internal QA nalog. Potvrđena email prijava i session integrity moraju raditi.
+  Nema izmišljenog auth korisnika kroz direktan INSERT niti falsifikovanog JWT-a.
+- Proveriti da Android i svih11 Edge funkcija koriste samo canonical DEV/ALPHA.
+  Probni profili/Tasks imaju TEST / INTERNAL oznaku; nema production push-a,
+  stvarne naplate, izmene stvarne reputacije ili slanja poruka drugim osobama.
+- R mora imati stvarni ACTIVE Requester profil, W stvarni ACTIVE Worker profil
+  kroz postojeći pregled i izričitu aktivaciju. DRAFT nije ACTIVE. Samoprijavljen
+  identitet ne dobija verified badge niti obavezni KYC gate.
+- SQL124/125 publication pravila ostaju postojeća izvršiva produktna pravila;
+  ne seed-ovati sintetičku CI policy na DEV. Nepostojeći podaci neregistrovanog
+  operatera se ne izmišljaju. Izvršiva closure/retention politika i istorija imaju
+  svoje dokaze; uspeh objave nije pravna potvrda platforme.
+- Stvarni SQL127 ledger se čita, ne resetuje. Allowlist sadrži samo R/W za ovu
+  kontrolisanu probu; nepoznati raniji pokušaji zaustavljaju novu plaćenu operaciju.
+- Tek posle zaštitne SQL127 šeme i konačnih Edge deploy-a postaviti odobrene
+  vrednosti: `AI_PROVIDER=gemini`, `GEMINI_MODEL=gemini-3.8-flash`,
+  `AI_TEST_BUDGET_REQUIRED=true`, `USKOCI_GEMINI_PAID_TEST_ENABLED=true`,
+  `USKOCI_SPEECH_CONTROLLED_TEST_ENABLED=true`,
+  `USKOCI_GEMINI_IMAGE_REVIEW_ENABLED=true`, `USKOCI_QA_CLASSIFIER_ENABLED=true`.
+  SQL127 global enabled i allowlist proveriti pre inference-a. Bez OpenAI fallback-a.
 
 ## 3. Konkretan obim: USD 2.65 osnovno, najviše USD 2.90
 
@@ -66,15 +93,15 @@ Probe se rade redom, jedna aktivna UI operacija, bez paralelnog korišćenja AI 
 | P7 | B: dodati jednu sopstvenu neutralnu test fotografiju, sačekati READY; detaljan pregled i jedna „Objavi zadatak“ akcija | 1 / 0 | USD 0.25 | USD 2.15 |
 | P8 | W: poslati jedno nematerijalno javno Q&A pitanje na B | 1 / 0 | USD 0.25 | USD 2.40 |
 | P9 | R: odgovoriti jednom, bez promene dogovorenih uslova B | 1 / 0 | USD 0.25 | USD 2.65 |
-| C1 | Samo ako je unapred deo konkretnog batch-a i potreban je stvarni odgovor na jedno CLARIFY pitanje: jedna dodatna eksplicitna kucana poruka u još otvorenom Task/Worker razgovoru. Nije ponovno slanje nepoznatog pokušaja. | 1 / 0 | USD 0.25 | najviše USD 2.90 |
+| C1 | Samo ako je potreban stvarni odgovor na jedno CLARIFY pitanje: jedna dodatna eksplicitna kucana poruka u još otvorenom Task/Worker razgovoru. Nije ponovno slanje nepoznatog pokušaja. | 1 / 0 | USD 0.25 | najviše USD 2.90 |
 
 Osnovno: 9 LLM + 2 STT = USD 2.65. Sa C1: 10 LLM + 2 STT = USD 2.90; pri `R0=0` ostaje USD 2.10 globalne rezervacije. Taj ostatak nije dozvola za nove probe. Izostavljen/odbijen poziv ne prebacuje automatski svoj slot drugoj probi. Ako je input potrebno promeniti posle nepoznatog ishoda, prvo postoji autoritativan receipt/cancel/abandon ishod; nema novog UUID radi zaobilaženja nepoznatog pokušaja.
 
-C1 se, ako je potreban i odobren, umeće odmah posle odgovarajućeg CLARIFY ishoda, pre prihvatanja Task/Worker pregleda. Broj C1 nije zahtev da se na kraju otvara novi razgovor. Kada je taj slot iskorišćen, više nema dodatnih plaćenih dopuna u ovom batch-u.
+C1 se, ako je potreban u ovom ograničenom DEV/ALPHA planu, umeće odmah posle odgovarajućeg CLARIFY ishoda, pre prihvatanja Task/Worker pregleda. Broj C1 nije zahtev da se na kraju otvara novi razgovor. Kada je taj slot iskorišćen, više nema dodatnih plaćenih dopuna u ovom batch-u.
 
-Predlog sadržaja za konkretno vlasničko odobrenje batch-a: A „Lektura kratkog probnog teksta na srpskom, rad na daljinu, jedan izvršilac, fleksibilan termin, cena po dogovoru.“ B „Provera čitljivosti probnog teksta na fotografiji, rad na daljinu, jedan izvršilac, fleksibilan termin, cena po dogovoru.“ Govor B: „Tekst je na srpskom. Potrebna mi je provera pravopisa i rasporeda pasusa.“ Worker tekst/govor mogu opisati samo odobrene test podatke; ne prepisivati stvarni profil neistinitim veštinama. Primer Q&A: „Da li je tekst na srpskom jeziku?“ / „Da, tekst je na srpskom jeziku, kao što piše u opisu.“ To su predloženi javni test sadržaji, ne trenutno odobrene objave. Konačan review ostaje stvarni native pregled; policy BLOCK/REVIEW/CLARIFY se ne pretvara u ALLOW radi prolaza probe.
+Sadržaj kontrolisane DEV/ALPHA probe u već odobrenom okviru: A „Lektura kratkog probnog teksta na srpskom, rad na daljinu, jedan izvršilac, fleksibilan termin, cena po dogovoru.“ B „Provera čitljivosti probnog teksta na fotografiji, rad na daljinu, jedan izvršilac, fleksibilan termin, cena po dogovoru.“ Govor B: „Tekst je na srpskom. Potrebna mi je provera pravopisa i rasporeda pasusa.“ Worker tekst/govor mogu opisati samo odobrene test podatke; ne prepisivati stvarni profil neistinitim veštinama. Primer Q&A: „Da li je tekst na srpskom jeziku?“ / „Da, tekst je na srpskom jeziku, kao što piše u opisu.“ Ove probne objave ostaju na canonical DEV/ALPHA projektu i jasno nose oznaku TEST / INTERNAL; ne prenose se u zaseban production projekat. Konačan review ostaje stvarni native pregled; policy BLOCK/REVIEW/CLARIFY se ne pretvara u ALLOW radi prolaza probe.
 
-Jedna fotografija sadrži samo vlasnikov neutralni probni tekst, bez osoba, kontakata, adresa, QR ili identifikacionih dokumenata. Koristi se postojeći AF-D07 sanitizer i privatni Storage; za ovu malu probu cilj je gotov JPEG do 512 KiB, uz postojeće produkcione maksimalne dimenzije 1600 px. Nema Google Files API, dodatnih slika, kamera/video/audio priloga ili nove svrhe. Sačuvati Worker profil samo jednom posle pregleda, po konkretno odobrenom načinu DRAFT/ACTIVE; prepare/save ne zovu provider.
+Jedna fotografija sadrži samo vlasnikov neutralni probni tekst, bez osoba, kontakata, adresa, QR ili identifikacionih dokumenata. Koristi se postojeći AF-D07 sanitizer i privatni Storage; za ovu malu probu cilj je gotov JPEG do 512 KiB, uz postojeće produkcione maksimalne dimenzije 1600 px. Nema Google Files API, dodatnih slika, kamera/video/audio priloga ili nove svrhe. Sačuvati Worker profil samo jednom posle pregleda, kroz stvarni pregled i postojeću izričitu aktivaciju; prepare/save ne zovu provider.
 
 ## 4. Gde se stvarno troše rezervacije i šta osvežavanje radi
 
@@ -103,6 +130,6 @@ Pre svake probe zabeležiti UTC vreme, konačan source/APK identity, account ali
 
 Posle svakog P/C reda root proverava SQL127 promenu i AI Studio korišćenje/Prepay balans za tačno dokazani projekat. Razdvojiti `reservedMaximum` od `observedProviderCharge`: USD 0.25 nije tvrdnja da je Google toliko naplatio. Google navodi približno 10 min latencije i moguća prekoračenja, a neki cost grafici kasne do 24 h; zato stari prikaz USD0 nije dokaz nulte potrošnje. Ako stvarni trošak još nije proverljiv, status je `SPEND_PENDING`, sledeći plaćeni red čeka osveženu evidenciju. [Google billing i processing times](https://ai.google.dev/gemini-api/docs/billing#processing-times).
 
-STOP uslovi: nepoznata veza ključa/projekta; nedostupan isti model/gate/policy; neočekivan dodatni operation ID ili račun; dosegnut `R0 + 2.90`; nepoznat odgovor; privatni podatak izvan odobrenog payload-a; potreba za novim providerom, svrhom, retention ili troškom. Root zaključuje admission za naredne pozive u okviru odobrenog završnog config koraka, bez resetovanja ledger-a i bez brisanja dokaznih podataka. Probe ne brišu SQL139 zaštićene fotografije ili istoriju. Task terminalne akcije/uklanjanje iz prikaza su posebno navedene posledice u konkretnom batch-u, ne pretpostavljeno fizičko čišćenje.
+STOP uslovi: nepoznata veza ključa/projekta; nedostupan isti model/gate/policy; neočekivan dodatni operation ID ili račun; dosegnut `R0 + 2.90`; nepoznat odgovor; privatni podatak izvan odobrenog payload-a; potreba za novim providerom, svrhom, retention ili troškom. Root zatvara admission za naredne plaćene probe po završetku ovog kontrolisanog plana, bez resetovanja ledger-a i bez brisanja dokaznih podataka. Probe ne brišu SQL139 zaštićene fotografije ili istoriju. Test Task se po proveri zaustavlja/zatvara samo postojećim vlasničkim radnjama kroz aplikaciju. Nema fizičkog brisanja istorije radi čišćenja probe.
 
 Izvorna provera ovog plana: pet poziva `reserveAiTestBudget`, SQL127/126/128/132/135, native hold-release i Task/Worker/QA klijenti fizički pročitani. Brojevi su izvedeni iz stvarnog koda; nije izvršena nijedna proba niti napravljen izveštaj PASS za provider/model/naplatu.

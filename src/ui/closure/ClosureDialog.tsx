@@ -1,9 +1,9 @@
 import {useCallback,useRef,useState} from 'react';
 import {AppState,Modal,View,ActivityIndicator} from 'react-native';
-import {useFocusEffect} from 'expo-router';
+import {useFocusEffect,useRouter} from 'expo-router';
 import {sesijaSada,useSesija} from '../../store/sesija';
 import {accountClosureClientService} from '../../data/accountClosureClientService';
-import {closureExecutionClientService,closureBlockerLabels,closureClassLabels,type ClosureExecutionReview,type ClosureExecutionState,type ClosureStartIntent} from '../../data/closureExecutionClientService';
+import {closureExecutionClientService,closureBlockerLabels,closureClassLabels,erasureAdapter,erasureExceptionLabels,type ClosureExecutionReview,type ClosureExecutionState,type ClosureStartIntent} from '../../data/closureExecutionClientService';
 import {authClientService} from '../../data/authClientService';
 import {noviUuidZahtevId} from '../../lib/idempotencija';
 import {closureIntentJournal,type ClosureIntent} from './closureIntent';
@@ -17,6 +17,7 @@ export function ClosureEntry(){
 }
 const duration=(n:number)=>n%86400===0?`${n/86400} dana`:n%3600===0?`${n/3600} sati`:`${n} sekundi`;
 export function ClosureDialog({onClose}:{onClose:()=>void}){
+ const router=useRouter();
  const session=useSesija(),accountId=session.user?.id,accountRevision=session.accountRevision;
  const owner={accountId:accountId??'',accountRevision};const focus=useRef<object|null>(null),active=useRef(AppState.currentState!=='background'&&AppState.currentState!=='inactive'),locked=useRef(false);
  const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[review,setReview]=useState<ClosureExecutionReview|null>(null),[intent,setIntent]=useState<ClosureIntent|null>(null),[state,setState]=useState<ClosureExecutionState|null>(null),[absent,setAbsent]=useState(false);
@@ -74,6 +75,9 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
  });
  const logout=()=>run(async token=>{if(!live(token))return;await authClientService.signOutLocal(owner);});
  const terminal=state?.state==='CLOSED';
+ const erasure=(state?.adapterVersion??review?.adapterVersion)===erasureAdapter;
+ const pendingExceptions=state?.exceptions??review?.exceptions??[];
+ const support=()=>{if(!live(focus.current)||busy)return;onClose();router.push('/podrska');};
  return <SettingsScreen title="Zatvaranje naloga" onBack={()=>{if(live(focus.current))onClose();}}>
   <SettingsIntro kicker="KONTROLA NALOGA" title={terminal?'Nalog je zatvoren.':state?'Zahtev je pokrenut.':'Pregled pre zatvaranja.'}>
    {terminal?'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.':state?'Zahtev je u redu za obradu. Pristup je ograničen dok server proverava i završava pokrenuti zahtev.':'Pre pokretanja proverite obaveze i šta se događa sa vašim podacima.'}
@@ -82,15 +86,23 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
   {message?<T accessibilityRole="alert">{message}</T>:null}
   {state?<SettingsPanel soft><T variant="bodyStrong">{terminal?'Završene radnje':'Obrada na serveru'}</T>
    <T>{terminal?'Podaci za prijavu su uklonjeni i sesije su završene. Fotografije i datoteke naloga su obrisane.':'Zatvaranje još nije završeno. Nepotvrđen mrežni odgovor ne znači da su podaci obrisani.'}</T>
-   <T>Identifikator naloga i evidencije obuhvaćene objavljenim pravilima ostaju ograničeno dostupni tokom propisanog čuvanja.</T>
+   {erasure?<>
+    <T>{terminal?'Obični lični i privatni podaci aplikacije su uklonjeni. Ostaju minimalni pseudonimni zapisi potrebni za potvrde radnji i tehničku evidenciju.':state.ordinaryContentErased?'Obični podaci aplikacije su uklonjeni. Podaci za prijavu još nisu potvrđeno obrisani i nalog nije zatvoren.':'Server postupno uklanja obične podatke aplikacije. Završetak se potvrđuje tek posle svih provera.'}</T>
+    {!terminal&&state.totalSteps?<T tone="muted">Provereni koraci: {state.completedSteps} od {state.totalSteps}.</T>:null}
+   </>:<T>Identifikator naloga i evidencije obuhvaćene objavljenim pravilima ostaju ograničeno dostupni tokom propisanog čuvanja.</T>}
    {terminal?<T tone="muted">Završeno: {new Date(state.closedAt!).toLocaleString('sr-Latn')}</T>:null}
   </SettingsPanel>:null}
   {!intent&&!state&&review?<>
-   {!review.ready?<SettingsPanel soft><T>{review.code==='CLOSURE_POLICY_NOT_READY'?'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.':review.code==='CLOSURE_PREPARATION_REQUIRED'?'Pripremite pregled trenutnih obaveza pre zatvaranja.':'Najpre rešite obaveze navedene ispod.'}</T>
+   {!review.ready?<SettingsPanel soft><T>{review.code==='CLOSURE_POLICY_NOT_READY'?(erasure?'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.':'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.'):review.code==='CLOSURE_PREPARATION_REQUIRED'?'Pripremite pregled trenutnih obaveza pre zatvaranja.':'Najpre rešite obaveze navedene ispod.'}</T>
     {review.blockers.map(code=><T key={code}>{closureBlockerLabels[code]}</T>)}
     {review.code==='CLOSURE_PREPARATION_REQUIRED'?<SettingsAction label="Pripremite pregled" kind="secondary" disabled={busy} onPress={prepare}/>:null}
-   </SettingsPanel>:<SettingsPanel soft><T variant="bodyStrong">Posle pokretanja</T><T>Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možete otkazati iz aplikacije.</T></SettingsPanel>}
+   </SettingsPanel>:<SettingsPanel soft><T variant="bodyStrong">Posle pokretanja</T><T>{erasure?'Pristup običnim funkcijama se ograničava. Server uklanja nezaštićene datoteke, obične lične i privatne podatke, pa podatke za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možete poništiti iz aplikacije.':'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možete otkazati iz aplikacije.'}</T></SettingsPanel>}
   </>:null}
+  {erasure&&pendingExceptions.length>0?<SettingsPanel soft><T variant="bodyStrong">Pre konačnog zatvaranja</T>
+   <T>Ovi izdvojeni podaci još zahtevaju rešavanje. Nepovezani obični podaci mogu se ukloniti dok ta provera traje.</T>
+   {pendingExceptions.map(code=><T key={code}>{erasureExceptionLabels[code]}</T>)}
+   <SettingsAction label="Otvorite privatnu podršku" kind="secondary" disabled={busy} onPress={support}/>
+  </SettingsPanel>:null}
   {(terminal?state.retainedDatasets:review?.retainedDatasets)?.map(d=><SettingsInfo key={d.dataClass} title={closureClassLabels[d.dataClass]} last>Ograničeno čuvanje: {duration(d.retentionSeconds)} od pokretanja zahteva.</SettingsInfo>)}
   {!intent&&review?.ready&&!state?<SettingsAction label="Pokreni zatvaranje naloga" kind="destructive" disabled={busy} onPress={start}/>:null}
   {intent&&absent&&!state?<SettingsAction label={intent.kind==='START'?'Ponovi isti zahtev za zatvaranje':'Ponovi istu pripremu'} kind="destructive" disabled={busy} onPress={retry}/>:null}

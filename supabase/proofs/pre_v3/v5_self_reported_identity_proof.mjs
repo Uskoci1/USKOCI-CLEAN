@@ -3,6 +3,7 @@
 import {assert,rows,sql,prove,pass,apply,actor,anon,service,ok,denied,randomUUID,q,env} from './closure_runtime.mjs';
 import {locationCases,syntheticNonlocationFacts} from '../policy/publication_fixtures.mjs';
 import {loadOwnedIntakeHandler} from '../ai/owned_intake_edge_runtime.mjs';
+import {createDisposableAiBudgetFixture} from './disposable_ai_budget_fixture.mjs';
 const file='20260913080237_clean_v5_self_reported_identity_requirement.sql';
 const unavailable='IDENTITY_VERIFICATION_UNAVAILABLE';
 const location=locationCases.find(x=>x.id==='remote-exempt').value;
@@ -43,10 +44,8 @@ async function actualEditTurn(report,a,cid,label){
  const key=randomUUID(),beforeFact=liveFact(cid),beforeMessages=Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(cid)}::uuid`));
  assert.equal(beforeFact.fact_value,false);
  assert.ok(turnContext(cid).context.activeFacts.every(f=>!['need.verified_identity_required','need.public_photo_paths','need.resolved_location'].includes(f.fact_key)));
- const budgetBefore=rows('select * from private.ai_test_budget_v5 where singleton')[0];
- assert.ok(budgetBefore&&Number.isSafeInteger(budgetBefore.reserved_microusd)&&budgetBefore.reserved_microusd<=4750000);
- assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
- assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(key)}::uuid`),'0');
+ const budgetFixture=createDisposableAiBudgetFixture({sql,env,accountId:a.id,operationId:key});
+ report.disposableBudgetFixture=budgetFixture.summary;
  const token=(await ok(a.client.auth.getSession())).session.access_token,origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
  let providerCalls=0,budgetCalls=0,primaryFailure;
  const config={SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,
@@ -74,25 +73,19 @@ async function actualEditTurn(report,a,cid,label){
   body:JSON.stringify({conversationId:cid,clientRequestId:key,text:'Synthetic145 ordinary edit conversation'})}));
  try{
   resetTurnWindow(a); // Labelled disposable rate clock, unrelated to identity policy.
-  sql(`begin;insert into private.ai_test_accounts_v5(account_id) values(${q(a.id)}::uuid);
-   update private.ai_test_budget_v5 set enabled=true,price_valid_until=least(clock_timestamp()+interval '1 hour','2027-01-01T00:00:00Z'::timestamptz) where singleton;commit;`);
+  budgetFixture.enter();
   const response=await invoke();assert.equal(response.status,200);const receipt=await response.json();assert.equal(receipt.state,'SUCCEEDED');
   assert.equal(receipt.receipt.proposedCount,0);assert.equal(providerCalls,1);assert.equal(budgetCalls,1);
   assert.equal(Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(cid)}::uuid`)),beforeMessages+2);
   assert.deepEqual(liveFact(cid),beforeFact);
   config.USKOCI_GEMINI_PAID_TEST_ENABLED='false';assert.deepEqual(await(await invoke()).json(),receipt);
   assert.equal(providerCalls,1);assert.equal(budgetCalls,1);
-  assert.equal(Number(sql('select reserved_microusd from private.ai_test_budget_v5 where singleton')),budgetBefore.reserved_microusd+250000);
+  budgetFixture.assertReserved();
   report.actualEdgeSourceHashes=runtime.sourceHashes;report.providerResponseStubbed=true;report.actualEdgeGateway=false;report.fixtureRateClock=true;
   pass(report,label);
  }catch(error){primaryFailure=error;throw error;}
  finally{try{
-  sql(`begin;delete from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(key)}::uuid;
-   delete from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid;
-   update private.ai_test_budget_v5 set enabled=${budgetBefore.enabled},reserved_microusd=${budgetBefore.reserved_microusd},price_valid_until=${q(budgetBefore.price_valid_until)}::timestamptz where singleton;commit;`);
-  assert.deepEqual(rows('select * from private.ai_test_budget_v5 where singleton')[0],budgetBefore);
-  assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
-  assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(key)}::uuid`),'0');
+  budgetFixture.restore();
  }catch(error){report.fixtureCleanupFailed=true;if(!primaryFailure)throw error;}}
 }
 

@@ -2,7 +2,7 @@
 import { only, row, uuid, hash, instant, objectAbsent, parseJSON, type Row } from '../_shared/data-export.ts';
 export type ClosureAction = {
  accountId:string;requestId:string;generation:string;actionId:string;attemptId:string;
- kind:'STORAGE_DELETE'|'AUTH_IDENTITY_ERASE';state:'PENDING'|'DISPATCHED'|'VERIFIED';
+ kind:'STORAGE_DELETE'|'RELATIONAL_REDACT'|'AUTH_IDENTITY_ERASE';state:'PENDING'|'DISPATCHED'|'VERIFIED';
  bucket:'profile-media'|'data-export-artifacts'|null;objectPath:string|null;policySha256:string;
 };
 export type ClosureTransport = {
@@ -22,18 +22,31 @@ export function decodeAction(value:unknown,accountId:string,generation:string):C
   if(!['profile-media','data-export-artifacts'].includes(String(a.bucket))||typeof a.objectPath!=='string'||a.objectPath.length>1024
    ||!a.objectPath.startsWith(accountId+'/')||!a.objectPath.split('/').every(part=>/^[a-zA-Z0-9_-][a-zA-Z0-9_.-]*$/.test(part)&&part!=='.'&&part!=='..'))throw failure();
   if(a.bucket==='data-export-artifacts'&&!new RegExp('^'+accountId+'/[a-f0-9-]{36}/[a-f0-9-]{36}\\.json$').test(a.objectPath))throw failure();
- }else if(a.kind!=='AUTH_IDENTITY_ERASE'||a.bucket!==null||a.objectPath!==null)throw failure();
+ }else if(!['AUTH_IDENTITY_ERASE','RELATIONAL_REDACT'].includes(String(a.kind))||a.bucket!==null||a.objectPath!==null)throw failure();
  return a as ClosureAction;
 }
 function keys(a:ClosureAction){return {p_account_id:a.accountId,p_generation:a.generation,p_action_id:a.actionId,p_attempt_id:a.attemptId};}
 function same(a:ClosureAction,b:ClosureAction){return Object.keys(a).every(k=>k==='state'||a[k as keyof ClosureAction]===b[k as keyof ClosureAction]);}
 export function decodeClosed(value:unknown,accountId:string,generation:string){
  const r=row(value);
- if(!r||!only(r,['accountId','requestId','generation','state','closedAt','policySha256','authOutcome','mediaOutcome','relationalOutcome','retainedDatasets','authoritative'])
+ const erased=r?.adapterVersion==='OWNER_AF_D22_EVENT_ERASURE_V1';
+ if(!r||!only(r,['accountId','requestId','generation','state','closedAt','policySha256','authOutcome','mediaOutcome','relationalOutcome','retainedDatasets','authoritative',...(erased?['adapterVersion','pseudonymousAuditRetained','exceptions']:[])])
   ||r.accountId!==accountId||r.generation!==generation||!uuid(r.requestId)||r.state!=='CLOSED'||!instant(r.closedAt)||!hash(r.policySha256)
-  ||r.authOutcome!=='AUTH_IDENTITY_ERASED_SUBJECT_RETAINED'||r.mediaOutcome!=='OWNED_OBJECTS_DELETED'||r.relationalOutcome!=='RETAINED_RESTRICTED'
-  ||!Array.isArray(r.retainedDatasets)||r.retainedDatasets.length!==15||r.authoritative!==true)throw failure();
+  ||r.authOutcome!=='AUTH_IDENTITY_ERASED_SUBJECT_RETAINED'||r.mediaOutcome!=='OWNED_OBJECTS_DELETED'
+  ||!Array.isArray(r.retainedDatasets)||r.authoritative!==true)throw failure();
+ if(erased){if(r.relationalOutcome!=='ORDINARY_PERSONAL_CONTENT_ERASED'||r.retainedDatasets.length!==0||r.pseudonymousAuditRetained!==true||!Array.isArray(r.exceptions)||r.exceptions.length!==0)throw failure();}
+ else if(r.relationalOutcome!=='RETAINED_RESTRICTED'||r.retainedDatasets.length!==15)throw failure();
  return r;
+}
+const whole=(v:unknown,max=1000):v is number=>typeof v==='number'&&Number.isInteger(v)&&v>=0&&v<=max;
+const exceptions=['SCOPED_EVIDENCE_REVIEW_REQUIRED','MEDIA_EVIDENCE_REVIEW_REQUIRED','HISTORY_ATTRIBUTION_REVIEW_REQUIRED','SHARED_DECISION_REVIEW_REQUIRED'];
+export function decodeErasureProgress(value:unknown,accountId:string,generation:string){
+ const r=row(value);
+ if(!r||!only(r,['accountId','requestId','generation','state','policySha256','adapterVersion','ordinaryContentErased','completedSteps','totalSteps','exceptions','authoritative'])
+  ||r.accountId!==accountId||r.generation!==generation||!uuid(r.requestId)||r.state!=='EXECUTING'||!hash(r.policySha256)||r.adapterVersion!=='OWNER_AF_D22_EVENT_ERASURE_V1'
+  ||typeof r.ordinaryContentErased!=='boolean'||!whole(r.completedSteps)||!whole(r.totalSteps)||r.totalSteps<1||r.completedSteps>r.totalSteps
+  ||r.ordinaryContentErased!==(r.completedSteps===r.totalSteps)||!Array.isArray(r.exceptions)||r.exceptions.length>exceptions.length||new Set(r.exceptions).size!==r.exceptions.length
+  ||r.exceptions.some(x=>typeof x!=='string'||!exceptions.includes(x))||r.authoritative!==true)throw failure();return r;
 }
 async function verify(a:ClosureAction,t:ClosureTransport){
  assertLive(t.signal);
@@ -53,6 +66,11 @@ export async function executeClosureStep(t:ClosureTransport,accountId:string,gen
  const claim=await t.rpc('rpc_claim_account_closure_action_service',{p_account_id:accountId,p_generation:generation},true);assertLive(t.signal);
  const c=row(claim);
  if(c?.kind==='CLOSED'&&only(c,['kind','receipt']))return decodeClosed(c.receipt,accountId,generation);
+ if(c?.kind==='EXCEPTIONS_PENDING'&&only(c,['kind','progress'])){
+  const progress=decodeErasureProgress(c.progress,accountId,generation);
+  if(progress.ordinaryContentErased!==true||!Array.isArray(progress.exceptions)||progress.exceptions.length===0)throw failure();
+  return {accountId,generation,kind:'EXCEPTIONS_PENDING',progress};
+ }
  if(c?.kind==='FINALIZE'&&only(c,['kind','accountId','generation'])&&c.accountId===accountId&&c.generation===generation){
   const closed=await t.rpc('rpc_finalize_account_closure_service',{p_account_id:accountId,p_generation:generation},true);assertLive(t.signal);return decodeClosed(closed,accountId,generation);
  }
@@ -62,7 +80,7 @@ export async function executeClosureStep(t:ClosureTransport,accountId:string,gen
   if(!admission||!only(admission,['admitted','action'])||typeof admission.admitted!=='boolean')throw failure();
   const dispatched=decodeAction(admission.action,accountId,generation);
   if(!same(a,dispatched)||(admission.admitted&&dispatched.state!=='DISPATCHED'))throw failure();a=dispatched;
-  if(admission.admitted){
+  if(admission.admitted&&a.kind!=='RELATIONAL_REDACT'){
    assertLive(t.signal);
    const response=a.kind==='STORAGE_DELETE'
     ?await t.request(`/storage/v1/object/${a.bucket}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:[a.objectPath]})},true)
@@ -73,6 +91,16 @@ export async function executeClosureStep(t:ClosureTransport,accountId:string,gen
   }
  }
  if(a.state==='PENDING')throw failure();
+ if(a.kind==='RELATIONAL_REDACT'){
+  // This single SQL transaction is idempotent after an unknown response. It is
+  // not a second Storage/Auth dispatch and never accepts caller SQL or a table.
+  const r=row(await t.rpc('rpc_redact_account_closure_step_service',keys(a),true));assertLive(t.signal);
+  if(!r||!only(r,['accountId','generation','actionId','attemptId','kind','state','rowsChanged','completedSteps','totalSteps','authoritative'])
+   ||r.accountId!==accountId||r.generation!==generation||r.actionId!==a.actionId||r.attemptId!==a.attemptId||r.kind!=='RELATIONAL_REDACT'
+   ||!['DISPATCHED','VERIFIED'].includes(String(r.state))||!whole(r.rowsChanged,100)||!whole(r.completedSteps)||!whole(r.totalSteps)||r.totalSteps<1||r.completedSteps>r.totalSteps
+   ||(r.state==='VERIFIED')!==(r.completedSteps===r.totalSteps)||r.authoritative!==true)throw failure();
+  return {accountId,generation,kind:r.state==='VERIFIED'?'STEP_VERIFIED':'RELATIONAL_PROGRESS',actionId:a.actionId,completedSteps:r.completedSteps,totalSteps:r.totalSteps};
+ }
  if(!await verify(a,t))return {accountId,generation,kind:'PENDING',code:'CLOSURE_OUTCOME_UNKNOWN'};
  assertLive(t.signal);
  const evidence=a.kind==='STORAGE_DELETE'?'STORAGE_OBJECT_ABSENT':'AUTH_IDENTITY_ERASED_SUBJECT_RETAINED';

@@ -1,3 +1,11 @@
+# EMERGENCY CHECKPOINT — incomplete
+
+Owner froze broad development, prioritized actual AI and current APK. See
+EMERGENCY_FINAL_CHECKPOINT_20260913.md. DEV144/10Edges;145–147 source-only.
+Latest CI34749451460:11 source gates PASS,132 budget fixture FAIL. Reviewed
+fixture repair awaits actual CI. Owner confirms8 flags and now QA email;
+real authenticated/provider proof is in progress, never presumed.
+
 # V5 AI-FIRST execution — active, incomplete
 
 The latest seven owner decisions are authoritative in

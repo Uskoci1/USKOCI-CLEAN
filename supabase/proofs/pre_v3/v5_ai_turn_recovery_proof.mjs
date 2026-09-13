@@ -2,6 +2,7 @@
 // output is synthetic. No live credentials/provider/network fallback is allowed.
 import {assert,sql,prove,pass,apply,actor,service,anon,ok,denied,randomUUID,q,lockedRace,env} from './closure_runtime.mjs';
 import {loadOwnedIntakeHandler} from '../ai/owned_intake_edge_runtime.mjs';
+import {createDisposableAiBudgetFixture} from './disposable_ai_budget_fixture.mjs';
 const file='20260912233901_clean_v5_ai_turn_restart_recovery.sql';
 const ids=(a,cid,key)=>({p_account_id:a.id,p_conversation_id:cid,p_client_request_id:key});
 const clientIds=(cid,key)=>({p_conversation_id:cid,p_client_request_id:key});
@@ -86,13 +87,10 @@ await prove('V5_AI_TURN_RESTART_RECOVERY','v5-ai-turn-recovery-report.json',asyn
 
  resetRate(a);const edgeCid=await fresh(a),edgeKey=randomUUID(),token=(await ok(a.client.auth.getSession())).session.access_token;
  let providerCalls=0,budgetCalls=0;const origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
- // Disposable operator fixture for the actual current handler's mandatory127
- // admission. Preserve prior global consumption; this never mocks a reservation,
- // resets a production budget or permits a provider request beyond this stub.
- const budgetBefore=JSON.parse(sql('select to_jsonb(b) from private.ai_test_budget_v5 b where singleton'));
- assert.ok(budgetBefore&&Number.isSafeInteger(budgetBefore.reserved_microusd)&&budgetBefore.reserved_microusd<=4750000);
- assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
- assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(edgeKey)}::uuid`),'0');
+ //127 intentionally leaves a full, expired, disabled ledger. Isolate only the
+ // disposable test state; preserve and restore every original row exactly.
+ const budgetFixture=createDisposableAiBudgetFixture({sql,env,accountId:a.id,operationId:edgeKey});
+ report.disposableBudgetFixture=budgetFixture.summary;
  const edgeEnv={SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_NON_SECRET',GEMINI_MODEL:'gemini-3.8-flash',
   USKOCI_GEMINI_PAID_TEST_ENABLED:'true'};
@@ -114,29 +112,23 @@ await prove('V5_AI_TURN_RESTART_RECOVERY','v5-ai-turn-recovery-report.json',asyn
   body:JSON.stringify({conversationId:edgeCid,clientRequestId:edgeKey,text:'SYNTHETIC canonical recovery text'})}));
  let primaryFailure;
  try{
-  sql(`begin;insert into private.ai_test_accounts_v5(account_id) values(${q(a.id)}::uuid);
-   update private.ai_test_budget_v5 set enabled=true,price_valid_until=least(clock_timestamp()+interval '1 hour','2027-01-01T00:00:00Z'::timestamptz) where singleton;commit;`);
+  budgetFixture.enter();
   const result=await invoke();assert.equal(result.status,200);const receipt=await result.json();assert.equal(receipt.state,'SUCCEEDED');
   const durable=await recover(a,edgeCid,edgeKey);assert.deepEqual(durable.turn,receipt);
   const messages=await ok(a.client.from('ai_messages').select('id,body,role').eq('conversation_id',edgeCid));
   assert.equal(messages.length,2);assert.equal(messages.find(m=>m.id===receipt.receipt.userMessageId).body,'SYNTHETIC canonical recovery text');
-  assert.equal(Number(sql('select reserved_microusd from private.ai_test_budget_v5 where singleton')),budgetBefore.reserved_microusd+250000);
+  budgetFixture.assertReserved();
   // Replaying the durable result remains readable after paid admission closes.
   edgeEnv.USKOCI_GEMINI_PAID_TEST_ENABLED='false';
   assert.deepEqual(await(await invoke()).json(),receipt);assert.equal(providerCalls,1);assert.equal(budgetCalls,1);assert.equal(count(edgeCid),2);
   assert.equal((await cancel(a,edgeCid,edgeKey)).cancelled,false);
-  assert.equal(Number(sql('select reserved_microusd from private.ai_test_budget_v5 where singleton')),budgetBefore.reserved_microusd+250000);
+  budgetFixture.assertReserved();
   report.actualEdgeSourceHashes=runtime.sourceHashes;
   pass(report,'LATEST_ACTUAL_EDGE_AUTH_BUDGET_DISPATCH_CAS_SQL_CANONICAL_HISTORY_LOST_RECEIPT_RECOVERY_ONE_SYNTHETIC_PROVIDER_CALL');
  }catch(error){primaryFailure=error;throw error;}
  finally{
   try{
-   sql(`begin;delete from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(edgeKey)}::uuid;
-    delete from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid;
-    update private.ai_test_budget_v5 set enabled=${budgetBefore.enabled},reserved_microusd=${budgetBefore.reserved_microusd},price_valid_until=${q(budgetBefore.price_valid_until)}::timestamptz where singleton;commit;`);
-   assert.deepEqual(JSON.parse(sql('select to_jsonb(b) from private.ai_test_budget_v5 b where singleton')),budgetBefore);
-   assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
-   assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(edgeKey)}::uuid`),'0');
+   budgetFixture.restore();
   }catch(error){report.fixtureCleanupFailed=true;if(!primaryFailure)throw error;}
  }
  assert.equal(sql(`select sha256=private.closure_source_digest_v5() from private.closure_source_v5 where singleton`),'t');

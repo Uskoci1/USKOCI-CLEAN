@@ -97,6 +97,6 @@ test('actual proof covers predecessor true, canonical false publication/applicat
  assert.match(proof,/return fetch\(input,init\)/);
  for(const name of ['CORRECTED_HISTORICAL_TRUE_TO_FALSE_ACTUAL_CURRENT_EDGE','COPIED_ORDINARY_FALSE_ACTUAL_CURRENT_EDGE',
   'projectedTurnContext.sha256,oldTurnContext.sha256','afterCorrection.sha256,beforeCorrection.sha256',
-  'beforeCorrection.context','rpc_ai_dispatch_need_turn_v2_service','budgetBefore.reserved_microusd+250000',
+  'beforeCorrection.context','rpc_ai_dispatch_need_turn_v2_service','budgetFixture.assertReserved()',
   'config.USKOCI_GEMINI_PAID_TEST_ENABLED=\'false\'','if(!primaryFailure)throw error'])assert.ok(proof.includes(name),name);
 });

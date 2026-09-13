@@ -47,3 +47,36 @@ test('maintenance remains bounded and checks no jobs when the current binding is
  assert.equal((await runtime.handler(request(9))).status,400);assert.equal(io,0);
  assert.deepEqual(await(await runtime.handler(request(2))).json(),{kind:'MAINTENANCE_CHECKED',checked:0,verified:0,pending:0,closed:0,blocked:0});assert.equal(io,1);
 });
+const relational=(patch={})=>({accountId:A,generation:G,actionId:I,attemptId:T,kind:'RELATIONAL_REDACT',state:'DISPATCHED',rowsChanged:100,completedSteps:1,totalSteps:74,authoritative:true,...patch});
+test('AF22 relational dispatch calls only the bounded canonical SQL step, never Storage/Auth HTTP',async()=>{
+ const f=fixture({kind:'RELATIONAL_REDACT',bucket:null,objectPath:null},{rpc_redact_account_closure_step_service:()=>relational()});
+ assert.equal((await f.run()).kind,'RELATIONAL_PROGRESS');
+ assert.deepEqual(f.calls.map(c=>c.name),['rpc_claim_account_closure_action_service','rpc_dispatch_account_closure_action_service','rpc_redact_account_closure_step_service']);
+ assert.deepEqual(JSON.parse(JSON.stringify(f.calls.at(-1).args)),{p_account_id:A,p_generation:G,p_action_id:I,p_attempt_id:T});
+});
+test('unknown relational response can resume the same generation without another dispatch or external write',async()=>{
+ const f=fixture({kind:'RELATIONAL_REDACT',bucket:null,objectPath:null,state:'DISPATCHED'},{rpc_redact_account_closure_step_service:()=>relational({state:'VERIFIED',rowsChanged:0,completedSteps:74})});
+ assert.equal((await f.run()).kind,'STEP_VERIFIED');assert.equal(count(f,'rpc_dispatch_account_closure_action_service'),0);assert.equal(count(f,'DELETE'),0);
+});
+for(const patch of [{accountId:R},{generation:R},{attemptId:R},{actionId:R},{rowsChanged:101},{rowsChanged:-1},{completedSteps:75},{totalSteps:0},{state:'VERIFIED'},{authoritative:false},{rawContent:'UNTRUSTED'},{state:'CLOSED'}])test('AF22 rejects malformed or cross-generation relational receipt '+Object.keys(patch)[0],async()=>{
+ const f=fixture({kind:'RELATIONAL_REDACT',bucket:null,objectPath:null,state:'DISPATCHED'},{rpc_redact_account_closure_step_service:()=>relational(patch)});
+ await assert.rejects(f.run());assert.equal(count(f,'DELETE'),0);assert.equal(count(f,'rpc_complete_account_closure_action_service'),0);
+});
+test('late relational receipt after cancellation cannot be claimed as verified',async()=>{
+ let f;f=fixture({kind:'RELATIONAL_REDACT',bucket:null,objectPath:null,state:'DISPATCHED'},{rpc_redact_account_closure_step_service:()=>{f.controller.abort();return relational({state:'VERIFIED',completedSteps:74});}});await assert.rejects(f.run());
+});
+const erasureProgress=(patch={})=>({accountId:A,requestId:R,generation:G,state:'EXECUTING',policySha256:H,adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',ordinaryContentErased:true,completedSteps:74,totalSteps:74,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED'],authoritative:true,...patch});
+test('scoped exceptions produce truthful pending progress and no Auth dispatch',async()=>{
+ const f=fixture({}, {rpc_claim_account_closure_action_service:()=>({kind:'EXCEPTIONS_PENDING',progress:erasureProgress()})});
+ assert.equal((await f.run()).kind,'EXCEPTIONS_PENDING');assert.equal(f.calls.length,1);
+});
+for(const patch of [{ordinaryContentErased:false},{exceptions:[]},{exceptions:['ARBITRARY']},{exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED','SCOPED_EVIDENCE_REVIEW_REQUIRED']},{state:'CLOSED'},{accountId:R},{completedSteps:70},{body:'PRIVATE'}])test('scoped pending cannot hide malformed progress '+Object.keys(patch)[0],async()=>{
+ const f=fixture({}, {rpc_claim_account_closure_action_service:()=>({kind:'EXCEPTIONS_PENDING',progress:erasureProgress(patch)})});await assert.rejects(f.run());assert.equal(f.calls.length,1);
+});
+const erasedClosed=(patch={})=>({accountId:A,requestId:R,generation:G,state:'CLOSED',closedAt:'2026-09-13T09:00:00Z',policySha256:H,authOutcome:'AUTH_IDENTITY_ERASED_SUBJECT_RETAINED',mediaOutcome:'OWNED_OBJECTS_DELETED',relationalOutcome:'ORDINARY_PERSONAL_CONTENT_ERASED',retainedDatasets:[],authoritative:true,adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',pseudonymousAuditRetained:true,exceptions:[],...patch});
+test('AF22 CLOSED states ordinary erasure and explicit pseudonymous audit retention',()=>{
+ const {worker}=loadClosureWorker();assert.equal(worker.decodeClosed(erasedClosed(),A,G).pseudonymousAuditRetained,true);
+});
+for(const patch of [{relationalOutcome:'RETAINED_RESTRICTED'},{exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED']},{retainedDatasets:[{retentionSeconds:30}]},{pseudonymousAuditRetained:false},{adapterVersion:'UNREVIEWED'},{privateCopy:'RAW'}])test('AF22 CLOSED rejects an incomplete or invented outcome '+Object.keys(patch)[0],()=>{
+ const {worker}=loadClosureWorker();assert.throws(()=>worker.decodeClosed(erasedClosed(patch),A,G));
+});
