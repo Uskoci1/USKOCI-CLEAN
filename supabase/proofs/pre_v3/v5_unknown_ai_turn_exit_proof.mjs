@@ -68,11 +68,15 @@ await prove('V5_UNKNOWN_AI_TURN_EXIT','v5-unknown-ai-turn-exit-report.json',asyn
  await denied(a.client.rpc('rpc_ai_recover_need_turn_v2',taskOwner(await taskFresh(a),key)),'AI_REQUEST_ID_REUSED');
  pass(report,'TASK_ABSENT_AND_PREDISPATCH_BEHAVIOR_PRESERVED_REAL_CLAIM_DISPATCH_LOCK_RACES_NO_EARLY_MATERIALIZATION');
 
- // Synthetic published Task fixture, then the actual owned edit-conversation RPC.
+ // Synthetic published REMOTE/RS Task fixture, then the actual owned edit RPC.
+ // The historical default is stationary without a geography row and correctly
+ // cannot enter the edit flow. This fixture supplies an explicit valid context.
  // This is the previously trapped bound-edit path; no publication policy is seeded.
  const needId=randomUUID(),profile=rows(`select id from public.app_profiles where account_id=${q(a.id)} and kind='REQUESTER'`)[0].id;
- sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,approximate_city,approximate_area,mode,required_slots,schedule_kind,response_deadline,published_at)
- values(${q(needId)},${q(a.id)},${q(profile)},'PUBLISHED','Synthetic142 bound task','Synthetic task remains unchanged','PROOF','Novi Sad','Liman','OFFERS',1,'FLEXIBLE',clock_timestamp()+interval '2 days',clock_timestamp());commit;`);
+ sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);select set_config('uskoci.need_region','CONFIRMED_REVIEW',true);
+ insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,approximate_city,approximate_area,mode,required_slots,schedule_kind,response_deadline,published_at,execution_location_mode,task_country_code,task_timezone)
+ values(${q(needId)},${q(a.id)},${q(profile)},'PUBLISHED','Synthetic142 bound task','Synthetic task remains unchanged','PROOF','Novi Sad','Liman','OFFERS',1,'FLEXIBLE',clock_timestamp()+interval '2 days',clock_timestamp(),'REMOTE','RS',
+ (select default_timezone from private.location_market_configs where country_code='RS'));commit;`);
  const edit=await ok(a.client.rpc('rpc_ai_open_need_edit_conversation_v2',{p_need_id:needId})),ek=randomUUID(),ec=(await taskClaim(a,edit.conversationId,ek)).claim;
  await denied(a.client.rpc('rpc_ai_abandon_need_conversation_v2',{p_conversation_id:edit.conversationId}),'CONVERSATION_NOT_ABANDONABLE');
  const budget=rows('select * from private.ai_test_budget_v5 where singleton')[0];

@@ -9,7 +9,18 @@ Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALP
 Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
 STT before explicit sending are approved for this cycle. Implementation continues.
 
-Saved/pushed source144 is6d8f640f96f2034f56c2201a0b6082b82c50841b,
+Latest saved source d95961f29c72c95c8f836a6fb0a765c22b107a61,
+tree7400a9aaf5c6653dcdea05c4125235c01936eb76, passes all11 source gates,
+195 Jest suites/4030 tests,768 Node tests and31 actual SQL reports through141
+in FULL144 run34746936385.142 migration applied/verified and two checks pass;
+then its synthetic published Task fixture lacks required edit geography and
+correctly receives NEED_EDIT_GEOGRAPHY_NOT_READY. The next proof correction
+explicitly creates that disposable bound-edit Task as REMOTE/RS with existing
+server timezone. It changes no migration/product authority; syntax and7 source
+preservation tests pass.143/144 still await actual execution. Canonical DEV/ALPHA
+remains at108; earlier135 timeout did not recur in this run.
+
+Earlier saved/pushed source144 is6d8f640f96f2034f56c2201a0b6082b82c50841b,
 tree36f08eee50694306047ee56089724a709f11f645. FULL144 run34746717895
 failed before disposable SQL:10/11 source gates pass,768 Node tests pass,
 194 Jest suites/4006 individual tests pass; task-detail-screen failed at import
