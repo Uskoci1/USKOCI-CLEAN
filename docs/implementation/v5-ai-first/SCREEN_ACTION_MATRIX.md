@@ -10,16 +10,26 @@ not a claim about current code. These later source changes supersede its gaps:
   entries/recovery133, numeric authority134, push readiness and About route.
 - 8aac: Agreement propose/respond/withdraw/cancel screens with exact recovery.
 - 947: real Gemini Q&A adapter135 and native submission/recovery; owned export136.
-- Reviewed source candidates: group137 with69 focused tests and actual Agreement
+- Committed54abcbe: group137 with69 focused tests and actual Agreement
   route entry; D0144 location138 with93 focused tests. Actual SQL proofs pending.
-- Reviewed source candidate139: D0141 accepted-media/evidence protection and
+- Committed100d2f9:139 D0141 accepted-media/evidence protection and
   corresponding native closure barrier. Actual Auth/Postgres/Storage proof pending.
 
 Exact ef4985 CI34729517617 passed175 Jest suites/3473 tests,659 Node tests and
 all11 source gates. Its24 actual SQL reports through134 all PASS, including
 media130 and closure131 with real Storage/Auth operations.135 applies but stops
 when a test Task missing country cannot select the required Q&A policy; that
-fixture correction is in review.136 and later actual proofs remain pending.
+fixture correction is committed54abcbe.136 and later actual proofs remain pending.
+Exact54abcbe passed182 Jest suites/3636 tests,659 Node tests and all11 gates.
+Both DB attempts stopped on unchanged131 DDL lock timeout after20 PASS reports;
+2ece7ee adds bounded lock observation and its29-report run34731211318 is pending.
+
+Exact54abcbe standalone same-signer APK has real four-stage entry video,
+entry/auth200% text+IME and reduced-motion evidence in NATIVE_CHECKPOINT138_REVIEW.md.
+The original row1 referenceEntry/ReferenceEntryHero mapping below is superseded:
+actual entry is src/ui/entry/EntryWelcome.tsx with BrandScene/spojBrandMath.
+This signed-out device scope closes those specific visual checks, not live AI,
+authenticated journeys, physical hardware, TalkBack or the final source build.
 
 Known group decisions are in MULTIPERSON_CONTRACT.md and AF-D13/14; the older
 blanket group-decision gap below is superseded. HITNO numeric/category rules,

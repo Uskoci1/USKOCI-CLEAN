@@ -213,9 +213,9 @@ activation occurred during this source-only implementation and documentation.
   unapplied126 candidate now captures the existing edit base for admitted
   DRAFT/PUBLISHED/SELECTION edits and retains strict stale-version rejection.
   P3 admits only that checked trigger body; no retention policy is activated.
-- Media130 and closure131 are source candidates, with focused native/client,
-  Edge and real local WASM checks; their actual disposable database/Auth/Storage
-  proofs have not yet run. They do not establish live availability. The closure
+- Media130 and closure131 passed actual disposable database/Auth/Storage proofs
+  at ef4985/run34729517617, together with all24 reports through134. They do not
+  establish live availability. The closure
   adapter explicitly retains policy-bound relational evidence, deletes owned
   objects and erases Auth credentials while retaining the subject UUID; later
   relational expiry/purge remains separate unfinished work.
@@ -226,3 +226,32 @@ activation occurred during this source-only implementation and documentation.
   emulator. Login and signup actions remain visible above the keyboard at
   font scale1.3. This was a warm build, not the final source-bound test artifact.
   Photos/closure/AI provider/physical-device journeys remain to be verified.
+
+## Source139 and standalone Android evidence (2026-09-13)
+
+- Group137 and voluntary current-location138 are committed at54abcbe; accepted
+  media/evidence139 and its neutral native closure barrier at100d2f9. All preserve
+  the recorded owner decisions and remain unapplied to the live108 project.
+- Exact54abcbe passed all11 source gates:182 Jest suites/3636 tests and659 Node
+  tests. Both actual DB attempts stopped on the same131 DDL lock timeout after20
+  passing reports through130. Previously ef4985 passed131–134; the repeat failure
+  is not relabeled PASS.2ece7ee adds bounded proof-only blocker/lock observation,
+  preserving the migration and process timeouts. Its29-report CI is in progress.
+- A complete same-signer, bundled release APK at exact54abcbe was built and
+  installed on the dedicated Android emulator. Actual video preserves four
+  original entry stages; entry/login/signup200% and real IME were inspected.
+  Correct native reduced-motion setting skips the intro. Settings were restored.
+  See NATIVE_CHECKPOINT138_REVIEW.md. This APK excludes the later139 native label
+  and is not the final connected V5 build.
+- Read-only live inventory still has108 migrations,3 accounts,7 Tasks,2 Agreements
+  and no objects in profile-media. The test-account ownership/audience is being
+  clarified before proposing a concrete actual publication. AI budget allowlist
+  alone does not isolate authenticated marketplace visibility.
+- PAID_PROBE_PLAN.md and PAID_PROBE_CODE_REVIEW.md bind9 LLM+2 STT toUSD2.65
+  reservations, with one optional clarification up toUSD2.90. GlobalSQL127 stays
+  USD5; the smaller sequence is procedural, not a second server ceiling. No
+  model, audio or key-value read has occurred in preparing this plan.
+- RETENTION_ACTIVATION_GAPS.md separates actual AI/export-copy purge and
+  Auth/Storage closure from unfinished retained relational/evidence expiry.
+  The existing AI source-admission/closure lock-order compatibility is being
+  repaired separately; no new retention durations or policy activation follows.
