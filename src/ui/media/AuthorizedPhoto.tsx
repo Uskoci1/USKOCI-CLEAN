@@ -21,7 +21,7 @@ export function jpegDataUri(bytes: ArrayBuffer): string {
   chunks.push(part); return 'data:image/jpeg;base64,' + chunks.join('');
 }
 
-export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId?: string; label: string; style?: StyleProp<ViewStyle> }) {
+export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId?: string; label: string; style?: StyleProp<ViewStyle>; contentFit?: 'contain' | 'cover' }) {
   const { user, accountRevision } = useSesija();
   const binding = `${user?.id}:${accountRevision}:${p.assetId}:${p.needId ?? ''}:${p.profileId ?? ''}`;
   const [image, setImage] = useState<{ key: object; uri: string; binding: string } | null>(null), [failed, setFailed] = useState(false);
@@ -39,7 +39,7 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
   }, [p.assetId, p.needId, p.profileId, user?.id, accountRevision]));
   return <View style={[{ aspectRatio: 4 / 3, backgroundColor: a.color.wash, borderRadius: 14, overflow: 'hidden', justifyContent: 'center' }, p.style]}>
     {image && image.key === active.current && image.binding === binding ? <Image source={{ uri: image.uri }} accessibilityLabel={p.label}
-      accessible contentFit="contain" cachePolicy="none" recyclingKey={`${p.assetId}:${accountRevision}`}
+      accessible contentFit={p.contentFit ?? 'contain'} cachePolicy="none" recyclingKey={`${p.assetId}:${accountRevision}`}
       transition={0} style={{ width: '100%', height: '100%' }} />
       : failed ? <T style={{ ...a.text.meta, color: a.color.muted, padding: 12 }}>Fotografija trenutno nije dostupna.</T>
         : <ActivityIndicator accessibilityLabel="Učitavanje fotografije" color={a.color.green} />}

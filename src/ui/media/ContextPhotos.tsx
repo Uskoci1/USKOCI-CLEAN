@@ -18,9 +18,11 @@ export function NeedPhotos({ needId }: { needId: string }) {
   </View>;
 }
 
-export function ProfilePhoto({ profileId, fallback }: { profileId: string; fallback: ReactNode }) {
+export function ProfilePhoto({ profileId, fallback, size }: { profileId: string; fallback: ReactNode; size?: number }) {
   const read = useCallback(() => mediaClientService.readProfilePhoto(profileId), [profileId]);
   const editor = useOwnedEditor(read), photo = editor.data?.photo;
   return photo ? <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija"
-    style={{ width: 112, height: 132, borderRadius: 24, aspectRatio: 112 / 132 }} /> : <>{fallback}</>;
+    contentFit={size ? 'cover' : 'contain'}
+    style={size ? { width: size, height: size, borderRadius: size / 2, aspectRatio: 1 }
+      : { width: 112, height: 132, borderRadius: 24, aspectRatio: 112 / 132 }} /> : <>{fallback}</>;
 }

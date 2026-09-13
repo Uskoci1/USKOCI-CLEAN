@@ -1,0 +1,95 @@
+import React from 'react';
+import {act,create,type ReactTestRenderer} from 'react-test-renderer';
+const A='10000000-0000-4000-8000-000000000001',B='10000000-0000-4000-8000-000000000002',ID='20000000-0000-4000-8000-000000000001',G='30000000-0000-4000-8000-000000000001',KEY='40000000-0000-4000-8000-000000000001',M='50000000-0000-4000-8000-000000000001';
+let mockSession={user:{id:A},accountRevision:1},mockIntent='uskocer',mockFocused=true,mockForeground='active';
+const mockListeners=new Set<(value:string)=>void>(),mockStorage={getItem:jest.fn(),setItem:jest.fn(),removeItem:jest.fn()},mockPush=jest.fn();
+const mockService={context:jest.fn(),messages:jest.fn(),recover:jest.fn(),send:jest.fn(),markRead:jest.fn()};
+jest.mock('../groupConversationService',()=>{const actual=jest.requireActual('../groupConversationService');return{...actual,groupConversationService:{
+ context:(...args:unknown[])=>mockService.context(...args),messages:(...args:unknown[])=>mockService.messages(...args),recover:(...args:unknown[])=>mockService.recover(...args),
+ send:(...args:unknown[])=>mockService.send(...args),markRead:(...args:unknown[])=>mockService.markRead(...args)}};});
+jest.mock('../supabaseClient',()=>({supabaseKlijent:()=>({})}));
+jest.mock('../../store/sesija',()=>({useSesija:()=>mockSession,sesijaSada:()=>mockSession}));
+jest.mock('../../store/uloga',()=>({useUloga:()=>mockIntent,ulogaSada:()=>mockIntent}));
+jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=>'40000000-0000-4000-8000-000000000001'}));
+jest.mock('@react-native-async-storage/async-storage',()=>({__esModule:true,default:{getItem:(...args:unknown[])=>mockStorage.getItem(...args),
+ setItem:(...args:unknown[])=>mockStorage.setItem(...args),removeItem:(...args:unknown[])=>mockStorage.removeItem(...args)}}));
+jest.mock('expo-router',()=>({router:{push:(...args:unknown[])=>mockPush(...args)},useFocusEffect:(effect:()=>void)=>require('react').useEffect(()=>mockFocused?effect():undefined,[effect,mockFocused])}));
+jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
+jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
+ if(['View','TextInput','KeyboardAvoidingView'].includes(String(key)))return String(key);
+ if(key==='FlatList')return (p:any)=>require('react').createElement('List',p,p.ListHeaderComponent,p.data.map((item:any)=>require('react').createElement('Row',{key:item.messageId},p.renderItem({item}))),p.ListFooterComponent);
+ if(key==='AppState')return{get currentState(){return mockForeground;},addEventListener:(_name:string,listener:(value:string)=>void)=>{mockListeners.add(listener);return{remove:()=>mockListeners.delete(listener)};}};
+ return Reflect.get(target,key);
+ }});});
+jest.mock('../../ui/Text',()=>({T:'T'}));jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));jest.mock('../../ui/media/ContextPhotos',()=>({ProfilePhoto:'Avatar'}));
+import {GroupConversationScreen} from '../../ui/groups/GroupConversationScreen';
+import {GroupConversationEntry} from '../../ui/groups/GroupConversationEntry';
+import {groupBodyHash} from '../groupConversationService';
+const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'GROUP_UNCONFIRMED',poruka:'Ishod nije potvrđen.'};
+const context=(role='PARTICIPANT')=>({accountId:A,agreementId:ID,needId:ID,available:true,authoritative:true,group:{groupId:G,title:'Zajednički Zadatak',canSend:true,terminal:false,role,
+ members:[{accountId:B,profileId:B,displayName:'Bojana',role:'PARTICIPANT'}],management:role==='REQUESTER'?[{agreementId:ID,accountId:B,status:'CONFIRMED',executionState:'AWAITING_REQUESTER',problemOpened:true}]:null,managementNextId:null,unreadCount:1}});
+const message={messageId:M,sequence:'1',senderAccountId:B,body:'Nalazimo se ispred ulaza.',createdAt:'2026-09-13T12:00:00Z',mine:false};
+const journal={version:1,groupId:G,clientRequestId:KEY,bodySha256:groupBodyHash('Prvobitna poruka')};
+let tree:ReactTestRenderer|undefined,entry=false;
+const page=()=>entry?<GroupConversationEntry agreementId={ID}/>:<GroupConversationScreen agreementId={ID}/>;
+const render=async()=>{await act(async()=>{tree=create(page());});};
+const action=(label:string)=>tree!.root.findByProps({label}).props;
+const tap=async(label:string)=>{await act(async()=>action(label).onPress());};
+const change=async(value:string)=>{await act(async()=>tree!.root.findByType('TextInput' as never).props.onChangeText(value));};
+const text=()=>tree!.toJSON()===null?'null':tree!.root.findAllByType('T' as never).map(node=>node.children.filter(child=>typeof child==='string').join('')).join(' ');
+function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return{promise,resolve};}
+beforeEach(()=>{jest.clearAllMocks();for(const group of [mockStorage,mockService])for(const fn of Object.values(group))fn.mockReset();
+ mockSession={user:{id:A},accountRevision:1};mockIntent='uskocer';mockFocused=true;mockForeground='active';entry=false;
+ mockStorage.getItem.mockResolvedValue(null);mockStorage.setItem.mockResolvedValue(undefined);mockStorage.removeItem.mockResolvedValue(undefined);
+ mockService.context.mockResolvedValue(ok(context()));mockService.messages.mockResolvedValue(ok({messages:[message],nextBeforeSequence:null,nextAfterSequence:null}));
+ mockService.recover.mockResolvedValue(ok({found:false,receipt:null}));mockService.send.mockResolvedValue(unknown);mockService.markRead.mockResolvedValue(ok({markedCount:1}));
+});
+afterEach(async()=>{await act(async()=>tree?.unmount());tree=undefined;expect(mockListeners.size).toBe(0);mockListeners.clear();});
+it('renders actual common message, member names/avatars and keeps individual management absent for peers',async()=>{
+ await render();expect(text()).toContain(message.body);expect(text()).toContain('svom privatnom Dogovoru');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
+ expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(1);expect(text()).not.toContain('Vaši pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
+});
+it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{
+ mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();await tap('Učesnici razgovora');expect(text()).toContain('samo vi');expect(text()).toContain('Čeka potvrdu završetka');
+ await tap('Otvori pojedinačni Dogovor');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+});
+it('has one send action, latches concurrent retained callbacks and persists no plaintext',async()=>{
+ await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=action('Pošalji poruku grupi').onPress;
+ await act(async()=>{old();old();});expect(mockStorage.setItem).toHaveBeenCalledTimes(1);expect(mockService.send).not.toHaveBeenCalled();
+ await act(async()=>gate.resolve());expect(mockService.send).toHaveBeenCalledTimes(1);expect(mockStorage.setItem.mock.calls[0][1]).not.toContain('Prvobitna poruka');
+ expect(action('Proveri prvobitno slanje')).toBeDefined();expect(tree!.root.findAllByProps({label:'Pošalji poruku grupi'})).toHaveLength(0);
+});
+it('restart reads original key and requires exact re-entry before same-key retry',async()=>{
+ mockStorage.getItem.mockResolvedValue(JSON.stringify(journal));await render();expect(mockService.send).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
+ await change('Promenjena poruka');await tap('Ponovi slanje iste poruke');expect(mockService.send).not.toHaveBeenCalled();expect(text()).toContain('razlikuje');
+ await change('Prvobitna poruka');await tap('Ponovi slanje iste poruke');expect(mockService.send.mock.calls[0][0]).toEqual(journal);expect(mockStorage.setItem).not.toHaveBeenCalled();
+});
+it('confirmed receipt clears composer but displays real message page only after explicit acknowledgement',async()=>{
+ await render();await change('Prvobitna poruka');mockService.send.mockResolvedValue(ok({...journal,messageId:KEY}));await tap('Pošalji poruku grupi');
+ expect(text()).toContain('Server je sačuvao poruku');expect(text()).not.toContain('Prvobitna poruka');expect(mockStorage.removeItem).not.toHaveBeenCalled();
+ await tap('Prikaži razgovor');expect(mockStorage.removeItem).toHaveBeenCalledTimes(1);expect(tree!.root.findByType('TextInput' as never).props.value).toBe('');
+});
+it('read-only and bilateral contexts offer no composer or fabricated group members',async()=>{
+ mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false,terminal:true,members:[]}}));await render();expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(0);expect(text()).toContain('Razgovor je završen');
+ mockService.context.mockResolvedValue(ok({...context(),available:false,group:null}));await tap('Osveži poruke');expect(text()).toContain('najmanje dva');expect(tree!.root.findAllByProps({label:'Učesnici razgovora'})).toHaveLength(0);
+});
+it('marks only truly viewable rows and retains SafeArea/whole-screen keyboard avoidance with scalable input',async()=>{
+ await render();expect(mockService.markRead).not.toHaveBeenCalled();const list=tree!.root.findByType('List' as never).props;
+ expect(list.viewabilityConfig).toEqual({viewAreaCoveragePercentThreshold:60,minimumViewTime:600});
+ await act(async()=>list.onViewableItemsChanged({viewableItems:[{item:message,isViewable:true},{item:{...message,messageId:ID},isViewable:false}]}));
+ expect(mockService.markRead).toHaveBeenCalledWith(G,[M],{accountId:A,accountRevision:1});
+ expect(tree!.root.findByType('KeyboardAvoidingView' as never).parent!.type).toBe('SafeAreaView');expect(tree!.root.findByType('TextInput' as never).props.multiline).toBe(true);
+});
+it.each(['blur','account','ABA','role','background'])('fences retained send/read-marker callbacks and late responses after %s',async kind=>{
+ await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=action('Pošalji poruku grupi').onPress,visible=tree!.root.findByType('List' as never).props.onViewableItemsChanged;
+ await act(async()=>old());await act(async()=>{if(kind==='blur')mockFocused=false;else if(kind==='account')mockSession={user:{id:B},accountRevision:2};else if(kind==='ABA')mockSession={user:{id:A},accountRevision:3};
+ else if(kind==='role')mockIntent='narucilac';else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
+ await act(async()=>{gate.resolve();old();visible({viewableItems:[{item:message,isViewable:true}]});});expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
+});
+it('entry becomes reachable only after authoritative group context and routes exact Agreement identity',async()=>{
+ entry=true;await render();await tap('Grupni razgovor · 1 nepročitanih');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]/grupa',params:{id:ID}});
+});
+it('entry hides unsupported group and discards late availability after account transition',async()=>{
+ entry=true;const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise).mockResolvedValue(ok({...context(),group:null,available:false}));await render();expect(text()).toBe('null');
+ await act(async()=>{mockSession={user:{id:B},accountRevision:2};tree!.update(page());gate.resolve(ok(context()));});expect(text()).toBe('null');expect(mockPush).not.toHaveBeenCalled();
+});

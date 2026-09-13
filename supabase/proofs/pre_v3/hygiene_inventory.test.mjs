@@ -34,8 +34,9 @@ test('every explicitly admitted V5 migration still requires manifest, provenance
  const names=[future,'20260912214126_clean_v5_bounded_ai_test_budget.sql','20260912220506_clean_v5_owned_worker_profile.sql','20260912222338_clean_v5_owner_safety_legal_reads.sql',
   '20260912224647_clean_v5_owned_media.sql','20260912230039_clean_v5_policy_bound_closure.sql',
   '20260912233901_clean_v5_ai_turn_restart_recovery.sql','20260912234201_clean_v5_owned_qa_recovery.sql','20260913000109_clean_v5_approved_qa_limits.sql',
-  '20260913000144_clean_v5_qa_classifier_authority.sql','20260913001000_clean_v5_owned_export_projection.sql'];
- const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,11);assert.equal(result.applied.length,1);
+  '20260913000144_clean_v5_qa_classifier_authority.sql','20260913001000_clean_v5_owned_export_projection.sql',
+  '20260913002405_clean_v5_group_conversation.sql','20260913002428_clean_v5_agreement_location_snapshot.sql'];
+ const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,13);assert.equal(result.applied.length,1);
 });
 test('catalog assertion retains exact applied table membership, RLS and no raw anon/authenticated access',()=>{
  const row={schema:'private',name:'safety_reports',rls:true,anon_data:false,authenticated_data:false};

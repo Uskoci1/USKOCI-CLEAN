@@ -1,7 +1,7 @@
 // Actual disposable Auth/RPC/SQL authority. Only Gemini's response is synthetic.
 // The policy activation and budget reset are labelled disposable fixtures.
 import {createHash} from 'node:crypto';
-import {assert,rows,sql,prove,pass,apply,login,need,actor,requester,anon,service,ok,denied,requesterId,randomUUID,q,lockedRace,env} from './closure_runtime.mjs';
+import {assert,rows,sql,prove,pass,apply,login,need,actor,requester,anon,service,ok,denied,requesterId,rp,randomUUID,q,lockedRace,env} from './closure_runtime.mjs';
 import {renderQaPolicyCandidate} from '../../../scripts/render-qa-policy-bundle.mjs';
 import {loadQaClassifierHandler} from '../ai/qa_classifier_edge_runtime.mjs';
 const hash=s=>createHash('sha256').update(s.trim()).digest('hex');
@@ -26,12 +26,24 @@ async function worker(label){
  await ok(a.client.rpc('rpc_save_worker_location',{p_expected_revision:location.revision,p_value:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:15,approximatePosition:{latitude:45.25,longitude:19.85}},p_confirmed:true}));
  await ok(a.client.rpc('rpc_complete_worker_profile',{p_profile_id:p.id}));return a;
 }
+function qaNeed(label){
+ // Explicit disposable published fixture, not a publication journey. The
+ // generic historical need() leaves country NULL;135 must bind actual RS rules.
+ const id=randomUUID();
+ sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);select set_config('uskoci.need_region','CONFIRMED_REVIEW',true);
+ insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,
+ approximate_city,approximate_area,mode,required_slots,schedule_kind,response_deadline,published_at,task_country_code,task_timezone)
+ values(${q(id)}::uuid,${q(requesterId)}::uuid,${q(rp)}::uuid,'PUBLISHED',${q('PRE-V3 '+label)},'Disposable SQL fixture',
+ 'PROOF','Novi Sad','Liman','OFFERS',2,'FLEXIBLE',statement_timestamp()+interval '2 days',statement_timestamp(),'RS',
+ (select default_timezone from private.location_market_configs where country_code='RS'));commit;`);
+ assert.equal(sql(`select task_country_code from public.needs where id=${q(id)}::uuid`),'RS');return id;
+}
 const questionCount=n=>Number(sql(`select count(*) from private.preselection_qa_questions where need_id=${q(n)}::uuid`));
 async function ready(i){const c=await claim(i);assert.ok(c.claim);assert.equal(await dispatch(i,c),true);assert.equal((await complete(i,c)).state,'READY');return c;}
 
 await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async report=>{
  await apply(report,'20260913000144_clean_v5_qa_classifier_authority.sql',134);await login();
- const a=await worker('qa135-a'),b=await worker('qa135-b'),n=need('QA135 canonical'),first=input(a,n);
+ const a=await worker('qa135-a'),b=await worker('qa135-b'),n=qaNeed('QA135 canonical'),first=input(a,n);
  assert.equal((await read(a,first)).state,'ABSENT');
  for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_table_privilege(${q(role)},'private.qa_ai_commands','SELECT,INSERT,UPDATE,DELETE')`),'f');
  await denied(anon.rpc('rpc_read_qa_classification',{p_expected_user_id:a.id,p_need_id:n,p_client_request_id:first.p_client_request_id}));
@@ -46,6 +58,16 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
  sql(`update private.publication_policy_bundles set is_reviewed=true,is_active=true,reviewed_at=clock_timestamp(),activated_at=clock_timestamp(),review_provenance=review_provenance||'{"disposable135Fixture":true}'::jsonb where id=${q(bundle)}::uuid`);
  report.policyFixture='PREPARED_OWNER_RULES_DISPOSABLE_REVIEW_ACTIVATION_NOT_LIVE';
  try{
+  for(const policy of ['PRESELECTION_QA_V1','RS_PUBLICATION_POLICY_MINIMUM']){
+   assert.equal(sql(`select private.current_publication_policy_bundle(${q(policy)},'RS',statement_timestamp()) is not null`),'t',policy+':READY');
+   assert.equal(sql(`select private.publication_policy_document(private.current_publication_policy_bundle(${q(policy)},'RS',statement_timestamp())) is not null`),'t',policy+':EXECUTABLE_DOCUMENT');
+  }
+  const missingCountry=need('QA135 absent jurisdiction'),missingInput=input(a,missingCountry);
+  assert.equal(sql(`select task_country_code is null from public.needs where id=${q(missingCountry)}::uuid`),'t');
+  await denied(service.rpc('rpc_claim_qa_classification_service',missingInput),'PRESELECTION_QA_POLICY_NOT_READY');
+  assert.equal((await read(a,missingInput)).state,'ABSENT');
+  assert.equal(sql(`select private.qa_ai_source(${q(n)}::uuid,1,null) is not null`),'t','RS_FIXTURE_HAS_EXACT_POLICY_SOURCE');
+  pass(report,'EXACT_RS_QA_AND_TASK_DOCUMENTS_READY_MISSING_TASK_JURISDICTION_STAYS_CLOSED');
   await denied(service.rpc('rpc_claim_qa_classification_service',input(a,n,'Kontakt: private@example.com')));
   const c=await claim(first);assert.ok(c.claim);assert.equal(c.claim.context.publicTask.title,'PRE-V3 QA135 canonical');
   assert.equal((await claim(first)).claim,null);await denied(service.rpc('rpc_claim_qa_classification_service',{...first,p_text:'Changed body'}),'IDEMPOTENCY_KEY_REUSED');
@@ -90,7 +112,7 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
   sql(`update private.publication_policy_bundles set is_active=true where id=${q(bundle)}::uuid`);
   pass(report,'FINAL_CANONICAL_RATE_RECHECK_CHANGED_POLICY_SOURCE_REJECT_WITHOUT_SECOND_PROVIDER');
 
-  const ea=await worker('qa135-edge'),en=need('QA135 Edge'),ei=input(ea,en,'Da li je ulaz pristupacan?');
+  const ea=await worker('qa135-edge'),en=qaNeed('QA135 Edge'),ei=input(ea,en,'Da li je ulaz pristupacan?');
   sql(`insert into public.need_geography(need_id,public_topology) values(${q(en)}::uuid,'{"mode":"STATIONARY","start":{"city":"Novi Sad","area":"Liman"}}'::jsonb) on conflict(need_id) do update set public_topology=excluded.public_topology`);
   const token=(await ok(ea.client.auth.getSession())).session.access_token,origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
   // Save/restore the exhausted predecessor budget fixture; no real spend exists.

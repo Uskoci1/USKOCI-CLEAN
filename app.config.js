@@ -5,6 +5,11 @@ const { buildIdentity } = require('./scripts/build-identity.cjs');
 // package/label overrides. Never replace those with the preview identity.
 module.exports = ({ config }) => {
   const android = { ...config.android };
+  android.permissions = [...new Set([...(android.permissions ?? []),
+    'android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION'])];
+  const ios = { ...config.ios, infoPlist: { ...config.ios?.infoPlist,
+    NSLocationWhenInUseUsageDescription: 'USKOČI uzima jednu lokaciju kada u aktivnom Dogovoru izabereš deljenje sa naručiocem.',
+  } };
   const inertPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
@@ -27,7 +32,7 @@ module.exports = ({ config }) => {
     // Preview Firebase has no Android client for proof/dev/unknown packages.
     delete android.googleServicesFile;
   }
-  return { ...config, android, plugins, extra: { ...config.extra,
+  return { ...config, android, ios, plugins, extra: { ...config.extra,
     uskociBuild: buildIdentity({ root: __dirname, version: config.version }),
   } };
 };

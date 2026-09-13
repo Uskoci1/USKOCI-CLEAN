@@ -1,5 +1,26 @@
 # V5 AI-FIRST execution — active, incomplete
 
+Latest verified cursor,2026-09-13: ef4985ee9d5cc24fce2956fc9595f8d96b746e80,
+tree294852b353a9e98a258d2d0a670befe6676fe970, CI34729517617. All11 source gates
+PASS:175 Jest suites/3473 tests and659 Node tests. All24 actual disposable
+SQL reports through134 PASS, including real Auth/Storage media130, policy-bound
+closure131, restart132, owned QA133 and limits134.135 applies and passes its
+first metadata/closed-policy check, then its missing-country Task fixture is
+correctly denied PRESELECTION_QA_POLICY_NOT_READY.135 correction is in review;
+136 has not executed. Canonical/live remain unchanged. These are not real
+Gemini, physical device or live rollout claims.
+
+Group137 and D0144 location138 are now reviewed source candidates. Group has69
+focused tests; location has93; the real Agreement route has41 passing tests,
+including its server-admitted group entry. TypeScript passes. Both migrations
+are registered LF candidates with separate actual SQL proofs pending.
+Known D0141 requires per-asset accepted-Agreement/evidence protection;139 is
+being prepared before any media/closure live activation. New HITNO proposed
+category/time parameters are awaiting an owner answer in
+URGENT_CONTRACT_PROPOSAL.md; they are not approved by writing that proposal.
+Support operator/data scope and numeric limits have also been presented as two
+pending questions; SUPPORT_CASE_CONTRACT_PROPOSAL.md is not an approval.
+
 Owner resumed on 2026-09-12 with the complete USKOCI_V5_AI_FIRST_PAKET command.
 The package is extracted beside this repository, in `../USKOCI_V5_AI_FIRST_PAKET`.
 All 42 SHA256SUMS entries match; HTML SHA256 is

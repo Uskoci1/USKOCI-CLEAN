@@ -17,6 +17,7 @@ import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementChat } from '../../ui/AgreementChat';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
+import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, type AgreementProblemSnapshot } from '../../data/agreementClientService';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -193,8 +194,11 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
           <AgreementHero agreement={dogovor} />
           <AgreementPeople agreement={dogovor} />
+          {me && enabled ? <GroupConversationEntry agreementId={id} /> : null}
           {me ? <V2Action label="Izmene i otkazivanje Dogovora" kind="quiet" disabled={!enabled}
             onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} /> : null}
+          {me && active && dogovor.rezim !== 'DALJINSKI' ? <V2Action label="Dobrovoljna lokacija Uskočera" kind="quiet" disabled={!enabled}
+            onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
           {other && me ? <V2Action label="Bezbednost i privatna prijava" kind="quiet" disabled={!enabled}
             onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
               router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
