@@ -133,7 +133,7 @@ test('provider timeout/error after dispatch leaves durable unresolved command in
 test('AF-D23 real provider request excludes unavailable identity fact and explains self-reported status',async()=>{
  const f=fixture();assert.equal((await f.invoke()).status,200);
  const body=providers(f)[0].body;
- assert.ok(!body.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
+ assert.ok(!body.generationConfig.responseFormat.text.schema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
  const instruction=body.systemInstruction.parts[0].text;
  assert.match(instruction,/identitet je samostalno naveden/);
  assert.match(instruction,/provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna/);

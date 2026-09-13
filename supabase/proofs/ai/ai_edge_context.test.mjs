@@ -96,7 +96,7 @@ const manualFact={key:'need.resolved_location',valueJson:JSON.stringify(resolved
 
 for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt registry exclude manual-only facts`,async()=>{
   const f=fixture({provider});assert.equal((await f.invoke()).status,200);
-  const call=providerCall(f),schema=call.body.generationConfig?.responseSchema??call.body.text.format.schema;
+  const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;
   const allowedKeys=schema.properties.facts.items.properties.key.enum;
   const promptRegistry=JSON.parse(prompt(call).split('Jedini podržani V2 fact registry: ')[1]);
   assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS]);
