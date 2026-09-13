@@ -1,0 +1,80 @@
+name: V5 requester discovery new-task action
+on:
+  push:
+    branches: [work/pre-v3-proof-runner-20260911]
+    paths: ['.github/workflows/v5-map-new-task.yml']
+permissions:
+  contents: write
+concurrency:
+  group: v5-requester-discovery-new-task
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: work/pre-v3-engine-integration-20260911
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Guard current integration head and expose requester creation from discovery
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "2fad2f5134c9f00b6ec63274d7198efb95be5e70"
+          python3 - <<'PY'
+          from pathlib import Path
+          ui=Path('src/ui/v2/MarketplacePresentation.tsx')
+          s=ui.read_text(encoding='utf-8')
+          old="import { MagnifyingGlass, SlidersHorizontal, User } from 'phosphor-react-native';"
+          new="import { MagnifyingGlass, Plus, SlidersHorizontal, User } from 'phosphor-react-native';"
+          if s.count(old)!=1: raise SystemExit(f'icon import guard={s.count(old)}')
+          s=s.replace(old,new)
+          old="""        <Press accessibilityRole=\"button\" accessibilityLabel={`Filteri${view.price === 'all' ? '' : ', aktivni'}`} onPress={() => { Keyboard.dismiss(); setPriceDraft(view.price); setFilterOpen(true); }} haptic=\"select\" style={s.filter}><SlidersHorizontal size={21} color={v2.color.ink} /></Press>\n      </View>"""
+          new="""        <Press accessibilityRole=\"button\" accessibilityLabel={`Filteri${view.price === 'all' ? '' : ', aktivni'}`} onPress={() => { Keyboard.dismiss(); setPriceDraft(view.price); setFilterOpen(true); }} haptic=\"select\" style={s.filter}><SlidersHorizontal size={21} color={v2.color.ink} /></Press>\n        {props.onNew ? <Press accessibilityRole=\"button\" accessibilityLabel=\"Dodaj zadatak\" accessibilityHint=\"Otvara razgovor za novi Zadatak.\"\n          onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic=\"select\" style={s.addTask}><Plus size={21} weight=\"bold\" color={v2.color.surface} /></Press> : null}\n      </View>"""
+          if s.count(old)!=1: raise SystemExit(f'toolbar guard={s.count(old)}')
+          s=s.replace(old,new)
+          old="""  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 }, tabs: { flexDirection: 'row', gap: 4, flexGrow: 1 }, filter: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: v2.color.line },"""
+          new="""  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 }, tabs: { flexDirection: 'row', gap: 4, flexGrow: 1 }, filter: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: v2.color.line },\n  addTask: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: v2.color.orange },"""
+          if s.count(old)!=1: raise SystemExit(f'style guard={s.count(old)}')
+          ui.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
+
+          test=Path('src/data/__tests__/marketplace-presentation.test.tsx')
+          t=test.read_text(encoding='utf-8')
+          old="jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', MagnifyingGlass: 'Icon', SlidersHorizontal: 'Icon', User: 'Icon' }));"
+          new="jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', MagnifyingGlass: 'Icon', Plus: 'Icon', SlidersHorizontal: 'Icon', User: 'Icon' }));"
+          if t.count(old)!=1: raise SystemExit(f'test icon guard={t.count(old)}')
+          t=t.replace(old,new)
+          old="let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), switchView = jest.fn();"
+          new="let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), switchView = jest.fn(), newTask = jest.fn(); let allowNew = true;"
+          if t.count(old)!=1: raise SystemExit(f'test state guard={t.count(old)}')
+          t=t.replace(old,new)
+          old="onSwitch={switchView} onProfile={() => {}} onNew={() => {}} />; }"
+          new="onSwitch={switchView} onProfile={() => {}} onNew={allowNew ? newTask : undefined} />; }"
+          if t.count(old)!=1: raise SystemExit(f'test prop guard={t.count(old)}')
+          t=t.replace(old,new)
+          old="beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; open.mockClear(); refresh.mockClear(); });"
+          new="beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });"
+          if t.count(old)!=1: raise SystemExit(f'test before guard={t.count(old)}')
+          t=t.replace(old,new)
+          anchor="""test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {"""
+          addition="""test('requester creation stays reachable from both discovery list and map, while worker discovery has no creation action', async () => {\n await render(); expect(press('Dodaj zadatak')).toBeTruthy(); await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(1);\n await tap('Mapa'); expect(press('Dodaj zadatak')).toBeTruthy(); await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(2);\n await act(async () => tree.unmount()); allowNew = false; await render(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);\n});\n"""
+          if t.count(anchor)!=1: raise SystemExit(f'test anchor guard={t.count(anchor)}')
+          test.write_text(t.replace(anchor,addition+anchor),encoding='utf-8',newline='\n')
+          PY
+          npm ci >/dev/null
+          npx --no-install tsc --noEmit
+          npx --no-install jest --runInBand --runTestsByPath src/data/__tests__/marketplace-presentation.test.tsx
+          git diff --check
+          git diff -- src/ui/v2/MarketplacePresentation.tsx src/data/__tests__/marketplace-presentation.test.tsx
+      - name: Commit verified requester discovery action
+        run: |
+          set -euo pipefail
+          git config user.name 'USKOCI integration bot'
+          git config user.email 'integration-bot@users.noreply.github.com'
+          git add -- src/ui/v2/MarketplacePresentation.tsx src/data/__tests__/marketplace-presentation.test.tsx
+          git commit -m 'feat(v5): expose requester new task from discovery map'
+          git push origin HEAD:work/pre-v3-engine-integration-20260911
