@@ -1,4 +1,4 @@
-name: Repair V5 provider-wire assertions
+name: Diagnose V5 identity145 edge response
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: repair-v5-provider-wire-assertions
+  group: diagnose-v5-identity145-edge
   cancel-in-progress: false
 jobs:
   repair:
@@ -17,39 +17,26 @@ jobs:
           ref: work/pre-v3-engine-integration-20260911
           fetch-depth: 0
           persist-credentials: true
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24'
-          cache: npm
-      - name: Guard exact head and update only stale Gemini schema assertions
+      - name: Guard exact head and add synthetic-only response diagnosis
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "37fcf56eceabf64fbe05699e498aada103757c4c"
+          test "$(git rev-parse HEAD)" = "a97af75877ea08dce14afa7ac041f23318a9971b"
           python3 - <<'PY'
           from pathlib import Path
-          replacements={
-            'supabase/proofs/ai/ai_edge_context.test.mjs':(
-              "const call=providerCall(f),schema=call.body.generationConfig?.responseSchema??call.body.text.format.schema;",
-              "const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;"),
-            'supabase/proofs/ai/owned_intake_edge.test.mjs':(
-              "assert.ok(!body.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));",
-              "assert.ok(!body.generationConfig.responseFormat.text.schema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));"),
-          }
-          for name,(old,new) in replacements.items():
-              p=Path(name);s=p.read_text(encoding='utf-8')
-              if s.count(old)!=1: raise SystemExit(f'{name} guard={s.count(old)}')
-              p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
+          p=Path('supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs')
+          s=p.read_text(encoding='utf-8')
+          old="const response=await invoke();assert.equal(response.status,200);const receipt=await response.json();assert.equal(receipt.state,'SUCCEEDED');"
+          new="const response=await invoke();const receipt=await response.json();if(response.status!==200)throw new Error(`ACTUAL_EDIT_EDGE_${response.status}_${String(receipt?.code??'NO_CODE')}`);assert.equal(receipt.state,'SUCCEEDED');"
+          if s.count(old)!=1: raise SystemExit(f'diagnostic guard={s.count(old)}')
+          p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           PY
-          npm ci >/dev/null
-          node --test supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs
-          npx --no-install tsc --noEmit
+          node --check supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
           git diff --check
-          git diff -- supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs
-      - name: Commit verified assertion repair to integration branch
+      - name: Commit diagnostic proof only
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
-          git add -- supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs
-          git commit -m 'test(ai): assert Gemini 3.8 responseFormat wire schema'
+          git add -- supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
+          git commit -m 'test(v5): surface safe identity145 edge failure code'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
