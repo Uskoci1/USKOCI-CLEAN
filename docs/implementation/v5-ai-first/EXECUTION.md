@@ -9,21 +9,28 @@ Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALP
 Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
 STT before explicit sending are approved for this cycle. Implementation continues.
 
-ACTUAL canonical DEV/ALPHA promotion has begun.15 exact forward files109–123
+ACTUAL canonical DEV/ALPHA promotion completed36 exact forward files109–144
 from3fa11c8b6c5357fb90a3f4fd05e80b5634a37619 are applied with hosted timestamp
 aliases recorded in DEV_ALPHA_PROMOTION_EXECUTION_20260913.json. Every stored
 SQL SHA/MD5 matches its source, all108 prior migration-row hashes and all14
-saved business-row hashes are unchanged. Independent hosted123 postflight at
+saved business-row hashes were unchanged through123. Independent hosted123 postflight at
 08:55:06UTC confirms3 Auth,7 Tasks,2 Agreements/versions, private table ACLs,
-all70 touched function names and fixed paths. No P0/P1 drift found.
+all70 touched function names and fixed paths. No P0/P1 drift found. All36 applied
+files now match exact tested Git bytes, and every preceding migration row is
+unchanged.144 hosted alias is20260913091326; independent business/ACL postflight
+for the completed prefix is in progress. No data reset or paid provider call.
 
 The purpose apply_migration tool has write authority; execute_sql uses the
 deliberately read-only supabase_read_only_user. A cron.alter_job attempt was
 denied and rolled back, so the existing minute scheduler remains unchanged and
 active. The maintenance plan now uses the unchanged per-file transaction/5s
 lock/30s statement guards and stops on failed/unknown results; no role escalation,
-cron-table write, ACL expansion, kill or timeout increase.124 activation waits
-for the mandatory AI admission correction described below.
+cron-table write, ACL expansion, kill or timeout increase. Before124 activation,
+the mandatory AI admission correction below was deployed as version20 from
+695f4df7033855bbac147076c4521e9c42a5cf47. All4 hosted source files match exactly,
+JWT verification remains true; no flags or keys changed. See
+DEV_ALPHA_AI_GUARD_DEPLOYMENT_20260913.json. The131 pre-request hook had no
+prior override and now binds public.rpc_closure_api_guard as expected.
 
 P1 configuration correction: every NEW requester inference now requires explicit
 Gemini3.8, paid=true and a real127 reservation, before the existing132 dispatch
@@ -49,7 +56,12 @@ creation and existing cancellation exits remain. Native and AI instructions
 state that document/selfie verification is unavailable without inventing a badge.
 Independent focused checks pass106 Jest tests,112 Node tests and TypeScript;
 root review and6 exact-source guards pass. Actual145 Auth/SQL proof is prepared
-but not executed. Its control extension preserves FULL regression and all prior
+but not executed. Independent follow-up review corrected the145 provider-only
+context projection: manual identity stays in the full stale-work fingerprint
+but no longer invalidates the Edge's AI-proposable input decoder.7 targeted
+checks pass; actual proof now covers corrected true→false and copied ordinary
+false through current Edge with real disposable127 admission/synthetic Gemini.
+Its control extension preserves FULL regression and all prior
 proofs, adding the one new actual report for a total35.146 account erasure and147
 approved Q&A document activation remain separate unfinished candidates.
 

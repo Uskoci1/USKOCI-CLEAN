@@ -1,7 +1,8 @@
 // Actual disposable Auth/RPC/SQL. Historical true fixtures are created under
 // predecessor144, before applying145. Provider outputs are explicitly synthetic.
-import {assert,rows,sql,prove,pass,apply,actor,anon,service,ok,denied,randomUUID,q} from './closure_runtime.mjs';
+import {assert,rows,sql,prove,pass,apply,actor,anon,service,ok,denied,randomUUID,q,env} from './closure_runtime.mjs';
 import {locationCases,syntheticNonlocationFacts} from '../policy/publication_fixtures.mjs';
+import {loadOwnedIntakeHandler} from '../ai/owned_intake_edge_runtime.mjs';
 const file='20260913080237_clean_v5_self_reported_identity_requirement.sql';
 const unavailable='IDENTITY_VERIFICATION_UNAVAILABLE';
 const location=locationCases.find(x=>x.id==='remote-exempt').value;
@@ -36,6 +37,64 @@ async function evaluate(a,r,c){
 }
 const publish=(a,c)=>a.client.rpc('rpc_publish_accepted_ai_task_review',{p_review_id:c.reviewId,p_client_request_id:c.clientRequestId});
 const liveFact=(cid)=>rows(`select id,fact_value,source,status from public.ai_structured_facts where conversation_id=${q(cid)}::uuid and fact_key='need.verified_identity_required' and superseded_at is null`)[0];
+const turnContext=cid=>JSON.parse(sql(`select private.ai_need_turn_context(${q(cid)}::uuid)`));
+const resetTurnWindow=a=>sql(`update private.ai_need_turn_commands set attempt_times='{}' where account_id=${q(a.id)}::uuid`);
+async function actualEditTurn(report,a,cid,label){
+ const key=randomUUID(),beforeFact=liveFact(cid),beforeMessages=Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(cid)}::uuid`));
+ assert.equal(beforeFact.fact_value,false);
+ assert.ok(turnContext(cid).context.activeFacts.every(f=>!['need.verified_identity_required','need.public_photo_paths','need.resolved_location'].includes(f.fact_key)));
+ const budgetBefore=rows('select * from private.ai_test_budget_v5 where singleton')[0];
+ assert.ok(budgetBefore&&Number.isSafeInteger(budgetBefore.reserved_microusd)&&budgetBefore.reserved_microusd<=4750000);
+ assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
+ assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(key)}::uuid`),'0');
+ const token=(await ok(a.client.auth.getSession())).session.access_token,origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
+ let providerCalls=0,budgetCalls=0,primaryFailure;
+ const config={SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,
+  AI_PROVIDER:'gemini',GEMINI_MODEL:'gemini-3.8-flash',GEMINI_API_KEY:'SYNTHETIC_NOT_SENT_TO_NETWORK',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'};
+ const runtime=loadOwnedIntakeHandler({env:name=>config[name],fetch:async(input,init={})=>{
+  const url=new URL(String(input));
+  if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){
+   providerCalls++;assert.equal(budgetCalls,1);
+   const request=JSON.parse(init.body),prompt=request.systemInstruction.parts[0].text;
+   const factPrefix='Aktuelne server-side činjenice: ',factLine=prompt.split('\n').find(line=>line.startsWith(factPrefix));
+   assert.ok(factLine);const facts=JSON.parse(factLine.slice(factPrefix.length));
+   assert.ok(Array.isArray(facts));assert.ok(facts.every(f=>f.key!=='need.verified_identity_required'));
+   assert.ok(!request.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
+   assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(key)}::uuid and kind='LLM' and max_cost_microusd=250000`),'1');
+   assert.equal((await ok(a.client.rpc('rpc_ai_recover_need_turn_v2',{p_conversation_id:cid,p_client_request_id:key}))).providerDispatched,true);
+   return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
+  }
+  assert.equal(url.origin,origin);assert.ok(url.pathname==='/auth/v1/user'||url.pathname.startsWith('/rest/v1/'));
+  if(url.pathname==='/rest/v1/rpc/rpc_ai_test_budget_reserve_service'){
+   budgetCalls++;assert.deepEqual(JSON.parse(init.body),{p_account_id:a.id,p_operation_id:key,p_kind:'LLM',p_max_cost_microusd:250000});
+  }
+  return fetch(input,init);
+ }});
+ const invoke=()=>runtime.handler(new Request('https://synthetic-identity-edge.invalid',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  body:JSON.stringify({conversationId:cid,clientRequestId:key,text:'Synthetic145 ordinary edit conversation'})}));
+ try{
+  resetTurnWindow(a); // Labelled disposable rate clock, unrelated to identity policy.
+  sql(`begin;insert into private.ai_test_accounts_v5(account_id) values(${q(a.id)}::uuid);
+   update private.ai_test_budget_v5 set enabled=true,price_valid_until=least(clock_timestamp()+interval '1 hour','2027-01-01T00:00:00Z'::timestamptz) where singleton;commit;`);
+  const response=await invoke();assert.equal(response.status,200);const receipt=await response.json();assert.equal(receipt.state,'SUCCEEDED');
+  assert.equal(receipt.receipt.proposedCount,0);assert.equal(providerCalls,1);assert.equal(budgetCalls,1);
+  assert.equal(Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(cid)}::uuid`)),beforeMessages+2);
+  assert.deepEqual(liveFact(cid),beforeFact);
+  config.USKOCI_GEMINI_PAID_TEST_ENABLED='false';assert.deepEqual(await(await invoke()).json(),receipt);
+  assert.equal(providerCalls,1);assert.equal(budgetCalls,1);
+  assert.equal(Number(sql('select reserved_microusd from private.ai_test_budget_v5 where singleton')),budgetBefore.reserved_microusd+250000);
+  report.actualEdgeSourceHashes=runtime.sourceHashes;report.providerResponseStubbed=true;report.actualEdgeGateway=false;report.fixtureRateClock=true;
+  pass(report,label);
+ }catch(error){primaryFailure=error;throw error;}
+ finally{try{
+  sql(`begin;delete from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(key)}::uuid;
+   delete from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid;
+   update private.ai_test_budget_v5 set enabled=${budgetBefore.enabled},reserved_microusd=${budgetBefore.reserved_microusd},price_valid_until=${q(budgetBefore.price_valid_until)}::timestamptz where singleton;commit;`);
+  assert.deepEqual(rows('select * from private.ai_test_budget_v5 where singleton')[0],budgetBefore);
+  assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
+  assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(key)}::uuid`),'0');
+ }catch(error){report.fixtureCleanupFailed=true;if(!primaryFailure)throw error;}}
+}
 
 await prove('V5_SELF_REPORTED_IDENTITY','v5-self-reported-identity-report.json',async report=>{
  assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'),'144');
@@ -50,8 +109,13 @@ await prove('V5_SELF_REPORTED_IDENTITY','v5-self-reported-identity-report.json',
  const acceptedBefore145=await ok(a.client.rpc('rpc_accept_ai_task_review',acceptArgs(acceptedReview)));
  assert.equal(sql(`select verified_identity_required and status='DRAFT' from public.needs where id=${q(oldCommand.needId)}::uuid`),'t');
  const oldFact=liveFact(unbound.cid),oldEnvelope=sql(`select envelope::text from private.ai_task_reviews where id=${q(oldReady.reviewId)}::uuid`);
+ const oldTurnContext=turnContext(unbound.cid);
+ assert.ok(oldTurnContext.context.activeFacts.some(f=>f.fact_key==='need.verified_identity_required'&&f.fact_value===true));
  const preserved=rows("select oid::regprocedure::text signature,md5(prosrc) hash,proacl::text acl from pg_proc where oid in('private.validate_need_v2_fact(text,jsonb)'::regprocedure,'private.identity_admitted(uuid)'::regprocedure,'public.rpc_complete_worker_profile(uuid)'::regprocedure,'public.rpc_get_public_profile(uuid)'::regprocedure) order by oid::regprocedure::text");
  await apply(report,file,144);
+ const projectedTurnContext=turnContext(unbound.cid);
+ assert.equal(projectedTurnContext.sha256,oldTurnContext.sha256,'projection change must not rewrite the full fact/history fingerprint');
+ assert.deepEqual(projectedTurnContext.context,{...oldTurnContext.context,activeFacts:oldTurnContext.context.activeFacts.filter(f=>f.fact_key!=='need.verified_identity_required')});
  assert.deepEqual(rows("select oid::regprocedure::text signature,md5(prosrc) hash,proacl::text acl from pg_proc where oid in('private.validate_need_v2_fact(text,jsonb)'::regprocedure,'private.identity_admitted(uuid)'::regprocedure,'public.rpc_complete_worker_profile(uuid)'::regprocedure,'public.rpc_get_public_profile(uuid)'::regprocedure) order by oid::regprocedure::text"),preserved);
  assert.deepEqual(liveFact(unbound.cid),oldFact);assert.equal(sql(`select envelope::text from private.ai_task_reviews where id=${q(oldReady.reviewId)}::uuid`),oldEnvelope);
  for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_function_privilege(${q(role)},'private.guard_unavailable_identity_requirement_v5()','EXECUTE')`),'f');
@@ -102,7 +166,23 @@ await prove('V5_SELF_REPORTED_IDENTITY','v5-self-reported-identity-report.json',
  assert.equal(inherited.fact_value,true);assert.equal(inherited.source,'SYSTEM_DERIVED');
  const editReview=await prepare(a,edit.conversationId);assert.equal(editReview.canAccept,false);
  await denied(a.client.rpc('rpc_accept_ai_task_review',acceptArgs(editReview)),unavailable);
+ resetTurnWindow(a);
+ const staleKey=randomUUID(),staleText='Synthetic145 unchanged full fingerprint witness',beforeCorrection=turnContext(edit.conversationId);
+ const staleClaim=await ok(service.rpc('rpc_ai_claim_need_turn_v2_service',{...identity(a,edit.conversationId,staleKey),p_user_message:staleText}));assert.ok(staleClaim.claim);
+ assert.ok(staleClaim.claim.context.activeFacts.every(f=>f.fact_key!=='need.verified_identity_required'));
  await ok(a.client.rpc('rpc_ai_correct_fact_v2',{p_fact_id:inherited.id,p_value:false,p_display_value:'Ne'}));
+ const afterCorrection=turnContext(edit.conversationId);
+ assert.notEqual(afterCorrection.sha256,beforeCorrection.sha256,'excluded manual identity still fences outstanding AI work');
+ assert.deepEqual(afterCorrection.context,beforeCorrection.context,'the sole manual correction is absent from the provider projection');
+ assert.equal(await ok(service.rpc('rpc_ai_dispatch_need_turn_v2_service',{...identity(a,edit.conversationId,staleKey),p_attempt_id:staleClaim.claim.attemptId})),false);
+ const beforeLate=Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(edit.conversationId)}::uuid`));
+ assert.equal((await ok(a.client.rpc('rpc_ai_cancel_need_turn_v2',{p_conversation_id:edit.conversationId,p_client_request_id:staleKey}))).cancelled,true);
+ const ignored=await ok(service.rpc('rpc_ai_complete_need_turn_v2_service',{...identity(a,edit.conversationId,staleKey),p_attempt_id:staleClaim.claim.attemptId,
+  p_user_message:staleText,p_assistant_message:'Synthetic145 late ignored',p_safety:'ALLOW',p_proposals:[]}));
+ assert.equal(ignored.state,'FAILED');assert.equal(ignored.receipt,null);
+ assert.equal(Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(edit.conversationId)}::uuid`)),beforeLate);
+ pass(report,'IDENTITY_PROVIDER_PROJECTION_ONLY_FULL_FINGERPRINT_PRESERVED_MANUAL_CORRECTION_FENCES_STALE_DISPATCH_AND_LATE_COMPLETION');
+ await actualEditTurn(report,a,edit.conversationId,'CORRECTED_HISTORICAL_TRUE_TO_FALSE_ACTUAL_CURRENT_EDGE_REAL_BUDGET_SINGLE_PROVIDER_STABLE_RECEIPT');
  const regular=await prepare(a,edit.conversationId);assert.equal(regular.canAccept,true);
  const accepted=await ok(a.client.rpc('rpc_accept_ai_task_review',acceptArgs(regular)));assert.equal(accepted.needId,oldCommand.needId);assert.equal(accepted.needRevision,2);
  await evaluate(a,regular,accepted);const published=await ok(publish(a,accepted));assert.equal(published.state,'PUBLISHED');
@@ -127,6 +207,9 @@ await prove('V5_SELF_REPORTED_IDENTITY','v5-self-reported-identity-report.json',
  const ordinaryCommand=await ok(a.client.rpc('rpc_accept_ai_task_review',acceptArgs(ordinaryReview)));
  assert.equal(sql(`select verified_identity_required=false from public.needs where id=${q(ordinaryCommand.needId)}::uuid`),'t');
  pass(report,'ORDINARY_AI_WITHOUT_IDENTITY_FACT_ACCEPTS_CANONICAL_DEFAULT_FALSE_WITHOUT_EXTRA_CONFIRMATION');
+ const ordinaryEdit=await ok(a.client.rpc('rpc_ai_open_need_edit_conversation_v2',{p_need_id:ordinaryCommand.needId}));
+ assert.equal(liveFact(ordinaryEdit.conversationId).source,'SYSTEM_DERIVED');
+ await actualEditTurn(report,a,ordinaryEdit.conversationId,'COPIED_ORDINARY_FALSE_ACTUAL_CURRENT_EDGE_REAL_BUDGET_SINGLE_PROVIDER_STABLE_RECEIPT');
 
  // A historical true Need is still cancellable and its personal history is not
  // erased or silently normalized by145. This fixture predates145, unlike newtrue.

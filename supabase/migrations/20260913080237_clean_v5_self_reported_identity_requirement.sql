@@ -13,6 +13,7 @@ do $pre$ declare s text;d text;begin
  or (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid='public.rpc_prepare_ai_task_review(uuid,timestamptz,jsonb)'::regprocedure)<>'536907c5180776daadcad3451d54d63c'
  or (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid='public.rpc_accept_ai_task_review(uuid,text,uuid)'::regprocedure)<>'98483642cd4d0c56202c501d2e3f5ffc'
  or (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid='public.rpc_claim_ai_task_review_evaluation_service(uuid,uuid,uuid,integer,jsonb)'::regprocedure)<>'65d606ba10864f51f0e35fa1aaae3034'
+ or (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid='private.ai_need_turn_context(uuid)'::regprocedure)<>'096edd5de6fca8a656f941269bd1411c'
  then raise exception 'IDENTITY_WRITER_PREDECESSOR_DRIFT';end if;
  insert into identity145_predecessor values(s,pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure));
 end $pre$;
@@ -36,6 +37,19 @@ do $facts$ declare d text;needle text:='perform private.validate_need_v2_fact(ne
         and c.fact_schema_version='NEED_FACT_V2' and c.status='OPEN')) is not true
     then raise exception 'IDENTITY_VERIFICATION_UNAVAILABLE' using errcode='22023';end if;$guard$);
 end $facts$;
+
+-- The manual identity fact remains in the full material fingerprint, alongside
+-- every other owned fact. Only its provider projection is excluded, just like
+-- the existing location witness and photo paths. Otherwise a canonical edit
+-- copying false would fail the Edge's strict AI-proposable context decoder.
+do $context$ declare d text;
+ needle text:=$n$where f.value->>'fact_key' not in('need.resolved_location','need.public_photo_paths');$n$;
+ replacement text:=$n$where f.value->>'fact_key' not in('need.resolved_location','need.public_photo_paths','need.verified_identity_required');$n$;
+begin
+ d:=pg_get_functiondef('private.ai_need_turn_context(uuid)'::regprocedure);
+ if length(d)-length(replace(d,needle,''))<>length(needle) then raise exception 'IDENTITY_CONTEXT_ANCHOR_DRIFT';end if;
+ execute replace(d,needle,replacement);
+end $context$;
 
 create function private.guard_unavailable_identity_requirement_v5() returns trigger
 language plpgsql security definer set search_path=pg_catalog as $f$
