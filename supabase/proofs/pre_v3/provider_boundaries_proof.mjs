@@ -3,7 +3,7 @@
 // No deployed gateway, live configuration, real AI/geocoder or handset claim.
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
+import {createHash,webcrypto} from 'node:crypto';
 import vm from 'node:vm';
 import ts from 'typescript';
 import {assert,env,sha,q,sql,rows,ok,requester,worker,requesterId,workerId,rp,wp,login,prove,pass,randomUUID} from './closure_runtime.mjs';
@@ -24,7 +24,7 @@ await prove('PRE_V3_PROVIDER_BOUNDARIES','provider-boundaries-report.json',async
  function loadEdge(path,location=false){
   const bytes=readFileSync(path);assert.deepEqual(bytes,execFileSync('git',['show',sha+':'+path]));hashes[path]=createHash('sha256').update(bytes).digest('hex');
   let handler;
-  const context=vm.createContext({exports:{},Request,Response,Headers,URL,URLSearchParams,Intl,TextEncoder,TextDecoder,ReadableStream,AbortController,Date:Clock,setTimeout,clearTimeout,
+  const context=vm.createContext({exports:{},Request,Response,Headers,URL,URLSearchParams,Intl,TextEncoder,TextDecoder,ReadableStream,AbortController,crypto:webcrypto,btoa,Date:Clock,setTimeout,clearTimeout,
    console:{error:()=>assert.fail('NO_EDGE_LOGGING'),log:()=>assert.fail('NO_EDGE_LOGGING'),warn:()=>assert.fail('NO_EDGE_LOGGING')},
    Deno:{serve:h=>{handler=h;},env:{get:k=>{envReads.push(k);return k==='SUPABASE_URL'?upstreamOrigin:k==='SUPABASE_ANON_KEY'?env.RU5_DEVICE_ANON_KEY:k==='LOCATIONIQ_ACCESS_TOKEN'&&location?'SYNTHETIC_GEOCODER_TOKEN':undefined;}}},
    fetch:async(input,init={})=>{
@@ -43,6 +43,15 @@ await prove('PRE_V3_PROVIDER_BOUNDARIES','provider-boundaries-report.json',async
     if(providerMode==='unavailable')throw new Error('PRIVATE_SYNTHETIC_PROVIDER_STACK');
     return json(url.pathname.endsWith('/reverse')?providerRecord:[providerRecord]);
    }});
+  if(!location){
+   const dependency='supabase/functions/_shared/aiTestBudget.ts',shared=readFileSync(dependency);
+   assert.deepEqual(shared,execFileSync('git',['show',sha+':'+dependency]));hashes[dependency]=createHash('sha256').update(shared).digest('hex');
+   const compiledShared=ts.transpileModule(shared.toString('utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
+   assert.deepEqual(compiledShared.diagnostics?.filter(d=>d.category===ts.DiagnosticCategory.Error),[]);
+   const budget=new vm.Script(`(function(exports,require){${compiledShared.outputText}\nreturn exports;})`,{filename:dependency})
+    .runInContext(context)({},()=>assert.fail('UNDECLARED_BUDGET_IMPORT'));
+   context.require=name=>{assert.equal(name,'../_shared/aiTestBudget.ts','UNADMITTED_PUBLICATION_IMPORT');return budget;};
+  }else context.require=()=>assert.fail('UNDECLARED_LOCATION_IMPORT');
   const compiled=ts.transpileModule(bytes.toString(),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
   assert.deepEqual(compiled.diagnostics?.filter(d=>d.category===ts.DiagnosticCategory.Error),[]);
   new vm.Script(compiled.outputText,{filename:path}).runInContext(context);assert.equal(typeof handler,'function');return handler;
