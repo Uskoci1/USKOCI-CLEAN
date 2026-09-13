@@ -9,7 +9,19 @@ Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALP
 Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
 STT before explicit sending are approved for this cycle. Implementation continues.
 
-Latest saved source d95961f29c72c95c8f836a6fb0a765c22b107a61,
+Latest tested source6d369b89f20bc108e624dcdace0c8e59e09d3d8a,
+tree7b822567b9e09aa498b7e365367a0b569e92ba3d, passed all11 source gates,
+195 Jest suites/4030 tests,768 Node tests and32 actual SQL reports through142
+in FULL144 run34747338498.143 migrated and its first authority/source check
+passed, then the first ordinary support CREATE failed with SQLSTATE42702:
+the local variable ordinary collided with the quota table column. The next
+unapplied143 correction renames only that local to v_ordinary; quotas, columns,
+authorization and existing proof expectations remain unchanged. Independent
+review found no other concrete variable/column collision in143 or144 support
+overrides. Actual143/144 execution remains required. Canonical DEV/ALPHA is
+still108; no migration has been promoted on the strength of source tests alone.
+
+Earlier tested source d95961f29c72c95c8f836a6fb0a765c22b107a61,
 tree7400a9aaf5c6653dcdea05c4125235c01936eb76, passes all11 source gates,
 195 Jest suites/4030 tests,768 Node tests and31 actual SQL reports through141
 in FULL144 run34746936385.142 migration applied/verified and two checks pass;

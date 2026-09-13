@@ -281,7 +281,7 @@ create function public.rpc_support_submit_v5(p_expected_user_id uuid,p_client_re
 returns jsonb language plpgsql security definer set search_path=pg_catalog as $f$
 declare u uuid:=private.support_auth_v5(p_expected_user_id);p jsonb;c private.support_cases_v5;cmd private.support_commands_v5;
  g integer;h text;body text;ev private.support_events_v5;d private.support_decisions_v5;ap private.support_appeals_v5;
- ctx jsonb;ref jsonb;snapshot jsonb;refs jsonb:='[]';evidence_ids uuid[]:='{}';eid uuid;ordinary boolean;owner_id uuid;role_name text;next_status text;r jsonb;
+ ctx jsonb;ref jsonb;snapshot jsonb;refs jsonb:='[]';evidence_ids uuid[]:='{}';eid uuid;v_ordinary boolean;owner_id uuid;role_name text;next_status text;r jsonb;
 begin
  if p_client_request_id is null or p_kind is null or p_kind not in('CREATE','AUTHOR_REPLY','CLAIM','OPERATOR_REPLY','REQUEST_INFO','DECIDE','APPEAL','CLAIM_APPEAL','DECIDE_APPEAL','CLOSE')
  or p_payload_text is null or octet_length(p_payload_text)>65536
@@ -315,8 +315,8 @@ begin
    or(p->>'channel'='TASK' and p->>'topic' in('COLLABORATION','NO_SHOW','PUBLICATION_REVIEW'))
    or(p->>'channel'='LEGAL_PRIVACY' and p->>'topic' in('CONTENT_NOTICE','PRIVACY_RIGHTS')))
   then raise exception 'SUPPORT_INPUT_INVALID' using errcode='22023';end if;
-  ordinary:=p->>'topic'<>'PRIVACY_RIGHTS';
-  if ordinary then
+  v_ordinary:=p->>'topic'<>'PRIVACY_RIGHTS';
+  if v_ordinary then
    if (select count(*) from private.support_cases_v5 where account_id=u and ordinary and created_at>clock_timestamp()-interval '24 hours')>=5 then raise exception 'SUPPORT_CASE_DAILY_LIMIT' using errcode='54000';end if;
    if exists(select 1 from private.support_cases_v5 where account_id=u and ordinary and created_at>clock_timestamp()-interval '60 seconds') then raise exception 'SUPPORT_CREATE_COOLDOWN' using errcode='54000';end if;
   end if;
@@ -375,7 +375,7 @@ begin
  body:=btrim(body);
  if p_kind='CREATE' then
   insert into private.support_cases_v5(account_id,channel,topic,title,desired_outcome,context,ordinary)
-  values(u,p->>'channel',p->>'topic',btrim(p->>'title'),p->>'desiredOutcome',ctx,ordinary) returning * into c;
+  values(u,p->>'channel',p->>'topic',btrim(p->>'title'),p->>'desiredOutcome',ctx,v_ordinary) returning * into c;
   perform private.support_capture_media_v5(c.id,c.revision,ctx);
  else
   update private.support_cases_v5 set status=next_status,revision=revision+1,sequence=sequence+1,updated_at=clock_timestamp() where id=c.id returning * into c;
