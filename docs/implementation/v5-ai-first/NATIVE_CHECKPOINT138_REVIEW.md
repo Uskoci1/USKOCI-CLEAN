@@ -1,5 +1,7 @@
 # Stvarna Android provera izvora54abcbe
 
+**Naknadno direktno poređenje sa V4.9: ENTRY_SIGNATURE_FIDELITY nije PASS.** Ovaj APK prikazuje stariju završnu SPOJ V2 kompoziciju: nedostaju dve originalne fotografije, izvorne SVG beleške i njihov V4.9 intent prelaz. Četiri stvarna kadra ispod dokazuju opaženu native animaciju, ne vernost celoj novijoj referenci. V4.9 korekcija je u toku; source freeze, novi APK i ponovno vizuelno poređenje tek slede. Referentni snimak na tačno390×844 i geometrija sačuvani su kao `artifacts/v5-native-smoke/v49-reference390-entry.png` i `v49-reference390-geometry.json`. Ranije200%/IME provere ostaju dokaz samo navedenog starog APK-a.
+
 2026-09-13; potpisani samostalni release APK, bez Metro-a. Ovo je provera ulaza i auth prikaza, ne tvrdnja da je kompletan V5 live povezan. Izvor je `54abcbe6e0d6664ad73a14a6d91ed2dce7e5672a`, tree `6de66ac521b2be00f4a15e607f4ebcfb3e4b610e`. Kasnija139 native poruka o zaštiti dokaza nije u ovom APK-u.
 
 APK: `C:/Users/user/Desktop/USKOCI ZAVRSAVANJE/USKOCI-V5-138-54abcbe6.apk`; SHA256 `3b9bfdecb946752348fa112ab7fb7b31454cd88ebcaf5953508ed58167f63027`,105667361 bajtova. Paket `rs.uskoci.preview`, versionCode35, minSDK24, targetSDK36. Potpis je postojeći `df2edf3f91abcb1df10eac03802ba55caedc29aee3d7188846182e0e49015782`. Build receipt je [build-checkpoint138-receipt.json](../evidence/v5-ai-first-20260912/build-ci-control/build-checkpoint138-receipt.json).

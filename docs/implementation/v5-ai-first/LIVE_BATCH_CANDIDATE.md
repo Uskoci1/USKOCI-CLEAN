@@ -11,9 +11,10 @@ navedeni su u LIVE_READONLY_BASELINE.json. Nema dozvole za brisanje ovih podatak
 
 LIVE_BATCH_CANDIDATE.json vezuje predlog za tačan Git commit/tree i proverene
 fizičke bajtove svake dodatne migracije. Njegov generator samo čita Git objekte
-i prethodni pregled.139 zaštita dokaza je zamrznuta i registrovana; njen stvarni
-proof još nije dostignut.140 usklađivanje postojećeg retention adaptera je u radu
-i još nije u31-migration manifestu. Svaka kasnija izmena
+i prethodni pregled.139 zaštita dokaza i140 usklađivanje postojećeg retention
+adaptera su zamrznuti i registrovani. Manifest izvora8c250b23 sadrži32 migracije
+109–140 i11 Edge entrypoint-a; njihovi poslednji actual dokazi još nisu dostignuti.
+Tačan izolovani30-report CI34732513050 je u toku. Svaka kasnija izmena
 zahteva nov precizan manifest; ne proširuje već odobreni konkretni batch.
 
 ## Operacije koje se pripremaju za kasnije odobrenje

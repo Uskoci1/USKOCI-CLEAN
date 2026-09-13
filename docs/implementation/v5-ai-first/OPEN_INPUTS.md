@@ -11,6 +11,7 @@ Stanje2026-09-13. Ovo je operativni spisak otvorenih ulaza, ne proizvodna odluka
 | SupportLimits | Naslov200, opis/odgovor/žalba4000, traženi ishod1000 znakova;5 novih+50 dopuna/rolling24h,60s između običnih novih slučajeva, jedna otvorena žalba po odluci. Safety/prava/privatnost nisu pod tim kvotama. | Nove brojčane granice obične podrške. |
 | TestAccounts | Da li su sva3 postojeća naloga pod vlasnikovom kontrolom i koja2 su R/W; tražena imena/email, bez lozinki/ključeva. Objašnjeno da objavu vidi sva authenticated publika projekta. | Precizan obim narednog live testa; AI allowlist i privatni APK nisu izolacija marketplace-a. Ovo pitanje samo ne odobrava live batch. |
 | PrivatePhotos | Do6 po privatnoj/grupnoj poruci, do12 novih fotografija po nalogu/24h, ulaz10MB, uklanjanje metapodataka/1600px, postojeći privatni Storage i postojeća membership/block/evidence pravila; bez Gemini slanja. | Nova svrha privatnih priloga i njihove kvote. AF-D07/09 za Task/avatar ostaju već odobrene; ovo ih ne pita ponovo. |
+| AuthMethods | Koje dodatne Google/Apple/SMS načine vlasnik želi da aktivira i postoje li njegovi OAuth/Developer/SMS nalozi; bez ključeva u četu. Stvarni settings13.09.02:19UTC: email=true/confirmation required, phone/google/apple=false. | V5§9 zahteva odluku i konfiguraciju nedostajućih načina. Gemini odobrenje nije Auth provider/trošak odobrenje. SMS klijent postoji; OAuth klijent/callback nedostaje. |
 
 ## Konkretni preostali ulazi koji još nisu odabrani/aktivirani
 

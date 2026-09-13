@@ -21,15 +21,32 @@ media130 and closure131 with real Storage/Auth operations.135 applies but stops
 when a test Task missing country cannot select the required Q&A policy; that
 fixture correction is committed54abcbe.136 and later actual proofs remain pending.
 Exact54abcbe passed182 Jest suites/3636 tests,659 Node tests and all11 gates.
-Both DB attempts stopped on unchanged131 DDL lock timeout after20 PASS reports;
-2ece7ee adds bounded lock observation and its29-report run34731211318 is pending.
+Both DB attempts stopped on unchanged131 DDL lock timeout after20 PASS reports.
+Later exact2ece7ee/run34731211318 passed11 source gates,182 Jest suites/3637 tests,
+659 Node tests and24 actual SQL reports through134. No131 blocker was observed
+in that successful attempt.135 reached7 passing checks, then its actual Edge
+fixture failed503 because the earlier127 proof had left an expired test budget.
+61b8612 isolates that fixture expiry and restores its original state; actual
+rerun is pending.136–140 actual proofs have not yet been reached.
+140 retention compatibility is registered at8c250b23c00fe505fd6960b72213b1675e500c23;
+10 focused source/admission guards PASS.30-report CI34732513050 has since passed
+all11 source gates,182 Jest suites/3637 tests,664 Node tests and24 actual reports
+through134.135 reached8 checks including actual Edge200, then its proof equality
+failed on canonical receipt.ok versus the typed projection.5737f43 corrects only
+that exact envelope comparison;47 handler tests PASS, actual rerun pending.
+Worker restart/dispatch141 is in progress after a newly found route-ref-only
+pending-turn recovery defect. Root47f5e3d fixes terminal microphone cancellation
+and the EVALUATED/NOT_READY draft edit exit;98 focused tests PASS.
 
 Exact54abcbe standalone same-signer APK has real four-stage entry video,
 entry/auth200% text+IME and reduced-motion evidence in NATIVE_CHECKPOINT138_REVIEW.md.
 The original row1 referenceEntry/ReferenceEntryHero mapping below is superseded:
 actual entry is src/ui/entry/EntryWelcome.tsx with BrandScene/spojBrandMath.
-This signed-out device scope closes those specific visual checks, not live AI,
-authenticated journeys, physical hardware, TalkBack or the final source build.
+Direct390×844 V4.9 comparison subsequently found the older native finish lacks
+the two original photographs, SVG notes and matching intent transition.
+ENTRY_SIGNATURE_FIDELITY remains open; native restoration and a new exact APK
+are in progress. The signed-out checks describe the old APK only, and do not
+prove live AI, authenticated journeys, physical hardware, TalkBack or the final build.
 
 Known group decisions are in MULTIPERSON_CONTRACT.md and AF-D13/14; the older
 blanket group-decision gap below is superseded. HITNO numeric/category rules,
@@ -58,7 +75,7 @@ Authority: supplied V5 `03_SPECIFIKACIJE/04_MATRICA_71_PRIKAZA.md`, complete `01
 |2 intent|Same protected entry; profile intent switch|`entryIntentClientService`, `store/uloga`; one Auth account|S entry-intent/auth-entry; N entry|W; shared central Map navigation still differs from V5§8.|
 |3 auth|`auth.tsx`; `AuthSheet`, `AuthControls`|`authClientService` + `authAvailabilityClientService` → Supabase Auth/settings|S auth-client/availability/route; N login+IME|W/O; email/SMS clients exist; Google/Apple client flow absent despite possible provider settings. Resolve actual requested provider configuration without fabricating readiness.|
 |4 signup|`auth.tsx` signup state|Auth sign-up + server capability/readback; reviewed legal UI|S auth/route; N signup+IME|W; full confirmation-email/accepted-doc journey requires configured exact legal source and device proof.|
-|5 recovery|`oporavak.tsx`|`passwordRecoveryClientService`, safe redirect/PKCE recovery|S password-recovery/auth tests|W; actual email link, restart, expiry and cross-account device journey pending.|
+|5 recovery|`oporavak.tsx`|`passwordRecoveryClientService`, validated implicit recovery redirect (PKCE/OAuth not implemented)|S password-recovery/auth tests|W; actual email link, restart, expiry and cross-account device journey pending.|
 |6 permissions|`VoiceComposer` disclosure, `useHoldToTalk`; `PushPreferences`; OS-owned picker in flight|Native microphone permission; Expo notification permission/device binding; photo picker130|S voice permission/cancel and push lifecycle tests; native modules compile|W/E; real permission denied/settings/late grant/device tests remain; no standalone permissions route is required.|
 |7 ai|`nova.tsx`; `IntakePresentation`/`AiConversationShell`, live task card|`aiNeedV2Production` → owned W03 RPCs + `uskoci-ai-interview`; `aiTaskReviewClientService`|S intake/stream/review tests; D W03 predecessor;126 bound-edit fixture failure|W; real provider/STT owner journey, second Task/restore and bound-edit parity remain to prove.|
 |8 review|`pregled-zadatka.tsx`|`aiTaskReviewClientService` → prepare/accept/read/evaluate/publish review126; canonical Need readback|S v5-review-screen/client; D126 failure corrected, rerun pending|W; one final action implemented for unbound creation. Exact SQL/real publication+accountB visibility still pending.|

@@ -1,7 +1,7 @@
 {
   "status": "PREPARATION_ONLY_NOT_APPROVED_OR_APPLIED",
-  "sourceCommit": "2ece7eec13fba40396c9d05f7ab441b4adad4ea4",
-  "sourceTree": "36ffd06ac5bdb6e0541da42db7cf46c83c1126b7",
+  "sourceCommit": "8c250b23c00fe505fd6960b72213b1675e500c23",
+  "sourceTree": "25c5246a1809c31db6fbf878d5f66f542ed8a570",
   "projectRef": "leqcwgzvjsxugfgzdmth",
   "observedBaseline": {
     "count": 108,
@@ -289,66 +289,300 @@
       "sha256": "69fd4f8176049f0070538e3893cd4b56937336d41b1b7b576cc161ee80140fd2",
       "md5": "b4fb7eaf9a73dd6663647dfabf14d286",
       "bytes": 24052
+    },
+    {
+      "ordinal": 140,
+      "file": "supabase/migrations/20260913014627_clean_v5_retention_source_compatibility.sql",
+      "version": "20260913014627",
+      "name": "clean_v5_retention_source_compatibility",
+      "sha256": "b5eaf6f7cad801aeaa6a6534b1f85e4a753817e9406d73ac7b4be17bb0e0c206",
+      "md5": "66d64756ab594e1eb6a19667327d2376",
+      "bytes": 21426
     }
   ],
   "edgeEntrypoints": [
     {
       "name": "uskoci-account-closure-worker",
       "entrypoint": "supabase/functions/uskoci-account-closure-worker/index.ts",
-      "entrypointSha256": "0f87d3abbb09ecd29720da54e023b3d327bf13cce4f688fde3731e06013bc36b"
+      "entrypointSha256": "0f87d3abbb09ecd29720da54e023b3d327bf13cce4f688fde3731e06013bc36b",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "7372dd12c57110ad02449ef10812d75e009ff734c7b0abb1bdbe5fc8a3c8d269",
+      "preparedPayloadBytes": 19922,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/_shared/data-export.ts",
+          "sha256": "c514f618a6efc78bddb80f20000f92bc6b9b9b8d91713c6f7fdc10fd3a3a054b",
+          "bytes": 10367
+        },
+        {
+          "name": "supabase/functions/uskoci-account-closure-worker/closure.ts",
+          "sha256": "ab13254e13fe52bccbfa0eb9172bcc6ac808b221f185f807e52eca6c0f68f06a",
+          "bytes": 6660
+        },
+        {
+          "name": "supabase/functions/uskoci-account-closure-worker/index.ts",
+          "sha256": "0f87d3abbb09ecd29720da54e023b3d327bf13cce4f688fde3731e06013bc36b",
+          "bytes": 2206
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-ai-interview",
       "entrypoint": "supabase/functions/uskoci-ai-interview/index.ts",
-      "entrypointSha256": "26f54765043397a9237d981b1d405cf27784d97849fbae3b195f6f2b31e56b90"
+      "entrypointSha256": "26f54765043397a9237d981b1d405cf27784d97849fbae3b195f6f2b31e56b90",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "270d23ed321a0c5890e3030a4a663de6259be4c0baa4c3537a7faec431e5f1ec",
+      "preparedPayloadBytes": 59753,
+      "sourceFiles": [
+        {
+          "name": "src/contracts/needFactsV2.ts",
+          "sha256": "7bfe2b580f1bdd5825427d56395ed424d8e56ff4337bf40bb2b546aee48d9186",
+          "bytes": 5541
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "3153216c24796c74b838a7593e9aaf893d8d5c9f51306edeb485bb5c09df7436",
+          "bytes": 3082
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "3ba14da4fbe340010cc06fbc656b3726755b9489c9091d6f3cd4bb72b7eb4d3d",
+          "bytes": 5850
+        },
+        {
+          "name": "supabase/functions/uskoci-ai-interview/index.ts",
+          "sha256": "26f54765043397a9237d981b1d405cf27784d97849fbae3b195f6f2b31e56b90",
+          "bytes": 43769
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-data-export-download",
       "entrypoint": "supabase/functions/uskoci-data-export-download/index.ts",
-      "entrypointSha256": "8982dd72cb1caecc2b1dcad21350f94655af16c96cefa46b4441d0dfa679663c"
+      "entrypointSha256": "8982dd72cb1caecc2b1dcad21350f94655af16c96cefa46b4441d0dfa679663c",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "7043fe630f10d5e47cea2d2d77ba3ce6f956749e548ebde7431e10e3cb5fb4ca",
+      "preparedPayloadBytes": 14984,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/_shared/data-export.ts",
+          "sha256": "c514f618a6efc78bddb80f20000f92bc6b9b9b8d91713c6f7fdc10fd3a3a054b",
+          "bytes": 10367
+        },
+        {
+          "name": "supabase/functions/uskoci-data-export-download/index.ts",
+          "sha256": "8982dd72cb1caecc2b1dcad21350f94655af16c96cefa46b4441d0dfa679663c",
+          "bytes": 4088
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-data-export-worker",
       "entrypoint": "supabase/functions/uskoci-data-export-worker/index.ts",
-      "entrypointSha256": "f7042410dd136f1506d315a94bea8d06cfa55b7add2bbd9210fa67ec1d665edd"
+      "entrypointSha256": "f7042410dd136f1506d315a94bea8d06cfa55b7add2bbd9210fa67ec1d665edd",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "178d9a2f68d4b42db3c1d3d5aca9bb6f0d099777dd5b7ba560b949e8cd47b142",
+      "preparedPayloadBytes": 19094,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/_shared/data-export.ts",
+          "sha256": "c514f618a6efc78bddb80f20000f92bc6b9b9b8d91713c6f7fdc10fd3a3a054b",
+          "bytes": 10367
+        },
+        {
+          "name": "supabase/functions/uskoci-data-export-worker/index.ts",
+          "sha256": "f7042410dd136f1506d315a94bea8d06cfa55b7add2bbd9210fa67ec1d665edd",
+          "bytes": 8151
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-location-search",
       "entrypoint": "supabase/functions/uskoci-location-search/index.ts",
-      "entrypointSha256": "6c1e968536c5069b510cc674d9f5c709615957e95ba799b9451c03652bfe15d9"
+      "entrypointSha256": "6c1e968536c5069b510cc674d9f5c709615957e95ba799b9451c03652bfe15d9",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "39d9d27ea32de8f771905ac7d8a5a1ff3b02549285598dee79afc812c28c68a2",
+      "preparedPayloadBytes": 15307,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/uskoci-location-search/index.ts",
+          "sha256": "6c1e968536c5069b510cc674d9f5c709615957e95ba799b9451c03652bfe15d9",
+          "bytes": 14804
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-media",
       "entrypoint": "supabase/functions/uskoci-media/index.ts",
-      "entrypointSha256": "d731a675b4ea4fffadc7c3b2feab32e2fb2e31be54a0a0afb3e80aefd945eeb1"
+      "entrypointSha256": "d731a675b4ea4fffadc7c3b2feab32e2fb2e31be54a0a0afb3e80aefd945eeb1",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "50ceebd7ea9cba6095433c9e703d5a31c7ebf42f3a660e2aeb21a2090d8c4492",
+      "preparedPayloadBytes": 18334,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/_shared/mediaImageSanitizer.mjs",
+          "sha256": "9db536a2acb7c527a163798beb27635b4ff8220660c8699fcb4162352f8613a8",
+          "bytes": 3222
+        },
+        {
+          "name": "supabase/functions/uskoci-media/index.ts",
+          "sha256": "d731a675b4ea4fffadc7c3b2feab32e2fb2e31be54a0a0afb3e80aefd945eeb1",
+          "bytes": 14628
+        }
+      ],
+      "externalDependencies": [
+        {
+          "specifier": "npm:@imagemagick/magick-wasm@0.0.43",
+          "kind": "module"
+        },
+        {
+          "specifier": "npm:@imagemagick/magick-wasm@0.0.43/magick.wasm",
+          "kind": "runtime-asset"
+        }
+      ]
     },
     {
       "name": "uskoci-publication-evaluate",
       "entrypoint": "supabase/functions/uskoci-publication-evaluate/index.ts",
-      "entrypointSha256": "be8a5a72509687347b6c5d585bde42f389d2f3e8a1d37ff12aa18d39c47ee293"
+      "entrypointSha256": "be8a5a72509687347b6c5d585bde42f389d2f3e8a1d37ff12aa18d39c47ee293",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "ad16fc961f77c9c92a1caf77adc60c076351c0b8c525b734243e6699642ec1aa",
+      "preparedPayloadBytes": 38963,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "3153216c24796c74b838a7593e9aaf893d8d5c9f51306edeb485bb5c09df7436",
+          "bytes": 3082
+        },
+        {
+          "name": "supabase/functions/uskoci-publication-evaluate/index.ts",
+          "sha256": "be8a5a72509687347b6c5d585bde42f389d2f3e8a1d37ff12aa18d39c47ee293",
+          "bytes": 35080
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-push-transport",
       "entrypoint": "supabase/functions/uskoci-push-transport/index.ts",
-      "entrypointSha256": "d0bc52809539c2341b8e042e195b70c21787495889f21a47757e7a91b3e337b7"
+      "entrypointSha256": "d0bc52809539c2341b8e042e195b70c21787495889f21a47757e7a91b3e337b7",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "3cde19eaa777e8bf68fbf927d7229a72997453edc1c2007c60c8223e57e281cc",
+      "preparedPayloadBytes": 12441,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/uskoci-push-transport/index.ts",
+          "sha256": "d0bc52809539c2341b8e042e195b70c21787495889f21a47757e7a91b3e337b7",
+          "bytes": 12041
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-qa-classify",
       "entrypoint": "supabase/functions/uskoci-qa-classify/index.ts",
-      "entrypointSha256": "144324dc110f8b47e29d342b1e504bcc7f09ab967fd5ec7541b8da6159cca260"
+      "entrypointSha256": "144324dc110f8b47e29d342b1e504bcc7f09ab967fd5ec7541b8da6159cca260",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "18d978c3b6e6e3d0120ce508bc0f030d4aa9117be6e41f01aaa9c18f826a9339",
+      "preparedPayloadBytes": 31628,
+      "sourceFiles": [
+        {
+          "name": "src/contracts/preselectionQa.ts",
+          "sha256": "8d1af3d0d417d884acfd9eab52aa7e4d7d9d682fcc8d18404e792911745d4d9b",
+          "bytes": 1421
+        },
+        {
+          "name": "src/contracts/qaSubmission.ts",
+          "sha256": "decf8744b41f808cb3dd45cda1b6f26809656b1ff46a9f6157071e4caf5bbeb5",
+          "bytes": 4808
+        },
+        {
+          "name": "src/lib/qaTextHash.ts",
+          "sha256": "9c1226bdbbbe9a6a8bbc50f71e30036e86b668c35d540ba3317eae6efd842285",
+          "bytes": 2399
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "3153216c24796c74b838a7593e9aaf893d8d5c9f51306edeb485bb5c09df7436",
+          "bytes": 3082
+        },
+        {
+          "name": "supabase/functions/uskoci-qa-classify/index.ts",
+          "sha256": "144324dc110f8b47e29d342b1e504bcc7f09ab967fd5ec7541b8da6159cca260",
+          "bytes": 19054
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-speech-session",
       "entrypoint": "supabase/functions/uskoci-speech-session/index.ts",
-      "entrypointSha256": "c056e05b1132551531b74410e8fda3928b58e5492e146955b56a63e64322cc07"
+      "entrypointSha256": "c056e05b1132551531b74410e8fda3928b58e5492e146955b56a63e64322cc07",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "f323f0f78c57418fa3d11023554572c78025440c8a32d9015016ae5ed78286fa",
+      "preparedPayloadBytes": 19722,
+      "sourceFiles": [
+        {
+          "name": "src/features/voice/speechProtocol.ts",
+          "sha256": "6f8cef7e96ed7802e2784342edea98019c08d16a8c6924cacc9c7ea39cb38ddc",
+          "bytes": 2865
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "3153216c24796c74b838a7593e9aaf893d8d5c9f51306edeb485bb5c09df7436",
+          "bytes": 3082
+        },
+        {
+          "name": "supabase/functions/uskoci-speech-session/index.ts",
+          "sha256": "c056e05b1132551531b74410e8fda3928b58e5492e146955b56a63e64322cc07",
+          "bytes": 6170
+        },
+        {
+          "name": "supabase/functions/uskoci-speech-session/proxy.ts",
+          "sha256": "69a66b13cc7b2c84005c725ad723601bc4400a0ad34564b5ea48da334d7ed79f",
+          "bytes": 6831
+        }
+      ],
+      "externalDependencies": []
     },
     {
       "name": "uskoci-worker-interview",
       "entrypoint": "supabase/functions/uskoci-worker-interview/index.ts",
-      "entrypointSha256": "2c39cfbb8c8d74ec6ba3d56b721c5f67bdc15f963f64b38998f17a13b9113a66"
+      "entrypointSha256": "2c39cfbb8c8d74ec6ba3d56b721c5f67bdc15f963f64b38998f17a13b9113a66",
+      "preparedVerifyJwt": true,
+      "preparedPayloadSha256": "ac88db9f50342ea5ea9c4eca6b40ecfa4fb7416e71bb464ee1c1f577c487a359",
+      "preparedPayloadBytes": 24791,
+      "sourceFiles": [
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "3153216c24796c74b838a7593e9aaf893d8d5c9f51306edeb485bb5c09df7436",
+          "bytes": 3082
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "3ba14da4fbe340010cc06fbc656b3726755b9489c9091d6f3cd4bb72b7eb4d3d",
+          "bytes": 5850
+        },
+        {
+          "name": "supabase/functions/uskoci-worker-interview/index.ts",
+          "sha256": "2c39cfbb8c8d74ec6ba3d56b721c5f67bdc15f963f64b38998f17a13b9113a66",
+          "bytes": 15098
+        }
+      ],
+      "externalDependencies": []
     }
   ],
   "edgeDependencyBinding": "Complete exact source tree; entrypoint hashes alone are not deployed bundle proof",
+  "edgePayloadPreparation": {
+    "manifest": "artifacts/v5-edge-payloads/8c250b23c00fe505fd6960b72213b1675e500c23/manifest.json",
+    "manifestSha256": "07798bdf02f070a1c7cf01bb7ec10c6f1ca2fd97d7b3b808af9102da1d8cbf04",
+    "status": "LOCAL_EXACT_SOURCE_PAYLOADS_NOT_DEPLOYED"
+  },
   "liveApproval": null,
   "paidProbeApprovalForThisBatch": null,
   "requiredBeforeApproval": [

@@ -1,38 +1,44 @@
 # V5 AI-FIRST execution — active, incomplete
 
-Current source checkpoint54abcbe6e0d6664ad73a14a6d91ed2dce7e5672a contains137/138.
-CI34730098067 attempt1 passed all11 source gates,182 Jest suites/3636 tests and
-659 Node tests. Actual reports through130 PASS, then unchanged131 encountered
-a DDL lock timeout before its checks. The prior ef4985 run proves131–134; it is
-not proof of the later source. Exact unchanged attempt2 is running. No timeout
-or production guard was weakened to obtain a pass.
+Latest full-regression source is8c250b23c00fe505fd6960b72213b1675e500c23,
+tree25c5246a1809c31db6fbf878d5f66f542ed8a570, including registered109–140.
+Its30-report disposable CI34732513050 passed all11 source gates,182 Jest suites/
+3637 tests and664 Node tests.24 actual SQL reports through134 PASS.135 passed8
+checks, including expired-budget denial and positive actual Edge200, then failed
+comparing canonical receipt.ok with its typed projection.5737f43 fixes only that
+proof boundary, retaining full-envelope equality;47 handler tests PASS.136–140
+were not reached.140 preserves bounded105
+AI retention authority while admitting exact121 closure guards and taking
+closure locks first. V5 command/review/media sidecars are excluded from the old
+volatile purge.10 focused source/admission checks pass; no new duration,
+retention policy, scheduler or live activation was introduced.
 
-Candidate139 is reviewed and registered: immutable accepted-media snapshots,
-private report/problem/hold refs, unknown-history barriers, real Storage guard,
-42-dataset export and a neutral native closure blocker. Focused client20 and
-existing media17 tests pass; its actual Auth/Postgres/Storage proof remains
-pending. LIVE_BATCH_CANDIDATE files are preparation only, not owner approval.
+Previous run34731211318 at2ece7eec13fba40396c9d05f7ab441b4adad4ea4
+passed all11 source gates,182 Jest suites/3637 tests,659 Node tests and24 actual
+Auth/Postgres/Storage reports through134.131 passed without an observed blocker;
+this does not identify the blocker in both earlier54abcbe lock-timeout attempts.
+135 passed7 checks then actual Edge returned503: the127 proof left its synthetic
+budget expired.61b8612 isolates that fixture, proves expired denial before a fresh
+positive request, and restores original budget state. Actual135–140 rerun remains
+pending. No production guard or timeout was weakened to obtain a pass.
 
-Latest verified cursor,2026-09-13: ef4985ee9d5cc24fce2956fc9595f8d96b746e80,
-tree294852b353a9e98a258d2d0a670befe6676fe970, CI34729517617. All11 source gates
-PASS:175 Jest suites/3473 tests and659 Node tests. All24 actual disposable
-SQL reports through134 PASS, including real Auth/Storage media130, policy-bound
-closure131, restart132, owned QA133 and limits134.135 applies and passes its
-first metadata/closed-policy check, then its missing-country Task fixture is
-correctly denied PRESELECTION_QA_POLICY_NOT_READY.135 correction is in review;
-136 has not executed. Canonical/live remain unchanged. These are not real
-Gemini, physical device or live rollout claims.
+Group137/location138 and evidence139 are reviewed registered source. Group has69
+focused tests, location93, Agreement route41, closure-client20 and media17.
+139 adds immutable accepted-media snapshots, private evidence references,
+historical uncertainty barriers, Storage guards and42-dataset owned export.
+Their final actual proof is pending; canonical and live remain unchanged.
 
-Group137 and D0144 location138 are now reviewed source candidates. Group has69
-focused tests; location has93; the real Agreement route has41 passing tests,
-including its server-admitted group entry. TypeScript passes. Both migrations
-are registered LF candidates with separate actual SQL proofs pending.
-Known D0141 requires per-asset accepted-Agreement/evidence protection;139 is
-being prepared before any media/closure live activation. New HITNO proposed
-category/time parameters are awaiting an owner answer in
-URGENT_CONTRACT_PROPOSAL.md; they are not approved by writing that proposal.
-Support operator/data scope and numeric limits have also been presented as two
-pending questions; SUPPORT_CASE_CONTRACT_PROPOSAL.md is not an approval.
+The same-signer54abcbe APK is installed and has signed-out200%/IME/reduced-motion
+evidence. Direct390×844 comparison found its final entry uses an older composition
+without the original V4.9 photographs/notes/intent transition. Protected V4.9
+native restoration is in progress; ENTRY_SIGNATURE_FIDELITY is not PASS.
+No final connected Android, real Gemini, physical microphone or live rollout
+claim follows from that earlier artifact. See NATIVE_CHECKPOINT138_REVIEW.md.
+
+OPEN_INPUTS.md retains pending HITNO, support scope/limits, exact test-account
+ownership and new private-photo purpose questions without repeating accepted
+decisions. Additional identity/vehicle/retention/operator inputs remain open.
+LIVE_BATCH_CANDIDATE and its postflight plan are preparation, not approval.
 
 Owner resumed on 2026-09-12 with the complete USKOCI_V5_AI_FIRST_PAKET command.
 The package is extracted beside this repository, in `../USKOCI_V5_AI_FIRST_PAKET`.
@@ -255,3 +261,25 @@ activation occurred during this source-only implementation and documentation.
   Auth/Storage closure from unfinished retained relational/evidence expiry.
   The existing AI source-admission/closure lock-order compatibility is being
   repaired separately; no new retention durations or policy activation follows.
+
+## Newly found recovery defects, source correction in progress
+
+Independent review found the Worker turn request key lived only in a route ref:
+pre-claim loss could strand input and remount could permit a later old request.
+141 `20260913022110_clean_v5_worker_turn_restart_recovery.sql` and its Worker
+client/Edge journal/dispatch proof are in progress. No widening of paid scope or
+new privacy purpose; no registration/live apply yet.128 actual proof tests SQL
+only;141 will add actual Auth/SQL/Worker Edge with synthetic provider transport.
+
+Root corrected requester microphone cancellation before abandonment and removed
+microphone scope when the canonical conversation becomes unwritable. Terminal
+EVALUATED/NOT_READY now offers an explicit canonical draft edit, without retrying
+UNKNOWN/EVALUATING or publishing automatically.98 targeted intake/review/voice
+tests pass; final source/device validation follows integration.
+
+Fresh Auth settings at02:19UTC: email enabled and confirmation required;
+phone/Google/Apple disabled. SMS client exists; OAuth client/callback is absent.
+The existing recovery flow is implicit, not PKCE. Changing the shared singleton
+to PKCE would affect recovery and is not a harmless toggle. Owner was asked which
+additional methods to activate; no provider enable, OTP, Auth submit or secret
+read occurred. Redacted snapshot is auth-public-settings-20260913.json in evidence.

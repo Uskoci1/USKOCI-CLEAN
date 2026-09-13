@@ -42,11 +42,30 @@ assert rows and rows[0]['name'] == 'clean_pre_v3_worker_capacity'
 edge_files = git('ls-tree', '-r', '--name-only', args.source, 'supabase/functions').decode().splitlines()
 edges = [{'name': Path(path).parent.name, 'entrypoint': path, 'entrypointSha256': hashlib.sha256(blob(path)).hexdigest()}
          for path in edge_files if path.endswith('/index.ts') and Path(path).parent.name.startswith('uskoci-')]
+subprocess.run(['node', str(root / 'scripts/prepare-v5-edge-payloads.cjs'), '--source', args.source],
+               cwd=root, check=True, stdout=subprocess.PIPE)
+payload_manifest_path = Path('artifacts/v5-edge-payloads') / args.source / 'manifest.json'
+payload_manifest_bytes = (root / payload_manifest_path).read_bytes()
+payload_manifest = json.loads(payload_manifest_bytes)
+assert payload_manifest['sourceCommit'] == args.source
+assert payload_manifest['sourceTree'] == git('rev-parse', f'{args.source}^{{tree}}').decode().strip()
+prepared = {item['name']: item for item in payload_manifest['functions']}
+assert set(prepared) == {edge['name'] for edge in edges}
+for edge in edges:
+    payload = prepared[edge['name']]
+    assert payload['entrypoint'] == edge['entrypoint'] and payload['verifyJwt'] is True
+    assert next(item['sha256'] for item in payload['files'] if item['name'] == edge['entrypoint']) == edge['entrypointSha256']
+    edge.update(preparedVerifyJwt=True, preparedPayloadSha256=payload['payloadSha256'],
+                preparedPayloadBytes=payload['payloadBytes'], sourceFiles=payload['files'],
+                externalDependencies=payload['externalDependencies'])
 result = {'status': 'PREPARATION_ONLY_NOT_APPROVED_OR_APPLIED', 'sourceCommit': args.source,
           'sourceTree': git('rev-parse', f'{args.source}^{{tree}}').decode().strip(),
           'projectRef': baseline['projectRef'], 'observedBaseline': {'count': 108, 'head': baseline['head']},
           'migrations': rows, 'edgeEntrypoints': edges,
           'edgeDependencyBinding': 'Complete exact source tree; entrypoint hashes alone are not deployed bundle proof',
+          'edgePayloadPreparation': {'manifest': payload_manifest_path.as_posix(),
+                                     'manifestSha256': hashlib.sha256(payload_manifest_bytes).hexdigest(),
+                                     'status': 'LOCAL_EXACT_SOURCE_PAYLOADS_NOT_DEPLOYED'},
           'liveApproval': None, 'paidProbeApprovalForThisBatch': None,
           'requiredBeforeApproval': ['Complete exact-source disposable proof', 'Reviewed forward backfills and postflight/stop plan',
                                     'Exact provider-key to paid-project association plan', 'Specific executable policy documents and test accounts'],

@@ -485,6 +485,37 @@
     "profileMediaObjects": 0,
     "activeReviewedPublicationPolicyBundles": 0
   },
+  "readOnlyAddenda": [
+    {
+      "observedAt": "2026-09-13T02:12:36.085888Z",
+      "scope": "Aggregate-only preparation for forward132/137/139/140; no business payloads or mutations",
+      "accounts": 3,
+      "agreements": 2,
+      "agreementVersions": 2,
+      "profileMediaObjects": 0,
+      "prospectiveGroupCount": 0,
+      "prospectiveGroupMemberships": 0,
+      "agreementProblemContexts": 2,
+      "activeRetentionHolds": 0,
+      "existingAiTurnCommands": 0,
+      "aiTurnCommandStates": {},
+      "retentionPolicyCount": 0,
+      "safetyReportsTablePresent": false,
+      "ownedMediaAssetsTablePresent": false
+    },
+    {
+      "observedAt": "2026-09-13T02:13:05.853207Z",
+      "scope": "Read-only reconstruction of selected revision photo arrays; original arrays and paths were not returned",
+      "projectedAgreementVersions": { "RESOLVED_EMPTY": 2 },
+      "assumptions": [
+        "No intervening business changes or new uploads before139",
+        "New119 safety and130 media registries remain empty before139",
+        "Final preflight refresh verifies all counts and source revisions"
+      ],
+      "predicted139": { "resolvedEmptySnapshots": 2, "unresolvedSnapshots": 0, "evidenceRefs": 0, "historicalSafetyGaps": 0 },
+      "actual139Executed": false
+    }
+  ],
   "liveChanged": false,
   "providerInvoked": false
 }
