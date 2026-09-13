@@ -77,7 +77,7 @@ async function actualEditTurn(report,a,cid,label){
  try{
   resetTurnWindow(a); // Labelled disposable rate clock, unrelated to identity policy.
   budgetFixture.enter();
-  const response=await invoke();assert.equal(response.status,200);const receipt=await response.json();assert.equal(receipt.state,'SUCCEEDED');
+  const response=await invoke();const receipt=await response.json();if(response.status!==200)throw new Error(`ACTUAL_EDIT_EDGE_${response.status}_${String(receipt?.code??'NO_CODE')}`);assert.equal(receipt.state,'SUCCEEDED');
   assert.equal(receipt.receipt.proposedCount,0);assert.equal(providerCalls,1);assert.equal(budgetCalls,1);
   assert.equal(Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(cid)}::uuid`)),beforeMessages+2);
   assert.deepEqual(liveFact(cid),beforeFact);
