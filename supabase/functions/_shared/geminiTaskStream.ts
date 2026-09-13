@@ -1,4 +1,4 @@
-/** Bounded provider response. Only the top-level assistantMessage becomes UI text. */
+/** Bounded provider stream. Only the top-level assistantMessage becomes UI text. */
 function stringAt(input: string, start: number): { value: string; end: number; complete: boolean } {
   let value = '';
   for (let i = start + 1; i < input.length; i++) {
@@ -64,7 +64,7 @@ function jsonSchema(value: unknown): unknown {
   return result;
 }
 
-function gemini38Body(raw: string): string {
+export function geminiRequestBody(raw: string): string {
   const payload = JSON.parse(raw);
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('AI_STREAM_INVALID');
   const generation = payload.generationConfig;
@@ -84,74 +84,133 @@ function gemini38Body(raw: string): string {
   return JSON.stringify(payload);
 }
 
-/**
- * Stabilization path for Gemini 3.8: use one bounded generateContent request,
- * then expose the validated assistantMessage to the existing client SSE shell as
- * a single delta. This avoids a second provider call after an uncertain stream
- * outcome and keeps the durable turn/receipt semantics unchanged.
- */
+// Closed diagnostic vocabulary. Never emit raw provider messages, metadata, keys or task text.
+const statuses = new Set(['INVALID_ARGUMENT', 'UNAUTHENTICATED', 'PERMISSION_DENIED', 'NOT_FOUND',
+  'RESOURCE_EXHAUSTED', 'FAILED_PRECONDITION', 'UNAVAILABLE', 'INTERNAL', 'DEADLINE_EXCEEDED']);
+const reasons = new Set(['API_KEY_INVALID', 'API_KEY_EXPIRED', 'API_KEY_SERVICE_BLOCKED',
+  'API_KEY_HTTP_REFERRER_BLOCKED', 'API_KEY_IP_ADDRESS_BLOCKED', 'API_KEY_ANDROID_APP_BLOCKED',
+  'API_KEY_IOS_APP_BLOCKED', 'SERVICE_DISABLED', 'BILLING_DISABLED', 'CONSUMER_INVALID',
+  'ACCESS_TOKEN_EXPIRED', 'ACCESS_TOKEN_SCOPE_INSUFFICIENT']);
+const fields: Record<string, string> = {
+  'generation_config.response_format': 'RESPONSE_FORMAT', 'generationConfig.responseFormat': 'RESPONSE_FORMAT',
+  'generation_config.response_schema': 'RESPONSE_SCHEMA', 'generationConfig.responseSchema': 'RESPONSE_SCHEMA',
+  'generation_config.thinking_config.thinking_level': 'THINKING_LEVEL', 'generationConfig.thinkingConfig.thinkingLevel': 'THINKING_LEVEL',
+  'generation_config.max_output_tokens': 'MAX_OUTPUT_TOKENS', 'generationConfig.maxOutputTokens': 'MAX_OUTPUT_TOKENS',
+};
+
+export function geminiFailureDiagnostic(raw: unknown): { status: string; reason: string; field: string } {
+  const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+  const e = value.error && typeof value.error === 'object' && !Array.isArray(value.error)
+    ? value.error as Record<string, unknown> : {};
+  const status = typeof e.status === 'string' && statuses.has(e.status) ? e.status : 'UNKNOWN';
+  let reason = 'UNKNOWN', field = 'UNKNOWN';
+  for (const rawDetail of Array.isArray(e.details) ? e.details.slice(0, 10) : []) {
+    if (!rawDetail || typeof rawDetail !== 'object' || Array.isArray(rawDetail)) continue;
+    const detail = rawDetail as Record<string, unknown>;
+    if (typeof detail.reason === 'string' && reasons.has(detail.reason)) reason = detail.reason;
+    for (const violation of Array.isArray(detail.fieldViolations) ? detail.fieldViolations.slice(0, 10) : []) {
+      if (violation && typeof violation === 'object' && typeof violation.field === 'string'
+        && Object.hasOwn(fields, violation.field)) field = fields[violation.field];
+    }
+  }
+  return { status, reason, field };
+}
+
+/** Bounded inspection for operator logs; diagnostics cannot authorize a retry/refund. */
+async function reportGeminiHttpFailure(response: Response, signal: AbortSignal): Promise<void> {
+  let raw: unknown;
+  const reader = response.body?.getReader();
+  let rejectStopped: (error: Error) => void = () => {};
+  const stopped = new Promise<never>((_resolve, reject) => { rejectStopped = reject; });
+  const stop = () => rejectStopped(new Error('AI_STREAM_STOPPED'));
+  try {
+    if (!reader || signal.aborted) throw new Error('AI_STREAM_STOPPED');
+    signal.addEventListener('abort', stop, { once: true });
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    let text = '', bytes = 0;
+    while (true) {
+      const part = await Promise.race([reader.read(), stopped]);
+      if (signal.aborted) throw new Error('AI_STREAM_STOPPED');
+      if (part.done) break;
+      bytes += part.value.byteLength;
+      if (bytes > 8192) throw new Error('AI_STREAM_TOO_LARGE');
+      text += decoder.decode(part.value, { stream: true });
+    }
+    raw = JSON.parse(text + decoder.decode());
+  } catch { /* Unknown details remain unknown; do not expose malformed upstream data. */ }
+  finally { signal.removeEventListener('abort', stop); void reader?.cancel().catch(() => undefined); }
+  const d = geminiFailureDiagnostic(raw);
+  console.error('GEMINI_STREAM_HTTP_FAILED', response.status, d.status, d.reason, d.field);
+}
+
 export async function streamGeminiTask(input: {
   url: string; key: string; body: string; signal?: AbortSignal; onText: (delta: string) => void;
 }): Promise<string> {
-  const controller = new AbortController(), stop = () => controller.abort();
+  const controller = new AbortController();
+  let rejectStopped: (error: Error) => void = () => {};
+  const stoppedIO = new Promise<never>((_resolve, reject) => { rejectStopped = reject; });
+  // Attach a handler even when cancellation precedes the first I/O operation.
+  void stoppedIO.catch(() => undefined);
+  const stop = () => { controller.abort(); rejectStopped(new Error('AI_STREAM_STOPPED')); };
   const timeout = setTimeout(stop, 12000);
   input.signal?.addEventListener('abort', stop, { once: true });
   if (input.signal?.aborted) stop();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    const providerBody = gemini38Body(input.body);
-    const providerUrl = input.url.replace(/:streamGenerateContent\?alt=sse$/, ':generateContent');
-    if (providerUrl === input.url) throw new Error('AI_STREAM_INVALID');
-    const response = await fetch(providerUrl, {
-      method: 'POST', redirect: 'error', signal: controller.signal,
-      headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: providerBody,
-    });
+    if (controller.signal.aborted) throw new Error('AI_STREAM_STOPPED');
+    const response = await Promise.race([fetch(input.url, { method: 'POST', redirect: 'error', signal: controller.signal,
+      headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: geminiRequestBody(input.body) }), stoppedIO]);
     if (!response.ok) {
-      console.error('GEMINI_GENERATE_HTTP_FAILED', response.status);
-      void response.body?.cancel().catch(() => undefined);
+      await reportGeminiHttpFailure(response, controller.signal);
       throw new Error('AI_STREAM_UNAVAILABLE');
     }
-    if (response.redirected || !response.body || !response.headers.get('content-type')?.includes('application/json')) {
-      console.error('GEMINI_GENERATE_PROTOCOL_FAILED');
-      void response.body?.cancel().catch(() => undefined);
-      throw new Error('AI_STREAM_UNAVAILABLE');
+    if (response.redirected || !response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+      void response.body?.cancel().catch(() => undefined); throw new Error('AI_STREAM_UNAVAILABLE');
     }
     reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8', { fatal: true });
-    let text = '', total = 0;
+    let buffer = '', raw = '', emitted = '', total = 0, stopped = false;
+    const event = (value: string) => {
+      const lines = value.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim());
+      if (!lines.length) return;
+      const data = JSON.parse(lines.join('\n'));
+      if (data.error || data.promptFeedback?.blockReason) throw new Error('AI_STREAM_REJECTED');
+      if (!Array.isArray(data.candidates) || data.candidates.length > 1) throw new Error('AI_STREAM_INVALID');
+      const candidate = data.candidates[0];
+      if (!candidate) return;
+      if (candidate.finishReason && candidate.finishReason !== 'STOP') throw new Error('AI_STREAM_INCOMPLETE');
+      if (candidate.finishReason === 'STOP') stopped = true;
+      for (const part of candidate.content?.parts ?? []) {
+        if (part.thought === true) continue;
+        if (typeof part.text !== 'string') throw new Error('AI_STREAM_INVALID');
+        raw += part.text;
+        if (raw.length > 131072) throw new Error('AI_STREAM_TOO_LARGE');
+        const safe = assistantPrefix(raw);
+        if (!safe.startsWith(emitted)) throw new Error('AI_STREAM_INVALID');
+        if (safe.length > emitted.length) {
+          const delta = safe.slice(emitted.length); emitted = safe;
+          if (controller.signal.aborted) throw new Error('AI_STREAM_STOPPED');
+          input.onText(delta);
+        }
+      }
+    };
     while (true) {
-      const part = await reader.read();
+      const part = await Promise.race([reader.read(), stoppedIO]);
       if (controller.signal.aborted) throw new Error('AI_STREAM_STOPPED');
       if (part.done) break;
       total += part.value.byteLength;
       if (total > 524288) throw new Error('AI_STREAM_TOO_LARGE');
-      text += decoder.decode(part.value, { stream: true });
+      buffer = (buffer + decoder.decode(part.value, { stream: true })).replace(/\r\n/g, '\n');
+      let boundary: number;
+      while ((boundary = buffer.indexOf('\n\n')) !== -1) { event(buffer.slice(0, boundary)); buffer = buffer.slice(boundary + 2); }
+      if (buffer.length > 131072) throw new Error('AI_STREAM_TOO_LARGE');
     }
-    text += decoder.decode();
-    const envelope = JSON.parse(text);
-    if (envelope?.error || envelope?.promptFeedback?.blockReason) throw new Error('AI_STREAM_REJECTED');
-    if (!Array.isArray(envelope?.candidates) || envelope.candidates.length !== 1) throw new Error('AI_STREAM_INVALID');
-    const candidate = envelope.candidates[0];
-    if (candidate.finishReason && candidate.finishReason !== 'STOP') throw new Error('AI_STREAM_INCOMPLETE');
-    let raw = '';
-    for (const part of candidate.content?.parts ?? []) {
-      if (part.thought === true) continue;
-      if (typeof part.text !== 'string') throw new Error('AI_STREAM_INVALID');
-      raw += part.text;
-      if (raw.length > 131072) throw new Error('AI_STREAM_TOO_LARGE');
-    }
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.assistantMessage !== 'string' || !parsed.assistantMessage) throw new Error('AI_STREAM_INCOMPLETE');
-    const assistant = assistantPrefix(raw);
-    if (!assistant || assistant !== parsed.assistantMessage) throw new Error('AI_STREAM_INCOMPLETE');
-    if (controller.signal.aborted) throw new Error('AI_STREAM_STOPPED');
-    input.onText(assistant);
+    buffer += decoder.decode();
+    if (buffer.trim()) event(buffer);
+    if (!stopped || typeof JSON.parse(raw).assistantMessage !== 'string' || JSON.parse(raw).assistantMessage !== emitted) throw new Error('AI_STREAM_INCOMPLETE');
     return raw;
   } finally {
-    clearTimeout(timeout);
-    input.signal?.removeEventListener('abort', stop);
-    controller.abort();
+    clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); controller.abort();
     void reader?.cancel().catch(() => undefined);
   }
 }
