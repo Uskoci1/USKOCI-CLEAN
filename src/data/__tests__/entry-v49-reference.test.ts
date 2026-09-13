@@ -19,6 +19,23 @@ it('binds the four native assets and vector adapter to the exact owner V4.9 byte
   expect(sha(workerNoteXml)).toBe(provenance.assets[3].sha256);
   expect(requesterNoteXml + workerNoteXml).not.toMatch(/<script|<image|href=|<foreignObject/i);
 });
+it('names both original portraits by their actual embedded format without re-encoding', () => {
+  const requester = provenance.assets[0]; const worker = provenance.assets[1];
+  expect(requester).toMatchObject({ name: 'requester.webp', sourceDeclaredMime: 'image/webp', mime: 'image/webp',
+    sha256: '0b995b273406eac9ba85b722ceafe506a235783400047c1765a8317c063b5631' });
+  expect(worker).toMatchObject({ name: 'worker.jpg', sourceDeclaredMime: 'image/png', mime: 'image/jpeg',
+    sha256: 'c25266122c8c47f96994c6cff05f9e5e5b7428de4a9d78521eb6f4084612d3d3' });
+  const webp = readFileSync(join(root, 'assets/brand/entry-v49', requester.name));
+  const jpeg = readFileSync(join(root, 'assets/brand/entry-v49', worker.name));
+  expect(webp.subarray(0, 4).toString('ascii')).toBe('RIFF');
+  expect(webp.subarray(8, 12).toString('ascii')).toBe('WEBP');
+  expect(jpeg.subarray(0, 3).toString('hex')).toBe('ffd8ff');
+  expect(jpeg.subarray(-2).toString('hex')).toBe('ffd9');
+  const entry = readFileSync(join(root, 'src/ui/entry/EntryWelcome.tsx'), 'utf8');
+  expect(entry).toContain("require('../../../assets/brand/entry-v49/requester.webp')");
+  expect(entry).toContain("require('../../../assets/brand/entry-v49/worker.jpg')");
+  expect(entry).not.toContain('entry-v49/worker.png');
+});
 it.each([['normal', reference.layout, 1], ['200%', reference.largeLayout, 2]] as const)('matches real Chrome final V396 measured layout at %s', (_, expected, scale) => {
   const actual = entryV49Layout(expected.width, expected.viewportHeight, scale, expected);
   for (const key of ['photoY', 'photoH', 'photoW', 'copyY', 'noteY', 'noteW', 'footY'] as const) expect(actual[key]).toBeCloseTo(expected[key], 6);

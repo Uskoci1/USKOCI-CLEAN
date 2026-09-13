@@ -18,7 +18,7 @@ import { requesterNoteXml, workerNoteXml } from './entryV49Notes';
 type Intent = 'REQUESTER' | 'WORKER';
 type Measurements = { brand?: number; requester?: number; worker?: number; requesterNote?: number; workerNote?: number; footer?: number };
 const requesterPhoto = require('../../../assets/brand/entry-v49/requester.webp');
-const workerPhoto = require('../../../assets/brand/entry-v49/worker.png');
+const workerPhoto = require('../../../assets/brand/entry-v49/worker.jpg');
 // CSS gradient angles are measured clockwise from up, including the rectangle's
 // aspect ratio. Reusing percentage diagonals would visibly change these fields.
 function gradientLine(width: number, height: number, degrees: number) {

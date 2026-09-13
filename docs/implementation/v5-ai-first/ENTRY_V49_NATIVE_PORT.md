@@ -17,7 +17,12 @@ The four local assets in `assets/brand/entry-v49/` are extracted without
 re-encoding. `provenance.json` records each exact byte count and SHA256.
 `scripts/extract-entry-v49-assets.cjs` requires the exact source hash before any
 output. `entryV49Notes.ts` contains the same self-contained SVG bytes for native
-SvgXml; photographs remain the original WebP73762B and PNG239882B.
+SvgXml; photographs remain the original WebP73762B and JPEG239882B.
+The donor labels the worker data URI `image/png`, but its unchanged payload is
+JPEG. The native asset is therefore `worker.jpg`; provenance retains both the
+declared and actual MIME. The SHA256 remains
+`c25266122c8c47f96994c6cff05f9e5e5b7428de4a9d78521eb6f4084612d3d3`.
+No pixel or compressed byte is changed by this extension correction.
 
 `entryV49Layout` ports `s37Layout` and the final V396 correction exactly once.
 With the reference's real text measurements at390×844: white brand plate74%
@@ -86,3 +91,40 @@ fences, and the real signup sheet callback. No live or provider calls.
 **Native visual fidelity remains pending until a new exact-source signed APK is
 built, installed and compared with these references.** Checkpoint138 evidence
 continues to describe only the old APK and is not retroactively promoted to PASS.
+
+## Rejected mixed-source Android package, 2026-09-13
+
+The first4a06c9cd5b169d029f6a085f1a809e80aa8c28c1 build in detached `u50`
+completed all normal release tasks, with matching signer and config identity.
+The resource check then found the original portraits absent. The packager map
+proved that231 first-party modules still came from `uskoci-v5-apk138`, including
+its older EntryWelcome, through the shared Expo Router transform cache. This is
+a real wrong-source package, not merely renamed Android resources. It was not
+installed or declared a valid source4a APK.
+
+The rejected APK, packager map and hash receipt are retained locally under
+`artifacts/v5-native-smoke/rejected-4a06c9c-mixed-router-source/`. A second
+cache-reset attempt produced the same rejected bytes: the installed Expo
+export command ignores resetCache under CI=1. A third attempt with CI=false
+actually rebuilt the cache and restored the exact4a JS graph and original
+assets, then failed AAPT because worker.png contained JPEG bytes. Its exit1,
+map-only source proof and logs remain in
+`artifacts/v5-native-smoke/rejected-4a06c9c-invalid-asset/`. Neither result was
+installed or promoted to an APK or visual PASS.
+
+The source correction isolates Metro transform cacheVersion by absolute logical
+project root, preserving Expo's cache version/stores and the existing bounded
+Windows I/O wrapper. An installed Metro/Expo regression reproduces identical
+baseline keys for two checkouts sharing Router dependencies, verifies different
+Babel app-root output, then verifies stable distinct project keys. Eight tests
+pass. The asset extension correction additionally passes three entry suites /
+79 tests, including both actual portrait headers and original hashes.
+
+Admission of the next saved-source build requires every first-party map module
+to match its Git blob and checkout root. The one named ignored reference module
+must match regeneration from that commit's exact generator and donor, with its
+derivation recorded separately. Both original portrait formats/bytes, packaged
+pixels, packager/final Hermes maps, signer/config and packaged Hermes bytes are
+verified. All normal release tasks remain enabled; native cache reuse is
+recorded separately. Native fidelity still requires an actual installed build
+and observed frame comparisons.
