@@ -162,3 +162,29 @@ pixels, packager/final Hermes maps, signer/config and packaged Hermes bytes are
 verified. All normal release tasks remain enabled; native cache reuse is
 recorded separately. Native fidelity still requires an actual installed build
 and observed frame comparisons.
+
+## Portrait continuity after the e446 installed observation
+
+The actual e446 cold recording has 41 decoded frames without resampling. Its
+last prepared intro samples occur at video PTS9.909900 and14.155456, followed by
+the final composition at18.064900 and portraits at18.345900. These timestamps
+have gaps of4.245556 and3.909444 seconds; they do not establish which source
+clock samples Android drew between encoded frames. They also cannot distinguish
+normal4380ms completion from a bounded readiness fallback. No intro timeline,
+splash handshake or source artwork was changed on that evidence.
+
+A separate concrete source defect matched the empty photo frames: switching
+IntentColumn's container type between View and Animated.View unmounted both
+Expo Image subtrees at intro completion and again when selecting an intent.
+The columns now keep the same Animated.View ancestry, with noncollapsible scene
+and photo containers. Static welcome still supplies complete final React styles
+instead of the animated handles. The installed Reanimated component removes
+old view descriptors when those handles leave its style prop; queued intro
+clock assignments are not used to compute the static presentation.
+
+The regression checks both image references, mount counts and ancestor identity
+through intro completion, both choices, explicit/background/reduced-motion
+cancellation and the completion of a pending intent callback. The delayed
+0/41/final shared-value checks also retain both image references. These source
+checks prove React instance continuity; they do not claim a new device rendering
+or startup performance PASS. A saved-source installed comparison remains due.

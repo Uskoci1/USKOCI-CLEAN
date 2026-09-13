@@ -35,7 +35,10 @@ function IntentColumn({ intent, selected, enabled, settled, layout: g, time, sel
 }) {
   const requester = intent === 'REQUESTER', chosen = selected === intent, sign = requester ? 1 : -1;
   const staticScene = settled && !selected;
-  const SceneView = staticScene ? View : Animated.View;
+  // Keep each portrait's native ancestry mounted across intro and selection.
+  // Static welcome passes complete React styles, without an animated handle;
+  // Reanimated detaches that handle instead of remounting the image subtree.
+  const SceneView = Animated.View;
   const column = useAnimatedStyle(() => {
     const bg = brandFrame(time.get(), phone, logo).background, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: selected && !chosen ? f.otherOpacity : 1,
@@ -55,7 +58,7 @@ function IntentColumn({ intent, selected, enabled, settled, layout: g, time, sel
   });
   const ink = requester ? '#F2F9F0' : ENTRY_V49.ink;
   const noteText = requester ? 'Više vremena za ono što voliš.' : 'Tvoje vreme i trud imaju vrednost.';
-  return <SceneView testID={`entry-${intent.toLowerCase()}-scene`} style={[styles.column, { left: requester ? 0 : g.half, width: g.half, height: g.height }, staticScene ? styles.finalColumn : column]}>
+  return <SceneView collapsable={false} testID={`entry-${intent.toLowerCase()}-scene`} style={[styles.column, { left: requester ? 0 : g.half, width: g.half, height: g.height }, staticScene ? styles.finalColumn : column]}>
     <Svg pointerEvents="none" accessible={false} width={g.half} height={phone.height} style={StyleSheet.absoluteFill}>
       <Defs>
         <LinearGradient id={`${intent}-field`} gradientUnits="userSpaceOnUse" {...gradientLine(g.half, phone.height, requester ? 160 : 210)}>
@@ -86,7 +89,7 @@ function IntentColumn({ intent, selected, enabled, settled, layout: g, time, sel
         {requester ? <ArrowRight size={20} color={ENTRY_V49.ink} /> : <ArrowLeft size={20} color={ENTRY_V49.ink} />}
       </View>
     </SceneView>
-    <SceneView pointerEvents="none" testID={`entry-${intent.toLowerCase()}-photo-frame`}
+    <SceneView collapsable={false} pointerEvents="none" testID={`entry-${intent.toLowerCase()}-photo-frame`}
       style={[styles.photo, { left: g.edge, top: g.photoY, width: g.photoW, height: g.photoH }, staticScene ? styles.finalPhoto : photo]}>
       <Image source={requester ? requesterPhoto : workerPhoto} accessible={false} style={StyleSheet.absoluteFill}
         contentFit="cover" contentPosition={{ left: '50%', top: '4%' }} transition={0} />

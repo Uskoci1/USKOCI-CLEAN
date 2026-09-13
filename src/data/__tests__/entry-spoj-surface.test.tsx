@@ -25,6 +25,8 @@ const mockTiming = jest.fn((value: number) => value);
 const mockCancel = jest.fn();
 const mockReadyLayout = jest.fn();
 const mockSceneReady = jest.fn();
+const mockImageMounted = jest.fn();
+const mockImageUnmounted = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -56,7 +58,15 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true,
 }));
 jest.mock('react-native-worklets', () => ({ scheduleOnRN: (fn: () => void) => fn() }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', SvgXml: 'SvgXml', G: 'G', Path: 'Path', Rect: 'Rect', Defs: 'Defs', ClipPath: 'ClipPath', Ellipse: 'Ellipse', LinearGradient: 'LinearGradient', Stop: 'Stop' }));
-jest.mock('expo-image', () => ({ Image: 'OriginalImage' }));
+jest.mock('expo-image', () => ({ Image: (props: Record<string, unknown>) => {
+  const React = jest.requireActual('react');
+  const nativeIdentity = React.useRef({});
+  React.useEffect(() => {
+    mockImageMounted(nativeIdentity.current);
+    return () => mockImageUnmounted(nativeIdentity.current);
+  }, []);
+  return React.createElement('OriginalImage', { ...props, nativeIdentity: nativeIdentity.current });
+} }));
 jest.mock('phosphor-react-native', () => ({ ArrowRight: 'Icon', ArrowLeft: 'Icon' }));
 jest.mock('../../hooks/useEntryIntro', () => ({ useEntryIntro: () => ({ phase: mockPhase, prepared: mockPhase !== 'loading', finish: mockFinish }) }));
 jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: () => ({ readiness: 'ready', onLayout: mockReadyLayout, onSceneReady: mockSceneReady }) }));
@@ -94,6 +104,42 @@ it('mounts the two exact local portraits and SVG notes without an image network 
   expect(tree.root.findAllByType('SvgXml' as React.ElementType)).toHaveLength(2);
   for (const name of ['Prijavi se', 'Napravi nalog']) expect(StyleSheet.flatten(button(name).props.style).minHeight).toBeGreaterThanOrEqual(48);
 });
+it('preserves both image instances and their native ancestors through intro, selection, cancellation and completion', async () => {
+  mockPhase = 'intro'; await render();
+  const images = tree.root.findAllByType('OriginalImage' as React.ElementType);
+  const refs = images.map(image => image.props.nativeIdentity);
+  const sources = images.map(image => image.props.source);
+  const ancestorIds = ['entry-requester-scene', 'entry-worker-scene', 'entry-requester-photo-frame', 'entry-worker-photo-frame'];
+  const ancestors = ancestorIds.map(testID => tree.root.findByProps({ testID }));
+  const preserved = () => {
+    const current = tree.root.findAllByType('OriginalImage' as React.ElementType);
+    expect(current).toHaveLength(2);
+    current.forEach((image, index) => {
+      expect(image === images[index]).toBe(true);
+      expect(image.props.nativeIdentity).toBe(refs[index]);
+      expect(image.props.source).toBe(sources[index]);
+    });
+    ancestorIds.forEach((testID, index) => {
+      const node = tree.root.findByProps({ testID });
+      expect(node === ancestors[index]).toBe(true);
+      expect(node.props.collapsable).toBe(false);
+    });
+    expect(mockImageMounted).toHaveBeenCalledTimes(2);
+    expect(mockImageUnmounted).not.toHaveBeenCalled();
+  };
+  mockPhase = 'welcome'; await act(async () => tree.update(element())); preserved();
+  await press('Objavi zadatak'); preserved();
+  await press('Otkaži izbor'); preserved();
+  await press('Uskoči i zaradi'); preserved();
+  await act(async () => mockForeground.forEach(callback => callback('background'))); preserved();
+  let finish!: () => void;
+  worker.mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
+  await press('Uskoči i zaradi'); await advance(760); preserved();
+  await act(async () => finish()); preserved();
+  await press('Objavi zadatak'); preserved();
+  mockReduced = true; await act(async () => tree.update(element())); preserved();
+  await press('Uskoči i zaradi'); preserved();
+});
 it('does not let a retained auth handler bypass an in-flight intent or a changed session', async () => {
   await render(); const oldSignUp = button('Napravi nalog').props.onPress;
   await press('Objavi zadatak'); await act(async () => oldSignUp()); expect(signUp).not.toHaveBeenCalled();
@@ -121,6 +167,7 @@ it.each([['Objavi zadatak', 'requester', 'worker'], ['Uskoči i zaradi', 'worker
 });
 it('commits the complete static welcome before delayed UI clock writes, including late old assignments', async () => {
   mockPhase = 'intro'; await render();
+  const photoRefs = tree.root.findAllByType('OriginalImage' as React.ElementType).map(image => image.props.nativeIdentity);
   await act(async () => tree.root.findByProps({ testID: 'entry-brand-panel' }).props.onLayout({
     nativeEvent: { layout: { x: 24, y: 33, width: 288.6, height: 151 } },
   }));
@@ -128,15 +175,18 @@ it('commits the complete static welcome before delayed UI clock writes, includin
   expect(mockSharedAssignments.length).toBeGreaterThan(0);
   mockPhase = 'welcome'; await act(async () => tree.update(element()));
   const finalComposition = () => {
+    tree.root.findAllByType('OriginalImage' as React.ElementType).forEach((image, index) => expect(image.props.nativeIdentity).toBe(photoRefs[index]));
+    expect(mockImageMounted).toHaveBeenCalledTimes(2);
+    expect(mockImageUnmounted).not.toHaveBeenCalled();
     for (const id of ['entry-green-field', 'entry-orange-field', 'entry-requester-scene', 'entry-worker-scene']) {
       const node = tree.root.findByProps({ testID: id });
-      expect(node.type).toBe('View');
+      expect(node.type).toBe(id.endsWith('-scene') ? 'AnimatedView' : 'View');
       expect(StyleSheet.flatten(node.props.style)).toMatchObject({ opacity: 1, transform: [{ translateX: 0 }] });
     }
     for (const id of ['entry-slogan', 'entry-auth-footer', 'entry-requester-copy', 'entry-worker-copy',
       'entry-requester-note', 'entry-worker-note', 'entry-requester-photo-frame', 'entry-worker-photo-frame']) {
       const node = tree.root.findByProps({ testID: id });
-      expect(node.type).toBe('View');
+      expect(node.type).toBe(id.startsWith('entry-requester-') || id.startsWith('entry-worker-') ? 'AnimatedView' : 'View');
       const style = StyleSheet.flatten(node.props.style);
       expect(style.opacity).toBe(1); expect(style.transform[0]).toEqual({ translateY: 0 });
     }
