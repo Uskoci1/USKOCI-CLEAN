@@ -26,7 +26,7 @@ import type { NeedLocationInput, NeedLocationReview } from '../../contracts/loca
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { AuthorizedPhoto, mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 
-type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean };
+type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean };
 type Edit = { fact: AiNeedV2Fact; text: string; error: string | null };
 const changed = (): Ishod<never> => ({ ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled za trenutni nalog.' });
 function displayFact(fact: AiTaskReviewFact): AiNeedV2Fact {
@@ -76,15 +76,33 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         publishedReadback = need?.id === command.needId && need.revizija === command.needRevision
           && ['OBJAVLJENA', 'CEKA_PRIJAVE', 'DELIMICNO_POPUNJENA', 'POPUNJENA'].includes(need.stanje);
       }
-      return { ok: true, podatak: { review, command, publishedReadback } };
+      return { ok: true, podatak: { review, command, publishedReadback, locationConflict: false } };
+    }
+    let locationConflict = false;
+    const savedReview = latest.podatak?.review;
+    let location = locationProposal.current ?? (savedReview?.location
+      ? { expectedRevision: savedReview.geographyRevision, value: savedReview.location } : null);
+    if (location) {
+      // A manual location is persisted in the immutable review before final
+      // acceptance. Recover it against its geographical source, independently
+      // of unrelated changes (for example, a corrected title).
+      const canonical = await needLocationClientService.read(conversationId);
+      if (!current()) return changed();
+      if (!canonical.ok) return canonical;
+      if (canonical.podatak.revision !== location.expectedRevision) {
+        if (locationProposal.current === location) locationProposal.current = null;
+        location = null;
+        locationConflict = true;
+      }
     }
     const prepared = await aiTaskReviewClientService.prepare({ conversationId,
       responseDeadline: deadlineProposal.current !== undefined ? deadlineProposal.current : latest.podatak?.review.responseDeadline ?? null,
-      ...(locationProposal.current ? { location: locationProposal.current } : {}) });
+      ...(location ? { location } : {}) });
     if (!current()) return changed();
     if (!prepared.ok) return prepared;
+    if (locationConflict) setLocationEditor(null);
     pending.current = null;
-    return { ok: true, podatak: { review: prepared.podatak, command: null, publishedReadback: false } };
+    return { ok: true, podatak: { review: prepared.podatak, command: null, publishedReadback: false, locationConflict } };
   }, [conversationId, accountId, accountRevision, intent]);
   const editor = useOwnedEditor(read);
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
@@ -207,6 +225,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
       {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pregleda" color={a.color.green} style={{ padding: 30 }} /> : null}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {review ? <>
+          {snapshot?.locationConflict ? <View style={s.notice}><T accessibilityRole="alert" style={s.body}>
+            Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
+          </T></View> : null}
           {locationEditor ? <View style={s.section}><NeedLocationForm reviewOnly review={locationEditor}
             resolver={resolver} busy={editor.busy} uncertain={editor.uncertain} onSave={proposeLocation} />
             <V2Action label="Vrati se na pregled" kind="quiet" disabled={disabled} onPress={() => { resolver.cancel(); setLocationEditor(null); }} /></View> : null}

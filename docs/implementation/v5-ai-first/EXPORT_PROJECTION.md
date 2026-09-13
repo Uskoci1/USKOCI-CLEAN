@@ -25,3 +25,30 @@ Every INCLUDE entry selects from a fixed field list; EXCLUDE requires a reviewed
 This is an explicitly reviewed JSON projection, not a claim that every internal database field or binary object is included. Records retained for internal security, private counterpart data and original audio/pixels are outside it. The file itself lists reviewed omissions and per-dataset counts.
 
 Verification source: `v5_owned_export_proof.mjs` requires exact committed136 after135 on the disposable Auth/PostgreSQL/Storage stack. It checks two accounts, own-authored versus peer reviews, cross-account parent references, hostile nested extras, reviewed INCLUDE/EXCLUDE, class/catalog/source drift and grants, then uses the actual existing worker and download handlers. Its policy and Privacy entries are synthetic test data; predecessor pointers are restored in `finally`. Node syntax verification is separate from actual database compilation and execution.
+
+## Measured materialization correction, awaiting actual-function verification
+
+Run34736927496 at dc0f08a confirmed an actual snapshot timeout of20001ms after
+its binding and catalog checks passed. A SHA-bound read-only copy of the exact
+body also timed out. Changing only `owned_rows` to `AS MATERIALIZED` in that copy
+completed in278ms and passed all existing owned/nested-allowlist assertions.
+A separate actual-function call with session-local jit=off still timed out.
+The two EXPLAIN costs were3412.49 and3420.65, so the correction is not justified
+by an asserted lower planner cost or an assumed JIT cause.
+
+The undeployed136 candidate now computes the owned JSON rows once before their
+per-field projection. All ownership filters, fields, policies, grants, function
+volatility/search path and timeouts are byte-unchanged. Its new SHA256 is
+43f42b801e4bb06245aac6e5dd42c719ba808d88dce57357ffd8b8b1c2efadb6. Live history
+still ends at108; no applied live migration or previous source commit was edited.
+The full original136 is preserved in the proof fixture136_before_materialization.sql
+with SHA25673e5f3b0fab4fd8ca096ca3ef75a49054e06b1cc3583950b2f9223759dea7dad.
+The historical diagnostic helper rejects the new bytes before supplemental SQL;
+its old plan/hash cannot be silently attributed to the corrected function.
+
+Successor137/138/139/141 extend the same function body and retain this CTE marker;
+140 does not replace the export projection. Source review and focused tests
+support this narrow candidate, but actual136 handler/Storage and137–141 execution
+are still required. The successful diagnostic copy is not marked as a PASS of
+the corrected SECURITY DEFINER function or as exact content parity across separate
+MVCC snapshots.

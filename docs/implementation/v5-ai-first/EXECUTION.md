@@ -1,6 +1,40 @@
 # V5 AI-FIRST execution — active, incomplete
 
-Latest full-regression source is6850b126bb38ee22edfdfe054ea342a9b7680a2f,
+Latest full-regression source is dc0f08aaaefd35ee3b5c88903d81f8759ad25ab1,
+tree 616ae8a829e1ac85e58098d98798b9e886a4b5e2. Run34736927496 passed all11
+source gates,185 Jest suites/3711 tests and714 Node tests across46 files.
+25 actual Auth/Postgres reports through135 PASS;136 still FAIL and137–141 missing.
+The exact source-bound diagnostics confirmed the original full snapshot and
+original prepared body each timed out at20001ms. Changing only owned_rows to
+AS MATERIALIZED in the diagnostic body succeeded in278ms and passed every
+existing ownership/nested allowlist assertion plus account/receipt/cutoff checks.
+The actual SECURITY DEFINER function with session-local jit=off still timed out
+at20001ms. EXPLAIN costs were3412.49/3420.65 with101/103 nodes; no JIT metrics
+were returned. Three timeouts had sampled active/no-wait/no-blocker backends.
+This isolates a materialization candidate, not CPU causation or a PASS of the
+actual corrected function. A one-word correction of the undeployed136 candidate
+is now reviewed, with original bytes retained as a historical proof fixture.
+New136 SHA25643f42b801e4bb06245aac6e5dd42c719ba808d88dce57357ffd8b8b1c2efadb6;
+only `materialized ` was inserted and its pending registry hashes updated.
+43 focused source tests and the141 migration/provenance checks PASS; root also
+independently passed all28 diagnostic/observer tests. Actual corrected-function
+execution, downstream proofs and export-handler/Storage behavior remain pending.
+No live/applied history, global setting, timeout, policy or provider is changed.
+Verified artifact SHA25675e5ff102112ca4521e0268a013f98d71a1defd152ff75c64e4a0005a9cb591c.
+
+Native review found a saved manual location could disappear after review remount.
+The reviewed correction compares canonical geographic revision for both a local
+proposal and restored server review, preserving the manual choice across title
+changes. A newer geography gets an explicit conflict notice and current review;
+post-read CAS races do not silently retry. An explicit refresh can recover from
+that race without leaving an old form active.49 focused Jest tests and TypeScript
+PASS; no SQL/client DTO or final acceptance boundary changed.
+A separate dispatched-unknown Task edit can block the account's opaque journal;
+the explicit post-dispatch owner exit proposal is awaiting a new owner decision
+in UNKNOWN_AI_TURN_EXIT_PROPOSAL.md. No journal is silently cleared or provider
+request retried while that decision is pending.
+
+Previous full-regression source was6850b126bb38ee22edfdfe054ea342a9b7680a2f,
 treefd874e1a60de05565232c446fda52c247ba2d344, including registered109–141.
 Run34735685885 passed all11 source gates,185 Jest suites/3711 tests and700 Node
 tests across45 files.25 actual Auth/Postgres reports through135 PASS.136 applied
@@ -32,7 +66,11 @@ unsilenced local Jest run then passed185 suites/3711 tests with exit0, without t
 late logger failure (304.517s alongside the Android build). Six URL-validation CodeQL findings
 are corrected in tests. Three remaining findings were reviewed individually,
 with preserved source/checksum evidence and explicit reasons; see
-PR102_SOURCE_CHECK_REVIEW.md. This is not a final CodeQL/rerun PASS claim.
+PR102_SOURCE_CHECK_REVIEW.md. Saved correction dc0f08aaaefd35ee3b5c88903d81f8759ad25ab1
+then passed exact PR source run34736894868 and CodeQL run34736893099. GitHub
+confirms URL alerts20–25 fixed, with zero open alerts on the PR head;17–19 retain
+their documented dispositions. Separate disposable FULL141 run34736927496 result
+is recorded above. Skipped draft domain jobs are not an actual SQL PASS claim.
 
 Previous full-regression source was28c47c01a3637e67ce767910ed213477a9a933b1,
 treef7e169159ff528d74b97606fb8bb1fb8ed7b59fa, including registered109–141.

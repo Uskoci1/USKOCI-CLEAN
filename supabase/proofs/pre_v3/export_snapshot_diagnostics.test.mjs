@@ -5,7 +5,9 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {SNAPSHOT136_SOURCE,buildSnapshotDiagnostics,sanitizeSnapshotPlan,runSnapshotDiagnostics,rethrowSnapshotFailure} from './export_snapshot_diagnostics.mjs';
 import {ObservedSqlError,OBSERVED_SQL_LIMITS,restoreObservedSql} from './observed_export_sql.mjs';
-const source=readFileSync(new URL('../../migrations/20260913001000_clean_v5_owned_export_projection.sql',import.meta.url));
+// Preserved bytes from the actually reproduced dc0f08a/34736927496 failure.
+const source=readFileSync(new URL('./fixtures/136_before_materialization.sql',import.meta.url));
+const candidate=readFileSync(new URL('../../migrations/20260913001000_clean_v5_owned_export_projection.sql',import.meta.url));
 const secret="PRIVATE_SNAPSHOT_'_);drop table auth.users;--_FILTER_PROVIDER_KEY";
 const params=()=>({accountId:'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',receiptId:'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',
  binding:{delivery:{datasets:[{key:'account',mode:'INCLUDE',fields:['id']}],secret},private:secret},cutoff:'2026-09-13T03:00:00.000Z'});
@@ -157,4 +159,17 @@ test('one actual function control disables JIT only locally before planning, wit
 test('even a frozen diagnostic report cannot replace the original canonical error',async()=>{
  const f=transport(),original=new ObservedSqlError('SNAPSHOT_FULL','ETIMEDOUT',null);f.options.report=Object.freeze({});
  await assert.rejects(rethrowSnapshotFailure(original,f.options),error=>error===original);assert.equal(f.calls.length,0);
+});
+
+// The deployed/live history is not rewritten. This compares only the pending
+// candidate against the preserved source used by the historical diagnostics.
+test('unapplied candidate differs by exactly one MATERIALIZED marker and historical probes reject its new bytes before SQL',async()=>{
+ const before=source.toString(),after=candidate.toString(),marker=' owned_rows as (';
+ assert.equal(before.split(marker).length,2);assert.equal(after.split(' owned_rows as materialized (').length,2);
+ assert.deepEqual(candidate,Buffer.from(before.replace(marker,' owned_rows as materialized (')));
+ assert.notEqual(createHash('sha256').update(candidate).digest('hex'),SNAPSHOT136_SOURCE.migrationSha256);
+ const f=transport(),original=new ObservedSqlError('SNAPSHOT_FULL','ETIMEDOUT',null);f.options.readSource=()=>candidate;
+ await assert.rejects(rethrowSnapshotFailure(original,f.options),error=>error===original);
+ assert.equal(f.calls.length,0);assert.equal(f.report.exportPerformanceDiagnostics.sourceBinding,'REJECTED');
+ assert.deepEqual(f.report.exportPerformanceDiagnostics.steps,[]);assert.equal(f.report.exportPerformanceDiagnostics.trigger.operation,'SNAPSHOT_FULL');
 });

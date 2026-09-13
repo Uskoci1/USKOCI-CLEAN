@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskReviewClientService';
+import type { NeedLocationInput } from '../../contracts/location';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -58,6 +59,20 @@ function command(state: AiTaskPublicationCommand['state'] = 'ACCEPTED'): AiTaskP
     state, evaluation: null, published: state === 'PUBLISHED' ? { needId: NEED, status: 'PUBLISHED',
       publishedAt: '2026-09-12T12:00:01Z', responseDeadline: null, idempotentReplay: false } : null, authoritative: true };
 }
+function location(label: string): NeedLocationInput {
+  const geography = { mode: 'STATIONARY' as const, start: { city: 'Beograd', area: label } };
+  const exactAddress = `Adresa ${label}`;
+  return { taskCountryCode: 'RS', geography, exactAddress, accessNotes: null,
+    resolvedLocation: { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress },
+      points: [{ slot: 'start', latitudeE6: 44810000, longitudeE6: 20460000, origin: { kind: 'MANUAL_PIN' } }] } };
+}
+function locatedReview(value: NeedLocationInput, geographyRevision = 'c'.repeat(64)): AiTaskReviewEnvelope {
+  return { ...review(), location: value, geographyRevision,
+    ownerPrivateProjection: [{ ...review().ownerPrivateProjection[0], value: value.exactAddress!, displayValue: value.exactAddress! }] };
+}
+const canonicalLocation = (value: NeedLocationInput, revision = 'c'.repeat(64)) => ({
+  accountId: OWNER, conversationId: CONVERSATION, editable: true, confirmed: false, revision, value,
+});
 const notReadyCommand = (): AiTaskPublicationCommand => ({ ...command('EVALUATED'), evaluation: {
   kind: 'NOT_READY', needId: NEED, needRevision: 1, authoritativeDecision: false, code: 'EVALUATOR_UNAVAILABLE',
 } });
@@ -210,6 +225,119 @@ it('passes reviewOnly to the location editor and prepares the proposed location 
   expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+});
+
+it('restores a server-reviewed location B after a real remount while canonical facts still contain A', async () => {
+  const a = location('A'), b = location('B');
+  const saved = { ...locatedReview(b), reviewId: OTHER };
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(a)));
+  mockPrepare.mockResolvedValue(ok(locatedReview(a)));
+  await render(); await act(async () => action('Uredi mesto').onPress());
+  mockPrepare.mockResolvedValue(ok(saved));
+  await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(b));
+  expect(text()).toContain('Adresa B');
+  expect(mockLocationSave).not.toHaveBeenCalled();
+  await act(async () => tree.unmount());
+  mockLatest.mockResolvedValue(ok({ review: saved, command: null }));
+  mockPrepare.mockImplementation(async (input: { location?: { value: NeedLocationInput } }) =>
+    ok(locatedReview(input.location?.value ?? a)));
+  await render();
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
+    location: { expectedRevision: saved.geographyRevision, value: b } });
+  expect(text()).toContain('Adresa B'); expect(text()).not.toContain('Adresa A');
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+});
+
+it('keeps the reviewed location across an unrelated title revision and accepts only the newly prepared review', async () => {
+  const b = location('B'), saved = locatedReview(b);
+  const updated = { ...saved, reviewId: OTHER, factsRevision: 'd'.repeat(64), sourceTurnRevision: 3,
+    publicProjection: [{ ...saved.publicProjection[0], value: 'Novi naslov', displayValue: 'Novi naslov' }] };
+  mockLatest.mockResolvedValue(ok({ review: saved, command: null }));
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(location('A'))));
+  mockPrepare.mockResolvedValue(ok(updated));
+  await render();
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
+    location: { expectedRevision: saved.geographyRevision, value: b } });
+  expect(text()).toContain('Novi naslov'); expect(text()).toContain('Adresa B');
+  expect(mockAccept).not.toHaveBeenCalled();
+  await act(async () => publish().onPress());
+  expect(mockAccept.mock.calls[0][0].review).toEqual(updated);
+});
+
+it('shows a geographical conflict with the current C review instead of replaying old B over a newer location', async () => {
+  const b = location('B'), c = location('C'), revision = 'd'.repeat(64);
+  mockLatest.mockResolvedValue(ok({ review: locatedReview(b), command: null }));
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(c, revision)));
+  mockPrepare.mockResolvedValue(ok(locatedReview(c, revision)));
+  await render();
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
+  expect(text()).toContain('Mesto je promenjeno posle prethodnog pregleda.');
+  expect(text()).toContain('Adresa C'); expect(text()).not.toContain('Adresa B');
+  expect(publish().disabled).toBe(false); expect(action('Uredi mesto').disabled).toBe(false);
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockLocationSave).not.toHaveBeenCalled();
+  await act(async () => action('Uredi mesto').onPress());
+  expect(tree.root.findByType('LocationForm' as React.ElementType).props.review.value).toEqual(c);
+});
+
+it('preserves a server CAS conflict after recovery read without silently retrying with a newer location', async () => {
+  const saved = locatedReview(location('B'));
+  mockLatest.mockResolvedValue(ok({ review: saved, command: null }));
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(location('A'))));
+  mockPrepare.mockResolvedValue({ ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Mesto je promenjeno. Pregledajte novu lokaciju.' });
+  await render();
+  expect(mockPrepare).toHaveBeenCalledTimes(1);
+  expect(mockPrepare).toHaveBeenCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
+    location: { expectedRevision: saved.geographyRevision, value: saved.location } });
+  expect(text()).toContain('Mesto je promenjeno. Pregledajte novu lokaciju.');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
+  expect(mockAccept).not.toHaveBeenCalled();
+});
+
+it('recovers a retained local B proposal after an external C revision on the next explicit refresh', async () => {
+  const a = location('A'), b = location('B'), c = location('C');
+  const saved = locatedReview(a), newer = locatedReview(c, 'd'.repeat(64));
+  mockLatest.mockResolvedValue(ok({ review: saved, command: null }));
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(a)));
+  mockPrepare.mockResolvedValue(ok(saved));
+  await render(); await act(async () => action('Uredi mesto').onPress());
+  // C wins after the read but before preparing B: the first CAS failure is not
+  // hidden, and the same mounted screen still holds its local B proposal.
+  mockPrepare.mockResolvedValueOnce({ ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Mesto je promenjeno. Pregledajte novu lokaciju.' });
+  await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(b));
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
+    location: { expectedRevision: saved.geographyRevision, value: b } });
+  expect(text()).toContain('Mesto je promenjeno. Pregledajte novu lokaciju.');
+  expect(mockPrepare).toHaveBeenCalledTimes(2);
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(c, newer.geographyRevision)));
+  mockPrepare.mockResolvedValue(ok(newer));
+  await act(async () => action('Učitaj pregled i proveri ishod').onPress());
+  expect(mockPrepare).toHaveBeenCalledTimes(3);
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
+  expect(text()).toContain('Adresa C'); expect(text()).toContain('Mesto je promenjeno posle prethodnog pregleda.');
+  // A form bound to A must not remain editable above the new C review.
+  expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+  expect(publish().disabled).toBe(false);
+  await act(async () => action('Uredi mesto').onPress());
+  expect(tree.root.findByType('LocationForm' as React.ElementType).props.review.value).toEqual(c);
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockLocationSave).not.toHaveBeenCalled();
+});
+
+it.each(['blur', 'account ABA', 'route'] as const)('does not prepare from a late recovered geographical read after %s', async change => {
+  const held = deferred();
+  mockLatest.mockResolvedValue(ok({ review: locatedReview(location('B')), command: null }));
+  mockLocationRead.mockReturnValueOnce(held.promise);
+  await render(); expect(mockPrepare).not.toHaveBeenCalled();
+  mockLatest.mockResolvedValue(ok(null));
+  if (change === 'blur') await blur();
+  else {
+    if (change === 'account ABA') mockSession = { user: { id: OWNER }, accountRevision: 3 };
+    if (change === 'route') mockParams = { conversationId: OTHER };
+    await update();
+  }
+  const preparations = mockPrepare.mock.calls.length;
+  await act(async () => held.resolve(ok(canonicalLocation(location('A')))));
+  expect(mockPrepare).toHaveBeenCalledTimes(preparations);
+  expect(text()).not.toContain('Adresa B'); expect(mockAccept).not.toHaveBeenCalled();
 });
 
 it('prepares a new immutable review for an explicit deadline without publishing while the editor is open', async () => {

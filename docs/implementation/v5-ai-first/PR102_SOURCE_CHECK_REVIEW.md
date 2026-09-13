@@ -5,6 +5,16 @@ treefd874e1a60de05565232c446fda52c247ba2d344. Draft
 [PR102](https://github.com/Uskoci1/USKOCI-CLEAN/pull/102) targets unchanged
 canonical916ffb498ba5ad47a307a3c66477757b6753095a. No merge or live operation.
 
+The saved correction is dc0f08aaaefd35ee3b5c88903d81f8759ad25ab1,
+tree616ae8a829e1ac85e58098d98798b9e886a4b5e2. Its exact PR source-check
+[run34736894868](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34736894868)
+and CodeQL [run34736893099](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34736893099)
+both completed successfully. GitHub reports alerts20–25 fixed and no open
+code-scanning alerts for refs/pull/102/head. Alerts17–19 retain their explicit
+dispositions below. The draft's skipped domain jobs are not database evidence;
+the separate actual Auth/Postgres run34736927496 stopped at136 and supplies the
+materialization diagnosis documented in EXECUTION.md.
+
 ## Jest teardown failure
 
 [PRE-P4 run34735642488](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34735642488)
@@ -23,7 +33,7 @@ the warning. A second reviewer confirmed the installed-source diagnosis.
 The subsequent full unsilenced Jest run passed185 suites/3711 tests with exit0
 in304.517s while Android compilation was also running. The late logger warning
 did not recur. Existing in-test Expo Go splash/push warnings remain visible;
-they were not suppressed. The exact saved-source PR rerun is still pending.
+they were not suppressed. The exact saved-source PR rerun above also passes.
 
 ## CodeQL findings and disposition
 
@@ -41,8 +51,8 @@ new findings. No scanner setting, severity, rule or path exclusion was changed.
 
 The three test-file URL changes passed74 Node tests and23 Jest tests in the
 focused author verification; root independently reran all74 Node tests and the
-full Jest suite successfully. Their next exact-source CodeQL result is pending;
-they have not been marked fixed merely because a local edit exists.
+full Jest suite successfully. The exact-source CodeQL run above subsequently
+confirmed all six URL findings fixed; this status is not inferred from local edits.
 
 Alerts17/18 refer to the identical no-op replacement of a layout tag in the
 owner-supplied historical V2 donor. It is not a sanitizer. Source and Edge import
