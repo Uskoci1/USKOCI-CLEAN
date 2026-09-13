@@ -1,7 +1,7 @@
 {
-  "sourceSha": "d37a662bd093184cc7e27eadc8c0666305c6fed5",
-  "sourceTree": "66bc627aafc523f1b777c52399cf658ac2281fc9",
-  "purpose": "Verify the repaired identity145 prompt-context proof on current V5 integration and continue the exact disposable sequence through146/147. FULL147 only; no live write, real provider, device or release claim.",
+  "sourceSha": "fe39c12bd23f469b0b3dc37effd25be908d058e9",
+  "sourceTree": "506713acf34e6400e197a0ad5f078f971511b6a3",
+  "purpose": "Verify the account-erasure proof TDZ repair on current V5 integration and continue the exact disposable sequence through146/147. FULL147 only; no live write, real provider, device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
