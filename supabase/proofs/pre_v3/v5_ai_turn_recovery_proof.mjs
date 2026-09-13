@@ -85,27 +85,60 @@ await prove('V5_AI_TURN_RESTART_RECOVERY','v5-ai-turn-recovery-report.json',asyn
  pass(report,'ABANDON_FENCES_LATE_COMPLETION_PRE_PROVIDER_FAILURE_EXPLICIT_SAME_KEY_RETRY_OLD_ATTEMPT_DENIED');
 
  resetRate(a);const edgeCid=await fresh(a),edgeKey=randomUUID(),token=(await ok(a.client.auth.getSession())).session.access_token;
- let providerCalls=0;const origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
+ let providerCalls=0,budgetCalls=0;const origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
+ // Disposable operator fixture for the actual current handler's mandatory127
+ // admission. Preserve prior global consumption; this never mocks a reservation,
+ // resets a production budget or permits a provider request beyond this stub.
+ const budgetBefore=JSON.parse(sql('select to_jsonb(b) from private.ai_test_budget_v5 b where singleton'));
+ assert.ok(budgetBefore&&Number.isSafeInteger(budgetBefore.reserved_microusd)&&budgetBefore.reserved_microusd<=4750000);
+ assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
+ assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(edgeKey)}::uuid`),'0');
  const edgeEnv={SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,
-  SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,AI_PROVIDER:'openai',OPENAI_API_KEY:'SYNTHETIC_NON_SECRET',OPENAI_MODEL:'SYNTHETIC_MODEL'};
+  SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_NON_SECRET',GEMINI_MODEL:'gemini-3.8-flash',
+  USKOCI_GEMINI_PAID_TEST_ENABLED:'true'};
  const runtime=loadOwnedIntakeHandler({env:name=>edgeEnv[name],fetch:async(input,init={})=>{
   const target=new URL(String(input));
-  if(target.href==='https://api.openai.com/v1/responses'){
+  if(target.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){
    providerCalls++;assert.equal((await recover(a,edgeCid,edgeKey)).providerDispatched,true);
-   return new Response(JSON.stringify({status:'completed',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'SYNTHETIC response',facts:[]})}),{headers:{'Content-Type':'application/json'}});
+   assert.equal(budgetCalls,1);
+   assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(edgeKey)}::uuid and kind='LLM' and max_cost_microusd=250000`),'1');
+   return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'SYNTHETIC response',facts:[]})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
   }
-  assert.equal(target.origin,origin);assert.ok(target.pathname==='/auth/v1/user'||target.pathname.startsWith('/rest/v1/'));return fetch(input,init);
+  assert.equal(target.origin,origin);assert.ok(target.pathname==='/auth/v1/user'||target.pathname.startsWith('/rest/v1/'));
+  if(target.pathname==='/rest/v1/rpc/rpc_ai_test_budget_reserve_service'){
+   budgetCalls++;assert.deepEqual(JSON.parse(init.body),{p_account_id:a.id,p_operation_id:edgeKey,p_kind:'LLM',p_max_cost_microusd:250000});
+  }
+  return fetch(input,init);
  }});
  const invoke=()=>runtime.handler(new Request('https://synthetic-handler.invalid',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
   body:JSON.stringify({conversationId:edgeCid,clientRequestId:edgeKey,text:'SYNTHETIC canonical recovery text'})}));
- const result=await invoke();assert.equal(result.status,200);const receipt=await result.json();assert.equal(receipt.state,'SUCCEEDED');
- const durable=await recover(a,edgeCid,edgeKey);assert.deepEqual(durable.turn,receipt);
- const messages=await ok(a.client.from('ai_messages').select('id,body,role').eq('conversation_id',edgeCid));
- assert.equal(messages.length,2);assert.equal(messages.find(m=>m.id===receipt.receipt.userMessageId).body,'SYNTHETIC canonical recovery text');
- assert.deepEqual(await(await invoke()).json(),receipt);assert.equal(providerCalls,1);assert.equal(count(edgeCid),2);
- assert.equal((await cancel(a,edgeCid,edgeKey)).cancelled,false);
- report.actualEdgeSourceHashes=runtime.sourceHashes;
- pass(report,'LATEST_ACTUAL_EDGE_AUTH_DISPATCH_CAS_SQL_CANONICAL_HISTORY_LOST_RECEIPT_RECOVERY_ONE_SYNTHETIC_PROVIDER_CALL');
+ let primaryFailure;
+ try{
+  sql(`begin;insert into private.ai_test_accounts_v5(account_id) values(${q(a.id)}::uuid);
+   update private.ai_test_budget_v5 set enabled=true,price_valid_until=least(clock_timestamp()+interval '1 hour','2027-01-01T00:00:00Z'::timestamptz) where singleton;commit;`);
+  const result=await invoke();assert.equal(result.status,200);const receipt=await result.json();assert.equal(receipt.state,'SUCCEEDED');
+  const durable=await recover(a,edgeCid,edgeKey);assert.deepEqual(durable.turn,receipt);
+  const messages=await ok(a.client.from('ai_messages').select('id,body,role').eq('conversation_id',edgeCid));
+  assert.equal(messages.length,2);assert.equal(messages.find(m=>m.id===receipt.receipt.userMessageId).body,'SYNTHETIC canonical recovery text');
+  assert.equal(Number(sql('select reserved_microusd from private.ai_test_budget_v5 where singleton')),budgetBefore.reserved_microusd+250000);
+  // Replaying the durable result remains readable after paid admission closes.
+  edgeEnv.USKOCI_GEMINI_PAID_TEST_ENABLED='false';
+  assert.deepEqual(await(await invoke()).json(),receipt);assert.equal(providerCalls,1);assert.equal(budgetCalls,1);assert.equal(count(edgeCid),2);
+  assert.equal((await cancel(a,edgeCid,edgeKey)).cancelled,false);
+  assert.equal(Number(sql('select reserved_microusd from private.ai_test_budget_v5 where singleton')),budgetBefore.reserved_microusd+250000);
+  report.actualEdgeSourceHashes=runtime.sourceHashes;
+  pass(report,'LATEST_ACTUAL_EDGE_AUTH_BUDGET_DISPATCH_CAS_SQL_CANONICAL_HISTORY_LOST_RECEIPT_RECOVERY_ONE_SYNTHETIC_PROVIDER_CALL');
+ }catch(error){primaryFailure=error;throw error;}
+ finally{
+  try{
+   sql(`begin;delete from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(edgeKey)}::uuid;
+    delete from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid;
+    update private.ai_test_budget_v5 set enabled=${budgetBefore.enabled},reserved_microusd=${budgetBefore.reserved_microusd},price_valid_until=${q(budgetBefore.price_valid_until)}::timestamptz where singleton;commit;`);
+   assert.deepEqual(JSON.parse(sql('select to_jsonb(b) from private.ai_test_budget_v5 b where singleton')),budgetBefore);
+   assert.equal(sql(`select count(*) from private.ai_test_accounts_v5 where account_id=${q(a.id)}::uuid`),'0');
+   assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where operation_id=${q(edgeKey)}::uuid`),'0');
+  }catch(error){report.fixtureCleanupFailed=true;if(!primaryFailure)throw error;}
+ }
  assert.equal(sql(`select sha256=private.closure_source_digest_v5() from private.closure_source_v5 where singleton`),'t');
  pass(report,'TECHNICAL_CLOSURE_SOURCE_INVENTORY_REFRESH_WITHOUT_POLICY_ACTIVATION');
 });

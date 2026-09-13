@@ -11,11 +11,12 @@ const providerType=value=>{
  const url=new URL(value);
  if(url.username||url.password||url.search||url.hash)return null;
  if(url.origin==='https://api.openai.com'&&url.pathname==='/v1/responses')return 'openai';
- if(url.origin==='https://generativelanguage.googleapis.com'&&url.pathname==='/v1beta/models/synthetic-gemini:generateContent')return 'gemini';
+ if(url.origin==='https://generativelanguage.googleapis.com'&&url.pathname==='/v1beta/models/gemini-3.8-flash:generateContent')return 'gemini';
  return null;
 };
 function fixture(options={}){
- const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',OPENAI_API_KEY:'SYNTHETIC_OPENAI_SECRET',OPENAI_MODEL:'synthetic-openai',GEMINI_API_KEY:'SYNTHETIC_GEMINI_SECRET',GEMINI_MODEL:'synthetic-gemini',...options.env};
+ const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',OPENAI_API_KEY:'SYNTHETIC_OPENAI_SECRET',OPENAI_MODEL:'synthetic-openai',
+  AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_GEMINI_SECRET',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...options.env};
  const calls=[],logs=[],envReads=[];
  const clock=Date.parse('2026-09-12T16:00:00Z');
  class FixedDate extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
@@ -29,6 +30,7 @@ function fixture(options={}){
    // Labelled unit transport: authorize the 132 dispatch CAS synthetically;
    // real SQL races remain the responsibility of the actual recovery proof.
    if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return json(true);
+   if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json({admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
    const provider=providerType(url);
    if(provider){
     if(options.provider)return options.provider(url,init);
@@ -45,21 +47,25 @@ const providers=f=>f.calls.filter(x=>providerType(x.url)!==null);
 const completes=f=>f.calls.filter(x=>x.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
 test('synthetic provider transport admits only exact HTTPS origins and model endpoint paths',()=>{
  assert.equal(providerType('https://api.openai.com/v1/responses'),'openai');
- assert.equal(providerType('https://generativelanguage.googleapis.com/v1beta/models/synthetic-gemini:generateContent'),'gemini');
+ assert.equal(providerType('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'),'gemini');
  for(const url of ['https://api.openai.com.attacker.invalid/v1/responses','https://attacker.invalid/api.openai.com',
   'https://attacker.invalid/?host=generativelanguage.googleapis.com','https://api.openai.com@attacker.invalid/v1/responses',
   'https://user:password@api.openai.com/v1/responses','http://api.openai.com/v1/responses','https://api.openai.com:8443/v1/responses',
   'https://api.openai.com/v1/responses-extra','https://generativelanguage.googleapis.com/v1beta/models/other:generateContent'])assert.equal(providerType(url),null);
 });
 for(const [name,env,expected] of [
- ['both configured, implicit OpenAI primary',{},'openai'],
- ['OpenAI only',{GEMINI_API_KEY:undefined,GEMINI_MODEL:undefined},'openai'],
- ['Gemini fallback when OpenAI key missing',{OPENAI_API_KEY:undefined},'gemini'],
- ['Gemini fallback when OpenAI model missing',{OPENAI_MODEL:undefined},'gemini'],
- ['explicit OpenAI',{AI_PROVIDER:'openai'},'openai'],
- ['explicit Gemini override',{AI_PROVIDER:'gemini'},'gemini'],
+ ['both configured but absent selector is closed',{AI_PROVIDER:undefined},null],
+ ['OpenAI only is closed',{AI_PROVIDER:'openai',GEMINI_API_KEY:undefined,GEMINI_MODEL:undefined},null],
+ ['explicit Gemini is independent of OpenAI key',{OPENAI_API_KEY:undefined},'gemini'],
+ ['explicit Gemini is independent of OpenAI model',{OPENAI_MODEL:undefined},'gemini'],
+ ['explicit OpenAI is closed',{AI_PROVIDER:'openai'},null],
+ ['explicit approved Gemini with shared budget',{AI_PROVIDER:'gemini'},'gemini'],
 ])test(name,async()=>{
- const f=fixture({env});const r=await f.invoke();assert.equal(r.status,200);assert.deepEqual(await r.json(),stored);
+ const f=fixture({env});const r=await f.invoke();
+ if(expected===null){assert.equal(r.status,503);assert.equal((await r.json()).code,'AI_PROVIDER_NOT_CONFIGURED');
+  assert.equal(providers(f).length,0);assert.equal(completes(f).length,0);
+  assert.equal(f.calls.filter(x=>x.url.endsWith('/rpc_ai_test_budget_reserve_service')).length,0);return;}
+ assert.equal(r.status,200);assert.deepEqual(await r.json(),stored);
  assert.equal(providers(f).length,1);assert.equal(providerType(providers(f)[0].url),expected);
  assert.equal(completes(f).length,1);assert.equal(completes(f)[0].body.p_assistant_message,content.assistantMessage);
  assert.deepEqual(completes(f)[0].body.p_proposals,[{key:'need.people_needed',value:2,displayValue:'Dve osobe',confidence:0.9,evidence:'dve osobe'}]);
@@ -70,12 +76,12 @@ for(const env of [{AI_PROVIDER:''},{AI_PROVIDER:'unknown'},{AI_PROVIDER:'openai'
  const f=fixture({env});const r=await f.invoke();assert.equal(r.status,503);assert.equal((await r.json()).code,'AI_PROVIDER_NOT_CONFIGURED');
  assert.equal(providers(f).length,0);assert.equal(completes(f).length,0);
 });
-for(const provider of ['openai','gemini'])for(const status of [429,500,503])test(`${provider} HTTP ${status} does not retry or switch provider`,async()=>{
+for(const provider of ['gemini'])for(const status of [429,500,503])test(`${provider} HTTP ${status} does not retry or switch provider`,async()=>{
  const f=fixture({env:{AI_PROVIDER:provider},provider:()=>new Response('PRIVATE_PROVIDER_BODY',{status})});
  const r=await f.invoke();assert.equal(r.status,502);assert.equal((await r.json()).code,'AI_PROVIDER_FAILED');
  assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_PROVIDER_BODY'));
 });
-for(const provider of ['openai','gemini'])for(const mode of ['malformed','schema','unavailable'])test(`${provider} ${mode} response cannot persist success`,async()=>{
+for(const provider of ['gemini'])for(const mode of ['malformed','schema','unavailable'])test(`${provider} ${mode} response cannot persist success`,async()=>{
  const f=fixture({env:{AI_PROVIDER:provider},provider:()=>{
   if(mode==='unavailable')throw new Error('PRIVATE_PROVIDER_STACK');
   const raw=mode==='malformed'?'not-json':JSON.stringify({...content,safety:'UNKNOWN'});
@@ -84,7 +90,7 @@ for(const provider of ['openai','gemini'])for(const mode of ['malformed','schema
  const r=await f.invoke();const body=await r.json();assert.equal(r.status,502);assert.equal(body.code,'AI_PROVIDER_FAILED');
  assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);assert.ok(!JSON.stringify([body,f.logs]).includes('PRIVATE_PROVIDER_STACK'));
 });
-for(const provider of ['openai','gemini'])test(`${provider} timeout fences late output and never falls back`,async()=>{
+for(const provider of ['gemini'])test(`${provider} timeout fences late output and never falls back`,async()=>{
  let resolve;const late=new Promise(r=>{resolve=r;});const timers=new Map();let sequence=0;
  const f=fixture({env:{AI_PROVIDER:provider},provider:()=>late,setTimeout:(fn,ms)=>{const n=++sequence;timers.set(n,{fn,ms});return n;},clearTimeout:n=>timers.delete(n)});
  const running=f.invoke();for(let n=0;n<100&&!providers(f).length;n++)await new Promise(r=>setImmediate(r));

@@ -1,7 +1,7 @@
 // @ts-nocheck
 // USKOCI server-side AI intake boundary.
 // Provider secrets live only in Supabase Edge Function environment. Never expose
-// GEMINI_API_KEY / OPENAI_API_KEY / SUPABASE_SERVICE_ROLE_KEY to Expo, source or logs.
+// GEMINI_API_KEY / SUPABASE_SERVICE_ROLE_KEY to Expo, source or logs.
 
 import {
   LEGACY_FACT_SCHEMA_V1,
@@ -170,16 +170,6 @@ function validClaimContext(context: unknown) {
       isAiProposableNeedFactV2Key(row.fact_key) && row.fact_schema_version === NEED_FACT_SCHEMA_V2);
 }
 
-function outputText(payload: any): string | null {
-  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) return payload.output_text;
-  for (const item of payload?.output ?? []) {
-    for (const part of item?.content ?? []) {
-      if (part?.type === 'output_text' && typeof part.text === 'string' && part.text.trim()) return part.text;
-    }
-  }
-  return null;
-}
-
 function geminiText(payload: any): string | null {
   for (const candidate of payload?.candidates ?? []) {
     for (const part of candidate?.content?.parts ?? []) {
@@ -263,21 +253,6 @@ function v2ProviderSchema() {
     },
     required: ['safety', 'assistantMessage', 'facts'],
   };
-}
-
-function openAiSchema(schemaVersion: FactSchemaVersion) {
-  const src = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2ProviderSchema() : legacyProviderSchema();
-  const convert = (node: any): any => {
-    if (Array.isArray(node)) return node.map(convert);
-    if (!node || typeof node !== 'object') return node;
-    const out: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(node)) {
-      if (key === 'type' && typeof value === 'string') out[key] = value.toLowerCase();
-      else out[key] = convert(value);
-    }
-    return out;
-  };
-  return convert(src);
 }
 
 function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
@@ -521,51 +496,6 @@ async function callGemini(
   return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseV2Output(parsed) : parseLegacyOutput(parsed);
 }
 
-async function callOpenAI(
-  key: string,
-  model: string,
-  schemaVersion: FactSchemaVersion,
-  history: any[],
-  activeFacts: any[],
-  text: string,
-  timeContext: ServerTimeContext,
-  signal?: AbortSignal,
-) {
-  const transcript = history.slice(-30).map((row) => ({
-    role: row.role === 'ASSISTANT' ? 'assistant' : 'user',
-    content: [{ type: row.role === 'ASSISTANT' ? 'output_text' : 'input_text', text: String(row.body ?? '').slice(0, 4000) }],
-  }));
-  transcript.push({ role: 'user', content: [{ type: 'input_text', text }] });
-  const providerResponse = await boundedJson('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      store: false,
-      instructions: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext) : legacyInstruction(activeFacts, timeContext),
-      input: transcript,
-      text: {
-        format: {
-          type: 'json_schema',
-          name: schemaVersion === NEED_FACT_SCHEMA_V2 ? 'uskoci_need_intake_v2' : 'uskoci_need_intake_legacy',
-          strict: true,
-          schema: openAiSchema(schemaVersion),
-        },
-      },
-    }),
-  }, 131072, 12000, signal, true);
-  if (!providerResponse.ok) {
-    console.error('OPENAI_RESPONSES_FAILED', providerResponse.status);
-    throw new Error('PROVIDER_HTTP_FAILED');
-  }
-  const payload = providerResponse.data;
-  if (payload?.status !== undefined && payload.status !== 'completed') throw new Error('PROVIDER_OUTPUT_INCOMPLETE');
-  const raw = outputText(payload);
-  if (!raw) throw new Error('PROVIDER_OUTPUT_MISSING');
-  const parsed = JSON.parse(raw);
-  return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseV2Output(parsed) : parseLegacyOutput(parsed);
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return response(405, { code: 'METHOD_NOT_ALLOWED', message: 'Koristite POST.' });
@@ -663,10 +593,7 @@ Deno.serve(async (req: Request) => {
       history = [...messages.data].reverse(); activeFacts = facts.data;
     }
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '', geminiModel = Deno.env.get('GEMINI_MODEL') ?? '';
-    const openaiKey = Deno.env.get('OPENAI_API_KEY') ?? '', openaiModel = Deno.env.get('OPENAI_MODEL') ?? '';
-    const selectedProvider = Deno.env.get('AI_PROVIDER');
-    const provider = selectedProvider === undefined
-      ? (openaiKey && openaiModel ? 'openai' : geminiKey && geminiModel ? 'gemini' : '') : selectedProvider;
+    const provider = Deno.env.get('AI_PROVIDER') ?? '';
     const timeContext = serverTimeContext(new Date());
     const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
     let aiTurn: ParsedTurn;
@@ -675,18 +602,19 @@ Deno.serve(async (req: Request) => {
         await retireAttempt();
         return response(503, { code: 'AI_STREAM_NOT_CONFIGURED', message: 'Razgovor uživo još nije podešen.' });
       }
-      if (wantsStream || (provider === 'gemini' && geminiModel === 'gemini-3.8-flash') || Deno.env.get('AI_TEST_BUDGET_REQUIRED') === 'true') {
-        if (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash'
-          || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true') throw new Error('AI_TEST_MODEL_NOT_ADMITTED');
-        const budget = await reserveAiTestBudget({ supabaseUrl, serviceRoleKey, accountId, operationId: requestId, kind: 'LLM', signal });
-        if (!budget.admitted || budget.replay) {
-          await retireAttempt();
-          return response(503, { code: budget.code, message: 'Probni AI zahtev nije odobren. Proverite prethodni ishod ili test limit.' });
-        }
-      }
-      if (!((provider === 'gemini' && geminiKey && geminiModel) || (provider === 'openai' && openaiKey && openaiModel))) {
+      // Every new inference uses the approved provider and shared reservation,
+      // regardless of Accept or historical optional environment flags. Legacy
+      // conversations retain their history/manual writers, but have no durable
+      // V2 operation identity with which to authorize a new paid attempt.
+      if (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash'
+        || !geminiKey || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true') {
         await retireAttempt();
         return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
+      }
+      const budget = await reserveAiTestBudget({ supabaseUrl, serviceRoleKey, accountId, operationId: requestId, kind: 'LLM', signal });
+      if (!budget.admitted || budget.replay) {
+        await retireAttempt();
+        return response(503, { code: budget.code, message: 'Probni AI zahtev nije odobren. Proverite prethodni ishod ili test limit.' });
       }
       if (schemaVersion === NEED_FACT_SCHEMA_V2) {
         // Persist dispatch intent before any provider I/O. Lost ACK, timeout or
@@ -696,14 +624,7 @@ Deno.serve(async (req: Request) => {
         if (!dispatched.ok || dispatched.data !== true)
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
       }
-      if (provider === 'gemini' && geminiKey && geminiModel)
-        aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText);
-      else if (provider === 'openai' && openaiKey && openaiModel)
-        aiTurn = await callOpenAI(openaiKey, openaiModel, schemaVersion, history, activeFacts, text, timeContext, signal);
-      else {
-        await retireAttempt();
-        return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
-      }
+      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText);
     } catch {
       console.error('AI_PROVIDER_FAILED');
       await retireAttempt();

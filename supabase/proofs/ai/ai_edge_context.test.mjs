@@ -22,7 +22,8 @@ const json=(value,status=200)=>new Response(JSON.stringify(value),{status,header
 function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,schema='NEED_FACT_V2',activeFacts=[],providerOutput}={}){
   const calls=[],logs=[],env={AI_PROVIDER:provider,SUPABASE_URL:'https://database.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC_KEY',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE_KEY',GEMINI_API_KEY:provider==='gemini'?'SYNTHETIC_GEMINI_KEY':'',
-    GEMINI_MODEL:provider==='gemini'?'synthetic-gemini-model':'',OPENAI_API_KEY:'SYNTHETIC_OPENAI_KEY',OPENAI_MODEL:'synthetic-openai-model'};
+    GEMINI_MODEL:provider==='gemini'?'gemini-3.8-flash':'',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
+    OPENAI_API_KEY:'SYNTHETIC_OPENAI_KEY',OPENAI_MODEL:'synthetic-openai-model'};
   let handler;
   class FixedDate extends Date {constructor(...args){super(...(args.length?args:[now]));}static now(){return Date.parse(now);}}
   const fakeFetch=async(input,options={})=>{
@@ -37,6 +38,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     // Explicit synthetic authorization of migration 132's pre-provider CAS.
     // The actual SQL proof exercises the real lock and cancellation authority.
     if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return json(true);
+    if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json({admitted:true,reservationId:'88888888-8888-4888-8888-888888888888',replay:false,code:'AI_TEST_RESERVED'});
     if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(turn('FAILED'));
     if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return json(turn('SUCCEEDED',{
       userMessageId:'66666666-6666-4666-8666-666666666666',assistantMessageId:'77777777-7777-4777-8777-777777777777',
@@ -92,7 +94,7 @@ const resolvedWitness={version:1,binding:{taskCountryCode:'RS',geography:{mode:'
 const manualFact={key:'need.resolved_location',valueJson:JSON.stringify(resolvedWitness),value:JSON.stringify(resolvedWitness),
   displayValue:'PRIVATE_RESOLVED_DISPLAY',evidence:'PRIVATE_RESOLVED_EVIDENCE',confidence:1};
 
-for(const provider of ['gemini','openai'])test(`${provider} outbound V2 schema and prompt registry exclude manual-only facts`,async()=>{
+for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt registry exclude manual-only facts`,async()=>{
   const f=fixture({provider});assert.equal((await f.invoke()).status,200);
   const call=providerCall(f),schema=call.body.generationConfig?.responseSchema??call.body.text.format.schema;
   const allowedKeys=schema.properties.facts.items.properties.key.enum;
@@ -107,8 +109,8 @@ for(const provider of ['gemini','openai'])test(`${provider} outbound V2 schema a
   assert.ok(f.registry.NEED_FACT_V2_KEYS.includes('need.resolved_location'),'manual form still owns the full registry key');
 });
 
-for(const provider of ['gemini','openai'])for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
-  test(`${provider} ${schema} context query and defensive prompt omit complete resolved witness`,async()=>{
+for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
+  test(`${schema} untrusted context cannot send a resolved witness to a provider`,async()=>{
     const activeFacts=[
       {fact_key:'need.people_needed',fact_value:2,display_value:'2 osobe',status:'CONFIRMED'},
       {fact_key:'naslov',fact_value:'SYNTHETIC_LEGACY_TITLE',status:'CONFIRMED'},
@@ -116,12 +118,12 @@ for(const provider of ['gemini','openai'])for(const schema of ['NEED_FACT_V2','L
       {fact_key:'need.resolved_location',fact_value:resolvedWitness,display_value:manualFact.displayValue,status:'CONFIRMED'},
       {fact_key:'unknown.private_fact',fact_value:'PRIVATE_UNKNOWN_FACT',status:'CONFIRMED'},
     ];
-    const f=fixture({provider,schema,activeFacts});
+    const f=fixture({schema,activeFacts});
     if(schema==='NEED_FACT_V2'){
       assert.equal((await f.invoke()).status,502,'untrusted claim context containing private/unknown fields must fail closed');
       assert.equal(providerCalls(f).length,0);assert.deepEqual(materialWrites(f),[]);return;
     }
-    assert.equal((await f.invoke()).status,200);
+    assert.equal((await f.invoke()).status,503,'legacy history lookup is not permission for a new unbudgeted inference');
     const query=new URL(f.calls.find(call=>call.url.includes('/ai_structured_facts?')).url).searchParams;
     assert.equal(query.get('conversation_id'),`eq.${conversation}`);assert.equal(query.get('superseded_at'),'is.null');
     const filter=query.get('fact_key');assert.match(filter??'',/^in\.\(.+\)$/);
@@ -129,19 +131,13 @@ for(const provider of ['gemini','openai'])for(const schema of ['NEED_FACT_V2','L
     assert.ok(fetchedKeys.includes('naslov'));assert.ok(fetchedKeys.includes('need.people_needed'));
     assert.ok(fetchedKeys.includes('need.exact_address'));assert.ok(!fetchedKeys.includes('need.resolved_location'));
     assert.ok(!fetchedKeys.includes('unknown.private_fact'));
-    const payload=JSON.stringify(providerCall(f).body);
-    for(const privateMarker of ['need.resolved_location','PRIVATE_RESOLVED_','44123456','20123456','latitudeE6','longitudeE6','PRIVATE_UNKNOWN_FACT']){
-      assert.ok(!payload.includes(privateMarker),`outbound provider payload contains ${privateMarker}`);
-    }
-    assert.ok(payload.includes('SYNTHETIC_LEGACY_TITLE'));assert.ok(payload.includes('SYNTHETIC_EXISTING_PRIVATE_ADDRESS'));
-    assert.ok(payload.includes('need.people_needed'));assert.deepEqual(f.logs,[]);
+    assert.equal(providerCalls(f).length,0);assert.deepEqual(materialWrites(f),[]);assert.deepEqual(f.logs,[]);
   });
 }
 
-for(const provider of ['gemini','openai'])for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1'])for(const safety of ['ALLOW','BLOCK']){
-  test(`${provider} ${schema} ${safety} manual-only proposal rejects whole turn before SQL writer`,async()=>{
-    const ordinaryFact=schema==='NEED_FACT_V2'?providerResult.facts[0]:{key:'osoba',value:'2',evidence:userText,confidence:0.9};
-    const f=fixture({provider,schema,providerOutput:{safety,assistantMessage:'PRIVATE_RESOLVED_ASSISTANT',facts:[ordinaryFact,manualFact]}});
+for(const safety of ['ALLOW','BLOCK']){
+  test(`approved Gemini V2 ${safety} manual-only proposal rejects whole turn before SQL writer`,async()=>{
+    const f=fixture({providerOutput:{safety,assistantMessage:'PRIVATE_RESOLVED_ASSISTANT',facts:[providerResult.facts[0],manualFact]}});
     const response=await f.invoke();assert.equal(response.status,502);
     assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');assert.equal(providerCalls(f).length,1);
     assert.deepEqual(materialWrites(f),[],'no valid subset or empty BLOCK turn may be persisted; claim/failure metadata is not a materializer');
@@ -166,7 +162,7 @@ for(const [now,date,time,offset] of [
   assert.ok(!prompt(providerCall(f)).includes('2099-01-01'));
 });
 
-for(const provider of ['gemini','openai'])test(`${provider} actual handler sends newest30 chronologically and persists validated proposals`,async()=>{
+for(const provider of ['gemini'])test(`${provider} actual handler sends newest30 chronologically and persists validated proposals`,async()=>{
   const f=fixture({provider}),result=await f.invoke(),body=await result.json();assert.equal(result.status,200);
   assert.equal(body.state,'SUCCEEDED');assert.equal(body.receipt.schemaVersion,'NEED_FACT_V2');assert.equal(body.receipt.proposedCount,1);
   const call=providerCall(f),messages=provider==='gemini'?call.body.contents:call.body.input;
@@ -190,11 +186,12 @@ test('short history stays chronological without invented prior turns',async()=>{
   const f=fixture({historyCount:3});assert.equal((await f.invoke()).status,200);
   assert.deepEqual(providerCall(f).body.contents.map(x=>x.parts[0].text),['SYNTHETIC_HISTORY_1','SYNTHETIC_HISTORY_2','SYNTHETIC_HISTORY_3',userText]);
 });
-test('legacy provider context shares date grounding without V2 writer cutover',async()=>{
-  const f=fixture({schema:'LEGACY_TEXT_V1'});assert.equal((await f.invoke()).status,200);
-  assert.equal(timeContext(providerCall(f)).localDate,'2026-09-07');
-  assert.ok(f.calls.some(x=>x.url.endsWith('/rpc/rpc_ai_apply_legacy_need_turn_service')));
-  assert.ok(!f.calls.some(x=>x.url.endsWith('/rpc/rpc_ai_apply_interview_turn_v2_service')));
+test('legacy history stays readable without synthesizing a V2 key or licensing inference',async()=>{
+  const f=fixture({schema:'LEGACY_TEXT_V1'});assert.equal((await f.invoke()).status,503);
+  assert.ok(f.calls.some(x=>x.url.includes('/ai_messages?')));assert.ok(f.calls.some(x=>x.url.includes('/ai_structured_facts?')));
+  assert.equal(providerCalls(f).length,0);assert.deepEqual(materialWrites(f),[]);
+  assert.ok(!f.calls.some(x=>x.url.endsWith('/rpc/rpc_ai_claim_need_turn_v2_service')));
+  assert.ok(!f.calls.some(x=>x.url.endsWith('/rpc/rpc_ai_test_budget_reserve_service')));
 });
 for(const failure of ['network','http','json','output'])test(`provider ${failure} failure logs fixed categories only and performs no writer call`,async()=>{
   const f=fixture({failure}),response=await f.invoke();assert.equal(response.status,502);
@@ -209,11 +206,15 @@ const providerCalls=f=>f.calls.filter(call=>[
 ].includes(new URL(call.url).hostname));
 const hostFor={gemini:'generativelanguage.googleapis.com',openai:'api.openai.com'};
 
-for(const selected of ['openai','gemini'])test(`explicit ${selected} chooses only its configured pair even when both are present`,async()=>{
+for(const selected of ['openai','gemini'])test(`explicit ${selected} cannot bypass approved Gemini admission when both pairs are present`,async()=>{
   const f=fixture();f.env.AI_PROVIDER=selected;
   const other=selected==='openai'?'gemini':'openai';
   assert.equal((await f.invoke({provider:other,AI_PROVIDER:other})).status,400);assert.equal(f.calls.length,0);
   const response=await f.invoke(),body=await response.json();
+  if(selected==='openai'){
+    assert.equal(response.status,503);assert.equal(body.code,'AI_PROVIDER_NOT_CONFIGURED');
+    assert.deepEqual(providerCalls(f),[]);assert.deepEqual(materialWrites(f),[]);return;
+  }
   assert.equal(response.status,200);assert.equal(body.state,'SUCCEEDED');
   const calls=providerCalls(f);assert.equal(calls.length,1);assert.equal(new URL(calls[0].url).hostname,hostFor[selected]);
   if(selected==='openai'){
@@ -232,17 +233,17 @@ for(const selected of ['openai','gemini'])test(`explicit ${selected} chooses onl
   assert.deepEqual(f.logs,[]);assert.ok(!JSON.stringify(body).includes('SYNTHETIC_'));
 });
 
-test('absent selector uses owner-approved OpenAI primary and rejects client provider fields',async()=>{
+test('absent selector has no implicit OpenAI primary and rejects client provider fields',async()=>{
   const f=fixture();delete f.env.AI_PROVIDER;assert.equal(f.env.AI_PROVIDER,undefined);
   assert.equal((await f.invoke({provider:'openai',AI_PROVIDER:'openai'})).status,400);assert.equal(f.calls.length,0);
-  const response=await f.invoke();assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');
-  assert.equal(providerCalls(f).length,1);assert.equal(new URL(providerCalls(f)[0].url).hostname,hostFor.openai);
+  const response=await f.invoke();assert.equal(response.status,503);assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');
+  assert.deepEqual(providerCalls(f),[]);assert.deepEqual(materialWrites(f),[]);
 });
 
-for(const missing of ['GEMINI_API_KEY','GEMINI_MODEL'])test(`implicit selection uses OpenAI when ${missing} is absent`,async()=>{
+for(const missing of ['GEMINI_API_KEY','GEMINI_MODEL'])test(`missing selector and ${missing} cannot fall back to OpenAI`,async()=>{
   const f=fixture();delete f.env.AI_PROVIDER;delete f.env[missing];
-  const response=await f.invoke();assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');
-  assert.equal(providerCalls(f).length,1);assert.equal(new URL(providerCalls(f)[0].url).hostname,hostFor.openai);
+  const response=await f.invoke();assert.equal(response.status,503);assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');
+  assert.deepEqual(providerCalls(f),[]);assert.deepEqual(materialWrites(f),[]);
 });
 
 for(const invalid of ['','OPENAI',' openai','anthropic','gemini,openai'])test(`invalid explicit selector ${JSON.stringify(invalid)} fails before provider or writer`,async()=>{
@@ -269,7 +270,7 @@ test('absent selector with neither complete pair retains the known pre-provider 
   assert.deepEqual(materialWrites(f),[]);assert.deepEqual(f.logs,[]);
 });
 
-for(const selected of ['openai','gemini'])for(const failure of ['network','http','json','output']){
+for(const selected of ['gemini'])for(const failure of ['network','http','json','output']){
   test(`explicit ${selected} ${failure} failure calls no alternate provider and no writer`,async()=>{
     const f=fixture({failure});f.env.AI_PROVIDER=selected;
     const response=await f.invoke();assert.equal(response.status,502);assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');

@@ -5,13 +5,15 @@ import {loadOwnedIntakeHandler} from './owned_intake_edge_runtime.mjs';
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
+const gemini=value=>json({candidates:[{content:{parts:[{text:JSON.stringify(value)}]},finishReason:'STOP'}]});
 const receipt={userMessageId:id(6),assistantMessageId:id(7),proposedCount:0,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true};
 const turn=(state='SUCCEEDED')=>({conversationId:conversation,clientRequestId:key,state,turnId,retryAllowed:state==='FAILED',receipt:state==='SUCCEEDED'?receipt:null});
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(config={}){
  const calls=[],envReads=[],logs=[];const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
-  AI_PROVIDER:'openai',OPENAI_API_KEY:'PRIVATE_PROVIDER_SECRET',OPENAI_MODEL:'synthetic-model'};
+  AI_PROVIDER:'gemini',GEMINI_API_KEY:'PRIVATE_PROVIDER_SECRET',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
+  OPENAI_API_KEY:'UNAPPROVED_SYNTHETIC_KEY',OPENAI_MODEL:'synthetic-model',...config.env};
  let clock=Date.parse('2026-09-10T17:00:00Z');
  class FixedDate extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
  const fetch=async(input,init={})=>{
@@ -20,7 +22,8 @@ function fixture(config={}){
   if(url.includes('/ai_conversations?'))return config.conversation?.()??json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
   if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return config.dispatch?.(body)??json(true);
   if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return config.claim?.(body)??json({turn:turn('PROCESSING'),claim:{attemptId,leaseExpiresAt:new Date(clock+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
-  if(url==='https://api.openai.com/v1/responses')return config.provider?.(init)??json({status:'completed',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'Proverite unos.',facts:[]})});
+  if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return config.budget?.(body)??json({admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
+  if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??gemini({safety:'ALLOW',assistantMessage:'Proverite unos.',facts:[]});
   if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return config.complete?.(body)??json(turn());
   if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(turn('FAILED'));
   assert.fail('Unexpected synthetic route');
@@ -31,7 +34,7 @@ function fixture(config={}){
   body:JSON.stringify({conversationId:conversation,text:'SYNTHETIC_TEXT',clientRequestId:key,...body}),...options});
  return {...runtime,calls,envReads,logs,env,request,invoke:(body,options)=>runtime.handler(request(body,options)),advance:ms=>clock+=ms};
 }
-const providers=f=>f.calls.filter(x=>x.url==='https://api.openai.com/v1/responses');
+const providers=f=>f.calls.filter(x=>['generativelanguage.googleapis.com','api.openai.com'].includes(new URL(x.url).hostname));
 const completes=f=>f.calls.filter(x=>x.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
 
 test('verified Auth identity and owned context drive same stable command through exact completion',async()=>{
@@ -75,8 +78,8 @@ test('provider 429 is fixed public failure, no fallback or materialization',asyn
  assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);assert.equal((await r.json()).code,'AI_PROVIDER_FAILED');
  assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_PROVIDER_SECRET'));
 });
-test('incomplete OpenAI output cannot reach materializer',async()=>{
- const f=fixture({provider:()=>json({status:'incomplete',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'x',facts:[]})})});
+test('incomplete Gemini JSON output cannot reach materializer',async()=>{
+ const f=fixture({provider:()=>json({candidates:[{content:{parts:[{text:'{"safety":"ALLOW",'}]},finishReason:'MAX_TOKENS'}]})});
  assert.equal((await f.invoke()).status,502);assert.equal(completes(f).length,0);
 });
 for(const mutate of [x=>x.safety='UNKNOWN',x=>x.privateToken='PRIVATE_RAW',x=>x.facts=[{key:'unknown.fact'}],
@@ -84,7 +87,7 @@ for(const mutate of [x=>x.safety='UNKNOWN',x=>x.privateToken='PRIVATE_RAW',x=>x.
  x=>x.facts=[{key:'need.people_needed',valueJson:'"two"',displayValue:'2',confidence:0.9,evidence:'synthetic'}],
  x=>x.facts=[{key:'need.people_needed',valueJson:'2',displayValue:'2',confidence:'0.9',evidence:'synthetic'}]])test('corrupt provider output never persists a silently filtered subset',async()=>{
  const value={safety:'ALLOW',assistantMessage:'Proverite.',facts:[]};mutate(value);
- const f=fixture({provider:()=>json({status:'completed',output_text:JSON.stringify(value)})});const response=await f.invoke();
+ const f=fixture({provider:()=>gemini(value)});const response=await f.invoke();
  assert.equal(response.status,502);assert.equal(completes(f).length,0);assert.ok(!JSON.stringify(await response.json()).includes('PRIVATE_RAW'));
 });
 test('provider advertised and streamed oversize is bounded before completion',async()=>{
@@ -102,13 +105,13 @@ test('provider deadline ignores a transport that finishes after cancellation; no
  const running=f.invoke();while(!providers(f).length)await flush();
  const deadline=[...timers.values()].find(x=>x.ms===12000);assert.ok(deadline);deadline.fn();
  assert.equal((await running).status,502);assert.equal(completes(f).length,0);
- gate.resolve(json({status:'completed',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'late',facts:[]})}));await flush();
+ gate.resolve(gemini({safety:'ALLOW',assistantMessage:'late',facts:[]}));await flush();
  assert.equal(completes(f).length,0);assert.equal(providers(f)[0].init.signal.aborted,true);
 });
 test('request cancellation fences late provider response and duplicate active invoke',async()=>{
  const gate=deferred(),controller=new AbortController();const f=fixture({provider:()=>gate.promise});const running=f.invoke({}, {signal:controller.signal});
  while(!providers(f).length)await flush();assert.equal((await f.invoke()).status,429);controller.abort();
- assert.equal((await running).status,502);gate.resolve(json({output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'late',facts:[]})}));await flush();
+ assert.equal((await running).status,502);gate.resolve(gemini({safety:'ALLOW',assistantMessage:'late',facts:[]}));await flush();
  assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);
 });
 test('per-user six/minute burst is bounded; window rollover permits a new call',async()=>{
@@ -124,24 +127,25 @@ test('missing, denied or uncertain dispatch acknowledgment cannot call provider 
 test('provider timeout/error after dispatch leaves durable unresolved command instead of enabling a second attempt',async()=>{
  const f=fixture({provider:()=>{throw new Error('UNKNOWN_UPSTREAM');}});assert.equal((await f.invoke()).status,502);
  assert.equal(providers(f).length,1);assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
- assert.ok(f.calls.findIndex(c=>c.url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))<f.calls.findIndex(c=>c.url==='https://api.openai.com/v1/responses'));
+ assert.ok(f.calls.findIndex(c=>c.url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))<f.calls.indexOf(providers(f)[0]));
 });
 
 test('AF-D23 real provider request excludes unavailable identity fact and explains self-reported status',async()=>{
  const f=fixture();assert.equal((await f.invoke()).status,200);
  const body=providers(f)[0].body;
- assert.ok(!body.text.format.schema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
- assert.match(body.instructions,/identitet je samostalno naveden/);
- assert.match(body.instructions,/provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna/);
- assert.match(body.instructions,/može nastaviti običnim Zadatkom/);
- assert.match(body.instructions,/Ne predlažite need\.verified_identity_required/);
+ assert.ok(!body.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
+ const instruction=body.systemInstruction.parts[0].text;
+ assert.match(instruction,/identitet je samostalno naveden/);
+ assert.match(instruction,/provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna/);
+ assert.match(instruction,/može nastaviti običnim Zadatkom/);
+ assert.match(instruction,/Ne predlažite need\.verified_identity_required/);
  assert.equal(completes(f)[0].body.p_proposals.length,0);
 });
 for(const value of [true,false])test(`provider cannot bypass manual-only historical identity key with ${value}`,async()=>{
- const f=fixture({provider:()=>json({status:'completed',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic unavailable explanation',facts:[
+ const f=fixture({provider:()=>gemini({safety:'ALLOW',assistantMessage:'Synthetic unavailable explanation',facts:[
   {key:'need.title',valueJson:'"Ordinary task"',displayValue:'Ordinary task',evidence:'synthetic',confidence:1},
   {key:'need.verified_identity_required',valueJson:JSON.stringify(value),displayValue:value?'Da':'Ne',evidence:'synthetic',confidence:1},
- ]})})});
+ ]})});
  assert.equal((await f.invoke()).status,502);assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);
  assert.equal(f.calls.filter(x=>x.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
 });
