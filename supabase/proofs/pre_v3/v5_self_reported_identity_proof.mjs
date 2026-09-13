@@ -52,8 +52,8 @@ async function actualEditTurn(report,a,cid,label){
   AI_PROVIDER:'gemini',GEMINI_MODEL:'gemini-3.8-flash',GEMINI_API_KEY:'SYNTHETIC_NOT_SENT_TO_NETWORK',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'};
  const runtime=loadOwnedIntakeHandler({env:name=>config[name],fetch:async(input,init={})=>{
   const url=new URL(String(input));
-  if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse'){
- providerCalls++;assert.equal(budgetCalls,1);assert.equal(init.headers?.Accept,'text/event-stream');
+  if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){
+ providerCalls++;assert.equal(budgetCalls,1);
  const request=JSON.parse(init.body),prompt=request.systemInstruction.parts[0].text;
  const factPrefix='Aktuelne server-side činjenice: ',factLine=prompt.split('\n').find(line=>line.startsWith(factPrefix));
  assert.ok(factLine);const facts=JSON.parse(factLine.slice(factPrefix.length));
@@ -64,8 +64,7 @@ async function actualEditTurn(report,a,cid,label){
  assert.deepEqual(request.generationConfig.thinkingConfig,{thinkingLevel:'low'});
  assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(key)}::uuid and kind='LLM' and max_cost_microusd=250000`),'1');
  assert.equal((await ok(a.client.rpc('rpc_ai_recover_need_turn_v2',{p_conversation_id:cid,p_client_request_id:key}))).providerDispatched,true);
- const event={candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]};
- return new Response(`data: ${JSON.stringify(event)}\n\n`,{headers:{'Content-Type':'text/event-stream'}});
+ return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
 }
   assert.equal(url.origin,origin);assert.ok(url.pathname==='/auth/v1/user'||url.pathname.startsWith('/rest/v1/'));
   if(url.pathname==='/rest/v1/rpc/rpc_ai_test_budget_reserve_service'){

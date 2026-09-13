@@ -13,7 +13,7 @@ import {
 } from '../../../src/contracts/needFactsV2.ts';
 
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { streamGeminiTask } from '../_shared/geminiTaskStream.ts';
+import { geminiRequestBody, streamGeminiTask } from '../_shared/geminiTaskStream.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -477,7 +477,7 @@ async function callGemini(
   }
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    { method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, body: payloadBody },
+    { method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, body: geminiRequestBody(payloadBody) },
     131072, 12000, signal, true,
   );
   if (!providerResponse.ok) {
