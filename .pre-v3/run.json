@@ -1,7 +1,7 @@
 {
-  "sourceSha": "fe39c12bd23f469b0b3dc37effd25be908d058e9",
-  "sourceTree": "506713acf34e6400e197a0ad5f078f971511b6a3",
-  "purpose": "Verify the account-erasure proof TDZ repair on current V5 integration and continue the exact disposable sequence through146/147. FULL147 only; no live write, real provider, device or release claim.",
+  "sourceSha": "a9ceed1b869a47950c220b2e636743c51bf5f11e",
+  "sourceTree": "8b6ffcc8ea0cda747ac8030feaa1298bdc779a5a",
+  "purpose": "Verify the account-erasure photo-storage guard repair on current V5 integration and continue the exact disposable sequence through146/147. FULL147 only; no live write, real provider, device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
