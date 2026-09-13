@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Keyboard, Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MagnifyingGlass, SlidersHorizontal, User } from 'phosphor-react-native';
+import { MagnifyingGlass, Plus, SlidersHorizontal, User } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceView';
 import { initialMarketplaceView, marketplaceItems, publicPoint } from '../../data/marketplaceView';
@@ -51,6 +51,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           {([['active', 'Aktivni'], ['drafts', 'Nacrti'], ['history', 'Istorija'], ['all', 'Svi']] as const).map(([key, label]) => <Choice key={key} label={label} active={view.section === key} onPress={() => change({ section: key, selectedId: null })} />)}
         </ScrollView> : <View style={s.tabs}><Choice label="Lista" active={view.mode === 'list'} onPress={() => toggleMode('list')} /><Choice label="Mapa" active={view.mode === 'map'} onPress={() => toggleMode('map')} /></View>}
         <Press accessibilityRole="button" accessibilityLabel={`Filteri${view.price === 'all' ? '' : ', aktivni'}`} onPress={() => { Keyboard.dismiss(); setPriceDraft(view.price); setFilterOpen(true); }} haptic="select" style={s.filter}><SlidersHorizontal size={21} color={v2.color.ink} /></Press>
+        {props.onNew ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara razgovor za novi Zadatak."
+          onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="select" style={s.addTask}><Plus size={21} weight="bold" color={v2.color.surface} /></Press> : null}
       </View>
       {owned ? <Press accessibilityRole="checkbox" accessibilityLabel="Treba moja radnja" accessibilityState={{ checked: view.attention }} haptic="select" onPress={() => change({ attention: !view.attention })} style={s.attention}>
         <View style={[s.check, view.attention && { backgroundColor: v2.color.teal }]} /><T style={s.body}>Treba moja radnja</T>
@@ -89,6 +91,7 @@ const s = StyleSheet.create({
   choice: { minHeight: 44, minWidth: 44, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12, flexGrow: 1, alignItems: 'center', justifyContent: 'center' }, chosen: { backgroundColor: v2.color.surface }, choiceText: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: v2.color.muted },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginTop: 16, paddingHorizontal: 13, backgroundColor: '#F0F4F1', borderRadius: 15 }, input: { ...v2.text.body, color: v2.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 }, tabs: { flexDirection: 'row', gap: 4, flexGrow: 1 }, filter: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: v2.color.line },
+  addTask: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: v2.color.orange },
   attention: { flexDirection: 'row', gap: 9, alignItems: 'center', minHeight: 44, marginHorizontal: 20, marginBottom: 8 }, check: { width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: v2.color.teal }, list: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 28, flexGrow: 1 }, empty: { paddingVertical: 32, gap: 18, flex: 1, justifyContent: 'center' },
   orangeAction: { backgroundColor: v2.color.orange, borderWidth: 0, minHeight: 50 }, areaNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: v2.color.soft, paddingHorizontal: 16 },
   mapArea: { flex: 1, minHeight: 180 }, preview: { position: 'absolute', left: 10, right: 10, bottom: 38, maxHeight: '70%', backgroundColor: v2.color.surface, borderRadius: 24, borderWidth: 1, borderColor: v2.color.line }, previewContent: { padding: 14, gap: 10 },
