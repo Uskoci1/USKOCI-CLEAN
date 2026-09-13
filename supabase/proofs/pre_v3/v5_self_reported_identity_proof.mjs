@@ -55,8 +55,8 @@ async function actualEditTurn(report,a,cid,label){
   if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){
  providerCalls++;assert.equal(budgetCalls,1);
  const request=JSON.parse(init.body),prompt=request.systemInstruction.parts[0].text;
- const factPrefix='Aktuelne server-side činjenice: ',factLine=prompt.split('\n').find(line=>line.startsWith(factPrefix));
- assert.ok(factLine);const facts=JSON.parse(factLine.slice(factPrefix.length));
+ const factPrefix='Aktuelne server-side činjenice: ',factStart=prompt.indexOf(factPrefix),factEnd=prompt.indexOf(' Sastavite lep, kratak',factStart);
+ assert.ok(factStart>=0&&factEnd>factStart);const facts=JSON.parse(prompt.slice(factStart+factPrefix.length,factEnd));
  assert.ok(Array.isArray(facts));assert.ok(facts.every(f=>f.key!=='need.verified_identity_required'));
  assert.equal(request.generationConfig.responseFormat.text.mimeType,'application/json');
  assert.ok(!request.generationConfig.responseFormat.text.schema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
