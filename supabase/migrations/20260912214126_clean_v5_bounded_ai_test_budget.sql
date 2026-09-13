@@ -52,7 +52,7 @@ declare
 begin
   if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED'; end if;
   if p_account_id is null or p_operation_id is null or p_kind not in ('LLM','STT') or p_kind is null
-    or p_max_cost_microusd is distinct from case p_kind when 'LLM' then 250000::bigint when 'STT' then 200000::bigint end then
+    or p_max_cost_microusd is distinct from (case p_kind when 'LLM' then 250000::bigint when 'STT' then 200000::bigint end) then
     raise exception 'AI_TEST_RESERVATION_INVALID';
   end if;
 
