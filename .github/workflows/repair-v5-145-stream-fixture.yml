@@ -36,7 +36,7 @@ jobs:
           t=Path('supabase/proofs/pre_v3/v5_account_erasure.test.mjs')
           ts=t.read_text(encoding='utf-8')
           old_assert=" const proof=read('./v5_account_erasure_proof.mjs'),fixtures=read('./v5_erasure_content_fixtures.mjs');"
-          new_assert=old_assert+"\n assert.ok(fixtures.includes('scope,display_value,evidence_excerpt')));"
+          new_assert=old_assert+"\n assert.ok(fixtures.includes('scope,display_value,evidence_excerpt'));"
           if ts.count(old_assert)!=1: raise SystemExit(f'fixture-assert guard={ts.count(old_assert)}')
           t.write_text(ts.replace(old_assert,new_assert),encoding='utf-8',newline='\n')
           PY
