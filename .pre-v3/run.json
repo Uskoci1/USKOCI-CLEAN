@@ -1,7 +1,7 @@
 {
-  "sourceSha": "ae551ca48a53e6a0b6eacf4dee4e6dd7f26f2140",
-  "sourceTree": "f7fb008ecdc648afcad30250b9afe08e11429408",
-  "purpose": "Owner resumed V5 on 2026-09-13: verify current exact integration HEAD including post-Codex AI changes, repaired budget fixtures, erasure146 and QA147. Export tracked source for offline native repair. No live access, provider calls, device, deployment or release; failures remain failures.",
+  "sourceSha": "eb2b5002eb9aca31a4a0c14f361d7487803fc28a",
+  "sourceTree": "87ecc0a8f21bc3c5e77c5a280383302d24093ebf",
+  "purpose": "Verify restored requester/worker streaming and bounded safe diagnostics on exact source; all original tests retained. FULL147 disposable proof only; no live access, provider, device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
