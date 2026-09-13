@@ -1,7 +1,7 @@
 {
-  "sourceSha": "d9699ff2444345042f2d24977bc93b84bef90afb",
-  "sourceTree": "3925c19b1db3b0e97945f917934cb8fc534dbd98",
-  "purpose": "Exact saved V5 source: full regression and disposable Auth/Postgres/Storage proofs through candidate131; no source mutation, live access, provider calls, device, deployment or release.",
+  "sourceSha": "db02cbcdb535766acf54b8fe4b91116195d381a4",
+  "sourceTree": "44837e3b8470b6ac2623e39ca750cadc127b796e",
+  "purpose": "Exact saved V5 source: full regression and disposable Auth/Postgres/Storage proofs through candidate134; no source mutation, live access, provider calls, device, deployment or release.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": false,
@@ -67,9 +67,21 @@
     {
       "script": "v5_account_closure_execution_proof.mjs",
       "report": "v5-account-closure-execution-report.json"
+    },
+    {
+      "script": "v5_ai_turn_recovery_proof.mjs",
+      "report": "v5-ai-turn-recovery-report.json"
+    },
+    {
+      "script": "v5_owned_qa_recovery_proof.mjs",
+      "report": "v5-owned-qa-recovery-report.json"
+    },
+    {
+      "script": "v5_qa_limits_proof.mjs",
+      "report": "v5-qa-limits-report.json"
     }
   ],
-  "finalHistoryCount": 131,
+  "finalHistoryCount": 134,
   "noLiveWrite": true,
   "noProvider": true,
   "noDevice": true
