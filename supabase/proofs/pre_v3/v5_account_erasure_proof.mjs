@@ -311,9 +311,9 @@ await prove('V5_EVENT_BOUND_ACCOUNT_ERASURE','v5-account-erasure-report.json',as
  // Foreign case TASK snapshot ownership is resolved through the actual source
  // author, not the case owner, and remains explicit after source redaction.
  const copied=await actor('erasure146-copy-source'),copiedData=await seedContentCopies(copied,'COPY_SOURCE146_'+randomUUID());
- const eventId=ownCase.receipt.eventId,snapshot=JSON.stringify({kind:'TASK',id:copiedData.needId,revision:1,content:{title:'COPIED_PRIVATE146'}});
+ const eventId=ownCase.receipt.eventId,evidenceSnapshot=JSON.stringify({kind:'TASK',id:copiedData.needId,revision:1,content:{title:'COPIED_PRIVATE146'}});
  sql(`insert into private.support_evidence_v5(case_id,event_id,submitted_by_account_id,source_kind,source_id,source_revision,snapshot,snapshot_sha256)
-  values(${q(ownCase.caseId)},${q(eventId)},${q(caseAuthor.id)},'TASK',${q(copiedData.needId)},1,${q(snapshot)}::jsonb,${q(digest(snapshot))})`);
+  values(${q(ownCase.caseId)},${q(eventId)},${q(caseAuthor.id)},'TASK',${q(copiedData.needId)},1,${q(evidenceSnapshot)}::jsonb,${q(digest(evidenceSnapshot))})`);
  assert.deepEqual(JSON.parse(sql(`select to_jsonb(private.closure_erasure_exceptions_v5(${q(copied.id)}))`)),['SCOPED_EVIDENCE_REVIEW_REQUIRED']);
  await prep(copied);const cr=await review(copied),cc={p_expected_user_id:copied.id,p_request_id:cr.requestId,p_expected_revision:cr.revision,p_client_request_id:randomUUID(),p_policy_sha256:cr.policySha256};
  const lateCopy=privacyArgs(copied);lateCopy.p_payload_text=JSON.stringify({...JSON.parse(lateCopy.p_payload_text),context:{kind:'TASK',id:copiedData.needId,revision:1}});
