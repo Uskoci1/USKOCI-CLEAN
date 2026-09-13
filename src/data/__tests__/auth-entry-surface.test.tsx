@@ -122,17 +122,24 @@ it('keeps an empty password submission local and immediately editable', async ()
 
 it('hides a revealed password when switching form mode, preserving the entered value without submitting', async () => {
   await render(); await fill('Unesite lozinku', 'local-dummy-value');
+  const loginScroll = host('ScrollView')[0];
   const toggle = () => host('Pressable').find(node => node.props.accessibilityLabel === 'Prikaži lozinku')!;
   await act(async () => toggle().props.onPress());
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(false);
   await press('Napravi nalog');
+  const signupScroll = host('ScrollView')[0];
+  // Each form starts at its own top; the old login offset must not hide signup
+  // fields at200% text size. Ordinary editing stays in the same scroll surface.
+  expect(signupScroll).not.toBe(loginScroll);
   expect(button('Već imaš nalog? Prijavi se').props.accessibilityRole).toBe('button');
   expect(button('Napravi nalog')).toBeUndefined();
   expect(host('Pressable').some(node => node.props.accessibilityRole === 'tab')).toBe(false);
   expect(input('Unesite lozinku').props.value).toBe('local-dummy-value');
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
   await act(async () => toggle().props.onPress());
+  expect(host('ScrollView')[0]).toBe(signupScroll);
   await press('Već imaš nalog? Prijavi se');
+  expect(host('ScrollView')[0]).not.toBe(signupScroll);
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });

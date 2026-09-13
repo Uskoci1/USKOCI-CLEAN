@@ -14,7 +14,8 @@ export function entryV49Layout(width: number, viewportHeight: number, fontScale 
   const half = width / 2, gutter = clamp(width * .036, 12, 26), edge = clamp(width * .019, 7, 14);
   const photoW = half - 2 * edge, noteW = photoW * (compact ? .82 : .85);
   const brandW = width * .74, padY = clamp(15 * unit, 10.5, 20) - (compact ? 2 : 0), padX = clamp(19 * unit, 14, 27);
-  const brandY = Math.max(safeTop, clamp(width * .087 - (compact ? 8 : 0), 24, 62));
+  const authoredBrandY = clamp(width * .087 - (compact ? 8 : 0), 24, 62);
+  const brandY = Math.max(safeTop, authoredBrandY);
   const logoW = brandW - 2 * (padX + 1), logoH = logoW * 104 / 320;
   const tagSize = clamp(22 * unit, 18, 29), sloganGap = clamp(8 * unit, 6, 11);
   const brandH = measured.brand ?? (2 * (padY + 1) + logoH + sloganGap + tagSize * 2.4 * fontScale + 1);
@@ -26,8 +27,10 @@ export function entryV49Layout(width: number, viewportHeight: number, fontScale 
   const noteH = Math.max(measured.note ?? (large ? 10 * fontScale * 1.27 * 3 : noteW * 107 / 248.56), noteW * .44);
   const noteGap = compact ? 10 : clamp(17 * unit, 12, 23), footGap = compact ? 10 : clamp(17 * unit, 14, 24);
   const footH = large ? 112 : compact ? 88 : 92;
-  const usableHeight = Math.max(0, viewportHeight - safeBottom);
-  const baseH = Math.max(usableHeight, Math.ceil(photoY + photoW * (compact ? 1.4 : 1.48) + noteGap + noteH + footGap + footH));
+  // Insets translate/extend the authored composition; they must not change the
+  // photograph crop. Reserve the bottom inset in scroll content, not photoH.
+  const topShift = brandY - authoredBrandY;
+  const baseH = Math.max(viewportHeight, Math.ceil(photoY - topShift + photoW * (compact ? 1.4 : 1.48) + noteGap + noteH + footGap + footH)) + topShift;
   let photoH = baseH - photoY - noteGap - noteH - footGap - footH;
   const motionPhotoH = photoH;
   let noteY = photoY + photoH + noteGap, footY = noteY + noteH + footGap;

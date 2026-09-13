@@ -78,3 +78,16 @@ it('does not compress the authored photos to fit larger hit targets or repeatedl
   expect(native.height).toBeGreaterThan(normal.height);
   expect(entryV49Layout(390, 844, 1, { ...reference.layout, footer: 108 })).toEqual(native);
 });
+it.each([[390, 844, 1, 52, 24], [390, 844, 2, 52, 24], [320, 568, 1, 48, 34], [844, 390, 2, 48, 34]])(
+  'preserves the original photo crop and motion travel with real device insets at %i×%i scale%i', (width, height, scale, top, bottom) => {
+    const measured = scale === 1 ? reference.layout : reference.largeLayout;
+    const authored = entryV49Layout(width, height, scale, measured);
+    const native = entryV49Layout(width, height, scale, measured, top, bottom);
+    const shift = Math.max(0, top - authored.brandY);
+    expect(native.photoH).toBeCloseTo(authored.photoH, 8);
+    expect(native.motionPhotoH).toBeCloseTo(authored.motionPhotoH, 8);
+    expect(native.photoW).toBe(authored.photoW);
+    for (const key of ['brandY', 'copyY', 'photoY', 'noteY', 'footY'] as const)
+      expect(native[key]).toBeCloseTo(authored[key] + shift, 8);
+    expect(native.height).toBeGreaterThanOrEqual(native.footY + native.footH + bottom);
+  });

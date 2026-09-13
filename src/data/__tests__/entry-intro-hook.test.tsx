@@ -2,6 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useEntryIntro } from '../../hooks/useEntryIntro';
 import type { EntrySplashReadiness } from '../../hooks/useEntrySplashReady';
+import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 
 const mockRead = jest.fn();
 const mockWrite = jest.fn();
@@ -13,6 +14,8 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: (...args: unknown[]) => mockWrite(...args),
 }));
 jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
+jest.mock('expo-splash-screen', () => ({ setOptions: jest.fn() }));
+jest.mock('../../bootstrap/entrySplashBootstrap', () => ({ releaseEntrySplash: () => Promise.resolve() }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -23,6 +26,10 @@ jest.mock('react-native', () => {
 });
 function Probe({ readiness = 'ready' }: { readiness?: EntrySplashReadiness }) {
   return React.createElement('Snapshot', { snapshot: useEntryIntro(readiness) });
+}
+function SceneTimeoutProbe() {
+  const splash = useEntrySplashReady({ waitForScene: true });
+  return React.createElement('Snapshot', { snapshot: useEntryIntro(splash.readiness), splash });
 }
 let tree: ReactTestRenderer;
 const snapshot = () => tree.root.findByType('Snapshot' as React.ElementType).props.snapshot;
@@ -46,6 +53,26 @@ it('skips motion for accessibility without waiting on storage', async () => {
 });
 it('does not replay after the persisted first visit', async () => {
   mockRead.mockResolvedValue('1'); await mount(); expect(snapshot().phase).toBe('welcome');
+});
+it('persists the actual scene-timeout completion before unmount and does not replay on the next mount', async () => {
+  let seen: string | null = null;
+  mockRead.mockImplementation(async () => seen);
+  mockWrite.mockImplementation(async (_key: string, value: string) => { seen = value; });
+  await act(async () => { tree = create(<SceneTimeoutProbe />); });
+  expect(snapshot().phase).toBe('intro');
+  await act(async () => tree.root.findByType('Snapshot' as React.ElementType).props.splash.onLayout({
+    nativeEvent: { layout: { width: 390, height: 844, x: 0, y: 0 } },
+  }));
+  await act(async () => jest.advanceTimersByTime(1000));
+  expect(tree.root.findByType('Snapshot' as React.ElementType).props.splash.readiness).toBe('skip');
+  expect(snapshot().phase).toBe('welcome');
+  expect(mockWrite).toHaveBeenCalledTimes(1);
+  expect(mockWrite).toHaveBeenCalledWith('uskoci.presentation.intro-seen.v1', '1');
+  await act(async () => tree.unmount());
+  await mount();
+  expect(snapshot().phase).toBe('welcome');
+  expect(mockRead).toHaveBeenCalledTimes(2);
+  expect(mockWrite).toHaveBeenCalledTimes(1);
 });
 it('finishes an active intro when reduced motion changes and never replays when disabled again', async () => {
   await mount(); expect(snapshot().phase).toBe('intro');

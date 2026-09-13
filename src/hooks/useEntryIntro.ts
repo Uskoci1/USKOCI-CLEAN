@@ -22,6 +22,11 @@ export function useEntryIntro(readiness: EntrySplashReadiness) {
     return () => { mounted.current = false; };
   }, []);
   useEffect(() => {
+    // A bounded splash fallback is a completed presentation too. Persist the
+    // same cosmetic receipt so a later launch cannot replay the skipped intro.
+    if (readiness === 'skip') finish();
+  }, [finish, readiness]);
+  useEffect(() => {
     if (reduced) { finish(); setPhase('welcome'); return; }
     const owner = ++lifetime.current;
     let settled = false;

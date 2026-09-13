@@ -11,7 +11,7 @@ import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { Press } from '../Press';
 import { BrandArtwork, BrandLockup, useBrandClock } from './BrandScene';
-import { brandFrame, type Box } from './spojBrandMath';
+import { brandFrame, INTRO_DURATION_MS, type Box } from './spojBrandMath';
 import { ENTRY_V49, entryV49Intent, entryV49Intro, entryV49Layout, type EntryV49Layout } from './entryV49Math';
 import { requesterNoteXml, workerNoteXml } from './entryV49Notes';
 
@@ -28,32 +28,34 @@ function gradientLine(width: number, height: number, degrees: number) {
     x2: width / 2 + dx * extent / 2, y2: height / 2 + dy * extent / 2 };
 }
 
-function IntentColumn({ intent, selected, enabled, layout: g, time, selectionTime, reduced, phone, logo, measure, choose }: {
-  intent: Intent; selected: Intent | null; enabled: boolean; layout: EntryV49Layout; time: SharedValue<number>;
+function IntentColumn({ intent, selected, enabled, settled, layout: g, time, selectionTime, reduced, phone, logo, measure, choose }: {
+  intent: Intent; selected: Intent | null; enabled: boolean; settled: boolean; layout: EntryV49Layout; time: SharedValue<number>;
   selectionTime: SharedValue<number>; reduced: boolean; phone: Box; logo: Box;
   measure: (key: keyof Measurements, height: number) => void; choose: (intent: Intent) => void;
 }) {
   const requester = intent === 'REQUESTER', chosen = selected === intent, sign = requester ? 1 : -1;
+  const staticScene = settled && !selected;
+  const SceneView = staticScene ? View : Animated.View;
   const column = useAnimatedStyle(() => {
     const bg = brandFrame(time.get(), phone, logo).background, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: selected && !chosen ? f.otherOpacity : 1,
       transform: [{ translateX: selected ? (chosen ? sign * f.sceneTravel : 0) : (requester ? bg.greenPercent : bg.orangePercent) * g.width / 200 }] };
   });
   const copy = useAnimatedStyle(() => {
-    const a = entryV49Intro(time.get(), reduced).copy, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
+    const a = entryV49Intro(settled ? INTRO_DURATION_MS : time.get(), reduced).copy, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: a.opacity, transform: [{ translateY: chosen ? f.copyY : a.y }] };
   });
   const photo = useAnimatedStyle(() => {
-    const a = entryV49Intro(time.get(), reduced).photo, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
+    const a = entryV49Intro(settled ? INTRO_DURATION_MS : time.get(), reduced).photo, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: a.opacity, transform: [{ translateY: chosen ? f.photoY : a.y }, { scale: chosen ? f.photoScale : 1 }] };
   });
   const note = useAnimatedStyle(() => {
-    const a = entryV49Intro(time.get(), reduced).note, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
+    const a = entryV49Intro(settled ? INTRO_DURATION_MS : time.get(), reduced).note, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: chosen ? f.noteOpacity : a.opacity, transform: [{ translateY: chosen ? f.noteY : a.y }] };
   });
   const ink = requester ? '#F2F9F0' : ENTRY_V49.ink;
   const noteText = requester ? 'Više vremena za ono što voliš.' : 'Tvoje vreme i trud imaju vrednost.';
-  return <Animated.View testID={`entry-${intent.toLowerCase()}-scene`} style={[styles.column, { left: requester ? 0 : g.half, width: g.half, height: g.height }, column]}>
+  return <SceneView testID={`entry-${intent.toLowerCase()}-scene`} style={[styles.column, { left: requester ? 0 : g.half, width: g.half, height: g.height }, staticScene ? styles.finalColumn : column]}>
     <Svg pointerEvents="none" accessible={false} width={g.half} height={phone.height} style={StyleSheet.absoluteFill}>
       <Defs>
         <LinearGradient id={`${intent}-field`} gradientUnits="userSpaceOnUse" {...gradientLine(g.half, phone.height, requester ? 160 : 210)}>
@@ -70,8 +72,8 @@ function IntentColumn({ intent, selected, enabled, layout: g, time, selectionTim
         rotation={requester ? -24 : 24} originX={g.half * (requester ? -.45 : 1.45)} originY={phone.height * .6}
         stroke="#FFFFFF" strokeOpacity={12 / 255} strokeWidth={1} fill={`url(#${intent}-curve)`} />
     </Svg>
-    <Animated.View pointerEvents="none" onLayout={event => measure(requester ? 'requester' : 'worker', event.nativeEvent.layout.height)}
-      style={[styles.copy, { top: g.copyY, left: g.gutter, right: g.gutter }, copy]}>
+    <SceneView pointerEvents="none" testID={`entry-${intent.toLowerCase()}-copy`} onLayout={event => measure(requester ? 'requester' : 'worker', event.nativeEvent.layout.height)}
+      style={[styles.copy, { top: g.copyY, left: g.gutter, right: g.gutter }, staticScene ? styles.finalContent : copy]}>
       <Text accessible={false} style={[styles.title, { color: ink, fontSize: g.titleSize, lineHeight: g.titleSize * (g.large ? 1.1 : 1.055),
         marginBottom: g.copyGap, textAlign: requester ? 'left' : 'right', paddingLeft: !requester && !g.large ? 35 : 0, paddingRight: requester && !g.large ? 35 : 0 }]}>
         {requester ? 'Objavi\nzadatak' : 'Uskoči\ni zaradi'}
@@ -83,23 +85,23 @@ function IntentColumn({ intent, selected, enabled, layout: g, time, selectionTim
         { top: g.arrowY, ...(requester ? { right: 0 } : { left: 0 }) }]}>
         {requester ? <ArrowRight size={20} color={ENTRY_V49.ink} /> : <ArrowLeft size={20} color={ENTRY_V49.ink} />}
       </View>
-    </Animated.View>
-    <Animated.View pointerEvents="none" testID={`entry-${intent.toLowerCase()}-photo-frame`}
-      style={[styles.photo, { left: g.edge, top: g.photoY, width: g.photoW, height: g.photoH }, photo]}>
+    </SceneView>
+    <SceneView pointerEvents="none" testID={`entry-${intent.toLowerCase()}-photo-frame`}
+      style={[styles.photo, { left: g.edge, top: g.photoY, width: g.photoW, height: g.photoH }, staticScene ? styles.finalPhoto : photo]}>
       <Image source={requester ? requesterPhoto : workerPhoto} accessible={false} style={StyleSheet.absoluteFill}
         contentFit="cover" contentPosition={{ left: '50%', top: '4%' }} transition={0} />
-    </Animated.View>
-    <Animated.View pointerEvents="none" testID={`entry-${intent.toLowerCase()}-note`}
+    </SceneView>
+    <SceneView pointerEvents="none" testID={`entry-${intent.toLowerCase()}-note`}
       onLayout={event => measure(requester ? 'requesterNote' : 'workerNote', event.nativeEvent.layout.height)}
-      style={[styles.annotation, { top: g.noteY, width: g.noteW, ...(requester ? { left: g.gutter } : { right: g.gutter }) }, note]}>
+      style={[styles.annotation, { top: g.noteY, width: g.noteW, ...(requester ? { left: g.gutter } : { right: g.gutter }) }, staticScene ? styles.finalContent : note]}>
       {g.large ? <Text accessible={false} style={[styles.readableNote, { color: requester ? '#FFF9EB' : ENTRY_V49.ink, textAlign: requester ? 'left' : 'right' }]}>{noteText}</Text> :
         <SvgXml accessible={false} xml={requester ? requesterNoteXml : workerNoteXml} width={g.noteW} height={g.noteW * 107 / (requester ? 248.56 : 277.12)} />}
-    </Animated.View>
+    </SceneView>
     <Press accessibilityRole="button" accessibilityLabel={requester ? 'Objavi zadatak' : 'Uskoči i zaradi'}
       accessibilityHint={`${requester ? 'Objavi zadatak. Pronađi ljude za ono što ti treba.' : 'Uskoči i zaradi. Pronađi zadatak koji ti odgovara.'} ${noteText}`}
       disabled={!enabled} haptic={enabled ? 'light' : 'none'} scaleTo={1} hitSlop={0} onPress={() => choose(intent)}
       style={{ position: 'absolute', left: 0, top: g.copyY, width: g.half, height: g.footY - g.copyY }} />
-  </Animated.View>;
+  </SceneView>;
 }
 
 export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy = false, error }: {
@@ -126,7 +128,12 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   };
   const phone = { x: 0, y: 0, width, height };
   const measuredLogo = logo ?? { x: (width - g.logoW) / 2, y: g.brandY + g.padY + 1, width: g.logoW, height: g.logoH };
-  const intro = phase === 'intro';
+  const intro = phase === 'intro', settled = phase === 'welcome';
+  // Final welcome must not depend on a queued UI-runtime clock assignment.
+  // Plain native views also detach the previous intro mappers on skip/finish.
+  const PresentationView = settled ? View : Animated.View;
+  const staticChoice = settled && !selected;
+  const ChoiceView = staticChoice ? View : Animated.View;
   const time = useBrandClock(intro && !!logo, phase === 'loading' || (intro && !logo), finish,
     logo && prepared ? onSceneReady : undefined, logo && prepared ? { readiness, phone, logo } : undefined);
   const green = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.greenPercent * width / 200 }] }));
@@ -138,7 +145,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   });
   const slogan = useAnimatedStyle(() => { const f = brandFrame(time.get(), phone, measuredLogo).slogan; return { opacity: f.opacity, transform: [{ translateY: f.y }] }; });
   const footer = useAnimatedStyle(() => {
-    const f = brandFrame(time.get(), phone, measuredLogo).choices, s = entryV49Intent(selectionTime.get(), width, g.motionPhotoH);
+    const f = brandFrame(settled ? INTRO_DURATION_MS : time.get(), phone, measuredLogo).choices, s = entryV49Intent(selectionTime.get(), width, g.motionPhotoH);
     return { opacity: selected ? s.footerOpacity : f.opacity, transform: [{ translateY: selected ? 0 : f.y }] };
   });
   const sweep = useAnimatedStyle(() => {
@@ -146,7 +153,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
     return { transform: [{ translateX: (selected === 'REQUESTER' ? -1 : 1) * (width / 2 - f.fillTravel) }] };
   });
   const seam = useAnimatedStyle(() => {
-    const a = entryV49Intro(time.get(), reduced), f = entryV49Intent(selectionTime.get(), width, g.motionPhotoH);
+    const a = entryV49Intro(settled ? INTRO_DURATION_MS : time.get(), reduced), f = entryV49Intent(selectionTime.get(), width, g.motionPhotoH);
     return { opacity: selected ? f.seamOpacity : a.seam,
       transform: [{ translateX: selected ? (selected === 'REQUESTER' ? 1 : -1) * f.fillTravel : 0 }] };
   });
@@ -199,33 +206,33 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   };
   return <View onLayout={onLayout} style={styles.root}>
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Animated.View style={[styles.half, { width: width / 2, backgroundColor: ENTRY_V49.green }, green]} />
-      <Animated.View style={[styles.half, { left: width / 2, width: width / 2, backgroundColor: ENTRY_V49.orange }, orange]} />
+      <PresentationView testID="entry-green-field" style={[styles.half, { width: width / 2, backgroundColor: ENTRY_V49.green }, settled ? styles.finalColumn : green]} />
+      <PresentationView testID="entry-orange-field" style={[styles.half, { left: width / 2, width: width / 2, backgroundColor: ENTRY_V49.orange }, settled ? styles.finalColumn : orange]} />
       {selected && !reduced ? <Animated.View testID="entry-intent-fill" style={[StyleSheet.absoluteFill,
         { backgroundColor: selected === 'REQUESTER' ? ENTRY_V49.green : ENTRY_V49.orange }, sweep]} /> : null}
     </View>
     <ScrollView scrollEnabled={!intro && !selected} contentContainerStyle={{ minHeight: g.height }}>
       <View testID="entry-intents" pointerEvents={enabled ? 'box-none' : 'none'} accessibilityElementsHidden={!enabled}
         importantForAccessibility={enabled ? 'auto' : 'no-hide-descendants'} style={StyleSheet.absoluteFill}>
-        {(['REQUESTER', 'WORKER'] as const).map(intent => <IntentColumn key={intent} intent={intent} selected={selected} enabled={enabled}
+        {(['REQUESTER', 'WORKER'] as const).map(intent => <IntentColumn key={intent} intent={intent} selected={selected} enabled={enabled} settled={settled}
           layout={g} time={time} selectionTime={selectionTime} reduced={reduced} phone={phone} logo={measuredLogo} measure={measure} choose={choose} />)}
       </View>
-      <Animated.View pointerEvents="none" testID="entry-center-seam" style={[styles.seam, { left: width / 2 - 1.5, height: g.height }, seam]} />
-      <Animated.View testID="entry-brand-panel" onLayout={event => {
+      <ChoiceView pointerEvents="none" testID="entry-center-seam" style={[styles.seam, { left: width / 2 - 1.5, height: g.height }, staticChoice ? { opacity: entryV49Intro(INTRO_DURATION_MS, reduced).seam, transform: [{ translateX: 0 }] } : seam]} />
+      <PresentationView testID="entry-brand-panel" onLayout={event => {
         const box = event.nativeEvent.layout;
         measure('brand', box.height);
         const next = { x: box.x + g.padX + 1, y: box.y + g.padY + 1, width: g.logoW, height: g.logoH };
         setLogo(previous => previous && Object.keys(next).every(key => Math.abs(previous[key as keyof Box] - next[key as keyof Box]) < .1) ? previous : next);
-      }} style={[styles.panel, { left: (width - g.brandW) / 2, top: g.brandY, width: g.brandW, paddingVertical: g.padY, paddingHorizontal: g.padX, borderRadius: g.radius }, panel]}>
+      }} style={[styles.panel, { left: (width - g.brandW) / 2, top: g.brandY, width: g.brandW, paddingVertical: g.padY, paddingHorizontal: g.padX, borderRadius: g.radius }, settled ? styles.finalPanel : panel]}>
         <View style={{ width: g.logoW, height: g.logoH }}>{phase === 'welcome' ? <BrandLockup width={g.logoW} /> : null}</View>
-        <Animated.View style={[styles.slogan, { marginTop: g.sloganGap }, slogan]} accessible accessibilityLabel="Tvoj partner za svaki zadatak.">
+        <PresentationView testID="entry-slogan" style={[styles.slogan, { marginTop: g.sloganGap }, settled ? styles.finalContent : slogan]} accessible accessibilityLabel="Tvoj partner za svaki zadatak.">
           <Text style={[styles.tagline, { fontSize: g.tagSize, lineHeight: g.tagSize * 1.2 }]}>Tvoj partner</Text>
           <Text style={[styles.tagline, { fontSize: g.tagSize, lineHeight: g.tagSize * 1.2, color: '#C44F08' }]}>za svaki zadatak.</Text>
-        </Animated.View>
-      </Animated.View>
-      <Animated.View testID="entry-auth-footer" onLayout={event => measure('footer', event.nativeEvent.layout.height)}
+        </PresentationView>
+      </PresentationView>
+      <ChoiceView testID="entry-auth-footer" onLayout={event => measure('footer', event.nativeEvent.layout.height)}
         pointerEvents={enabled ? 'auto' : 'none'} accessibilityElementsHidden={!enabled} importantForAccessibility={enabled ? 'auto' : 'no-hide-descendants'}
-        style={[styles.footer, { top: g.footY }, footer]}>
+        style={[styles.footer, { top: g.footY }, staticChoice ? styles.finalContent : footer]}>
         <Press accessibilityRole="button" accessibilityLabel="Prijavi se" disabled={!enabled} haptic={enabled ? 'select' : 'none'} hitSlop={0}
           onPress={() => openAuth(onSignIn)} style={[styles.signIn, { minWidth: g.large ? 182 : 172 }]}>
           <Text style={[styles.signInText, g.large && { fontSize: 19, lineHeight: 24.7 }]}>Prijavi se</Text><ArrowRight size={18} color={ENTRY_V49.ink} />
@@ -235,7 +242,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
           <View style={styles.registerPill}><Text style={[styles.registerText, g.large && { fontSize: 16, lineHeight: 20.8 }]}>Napravi nalog</Text></View>
         </Press> : null}
         {(error || selectionError) ? <Text accessibilityRole="alert" style={styles.error}>{error || selectionError}</Text> : null}
-      </Animated.View>
+      </ChoiceView>
     </ScrollView>
     {phase !== 'welcome' && logo ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><BrandArtwork time={time} phone={phone} logo={logo} /></View> : null}
     {selected && !reduced ? <Animated.View pointerEvents="none" testID="entry-intent-doorway" style={[StyleSheet.absoluteFill, styles.doorway, doorway]} /> : null}
@@ -245,6 +252,10 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
 }
 
 const styles = StyleSheet.create({
+  finalColumn: { opacity: 1, transform: [{ translateX: 0 }] },
+  finalContent: { opacity: 1, transform: [{ translateY: 0 }] },
+  finalPhoto: { opacity: 1, transform: [{ translateY: 0 }, { scale: 1 }] },
+  finalPanel: { boxShadow: [{ offsetX: 0, offsetY: 16, blurRadius: 36, color: 'rgba(20,61,53,0.045)' }] },
   root: { flex: 1, backgroundColor: '#FFFFFF', overflow: 'hidden' },
   half: { position: 'absolute', top: 0, bottom: 0 },
   column: { position: 'absolute', top: 0 },

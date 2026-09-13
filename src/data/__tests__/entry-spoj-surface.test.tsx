@@ -6,6 +6,7 @@ let mockPhase: 'loading' | 'intro' | 'welcome' = 'welcome';
 let mockReduced = false;
 let mockFrameTime: number | null = null;
 let mockIntentTime: number | null = null;
+const mockSharedAssignments: Array<() => void> = [];
 jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
 jest.mock('../../ui/entry/spojBrandMath', () => {
   const actual = jest.requireActual('../../ui/entry/spojBrandMath');
@@ -44,7 +45,12 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true,
   },
   useSharedValue: (value: number) => {
     const React = jest.requireActual('react');
-    return React.useRef({ get: () => value, set: jest.fn() }).current;
+    const cell = React.useRef(value);
+    return React.useRef({ get: () => cell.current, set: jest.fn((next: number) => {
+      // Native shared-value writes cross runtimes. Tests explicitly decide
+      // when old assignments reach UI instead of making the setter synchronous.
+      mockSharedAssignments.push(() => { cell.current = next; });
+    }) }).current;
   },
   withTiming: (...args: Parameters<typeof mockTiming>) => mockTiming(...args), cancelAnimation: (...args: unknown[]) => mockCancel(...args),
 }));
@@ -65,7 +71,7 @@ const button = (label: string) => tree.root.findAll(node => String(node.type) ==
 const press = async (label: string) => { await act(async () => button(label).props.onPress()); };
 const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
 const render = async () => { await act(async () => { tree = create(element()); }); };
-beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockFrameTime = null; mockIntentTime = null; mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
+beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockSharedAssignments.length = 0; mockFrameTime = null; mockIntentTime = null; mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
 it('shows the vector lockup and two real intent controls without dispatching on mount', async () => {
@@ -95,7 +101,7 @@ it('does not let a retained auth handler bypass an in-flight intent or a changed
   mockAccount = { accountRevision: 2, user: null }; await act(async () => oldSignIn()); expect(signIn).not.toHaveBeenCalled();
 });
 it.each([[0, 0], [3500, 0], [3590, 0], [3895, .039375], [4200, .045], [4380, .045]])('keeps the panel boundary synchronized with original rIntroFrame at %i ms', async (time, alpha) => {
-  mockFrameTime = time; await render();
+  mockPhase = 'intro'; mockFrameTime = time; await render();
   const style = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-brand-panel' }).props.style);
   expect(style.backgroundColor).toBe('#FFFFFF');
   expect(style.boxShadow[0]).toMatchObject({ offsetX: 0, offsetY: 16, blurRadius: 36 });
@@ -112,6 +118,55 @@ it.each([['Objavi zadatak', 'requester', 'worker'], ['Uskoči i zaradi', 'worker
   expect(style(`entry-${other}-scene`).opacity).toBe(0);
   expect(style(`entry-${chosen}-photo-frame`).transform[1].scale).toBeGreaterThan(1);
   expect(tree.root.findByProps({ testID: 'entry-brand-panel' })).toBeTruthy();
+});
+it('commits the complete static welcome before delayed UI clock writes, including late old assignments', async () => {
+  mockPhase = 'intro'; await render();
+  await act(async () => tree.root.findByProps({ testID: 'entry-brand-panel' }).props.onLayout({
+    nativeEvent: { layout: { x: 24, y: 33, width: 288.6, height: 151 } },
+  }));
+  // Both t=0 and the prepared t=41 writes remain queued in another runtime.
+  expect(mockSharedAssignments.length).toBeGreaterThan(0);
+  mockPhase = 'welcome'; await act(async () => tree.update(element()));
+  const finalComposition = () => {
+    for (const id of ['entry-green-field', 'entry-orange-field', 'entry-requester-scene', 'entry-worker-scene']) {
+      const node = tree.root.findByProps({ testID: id });
+      expect(node.type).toBe('View');
+      expect(StyleSheet.flatten(node.props.style)).toMatchObject({ opacity: 1, transform: [{ translateX: 0 }] });
+    }
+    for (const id of ['entry-slogan', 'entry-auth-footer', 'entry-requester-copy', 'entry-worker-copy',
+      'entry-requester-note', 'entry-worker-note', 'entry-requester-photo-frame', 'entry-worker-photo-frame']) {
+      const node = tree.root.findByProps({ testID: id });
+      expect(node.type).toBe('View');
+      const style = StyleSheet.flatten(node.props.style);
+      expect(style.opacity).toBe(1); expect(style.transform[0]).toEqual({ translateY: 0 });
+    }
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-center-seam' }).props.style).opacity).toBeGreaterThan(.99);
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-brand-panel' }).props.style).boxShadow[0].color).toBe('rgba(20,61,53,0.045)');
+    expect(button('Objavi zadatak').props.disabled).toBe(false);
+    expect(button('Prijavi se').props.disabled).toBe(false);
+    expect(tree.root.findAllByProps({ testID: 'entry-word-reveal' })).toHaveLength(0);
+  };
+  finalComposition();
+  for (const assignment of mockSharedAssignments.splice(0)) {
+    await act(async () => { assignment(); tree.update(element()); });
+    finalComposition();
+  }
+  await press('Prijavi se'); expect(signIn).toHaveBeenCalledTimes(1);
+});
+it('starts an explicit choice from the final scene even if the old intro clock is still zero', async () => {
+  mockPhase = 'intro'; await render();
+  mockPhase = 'welcome'; await act(async () => tree.update(element()));
+  // Do not deliver any shared-value assignment, including the final clock set.
+  mockIntentTime = 500;
+  await press('Uskoči i zaradi');
+  for (const id of ['entry-worker-copy', 'entry-worker-photo-frame']) {
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: id }).props.style).opacity).toBe(1);
+  }
+  expect(tree.root.findByProps({ testID: 'entry-green-field' }).type).toBe('View');
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-auth-footer' }).props.style).opacity).toBe(0);
+  expect(worker).not.toHaveBeenCalled();
+  await advance(759); expect(worker).not.toHaveBeenCalled();
+  await advance(1); expect(worker).toHaveBeenCalledTimes(1);
 });
 it.each([['Objavi zadatak', requester], ['Uskoči i zaradi', worker]] as const)('disables conflicting controls immediately and delivers %s exactly once after 760ms', async (label, callback) => {
   await render(); const oldPress = button(label).props.onPress;

@@ -56,8 +56,10 @@ height, confirmed by executed reference samples.
 Existing real intent callbacks, revision/ABA fences, one pending callback,
 background/unmount cancellation, error handling, and reduced motion remain.
 Viewport/font changes also cancel an incomplete sweep. Both auth controls use
-existing auth sheet callbacks. The only auth route change adds `onSignUp` →
-the existing SIGNUP mode. No server command runs on mounting the welcome.
+existing auth sheet callbacks. The initial auth route change adds `onSignUp` →
+the existing SIGNUP mode. A later native finding also resets the scroll surface
+when form mode/stage changes, preserving parent-controlled fields and commands.
+No server command runs on mounting the welcome.
 
 ## Verification and motion review
 
@@ -91,6 +93,38 @@ fences, and the real signup sheet callback. No live or provider calls.
 **Native visual fidelity remains pending until a new exact-source signed APK is
 built, installed and compared with these references.** Checkpoint138 evidence
 continues to describe only the old APK and is not retroactively promoted to PASS.
+
+## Actual b364 native review and bounded corrections
+
+The fully attested b364 release APK was installed on USKOCI_V5_TEST. Its SHA256
+and the installed base.apk both equal
+`153eda98d57593daf0eb08a129e63afae663452d03c9dfb8a683f584ec14c678`.
+Actual Android window390x844, status inset52 and navigation inset24 exposed
+compressed photographs: the old budget subtracted bottom space and consumed
+photo height when translating the brand below the top inset. The correction
+translates the authored composition and extends scrolling by the real insets,
+preserving original photo height/crop and motion travel at normal/200% text.
+36 source-reference and inset tests pass; a new APK comparison is still required.
+
+The actual warm force-stop/start Displayed event was22.703s; the recorded intro
+also showed a wordmark-on-white interval and later mascot. The source review
+confirmed two separate seams: splash `skip` did not persist the existing
+cosmetic intro completion, and React could mount the final logo while the
+complete background/photographs still depended on a queued UI clock write.
+The bounded correction persists skip completion and uses plain final native
+layers once welcome is committed. An explicit choice retains its original
+760ms animation with a fixed final intro sample. Tests delay old0/41/4380 clock
+assignments and use the actual1s splash-timeout hook across remount. They do not
+prove the cause of all22.703s or an in-video mascot restart. The eager import
+graph is unchanged and no startup-speed PASS is claimed.
+
+Auth200%/IME evidence covers login email/password and signup first/last password
+fields without typing or submitting. Switching from scrolled login to signup
+retained the former offset; form/stage-keyed scrolling now resets it while
+controlled values survive. The existing24 Auth surface tests pass. A default
+uncompressed UIAutomator dump included hidden background nodes; a compressed
+dump correctly excluded them and showed one current signup action. This was
+not evidence of a TalkBack defect, and AuthSheet accessibility was not changed.
 
 ## Rejected mixed-source Android package, 2026-09-13
 
