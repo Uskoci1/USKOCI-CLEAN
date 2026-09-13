@@ -2,7 +2,8 @@ import {useCallback,useRef,useState} from 'react';
 import {ActivityIndicator,AppState,KeyboardAvoidingView,Platform,TextInput,View} from 'react-native';
 import {useFocusEffect} from 'expo-router';
 import {sesijaSada,useSesija} from '../../store/sesija';
-import {qaRecoveryClientService,type QaContext} from '../../data/qaRecoveryClientService';
+import {qaRecoveryClientService,type QaContext,type QaRecoveredCommand} from '../../data/qaRecoveryClientService';
+import {qaSubmissionClientService as ai,type QaSubmissionStatus,type QaSubmissionIdentity} from '../../data/qaSubmissionClientService';
 import {preselectionQaClientService as qa} from '../../data/preselectionQaClientService';
 import type {OwnerPreselectionQuestion,PublicPreselectionQa} from '../../contracts/preselectionQa';
 import {noviUuidZahtevId} from '../../lib/idempotencija';
@@ -23,6 +24,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   const viewGeneration=useRef(0),renderGeneration=viewGeneration.current;
   const [context,setContext]=useState<QaContext|null>(null),[rows,setRows]=useState<Question[]>([]);
   const [intent,setIntent]=useState<QaIntent|null>(null),[absent,setAbsent]=useState(false);
+  const [classification,setClassification]=useState<QaSubmissionStatus|null>(null),[material,setMaterial]=useState(false);
   const [target,setTarget]=useState<OwnerPreselectionQuestion|null>(null),[text,setText]=useState('');
   const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[receipt,setReceipt]=useState('');
   const live=(token:object|null)=>!!token&&token===focus.current&&active.current&&!!needId&&!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
@@ -41,18 +43,49 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     }
     setContext(c);setRows(feed.podatak);
   }
-  async function readIntent(i:QaIntent,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'> {
-    const result=await qaRecoveryClientService.read(i.needId,i.clientRequestId,account);
-    if(!live(token))return 'UNKNOWN';
-    if(!result.ok){setAbsent(false);setMessage(result.poruka);return 'UNKNOWN';}
-    if(!result.podatak.found){setAbsent(true);return 'ABSENT';}
-    const c=result.podatak.command!;
+  async function finish(i:QaIntent,c:QaRecoveredCommand,token:object):Promise<'FOUND'|'UNKNOWN'> {
     if(!matchesQaReceipt(i,c)){setAbsent(false);setMessage('Potvrda se ne podudara sa sačuvanom radnjom. Slanje ostaje zaustavljeno.');return 'UNKNOWN';}
     await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);
     if(!live(token))return 'UNKNOWN';
-    setIntent(null);setAbsent(false);setTarget(null);setText('');
+    setIntent(null);setAbsent(false);setClassification(null);setMaterial(false);setTarget(null);setText('');
     setReceipt(c.receipt.status==='PENDING_ANSWER'?'Pitanje je poslato. Javno se prikazuje kada naručilac odgovori.':c.receipt.status==='ANSWERED_PUBLIC'?'Odgovor je objavljen.':c.receipt.status==='IGNORED'?'Pitanje je sklonjeno iz neodgovorenih.':'Prijava pitanja je zabeležena. To ne znači da je pregled već završen.');
     return 'FOUND';
+  }
+  async function consumeAi(i:Exclude<QaIntent,{type:'DISPOSITION'}>,s:QaSubmissionStatus,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
+    if(!live(token))return 'UNKNOWN';
+    if(s.state!=='ABSENT'&&(s.type!==i.type||s.needRevision!==i.needRevision||s.textSha256!==i.textSha256||s.questionId!==(i.type==='ANSWER'?i.questionId:null))){
+      setClassification(null);setAbsent(false);setMessage('Potvrda obrade ne odgovara sačuvanom zahtevu. Proverite stanje ponovo.');return 'UNKNOWN';
+    }
+    setClassification(s);setAbsent(s.state==='ABSENT'||s.state==='READY');
+    if(s.state==='COMMITTED')return finish(i,{type:i.type,needRevision:i.needRevision,textSha256:i.textSha256,receipt:s.receipt!},token);
+    if(['CANCELLED','REJECTED','STALE'].includes(s.state)) {
+      await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);if(!live(token))return 'UNKNOWN';
+      setIntent(null);setAbsent(false);setClassification(null);setMaterial(s.materiality==='MATERIAL');
+      setReceipt(s.state==='CANCELLED'?'Slanje je otkazano na serveru. Ova radnja neće naknadno objaviti tekst.'
+        :s.state==='STALE'?'Zadatak ili pravila su promenjeni. Pregledajte aktuelna pitanja pre novog slanja.'
+         :s.materiality==='MATERIAL'?'Odgovor menja uslove zadatka. Izmenite zadatak kroz pregled i objavu.'
+          :s.safeReasonCodes.some(c=>['QA_ACCOUNT_DAILY_LIMIT','QA_TASK_DAILY_LIMIT','QA_ASK_COOLDOWN'].includes(c))?'Dostignuto je ograničenje slanja pitanja. Pokušajte kasnije.'
+           :s.safeReasonCodes.includes('QA_DUPLICATE_QUESTION')?'Isto pitanje je već postavljeno za ovu verziju zadatka.'
+            :s.outcome==='CLARIFY'?'Tekst treba jasnije da opiše pitanje ili odgovor. Doradite ga pre novog slanja.'
+             :s.outcome==='REVIEW'?'Predloženi tekst trenutno nije odobren za javnu objavu.'
+              :'Predloženi tekst nije objavljen. Pregledajte ga pre novog slanja.');
+      return 'TERMINAL';
+    }
+    if(s.state==='PROCESSING'){setMessage('Prethodni zahtev se obrađuje. Proverite ishod ili izričito otkažite slanje.');return 'UNKNOWN';}
+    if(s.state==='READY')setMessage('Provera teksta je završena. Isti zahtev možete ručno nastaviti do objave.');
+    return 'ABSENT';
+  }
+  async function readIntent(i:QaIntent,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
+    setClassification(null);setAbsent(false);
+    const result=await qaRecoveryClientService.read(i.needId,i.clientRequestId,account);
+    if(!live(token))return 'UNKNOWN';
+    if(!result.ok){setMessage(result.poruka);return 'UNKNOWN';}
+    if(result.podatak.found)return finish(i,result.podatak.command!,token);
+    if(i.type==='DISPOSITION'){setAbsent(true);return 'ABSENT';}
+    const status=await ai.recover(i.needId,i.clientRequestId,account);
+    if(!live(token))return 'UNKNOWN';
+    if(!status.ok){setMessage(status.poruka);return 'UNKNOWN';}
+    return consumeAi(i,status.podatak,token);
   }
   async function restore(token:object) {
     const saved=await qaIntentJournal.load(accountId!,needId!);
@@ -83,9 +116,14 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
 
   async function send(i:QaIntent,body:string,token:object) {
     if(!live(token))return;
-    const result=i.type==='ASK'?await qa.askQuestion(i.needId,i.needRevision,body,i.clientRequestId)
-      :i.type==='ANSWER'?await qa.answerQuestion(i.questionId,body,i.clientRequestId)
-      :await qa.dispositionQuestion(i.questionId,i.action,i.clientRequestId);
+    if(i.type!=='DISPOSITION') {
+      const result=await ai.submit({type:i.type,needId:i.needId,needRevision:i.needRevision,clientRequestId:i.clientRequestId,
+        ...(i.type==='ANSWER'?{questionId:i.questionId}:{}),text:body},account);
+      if(!live(token))return;
+      if(result.ok)await consumeAi(i,result.podatak,token);else{setMessage(result.poruka);await readIntent(i,token);}
+      if(live(token))await readFeed(token);return;
+    }
+    const result=await qa.dispositionQuestion(i.questionId,i.action,i.clientRequestId);
     if(!live(token))return;
     if(!result.ok)setMessage(result.poruka);
     const outcome=await readIntent(i,token);
@@ -110,7 +148,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
         :q?{...common,type:'ANSWER',questionId:q.questionId,textSha256:qaTextHash(body)}
         :{...common,type:'ASK',textSha256:qaTextHash(body)};
       await qaIntentJournal.save(i);if(!live(token))return;
-      setIntent(i);setAbsent(false);setReceipt('');await send(i,body,token);
+      setIntent(i);setAbsent(false);setClassification(null);setMaterial(false);setReceipt('');await send(i,body,token);
     });
   }
   const retry=()=>run(async token=>{
@@ -120,6 +158,15 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     if(intent.textSha256!==null&&qaTextHash(body)!==intent.textSha256){setMessage('Za isti zahtev unesite potpuno isti tekst. Prethodni tekst se ne čuva na uređaju.');return;}
     if(await readIntent(intent,token)!=='ABSENT'||!live(token))return;
     await send(intent,body,token);
+  });
+  const cancel=()=>run(async token=>{
+    if(renderGeneration!==viewGeneration.current||!intent||intent.type==='DISPOSITION'||!classification?.canCancel)return;
+    const outcome=await readIntent(intent,token);if(!live(token)||outcome==='FOUND'||outcome==='TERMINAL')return;
+    const identity:QaSubmissionIdentity={type:intent.type,needId:intent.needId,needRevision:intent.needRevision,clientRequestId:intent.clientRequestId,textSha256:intent.textSha256,
+      ...(intent.type==='ANSWER'?{questionId:intent.questionId}:{})};
+    const result=await ai.cancel(identity,account);if(!live(token))return;
+    if(result.ok)await consumeAi(intent,result.podatak,token);else{setMessage(result.poruka);await readIntent(intent,token);}
+    if(live(token))await readFeed(token);
   });
   const choose=(q:OwnerPreselectionQuestion)=>{if(renderGeneration===viewGeneration.current&&live(focus.current)&&!lock.current&&!intent){setTarget(q);setText(q.answerText??'');setReceipt('');}};
   const current=rows.filter(q=>q.needRevision===context?.needRevision);
@@ -143,9 +190,11 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       {busy?<ActivityIndicator color={v2.color.teal} accessibilityLabel="Proveravamo pitanja"/>:null}
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
+      {material?<SettingsAction label="Vrati se na zadatak radi izmene" kind="secondary" onPress={()=>{if(live(focus.current)&&!lock.current)onBack();}} disabled={busy}/>:null}
       {intent?<SettingsPanel soft><T variant="bodyStrong">Provera prethodne radnje</T><T>Sačuvan je identifikator zahteva. Izlazak iz prikaza ne šalje ponovo radnju i ne poništava ono što server već obrađuje.</T>
         {intent.type!=='DISPOSITION'?<><T>Za ručno ponavljanje unesite isti tekst. Tekst se ne čuva na uređaju.</T><TextInput accessibilityLabel="Isti tekst prethodne radnje" value={text} onChangeText={setText} editable={!busy} multiline style={input}/></>:null}
         {absent?<SettingsAction label="Ponovi isti zahtev" kind="secondary" disabled={busy} onPress={()=>void retry()}/>:null}
+        {classification?.canCancel?<SettingsAction label="Odustani od ovog slanja" kind="quiet" disabled={busy} onPress={()=>void cancel()}/>:null}
       </SettingsPanel>:null}
       {context?.mode==='PUBLIC'&&!context.canAsk?<SettingsPanel soft><T>{!context.activeWorker?'Za postavljanje pitanja potreban je aktivan Radni profil.':context.ratePolicyState==='NOT_READY'?'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.':'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}</T></SettingsPanel>:null}
       {!intent&&(target||context?.canAsk)?<SettingsPanel soft><T variant="heading">{target?'Odgovor naručioca':'Vaše pitanje'}</T>
