@@ -1,8 +1,9 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockTask = jest.fn(), mockNeed = jest.fn(), mockProfile = jest.fn(), mockSubmit = jest.fn(), mockSelect = jest.fn(), mockCandidates = jest.fn(), mockApplications = jest.fn(), mockPublic = jest.fn();
+const mockViewed = jest.fn();
 const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mockProfile, podnesiPrijavu: mockSubmit,
-  izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic };
+  izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocused = true, mockRole = 'uskocer';
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
@@ -62,6 +63,7 @@ beforeEach(() => {
   mockCandidates.mockResolvedValue([k()]); mockApplications.mockResolvedValue([]);
   mockSubmit.mockResolvedValue({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } });
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
+  mockViewed.mockResolvedValue({ ok: true, podatak: null });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 async function offer() { await render(); await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '2'); }

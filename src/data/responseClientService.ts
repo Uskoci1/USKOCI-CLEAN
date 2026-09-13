@@ -1,38 +1,27 @@
-import type { Ishod, Izvor } from './ports';
-import { supabaseKlijent } from './supabaseClient';
-
-const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
-  get: (_target, prop) => (supabaseKlijent() as never)[prop],
-});
+import type { Izvor } from './ports';
+import { failure, readReceipt, uuid } from './serverReceipt';
 
 type ResponseClientService = Pick<Izvor, 'oznaciPrijavuVidjenom'>;
+const errors = {
+  AUTH_REQUIRED: 'Prijavite se da biste otvorili Prijavu.',
+  NOT_REQUESTER: 'Ova Prijava ne pripada vašem Zadatku.',
+  RESPONSE_NOT_FOUND: 'Prijava više nije dostupna.',
+  RESPONSE_NOT_SUBMITTED: 'Ova Prijava još nije poslata.',
+  ACCOUNT_CLOSURE_RESTRICTED: 'Promene nisu dostupne dok traje zatvaranje naloga.',
+};
 
-function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string): Ishod<T> {
-  return {
-    ok: false,
-    kod: error?.message || error?.code || fallbackCode,
-    poruka: error?.message || fallbackMessage,
-  };
-}
-
-/**
- * CDL-A04 — canonical production boundary for the response-viewed command.
- * Backend authority remains rpc_mark_response_viewed; this service only
- * preserves the existing client request/error contract without adding
- * client-side business authority.
- */
+/** One intentional offer opening. The server owns the first-view timestamp
+ * and event deduplication; a transport timeout never causes an automatic replay. */
 export const responseClientService: ResponseClientService = {
   async oznaciPrijavuVidjenom(prijavaId) {
-    const { error } = await supabase.rpc('rpc_mark_response_viewed', {
-      p_response_id: prijavaId,
+    if (!uuid(prijavaId)) return failure('RESPONSE_ID_INVALID', 'Ponovo otvorite Prijavu iz svog Zadatka.');
+    const result = await readReceipt({
+      rpc: 'rpc_mark_response_viewed', args: { p_response_id: prijavaId },
+      errors, fallback: 'RESPONSE_VIEW_UNCONFIRMED', invalid: 'RESPONSE_VIEW_INVALID_RECEIPT', write: true,
+      // PostgREST returns JSON null for the canonical void RPC. Map its checked
+      // acknowledgement internally; retain the existing public Ishod<null> DTO.
+      decode: raw => raw === null ? true : null,
     });
-    if (error) {
-      return rpcFailure(
-        error,
-        'RESPONSE_VIEW_FAILED',
-        'Prijava nije mogla da se označi kao pregledana.',
-      );
-    }
-    return { ok: true, podatak: null };
+    return result.ok ? { ok: true, podatak: null } : result;
   },
 };

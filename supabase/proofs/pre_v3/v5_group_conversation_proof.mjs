@@ -98,7 +98,10 @@ await prove('V5_TASK_GROUP_CONVERSATION','v5-group-conversation-report.json',asy
   await denied(lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(D.id)}::uuid));${restriction}`,
    ()=>D.client.rpc('rpc_mark_group_messages_read_v5',{p_expected_user_id:D.id,p_group_id:g,p_message_ids:[unreadMessage.messageId]})),'ACCOUNT_CLOSING');
   assert.equal(sql(`select read_at is null from private.group_message_visibility_v5 where account_id=${q(D.id)}::uuid and message_id=${q(unreadMessage.messageId)}::uuid`),'t');
-  await denied(D.client.rpc('rpc_read_group_messages_v5',{p_expected_user_id:D.id,p_group_id:g}),'GROUP_NOT_AVAILABLE');
+  // The actual HTTP request reaches131's pre-request closure guard before the
+  // group RPC's own GROUP_NOT_AVAILABLE membership check.
+  const closedRead=await denied(D.client.rpc('rpc_read_group_messages_v5',{p_expected_user_id:D.id,p_group_id:g}),'ACCOUNT_CLOSING');
+  assert.equal(closedRead.code,'42501');
  }finally{if(closureBefore)sql(`update private.account_closure_requests set state=${q(closureBefore.state)} where account_id=${q(D.id)}::uuid`);else sql(`delete from private.account_closure_requests where account_id=${q(D.id)}::uuid`);}
  pass(report,'OBSERVED_MEMBERSHIP_CANCEL_SEND_AND_CLOSURE_MARK_READ_RACES_NO_FUTURE_GRANT_OR_RESTRICTED_MUTATION');
 

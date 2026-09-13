@@ -12,7 +12,7 @@ from datetime import datetime
 parser = argparse.ArgumentParser()
 parser.add_argument('--run', required=True)
 parser.add_argument('--source', required=True)
-parser.add_argument('--expected-reports', type=int, choices=(17, 19, 21, 24, 26, 28, 29, 30, 31), default=17)
+parser.add_argument('--expected-reports', type=int, choices=(17, 19, 21, 24, 26, 28, 29, 30, 31, 33), default=17)
 args = parser.parse_args()
 assert re.fullmatch('[0-9]+', args.run) and re.fullmatch('[a-f0-9]{40}', args.source)
 repo = 'repos/Uskoci1/USKOCI-CLEAN'

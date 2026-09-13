@@ -1,8 +1,9 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockTask = jest.fn(), mockNeed = jest.fn(), mockProfile = jest.fn(), mockSubmit = jest.fn(), mockSelect = jest.fn(), mockCandidates = jest.fn(), mockApplications = jest.fn(), mockPublic = jest.fn();
+const mockViewed = jest.fn();
 const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mockProfile, podnesiPrijavu: mockSubmit,
-  izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic };
+  izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockLinkQuery = jest.fn();
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocused = true, mockRole = 'uskocer';
@@ -66,10 +67,66 @@ beforeEach(() => {
   mockSubmit.mockResolvedValue({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } });
   mockLinkQuery.mockResolvedValue({ data: null, error: null });
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
+  mockViewed.mockResolvedValue({ ok: true, podatak: null });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 async function offer() { await render(); await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '2'); }
 async function selection() { mockRole = 'narucilac'; await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
+
+it('marks only an intentionally opened offer, never the list, comparison or focus refresh', async () => {
+  mockRole = 'narucilac'; mockCandidates.mockResolvedValue([k(), { ...k(), prijavaId: agreement, ime: 'Ana' }]);
+  await render(Candidates); expect(mockViewed).not.toHaveBeenCalled();
+  await tap('Uporedi'); expect(mockViewed).not.toHaveBeenCalled();
+  await tap('Prikaži ponude'); expect(mockViewed).not.toHaveBeenCalled();
+  mockFocused = false; await update(); mockFocused = true; await update();
+  expect(mockViewed).not.toHaveBeenCalled();
+  await tap('Uporedi'); await tap('Otvori prijavu: Milan');
+  expect(mockViewed.mock.calls).toEqual([[k().prijavaId]]);
+  expect(mockSelect).not.toHaveBeenCalled();
+  await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan');
+  expect(mockViewed).toHaveBeenCalledTimes(1);
+});
+it('deduplicates pending double opens without blocking offer reading or selecting', async () => {
+  const d = deferred(); mockViewed.mockReturnValueOnce(d.promise); mockRole = 'narucilac';
+  await render(Candidates); const open = press('Pogledaj ponudu: Milan');
+  await act(async () => { open(); open(); });
+  expect(mockViewed.mock.calls).toEqual([[k().prijavaId]]);
+  expect(text()).toContain('Dolazimo sa trakama.');
+  expect(press('Pregledaj povezivanje')).toBeDefined();
+  await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan');
+  expect(mockViewed).toHaveBeenCalledTimes(1);
+  await act(async () => d.resolve({ ok: true, podatak: null }));
+  await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan');
+  expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
+});
+it('shows safe unconfirmed view status and repeats only on another explicit exact offer opening', async () => {
+  mockViewed.mockRejectedValueOnce(new Error('PRIVATE_SQL_DETAILS')); mockRole = 'narucilac';
+  await render(Candidates); await tap('Pogledaj ponudu: Milan');
+  expect(text()).toContain('oznaka viđenosti nije potvrđena'); expect(text()).not.toContain('PRIVATE_SQL_DETAILS');
+  await update(); expect(mockViewed).toHaveBeenCalledTimes(1);
+  await tap('Nazad na zadatak'); mockFocused = false; await update(); mockFocused = true; await update();
+  expect(mockViewed).toHaveBeenCalledTimes(1);
+  await tap('Pogledaj ponudu: Milan');
+  expect(mockViewed.mock.calls).toEqual([[k().prijavaId], [k().prijavaId]]);
+  expect(text()).not.toContain('oznaka viđenosti nije potvrđena'); expect(mockSelect).not.toHaveBeenCalled();
+});
+it('rejects a stale open handler after blur/refocus and an account incarnation change', async () => {
+  mockRole = 'narucilac'; await render(Candidates); const old = press('Pogledaj ponudu: Milan');
+  mockFocused = false; await update(); await act(async () => old());
+  mockFocused = true; await update(); await act(async () => old());
+  expect(mockViewed).not.toHaveBeenCalled();
+  const current = press('Pogledaj ponudu: Milan');
+  mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 };
+  await act(async () => current()); expect(mockViewed).not.toHaveBeenCalled();
+});
+it('does not surface an old view failure or select after an account switch', async () => {
+  const d = deferred(); mockViewed.mockReturnValueOnce(d.promise); mockRole = 'narucilac';
+  await render(Candidates); await tap('Pogledaj ponudu: Milan');
+  mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 }; await update();
+  await act(async () => d.resolve({ ok: false, kod: 'UNKNOWN', poruka: 'PRIVATE_SQL_DETAILS' }));
+  expect(text()).not.toContain('PRIVATE_SQL_DETAILS'); expect(text()).not.toContain('oznaka viđenosti nije potvrđena');
+  expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+});
 
 it('sends one exact application after explicit interval review and duplicate taps', async () => {
   await offer(); await tap('Termin Prijave');
