@@ -63,6 +63,7 @@ test('start exact metadata replay precedes live-session admission while new narr
 });
 test('actual proof keeps bounded real Auth Storage RPC and witnessed lock coverage distinct from privileged fixtures',()=>{
  const proof=read('./v5_account_erasure_proof.mjs'),fixtures=read('./v5_erasure_content_fixtures.mjs');
+ assert.ok(fixtures.includes('scope,display_value,evidence_excerpt'));
  for(const x of ['lockedRace','loadClosureWorker','seedContentCopies','assertContentCopiesErased','actualColumns','oldSession.refresh_token'])assert.ok(proof.includes(x),x);
  assert.ok(fixtures.includes('length:205'));assert.ok(fixtures.includes('active_export_attempt_id'));
  assert.ok(proof.includes('report.disposableContentFixture={privileged:true'));

@@ -19,8 +19,8 @@ export async function seedContentCopies(a,canary){
  assert.equal(sql(`select approx_geog is not null from public.needs where id=${q(needId)}`),'t');
  // Reversed insertion order makes a referenced target precede its referrer by
  // physical ctid. The chain spans >2 batches, not just an implementation mirror.
- sql(`insert into public.ai_structured_facts(id,account_id,conversation_id,fact_key,fact_value,status,source,scope,evidence_excerpt,superseded_at,fact_schema_version)
-  values ${factIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};
+ sql(`insert into public.ai_structured_facts(id,account_id,conversation_id,fact_key,fact_value,status,source,scope,display_value,evidence_excerpt,superseded_at,fact_schema_version)
+  values ${factIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};
   update public.ai_structured_facts f set superseded_by=x.target from (values ${factIds.slice(1).map((id,i)=>`(${q(id)}::uuid,${q(factIds[i])}::uuid)`).join(',')}) x(id,target) where f.id=x.id;
   insert into private.ai_need_turn_commands(account_id,conversation_id,client_request_id,request_hash,state,receipt)
   values(${q(a.id)},${q(cid)},${q(turnKey)},${q('1'.repeat(64))},'SUCCEEDED',jsonb_build_object('copy',${q(canary)}));`);
