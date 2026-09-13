@@ -1,4 +1,4 @@
-name: V5 both-intent new-task navigation
+name: V5 discovery owned-scope intent switch
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: v5-both-intent-new-task
+  group: v5-discovery-owned-scope-intent
   cancel-in-progress: false
 jobs:
   repair:
@@ -21,36 +21,36 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Guard exact V5 head and align explicit new-task intent transition
+      - name: Guard exact V5 head and switch Worker to requester before owned tasks
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "7f02a8e6a2509cbdbe2d77d669acb20543acb888"
+          test "$(git rev-parse HEAD)" = "91a1e0d7b0949114eecd4db6dcf2a6357d62469c"
           python3 - <<'PY'
           from pathlib import Path
           route=Path('src/app/(app)/prilike.tsx')
           s=route.read_text(encoding='utf-8')
-          old="import { izvorSada, ulogaSada, useIzvor, useUloga } from '../../store/uloga';"
-          new="import { izvorSada, postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../store/uloga';"
-          if s.count(old)!=1: raise SystemExit(f'intent import guard={s.count(old)}')
-          s=s.replace(old,new)
-          old="""    onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}\n    onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/nova')) : undefined} />;"""
-          new="""    onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}\n    onNew={() => navigate(() => {\n      if (intent === 'narucilac') router.navigate('/nova');\n      else { postaviUlogu('narucilac'); router.replace('/nova'); }\n    })} />;"""
-          if s.count(old)!=1: raise SystemExit(f'new-task route guard={s.count(old)}')
+          old="""    onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}\n    onNew={() => navigate(() => {"""
+          new="""    onSwitch={() => navigate(() => {\n      if (intent === 'narucilac') router.navigate('/potrebe');\n      else { postaviUlogu('narucilac'); router.replace('/potrebe'); }\n    })} onProfile={() => navigate(() => router.navigate('/profil'))}\n    onNew={() => navigate(() => {"""
+          if s.count(old)!=1: raise SystemExit(f'owned-scope switch guard={s.count(old)}')
           route.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
 
           test=Path('src/data/__tests__/marketplace-intent-entry.test.ts')
-          test.write_text("""import { readFileSync } from 'node:fs';\n\nconst source = readFileSync(require.resolve('../../app/(app)/prilike.tsx'), 'utf8');\n\ntest('public discovery exposes explicit new-task action in both intents and switches worker intent before replacing route', () => {\n  expect(source).toContain(\"postaviUlogu, ulogaSada\");\n  expect(source).toContain(\"onNew={() => navigate(() => {\");\n  expect(source).toContain(\"if (intent === 'narucilac') router.navigate('/nova');\");\n  expect(source).toContain(\"else { postaviUlogu('narucilac'); router.replace('/nova'); }\");\n  expect(source).not.toContain(\"onNew={intent === 'narucilac'\");\n});\n""",encoding='utf-8',newline='\n')
+          t=test.read_text(encoding='utf-8')
+          old="""  expect(source).toContain(\"onNew={() => navigate(() => {\");\n  expect(source).toContain(\"if (intent === 'narucilac') router.navigate('/nova');\");"""
+          new="""  expect(source).toContain(\"onSwitch={() => navigate(() => {\");\n  expect(source).toContain(\"if (intent === 'narucilac') router.navigate('/potrebe');\");\n  expect(source).toContain(\"else { postaviUlogu('narucilac'); router.replace('/potrebe'); }\");\n  expect(source).toContain(\"onNew={() => navigate(() => {\");\n  expect(source).toContain(\"if (intent === 'narucilac') router.navigate('/nova');\");"""
+          if t.count(old)!=1: raise SystemExit(f'intent-entry assertion guard={t.count(old)}')
+          test.write_text(t.replace(old,new),encoding='utf-8',newline='\n')
           PY
           npm ci >/dev/null
           npx --no-install tsc --noEmit
           npx --no-install jest --runInBand --runTestsByPath src/data/__tests__/marketplace-intent-entry.test.ts src/data/__tests__/marketplace-presentation.test.tsx
           git diff --check
           git diff -- src/app/'(app)'/prilike.tsx src/data/__tests__/marketplace-intent-entry.test.ts
-      - name: Commit verified both-intent navigation
+      - name: Commit verified discovery intent alignment
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
           git add -- src/app/'(app)'/prilike.tsx src/data/__tests__/marketplace-intent-entry.test.ts
-          git commit -m 'feat(v5): open new task from either account intent'
+          git commit -m 'fix(v5): align discovery owned scope with requester intent'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
