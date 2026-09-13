@@ -1,4 +1,4 @@
-name: Repair V5 Gemini wire parity
+name: Repair V5 provider-wire assertions
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: repair-v5-gemini-wire-parity
+  group: repair-v5-provider-wire-assertions
   cancel-in-progress: false
 jobs:
   repair:
@@ -21,50 +21,35 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Guard exact head and align nonstream Gemini request with provider wire
+      - name: Guard exact head and update only stale Gemini schema assertions
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "9cb47edb244d3aa323a215c411509c895c701205"
+          test "$(git rev-parse HEAD)" = "37fcf56eceabf64fbe05699e498aada103757c4c"
           python3 - <<'PY'
           from pathlib import Path
-          index=Path('supabase/functions/uskoci-ai-interview/index.ts')
-          s=index.read_text(encoding='utf-8')
-          old="import { streamGeminiTask } from '../_shared/geminiTaskStream.ts';"
-          new="import { geminiRequestBody, streamGeminiTask } from '../_shared/geminiTaskStream.ts';"
-          if s.count(old)!=1: raise SystemExit(f'index import guard={s.count(old)}')
-          s=s.replace(old,new)
-          old_body="{ method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, body: payloadBody },"
-          new_body="{ method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, body: geminiRequestBody(payloadBody) },"
-          if s.count(old_body)!=1: raise SystemExit(f'index body guard={s.count(old_body)}')
-          index.write_text(s.replace(old_body,new_body),encoding='utf-8',newline='\n')
-
-          proof=Path('supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs')
-          p=proof.read_text(encoding='utf-8')
-          old_url="if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse'){"
-          new_url="if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){"
-          if p.count(old_url)!=1: raise SystemExit(f'proof url guard={p.count(old_url)}')
-          p=p.replace(old_url,new_url)
-          p=p.replace("providerCalls++;assert.equal(budgetCalls,1);assert.equal(init.headers?.Accept,'text/event-stream');",
-                      "providerCalls++;assert.equal(budgetCalls,1);",1)
-          old_return="const event={candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]};\n return new Response(`data: ${JSON.stringify(event)}\\n\\n`,{headers:{'Content-Type':'text/event-stream'}});"
-          new_return="return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});"
-          if p.count(old_return)!=1: raise SystemExit(f'proof return guard={p.count(old_return)}')
-          proof.write_text(p.replace(old_return,new_return),encoding='utf-8',newline='\n')
+          replacements={
+            'supabase/proofs/ai/ai_edge_context.test.mjs':(
+              "const call=providerCall(f),schema=call.body.generationConfig?.responseSchema??call.body.text.format.schema;",
+              "const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;"),
+            'supabase/proofs/ai/owned_intake_edge.test.mjs':(
+              "assert.ok(!body.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));",
+              "assert.ok(!body.generationConfig.responseFormat.text.schema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));"),
+          }
+          for name,(old,new) in replacements.items():
+              p=Path(name);s=p.read_text(encoding='utf-8')
+              if s.count(old)!=1: raise SystemExit(f'{name} guard={s.count(old)}')
+              p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           PY
           npm ci >/dev/null
+          node --test supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs
           npx --no-install tsc --noEmit
-          node --check supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
-          node --test \
-            supabase/proofs/ai/gemini_wire_diagnostics.test.mjs \
-            supabase/proofs/pre_v3/disposable_ai_budget_fixture.test.mjs \
-            supabase/proofs/pre_v3/v5_self_reported_identity.test.mjs
           git diff --check
-          git diff -- supabase/functions/uskoci-ai-interview/index.ts supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
-      - name: Commit verified parity repair to integration branch
+          git diff -- supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs
+      - name: Commit verified assertion repair to integration branch
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
-          git add -- supabase/functions/uskoci-ai-interview/index.ts supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
-          git commit -m 'fix(ai): use Gemini 3.8 provider wire for nonstream turns'
+          git add -- supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs
+          git commit -m 'test(ai): assert Gemini 3.8 responseFormat wire schema'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
