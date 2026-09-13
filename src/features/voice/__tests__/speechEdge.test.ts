@@ -59,7 +59,10 @@ describe('speech Edge authenticated budget admission', () => {
     expect(h.calls).toHaveLength(3); expect(h.calls[0]).toMatch(/auth\/v1\/user$/);
     expect(h.calls[2]).toMatch(/rpc_ai_test_budget_reserve_service$/);
     expect(h.providerSockets).toHaveLength(1);
-    expect(h.providerSockets[0].url).toMatch(/^wss:\/\/generativelanguage.googleapis.com\/ws\//);
+    const providerUrl = new URL(h.providerSockets[0].url);
+    expect(providerUrl.origin).toBe('wss://generativelanguage.googleapis.com');
+    expect(providerUrl.pathname).toBe('/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent');
+    expect(providerUrl.username).toBe(''); expect(providerUrl.password).toBe('');
     expect(await response.text()).not.toContain('SYNTHETIC_GOOGLE_KEY');
   });
 

@@ -1,6 +1,40 @@
 # V5 AI-FIRST execution — active, incomplete
 
-Latest full-regression source is28c47c01a3637e67ce767910ed213477a9a933b1,
+Latest full-regression source is6850b126bb38ee22edfdfe054ea342a9b7680a2f,
+treefd874e1a60de05565232c446fda52c247ba2d344, including registered109–141.
+Run34735685885 passed all11 source gates,185 Jest suites/3711 tests and700 Node
+tests across45 files.25 actual Auth/Postgres reports through135 PASS.136 applied
+and verified, then passed its first two checks. Its new safe diagnostics identify
+BIND_FULL as SUCCEEDED in56ms and SNAPSHOT_FULL as TIMED_OUT in20002ms.64 samples
+from316–19673ms report an active backend, no wait event and no observed blocker
+or requested lock. Cleanup succeeded; the original snapshot error was preserved.
+This proves the failing phase, not CPU/JIT causation. Observer-session settings
+are PostgreSQL17.6, jit=true and default100000/500000/500000 cost thresholds;
+they do not prove the failing function's actual execution plan.
+Artifact SHA256624b0c9d6ab35836481d25bbe5080ba9512f3a3e0cfa267bd62036be350af04c
+was independently verified.136 handlers/Storage were not reached;137–141 are
+still unproved. Exact-body read-only performance diagnostics now have27 focused
+tests PASS, independently rerun and reviewed. SHA-bound body/typed parameter
+clones compare only owned_rows AS MATERIALIZED; EXPLAIN retains bounded numeric
+metadata. One separate actual-function control uses SET LOCAL jit=off in its
+own READ ONLY transaction. Every command retains20s; neither server settings
+nor production SQL are changed. The actual function, prepared clones, separate
+MVCC snapshots and cache state are explicitly distinguished. Original errors
+and cleanup remain authoritative; diagnostic success cannot make136 PASS.
+The next exact-source actual run remains pending. No live/provider operation
+occurred.
+
+Draft PR102 targets canonical916ffb4 and contains the current V5 integration.
+Its first PRE-P4 run passed3711 tests but exited1 after an Expo optional-native
+logger warning during Jest teardown. The speech test's incomplete React Native
+mock is corrected locally;51 targeted tests pass without that warning. The full
+unsilenced local Jest run then passed185 suites/3711 tests with exit0, without the
+late logger failure (304.517s alongside the Android build). Six URL-validation CodeQL findings
+are corrected in tests. Three remaining findings were reviewed individually,
+with preserved source/checksum evidence and explicit reasons; see
+PR102_SOURCE_CHECK_REVIEW.md. This is not a final CodeQL/rerun PASS claim.
+
+Previous full-regression source was28c47c01a3637e67ce767910ed213477a9a933b1,
 treef7e169159ff528d74b97606fb8bb1fb8ed7b59fa, including registered109–141.
 Its31-report disposable CI34734349508 passed all11 source gates,185 Jest suites/
 3711 tests and686 Node tests.25 actual Auth/Postgres reports through135 PASS;
@@ -20,7 +54,7 @@ wait/lock samples and SQLSTATE only. A20s process deadline and local20s statemen
 timeout bound the fixture; no production/shared SQL runner was changed. The
 original failure survives secondary cleanup failures. Actual handler/Storage
 flags are set only when those operations are reached.14 focused helper tests
-PASS, independently rerun; the next exact actual database run remains pending.
+PASS, independently rerun; run34735685885 above is the subsequent actual result.
 
 Previous full-regression source was8c250b23c00fe505fd6960b72213b1675e500c23,
 tree25c5246a1809c31db6fbf878d5f66f542ed8a570, including registered109–140.

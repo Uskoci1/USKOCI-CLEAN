@@ -7,7 +7,10 @@ const mockNative = { start: jest.fn(), stop: jest.fn(), addListener: jest.fn((na
 }) };
 const mockPermission = { check: jest.fn(async () => true), request: jest.fn(async () => 'granted'),
   PERMISSIONS: { RECORD_AUDIO: 'android.permission.RECORD_AUDIO' }, RESULTS: { GRANTED: 'granted' } };
-jest.mock('react-native', () => ({ Platform: { OS: 'android' }, PermissionsAndroid: mockPermission }));
+jest.mock('react-native', () => ({ Platform: { OS: 'android' }, PermissionsAndroid: mockPermission,
+  // Expo's lazy fetch initialization can load its optional JS logger when Jest
+  // inspects globals. This test has no native logger, but the registry exists.
+  TurboModuleRegistry: { get: () => null } }));
 jest.mock('expo', () => ({ requireOptionalNativeModule: () => mockNative }));
 import { createNativeSpeechAdapter } from '../nativeSpeechAdapter';
 

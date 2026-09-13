@@ -3,6 +3,8 @@
 import {assert,rows,sql,prove,pass,apply,login,agreement,requester,worker,anon,service,ok,denied,requesterId,workerId,randomUUID,q,env} from './closure_runtime.mjs';
 import {loadExportHandler} from '../legal/data_export_edge_runtime.mjs';
 import {createObservedSqlRunner,restoreObservedSql} from './observed_export_sql.mjs';
+import {rethrowSnapshotFailure} from './export_snapshot_diagnostics.mjs';
+import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const bind=()=>JSON.parse(sql('select coalesce(private.data_export_policy_binding(),\'null\'::jsonb)'));
@@ -80,7 +82,8 @@ await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async rep
   pass(report,'REVIEWED_V2_BINDING_EXACT_CATALOG_SOURCE_HASH_REQUIRED_CLASS_AND_UNKNOWN_FIELD_DRIFT_CLOSED');
 
   const fullBinding=JSON.parse(await observedSql('BIND_FULL',"select coalesce(private.data_export_policy_binding(),'null'::jsonb)"));
-  const doc=JSON.parse(await observedSql('SNAPSHOT_FULL',snapshotSql(requesterId,fullBinding))),bytes=JSON.stringify(doc);
+  async function assertOwnedProjection(doc){
+   const bytes=JSON.stringify(doc);
   assert.equal(doc.schemaVersion,'USKOCI_DATA_EXPORT_V2');assert.equal(doc.projectionVersion,'OWN_ACCOUNT_V5_1');assert.equal(Object.keys(doc.datasets).length,37);
   assert.ok(doc.datasets.ownAgreementReviews.some(x=>x.id===ownReview));assert.ok(!doc.datasets.ownAgreementReviews.some(x=>x.id===peerReview));
   for(const text of ['OWN_EXPORT_NARRATIVE','OWN_EXPORT_CANDIDATE','OWN_REVIEW_TITLE','OWN_PRIVATE_ADDRESS'])assert.ok(bytes.includes(text),text);
@@ -93,6 +96,20 @@ await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async rep
   for(const media of doc.datasets.ownedMediaAssets)assert.equal(media.bytesIncluded,false);
   for(const allocation of doc.datasets.testAllocations)assert.equal(allocation.measuredProviderCharge,false);
   assert.equal(doc.datasets.testAllocations.length,Number(await observedSql('ALLOCATION_COUNT',`select count(*) from private.ai_test_reservations_v5 where account_id=${q(requesterId)}::uuid`)));
+  }
+  // Identical bound values for the two independent diagnostic sessions. The
+  // cutoff is a label, not a shared MVCC snapshot or a content parity guarantee.
+  const diagnosticParameters={accountId:requesterId,receiptId:randomUUID(),binding:fullBinding,cutoff:new Date().toISOString()};
+  let doc;
+  try{doc=JSON.parse(await observedSql('SNAPSHOT_FULL',snapshotSql(requesterId,fullBinding)));}
+  catch(error){await rethrowSnapshotFailure(error,{
+   readSource:()=>readFileSync(new URL('../../migrations/20260913001000_clean_v5_owned_export_projection.sql',import.meta.url)),
+   parameters:diagnosticParameters,observedSql,report,verifySnapshot:async snapshot=>{
+    assert.equal(snapshot.accountId,diagnosticParameters.accountId);assert.equal(snapshot.receiptId,diagnosticParameters.receiptId);
+    assert.equal(Date.parse(snapshot.snapshotAt),Date.parse(diagnosticParameters.cutoff));await assertOwnedProjection(snapshot);
+   },
+  });}
+  await assertOwnedProjection(doc);
   await observedSql('LIMITED_POLICY_UPDATE',reviewDeliverySql({datasets:delivery.datasets.map(d=>d.key==='ownSafetyReports'?{key:d.key,mode:'EXCLUDE',reasonCode:'DISPOSABLE_REVIEWED_OMISSION'}:d.key==='workerAiDrafts'?{...d,fields:['conversationId','revision']}:d)}));
   const limitedBinding=JSON.parse(await observedSql('BIND_LIMITED',"select coalesce(private.data_export_policy_binding(),'null'::jsonb)"));
   const limited=JSON.parse(await observedSql('SNAPSHOT_LIMITED',snapshotSql(requesterId,limitedBinding)));assert.equal(limited.datasets.ownSafetyReports,undefined);assert.ok(limited.reviewedOmissions.some(x=>x.key==='ownSafetyReports'));

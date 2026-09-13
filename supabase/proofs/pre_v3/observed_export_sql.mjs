@@ -5,7 +5,8 @@ import {randomUUID} from 'node:crypto';
 export const OBSERVED_SQL_LIMITS=Object.freeze({queryMs:20000,observerMs:1000,pollMs:250,stdoutBytes:1024*1024,observerBytes:65536,stderrLineBytes:128,
  observations:12,blockingPids:8,locks:8,blockers:8,operations:32});
 const operations=new Set(['BIND_FULL','SNAPSHOT_FULL','ALLOCATION_COUNT','LIMITED_POLICY_UPDATE','BIND_LIMITED','SNAPSHOT_LIMITED','RESTORE_FULL_DELIVERY',
- 'RETIRE_FIXTURE_POLICY','RETIRE_FIXTURE_PRIVACY','RESTORE_PREDECESSOR_POLICY','RESTORE_PREDECESSOR_PRIVACY']);
+ 'RETIRE_FIXTURE_POLICY','RETIRE_FIXTURE_PRIVACY','RESTORE_PREDECESSOR_POLICY','RESTORE_PREDECESSOR_PRIVACY',
+ 'DIAG_SOURCE_BINDING','DIAG_PLAN_ORIGINAL','DIAG_PLAN_MATERIALIZED','DIAG_EXECUTE_ORIGINAL','DIAG_EXECUTE_MATERIALIZED','DIAG_EXECUTE_FUNCTION_LOCAL_JIT_OFF']);
 const integer=v=>Number.isSafeInteger(v)&&v>0&&v<=2147483647;
 const record=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:null;
 const state=new Set(['active','idle','idle in transaction','idle in transaction (aborted)','fastpath function call','disabled']);

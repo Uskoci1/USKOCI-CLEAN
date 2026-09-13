@@ -7,6 +7,13 @@ const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
 const content={safety:'ALLOW',assistantMessage:'Razumem. Potrebne su dve osobe u Novom Sadu. Proverite unos.',facts:[{key:'need.people_needed',valueJson:'2',displayValue:'Dve osobe',confidence:0.9,evidence:'dve osobe'}]};
 const stored={conversationId:conversation,clientRequestId:key,state:'SUCCEEDED',turnId,retryAllowed:false,receipt:{userMessageId:id(6),assistantMessageId:id(7),proposedCount:1,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true}};
+const providerType=value=>{
+ const url=new URL(value);
+ if(url.username||url.password||url.search||url.hash)return null;
+ if(url.origin==='https://api.openai.com'&&url.pathname==='/v1/responses')return 'openai';
+ if(url.origin==='https://generativelanguage.googleapis.com'&&url.pathname==='/v1beta/models/synthetic-gemini:generateContent')return 'gemini';
+ return null;
+};
 function fixture(options={}){
  const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',OPENAI_API_KEY:'SYNTHETIC_OPENAI_SECRET',OPENAI_MODEL:'synthetic-openai',GEMINI_API_KEY:'SYNTHETIC_GEMINI_SECRET',GEMINI_MODEL:'synthetic-gemini',...options.env};
  const calls=[],logs=[],envReads=[];
@@ -22,9 +29,10 @@ function fixture(options={}){
    // Labelled unit transport: authorize the 132 dispatch CAS synthetically;
    // real SQL races remain the responsibility of the actual recovery proof.
    if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return json(true);
-   if(url==='https://api.openai.com/v1/responses'||url.startsWith('https://generativelanguage.googleapis.com/')){
+   const provider=providerType(url);
+   if(provider){
     if(options.provider)return options.provider(url,init);
-    return json(url.includes('api.openai.com')?{status:'completed',output_text:JSON.stringify(content)}:{candidates:[{content:{parts:[{text:JSON.stringify(content)}]}}]});
+    return json(provider==='openai'?{status:'completed',output_text:JSON.stringify(content)}:{candidates:[{content:{parts:[{text:JSON.stringify(content)}]}}]});
    }
    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return json(stored);
    if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json({...stored,state:'FAILED',receipt:null,retryAllowed:true});
@@ -33,8 +41,16 @@ function fixture(options={}){
  const invoke=()=>runtime.handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC_USER','Content-Type':'application/json'},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'Trebaju mi dve osobe u Novom Sadu.'})}));
  return {invoke,calls,logs,envReads};
 }
-const providers=f=>f.calls.filter(x=>x.url.includes('api.openai.com')||x.url.includes('generativelanguage.googleapis.com'));
+const providers=f=>f.calls.filter(x=>providerType(x.url)!==null);
 const completes=f=>f.calls.filter(x=>x.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
+test('synthetic provider transport admits only exact HTTPS origins and model endpoint paths',()=>{
+ assert.equal(providerType('https://api.openai.com/v1/responses'),'openai');
+ assert.equal(providerType('https://generativelanguage.googleapis.com/v1beta/models/synthetic-gemini:generateContent'),'gemini');
+ for(const url of ['https://api.openai.com.attacker.invalid/v1/responses','https://attacker.invalid/api.openai.com',
+  'https://attacker.invalid/?host=generativelanguage.googleapis.com','https://api.openai.com@attacker.invalid/v1/responses',
+  'https://user:password@api.openai.com/v1/responses','http://api.openai.com/v1/responses','https://api.openai.com:8443/v1/responses',
+  'https://api.openai.com/v1/responses-extra','https://generativelanguage.googleapis.com/v1beta/models/other:generateContent'])assert.equal(providerType(url),null);
+});
 for(const [name,env,expected] of [
  ['both configured, implicit OpenAI primary',{},'openai'],
  ['OpenAI only',{GEMINI_API_KEY:undefined,GEMINI_MODEL:undefined},'openai'],
@@ -44,7 +60,7 @@ for(const [name,env,expected] of [
  ['explicit Gemini override',{AI_PROVIDER:'gemini'},'gemini'],
 ])test(name,async()=>{
  const f=fixture({env});const r=await f.invoke();assert.equal(r.status,200);assert.deepEqual(await r.json(),stored);
- assert.equal(providers(f).length,1);assert.equal(providers(f)[0].url.includes(expected==='openai'?'api.openai.com':'generativelanguage.googleapis.com'),true);
+ assert.equal(providers(f).length,1);assert.equal(providerType(providers(f)[0].url),expected);
  assert.equal(completes(f).length,1);assert.equal(completes(f)[0].body.p_assistant_message,content.assistantMessage);
  assert.deepEqual(completes(f)[0].body.p_proposals,[{key:'need.people_needed',value:2,displayValue:'Dve osobe',confidence:0.9,evidence:'dve osobe'}]);
  assert.equal(completes(f)[0].body.p_account_id,account);assert.equal(completes(f)[0].body.p_client_request_id,key);
