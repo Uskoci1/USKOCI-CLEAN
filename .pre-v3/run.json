@@ -1,7 +1,7 @@
 {
-  "sourceSha": "eb2b5002eb9aca31a4a0c14f361d7487803fc28a",
-  "sourceTree": "87ecc0a8f21bc3c5e77c5a280383302d24093ebf",
-  "purpose": "Verify restored requester/worker streaming and bounded safe diagnostics on exact source; all original tests retained. FULL147 disposable proof only; no live access, provider, device or release claim.",
+  "sourceSha": "9cb47edb244d3aa323a215c411509c895c701205",
+  "sourceTree": "dd8dfd6bcdb8a1d9516ed77bba4c40e7db9a346f",
+  "purpose": "Verify current V5 integration after requester/worker stream restoration, reachable AI/voice/auth UX and streamed migration145 synthetic fixture. FULL147 disposable proof only; no live access, real provider, device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
