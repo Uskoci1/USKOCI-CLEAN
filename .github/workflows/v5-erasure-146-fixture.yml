@@ -1,4 +1,4 @@
-name: V5 erasure146 canonical supersession fixture
+name: V5 erasure146 Auth invariant diagnostic
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: v5-erasure146-canonical-fixture
+  group: v5-erasure146-auth-invariant
   cancel-in-progress: false
 jobs:
   repair:
@@ -21,56 +21,46 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Guard V5 head and repair disposable fact graph without weakening production guard
+      - name: Guard exact V5 head and split Auth erasure assertion into safe booleans
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "ef02449e2d11f48b959c6b113a1f8ade0465c392"
+          test "$(git rev-parse HEAD)" = "5218a6853b626f22029e80957ceab72568c64291"
           python3 - <<'PY'
           from pathlib import Path
-          fixture=Path('supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs')
-          s=fixture.read_text(encoding='utf-8')
-          old="const needId=randomUUID(),reviewIds=[],workerReview=randomUUID(),factIds=Array.from({length:205},()=>randomUUID());"
-          new="const needId=randomUUID(),reviewIds=[],workerReview=randomUUID(),factIds=Array.from({length:205},()=>randomUUID());\n const liveFactId=factIds[0],supersededFactIds=factIds.slice(1);"
-          if s.count(old)!=1: raise SystemExit(f'fact id guard={s.count(old)}')
-          s=s.replace(old,new)
-          old=""" // Reversed insertion order makes a referenced target precede its referrer by
- // physical ctid. The chain spans >2 batches, not just an implementation mirror.
- sql(`insert into public.ai_structured_facts(id,account_id,conversation_id,fact_key,fact_value,status,source,scope,display_value,evidence_excerpt,superseded_at,fact_schema_version)
-  values ${factIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};
-  update public.ai_structured_facts f set superseded_by=x.target from (values ${factIds.slice(1).map((id,i)=>`(${q(id)}::uuid,${q(factIds[i])}::uuid)`).join(',')}) x(id,target) where f.id=x.id;
-  insert into private.ai_need_turn_commands(account_id,conversation_id,client_request_id,request_hash,state,receipt)
-"""
-          new=""" // One canonical live replacement precedes 204 superseded referrers by physical
- // ctid. The reference set spans >2 executor batches while every link remains
- // valid under the production supersession guard: superseded_by targets must be live.
- sql(`insert into public.ai_structured_facts(id,account_id,conversation_id,fact_key,fact_value,status,source,scope,display_value,evidence_excerpt,superseded_at,fact_schema_version)
-  values (${q(liveFactId)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},null,'NEED_FACT_V2'),
-  ${supersededFactIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};
-  update public.ai_structured_facts f set superseded_by=${q(liveFactId)}::uuid where f.id in (${supersededFactIds.map(id=>`${q(id)}::uuid`).join(',')});
-  insert into private.ai_need_turn_commands(account_id,conversation_id,client_request_id,request_hash,state,receipt)
-"""
-          if s.count(old)!=1: raise SystemExit(f'fact graph guard={s.count(old)}')
-          fixture.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
-
-          test=Path('supabase/proofs/pre_v3/v5_account_erasure.test.mjs')
-          t=test.read_text(encoding='utf-8')
-          old="assert.ok(fixtures.includes('length:205'));assert.ok(fixtures.includes('active_export_attempt_id'));"
-          new="assert.ok(fixtures.includes('length:205'));assert.ok(fixtures.includes('liveFactId=factIds[0],supersededFactIds=factIds.slice(1)'));\n assert.ok(fixtures.includes('set superseded_by=${q(liveFactId)}::uuid'));assert.ok(fixtures.includes('active_export_attempt_id'));"
-          if t.count(old)!=1: raise SystemExit(f'static fixture guard={t.count(old)}')
-          test.write_text(t.replace(old,new),encoding='utf-8',newline='\n')
+          p=Path('supabase/proofs/pre_v3/v5_account_erasure_proof.mjs')
+          s=p.read_text(encoding='utf-8')
+          old=""" assert.equal(sql(`select deleted_at is not null and coalesce(encrypted_password,'')='' and coalesce(raw_user_meta_data,'{}')='{}' and coalesce(raw_app_meta_data,'{}')='{}' from auth.users where id=${q(a.id)}::uuid`),'t');
+ assert.equal(sql(`select strpos(coalesce(email,''),${q(originalAuthEmail)})=0 and coalesce(phone,'')='' from auth.users where id=${q(a.id)}::uuid`),'t');
+ assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0');
+ assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0');"""
+          new=""" const authState=rows(`select deleted_at is not null deleted,coalesce(encrypted_password,'')='' password_empty,
+  coalesce(raw_user_meta_data,'{}'::jsonb)='{}'::jsonb user_meta_empty,coalesce(raw_app_meta_data,'{}'::jsonb)='{}'::jsonb app_meta_empty,
+  strpos(coalesce(email,''),${q(originalAuthEmail)})=0 email_obfuscated,coalesce(phone,'')='' phone_empty
+  from auth.users where id=${q(a.id)}::uuid`)[0];
+ report.authSoftErasure={deleted:authState?.deleted===true,passwordEmpty:authState?.password_empty===true,userMetaEmpty:authState?.user_meta_empty===true,
+  appMetaEmpty:authState?.app_meta_empty===true,emailObfuscated:authState?.email_obfuscated===true,phoneEmpty:authState?.phone_empty===true};
+ assert.equal(authState?.deleted,true,'AUTH_SOFT_DELETE_TIMESTAMP_MISSING');
+ assert.equal(authState?.password_empty,true,'AUTH_SOFT_DELETE_PASSWORD_NOT_CLEARED');
+ assert.equal(authState?.user_meta_empty,true,'AUTH_SOFT_DELETE_USER_METADATA_NOT_CLEARED');
+ assert.equal(authState?.app_meta_empty,true,'AUTH_SOFT_DELETE_APP_METADATA_NOT_CLEARED');
+ assert.equal(authState?.email_obfuscated,true,'AUTH_SOFT_DELETE_EMAIL_NOT_OBFUSCATED');
+ assert.equal(authState?.phone_empty,true,'AUTH_SOFT_DELETE_PHONE_NOT_CLEARED');
+ assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_IDENTITIES_REMAIN');
+ assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_SESSIONS_REMAIN');"""
+          if s.count(old)!=1: raise SystemExit(f'auth composite guard={s.count(old)}')
+          p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           PY
           npm ci >/dev/null
-          node --check supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs
           node --check supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
           node --test supabase/proofs/pre_v3/v5_account_erasure.test.mjs
           npx --no-install tsc --noEmit
           git diff --check
-          git diff -- supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs supabase/proofs/pre_v3/v5_account_erasure.test.mjs
-      - name: Commit verified 146 fixture repair to integration branch
+          git diff -- supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
+      - name: Commit safe Auth invariant diagnostic to integration branch
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
-          git add -- supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs supabase/proofs/pre_v3/v5_account_erasure.test.mjs
-          git commit -m 'test(v5): use canonical live target in erasure fact graph'
+          git add -- supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
+          git commit -m 'test(v5): isolate account erasure Auth invariants'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
