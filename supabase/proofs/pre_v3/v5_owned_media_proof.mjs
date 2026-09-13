@@ -1,6 +1,6 @@
 // Actual disposable Postgres/Auth/Storage. Real sanitized JPEG bytes. All policy
 // decisions are explicit synthetic service fixtures; no Gemini/live API call.
-import {assert,rows,sql,prove,pass,apply,login,requester,worker,requesterId,workerId,service,anon,ok,denied,actor,randomUUID,q,lockedRace} from './closure_runtime.mjs';
+import {assert,rows,sql,prove,pass,apply,login,worker,workerId,service,anon,ok,denied,actor,randomUUID,q,lockedRace} from './closure_runtime.mjs';
 import {locationCases,syntheticNonlocationFacts} from '../policy/publication_fixtures.mjs';
 import {createHash} from 'node:crypto';import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';
 import * as magick from '@imagemagick/magick-wasm';import {sanitizeImage} from '../../functions/_shared/mediaImageSanitizer.mjs';
@@ -8,6 +8,7 @@ const require=createRequire(import.meta.url);await magick.initializeImageMagick(
 const original=magick.ImageMagick.read(magick.MagickColors.Green,80,40,i=>i.write(magick.MagickFormat.Png,b=>new Uint8Array(b)));
 const image=sanitizeImage(original,'image/png',magick),sha=createHash('sha256').update(image.bytes).digest('hex');
 const inputSha=createHash('sha256').update(original).digest('hex');
+let requester,requesterId;
 const file='20260912224647_clean_v5_owned_media.sql';
 const claimArgs=(account,scope,target,key=randomUUID())=>({p_account_id:account,p_scope:scope,p_target_id:target,p_client_request_id:key,
  p_input_sha256:inputSha,p_input_bytes:original.length,p_input_type:'image/png'});
@@ -36,6 +37,10 @@ const accept=r=>requester.rpc('rpc_accept_ai_task_review',{p_review_id:r.reviewI
 
 await prove('V5_OWNED_MEDIA','v5-owned-media-report.json',async report=>{
  await apply(report,file,129);await login();
+ // This stage performs four genuine intake turns. Its actor must not inherit
+ // the prior19 reports' rolling quota. Never reset timestamps or relax limits.
+ const owner=await actor('v5-media-requester');requester=owner.client;requesterId=owner.id;
+ assert.equal(sql(`select count(*) from private.ai_need_turn_commands where account_id=${q(requesterId)}::uuid`),'0');
  assert.equal(sql(`select relrowsecurity from pg_class where oid='private.owned_media_assets'::regclass`),'t');
  for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_table_privilege(${q(role)},'private.owned_media_assets','SELECT,INSERT,UPDATE,DELETE')`),'f');
  const cid=await conversation(),key=randomUUID(),args=claimArgs(requesterId,'TASK',cid,key);
