@@ -18,7 +18,7 @@ for name in old_names:
  if name.endswith('.sql'): assert Path(name).read_bytes()==raw(BASE,name),name
 for p in sorted(mdir.glob('*.sql')):
  if str(p) in old_names: continue
- assert re.fullmatch('20260912[0-9]{6}_clean_pre_v3_[a-z0-9_]+[.]sql',p.name) or p.name in ('20260912213702_clean_v5_review_acceptance.sql','20260912214126_clean_v5_bounded_ai_test_budget.sql','20260912220506_clean_v5_owned_worker_profile.sql','20260912222338_clean_v5_owner_safety_legal_reads.sql','20260912224647_clean_v5_owned_media.sql','20260912230039_clean_v5_policy_bound_closure.sql','20260912233901_clean_v5_ai_turn_restart_recovery.sql','20260912234201_clean_v5_owned_qa_recovery.sql','20260913000109_clean_v5_approved_qa_limits.sql'),p.name
+ assert re.fullmatch('20260912[0-9]{6}_clean_pre_v3_[a-z0-9_]+[.]sql',p.name) or p.name in ('20260912213702_clean_v5_review_acceptance.sql','20260912214126_clean_v5_bounded_ai_test_budget.sql','20260912220506_clean_v5_owned_worker_profile.sql','20260912222338_clean_v5_owner_safety_legal_reads.sql','20260912224647_clean_v5_owned_media.sql','20260912230039_clean_v5_policy_bound_closure.sql','20260912233901_clean_v5_ai_turn_restart_recovery.sql','20260912234201_clean_v5_owned_qa_recovery.sql','20260913000109_clean_v5_approved_qa_limits.sql','20260913000144_clean_v5_qa_classifier_authority.sql','20260913001000_clean_v5_owned_export_projection.sql'),p.name
  b=p.read_bytes();entry=next((x for x in m['pending_forward_migrations'] if x['file']==p.name),None)
  if entry is None:
   entry={'version':p.name[:14],'name':p.name[15:-4],'file':p.name,'classification':'PENDING_FORWARD_MIGRATION','live_applied':False,
