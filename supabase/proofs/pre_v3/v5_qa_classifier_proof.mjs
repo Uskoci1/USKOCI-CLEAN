@@ -115,11 +115,13 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
   const ea=await worker('qa135-edge'),en=qaNeed('QA135 Edge'),ei=input(ea,en,'Da li je ulaz pristupacan?');
   sql(`insert into public.need_geography(need_id,public_topology) values(${q(en)}::uuid,'{"mode":"STATIONARY","start":{"city":"Novi Sad","area":"Liman"}}'::jsonb) on conflict(need_id) do update set public_topology=excluded.public_topology`);
   const token=(await ok(ea.client.auth.getSession())).session.access_token,origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
-  // Save/restore the exhausted predecessor budget fixture; no real spend exists.
-  const savedBudget=rows('select * from private.ai_test_budget_v5')[0],savedReservations=rows('select * from private.ai_test_reservations_v5');
-  sql(`delete from private.ai_test_reservations_v5;update private.ai_test_budget_v5 set reserved_microusd=0,enabled=true;insert into private.ai_test_accounts_v5(account_id) values(${q(ea.id)}::uuid)`);
+  //127 leaves an exhausted, disabled AND expired disposable budget. Preserve
+  // every field/list below; never weaken expiry or reuse its denied command.
+  const savedBudget=rows('select * from private.ai_test_budget_v5')[0],savedReservations=rows('select * from private.ai_test_reservations_v5 order by id'),
+   savedAccounts=rows('select * from private.ai_test_accounts_v5 order by account_id');
   let providerCalls=0;
   try{
+   sql(`delete from private.ai_test_reservations_v5;update private.ai_test_budget_v5 set reserved_microusd=0,enabled=true,price_valid_until='2020-01-01T00:00:00Z';insert into private.ai_test_accounts_v5(account_id) values(${q(ea.id)}::uuid)`);
    const e={SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_NO_SECRET',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',USKOCI_QA_CLASSIFIER_ENABLED:'true'};
    const runtime=loadQaClassifierHandler({env:name=>e[name],fetch:async(request,init={})=>{
     const target=new URL(String(request));if(target.hostname==='generativelanguage.googleapis.com'){
@@ -129,11 +131,35 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
     }
     assert.equal(target.origin,origin);assert.ok(target.pathname==='/auth/v1/user'||target.pathname.startsWith('/rest/v1/'));return fetch(request,init);
    }});
-   const invoke=()=>runtime.handler(new Request('https://synthetic-handler.invalid',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({type:'ASK',needId:en,needRevision:1,questionId:null,text:ei.p_text,clientRequestId:ei.p_client_request_id})}));
-   const r=await invoke();assert.equal(r.status,200);const receipt=await r.json();assert.equal(receipt.state,'COMMITTED');assert.deepEqual(await read(ea,ei),receipt);
+   const invoke=(i=ei)=>runtime.handler(new Request('https://synthetic-handler.invalid',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({type:'ASK',needId:en,needRevision:1,questionId:null,text:i.p_text,clientRequestId:i.p_client_request_id})}));
+   const checkedResponse=async(r,stage,expected)=>{const body=await r.json(),allowed=['QA_CLASSIFICATION_UNCONFIRMED','QA_CLASSIFIER_NOT_ENABLED','QA_TEST_BUDGET_NOT_ADMITTED','AUTH_REQUIRED','QA_INPUT_INVALID'],
+    code=allowed.includes(body?.code)?body.code:body?.code===undefined?null:'UNRECOGNIZED_CODE';
+    (report.actualEdgeDiagnostics??=[]).push({stage,httpStatus:r.status,code});
+    assert.equal(r.status,expected,stage+':HTTP_'+r.status+':'+(code??'NO_ERROR_CODE'));return body;};
+   report.actualEdgeSourceHashes=runtime.sourceHashes;
+   const expired={...ei,p_client_request_id:randomUUID()};
+   const expiredBody=await checkedResponse(await invoke(expired),'EXPIRED_BUDGET',503);assert.equal(expiredBody.code,'QA_TEST_BUDGET_NOT_ADMITTED');
+   assert.equal(providerCalls,0);assert.equal(questionCount(en),0);assert.equal(sql('select reserved_microusd from private.ai_test_budget_v5'),'0');
+   assert.equal(sql('select count(*) from private.ai_test_reservations_v5'),'0');
+   const deniedCommand=await read(ea,expired);assert.equal(deniedCommand.state,'PROCESSING');
+   assert.equal(sql(`select provider_dispatched from private.qa_ai_commands where id=${q(deniedCommand.classificationId)}::uuid`),'f');
+   assert.equal((await cancel(ea,expired)).state,'CANCELLED');
+   pass(report,'ACTUAL_HANDLER_EXPIRED_BUDGET_DENIED_BEFORE_PROVIDER_ZERO_RESERVATION_EXPLICIT_CANCEL_NO_KEY_REUSE');
+   // Use the actual SQL127 column default only for this distinct positive
+   // disposable case; finally restores the inherited expired date as well.
+   sql('update private.ai_test_budget_v5 set price_valid_until=default');
+   assert.equal(sql('select enabled and price_valid_until>clock_timestamp() and reserved_microusd=0 from private.ai_test_budget_v5'),'t','POSITIVE_FIXTURE_BUDGET_READY');
+   const receipt=await checkedResponse(await invoke(),'ADMITTED_BUDGET',200);assert.equal(receipt.state,'COMMITTED');assert.deepEqual(await read(ea,ei),receipt);
    assert.deepEqual(await(await invoke()).json(),receipt);assert.equal(providerCalls,1);assert.equal(questionCount(en),1);
-   assert.equal(sql('select reserved_microusd from private.ai_test_budget_v5'),'250000');assert.equal(sql('select count(*) from private.ai_test_reservations_v5'),'1');report.actualEdgeSourceHashes=runtime.sourceHashes;
-  }finally{sql(`delete from private.ai_test_reservations_v5;insert into private.ai_test_reservations_v5 select * from jsonb_populate_recordset(null::private.ai_test_reservations_v5,${q(JSON.stringify(savedReservations))}::jsonb);update private.ai_test_budget_v5 set enabled=${savedBudget.enabled},reserved_microusd=${savedBudget.reserved_microusd};delete from private.ai_test_accounts_v5 where account_id=${q(ea.id)}::uuid`);}
+   assert.equal(sql('select reserved_microusd from private.ai_test_budget_v5'),'250000');assert.equal(sql('select count(*) from private.ai_test_reservations_v5'),'1');
+  }finally{
+   sql(`begin;delete from private.ai_test_reservations_v5;insert into private.ai_test_reservations_v5 select * from jsonb_populate_recordset(null::private.ai_test_reservations_v5,${q(JSON.stringify(savedReservations))}::jsonb);
+    update private.ai_test_budget_v5 set (enabled,ceiling_microusd,reserved_microusd,price_valid_until)=(select enabled,ceiling_microusd,reserved_microusd,price_valid_until from jsonb_populate_record(null::private.ai_test_budget_v5,${q(JSON.stringify(savedBudget))}::jsonb)) where singleton;
+    delete from private.ai_test_accounts_v5 where account_id=${q(ea.id)}::uuid;commit;`);
+   assert.deepEqual(rows('select * from private.ai_test_budget_v5')[0],savedBudget);
+   assert.deepEqual(rows('select * from private.ai_test_reservations_v5 order by id'),savedReservations);
+   assert.deepEqual(rows('select * from private.ai_test_accounts_v5 order by account_id'),savedAccounts);
+  }
   pass(report,'LATEST_ACTUAL_HANDLER_AUTH_SQL_CLAIM_DISPATCH_BUDGET_CANONICAL_WRITE_RECOVERY_ONE_SYNTHETIC_GEMINI');
  }finally{sql(`update private.publication_policy_bundles set is_active=false where id=${q(bundle)}::uuid`);}
  assert.equal(sql("select 'private.qa_ai_commands'=any(relations) from private.closure_dataset_catalog_v5 where data_class='COMMAND_LEDGERS'"),'t');

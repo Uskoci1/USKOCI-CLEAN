@@ -41,6 +41,13 @@ test('READY replay uses canonical submission with no provider or paid flag depen
 for(const state of['PROCESSING','COMMITTED','CANCELLED','STALE','REJECTED'])test(`${state} replay never invokes provider or a new canonical write`,async()=>{const f=fixture({replay:state});await f.invoke();assert.equal(providers(f).length,0);assert.equal(submits(f).length,0);});
 for(const key of['USKOCI_GEMINI_PAID_TEST_ENABLED','USKOCI_QA_CLASSIFIER_ENABLED','GEMINI_MODEL','AI_PROVIDER'])test(`${key} must match exact approved configuration before billable work`,async()=>{const f=fixture({env:{[key]:'not-approved'}});await f.invoke();assert.equal(providers(f).length,0);assert.equal(completes(f).length,0);});
 test('budget denial cannot dispatch provider or publish',async()=>{const f=fixture({budget:{admitted:false,reservationId:null,replay:false,code:'AI_TEST_BUDGET_EXHAUSTED'}});await f.invoke();assert.equal(providers(f).length,0);assert.equal(submits(f).length,0);});
+test('expired real budget contract returns explicit503 without dispatch, provider, completion or publication',async()=>{
+ const f=fixture({budget:{admitted:false,reservationId:null,replay:false,code:'AI_TEST_BUDGET_NOT_READY'}}),r=await f.invoke();
+ assert.equal(r.status,503);assert.equal((await r.json()).code,'QA_TEST_BUDGET_NOT_ADMITTED');
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_budget_reserve_service')).length,1);
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_dispatch_qa_classification_service')).length,0);
+ assert.equal(providers(f).length,0);assert.equal(completes(f).length,0);assert.equal(submits(f).length,0);
+});
 for(const dispatch of[()=>json(false),()=>json({acquired:true}),()=>{throw new Error('UNKNOWN');}])test('uncertain/denied dispatch never invokes provider',async()=>{const f=fixture({dispatch});await f.invoke();assert.equal(providers(f).length,0);assert.equal(completes(f).length,0);});
 for(const mutate of[c=>c.accountId=A,c=>c.publicTask.exactAddress='PRIVATE ADDRESS',c=>c.publicTask.publicGeography.latitude=44,c=>c.publicTask.publicGeography.topology.start={city:'BG',exactAddress:'SECRET'}])test('unexpected private/context fields fail closed before provider',async()=>{const f=fixture({context:mutate});await f.invoke();assert.equal(providers(f).length,0);});
 test('MATERIAL answer records classification only and never publishes Task or Q&A',async()=>{const f=fixture({type:'ANSWER',output:{outcome:'CLARIFY',materiality:'MATERIAL',ruleIds:['QA-MATERIAL-CHANGE'],safeReasonCodes:['TASK_TERMS_CHANGE']}});const r=await f.invoke();assert.equal((await r.json()).state,'REJECTED');assert.equal(completes(f).length,1);assert.equal(submits(f).length,0);});
