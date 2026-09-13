@@ -6,6 +6,7 @@ export async function seedContentCopies(a,canary){
  const cid=await ok(a.client.rpc('rpc_ai_open_need_conversation_v2'));
  const profile=rows(`select id from public.app_profiles where account_id=${q(a.id)}::uuid and kind='REQUESTER'`)[0].id;
  const needId=randomUUID(),reviewIds=[],workerReview=randomUUID(),factIds=Array.from({length:205},()=>randomUUID());
+ const liveFactId=factIds[0],supersededFactIds=factIds.slice(1);
  const turnKey=randomUUID(),saveKey=randomUUID();
  const worker=await ok(a.client.rpc('rpc_open_worker_ai',{p_client_request_id:randomUUID()})),workerCid=worker.conversationId;
  sql(`insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,mode,
@@ -17,11 +18,13 @@ export async function seedContentCopies(a,canary){
   insert into public.ai_action_proposals(account_id,conversation_id,action_kind,payload)
   values(${q(a.id)},${q(cid)},'DISPOSABLE_ERASURE_CANARY',jsonb_build_object('note',${q(canary)}));`);
  assert.equal(sql(`select approx_geog is not null from public.needs where id=${q(needId)}`),'t');
- // Reversed insertion order makes a referenced target precede its referrer by
- // physical ctid. The chain spans >2 batches, not just an implementation mirror.
+ // One canonical live replacement precedes 204 superseded referrers by physical
+ // ctid. The reference set spans >2 executor batches while every link remains
+ // valid under the production supersession guard: superseded_by targets must be live.
  sql(`insert into public.ai_structured_facts(id,account_id,conversation_id,fact_key,fact_value,status,source,scope,display_value,evidence_excerpt,superseded_at,fact_schema_version)
-  values ${factIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};
-  update public.ai_structured_facts f set superseded_by=x.target from (values ${factIds.slice(1).map((id,i)=>`(${q(id)}::uuid,${q(factIds[i])}::uuid)`).join(',')}) x(id,target) where f.id=x.id;
+  values (${q(liveFactId)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},null,'NEED_FACT_V2'),
+  ${supersededFactIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};
+  update public.ai_structured_facts f set superseded_by=${q(liveFactId)}::uuid where f.id in (${supersededFactIds.map(id=>`${q(id)}::uuid`).join(',')});
   insert into private.ai_need_turn_commands(account_id,conversation_id,client_request_id,request_hash,state,receipt)
   values(${q(a.id)},${q(cid)},${q(turnKey)},${q('1'.repeat(64))},'SUCCEEDED',jsonb_build_object('copy',${q(canary)}));`);
  for(const state of ['ACCEPTED','EVALUATED','PUBLISHED']){
