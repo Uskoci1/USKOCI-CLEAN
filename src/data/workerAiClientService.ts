@@ -79,9 +79,9 @@ export function decodeWorkerAiTurnRecovery(raw:unknown,account:string,cid:string
     ||typeof v.retryAllowed!=='boolean'||v.authoritative!==true)return null;
   const turn=v.turn===null?null:decodeWorkerAiTurn(v.turn,cid,key);
   if(v.turn!==null&&!turn)return null;
-  if((!turn&&(v.providerDispatched||v.cancelled))||(v.cancelled&&(v.providerDispatched||turn?.state!=='FAILED'))
+  if((!turn&&(v.providerDispatched||v.cancelled))||(v.cancelled&&(turn?.state!=='FAILED'||v.canCancel||v.retryAllowed))
     ||(v.retryAllowed&&(!!turn||!v.canCancel||v.conversationStatus!=='OPEN'))
-    ||(v.canCancel&&(v.conversationStatus!=='OPEN'||v.providerDispatched||v.cancelled||!!turn&&!['PROCESSING','UNKNOWN_OUTCOME'].includes(turn.state))))return null;
+    ||(v.canCancel&&(v.conversationStatus!=='OPEN'||v.cancelled||!!turn&&!['PROCESSING','UNKNOWN_OUTCOME'].includes(turn.state))))return null;
   return {schemaVersion:'WORKER_PROFILE_V1',accountId:v.accountId,conversationId:v.conversationId,profileId:v.profileId,
     conversationStatus:v.conversationStatus,clientRequestId:v.clientRequestId,turn,providerDispatched:v.providerDispatched,
     cancelled:v.cancelled,canCancel:v.canCancel,retryAllowed:v.retryAllowed,authoritative:true};

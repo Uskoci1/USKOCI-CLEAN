@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
 import { aiNeedV2Izvor, izvor } from '../../data';
@@ -262,6 +263,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
           {review.missingRequired.length ? <View style={s.notice}><T style={s.body}>Još nedostaje: {review.missingRequired.map(factLabel).join(', ')}.</T>
             <V2Action label="Dopuni u razgovoru" disabled={disabled} onPress={back} /></View> : null}
           {resultCopy ? <View style={s.notice}><T accessibilityLiveRegion="polite" style={s.body}>{resultCopy}</T></View> : null}
+          {command?.state === 'EVALUATED' && outcome === 'REVIEW' ? <SupportContextEntry
+            reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Zatraži pregled podrške"
+            disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
           {!command ? <V2Action label="Izmeni u razgovoru" kind="quiet" disabled={disabled} onPress={back} /> : null}
           {!command && !locationEditor ? <V2Action label={review.location ? 'Uredi mesto' : 'Dodaj mesto'} kind="quiet" disabled={disabled || !!edit || deadlineEditor} onPress={openLocation} /> : null}
         </> : null}

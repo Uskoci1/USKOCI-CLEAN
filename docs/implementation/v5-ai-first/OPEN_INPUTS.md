@@ -1,19 +1,22 @@
 # Preostali ulazi — bez ponavljanja prihvaćenih odluka
 
-Stanje2026-09-13. Ovo je operativni spisak otvorenih ulaza, ne proizvodna odluka ili dozvola za izvršavanje. Prihvaćeni odgovori AF-D01…14 su u EXECUTION.md i imaju prednost nad starijim RC2/HTML detaljima. Protek vremena nije odgovor.
+Stanje2026-09-13. Ovo je operativni spisak otvorenih ulaza, ne proizvodna odluka ili dozvola za izvršavanje. Prihvaćeni odgovori AF-D01…18 su u EXECUTION.md i imaju prednost nad starijim RC2/HTML detaljima. Protek vremena nije odgovor.
 
 ## Pitanja već poslata vlasniku, odgovor još nije primljen
 
 | Ključ | Poslati predlog/traženi podatak | Zašto je potreban |
 | --- | --- | --- |
 | Urgent | Fizički Task koji prolazi postojeću proveru; početak u narednih6h ili TODAY_FLEXIBLE; trajanje najviše60min, skraćeno početkom/response deadline-om; cilj najmanje2 podobna kad postoje, bez garancije;0RSD i postojeći quiet hours. | Novi konkretni HITNO parametri, nisu određeni ranijim ugovorom. URGENT_CONTRACT_PROPOSAL.md. |
-| SupportScope | Vlasnikov autentifikovani nalog kao jedini operater privatnog testa; poslati slučajevi, postojeće safety prijave i izričito izabrani dokazi; audit pristupa, ručni odgovor/re-review. Bez automatskog čitanja cele prepiske, Gemini svrhe ili novih sankcija. | Novi konkretni primaoci i ovlašćenja operativne podrške. SUPPORT_CASE_CONTRACT_PROPOSAL.md. |
-| SupportLimits | Naslov200, opis/odgovor/žalba4000, traženi ishod1000 znakova;5 novih+50 dopuna/rolling24h,60s između običnih novih slučajeva, jedna otvorena žalba po odluci. Safety/prava/privatnost nisu pod tim kvotama. | Nove brojčane granice obične podrške. |
-| TestAccounts | Da li su sva3 postojeća naloga pod vlasnikovom kontrolom i koja2 su R/W; tražena imena/email, bez lozinki/ključeva. Objašnjeno da objavu vidi sva authenticated publika projekta. | Precizan obim narednog live testa; AI allowlist i privatni APK nisu izolacija marketplace-a. Ovo pitanje samo ne odobrava live batch. |
+| TestAccounts | Vlasnik je naveo prvi nalog i tri kandidata za drugi. Read-only provera potvrdila je samo prvi postojeći nalog; ostale tri tačne adrese nisu pronađene. Potvrda kontrole nad ostalim postojećim nalozima nije primljena. Adrese nisu unesene u javni repozitorijum. | Precizan obim narednog live testa; AI allowlist i privatni APK nisu izolacija marketplace-a. Ovo pitanje samo ne odobrava live batch. |
 | PrivatePhotos | Do6 po privatnoj/grupnoj poruci, do12 novih fotografija po nalogu/24h, ulaz10MB, uklanjanje metapodataka/1600px, postojeći privatni Storage i postojeća membership/block/evidence pravila; bez Gemini slanja. | Nova svrha privatnih priloga i njihove kvote. AF-D07/09 za Task/avatar ostaju već odobrene; ovo ih ne pita ponovo. |
-| AuthMethods | Koje dodatne Google/Apple/SMS načine vlasnik želi da aktivira i postoje li njegovi OAuth/Developer/SMS nalozi; bez ključeva u četu. Stvarni settings13.09.02:19UTC: email=true/confirmation required, phone/google/apple=false. | V5§9 zahteva odluku i konfiguraciju nedostajućih načina. Gemini odobrenje nije Auth provider/trošak odobrenje. SMS klijent postoji; OAuth klijent/callback nedostaje. |
-| SupabasePanelAccess | Prijava vlasnika u postojeći Supabase panel projekta leqcwgzvjsxugfgzdmth, pa odgovor „prijavljen“, bez lozinke/API ključa u četu. | Secrets prikaz se preusmerava na sign-in; konektor ne daje potrebni digest metadata. Potrebno za read-only vezu postojećeg server ključa sa već plaćenim Gemini projektom, ne za novu uplatu/rotaciju. |
-| UnknownAiExit | „Odustani od odgovora“ za Task/Worker posle slanja: server ograđuje kasni rezultat, čuva potrošnju i dispatch trag, ne ponavlja poziv; nova poruka zahteva izričito novo slanje. | Novi izlaz iz nepoznatog već poslatog ishoda. Pronađeno je trajno blokiranje naloga iz vezanog edit razgovora; samo brisanje lokalnog journal-a nije ispravka. UNKNOWN_AI_TURN_EXIT_PROPOSAL.md. |
+
+## Odgovoreno u nastavku, ne pitati ponovo
+
+- AF-D15 UnknownAiExit: vlasnik je odobrio odustajanje uz zadržanu potrošnju; candidate142 i native implementacija su završeni u lokalnom izvoru. Stvarne izolovane SQL provere i odobrenje konkretnog live paketa još nedostaju.
+- AF-D16 AuthMethods: za sada samo email, bez aktivacije Google/Apple/SMS i bez novih naloga/troškova. To je izričito privremena vlasnička odluka; ne uklanja te mogućnosti iz budućeg obima.
+- AF-D17 SupportLimits: prihvaćeni200/4000/1000 znakova,5 novih i50 dopuna po nalogu/rolling24h,60s između običnih novih zahteva, jedna otvorena žalba po odluci; safety/prava/privatnost izuzeti iz tih kvota.
+- AF-D18 SupportScope: vlasnik prihvata jedini operaterski pristup za privatni test preko svog prijavljenog naloga, audit pristupa, poslati sadržaj/safety/izabrani dokazi, ručne odgovore i ponovni pregled; bez celog chata, Gemini obrade i novih sankcija. SQL, native tokovi i gateway su povezani u lokalnom izvoru; stvarne izolovane SQL/Storage provere čekaju. Grant i live batch nisu aktivirani.
+- SupabasePanelAccess: vlasnik se prijavio. Read-only panel je pokazao postojeći GEMINI_API_KEY digest; poređenje u memoriji sa ključem iz plaćenog Uskoci-clean projekta705329837232/gen-lang-client-0693119686 se poklopilo. Posle greške root filtera ključ je prikazan u izlazu alata; vlasnik je odmah obavešten i izričito izabrao nastavak sa istim ključem umesto zamene. Ne pitati zamenu ponovo; vrednost se ne ponavlja niti unosi u repozitorijum. Nije bilo provider poziva, clipboard-a ili key fajla. Provera veze ne dokazuje model pristup niti odobrenje konkretne plaćene probe/live batch-a.
 
 ## Konkretni preostali ulazi koji još nisu odabrani/aktivirani
 

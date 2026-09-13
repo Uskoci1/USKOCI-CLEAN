@@ -47,6 +47,10 @@ export default function TabLayout() {
     <Tabs.Screen name="profil/pravna" options={{ href: null }} />
     <Tabs.Screen name="profil/o-aplikaciji" options={{ href: null }} />
     <Tabs.Screen name="bezbednost" options={{ href: null }} />
+    <Tabs.Screen name="podrska/index" options={{ href: null }} />
+    <Tabs.Screen name="podrska/novi" options={{ href: null }} />
+    <Tabs.Screen name="podrska/[id]" options={{ href: null }} />
+    <Tabs.Screen name="podrska/operator" options={{ href: null }} />
     <Tabs.Screen name="profil/lokacija" options={{ href: null }} />
     <Tabs.Screen name="profil/dostupnost" options={{ href: null }} />
     <Tabs.Screen name="profil/izvoz" options={{ href: null }} />

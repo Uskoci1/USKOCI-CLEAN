@@ -20,6 +20,8 @@ const v5Candidates=new Set([
  '20260913005720_clean_v5_media_evidence_protection.sql',
  '20260913014627_clean_v5_retention_source_compatibility.sql',
  '20260913022110_clean_v5_worker_turn_restart_recovery.sql',
+ '20260913044510_clean_v5_unknown_ai_turn_exit.sql',
+ '20260913045824_clean_v5_support_case_authority.sql',
 ]);
 const digest=(algorithm,bytes)=>createHash(algorithm).update(bytes).digest('hex');
 export function partitionHygieneInventory({candidates,manifest,provenance,history}){

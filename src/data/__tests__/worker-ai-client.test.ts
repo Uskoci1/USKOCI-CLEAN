@@ -66,3 +66,16 @@ it('cancellation account revision fence rejects late round-trip response',async(
  mockRpc.mockImplementation(async()=>{mockSession={user:{id:OWNER},accountRevision:3};return{data:recovery(),error:null};});
  await expect(service.cancelTurn(CONVERSATION,KEY)).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
 });
+const dispatchedRecovery=(state:string,cancelled=false)=>({...recovery(),turn:{turnId:OTHER,conversationId:CONVERSATION,
+ clientRequestId:KEY,attemptId:OWNER,state,retryAllowed:false,authoritative:true},providerDispatched:true,
+ cancelled,canCancel:!cancelled,retryAllowed:false});
+it.each(['PROCESSING','UNKNOWN_OUTCOME'])('accepts explicit owner exit from dispatched %s without retry permission',state=>{
+ const value=dispatchedRecovery(state);expect(decodeWorkerAiTurnRecovery(value,OWNER,CONVERSATION,KEY)).toEqual(value);
+});
+it('accepts cancelled FAILED while preserving true dispatch evidence',()=>{
+ const value=dispatchedRecovery('FAILED',true);expect(decodeWorkerAiTurnRecovery(value,OWNER,CONVERSATION,KEY)).toEqual(value);
+});
+it.each([{canCancel:true},{retryAllowed:true},{turn:null},{turn:{...dispatchedRecovery('PROCESSING').turn}},
+ {turn:{...dispatchedRecovery('SUCCEEDED').turn}}])('rejects contradictory dispatched cancellation %p',patch=>{
+ expect(decodeWorkerAiTurnRecovery({...dispatchedRecovery('FAILED',true),...patch},OWNER,CONVERSATION,KEY)).toBeNull();
+});

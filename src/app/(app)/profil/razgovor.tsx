@@ -133,7 +133,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     const command=pending.current;if(!canAct()||voiceBusy||!data||!command||!recovery?.canCancel)return;
     await editor.save(async()=>{const result=await api.cancelTurn(data.conversationId,command.id);
       if(!current())return unavailable();if(!result.ok)return result;
-      // Cancellation may lose to dispatch/completion. Only the canonical read
+      // Cancellation may lose to completion. Only the canonical read
       // can retire the journal; an abort alone never means cancellation.
       return read();});
   };
@@ -169,7 +169,8 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
     data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
-      'Ishod prethodne poruke nije potvrđen. Proveri stanje; ista obrada se neće ponovo pokrenuti.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':null;
+      'Ishod prethodne poruke nije potvrđen. Proveri stanje; ista obrada se neće ponovo pokrenuti.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
+      recovery?.cancelled&&recovery.providerDispatched?'Odustali ste od odgovora. Podaci su ostali nepromenjeni, a rezervisana potrošnja je zadržana.':null;
   if(!data||!foreground||resuming)return <WorkerProfileFrame back={back}><WorkerProfileStatus loading={editor.loading||!foreground||resuming}
     error={editor.error} retry={refresh}/></WorkerProfileFrame>;
   if(panel==='availability')return <WorkerProfileFrame back={back}><View style={{minHeight:650}}><AvailabilityForm
@@ -209,7 +210,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     actions={<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('manual')}/>
       <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('availability')}/>
       {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
-      {pending.current&&recovery?.canCancel?<V2Action label="Otkaži prethodno slanje" kind="quiet" disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>:null}
+      {pending.current&&recovery?.canCancel?<>
+        <T style={{...a.text.meta,color:a.color.muted}}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je obrada već počela, rezervisana potrošnja ostaje zadržana.</T>
+        <V2Action label={recovery.providerDispatched?'Odustani od odgovora':'Otkaži prethodno slanje'} kind="quiet"
+          disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
+      </>:null}
       {pending.current?.text&&recovery?.retryAllowed?<V2Action label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
       {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>{if(current())router.replace('/profil/radnik');}}/>:null}
       {(pending.current||data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}

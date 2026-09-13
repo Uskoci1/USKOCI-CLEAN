@@ -7,6 +7,8 @@ import type { createAgreementOutbox, OutboxError } from '../data/agreementOutbox
 import { palette, radius, space, touch } from '../theme/tokens';
 import { Press } from './Press';
 import { T } from './Text';
+import { positiveInteger, uuid } from '../data/serverReceipt';
+import { SupportContextEntry } from './support/SupportContextEntry';
 
 type Outbox = ReturnType<typeof createAgreementOutbox>;
 type Props = {
@@ -19,6 +21,7 @@ type Props = {
   refreshWorkspace: () => Promise<void>;
   outbox: Outbox;
   state: ReturnType<Outbox['getSnapshot']>;
+  support?: { canAct: () => boolean; navigate: (action: () => void) => void };
 };
 
 const errors: Record<OutboxError, string> = {
@@ -35,11 +38,14 @@ const errors: Record<OutboxError, string> = {
   NOT_READY: 'Sačekajte da se učitaju sačuvane poruke.',
 };
 
-export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state }: Props) {
+export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support }: Props) {
   const list = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const initialScroll = useRef(true);
   const previousOutgoing = useRef(new Set<string>());
+  const source = useRef({ messages, support, loading, error }); source.current = { messages, support, loading, error };
+  const supportCurrent = () => !!support && source.current.support === support && source.current.messages === messages
+    && !source.current.loading && !source.current.error && support.canAct();
   const outgoingIds = state.entries.map(entry => entry.command.clientMessageId).join('|');
   useEffect(() => {
     const currentIds = new Set(outgoingIds ? outgoingIds.split('|') : []);
@@ -92,6 +98,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           {!message.moja && <T variant="meta" tone="muted">{message.posiljalacIme}</T>}
           <T selectable variant="body" style={{ ...v2.text.body, color: v2.color.ink }}>{message.telo}</T>
           <T variant="meta" style={{ ...v2.text.label, color: v2.color.muted, textAlign: 'right' }}>{message.vremeTekst}</T>
+          {support && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <SupportContextEntry
+            reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
+            label="Izaberi ovu poruku za podršku" previewText={message.telo} disabled={loading}
+            canAct={supportCurrent} navigate={support.navigate} /> : null}
         </View>)}
         {local.map(entry => <View key={entry.command.clientMessageId} style={{
           alignSelf: 'flex-end', maxWidth: '88%', borderRadius: radius.lg,

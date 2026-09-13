@@ -55,3 +55,20 @@ it('public gallery rejects extra account/storage metadata from the server',async
  mockInvoke.mockResolvedValue({data:{needId:CID,photos:[preview],authoritative:true},error:null});await expect(service.readNeedPhotos(CID)).resolves.toMatchObject({ok:true});
  mockInvoke.mockResolvedValue({data:{needId:CID,photos:[{...preview,accountId:OWNER}],authoritative:true},error:null});await expect(service.readNeedPhotos(CID)).resolves.toMatchObject({ok:false,kod:'MEDIA_INVALID_RESPONSE'});
 });
+it('case photo read sends only the selected asset and private case identity through the existing gateway',async()=>{
+ const controller=new AbortController();mockInvoke.mockResolvedValue({data:null,error:{message:'MEDIA_NOT_FOUND'}});
+ const context={caseId:CID};const pending=service.readMedia(ASSET,context,{signal:controller.signal});context.caseId=OTHER;
+ await pending;expect(mockInvoke).toHaveBeenCalledTimes(1);
+ expect(mockInvoke.mock.calls[0]).toEqual(['uskoci-media',{body:{assetId:ASSET,caseId:CID},headers:{'x-media-operation':'read'},signal:controller.signal}]);
+ expect(mockRpc).not.toHaveBeenCalled();
+});
+it.each([{caseId:'bad'},{caseId:CID,needId:CID},{caseId:CID,profileId:PROFILE},{caseId:CID,path:'PRIVATE'},
+ {needId:CID,profileId:PROFILE},{caseId:''}])('rejects ambiguous or leaked photo read context before HTTP %#',async context=>{
+ await expect(service.readMedia(ASSET,context)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();
+});
+it('cancelled case image request does not invoke the gateway and an account ABA rejects a late response',async()=>{
+ const controller=new AbortController();controller.abort();
+ await expect(service.readMedia(ASSET,{caseId:CID},{signal:controller.signal})).resolves.toMatchObject({ok:false});expect(mockInvoke).not.toHaveBeenCalled();
+ mockInvoke.mockImplementation(async()=>{mockSession.accountRevision=3;return{data:null,error:{message:'MEDIA_NOT_FOUND'}};});
+ await expect(service.readMedia(ASSET,{caseId:CID})).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
+});

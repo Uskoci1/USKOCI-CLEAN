@@ -24,6 +24,23 @@ def fail(message: str) -> None:
     raise SystemExit(1)
 
 
+def check_later_participant_contract(filename: str, sql: str) -> None:
+    remaining = sql.lower()
+    if filename == "20260913045824_clean_v5_support_case_authority.sql":
+        # Support evidence reuses the existing participant visibility predicate.
+        # Permit this one read dependency, not a replacement policy/function or
+        # any additional reference. Applied participant authority stays intact.
+        call = "rls_private.need_participant_can_read(n.id)"
+        if remaining.count(call) != 1:
+            fail(f"support participant read dependency changed: {filename}")
+        remaining = remaining.replace(call, "", 1)
+    if "needs_participant_read" in remaining or "need_participant_can_read" in remaining:
+        fail(
+            "participant RLS contract is superseded without updating its "
+            f"integrity assertion: {filename}"
+        )
+
+
 def main() -> None:
     manifest_entries: list[tuple[str, str]] = []
     seen_names: set[str] = set()
@@ -181,15 +198,7 @@ def main() -> None:
 
     participant_index = history_names.index(PARTICIPANT_CONTRACT_FILE)
     for later_file in disk_names[participant_index + 1:]:
-        later_sql = (ROOT / later_file).read_text(encoding="utf-8").lower()
-        if (
-            "needs_participant_read" in later_sql
-            or "need_participant_can_read" in later_sql
-        ):
-            fail(
-                "participant RLS contract is superseded without updating its "
-                f"integrity assertion: {later_file}"
-            )
+        check_later_participant_contract(later_file, (ROOT / later_file).read_text(encoding="utf-8"))
 
     print(
         "PASS migration_integrity "

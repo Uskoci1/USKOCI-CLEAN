@@ -2,7 +2,7 @@ import { workerCapacityRevision, workerCapacityValue } from '../contracts/worker
 import { legacyRpcFailure } from './legacyRpcFailure';
 import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
-import { readOwnedResult, record, sameId, uuid } from './serverReceipt';
+import { positiveInteger, readOwnedResult, record, sameId, uuid } from './serverReceipt';
 import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
 import { readPublicNeedDetail } from './needClientService';
@@ -215,7 +215,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
     }
     const { data, error } = await supabase.from('agreement_messages')
-      .select(`id, sender_account_id, client_message_id, body, created_at`)
+      .select(`id, agreement_version, sender_account_id, client_message_id, body, created_at`)
       .eq('agreement_id', dogovorId)
       .order('created_at', { ascending: true })
       .order('id', { ascending: true });
@@ -225,7 +225,7 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (currentError || current?.user?.id !== accountId) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
 
     return data.map((r: any) => {
-      if (!uuid(r?.id) || !uuid(r?.sender_account_id) || typeof r.body !== 'string'
+      if (!uuid(r?.id) || !positiveInteger(r?.agreement_version) || !uuid(r?.sender_account_id) || typeof r.body !== 'string'
         || typeof r.created_at !== 'string' || !Number.isFinite(Date.parse(r.created_at))
         || !(r.client_message_id === null || (typeof r.client_message_id === 'string'
           && /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/.test(r.client_message_id) && !/\s/.test(r.client_message_id)))) {
@@ -233,6 +233,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       }
       return {
         id: r.id,
+        dogovorVerzija: r.agreement_version,
         clientMessageId: r.client_message_id,
         posiljalacAccountId: r.sender_account_id,
         posiljalacIme: r.sender_account_id === accountId ? 'Ja' : 'Sagovornik',

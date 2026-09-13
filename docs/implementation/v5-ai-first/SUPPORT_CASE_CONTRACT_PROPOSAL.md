@@ -1,6 +1,10 @@
 # Podrška, privatni slučaj i žalba — predlog za odluku i implementaciju
 
-Datum pregleda: 2026-09-13. **SUPPORTING PROPOSAL / NIJE ODOBRENA NOVA POLITIKA.**
+Datum pregleda: 2026-09-13. **OWNER SCOPE/LIMITS APPROVED; IMPLEMENTATION IN PROGRESS.**
+Vlasnik je prihvatio oba poslata predloga: AF-D17 brojčane granice i AF-D18
+jedini ovlašćeni operaterski pristup privatnog testa. Odluke imaju prednost nad
+istorijskim oznakama predloga ispod. Nije odobren konkretan live grant/batch,
+novi retention rok, javna pravna spremnost ili slanje privatnog sadržaja Gemini-ju.
 Ovaj zapis priprema konkretan ugovor za V5 prikaze 50, 66 i 67. Nije nova
 proizvodna glavna specifikacija, odluka operatera, pravni savet, izvršiva
 retention politika ili odobrenje live batch-a. Priloženi dokumenti su izvori

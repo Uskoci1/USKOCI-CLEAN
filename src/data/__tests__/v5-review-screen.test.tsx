@@ -26,6 +26,7 @@ jest.mock('../productionLocationResolver', () => ({ createProductionLocationReso
 jest.mock('../../ui/location/NeedLocationForm', () => ({ NeedLocationForm: 'LocationForm' }));
 jest.mock('../../ui/aiFirst/ResponseDeadlineEditor', () => ({ ResponseDeadlineEditor: 'DeadlineEditor' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto', mediaAssetId: () => null }));
+jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
@@ -376,4 +377,22 @@ it.each([undefined, 'malformed', [CONVERSATION]])('invalid conversation route pe
   mockParams = { conversationId: value }; await render();
   expect(mockLatest).not.toHaveBeenCalled(); expect(mockPrepare).not.toHaveBeenCalled();
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+});
+
+it('offers support only for an evaluated REVIEW and passes just the exact opaque review reference', async () => {
+  const evaluated = { ...command('EVALUATED'), evaluation: { kind: 'DECISION', decision: { outcome: 'REVIEW' } } };
+  mockLatest.mockResolvedValue(ok({ review: review(), command: evaluated })); await render();
+  const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
+  expect(entry.reference).toEqual({ kind: 'TASK_REVIEW', id: REVIEW, revision: null });
+  expect(JSON.stringify(entry.reference)).not.toContain('Privatna');
+  expect(entry.label).toBe('Zatraži pregled podrške'); expect(entry.disabled).toBe(false); expect(entry.canAct()).toBe(true);
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+  await blur(); expect(entry.canAct()).toBe(false);
+  await act(async () => entry.navigate(() => mockRouter.replace('must-not-open'))); expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+it.each(['CLARIFY', 'BLOCK', 'ALLOW', 'NOT_READY', 'UNKNOWN_OUTCOME'] as const)('does not claim the REVIEW support entry for %s', async outcome => {
+  const stored = outcome === 'NOT_READY' ? notReadyCommand() : outcome === 'UNKNOWN_OUTCOME' ? command('UNKNOWN_OUTCOME')
+    : { ...command('EVALUATED'), evaluation: { kind: 'DECISION', decision: { outcome } } };
+  mockLatest.mockResolvedValue(ok({ review: review(), command: stored })); await render();
+  expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
 });

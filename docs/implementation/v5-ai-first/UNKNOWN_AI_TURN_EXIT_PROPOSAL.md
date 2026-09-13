@@ -1,7 +1,9 @@
 # Owner decision: leave an unknown dispatched AI response
 
-Proposal only. No SQL, native behavior, paid call or live setting is changed by
-this document. Existing automatic retry prohibitions and shared test budget stay.
+Owner approved on2026-09-13: “Odobravam odustajanje uz zadržanu potrošnju.”
+This is accepted decision AF-D15. Forward candidate142 and native support are
+implemented in local source. Approval does not authorize a concrete live batch or paid
+probe. Existing automatic retry prohibitions and shared test budget stay.
 
 ## Concrete failure
 
@@ -48,5 +50,5 @@ journal and renewed editor access only after authoritative readback. Check both
 Task and Worker paths and existing source/export/retention guards without adding
 a retention duration or changing provider/privacy scope.
 
-This changes the permitted owner action after dispatch and requires the owner's
-new product decision. Until answered, the existing conservative behavior remains.
+This changes the permitted owner action after dispatch under accepted AF-D15.
+Actual SQL/Edge/native race verification and separate live approval remain.

@@ -190,7 +190,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <AgreementTabs tab={tab} onChange={setTab} />
       </View>
       {tab === 'poruke' ? <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
-        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} /> : <>
+        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState}
+        support={{ canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } }} /> : <>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
           <AgreementHero agreement={dogovor} />
           <AgreementPeople agreement={dogovor} />

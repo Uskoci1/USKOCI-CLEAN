@@ -22,6 +22,7 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native');re
  return Reflect.get(target,key);
  }});});
 jest.mock('../../ui/Text',()=>({T:'T'}));jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));jest.mock('../../ui/media/ContextPhotos',()=>({ProfilePhoto:'Avatar'}));
+jest.mock('../../ui/support/SupportContextEntry',()=>({SupportContextEntry:'SupportContextEntry'}));
 import {GroupConversationScreen} from '../../ui/groups/GroupConversationScreen';
 import {GroupConversationEntry} from '../../ui/groups/GroupConversationEntry';
 import {groupBodyHash} from '../groupConversationService';
@@ -92,4 +93,18 @@ it('entry becomes reachable only after authoritative group context and routes ex
 it('entry hides unsupported group and discards late availability after account transition',async()=>{
  entry=true;const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise).mockResolvedValue(ok({...context(),group:null,available:false}));await render();expect(text()).toBe('null');
  await act(async()=>{mockSession={user:{id:B},accountRevision:2};tree!.update(page());gate.resolve(ok(context()));});expect(text()).toBe('null');expect(mockPush).not.toHaveBeenCalled();
+});
+it('selects only an actually visible group message and preserves the read-only support exit',async()=>{
+ mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false,terminal:true}}));await render();
+ const entry=tree!.root.findByType('SupportContextEntry' as never).props;
+ expect(entry.reference).toEqual({kind:'GROUP_MESSAGE',id:M,revision:null});expect(entry.previewText).toBe(message.body);
+ expect(entry.canAct()).toBe(true);expect(mockService.send).not.toHaveBeenCalled();
+ await act(async()=>{entry.navigate(()=>mockPush('/selected-support'));});expect(mockPush).toHaveBeenCalledWith('/selected-support');
+ expect(entry.canAct()).toBe(false);expect(mockService.send).not.toHaveBeenCalled();
+});
+it('removes support choices when an authoritative refresh withdraws message visibility',async()=>{
+ await render();const entry=tree!.root.findByType('SupportContextEntry' as never).props;
+ mockService.messages.mockResolvedValue(ok({messages:[],nextBeforeSequence:null,nextAfterSequence:null}));await tap('Osveži poruke');
+ expect(tree!.root.findAllByType('SupportContextEntry' as never)).toHaveLength(0);expect(entry.canAct()).toBe(false);
+ await act(async()=>entry.navigate(()=>mockPush('/must-not-open')));expect(mockPush).not.toHaveBeenCalled();
 });

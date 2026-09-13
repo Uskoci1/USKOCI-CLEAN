@@ -11,6 +11,8 @@ jest.mock('phosphor-react-native', () => ({ PaperPlaneTilt: 'Icon' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
+jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 import { AgreementChat } from '../../ui/AgreementChat';
 
 const account = '10000000-0000-4000-8000-000000000001';
@@ -123,5 +125,27 @@ describe('D03 actual message component', () => {
     expect(button('Napišite poruku').props.value).toBe('Nova poruka');
     await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
     expect(outbox.start).toHaveBeenCalledTimes(1);
+  });
+  it('offers only a canonical selected historical message, with its persisted version independent of current writable state', async () => {
+    const support = { canAct: jest.fn(() => true), navigate: jest.fn() };
+    const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 2, clientMessageId: null,
+      posiljalacAccountId: account, telo: 'Samo ova stara poruka.', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null };
+    await render({ messages: [read], terminal: true, writable: false, support });
+    const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
+    expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 2 });
+    expect(entry.previewText).toBe(read.telo); expect(entry.canAct()).toBe(true);
+    expect(outbox.sendDraft).not.toHaveBeenCalled(); expect(support.navigate).not.toHaveBeenCalled();
+    await act(async () => tree.update(<AgreementChat {...props} messages={[{ ...read, dogovorVerzija: 5 }]} support={support} />));
+    expect(entry.canAct()).toBe(false);
+    expect(tree.root.findByType('SupportContextEntry' as React.ElementType).props.reference.revision).toBe(5);
+  });
+  it('does not select an unconfirmed local outbox item, failed read, or missing message version', async () => {
+    const support = { canAct: () => true, navigate: jest.fn() };
+    await render({ support, state: { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] },
+      messages: [{ id: '30000000-0000-4000-8000-000000000001', telo: 'Legacy display', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null }] });
+    expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
+    await act(async () => tree.update(<AgreementChat {...props} support={support} error messages={[{ id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 2,
+      telo: 'Stale read', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null }]} />));
+    expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
   });
 });

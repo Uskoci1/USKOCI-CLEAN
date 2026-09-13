@@ -2488,6 +2488,32 @@
       "raw_md5": "484cb918f8b525fb2dc90af8211babea",
       "raw_sha256": "f167555f07f9929681afa5774c2848a3b72b08fecb89b9575d9335b9da36960a",
       "raw_bytes": 20355
+    },
+    {
+      "version": "20260913044510",
+      "name": "clean_v5_unknown_ai_turn_exit",
+      "file": "20260913044510_clean_v5_unknown_ai_turn_exit.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "d8e456c7195188856f63b7a463b48c42",
+      "raw_sha256": "ee76aaa08153b28142e764d7c0863f8386c292692010f9a25d0f0a1d4b9a3ce1",
+      "raw_bytes": 20714
+    },
+    {
+      "version": "20260913045824",
+      "name": "clean_v5_support_case_authority",
+      "file": "20260913045824_clean_v5_support_case_authority.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "648a4b70c688c03bb4fdd39bd52542cd",
+      "raw_sha256": "f3612633a564f0500d368eb3958e939859f6d3b32acc175c997021d1c3c4fcba",
+      "raw_bytes": 63630
     }
   ],
   "p2_data_export_requests": {

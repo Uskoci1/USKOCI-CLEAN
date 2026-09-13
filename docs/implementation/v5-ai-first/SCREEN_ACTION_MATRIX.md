@@ -2,6 +2,46 @@
 
 ## Current deltas, 2026-09-13
 
+Latest saved entry/auth snapshot is e446509dcc65783c3e3f07e3e275954fde7f3fac,
+tree885e476e8b68bdf570cca1cefe4816dc2ecf913d. The remote PR and disposable FULL141
+candidate remain a6f60077409dfac1cccd2d1cdce69ccd157e2cdb, tree
+beb6ba219852e306829066e3f0dd3c474b3d4391. Exact disposable FULL141
+run34737782759 is queued; no execution result is inferred from that state.
+The last completed run34736927496 at dc0f08a passed11 source gates,
+185 Jest suites/3711 tests,714 Node tests and25 actual reports through135.
+136's original snapshot timed out; its separately labelled materialized-body
+diagnostic passed in278ms. The a6 candidate changes only that undeployed CTE
+materialization and its registry hashes. Actual corrected136–141 and the real
+export-handler/Storage flags remain pending, not promoted from the diagnostic.
+The native review now restores a saved manual location across remount and
+unrelated fact changes, with an explicit geography conflict instead of silently
+discarding the proposal;49 focused tests and TypeScript PASS.
+
+The first4a06c9c Android build compiled but its packaged source map resolved231
+first-party modules from the older54abcbe checkout through shared Router cache.
+It is rejected and has not been installed. Correct config/signature metadata
+does not establish correct application JavaScript. The subsequent b364 full
+release build has verified Git/packager/Hermes bindings, original portrait bytes
+and the same signer; its installed base.apk matches the collected APK SHA.
+Actual native review exposed inset crop compression and slow startup/intro
+final-state seams. The e446 full717-task build and installed APK have verified
+source/asset/signature bindings. The measured crop is restored and warm entry
+stays settled; cold animation fidelity remains under investigation.
+ENTRY_SIGNATURE_FIDELITY remains pending. Auth200%/IME was exercised without
+Auth submission. This entry APK excludes pending142/143 support changes.
+
+Local forward142/native unknown-response exit has255 focused tests; actual SQL
+is pending. Local forward143 adds the approved support authority, private case
+media gateway, four native routes, operator reply/decision/appeal actions and
+an actual REVIEW entry.77 client/decoder and195 native/controller/message tests pass;
+18 media client and18 synthetic-transport actual-handler tests pass. Explicit
+selected-message hooks, mounted-draft privacy boundaries and stale lookup guards
+are complete in local source. Full local regression passes190 suites/3918 tests
+and TypeScript. Actual142/143 Auth/Postgres/Storage execution remains pending.
+No live operator grant, provider call or complete support device PASS is implied.
+
+The following chronology preserves earlier source-scoped findings:
+
 Latest exact28c47c01/run34734349508 passed all11 source gates,185 Jest suites/
 3711 tests and686 Node tests.25 actual Auth/Postgres reports through135 PASS.
 136 applied, verified and passed2 catalog/binding checks, then a20s SQL process

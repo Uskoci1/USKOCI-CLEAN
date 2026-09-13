@@ -37,8 +37,9 @@ test('every explicitly admitted V5 migration still requires manifest, provenance
   '20260913000144_clean_v5_qa_classifier_authority.sql','20260913001000_clean_v5_owned_export_projection.sql',
   '20260913002405_clean_v5_group_conversation.sql','20260913002428_clean_v5_agreement_location_snapshot.sql',
   '20260913005720_clean_v5_media_evidence_protection.sql','20260913014627_clean_v5_retention_source_compatibility.sql',
-  '20260913022110_clean_v5_worker_turn_restart_recovery.sql'];
- const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,16);assert.equal(result.applied.length,1);
+  '20260913022110_clean_v5_worker_turn_restart_recovery.sql','20260913044510_clean_v5_unknown_ai_turn_exit.sql',
+  '20260913045824_clean_v5_support_case_authority.sql'];
+ const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,18);assert.equal(result.applied.length,1);
 });
 test('catalog assertion retains exact applied table membership, RLS and no raw anon/authenticated access',()=>{
  const row={schema:'private',name:'safety_reports',rls:true,anon_data:false,authenticated_data:false};

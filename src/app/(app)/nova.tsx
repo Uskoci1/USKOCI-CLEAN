@@ -160,7 +160,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       const result = await aiNeedV2Izvor.cancelTurn(razgovorId, command.id);
       if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
       if (!result.ok) return result;
-      // A competing dispatch can win; only exact readback retires this intent.
+      // Completion may win this race. Only exact canonical readback retires
+      // the intent; transport abort or a lost cancel ACK cannot retire it.
       return read();
     });
   };
@@ -219,6 +220,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Ponovite isti zahtev.'
           : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkažite ga da biste ponovo uneli poruku.'
           : 'Ishod slanja nije potvrđen. Proverite ga pre sledeće poruke.'
+        : editor.data?.recovery?.cancelled && editor.data.recovery.providerDispatched
+          ? 'Odustali ste od odgovora. Podaci su ostali nepromenjeni, a rezervisana potrošnja je zadržana.'
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
           ? 'AI nije primenio prethodnu poruku. Možete je izmeniti i poslati ponovo.' : null;
 
@@ -239,6 +242,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     readbackDisabled={radi || editor.loading}
     onCancelPending={pending && editor.data?.recovery?.canCancel ? cancelPendingTurn : undefined}
     cancelPendingDisabled={!canAct()}
+    cancelPendingDispatched={editor.data?.recovery?.providerDispatched}
     showAbandon={stanje.status === 'OPEN' && !stanje.review.boundNeedId}
     abandonDisabled={radi || editor.loading || editor.uncertain}
     abandonLabel={abandoning.current ? 'Ponovite napuštanje razgovora' : 'Napusti razgovor'}

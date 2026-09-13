@@ -11,6 +11,7 @@ import { ProfilePhoto } from '../media/ContextPhotos';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { aiFirst as a } from '../aiFirst/tokens';
+import { SupportContextEntry } from '../support/SupportContextEntry';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const status=(value:string)=>({CONFIRMED:'Važeći Dogovor',AWAITING_REQUESTER:'Čeka potvrdu završetka',COMPLETED:'Završen',CANCELLED:'Otkazan'}[value]??'Dogovor');
 export function GroupConversationScreen({agreementId}:{agreementId:string}){
@@ -63,7 +64,12 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
     {ready&&group&&state.messages.length===0?<T style={s.copy}>Još nema poruka u istoriji dostupnoj vašem nalogu.</T>:null}
    </View>}
    renderItem={({item})=><View style={[s.bubble,item.mine?s.mine:s.peer]}><T style={s.meta}>{item.mine?'Vi':group?.members.find(m=>m.accountId===item.senderAccountId)?.displayName??'Učesnik'}</T>
-    <T style={s.copy}>{item.body}</T><T style={s.meta}>{date(item.createdAt)}</T></View>}
+    <T style={s.copy}>{item.body}</T><T style={s.meta}>{date(item.createdAt)}</T>
+    {group ? <SupportContextEntry reference={{ kind:'GROUP_MESSAGE',id:item.messageId,revision:null }} previewText={item.body}
+      label="Izaberi ovu poruku za podršku" disabled={!ready}
+      canAct={()=>current()&&ready&&state.messages.some(message=>message.messageId===item.messageId)}
+      navigate={action=>{if(current()&&ready){owner.current=null;controller?.dispose();input.current='';setDraft('');setState(initialGroupState);action();}}}/>:null}
+   </View>}
    ListFooterComponent={<View style={s.stack}>
     {(ready&&group?.canSend)||retry?<View style={s.composer}>
      <T style={s.heading}>{retry?'Prvobitna poruka':'Poruka grupi'}</T>

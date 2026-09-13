@@ -51,7 +51,7 @@ const workspace = { id: '20000000-0000-4000-8000-000000000001', naslov: 'Pomoć 
   hronologija: [], kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: false },
   chatDostupan: true, vremeTekst: 'Fleksibilno', putanjaTekst: 'Beograd', problemOtvoren: false, rokPotvrdeIso: null };
 const ownMessage = { id: '30000000-0000-4000-8000-000000000001', clientMessageId: 'poruka_retry_123',
-  posiljalacAccountId: '10000000-0000-4000-8000-000000000001', telo: 'Stižem.', moja: true };
+  dogovorVerzija: 2, posiljalacAccountId: '10000000-0000-4000-8000-000000000001', telo: 'Stižem.', moja: true };
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
@@ -486,5 +486,21 @@ describe('D03 actual route and scoped resource integration', () => {
     mockRead.mockResolvedValue({ ...workspace, stanje: 'COMPLETED' });
     await act(async () => button('Osveži status Dogovora').props.onPress());
     expect(texts()).toContain('Dogovor je završen');
+  });
+  it('keeps the support selection exit for readable terminal history and latches its navigation', async () => {
+    mockRead.mockResolvedValue({ ...workspace, verzija: 7, stanje: 'COMPLETED', chatDostupan: false }); await render();
+    await act(async () => button('Poruke').props.onPress()); const chat = tree.root.findByType('AgreementChat' as React.ElementType).props;
+    expect(chat.writable).toBe(false); expect(chat.messages[0].dogovorVerzija).toBe(2); expect(chat.support.canAct()).toBe(true);
+    const open = jest.fn(); await act(async () => { chat.support.navigate(open); chat.support.navigate(open); });
+    expect(open).toHaveBeenCalledTimes(1); expect(chat.support.canAct()).toBe(false);
+    expect(mockSource.prijaviProblem).not.toHaveBeenCalled(); expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+  });
+  it.each(['blur/focus', 'account ABA'] as const)('fences an old message support entry after %s', async change => {
+    await render(); await act(async () => button('Poruke').props.onPress()); const old = tree.root.findByType('AgreementChat' as React.ElementType).props.support;
+    expect(old.canAct()).toBe(true);
+    if (change === 'blur/focus') { mockFocused = false; await act(async () => tree.update(<Dogovor />)); mockFocused = true; }
+    else mockAccountRevision = 2;
+    await act(async () => tree.update(<Dogovor />)); const open = jest.fn(); await act(async () => old.navigate(open));
+    expect(old.canAct()).toBe(false); expect(open).not.toHaveBeenCalled();
   });
 });

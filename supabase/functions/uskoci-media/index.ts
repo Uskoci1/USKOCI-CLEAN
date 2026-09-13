@@ -35,6 +35,25 @@ function asset(raw:unknown,aid?:string):Row{
  if(a.state==='READY'&&(!hash(a.sha256)||a.ref!==`${a.accountId}/v5/${a.assetId}/${a.sha256}.jpg`||!Number.isInteger(a.byteSize)||a.byteSize<1||a.byteSize>5242880||a.contentType!=='image/jpeg'))throw new Error('INVALID_ASSET');
  return a;
 }
+function supportSession(authorization:string,accountId:string,origin:string):string{
+ // Auth /user has already verified this exact bearer. Decode only its signed
+ // human/session binding, never a client JSON/header account/session override.
+ try{
+  const parts=authorization.slice(7).split('.');if(parts.length!==3||parts.some(x=>!x||!/^[A-Za-z0-9_-]+$/.test(x)))throw new Error();
+  const encoded=parts[1].replace(/-/g,'+').replace(/_/g,'/'),raw=atob(encoded+'='.repeat((4-encoded.length%4)%4));
+  const claims=row(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(raw,x=>x.charCodeAt(0)))));
+  if(!claims||claims.sub!==accountId||claims.role!=='authenticated'||!id(claims.session_id)||claims.iss!==origin+'/auth/v1'
+   ||!Number.isSafeInteger(claims.exp)||claims.exp<=Math.floor(Date.now()/1000))throw new Error();return claims.session_id;
+ }catch{throw new Safe('AUTH_REQUIRED',401);}
+}
+function supportMedia(raw:unknown,caseId:string,assetId:string):Row{
+ const r=row(raw),path=typeof r?.path==='string'?r.path.split('/'):[];
+ if(!r||Object.keys(r).length!==8||Object.keys(r).some(k=>!['assetId','caseId','bucket','path','sha256','contentType','byteSize','authoritative'].includes(k))
+  ||r.assetId!==assetId||r.caseId!==caseId||r.bucket!=='profile-media'||!hash(r.sha256)||r.contentType!=='image/jpeg'||r.authoritative!==true
+  ||!Number.isInteger(r.byteSize)||r.byteSize<1||r.byteSize>5242880||path.length!==4||!id(path[0])
+  ||r.path!==`${path[0]}/v5/${assetId}/${r.sha256}.jpg`)throw new Error('INVALID_SUPPORT_MEDIA');
+ return r;
+}
 export async function handleMedia(req:Request):Promise<Response>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
  if(req.method!=='POST')return json(405,{code:'METHOD_NOT_ALLOWED'});
@@ -47,8 +66,8 @@ export async function handleMedia(req:Request):Promise<Response>{
  const serviceHeaders={apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'};
  const rpc=async(name:string,args:Row)=>{const r=await fetchBound(url.origin+'/rest/v1/rpc/'+name,{method:'POST',headers:serviceHeaders,body:JSON.stringify(args)});
   const v=parse(await bytes(r,32768,abort.signal));if(!r.ok){const code=row(v)?.message;if(safeCodes.includes(code))throw new Safe(code,code==='MEDIA_NOT_FOUND'?403:409);throw new Error('MEDIA_RPC_FAILED');}return v;};
- const objectBytes=async(path:string,expected:string,size:number)=>{const r=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+path,{headers:{apikey:service,Authorization:'Bearer '+service}});
-  if(!r.ok)throw new Error('STORAGE_UNCONFIRMED');const b=await bytes(r,5242880,abort.signal);if(b.length!==size||await digest(b)!==expected)throw new Error('STORAGE_UNCONFIRMED');return b;};
+ const objectBytes=async(path:string,expected:string,size:number,strictMime=false)=>{const r=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+path,{headers:{apikey:service,Authorization:'Bearer '+service}});
+  if(!r.ok||(strictMime&&r.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='image/jpeg'))throw new Error('STORAGE_UNCONFIRMED');const b=await bytes(r,5242880,abort.signal);if(b.length!==size||await digest(b)!==expected)throw new Error('STORAGE_UNCONFIRMED');return b;};
  let held=false;
  try{
   const auth=await fetchBound(url.origin+'/auth/v1/user',{headers:userHeaders});if(!auth.ok)return json(401,{code:'AUTH_REQUIRED'});
@@ -88,8 +107,31 @@ export async function handleMedia(req:Request):Promise<Response>{
   }
   if(req.headers.get('x-media-operation')==='read'){
    const input=row(parse(await bytes(req,2048,abort.signal)));
-   if(!input||!id(input.assetId)||Object.keys(input).some(k=>!['assetId','needId','profileId'].includes(k))
-    ||(input.needId!==undefined&&!id(input.needId))||(input.profileId!==undefined&&!id(input.profileId))||(input.needId&&input.profileId))throw new Safe('MEDIA_INPUT_INVALID');
+   if(!input||!id(input.assetId)||Object.keys(input).some(k=>!['assetId','needId','profileId','caseId'].includes(k))
+    ||(input.needId!==undefined&&!id(input.needId))||(input.profileId!==undefined&&!id(input.profileId))||(input.caseId!==undefined&&!id(input.caseId))
+    ||[input.needId,input.profileId,input.caseId].filter(v=>v!==undefined).length>1)throw new Safe('MEDIA_INPUT_INVALID');
+   if(input.caseId!==undefined){
+    const caseId=input.caseId,assetId=input.assetId,sessionId=supportSession(authorization,aid,url.origin);
+    const authorize=async()=>{
+     const r=await fetchBound(url.origin+'/rest/v1/rpc/rpc_support_media_service_v5',{method:'POST',headers:serviceHeaders,
+      body:JSON.stringify({p_account_id:aid,p_session_id:sessionId,p_case_id:caseId,p_asset_id:assetId})});
+     const data=parse(await bytes(r,8192,abort.signal));if(!r.ok){
+      if(row(data)?.message==='AUTH_REQUIRED')throw new Safe('AUTH_REQUIRED',401);
+      if(row(data)?.message==='SUPPORT_REFERENCE_NOT_AVAILABLE')throw new Safe('MEDIA_NOT_FOUND',403);
+      throw new Error('SUPPORT_MEDIA_UNCONFIRMED');
+     }
+     return supportMedia(data,caseId,assetId);
+    };
+    const admitted=await authorize();const b=await objectBytes(admitted.path,admitted.sha256,admitted.byteSize,true);
+    try{
+     // The private Storage await must not outlive a revoked grant/session. No
+     // bytes reach the caller until the same exact authority is checked again.
+     supportSession(authorization,aid,url.origin);const current=await authorize();
+     if(current.path!==admitted.path||current.sha256!==admitted.sha256||current.byteSize!==admitted.byteSize)throw new Error('SUPPORT_MEDIA_CHANGED');
+     if(abort.signal.aborted)throw new Error('CANCELLED');
+     return new Response(new Uint8Array(b).buffer,{status:200,headers:{...cors,'Content-Type':'image/jpeg','Content-Length':String(b.length)}});
+    }finally{b.fill(0);}
+   }
    const a=asset(await rpc('rpc_read_media_asset_service',{p_asset_id:input.assetId}));
    if(a.accountId!==aid){
     if(a.scope==='TASK'&&id(input.needId)){

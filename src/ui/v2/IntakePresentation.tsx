@@ -25,7 +25,7 @@ type Props = {
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
   onNewTask?: () => void; newTaskDisabled?: boolean; voice?: ReactNode; streamingText?: string;
   onPhotos?: () => void; photosDisabled?: boolean;
-  onCancelPending?: () => void; cancelPendingDisabled?: boolean;
+  onCancelPending?: () => void; cancelPendingDisabled?: boolean; cancelPendingDispatched?: boolean;
 };
 
 const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Bilo kada',
@@ -125,7 +125,11 @@ export function IntakePresentation(props: Props) {
     status={<>
       {props.error ? <T accessibilityRole="alert" style={[s.label, { color: a.color.danger }]}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" style={s.label}>{props.statusCopy}</T> : null}
-      {props.onCancelPending ? <V2Action kind="quiet" label="Otkaži slanje poruke" disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} /> : null}
+      {props.onCancelPending ? <>
+        <T style={s.label}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je obrada već počela, rezervisana potrošnja ostaje zadržana.</T>
+        <V2Action kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
+          disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
+      </> : null}
       {props.showReadback ? <V2Action label="Proverite ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel ? <Panel title="Opcije razgovora" close={close} reduced={reduced}>

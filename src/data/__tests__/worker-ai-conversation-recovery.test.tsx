@@ -19,7 +19,7 @@ jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mo
 jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({useHoldToTalk:(options:unknown)=>mockVoiceHook(options)}));
 jest.mock('../../ui/aiFirst/VoiceComposer',()=>({VoiceComposer:'VoiceComposer'}));
-jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({actions,children,...props}:any)=>require('react').createElement('Shell',props,actions,children)}));
+jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({actions,status,children,...props}:any)=>require('react').createElement('Shell',props,status,actions,children)}));
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation',()=>({WorkerProfileFrame:({children}:any)=>children,WorkerProfileStatus:'Status'}));
 jest.mock('../../ui/workerProfile/WorkerAiPresentation',()=>({WorkerAiActivation:'Activation',WorkerAiCard:'Card',WorkerAiManual:'Manual',WorkerAiReviewDetails:'Review'}));
 jest.mock('../../ui/calendar/AvailabilityForm',()=>({AvailabilityForm:'Availability'}));
@@ -32,6 +32,7 @@ const recovery=(state:string|null=null,extras={})=>({schemaVersion:'WORKER_PROFI
 const snapshot=(t:unknown=null)=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,status:'OPEN',profileStatus:'DRAFT',revision:0,candidate:{},safety:'ALLOW',stale:false,messages:[],turn:t,review:null,saved:null});
 const ok=(podatak:unknown)=>({ok:true,podatak});let tree:ReactTestRenderer;
 const shell=()=>tree.root.findByType('Shell' as any),action=(label:string)=>tree.root.findByProps({label});
+const visibleText=()=>tree.root.findAllByType('T' as any).flatMap(node=>node.children.filter(child=>typeof child==='string')).join(' ');
 const flush=async()=>{await act(async()=>{});};
 const render=async()=>{await act(async()=>{tree=create(<Screen/>);});};
 const click=async(label:string)=>{await act(async()=>{action(label).props.onPress();});};
@@ -55,7 +56,7 @@ it('lost preclaim response keeps typed body in memory and retries only the same 
  expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(action('Ručno uredi podatke').props.disabled).toBe(true);
  await click('Ponovi isto slanje');expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(mockApi.send.mock.calls[0].slice(0,3));
 });
-it('restart with dispatched unknown cannot retry, cancel or manually save another body',async()=>{
+it('a server without dispatched-exit capability cannot enable retry, cancellation or manual save',async()=>{
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
  await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(action('Ručno uredi podatke').props.disabled).toBe(true);
  expect(tree.root.findAllByProps({label:'Otkaži prethodno slanje'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Ponovi isto slanje'})).toHaveLength(0);
@@ -77,7 +78,7 @@ it('foreign account cannot restore or send the previous account key',async()=>{
  await act(async()=>{mockAccount=B;mockRevision++;tree.update(<Screen/>);});expect(mockJournal.load).toHaveBeenLastCalledWith(B);expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockJournal.clear).not.toHaveBeenCalled();
 });
-it('preclaim cancel losing to dispatch retains journal and disabled draft',async()=>{
+it('a still-unresolved server cancellation response retains journal and disabled draft',async()=>{
  mockStored=intent();await render();mockApi.cancelTurn.mockImplementationOnce(async()=>{const r=recovery('PROCESSING',{providerDispatched:true,canCancel:false,retryAllowed:false});mockApi.recoverTurn.mockResolvedValue(ok(r));return ok(r);});
  await click('Otkaži prethodno slanje');expect(mockJournal.clear).not.toHaveBeenCalled();expect(shell().props.canEdit).toBe(false);
 });
@@ -104,4 +105,42 @@ it.each([{safety:'BLOCK'},{safety:'REVIEW'},{stale:true},{status:'ABANDONED'},{s
 it('retains microphone command scope during a legitimate pending turn',async()=>{
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn())));mockApi.recoverTurn.mockResolvedValue(ok(recovery('PROCESSING',{providerDispatched:true,canCancel:false,retryAllowed:false})));
  await render();expect((mockVoiceHook.mock.calls.at(-1) as unknown[])[0]).toMatchObject({conversationId:C});
+});
+it('dispatched unknown exposes explicit exit with cost copy and requires canonical readback before a fresh message',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));
+ mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:true,retryAllowed:false})));
+ await render();expect(action('Odustani od odgovora').props.disabled).toBe(false);
+ expect(visibleText()).toContain('rezervisana potrošnja ostaje zadržana');expect(shell().props.canEdit).toBe(false);
+ mockApi.cancelTurn.mockImplementationOnce(async()=>{const value=recovery('FAILED',{providerDispatched:true,cancelled:true,canCancel:false,retryAllowed:false});
+  mockApi.recoverTurn.mockResolvedValue(ok(value));mockApi.read.mockResolvedValue(ok(snapshot(turn('FAILED'))));return ok(value);});
+ await click('Odustani od odgovora');expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);
+ expect(mockApi.send).not.toHaveBeenCalled();act(()=>shell().props.onChange('Nova izričita poruka'));await act(async()=>shell().props.onSend());
+ expect(mockApi.send).toHaveBeenCalledTimes(1);expect(mockApi.send.mock.calls[0][2]).not.toBe(K);
+});
+it('lost dispatched exit ACK stays blocked until remount recovers the same cancelled request',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));
+ mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:true,retryAllowed:false})));
+ mockApi.cancelTurn.mockResolvedValueOnce({ok:false,kod:'UNKNOWN',poruka:'Ishod nije potvrđen'});
+ await render();await click('Odustani od odgovora');expect(mockJournal.clear).not.toHaveBeenCalled();expect(shell().props.canEdit).toBe(false);
+ await act(async()=>tree.unmount());mockApi.recoverTurn.mockResolvedValue(ok(recovery('FAILED',{providerDispatched:true,cancelled:true,canCancel:false,retryAllowed:false})));
+ mockApi.read.mockResolvedValue(ok(snapshot(turn('FAILED'))));await render();expect(mockJournal.clear).toHaveBeenCalledWith(intent());
+ expect(shell().props.canEdit).toBe(true);expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('completion winning the exit race keeps the actual completed profile proposal visible',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));
+ mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:true,retryAllowed:false})));await render();
+ mockApi.cancelTurn.mockImplementationOnce(async()=>{const value=recovery('SUCCEEDED',{providerDispatched:true,canCancel:false,retryAllowed:false});
+  mockApi.recoverTurn.mockResolvedValue(ok(value));mockApi.read.mockResolvedValue(ok({...snapshot(turn('SUCCEEDED')),messages:[{id:B,role:'ASSISTANT',body:'Stvarni završen odgovor'}]}));return ok(value);});
+ await click('Odustani od odgovora');expect(shell().props.messages).toEqual([{id:B,fromAi:true,body:'Stvarni završen odgovor'}]);
+ expect(visibleText()).not.toContain('Odustali ste od odgovora');expect(mockJournal.clear).toHaveBeenCalledWith(intent());
+ expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('late dispatched exit after account reincarnation cannot clear the old journal or update the new screen',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));
+ mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:true,retryAllowed:false})));await render();
+ let release!:(value:unknown)=>void;mockApi.cancelTurn.mockImplementationOnce(()=>new Promise(resolve=>{release=resolve;}));
+ act(()=>action('Odustani od odgovora').props.onPress());await flush();
+ await act(async()=>{mockRevision++;tree.update(<Screen/>);});
+ await act(async()=>release(ok(recovery('FAILED',{providerDispatched:true,cancelled:true,canCancel:false,retryAllowed:false}))));
+ expect(mockJournal.clear).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
 });

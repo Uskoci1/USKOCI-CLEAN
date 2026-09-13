@@ -351,7 +351,7 @@ it('restored absent intent is never auto retried and clears only after exact can
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošalji poruku' }).props.onPress());
   expect(mockSend.mock.calls[0][2]).not.toBe(requestId);
 });
-it('a competing provider dispatch wins cancellation without clearing its durable UUID', async () => {
+it('an older server returning unresolved dispatch cannot authorize journal retirement', async () => {
   const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
   const intent = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
   await aiTurnIntentJournal.save(intent); await render();
@@ -406,4 +406,43 @@ it('unknown cancellation response retains the exact UUID across another restart'
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual(intent);
   await act(async () => tree.unmount()); await render();
   expect(mockRecover).toHaveBeenLastCalledWith(id, other); expect(mockSend).not.toHaveBeenCalled();
+});
+it('restored bound-edit dispatched exit explains retained cost and unlocks only after canonical cancellation', async()=>{
+  const intent={accountId:mockSession.user.id,conversationId:id,clientRequestId:other};
+  await aiTurnIntentJournal.save(intent);mockParams={conversationId:id};
+  mockLoad.mockResolvedValue(conversation({review:{...conversation().review,boundNeedId:other}}));
+  mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
+  await render();expect(button('Odustani od odgovora').disabled).toBe(false);
+  expect(text()).toContain('rezervisana potrošnja ostaje zadržana');expect(input().editable).toBe(false);
+  const cancelled=recovery(turn(other,'FAILED').podatak,true,true);
+  mockCancel.mockResolvedValue(cancelled);mockRecover.mockResolvedValue(cancelled);
+  await act(async()=>button('Odustani od odgovora').onPress());
+  expect(mockCancel).toHaveBeenCalledWith(id,other);expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();
+  expect(input().editable).toBe(true);expect(text()).toContain('Odustali ste od odgovora');expect(mockSend).not.toHaveBeenCalled();
+  await type('Izričita nova poruka');await act(async()=>tree.root.findByProps({accessibilityLabel:'Pošalji poruku'}).props.onPress());
+  expect(mockSend).toHaveBeenCalledTimes(1);expect(mockSend.mock.calls[0][2]).not.toBe(other);
+});
+it('lost dispatched cancellation ACK preserves journal until restart reads its terminal receipt',async()=>{
+  const intent={accountId:mockSession.user.id,conversationId:id,clientRequestId:other};await aiTurnIntentJournal.save(intent);
+  mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
+  await render();await act(async()=>button('Odustani od odgovora').onPress());
+  expect(await aiTurnIntentJournal.load(intent.accountId)).toEqual(intent);expect(input().editable).toBe(false);
+  await act(async()=>tree.unmount());mockRecover.mockResolvedValue(recovery(turn(other,'FAILED').podatak,true,true));await render();
+  expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();expect(input().editable).toBe(true);expect(mockSend).not.toHaveBeenCalled();
+});
+it('completion winning dispatched cancellation shows the actual result without claiming an owner exit',async()=>{
+  const intent={accountId:mockSession.user.id,conversationId:id,clientRequestId:other};await aiTurnIntentJournal.save(intent);
+  mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));await render();
+  const completed=recovery(turn(other,'SUCCEEDED').podatak,false,true);mockCancel.mockResolvedValue(completed);mockRecover.mockResolvedValue(completed);
+  mockLoad.mockResolvedValue(conversation({messages:[{id:other,fromAi:true,body:'Stvarni završen odgovor',safety:'ALLOW',proposedFactIds:[]}]}));
+  await act(async()=>button('Odustani od odgovora').onPress());
+  expect(text()).toContain('Stvarni završen odgovor');expect(text()).not.toContain('Odustali ste od odgovora');
+  expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();expect(mockSend).not.toHaveBeenCalled();
+});
+it('late dispatched cancellation after blur cannot retire the journal or load another conversation',async()=>{
+  const intent={accountId:mockSession.user.id,conversationId:id,clientRequestId:other};await aiTurnIntentJournal.save(intent);
+  mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));await render();
+  const held=deferred();mockCancel.mockReturnValue(held.promise);await act(async()=>button('Odustani od odgovora').onPress());
+  await blur();const reads=mockLoad.mock.calls.length;await act(async()=>held.resolve(recovery(turn(other,'FAILED').podatak,true,true)));
+  expect(await aiTurnIntentJournal.load(intent.accountId)).toEqual(intent);expect(mockLoad).toHaveBeenCalledTimes(reads);expect(mockSend).not.toHaveBeenCalled();
 });

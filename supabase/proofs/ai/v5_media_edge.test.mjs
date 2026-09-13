@@ -36,7 +36,7 @@ function fixture(options={}){
  const source=readFileSync('supabase/functions/uskoci-media/index.ts','utf8').replace("import.meta.resolve('npm:@imagemagick/magick-wasm@0.0.43/magick.wasm')","'file:///synthetic-wasm-runtime-already-initialized'");
  const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
  const context=vm.createContext({exports:{},require:name=>name.startsWith('npm:')?runtime:sanitizer,Request,Response,Headers,URL,TextEncoder,TextDecoder,
-  Uint8Array,ArrayBuffer,DataView,AbortController,crypto:webcrypto,setTimeout,clearTimeout,fetch,
+  Uint8Array,ArrayBuffer,DataView,AbortController,crypto:webcrypto,setTimeout,clearTimeout,fetch,atob,
   Deno:{env:{get:n=>environment[n]},readFile:async()=>new Uint8Array(),serve:fn=>handler=fn}});
  new vm.Script(compiled).runInContext(context);
  const invoke=(body=input,headers={})=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC','Content-Type':'image/png',
@@ -113,4 +113,49 @@ test('definitively rejected and deselected staged upload cannot retry Storage or
   staged:{path:ref,sha256:sha,byteSize:sanitized.bytes.length,dispatchState:'SETTLED',dispatchOutcome:'REJECTED'}}});
  const r=await f.invoke();assert.equal(r.status,200);assert.deepEqual(await r.json(),retired);
  assert.ok(!paths(f).some(x=>/storage|dispatch_media|settle_media|complete_media/.test(x)));
+});
+
+const supportCase=id(20),supportSession=id(21),human=id(99);
+const humanToken=(patch={})=>[Buffer.from('{"alg":"HS256","typ":"JWT"}').toString('base64url'),Buffer.from(JSON.stringify({sub:human,role:'authenticated',session_id:supportSession,iss:'https://db.invalid/auth/v1',exp:Math.floor(Date.now()/1000)+3600,...patch})).toString('base64url'),'SYNTHETIC_SIGNATURE'].join('.');
+const supportReceipt=(patch={})=>({assetId:aid,caseId:supportCase,bucket:'profile-media',path:ref,sha256:sha,contentType:'image/jpeg',byteSize:sanitized.bytes.length,authoritative:true,...patch});
+const readCase=(f,input={assetId:aid,caseId:supportCase},token=humanToken())=>f.invoke(JSON.stringify(input),{'x-media-operation':'read','Content-Type':'application/json',Authorization:'Bearer '+token});
+test('case bytes use original verified human JWT session and exact private RPC both before and after Storage',async()=>{
+ const token=humanToken(),f=fixture({user:human,transport:c=>{
+  if(c.path==='/auth/v1/user'){assert.equal(c.init.headers.Authorization,'Bearer '+token);return json({id:human});}
+  if(c.path.endsWith('/rpc_support_media_service_v5')){assert.equal(c.init.headers.Authorization,'Bearer SERVICE');assert.deepEqual(c.body,{p_account_id:human,p_session_id:supportSession,p_case_id:supportCase,p_asset_id:aid});return json(supportReceipt());}
+ }}),r=await readCase(f,undefined,token);assert.equal(r.status,200);assert.equal(r.headers.get('content-type'),'image/jpeg');assert.equal(r.headers.get('cache-control'),'no-store');
+ assert.equal(createHash('sha256').update(new Uint8Array(await r.arrayBuffer())).digest('hex'),sha);
+ assert.deepEqual(paths(f),['/auth/v1/user','/rest/v1/rpc/rpc_support_media_service_v5','/storage/v1/object/profile-media/'+ref,'/rest/v1/rpc/rpc_support_media_service_v5']);
+ assert.ok(![...r.headers].some(([,v])=>v.includes(account)||v.includes(supportCase)||v.includes(ref)));
+});
+test('case context never inherits asset-owner access and accepts no client account/session or mixed context override',async()=>{
+ const denied=fixture({user:account,transport:c=>c.path.endsWith('/rpc_support_media_service_v5')?json({message:'SUPPORT_REFERENCE_NOT_AVAILABLE'},403):null});
+ assert.equal((await readCase(denied,undefined,humanToken({sub:account}))).status,403);assert.ok(!paths(denied).some(x=>x.startsWith('/storage/')||x.endsWith('/rpc_read_media_asset_service')));
+ for(const bad of [{assetId:aid,caseId:supportCase,needId:need},{assetId:aid,caseId:supportCase,profileId:profile},{assetId:aid,caseId:supportCase,sessionId:supportSession},{assetId:aid,caseId:supportCase,accountId:account},{assetId:aid,caseId:null},{assetId:aid,caseId:supportCase,extra:'PRIVATE'}]){
+  const f=fixture({user:human});assert.equal((await readCase(f,bad)).status,400);assert.deepEqual(paths(f),['/auth/v1/user']);
+ }
+});
+test('case read rejects missing/mismatched/expired/non-human signed claim bindings before service access',async()=>{
+ for(const patch of [{session_id:null},{sub:account},{role:'service_role'},{iss:'https://other.invalid/auth/v1'},{exp:0},{exp:'99999999999'}]){
+  const f=fixture({user:human});assert.equal((await readCase(f,undefined,humanToken(patch))).status,401);assert.deepEqual(paths(f),['/auth/v1/user']);
+ }
+ const f=fixture({user:human});assert.equal((await readCase(f,undefined,'MALFORMED')).status,401);assert.deepEqual(paths(f),['/auth/v1/user']);
+});
+test('every case media response field and exact hash-path binding is checked before private Storage fetch',async()=>{
+ const patches=[{assetId:id(77)},{caseId:id(78)},{bucket:'public'},{path:'https://host.invalid/private.jpg'},{path:ref+'/../other'},{path:ref+'?x=1'},{path:ref.replace(aid,id(7))},{path:ref.replace(sha,'a'.repeat(64))},{sha256:'bad'},{byteSize:0},{byteSize:5242881},{byteSize:'12'},{contentType:'text/html'},{authoritative:false},{hiddenOwner:account}];
+ for(const patch of patches){const f=fixture({user:human,transport:c=>c.path.endsWith('/rpc_support_media_service_v5')?json(supportReceipt(patch)):null});
+  const r=await readCase(f);assert.equal(r.status,503);assert.deepEqual(await r.json(),{code:'MEDIA_UNCONFIRMED'});assert.ok(!paths(f).some(x=>x.startsWith('/storage/')));
+ }
+});
+test('operator/session revocation or unknown changed authority during async Storage withholds all image bytes',async()=>{
+ for(const second of [json({message:'SUPPORT_REFERENCE_NOT_AVAILABLE'},403),json({message:'AUTH_REQUIRED'},403),json({message:'PRIVATE_FAILURE'},500),json(supportReceipt({byteSize:sanitized.bytes.length+1})),json(supportReceipt({path:ref.replace(account,id(88))}))]){
+  let count=0;const f=fixture({user:human,transport:c=>c.path.endsWith('/rpc_support_media_service_v5')?(++count===1?json(supportReceipt()):second):null});const r=await readCase(f);
+  assert.ok([401,403,503].includes(r.status));assert.equal(count,2);assert.equal(r.headers.get('content-type'),'application/json');assert.ok(!JSON.stringify(await r.json()).includes('PRIVATE_FAILURE'));
+ }
+});
+test('case Storage MIME/truncation/hash mismatch or network failure never returns an image or grants a public URL',async()=>{
+ for(const response of [()=>new Response(sanitized.bytes,{headers:{'content-type':'text/html'}}),()=>new Response('wrong',{headers:{'content-type':'image/jpeg'}}),()=>new Response(sanitized.bytes,{headers:{'content-type':'image/jpeg','content-length':String(sanitized.bytes.length+1)}}),()=>{throw new Error('PRIVATE_STORAGE_FAILURE');}]){
+  const f=fixture({user:human,transport:c=>c.path.endsWith('/rpc_support_media_service_v5')?json(supportReceipt()):c.path.startsWith('/storage/')?response():null}),r=await readCase(f);
+  assert.equal(r.status,503);assert.deepEqual(await r.json(),{code:'MEDIA_UNCONFIRMED'});assert.equal(paths(f).filter(x=>x.endsWith('/rpc_support_media_service_v5')).length,1);
+ }
 });

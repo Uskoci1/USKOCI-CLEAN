@@ -1,6 +1,54 @@
 # V5 AI-FIRST execution — active, incomplete
 
-Latest full-regression source is dc0f08aaaefd35ee3b5c88903d81f8759ad25ab1,
+Latest saved entry/auth snapshot is e446509dcc65783c3e3f07e3e275954fde7f3fac,
+tree885e476e8b68bdf570cca1cefe4816dc2ecf913d: original portrait geometry,
+settled intro and Auth stage scroll reset. Draft PR102 remains at pushed
+a6f60077409dfac1cccd2d1cdce69ccd157e2cdb, tree
+beb6ba219852e306829066e3f0dd3c474b3d4391.
+One exact disposable FULL141 run34737782759 was launched at04:23:42UTC;
+it remains queued as of06:12:42UTC, with no assigned runner or executed steps.
+The matching PR PRE-P4/CodeQL runs are also queued. This is no new PASS/failure
+finding; no duplicate run or automatic retry has been launched.
+The prepared live candidate is pinned to a6f6007 with33 SQL files
+109–141 and11 unchanged Edge payloads. Live and paid-batch approvals stay null.
+
+The first4a Android build completed but is REJECTED_MIXED_ROUTER_SOURCE:
+231 first-party modules were sourced from the older138 snapshot through a
+shared Expo Router transform-cache key. Correct signer/config SHA did not
+prove its JS graph; no installation occurred. A second attempt ignored cache
+reset under CI=1; the actual CI=false reset restored the4a graph but failed AAPT
+because the unchanged JPEG was named worker.png. All failures are preserved.
+The reviewed Metro/root-cache and JPEG extension fix is now saved in b364a9a.
+Eight installed Metro regressions and79 entry tests pass. The independent
+source-map boundary suite passes22 tests, including exact generated derivation.
+The full b364 Android release then completed all717 normal Gradle tasks in
+10m25s (52 executed,665 up-to-date). Its fresh packager map verifies all first-
+party sources and both original assets against this Git source. Final Hermes
+composition was independently reproduced byte-for-byte with the installed RN
+composer;11 binding tests pass. The fully attested same-signer APK is installed
+on the dedicated test emulator. APK and installed base.apk SHA256 both equal
+153eda98d57593daf0eb08a129e63afae663452d03c9dfb8a683f584ec14c678.
+Actual native390x844/status52/navigation24 measurements exposed a compressed
+portrait crop. The saved geometry correction extends scroll content by insets
+instead of shrinking photos;36 original-reference/inset tests pass. The b364
+warm startup Displayed event was22.703s. The e446 full release completed717
+Gradle tasks in7m59s, with strict Git/packager/Hermes bindings and unchanged
+original portrait bytes. APK and installed base.apk SHA256 both equal
+25f8420a2e5beb1fcd89e54d01b75655f61448d4510aeb8f6262dbaad32a04b6.
+This entry snapshot excludes the pending142/143 support changes. Actual warm
+start completed in9412ms and recorded final entry no longer resettles or
+returns to splash. Cold start completed in8140ms, but recorded frames do not
+establish the original intro animation; this remains under investigation.
+Auth200%/IME was exercised without submission.
+There is no current entry motion/fidelity PASS or signed-in device journey.
+Original entry fidelity, the current-source APK and signed-in/provider/live
+journeys remain incomplete. See ENTRY_V49_NATIVE_PORT.md for retained evidence.
+
+Latest local full regression includes frozen142/143 client/native/support/media
+changes:190 Jest suites,3918 tests, exit0 in221.746s. TypeScript also passes.
+This is local source validation, not actual143 SQL or a complete device journey.
+
+Latest completed disposable full-regression source is dc0f08aaaefd35ee3b5c88903d81f8759ad25ab1,
 tree 616ae8a829e1ac85e58098d98798b9e886a4b5e2. Run34736927496 passed all11
 source gates,185 Jest suites/3711 tests and714 Node tests across46 files.
 25 actual Auth/Postgres reports through135 PASS;136 still FAIL and137–141 missing.
@@ -29,10 +77,36 @@ changes. A newer geography gets an explicit conflict notice and current review;
 post-read CAS races do not silently retry. An explicit refresh can recover from
 that race without leaving an old form active.49 focused Jest tests and TypeScript
 PASS; no SQL/client DTO or final acceptance boundary changed.
-A separate dispatched-unknown Task edit can block the account's opaque journal;
-the explicit post-dispatch owner exit proposal is awaiting a new owner decision
-in UNKNOWN_AI_TURN_EXIT_PROPOSAL.md. No journal is silently cleared or provider
-request retried while that decision is pending.
+A separate dispatched-unknown Task edit could block the account's opaque journal.
+The owner approved AF-D15: explicit exit with retained consumption. Forward142
+and native/client changes are source-reviewed;255 focused client/native tests
+and TypeScript pass. Cancellation/readback retains dispatch and cost evidence,
+blocks late completion writes, and preserves completion-wins receipts. Actual
+isolated142 SQL races remain pending; no journal is silently cleared or provider
+request automatically retried. See UNKNOWN_AI_TURN_EXIT_PROPOSAL.md.
+
+AF-D17/18 support limits and the sole private-test operator scope are approved.
+Candidate143 and142 are registered as pending forward migrations; the143-file
+integrity check passes. The participant guard admits exactly143's read-only
+call to the existing visibility helper and still rejects all replacements or
+additional references (5 Python boundary tests). No applied SQL was changed.
+The strict opaque support journal/client/decoders pass77 focused tests. Four
+support routes, profile entry, actual REVIEW hook and operator/appeal screens
+pass195 focused native/controller/message tests and TypeScript. Independent
+client review has no confirmed material finding. Selected-message hooks bind
+the actual stored message version and explicit evidence; mounted drafts and
+pending lookups reject stale account, focus, revision and route incarnations.
+Owned case lookup includes already submitted evidence without operator fallback.
+Case-bound photographs use the existing media gateway with verified original
+human JWT/session, strict private receipt and reauthorization after Storage.
+18 client media tests and18 actual-handler tests with synthetic transport pass;
+the142/143/media source suites pass7,9 and18 Node tests respectively. Actual143 Auth/SQL/
+Storage proof and live operator grant are still pending.
+The server grant remains unseeded; no actual operator or support live service is
+claimed. The latest owner requested one subagent's whole-command progress report
+while implementation/build continue; that report is a status review, not release
+acceptance. The requested report is OWNER_PROGRESS_REPORT_20260913.md, a snapshot
+at07:29 local; later install/runtime findings above do not rewrite that history.
 
 Previous full-regression source was6850b126bb38ee22edfdfe054ea342a9b7680a2f,
 treefd874e1a60de05565232c446fda52c247ba2d344, including registered109–141.
@@ -306,6 +380,33 @@ activation occurred during this source-only implementation and documentation.
   participant blocked with the requester cannot send new group messages.
   Other participants continue. No disclosure of block direction; safe terminal
   actions remain. See MULTIPERSON_CONTRACT.md for the existing locked context.
+- AF-D15: explicitly approved “Odustani od odgovora” for dispatched unresolved
+  Task/Worker AI turns. Canonical cancellation fences late mutations, retains
+  dispatch/cost reservation, and does not retry. A new provider call requires a
+  later explicit new message. Completion wins return the actual completed
+  receipt; lost cancellation acknowledgements require exact recovery. Forward
+  candidate142 and native support are in progress, not live-applied.
+- AF-D16: owner chose email-only Auth for now. Google/Apple/SMS activation and
+  new provider accounts/costs are deferred by the owner, not silently removed.
+  Existing unavailable method tiles and configured email flow remain truthful.
+- AF-D17: approved ordinary support limits: title200, body/reply/appeal4000,
+  desired outcome1000 characters;5 new cases and50 followups per account/rolling
+  24h,60s between ordinary new cases, one open appeal per decision. Safety and
+  privacy/rights channels do not inherit those quotas.
+- AF-D18: approved the owner as the sole explicitly granted authenticated
+  support operator for the private test; sent cases/existing safety reports and
+  deliberately selected evidence only, audited access, manual replies and
+  re-review, without automatic whole-chat access, Gemini processing or new
+  sanctions. Source authority is being implemented; no live grant is activated.
+- Owner completed Supabase panel sign-in. A read-only in-memory SHA comparison
+  confirmed the existing server Gemini key belongs to the approved paid project.
+  During the read, root's output filter failed to recognize the new key format and exposed
+  its value in tool output; the owner was promptly informed and asked to replace
+  it in Google and Supabase before use. Owner explicitly declined replacement
+  and instructed continuation with the existing key; do not repeat that question.
+  No key value is recorded here, no clipboard or key file was used, and no
+  provider generation occurred. Project binding is not model-access or paid/live
+  batch approval. Further outputs must omit credentials regardless of format.
 - Disposable source checkpoint b8d6faee0a27 passed159 Jest suites/3253 tests,
   554 Node tests and all10 source gates. Actual SQL passed through125.126
   reached real concurrent publication and second-account public read, then

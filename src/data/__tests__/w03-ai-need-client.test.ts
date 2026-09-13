@@ -280,3 +280,20 @@ it('rejects a late recovered receipt after account ABA without provider fallback
   mockOwner={...mockOwner,accountRevision:3};held.resolve(ok(recovered()));
   await expect(result).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});expect(mockInvoke).not.toHaveBeenCalled();
 });
+it.each([false, true])('accepts dispatched owner exit with preserved dispatch evidence; cancelled=%s', async cancelled => {
+  const value={...recovered(),turn:{...turn(cancelled?'FAILED':'PROCESSING'),retryAllowed:false},
+    providerDispatched:true,cancelled,canCancel:!cancelled};
+  mockRpc.mockResolvedValue(ok(value));
+  await expect(client.recoverTurn(C,K)).resolves.toEqual({ok:true,podatak:value});
+  expect(mockInvoke).not.toHaveBeenCalled();
+});
+it.each([
+  {state:'PROCESSING',cancelled:true,canCancel:false,retryAllowed:false},
+  {state:'FAILED',cancelled:true,canCancel:true,retryAllowed:false},
+  {state:'FAILED',cancelled:true,canCancel:false,retryAllowed:true},
+  {state:'FAILED',cancelled:false,canCancel:true,retryAllowed:false},
+  {state:'SUCCEEDED',cancelled:false,canCancel:true,retryAllowed:false},
+])('rejects contradictory post-dispatch exit %j', async ({state,retryAllowed,...patch})=>{
+  mockRpc.mockResolvedValue(ok({...recovered(),turn:{...turn(state),retryAllowed},providerDispatched:true,...patch}));
+  await expect(client.recoverTurn(C,K)).resolves.toMatchObject({ok:false,kod:'AI_TURN_INVALID_RESPONSE'});
+});

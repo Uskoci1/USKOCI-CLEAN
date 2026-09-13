@@ -129,6 +129,8 @@ export default function Profil() {
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/pravna'))} />
     </SettingsGroup>
     <SettingsGroup title="USKOČI">
+      <SettingsRow label="Podrška" detail="Privatni zahtevi, odgovori i ponovni pregled." disabled={busy}
+        onPress={() => navigate(() => router.navigate('/podrska'))} />
       <SettingsRow label="O aplikaciji" detail="Kako USKOČI povezuje zadatke i ljude." disabled={busy} last
         onPress={() => navigate(() => router.navigate('/profil/o-aplikaciji'))} />
     </SettingsGroup>

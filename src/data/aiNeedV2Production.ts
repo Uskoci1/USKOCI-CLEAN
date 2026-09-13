@@ -127,8 +127,9 @@ function turnRecovery(raw: unknown, accountId: string, conversationId: string, c
     || r.authoritative !== true) return null;
   const turn = turnStatus(r.turn, conversationId, clientRequestId);
   if (!turn || (r.providerDispatched && turn.retryAllowed)
-    || (r.cancelled && (turn.state !== 'FAILED' || turn.retryAllowed || r.providerDispatched || r.canCancel))
-    || (r.canCancel && (r.conversationStatus !== 'OPEN' || r.providerDispatched || turn.state === 'SUCCEEDED'))
+    || (r.cancelled && (turn.state !== 'FAILED' || turn.retryAllowed || r.canCancel))
+    || (r.canCancel && (r.conversationStatus !== 'OPEN' || turn.state === 'SUCCEEDED'
+      || (r.providerDispatched && turn.state !== 'PROCESSING')))
     || (turn.state === 'ABSENT' && (r.providerDispatched || r.cancelled))) return null;
   return { accountId: r.accountId, conversationId: r.conversationId, clientRequestId: r.clientRequestId,
     conversationStatus: r.conversationStatus as AiNeedTurnRecovery['conversationStatus'], turn,

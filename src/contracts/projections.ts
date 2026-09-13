@@ -377,6 +377,8 @@ export type PorukaRazgovora = {
 
 export type PorukaProjekcija = {
   id: string;
+  /** Exact version persisted with this message; never the current Agreement version. */
+  dogovorVerzija?: number;
   clientMessageId?: string | null;
   posiljalacAccountId?: string;
   posiljalacIme: string;
