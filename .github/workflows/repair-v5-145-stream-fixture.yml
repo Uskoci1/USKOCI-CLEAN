@@ -1,4 +1,4 @@
-name: Repair V5 account-erasure trigger-state binding
+name: Repair V5 account-erasure V2 fact fixture
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: repair-v5-account-erasure-trigger-state
+  group: repair-v5-account-erasure-v2-fact-fixture
   cancel-in-progress: false
 jobs:
   repair:
@@ -21,47 +21,35 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Guard exact head and bind noninternal trigger enabled state
+      - name: Guard exact head and supply required V2 display value in disposable fixture
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "a9ceed1b869a47950c220b2e636743c51bf5f11e"
+          test "$(git rev-parse HEAD)" = "f24f1baa77f70a8a50cbca11523060556db405fe"
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,json
-          p=Path('supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql')
+          p=Path('supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs')
           s=p.read_text(encoding='utf-8')
-          old=""" 'tables',(select jsonb_agg(jsonb_build_array(c.oid::regclass::text,c.relowner,c.relacl::text,c.relrowsecurity,c.relforcerowsecurity) order by c.oid::regclass::text)\n from pg_class c where c.relnamespace in('private'::regnamespace,'public'::regnamespace) and c.relkind in('r','p'))\n )::text,'UTF8'),'sha256'),'hex')"""
-          new=""" 'tables',(select jsonb_agg(jsonb_build_array(c.oid::regclass::text,c.relowner,c.relacl::text,c.relrowsecurity,c.relforcerowsecurity) order by c.oid::regclass::text)\n from pg_class c where c.relnamespace in('private'::regnamespace,'public'::regnamespace) and c.relkind in('r','p')),\n 'triggerState',(select jsonb_agg(jsonb_build_array(t.tgrelid::regclass::text,t.tgname,t.tgenabled) order by t.tgrelid::regclass::text,t.tgname)\n from pg_trigger t join pg_class c on c.oid=t.tgrelid where not t.tgisinternal\n and (c.relnamespace in('private'::regnamespace,'public'::regnamespace) or t.tgrelid='storage.objects'::regclass))\n )::text,'UTF8'),'sha256'),'hex')"""
-          if s.count(old)!=1: raise SystemExit(f'trigger-state digest guard={s.count(old)}')
+          old="""sql(`insert into public.ai_structured_facts(id,account_id,conversation_id,fact_key,fact_value,status,source,scope,evidence_excerpt,superseded_at,fact_schema_version)\n  values ${factIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};"""
+          new="""sql(`insert into public.ai_structured_facts(id,account_id,conversation_id,fact_key,fact_value,status,source,scope,display_value,evidence_excerpt,superseded_at,fact_schema_version)\n  values ${factIds.map(id=>`(${q(id)},${q(a.id)},${q(cid)},'need.title',to_jsonb(${q(canary)}::text),'INFERRED','AI_INFERENCE','NEED_DRAFT',${q(canary)},${q(canary)},clock_timestamp(),'NEED_FACT_V2')`).join(',')};"""
+          if s.count(old)!=1: raise SystemExit(f'v2-fact-fixture guard={s.count(old)}')
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
-          test=Path('supabase/proofs/pre_v3/v5_account_erasure.test.mjs')
-          t=test.read_text(encoding='utf-8')
-          old_assert=" assert.ok(sql.includes('closure_erasure_program_digest_v5'));"
-          new_assert=" assert.ok(sql.includes('closure_erasure_program_digest_v5'));\n assert.ok(sql.includes('t.tgenabled'));"
-          if t.count(old_assert)!=1: raise SystemExit(f'trigger-state assertion guard={t.count(old_assert)}')
-          test.write_text(t.replace(old_assert,new_assert),encoding='utf-8',newline='\n')
-          b=p.read_bytes()
-          prov=Path('supabase/migrations/MIGRATION_PROVENANCE.json')
-          data=json.loads(prov.read_text(encoding='utf-8'))
-          item=next(x for x in data['pending_forward_migrations'] if x['file']==p.name)
-          item['raw_md5']=hashlib.md5(b).hexdigest();item['raw_sha256']=hashlib.sha256(b).hexdigest();item['raw_bytes']=len(b)
-          prov.write_text(json.dumps(data,indent=2,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
-          manifest=Path('supabase/migrations/MD5_MANIFEST.txt')
-          manifest.write_text(''.join(hashlib.md5(x.read_bytes()).hexdigest()+'  '+x.name+'\n' for x in sorted(Path('supabase/migrations').glob('*.sql'))),encoding='utf-8',newline='\n')
+          t=Path('supabase/proofs/pre_v3/v5_account_erasure.test.mjs')
+          ts=t.read_text(encoding='utf-8')
+          old_assert=" const proof=read('./v5_account_erasure_proof.mjs'),fixtures=read('./v5_erasure_content_fixtures.mjs');"
+          new_assert=old_assert+"\n assert.ok(fixtures.includes('scope,display_value,evidence_excerpt')));"
+          if ts.count(old_assert)!=1: raise SystemExit(f'fixture-assert guard={ts.count(old_assert)}')
+          t.write_text(ts.replace(old_assert,new_assert),encoding='utf-8',newline='\n')
           PY
           npm ci >/dev/null
-          npx --no-install tsc --noEmit
-          node --check supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
+          node --check supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs
           node --test supabase/proofs/pre_v3/v5_account_erasure.test.mjs
-          sh supabase/migrations/check_md5.sh
-          python3 -m json.tool supabase/migrations/MIGRATION_PROVENANCE.json >/dev/null
           git diff --check
-          git diff -- supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql supabase/proofs/pre_v3/v5_account_erasure.test.mjs supabase/migrations/MIGRATION_PROVENANCE.json supabase/migrations/MD5_MANIFEST.txt
-      - name: Commit verified 146 trigger-state repair to integration branch
+          git diff -- supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs supabase/proofs/pre_v3/v5_account_erasure.test.mjs
+      - name: Commit verified disposable fixture repair to integration branch
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
-          git add -- supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql supabase/proofs/pre_v3/v5_account_erasure.test.mjs supabase/migrations/MIGRATION_PROVENANCE.json supabase/migrations/MD5_MANIFEST.txt
-          git commit -m 'fix(v5): bind closure erasure trigger enabled state'
+          git add -- supabase/proofs/pre_v3/v5_erasure_content_fixtures.mjs supabase/proofs/pre_v3/v5_account_erasure.test.mjs
+          git commit -m 'test(v5): supply V2 display value in erasure fixture'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
