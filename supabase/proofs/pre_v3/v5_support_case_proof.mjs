@@ -33,6 +33,7 @@ await prove('V5_PRIVATE_SUPPORT_CASE_AUTHORITY','v5-support-case-report.json',as
  assert.equal(sql("select md5(coalesce(jsonb_agg(to_jsonb(t) order by id),'[]')::text) from private.retention_policy_sets t"),beforePolicy);
  assert.equal(sql('select private.closure_binding_v5() is null and private.data_export_policy_binding() is null'),'t');assert.equal(sql('select jsonb_array_length(private.data_export_dataset_catalog())'),'49');
  assert.equal(sql("begin;create or replace function private.support_operator_key_v5() returns bigint language sql immutable set search_path=pg_catalog as $drift$ select hashtextextended('SYNTHETIC_SOURCE_DRIFT',10143) $drift$;select private.retention_ai_source_ready() is not true;rollback;"),'t');assert.equal(sql('select private.retention_ai_source_ready()'),'t');
+ assert.equal(sql("begin;create or replace function public.rpc_closure_api_guard() returns void language plpgsql security definer set search_path=pg_catalog as $drift$ begin return;end $drift$;select private.retention_ai_source_ready() is not true;rollback;"),'t');assert.equal(sql('select private.retention_ai_source_ready()'),'t');
  assert.equal(Number(sql('select count(*) from private.support_cases_v5 where safety_report_id is not null')),safetyBefore);assert.equal(sql('select count(*) from private.support_operator_grants_v5'),'0');
  const tables=['support_operator_grants_v5','support_cases_v5','support_events_v5','support_decisions_v5','support_appeals_v5','support_evidence_v5','support_commands_v5','support_read_markers_v5','support_operator_audit_v5','support_grant_commands_v5'];
  for(const table of tables){assert.equal(sql(`select relrowsecurity and relforcerowsecurity from pg_class where oid=${q('private.'+table)}::regclass`),'t');for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_table_privilege(${q(role)},${q('private.'+table)},'SELECT,INSERT,UPDATE,DELETE')`),'f');}
@@ -179,6 +180,11 @@ await prove('V5_PRIVATE_SUPPORT_CASE_AUTHORITY','v5-support-case-report.json',as
  const closing=await actor('support143-closing');const cc=args(closing,'CREATE',createPayload('Closure safe support','PRIVACY_RIGHTS'));const cr=await ok(submit(closing,cc));
  assert.ok(JSON.parse(sql(`select to_jsonb(private.closure_blockers_v5(${q(closing.id)}::uuid))`)).includes('SUPPORT_RETENTION_POLICY_NOT_READY'));
  sql(`insert into private.account_closure_requests(account_id,state,revision) values(${q(closing.id)}::uuid,'READY',1)`);await action(closing,cr.caseId,'AUTHOR_REPLY',{body:'READY retains safe exit',evidence:[]});
+ assert.equal((await ok(closing.client.rpc('rpc_support_capabilities_v5',{p_expected_user_id:closing.id}))).canCreate,true);
+ assert.ok((await inbox(closing)).cases.some(x=>x.id===cr.caseId));
+ const rawClosed=await closing.client.from('app_accounts').select('id').eq('id',closing.id);
+ assert.equal(rawClosed.status,403);assert.equal(rawClosed.error?.code,'42501');assert.equal(rawClosed.error?.message,'ACCOUNT_CLOSING');assert.equal(rawClosed.data,null);
+ await denied(closing.client.rpc('rpc_support_detail_v5',{p_expected_user_id:closing.id,p_case_id:id,p_after_sequence:'0'}),'SUPPORT_CASE_NOT_AVAILABLE');
  const pending=args(closing,'AUTHOR_REPLY',{body:'Must not arrive after execution starts',evidence:[]},cr.caseId,(await detail(closing,cr.caseId)).case.revision);
  await denied(lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(closing.id)}::uuid));update private.account_closure_requests set state='EXECUTING' where account_id=${q(closing.id)}::uuid`,()=>submit(closing,pending)),'ACCOUNT_CLOSING');
  assert.equal((await ok(cancel(closing,pending.p_client_request_id))).state,'CANCELLED');assert.deepEqual(await recover(closing,cc.p_client_request_id),cr);assert.equal((await detail(closing,cr.caseId)).allowedActions.length,0);
@@ -188,5 +194,15 @@ await prove('V5_PRIVATE_SUPPORT_CASE_AUTHORITY','v5-support-case-report.json',as
  assert.ok(!JSON.stringify(foreign).includes('Support143 private author sentinel'));assert.ok(!JSON.stringify(operator).includes('Support143 private author sentinel'));assert.ok(!Object.keys(own.datasets).some(x=>/operator|grant/i.test(x)));assert.ok(!JSON.stringify(own.datasets.ownSupportCommands).includes('inputSha256'));
  assert.equal(sql('select private.data_export_policy_binding() is null and private.closure_binding_v5() is null'),'t');
  pass(report,'OBSERVED_CLOSURE_RESTRICTION_SAFE_READY_EXIT_EXECUTION_DENIES_NEW_TEXT_CANCEL_RECOVERY_SURVIVE_OWN49_DATASETS_NO_OPERATOR_INTERNAL_AUDIT');
+ // The exact HTTP exception never admits a cryptographically valid stale JWT
+ // after its actual Auth session has gone; no private response body can escape.
+ sql(`delete from auth.sessions where user_id=${q(closing.id)}::uuid`);
+ for(const [rpc,payload] of [
+  ['rpc_support_capabilities_v5',{p_expected_user_id:closing.id}],
+  ['rpc_support_detail_v5',{p_expected_user_id:closing.id,p_case_id:cr.caseId,p_after_sequence:'0'}],
+  ['rpc_support_read_command_v5',{p_expected_user_id:closing.id,p_client_request_id:cc.p_client_request_id}],
+  ['rpc_support_cancel_command_v5',{p_expected_user_id:closing.id,p_client_request_id:randomUUID()}],
+ ]){const deniedRead=await closing.client.rpc(rpc,payload);assert.equal(deniedRead.error?.message,'AUTH_REQUIRED');assert.equal(deniedRead.data,null);}
+ pass(report,'SUPPORT_SAFE_EXIT_HTTP_FENCE_EXACT_ROUTES_NO_RAW_OR_FOREIGN_DATA_REVOKED_AUTH_SESSION_DENIED');
  report.operatorGrantFixture='EXPLICIT_DISPOSABLE_AUTH_ACCOUNT_ONLY';
 });

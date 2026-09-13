@@ -9,7 +9,7 @@ import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { aiFirst as a } from './tokens';
 
 export function VoiceComposer(p: { controller: HoldToTalkController; state: VoiceSnapshot; disabled: boolean;
-  onKeepText: (text: string) => void }) {
+  onKeepText: (text: string) => boolean }) {
   const [reader, setReader] = useState(false), [accessibleMode, setAccessibleMode] = useState(false);
   const gesture = useRef<string | null>(null), startY = useRef(0);
   useEffect(() => {
@@ -27,17 +27,16 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
     void p.controller.begin(id, explicit ? 'accessible' : 'hold');
   };
   const release = () => { const id = gesture.current; gesture.current = null; if (id) void p.controller.release(id); };
-  const label = p.state.phase === 'LISTENING' ? explicit ? 'Zaustavi i pošalji govor' : 'Slušam — pusti da pošalješ'
+  const label = p.state.phase === 'LISTENING' ? explicit ? 'Zaustavi i pregledaj tekst' : 'Slušam — pusti za tekst'
     : p.state.phase === 'PERMISSION_PENDING' ? 'Čekam dozvolu mikrofona' : p.state.phase === 'STARTING' ? 'Povezujem mikrofon…'
-      : p.state.phase === 'FINALIZING' ? 'Završavam transkript…' : p.state.phase === 'SUBMITTING' ? 'Šaljem poruku AI-u…'
-        : p.state.phase === 'UNKNOWN_OUTCOME' ? 'Proveri ishod slanja' : explicit ? 'Pokreni govorni unos' : 'Drži da govoriš';
+      : p.state.phase === 'FINALIZING' ? 'Završavam transkript…' : explicit ? 'Pokreni govorni unos' : 'Drži da govoriš';
   return <View style={s.wrap}>
     <View style={s.notice}><T style={s.noticeText}>Govor obrađuje Google. USKOČI ne čuva audio.</T>
       <V2Action kind="quiet" label="Detalji" onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)} /></View>
     {(p.state.finalText || p.state.interimText) && active ? <T selectable style={s.transcript}>{p.state.finalText}{p.state.finalText && p.state.interimText ? ' ' : ''}{p.state.interimText}</T> : null}
     <View style={s.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={label}
-        accessibilityHint={explicit ? 'Završni tekst se šalje AI-u. Zadatak se objavljuje tek iz pregleda.' : 'Drži tokom govora. Puštanje šalje završni tekst AI-u. Povuci prst naviše da otkažeš.'}
+        accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.' : 'Drži tokom govora. Puštanje priprema tekst za pregled i izmenu. Povuci prst naviše da otkažeš.'}
         accessibilityState={{ disabled: (p.disabled && !active) || occupied }} disabled={(p.disabled && !active) || occupied}
         onPressIn={explicit ? undefined : event => { startY.current = event.nativeEvent.pageY; begin(); }}
         onPressOut={explicit ? undefined : release}
@@ -54,10 +53,10 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
       </Pressable>
       {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
     </View>
-    {active ? <T accessibilityLiveRegion="polite" style={s.noticeText}>Govor šalje poruku. Objava je tek u pregledu.</T>
+    {active ? <T accessibilityLiveRegion="polite" style={s.noticeText}>Pusti, pregledaj tekst i izaberi Pošalji.</T>
       : !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet" label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'} onPress={() => setAccessibleMode(value => !value)} /> : null}
     {p.state.error ? <T accessibilityLiveRegion="polite" style={s.error}>{VOICE_ERROR_COPY[p.state.error]}</T> : null}
-    {p.state.fallbackText && p.state.phase === 'IDLE' ? <V2Action kind="quiet" label="Uredi sačuvani tekst" onPress={() => p.onKeepText(p.state.fallbackText)} /> : null}
+    {p.state.fallbackText && p.state.phase === 'IDLE' ? <V2Action kind="quiet" label="Uredi sačuvani tekst" onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
 }
 const s = StyleSheet.create({

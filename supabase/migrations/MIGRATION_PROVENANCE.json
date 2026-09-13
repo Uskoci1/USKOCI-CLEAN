@@ -2511,9 +2511,9 @@
       "predecessor_live_migration_count": 87,
       "predecessor_live_head": "20260907135905",
       "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
-      "raw_md5": "648a4b70c688c03bb4fdd39bd52542cd",
-      "raw_sha256": "f3612633a564f0500d368eb3958e939859f6d3b32acc175c997021d1c3c4fcba",
-      "raw_bytes": 63630
+      "raw_md5": "3f3f25fc910b8b64f97a0b41f9683288",
+      "raw_sha256": "04fccf338a482849ef08fcbc0a0ceeef9354e0b02105d0eaa101dcd05ccaaed5",
+      "raw_bytes": 65032
     }
   ],
   "p2_data_export_requests": {

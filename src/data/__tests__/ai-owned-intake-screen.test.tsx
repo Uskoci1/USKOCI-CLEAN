@@ -24,8 +24,8 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSad
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => `aaaaaaaa-aaaa-4aaa-8aaa-${String(++mockCounter).padStart(12, '0')}` }));
 jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options: unknown) => {
-  mockVoiceOptions(options); return { controller: { resolveSubmission: jest.fn(), cancel: mockVoiceCancel },
-    state: { phase: mockVoicePhase, submission: null } }; } }));
+  mockVoiceOptions(options); return { controller: { cancel: mockVoiceCancel },
+    state: { phase: mockVoicePhase } }; } }));
 jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'Alert') return { alert: (...args: unknown[]) => mockAlert(...args) };
@@ -90,6 +90,31 @@ beforeEach(async () => {
   mockAbandon.mockResolvedValue(ok({ conversationId: id, status: 'ABANDONED', authoritative: true }));
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+it('speech fills the visible editable draft; only explicit Send writes an AI intent with the edited text', async () => {
+  await render(); await type('Već ukucano.');
+  const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
+  await act(async () => expect(receive({ text: 'Treba mi prevoz.', isCurrent: () => true })).toBe(true));
+  expect(input().value).toBe('Već ukucano.\nTreba mi prevoz.');
+  expect(mockSend).not.toHaveBeenCalled(); expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  await type('Treba mi prevoz u petak.');
+  await act(async () => submit().onPress());
+  expect(mockSend).toHaveBeenCalledTimes(1); expect(mockSend.mock.calls[0][1]).toBe('Treba mi prevoz u petak.');
+});
+it('speech refuses a full draft without overwriting it or starting an AI request', async () => {
+  await render(); await type('a'.repeat(3999));
+  await act(async () => expect(mockVoiceOptions.mock.calls.at(-1)![0].onTranscript({ text: 'Još.', isCurrent: () => true })).toBe(false));
+  expect(input().value).toBe('a'.repeat(3999)); expect(mockSend).not.toHaveBeenCalled();
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+});
+it.each(['stale-capture', 'blur-refocus', 'account-ABA'] as const)('rejects late speech from %s without changing the current draft', async reason => {
+  await render(); await type('Aktuelni tekst'); const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
+  if (reason === 'blur-refocus') { await blur(); await focus(); }
+  if (reason === 'account-ABA') { mockSession = { ...mockSession, accountRevision: 3 }; await update(); }
+  const before = input().value;
+  await act(async () => expect(receive({ text: 'stari privatni govor', isCurrent: () => reason !== 'stale-capture' })).toBe(false));
+  expect(input().value).toBe(before); expect(mockSend).not.toHaveBeenCalled(); expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+});
 
 it('opens once with a stable request and resumes the same conversation on refocus without sending or abandoning', async () => {
   await render(); expect(mockOpen).toHaveBeenCalledTimes(1); await blur(); await focus();

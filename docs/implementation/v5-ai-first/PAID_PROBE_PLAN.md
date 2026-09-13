@@ -1,5 +1,15 @@
 # Predlog malog Gemini testa kroz stvarnu aplikaciju
 
+Aktuelna dopuna AF-D24/26: canonical `leqcwgzvjsxugfgzdmth` je odobreni
+DEV/ALPHA cilj, uključujući potrebnu konfiguraciju i jednog internog QA korisnika.
+Raniji zahtevi za novo staging/live odobrenje tog istog cilja u istorijskom
+preflight-u ispod su zamenjeni vlasničkom odlukom. Veza postojećeg ključa sa
+plaćenim projektom je naknadno proverena u memoriji; ne ponavljati ključ.
+Važe postojeći $5 interni limit i kontrolisane kratke probe sa proverom potrošnje.
+Nijedna plaćena proba nije ovim zapisom proglašena izvršenom. AF-D24 menja govor:
+release daje izmenjiv tekst; novi AI operation nastaje tek izričitim Pošalji.
+Pre izvođenja vezati plan za novi provereni source/APK i stvarno očitan ledger.
+
 Pripremljeno 2026-09-13, samo pregled izvora i plan. Nisu pročitani ključevi, menjani secrets/config, pozvani modeli niti izvršen live batch. Aktuelni source kandidat je28c47c01a3637e67ce767910ed213477a9a933b1/SQL141. CI34734349508 je prošao11 source gates,185 Jest suites/3711 testova,686 Node testova i25 actual izveštaja do135;136 je stao na SQL timeout-u posle2 provere, pa137–141 nisu dostignuti. Konkretan batch još zahteva završne dokaze, APK i tačne test naloge.
 
 Već odobreno: `gemini-3.8-flash`, `gemini-3.5-transcribe-live`, prihvaćen Google paid processing okvir, prolazan govor bez USKOČI audio arhive, AF-D09 pregled sanitizovanih Task fotografija, AF-D12 javni Q&A, zajednički interni test limit USD 5 i stvarna kontrola troška posle svake probe. Nema novih svrha/providera/cena. Paid1 / Prepay USD 5.00 / Auto-reload Off za `Uskoci-clean` / `gen-lang-client-0693119686` potvrdio je root u AI Studio; veza postojećeg Supabase `GEMINI_API_KEY` sa tim projektom još nije dokazana. Sufiks `…FZZg` je trag za nalaženje, ne dokaz identičnog ključa.
@@ -43,16 +53,16 @@ SQL127 rezerviše USD 0.25 za svaki novi LLM operation i USD 0.20 za svaki novi 
 
 USD 2.90 i raspored P1–P9/C1 su ograničenje odobrenog postupka, ne dodatna server kvota. SQL127 nema batch ID, listu dozvoljenih budućih operation ID-eva, ograničenje po endpoint-u ili automatski stop na USD 2.90; važeći allowlist nalog može eksplicitnim novim zahtevima trošiti ostatak globalnog plafona. Zato pre otvaranja admission-a proveriti ceo aktivni allowlist, ne samo dodati R/W, i navesti tačno odobreno početno/završno stanje. Nalozi se koriste isključivo za ovaj batch, jedna operacija u toku, bez nepoznatih ranijih provider pokušaja. Ako je zahtev da server sam sprovodi podlimit/broj probe ili tester-private vidljivost, sadašnji izvor to ne dokazuje i takav batch nije spreman bez zasebne konkretne izmene. Detalji flag/recovery granica su u [PAID_PROBE_CODE_REVIEW](PAID_PROBE_CODE_REVIEW.md).
 
-Probe se rade redom, jedna aktivna UI operacija, bez paralelnog korišćenja AI Studio Playground-a ili drugih test klijenata. Svaki red ima pregled troška i SQL receipt-a pre narednog reda. Speech red je jedna proba sa dva unapred uračunata poziva: korisnički ugovor puštanjem automatski šalje final tekst AI-u.
+Probe se rade redom, jedna aktivna UI operacija, bez paralelnog korišćenja AI Studio Playground-a ili drugih test klijenata. Svaki red ima pregled troška i SQL receipt-a pre narednog reda. Speech red unapred uračunava STT i kasniji eksplicitni AI Send. Samo puštanje mikrofona ne šalje AI zahtev; prvo proveriti vidljiv tekst i mogućnost izmene.
 
 | Proba | Konkretna akcija kroz aplikaciju | Najviše novih LLM / STT | Rezervacija | Kumulativno |
 | --- | --- | --- | --- | --- |
 | P1 | R: novi Task A, jedna kratka kucana poruka za udaljenu lekturu probnog teksta | 1 / 0 | USD 0.25 | USD 0.25 |
 | P2 | A: ručno dopuniti poznate nedostajuće podatke, otvoriti detaljan pregled; jednom „Objavi zadatak“ kroz acceptedReviewId tok, bez fotografije | 1 / 0 | USD 0.25 | USD 0.50 |
 | P3 | R: novi Task B, jedna kucana poruka za udaljenu proveru prelomljenog probnog teksta; fotografija još ne šalje AI-u | 1 / 0 | USD 0.25 | USD 0.75 |
-| P4 | B: držati mikrofon 6–10 sekundi, srpski dodatak zadatku; pustiti jednom, sačekati final i tačno jedan AI odgovor | 1 / 1 | USD 0.45 | USD 1.20 |
+| P4 | B: držati mikrofon 6–10 sekundi, srpski dodatak zadatku; pustiti, proveriti izmenjiv final bez AI poziva, zatim jednom Pošalji i jedan odgovor | 1 / 1 | USD 0.45 | USD 1.20 |
 | P5 | W: zaseban Worker AI razgovor, jedna kratka kucana poruka o kontrolisanom test profilu | 1 / 0 | USD 0.25 | USD 1.45 |
-| P6 | W: držati mikrofon 6–10 sekundi za dodatak radnom profilu; pustiti jednom i sačekati tačno jedan odgovor | 1 / 1 | USD 0.45 | USD 1.90 |
+| P6 | W: držati mikrofon 6–10 sekundi za dodatak radnom profilu; pustiti, pregledati/izmeniti tekst, jednom Pošalji i jedan odgovor | 1 / 1 | USD 0.45 | USD 1.90 |
 | P7 | B: dodati jednu sopstvenu neutralnu test fotografiju, sačekati READY; detaljan pregled i jedna „Objavi zadatak“ akcija | 1 / 0 | USD 0.25 | USD 2.15 |
 | P8 | W: poslati jedno nematerijalno javno Q&A pitanje na B | 1 / 0 | USD 0.25 | USD 2.40 |
 | P9 | R: odgovoriti jednom, bez promene dogovorenih uslova B | 1 / 0 | USD 0.25 | USD 2.65 |
@@ -71,7 +81,7 @@ Jedna fotografija sadrži samo vlasnikov neutralni probni tekst, bez osoba, kont
 | Izvor | Stvarni provider operation / zaštita |
 | --- | --- |
 | `uskoci-ai-interview/index.ts` | Jedan `clientRequestId` = najviše jedan LLM reserve; SQL132 dispatch intent pre provider I/O. Streaming i običan V2 zahtev ne smeju biti dve test akcije za isti govor. |
-| `uskoci-speech-session/index.ts` + `proxy.ts` + `holdToTalk.ts` | Jedan speech `operationId` = USD 0.20, čak i ako nema upotrebljivog finala. Uspešan release pravi drugi, novi AI `clientRequestId` = dodatnih USD 0.25. Za dve planirane probe najviše 2 session-a; nema reconnect-a ili session resumption-a. Izvor dozvoljava do 120 s capture / +15 s finalizing, ali ovaj batch govori samo 6–10 s. |
+| `uskoci-speech-session/index.ts` + `proxy.ts` + `holdToTalk.ts` | Jedan speech `operationId` = USD 0.20, čak i ako nema upotrebljivog finala. Release daje izmenjiv tekst bez AI ključa/poziva. Tek izričito Pošalji stvara AI `clientRequestId` = dodatnih USD 0.25. Za dve planirane probe najviše 2 session-a; nema reconnect-a ili session resumption-a. Izvor dozvoljava do 120 s capture / +15 s finalizing, ali ovaj batch govori samo 6–10 s. |
 | `uskoci-worker-interview/index.ts` | Jedan Worker `clientRequestId` = USD 0.25. Claim vraća postojeći turn bez novog reserve-a; PROCESSING/UNKNOWN nema retryAllowed. Worker `read/patch/prepare/save` su SQL-only. |
 | `aiTaskReviewClientService.ts` + `pregled-zadatka.tsx` | Otvaranje/osvežavanje detaljnog pregleda može napraviti novi review envelope kroz SQL, ali ne poziva Gemini. „Objavi“ radi accept → evaluator → canonical publish. Naknadni `read/readLatest` ne pokreće evaluator. |
 | `uskoci-publication-evaluate/index.ts` + SQL126 | Accepted review ima jedan durable evaluation attempt; njegov `attemptId` je LLM budget operation. Jedan zahtev sadrži javni Task tekst i sve izabrane fotografije, pa nije jedan poziv po slici. Same-command EVALUATING/UNKNOWN/EVALUATED readback ne daje novu claim. Nije dozvoljeno ponavljanje evaluacije sa novim review-em posle neuspeha u ovoj probi. |
@@ -87,7 +97,7 @@ Pre svake probe zabeležiti UTC vreme, konačan source/APK identity, account ali
 
 - Task / SQL132: čitati tačan owned turn po conversation/key; uspešno završeni tekst/facts moraju postojati jednom. PROCESSING/UNKNOWN nije poziv da se ponovi inference.
 - Worker / SQL128: `rpc_read_worker_ai` mora vratiti isti owned conversation/turn/attempt; SUCCEEDED i pregled/snimljen profil su odvojeni dokazi. Unknown ostaje closed do podržanog autoritativnog ishoda.
-- Speech: na release završiti capture; interim mora poticati od stvarnog provider događaja i final otići jednom AI-u. Ako final izostane, sačuvati dopušteni editable fallback bez ponovnog snimanja u istoj probi. Posle restart-a ne obnoviti audio session; proveriti AI receipt ako je njegov key nastao.
+- Speech: na release završiti capture; interim mora poticati od stvarnog provider događaja, a final postati vidljiv izmenjiv tekst bez AI dispatch-a. Proveriti izmenu i tek izričitim Pošalji poslati jednom. Ako final izostane, sačuvati dopušteni editable fallback bez ponovnog snimanja u istoj probi. Posle restart-a ne obnoviti audio session; proveriti AI receipt ako je njegov key nastao.
 - Publication: `rpc_read_ai_task_review`/`readLatest` čita isti command. Samo postojeći EVALUATED+ALLOW može nastaviti canonical publish bez nove inference; UNKNOWN ne postaje „objavljeno“. Drugi nalog proverava finalnu javnu projekciju i fotografiju.
 - QA: najpre canonical SQL133 receipt, zatim SQL135 recovery. COMMITTED mora odgovarati originalnom owner/type/Task/revision/key/hash-u. Cancel može vratiti COMMITTED ako je objava već pobedila; nije refund. ABSENT ne daje dozvolu da se napravi novi key.
 

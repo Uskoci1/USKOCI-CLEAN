@@ -6,7 +6,7 @@ const mockListeners=new Set<(s:string)=>void>(),mockAlert=jest.fn();
 const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),save:jest.fn(),abandon:jest.fn()};
 const mockJournal={load:jest.fn(),save:jest.fn(),clear:jest.fn()};let mockStored:unknown=null;
 const mockRouter={back:jest.fn(),replace:jest.fn(),canGoBack:()=>true,setParams:jest.fn()};
-const mockVoice={controller:{resolveSubmission:jest.fn()},state:{phase:'IDLE'}};const mockVoiceHook=jest.fn((_options:unknown)=>mockVoice);
+const mockVoice={controller:{},state:{phase:'IDLE'}};const mockVoiceHook=jest.fn((_options:unknown)=>mockVoice);
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
  if(key==='View')return 'View';if(key==='Alert')return{alert:(...a:unknown[])=>mockAlert(...a)};
  if(key==='AppState')return{currentState:'active',addEventListener:(_:string,fn:(s:string)=>void)=>{mockListeners.add(fn);return{remove:()=>mockListeners.delete(fn)};}};
@@ -42,6 +42,29 @@ beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=tr
  mockApi.send.mockResolvedValue({ok:false,kod:'UNKNOWN',poruka:'Ishod nije potvrđen'});mockApi.cancelTurn.mockImplementation(async()=>{mockApi.recoverTurn.mockResolvedValue(ok(recovery('FAILED',{cancelled:true,canCancel:false,retryAllowed:false})));return ok(recovery('FAILED',{cancelled:true,canCancel:false,retryAllowed:false}));});
 });
 afterEach(async()=>{await act(async()=>tree?.unmount());});
+it('speech appends an editable profile message without dispatch; explicit Send uses the edited body',async()=>{
+ await render();act(()=>shell().props.onChange('Već ukucano.'));
+ const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ await act(async()=>expect(receive({text:'Radim vikendom.',isCurrent:()=>true})).toBe(true));
+ expect(shell().props.value).toBe('Već ukucano.\nRadim vikendom.');expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
+ act(()=>shell().props.onChange('Radim subotom od 10.'));await act(async()=>shell().props.onSend());
+ expect(mockApi.send).toHaveBeenCalledTimes(1);expect(mockApi.send.mock.calls[0][1]).toBe('Radim subotom od 10.');
+});
+it('speech cannot overfill or overwrite a profile draft',async()=>{
+ await render();act(()=>shell().props.onChange('a'.repeat(3999)));
+ const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ await act(async()=>expect(receive({text:'Još.',isCurrent:()=>true})).toBe(false));
+ expect(shell().props.value).toBe('a'.repeat(3999));expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
+});
+it.each(['stale-capture','blur-refocus','account-ABA'] as const)('late profile speech from %s cannot fill a new composer',async reason=>{
+ await render();act(()=>shell().props.onChange('Aktuelni tekst'));
+ const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ if(reason==='blur-refocus'){await act(async()=>{mockFocused=false;tree.update(<Screen/>);});await act(async()=>{mockFocused=true;tree.update(<Screen/>);});}
+ if(reason==='account-ABA'){await act(async()=>{mockRevision=3;tree.update(<Screen/>);});}
+ const before=shell().props.value;
+ await act(async()=>expect(receive({text:'stari privatni govor',isCurrent:()=>reason!=='stale-capture'})).toBe(false));
+ expect(shell().props.value).toBe(before);expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
+});
 it('restores opaque pending key before any open or provider request and exposes safe cancel',async()=>{
  mockStored=intent();mockParams={};await render();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockApi.recoverTurn).toHaveBeenCalledWith(C,K);expect(mockRouter.setParams).toHaveBeenCalledWith({conversationId:C});

@@ -484,6 +484,26 @@ declare c private.support_cases_v5;g integer;m private.owned_media_assets;begin
  return jsonb_build_object('assetId',m.id,'caseId',c.id,'bucket','profile-media','path',m.storage_path,'sha256',m.sanitized_sha256,'contentType','image/jpeg','byteSize',m.byte_size,'authoritative',true);
 end $f$;
 
+-- Compose the existing131 HTTP fence with the approved support safe exit.
+-- Exact RPC paths only: no wildcard, raw table access, service grant or bypass
+-- of the endpoint's account/session/ownership/closure producer checks.
+do $api_predecessor$ begin
+ if (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid='public.rpc_closure_api_guard()'::regprocedure)
+ is distinct from 'abb246e71fa5ad4ac4664db31a5cc065' then raise exception 'SUPPORT_API_GUARD_PREDECESSOR_DRIFT';end if;
+end $api_predecessor$;
+create or replace function public.rpc_closure_api_guard() returns void language plpgsql security definer set search_path=pg_catalog as $f$
+declare u uuid:=auth.uid();path text:=coalesce(current_setting('request.path',true),'');begin
+ if auth.role()='authenticated' and private.closure_account_restricted(u) then
+  if path in('/rpc/rpc_read_account_closure_execution','/rpc/rpc_start_account_closure_execution') then return;end if;
+  if path in('/rpc/rpc_support_capabilities_v5','/rpc/rpc_support_inbox_v5','/rpc/rpc_support_detail_v5',
+   '/rpc/rpc_support_find_context_v5','/rpc/rpc_support_mark_read_v5','/rpc/rpc_support_read_command_v5',
+   '/rpc/rpc_support_cancel_command_v5','/rpc/rpc_support_submit_v5') then
+   perform private.support_auth_v5(u);return;
+  end if;
+  raise exception 'ACCOUNT_CLOSING' using errcode='42501';
+ end if;
+end $f$;
+
 -- These private cases retain their evidence pending the already-open reviewed
 -- retention schedule. Closing a case never releases a139 Storage hold or erases
 -- a reporter's account. This is a blocker, not a fabricated lifetime or policy.
@@ -561,7 +581,8 @@ do $support_source$ declare d text;needle text:='''private.resolve_media_snapsho
  'public.rpc_support_set_operator_service_v5(uuid,boolean,integer,uuid)','public.rpc_support_submit_v5(uuid,uuid,text,uuid,integer,text)',
  'public.rpc_support_capabilities_v5(uuid)','public.rpc_support_inbox_v5(uuid,text,text)',
  'public.rpc_support_detail_v5(uuid,uuid,text)','public.rpc_support_mark_read_v5(uuid,uuid,text)',
- 'public.rpc_support_find_context_v5(uuid,text,uuid)','public.rpc_support_media_service_v5(uuid,uuid,uuid,uuid)']$sources$),'having count(*)=6','having count(*)=32');
+ 'public.rpc_support_find_context_v5(uuid,text,uuid)','public.rpc_support_media_service_v5(uuid,uuid,uuid,uuid)',
+ 'public.rpc_closure_api_guard()']$sources$),'having count(*)=6','having count(*)=33');
 end $support_source$;
 do $rebind$ declare old_sha text;new_sha text;d text;begin
  select sha,ready_definition into strict old_sha,d from support143_predecessor;

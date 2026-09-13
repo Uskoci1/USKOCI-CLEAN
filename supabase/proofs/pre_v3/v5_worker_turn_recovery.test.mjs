@@ -42,3 +42,22 @@ test('only exact cancelled messages are filtered from provider context and owned
  assert.match(now,/returning id into message_id;\n update private.worker_ai_turns set user_message_id=message_id where turn_id=t.turn_id/);
  assert.ok(!now.includes('references public.ai_messages'));assert.ok(!now.includes('delete from public.ai_messages'));
 });
+
+test('138/141/142 HTTP closure assertions reject wrong status, code, message or exposed data',async()=>{
+ const runtime=readFileSync(new URL('./closure_runtime.mjs',import.meta.url),'utf8');
+ const deniedSource=runtime.split('\n').find(line=>line.startsWith('export const denied=')).replace('export ','');
+ for(const name of ['v5_agreement_location_proof.mjs','v5_worker_turn_recovery_proof.mjs','v5_unknown_ai_turn_exit_proof.mjs']){
+  const proof=readFileSync(new URL('./'+name,import.meta.url),'utf8');
+  const declaration=proof.split('\n').find(line=>line.startsWith('async function closedHttp(p)'));assert.ok(declaration,name);
+  // Execute the exact proof predicate plus its actual shared denial helper.
+  // This is a response-shape unit test, not a substitute for PostgREST.
+  const check=new Function('assert',deniedSource+'\n'+declaration+'\nreturn closedHttp;')(assert);
+  const valid={status:403,data:null,error:{code:'42501',message:'ACCOUNT_CLOSING'}};
+  await check(Promise.resolve(valid));
+  for(const response of [{...valid,status:200},{...valid,status:401},{...valid,error:null},
+   {...valid,error:{...valid.error,code:'28000'}},{...valid,error:{...valid.error,message:'AUTH_REQUIRED'}},
+   {...valid,data:{}},{...valid,data:{privateBody:'must not escape'}},{...valid,data:undefined}]){
+   await assert.rejects(check(Promise.resolve(response)),undefined,name);
+  }
+ }
+});

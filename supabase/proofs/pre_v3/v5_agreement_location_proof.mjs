@@ -11,6 +11,7 @@ const command=(a,id,kind='SHARE',p=kind==='SHARE'?point():null,version=1,key=ran
 const write=(a,c)=>a.client.rpc('rpc_write_agreement_current_location',c);
 const read=(a,id)=>ok(a.client.rpc('rpc_read_agreement_current_location',{p_expected_user_id:a.id,p_agreement_id:id}));
 const recover=(a,c)=>ok(a.client.rpc('rpc_read_agreement_location_command',{p_expected_user_id:a.id,p_agreement_id:c.p_agreement_id,p_client_request_id:c.p_client_request_id}));
+async function closedHttp(p){const r=await p;await denied(Promise.resolve(r),'ACCOUNT_CLOSING');assert.equal(r.status,403);assert.equal(r.error.code,'42501');assert.equal(r.data,null);}
 const asActor=a=>`select set_config('request.jwt.claim.sub',${q(a.id)},true);select set_config('request.jwt.claim.role','authenticated',true);`;
 const writeSql=(a,c)=>`${asActor(a)}select public.rpc_write_agreement_current_location(${q(a.id)}::uuid,${q(c.p_agreement_id)}::uuid,${c.p_agreement_version},${q(c.p_client_request_id)}::uuid,${q(c.p_kind)},${q(c.p_input_sha256)},${c.p_point===null?'null':q(JSON.stringify(c.p_point))+'::jsonb'},${c.p_cancel})`;
 const count=id=>Number(sql(`select count(*) from private.agreement_location_points p join private.agreement_location_commands c using(actor_account_id,client_request_id) where c.agreement_id=${q(id)}::uuid`));
@@ -67,7 +68,7 @@ await prove('V5_AGREEMENT_LOCATION_SNAPSHOT','v5-agreement-location-report.json'
  noAccess(await read(R,id));noAccess(await read(W,id));assert.equal(count(id),2);await block(false);
  const afterUnblock=await read(R,id);assert.equal(afterUnblock.canRequest,true);assert.equal(afterUnblock.point,null);assert.equal(afterUnblock.requestedAt,null);
  assert.deepEqual(await ok(write(W,winner)),cancelledAfterCommit);assert.equal((await read(R,id)).point,null);
- const fresh=command(W,id,'SHARE',{...point(),latitude:45.28});await ok(write(W,fresh));assert.equal((await read(R,id)).point.latitude,45.28);
+ const fresh=command(W,id,'SHARE',{...point(),latitude:45.28}),freshReceipt=await ok(write(W,fresh));assert.equal((await read(R,id)).point.latitude,45.28);
  pass(report,'OBSERVED_PAIR_BLOCK_RACE_OLD_SHARE_AND_REQUEST_PERMANENTLY_REVOKED_AFTER_UNBLOCK_FRESH_EXPLICIT_SHARE_ONLY');
 
  // Explicit disposable restriction fixtures, restored after each assertion.
@@ -77,11 +78,21 @@ await prove('V5_AGREEMENT_LOCATION_SNAPSHOT','v5-agreement-location-report.json'
    `insert into private.account_closure_requests(account_id,state,revision) values(${q(account)}::uuid,'READY',1)`;
   try{
    await denied(lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(account)}::uuid));${restriction}`,()=>write(W,command(W,id))),'ACCOUNT_CLOSING');
-   noAccess(await read(R,id));noAccess(await read(W,id));assert.equal((await recover(W,fresh)).command.state,'COMMITTED');
-   await denied(write(W,fresh),'ACCOUNT_CLOSING');
+   //131 rejects a restricted caller before the138 RPC body. The open peer
+   // reaches the body and receives a DTO with no location or affordances.
+   for(const a of [R,W]){
+    if(a.id===account)await closedHttp(a.client.rpc('rpc_read_agreement_current_location',{p_expected_user_id:a.id,p_agreement_id:id}));
+    else noAccess(await read(a,id));
+   }
+   if(account===workerId){
+    await closedHttp(worker.rpc('rpc_read_agreement_location_command',{p_expected_user_id:workerId,p_agreement_id:id,p_client_request_id:fresh.p_client_request_id}));
+    await closedHttp(write(W,fresh));
+   }else{assert.deepEqual((await recover(W,fresh)).command,freshReceipt);await denied(write(W,fresh),'ACCOUNT_CLOSING');}
+   assert.equal(count(id),3);
   }finally{if(before)sql(`update private.account_closure_requests set state=${q(before.state)},closed_at=${before.closed_at?q(before.closed_at)+'::timestamptz':'null'} where account_id=${q(account)}::uuid`);else sql(`delete from private.account_closure_requests where account_id=${q(account)}::uuid`);}
+  assert.deepEqual(await recover(W,fresh),{found:true,command:freshReceipt});
  }
- pass(report,'BOTH_PARTICIPANT_CLOSURE_BARRIERS_DENY_FRESH_WRITE_AND_HIDE_POINT_WITH_OWN_METADATA_RECOVERABLE');
+ pass(report,'BOTH_PARTICIPANT_CLOSURE_BARRIERS_CLOSED_CALLER_HTTP403_OPEN_PEER_NO_POINT_NO_WRITE_EXACT_RECEIPT_AFTER_RESTORE');
 
  const proposal=await ok(requester.rpc('rpc_propose_agreement_change_v2',{p_agreement_id:id,p_expected_version:1,p_patch:{price_rsd:4321},p_reason:'Disposable location version proof',p_client_request_id:randomUUID()}));
  const accepted=await ok(worker.rpc('rpc_respond_agreement_change',{p_proposal_id:proposal,p_accept:true}));assert.equal(accepted.agreementVersion,2);

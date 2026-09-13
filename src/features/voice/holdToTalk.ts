@@ -17,7 +17,7 @@ export type VoiceErrorCode =
   | 'MIC_UNAVAILABLE' | 'CAPTURE_FAILED' | 'CAPTURE_TIMEOUT' | 'AUDIO_INTERRUPTED'
   | 'FINALIZATION_FAILED' | 'FINALIZATION_TIMEOUT' | 'FINAL_TRANSCRIPT_MISSING'
   | 'TRANSCRIPT_INVALID' | 'TRANSCRIPT_TOO_LONG' | 'AI_SPEAKING'
-  | 'SUBMISSION_FAILED' | 'SUBMISSION_UNKNOWN';
+  | 'DRAFT_NOT_ACCEPTED';
 
 export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   VOICE_NOT_CONFIGURED: 'Govorni unos još nije povezan. Možete da nastavite kucanjem.',
@@ -33,8 +33,7 @@ export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   TRANSCRIPT_INVALID: 'Govorni unos nije mogao bezbedno da se pročita. Proverite sačuvani tekst.',
   TRANSCRIPT_TOO_LONG: 'Govorni unos prelazi 4.000 znakova. Sačuvan je prethodni deo; skratite ili podelite poruku.',
   AI_SPEAKING: 'Sačekajte da se čitanje odgovora završi pre govornog unosa.',
-  SUBMISSION_FAILED: 'Poruka nije prihvaćena. Tekst je sačuvan za izmenu.',
-  SUBMISSION_UNKNOWN: 'Proveravam da li je poruka primljena. Nemojte je ponovo slati dok ishod nije poznat.',
+  DRAFT_NOT_ACCEPTED: 'Završni tekst je sačuvan. Otvori ga za izmenu pre slanja; ako je poruka puna, najpre je skrati.',
 };
 
 export type SpeechEvent =
@@ -66,15 +65,13 @@ export interface NativeSpeechAdapter {
   }): NativeSpeechCapture;
 }
 
-export type VoiceSubmission = Readonly<{
+export type VoiceTranscript = Readonly<{
   session: VoiceSession;
-  clientRequestId: string;
   text: string;
 }>;
 
-export type VoiceSubmitResult = { kind: 'accepted' } | { kind: 'rejected' } | { kind: 'unknown' };
 export type VoiceCancelReason = 'gesture' | 'navigation' | 'background' | 'account' | 'interruption' | 'dispose';
-export type VoicePhase = 'IDLE' | 'PERMISSION_PENDING' | 'STARTING' | 'LISTENING' | 'FINALIZING' | 'SUBMITTING' | 'UNKNOWN_OUTCOME';
+export type VoicePhase = 'IDLE' | 'PERMISSION_PENDING' | 'STARTING' | 'LISTENING' | 'FINALIZING';
 export type VoiceSnapshot = Readonly<{
   phase: VoicePhase;
   session: VoiceSession | null;
@@ -83,18 +80,16 @@ export type VoiceSnapshot = Readonly<{
   audioLevel: number | null;
   fallbackText: string;
   error: VoiceErrorCode | null;
-  submission: VoiceSubmission | null;
 }>;
 
 export type HoldToTalkOptions = {
   adapter: NativeSpeechAdapter | null;
   getScope: () => VoiceScope | null;
   isAiSpeaking?: () => boolean;
-  newRequestId: () => string;
-  /** Must call the existing owned AI writer with this exact key and check isCurrent before dispatch. */
-  submit: (input: VoiceSubmission & { signal: AbortSignal; isCurrent: () => boolean }) => Promise<VoiceSubmitResult>;
+  /** Synchronous handoff to the visible editable composer. Never dispatches an AI/message command. */
+  onTranscript: (input: VoiceTranscript & { isCurrent: () => boolean }) => boolean;
   /** Technical safety deadlines are supplied by the approved integration, never copied from HTML demo timing. */
-  limits: { permissionMs: number; captureMs: number; finalizationMs: number; submissionMs: number };
+  limits: { permissionMs: number; captureMs: number; finalizationMs: number };
 };
 
 type ActiveSession = {
@@ -103,12 +98,12 @@ type ActiveSession = {
   capture: NativeSpeechCapture | null;
   held: boolean;
   segments: Map<number, { final: boolean; text: string }>;
-  submitted: boolean;
+  completed: boolean;
   deadline?: ReturnType<typeof setTimeout>;
 };
 
 const blank = (): VoiceSnapshot => ({ phase: 'IDLE', session: null, finalText: '', interimText: '',
-  audioLevel: null, fallbackText: '', error: null, submission: null });
+  audioLevel: null, fallbackText: '', error: null });
 const sameScope = (a: VoiceScope | null, b: VoiceScope | null) => !!a && !!b
   && a.accountId === b.accountId && a.accountRevision === b.accountRevision && a.conversationId === b.conversationId;
 const safeText = (text: unknown): text is string => typeof text === 'string'
@@ -154,8 +149,7 @@ export class HoldToTalkController {
     this.clearDeadline(session);
     session.deadline = setTimeout(() => {
       if (!this.current(session)) { this.contextChanged(); return; }
-      if (session.submitted) this.unknown(session);
-      else this.fail(session, code);
+      this.fail(session, code);
     }, ms);
   }
 
@@ -186,17 +180,17 @@ export class HoldToTalkController {
     this.update({ ...blank(), session: session.identity, fallbackText, error });
   }
 
-  /** Returns false for another active gesture or an unresolved submission. */
+  /** Returns false while another native speech gesture is active. */
   begin(gestureId: string, mode: VoiceSession['mode'] = 'hold'): boolean {
     this.contextChanged();
-    if (this.disposed || !this.foreground || this.active || this.snapshot.phase === 'UNKNOWN_OUTCOME' || !gestureId) return false;
+    if (this.disposed || !this.foreground || this.active || !gestureId) return false;
     const scope = this.options.getScope();
     if (!scope) return false;
     if (!this.options.adapter) { this.update({ error: 'VOICE_NOT_CONFIGURED' }); return false; }
     if (this.options.isAiSpeaking?.()) { this.update({ error: 'AI_SPEAKING' }); return false; }
     const session: ActiveSession = {
       identity: Object.freeze({ ...scope, generation: ++this.generation, gestureId, mode, startedAt: Date.now() }),
-      abort: new AbortController(), capture: null, held: true, segments: new Map(), submitted: false,
+      abort: new AbortController(), capture: null, held: true, segments: new Map(), completed: false,
     };
     this.active = session;
     this.update({ ...blank(), session: session.identity, phase: 'PERMISSION_PENDING' });
@@ -233,7 +227,7 @@ export class HoldToTalkController {
 
   private receive(session: ActiveSession, event: SpeechEvent) {
     if (!this.current(session)) { this.contextChanged(); return; }
-    if (session.submitted || !['STARTING', 'LISTENING', 'FINALIZING'].includes(this.snapshot.phase)) return;
+    if (session.completed || !['STARTING', 'LISTENING', 'FINALIZING'].includes(this.snapshot.phase)) return;
     if (event.kind === 'error') { this.fail(session, event.code); return; }
     if (event.kind === 'level') {
       if (session.held) this.update({ audioLevel: typeof event.value === 'number' && Number.isFinite(event.value)
@@ -274,58 +268,48 @@ export class HoldToTalkController {
     let result: FinalTranscript;
     try { result = await session.capture!.finalize(); }
     catch { if (this.current(session)) this.fail(session, 'FINALIZATION_FAILED'); else this.contextChanged(); return; }
-    if (!this.current(session) || session.submitted) { this.contextChanged(); return; }
+    if (!this.current(session) || session.completed) { this.contextChanged(); return; }
     if (result.kind !== 'final' || !result.text?.trim()) { this.fail(session, 'FINAL_TRANSCRIPT_MISSING'); return; }
     if (!safeText(result.text)) { this.fail(session, 'TRANSCRIPT_INVALID'); return; }
     if (result.text.length > MAX_TEXT) { this.fail(session, 'TRANSCRIPT_TOO_LONG'); return; }
-    let clientRequestId: string;
-    try { clientRequestId = this.options.newRequestId(); }
-    catch { this.fail(session, 'SUBMISSION_FAILED'); return; }
-    const submission = Object.freeze({ session: session.identity, clientRequestId, text: result.text.trim() });
-    session.submitted = true;
+    const transcript = Object.freeze({ session: session.identity, text: result.text.trim() });
+    session.completed = true;
+    this.clearDeadline(session);
     this.closeCapture(session);
-    this.update({ phase: 'SUBMITTING', finalText: submission.text, interimText: '', submission });
-    this.deadline(session, this.options.limits.submissionMs, 'SUBMISSION_UNKNOWN');
+    let accepted = false;
     try {
       if (!this.current(session)) { this.contextChanged(); return; }
-      const sent = await this.options.submit({ ...submission, signal: session.abort.signal, isCurrent: () => this.current(session) });
-      if (!this.current(session)) { this.contextChanged(); return; }
-      if (sent.kind === 'unknown') { this.unknown(session); return; }
-      this.terminate(session);
-      this.update({ ...blank(), submission, fallbackText: sent.kind === 'rejected' ? submission.text : '',
-        error: sent.kind === 'rejected' ? 'SUBMISSION_FAILED' : null });
-    } catch { if (this.current(session)) this.unknown(session); else this.contextChanged(); }
-  }
-
-  private unknown(session: ActiveSession) {
+      accepted = this.options.onTranscript({ ...transcript, isCurrent: () => this.current(session) }) === true;
+    } catch { /* Keep the confirmed text locally; never expose a callback error. */ }
+    if (!this.current(session)) { this.contextChanged(); return; }
     this.terminate(session);
-    this.update({ phase: 'UNKNOWN_OUTCOME', audioLevel: null, error: 'SUBMISSION_UNKNOWN' });
-  }
-
-  /** No retry here: the owned AI receipt reader resolves the existing exact request. */
-  resolveSubmission(clientRequestId: string, result: Exclude<VoiceSubmitResult, { kind: 'unknown' }>): boolean {
-    this.contextChanged();
-    const submission = this.snapshot.submission;
-    if (this.snapshot.phase !== 'UNKNOWN_OUTCOME' || !submission || submission.clientRequestId !== clientRequestId) return false;
-    this.update({ ...blank(), submission, fallbackText: result.kind === 'rejected' ? submission.text : '',
-      error: result.kind === 'rejected' ? 'SUBMISSION_FAILED' : null });
-    return true;
+    this.update({ ...blank(), session: session.identity, fallbackText: accepted ? '' : transcript.text,
+      error: accepted ? null : 'DRAFT_NOT_ACCEPTED' });
   }
 
   cancel(reason: VoiceCancelReason): void {
     const session = this.active;
-    if (!session && this.snapshot.phase === 'UNKNOWN_OUTCOME' && reason !== 'account' && reason !== 'dispose') return;
-    if (session?.submitted && sameScope(this.options.getScope(), session.identity) && reason !== 'account' && reason !== 'dispose') {
-      this.unknown(session); return; // A dispatched write cannot be described as unsent.
-    }
     if (session) this.terminate(session);
     // No private transient text carries across account, navigation or explicit cancellation.
     this.update(blank());
   }
 
+  /** Move retained speech into the current editable composer once, without dispatching it. */
+  useFallback(accept: (text: string) => boolean): boolean {
+    this.contextChanged();
+    const previous = this.snapshot;
+    if (this.active || previous.phase !== 'IDLE' || !previous.fallbackText) return false;
+    let accepted = false;
+    try { accepted = accept(previous.fallbackText) === true; } catch { /* Keep the editable fallback. */ }
+    this.contextChanged();
+    if (!accepted || this.snapshot !== previous) return false;
+    this.update(blank());
+    return true;
+  }
+
   /** Call synchronously on Auth/context changes, including A→B→A incarnations. */
   contextChanged(): void {
-    const identity = this.active?.identity ?? this.snapshot.session ?? this.snapshot.submission?.session;
+    const identity = this.active?.identity ?? this.snapshot.session;
     if (identity && !sameScope(this.options.getScope(), identity)) this.cancel('account');
   }
 
@@ -336,7 +320,7 @@ export class HoldToTalkController {
 
   interrupt(): void {
     const session = this.active;
-    if (session && !session.submitted) this.fail(session, 'AUDIO_INTERRUPTED');
+    if (session && !session.completed) this.fail(session, 'AUDIO_INTERRUPTED');
   }
 
   dispose(): void {

@@ -176,11 +176,11 @@ splash handshake or source artwork was changed on that evidence.
 A separate concrete source defect matched the empty photo frames: switching
 IntentColumn's container type between View and Animated.View unmounted both
 Expo Image subtrees at intro completion and again when selecting an intent.
-The columns now keep the same Animated.View ancestry, with noncollapsible scene
-and photo containers. Static welcome still supplies complete final React styles
-instead of the animated handles. The installed Reanimated component removes
-old view descriptors when those handles leave its style prop; queued intro
-clock assignments are not used to compute the static presentation.
+The first continuity correction kept the same Animated.View ancestry, with
+noncollapsible scene and photo containers, but supplied final React styles
+instead of animated handles on welcome. Removing a view descriptor was verified;
+resetting its last native properties was not. The installed2b return observation
+below supersedes that incomplete assumption.
 
 The regression checks both image references, mount counts and ancestor identity
 through intro completion, both choices, explicit/background/reduced-motion
@@ -188,3 +188,35 @@ cancellation and the completion of a pending intent callback. The delayed
 0/41/final shared-value checks also retain both image references. These source
 checks prove React instance continuity; they do not claim a new device rendering
 or startup performance PASS. A saved-source installed comparison remains due.
+
+## Restoring native portrait properties after the installed2b return
+
+The2b cold recording contains168 actual frames and shows the original assembly
+progressing through the mascot/arm, pin/smile/handshake and final wordmark into
+both portraits. No change to4380ms timing follows from the sparse e446 recording.
+The separate2b requester return capture
+`artifacts/v5-native-smoke/v5-2b0542c-after-requester-back.png` exposed a concrete
+remaining defect: after Auth Back the requester stayed centered and the worker
+was invisible. A warm restart also exposed empty columns. These are not a new
+startup-speed or cold-animation failure claim.
+
+Installed Reanimated's `AnimatedComponent.tsx` removes detached view descriptors
+without restoring native opacity/transform; its settled-prop synchronization
+explicitly records the restoration as a TODO. `useAnimatedStyle.ts` instead
+restarts the mapper when its captured React closure changes, and `styleUpdater`
+writes the new explicit properties through `updateProps`. Therefore all four
+IntentColumn styles now stay attached to the same native containers. When
+`settled && !selected`, each mapper returns complete final opacity/transform
+constants before reading either clock. The photo also explicitly resets scale
+to1. This covers first welcome, skip and both choice returns without remounting
+images or depending on unchanged static React props overwriting native state.
+Other presentation wrappers, original assets,4380ms intro and760ms choice timing
+are unchanged.
+
+The source regression tracks the stable style handles and both image instances,
+then executes the current mapper after an Auth callback returns and after late
+0/41/4380 intro and selection assignments, without a React rerender. It also
+checks that a cancelled older callback cannot reset a newer opposite choice.
+Five focused suites pass115 tests. These assertions establish the mapper and
+React contract; the correction still requires a new exact-source installed APK
+for Android property-reset and portrait-continuity proof.

@@ -1,10 +1,15 @@
 # USKOČI — repository entry map
 
 Current resume: owner explicitly requested V5 AI-FIRST implementation on 2026-09-12.
-Read `docs/implementation/v5-ai-first/EXECUTION.md` first for the active package,
+Read `docs/implementation/v5-ai-first/OWNER_PRIVATE_TEST_DECISIONS_20260913.md`
+first: latest AF-D26 authorizes verified backend promotion on canonical
+DEV/ALPHA `leqcwgzvjsxugfgzdmth` for the connected private APK. Do not create
+extra staging or reset donor labs. A distinct future production project remains
+outside this authorization. Then read `docs/implementation/v5-ai-first/EXECUTION.md` for the active package,
 known AF-01–AF-06 decisions and current work. This supersedes the historical SAFE
 STOP and older auth/per-fact UX locks below. The existing CLEAN authority,
-integration branch, private boundaries and concrete live approval gate remain.
+integration branch and private boundaries remain. AF-D26 authorizes verified
+canonical DEV/ALPHA changes; the separate production gate remains.
 
 Owner persistent skill selection (2026-09-13): read
 `docs/implementation/v5-ai-first/DESIGN_SKILLS.md` and apply its nine locally

@@ -17,6 +17,10 @@ const read=(a,s)=>ok(a.client.rpc('rpc_read_worker_ai',{p_conversation_id:s.conv
 const actorClaims=a=>`select set_config('request.jwt.claim.sub',${q(a.id)},true);select set_config('request.jwt.claims',${q(JSON.stringify({sub:a.id,role:'authenticated'}))},true);`;
 const serviceClaims=`select set_config('request.jwt.claims','{"role":"service_role"}',true);select set_config('request.jwt.claim.role','service_role',true);`;
 const callSql=(name,values)=>`select public.${name}(${values.map(v=>q(v)+'::uuid').join(',')})`;
+async function closedHttp(p){const r=await p;await denied(Promise.resolve(r),'ACCOUNT_CLOSING');assert.equal(r.status,403);assert.equal(r.error.code,'42501');assert.equal(r.data,null);}
+// Direct authenticated-role SQL tests only the RPC body, separately from the
+// actual HTTP pre-request denial. Its transaction cannot change the fixture.
+const directOwnerRead=(a,name,values)=>JSON.parse(sql(`begin;set local role authenticated;set local request.jwt.claim.sub=${q(a.id)};set local request.jwt.claims=${q(JSON.stringify({sub:a.id,role:'authenticated'}))};${callSql(name,values)};rollback;`));
 const msgCount=s=>Number(sql(`select count(*) from public.ai_messages where conversation_id=${q(s.conversationId)}`));
 await prove('V5_WORKER_TURN_RESTART_RECOVERY','v5-worker-turn-recovery-report.json',async report=>{
  const legacy=await actor('worker141-legacy'),ls=await fresh(legacy),lk=randomUUID(),lt=(await claim(legacy,ls,lk)).turn;
@@ -93,9 +97,20 @@ await prove('V5_WORKER_TURN_RESTART_RECOVERY','v5-worker-turn-recovery-report.js
  const cp=await ok(Promise.resolve(prepAfterDispatch));assert.ok(cp.blockers.includes('PENDING_WORKFLOW'));assert.equal(cp.ready,false);
  // Restriction is a labelled privileged state fixture, not an execution/binding
  // bypass. It checks the shared121 barrier without activating missing policy.
- const restricted=await lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(c.id)}));update private.account_closure_requests set state='READY' where account_id=${q(c.id)}`,()=>service.rpc('rpc_claim_worker_ai_turn_service',{...ids(c,cs,randomUUID()),p_text:'Forbidden restricted'}));
- await denied(Promise.resolve(restricted),'ACCOUNT_CLOSING');await denied(service.rpc('rpc_dispatch_worker_ai_turn_service',{...ids(c,cs,ck2),p_attempt_id:ct.attemptId}),'ACCOUNT_CLOSING');
- assert.equal((await recover(c,cs,ck2)).canCancel,false);
+ const closureBefore=rows(`select state,closed_at from private.account_closure_requests where account_id=${q(c.id)}`)[0];assert.ok(closureBefore);
+ const turnRows=()=>rows(`select * from private.worker_ai_turns where account_id=${q(c.id)} order by turn_id`),turnsBefore=turnRows(),recoveryBefore=await recover(c,cs,ck2);
+ const budgetHash=()=>sql("select md5(jsonb_build_object('budget',(select to_jsonb(b) from private.ai_test_budget_v5 b where singleton),'reservations',(select coalesce(jsonb_agg(to_jsonb(r) order by id),'[]') from private.ai_test_reservations_v5 r))::text)"),budgetBefore=budgetHash();
+ try{
+  const restricted=await lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(c.id)}));update private.account_closure_requests set state='READY' where account_id=${q(c.id)}`,()=>service.rpc('rpc_claim_worker_ai_turn_service',{...ids(c,cs,randomUUID()),p_text:'Forbidden restricted'}));
+  await denied(Promise.resolve(restricted),'ACCOUNT_CLOSING');await denied(service.rpc('rpc_dispatch_worker_ai_turn_service',{...ids(c,cs,ck2),p_attempt_id:ct.attemptId}),'ACCOUNT_CLOSING');
+  await closedHttp(c.client.rpc('rpc_read_worker_ai_turn_recovery',ownerIds(c,cs,ck2)));
+  const lowerRead=directOwnerRead(c,'rpc_read_worker_ai_turn_recovery',[c.id,cs.conversationId,ck2]);
+  assert.equal(lowerRead.canCancel,false);assert.equal(lowerRead.retryAllowed,false);assert.equal(lowerRead.authoritative,true);
+ }finally{sql(`update private.account_closure_requests set state=${q(closureBefore.state)},closed_at=${closureBefore.closed_at?q(closureBefore.closed_at)+'::timestamptz':'null'} where account_id=${q(c.id)}`);}
+ assert.deepEqual(turnRows(),turnsBefore);assert.equal(budgetHash(),budgetBefore);
+ const recoveryAfter=await recover(c,cs,ck2);for(const key of ['accountId','conversationId','clientRequestId','providerDispatched','cancelled','authoritative'])assert.equal(recoveryAfter[key],recoveryBefore[key]);
+ assert.equal(recoveryAfter.turn.turnId,recoveryBefore.turn.turnId);assert.equal(recoveryAfter.providerDispatched,true);
+ pass(report,'CLOSED_CALLER_HTTP403_NO_PAYLOAD_DIRECT_AUTHENTICATED_SQL_NO_CANCEL_EXACT_TURN_DISPATCH_AND_BUDGET_AFTER_RESTORE');
  pass(report,'CANONICAL_CLOSURE_PREPARE_DISPATCH_BOTH_OBSERVED_LOCK_ORDERS_PENDING_BLOCKER_RESTRICTED_CLAIM_DISPATCH_DENIAL');
  const catalog=JSON.parse(sql('select private.data_export_dataset_catalog()'));assert.equal(catalog.length,42);
  assert.deepEqual(catalog.find(d=>d.key==='workerAiTurns').fields,['cancelledAt','conversationId','createdAt','id','state']);

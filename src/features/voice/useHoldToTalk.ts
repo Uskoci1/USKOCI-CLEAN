@@ -8,12 +8,11 @@ import { HoldToTalkController, type HoldToTalkOptions } from './holdToTalk';
 import { createNativeSpeechAdapter } from './nativeSpeechAdapter';
 import { SPEECH_LIMITS } from './speechProtocol';
 
-export const VOICE_PROCESSING_NOTICE = 'Zvuk se prolazno šalje Google servisu radi transkripcije. USKOČI ne čuva audio snimke; završni tekst ostaje u vašem razgovoru. Google može privremeno obrađivati podatke globalno radi bezbednosti plaćenog servisa.';
+export const VOICE_PROCESSING_NOTICE = 'Zvuk se prolazno šalje Google servisu radi transkripcije. USKOČI ne čuva audio snimke. Završni tekst najpre vidiš u polju za poruku i možeš ga izmeniti; u razgovor odlazi tek kada izabereš Pošalji. Google može privremeno obrađivati podatke globalno radi bezbednosti plaćenog servisa.';
 
 export function useHoldToTalk(options: {
   conversationId: string | null;
-  submit: HoldToTalkOptions['submit'];
-  newRequestId?: () => string;
+  onTranscript: HoldToTalkOptions['onTranscript'];
   isAiSpeaking?: () => boolean;
 }) {
   const { user, accountRevision } = useSesija();
@@ -34,9 +33,8 @@ export function useHoldToTalk(options: {
         ? { accountId: current.user.id, accountRevision: current.accountRevision, conversationId } : null;
     },
     isAiSpeaking: () => latest.current.isAiSpeaking?.() ?? false,
-    newRequestId: () => (latest.current.newRequestId ?? noviUuidZahtevId)(),
-    submit: input => latest.current.submit(input),
-    limits: { permissionMs: 30000, captureMs: SPEECH_LIMITS.captureMs, finalizationMs: SPEECH_LIMITS.finalizationMs, submissionMs: 30000 },
+    onTranscript: input => latest.current.onTranscript(input),
+    limits: { permissionMs: 30000, captureMs: SPEECH_LIMITS.captureMs, finalizationMs: SPEECH_LIMITS.finalizationMs },
   }), []);
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
   useEffect(() => { controller.contextChanged(); }, [controller, user?.id, accountRevision, options.conversationId]);

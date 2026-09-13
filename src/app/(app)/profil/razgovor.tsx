@@ -21,7 +21,7 @@ import { T } from '../../../ui/Text';
 import { V2Action } from '../../../ui/v2/V2Action';
 
 type Panel='chat'|'review'|'manual'|'availability';
-type Attempt={id:string;text:string|null;voice:boolean};
+type Attempt={id:string;text:string|null};
 const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitaj svoj radni profil.'});
 export default function WorkerConversationRoute(){
   const session=useSesija(),intent=useUloga(),params=useLocalSearchParams<{conversationId?:string|string[]}>();
@@ -36,6 +36,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
+  const draftText=useRef(input);draftText.current=input;
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;return()=>{
@@ -56,7 +57,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(focus.current!==scope||!owns()||!active.current)return unavailable();
     if(saved){
       if(cid.current!==saved.conversationId){cid.current=saved.conversationId;router.setParams({conversationId:saved.conversationId});}
-      if(pending.current?.id!==saved.clientRequestId){pending.current={id:saved.clientRequestId,text:null,voice:false};intentChanged(n=>n+1);}
+      if(pending.current?.id!==saved.clientRequestId){pending.current={id:saved.clientRequestId,text:null};intentChanged(n=>n+1);}
       const recovered=await api.recoverTurn(saved.conversationId,saved.clientRequestId);
       if(focus.current!==scope||!owns()||!active.current)return unavailable();
       if(!recovered.ok)return recovered;
@@ -67,7 +68,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
         try{await journal.clear(saved);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ishod je potvrđen. Ponovi proveru da nastaviš.'};}
         if(focus.current!==scope||!owns()||!active.current)return unavailable();
         const command=pending.current;
-        if(recovered.podatak.turn?.state==='SUCCEEDED'&&command?.text&&!command.voice)setInput(old=>old.trim()===command.text? '':old);
+        if(recovered.podatak.turn?.state==='SUCCEEDED'&&command?.text)setInput(old=>old.trim()===command.text? '':old);
         pending.current=null;intentChanged(n=>n+1);setStream('');
       }
     }else if(pending.current){
@@ -91,41 +92,34 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const canAct=()=>current()&&!resuming&&!editor.busy&&!editor.loading&&!editor.uncertain&&!!data;
   const turn=data?.turn,awaiting=turn?.state==='PROCESSING'||turn?.state==='UNKNOWN_OUTCOME';
   const writable=data?.status==='OPEN'&&!data.stale&&data.safety!=='BLOCK'&&data.safety!=='REVIEW';
-  const voiceRequest=useRef<string|null>(null);
-  const send=async(body:string,supplied?:{id:string;signal:AbortSignal;isCurrent:()=>boolean})=>{
-    let outcome:'accepted'|'rejected'|'unknown'='unknown';
-    if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed)||(supplied&&!supplied.isCurrent()))return {kind:outcome};
+  const send=async(body:string)=>{
+    if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed))return;
     await editor.save(async()=>{
-      const command=pending.current??{id:supplied?.id??noviUuidZahtevId(),text:body,voice:!!supplied};
+      const command=pending.current??{id:noviUuidZahtevId(),text:body};
       if(!command.text)return unavailable();pending.current=command;intentChanged(n=>n+1);setRecovery(null);
-      const controller=new AbortController();abort.current=controller;const stop=()=>controller.abort();supplied?.signal.addEventListener('abort',stop,{once:true});
-      if(supplied?.signal.aborted)stop();setStream('');
+      const controller=new AbortController();abort.current=controller;setStream('');
       try{
         await journal.save({accountId:accountId!,conversationId:data.conversationId,clientRequestId:command.id});
-        if(!current()||controller.signal.aborted||(supplied&&!supplied.isCurrent()))return unavailable();
+        if(!current()||controller.signal.aborted)return unavailable();
         const sent=await api.send(data.conversationId,command.text,command.id,{signal:controller.signal,
           onText:delta=>{if(current()&&!controller.signal.aborted&&pending.current===command)setStream(value=>value+delta);}});
         if(!current())return unavailable();
         // Both success and lost transport response are reconciled through the
         // durable turn. An unknown attempt cannot start a second provider call.
         const result=await read();if(!current())return unavailable();
-        if(result.ok&&result.podatak.turn?.clientRequestId===command.id){
-          if(result.podatak.turn.state==='SUCCEEDED')outcome='accepted';
-          else if(result.podatak.turn.state==='FAILED')outcome='rejected';
-          return result;
-        }
         return result.ok?result:sent.ok?result:sent;
-      }finally{supplied?.signal.removeEventListener('abort',stop);if(abort.current===controller)abort.current=null;if(current())setStream('');}
-    });return {kind:outcome as 'accepted'|'rejected'|'unknown'};
+      }finally{if(abort.current===controller)abort.current=null;if(current())setStream('');}
+    });
   };
-  const voice=useHoldToTalk({conversationId:writable&&data?data.conversationId:null,submit:payload=>{
-    voiceRequest.current=payload.clientRequestId;return send(payload.text,{id:payload.clientRequestId,signal:payload.signal,isCurrent:payload.isCurrent});
-  }});
-  const recoveredVoiceTurn=recovery?.turn??turn;
-  useEffect(()=>{if(!recoveredVoiceTurn||voiceRequest.current!==recoveredVoiceTurn.clientRequestId)return;
-    if(recoveredVoiceTurn.state==='SUCCEEDED'||recoveredVoiceTurn.state==='FAILED'){voice.controller.resolveSubmission(recoveredVoiceTurn.clientRequestId,{kind:recoveredVoiceTurn.state==='SUCCEEDED'?'accepted':'rejected'});voiceRequest.current=null;}
-  },[recoveredVoiceTurn,voice.controller]);
-  const voiceBusy=voice.state.phase!=='IDLE'&&voice.state.phase!=='UNKNOWN_OUTCOME';
+  const keepTranscript=(text:string)=>{
+    if(!canAct()||!writable||awaiting||pending.current)return false;
+    const next=[draftText.current.trimEnd(),text.trim()].filter(Boolean).join('\n');
+    if(!next||next.length>4000)return false;
+    draftText.current=next;setInput(next);return true;
+  };
+  const voice=useHoldToTalk({conversationId:writable&&data?data.conversationId:null,
+    onTranscript:payload=>payload.isCurrent()&&keepTranscript(payload.text)});
+  const voiceBusy=voice.state.phase!=='IDLE';
   const enabled=canAct()&&!voiceBusy&&!awaiting&&!pending.current;
   const back=()=>{if(!current()||editor.busy)return;if(panel!=='chat'){setPanel('chat');return;}router.canGoBack()?router.back():router.replace('/profil/radnik');};
   const refresh=()=>{if(current()&&!editor.busy&&!voiceBusy)void editor.refresh();};
@@ -206,7 +200,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     status={<>{statusCopy?<T style={{...a.text.meta,color:a.color.muted}}>{statusCopy}</T>:null}
       {editor.error?<T accessibilityRole="alert" style={{...a.text.meta,color:a.color.danger}}>{editor.error}</T>:null}</>}
     voice={writable?<VoiceComposer controller={voice.controller} state={voice.state} disabled={!enabled||!!pending.current}
-      onKeepText={value=>{if(canAct()&&writable&&!pending.current)setInput(old=>old?old+'\n'+value:value);}}/>:undefined}
+      onKeepText={keepTranscript}/>:undefined}
     actions={<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('manual')}/>
       <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('availability')}/>
       {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}

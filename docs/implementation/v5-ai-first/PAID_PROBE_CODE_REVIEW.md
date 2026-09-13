@@ -1,5 +1,17 @@
 # Paid probe: granice poziva, naloga i oporavka
 
+AF-D24/26 dopuna: canonical DEV/ALPHA promocija i potrebna konfiguracija su
+odobreni; raniji dodatni staging/live gate za isti projekat ne važi. Revidirani
+hold controller predaje finalni tekst vidljivom editoru sinhrono i jednom,
+bez kreiranja AI command-a. Tek izričito Pošalji koristi postojeći durable
+AI tok. Ista planirana STT + AI rezervacija važi kada tester izvrši obe akcije;
+release sam troši samo već rezervisani STT operation. Aktuelni controller i
+Task/Worker route testovi proveravaju izmenu, odsustvo AI dispatch-a/journal
+upisa pre Send, duple/zakasnele callback-e i promenu naloga/fokusa. Runtime
+provider dokaz i provera troška ostaju zasebni, ne proizlaze iz tih testova.
+Izvorni review ispod opisuje raniji checkpoint; ova dopuna zamenjuje njegove
+navode o automatskom AI slanju na release i potrebi za novim staging odobrenjem.
+
 Read-only pregled 2026-09-13, nad fizičkim izvorima uz HEAD `2ece7eec13fba40396c9d05f7ab441b4adad4ea4`. Nema provider/metadata poziva, čitanja ključeva, izmene aplikacije/SQL/config-a ili live provere. Izmenjeni su samo ovaj izveštaj i [PAID_PROBE_PLAN](PAID_PROBE_PLAN.md). Kasniji source ili stvarno deploy-ovane verzije moraju biti provereni u root batch-u.
 
 Naknadni pregled izvora28c47c01/141: Worker sada trajno pamti opaque request

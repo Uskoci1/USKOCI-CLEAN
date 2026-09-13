@@ -1,16 +1,43 @@
 # V5 AI-FIRST execution — active, incomplete
 
-Latest saved entry/auth snapshot is e446509dcc65783c3e3f07e3e275954fde7f3fac,
-tree885e476e8b68bdf570cca1cefe4816dc2ecf913d: original portrait geometry,
-settled intro and Auth stage scroll reset. Draft PR102 remains at pushed
-a6f60077409dfac1cccd2d1cdce69ccd157e2cdb, tree
-beb6ba219852e306829066e3f0dd3c474b3d4391.
-One exact disposable FULL141 run34737782759 was launched at04:23:42UTC;
-it remains queued as of06:12:42UTC, with no assigned runner or executed steps.
-The matching PR PRE-P4/CodeQL runs are also queued. This is no new PASS/failure
-finding; no duplicate run or automatic retry has been launched.
-The prepared live candidate is pinned to a6f6007 with33 SQL files
-109–141 and11 unchanged Edge payloads. Live and paid-batch approvals stay null.
+The latest seven owner decisions are authoritative in
+OWNER_PRIVATE_TEST_DECISIONS_20260913.md (AF-D19–26). Latest AF-D26 explicitly
+authorizes verified backend promotion on canonical DEV/ALPHA project
+leqcwgzvjsxugfgzdmth for the connected private APK. No extra staging or donor
+reset is required. Only a distinct future production project remains prohibited.
+Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALPHA.
+Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
+STT before explicit sending are approved for this cycle. Implementation continues.
+
+Latest saved/pushed source before the current corrections is
+70af2c2f7f1508b281dcfca4b6eed271e5afdd73, tree
+62dcf6a53a22f1190fdb58dedbda61dca39f1e97. Draft PR102 points to the
+integration branch; canonical clean-alpha-backend remains unchanged.
+Actual disposable FULL143 run34743587492 finished FAIL06:52:53UTC:
+11 source gates,190 Jest suites/3936 tests and738 Node tests PASS;
+27 actual reports through137 PASS.138 failed after four checks because its
+closed caller expected a domain DTO, while the131 HTTP pre-request guard
+returned ACCOUNT_CLOSING.139–143 were not reached. Artifact SHA256 is
+678d2b5c517b64bcd60855fee41d352c108780475625977fe28b8507d4a8674f.
+The exact138/141/142 proof assertions are being corrected without changing
+those business RPCs. A separate143 integration defect needs a real code fix:
+its approved support safe exit must be composed into that HTTP guard, with
+exact RPC paths, actual live-session validation and existing endpoint fences.
+
+Current native corrections implement AF-D24 editable STT before explicit Send
+and restore all attached Entry portrait opacity/transform mappers after Auth
+Back, without image remounts or changes to original timing/assets. Voice plus
+Task/Worker focused checks pass7 suites/157 tests; Entry checks pass5 suites/
+115 tests. These are source checks, not a speech provider or device PASS.
+The installed2b source showed actual cold assembly in168 decoded frames,
+but Auth Back left a chosen column centered and a warm restart hid columns.
+That observed defect motivates the new mapper correction and another exact
+saved-source Android build. A connected signed-in E2E still remains.
+
+The candidate manifests below are historical preparations and need regeneration
+from the newly verified source before canonical DEV/ALPHA promotion. AF-D26
+supplies authorization; source proofs and actual postflight remain mandatory.
+Private Agreement photograph implementation144 proceeds in parallel.
 
 The first4a Android build completed but is REJECTED_MIXED_ROUTER_SOURCE:
 231 first-party modules were sourced from the older138 snapshot through a
@@ -43,6 +70,12 @@ Auth200%/IME was exercised without submission.
 There is no current entry motion/fidelity PASS or signed-in device journey.
 Original entry fidelity, the current-source APK and signed-in/provider/live
 journeys remain incomplete. See ENTRY_V49_NATIVE_PORT.md for retained evidence.
+
+The later portrait continuity fix preserves both Expo Image instances across
+intro/selection/cancellation.117 focused tests and root TypeScript pass;
+the original4380ms timeline and assets are unchanged. New installed motion
+verification is still required; sparse e446 video samples do not establish the
+cause of the missing intermediate cold frames.
 
 Latest local full regression includes frozen142/143 client/native/support/media
 changes:190 Jest suites,3918 tests, exit0 in221.746s. TypeScript also passes.
@@ -220,7 +253,7 @@ The HTML was opened locally. Its demo parser/stream/publication are reference on
 
 - AF-01: voice/text conversation edits facts; manual editing stays; no repeated fact confirmations.
 - AF-02: visible detailed review plus one “Objavi zadatak” accepts that exact version and requests publication.
-- AF-03: hold microphone to speak; release finalizes/sends exactly one AI utterance, never publishes.
+- AF-03 (historical; superseded by AF-D24): release previously sent one AI utterance. Current behavior finalizes visible editable text, with a separate explicit Send and no publication.
 - AF-04: pinned live card, independently scrolling conversation, keyboard and accessible start/stop.
 - AF-05: preserve entry/mascot/assembly/wink/HOME; improve auth/interior in USKOČI identity.
 - AF-06: reuse CLEAN authority; new product/privacy/provider/cost or concrete live batch requires owner input.

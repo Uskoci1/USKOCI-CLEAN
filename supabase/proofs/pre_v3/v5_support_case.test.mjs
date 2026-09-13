@@ -10,7 +10,20 @@ test('143 admits exact142 cancellation sources and preserves normalized140 candi
  const old=readFileSync(new URL('../../migrations/20260913044510_clean_v5_unknown_ai_turn_exit.sql',import.meta.url),'utf8').replaceAll('\r\n','\n');
  for(const name of ['public.rpc_ai_cancel_need_turn_v2','public.rpc_cancel_worker_ai_turn']){const start=old.indexOf('create or replace function '+name+'('),a=old.indexOf('as $f$',start)+6,b=old.indexOf('$f$;',a);assert.ok(start>=0);assert.ok(sql.includes(createHash('md5').update(old.slice(a,b)).digest('hex')));}
  assert.ok(sql.includes('75b560d9a71baa045f8e7f80cd77aada'));assert.ok(sql.includes('execute replace(d,old_sha,new_sha)'));assert.ok(!sql.includes('create or replace function private.retention_ai_candidate'));
- assert.ok(sql.includes("'having count(*)=6','having count(*)=32'"));assert.ok(proof.includes('SYNTHETIC_SOURCE_DRIFT'));
+ assert.ok(sql.includes("'having count(*)=6','having count(*)=33'"));assert.ok(proof.includes('SYNTHETIC_SOURCE_DRIFT'));
+});
+
+test('HTTP closure fence composes only eight exact support exits with live Auth; ordinary data and revoked sessions stay denied',()=>{
+ const start=sql.indexOf('create or replace function public.rpc_closure_api_guard()');assert.ok(start>=0);
+ const a=sql.indexOf('as $f$',start)+6,b=sql.indexOf('$f$;',a),guard=sql.slice(a,b);
+ assert.ok(sql.includes('abb246e71fa5ad4ac4664db31a5cc065'));
+ assert.deepEqual([...guard.matchAll(/\/rpc\/rpc_support_([a-z_]+)_v5/g)].map(x=>x[1]).sort(),
+  ['capabilities','inbox','detail','find_context','mark_read','read_command','cancel_command','submit'].sort());
+ assert.ok(guard.includes('perform private.support_auth_v5(u);return;'));assert.ok(guard.includes("raise exception 'ACCOUNT_CLOSING' using errcode='42501'"));
+ assert.ok(!guard.includes(' like '));assert.ok(sql.includes("'public.rpc_closure_api_guard()']$sources$"));
+ for(const x of ['private.closure_executions_v5',"state in('EXECUTING','CLOSED')"])
+  assert.ok(body('private.support_safe_exit_v5').includes(x));
+ assert.ok(proof.includes('SUPPORT_SAFE_EXIT_HTTP_FENCE'));assert.ok(proof.includes("'AUTH_REQUIRED'"));
 });
 test('real Auth session and exact expected account precede user entrypoints; no operator seed or metadata identity',()=>{
  const auth=body('private.support_auth_v5');for(const x of ["auth.role() is distinct from 'authenticated'",'u is distinct from expected','private.push_session_valid(u,sid)'])assert.ok(auth.includes(x));

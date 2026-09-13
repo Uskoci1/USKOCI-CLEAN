@@ -35,30 +35,35 @@ function IntentColumn({ intent, selected, enabled, settled, layout: g, time, sel
 }) {
   const requester = intent === 'REQUESTER', chosen = selected === intent, sign = requester ? 1 : -1;
   const staticScene = settled && !selected;
-  // Keep each portrait's native ancestry mounted across intro and selection.
-  // Static welcome passes complete React styles, without an animated handle;
-  // Reanimated detaches that handle instead of remounting the image subtree.
+  // Keep both the native ancestry and animated handles attached. Detaching a
+  // Reanimated style does not unset its last native opacity/transform. Each
+  // mapper explicitly restores its complete final state on return to welcome,
+  // independent of delayed intro or selection clock writes.
   const SceneView = Animated.View;
   const column = useAnimatedStyle(() => {
+    if (staticScene) return { opacity: 1, transform: [{ translateX: 0 }] };
     const bg = brandFrame(time.get(), phone, logo).background, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: selected && !chosen ? f.otherOpacity : 1,
       transform: [{ translateX: selected ? (chosen ? sign * f.sceneTravel : 0) : (requester ? bg.greenPercent : bg.orangePercent) * g.width / 200 }] };
   });
   const copy = useAnimatedStyle(() => {
+    if (staticScene) return { opacity: 1, transform: [{ translateY: 0 }] };
     const a = entryV49Intro(settled ? INTRO_DURATION_MS : time.get(), reduced).copy, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: a.opacity, transform: [{ translateY: chosen ? f.copyY : a.y }] };
   });
   const photo = useAnimatedStyle(() => {
+    if (staticScene) return { opacity: 1, transform: [{ translateY: 0 }, { scale: 1 }] };
     const a = entryV49Intro(settled ? INTRO_DURATION_MS : time.get(), reduced).photo, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: a.opacity, transform: [{ translateY: chosen ? f.photoY : a.y }, { scale: chosen ? f.photoScale : 1 }] };
   });
   const note = useAnimatedStyle(() => {
+    if (staticScene) return { opacity: 1, transform: [{ translateY: 0 }] };
     const a = entryV49Intro(settled ? INTRO_DURATION_MS : time.get(), reduced).note, f = entryV49Intent(selectionTime.get(), g.width, g.motionPhotoH);
     return { opacity: chosen ? f.noteOpacity : a.opacity, transform: [{ translateY: chosen ? f.noteY : a.y }] };
   });
   const ink = requester ? '#F2F9F0' : ENTRY_V49.ink;
   const noteText = requester ? 'Više vremena za ono što voliš.' : 'Tvoje vreme i trud imaju vrednost.';
-  return <SceneView collapsable={false} testID={`entry-${intent.toLowerCase()}-scene`} style={[styles.column, { left: requester ? 0 : g.half, width: g.half, height: g.height }, staticScene ? styles.finalColumn : column]}>
+  return <SceneView collapsable={false} testID={`entry-${intent.toLowerCase()}-scene`} style={[styles.column, { left: requester ? 0 : g.half, width: g.half, height: g.height }, column]}>
     <Svg pointerEvents="none" accessible={false} width={g.half} height={phone.height} style={StyleSheet.absoluteFill}>
       <Defs>
         <LinearGradient id={`${intent}-field`} gradientUnits="userSpaceOnUse" {...gradientLine(g.half, phone.height, requester ? 160 : 210)}>
@@ -76,7 +81,7 @@ function IntentColumn({ intent, selected, enabled, settled, layout: g, time, sel
         stroke="#FFFFFF" strokeOpacity={12 / 255} strokeWidth={1} fill={`url(#${intent}-curve)`} />
     </Svg>
     <SceneView pointerEvents="none" testID={`entry-${intent.toLowerCase()}-copy`} onLayout={event => measure(requester ? 'requester' : 'worker', event.nativeEvent.layout.height)}
-      style={[styles.copy, { top: g.copyY, left: g.gutter, right: g.gutter }, staticScene ? styles.finalContent : copy]}>
+      style={[styles.copy, { top: g.copyY, left: g.gutter, right: g.gutter }, copy]}>
       <Text accessible={false} style={[styles.title, { color: ink, fontSize: g.titleSize, lineHeight: g.titleSize * (g.large ? 1.1 : 1.055),
         marginBottom: g.copyGap, textAlign: requester ? 'left' : 'right', paddingLeft: !requester && !g.large ? 35 : 0, paddingRight: requester && !g.large ? 35 : 0 }]}>
         {requester ? 'Objavi\nzadatak' : 'Uskoči\ni zaradi'}
@@ -90,13 +95,13 @@ function IntentColumn({ intent, selected, enabled, settled, layout: g, time, sel
       </View>
     </SceneView>
     <SceneView collapsable={false} pointerEvents="none" testID={`entry-${intent.toLowerCase()}-photo-frame`}
-      style={[styles.photo, { left: g.edge, top: g.photoY, width: g.photoW, height: g.photoH }, staticScene ? styles.finalPhoto : photo]}>
+      style={[styles.photo, { left: g.edge, top: g.photoY, width: g.photoW, height: g.photoH }, photo]}>
       <Image source={requester ? requesterPhoto : workerPhoto} accessible={false} style={StyleSheet.absoluteFill}
         contentFit="cover" contentPosition={{ left: '50%', top: '4%' }} transition={0} />
     </SceneView>
     <SceneView pointerEvents="none" testID={`entry-${intent.toLowerCase()}-note`}
       onLayout={event => measure(requester ? 'requesterNote' : 'workerNote', event.nativeEvent.layout.height)}
-      style={[styles.annotation, { top: g.noteY, width: g.noteW, ...(requester ? { left: g.gutter } : { right: g.gutter }) }, staticScene ? styles.finalContent : note]}>
+      style={[styles.annotation, { top: g.noteY, width: g.noteW, ...(requester ? { left: g.gutter } : { right: g.gutter }) }, note]}>
       {g.large ? <Text accessible={false} style={[styles.readableNote, { color: requester ? '#FFF9EB' : ENTRY_V49.ink, textAlign: requester ? 'left' : 'right' }]}>{noteText}</Text> :
         <SvgXml accessible={false} xml={requester ? requesterNoteXml : workerNoteXml} width={g.noteW} height={g.noteW * 107 / (requester ? 248.56 : 277.12)} />}
     </SceneView>
@@ -257,7 +262,6 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
 const styles = StyleSheet.create({
   finalColumn: { opacity: 1, transform: [{ translateX: 0 }] },
   finalContent: { opacity: 1, transform: [{ translateY: 0 }] },
-  finalPhoto: { opacity: 1, transform: [{ translateY: 0 }, { scale: 1 }] },
   finalPanel: { boxShadow: [{ offsetX: 0, offsetY: 16, blurRadius: 36, color: 'rgba(20,61,53,0.045)' }] },
   root: { flex: 1, backgroundColor: '#FFFFFF', overflow: 'hidden' },
   half: { position: 'absolute', top: 0, bottom: 0 },

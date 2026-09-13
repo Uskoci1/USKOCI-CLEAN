@@ -17,7 +17,7 @@ import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { VoiceComposer } from '../../ui/aiFirst/VoiceComposer';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null };
-type PendingTurn = { id: string; body: string | null; voice?: boolean };
+type PendingTurn = { id: string; body: string | null };
 
 export default function NovaPotrebaV2() {
   const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[] }>();
@@ -36,6 +36,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const conversation = useRef<string | null>(resumeId ?? null);
   const request = useRef<PendingTurn | null>(null), abandoning = useRef(false);
   const [unos, setUnos] = useState('');
+  const draftText = useRef(unos); draftText.current = unos;
   const [recoveryConversation, setRecoveryConversation] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState('');
   const streamAbort = useRef<AbortController | null>(null);
@@ -91,7 +92,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         if (!current()) return unavailable();
         if (request.current?.id === pending.id) {
           request.current = null;
-          if (turn?.state === 'SUCCEEDED' && !pending.voice) setUnos('');
+          if (turn?.state === 'SUCCEEDED') setUnos('');
           setStreamingText('');
         }
       }
@@ -115,12 +116,10 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
   const canSubmit = writable && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
 
-  const submitTurn = async (body: string, supplied?: { id: string; signal: AbortSignal; isCurrent: () => boolean }) => {
-    let outcome: 'accepted' | 'rejected' | 'unknown' = 'unknown';
-    if (!canAct() || !canSubmit || !razgovorId || !body || (supplied && !supplied.isCurrent())) return { kind: outcome };
+  const submitTurn = async (body: string) => {
+    if (!canAct() || !canSubmit || !razgovorId || !body) return;
     await editor.save(async () => {
-      if (supplied && !supplied.isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
-      const command = request.current ?? { id: supplied?.id ?? noviUuidZahtevId(), body, voice: !!supplied };
+      const command = request.current ?? { id: noviUuidZahtevId(), body };
       request.current = command;
       try {
         await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: razgovorId, clientRequestId: command.id });
@@ -128,30 +127,21 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Slanje nije pokrenuto. Proverite stanje pre ponovnog pokušaja.' };
       }
       // Storage completion is asynchronous: recheck focus/account before HTTP.
-      if (!isCurrent() || (supplied && !supplied.isCurrent()) || !command.body)
+      if (!isCurrent() || !command.body)
         return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
       const abort = new AbortController(); streamAbort.current?.abort(); streamAbort.current = abort;
-      const stop = () => abort.abort(); supplied?.signal.addEventListener('abort', stop, { once: true });
-      if (supplied?.signal.aborted) stop();
       setStreamingText('');
       let result: Ishod<AiNeedTurnStatus>;
       try {
         result = await aiNeedV2Izvor.sendMessage(razgovorId, command.body, command.id, { signal: abort.signal,
           onText: delta => { if (isCurrent() && !abort.signal.aborted && request.current === command) setStreamingText(previous => previous + delta); } });
       } finally {
-        supplied?.signal.removeEventListener('abort', stop);
         if (streamAbort.current === abort) { streamAbort.current = null; if (isCurrent()) setStreamingText(''); }
       }
       if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
       if (!result.ok) return result;
-      const snapshot = await read();
-      if (snapshot.ok && snapshot.podatak.turn?.clientRequestId === command.id) {
-        if (snapshot.podatak.turn.state === 'SUCCEEDED') outcome = 'accepted';
-        else if (snapshot.podatak.turn.state === 'FAILED' && snapshot.podatak.turn.retryAllowed) outcome = 'rejected';
-      }
-      return snapshot;
+      return read();
     });
-    return { kind: outcome as 'accepted' | 'rejected' | 'unknown' };
   };
   const cancelPendingTurn = () => {
     const command = request.current;
@@ -165,17 +155,15 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       return read();
     });
   };
-  const voice = useHoldToTalk({ conversationId: writable ? razgovorId : null, submit: input => submitTurn(input.text,
-    { id: input.clientRequestId, signal: input.signal, isCurrent: input.isCurrent }) });
-  useEffect(() => {
-    const submission = voice.state.submission;
-    if (!submission || turn?.clientRequestId !== submission.clientRequestId) return;
-    if (turn.state === 'SUCCEEDED') voice.controller.resolveSubmission(submission.clientRequestId, { kind: 'accepted' });
-    else if (editor.data?.recovery?.cancelled || (turn.state === 'FAILED' && editor.data?.recovery?.providerDispatched)
-      || ((turn.state === 'FAILED' || turn.state === 'ABSENT') && turn.retryAllowed))
-      voice.controller.resolveSubmission(submission.clientRequestId, { kind: 'rejected' });
-  }, [turn, editor.data?.recovery?.cancelled, voice.controller, voice.state.submission]);
-  const voiceBusy = voice.state.phase !== 'IDLE' && voice.state.phase !== 'UNKNOWN_OUTCOME';
+  const keepTranscript = (text: string) => {
+    if (!canAct() || !canSubmit || request.current) return false;
+    const next = [draftText.current.trimEnd(), text.trim()].filter(Boolean).join('\n');
+    if (!next || next.length > 4000) return false;
+    draftText.current = next; setUnos(next); return true;
+  };
+  const voice = useHoldToTalk({ conversationId: writable ? razgovorId : null,
+    onTranscript: input => input.isCurrent() && keepTranscript(input.text) });
+  const voiceBusy = voice.state.phase !== 'IDLE';
   const posalji = async () => {
     if (voiceBusy) return;
     await submitTurn(request.current?.body ?? unos.trim());
@@ -235,7 +223,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId: razgovorId } }));
     } : undefined}
     voice={stanje.status === 'OPEN' ? <VoiceComposer controller={voice.controller} state={voice.state} disabled={!canSubmit || !!request.current}
-      onKeepText={value => { if (canAct() && writable && !request.current) setUnos(previous => previous ? previous + '\n' + value : value); }} /> : undefined}
+      onKeepText={keepTranscript} /> : undefined}
     canReview={!!razgovorId && stanje.facts.length > 0 && !radi && !editor.loading && !editor.uncertain && !request.current}
     reviewLabel={stanje.review.boundNeedId ? 'Pregledaj izmene' : 'Pregledaj zadatak'}
     showReadback={!!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska)}

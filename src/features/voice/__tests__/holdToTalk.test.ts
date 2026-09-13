@@ -1,5 +1,5 @@
 import { HoldToTalkController, type FinalTranscript, type HoldToTalkOptions, type NativeSpeechAdapter, type NativeSpeechCapture,
-  type SpeechEvent, type VoiceScope, type VoiceSubmitResult } from '../holdToTalk';
+  type SpeechEvent, type VoiceScope } from '../holdToTalk';
 
 const deferred = <T>() => {
   let resolve!: (value: T) => void, reject!: (reason: unknown) => void;
@@ -15,22 +15,21 @@ function harness() {
   const permission = deferred<'granted' | 'denied' | 'unavailable'>();
   const started = deferred<void>();
   const final = deferred<FinalTranscript>();
-  const submitted = deferred<VoiceSubmitResult>();
   const capture: NativeSpeechCapture = { start: jest.fn(() => started.promise), stopCapture: jest.fn(),
     finalize: jest.fn(() => final.promise), dispose: jest.fn() };
   const adapter: NativeSpeechAdapter = { requestPermission: jest.fn(() => permission.promise),
     createCapture: jest.fn(input => { emit = input.onEvent; canCapture = input.canCapture; return capture; }) };
-  const submit = jest.fn((_: Parameters<HoldToTalkOptions['submit']>[0]) => submitted.promise);
+  const onTranscript = jest.fn((_: Parameters<HoldToTalkOptions['onTranscript']>[0]) => true);
   let aiSpeaking = false;
   const controller = new HoldToTalkController({ adapter, getScope: () => scope,
-    isAiSpeaking: () => aiSpeaking, newRequestId: () => 'owned-request-1', submit,
-    limits: { permissionMs: 1000, captureMs: 5000, finalizationMs: 1000, submissionMs: 1000 } });
+    isAiSpeaking: () => aiSpeaking, onTranscript,
+    limits: { permissionMs: 1000, captureMs: 5000, finalizationMs: 1000 } });
   const listen = async () => {
     expect(controller.begin('press-1')).toBe(true);
     permission.resolve('granted'); await flush(); started.resolve(); await flush();
     expect(controller.getSnapshot().phase).toBe('LISTENING');
   };
-  return { controller, permission, started, final, submitted, capture, adapter, submit, listen,
+  return { controller, permission, started, final, capture, adapter, onTranscript, listen,
     emit: (event: SpeechEvent) => emit(event), canCapture: () => canCapture(),
     setScope: (value: VoiceScope | null) => { scope = value; }, setAiSpeaking: (value: boolean) => { aiSpeaking = value; } };
 }
@@ -43,7 +42,7 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     const h = harness(); h.controller.begin('press-1'); h.controller.release('press-1');
     h.permission.resolve('granted'); await flush();
     expect(h.adapter.createCapture).not.toHaveBeenCalled();
-    expect(h.submit).not.toHaveBeenCalled(); expect(h.controller.getSnapshot().phase).toBe('IDLE');
+    expect(h.onTranscript).not.toHaveBeenCalled(); expect(h.controller.getSnapshot().phase).toBe('IDLE');
   });
 
   it('closes the pending native handle when release races asynchronous start', async () => {
@@ -52,10 +51,10 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     h.controller.release('press-1'); expect(h.canCapture()).toBe(false);
     expect(h.capture.dispose).toHaveBeenCalledTimes(1); h.started.resolve(); await flush();
     expect(h.capture.dispose).toHaveBeenCalledTimes(1); expect(h.capture.finalize).not.toHaveBeenCalled();
-    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.onTranscript).not.toHaveBeenCalled();
   });
 
-  it('displays actual interim/final and level, ignores stale hypotheses, and sends once only after release', async () => {
+  it('displays actual interim/final and level, ignores stale hypotheses, and hands editable text to the composer once after release', async () => {
     const h = harness(); await h.listen();
     h.emit({ kind: 'segment', index: 0, final: false, text: 'Треба ми' });
     h.emit({ kind: 'segment', index: 0, final: true, text: 'Треба ми помоћ.' });
@@ -64,15 +63,14 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     h.emit({ kind: 'segment', index: 1, final: false, text: 'Сутра' });
     h.emit({ kind: 'level', value: 0.42 });
     expect(h.controller.getSnapshot()).toMatchObject({ finalText: 'Треба ми помоћ.', interimText: 'Сутра', audioLevel: 0.42 });
-    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.onTranscript).not.toHaveBeenCalled();
     h.controller.release('press-1'); h.controller.release('press-1');
     expect(h.capture.stopCapture).toHaveBeenCalled(); expect(h.capture.finalize).toHaveBeenCalledTimes(1);
     expect(h.canCapture()).toBe(false);
     h.final.resolve({ kind: 'final', text: 'Треба ми помоћ. Сутра.' }); await flush();
-    expect(h.submit).toHaveBeenCalledTimes(1);
-    expect(h.submit.mock.calls[0][0]).toMatchObject({ clientRequestId: 'owned-request-1', text: 'Треба ми помоћ. Сутра.',
+    expect(h.onTranscript).toHaveBeenCalledTimes(1);
+    expect(h.onTranscript.mock.calls[0][0]).toMatchObject({ text: 'Треба ми помоћ. Сутра.',
       session: { accountId: 'account-a', conversationId: 'owned-conversation', accountRevision: 1 } });
-    h.submitted.resolve({ kind: 'accepted' }); await flush();
     expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: null, fallbackText: '' });
   });
 
@@ -80,7 +78,7 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     const h = harness(); await h.listen(); h.emit({ kind: 'segment', index: 0, final: false, text: 'privatni unos' });
     h.controller.release('press-1'); h.controller.cancel(reason);
     h.final.resolve({ kind: 'final', text: 'zakašnjeli tekst' }); await flush();
-    expect(h.capture.dispose).toHaveBeenCalledTimes(1); expect(h.submit).not.toHaveBeenCalled();
+    expect(h.capture.dispose).toHaveBeenCalledTimes(1); expect(h.onTranscript).not.toHaveBeenCalled();
     expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', fallbackText: '', finalText: '' });
   });
 
@@ -88,7 +86,7 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     const h = harness(); await h.listen(); h.controller.release('press-1');
     h.setScope({ accountId: 'account-a', accountRevision: 3, conversationId: 'owned-conversation' });
     h.final.resolve({ kind: 'final', text: 'old A' }); await flush();
-    expect(h.submit).not.toHaveBeenCalled(); expect(h.capture.dispose).toHaveBeenCalledTimes(1);
+    expect(h.onTranscript).not.toHaveBeenCalled(); expect(h.capture.dispose).toHaveBeenCalledTimes(1);
     expect(h.controller.getSnapshot().session).toBeNull();
   });
 
@@ -96,7 +94,7 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     const h = harness(); await h.listen(); h.emit({ kind: 'segment', index: 0, final: true, text: 'Dve osobe' });
     h.emit({ kind: 'segment', index: 1, final: false, text: 'u Novom Sadu' });
     h.controller.release('press-1'); h.final.resolve({ kind: 'incomplete' }); await flush();
-    expect(h.submit).not.toHaveBeenCalled(); expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE',
+    expect(h.onTranscript).not.toHaveBeenCalled(); expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE',
       fallbackText: 'Dve osobe u Novom Sadu', finalText: '', error: 'FINAL_TRANSCRIPT_MISSING' });
     h.setScope({ accountId: 'account-b', accountRevision: 2, conversationId: 'other' }); h.controller.contextChanged();
     expect(h.controller.getSnapshot().fallbackText).toBe('');
@@ -112,7 +110,7 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
   it('silence never finalizes or sends while held', async () => {
     const h = harness(); await h.listen(); h.emit({ kind: 'level', value: 0 }); jest.advanceTimersByTime(2000);
     expect(h.controller.getSnapshot().phase).toBe('LISTENING'); expect(h.capture.finalize).not.toHaveBeenCalled();
-    expect(h.submit).not.toHaveBeenCalled(); h.controller.cancel('gesture');
+    expect(h.onTranscript).not.toHaveBeenCalled(); h.controller.cancel('gesture');
   });
 
   it('uses honest unavailable metering, not a fabricated waveform', async () => {
@@ -125,7 +123,7 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
   it('timeout stops native input and preserves current text without auto-finalizing', async () => {
     const h = harness(); await h.listen(); h.emit({ kind: 'segment', index: 0, final: false, text: 'duži iskaz' });
     jest.advanceTimersByTime(5000);
-    expect(h.capture.dispose).toHaveBeenCalledTimes(1); expect(h.submit).not.toHaveBeenCalled();
+    expect(h.capture.dispose).toHaveBeenCalledTimes(1); expect(h.onTranscript).not.toHaveBeenCalled();
     expect(h.controller.getSnapshot()).toMatchObject({ fallbackText: 'duži iskaz', error: 'CAPTURE_TIMEOUT' });
   });
 
@@ -133,7 +131,7 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     const h = harness(); await h.listen(); h.emit({ kind: 'segment', index: 0, final: false, text: 'unos' });
     h.controller.interrupt(); expect(h.controller.getSnapshot()).toMatchObject({ fallbackText: 'unos', error: 'AUDIO_INTERRUPTED' });
     h.controller.setForeground(false); h.controller.setForeground(true);
-    expect(h.capture.start).toHaveBeenCalledTimes(1); expect(h.submit).not.toHaveBeenCalled();
+    expect(h.capture.start).toHaveBeenCalledTimes(1); expect(h.onTranscript).not.toHaveBeenCalled();
   });
 
   it('does not start when AI read-aloud is speaking, including a permission race', async () => {
@@ -148,32 +146,37 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     await flush(); h.started.resolve(); await flush(); h.controller.release('other');
     expect(h.capture.finalize).not.toHaveBeenCalled(); h.controller.release('accessible-1');
     h.final.resolve({ kind: 'final', text: 'Dostupan sam vikendom.' }); await flush();
-    expect(h.submit).toHaveBeenCalledTimes(1); h.submitted.resolve({ kind: 'accepted' }); await flush();
+    expect(h.onTranscript).toHaveBeenCalledTimes(1);
   });
 
-  it('treats a lost send reply as unknown and permits only receipt resolution, never automatic retry', async () => {
-    const h = harness(); await h.listen(); h.controller.release('press-1');
-    h.final.resolve({ kind: 'final', text: 'Sutra od 18.' }); await flush(); h.submitted.reject(new Error('network')); await flush();
-    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'UNKNOWN_OUTCOME', error: 'SUBMISSION_UNKNOWN',
-      submission: { clientRequestId: 'owned-request-1', text: 'Sutra od 18.' } });
-    h.controller.cancel('gesture'); expect(h.controller.begin('press-2')).toBe(false);
-    expect(h.controller.resolveSubmission('foreign-request', { kind: 'accepted' })).toBe(false);
-    expect(h.controller.resolveSubmission('owned-request-1', { kind: 'accepted' })).toBe(true);
-    expect(h.submit).toHaveBeenCalledTimes(1); expect(h.controller.getSnapshot().phase).toBe('IDLE');
+  it('retains confirmed text if the visible composer cannot accept it, without network retry', async () => {
+    const h = harness(); h.onTranscript.mockReturnValueOnce(false);
+    await h.listen(); h.controller.release('press-1');
+    h.final.resolve({ kind: 'final', text: 'Sutra od 18.' }); await flush();
+    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: 'DRAFT_NOT_ACCEPTED', fallbackText: 'Sutra od 18.' });
+    jest.advanceTimersByTime(30_000); expect(h.onTranscript).toHaveBeenCalledTimes(1);
+    const accept = jest.fn(() => true);
+    expect(h.controller.useFallback(accept)).toBe(true);
+    expect(h.controller.useFallback(accept)).toBe(false);
+    expect(accept.mock.calls).toEqual([['Sutra od 18.']]);
   });
 
-  it('a late response after logout cannot refill private state', async () => {
-    const h = harness(); await h.listen(); h.controller.release('press-1');
+  it('keeps callback errors private and clears fallback on account change', async () => {
+    const h = harness(); h.onTranscript.mockImplementationOnce(() => { throw new Error('secret body'); });
+    await h.listen(); h.controller.release('press-1');
     h.final.resolve({ kind: 'final', text: 'privatna poruka' }); await flush();
-    h.setScope(null); h.controller.contextChanged(); h.submitted.resolve({ kind: 'accepted' }); await flush();
-    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', submission: null, finalText: '' });
+    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', fallbackText: 'privatna poruka', error: 'DRAFT_NOT_ACCEPTED' });
+    expect(JSON.stringify(h.controller.getSnapshot())).not.toContain('secret body');
+    h.setScope(null); const accept = jest.fn(() => true);
+    expect(h.controller.useFallback(accept)).toBe(false); expect(accept).not.toHaveBeenCalled();
+    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', session: null, fallbackText: '' });
   });
 
-  it('a submit timeout retains the exact request and closes its callbacks', async () => {
+  it('a late final after finalization timeout cannot refill the composer or restart speech', async () => {
     const h = harness(); await h.listen(); h.controller.release('press-1');
-    h.final.resolve({ kind: 'final', text: 'unos' }); await flush(); jest.advanceTimersByTime(1000);
-    expect(h.controller.getSnapshot().phase).toBe('UNKNOWN_OUTCOME');
-    h.submitted.resolve({ kind: 'accepted' }); await flush();
-    expect(h.controller.getSnapshot().phase).toBe('UNKNOWN_OUTCOME'); expect(h.submit).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(1000);
+    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: 'FINALIZATION_TIMEOUT' });
+    h.final.resolve({ kind: 'final', text: 'late private text' }); await flush();
+    expect(h.onTranscript).not.toHaveBeenCalled(); expect(h.capture.start).toHaveBeenCalledTimes(1);
   });
 });

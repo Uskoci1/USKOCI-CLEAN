@@ -6,6 +6,10 @@ const actorClaims=a=>`select set_config('request.jwt.claim.sub',${q(a.id)},true)
 const serviceClaims=`select set_config('request.jwt.claims','{"role":"service_role"}',true);select set_config('request.jwt.claim.role','service_role',true);`;
 const uuidArgs=values=>values.map(v=>q(v)+'::uuid').join(',');
 const callSql=(name,values)=>`select public.${name}(${uuidArgs(values)})`;
+async function closedHttp(p){const r=await p;await denied(Promise.resolve(r),'ACCOUNT_CLOSING');assert.equal(r.status,403);assert.equal(r.error.code,'42501');assert.equal(r.data,null);}
+// Direct authenticated-role SQL tests only the RPC body, separately from the
+// actual HTTP pre-request denial. Its transaction cannot change the fixture.
+const directOwnerRead=(a,name,values)=>JSON.parse(sql(`begin;set local role authenticated;set local request.jwt.claim.sub=${q(a.id)};set local request.jwt.claims=${q(JSON.stringify({sub:a.id,role:'authenticated'}))};${callSql(name,values)};rollback;`));
 const taskText='Synthetic142 Task message';
 const taskIds=(a,cid,key)=>({p_account_id:a.id,p_conversation_id:cid,p_client_request_id:key});
 const taskOwner=(cid,key)=>({p_conversation_id:cid,p_client_request_id:key});
@@ -162,21 +166,37 @@ await prove('V5_UNKNOWN_AI_TURN_EXIT','v5-unknown-ai-turn-exit-report.json',asyn
  const reviewAfterCancel=await lockedRace(actorClaims(closed)+callSql('rpc_ai_cancel_need_turn_v2',[cc,ck]),()=>closed.client.rpc('rpc_review_account_closure_execution',{p_expected_user_id:closed.id}));
  const reviewReceipt=await ok(Promise.resolve(reviewAfterCancel));assert.equal(reviewReceipt.ready,false);assert.ok(!reviewReceipt.blockers.includes('PENDING_WORKFLOW'));
  const closedKey=randomUUID(),closedTurn=(await taskClaim(closed,cc,closedKey)).claim;assert.equal(await taskDispatch(closed,cc,closedKey,closedTurn.attemptId),true);
- const restricted=await lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(closed.id)}));update private.account_closure_requests set state='READY' where account_id=${q(closed.id)}`,
-  ()=>closed.client.rpc('rpc_ai_cancel_need_turn_v2',taskOwner(cc,closedKey)));
- await denied(Promise.resolve(restricted),'ACCOUNT_CLOSING');assert.equal((await taskRead(closed,cc,closedKey)).canCancel,false);
- await denied(service.rpc('rpc_ai_complete_need_turn_v2_service',{...taskIds(closed,cc,closedKey),p_attempt_id:closedTurn.attemptId,p_user_message:taskText,p_assistant_message:'Forbidden closure result',p_safety:'ALLOW',p_proposals:[]}),'ACCOUNT_CLOSING');
+ const taskClosureBefore=rows(`select state,closed_at from private.account_closure_requests where account_id=${q(closed.id)}`)[0];assert.ok(taskClosureBefore);
+ const taskRows=()=>rows(`select * from private.ai_need_turn_commands where account_id=${q(closed.id)} order by turn_id`),taskRowsBefore=taskRows(),taskRecoveryBefore=await taskRead(closed,cc,closedKey),taskBudgetBefore=budgetHash();
+ try{
+  const restricted=await lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(closed.id)}));update private.account_closure_requests set state='READY' where account_id=${q(closed.id)}`,
+   ()=>closed.client.rpc('rpc_ai_cancel_need_turn_v2',taskOwner(cc,closedKey)));
+  await denied(Promise.resolve(restricted),'ACCOUNT_CLOSING');
+  await closedHttp(closed.client.rpc('rpc_ai_recover_need_turn_v2',taskOwner(cc,closedKey)));
+  const lowerTask=directOwnerRead(closed,'rpc_ai_recover_need_turn_v2',[cc,closedKey]);assert.equal(lowerTask.canCancel,false);assert.equal(lowerTask.authoritative,true);
+  await denied(service.rpc('rpc_ai_complete_need_turn_v2_service',{...taskIds(closed,cc,closedKey),p_attempt_id:closedTurn.attemptId,p_user_message:taskText,p_assistant_message:'Forbidden closure result',p_safety:'ALLOW',p_proposals:[]}),'ACCOUNT_CLOSING');
   assert.equal(history(cc).length,0);
+ }finally{sql(`update private.account_closure_requests set state=${q(taskClosureBefore.state)},closed_at=${taskClosureBefore.closed_at?q(taskClosureBefore.closed_at)+'::timestamptz':'null'} where account_id=${q(closed.id)}`);}
+ assert.deepEqual(taskRows(),taskRowsBefore);assert.equal(budgetHash(),taskBudgetBefore);
+ const taskRecoveryAfter=await taskRead(closed,cc,closedKey);for(const key of ['accountId','conversationId','clientRequestId','providerDispatched','cancelled','authoritative'])assert.equal(taskRecoveryAfter[key],taskRecoveryBefore[key]);assert.equal(taskRecoveryAfter.providerDispatched,true);
  const cw=await actor('exit142-worker-closure'),cws=await workerFresh(cw),cwk=randomUUID(),cwt=(await workerClaim(cw,cws,cwk)).turn;
  assert.equal((await workerDispatch(cw,cws,cwk,cwt)).dispatched,true);
  await ok(cw.client.rpc('rpc_prepare_account_closure',{p_expected_user_id:cw.id,p_expected_revision:0,p_client_request_id:randomUUID()}));
  const wrAfter=await lockedRace(actorClaims(cw)+callSql('rpc_cancel_worker_ai_turn',[cw.id,cws.conversationId,cwk]),()=>cw.client.rpc('rpc_review_account_closure_execution',{p_expected_user_id:cw.id}));
  assert.ok(!(await ok(Promise.resolve(wrAfter))).blockers.includes('PENDING_WORKFLOW'));
  const cwk2=randomUUID(),cwt2=(await workerClaim(cw,cws,cwk2)).turn;assert.equal((await workerDispatch(cw,cws,cwk2,cwt2)).dispatched,true);
- const workerHistory=history(cws.conversationId);
- const wrDenied=await lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(cw.id)}));update private.account_closure_requests set state='READY' where account_id=${q(cw.id)}`,
-  ()=>cw.client.rpc('rpc_cancel_worker_ai_turn',workerOwner(cw,cws,cwk2)));
- await denied(Promise.resolve(wrDenied),'ACCOUNT_CLOSING');assert.equal((await workerRead(cw,cws,cwk2)).canCancel,false);
- await denied(service.rpc('rpc_complete_worker_ai_turn_service',{...workerIds(cw,cws,cwk2),p_attempt_id:cwt2.attemptId,p_output:workerOutput}),'ACCOUNT_CLOSING');assert.deepEqual(history(cws.conversationId),workerHistory);
+ const workerHistory=history(cws.conversationId),workerClosureBefore=rows(`select state,closed_at from private.account_closure_requests where account_id=${q(cw.id)}`)[0];assert.ok(workerClosureBefore);
+ const workerRows=()=>rows(`select * from private.worker_ai_turns where account_id=${q(cw.id)} order by turn_id`),workerRowsBefore=workerRows(),workerRecoveryBefore=await workerRead(cw,cws,cwk2),workerBudgetBefore=budgetHash();
+ try{
+  const wrDenied=await lockedRace(`select pg_advisory_xact_lock(private.closure_account_key(${q(cw.id)}));update private.account_closure_requests set state='READY' where account_id=${q(cw.id)}`,
+   ()=>cw.client.rpc('rpc_cancel_worker_ai_turn',workerOwner(cw,cws,cwk2)));
+  await denied(Promise.resolve(wrDenied),'ACCOUNT_CLOSING');
+  await closedHttp(cw.client.rpc('rpc_read_worker_ai_turn_recovery',workerOwner(cw,cws,cwk2)));
+  const lowerWorker=directOwnerRead(cw,'rpc_read_worker_ai_turn_recovery',[cw.id,cws.conversationId,cwk2]);assert.equal(lowerWorker.canCancel,false);assert.equal(lowerWorker.retryAllowed,false);assert.equal(lowerWorker.authoritative,true);
+  await denied(service.rpc('rpc_complete_worker_ai_turn_service',{...workerIds(cw,cws,cwk2),p_attempt_id:cwt2.attemptId,p_output:workerOutput}),'ACCOUNT_CLOSING');assert.deepEqual(history(cws.conversationId),workerHistory);
+ }finally{sql(`update private.account_closure_requests set state=${q(workerClosureBefore.state)},closed_at=${workerClosureBefore.closed_at?q(workerClosureBefore.closed_at)+'::timestamptz':'null'} where account_id=${q(cw.id)}`);}
+ assert.deepEqual(workerRows(),workerRowsBefore);assert.equal(budgetHash(),workerBudgetBefore);
+ const workerRecoveryAfter=await workerRead(cw,cws,cwk2);for(const key of ['accountId','conversationId','clientRequestId','providerDispatched','cancelled','authoritative'])assert.equal(workerRecoveryAfter[key],workerRecoveryBefore[key]);assert.equal(workerRecoveryAfter.providerDispatched,true);
+ pass(report,'TASK_AND_WORKER_CLOSED_CALLER_HTTP403_NO_PAYLOAD_DIRECT_AUTHENTICATED_SQL_NO_CANCEL_EXACT_DISPATCH_AND_BUDGET_AFTER_RESTORE');
  pass(report,'TASK_AND_WORKER_ACTUAL_CLOSURE_BOTH_LOCK_ORDERS_CANCEL_RELEASES_PENDING_ONLY_RESTRICTED_COMPLETION_DENIED_NO_LATE_DATA');
 });

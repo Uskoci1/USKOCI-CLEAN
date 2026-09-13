@@ -7,6 +7,10 @@ let mockReduced = false;
 let mockFrameTime: number | null = null;
 let mockIntentTime: number | null = null;
 const mockSharedAssignments: Array<() => void> = [];
+// A native style handle survives renders. Removing it does not reset previously
+// committed native values; tests can also execute its latest mapper without a
+// React update, after delayed shared-value assignments arrive on the UI runtime.
+const mockStyleReaders = new WeakMap<object, () => Record<string, unknown>>();
 jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
 jest.mock('../../ui/entry/spojBrandMath', () => {
   const actual = jest.requireActual('../../ui/entry/spojBrandMath');
@@ -40,7 +44,13 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true,
   default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   useReducedMotion: () => mockReduced,
   Easing: { linear: (t: number) => t, bezierFn: () => (t: number) => t },
-  useAnimatedProps: () => ({}), useAnimatedStyle: (read: () => unknown) => read(),
+  useAnimatedProps: () => ({}), useAnimatedStyle: (read: () => Record<string, unknown>) => {
+    const React = jest.requireActual('react');
+    const handle = React.useRef({}).current;
+    for (const key of Object.keys(handle)) delete handle[key];
+    Object.assign(handle, read()); mockStyleReaders.set(handle, read);
+    return handle;
+  },
   useFrameCallback: () => {
     const React = jest.requireActual('react');
     return React.useRef({ setActive: jest.fn() }).current;
@@ -164,6 +174,58 @@ it.each([['Objavi zadatak', 'requester', 'worker'], ['Uskoči i zaradi', 'worker
   expect(style(`entry-${other}-scene`).opacity).toBe(0);
   expect(style(`entry-${chosen}-photo-frame`).transform[1].scale).toBeGreaterThan(1);
   expect(tree.root.findByProps({ testID: 'entry-brand-panel' })).toBeTruthy();
+});
+it.each([['Objavi zadatak', requester], ['Uskoči i zaradi', worker]] as const)(
+  'restores the attached native mappers after returning from %s, despite late intro and selection clocks', async (label, callback) => {
+    mockPhase = 'intro'; await render();
+    const ids = ['requester', 'worker'].flatMap(intent => ['scene', 'copy', 'photo-frame', 'note'].map(part => `entry-${intent}-${part}`));
+    const handles = ids.map(id => tree.root.findByProps({ testID: id }).props.style.at(-1));
+    const images = tree.root.findAllByType('OriginalImage' as React.ElementType).map(image => image.props.nativeIdentity);
+    const values = () => ids.map((id, index) => {
+      const attached = tree.root.findByProps({ testID: id }).props.style.at(-1);
+      expect(attached).toBe(handles[index]);
+      const read = mockStyleReaders.get(attached); expect(read).toBeDefined();
+      return read!();
+    });
+    const final = () => {
+      values().forEach((value, index) => expect(value).toEqual({ opacity: 1, transform: ids[index].endsWith('-scene')
+        ? [{ translateX: 0 }] : ids[index].endsWith('-photo-frame') ? [{ translateY: 0 }, { scale: 1 }] : [{ translateY: 0 }] }));
+      tree.root.findAllByType('OriginalImage' as React.ElementType).forEach((image, index) => expect(image.props.nativeIdentity).toBe(images[index]));
+    };
+    // Welcome can commit while the old intro clock is still at its empty frame.
+    mockPhase = 'welcome'; await act(async () => tree.update(element())); final();
+    let back!: () => void;
+    callback.mockReturnValue(new Promise<void>(resolve => { back = resolve; }));
+    mockIntentTime = 500; await press(label);
+    expect(values().some(value => value.opacity === 0)).toBe(true);
+    expect(values().some(value => JSON.stringify(value.transform).includes('scale') && JSON.stringify(value.transform) !== JSON.stringify([{ translateY: 0 }, { scale: 1 }]))).toBe(true);
+    await advance(760); expect(callback).toHaveBeenCalledTimes(1);
+    await act(async () => back()); final();
+    // No React rerender: the attached UI mapper must overwrite its old native
+    // selection values rather than rely on unchanged static React style props.
+    for (const assignment of mockSharedAssignments.splice(0)) { assignment(); final(); }
+    for (const time of [0, 41, 4380]) { mockFrameTime = time; mockIntentTime = 760; final(); }
+    expect(button('Objavi zadatak').props.disabled).toBe(false);
+    expect(button('Uskoči i zaradi').props.disabled).toBe(false);
+    expect(mockImageMounted).toHaveBeenCalledTimes(2); expect(mockImageUnmounted).not.toHaveBeenCalled();
+  });
+it('keeps the newer opposite selection when a cancelled retained Auth callback completes late, then restores both columns', async () => {
+  let oldBack!: () => void, newBack!: () => void;
+  requester.mockReturnValue(new Promise<void>(resolve => { oldBack = resolve; }));
+  worker.mockReturnValue(new Promise<void>(resolve => { newBack = resolve; }));
+  mockIntentTime = 500; await render();
+  await press('Objavi zadatak'); await advance(760); await press('Otkaži izbor');
+  await press('Uskoči i zaradi'); await advance(760);
+  const other = tree.root.findByProps({ testID: 'entry-requester-scene' }).props.style.at(-1);
+  await act(async () => oldBack());
+  expect(mockStyleReaders.get(other)!().opacity).toBe(0);
+  expect(button('Uskoči i zaradi').props.disabled).toBe(true);
+  await act(async () => newBack());
+  for (const intent of ['requester', 'worker']) {
+    const handle = tree.root.findByProps({ testID: `entry-${intent}-scene` }).props.style.at(-1);
+    expect(mockStyleReaders.get(handle)!()).toEqual({ opacity: 1, transform: [{ translateX: 0 }] });
+  }
+  expect(requester).toHaveBeenCalledTimes(1); expect(worker).toHaveBeenCalledTimes(1);
 });
 it('commits the complete static welcome before delayed UI clock writes, including late old assignments', async () => {
   mockPhase = 'intro'; await render();
