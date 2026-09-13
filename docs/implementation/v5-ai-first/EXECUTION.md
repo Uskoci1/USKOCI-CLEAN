@@ -40,6 +40,22 @@ checks and TypeScript pass; the current132 actual proof now uses real disposable
 127 admission with synthetic Gemini transport and exact fixture restoration.
 It still awaits the next actual run. No provider call or secret change occurred.
 
+Ten hosted Edge functions are now deployed and source-readback verified: the
+protective AI20 above plus nine functions recorded in
+DEV_ALPHA_EDGE_DEPLOYMENTS_20260913.json. Q&A's one type-only dependency is
+absent from the bundle as expected; all4 runtime sources match. Media deployment
+and its2 source files match, but hosted WASM initialization/authenticated upload
+remain unproved. Closure worker awaits146. Flags/provider/budget admission have
+not been enabled; deployment alone is not connected E2E evidence.
+
+FULL145 run34749257670 on04673653f08118b8597c65e47b840bc8fb067035 passed
+10/11 source gates, all4050 Jest tests and810/811 Node tests. The one failed
+test was a native-proof-only fixture still selecting now-forbidden OpenAI;
+no disposable SQL ran. Its fixture/loopback adapter now use synthetic Gemini,
+assert exact budget admission before dispatch, and continue forwarding real
+disposable127/132 RPCs without fabricating admission.67 targeted tests pass.
+No application/SQL/Edge source changes follow from this proof-only correction.
+
 FULL145 run34748448217 on8c80eebe34304443fce2d1d65ef5e2c7873e2046 passed
 all11 source gates,195 Jest suites/4050 tests and777 Node tests, then12 actual
 reports through123. The hygiene inventory correctly rejected145 because its

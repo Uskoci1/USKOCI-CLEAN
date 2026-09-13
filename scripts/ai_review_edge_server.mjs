@@ -42,9 +42,9 @@ export async function boundedBody(stream,maximum=524288) {
   return Buffer.concat(parts);
 }
 export function syntheticProviderEnvelope(proposals) {
-  return {status:'completed',output_text:JSON.stringify({safety:'ALLOW',
+  return {candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify({safety:'ALLOW',
     assistantMessage:'Pregledajte podatke i potvrdite šta vam odgovara.',
-    facts:proposals.map(({value,...fact})=>({...fact,valueJson:JSON.stringify(value)}))})};
+    facts:proposals.map(({value,...fact})=>({...fact,valueJson:JSON.stringify(value)}))})}]}}]};
 }
 export function syntheticPublicationEnvelope() {
   return {candidates:[{finishReason:'STOP',content:{role:'model',parts:[{
@@ -91,10 +91,11 @@ export function startAdapter(env=process.env) {
     providerProof:false,gatewayProof:false,providerCalls:0,handlerCalls:0,committedResponseDropped:false,forwardedAuth:0,forwardedRest:0};
   const save=()=>writeFileSync(out+'/ai-edge-adapter.json',JSON.stringify(report,null,2)+'\n');
   const runtime=loadOwnedIntakeHandler({env:name=>({SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,
-    SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,AI_PROVIDER:'openai',OPENAI_API_KEY:'SYNTHETIC_NOT_A_SECRET',OPENAI_MODEL:'SYNTHETIC_NATIVE_PROOF'})[name],
+    SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_NOT_A_SECRET',
+    GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'})[name],
     fetch:async(input,init={})=>{
       const url=new URL(String(input));
-      if(url.href==='https://api.openai.com/v1/responses'){
+      if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){
         report.providerCalls++;save();
         assert.equal(report.providerCalls,1,'NO_AUTOMATIC_PROVIDER_REPLAY');
         const payload=JSON.parse(String(init.body));assert.ok(JSON.stringify(payload).includes(fixture.input));
