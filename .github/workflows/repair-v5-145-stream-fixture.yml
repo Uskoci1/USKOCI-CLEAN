@@ -29,20 +29,11 @@ jobs:
           from pathlib import Path
           p=Path('supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs')
           s=p.read_text(encoding='utf-8')
-          old="""  if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){
-           providerCalls++;assert.equal(budgetCalls,1);
-           const request=JSON.parse(init.body),prompt=request.systemInstruction.parts[0].text;
-           const factPrefix='Aktuelne server-side činjenice: ',factLine=prompt.split('\\n').find(line=>line.startsWith(factPrefix));
-           assert.ok(factLine);const facts=JSON.parse(factLine.slice(factPrefix.length));
-           assert.ok(Array.isArray(facts));assert.ok(facts.every(f=>f.key!=='need.verified_identity_required'));
-           assert.ok(!request.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
-           assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(key)}::uuid and kind='LLM' and max_cost_microusd=250000`),'1');
-           assert.equal((await ok(a.client.rpc('rpc_ai_recover_need_turn_v2',{p_conversation_id:cid,p_client_request_id:key}))).providerDispatched,true);
-           return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
-          }
-          """
-          # Source indentation is one leading space; normalize the guarded literal once.
-          old=old.replace('\n          ','\n ')
+          start_marker="  if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'){"
+          end_marker="  assert.equal(url.origin,origin)"
+          if s.count(start_marker)!=1 or s.count(end_marker)<1:
+              raise SystemExit('guarded fixture markers changed')
+          start=s.index(start_marker); end=s.index(end_marker,start)
           new="""  if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse'){
            providerCalls++;assert.equal(budgetCalls,1);assert.equal(init.headers?.Accept,'text/event-stream');
            const request=JSON.parse(init.body),prompt=request.systemInstruction.parts[0].text;
@@ -58,11 +49,8 @@ jobs:
            const event={candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]};
            return new Response(`data: ${JSON.stringify(event)}\\n\\n`,{headers:{'Content-Type':'text/event-stream'}});
           }
-          """
-          new=new.replace('\n          ','\n ')
-          if s.count(old)!=1:
-              raise SystemExit(f'guarded fixture block count={s.count(old)}')
-          p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
+"""
+          p.write_text(s[:start]+new+s[end:],encoding='utf-8',newline='\n')
           PY
           node --check supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
           npm ci >/dev/null
