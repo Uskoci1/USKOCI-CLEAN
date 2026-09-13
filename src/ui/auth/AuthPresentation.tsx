@@ -9,18 +9,22 @@ export function AuthIntro({ title, copy, eyebrow = 'JEDAN NALOG · OBE MOGUĆNOS
 }) {
   const stage = composition === 'stage';
   return <View>
+    {stage ? <>
     <View style={styles.badge} accessible={false} importantForAccessibility="no-hide-descendants">
       <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={58} height={58}><Defs><LinearGradient id="auth-badge" x1="25%" y1="6.7%" x2="75%" y2="93.3%"><Stop offset="0" stopColor="#EDF6F1" /><Stop offset="1" stopColor="#E4F1E9" /></LinearGradient></Defs><Rect width={58} height={58} rx={19} fill="url(#auth-badge)" stroke="#D4E6DC" /></Svg>
       <BrandMark size={35} />
     </View>
+    </> : <View style={styles.identityRow}><BrandMark size={30} /><Text style={styles.inlineEyebrow}>{eyebrow}</Text></View>}
     <View style={stage ? styles.stage : styles.hero}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      {stage ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       <Text accessibilityRole="header" style={[styles.title, stage && styles.stageTitle]}>{title}</Text>
       <Text style={[styles.copy, stage && styles.stageCopy]}>{copy}</Text>
     </View>
   </View>;
 }
 const styles = StyleSheet.create({
+  identityRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, minHeight: 36 },
+  inlineEyebrow: { flex: 1, color: c.accentLight, fontSize: 12, lineHeight: 18, fontWeight: '600' },
   hero: { paddingTop: 4, paddingBottom: 20 },
   stage: { marginTop: 4, paddingTop: 2, paddingBottom: 4, marginBottom: 16 },
   stageTitle: { fontSize: 27, lineHeight: 30.51, letterSpacing: -.75, marginBottom: 10 },

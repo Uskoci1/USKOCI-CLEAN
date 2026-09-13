@@ -8,7 +8,7 @@ export function createAiTurnStreamDecoder(input: {
   conversationId: string; clientRequestId: string; current: () => boolean; onText: (delta: string) => void;
 }) {
   let sequence = 0, attempt: string | null = null, turn: string | null = null;
-  let text = '', terminal = false, receipt: unknown = undefined;
+  let text = '', terminal = false, safeError = false, receipt: unknown = undefined;
   const accept = (raw: unknown) => {
     const e = record(raw);
     if (!input.current() || terminal || !e || !sameId(e.conversationId, input.conversationId)
@@ -35,9 +35,10 @@ export function createAiTurnStreamDecoder(input: {
       // Never reflect provider, SQL, Auth or arbitrary event text in the UI.
       terminal = true;
       if (e.code !== 'AI_TURN_NOT_CONFIRMED') throw new Error('AI_STREAM_INVALID');
+      safeError = true;
     }
   };
-  return { accept, result: () => terminal ? receipt : undefined };
+  return { accept, result: () => terminal ? receipt : undefined, failed: () => safeError };
 }
 
 export async function requestAiTurnStream(input: AiTurnStreamOptions & {
@@ -96,7 +97,9 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     if (!current()) throw new Error('AI_STREAM_STOPPED');
     if (!streaming) return { data: JSON.parse(buffer), error: null }; // Existing claim replay/terminal envelope.
     if (buffer.trim()) event(buffer);
-    return { data: events.result(), error: null };
+    return events.failed()
+      ? { data: undefined, error: { message: 'AI_SERVICE_UNAVAILABLE' } }
+      : { data: events.result(), error: null };
   } catch {
     return { data: undefined, error: { message: 'AI_TURN_SEND_UNCONFIRMED' } };
   } finally {

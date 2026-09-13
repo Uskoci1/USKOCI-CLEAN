@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '../Text';
@@ -24,7 +24,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const [keyboard, setKeyboard] = useState(false);
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
-  const compact = keyboard || height < 700 || fontScale >= 1.5;
+  const compact = keyboard || height < 700 || fontScale >= 1.5 || p.pending;
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
     const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboard(false));
@@ -47,18 +47,17 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.messages.length === 0 ? <View style={s.welcome}>
           <T style={s.assistantLabel}>USKOČI ASISTENT</T>
           <T accessibilityRole="header" style={s.welcomeTitle}>{p.welcome}</T><T style={s.meta}>{p.welcomeDetail}</T>
-        </View> : p.messages.map(message => <View key={message.id} style={[s.message, !message.fromAi && s.userMessage]}>
-          <T style={message.fromAi ? s.assistantLabel : s.meta}>{message.fromAi ? 'USKOČI' : 'Ti'}</T>
-          <T selectable style={s.body}>{message.body}</T>
-        </View>)}
+        </View> : p.messages.map(message => <ConversationBubble key={message.id} fromAi={message.fromAi} body={message.body} />)}
         {p.streamingText ? <View style={s.message}><T style={s.assistantLabel}>USKOČI</T>
           <T selectable style={s.body}>{p.streamingText}</T></View> : null}
         {p.busy ? <View accessibilityLiveRegion="polite" style={s.processing}><ActivityIndicator color={a.color.green} />
           <T style={s.meta}>Sređujem podatke…</T></View> : null}
+        {/* Recovery belongs to scrollable content, not a second fixed footer. */}
+        {p.status ? <View testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</View> : null}
         {p.actions}
       </ScrollView>
-      <SafeAreaView edges={['bottom']} style={s.footer}>
-        {p.status}
+      {/* Both current consumers live under the tab navigator, which owns bottom insets. */}
+      <View testID="ai-composer-footer" style={s.footer}>
         {p.voice}
         <View style={s.composer}>
           <TextInput accessibilityLabel="Poruka za AI" value={p.value} onChangeText={p.onChange} editable={p.canEdit}
@@ -68,24 +67,33 @@ export function AiConversationShell(p: AiConversationShellProps) {
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
             <V2Icon name="send" color={a.color.surface} /></Press>
         </View>
-      </SafeAreaView>
+      </View>
     </KeyboardAvoidingView>
     {p.children}
   </SafeAreaView>;
 }
 
+/** Persisted messages do not rerender for each keystroke or incoming draft chunk. */
+const ConversationBubble = memo(function ConversationBubble({ fromAi, body }: { fromAi: boolean; body: string }) {
+  return <View style={[s.message, !fromAi && s.userMessage]}>
+    <T style={fromAi ? s.assistantLabel : s.meta}>{fromAi ? 'USKOČI' : 'Ti'}</T>
+    <T selectable style={s.body}>{body}</T>
+  </View>;
+});
+
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: a.color.surface }, flex: { flex: 1 },
+  canvas: { flex: 1, backgroundColor: a.color.surface }, flex: { flex: 1, minHeight: 0 },
   header: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8 },
   title: { ...a.text.title, color: a.color.ink }, meta: { ...a.text.meta, color: a.color.muted },
   body: { ...a.text.body, color: a.color.ink }, icon: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   dots: { fontSize: 28, lineHeight: 34, color: a.color.ink, fontWeight: '700' },
   cardArea: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 }, cardCompact: { paddingTop: 0, paddingBottom: 8 },
   thread: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 8, paddingBottom: 20, gap: 18 },
-  welcome: { gap: 10, paddingTop: 14, maxWidth: 520 }, welcomeTitle: { fontSize: 26, lineHeight: 34, color: a.color.ink, fontWeight: '600' },
+  welcome: { gap: 10, paddingTop: 14, maxWidth: 520 }, welcomeTitle: { fontSize: 23, lineHeight: 30, color: a.color.ink, fontWeight: '600' },
   assistantLabel: { fontSize: 12, lineHeight: 18, fontWeight: '700', letterSpacing: 0.8, color: a.color.green },
   message: { gap: 5, alignSelf: 'flex-start', maxWidth: '96%' }, userMessage: { alignSelf: 'flex-end', padding: 14,
     borderRadius: 18, borderBottomRightRadius: 5, backgroundColor: a.color.wash, marginLeft: 24 },
+  recovery: { gap: 10 },
   processing: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   footer: { borderTopWidth: 1, borderTopColor: a.color.line, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, gap: 10 },
   composer: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', borderRadius: a.radius.composer,

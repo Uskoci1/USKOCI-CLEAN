@@ -20,7 +20,7 @@ export function AuthSheet({ visible, expanded, backdrop, children }: {
       {backdrop}
     </View>
     {visible ? <View style={styles.overlay} accessibilityViewIsModal>
-      <View style={[styles.sheet, { maxHeight: keyboard || expanded || fontScale > 1.3 || height < 700 ? '97%' : '86%' }]}>
+      <View testID="auth-reference-sheet" style={[styles.sheet, { maxHeight: keyboard || expanded || fontScale > 1.3 || height < 700 ? '97%' : '76%' }]}>
         <Svg pointerEvents="none" accessible={false} style={StyleSheet.absoluteFill} width="100%" height="100%">
           <Defs><LinearGradient id="auth-sheet" x1="0%" y1="0%" x2="30%" y2="100%">
             <Stop offset={0} stopColor={c.top} /><Stop offset={0.56} stopColor={c.surface} /><Stop offset={1} stopColor={c.bottom} />

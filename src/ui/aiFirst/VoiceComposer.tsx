@@ -14,7 +14,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
   const gesture = useRef<string | null>(null), startY = useRef(0);
   useEffect(() => {
     let alive = true;
-    void AccessibilityInfo.isScreenReaderEnabled().then(enabled => { if (alive) setReader(enabled); });
+    void AccessibilityInfo.isScreenReaderEnabled().then(enabled => { if (alive) setReader(enabled); }).catch(() => undefined);
     const listener = AccessibilityInfo.addEventListener('screenReaderChanged', setReader);
     return () => { alive = false; listener.remove(); };
   }, []);
@@ -51,18 +51,22 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
             style={{ width: 3, height: 6 + i * 3, borderRadius: 2, backgroundColor: p.state.audioLevel! >= threshold ? '#FFFFFF' : '#7EAD9D' }} />)}
         </View> : null}
       </Pressable>
-      {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
+      {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} />
+        : !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet"
+          label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'}
+          onPress={() => setAccessibleMode(value => !value)} /> : null}
     </View>
-    {active ? <T accessibilityLiveRegion="polite" style={s.noticeText}>Pusti, pregledaj tekst i izaberi Pošalji.</T>
-      : !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet" label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'} onPress={() => setAccessibleMode(value => !value)} /> : null}
+    {active ? <T accessibilityLiveRegion="polite" style={s.noticeText}>
+      {explicit ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Pusti, pregledaj tekst i izaberi Pošalji.'}
+    </T> : null}
     {p.state.error ? <T accessibilityLiveRegion="polite" style={s.error}>{VOICE_ERROR_COPY[p.state.error]}</T> : null}
     {p.state.fallbackText && p.state.phase === 'IDLE' ? <V2Action kind="quiet" label="Uredi sačuvani tekst" onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
 }
 const s = StyleSheet.create({
-  wrap: { gap: 4 }, row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: 4 }, noticeText: { flex: 1, color: a.color.muted, fontSize: 11, lineHeight: 16 },
-  mic: { flex: 1, minHeight: 52, borderRadius: 16, backgroundColor: a.color.wash, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 10 },
+  wrap: { gap: 4 }, row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 4 }, noticeText: { flex: 1, color: a.color.muted, fontSize: 12, lineHeight: 18 },
+  mic: { flex: 1, minWidth: 150, minHeight: 52, borderRadius: 16, backgroundColor: a.color.wash, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 10 },
   active: { backgroundColor: a.color.green }, disabled: { opacity: 0.5 }, label: { color: a.color.green, fontSize: 14, lineHeight: 20, fontWeight: '600', flexShrink: 1 },
   light: { color: a.color.surface }, transcript: { color: a.color.ink, fontSize: 15, lineHeight: 22, maxHeight: 88 },
   levels: { flexDirection: 'row', gap: 3, height: 26, alignItems: 'center' }, error: { color: a.color.danger, fontSize: 12, lineHeight: 18 },

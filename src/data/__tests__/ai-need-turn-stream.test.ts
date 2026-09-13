@@ -24,3 +24,10 @@ it('fixed safe error has no receipt or reflected text and truncation is unknown'
   const f=fixture();f.accept(event(1,'accepted'));f.accept(event(2,'safe_error',{code:'AI_TURN_NOT_CONFIRMED'}));expect(f.result()).toBeUndefined();expect(f.onText).not.toHaveBeenCalled();
   const other=fixture();other.accept(event(1,'accepted'));other.accept(event(2,'text_delta',{text:'prefix'}));expect(other.result()).toBeUndefined();
 });
+
+it('distinguishes an explicit safe error from a truncated stream without granting a receipt',()=>{
+  const rejected=fixture();rejected.accept(event(1,'accepted'));rejected.accept(event(2,'safe_error',{code:'AI_TURN_NOT_CONFIRMED'}));
+  expect(rejected.failed()).toBe(true);expect(rejected.result()).toBeUndefined();
+  const unknown=fixture();unknown.accept(event(1,'accepted'));expect(unknown.failed()).toBe(false);expect(unknown.result()).toBeUndefined();
+  expect(()=>rejected.accept(event(3,'text_delta',{text:'late'}))).toThrow();
+});
