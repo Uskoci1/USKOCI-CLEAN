@@ -836,7 +836,10 @@ do $program$ declare d text;arr text;sig text[];body text;needle text;begin
  from pg_proc p where p.oid in(select to_regprocedure(x) from unnest(%L::text[]) x)
  or p.oid in(select tgfoid from pg_trigger where not tgisinternal and tgrelid in(select unnest(private.closure_redaction_relations_v5())::regclass))),
  'tables',(select jsonb_agg(jsonb_build_array(c.oid::regclass::text,c.relowner,c.relacl::text,c.relrowsecurity,c.relforcerowsecurity) order by c.oid::regclass::text)
- from pg_class c where c.relnamespace in('private'::regnamespace,'public'::regnamespace) and c.relkind in('r','p'))
+ from pg_class c where c.relnamespace in('private'::regnamespace,'public'::regnamespace) and c.relkind in('r','p')),
+ 'triggerState',(select jsonb_agg(jsonb_build_array(t.tgrelid::regclass::text,t.tgname,t.tgenabled) order by t.tgrelid::regclass::text,t.tgname)
+ from pg_trigger t join pg_class c on c.oid=t.tgrelid where not t.tgisinternal
+ and (c.relnamespace in('private'::regnamespace,'public'::regnamespace) or t.tgrelid='storage.objects'::regclass))
  )::text,'UTF8'),'sha256'),'hex')
  $body$,sig);
  execute format('create function private.closure_erasure_program_digest_v5() returns text language sql stable security definer set search_path=pg_catalog as %L',body);

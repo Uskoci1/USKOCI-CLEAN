@@ -48,6 +48,7 @@ test('owner event provenance does not create a legal policy and exact predecesso
  assert.ok(sql.includes('9da5b89c314e6a04b7ec48a16778eed2'));
  assert.ok(sql.includes("'legalPolicyAttested',false"));
  assert.ok(sql.includes('closure_erasure_program_digest_v5'));
+ assert.ok(sql.includes('t.tgenabled'));
  assert.doesNotMatch(sql,/insert into private\.(retention_policy_sets|retention_policy_rules|legal_document_versions)/i);
  assert.ok(sql.includes('private.retention_ai_source_ready() is distinct from true'));
 });
