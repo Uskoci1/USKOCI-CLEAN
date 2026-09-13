@@ -58,6 +58,9 @@ function command(state: AiTaskPublicationCommand['state'] = 'ACCEPTED'): AiTaskP
     state, evaluation: null, published: state === 'PUBLISHED' ? { needId: NEED, status: 'PUBLISHED',
       publishedAt: '2026-09-12T12:00:01Z', responseDeadline: null, idempotentReplay: false } : null, authoritative: true };
 }
+const notReadyCommand = (): AiTaskPublicationCommand => ({ ...command('EVALUATED'), evaluation: {
+  kind: 'NOT_READY', needId: NEED, needRevision: 1, authoritativeDecision: false, code: 'EVALUATOR_UNAVAILABLE',
+} });
 function deferred<T = unknown>() { let resolve!: (value: T) => void;
   const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 let tree: ReactTestRenderer;
@@ -112,10 +115,38 @@ it.each(['ACCEPTED', 'EVALUATING', 'UNKNOWN_OUTCOME'] as const)('restores %s on 
   expect(mockPrepare).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
   expect(text()).not.toContain('Zadatak je objavljen.');
+  expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(0);
   if (state === 'ACCEPTED') {
     await act(async () => action('Nastavi istu objavu').onPress());
     expect(mockResume).toHaveBeenCalledWith(command(state)); expect(mockAccept).not.toHaveBeenCalled();
   }
+});
+
+it('opens the existing saved draft explicitly after a terminal NOT_READY without retrying evaluation or publication', async () => {
+  const stored = notReadyCommand();
+  mockLatest.mockResolvedValue(ok({ review: review(), command: stored }));
+  mockOpenEdit.mockResolvedValue(ok({ conversationId: OTHER }));
+  await render();
+  expect(text()).toContain('privatan nacrt');
+  expect(tree.root.findAllByProps({ label: 'Nastavi istu objavu' })).toHaveLength(0);
+  expect(mockOpenEdit).not.toHaveBeenCalled();
+  const retained = action('Izmeni zadatak').onPress;
+  await act(async () => { void retained(); void retained(); });
+  expect(mockOpenEdit).toHaveBeenCalledTimes(1); expect(mockOpenEdit).toHaveBeenCalledWith(NEED);
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: OTHER } });
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+});
+
+it('ignores a retained NOT_READY edit after changing account, including its late result', async () => {
+  const held = deferred();
+  mockLatest.mockResolvedValue(ok({ review: review(), command: notReadyCommand() }));
+  mockOpenEdit.mockReturnValueOnce(held.promise);
+  await render(); const retained = action('Izmeni zadatak').onPress;
+  await act(async () => { void retained(); });
+  mockSession = { user: { id: OTHER }, accountRevision: 2 }; await update();
+  await act(async () => { void retained(); held.resolve(ok({ conversationId: OTHER })); });
+  expect(mockOpenEdit).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
 it.each([

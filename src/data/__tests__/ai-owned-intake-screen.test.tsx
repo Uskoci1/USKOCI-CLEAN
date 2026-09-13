@@ -4,11 +4,14 @@ import { aiTurnIntentJournal } from '../aiTurnIntentJournal';
 jest.mock('@react-native-async-storage/async-storage', () => { const values = new Map<string, string>(); return { getItem: jest.fn(async (key: string) => values.get(key) ?? null), setItem: jest.fn(async (key: string, value: string) => { values.set(key, value); }), removeItem: jest.fn(async (key: string) => { values.delete(key); }), clear: jest.fn(async () => { values.clear(); }) }; });
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
+import type { VoicePhase } from '../../features/voice/holdToTalk';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../contracts/needFactsV2';
 
 let mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 let mockParams: { conversationId?: string | string[]; entryKey?: string | string[] } = {}, mockCounter = 0;
 let mockReduced = false;
+let mockVoicePhase: VoicePhase = 'IDLE';
+const mockVoiceCancel = jest.fn(), mockVoiceOptions = jest.fn();
 const mockCancel = jest.fn(), mockRecover = jest.fn();
 const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn(), mockAlert = jest.fn();
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
@@ -20,8 +23,9 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => `aaaaaaaa-aaaa-4aaa-8aaa-${String(++mockCounter).padStart(12, '0')}` }));
-jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: () => ({ controller: { resolveSubmission: jest.fn() },
-  state: { phase: 'IDLE', submission: null } }) }));
+jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options: unknown) => {
+  mockVoiceOptions(options); return { controller: { resolveSubmission: jest.fn(), cancel: mockVoiceCancel },
+    state: { phase: mockVoicePhase, submission: null } }; } }));
 jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'Alert') return { alert: (...args: unknown[]) => mockAlert(...args) };
@@ -74,6 +78,7 @@ beforeEach(async () => {
   jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon, mockRecover, mockCancel]) mock.mockReset();
   mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockParams = {}; mockCounter = 0;
   mockReduced = false;
+  mockVoicePhase = 'IDLE';
   mockRouter.canGoBack.mockReturnValue(true); mockOpen.mockImplementation((requestId: string) => Promise.resolve(ok({ conversationId: id, clientRequestId: requestId })));
   mockLoad.mockResolvedValue(conversation()); mockSend.mockResolvedValue(unknown());
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'ABSENT', true)));
@@ -180,6 +185,27 @@ it('explicit abandonment uses the actual authority and becomes closed only after
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   await act(async () => mockAlert.mock.calls[0][2][1].onPress());
   expect(mockAbandon).toHaveBeenCalledWith(id); expect(text()).toContain('Razgovor je napušten.'); expect(input().editable).toBe(false);
+});
+it.each(['PERMISSION_PENDING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
+  mockVoicePhase = phase; await render();
+  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBe(id);
+  await options(); await act(async () => button('Napusti razgovor').onPress());
+  mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
+  mockAbandon.mockImplementation(async () => {
+    expect(mockVoiceCancel).toHaveBeenCalledWith('navigation');
+    return ok({ conversationId: id, status: 'ABANDONED', authoritative: true });
+  });
+  await act(async () => mockAlert.mock.calls[0][2][1].onPress());
+  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBeNull();
+  expect(tree.root.findAllByType('VoiceComposer' as React.ElementType)).toHaveLength(0);
+  expect(mockSend).not.toHaveBeenCalled();
+});
+it.each(['COMPLETED', 'ABANDONED', 'BLOCK'])('does not retain a microphone scope after canonical %s readback', async state => {
+  await render();
+  mockLoad.mockResolvedValue(conversation(state === 'BLOCK' ? { safety: 'BLOCK' } : { status: state as 'COMPLETED' | 'ABANDONED' }));
+  await blur(); await focus();
+  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBeNull();
+  expect(mockSend).not.toHaveBeenCalled();
 });
 it.each(['COMPLETED', 'ABANDONED'] as const)('keeps actual %s conversations read-only', async status => {
   mockLoad.mockResolvedValue(conversation({ status })); await render(); expect(input().editable).toBe(false); await options();

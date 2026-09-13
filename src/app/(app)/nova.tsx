@@ -164,7 +164,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       return read();
     });
   };
-  const voice = useHoldToTalk({ conversationId: razgovorId, submit: input => submitTurn(input.text,
+  const voice = useHoldToTalk({ conversationId: writable ? razgovorId : null, submit: input => submitTurn(input.text,
     { id: input.clientRequestId, signal: input.signal, isCurrent: input.isCurrent }) });
   useEffect(() => {
     const submission = voice.state.submission;
@@ -190,6 +190,9 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     if (!canAct() || !razgovorId || stanje?.status !== 'OPEN' || stanje.review.boundNeedId) return;
     const submit = () => {
       if (!canAct()) return;
+      // Stop native capture before the terminal command can hide its controls.
+      // Cancellation never finalizes audio or sends a transcript to the AI.
+      voice.controller.cancel('navigation');
       void editor.save(async () => {
         abandoning.current = true;
         const result = await aiNeedV2Izvor.abandonConversation(razgovorId);

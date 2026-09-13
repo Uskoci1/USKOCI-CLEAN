@@ -154,7 +154,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     });
   };
   const revisePublishedDraft = async () => {
-    if (!canAct() || !command) return;
+    if (!canAct() || !command || command.state !== 'EVALUATED'
+      || (command.evaluation?.kind !== 'NOT_READY'
+        && !(command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome !== 'ALLOW'))) return;
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.openEditConversation(command.needId);
       if (!current()) return changed();
@@ -251,7 +253,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             <V2Action label="Proveri objavu" disabled={editor.busy || editor.loading} onPress={refresh} />
             {command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW') ?
               <V2Action label="Nastavi istu objavu" disabled={disabled} onPress={resume} /> : null}
-            {outcome && outcome !== 'ALLOW' ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
+            {command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (outcome && outcome !== 'ALLOW'))
+              ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
           </> : review ? <>
             <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" disabled={disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor}
               accessibilityState={{ disabled: disabled || !review.canAccept || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
