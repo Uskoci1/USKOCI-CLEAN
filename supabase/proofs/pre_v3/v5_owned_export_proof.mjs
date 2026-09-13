@@ -2,12 +2,15 @@
 // PostgREST and Storage. Fixtures are synthetic; no live retention/legal policy.
 import {assert,rows,sql,prove,pass,apply,login,agreement,requester,worker,anon,service,ok,denied,requesterId,workerId,randomUUID,q,env} from './closure_runtime.mjs';
 import {loadExportHandler} from '../legal/data_export_edge_runtime.mjs';
+import {createObservedSqlRunner,restoreObservedSql} from './observed_export_sql.mjs';
 import {createHash} from 'node:crypto';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const bind=()=>JSON.parse(sql('select coalesce(private.data_export_policy_binding(),\'null\'::jsonb)'));
-const snapshot=(a,b)=>JSON.parse(sql(`select private.data_export_snapshot(${q(a)}::uuid,${q(randomUUID())}::uuid,${q(JSON.stringify(b))}::jsonb,clock_timestamp())`));
+const snapshotSql=(a,b)=>`select private.data_export_snapshot(${q(a)}::uuid,${q(randomUUID())}::uuid,${q(JSON.stringify(b))}::jsonb,clock_timestamp())`;
 await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async report=>{
- await apply(report,'20260913001000_clean_v5_owned_export_projection.sql',135);await login();report.actualStorage=true;report.actualExportHandlers=true;
+ report.actualStorage=false;report.actualExportHandlers=false;
+ const observedSql=createObservedSqlRunner({databaseUrl:env.RU5_DEVICE_DB_URL,report});
+ await apply(report,'20260913001000_clean_v5_owned_export_projection.sql',135);await login();
  report.policyFixture='SYNTHETIC_DISPOSABLE_NOT_RETENTION_OR_LEGAL_RELEASE_APPROVAL';
  const catalog=JSON.parse(sql('select private.data_export_dataset_catalog()'));assert.equal(catalog.length,37);assert.equal(new Set(catalog.map(x=>x.dataClass)).size,15);
  const required=rows('select code from private.retention_data_classes where active and required order by code').map(x=>x.code);
@@ -50,9 +53,10 @@ await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async rep
 
  const oldPolicies=rows('select id,retired_at from private.retention_policy_sets where retired_at is null');
  const oldPrivacy=rows("select id,is_active from private.legal_document_versions where document_kind='PRIVACY' and is_active");
- const privacy=randomUUID();let policyId,delivery;
- function reviewDelivery(patch={}){const value={...delivery,...patch};delete value.contentSha256;sql(`update private.retention_policy_sets set export_delivery=${q(JSON.stringify(value))}::jsonb where id=${q(policyId)}::uuid;
- update private.retention_policy_sets set export_delivery=export_delivery||jsonb_build_object('contentSha256',encode(extensions.digest(convert_to(export_delivery::text,'UTF8'),'sha256'),'hex')) where id=${q(policyId)}::uuid`);}
+ const privacy=randomUUID();let policyId,delivery,primaryFailure=null;
+ function reviewDeliverySql(patch={}){const value={...delivery,...patch};delete value.contentSha256;return `update private.retention_policy_sets set export_delivery=${q(JSON.stringify(value))}::jsonb where id=${q(policyId)}::uuid;
+ update private.retention_policy_sets set export_delivery=export_delivery||jsonb_build_object('contentSha256',encode(extensions.digest(convert_to(export_delivery::text,'UTF8'),'sha256'),'hex')) where id=${q(policyId)}::uuid`;}
+ function reviewDelivery(patch={}){sql(reviewDeliverySql(patch));}
  try{
   sql(`update private.retention_policy_sets set retired_at=greatest(clock_timestamp(),effective_at+interval '1 second') where retired_at is null;
    update private.legal_document_versions set is_active=false where document_kind='PRIVACY' and is_active;
@@ -75,7 +79,8 @@ await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async rep
   sql(`insert into private.retention_policy_rules select (jsonb_populate_record(null::private.retention_policy_rules,${q(JSON.stringify(rule))}::jsonb)).*`);assert.ok(bind());
   pass(report,'REVIEWED_V2_BINDING_EXACT_CATALOG_SOURCE_HASH_REQUIRED_CLASS_AND_UNKNOWN_FIELD_DRIFT_CLOSED');
 
-  const doc=snapshot(requesterId,bind()),bytes=JSON.stringify(doc);
+  const fullBinding=JSON.parse(await observedSql('BIND_FULL',"select coalesce(private.data_export_policy_binding(),'null'::jsonb)"));
+  const doc=JSON.parse(await observedSql('SNAPSHOT_FULL',snapshotSql(requesterId,fullBinding))),bytes=JSON.stringify(doc);
   assert.equal(doc.schemaVersion,'USKOCI_DATA_EXPORT_V2');assert.equal(doc.projectionVersion,'OWN_ACCOUNT_V5_1');assert.equal(Object.keys(doc.datasets).length,37);
   assert.ok(doc.datasets.ownAgreementReviews.some(x=>x.id===ownReview));assert.ok(!doc.datasets.ownAgreementReviews.some(x=>x.id===peerReview));
   for(const text of ['OWN_EXPORT_NARRATIVE','OWN_EXPORT_CANDIDATE','OWN_REVIEW_TITLE','OWN_PRIVATE_ADDRESS'])assert.ok(bytes.includes(text),text);
@@ -87,10 +92,11 @@ await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async rep
   for(const key of ['input_sha256','providerPayload','textSha256','request_hash','operation_id','client_request_id','snapshot_text','raw_user_meta_data'])assert.ok(!bytes.includes('"'+key+'"'));
   for(const media of doc.datasets.ownedMediaAssets)assert.equal(media.bytesIncluded,false);
   for(const allocation of doc.datasets.testAllocations)assert.equal(allocation.measuredProviderCharge,false);
-  assert.equal(doc.datasets.testAllocations.length,Number(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(requesterId)}::uuid`)));
-  reviewDelivery({datasets:delivery.datasets.map(d=>d.key==='ownSafetyReports'?{key:d.key,mode:'EXCLUDE',reasonCode:'DISPOSABLE_REVIEWED_OMISSION'}:d.key==='workerAiDrafts'?{...d,fields:['conversationId','revision']}:d)});
-  const limited=snapshot(requesterId,bind());assert.equal(limited.datasets.ownSafetyReports,undefined);assert.ok(limited.reviewedOmissions.some(x=>x.key==='ownSafetyReports'));
-  assert.ok(limited.datasets.workerAiDrafts.every(x=>Object.keys(x).sort().join(',')==='conversationId,revision'));reviewDelivery();
+  assert.equal(doc.datasets.testAllocations.length,Number(await observedSql('ALLOCATION_COUNT',`select count(*) from private.ai_test_reservations_v5 where account_id=${q(requesterId)}::uuid`)));
+  await observedSql('LIMITED_POLICY_UPDATE',reviewDeliverySql({datasets:delivery.datasets.map(d=>d.key==='ownSafetyReports'?{key:d.key,mode:'EXCLUDE',reasonCode:'DISPOSABLE_REVIEWED_OMISSION'}:d.key==='workerAiDrafts'?{...d,fields:['conversationId','revision']}:d)}));
+  const limitedBinding=JSON.parse(await observedSql('BIND_LIMITED',"select coalesce(private.data_export_policy_binding(),'null'::jsonb)"));
+  const limited=JSON.parse(await observedSql('SNAPSHOT_LIMITED',snapshotSql(requesterId,limitedBinding)));assert.equal(limited.datasets.ownSafetyReports,undefined);assert.ok(limited.reviewedOmissions.some(x=>x.key==='ownSafetyReports'));
+  assert.ok(limited.datasets.workerAiDrafts.every(x=>Object.keys(x).sort().join(',')==='conversationId,revision'));await observedSql('RESTORE_FULL_DELIVERY',reviewDeliverySql());
   pass(report,'TWO_ACCOUNT_OWN_AUTHOR_REVIEW_ONLY_PRIVATE_PARENT_JOIN_TYPED_NESTED_ALLOWLIST_REVIEWED_INCLUDE_EXCLUDE');
 
   const current=await ok(requester.rpc('rpc_get_data_export_status',{}));
@@ -99,7 +105,12 @@ await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async rep
   const request=await ok(requester.rpc('rpc_request_data_export',{p_client_request_id:'v5-export-'+randomUUID()}));
   const ownerToken=(await ok(requester.auth.getSession())).session.access_token,peerToken=(await ok(worker.auth.getSession())).session.access_token;
   const origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
-  async function handler(kind,token,body){const runtime=loadExportHandler(kind,{env:name=>({SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY})[name],fetch:async(target,init)=>{assert.equal(new URL(target).origin,origin);return fetch(target,init);}});return runtime.handler(new Request(origin+'/functions/v1/export',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)}));}
+  async function handler(kind,token,body){const runtime=loadExportHandler(kind,{env:name=>({SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY})[name],fetch:async(target,init)=>{
+   const url=new URL(target);assert.equal(url.origin,origin);const response=await fetch(target,init);
+   if(url.pathname.startsWith('/storage/v1/'))report.actualStorage=true;return response;
+  }});const request=new Request(origin+'/functions/v1/export',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)});
+   report.actualExportHandlers=true;return runtime.handler(request);
+  }
   const prepared=await handler('worker',ownerToken,{action:'prepare',receiptId:request.receiptId});assert.equal(prepared.status,200);assert.equal((await prepared.json()).kind,'READY');
   const status=await ok(requester.rpc('rpc_get_data_export_status',{}));assert.equal(status.downloadAvailable,true);assert.equal(status.request.status,'READY');
   const downloaded=await handler('download',ownerToken,{receiptId:request.receiptId,artifactGeneration:status.fulfillment.artifactGeneration});assert.equal(downloaded.status,200);
@@ -109,11 +120,13 @@ await prove('V5_OWNED_EXPORT_PROJECTION','v5-owned-export-report.json',async rep
   for(const client of [requester,worker,anon])await denied(client.storage.from('data-export-artifacts').download(`${requesterId}/${request.receiptId}/${status.fulfillment.artifactGeneration}.json`));
   await denied(worker.rpc('rpc_authorize_data_export_download',{p_receipt_id:request.receiptId,p_artifact_generation:status.fulfillment.artifactGeneration}),'DATA_EXPORT_REQUEST_NOT_FOUND');
   pass(report,'ACTUAL_REQUEST_CURRENT_WORKER_STORAGE_UPLOAD_READBACK_READY_HASHED_DOWNLOAD_FOREIGN_AND_DIRECT_STORAGE_DENIED');
- }finally{
-  if(policyId)sql(`update private.retention_policy_sets set retired_at=greatest(clock_timestamp(),effective_at+interval '1 second') where id=${q(policyId)}::uuid`);
-  sql(`update private.legal_document_versions set is_active=false where id=${q(privacy)}::uuid`);
-  for(const p of oldPolicies)sql(`update private.retention_policy_sets set retired_at=null where id=${q(p.id)}::uuid`);
-  for(const p of oldPrivacy)sql(`update private.legal_document_versions set is_active=true where id=${q(p.id)}::uuid`);
+ }catch(error){primaryFailure=error;throw error;}finally{
+  const cleanups=[];
+  if(policyId)cleanups.push({operation:'RETIRE_FIXTURE_POLICY',run:()=>observedSql('RETIRE_FIXTURE_POLICY',`update private.retention_policy_sets set retired_at=greatest(clock_timestamp(),effective_at+interval '1 second') where id=${q(policyId)}::uuid`)});
+  cleanups.push({operation:'RETIRE_FIXTURE_PRIVACY',run:()=>observedSql('RETIRE_FIXTURE_PRIVACY',`update private.legal_document_versions set is_active=false where id=${q(privacy)}::uuid`)});
+  for(const p of oldPolicies)cleanups.push({operation:'RESTORE_PREDECESSOR_POLICY',run:()=>observedSql('RESTORE_PREDECESSOR_POLICY',`update private.retention_policy_sets set retired_at=null where id=${q(p.id)}::uuid`)});
+  for(const p of oldPrivacy)cleanups.push({operation:'RESTORE_PREDECESSOR_PRIVACY',run:()=>observedSql('RESTORE_PREDECESSOR_PRIVACY',`update private.legal_document_versions set is_active=true where id=${q(p.id)}::uuid`)});
+  await restoreObservedSql(cleanups,report,primaryFailure);
  }
  pass(report,'SYNTHETIC_POLICY_AND_PRIVACY_POINTERS_RETIRED_PREDECESSOR_POINTERS_RESTORED_NO_LIVE_ACTIVATION');
 });

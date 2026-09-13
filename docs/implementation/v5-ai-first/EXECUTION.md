@@ -14,6 +14,14 @@ proof-only phase/wait diagnostics are being added without increasing timeouts.
 Artifact SHA2568db2f0e94d2de96939c82d9273e72e155a0fe1e0bf0879d0c311f6f7c50ae948
 was independently verified. No live or provider operation occurred.
 
+The subsequent136 diagnostic change is now source-reviewed: every direct SQL
+call after check2 and each outer cleanup is labelled/timed, with bounded safe
+wait/lock samples and SQLSTATE only. A20s process deadline and local20s statement
+timeout bound the fixture; no production/shared SQL runner was changed. The
+original failure survives secondary cleanup failures. Actual handler/Storage
+flags are set only when those operations are reached.14 focused helper tests
+PASS, independently rerun; the next exact actual database run remains pending.
+
 Previous full-regression source was8c250b23c00fe505fd6960b72213b1675e500c23,
 tree25c5246a1809c31db6fbf878d5f66f542ed8a570, including registered109–140.
 Its30-report disposable CI34732513050 passed all11 source gates,182 Jest suites/
