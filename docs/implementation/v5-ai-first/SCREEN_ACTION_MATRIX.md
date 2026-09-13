@@ -12,7 +12,8 @@ not a claim about current code. These later source changes supersede its gaps:
 - 947: real Gemini Q&A adapter135 and native submission/recovery; owned export136.
 - Reviewed source candidates: group137 with69 focused tests and actual Agreement
   route entry; D0144 location138 with93 focused tests. Actual SQL proofs pending.
-- In progress: D0141 accepted-media/evidence protection139.
+- Reviewed source candidate139: D0141 accepted-media/evidence protection and
+  corresponding native closure barrier. Actual Auth/Postgres/Storage proof pending.
 
 Exact ef4985 CI34729517617 passed175 Jest suites/3473 tests,659 Node tests and
 all11 source gates. Its24 actual SQL reports through134 all PASS, including

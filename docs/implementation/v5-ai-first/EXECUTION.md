@@ -1,5 +1,18 @@
 # V5 AI-FIRST execution — active, incomplete
 
+Current source checkpoint54abcbe6e0d6664ad73a14a6d91ed2dce7e5672a contains137/138.
+CI34730098067 attempt1 passed all11 source gates,182 Jest suites/3636 tests and
+659 Node tests. Actual reports through130 PASS, then unchanged131 encountered
+a DDL lock timeout before its checks. The prior ef4985 run proves131–134; it is
+not proof of the later source. Exact unchanged attempt2 is running. No timeout
+or production guard was weakened to obtain a pass.
+
+Candidate139 is reviewed and registered: immutable accepted-media snapshots,
+private report/problem/hold refs, unknown-history barriers, real Storage guard,
+42-dataset export and a neutral native closure blocker. Focused client20 and
+existing media17 tests pass; its actual Auth/Postgres/Storage proof remains
+pending. LIVE_BATCH_CANDIDATE files are preparation only, not owner approval.
+
 Latest verified cursor,2026-09-13: ef4985ee9d5cc24fce2956fc9595f8d96b746e80,
 tree294852b353a9e98a258d2d0a670befe6676fe970, CI34729517617. All11 source gates
 PASS:175 Jest suites/3473 tests and659 Node tests. All24 actual disposable
