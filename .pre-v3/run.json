@@ -1,7 +1,7 @@
 {
-  "sourceSha": "7f02a8e6a2509cbdbe2d77d669acb20543acb888",
-  "sourceTree": "2110a0967e3770ba14ae67d276ce165f8252639c",
-  "purpose": "Verify the latest integrated V5 source after requester discovery creation UX and canonical erasure146 supersession fixture repair. FULL147 disposable proof only; production guards remain unchanged and no live write, real provider, device or release claim is made.",
+  "sourceSha": "b35893c10e16c1fa188d5afa176ba601e7a00fdd",
+  "sourceTree": "a144db524529a10430d7775bb8a36dc8c0502d57",
+  "purpose": "Verify latest integrated V5 source through FULL147 after requester discovery/intent fixes, canonical erasure146 fact graph, and safe per-field Auth erasure diagnostics. Disposable Auth/Postgres/Storage only; no live write, real provider, physical-device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
