@@ -25,6 +25,7 @@ type Props = {
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
   onNewTask?: () => void; newTaskDisabled?: boolean; voice?: ReactNode; streamingText?: string;
   onPhotos?: () => void; photosDisabled?: boolean;
+  onCancelPending?: () => void; cancelPendingDisabled?: boolean;
 };
 
 const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Bilo kada',
@@ -70,14 +71,15 @@ function Panel({ title, children, close, reduced }: { title: string; children: R
   </Modal>;
 }
 
-export function IntakeUnavailable({ loading, error, retry, back }: {
-  loading: boolean; error: string; retry?: () => void; back: () => void;
+export function IntakeUnavailable({ loading, error, retry, back, recover }: {
+  loading: boolean; error: string; retry?: () => void; back: () => void; recover?: () => void;
 }) {
   return <SafeAreaView style={s.canvas}><View style={s.unavailable}>
     <V2Icon name="chat" size={36} color={v2.color.teal} />
     <T accessibilityRole="header" style={s.title}>{loading ? 'Otvaramo razgovor' : 'Razgovor nije dostupan'}</T>
     {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={v2.color.teal} />
       : <><T accessibilityRole="alert" style={[s.body, s.center]}>{error}</T>
+        {recover ? <V2Action kind="primary" label="Otvori prethodni razgovor" onPress={recover} /> : null}
         {retry ? <V2Action kind="primary" label="Učitajte razgovor ponovo" onPress={retry} /> : null}</>}
     <V2Action kind="quiet" label="Nazad" onPress={back} />
   </View></SafeAreaView>;
@@ -123,6 +125,7 @@ export function IntakePresentation(props: Props) {
     status={<>
       {props.error ? <T accessibilityRole="alert" style={[s.label, { color: a.color.danger }]}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" style={s.label}>{props.statusCopy}</T> : null}
+      {props.onCancelPending ? <V2Action kind="quiet" label="Otkaži slanje poruke" disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} /> : null}
       {props.showReadback ? <V2Action label="Proverite ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel ? <Panel title="Opcije razgovora" close={close} reduced={reduced}>

@@ -45,6 +45,7 @@ export default function TabLayout() {
     <Tabs.Screen name="profil/fotografija" options={{ href: null }} />
     <Tabs.Screen name="profil/blokirani" options={{ href: null }} />
     <Tabs.Screen name="profil/pravna" options={{ href: null }} />
+    <Tabs.Screen name="profil/o-aplikaciji" options={{ href: null }} />
     <Tabs.Screen name="bezbednost" options={{ href: null }} />
     <Tabs.Screen name="profil/lokacija" options={{ href: null }} />
     <Tabs.Screen name="profil/dostupnost" options={{ href: null }} />
@@ -56,6 +57,7 @@ export default function TabLayout() {
     <Tabs.Screen name="pregled-nacrta" options={{ href: null }} />
     <Tabs.Screen name="pregled-zadatka" options={{ href: null }} />
     <Tabs.Screen name="fotografije-zadatka" options={{ href: null }} />
+    <Tabs.Screen name="pitanja-zadatka" options={{ href: null }} />
     <Tabs.Screen name="oceni-dogovor" options={{ href: null }} />
     <Tabs.Screen name="potrebe/[id]/kandidati" options={{ href: null }} />
     <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null }} />

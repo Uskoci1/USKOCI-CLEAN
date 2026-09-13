@@ -33,6 +33,18 @@ export type AiNeedTurnStatus = {
   | { state: 'SUCCEEDED'; turnId: string; retryAllowed: false; receipt: AiNeedTurnReceipt }
 );
 
+export type AiNeedTurnRecovery = {
+  accountId: string;
+  conversationId: string;
+  clientRequestId: string;
+  conversationStatus: 'OPEN' | 'COMPLETED' | 'ABANDONED';
+  turn: AiNeedTurnStatus;
+  providerDispatched: boolean;
+  cancelled: boolean;
+  canCancel: boolean;
+  authoritative: true;
+};
+
 export type AiNeedConversationAbandoned = {
   conversationId: string;
   status: 'ABANDONED';

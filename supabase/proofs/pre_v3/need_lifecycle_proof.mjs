@@ -58,7 +58,7 @@ const controller=runtime.load('src/data/needLifecycleController.ts').createNeedL
 const origin=new URL(url).origin,key='SYNTHETIC_NON_SECRET_PROVIDER_KEY';
 const edgeEnv={SUPABASE_URL:url,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,
  AI_PROVIDER:'openai',OPENAI_API_KEY:key,OPENAI_MODEL:'SYNTHETIC_PROVIDER_MODEL'};
-const edge=loadOwnedIntakeHandler({env:name=>edgeEnv[name],fetch:async(input,init={})=>{
+const edge=loadOwnedIntakeHandler({historicalPre132:true,env:name=>edgeEnv[name],fetch:async(input,init={})=>{
  const target=new URL(String(input));
  if(target.href==='https://api.openai.com/v1/responses'){
   assert.equal(new Headers(init.headers).get('Authorization'),'Bearer '+key);providerCalls++;
@@ -186,7 +186,8 @@ try{
  assert.equal((await lifecycle.cancelNeed(active.id,active.revision,'')).ok,false);assert.equal((await lifecycle.deleteDraftNeed(active.id,active.revision,'')).ok,false);
  assert.equal(Number(sql(`select count(*) from public.needs where id=${q(active.id)}::uuid`)),1);
  pass('STALE_OWNER_ACTIVE_AGREEMENT_BARRIERS_AND_CONCURRENT_TERMINAL_COMMANDS');
- report.productionClientHashes=runtime.sourceHashes;report.edgeSourceHashes=edge.sourceHashes;report.syntheticProviderCalls=providerCalls;
+ report.productionClientHashes=runtime.sourceHashes;report.edgeSourceHashes=edge.sourceHashes;report.edgeSourceBinding=edge.sourceBinding;
+ report.latestEdgeProven=false;report.syntheticProviderCalls=providerCalls;
  report.historyCount=Number(sql('select count(*) from supabase_migrations.schema_migrations'));assert.equal(report.historyCount,114);
  report.secondTaskEngineProven=true;report.lifecycleControllerSqlProven=true;report.result='PASS';
 }catch(error){report.result='FAIL';report.failure=String(error.message).slice(0,500);process.exitCode=1;console.error('FAIL '+report.failure);}

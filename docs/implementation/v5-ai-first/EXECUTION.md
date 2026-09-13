@@ -151,6 +151,27 @@ activation occurred during this source-only implementation and documentation.
   Do not invent a legal entity, registered address, tax numbers or contact email.
   Legal publication and policy activation remain open inputs; technical preview
   implementation and installation testing continue.
+- AF-D11: explicitly approved Q&A limits:500-character questions,1000-character
+  answers,10 accepted asks per account/rolling24h,3 per Task/rolling24h,60-second
+  ask cooldown, duplicate normalized question on same Task revision rejected,
+  and same-key replay never counted twice.
+- AF-D12: separately approved Gemini review of proposed public Q&A and relevant
+  public Task data for contact/address leakage and material-term changes. No
+  private Task fields are sent; accepted Google processing and the same shared
+  internalUSD5 test reservation budget apply. This does not activate a live batch.
+- Gemini billing access verified in the signed-in AI Studio UI on2026-09-13:
+  the owner addedUSD5 after the initial Free-tier finding. `Uskoci-clean`
+  (`gen-lang-client-0693119686`) now shows Paid1, Prepay balanceUSD5.00,
+  and Auto-reload Off. No payment-method details or API key were read or saved.
+  Existing Supabase-secret to project association and actual model probes remain
+  unverified. No provider generation or live configuration follows from this read.
+- AF-D13: new/replacement group participants see messages only from their own
+  admission onward. Existing legitimate history and cancellation boundaries
+  remain governed by L-007/L-021 and applicable retention rules.
+- AF-D14: blocked group pairs cannot see each other's future messages; a
+  participant blocked with the requester cannot send new group messages.
+  Other participants continue. No disclosure of block direction; safe terminal
+  actions remain. See MULTIPERSON_CONTRACT.md for the existing locked context.
 - Disposable source checkpoint b8d6faee0a27 passed159 Jest suites/3253 tests,
   554 Node tests and all10 source gates. Actual SQL passed through125.126
   reached real concurrent publication and second-account public read, then

@@ -1,7 +1,7 @@
 import type {
   AiNeedConversationAbandoned, AiNeedConversationOpened, AiNeedDraftSaved,
   AiNeedEditConfirmed, AiNeedEditOpened, AiNeedMessage, AiNeedSafety,
-  AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
+  AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedTurnRecovery, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
 } from '../contracts/aiNeedV2';
 import { NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
 import type { Ishod } from './ports';
@@ -111,11 +111,28 @@ function turnStatus(raw: unknown, conversationId: string, clientRequestId: strin
   if (r.state === 'ABSENT') return r.turnId === null && r.receipt === null
     ? { ...ids, state: r.state, turnId: null, retryAllowed: r.retryAllowed, receipt: null } : null;
   if (!uuid(r.turnId)) return null;
-  if (r.state === 'PROCESSING' || r.state === 'FAILED') return r.receipt === null
+  if (r.state === 'PROCESSING' || r.state === 'FAILED') return r.receipt === null && (r.state !== 'PROCESSING' || r.retryAllowed === false)
     ? { ...ids, state: r.state, turnId: r.turnId, retryAllowed: r.retryAllowed, receipt: null } : null;
   const receipt = turnReceipt(r.receipt);
   return r.state === 'SUCCEEDED' && r.retryAllowed === false && receipt
     ? { ...ids, state: r.state, turnId: r.turnId, retryAllowed: false, receipt } : null;
+}
+
+function turnRecovery(raw: unknown, accountId: string, conversationId: string, clientRequestId: string): AiNeedTurnRecovery | null {
+  const r = exact(raw, ['accountId', 'conversationId', 'clientRequestId', 'conversationStatus', 'turn',
+    'providerDispatched', 'cancelled', 'canCancel', 'authoritative']);
+  if (!r || !sameId(r.accountId, accountId) || !sameId(r.conversationId, conversationId)
+    || !sameId(r.clientRequestId, clientRequestId) || !STATUS.includes(r.conversationStatus as typeof STATUS[number])
+    || typeof r.providerDispatched !== 'boolean' || typeof r.cancelled !== 'boolean' || typeof r.canCancel !== 'boolean'
+    || r.authoritative !== true) return null;
+  const turn = turnStatus(r.turn, conversationId, clientRequestId);
+  if (!turn || (r.providerDispatched && turn.retryAllowed)
+    || (r.cancelled && (turn.state !== 'FAILED' || turn.retryAllowed || r.providerDispatched || r.canCancel))
+    || (r.canCancel && (r.conversationStatus !== 'OPEN' || r.providerDispatched || turn.state === 'SUCCEEDED'))
+    || (turn.state === 'ABSENT' && (r.providerDispatched || r.cancelled))) return null;
+  return { accountId: r.accountId, conversationId: r.conversationId, clientRequestId: r.clientRequestId,
+    conversationStatus: r.conversationStatus as AiNeedTurnRecovery['conversationStatus'], turn,
+    providerDispatched: r.providerDispatched, cancelled: r.cancelled, canCancel: r.canCancel, authoritative: true };
 }
 
 /** HTTP status is diagnostic, never a write receipt or permission to retry.
@@ -292,6 +309,24 @@ export const aiNeedV2Production = {
     if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     return readReceipt({ rpc: 'rpc_ai_read_need_turn_v2', args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
       errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE', decode: raw => turnStatus(raw, conversationId, clientRequestId) });
+  },
+
+  async recoverTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnRecovery>> {
+    const account = scope();
+    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
+    return readReceipt({ rpc: 'rpc_ai_recover_need_turn_v2',
+      args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
+      errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE',
+      decode: raw => turnRecovery(raw, account.accountId, conversationId, clientRequestId) });
+  },
+
+  async cancelTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnRecovery>> {
+    const account = scope();
+    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
+    return readReceipt({ write: true, rpc: 'rpc_ai_cancel_need_turn_v2',
+      args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
+      errors: ERRORS, fallback: 'AI_TURN_CANCEL_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
+      decode: raw => turnRecovery(raw, account.accountId, conversationId, clientRequestId) });
   },
 
   async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions): Promise<Ishod<AiNeedTurnStatus>> {

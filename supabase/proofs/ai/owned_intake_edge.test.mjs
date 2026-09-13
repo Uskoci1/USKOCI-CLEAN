@@ -18,6 +18,7 @@ function fixture(config={}){
   const url=String(input),body=init.body?JSON.parse(init.body):null;calls.push({url,init,body});
   if(url.endsWith('/auth/v1/user'))return config.auth?.()??json({id:account});
   if(url.includes('/ai_conversations?'))return config.conversation?.()??json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
+  if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return config.dispatch?.(body)??json(true);
   if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return config.claim?.(body)??json({turn:turn('PROCESSING'),claim:{attemptId,leaseExpiresAt:new Date(clock+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
   if(url==='https://api.openai.com/v1/responses')return config.provider?.(init)??json({status:'completed',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'Proverite unos.',facts:[]})});
   if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return config.complete?.(body)??json(turn());
@@ -113,4 +114,15 @@ test('request cancellation fences late provider response and duplicate active in
 test('per-user six/minute burst is bounded; window rollover permits a new call',async()=>{
  const f=fixture({claim:()=>json({turn:turn('SUCCEEDED'),claim:null})});for(let n=0;n<6;n++)assert.equal((await f.invoke()).status,200);
  assert.equal((await f.invoke()).status,429);f.advance(60001);assert.equal((await f.invoke()).status,200);assert.equal(providers(f).length,0);
+});
+
+for (const dispatch of [() => json(false), () => json({acquired:true}), () => json({},500), () => { throw new Error('UNKNOWN_DISPATCH'); }])
+test('missing, denied or uncertain dispatch acknowledgment cannot call provider or mark retryable failure', async () => {
+ const f=fixture({dispatch}); await f.invoke(); assert.equal(providers(f).length,0); assert.equal(completes(f).length,0);
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
+});
+test('provider timeout/error after dispatch leaves durable unresolved command instead of enabling a second attempt',async()=>{
+ const f=fixture({provider:()=>{throw new Error('UNKNOWN_UPSTREAM');}});assert.equal((await f.invoke()).status,502);
+ assert.equal(providers(f).length,1);assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
+ assert.ok(f.calls.findIndex(c=>c.url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))<f.calls.findIndex(c=>c.url==='https://api.openai.com/v1/responses'));
 });

@@ -32,8 +32,9 @@ test('rejects missing historical candidate, duplicate history and version/name r
 });
 test('every explicitly admitted V5 migration still requires manifest, provenance and future chronology',()=>{
  const names=[future,'20260912214126_clean_v5_bounded_ai_test_budget.sql','20260912220506_clean_v5_owned_worker_profile.sql','20260912222338_clean_v5_owner_safety_legal_reads.sql',
-  '20260912224647_clean_v5_owned_media.sql','20260912230039_clean_v5_policy_bound_closure.sql'];
- const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,6);assert.equal(result.applied.length,1);
+  '20260912224647_clean_v5_owned_media.sql','20260912230039_clean_v5_policy_bound_closure.sql',
+  '20260912233901_clean_v5_ai_turn_restart_recovery.sql','20260912234201_clean_v5_owned_qa_recovery.sql','20260913000109_clean_v5_approved_qa_limits.sql'];
+ const result=partitionHygieneInventory(fixture([applied,...names]));assert.equal(result.future.length,9);assert.equal(result.applied.length,1);
 });
 test('catalog assertion retains exact applied table membership, RLS and no raw anon/authenticated access',()=>{
  const row={schema:'private',name:'safety_reports',rls:true,anon_data:false,authenticated_data:false};

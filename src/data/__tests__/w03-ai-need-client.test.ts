@@ -80,9 +80,9 @@ describe('turn receipt contract and SDK error transport', () => {
     await expect(client.readTurn(C, K)).resolves.toEqual({ ok: true, podatak: value });
     expect(mockRpc).toHaveBeenCalledWith('rpc_ai_read_need_turn_v2', { p_conversation_id: C, p_client_request_id: K });
   });
-  it('preserves explicit retry permission for an expired PROCESSING turn', async () => {
+  it('rejects invented retry permission for an unresolved PROCESSING turn', async () => {
     const value = { ...turn('PROCESSING'), retryAllowed: true }; mockRpc.mockResolvedValue(ok(value));
-    await expect(client.readTurn(C, K)).resolves.toEqual({ ok: true, podatak: value });
+    await expect(client.readTurn(C, K)).resolves.toMatchObject({ ok: false, kod: 'AI_TURN_INVALID_RESPONSE' });
   });
   it.each([{ conversationId: K }, { clientRequestId: C }, { state: 'READY' }, { turnId: null }, { retryAllowed: true },
     { retryAllowed: 'false' }, { receipt: null }, { secret: 'private' }])('rejects mismatched or incomplete successful envelope %j', async patch => {
@@ -253,4 +253,30 @@ describe('every command/read uses shared bounded account receipt ownership', () 
     const pending = run(); await jest.advanceTimersByTimeAsync(15001); await expect(pending).resolves.toMatchObject({ ok: false });
     expect(mockRpc.mock.calls.length + mockInvoke.mock.calls.length + mockProfile.mock.calls.length).toBe(1);
   });
+});
+
+const recovered = () => ({ accountId: ACCOUNT, conversationId: C, clientRequestId: K, conversationStatus: 'OPEN',
+  turn: turn('ABSENT'), providerDispatched: false, cancelled: false, canCancel: true, authoritative: true });
+it('reads exact recovery without invoking Edge or accepting cancellation automatically', async () => {
+  const value = recovered(); mockRpc.mockResolvedValue(ok(value));
+  await expect(client.recoverTurn(C, K)).resolves.toEqual({ ok: true, podatak: value });
+  expect(mockRpc).toHaveBeenCalledWith('rpc_ai_recover_need_turn_v2', { p_conversation_id: C, p_client_request_id: K });
+  expect(mockRpc).toHaveBeenCalledTimes(1); expect(mockInvoke).not.toHaveBeenCalled();
+});
+it('explicit cancellation uses the same opaque command and accepts only server fenced state', async () => {
+  const value = { ...recovered(), turn: { ...turn('FAILED'), retryAllowed: false }, cancelled: true, canCancel: false };
+  mockRpc.mockResolvedValue(ok(value)); await expect(client.cancelTurn(C, K)).resolves.toEqual({ ok: true, podatak: value });
+  expect(mockRpc).toHaveBeenCalledWith('rpc_ai_cancel_need_turn_v2', { p_conversation_id: C, p_client_request_id: K });
+  expect(mockInvoke).not.toHaveBeenCalled();
+});
+it.each([{accountId:C}, {conversationId:K}, {clientRequestId:C}, {authoritative:false}, {text:'private'},
+  {providerDispatched:true}, {cancelled:true}, {conversationStatus:'COMPLETED'}, {turn:{...turn('PROCESSING'),retryAllowed:true}}])(
+  'rejects contradictory or foreign recovery %j', async patch => {
+  mockRpc.mockResolvedValue(ok({...recovered(),...patch}));
+  await expect(client.recoverTurn(C,K)).resolves.toMatchObject({ok:false,kod:'AI_TURN_INVALID_RESPONSE'});
+});
+it('rejects a late recovered receipt after account ABA without provider fallback', async () => {
+  const held=deferred();mockRpc.mockReturnValue(held.promise);const result=client.recoverTurn(C,K);
+  mockOwner={...mockOwner,accountRevision:3};held.resolve(ok(recovered()));
+  await expect(result).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});expect(mockInvoke).not.toHaveBeenCalled();
 });

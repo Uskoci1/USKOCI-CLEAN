@@ -24,6 +24,8 @@ export function createNeedLifecycleController(options: {
   refreshOwnedNeeds: (account: ReceiptAccount) => Promise<unknown>;
   service?: typeof needLifecycleClientService;
   currentAccount?: () => ReceiptAccount | null;
+  /** Persisted command identity permits a receipt read only; never auto-resubmit. */
+  restoreUnknownOutcome?: boolean;
 }) {
   const account = Object.freeze({ ...options.account });
   const command = Object.freeze({ ...options.command });
@@ -34,7 +36,8 @@ export function createNeedLifecycleController(options: {
   });
   let disposed = false, busy = false, readbackObserved = false;
   let inFlight: Promise<void> | null = null;
-  let state: NeedLifecycleState = { phase: 'READY', confirmation: null, error: null, collectionRefreshRequired: false };
+  let state: NeedLifecycleState = { phase: options.restoreUnknownOutcome ? 'UNKNOWN_OUTCOME' : 'READY',
+    confirmation: null, error: options.restoreUnknownOutcome ? UNCERTAIN : null, collectionRefreshRequired: false };
   if (!uuid(command.needId) || !positiveInteger(command.expectedRevision) ||
     !['CANCEL', 'DELETE_DRAFT'].includes(command.action) || typeof command.reason !== 'string' || Array.from(command.reason).length > 500) {
     state = { ...state, phase: 'REJECTED', error: { kod: 'NEED_COMMAND_INVALID_INPUT', poruka: 'Ponovo otvorite Zadatak i pregledajte aktuelne podatke.' } };
@@ -99,6 +102,7 @@ export function createNeedLifecycleController(options: {
   }
   return {
     snapshot,
+    canRetrySame: () => current() && state.phase === 'UNKNOWN_OUTCOME' && readbackObserved,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     submit() { return busy ? inFlight ?? Promise.resolve() : state.phase === 'READY' ? run(send) : Promise.resolve(); },
     reconcile() {

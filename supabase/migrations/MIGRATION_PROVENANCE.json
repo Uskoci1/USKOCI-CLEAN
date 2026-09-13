@@ -2358,6 +2358,45 @@
       "raw_md5": "34def5ebabdcdd9e61774471b08299fb",
       "raw_sha256": "bfd4741f02716ae01fc24fda28bc0caf0225a6a00555a43f4a2bca6f05221574",
       "raw_bytes": 36660
+    },
+    {
+      "version": "20260912233901",
+      "name": "clean_v5_ai_turn_restart_recovery",
+      "file": "20260912233901_clean_v5_ai_turn_restart_recovery.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "935b12ffcaaefd42790cc786e74f9e86",
+      "raw_sha256": "88a10a8133cbfd21b13281196ac3d9e07d1c6c79481e218f2efd5fb2620e0f2b",
+      "raw_bytes": 13332
+    },
+    {
+      "version": "20260912234201",
+      "name": "clean_v5_owned_qa_recovery",
+      "file": "20260912234201_clean_v5_owned_qa_recovery.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "010d5f0d6d7e918c06ae21cb65c22995",
+      "raw_sha256": "246743796ea995026d6e03a99aa187137202ca9b19d6f66f237a43286f33ef31",
+      "raw_bytes": 6059
+    },
+    {
+      "version": "20260913000109",
+      "name": "clean_v5_approved_qa_limits",
+      "file": "20260913000109_clean_v5_approved_qa_limits.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "5733a3370245fc772b64c137ac64b2d0",
+      "raw_sha256": "d857fefa75b8ab454e84fdfa782f2e75abb186e1019aaa501346e7decfc31892",
+      "raw_bytes": 9729
     }
   ],
   "p2_data_export_requests": {

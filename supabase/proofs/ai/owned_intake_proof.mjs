@@ -232,7 +232,7 @@ try{
  let providerCalls=0;const origin=new URL(url).origin;const fakeProviderKey='SYNTHETIC_NON_SECRET_PROVIDER_KEY';
  const edgeEnv={SUPABASE_URL:url,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,
   AI_PROVIDER:'openai',OPENAI_API_KEY:fakeProviderKey,OPENAI_MODEL:'SYNTHETIC_PROVIDER_MODEL'};
- const runtime=loadOwnedIntakeHandler({env:name=>edgeEnv[name],fetch:async(input,init={})=>{
+ const runtime=loadOwnedIntakeHandler({historicalPre132:true,env:name=>edgeEnv[name],fetch:async(input,init={})=>{
   const target=new URL(String(input));
   if(target.href==='https://api.openai.com/v1/responses'){providerCalls++;assert.equal(new Headers(init.headers).get('Authorization'),'Bearer '+fakeProviderKey);
    return new Response(JSON.stringify({status:'completed',output_text:JSON.stringify({safety:'ALLOW',assistantMessage:'Pregledajte podatke.',facts:[]})}),{headers:{'Content-Type':'application/json'}});}
@@ -242,7 +242,8 @@ try{
   body:JSON.stringify({conversationId:edgeCid,clientRequestId:edgeKey,text:'DISPOSABLE_ACTUAL_HANDLER_INPUT'})}));
  const edgeResponse=await invoke();assert.equal(edgeResponse.status,200);const edgeReceipt=await edgeResponse.json();assert.equal(edgeReceipt.state,'SUCCEEDED');
  assert.deepEqual(await read(edgeCid,edgeKey),edgeReceipt);assert.equal(messages(edgeCid),2);assert.deepEqual(await(await invoke()).json(),edgeReceipt);assert.equal(providerCalls,1);
- report.actual_edge_source_hashes=runtime.sourceHashes;report.actual_edge_auth_verified=true;report.actual_edge_persisted_once=true;pass();
+ report.actual_edge_source_hashes=runtime.sourceHashes;report.edge_source_binding=runtime.sourceBinding;
+ report.latest_edge_proven=false;report.actual_edge_auth_verified=true;report.actual_edge_persisted_once=true;pass();
 
  check('ABANDON_FIRST_COMPLETION_WAIT_OBSERVED');clearRate();
  const raceCid=await fresh(),raceKey=randomUUID(),race=await claim(raceCid,raceKey);

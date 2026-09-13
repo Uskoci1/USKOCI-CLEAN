@@ -597,7 +597,6 @@ Deno.serve(async (req: Request) => {
   const wantsStream = req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream') === true;
   let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
-  let dispatchUncertain = false;
   let serviceRoleKey = '';
   const rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal) => boundedJson(supabaseUrl + '/rest/v1/rpc/' + name, {
     method: 'POST', headers: { apikey: serviceRoleKey, Authorization: 'Bearer ' + serviceRoleKey, 'Content-Type': 'application/json' },
@@ -605,11 +604,11 @@ Deno.serve(async (req: Request) => {
   }, 524288, 8000, signal);
   const identityArgs = () => ({ p_account_id: accountId, p_conversation_id: conversationId, p_client_request_id: requestId });
   const retireAttempt = async () => {
-    if (!attemptId || dispatchUncertain) return;
+    if (!attemptId) return;
     try {
       // Metadata only; never retries the materializer after an uncertain result.
       await rpc('rpc_ai_fail_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId });
-    } catch { /* Only explicit owner cancellation may fence a pre-dispatch unknown. */ }
+    } catch { /* Readback or expiry resolves an uncertain metadata acknowledgment. */ }
   };
   try {
     const conversationQuery = await boundedJson(supabaseUrl + '/rest/v1/ai_conversations?id=eq.' + encodeURIComponent(conversationId) +
@@ -682,18 +681,6 @@ Deno.serve(async (req: Request) => {
           await retireAttempt();
           return response(503, { code: budget.code, message: 'Probni AI zahtev nije odobren. Proverite prethodni ishod ili test limit.' });
         }
-      }
-      if (!((provider === 'gemini' && geminiKey && geminiModel) || (provider === 'openai' && openaiKey && openaiModel))) {
-        await retireAttempt();
-        return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
-      }
-      if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-        // Persist dispatch intent before any provider I/O. Lost ACK, timeout or
-        // response parsing failure cannot authorize another billable attempt.
-        dispatchUncertain = true;
-        const dispatched = await rpc('rpc_ai_dispatch_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId }, signal);
-        if (!dispatched.ok || dispatched.data !== true)
-          return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
       }
       if (provider === 'gemini' && geminiKey && geminiModel)
         aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText);

@@ -128,6 +128,10 @@ export default function Profil() {
       <SettingsRow label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka." icon={<ShieldCheck size={22} color={v2.color.teal} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/pravna'))} />
     </SettingsGroup>
+    <SettingsGroup title="USKOČI">
+      <SettingsRow label="O aplikaciji" detail="Kako USKOČI povezuje zadatke i ljude." disabled={busy} last
+        onPress={() => navigate(() => router.navigate('/profil/o-aplikaciji'))} />
+    </SettingsGroup>
     <View style={styles.logout}>
       {logoutError ? <T tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Pokušajte ponovo.</T> : null}
       <SettingsAction label={busy ? 'Sačekajte…' : 'Odjavite se'} kind="quiet" disabled={busy}

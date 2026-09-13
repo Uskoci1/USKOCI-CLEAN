@@ -1,16 +1,20 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { aiTurnIntentJournal } from '../aiTurnIntentJournal';
+jest.mock('@react-native-async-storage/async-storage', () => { const values = new Map<string, string>(); return { getItem: jest.fn(async (key: string) => values.get(key) ?? null), setItem: jest.fn(async (key: string, value: string) => { values.set(key, value); }), removeItem: jest.fn(async (key: string) => { values.delete(key); }), clear: jest.fn(async () => { values.clear(); }) }; });
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../contracts/needFactsV2';
 
-let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
+let mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 let mockParams: { conversationId?: string | string[]; entryKey?: string | string[] } = {}, mockCounter = 0;
 let mockReduced = false;
+const mockCancel = jest.fn(), mockRecover = jest.fn();
 const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn(), mockAlert = jest.fn();
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
 jest.mock('../index', () => ({ aiNeedV2Izvor: { openConversation: (...args: unknown[]) => mockOpen(...args),
   loadConversation: (...args: unknown[]) => mockLoad(...args), sendMessage: (...args: unknown[]) => mockSend(...args),
-  readTurn: (...args: unknown[]) => mockTurn(...args), abandonConversation: (...args: unknown[]) => mockAbandon(...args) } }));
+  readTurn: (...args: unknown[]) => mockTurn(...args), recoverTurn: (...args: unknown[]) => mockRecover(...args), cancelTurn: (...args: unknown[]) => mockCancel(...args), abandonConversation: (...args: unknown[]) => mockAbandon(...args) } }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
@@ -38,7 +42,7 @@ jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 import Intake from '../../app/(app)/nova';
 
 const id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', other = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-const ok = (podatak: unknown) => ({ ok: true, podatak });
+const ok = <T,>(podatak: T) => ({ ok: true as const, podatak });
 const unknown = () => ({ ok: false, kod: 'AI_TURN_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
 function conversation(patch: Partial<AiNeedV2Conversation> = {}): AiNeedV2Conversation {
   return { conversationId: id, schemaVersion: 'NEED_FACT_V2', status: 'OPEN', messages: [], facts: [], safety: 'ALLOW',
@@ -65,13 +69,19 @@ const type = async (value = 'Treba preneti ormar sutra.') => { await act(async (
 const blur = async () => { mockFocused = false; await update(); };
 const focus = async () => { mockFocused = true; await update(); };
 const options = async () => { await act(async () => button('Opcije').onPress()); };
-beforeEach(() => {
-  jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon]) mock.mockReset();
-  mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockParams = {}; mockCounter = 0;
+beforeEach(async () => {
+  await AsyncStorage.clear();
+  jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon, mockRecover, mockCancel]) mock.mockReset();
+  mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockParams = {}; mockCounter = 0;
   mockReduced = false;
   mockRouter.canGoBack.mockReturnValue(true); mockOpen.mockImplementation((requestId: string) => Promise.resolve(ok({ conversationId: id, clientRequestId: requestId })));
   mockLoad.mockResolvedValue(conversation()); mockSend.mockResolvedValue(unknown());
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'ABSENT', true)));
+  mockRecover.mockImplementation(async (cid: string, requestId: string) => {
+    const result = await mockTurn(cid, requestId);
+    return result.ok ? recovery(result.podatak) : result;
+  });
+  mockCancel.mockResolvedValue(unknown());
   mockAbandon.mockResolvedValue(ok({ conversationId: id, status: 'ABANDONED', authoritative: true }));
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
@@ -136,7 +146,7 @@ it('keeps pending intent across blur and reconciles before enabling another send
 });
 it.each(['account ABA', 'intent', 'route'] as const)('rejects retained send callbacks after %s changes', async change => {
   await render(); await type(); const retained = submit().onPress, oldInput = input().onChangeText;
-  if (change === 'account ABA') mockSession = { user: { id: 'account-a' }, accountRevision: 3 };
+  if (change === 'account ABA') mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 3 };
   if (change === 'intent') mockIntent = 'uskocer';
   if (change === 'route') mockParams = { conversationId: other };
   if (change === 'route') mockLoad.mockResolvedValue(conversation({ conversationId: other }));
@@ -145,7 +155,7 @@ it.each(['account ABA', 'intent', 'route'] as const)('rejects retained send call
 });
 it('masks old private messages immediately after account ABA and ignores the late read', async () => {
   const held = deferred(); mockLoad.mockReturnValueOnce(held.promise); await render();
-  mockSession = { user: { id: 'account-a' }, accountRevision: 3 }; await update();
+  mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 3 }; await update();
   await act(async () => held.resolve(conversation({ messages: [{ id, body: 'old private account message', fromAi: false,
     safety: null, proposedFactIds: [] }] })));
   expect(text()).not.toContain('old private account message'); expect(mockOpen).toHaveBeenCalledTimes(2);
@@ -153,7 +163,7 @@ it('masks old private messages immediately after account ABA and ignores the lat
 it('does not read or navigate from a late send result after account change', async () => {
   const held = deferred(); mockSend.mockReturnValueOnce(held.promise); await render(); await type();
   await act(async () => { void submit().onPress(); }); const requestId = mockSend.mock.calls[0][2];
-  mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update(); const reads = mockLoad.mock.calls.length;
+  mockSession = { user: { id: 'bbbbbbbb-1111-4111-8111-111111111111' }, accountRevision: 2 }; await update(); const reads = mockLoad.mock.calls.length;
   await act(async () => held.resolve(turn(requestId, 'SUCCEEDED')));
   expect(mockLoad).toHaveBeenCalledTimes(reads); expect(mockTurn).not.toHaveBeenCalled();
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(input().value).toBe('');
@@ -286,4 +296,88 @@ it('normal successful send clears the composer after the actual turn readback', 
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
   await render(); await type(); await act(async () => submit().onPress());
   expect(input().value).toBe(''); expect(input().editable).toBe(true); expect(mockSend).toHaveBeenCalledTimes(1);
+});
+
+function recovery(status: ReturnType<typeof turn>['podatak'], cancelled = false, dispatched = false) {
+  return ok({ accountId: mockSession.user.id, conversationId: id, clientRequestId: status.clientRequestId,
+    conversationStatus: 'OPEN', turn: status, providerDispatched: dispatched, cancelled,
+    canCancel: !cancelled && !dispatched && status.state !== 'SUCCEEDED', authoritative: true });
+}
+it('restores only the opaque pending IDs after remount before any open or provider request', async () => {
+  await render(); await type('Private typed message'); await act(async () => submit().onPress());
+  const requestId = mockSend.mock.calls[0][2];
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual({ accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId });
+  expect(String(await AsyncStorage.getItem('uskoci.ai.turn.intent.v1.' + mockSession.user.id))).not.toContain('Private typed message');
+  await act(async () => tree.unmount()); mockOpen.mockClear();
+  await render(); expect(mockOpen).not.toHaveBeenCalled(); expect(mockRecover).toHaveBeenLastCalledWith(id, requestId);
+  expect(mockSend).toHaveBeenCalledTimes(1); expect(input().value).toBe(''); expect(input().editable).toBe(false);
+  expect(button('Otkaži slanje poruke')).toBeDefined();
+});
+it('restored absent intent is never auto retried and clears only after exact cancellation readback', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  await aiTurnIntentJournal.save({ accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId });
+  await render(); expect(mockSend).not.toHaveBeenCalled();
+  const cancelled = recovery(turn(requestId, 'FAILED', false).podatak, true);
+  mockCancel.mockResolvedValue(cancelled); mockRecover.mockResolvedValue(cancelled);
+  await act(async () => button('Otkaži slanje poruke').onPress());
+  expect(mockCancel).toHaveBeenCalledWith(id, requestId); expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  expect(input().editable).toBe(true); await type('Nova poruka');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošalji poruku' }).props.onPress());
+  expect(mockSend.mock.calls[0][2]).not.toBe(requestId);
+});
+it('a competing provider dispatch wins cancellation without clearing its durable UUID', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const intent = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
+  await aiTurnIntentJournal.save(intent); await render();
+  const dispatched = recovery(turn(requestId, 'PROCESSING', false).podatak, false, true);
+  mockCancel.mockResolvedValue(dispatched); mockRecover.mockResolvedValue(dispatched);
+  await act(async () => button('Otkaži slanje poruke').onPress());
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual(intent);
+  expect(input().editable).toBe(false); expect(tree.root.findAllByProps({ label: 'Otkaži slanje poruke' })).toHaveLength(0);
+  expect(mockSend).not.toHaveBeenCalled();
+});
+it('canonical success after restart restores conversation and retires the UUID without another send', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  await aiTurnIntentJournal.save({ accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId });
+  mockTurn.mockResolvedValue(turn(requestId, 'SUCCEEDED'));
+  mockLoad.mockResolvedValue(conversation({ messages: [{ id, fromAi: false, body: 'Canonical private message', safety: null, proposedFactIds: [] }] }));
+  await render(); expect(text()).toContain('Canonical private message'); expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  expect(mockSend).not.toHaveBeenCalled(); expect(input().editable).toBe(true);
+});
+it('a known terminal failure restores a bound edit without abandoning it or resending automatically', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  await aiTurnIntentJournal.save({ accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId });
+  mockRecover.mockResolvedValue(recovery(turn(requestId, 'FAILED', false).podatak, false, true));
+  const bound = conversation(); bound.review.boundNeedId = other; mockLoad.mockResolvedValue(bound);
+  await render();
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  expect(input().editable).toBe(true); expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
+  expect(text()).toContain('AI nije primenio prethodnu poruku.');
+});
+it('does not dispatch if opaque UUID persistence fails and keeps the unsent typed body', async () => {
+  await render(); await type('Unsent private draft');
+  jest.mocked(AsyncStorage.setItem).mockRejectedValueOnce(new Error('storage unavailable'));
+  await act(async () => submit().onPress());
+  expect(mockSend).not.toHaveBeenCalled(); expect(input().value).toBe('Unsent private draft');
+});
+it('rechecks account ABA after persistence before any network send', async () => {
+  const held = deferred<void>();
+  await render(); await type(); jest.mocked(AsyncStorage.setItem).mockImplementationOnce(() => held.promise);
+  await act(async () => { void submit().onPress(); });
+  mockSession = { user: { id: mockSession.user.id }, accountRevision: 3 }; await update();
+  await act(async () => held.resolve()); expect(mockSend).not.toHaveBeenCalled();
+});
+it('routes a conflicting resumed conversation back to the pending UUID owner without sending', async () => {
+  await aiTurnIntentJournal.save({ accountId: mockSession.user.id, conversationId: id, clientRequestId: other });
+  mockParams = { conversationId: other }; await render();
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockRecover).not.toHaveBeenCalled(); expect(mockLoad).not.toHaveBeenCalled();
+  await act(async () => button('Otvori prethodni razgovor').onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: id } });
+});
+it('unknown cancellation response retains the exact UUID across another restart', async () => {
+  const intent = { accountId: mockSession.user.id, conversationId: id, clientRequestId: other };
+  await aiTurnIntentJournal.save(intent); await render(); await act(async () => button('Otkaži slanje poruke').onPress());
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual(intent);
+  await act(async () => tree.unmount()); await render();
+  expect(mockRecover).toHaveBeenLastCalledWith(id, other); expect(mockSend).not.toHaveBeenCalled();
 });

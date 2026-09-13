@@ -6,11 +6,12 @@ import type { NotificationPreferences, NotificationRole } from '../../contracts/
 import { notificationPreferencesClientService } from '../../data/notificationPreferencesClientService';
 import { nativePushDevice, type NativePushState } from '../../data/nativePushDevice';
 import { pushDeviceClientService, type PushDevice } from '../../data/pushDeviceClientService';
+import { pushReadinessClientService, type PushReadiness } from '../../data/pushReadinessClientService';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
 import { V2Action as Button } from '../v2/V2Action';
 import { v2 } from '../v2/tokens';
-type Snapshot = { preferences: NotificationPreferences; native: NativePushState; device: PushDevice | null };
+type Snapshot = { preferences: NotificationPreferences; native: NativePushState; device: PushDevice | null; readiness: PushReadiness | null };
 type Scope = AuthAccountScope & { role: NotificationRole; alive: boolean; busy: boolean; generation: number };
 export function PushPreferences({ role }: { role: NotificationRole }) {
  const { user, accountRevision } = useSesija(); const accountId = user?.id ?? '';
@@ -27,13 +28,18 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
   finally { if (timer) clearTimeout(timer); }
  }
  async function read(scope: Scope, generation: number, ask: boolean): Promise<Snapshot> {
+  // Independent read-only transport evidence. Its failure cannot disable device
+  // controls, request OS consent or change the existing preference revision.
+  const transport = readTransport();
   const preferences = await notificationPreferencesClientService.read(scope.accountId, scope.role);
   if (!current(scope, generation)) throw Error('STALE');
   const native = await nativePushDevice(ask, () => current(scope, generation));
   if (!current(scope, generation)) throw Error('STALE');
   const result = native.kind === 'READY' ? await pushDeviceClientService.read(scope, native.token) : null;
   if (!current(scope, generation) || result && !result.ok) throw Error('READ_UNAVAILABLE');
-  return { preferences, native, device: result?.ok ? result.podatak : null };
+  const readiness = await transport;
+  if (!current(scope, generation)) throw Error('STALE');
+  return { preferences, native, device: result?.ok ? result.podatak : null, readiness };
  }
  async function run(scope: Scope, work: (generation: number) => Promise<Snapshot>) {
   if (scope.busy || !current(scope, scope.generation)) return;
@@ -90,6 +96,14 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
    <T variant="bodyStrong">{enabled ? 'Push je uključen za ovu ulogu.' : 'Push je isključen za ovu ulogu.'}</T>
    <T tone="muted">{registered ? 'Ovaj uređaj je povezan sa trenutnom prijavom.' : snapshot.native.kind === 'DENIED' ? 'Dozvolite obaveštenja u podešavanjima telefona.'
     : snapshot.native.kind === 'UNSUPPORTED' ? 'Push obaveštenja zahtevaju podržan fizički telefon.' : snapshot.native.kind === 'UNCONFIGURED' ? 'Push još nije dostupan u ovoj verziji aplikacije.' : 'Ovaj uređaj još nije povezan za push obaveštenja.'}</T>
+   <View style={styles.stack}><T variant="bodyStrong">Poslednja provera slanja</T>
+    <T tone="muted">{snapshot.readiness?.state === 'OPERATIONAL' ? 'Server je pri proveri uspešno obrađivao slanje obaveštenja.'
+     : snapshot.readiness?.state === 'DEGRADED' ? 'Provera je zabeležila poteškoće ili kašnjenje u slanju.'
+      : snapshot.readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na serveru trenutno nije uključeno.'
+       : 'Nema sveže potvrde da je slanje na serveru dostupno.'}</T>
+    {snapshot.readiness ? <T variant="meta" tone="muted">Provereno: {new Date(snapshot.readiness.checkedAt).toLocaleString('sr-Latn')}</T> : null}
+    <T variant="meta" tone="muted">Ovo je stanje sistema za slanje, a ne potvrda da je obaveštenje stiglo na vaš telefon.</T>
+   </View>
    {snapshot.native.kind === 'DENIED' && <Button label="Podešavanja telefona" kind="secondary" onPress={() => { void Linking.openSettings().catch(() => undefined); }} />}
    {snapshot.native.kind !== 'UNSUPPORTED' && snapshot.native.kind !== 'UNCONFIGURED' && snapshot.native.kind !== 'DENIED' && (!registered || !enabled)
     && <Button label="Uključi push za ovu ulogu" onPress={enable} disabled={busy} />}
@@ -100,3 +114,14 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
  </View>;
 }
 const styles = StyleSheet.create({ stack: { gap: v2.space.lg } });
+
+async function readTransport(): Promise<PushReadiness | null> {
+ let timer: ReturnType<typeof setTimeout> | undefined;
+ try {
+  return await Promise.race([
+   pushReadinessClientService.read().then(result => result.ok ? result.podatak : null).catch(() => null),
+   new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 5000); }),
+  ]);
+ } catch { return null; }
+ finally { if (timer !== undefined) clearTimeout(timer); }
+}

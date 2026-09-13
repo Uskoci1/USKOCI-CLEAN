@@ -1,7 +1,7 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
 import { PushPreferences } from '../../ui/notifications/PushPreferences';
-const mockRead = jest.fn(), mockSave = jest.fn(), mockNative = jest.fn(), mockGet = jest.fn(), mockSet = jest.fn();
+const mockRead = jest.fn(), mockSave = jest.fn(), mockNative = jest.fn(), mockGet = jest.fn(), mockSet = jest.fn(), mockReadiness = jest.fn();
 let mockAccount = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
 let mockBlur: (() => void) | undefined;
 jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => void | (() => void)) => { const React = require('react'); React.useEffect(() => { const cleanup = callback(); mockBlur = typeof cleanup === 'function' ? cleanup : undefined; return cleanup; }, [callback]); } }));
@@ -9,6 +9,7 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSad
 jest.mock('../notificationPreferencesClientService', () => ({ notificationPreferencesClientService: { read: (...args: unknown[]) => mockRead(...args), save: (...args: unknown[]) => mockSave(...args) } }));
 jest.mock('../nativePushDevice', () => ({ nativePushDevice: (...args: unknown[]) => mockNative(...args) }));
 jest.mock('../pushDeviceClientService', () => ({ pushDeviceClientService: { read: (...args: unknown[]) => mockGet(...args), set: (...args: unknown[]) => mockSet(...args) } }));
+jest.mock('../pushReadinessClientService', () => ({ pushReadinessClientService: { read: () => mockReadiness() } }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: (props: unknown) => require('react').createElement('Button', props) }));
 jest.mock('../../ui/Text', () => ({ T: (props: unknown) => require('react').createElement('Text', props) }));
 const preferences = { userId: '11111111-1111-4111-8111-111111111111', roleContext: 'REQUESTER', exists: true, revision: 2, updatedAt: '2026-09-10T20:00:00Z', settings: { push_enabled: false, opportunities_enabled: false, quiet_hours_enabled: true, urgent_overrides_quiet_hours: false } };
@@ -20,6 +21,7 @@ beforeEach(() => {
  jest.useRealTimers(); jest.resetAllMocks(); mockAccount = { user: { id: preferences.userId }, accountRevision: 1 };
  mockRead.mockResolvedValue(preferences); mockNative.mockResolvedValue({ kind: 'READY', token: 'ExpoPushToken[synthetic]', platform: 'ANDROID' });
  mockGet.mockResolvedValue({ ok: true, podatak: { exists: false, revision: 0, active: false, sessionBound: false } });
+ mockReadiness.mockResolvedValue({ ok: false });
  mockSet.mockResolvedValue({ ok: true, podatak: { exists: true, revision: 1, active: true, sessionBound: true } }); mockSave.mockResolvedValue({ ...preferences, revision: 3 });
 });
 afterEach(() => { act(() => tree?.unmount()); jest.useRealTimers(); });
@@ -56,4 +58,21 @@ it('role switch makes retained old action inert', async () => {
 it('disable uses displayed revision and preserves all other settings', async () => {
  mockRead.mockResolvedValue({ ...preferences, settings: { ...preferences.settings, push_enabled: true } }); await mount();
  await act(async () => { button('Isključi push za ovu ulogu').props.onPress(); await flush(); }); expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: false }, 2); expect(mockSet).not.toHaveBeenCalled();
+});
+const screenText = () => tree.root.findAllByType('Text' as never).map(x => x.props.children).flat().join(' ');
+it('reads actual transport evidence independently and never turns a healthy tick into device delivery', async () => {
+ mockReadiness.mockResolvedValue({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } });
+ await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1); expect(screenText()).toContain('Server je pri proveri uspešno');
+ expect(screenText()).toContain('a ne potvrda da je obaveštenje stiglo'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+});
+it('transport failure preserves available device controls with honest missing evidence', async () => {
+ mockReadiness.mockRejectedValue(Error('offline')); await mount(); expect(screenText()).toContain('Nema sveže potvrde');
+ expect(button('Uključi push za ovu ulogu')).toBeDefined(); expect(mockSet).not.toHaveBeenCalled();
+});
+it('late transport result cannot replace a new account snapshot', async () => {
+ let done!: (value: unknown) => void; mockReadiness.mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
+ await mount(); mockAccount = { user: { id: preferences.userId }, accountRevision: 3 };
+ await act(async () => { tree.update(<PushPreferences role="REQUESTER" />); await flush(); });
+ await act(async () => { done({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } }); await flush(); });
+ expect(screenText()).not.toContain('Server je pri proveri uspešno'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
