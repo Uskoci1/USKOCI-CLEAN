@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Lightning } from 'phosphor-react-native';
 import type { NeedUrgencyProjection } from '../../contracts/projections';
-import { displaysUrgent } from '../../data/needUrgencyClientService';
+import { displaysUrgent } from '../../lib/needUrgency';
 import { T } from '../Text';
 import { v2 } from './tokens';
 

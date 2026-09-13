@@ -9,7 +9,19 @@ Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALP
 Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
 STT before explicit sending are approved for this cycle. Implementation continues.
 
-Latest saved/pushed source before photograph144 integration is
+Saved/pushed source144 is6d8f640f96f2034f56c2201a0b6082b82c50841b,
+tree36f08eee50694306047ee56089724a709f11f645. FULL144 run34746717895
+failed before disposable SQL:10/11 source gates pass,768 Node tests pass,
+194 Jest suites/4006 individual tests pass; task-detail-screen failed at import
+because the new urgency UI helper imported the transport service and started
+its AppState subscription before the test fixture initialized. The correction
+moves the pure display predicate into src/lib/needUrgency.ts; no UI behavior,
+server authority or test mocks are weakened. Both affected suites/35 tests pass.
+The unchanged FULL144/34-report plan will be repinned to the saved correction.
+None of109–144 is applied to canonical DEV/ALPHA. Source144 native build is
+running separately for the bounded original Entry/Auth handoff device proof.
+
+Historical source before photograph144 integration was
 78bbd1cb338ea0d51e4924f16bf8f1a34a241c8d, tree
 2ac97f7b45d96f2bc187429ca1d69d2e23c6fce7. Draft PR102 tracks the
 integration branch; canonical clean-alpha-backend remains unchanged.
@@ -35,7 +47,7 @@ Auth intent transitions and complete Entry on both Back paths and warm restart.
 Cold animation was observed in95 actual decoded frames. Reduced-motion and
 200%Auth/IME passed within this signed-out scope; no signed-in or speech-provider PASS is implied.
 
-Photograph144 server/native implementation is frozen for independent review:
+Photograph144 server/native implementation is saved in6d8f640:
 private6/message images,10MiB input,1600px metadata-free derivatives, immutable
 message/outbox binding, same-key upload recovery, selected support evidence,
 50 owned export datasets/V5_7, and no automatic history deletion. Targeted

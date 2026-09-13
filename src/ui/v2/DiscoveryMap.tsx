@@ -10,7 +10,7 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
 import { v2 } from './tokens';
-import { displaysUrgent } from '../../data/needUrgencyClientService';
+import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 

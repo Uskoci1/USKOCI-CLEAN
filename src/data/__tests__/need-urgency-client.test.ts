@@ -3,7 +3,8 @@ let mockAccount: string | null = aid, mockRevision = 0;
 const mockRpc = jest.fn();
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ rpc: (...args: unknown[]) => mockRpc(...args) }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: mockAccount ? { id: mockAccount } : null, accountRevision: mockRevision }) }));
-import { decodeNeedUrgency, displaysUrgent, readNeedUrgencies } from '../needUrgencyClientService';
+import { decodeNeedUrgency, readNeedUrgencies } from '../needUrgencyClientService';
+import { displaysUrgent } from '../../lib/needUrgency';
 const active = () => ({ needId: nid, level: 'HITNO', activatedAt: '2026-09-13T10:00:00Z', expiresAt: '2026-09-13T11:00:00Z',
   policyVersion: 1, reasonCodes: ['URGENT_ACTIVE'], authoritative: true });
 beforeEach(() => { jest.clearAllMocks(); mockAccount = aid; mockRevision = 0; });

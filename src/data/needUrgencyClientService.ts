@@ -32,8 +32,3 @@ export function decodeNeedUrgency(raw: unknown, id: string): NeedUrgencyProjecti
     || Date.parse(r.activatedAt) >= Date.parse(r.expiresAt)) return null;
   return { level: 'HITNO', expiresAt: r.expiresAt };
 }
-
-/** Display expiry only; no invented duration or activation authority. */
-export function displaysUrgent(urgency: NeedUrgencyProjection | undefined, now = Date.now()): boolean {
-  return urgency?.level === 'HITNO' && Date.parse(urgency.expiresAt) > now;
-}
