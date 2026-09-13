@@ -1,7 +1,7 @@
 {
-  "sourceSha": "f24f1baa77f70a8a50cbca11523060556db405fe",
-  "sourceTree": "a7573411d22cbb0f48a25d66d0956d312f2e2c5f",
-  "purpose": "Verify trigger-enabled-state source admission for account erasure on current V5 integration and continue the exact disposable sequence through146/147. FULL147 only; no live write, real provider, device or release claim.",
+  "sourceSha": "2fad2f5134c9f00b6ec63274d7198efb95be5e70",
+  "sourceTree": "db219b8c06f07b6680620ec35432da42e2c54b3c",
+  "purpose": "Verify the V2 display-value erasure fixture repair on current V5 integration and continue the exact disposable sequence through146/147. FULL147 only; no live write, real provider, device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
