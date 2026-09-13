@@ -8,7 +8,7 @@ const mockApp = { currentState: 'active', addEventListener: (_: string, fn: (sta
 jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mockNavigate(...args) }, useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return key === 'AppState' ? mockApp : Reflect.get(target, key); } }); });
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
-jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
+jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: jest.fn() }));
 jest.mock('../../ui/v2/MarketplacePresentation', () => ({ MarketplacePresentation: 'Marketplace' }));
 import Owned from '../../app/(app)/potrebe';
 import Public from '../../app/(app)/prilike';
@@ -45,9 +45,9 @@ test('hung source fails at bounded deadline; late completion is ignored and expl
  await act(async () => pending.resolve([{ id: 'late' }])); expect(props().error).toBe(true); expect(props().items).toEqual([]);
  await act(async () => props().onRefresh()); expect(props().error).toBe(false); expect(props().items).toEqual([{ id: 'public' }]);
 });
-test('intent change clears presentation state and blocks previous owner callbacks', async () => {
+test('intent change clears presentation state, keeps explicit new-task entry, and blocks previous callbacks', async () => {
  await render(); const old = props(); await act(async () => old.onView({ ...old.view, query: 'owned query' })); mockIntent = 'uskocer'; await update();
- expect(props().view.query).toBe(''); expect(props().onNew).toBeUndefined(); await act(async () => old.onOpen(old.items[0])); expect(mockNavigate).not.toHaveBeenCalled();
+ expect(props().view.query).toBe(''); expect(typeof props().onNew).toBe('function'); await act(async () => old.onOpen(old.items[0])); expect(mockNavigate).not.toHaveBeenCalled();
 });
 
 test.each(['narucilac', 'uskocer'])('central map opens actual public pins for %s and retains its camera across detail focus', async intent => {
