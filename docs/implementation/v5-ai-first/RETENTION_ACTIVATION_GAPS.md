@@ -2,6 +2,14 @@
 
 Read-only pregled 2026-09-13, kroz source139. Ovo nije Retention V1 politika, odobrenje rokova, legal review ili live batch. Priloženi tekst je izvor; aktuelne eksplicitne vlasničke odluke imaju prednost. Nije menjan SQL, worker, policy, scheduler ili live stanje.
 
+Noviji izvor28c47c01 sadrži forward140 za dole opisanu tačnu source/lock
+kompatibilnost i141 koji taj guard ponovo vezuje za tri nove Worker turn kolone.
+Time je inženjerska stavka1 implementirana u izvoru; njena actual SQL provera
+još nije dostignuta u CI34734349508, koji je stao na136.141 izvoz ostaje42
+dataset-a, sada OWN_ACCOUNT_V5_5 sa dodatnim owned cancelledAt. Ne uvodi novu
+klasu, rok, retention consumer, policy aktivaciju ili relacioni purge. Ostale
+granice i konkretni nedostajući policy ulazi u ovom pregledu ostaju otvoreni.
+
 **Preostaju i inženjerski rad i konkretna pravila čuvanja.** Postoje mali AI purge adapter, brisanje privremene export kopije i policy-bound zatvaranje pristupa nalogu. Ne postoji opšti izvršilac isteka svih zadržanih podataka. Popunjavanje rokova samo po sebi neće implementirati to brisanje.
 
 ## Postojeća pravila koja se ne pitaju ponovo

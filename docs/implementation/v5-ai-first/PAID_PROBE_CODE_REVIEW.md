@@ -2,6 +2,16 @@
 
 Read-only pregled 2026-09-13, nad fizičkim izvorima uz HEAD `2ece7eec13fba40396c9d05f7ab441b4adad4ea4`. Nema provider/metadata poziva, čitanja ključeva, izmene aplikacije/SQL/config-a ili live provere. Izmenjeni su samo ovaj izveštaj i [PAID_PROBE_PLAN](PAID_PROBE_PLAN.md). Kasniji source ili stvarno deploy-ovane verzije moraju biti provereni u root batch-u.
 
+Naknadni pregled izvora28c47c01/141: Worker sada trajno pamti opaque request
+ključ na uređaju pre I/O, ima owned canonical read/cancel i service-only dispatch
+CAS posle iste SQL127 rezervacije. Otkaz pre dispatch-a zatvara i zakasneli claim;
+tačna otkazana poruka ostaje u owned istoriji, ali se isključuje iz kasnijeg AI
+context-a. Novi dispatch guard ne dodaje provider poziv niti vraća rezervaciju.
+Oporavak postojećeg zahteva ostaje čitanje, bez nove inference. Stariji Worker128
+redovi ispod opisuju osnovu tog toka, ne najnoviju celokupnu implementaciju.
+Focused source/Edge/native i puna source regresija PASS; actual141 i pravi
+provider još nisu dokazani. Aktuelni CI je stao na136, pre ovog koraka.
+
 **Sa tačnom predloženom konfiguracijom svih pet provider ulaza prolazi SQL127 pre novog Gemini I/O. Nije pronađen automatski novi plaćeni pokušaj pri oporavku istog V5 command-a.** USD 2.90 i broj probe ipak nisu dodatna server kvota: to je obim kontrolisanog postupka. Server ograničava zbir rezervacija na USD 5 i naloge koji smeju da steknu novu rezervaciju. Ne ograničava batch/endpoint/uređaj, sve korisničke SQL akcije ili javnu publiku.
 
 ## 1. Konkretne granice koje batch mora pravilno da predstavi

@@ -1,6 +1,20 @@
 # V5 AI-FIRST execution — active, incomplete
 
-Latest full-regression source is8c250b23c00fe505fd6960b72213b1675e500c23,
+Latest full-regression source is28c47c01a3637e67ce767910ed213477a9a933b1,
+treef7e169159ff528d74b97606fb8bb1fb8ed7b59fa, including registered109–141.
+Its31-report disposable CI34734349508 passed all11 source gates,185 Jest suites/
+3711 tests and686 Node tests.25 actual Auth/Postgres reports through135 PASS;
+135 now passes all10 checks, including the current Edge and canonical receipt.
+136 applied and verified, then passed its catalog/ACL and binding-drift checks.
+It stopped with LOCAL_SQL:ETIMEDOUT before the third check. The20s SQL helper
+recorded neither a query phase nor active waits; cleanup could mask an earlier
+failure. This is not evidence of a lock or a production SQL defect. Bounded
+proof-only phase/wait diagnostics are being added without increasing timeouts.
+136 export-handler/Storage completion is unproved;137–141 were not reached.
+Artifact SHA2568db2f0e94d2de96939c82d9273e72e155a0fe1e0bf0879d0c311f6f7c50ae948
+was independently verified. No live or provider operation occurred.
+
+Previous full-regression source was8c250b23c00fe505fd6960b72213b1675e500c23,
 tree25c5246a1809c31db6fbf878d5f66f542ed8a570, including registered109–140.
 Its30-report disposable CI34732513050 passed all11 source gates,182 Jest suites/
 3637 tests and664 Node tests.24 actual SQL reports through134 PASS.135 passed8

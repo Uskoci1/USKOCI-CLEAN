@@ -1,7 +1,7 @@
 {
   "status": "PREPARATION_ONLY_NOT_APPROVED_OR_APPLIED",
-  "sourceCommit": "8c250b23c00fe505fd6960b72213b1675e500c23",
-  "sourceTree": "25c5246a1809c31db6fbf878d5f66f542ed8a570",
+  "sourceCommit": "28c47c01a3637e67ce767910ed213477a9a933b1",
+  "sourceTree": "f7e169159ff528d74b97606fb8bb1fb8ed7b59fa",
   "projectRef": "leqcwgzvjsxugfgzdmth",
   "observedBaseline": {
     "count": 108,
@@ -298,6 +298,15 @@
       "sha256": "b5eaf6f7cad801aeaa6a6534b1f85e4a753817e9406d73ac7b4be17bb0e0c206",
       "md5": "66d64756ab594e1eb6a19667327d2376",
       "bytes": 21426
+    },
+    {
+      "ordinal": 141,
+      "file": "supabase/migrations/20260913022110_clean_v5_worker_turn_restart_recovery.sql",
+      "version": "20260913022110",
+      "name": "clean_v5_worker_turn_restart_recovery",
+      "sha256": "f167555f07f9929681afa5774c2848a3b72b08fecb89b9575d9335b9da36960a",
+      "md5": "484cb918f8b525fb2dc90af8211babea",
+      "bytes": 20355
     }
   ],
   "edgeEntrypoints": [
@@ -553,10 +562,10 @@
     {
       "name": "uskoci-worker-interview",
       "entrypoint": "supabase/functions/uskoci-worker-interview/index.ts",
-      "entrypointSha256": "2c39cfbb8c8d74ec6ba3d56b721c5f67bdc15f963f64b38998f17a13b9113a66",
+      "entrypointSha256": "f8f436c2ddc3813faf641c3d368163723f3a1984611ea15de5d05aa4ad8615ff",
       "preparedVerifyJwt": true,
-      "preparedPayloadSha256": "ac88db9f50342ea5ea9c4eca6b40ecfa4fb7416e71bb464ee1c1f577c487a359",
-      "preparedPayloadBytes": 24791,
+      "preparedPayloadSha256": "055b2d2334539eec4105410ac62719ae54628aeda1f450951912ec0d492e2a8a",
+      "preparedPayloadBytes": 25855,
       "sourceFiles": [
         {
           "name": "supabase/functions/_shared/aiTestBudget.ts",
@@ -570,8 +579,8 @@
         },
         {
           "name": "supabase/functions/uskoci-worker-interview/index.ts",
-          "sha256": "2c39cfbb8c8d74ec6ba3d56b721c5f67bdc15f963f64b38998f17a13b9113a66",
-          "bytes": 15098
+          "sha256": "f8f436c2ddc3813faf641c3d368163723f3a1984611ea15de5d05aa4ad8615ff",
+          "bytes": 16150
         }
       ],
       "externalDependencies": []
@@ -579,8 +588,8 @@
   ],
   "edgeDependencyBinding": "Complete exact source tree; entrypoint hashes alone are not deployed bundle proof",
   "edgePayloadPreparation": {
-    "manifest": "artifacts/v5-edge-payloads/8c250b23c00fe505fd6960b72213b1675e500c23/manifest.json",
-    "manifestSha256": "07798bdf02f070a1c7cf01bb7ec10c6f1ca2fd97d7b3b808af9102da1d8cbf04",
+    "manifest": "artifacts/v5-edge-payloads/28c47c01a3637e67ce767910ed213477a9a933b1/manifest.json",
+    "manifestSha256": "4937f7e077491db6ad1fa647bfaf25302d7dd99609fb30f031095eb78b8405ba",
     "status": "LOCAL_EXACT_SOURCE_PAYLOADS_NOT_DEPLOYED"
   },
   "liveApproval": null,

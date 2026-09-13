@@ -1,10 +1,17 @@
 # Predlog malog Gemini testa kroz stvarnu aplikaciju
 
-Pripremljeno 2026-09-13, samo pregled izvora i plan. Nisu pročitani ključevi, menjani secrets/config, pozvani modeli niti izvršen live batch. Root priprema zaseban konkretan batch vezan za konačan commit/SQL139/proof/APK i tačne test naloge.
+Pripremljeno 2026-09-13, samo pregled izvora i plan. Nisu pročitani ključevi, menjani secrets/config, pozvani modeli niti izvršen live batch. Aktuelni source kandidat je28c47c01a3637e67ce767910ed213477a9a933b1/SQL141. CI34734349508 je prošao11 source gates,185 Jest suites/3711 testova,686 Node testova i25 actual izveštaja do135;136 je stao na SQL timeout-u posle2 provere, pa137–141 nisu dostignuti. Konkretan batch još zahteva završne dokaze, APK i tačne test naloge.
 
 Već odobreno: `gemini-3.8-flash`, `gemini-3.5-transcribe-live`, prihvaćen Google paid processing okvir, prolazan govor bez USKOČI audio arhive, AF-D09 pregled sanitizovanih Task fotografija, AF-D12 javni Q&A, zajednički interni test limit USD 5 i stvarna kontrola troška posle svake probe. Nema novih svrha/providera/cena. Paid1 / Prepay USD 5.00 / Auto-reload Off za `Uskoci-clean` / `gen-lang-client-0693119686` potvrdio je root u AI Studio; veza postojećeg Supabase `GEMINI_API_KEY` sa tim projektom još nije dokazana. Sufiks `…FZZg` je trag za nalaženje, ne dokaz identičnog ključa.
 
 ## 1. Najpre veza ključa i plaćenog projekta — bez prikazivanja tajne
+
+Read-only UI provera13.09 ponovo prikazuje odobreni Uskoci-clean kao Tier1/Prepay.
+Supabase secrets URL se, međutim, preusmerava na prijavu; raspoloživi Supabase
+konektor nema secrets metadata API, a gcloud/Supabase CLI nisu u lokalnom PATH-u.
+Vlasniku je poslat zahtev da se prijavi u postojeći Supabase kontrolni panel,
+bez slanja tajni u čet. To nije dokaz podudarnosti ključa, nova uplata ili
+odobrenje izmene konfiguracije. Izolovani CI i Android build nastavljaju se.
 
 Predlog postupka za kasniji odobreni preflight, ne izvršen nalog:
 

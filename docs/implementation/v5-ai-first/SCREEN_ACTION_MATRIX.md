@@ -2,6 +2,14 @@
 
 ## Current deltas, 2026-09-13
 
+Latest exact28c47c01/run34734349508 passed all11 source gates,185 Jest suites/
+3711 tests and686 Node tests.25 actual Auth/Postgres reports through135 PASS.
+136 applied, verified and passed2 catalog/binding checks, then a20s SQL process
+timed out without enough phase/wait evidence to identify the query or cause.
+Its actual export-handler/Storage completion is unproved;137–141 were not reached.
+Proof-only diagnostics are in progress; no production timeout/guard was weakened.
+This supersedes older rerun-pending statements below for the same source gates.
+
 The original71-row table below remains an immutable-in-meaning audit of b8d,
 not a claim about current code. These later source changes supersede its gaps:
 
