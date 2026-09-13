@@ -1,4 +1,4 @@
-name: Repair V5 identity145 prompt-context proof
+name: Repair V5 account-erasure proof TDZ
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: repair-v5-identity145-prompt-context
+  group: repair-v5-account-erasure-proof-tdz
   cancel-in-progress: false
 jobs:
   repair:
@@ -17,27 +17,33 @@ jobs:
           ref: work/pre-v3-engine-integration-20260911
           fetch-depth: 0
           persist-credentials: true
-      - name: Guard exact head and repair only stale prompt parsing in 145 proof
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Guard exact head and remove only local snapshot shadowing
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "4939521e7e50f677278aafaae19ad6b3312b06ab"
+          test "$(git rev-parse HEAD)" = "d37a662bd093184cc7e27eadc8c0666305c6fed5"
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs')
+          p=Path('supabase/proofs/pre_v3/v5_account_erasure_proof.mjs')
           s=p.read_text(encoding='utf-8')
-          old="const factPrefix='Aktuelne server-side činjenice: ',factLine=prompt.split('\\n').find(line=>line.startsWith(factPrefix));\n assert.ok(factLine);const facts=JSON.parse(factLine.slice(factPrefix.length));"
-          new="const factPrefix='Aktuelne server-side činjenice: ',factStart=prompt.indexOf(factPrefix),factEnd=prompt.indexOf(' Sastavite lep, kratak',factStart);\n assert.ok(factStart>=0&&factEnd>factStart);const facts=JSON.parse(prompt.slice(factStart+factPrefix.length,factEnd));"
-          if s.count(old)!=1: raise SystemExit(f'prompt-context guard={s.count(old)}')
+          old=""" const eventId=ownCase.receipt.eventId,snapshot=JSON.stringify({kind:'TASK',id:copiedData.needId,revision:1,content:{title:'COPIED_PRIVATE146'}});\n sql(`insert into private.support_evidence_v5(case_id,event_id,submitted_by_account_id,source_kind,source_id,source_revision,snapshot,snapshot_sha256)\n  values(${q(ownCase.caseId)},${q(eventId)},${q(caseAuthor.id)},'TASK',${q(copiedData.needId)},1,${q(snapshot)}::jsonb,${q(digest(snapshot))})`);"""
+          new=""" const eventId=ownCase.receipt.eventId,evidenceSnapshot=JSON.stringify({kind:'TASK',id:copiedData.needId,revision:1,content:{title:'COPIED_PRIVATE146'}});\n sql(`insert into private.support_evidence_v5(case_id,event_id,submitted_by_account_id,source_kind,source_id,source_revision,snapshot,snapshot_sha256)\n  values(${q(ownCase.caseId)},${q(eventId)},${q(caseAuthor.id)},'TASK',${q(copiedData.needId)},1,${q(evidenceSnapshot)}::jsonb,${q(digest(evidenceSnapshot))})`);"""
+          if s.count(old)!=1: raise SystemExit(f'snapshot-shadow guard={s.count(old)}')
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           PY
-          node --check supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
+          npm ci >/dev/null
+          node --check supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
+          node --test supabase/proofs/pre_v3/v5_account_erasure.test.mjs
           git diff --check
-          git diff -- supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
+          git diff -- supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
       - name: Commit exact proof repair to integration branch
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
-          git add -- supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
-          git commit -m 'test(v5): parse identity145 AI context from joined prompt'
+          git add -- supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
+          git commit -m 'test(v5): remove account erasure snapshot shadowing'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
