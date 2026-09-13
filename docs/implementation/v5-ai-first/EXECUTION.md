@@ -1,3 +1,11 @@
+# FINAL STOP CHECKPOINT — NOT RELEASE COMPLETE
+
+Read EMERGENCY_HANDOFF_20260913.md and EMERGENCY_CURRENT_PRODUCT_TRUTH_20260913.md.
+Current APK944fee9 built, collectorFAIL recovery redirect, saved UNVERIFIED.
+Real QA confirmed/login200; standalone budgetconfig20260913100016 applied
+(history145 but schema144). Real AIpost503 NOT_CONFIGURED, providerDispatchedfalse.
+No further code/tests/repairs after ownerSTOP. Older execution narrative below is historical.
+
 # EMERGENCY CHECKPOINT — incomplete
 
 Owner froze broad development, prioritized actual AI and current APK. See
