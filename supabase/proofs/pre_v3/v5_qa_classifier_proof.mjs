@@ -149,7 +149,11 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
    // disposable case; finally restores the inherited expired date as well.
    sql('update private.ai_test_budget_v5 set price_valid_until=default');
    assert.equal(sql('select enabled and price_valid_until>clock_timestamp() and reserved_microusd=0 from private.ai_test_budget_v5'),'t','POSITIVE_FIXTURE_BUDGET_READY');
-   const receipt=await checkedResponse(await invoke(),'ADMITTED_BUDGET',200);assert.equal(receipt.state,'COMMITTED');assert.deepEqual(await read(ea,ei),receipt);
+   const receipt=await checkedResponse(await invoke(),'ADMITTED_BUDGET',200);assert.equal(receipt.state,'COMMITTED');
+   const canonical=await read(ea,ei);assert.equal(canonical.receipt.ok,true);assert.equal(Object.hasOwn(receipt.receipt,'ok'),false);
+   // The typed decoder removes only the canonical success marker. Compare
+   // complete envelopes so any other extra, missing or changed field fails.
+   assert.deepEqual(canonical,{...receipt,receipt:{...receipt.receipt,ok:true}});
    assert.deepEqual(await(await invoke()).json(),receipt);assert.equal(providerCalls,1);assert.equal(questionCount(en),1);
    assert.equal(sql('select reserved_microusd from private.ai_test_budget_v5'),'250000');assert.equal(sql('select count(*) from private.ai_test_reservations_v5'),'1');
   }finally{

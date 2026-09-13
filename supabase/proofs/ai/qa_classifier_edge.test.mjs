@@ -38,6 +38,15 @@ test('actual handler binds Auth and durable dispatch before Gemini then submits 
  assert.equal(providers(f)[0].body.generationConfig.maxOutputTokens,8192);assert.ok(f.calls.findIndex(c=>c.url.includes('rpc_dispatch_qa'))<f.calls.findIndex(c=>c.url.includes('googleapis')));
 });
 test('READY replay uses canonical submission with no provider or paid flag dependency',async()=>{const f=fixture({replay:'READY',env:{USKOCI_QA_CLASSIFIER_ENABLED:''}});assert.equal((await f.invoke()).status,200);assert.equal(providers(f).length,0);assert.equal(submits(f).length,1);assert.equal(f.calls.filter(c=>c.url.includes('budget')).length,0);});
+for(const type of['ASK','ANSWER'])test(`${type} typed receipt preserves the complete canonical envelope except its validated success marker`,async()=>{
+ const f=fixture({type,replay:'READY'}),canonical=f.status('COMMITTED'),r=await f.invoke();assert.equal(r.status,200);
+ const receipt=await r.json();assert.equal(canonical.receipt.ok,true);assert.equal(Object.hasOwn(receipt.receipt,'ok'),false);
+ assert.deepEqual(canonical,{...receipt,receipt:{...receipt.receipt,ok:true}});assert.equal(providers(f).length,0);
+});
+for(const patch of[{ok:false},{unexpected:'UNADMITTED_FIELD'}])test('canonical receipt false success or unknown field is rejected instead of broadly stripped',async()=>{
+ const canonical=fixture().status('COMMITTED'),f=fixture({replay:'READY',finalPatch:{receipt:{...canonical.receipt,...patch}}});
+ const r=await f.invoke();assert.equal(r.status,502);assert.equal((await r.json()).code,'QA_CLASSIFICATION_UNCONFIRMED');assert.equal(providers(f).length,0);
+});
 for(const state of['PROCESSING','COMMITTED','CANCELLED','STALE','REJECTED'])test(`${state} replay never invokes provider or a new canonical write`,async()=>{const f=fixture({replay:state});await f.invoke();assert.equal(providers(f).length,0);assert.equal(submits(f).length,0);});
 for(const key of['USKOCI_GEMINI_PAID_TEST_ENABLED','USKOCI_QA_CLASSIFIER_ENABLED','GEMINI_MODEL','AI_PROVIDER'])test(`${key} must match exact approved configuration before billable work`,async()=>{const f=fixture({env:{[key]:'not-approved'}});await f.invoke();assert.equal(providers(f).length,0);assert.equal(completes(f).length,0);});
 test('budget denial cannot dispatch provider or publish',async()=>{const f=fixture({budget:{admitted:false,reservationId:null,replay:false,code:'AI_TEST_BUDGET_EXHAUSTED'}});await f.invoke();assert.equal(providers(f).length,0);assert.equal(submits(f).length,0);});
