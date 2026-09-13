@@ -29,24 +29,24 @@ jobs:
           from pathlib import Path
           p=Path('supabase/proofs/pre_v3/v5_account_erasure_proof.mjs')
           s=p.read_text(encoding='utf-8')
-          old=""" assert.equal(sql(`select deleted_at is not null and coalesce(encrypted_password,'')='' and coalesce(raw_user_meta_data,'{}')='{}' and coalesce(raw_app_meta_data,'{}')='{}' from auth.users where id=${q(a.id)}::uuid`),'t');
- assert.equal(sql(`select strpos(coalesce(email,''),${q(originalAuthEmail)})=0 and coalesce(phone,'')='' from auth.users where id=${q(a.id)}::uuid`),'t');
- assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0');
- assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0');"""
-          new=""" const authState=rows(`select deleted_at is not null deleted,coalesce(encrypted_password,'')='' password_empty,
-  coalesce(raw_user_meta_data,'{}'::jsonb)='{}'::jsonb user_meta_empty,coalesce(raw_app_meta_data,'{}'::jsonb)='{}'::jsonb app_meta_empty,
-  strpos(coalesce(email,''),${q(originalAuthEmail)})=0 email_obfuscated,coalesce(phone,'')='' phone_empty
-  from auth.users where id=${q(a.id)}::uuid`)[0];
- report.authSoftErasure={deleted:authState?.deleted===true,passwordEmpty:authState?.password_empty===true,userMetaEmpty:authState?.user_meta_empty===true,
-  appMetaEmpty:authState?.app_meta_empty===true,emailObfuscated:authState?.email_obfuscated===true,phoneEmpty:authState?.phone_empty===true};
- assert.equal(authState?.deleted,true,'AUTH_SOFT_DELETE_TIMESTAMP_MISSING');
- assert.equal(authState?.password_empty,true,'AUTH_SOFT_DELETE_PASSWORD_NOT_CLEARED');
- assert.equal(authState?.user_meta_empty,true,'AUTH_SOFT_DELETE_USER_METADATA_NOT_CLEARED');
- assert.equal(authState?.app_meta_empty,true,'AUTH_SOFT_DELETE_APP_METADATA_NOT_CLEARED');
- assert.equal(authState?.email_obfuscated,true,'AUTH_SOFT_DELETE_EMAIL_NOT_OBFUSCATED');
- assert.equal(authState?.phone_empty,true,'AUTH_SOFT_DELETE_PHONE_NOT_CLEARED');
- assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_IDENTITIES_REMAIN');
- assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_SESSIONS_REMAIN');"""
+          old=(" assert.equal(sql(`select deleted_at is not null and coalesce(encrypted_password,'')='' and coalesce(raw_user_meta_data,'{}')='{}' and coalesce(raw_app_meta_data,'{}')='{}' from auth.users where id=${q(a.id)}::uuid`),'t');\n"
+               " assert.equal(sql(`select strpos(coalesce(email,''),${q(originalAuthEmail)})=0 and coalesce(phone,'')='' from auth.users where id=${q(a.id)}::uuid`),'t');\n"
+               " assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0');\n"
+               " assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0');")
+          new=(" const authState=rows(`select deleted_at is not null deleted,coalesce(encrypted_password,'')='' password_empty,\n"
+               "  coalesce(raw_user_meta_data,'{}'::jsonb)='{}'::jsonb user_meta_empty,coalesce(raw_app_meta_data,'{}'::jsonb)='{}'::jsonb app_meta_empty,\n"
+               "  strpos(coalesce(email,''),${q(originalAuthEmail)})=0 email_obfuscated,coalesce(phone,'')='' phone_empty\n"
+               "  from auth.users where id=${q(a.id)}::uuid`)[0];\n"
+               " report.authSoftErasure={deleted:authState?.deleted===true,passwordEmpty:authState?.password_empty===true,userMetaEmpty:authState?.user_meta_empty===true,\n"
+               "  appMetaEmpty:authState?.app_meta_empty===true,emailObfuscated:authState?.email_obfuscated===true,phoneEmpty:authState?.phone_empty===true};\n"
+               " assert.equal(authState?.deleted,true,'AUTH_SOFT_DELETE_TIMESTAMP_MISSING');\n"
+               " assert.equal(authState?.password_empty,true,'AUTH_SOFT_DELETE_PASSWORD_NOT_CLEARED');\n"
+               " assert.equal(authState?.user_meta_empty,true,'AUTH_SOFT_DELETE_USER_METADATA_NOT_CLEARED');\n"
+               " assert.equal(authState?.app_meta_empty,true,'AUTH_SOFT_DELETE_APP_METADATA_NOT_CLEARED');\n"
+               " assert.equal(authState?.email_obfuscated,true,'AUTH_SOFT_DELETE_EMAIL_NOT_OBFUSCATED');\n"
+               " assert.equal(authState?.phone_empty,true,'AUTH_SOFT_DELETE_PHONE_NOT_CLEARED');\n"
+               " assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_IDENTITIES_REMAIN');\n"
+               " assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_SESSIONS_REMAIN');")
           if s.count(old)!=1: raise SystemExit(f'auth composite guard={s.count(old)}')
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           PY
@@ -55,7 +55,6 @@ jobs:
           node --test supabase/proofs/pre_v3/v5_account_erasure.test.mjs
           npx --no-install tsc --noEmit
           git diff --check
-          git diff -- supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
       - name: Commit safe Auth invariant diagnostic to integration branch
         run: |
           set -euo pipefail
