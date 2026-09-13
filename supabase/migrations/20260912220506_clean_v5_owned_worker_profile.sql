@@ -104,7 +104,7 @@ begin
  then raise exception 'WORKER_AI_PATCH_INVALID' using errcode='22023'; end if;
  foreach k in array array['displayName','bio'] loop
   if not patch?k then continue; end if; v:=patch->k;
-  if jsonb_typeof(v) is distinct from 'string' or length(v#>>'{}')>case k when 'displayName' then 160 else 4000 end
+  if jsonb_typeof(v) is distinct from 'string' or length(v#>>'{}')>(case k when 'displayName' then 160 else 4000 end)
    or (case when k='bio' then regexp_replace(v#>>'{}',E'[\n\r\t]','','g') else v#>>'{}' end) ~ '[[:cntrl:]]' then raise exception 'WORKER_AI_PATCH_INVALID' using errcode='22023'; end if;
   result:=jsonb_set(result,array[k],to_jsonb(btrim(v#>>'{}')));
  end loop;
@@ -152,7 +152,7 @@ begin
   then raise exception 'WORKER_AI_PATCH_INVALID' using errcode='22023'; end if;
   foreach k in array array['timezone','availableNow'] loop if v?k then av:=jsonb_set(av,array[k],v->k); end if; end loop;
   foreach k in array array['ruleChanges','windowsUpsert','windowIdsRemove'] loop
-   if v?k and (jsonb_typeof(v->k) is distinct from 'array' or jsonb_array_length(v->k)>case when k='ruleChanges' then 256 else 512 end)
+   if v?k and (jsonb_typeof(v->k) is distinct from 'array' or jsonb_array_length(v->k)>(case when k='ruleChanges' then 256 else 512 end))
    then raise exception 'WORKER_AI_PATCH_INVALID' using errcode='22023'; end if;
   end loop;
   for op in select value from jsonb_array_elements(coalesce(v->'ruleChanges','[]')) loop
