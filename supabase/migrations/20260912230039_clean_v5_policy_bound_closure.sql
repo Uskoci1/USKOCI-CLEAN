@@ -207,7 +207,7 @@ begin
  select * into e from private.closure_executions_v5 where account_id=p_account_id and generation=p_generation;
  select * into a from private.closure_actions_v5 where id=p_action_id and generation=p_generation and account_id=p_account_id;
  if e.account_id is null or a.id is null or p_attempt_id is null or a.attempt_id is distinct from p_attempt_id or a.state='PENDING' then raise exception 'CLOSURE_ATTEMPT_STALE' using errcode='40001';end if;
- if p_evidence is distinct from case a.kind when 'STORAGE_DELETE' then 'STORAGE_OBJECT_ABSENT' else 'AUTH_IDENTITY_ERASED_SUBJECT_RETAINED' end then raise exception 'CLOSURE_EVIDENCE_INVALID' using errcode='22023';end if;
+ if p_evidence is distinct from (case a.kind when 'STORAGE_DELETE' then 'STORAGE_OBJECT_ABSENT' else 'AUTH_IDENTITY_ERASED_SUBJECT_RETAINED' end) then raise exception 'CLOSURE_EVIDENCE_INVALID' using errcode='22023';end if;
  if a.kind='STORAGE_DELETE' and exists(select 1 from storage.objects where bucket_id=a.bucket and name=a.object_path) then raise exception 'CLOSURE_STORAGE_NOT_CLEAN' using errcode='55000';end if;
  if a.kind='AUTH_IDENTITY_ERASE' and (not exists(select 1 from auth.users where id=p_account_id and deleted_at is not null and coalesce(encrypted_password,'')='' and coalesce(raw_user_meta_data,'{}')='{}' and coalesce(raw_app_meta_data,'{}')='{}') or exists(select 1 from auth.sessions where user_id=p_account_id)) then raise exception 'CLOSURE_AUTH_NOT_CLOSED' using errcode='55000';end if;
  if a.state<>'VERIFIED' then update private.closure_actions_v5 set state='VERIFIED',verified_at=clock_timestamp(),evidence=p_evidence where id=a.id returning * into a;end if;
