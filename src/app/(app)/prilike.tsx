@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, type MarketplaceItem } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { izvorSada, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { izvorSada, postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 
 export default function Prilike({ initialMode = 'list' }: { initialMode?: 'map' | 'list' } = {}) {
@@ -40,5 +40,8 @@ function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
     scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
     onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}
-    onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/nova')) : undefined} />;
+    onNew={() => navigate(() => {
+      if (intent === 'narucilac') router.navigate('/nova');
+      else { postaviUlogu('narucilac'); router.replace('/nova'); }
+    })} />;
 }
