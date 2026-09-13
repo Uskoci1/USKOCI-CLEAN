@@ -1,4 +1,4 @@
-name: Repair V5 account-erasure photo guard patch
+name: Repair V5 account-erasure trigger-state binding
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: repair-v5-account-erasure-photo-guard
+  group: repair-v5-account-erasure-trigger-state
   cancel-in-progress: false
 jobs:
   repair:
@@ -21,24 +21,24 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Guard exact head and repair 146 photo guard plus exact source assertion
+      - name: Guard exact head and bind noninternal trigger enabled state
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "fe39c12bd23f469b0b3dc37effd25be908d058e9"
+          test "$(git rev-parse HEAD)" = "a9ceed1b869a47950c220b2e636743c51bf5f11e"
           python3 - <<'PY'
           from pathlib import Path
           import hashlib,json
           p=Path('supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql')
           s=p.read_text(encoding='utf-8')
-          old=""" execute replace(d,needle,$a$if case when e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'\n  then private.closure_erasure_media_protected_v5(a.account_id,old.name)\n  else exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id) or exists(select 1 from private.retention_holds where account_id=a.account_id and active) end$a$);"""
-          new=""" execute replace(d,needle,$a$if (e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'\n  and private.closure_erasure_media_protected_v5(a.account_id,old.name))\n  or (e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'\n   and (exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)\n    or exists(select 1 from private.retention_holds where account_id=a.account_id and active)))$a$);"""
-          if s.count(old)!=1: raise SystemExit(f'photo-guard patch guard={s.count(old)}')
+          old=""" 'tables',(select jsonb_agg(jsonb_build_array(c.oid::regclass::text,c.relowner,c.relacl::text,c.relrowsecurity,c.relforcerowsecurity) order by c.oid::regclass::text)\n from pg_class c where c.relnamespace in('private'::regnamespace,'public'::regnamespace) and c.relkind in('r','p'))\n )::text,'UTF8'),'sha256'),'hex')"""
+          new=""" 'tables',(select jsonb_agg(jsonb_build_array(c.oid::regclass::text,c.relowner,c.relacl::text,c.relrowsecurity,c.relforcerowsecurity) order by c.oid::regclass::text)\n from pg_class c where c.relnamespace in('private'::regnamespace,'public'::regnamespace) and c.relkind in('r','p')),\n 'triggerState',(select jsonb_agg(jsonb_build_array(t.tgrelid::regclass::text,t.tgname,t.tgenabled) order by t.tgrelid::regclass::text,t.tgname)\n from pg_trigger t join pg_class c on c.oid=t.tgrelid where not t.tgisinternal\n and (c.relnamespace in('private'::regnamespace,'public'::regnamespace) or t.tgrelid='storage.objects'::regclass))\n )::text,'UTF8'),'sha256'),'hex')"""
+          if s.count(old)!=1: raise SystemExit(f'trigger-state digest guard={s.count(old)}')
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           test=Path('supabase/proofs/pre_v3/v5_account_erasure.test.mjs')
           t=test.read_text(encoding='utf-8')
-          old_assert=" assert.ok(photo.includes('else exists(select 1 from private.media_evidence_refs_v5'));"
-          new_assert=" assert.ok(photo.includes(\"e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'\"));\n assert.ok(photo.includes('exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)'));\n assert.ok(photo.includes('exists(select 1 from private.retention_holds where account_id=a.account_id and active)'));"
-          if t.count(old_assert)!=1: raise SystemExit(f'photo-guard assertion guard={t.count(old_assert)}')
+          old_assert=" assert.ok(sql.includes('closure_erasure_program_digest_v5'));"
+          new_assert=" assert.ok(sql.includes('closure_erasure_program_digest_v5'));\n assert.ok(sql.includes('t.tgenabled'));"
+          if t.count(old_assert)!=1: raise SystemExit(f'trigger-state assertion guard={t.count(old_assert)}')
           test.write_text(t.replace(old_assert,new_assert),encoding='utf-8',newline='\n')
           b=p.read_bytes()
           prov=Path('supabase/migrations/MIGRATION_PROVENANCE.json')
@@ -57,11 +57,11 @@ jobs:
           python3 -m json.tool supabase/migrations/MIGRATION_PROVENANCE.json >/dev/null
           git diff --check
           git diff -- supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql supabase/proofs/pre_v3/v5_account_erasure.test.mjs supabase/migrations/MIGRATION_PROVENANCE.json supabase/migrations/MD5_MANIFEST.txt
-      - name: Commit verified 146 repair to integration branch
+      - name: Commit verified 146 trigger-state repair to integration branch
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
           git add -- supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql supabase/proofs/pre_v3/v5_account_erasure.test.mjs supabase/migrations/MIGRATION_PROVENANCE.json supabase/migrations/MD5_MANIFEST.txt
-          git commit -m 'fix(v5): repair account erasure photo-storage guard patch'
+          git commit -m 'fix(v5): bind closure erasure trigger enabled state'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
