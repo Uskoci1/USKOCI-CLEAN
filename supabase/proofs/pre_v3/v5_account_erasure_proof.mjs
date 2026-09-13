@@ -200,10 +200,20 @@ await prove('V5_EVENT_BOUND_ACCOUNT_ERASURE','v5-account-erasure-report.json',as
 
  const auth=await invoke();assert.equal(auth.status,200);assert.equal((await auth.json()).kind,'STEP_VERIFIED');
  assert.equal(calls.filter(x=>x.kind==='auth'&&x.method==='DELETE').length,1);
- assert.equal(sql(`select deleted_at is not null and coalesce(encrypted_password,'')='' and coalesce(raw_user_meta_data,'{}')='{}' and coalesce(raw_app_meta_data,'{}')='{}' from auth.users where id=${q(a.id)}::uuid`),'t');
- assert.equal(sql(`select strpos(coalesce(email,''),${q(originalAuthEmail)})=0 and coalesce(phone,'')='' from auth.users where id=${q(a.id)}::uuid`),'t');
- assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0');
- assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0');
+ const authState=rows(`select deleted_at is not null deleted,coalesce(encrypted_password,'')='' password_empty,
+  coalesce(raw_user_meta_data,'{}'::jsonb)='{}'::jsonb user_meta_empty,coalesce(raw_app_meta_data,'{}'::jsonb)='{}'::jsonb app_meta_empty,
+  strpos(coalesce(email,''),${q(originalAuthEmail)})=0 email_obfuscated,coalesce(phone,'')='' phone_empty
+  from auth.users where id=${q(a.id)}::uuid`)[0];
+ report.authSoftErasure={deleted:authState?.deleted===true,passwordEmpty:authState?.password_empty===true,userMetaEmpty:authState?.user_meta_empty===true,
+  appMetaEmpty:authState?.app_meta_empty===true,emailObfuscated:authState?.email_obfuscated===true,phoneEmpty:authState?.phone_empty===true};
+ assert.equal(authState?.deleted,true,'AUTH_SOFT_DELETE_TIMESTAMP_MISSING');
+ assert.equal(authState?.password_empty,true,'AUTH_SOFT_DELETE_PASSWORD_NOT_CLEARED');
+ assert.equal(authState?.user_meta_empty,true,'AUTH_SOFT_DELETE_USER_METADATA_NOT_CLEARED');
+ assert.equal(authState?.app_meta_empty,true,'AUTH_SOFT_DELETE_APP_METADATA_NOT_CLEARED');
+ assert.equal(authState?.email_obfuscated,true,'AUTH_SOFT_DELETE_EMAIL_NOT_OBFUSCATED');
+ assert.equal(authState?.phone_empty,true,'AUTH_SOFT_DELETE_PHONE_NOT_CLEARED');
+ assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_IDENTITIES_REMAIN');
+ assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_SESSIONS_REMAIN');
  const response=await invoke();assert.equal(response.status,200);const closed=await response.json();
  assert.equal(closed.state,'CLOSED');assert.equal(closed.relationalOutcome,'ORDINARY_PERSONAL_CONTENT_ERASED');assert.equal(closed.adapterVersion,'OWNER_AF_D22_EVENT_ERASURE_V1');
  assert.equal(closed.pseudonymousAuditRetained,true);assert.deepEqual(closed.retainedDatasets,[]);assert.deepEqual(closed.exceptions,[]);
