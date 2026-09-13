@@ -1,7 +1,7 @@
 {
-  "sourceSha": "b35893c10e16c1fa188d5afa176ba601e7a00fdd",
-  "sourceTree": "a144db524529a10430d7775bb8a36dc8c0502d57",
-  "purpose": "Verify latest integrated V5 source through FULL147 after requester discovery/intent fixes, canonical erasure146 fact graph, and safe per-field Auth erasure diagnostics. Disposable Auth/Postgres/Storage only; no live write, real provider, physical-device or release claim.",
+  "sourceSha": "45e0f31f8353005a657da01c447c71ec747ba9b9",
+  "sourceTree": "6fdcb939d9d1e516e550b63f085e9e3de8f878e5",
+  "purpose": "Verify latest integrated V5 source through FULL147 after requester discovery/intent fixes, canonical erasure146 fact graph, safe per-field Auth erasure diagnostics, and aligned owned-screen expectations. Disposable Auth/Postgres/Storage only; no live write, real provider, physical-device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
