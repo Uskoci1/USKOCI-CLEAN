@@ -1,6 +1,6 @@
 // Proof-only local Auth/Postgres adapter. No production target or provider access.
 import assert from 'node:assert/strict';
-import {execFileSync,spawn} from 'node:child_process';
+import {execFileSync,execFile,spawn} from 'node:child_process';
 import {createHash,randomUUID} from 'node:crypto';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
@@ -41,12 +41,56 @@ export function pass(r,name){r.checks.push({name,result:'PASS'});console.log('PA
 export async function prove(unit,file,fn){const r=report(unit);try{await fn(r);r.result='PASS';}
  catch(e){r.result='FAIL';r.failure=String(e.message).slice(0,1100);process.exitCode=1;console.error(r.failure);}
  finally{writeFileSync(out+'/'+file,JSON.stringify(r,null,2)+'\n');console.log(r.result+' '+unit);}}
+// Diagnostic-only migration runner. The exact SQL, migration lock/statement
+// timeouts and20s process bound are unchanged. Observe waits while the command
+// exists; after a lock timeout its transaction and blocking edge disappear.
+async function applySqlWithLockEvidence(r,body){
+ const application='uskoci-proof-apply-'+r.migrationStage.file.slice(0,14);
+ const child=spawn('psql',[env.RU5_DEVICE_DB_URL,'-X','-q','-v','ON_ERROR_STOP=1','-At','-f','-'],
+  {stdio:['pipe','pipe','pipe'],env:{...env,PGAPPNAME:application}});
+ let stderr='',closed=false,timedOut=false;
+ child.stdout.resume();child.stderr.on('data',chunk=>{stderr=(stderr+chunk).slice(0,4096);});
+ child.stdin.on('error',()=>{});
+ const exited=new Promise(resolve=>{
+  child.once('error',error=>{closed=true;resolve({status:null,code:error.code});});
+  child.once('close',status=>{closed=true;resolve({status});});
+ });
+ const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},20000),started=Date.now(),seen=new Set();
+ child.stdin.end(body);
+ try{
+  while(!closed){
+   await Promise.race([exited,new Promise(resolve=>setTimeout(resolve,250))]);if(closed)break;
+   try{
+    const query=`select a.pid,a.state,a.wait_event_type,a.wait_event,pg_blocking_pids(a.pid) blocking_pids,
+     (select coalesce(jsonb_agg(to_jsonb(x)),'[]') from (select l.locktype,l.mode,l.relation::regclass::text relation
+      from pg_locks l where l.pid=a.pid and not l.granted order by l.locktype,l.mode,l.relation limit 8) x) requested_locks,
+     (select coalesce(jsonb_agg(to_jsonb(x)),'[]') from (select b.pid,b.state,b.wait_event_type,b.wait_event,
+      (select coalesce(jsonb_agg(to_jsonb(y)),'[]') from (select h.locktype,h.mode,h.relation::regclass::text relation
+       from pg_locks h where h.pid=b.pid and h.granted and h.relation in(select w.relation from pg_locks w where w.pid=a.pid and not w.granted)
+       order by h.locktype,h.mode,h.relation limit 8) y) held_conflicting_relations
+      from pg_stat_activity b where b.pid=any(pg_blocking_pids(a.pid)) order by b.pid limit 8) x) blockers
+     from pg_stat_activity a where a.application_name=${q(application)} and cardinality(pg_blocking_pids(a.pid))>0 limit 1`;
+    const waits=await new Promise((resolve,reject)=>{
+     const observer=execFile('psql',[env.RU5_DEVICE_DB_URL,'-X','-q','-v','ON_ERROR_STOP=1','-At'],
+      {encoding:'utf8',timeout:1000,maxBuffer:65536},(error,stdout)=>{
+       if(error){reject(error);return;}try{resolve(JSON.parse(stdout.trim()));}catch(error){reject(error);}
+      });
+     observer.stdin.on('error',()=>{});observer.stdin.end(`select coalesce(jsonb_agg(to_jsonb(x)),'[]') from (${query}) x`);
+    });
+    for(const wait of waits){const key=JSON.stringify(wait);if(!seen.has(key)&&seen.size<12){seen.add(key);
+     (r.migrationLockObservations??=[]).push({elapsedMilliseconds:Date.now()-started,...wait});}}
+   }catch{r.migrationLockObserverUnavailable=true;}
+  }
+  const result=await exited;
+  if(result.status!==0)throw new Error(sqlProcessFailure({...result,code:timedOut?'ETIMEDOUT':result.code,stderr}));
+ }finally{clearTimeout(timer);if(!closed){child.kill('SIGKILL');await exited;}}
+}
 export async function apply(r,file,predecessor){
  r.migrationStage={file,phase:'HISTORY_BEFORE'};
  const before=rows(migrationSnapshotQuery());assert.equal(before.length,predecessor);
  const path='supabase/migrations/'+file,b=readFileSync(path);assert.deepEqual(b,execFileSync('git',['show',sha+':'+path]));
  r.migrationStage.phase='APPLY_AND_RECORD';
- sql(b.toString());sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(file.slice(0,14))},${q(file.slice(15,-4))},array[${q(b.toString())}]);notify pgrst,'reload schema'`);
+ await applySqlWithLockEvidence(r,b.toString());sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(file.slice(0,14))},${q(file.slice(15,-4))},array[${q(b.toString())}]);notify pgrst,'reload schema'`);
  r.migrationStage.phase='VERIFY_HISTORY';
  assert.deepEqual(rows(migrationSnapshotQuery(file.slice(0,14))),before);
  r.migrationStage.phase='VERIFIED';
