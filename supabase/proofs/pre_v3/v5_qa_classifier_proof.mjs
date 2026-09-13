@@ -19,7 +19,13 @@ const cancel=(a,i)=>ok(a.client.rpc('rpc_cancel_qa_classification',cancelArgs(i)
 const submit=(a,i)=>ok(a.client.rpc('rpc_submit_classified_preselection_qa',clientArgs(i)));
 const asActor=a=>`select set_config('request.jwt.claim.sub',${q(a.id)},true);select set_config('request.jwt.claim.role','authenticated',true);`;
 const sqlWrite=(a,i,cancelled)=>`${asActor(a)}select public.${cancelled?'rpc_cancel_qa_classification':'rpc_submit_classified_preselection_qa'}(${q(a.id)}::uuid,${q(i.p_type)},${q(i.p_need_id)}::uuid,1,${i.p_question_id?q(i.p_question_id)+'::uuid':'null'},${q(cancelled?hash(i.p_text):i.p_text)},${q(i.p_client_request_id)}::uuid)`;
-async function worker(label){const a=await actor(label);sql(`insert into public.app_profiles(account_id,kind,display_name,profile_status) values(${q(a.id)}::uuid,'WORKER','Disposable classifier worker','ACTIVE') on conflict(account_id,kind) do update set profile_status='ACTIVE'`);return a;}
+async function worker(label){
+ const a=await actor(label),p=await ok(a.client.rpc('rpc_get_worker_profile_for_edit',{}));
+ await ok(a.client.from('app_profiles').update({display_name:'Disposable QA worker',skills:['Proof']}).eq('id',p.id));
+ const location=await ok(a.client.rpc('rpc_get_worker_location',{}));
+ await ok(a.client.rpc('rpc_save_worker_location',{p_expected_revision:location.revision,p_value:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:15,approximatePosition:{latitude:45.25,longitude:19.85}},p_confirmed:true}));
+ await ok(a.client.rpc('rpc_complete_worker_profile',{p_profile_id:p.id}));return a;
+}
 const questionCount=n=>Number(sql(`select count(*) from private.preselection_qa_questions where need_id=${q(n)}::uuid`));
 async function ready(i){const c=await claim(i);assert.ok(c.claim);assert.equal(await dispatch(i,c),true);assert.equal((await complete(i,c)).state,'READY');return c;}
 

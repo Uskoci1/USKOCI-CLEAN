@@ -3,7 +3,13 @@
 import {assert,rows,sql,prove,pass,apply,login,need,actor,requester,anon,service,ok,denied,requesterId,randomUUID,q,lockedRace} from './closure_runtime.mjs';
 const check=(a,n,text,subject='QUESTION',qid=null)=>service.rpc('rpc_check_preselection_qa_limits_service',{p_actor_account_id:a,p_subject_kind:subject,p_need_id:n,p_need_revision:1,p_question_id:qid,p_text:text});
 const ask=(a,n,text,key=randomUUID())=>a.client.rpc('rpc_ru4b_ask_preselection_question',{p_need_id:n,p_expected_revision:1,p_question_text:text,p_request_id:key});
-async function worker(label){const a=await actor(label);sql(`insert into public.app_profiles(account_id,kind,display_name,profile_status) values(${q(a.id)}::uuid,'WORKER','Disposable QA worker','ACTIVE') on conflict(account_id,kind) do update set profile_status='ACTIVE'`);return a;}
+async function worker(label){
+ const a=await actor(label),p=await ok(a.client.rpc('rpc_get_worker_profile_for_edit',{}));
+ await ok(a.client.from('app_profiles').update({display_name:'Disposable QA worker',skills:['Proof']}).eq('id',p.id));
+ const location=await ok(a.client.rpc('rpc_get_worker_location',{}));
+ await ok(a.client.rpc('rpc_save_worker_location',{p_expected_revision:location.revision,p_value:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:15,approximatePosition:{latitude:45.25,longitude:19.85}},p_confirmed:true}));
+ await ok(a.client.rpc('rpc_complete_worker_profile',{p_profile_id:p.id}));return a;
+}
 const fixture=(a,n,text,age='2 hours')=>`insert into private.preselection_qa_questions(need_id,need_revision,asker_account_id,question_text,question_fingerprint,created_at) values(${q(n)}::uuid,1,${q(a)}::uuid,${q(text)},${q('a'.repeat(64))},clock_timestamp()-interval ${q(age)})`;
 await prove('V5_APPROVED_QA_LIMITS','v5-qa-limits-report.json',async report=>{
  await apply(report,'20260913000109_clean_v5_approved_qa_limits.sql',133);await login();
