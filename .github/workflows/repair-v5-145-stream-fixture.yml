@@ -1,4 +1,4 @@
-name: Diagnose V5 identity145 edge response
+name: Repair V5 identity145 prompt-context proof
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: diagnose-v5-identity145-edge
+  group: repair-v5-identity145-prompt-context
   cancel-in-progress: false
 jobs:
   repair:
@@ -17,26 +17,27 @@ jobs:
           ref: work/pre-v3-engine-integration-20260911
           fetch-depth: 0
           persist-credentials: true
-      - name: Guard exact head and add synthetic-only response diagnosis
+      - name: Guard exact head and repair only stale prompt parsing in 145 proof
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "a97af75877ea08dce14afa7ac041f23318a9971b"
+          test "$(git rev-parse HEAD)" = "4939521e7e50f677278aafaae19ad6b3312b06ab"
           python3 - <<'PY'
           from pathlib import Path
           p=Path('supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs')
           s=p.read_text(encoding='utf-8')
-          old="const response=await invoke();assert.equal(response.status,200);const receipt=await response.json();assert.equal(receipt.state,'SUCCEEDED');"
-          new="const response=await invoke();const receipt=await response.json();if(response.status!==200)throw new Error(`ACTUAL_EDIT_EDGE_${response.status}_${String(receipt?.code??'NO_CODE')}`);assert.equal(receipt.state,'SUCCEEDED');"
-          if s.count(old)!=1: raise SystemExit(f'diagnostic guard={s.count(old)}')
+          old="const factPrefix='Aktuelne server-side činjenice: ',factLine=prompt.split('\\n').find(line=>line.startsWith(factPrefix));\n assert.ok(factLine);const facts=JSON.parse(factLine.slice(factPrefix.length));"
+          new="const factPrefix='Aktuelne server-side činjenice: ',factStart=prompt.indexOf(factPrefix),factEnd=prompt.indexOf(' Sastavite lep, kratak',factStart);\n assert.ok(factStart>=0&&factEnd>factStart);const facts=JSON.parse(prompt.slice(factStart+factPrefix.length,factEnd));"
+          if s.count(old)!=1: raise SystemExit(f'prompt-context guard={s.count(old)}')
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           PY
           node --check supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
           git diff --check
-      - name: Commit diagnostic proof only
+          git diff -- supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
+      - name: Commit exact proof repair to integration branch
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
           git add -- supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
-          git commit -m 'test(v5): surface safe identity145 edge failure code'
+          git commit -m 'test(v5): parse identity145 AI context from joined prompt'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
