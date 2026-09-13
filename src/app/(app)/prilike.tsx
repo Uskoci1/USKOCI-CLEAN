@@ -39,7 +39,10 @@ function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
   return <MarketplacePresentation owned={false} items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
     scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
-    onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}
+    onSwitch={() => navigate(() => {
+      if (intent === 'narucilac') router.navigate('/potrebe');
+      else { postaviUlogu('narucilac'); router.replace('/potrebe'); }
+    })} onProfile={() => navigate(() => router.navigate('/profil'))}
     onNew={() => navigate(() => {
       if (intent === 'narucilac') router.navigate('/nova');
       else { postaviUlogu('narucilac'); router.replace('/nova'); }
