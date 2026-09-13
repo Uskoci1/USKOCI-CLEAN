@@ -9,6 +9,37 @@ Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALP
 Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
 STT before explicit sending are approved for this cycle. Implementation continues.
 
+ACTUAL canonical DEV/ALPHA promotion has begun.15 exact forward files109–123
+from3fa11c8b6c5357fb90a3f4fd05e80b5634a37619 are applied with hosted timestamp
+aliases recorded in DEV_ALPHA_PROMOTION_EXECUTION_20260913.json. Every stored
+SQL SHA/MD5 matches its source, all108 prior migration-row hashes and all14
+saved business-row hashes are unchanged. Independent hosted123 postflight at
+08:55:06UTC confirms3 Auth,7 Tasks,2 Agreements/versions, private table ACLs,
+all70 touched function names and fixed paths. No P0/P1 drift found.
+
+The purpose apply_migration tool has write authority; execute_sql uses the
+deliberately read-only supabase_read_only_user. A cron.alter_job attempt was
+denied and rolled back, so the existing minute scheduler remains unchanged and
+active. The maintenance plan now uses the unchanged per-file transaction/5s
+lock/30s statement guards and stops on failed/unknown results; no role escalation,
+cron-table write, ACL expansion, kill or timeout increase.124 activation waits
+for the mandatory AI admission correction described below.
+
+P1 configuration correction: every NEW requester inference now requires explicit
+Gemini3.8, paid=true and a real127 reservation, before the existing132 dispatch
+CAS. Missing flags/legacy OpenAI cannot bypassUSD5; no implicit provider fallback.
+Existing receipts/recovery/manual history remain available.183 targeted Node
+checks and TypeScript pass; the current132 actual proof now uses real disposable
+127 admission with synthetic Gemini transport and exact fixture restoration.
+It still awaits the next actual run. No provider call or secret change occurred.
+
+FULL145 run34748448217 on8c80eebe34304443fce2d1d65ef5e2c7873e2046 passed
+all11 source gates,195 Jest suites/4050 tests and777 Node tests, then12 actual
+reports through123. The hygiene inventory correctly rejected145 because its
+explicit future-file allowlist was not extended. The correction admits only
+that exact registered file and retains byte/provenance/catalog bounds;6 guards
+pass. No145 SQL has run. The next run retains FULL145 and35 actual reports.
+
 Unapplied145 implements the remaining AF-D23 basic-flow correction: no new
 external-identity requirement may make all self-reported workers ineligible.
 Historical true facts/reviews remain readable, with explicit owner correction
@@ -22,12 +53,13 @@ but not executed. Its control extension preserves FULL regression and all prior
 proofs, adding the one new actual report for a total35.146 account erasure and147
 approved Q&A document activation remain separate unfinished candidates.
 
-Saved143 correction3fa11c8b6c5357fb90a3f4fd05e80b5634a37619 is running the
-unchanged FULL144/34-report plan34748075434. Its registered144 bytes pass
-integrity and5 guard tests;17 targeted143/144 source tests pass. No hosted
-migration is applied. This CI source excludes the later145 candidate.
+Saved143 correction3fa11c8b6c5357fb90a3f4fd05e80b5634a37619 PASSED the
+unchanged FULL144/34-report plan34748075434, including actual143 support and144
+private photos/Storage. Its artifact digest was verified. This is the proven
+source for the ongoing DEV/ALPHA promotion; it excludes the later145 candidate.
+It does not claim actual hosted media Edge, provider or signed-in device proof.
 
-Latest tested source6d369b89f20bc108e624dcdace0c8e59e09d3d8a,
+Earlier tested source6d369b89f20bc108e624dcdace0c8e59e09d3d8a,
 tree7b822567b9e09aa498b7e365367a0b569e92ba3d, passed all11 source gates,
 195 Jest suites/4030 tests,768 Node tests and32 actual SQL reports through142
 in FULL144 run34747338498.143 migrated and its first authority/source check

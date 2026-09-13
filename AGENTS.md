@@ -24,7 +24,7 @@ Read in this order:
 2. `HANDOFF.md`, the top checkpoints of `docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md`, `CURRENT_IMPLEMENTATION_STATUS.md`, `IMPLEMENTATION_CONTINUITY.md`, then the linked latest `NEXT_AI_HANDOFF_*.md` and `NEXT_AI_HANDOFF_MANIFEST.json`. Physically read Git/CI/live metadata; actual newer state wins implementation facts.
 3. Product/architecture sources named in the authority index. CLEAN/Supabase owns business rules; keep existing RPC/RLS/revision/idempotency boundaries.
 4. Active V5 visual authority is the supplied sibling `USKOCI_V5_AI_FIRST_PAKET/07_REFERENCA/USKOCI_SPOJ_V4_9_COMPOSITION.html`, preserved in `01_HTML/USKOCI_V5_AI_FIRST.html`, together with the full V5 command. Preserve its entry composition, original photographs/SVG notes, mascot, timing and HOME signature. The older repository SPOJ V2/referenceEntry donors do not override V4.9. Use true RN/SVG and original assets, without a WebView or the HTML demo runtime. See `docs/implementation/v5-ai-first/NATIVE_CHECKPOINT138_REVIEW.md` for the discovered older native composition and the pending V4.9 correction.
-5. Legal/policy sources and missing-content entries in the authority index. RC2/RetentionV1 reuse approval exists; exact executable content is still missing. Keep gates closed; never invent law/consent.
+5. Legal/policy sources, the supplied RC2 package and current V5 owner decisions. RC2 content has been received; AF-D22 supersedes the old retention proposal. Follow the documented adaptation and exact executable readiness, without inventing operator details, legal certification or retention periods. Old missing-package requests are historical.
 6. `docs/authority/sources/closure-plan/USKOCI_RADNI_PAKETI.json` and current owner execution command: W03–W13 scope, current cursor and parent flows. Old package physical status is historical.
 7. Existing proof/evidence only for the affected risk; exact run/source scope matters.
 
@@ -32,4 +32,4 @@ Root is the sole integrator/live writer. Isolate subagent file ownership. Reuse 
 
 Migrations are forward-only; never rewrite an applied migration. Keep quarantine branch `repair/ru0-ru1-backend-20260902` isolated: never merge, cherry-pick or apply it. Preserve existing Auth/RLS/concurrency and controlled live preflight/postflight gates.
 
-Current owner requested SAFE STOP: preserve this handoff and do not start new development until the next explicit resume request. The previous long AGENTS is preserved, **HISTORICAL**, at `docs/authority/history/AGENTS_PRE_HANDOFF_20260911.md`. It is not the active reading order or cursor.
+The earlier owner SAFE STOP is superseded by the active V5 resume and AF-D26 promotion decision above. The previous long AGENTS is preserved, **HISTORICAL**, at `docs/authority/history/AGENTS_PRE_HANDOFF_20260911.md`. It is not the active reading order or cursor.
