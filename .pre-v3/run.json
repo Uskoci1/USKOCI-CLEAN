@@ -1,7 +1,7 @@
 {
-  "sourceSha": "37fcf56eceabf64fbe05699e498aada103757c4c",
-  "sourceTree": "09427acf84f738ba9db722c85de172e0982cd4dd",
-  "purpose": "Verify current V5 integration after requester/worker stream restoration, reachable AI/voice/auth UX, Gemini 3.8 wire parity for stream/nonstream calls and corrected migration145 synthetic fixture. FULL147 disposable proof only; no live access, real provider, device or release claim.",
+  "sourceSha": "a97af75877ea08dce14afa7ac041f23318a9971b",
+  "sourceTree": "58336f567c61b53f2a59514704e485d5beb37c24",
+  "purpose": "Verify current V5 integration after requester/worker stream restoration, reachable AI/voice/auth UX, Gemini 3.8 stream/nonstream wire parity, corrected provider assertions and migration145 synthetic fixture. FULL147 disposable proof only; no live access, real provider, device or release claim.",
   "applyP12OpenAIPrimary": false,
   "alignP12ProviderTests": false,
   "exportSource": true,
