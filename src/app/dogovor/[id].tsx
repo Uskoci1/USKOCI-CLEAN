@@ -193,6 +193,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
           <AgreementHero agreement={dogovor} />
           <AgreementPeople agreement={dogovor} />
+          {me ? <V2Action label="Izmene i otkazivanje Dogovora" kind="quiet" disabled={!enabled}
+            onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} /> : null}
           {other && me ? <V2Action label="Bezbednost i privatna prijava" kind="quiet" disabled={!enabled}
             onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
               router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}

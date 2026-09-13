@@ -215,6 +215,8 @@ export type AgreementActionState = {
   canProposeChange: boolean; canRespondChange: boolean; canWithdrawChange: boolean;
   canMarkWorkDone: boolean; canConfirmCompletion: boolean; canCancel: boolean;
 };
+export type AgreementCommandReadback = { found: false } | { found: true; proposalId: string;
+  agreementId: string; baseVersion: number; proposedBy: string; status: AgreementChangeProposal['status'] };
 const actionKeys = ['canProposeChange', 'canRespondChange', 'canWithdrawChange',
   'canMarkWorkDone', 'canConfirmCompletion', 'canCancel'] as const;
 const changeErrors = {
@@ -319,6 +321,42 @@ async function changeResponse(request: PromiseLike<unknown>): Promise<unknown> {
 }
 
 export const agreementChangeService = {
+  /** Exact existing participant-RLS row, never a newest-row inference. Request
+   * keys are additionally scoped to their author; no proposal body is returned. */
+  readCommand(agreementId: string, key: { clientRequestId: string } | { proposalId: string }, account: ReceiptAccount): Promise<Ishod<AgreementCommandReadback>> {
+    const owner = changeAccount(account), selector = record(key), byId = selector !== null && Object.hasOwn(selector, 'proposalId');
+    const value = byId ? selector?.proposalId : selector?.clientRequestId;
+    if (!owner || !selector || !exactKeys(selector, [byId ? 'proposalId' : 'clientRequestId']) || !uuid(agreementId) || typeof value !== 'string' || (byId ? !uuid(value)
+      : !value.trim() || Array.from(value).length > 200))
+      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Potvrda radnje nije dostupna.'));
+    return readOwnedResult({ ...changeOptions, account: owner, fallback: 'AGREEMENT_CHANGE_READ_FAILED',
+      request: () => {
+        const query = supabase.from('agreement_change_proposals').select('id,agreement_id,base_version,proposed_by_account_id,status').eq('agreement_id', agreementId);
+        return (byId ? query.eq('id', value) : query.eq('proposed_by_account_id', owner.accountId).eq('client_request_id', value)).maybeSingle();
+      },
+      decode: raw => {
+        if (raw === null) return { found: false };
+        const row = record(raw);
+        if (!row || !exactKeys(row, ['id', 'agreement_id', 'base_version', 'proposed_by_account_id', 'status'])
+          || !uuid(row.id) || !sameId(row.agreement_id, agreementId) || !positiveInteger(row.base_version) || !uuid(row.proposed_by_account_id)
+          || (byId ? !sameId(row.id, value) : !sameId(row.proposed_by_account_id, owner.accountId))
+          || !['PENDING', 'ACCEPTED', 'REJECTED', 'SUPERSEDED', 'WITHDRAWN'].includes(row.status as string)) return null;
+        return { found: true, proposalId: row.id, agreementId, baseVersion: row.base_version,
+          proposedBy: row.proposed_by_account_id, status: row.status as AgreementChangeProposal['status'] };
+      },
+    });
+  },
+  /** The existing RPC returns void. Its ACK is not a terminal-state receipt;
+   * callers still read the canonical workspace before displaying CANCELLED. */
+  cancel(agreementId: string, reason: string, account: ReceiptAccount): Promise<Ishod<{ acknowledged: true }>> {
+    const owner = changeAccount(account);
+    if (!owner || !uuid(agreementId) || typeof reason !== 'string' || !reason.trim() || Array.from(reason).length > 4000)
+      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Unesite razlog otkazivanja, do 4.000 znakova.'));
+    return readOwnedResult({ ...changeOptions, account: owner, write: true,
+      request: () => supabase.rpc('rpc_cancel_agreement', { p_agreement_id: agreementId, p_reason: reason.trim() }),
+      decode: raw => raw === null ? { acknowledged: true } : null,
+    });
+  },
   async read(agreementId: string, account: ReceiptAccount): Promise<Ishod<AgreementChangeSnapshot>> {
     const owner = changeAccount(account);
     if (!uuid(agreementId) || !owner) return failure('AGREEMENT_CHANGE_INVALID', 'Dogovor nije dostupan. Ponovo ga otvorite.');

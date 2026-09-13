@@ -92,3 +92,45 @@ it.each(['A-B','A-B-A'])('fences late read and late write for %s',async change=>
  resolve(ok(workspace));expect(await pending).toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
  expect(await agreementChangeService.propose(command,account)).toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});expect(mockRpc).toHaveBeenCalledTimes(1);
 });
+
+const storedProposal={id:PID,agreement_id:ID,base_version:7,proposed_by_account_id:A,status:'PENDING'};
+function proposalQuery(data:unknown=storedProposal){
+ const query={select:jest.fn(),eq:jest.fn(),maybeSingle:jest.fn().mockResolvedValue(ok(data))};
+ query.select.mockReturnValue(query);query.eq.mockReturnValue(query);mockFrom.mockReturnValue(query);return query;
+}
+it('recovers an exact owned request key with bounded columns and no newest-proposal inference',async()=>{
+ const query=proposalQuery();const value=await agreementChangeService.readCommand(ID,{clientRequestId:'persisted-key'},account);
+ expect(value).toEqual({ok:true,podatak:{found:true,proposalId:PID,agreementId:ID,baseVersion:7,proposedBy:A,status:'PENDING'}});
+ expect(mockFrom).toHaveBeenCalledWith('agreement_change_proposals');
+ expect(query.select).toHaveBeenCalledWith('id,agreement_id,base_version,proposed_by_account_id,status');
+ expect(query.eq.mock.calls).toEqual([['agreement_id',ID],['proposed_by_account_id',A],['client_request_id','persisted-key']]);
+ expect(mockRpc).not.toHaveBeenCalled();
+});
+it('permits the participant to read the exact counterpart proposal identity and immutable terminal status',async()=>{
+ const query=proposalQuery({...storedProposal,proposed_by_account_id:B,status:'ACCEPTED'});
+ expect(await agreementChangeService.readCommand(ID,{proposalId:PID},account)).toMatchObject({ok:true,podatak:{found:true,status:'ACCEPTED',proposedBy:B}});
+ expect(query.eq.mock.calls).toEqual([['agreement_id',ID],['id',PID]]);
+});
+it('represents an absent exact command as absent without inferring success or writing',async()=>{
+ proposalQuery(null);expect(await agreementChangeService.readCommand(ID,{clientRequestId:'persisted-key'},account)).toEqual({ok:true,podatak:{found:false}});
+ expect(mockRpc).not.toHaveBeenCalled();
+});
+it.each([{proposed_by_account_id:B},{agreement_id:B},{base_version:0},{status:'MADE_UP'},{privateBody:'LEAK'}])('refuses malformed or wrong-owned proposal readback %#',async patch=>{
+ proposalQuery({...storedProposal,...patch});expect(await agreementChangeService.readCommand(ID,{clientRequestId:'persisted-key'},account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});
+});
+it.each([null,{},[],{proposalId:PID,clientRequestId:'key'},{clientRequestId:' '},{proposalId:'wrong'}])('fails closed for malformed exact selectors without throwing or IO %#',async key=>{
+ expect(await agreementChangeService.readCommand(ID,key as never,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});expect(mockFrom).not.toHaveBeenCalled();
+});
+it('fences a late proposal read and freezes the selector before asynchronous IO',async()=>{
+ const query=proposalQuery();let complete!:(value:unknown)=>void;query.maybeSingle.mockImplementation(()=>new Promise(resolve=>{complete=resolve;}));
+ const key={clientRequestId:'original-key'},pending=agreementChangeService.readCommand(ID,key,account);key.clientRequestId='changed-key';mockRevision=2;
+ complete(ok(storedProposal));expect(await pending).toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
+ expect(query.eq.mock.calls.at(-1)).toEqual(['client_request_id','original-key']);
+});
+it('maps cancel void ACK without inventing cancellation state and requires bounded reason before mutation',async()=>{
+ for(const reason of ['', ' ', '😀'.repeat(4001)])expect((await agreementChangeService.cancel(ID,reason,account)).ok).toBe(false);
+ expect(mockRpc).not.toHaveBeenCalled();mockRpc.mockResolvedValue(ok(null));
+ expect(await agreementChangeService.cancel(ID,' Razlog ',account)).toEqual({ok:true,podatak:{acknowledged:true}});
+ expect(mockRpc).toHaveBeenCalledWith('rpc_cancel_agreement',{p_agreement_id:ID,p_reason:'Razlog'});
+ mockRpc.mockResolvedValue(ok({cancelled:true}));expect(await agreementChangeService.cancel(ID,'Razlog',account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});
+});

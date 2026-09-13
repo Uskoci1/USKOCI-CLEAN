@@ -70,12 +70,17 @@ try{
  assert.equal(first.actions.authoritative,true);assert.equal(first.terms.priceRsd,3000);assert.equal(first.terms.scopeNote,''); // The selected empty scope is canonical, not an invented null.
  const command={dogovorId:id,ocekivanaVerzija:1,clientRequestId:randomUUID(),izmena:{cenaIznos:4321,obim:'Privatan dogovoreni obim'},razlog:'Privatan razlog'};
  const proposal=await accepted(R.propose(command,userScope));
+ assert.deepEqual(await accepted(R.readCommand(id,{clientRequestId:command.clientRequestId},userScope)),{
+  found:true,proposalId:proposal.proposalId,agreementId:id,baseVersion:1,proposedBy:requesterId,status:'PENDING'});
+ assert.deepEqual(await accepted(W.readCommand(id,{clientRequestId:command.clientRequestId},workerScope)),{found:false});
+ assert.equal((await accepted(W.readCommand(id,{proposalId:proposal.proposalId},workerScope))).status,'PENDING');
  assert.deepEqual(same(await accepted(R.propose(command,userScope))),same(proposal));
  const wSnapshot=await accepted(W.read(id,workerScope));assert.equal(wSnapshot.actions.canRespondChange,true);assert.equal(wSnapshot.actions.canMarkWorkDone,false);
  assert.equal(wSnapshot.proposals.length,1);assert.equal(wSnapshot.proposals[0].proposalId,proposal.proposalId);
  const pending=await accepted(R.read(id,userScope));assert.equal(pending.actions.canWithdrawChange,true);assert.equal(pending.actions.canConfirmCompletion,false);
  await denied(worker.rpc('rpc_mark_work_done',{p_agreement_id:id}),'AGREEMENT_CHANGE_PENDING');
  const decision=await accepted(W.respond(wSnapshot.proposals[0],true,workerScope));assert.equal(decision.agreementVersion,2);
+ assert.equal((await accepted(W.readCommand(id,{proposalId:proposal.proposalId},workerScope))).status,'ACCEPTED');
  const after=await accepted(W.read(id,workerScope));assert.equal(after.terms.priceRsd,4321);assert.equal(after.proposals.length,0);assert.equal(after.actions.canMarkWorkDone,true);
  pass('ACTUAL_TYPED_CLIENT_SNAPSHOT_ACTIONS_PENDING_COMPLETION_BARRIER_AND_ACCEPTANCE');
  await ok(worker.rpc('rpc_mark_work_done',{p_agreement_id:id}));
