@@ -70,9 +70,11 @@ try{
  assert.equal(first.actions.authoritative,true);assert.equal(first.terms.priceRsd,3000);assert.equal(first.terms.scopeNote,''); // The selected empty scope is canonical, not an invented null.
  const command={dogovorId:id,ocekivanaVerzija:1,clientRequestId:randomUUID(),izmena:{cenaIznos:4321,obim:'Privatan dogovoreni obim'},razlog:'Privatan razlog'};
  const proposal=await accepted(R.propose(command,userScope));
- assert.deepEqual(await accepted(R.readCommand(id,{clientRequestId:command.clientRequestId},userScope)),{
+ // The production client is evaluated in a separate VM realm. Compare its
+ // complete JSON receipt, preserving every field/value without prototype noise.
+ assert.deepEqual(same(await accepted(R.readCommand(id,{clientRequestId:command.clientRequestId},userScope))),{
   found:true,proposalId:proposal.proposalId,agreementId:id,baseVersion:1,proposedBy:requesterId,status:'PENDING'});
- assert.deepEqual(await accepted(W.readCommand(id,{clientRequestId:command.clientRequestId},workerScope)),{found:false});
+ assert.deepEqual(same(await accepted(W.readCommand(id,{clientRequestId:command.clientRequestId},workerScope))),{found:false});
  assert.equal((await accepted(W.readCommand(id,{proposalId:proposal.proposalId},workerScope))).status,'PENDING');
  assert.deepEqual(same(await accepted(R.propose(command,userScope))),same(proposal));
  const wSnapshot=await accepted(W.read(id,workerScope));assert.equal(wSnapshot.actions.canRespondChange,true);assert.equal(wSnapshot.actions.canMarkWorkDone,false);
