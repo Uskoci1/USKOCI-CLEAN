@@ -49,7 +49,7 @@ jobs:
            const event={candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]};
            return new Response(`data: ${JSON.stringify(event)}\\n\\n`,{headers:{'Content-Type':'text/event-stream'}});
           }
-"""
+          """
           p.write_text(s[:start]+new+s[end:],encoding='utf-8',newline='\n')
           PY
           node --check supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs
