@@ -1,4 +1,4 @@
-name: Repair V5 account-erasure proof TDZ
+name: Repair V5 account-erasure photo guard patch
 on:
   push:
     branches: [work/pre-v3-proof-runner-20260911]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: repair-v5-account-erasure-proof-tdz
+  group: repair-v5-account-erasure-photo-guard
   cancel-in-progress: false
 jobs:
   repair:
@@ -21,29 +21,40 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Guard exact head and remove only local snapshot shadowing
+      - name: Guard exact head and make photo-storage condition syntactically explicit
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "d37a662bd093184cc7e27eadc8c0666305c6fed5"
+          test "$(git rev-parse HEAD)" = "fe39c12bd23f469b0b3dc37effd25be908d058e9"
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('supabase/proofs/pre_v3/v5_account_erasure_proof.mjs')
+          import hashlib,json
+          p=Path('supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql')
           s=p.read_text(encoding='utf-8')
-          old=""" const eventId=ownCase.receipt.eventId,snapshot=JSON.stringify({kind:'TASK',id:copiedData.needId,revision:1,content:{title:'COPIED_PRIVATE146'}});\n sql(`insert into private.support_evidence_v5(case_id,event_id,submitted_by_account_id,source_kind,source_id,source_revision,snapshot,snapshot_sha256)\n  values(${q(ownCase.caseId)},${q(eventId)},${q(caseAuthor.id)},'TASK',${q(copiedData.needId)},1,${q(snapshot)}::jsonb,${q(digest(snapshot))})`);"""
-          new=""" const eventId=ownCase.receipt.eventId,evidenceSnapshot=JSON.stringify({kind:'TASK',id:copiedData.needId,revision:1,content:{title:'COPIED_PRIVATE146'}});\n sql(`insert into private.support_evidence_v5(case_id,event_id,submitted_by_account_id,source_kind,source_id,source_revision,snapshot,snapshot_sha256)\n  values(${q(ownCase.caseId)},${q(eventId)},${q(caseAuthor.id)},'TASK',${q(copiedData.needId)},1,${q(evidenceSnapshot)}::jsonb,${q(digest(evidenceSnapshot))})`);"""
-          if s.count(old)!=1: raise SystemExit(f'snapshot-shadow guard={s.count(old)}')
+          old=""" execute replace(d,needle,$a$if case when e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'\n  then private.closure_erasure_media_protected_v5(a.account_id,old.name)\n  else exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id) or exists(select 1 from private.retention_holds where account_id=a.account_id and active) end$a$);"""
+          new=""" execute replace(d,needle,$a$if (e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'\n  and private.closure_erasure_media_protected_v5(a.account_id,old.name))\n  or (e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'\n   and (exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)\n    or exists(select 1 from private.retention_holds where account_id=a.account_id and active)))$a$);"""
+          if s.count(old)!=1: raise SystemExit(f'photo-guard patch guard={s.count(old)}')
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
+          b=p.read_bytes()
+          prov=Path('supabase/migrations/MIGRATION_PROVENANCE.json')
+          data=json.loads(prov.read_text(encoding='utf-8'))
+          item=next(x for x in data['pending_forward_migrations'] if x['file']==p.name)
+          item['raw_md5']=hashlib.md5(b).hexdigest();item['raw_sha256']=hashlib.sha256(b).hexdigest();item['raw_bytes']=len(b)
+          prov.write_text(json.dumps(data,indent=2,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
+          manifest=Path('supabase/migrations/MD5_MANIFEST.txt')
+          manifest.write_text(''.join(hashlib.md5(x.read_bytes()).hexdigest()+'  '+x.name+'\n' for x in sorted(Path('supabase/migrations').glob('*.sql'))),encoding='utf-8',newline='\n')
           PY
           npm ci >/dev/null
-          node --check supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
+          npx --no-install tsc --noEmit
           node --test supabase/proofs/pre_v3/v5_account_erasure.test.mjs
+          sh supabase/migrations/check_md5.sh
+          python3 -m json.tool supabase/migrations/MIGRATION_PROVENANCE.json >/dev/null
           git diff --check
-          git diff -- supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
-      - name: Commit exact proof repair to integration branch
+          git diff -- supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql supabase/migrations/MIGRATION_PROVENANCE.json supabase/migrations/MD5_MANIFEST.txt
+      - name: Commit verified 146 migration repair to integration branch
         run: |
           set -euo pipefail
           git config user.name 'USKOCI integration bot'
           git config user.email 'integration-bot@users.noreply.github.com'
-          git add -- supabase/proofs/pre_v3/v5_account_erasure_proof.mjs
-          git commit -m 'test(v5): remove account erasure snapshot shadowing'
+          git add -- supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql supabase/migrations/MIGRATION_PROVENANCE.json supabase/migrations/MD5_MANIFEST.txt
+          git commit -m 'fix(v5): repair account erasure photo-storage guard patch'
           git push origin HEAD:work/pre-v3-engine-integration-20260911
