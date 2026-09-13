@@ -256,7 +256,7 @@ export default function AuthScreen() {
     <><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
     <AuthSheet visible={otvoren} expanded={rezim === 'SIGNUP'} backdrop={entrySeen ? <EntryWelcome
       onRequester={() => izaberiNameru('REQUESTER')} onWorker={() => izaberiNameru('WORKER')}
-      onSignIn={() => otvori('LOGIN')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
+      onSignIn={() => otvori('LOGIN')} onSignUp={() => otvori('SIGNUP')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
     <View onLayout={onFormLayout} style={styles.screen}>
       <StatusBar style="light" />
       <View style={styles.header}>

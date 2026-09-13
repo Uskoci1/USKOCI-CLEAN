@@ -80,6 +80,14 @@ it('shows actual email-only entry without provider placeholders or invented save
   for (const fake of ['Google', 'Apple', 'Telefon', 'Sačuvali smo', 'istu Priliku', 'ili nastavite preko']) expect(text()).not.toContain(fake);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });
+it('connects the V4.9 welcome signup action to the existing real signup sheet without submitting', async () => {
+  await act(async () => { tree = create(<AuthScreen />); });
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignUp());
+  expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka', 'Potvrdite lozinku']);
+  expect(button('Napravite nalog')).toBeDefined();
+  expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
+  expect(mockPrepare).not.toHaveBeenCalled();
+});
 
 it('uses the flatter signup stage while retaining all real fields and the explicit primary command', async () => {
   await render();
