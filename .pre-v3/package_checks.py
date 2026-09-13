@@ -47,7 +47,7 @@ if mode=='source':
  (out/'source-baseline-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');sys.exit(0 if passed else 1)
 elif mode=='extras':
  for item in config['proofs']:
-  name=item['script'];assert re.fullmatch('[a-z_]+_proof[.]mjs',name) or name in ('v5_review_acceptance_proof.mjs','v5_ai_test_budget_proof.mjs','v5_worker_profile_proof.mjs','v5_owner_safety_legal_proof.mjs','v5_owned_media_proof.mjs','v5_account_closure_execution_proof.mjs','v5_ai_turn_recovery_proof.mjs','v5_owned_qa_recovery_proof.mjs','v5_qa_limits_proof.mjs','v5_qa_classifier_proof.mjs','v5_owned_export_proof.mjs','v5_group_conversation_proof.mjs','v5_agreement_location_proof.mjs')
+  name=item['script'];assert re.fullmatch('[a-z_]+_proof[.]mjs',name) or name in ('v5_review_acceptance_proof.mjs','v5_ai_test_budget_proof.mjs','v5_worker_profile_proof.mjs','v5_owner_safety_legal_proof.mjs','v5_owned_media_proof.mjs','v5_account_closure_execution_proof.mjs','v5_ai_turn_recovery_proof.mjs','v5_owned_qa_recovery_proof.mjs','v5_qa_limits_proof.mjs','v5_qa_classifier_proof.mjs','v5_owned_export_proof.mjs','v5_group_conversation_proof.mjs','v5_agreement_location_proof.mjs','v5_media_evidence_proof.mjs')
   env=dict(os.environ,GITHUB_SHA=source,PRE_V3_ARTIFACT_DIR=str(out))
   with (out/(name+'.log')).open('w') as log:
    code=subprocess.run(['node','supabase/proofs/pre_v3/'+name],stdout=log,stderr=subprocess.STDOUT,env=env,timeout=600).returncode
