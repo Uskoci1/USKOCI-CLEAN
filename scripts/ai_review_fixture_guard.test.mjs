@@ -49,7 +49,7 @@ test('the native fixture passes the actual strict Edge provider parser and prese
     .map(n=>`${String(n).repeat(8)}-1111-4111-8111-111111111111`);
   const json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
   for(const oldInvalidEnvelope of [false,true]) {
-    let completed=null,failed=0;
+    let completed=null,failed=0,dispatched=0,providerCalls=0;
     const turn=state=>({conversationId,clientRequestId,turnId,state,retryAllowed:state==='FAILED',receipt:state==='SUCCEEDED'
       ? {userMessageId,assistantMessageId,proposedCount:proposals.length,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true}:null});
     const runtime=loadOwnedIntakeHandler({env:name=>({SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_ANON_KEY:'synthetic-anon',
@@ -57,6 +57,7 @@ test('the native fixture passes the actual strict Edge provider parser and prese
       fetch:async(input,init={})=>{
         const url=new URL(String(input));
         if(url.href==='https://api.openai.com/v1/responses') {
+          assert.equal(dispatched,1,'SYNTHETIC_UNIT_DISPATCH_MUST_PRECEDE_PROVIDER');providerCalls++;
           const payload=syntheticProviderEnvelope(proposals);
           if(oldInvalidEnvelope){const output=JSON.parse(payload.output_text);output.facts=proposals;payload.output_text=JSON.stringify(output);}
           return json(payload);
@@ -66,13 +67,22 @@ test('the native fixture passes the actual strict Edge provider parser and prese
         if(url.pathname==='/rest/v1/ai_conversations')return json([{id:conversationId,account_id:accountId,fact_schema_version:'NEED_FACT_V2',status:'OPEN'}]);
         if(url.pathname.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn('PROCESSING'),claim:{attemptId,
           leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
+        // Labelled unit fixture only. The native adapter itself forwards this
+        // RPC to real disposable SQL132 and never invents admission.
+        if(url.pathname.endsWith('/rpc_ai_dispatch_need_turn_v2_service')){
+          const body=JSON.parse(init.body);assert.equal(body.p_account_id,accountId);assert.equal(body.p_conversation_id,conversationId);
+          assert.equal(body.p_client_request_id,clientRequestId);assert.equal(body.p_attempt_id,attemptId);dispatched++;return json(true);
+        }
         if(url.pathname.endsWith('/rpc_ai_complete_need_turn_v2_service')){completed=JSON.parse(init.body);return json(turn('SUCCEEDED'));}
         if(url.pathname.endsWith('/rpc_ai_fail_need_turn_v2_service')){failed++;return json(turn('FAILED'));}
         assert.fail('UNEXPECTED_SYNTHETIC_ROUTE');
       }});
     const response=await runtime.handler(new Request('http://127.0.0.1:54329/functions/v1/uskoci-ai-interview',{
       method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({conversationId,clientRequestId,text:'Dve osobe i kombi za prenos stvari u Novom Sadu.'})}));
-    if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,1);}
+    assert.equal(dispatched,1);assert.equal(providerCalls,1);
+    // A malformed result after dispatch stays unresolved; it cannot license a
+    // second billable attempt through the old retryable-failure writer.
+    if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,0);}
     else {assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');assert.deepEqual(completed.p_proposals,proposals);assert.equal(failed,0);}
   }
 });

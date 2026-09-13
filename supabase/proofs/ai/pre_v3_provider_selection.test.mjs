@@ -19,6 +19,9 @@ function fixture(options={}){
    if(url.endsWith('/auth/v1/user'))return json({id:account});
    if(url.includes('/ai_conversations?'))return json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
    if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json(options.replay?{turn:stored,claim:null}:{turn:{...stored,state:'PROCESSING',receipt:null},claim:{attemptId,leaseExpiresAt:new Date(clock+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
+   // Labelled unit transport: authorize the 132 dispatch CAS synthetically;
+   // real SQL races remain the responsibility of the actual recovery proof.
+   if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return json(true);
    if(url==='https://api.openai.com/v1/responses'||url.startsWith('https://generativelanguage.googleapis.com/')){
     if(options.provider)return options.provider(url,init);
     return json(url.includes('api.openai.com')?{status:'completed',output_text:JSON.stringify(content)}:{candidates:[{content:{parts:[{text:JSON.stringify(content)}]}}]});

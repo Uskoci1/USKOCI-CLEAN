@@ -44,7 +44,11 @@ describe('RU-4 — R04 edit no longer dead-ends', () => {
     expect(screen).not.toContain("'/potrebe/[id]/izmeni'");
     expect(screen).not.toContain('as any');
     expect(screen).toContain('openEditConversation');
-    expect(screen).toContain("pathname: '/nova'");
+    // V5 routes the final draft review directly to its detailed review; manual
+    // editing still opens the same owned conversation. The renderer journeys
+    // in publication-screen.test.tsx exercise both callbacks and exact IDs.
+    expect(screen).toContain("'/nova'");
+    expect(screen).toContain("'/pregled-zadatka'");
   });
 
   it('R07 confirms an edit through the RU-4 review authority, not the DRAFT creator', () => {

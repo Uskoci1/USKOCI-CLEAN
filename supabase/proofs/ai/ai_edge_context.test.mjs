@@ -34,6 +34,9 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
       leaseExpiresAt:new Date(Date.parse(now)+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',
       history:Array.from({length:historyCount},(_,i)=>({sequence_no:i+1,role:i%2?'ASSISTANT':'USER',body:`SYNTHETIC_HISTORY_${i+1}`})).slice(-40),
       activeFacts}}});
+    // Explicit synthetic authorization of migration 132's pre-provider CAS.
+    // The actual SQL proof exercises the real lock and cancellation authority.
+    if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return json(true);
     if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(turn('FAILED'));
     if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return json(turn('SUCCEEDED',{
       userMessageId:'66666666-6666-4666-8666-666666666666',assistantMessageId:'77777777-7777-4777-8777-777777777777',
