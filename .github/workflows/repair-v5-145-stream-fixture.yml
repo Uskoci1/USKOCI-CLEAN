@@ -28,23 +28,18 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import hashlib,json
-
           p=Path('supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql')
           s=p.read_text(encoding='utf-8')
           old=""" execute replace(d,needle,$a$if case when e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'\n  then private.closure_erasure_media_protected_v5(a.account_id,old.name)\n  else exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id) or exists(select 1 from private.retention_holds where account_id=a.account_id and active) end$a$);"""
           new=""" execute replace(d,needle,$a$if (e.binding->>'adapterVersion'='OWNER_AF_D22_EVENT_ERASURE_V1'\n  and private.closure_erasure_media_protected_v5(a.account_id,old.name))\n  or (e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'\n   and (exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)\n    or exists(select 1 from private.retention_holds where account_id=a.account_id and active)))$a$);"""
           if s.count(old)!=1: raise SystemExit(f'photo-guard patch guard={s.count(old)}')
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
-
           test=Path('supabase/proofs/pre_v3/v5_account_erasure.test.mjs')
           t=test.read_text(encoding='utf-8')
           old_assert=" assert.ok(photo.includes('else exists(select 1 from private.media_evidence_refs_v5'));"
-          new_assert=""" assert.ok(photo.includes(\"e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'\"));
- assert.ok(photo.includes('exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)'));
- assert.ok(photo.includes('exists(select 1 from private.retention_holds where account_id=a.account_id and active)'));"""
+          new_assert=" assert.ok(photo.includes(\"e.binding->>'adapterVersion' is distinct from 'OWNER_AF_D22_EVENT_ERASURE_V1'\"));\n assert.ok(photo.includes('exists(select 1 from private.media_evidence_refs_v5 where asset_id=a.id)'));\n assert.ok(photo.includes('exists(select 1 from private.retention_holds where account_id=a.account_id and active)'));"
           if t.count(old_assert)!=1: raise SystemExit(f'photo-guard assertion guard={t.count(old_assert)}')
           test.write_text(t.replace(old_assert,new_assert),encoding='utf-8',newline='\n')
-
           b=p.read_bytes()
           prov=Path('supabase/migrations/MIGRATION_PROVENANCE.json')
           data=json.loads(prov.read_text(encoding='utf-8'))
