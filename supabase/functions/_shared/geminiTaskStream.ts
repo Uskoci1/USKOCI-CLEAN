@@ -49,6 +49,46 @@ export function assistantPrefix(input: string): string {
   return '';
 }
 
+const schemaTypes: Record<string, string> = {
+  OBJECT: 'object', ARRAY: 'array', STRING: 'string', NUMBER: 'number', INTEGER: 'integer', BOOLEAN: 'boolean', NULL: 'null',
+};
+
+/** Gemini 3.8 GenerateContent structured output uses JSON Schema in
+ * generationConfig.responseFormat. The intake boundary still owns the same
+ * strict schema; only its provider wire representation changes here. */
+function jsonSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(jsonSchema);
+  if (!value || typeof value !== 'object') return value;
+  const result: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    result[key] = key === 'type' && typeof item === 'string' && schemaTypes[item]
+      ? schemaTypes[item]
+      : jsonSchema(item);
+  }
+  return result;
+}
+
+function gemini38Body(raw: string): string {
+  const payload = JSON.parse(raw);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('AI_STREAM_INVALID');
+  const generation = payload.generationConfig;
+  if (!generation || typeof generation !== 'object' || Array.isArray(generation)) throw new Error('AI_STREAM_INVALID');
+  const mime = generation.responseMimeType;
+  const schema = generation.responseSchema;
+  // Gemini 3.8 migration guidance recommends default sampling for the model.
+  delete generation.temperature;
+  delete generation.topP;
+  delete generation.topK;
+  delete generation.responseMimeType;
+  delete generation.responseSchema;
+  generation.thinkingConfig = { thinkingLevel: 'low' };
+  if (mime !== undefined || schema !== undefined) {
+    if (mime !== 'application/json' || !schema || typeof schema !== 'object' || Array.isArray(schema)) throw new Error('AI_STREAM_INVALID');
+    generation.responseFormat = { text: { mimeType: mime, schema: jsonSchema(schema) } };
+  }
+  return JSON.stringify(payload);
+}
+
 export async function streamGeminiTask(input: {
   url: string; key: string; body: string; signal?: AbortSignal; onText: (delta: string) => void;
 }): Promise<string> {
@@ -58,9 +98,16 @@ export async function streamGeminiTask(input: {
   if (input.signal?.aborted) stop();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
+    const providerBody = gemini38Body(input.body);
     const response = await fetch(input.url, { method: 'POST', redirect: 'error', signal: controller.signal,
-      headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: input.body });
-    if (!response.ok || response.redirected || !response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+      headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: providerBody });
+    if (!response.ok) {
+      // Status only: never log provider body, submitted task text, URL or key.
+      console.error('GEMINI_STREAM_HTTP_FAILED', response.status);
+      void response.body?.cancel().catch(() => undefined); throw new Error('AI_STREAM_UNAVAILABLE');
+    }
+    if (response.redirected || !response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+      console.error('GEMINI_STREAM_PROTOCOL_FAILED');
       void response.body?.cancel().catch(() => undefined); throw new Error('AI_STREAM_UNAVAILABLE');
     }
     reader = response.body.getReader();
