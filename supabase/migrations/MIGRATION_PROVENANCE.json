@@ -2475,6 +2475,19 @@
       "raw_md5": "66d64756ab594e1eb6a19667327d2376",
       "raw_sha256": "b5eaf6f7cad801aeaa6a6534b1f85e4a753817e9406d73ac7b4be17bb0e0c206",
       "raw_bytes": 21426
+    },
+    {
+      "version": "20260913022110",
+      "name": "clean_v5_worker_turn_restart_recovery",
+      "file": "20260913022110_clean_v5_worker_turn_restart_recovery.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 candidate. Frozen historical87 replay preserved; physical live108 at V5 start. Requires exact-source proof and concrete owner live approval.",
+      "raw_md5": "484cb918f8b525fb2dc90af8211babea",
+      "raw_sha256": "f167555f07f9929681afa5774c2848a3b72b08fecb89b9575d9335b9da36960a",
+      "raw_bytes": 20355
     }
   ],
   "p2_data_export_requests": {

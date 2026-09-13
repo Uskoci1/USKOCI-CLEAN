@@ -15,6 +15,12 @@ function fixture(options={}){
   if(url.endsWith('/rpc_claim_worker_ai_turn_service'))return json({acquired:!options.replay,turn:turn(options.replay?'SUCCEEDED':'PROCESSING')});
   if(url.endsWith('/rpc_read_worker_ai_context_service'))return json(options.context??{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:'SYNTHETIC_USER_MESSAGE'}]});
   if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json(options.budget??{admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
+  // Explicit synthetic141 dispatch authorization. This unit transport does not
+  // stand in for the separate actual Auth/Postgres race proof.
+  if(url.endsWith('/rpc_dispatch_worker_ai_turn_service')){
+   if(options.dispatchError)throw new Error('SYNTHETIC_DISPATCH_ACK_LOST');
+   return json(options.dispatch??{dispatched:true,turn:turn('PROCESSING')});
+  }
   if(url.endsWith('/rpc_complete_worker_ai_turn_service'))return json(options.receipt??turn());
   if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return json(turn('FAILED'));
   if(url.startsWith('https://generativelanguage.googleapis.com/')){
@@ -82,3 +88,17 @@ test('extra input commands and oversized body fail before Auth/SQL/provider',asy
  const f=fixture();assert.equal((await f.invoke({publish:true})).status,400);assert.equal(f.calls.length,0);
  assert.equal((await f.invoke({text:'x'.repeat(21000)})).status,400);assert.equal(f.calls.length,0);
 });
+
+test('canonical cancellation receipt before provider I/O prevents charge and completion',async()=>{
+ const f=fixture({dispatch:{dispatched:false,turn:turn('FAILED')}}),r=await f.invoke();
+ assert.equal(r.status,200);assert.deepEqual(await r.json(),turn('FAILED'));assert.equal(providers(f).length,0);assert.equal(completions(f).length,0);
+ assert.equal(f.calls.filter(c=>c.url.includes('budget')).length,1); // conservative reservation is never refunded
+});
+test('lost dispatch acknowledgement remains unknown and cannot call provider',async()=>{
+ const f=fixture({dispatchError:true});assert.equal((await f.invoke()).status,409);assert.equal(providers(f).length,0);assert.equal(failures(f).length,0);
+});
+for(const dispatch of [{dispatched:true,turn:{...turn('PROCESSING'),attemptId:id(99)}},{dispatched:true,turn:turn('FAILED')},
+ {dispatched:true,turn:{...turn('PROCESSING'),retryAllowed:true}},{dispatched:true,turn:turn('PROCESSING'),hidden:true}])
+ test('malformed or foreign dispatch proof cannot authorize provider I/O',async()=>{
+  const f=fixture({dispatch});assert.equal((await f.invoke()).status,409);assert.equal(providers(f).length,0);assert.equal(failures(f).length,0);
+ });

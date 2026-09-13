@@ -129,6 +129,18 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     const reserved=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:account,operationId:input.clientRequestId,kind:'LLM',signal:req.signal});
     if (!reserved.admitted || reserved.replay) { try { await fail(); } catch {} return json(503,{code:reserved.code}); }
   } catch { try { await fail(); } catch {} return json(503,{code:'WORKER_AI_BUDGET_UNAVAILABLE'}); }
+  // The database commits this one dispatch before billable I/O under the same
+  // account/session/key locks as cancellation. A lost ACK never grants a retry.
+  try {
+    const dispatched=await rpc('rpc_dispatch_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId});
+    const t=object(dispatched?.turn);
+    if (!object(dispatched)||!keys(dispatched,['dispatched','turn'])||typeof dispatched.dispatched!=='boolean'||!t
+      ||!keys(t,['turnId','conversationId','clientRequestId','attemptId','state','retryAllowed','authoritative'])
+      ||t.turnId!==claim.turn.turnId||t.attemptId!==claim.turn.attemptId||t.conversationId!==input.conversationId
+      ||t.clientRequestId!==input.clientRequestId||!['PROCESSING','UNKNOWN_OUTCOME','FAILED','SUCCEEDED'].includes(t.state)
+      ||t.retryAllowed!==false||t.authoritative!==true||(dispatched.dispatched&&t.state!=='PROCESSING')) throw new Error('WORKER_AI_INVALID');
+    if (!dispatched.dispatched) return json(200,t);
+  } catch { return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   const abort=new AbortController(),stop=()=>abort.abort(); req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
   const stream=new ReadableStream<Uint8Array>({

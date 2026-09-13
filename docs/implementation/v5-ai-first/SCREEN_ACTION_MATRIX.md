@@ -34,8 +34,11 @@ all11 source gates,182 Jest suites/3637 tests,664 Node tests and24 actual report
 through134.135 reached8 checks including actual Edge200, then its proof equality
 failed on canonical receipt.ok versus the typed projection.5737f43 corrects only
 that exact envelope comparison;47 handler tests PASS, actual rerun pending.
-Worker restart/dispatch141 is in progress after a newly found route-ref-only
-pending-turn recovery defect. Root47f5e3d fixes terminal microphone cancellation
+Worker restart/dispatch141 is implemented and registered, with independent review
+and focused source/route checks. Its actual31-report CI is pending. It adds an
+opaque durable request journal, canonical cancellation and one provider dispatch;
+cancelled text stays in owned history but cannot enter later provider context.
+Root47f5e3d fixes terminal microphone cancellation
 and the EVALUATED/NOT_READY draft edit exit;98 focused tests PASS.
 
 Exact54abcbe standalone same-signer APK has real four-stage entry video,

@@ -1,4 +1,4 @@
-import {workerAiClientService as service,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
+import {workerAiClientService as service,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',CONVERSATION='22222222-2222-4222-8222-222222222222',
  PROFILE='33333333-3333-4333-8333-333333333333',REVIEW='44444444-4444-4444-8444-444444444444',KEY='55555555-5555-4555-8555-555555555555';
 let mockSession={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn();
@@ -49,4 +49,20 @@ it('review labels remain truthful and profile conversation receipts cannot cross
 it('unsafe SQL details stay out of owner-facing errors',async()=>{
  mockRpc.mockResolvedValue({data:null,error:{message:'WORKER_AI_STALE',details:'PRIVATE_SQL_SENTINEL'}});
  const result=await service.save(review(),KEY);expect(result).toMatchObject({ok:false,kod:'WORKER_AI_STALE'});expect(JSON.stringify(result)).not.toContain('PRIVATE_SQL_SENTINEL');
+});
+
+const recovery=()=>({schemaVersion:'WORKER_PROFILE_V1',accountId:OWNER,conversationId:CONVERSATION,profileId:PROFILE,conversationStatus:'OPEN',clientRequestId:KEY,
+ turn:null,providerDispatched:false,cancelled:false,canCancel:true,retryAllowed:true,authoritative:true});
+it('reads exact opaque command before retry and passes expected owner to cancellation',async()=>{
+ mockRpc.mockResolvedValue({data:recovery(),error:null});
+ await expect(service.recoverTurn(CONVERSATION,KEY)).resolves.toEqual({ok:true,podatak:recovery()});
+ await expect(service.cancelTurn(CONVERSATION,KEY)).resolves.toEqual({ok:true,podatak:recovery()});
+ expect(mockRpc.mock.calls).toEqual(['rpc_read_worker_ai_turn_recovery','rpc_cancel_worker_ai_turn'].map(n=>[n,{p_expected_user_id:OWNER,p_conversation_id:CONVERSATION,p_client_request_id:KEY}]));
+});
+it.each([{accountId:OTHER},{clientRequestId:OTHER},{conversationId:OTHER},{providerDispatched:true},{cancelled:true},{hidden:'private'},{canCancel:false}])('strict recovery rejects foreign/inconsistent receipt %p',patch=>{
+ expect(decodeWorkerAiTurnRecovery({...recovery(),...patch},OWNER,CONVERSATION,KEY)).toBeNull();
+});
+it('cancellation account revision fence rejects late round-trip response',async()=>{
+ mockRpc.mockImplementation(async()=>{mockSession={user:{id:OWNER},accountRevision:3};return{data:recovery(),error:null};});
+ await expect(service.cancelTurn(CONVERSATION,KEY)).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
 });

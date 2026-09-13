@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { workerAiClientService as api, type WorkerAiPatch, type WorkerAiSnapshot } from '../../../data/workerAiClientService';
+import { workerAiClientService as api, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
+import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
@@ -20,7 +21,7 @@ import { T } from '../../../ui/Text';
 import { V2Action } from '../../../ui/v2/V2Action';
 
 type Panel='chat'|'review'|'manual'|'availability';
-type Attempt={id:string;text:string;voice:boolean};
+type Attempt={id:string;text:string|null;voice:boolean};
 const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitaj svoj radni profil.'});
 export default function WorkerConversationRoute(){
   const session=useSesija(),intent=useUloga(),params=useLocalSearchParams<{conversationId?:string|string[]}>();
@@ -35,6 +36,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
+  const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;return()=>{
     if(focus.current===token)focus.current=null;abort.current?.abort();abort.current=null;setStream('');
@@ -47,11 +49,36 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     [accountId,accountRevision,intent]);
   const read=useCallback(async():Promise<Ishod<WorkerAiSnapshot>>=>{
     const scope=focus.current;if(invalid||!scope||!owns()||!active.current)return unavailable();
+    // Restore before opening a conversation or sending anything. Storage holds
+    // only three IDs; canonical history restores text after an accepted turn.
+    let saved:WorkerAiTurnIntent|null;
+    try{saved=await journal.load(accountId!);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ne možemo da proverimo prethodno slanje. Pokušaj ponovo.'};}
+    if(focus.current!==scope||!owns()||!active.current)return unavailable();
+    if(saved){
+      if(cid.current!==saved.conversationId){cid.current=saved.conversationId;router.setParams({conversationId:saved.conversationId});}
+      if(pending.current?.id!==saved.clientRequestId){pending.current={id:saved.clientRequestId,text:null,voice:false};intentChanged(n=>n+1);}
+      const recovered=await api.recoverTurn(saved.conversationId,saved.clientRequestId);
+      if(focus.current!==scope||!owns()||!active.current)return unavailable();
+      if(!recovered.ok)return recovered;
+      setRecovery(recovered.podatak);
+      const terminal=recovered.podatak.conversationStatus!=='OPEN'||recovered.podatak.cancelled
+        ||recovered.podatak.turn?.state==='SUCCEEDED'||recovered.podatak.turn?.state==='FAILED';
+      if(terminal){
+        try{await journal.clear(saved);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ishod je potvrđen. Ponovi proveru da nastaviš.'};}
+        if(focus.current!==scope||!owns()||!active.current)return unavailable();
+        const command=pending.current;
+        if(recovered.podatak.turn?.state==='SUCCEEDED'&&command?.text&&!command.voice)setInput(old=>old.trim()===command.text? '':old);
+        pending.current=null;intentChanged(n=>n+1);setStream('');
+      }
+    }else if(pending.current){
+      // A failed local save did not authorize network I/O. Keep the typed draft.
+      pending.current=null;setRecovery(null);intentChanged(n=>n+1);
+    }
     const result=cid.current?await api.read(cid.current):await api.open(openKey);
     if(focus.current!==scope||!owns()||!active.current)return unavailable();
     if(result.ok&&!cid.current){cid.current=result.podatak.conversationId;router.setParams({conversationId:cid.current});}
     return result;
-  },[invalid,owns,openKey]);
+  },[invalid,owns,openKey,accountId]);
   const editor=useOwnedEditor(read);refreshRef.current=editor.refresh;
   const data=editor.data,renderedFocus=focus.current;
   const [,expireReview]=useState(0);
@@ -65,19 +92,17 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const turn=data?.turn,awaiting=turn?.state==='PROCESSING'||turn?.state==='UNKNOWN_OUTCOME';
   const writable=data?.status==='OPEN'&&!data.stale&&data.safety!=='BLOCK'&&data.safety!=='REVIEW';
   const voiceRequest=useRef<string|null>(null);
-  useEffect(()=>{
-    if(!turn||!pending.current||turn.clientRequestId!==pending.current.id)return;
-    if(turn.state==='SUCCEEDED'){if(!pending.current.voice)setInput('');pending.current=null;setStream('');}
-    else if(turn.state==='FAILED'){pending.current=null;setStream('');}
-  },[turn]);
   const send=async(body:string,supplied?:{id:string;signal:AbortSignal;isCurrent:()=>boolean})=>{
     let outcome:'accepted'|'rejected'|'unknown'='unknown';
-    if(!canAct()||!writable||awaiting||!data||!body.trim()||(supplied&&!supplied.isCurrent()))return {kind:outcome};
+    if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed)||(supplied&&!supplied.isCurrent()))return {kind:outcome};
     await editor.save(async()=>{
-      const command=pending.current??{id:supplied?.id??noviUuidZahtevId(),text:body,voice:!!supplied};pending.current=command;
+      const command=pending.current??{id:supplied?.id??noviUuidZahtevId(),text:body,voice:!!supplied};
+      if(!command.text)return unavailable();pending.current=command;intentChanged(n=>n+1);setRecovery(null);
       const controller=new AbortController();abort.current=controller;const stop=()=>controller.abort();supplied?.signal.addEventListener('abort',stop,{once:true});
       if(supplied?.signal.aborted)stop();setStream('');
       try{
+        await journal.save({accountId:accountId!,conversationId:data.conversationId,clientRequestId:command.id});
+        if(!current()||controller.signal.aborted||(supplied&&!supplied.isCurrent()))return unavailable();
         const sent=await api.send(data.conversationId,command.text,command.id,{signal:controller.signal,
           onText:delta=>{if(current()&&!controller.signal.aborted&&pending.current===command)setStream(value=>value+delta);}});
         if(!current())return unavailable();
@@ -89,20 +114,29 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
           else if(result.podatak.turn.state==='FAILED')outcome='rejected';
           return result;
         }
-        return sent.ok?result:sent;
+        return result.ok?result:sent.ok?result:sent;
       }finally{supplied?.signal.removeEventListener('abort',stop);if(abort.current===controller)abort.current=null;if(current())setStream('');}
     });return {kind:outcome as 'accepted'|'rejected'|'unknown'};
   };
-  const voice=useHoldToTalk({conversationId:data?.conversationId??null,submit:payload=>{
+  const voice=useHoldToTalk({conversationId:writable&&data?data.conversationId:null,submit:payload=>{
     voiceRequest.current=payload.clientRequestId;return send(payload.text,{id:payload.clientRequestId,signal:payload.signal,isCurrent:payload.isCurrent});
   }});
-  useEffect(()=>{if(!turn||voiceRequest.current!==turn.clientRequestId)return;
-    if(turn.state==='SUCCEEDED'||turn.state==='FAILED'){voice.controller.resolveSubmission(turn.clientRequestId,{kind:turn.state==='SUCCEEDED'?'accepted':'rejected'});voiceRequest.current=null;}
-  },[turn,voice.controller]);
+  const recoveredVoiceTurn=recovery?.turn??turn;
+  useEffect(()=>{if(!recoveredVoiceTurn||voiceRequest.current!==recoveredVoiceTurn.clientRequestId)return;
+    if(recoveredVoiceTurn.state==='SUCCEEDED'||recoveredVoiceTurn.state==='FAILED'){voice.controller.resolveSubmission(recoveredVoiceTurn.clientRequestId,{kind:recoveredVoiceTurn.state==='SUCCEEDED'?'accepted':'rejected'});voiceRequest.current=null;}
+  },[recoveredVoiceTurn,voice.controller]);
   const voiceBusy=voice.state.phase!=='IDLE'&&voice.state.phase!=='UNKNOWN_OUTCOME';
-  const enabled=canAct()&&!voiceBusy&&!awaiting;
+  const enabled=canAct()&&!voiceBusy&&!awaiting&&!pending.current;
   const back=()=>{if(!current()||editor.busy)return;if(panel!=='chat'){setPanel('chat');return;}router.canGoBack()?router.back():router.replace('/profil/radnik');};
   const refresh=()=>{if(current()&&!editor.busy&&!voiceBusy)void editor.refresh();};
+  const cancelPending=async()=>{
+    const command=pending.current;if(!canAct()||voiceBusy||!data||!command||!recovery?.canCancel)return;
+    await editor.save(async()=>{const result=await api.cancelTurn(data.conversationId,command.id);
+      if(!current())return unavailable();if(!result.ok)return result;
+      // Cancellation may lose to dispatch/completion. Only the canonical read
+      // can retire the journal; an abort alone never means cancellation.
+      return read();});
+  };
   const review=async(activate=data?.profileStatus==='DRAFT')=>{
     if(!enabled||!writable||!data)return;
     await editor.save(async()=>{
@@ -127,13 +161,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(!canAct()||voiceBusy||!data)return;
     Alert.alert('Pokrenuti nov razgovor?','Predlog iz ovog razgovora ostaje u istoriji. Novi razgovor kreće od sačuvanog profila.',[
       {text:'Nastavi ovaj razgovor',style:'cancel'},{text:'Novi razgovor',onPress:()=>{
-        if(!canAct())return;void editor.save(async()=>{const result=await api.abandon(data.conversationId);if(!current())return unavailable();
-          if(result.ok)router.replace('/profil/razgovor');return result;});
+        if(!canAct()||voiceBusy)return;void editor.save(async()=>{const result=await api.abandon(data.conversationId);if(!current())return unavailable();
+          if(!result.ok)return result;
+          const confirmed=await read();if(!current())return unavailable();
+          if(confirmed.ok&&confirmed.podatak.status==='ABANDONED'&&!pending.current)router.replace('/profil/razgovor');return confirmed;});
       }}]);
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
     data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
-      'Ishod prethodne poruke nije potvrđen. Proveri stanje; ista obrada se neće ponovo pokrenuti.':'AI još obrađuje poruku. Proveri stanje.':null;
+      'Ishod prethodne poruke nije potvrđen. Proveri stanje; ista obrada se neće ponovo pokrenuti.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':null;
   if(!data||!foreground||resuming)return <WorkerProfileFrame back={back}><WorkerProfileStatus loading={editor.loading||!foreground||resuming}
     error={editor.error} retry={refresh}/></WorkerProfileFrame>;
   if(panel==='availability')return <WorkerProfileFrame back={back}><View style={{minHeight:650}}><AvailabilityForm
@@ -172,8 +208,10 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       onKeepText={value=>{if(canAct()&&writable&&!pending.current)setInput(old=>old?old+'\n'+value:value);}}/>:undefined}
     actions={<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('manual')}/>
       <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('availability')}/>
-      {(awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
+      {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
+      {pending.current&&recovery?.canCancel?<V2Action label="Otkaži prethodno slanje" kind="quiet" disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>:null}
+      {pending.current?.text&&recovery?.retryAllowed?<V2Action label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
       {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>{if(current())router.replace('/profil/radnik');}}/>:null}
-      {(data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}
+      {(pending.current||data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}
     </>}/>;
 }

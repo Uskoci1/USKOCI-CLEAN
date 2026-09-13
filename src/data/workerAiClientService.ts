@@ -23,6 +23,9 @@ export type WorkerAiPatch = Partial<Pick<WorkerAiProfile,'displayName'|'bio'|'sk
 };
 export type WorkerAiTurn = Readonly<{ turnId: string; conversationId: string; clientRequestId: string; attemptId: string;
   state: 'PROCESSING'|'SUCCEEDED'|'FAILED'|'UNKNOWN_OUTCOME'; retryAllowed: false; authoritative: true }>;
+export type WorkerAiTurnRecovery = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; accountId:string; conversationId:string; profileId:string;
+  conversationStatus:'OPEN'|'COMPLETED'|'ABANDONED'; clientRequestId:string; turn:WorkerAiTurn|null;
+  providerDispatched:boolean; cancelled:boolean; canCancel:boolean; retryAllowed:boolean; authoritative:true }>;
 export type WorkerAiReview = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; reviewId:string; conversationId:string; accountId:string;
   profileId:string; revision:number; profile:WorkerAiProfile; activate:boolean; missingRequired:string[]; canAccept:boolean;
   expiresAt:string; displayedContentDigest:string }>;
@@ -65,6 +68,23 @@ export function decodeWorkerAiTurn(raw:unknown,cid:string,key?:string):WorkerAiT
     ||!uuid(v.turnId)||!sameId(v.conversationId,cid)||!uuid(v.clientRequestId)||(key&&!sameId(v.clientRequestId,key))||!uuid(v.attemptId)
     ||(v.state!=='PROCESSING'&&v.state!=='SUCCEEDED'&&v.state!=='FAILED'&&v.state!=='UNKNOWN_OUTCOME')||v.retryAllowed!==false||v.authoritative!==true)return null;
   return {turnId:v.turnId,conversationId:v.conversationId,clientRequestId:v.clientRequestId,attemptId:v.attemptId,state:v.state,retryAllowed:false,authoritative:true};
+}
+export function decodeWorkerAiTurnRecovery(raw:unknown,account:string,cid:string,key:string):WorkerAiTurnRecovery|null {
+  const v=record(raw);
+  if(!v||!exact(v,['schemaVersion','accountId','conversationId','profileId','conversationStatus','clientRequestId','turn',
+    'providerDispatched','cancelled','canCancel','retryAllowed','authoritative'])||v.schemaVersion!=='WORKER_PROFILE_V1'
+    ||!sameId(v.accountId,account)||!sameId(v.conversationId,cid)||!sameId(v.clientRequestId,key)||!uuid(v.profileId)
+    ||(v.conversationStatus!=='OPEN'&&v.conversationStatus!=='COMPLETED'&&v.conversationStatus!=='ABANDONED')
+    ||typeof v.providerDispatched!=='boolean'||typeof v.cancelled!=='boolean'||typeof v.canCancel!=='boolean'
+    ||typeof v.retryAllowed!=='boolean'||v.authoritative!==true)return null;
+  const turn=v.turn===null?null:decodeWorkerAiTurn(v.turn,cid,key);
+  if(v.turn!==null&&!turn)return null;
+  if((!turn&&(v.providerDispatched||v.cancelled))||(v.cancelled&&(v.providerDispatched||turn?.state!=='FAILED'))
+    ||(v.retryAllowed&&(!!turn||!v.canCancel||v.conversationStatus!=='OPEN'))
+    ||(v.canCancel&&(v.conversationStatus!=='OPEN'||v.providerDispatched||v.cancelled||!!turn&&!['PROCESSING','UNKNOWN_OUTCOME'].includes(turn.state))))return null;
+  return {schemaVersion:'WORKER_PROFILE_V1',accountId:v.accountId,conversationId:v.conversationId,profileId:v.profileId,
+    conversationStatus:v.conversationStatus,clientRequestId:v.clientRequestId,turn,providerDispatched:v.providerDispatched,
+    cancelled:v.cancelled,canCancel:v.canCancel,retryAllowed:v.retryAllowed,authoritative:true};
 }
 export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):WorkerAiReview|null {
   const v=record(raw),profile=decodeWorkerAiProfile(v?.profile);
@@ -118,7 +138,16 @@ function call<T>(name:string,args:Record<string,unknown>,decode:(v:unknown,aid:s
   return readOwnedResult({account,errors:ERRORS,write,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
     request:()=>supabaseKlijent().rpc(name,args),decode:v=>decode(v,account.accountId)});
 }
+function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker_ai_turn',conversationId:string,clientRequestId:string){
+  const owner=scope();
+  if(!owner||!uuid(conversationId)||!uuid(clientRequestId))return Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.'));
+  return readOwnedResult({account:owner,errors:ERRORS,write:name==='rpc_cancel_worker_ai_turn',fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
+    request:()=>supabaseKlijent().rpc(name,{p_expected_user_id:owner.accountId,p_conversation_id:conversationId,p_client_request_id:clientRequestId}),
+    decode:v=>decodeWorkerAiTurnRecovery(v,owner.accountId,conversationId,clientRequestId)});
+}
 export const workerAiClientService={
+  recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
+  cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
   open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite radni profil.')):
     call('rpc_open_worker_ai',{p_client_request_id:clientRequestId},decodeWorkerAiSnapshot,true),
   read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.')):

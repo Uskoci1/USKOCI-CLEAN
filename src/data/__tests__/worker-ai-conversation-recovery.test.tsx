@@ -1,0 +1,107 @@
+import React from 'react';
+import {act,create,type ReactTestRenderer} from 'react-test-renderer';
+const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',K='44444444-4444-4444-8444-444444444444';
+let mockAccount=A,mockRevision=1,mockFocused=true,mockParams:{conversationId?:string}={conversationId:C};
+const mockListeners=new Set<(s:string)=>void>(),mockAlert=jest.fn();
+const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),save:jest.fn(),abandon:jest.fn()};
+const mockJournal={load:jest.fn(),save:jest.fn(),clear:jest.fn()};let mockStored:unknown=null;
+const mockRouter={back:jest.fn(),replace:jest.fn(),canGoBack:()=>true,setParams:jest.fn()};
+const mockVoice={controller:{resolveSubmission:jest.fn()},state:{phase:'IDLE'}};const mockVoiceHook=jest.fn((_options:unknown)=>mockVoice);
+jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
+ if(key==='View')return 'View';if(key==='Alert')return{alert:(...a:unknown[])=>mockAlert(...a)};
+ if(key==='AppState')return{currentState:'active',addEventListener:(_:string,fn:(s:string)=>void)=>{mockListeners.add(fn);return{remove:()=>mockListeners.delete(fn)};}};
+ return Reflect.get(target,key);}});});
+jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchParams:()=>mockParams,useFocusEffect:(fn:()=>void)=>require('react').useEffect(()=>mockFocused?fn():undefined,[fn,mockFocused])}));
+jest.mock('../../store/sesija',()=>({useSesija:()=>({user:{id:mockAccount},accountRevision:mockRevision}),sesijaSada:()=>({user:{id:mockAccount},accountRevision:mockRevision})}));
+jest.mock('../../store/uloga',()=>({useUloga:()=> 'uskocer',ulogaSada:()=> 'uskocer'}));
+jest.mock('../supabaseClient',()=>({supabaseKlijent:jest.fn()}));
+jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mockApi;}}));
+jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));
+jest.mock('../../features/voice/useHoldToTalk',()=>({useHoldToTalk:(options:unknown)=>mockVoiceHook(options)}));
+jest.mock('../../ui/aiFirst/VoiceComposer',()=>({VoiceComposer:'VoiceComposer'}));
+jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({actions,children,...props}:any)=>require('react').createElement('Shell',props,actions,children)}));
+jest.mock('../../ui/workerProfile/WorkerProfilePresentation',()=>({WorkerProfileFrame:({children}:any)=>children,WorkerProfileStatus:'Status'}));
+jest.mock('../../ui/workerProfile/WorkerAiPresentation',()=>({WorkerAiActivation:'Activation',WorkerAiCard:'Card',WorkerAiManual:'Manual',WorkerAiReviewDetails:'Review'}));
+jest.mock('../../ui/calendar/AvailabilityForm',()=>({AvailabilityForm:'Availability'}));
+jest.mock('../../ui/Text',()=>({T:'T'}));
+jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
+import Screen from '../../app/(app)/profil/razgovor';
+const intent=()=>({accountId:A,conversationId:C,clientRequestId:K});
+const turn=(state='PROCESSING',id=K)=>({turnId:B,conversationId:C,clientRequestId:id,attemptId:A,state,retryAllowed:false,authoritative:true});
+const recovery=(state:string|null=null,extras={})=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,conversationStatus:'OPEN',clientRequestId:K,turn:state?turn(state):null,providerDispatched:false,cancelled:false,canCancel:true,retryAllowed:state===null,authoritative:true,...extras});
+const snapshot=(t:unknown=null)=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,status:'OPEN',profileStatus:'DRAFT',revision:0,candidate:{},safety:'ALLOW',stale:false,messages:[],turn:t,review:null,saved:null});
+const ok=(podatak:unknown)=>({ok:true,podatak});let tree:ReactTestRenderer;
+const shell=()=>tree.root.findByType('Shell' as any),action=(label:string)=>tree.root.findByProps({label});
+const flush=async()=>{await act(async()=>{});};
+const render=async()=>{await act(async()=>{tree=create(<Screen/>);});};
+const click=async(label:string)=>{await act(async()=>{action(label).props.onPress();});};
+beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
+ mockJournal.load.mockImplementation(async()=>mockStored);mockJournal.save.mockImplementation(async(i:unknown)=>{mockStored=i;});mockJournal.clear.mockImplementation(async()=>{mockStored=null;});
+ mockApi.read.mockResolvedValue(ok(snapshot()));mockApi.open.mockResolvedValue(ok(snapshot()));mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery(),clientRequestId:key}));
+ mockApi.send.mockResolvedValue({ok:false,kod:'UNKNOWN',poruka:'Ishod nije potvrđen'});mockApi.cancelTurn.mockImplementation(async()=>{mockApi.recoverTurn.mockResolvedValue(ok(recovery('FAILED',{cancelled:true,canCancel:false,retryAllowed:false})));return ok(recovery('FAILED',{cancelled:true,canCancel:false,retryAllowed:false}));});
+});
+afterEach(async()=>{await act(async()=>tree?.unmount());});
+it('restores opaque pending key before any open or provider request and exposes safe cancel',async()=>{
+ mockStored=intent();mockParams={};await render();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+ expect(mockApi.recoverTurn).toHaveBeenCalledWith(C,K);expect(mockRouter.setParams).toHaveBeenCalledWith({conversationId:C});
+ expect(shell().props.canSend).toBe(false);expect(action('Ručno uredi podatke').props.disabled).toBe(true);
+ expect(action('Otkaži prethodno slanje').props.disabled).toBe(false);expect(tree.root.findAllByProps({label:'Ponovi isto slanje'})).toHaveLength(0);
+ await click('Otkaži prethodno slanje');expect(mockApi.cancelTurn).toHaveBeenCalledWith(C,K);expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);
+});
+it('lost preclaim response keeps typed body in memory and retries only the same persisted ID explicitly',async()=>{
+ await render();act(()=>shell().props.onChange('Sačuvan samo u memoriji'));await act(async()=>{shell().props.onSend();});
+ const key=mockApi.send.mock.calls[0][2];expect(mockJournal.save).toHaveBeenCalledWith({accountId:A,conversationId:C,clientRequestId:key});
+ expect(JSON.stringify(mockJournal.save.mock.calls)).not.toContain('Sačuvan');expect(mockApi.send).toHaveBeenCalledTimes(1);
+ expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(action('Ručno uredi podatke').props.disabled).toBe(true);
+ await click('Ponovi isto slanje');expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(mockApi.send.mock.calls[0].slice(0,3));
+});
+it('restart with dispatched unknown cannot retry, cancel or manually save another body',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
+ await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(action('Ručno uredi podatke').props.disabled).toBe(true);
+ expect(tree.root.findAllByProps({label:'Otkaži prethodno slanje'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Ponovi isto slanje'})).toHaveLength(0);
+ await click('Proveri stanje razgovora');expect(mockApi.send).not.toHaveBeenCalled();expect(action('Novi razgovor')).toBeTruthy();
+});
+it('canonical completed history retires key after restart without a provider call',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok({...snapshot(turn('SUCCEEDED')),messages:[{id:B,role:'USER',body:'Canonical text',sequence:1}]}));
+ mockApi.recoverTurn.mockResolvedValue(ok(recovery('SUCCEEDED',{providerDispatched:true,canCancel:false,retryAllowed:false})));
+ await render();expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(mockApi.send).not.toHaveBeenCalled();expect(shell().props.messages[0].body).toBe('Canonical text');expect(shell().props.canEdit).toBe(true);
+});
+it.each(['background','account'])('scope loss during journal write prevents network dispatch: %s',async how=>{
+ let release!:(v?:unknown)=>void;mockJournal.save.mockImplementationOnce(()=>new Promise(r=>{release=r;}));await render();act(()=>shell().props.onChange('Unsaved text'));
+ act(()=>shell().props.onSend());await flush();expect(mockJournal.save).toHaveBeenCalledTimes(1);
+ await act(async()=>{if(how==='background')mockListeners.forEach(fn=>fn('background'));else{mockRevision++;tree.update(<Screen/>);}release();});
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();
+});
+it('foreign account cannot restore or send the previous account key',async()=>{
+ mockStored=intent();mockJournal.load.mockImplementation(async aid=>aid===A?mockStored:null);await render();
+ await act(async()=>{mockAccount=B;mockRevision++;tree.update(<Screen/>);});expect(mockJournal.load).toHaveBeenLastCalledWith(B);expect(mockApi.send).not.toHaveBeenCalled();
+ expect(mockJournal.clear).not.toHaveBeenCalled();
+});
+it('preclaim cancel losing to dispatch retains journal and disabled draft',async()=>{
+ mockStored=intent();await render();mockApi.cancelTurn.mockImplementationOnce(async()=>{const r=recovery('PROCESSING',{providerDispatched:true,canCancel:false,retryAllowed:false});mockApi.recoverTurn.mockResolvedValue(ok(r));return ok(r);});
+ await click('Otkaži prethodno slanje');expect(mockJournal.clear).not.toHaveBeenCalled();expect(shell().props.canEdit).toBe(false);
+});
+
+it('confirmed cancellation preserves typed draft then permits safe editing',async()=>{
+ await render();act(()=>shell().props.onChange('Retained draft'));await act(async()=>shell().props.onSend());
+ await click('Otkaži prethodno slanje');expect(shell().props.value).toBe('Retained draft');expect(shell().props.canEdit).toBe(true);expect(mockApi.send).toHaveBeenCalledTimes(1);
+});
+it('explicit abandon clears dispatched journal only after exact canonical parent state',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
+ mockApi.abandon.mockImplementation(async()=>{mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{conversationStatus:'ABANDONED',providerDispatched:true,canCancel:false,retryAllowed:false})));
+  mockApi.read.mockResolvedValue(ok({...snapshot(turn('UNKNOWN_OUTCOME')),status:'ABANDONED'}));return ok({...snapshot(),status:'ABANDONED'});});
+ await render();await click('Novi razgovor');expect(mockJournal.clear).not.toHaveBeenCalled();
+ await act(async()=>{mockAlert.mock.calls[0][2][1].onPress();});expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockJournal.clear).toHaveBeenCalledWith(intent());
+ expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');expect(mockApi.send).not.toHaveBeenCalled();
+});
+
+it.each([{safety:'BLOCK'},{safety:'REVIEW'},{stale:true},{status:'ABANDONED'},{status:'COMPLETED'}])('revokes microphone scope whenever its visible composer becomes unavailable: %p',async state=>{
+ await render();expect((mockVoiceHook.mock.calls.at(-1) as unknown[])[0]).toMatchObject({conversationId:C});
+ mockApi.read.mockResolvedValue(ok({...snapshot(),...state}));
+ await act(async()=>{mockFocused=false;tree.update(<Screen/>);});await act(async()=>{mockFocused=true;tree.update(<Screen/>);});
+ expect((mockVoiceHook.mock.calls.at(-1) as unknown[])[0]).toMatchObject({conversationId:null});expect(shell().props.voice).toBeUndefined();
+});
+it('retains microphone command scope during a legitimate pending turn',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn())));mockApi.recoverTurn.mockResolvedValue(ok(recovery('PROCESSING',{providerDispatched:true,canCancel:false,retryAllowed:false})));
+ await render();expect((mockVoiceHook.mock.calls.at(-1) as unknown[])[0]).toMatchObject({conversationId:C});
+});

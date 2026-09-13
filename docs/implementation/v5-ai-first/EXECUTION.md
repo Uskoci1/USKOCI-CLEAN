@@ -262,14 +262,27 @@ activation occurred during this source-only implementation and documentation.
   The existing AI source-admission/closure lock-order compatibility is being
   repaired separately; no new retention durations or policy activation follows.
 
-## Newly found recovery defects, source correction in progress
+## Worker recovery141 and requester cancellation corrections
 
 Independent review found the Worker turn request key lived only in a route ref:
 pre-claim loss could strand input and remount could permit a later old request.
 141 `20260913022110_clean_v5_worker_turn_restart_recovery.sql` and its Worker
-client/Edge journal/dispatch proof are in progress. No widening of paid scope or
-new privacy purpose; no registration/live apply yet.128 actual proof tests SQL
-only;141 will add actual Auth/SQL/Worker Edge with synthetic provider transport.
+client/Edge journal/dispatch proof are implemented and independently reviewed.
+The device saves only account/conversation/request IDs before network I/O and
+restores the canonical result before permitting a new turn. A pre-dispatch
+cancellation fences even a late claim. Exactly one dispatch may enter provider
+I/O; an unknown result cannot authorize a second paid attempt. Confirmed
+cancellation preserves owned history but excludes the exact cancelled message
+from later provider context. No new retention duration, provider purpose or
+relation/FK is introduced.141 binds the exact128 writers/context and140 source
+guard; its technical digest changes without activating a policy. Owned export
+remains42 datasets, with only cancelledAt added to workerAiTurns (V5_5).
+It is registered as an unapplied candidate; actual DB/HTTP remains unproved
+until the31-report disposable CI reaches141.128 actual proof is SQL-only;
+the new141 runtime executes current Edge source with synthetic provider transport.
+Initial37 focused Jest and25 Node tests pass; the final native correction also
+passes16 route tests, including BLOCK/REVIEW/stale/terminal microphone scope and
+retaining the scope of a legitimate pending submission. No live apply occurred.
 
 Root corrected requester microphone cancellation before abandonment and removed
 microphone scope when the canonical conversation becomes unwritable. Terminal
