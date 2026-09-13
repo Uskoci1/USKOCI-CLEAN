@@ -72,7 +72,7 @@ describe('W04 public-safe detail read', () => {
     const result = await supabaseIzvor.prilika('task-a');
     expect(from).toHaveBeenCalledWith('needs'); expect(eq).toHaveBeenCalledWith('id', 'task-a');
     expect(select.mock.calls[0][0].split(',').map((field: string) => field.trim())).toEqual([
-      'id', 'title', 'status', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
+      'id', 'title', 'status', 'urgent', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
       'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'requester_profile_id', 'response_deadline',
       'description', 'category', 'schedule_kind', 'ends_at', 'task_country_code', 'task_timezone', 'execution_location_mode',
       'required_licenses', 'minimum_experience_years', 'verified_identity_required',

@@ -14,6 +14,8 @@ import { useIzvor, useUloga, ulogaSada } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
+import { useAgreementPhotos } from '../../hooks/useAgreementPhotos';
+import { agreementPhotoClientService } from '../../data/agreementPhotoClientService';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementChat } from '../../ui/AgreementChat';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
@@ -121,16 +123,22 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     });
     return () => { current = false; };
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
-  const messages = useFocusedResource(useCallback(() => izvor.poruke(id, accountId), [izvor, id, accountId]));
+  const messages = useFocusedResource(useCallback(async () => {
+    const rows = await izvor.poruke(id, accountId);
+    if (!ownsAccount()) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
+    return agreementPhotoClientService.messages(id, rows, { accountId, accountRevision });
+  }, [izvor, id, accountId, accountRevision, ownsAccount]));
   const dogovor = workspace.data;
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
   const writable = enabled && dogovor?.chatDostupan === true;
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
+  const photos = useAgreementPhotos(accountId, id, dogovor?.verzija ?? null, writable, outbox);
   const osvezi = workspace.refresh;
   useEffect(() => {
     if (messages.data && !messages.error) void outbox.reconcile(messages.data
       .filter(message => !!message.clientMessageId && !!message.posiljalacAccountId)
-      .map(message => ({ clientMessageId: message.clientMessageId!, senderAccountId: message.posiljalacAccountId!, messageId: message.id, body: message.telo })));
+      .map(message => ({ clientMessageId: message.clientMessageId!, senderAccountId: message.posiljalacAccountId!, messageId: message.id, body: message.telo,
+        ...(message.fotografije?.length ? { photos: { agreementVersion: message.dogovorVerzija!, assetIds: message.fotografije.map(photo => photo.assetId) } } : {}) })));
   }, [messages.data, messages.error, outbox, outboxState.phase]);
   const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
     .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
@@ -190,7 +198,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <AgreementTabs tab={tab} onChange={setTab} />
       </View>
       {tab === 'poruke' ? <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
-        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState}
+        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}
         support={{ canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } }} /> : <>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
           <AgreementHero agreement={dogovor} />

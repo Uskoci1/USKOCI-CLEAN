@@ -9,35 +9,64 @@ Earlier blanket live-approval/staging gates are superseded for canonical DEV/ALP
 Advanced urgent/KYC/vehicle work is nonblocking; private photographs and editable
 STT before explicit sending are approved for this cycle. Implementation continues.
 
-Latest saved/pushed source before the current corrections is
-70af2c2f7f1508b281dcfca4b6eed271e5afdd73, tree
-62dcf6a53a22f1190fdb58dedbda61dca39f1e97. Draft PR102 points to the
+Latest saved/pushed source before photograph144 integration is
+78bbd1cb338ea0d51e4924f16bf8f1a34a241c8d, tree
+2ac97f7b45d96f2bc187429ca1d69d2e23c6fce7. Draft PR102 tracks the
 integration branch; canonical clean-alpha-backend remains unchanged.
-Actual disposable FULL143 run34743587492 finished FAIL06:52:53UTC:
-11 source gates,190 Jest suites/3936 tests and738 Node tests PASS;
-27 actual reports through137 PASS.138 failed after four checks because its
-closed caller expected a domain DTO, while the131 HTTP pre-request guard
-returned ACCOUNT_CLOSING.139–143 were not reached. Artifact SHA256 is
-678d2b5c517b64bcd60855fee41d352c108780475625977fe28b8507d4a8674f.
-The exact138/141/142 proof assertions are being corrected without changing
-those business RPCs. A separate143 integration defect needs a real code fix:
-its approved support safe exit must be composed into that HTTP guard, with
-exact RPC paths, actual live-session validation and existing endpoint fences.
+Disposable FULL143 run34744679836 (attempt1) finished FAIL07:20:28UTC:
+11 source gates,190 Jest suites/3949 tests and740 Node tests PASS.
+135 migrated and passed five checks, then a LOCAL_RPC57014 statement timeout
+stopped the run;136–143 were not reached. Artifact SHA256 is
+745e632f5009c06e18408fae1d567e39e979ee0874ef777e512e6d00e0b7e868.
+The next proof adds bounded call-site/timing diagnostics, without increasing
+timeouts or claiming that earlier-source passes prove this complete source.
+Earlier run34743587492 actually passed through137, then138 exposed an HTTP
+closure-gate expectation mismatch.78 includes corrected138/141/142 proofs
+and the real143 exact-path/live-session support safe-exit integration.
 
-Current native corrections implement AF-D24 editable STT before explicit Send
-and restore all attached Entry portrait opacity/transform mappers after Auth
-Back, without image remounts or changes to original timing/assets. Voice plus
-Task/Worker focused checks pass7 suites/157 tests; Entry checks pass5 suites/
-115 tests. These are source checks, not a speech provider or device PASS.
-The installed2b source showed actual cold assembly in168 decoded frames,
-but Auth Back left a chosen column centered and a warm restart hid columns.
-That observed defect motivates the new mapper correction and another exact
-saved-source Android build. A connected signed-in E2E still remains.
+78 implements AF-D24: hold-to-talk finalizes visible editable text; only the
+explicit Send action invokes AI. Focused voice/Task/Worker checks pass7 suites/
+157 tests. It also restores attached Entry animation mappers without changing
+original assets/timing. The exact78 full Android build completed717 normal
+Gradle tasks, with verified Git/packager/Hermes/source/asset/signature binding.
+APK SHA256 is4b08053318498e7ad4dbd4e938d412ec873a4c38fc087c4e31d098e672a072b3,
+and the installed base.apk matches. Actual native review confirmed both
+Auth intent transitions and complete Entry on both Back paths and warm restart.
+Cold animation was observed in95 actual decoded frames. Reduced-motion and
+200%Auth/IME passed within this signed-out scope; no signed-in or speech-provider PASS is implied.
 
-The candidate manifests below are historical preparations and need regeneration
-from the newly verified source before canonical DEV/ALPHA promotion. AF-D26
-supplies authorization; source proofs and actual postflight remain mandatory.
-Private Agreement photograph implementation144 proceeds in parallel.
+Photograph144 server/native implementation is frozen for independent review:
+private6/message images,10MiB input,1600px metadata-free derivatives, immutable
+message/outbox binding, same-key upload recovery, selected support evidence,
+50 owned export datasets/V5_7, and no automatic history deletion. Targeted
+native/client/support13 suites/273 tests and36 server/source Node tests pass.
+The actual144 Auth/Postgres/Storage proof still needs FULL execution, now34
+reports. The exact migration and raw-byte provenance are registered; none of
+109–144 has been applied to canonical DEV/ALPHA yet.
+
+Fresh canonical preflight07:14:22UTC still shows108 migrations,3 Auth accounts,
+7 tasks,2 Agreements/versions,0 profile-media objects,0 retention policies,
+private buckets and the unchanged single existing cron. All108 stored
+predecessors are verified using87 historical stored-statement hashes plus21
+exact source/recorded-alias hashes. See DEV_ALPHA_PREFLIGHT_20260913.json.
+AF-D26 supplies backend authority; complete proof and postflight remain required.
+
+Integration144 also adds existing fn_need_urgency reads to cards/details/map,
+with four concurrent reads only for already flagged rows, no activation/ranking,
+server expiry and no extra private map properties. Seven targeted read/UI suites
+now total158 passing tests (including11 urgency cases), plus3 adapter boundary
+tests. Native handoff correction preserves760ms and original assets, displays
+real preparation at the doorway end and carries focus/account/cancel guards
+into the serialized intent store:9 targeted suites/202 tests and TSC pass.
+These new native changes await their exact saved-source APK device verification.
+Root independently reviewed144 SQL/Edge/client plus135 diagnostics;34 combined
+Node tests and full144 migration-integrity/5 negative-integrity tests pass.
+
+Two remaining AF-D22/23 defects were confirmed, with no new owner input needed:
+new/old true verified-identity requirements can strand all candidates while
+KYC is unavailable, and131 closure retains all relational plaintext rather than
+performing the approved ordinary-content redaction.145 identity correction and
+146 closure inventory/adapter are separate next work, not included in144 PASS.
 
 The first4a Android build completed but is REJECTED_MIXED_ROUTER_SOURCE:
 231 first-party modules were sourced from the older138 snapshot through a

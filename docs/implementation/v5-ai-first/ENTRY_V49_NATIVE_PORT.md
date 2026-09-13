@@ -220,3 +220,61 @@ checks that a cancelled older callback cannot reset a newer opposite choice.
 Five focused suites pass115 tests. These assertions establish the mapper and
 React contract; the correction still requires a new exact-source installed APK
 for Android property-reset and portrait-continuity proof.
+
+## Installed 78 return proof and bounded handoff correction
+
+The exact 78bbd1cb APK (SHA256
+`4b08053318498e7ad4dbd4e938d412ec873a4c38fc087c4e31d098e672a072b3`)
+was installed on the dedicated USKOCI_V5_TEST emulator with identical base.apk
+bytes. Both intent choices open Auth; both Auth Back paths and a restart without
+clearing data restore the full original composition. The measured composition
+crop is pixel-identical across those returns. The cold recording shows the
+original mascot/arm, pin/smile/handshake and wordmark assembly, followed by both
+portraits. Reduced-motion cold startup reaches the static welcome, and 200% Auth
+fields, IME, signup-from-scrolled-login and disabled provider tiles were checked
+without Auth submission. Device font, density, size and animation settings were
+restored. This is a bounded functional observation, not a full motion approval.
+
+The 74-artifact audit is
+`docs/implementation/evidence/v5-ai-first-20260912/build-ci-control/build-v5-78bbd1c-visual-audit.json`
+(SHA256 `21512a8bd008586ef36f23edf141a031afd37c785f88df8027efb84b0e56f76d`).
+Its build receipt SHA is `f936a832bde3f6233f54c4ec5070d6e96700647049c2bb6fee3611ee107f9ea3`:
+the installation recorder appended only `installation` and
+`attestationHelperPins` to the reviewed preinstall receipt. Removing exactly
+those fields and reproducing its JSON/CRLF encoding gives the original
+`ef9bd089ee1dc9b2521eab7fa63ac80a385d0cc1d820a6182dfccd8aca802f95` hash;
+the prior build, source, map and signer evidence is unchanged.
+It deliberately retains `fullMotionFidelityPass: false`: actual requester and
+worker video frames contain an empty completed doorway before Auth first
+appears, with encoded held intervals of 1.765189s and 1.090956s respectively.
+These intervals are not measurements of storage latency or the donor clock.
+Source inspection identifies the seam: the 760ms UI transition can finish before
+the JS timer and awaited local intent preparation have opened the same-screen
+Auth sheet. Neither router navigation nor the visible availability loader owns
+that empty surface.
+
+The correction mounts the existing vector BrandLockup and a real preparation
+indicator with the choice. Its opacity is driven by the unchanged doorway clock
+and becomes visible exactly at completion, independently of a delayed React
+timer. Reduced motion uses an immediate static preparation surface. There is no
+additional animation duration, percentage, success assertion, provider call or
+early Auth/availability activation. The original assets, 4380ms assembly,
+760ms choice, photo geometry and stable attached portrait mappers are unchanged.
+
+The selected callback carries an `isCurrent` predicate through Auth to the
+existing serialized guest-intent store. Explicit cancellation, background,
+reflow, account incarnation change, unmount, route change and navigation blur
+invalidate the pending selection. The existing store restores the previous
+record after an obsolete in-flight write; the client timeout remains 5s. Auth
+only opens after the still-current prepare succeeds. A current storage failure
+restores retry text; stale success/failure cannot open Auth, overwrite a newer
+selection or display a stale error. Refocus permits a fresh choice while denying
+a retained pre-blur callback. No Auth engine, consent or provider authority is
+changed.
+
+Nine focused suites pass202 tests and the whole source TypeScript check passes.
+These checks cover the UI clock reaching 760ms without a JS timer,
+pending and failed local preparation, reduced motion, current ownership and
+navigation boundaries, and the existing real store rollback. The correction
+still requires a saved-source signed APK and new actual device frames; the
+earlier 78 observation and its unresolved handoff finding remain preserved.

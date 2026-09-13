@@ -10,6 +10,8 @@ const mockAuth = { signInWithPassword: jest.fn(), signUp: jest.fn(), sendPhoneOt
   verifyPhoneOtp: jest.fn(), requestPasswordRecovery: jest.fn() };
 let mockSession = { user: null as null | { id: string }, accountRevision: 0 };
 let mockForeground: (state: string) => void;
+let mockFocus: () => void | (() => void);
+let mockBlur: undefined | (() => void);
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -27,7 +29,15 @@ jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Defs: '
   RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', AppleLogo: 'Icon', GoogleLogo: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
   LockKey: 'Icon', MapPin: 'Icon', Phone: 'Icon', User: 'Icon', X: 'Icon' }));
-jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams,
+  useFocusEffect: (effect: () => void | (() => void)) => {
+    const React = jest.requireActual('react');
+    React.useEffect(() => {
+      mockFocus = effect; mockBlur = effect() || undefined;
+      return () => { mockBlur?.(); };
+    }, [effect]);
+  },
+}));
 jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { prepare: (...args: unknown[]) => mockPrepare(...args) } }));
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 jest.mock('../../ui/entry/EntryWelcome', () => ({ EntryWelcome: 'Hero' }));
@@ -252,7 +262,8 @@ it.each([['onRequester', 'REQUESTER'], ['onWorker', 'WORKER']])('prepares %s onc
   const press = tree.root.findByType('Hero' as React.ElementType).props[action];
   await act(async () => { press(); press(); });
   expect(mockPrepare).toHaveBeenCalledTimes(1);
-  expect(mockPrepare).toHaveBeenCalledWith(intent);
+  expect(mockPrepare).toHaveBeenCalledWith(intent, expect.any(Function));
+  expect(mockPrepare.mock.calls[0][1]()).toBe(true);
   expect(host('TextInput')).toHaveLength(0);
   expect(text()).not.toContain('ISTI NALOG');
   await act(async () => pending.resolve());
@@ -266,6 +277,47 @@ it('retains the entry and exposes retry after failed intent storage', async () =
   await act(async () => { tree = create(<AuthScreen />); });
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   expect(tree.root.findByType('Hero' as React.ElementType).props.error).toContain('Pokušajte ponovo');
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
+  expect(input('ime@primer.rs')).toBeDefined();
+});
+it.each(['cancel', 'blur', 'route', 'unmount'])('does not open Auth or retain a selection when %s supersedes a pending prepare', async boundary => {
+  const pending = deferred<void>(); mockPrepare.mockReturnValueOnce(pending.promise);
+  await act(async () => { tree = create(<AuthScreen />); });
+  let active = true;
+  await act(async () => { tree.root.findByType('Hero' as React.ElementType).props.onRequester({ isCurrent: () => active }); });
+  const current = mockPrepare.mock.calls[0][1]; expect(current()).toBe(true);
+  expect(host('TextInput')).toHaveLength(0); expect(mockRead).not.toHaveBeenCalled();
+  await act(async () => {
+    if (boundary === 'cancel') active = false;
+    else if (boundary === 'blur') mockBlur?.();
+    else if (boundary === 'unmount') tree.unmount();
+    else { mockParams = { form: 'recovery' }; tree.update(<AuthScreen />); }
+  });
+  expect(current()).toBe(false);
+  await act(async () => pending.resolve());
+  expect(current()).toBe(false);
+  expect(mockRead).not.toHaveBeenCalled();
+  if (boundary !== 'unmount') {
+    expect(host('TextInput')).toHaveLength(0);
+    expect(tree.root.findByType('Hero' as React.ElementType).props.error).toBeNull();
+  }
+});
+it('rejects a retained pre-blur callback after refocus while allowing a fresh choice', async () => {
+  await act(async () => { tree = create(<AuthScreen />); });
+  const stale = tree.root.findByType('Hero' as React.ElementType).props.onRequester;
+  await act(async () => mockBlur?.());
+  await act(async () => { mockBlur = mockFocus() || undefined; });
+  await act(async () => stale()); expect(mockPrepare).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
+  expect(mockPrepare).toHaveBeenCalledTimes(1); expect(input('ime@primer.rs')).toBeDefined();
+});
+it('ignores a cancelled selection storage error and permits a fresh retry without opening Auth early', async () => {
+  const pending = deferred<void>(); mockPrepare.mockReturnValueOnce(pending.promise);
+  await act(async () => { tree = create(<AuthScreen />); });
+  let active = true;
+  await act(async () => { tree.root.findByType('Hero' as React.ElementType).props.onWorker({ isCurrent: () => active }); });
+  active = false; await act(async () => pending.reject(new Error('late storage failure')));
+  expect(tree.root.findByType('Hero' as React.ElementType).props.error).toBeNull(); expect(host('TextInput')).toHaveLength(0);
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   expect(input('ime@primer.rs')).toBeDefined();
 });

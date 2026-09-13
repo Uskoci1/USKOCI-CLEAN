@@ -10,6 +10,8 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
 import { v2 } from './tokens';
+import { displaysUrgent } from '../../data/needUrgencyClientService';
+import { useUrgencyClock } from './NeedUrgencyBadge';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 
 type Owner = { key: string; active: boolean; epoch: number };
@@ -53,6 +55,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     }
   };
   const selected = props.items.find(item => item.id === props.selectedId), point = selected && publicPoint(selected);
+  const urgencyNow = useUrgencyClock(props.items.map(item => item.urgency));
+  const urgentIds = props.items.filter(item => displaysUrgent(item.urgency, urgencyNow)).map(item => item.id);
   const changeZoom = (delta: number) => { if (owns() && load.current === 'ready' && viewport) camera.current?.zoomTo(Math.min(18, Math.max(0, viewport.zoom + delta)), { duration: reduced ? 0 : v2.motion.screenMs }); };
   return <View style={s.container}>
     <Map style={s.map} mapStyle={RESOLVED_PIN_MAP_STYLE} androidView="texture" attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
@@ -66,13 +70,13 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
           layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': v2.color.surface }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': v2.color.ink,
+          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], v2.color.danger, v2.color.ink],
             'circle-stroke-width': 3, 'circle-stroke-color': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], v2.color.orange, v2.color.surface] }} />
         <Layer id="need-pin-centers" type="circle" filter={['!', ['has', 'point_count']]}
           paint={{ 'circle-radius': 5, 'circle-color': v2.color.surface }} />
       </GeoJSONSource>
       {point && selected ? <ViewAnnotation id="selected-need" lngLat={[point.lng, point.lat]} anchor="center">
-        <View collapsable={false} accessible accessibilityLabel={`${selected.naslov}, približna lokacija`} style={s.selectedPin}>
+        <View collapsable={false} accessible accessibilityLabel={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${selected.naslov}, približna lokacija`} style={[s.selectedPin, displaysUrgent(selected.urgency, urgencyNow) && { backgroundColor: v2.color.danger }]}>
           <MapPin size={23} color={v2.color.surface} />
         </View>
       </ViewAnnotation> : null}

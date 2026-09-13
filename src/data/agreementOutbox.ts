@@ -1,4 +1,4 @@
-import { AgreementMessageError, type AgreementMessageCommand, type AgreementMessageErrorCode, type AgreementMessagePort } from '../contracts/agreementMessages';
+import { AgreementMessageError, validMessagePhotos, type AgreementMessageCommand, type AgreementMessageErrorCode, type AgreementMessagePort } from '../contracts/agreementMessages';
 
 export type OutboxError = AgreementMessageErrorCode | 'STORAGE_UNAVAILABLE' | 'STORAGE_INVALID' | 'CAPACITY' | 'NOT_READY';
 export type OutboxEntry = Readonly<{
@@ -16,7 +16,8 @@ export type OutboxSnapshot = Readonly<{
   entries: readonly OutboxEntry[];
   error: OutboxError | null;
 }>;
-export type ReadOwnMessage = Readonly<{ senderAccountId: string; clientMessageId: string; messageId: string; body: string }>;
+export type ReadOwnMessage = Readonly<{ senderAccountId: string; clientMessageId: string; messageId: string; body: string;
+  photos?: Readonly<{ agreementVersion: number; assetIds: readonly string[] }> }>;
 export type AgreementOutboxOptions = {
   accountId: string;
   agreementId: string;
@@ -31,11 +32,15 @@ type Stored = { version: 1; accountId: string; agreementId: string; revision: nu
 class Fault extends Error { constructor(readonly code: OutboxError) { super(code); } }
 const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) && v.length === 36;
 const clientKey = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/.test(v) && !/\s/.test(v);
-const bodyValid = (body: unknown): body is string => typeof body === 'string' && body.length > 0 && !body.includes('\0') &&
+const bodyValid = (body: unknown, photos?: AgreementMessageCommand['photos']): body is string => typeof body === 'string' && (body.length > 0 || !!photos) && !body.includes('\0') &&
   Array.from(body).length <= 2000 && !Array.from(body).some(point => { const code = point.codePointAt(0)!; return code >= 0xd800 && code <= 0xdfff; });
 const errorCodes = new Set<OutboxError>(['AUTH_CONTEXT_CHANGED', 'INVALID_MESSAGE', 'READ_ONLY', 'NOT_AVAILABLE', 'CONFLICT', 'UNAVAILABLE', 'INVALID_RESPONSE', 'STORAGE_UNAVAILABLE', 'STORAGE_INVALID', 'CAPACITY', 'NOT_READY']);
-const immutable = (entry: OutboxEntry): OutboxEntry => Object.freeze({ ...entry, command: Object.freeze({ ...entry.command }) });
-const sameCommand = (a: AgreementMessageCommand, b: AgreementMessageCommand) => a.accountId === b.accountId && a.agreementId === b.agreementId && a.clientMessageId === b.clientMessageId && a.body === b.body;
+const immutable = (entry: OutboxEntry): OutboxEntry => Object.freeze({ ...entry, command: Object.freeze({ ...entry.command,
+  ...(entry.command.photos ? { photos: Object.freeze({ agreementVersion: entry.command.photos.agreementVersion,
+    assetIds: Object.freeze([...entry.command.photos.assetIds]) }) } : {}) }) });
+export const sameMessagePhotos = (a: AgreementMessageCommand['photos'], b: AgreementMessageCommand['photos']) => !a && !b || !!a && !!b
+  && a.agreementVersion === b.agreementVersion && a.assetIds.length === b.assetIds.length && a.assetIds.every((id, i) => id === b.assetIds[i]);
+const sameCommand = (a: AgreementMessageCommand, b: AgreementMessageCommand) => a.accountId === b.accountId && a.agreementId === b.agreementId && a.clientMessageId === b.clientMessageId && a.body === b.body && sameMessagePhotos(a.photos, b.photos);
 
 // One read/merge/write queue per durable account+Agreement key, including across
 // remounted instances with different storage wrapper objects. No network awaits
@@ -92,7 +97,8 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       for (const entry of data.entries) {
         const command = entry.command;
         if (!command || command.accountId !== options.accountId || command.agreementId !== options.agreementId ||
-          !clientKey(command.clientMessageId) || keys.has(command.clientMessageId) || !bodyValid(command.body) || command.body !== command.body.trim() ||
+          !clientKey(command.clientMessageId) || keys.has(command.clientMessageId) || !bodyValid(command.body, command.photos) || command.body !== command.body.trim() ||
+          (command.photos !== undefined && !validMessagePhotos(command.photos)) ||
           !['sending', 'unknown', 'failed', 'confirmed'].includes(entry.state) || entry.persisted !== true ||
           !Number.isSafeInteger(entry.attempt) || entry.attempt < 1 ||
           (entry.error !== undefined && !errorCodes.has(entry.error)) ||
@@ -191,7 +197,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       if (!current()) return;
       draftRevision += 1; publish({ draft, error: null });
     },
-    sendDraft(): Promise<void> {
+    sendDraft(photos?: AgreementMessageCommand['photos']): Promise<void> {
       if (!current()) return Promise.resolve();
       if (snapshot.capturing) return Promise.resolve();
       if (snapshot.phase !== 'ready') { publish({ error: 'NOT_READY' }); return Promise.resolve(); }
@@ -206,8 +212,9 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       const body = originalDraft.trim();
       let id: string;
       try { id = options.newId(); } catch { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
-      if (!bodyValid(body) || !clientKey(id)) { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
-      const command = Object.freeze({ accountId: options.accountId, agreementId: options.agreementId, clientMessageId: id, body });
+      if (!bodyValid(body, photos) || !clientKey(id) || (photos !== undefined && !validMessagePhotos(photos))) { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
+      const command = Object.freeze({ accountId: options.accountId, agreementId: options.agreementId, clientMessageId: id, body,
+        ...(photos ? { photos: Object.freeze({ agreementVersion: photos.agreementVersion, assetIds: Object.freeze([...photos.assetIds]) }) } : {}) });
       const request = Symbol(); inFlight.set(id, request); publish({ capturing: true, error: null });
       return (async () => {
         try {
@@ -252,7 +259,9 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       if (!current() || snapshot.phase !== 'ready' || readOwn.length === 0) return;
       const admitted = generation;
       // Capture external reads before awaiting storage or accepting another account.
-      const reads = readOwn.filter(row => row.senderAccountId === options.accountId && clientKey(row.clientMessageId) && uuid(row.messageId) && bodyValid(row.body)).map(row => ({ ...row }));
+      const reads = readOwn.filter(row => row.senderAccountId === options.accountId && clientKey(row.clientMessageId) && uuid(row.messageId) && bodyValid(row.body, row.photos)
+        && (row.photos === undefined || validMessagePhotos(row.photos))).map(row => ({ ...row,
+          ...(row.photos ? { photos: { agreementVersion: row.photos.agreementVersion, assetIds: [...row.photos.assetIds] } } : {}) }));
       if (reads.length === 0) return;
       try {
         let matched = false;
@@ -261,7 +270,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
             const matches = reads.filter(row => row.clientMessageId === entry.command.clientMessageId);
             if (matches.length === 0) return entry;
             matched = true;
-            if (matches.some(row => row.body !== entry.command.body || row.messageId !== matches[0].messageId ||
+            if (matches.some(row => row.body !== entry.command.body || !sameMessagePhotos(row.photos, entry.command.photos) || row.messageId !== matches[0].messageId ||
               (entry.messageId !== undefined && row.messageId !== entry.messageId))) throw new Fault('CONFLICT');
             return immutable({ command: entry.command, state: 'confirmed', messageId: matches[0].messageId, persisted: true, attempt: entry.attempt });
           });

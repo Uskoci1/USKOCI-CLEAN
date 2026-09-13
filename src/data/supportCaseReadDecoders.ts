@@ -60,7 +60,8 @@ export function decodeSupportSnapshot(raw: unknown): SupportSnapshot | null {
     && member(c.submitterRole, ['REQUESTER', 'READER']) && media(c.media);
   else if (r.kind === 'AGREEMENT') valid = keys(c, ['needId', 'status', 'createdAt', 'submitterRole']) && uuid(c.needId)
     && member(c.status, ['CONFIRMED', 'COMPLETED', 'CANCELLED']) && timestamp(c.createdAt) && member(c.submitterRole, ['REQUESTER', 'WORKER']);
-  else if (r.kind === 'AGREEMENT_MESSAGE') valid = keys(c, ['agreementId', 'body', 'createdAt', 'mine']) && uuid(c.agreementId)
+  else if (r.kind === 'AGREEMENT_MESSAGE') valid = (keys(c, ['agreementId', 'body', 'createdAt', 'mine'])
+    || keys(c, ['agreementId', 'body', 'createdAt', 'mine', 'media']) && media(c.media)) && uuid(c.agreementId)
     && str(c.body, 6000) && timestamp(c.createdAt) && typeof c.mine === 'boolean';
   else if (r.kind === 'GROUP_MESSAGE') valid = keys(c, ['groupId', 'sequence', 'body', 'createdAt', 'mine']) && uuid(c.groupId)
     && sequence(c.sequence) && str(c.body, 2000) && timestamp(c.createdAt) && typeof c.mine === 'boolean';

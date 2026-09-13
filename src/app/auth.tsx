@@ -3,8 +3,8 @@ import { AuthSheet } from '../ui/auth/AuthSheet';
 import { PublicLegalModal } from '../ui/legal/LegalDocuments';
 import type { LegalDocumentKind } from '../contracts/legal';
 import { authTheme as authColors } from '../ui/auth/authTheme';
-import { useEffect, useRef, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   BackHandler,
@@ -34,7 +34,7 @@ import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
 import { authClientService } from '../data/authClientService';
 import { useAuthAvailability } from '../hooks/useAuthAvailability';
 import { useAuthFormCommand } from '../hooks/useAuthFormCommand';
-import { EntryWelcome } from '../ui/entry/EntryWelcome';
+import { EntryWelcome, type EntryIntentSelection } from '../ui/entry/EntryWelcome';
 import { entryIntentClientService } from '../data/entryIntentClientService';
 import { sesijaSada } from '../store/sesija';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
@@ -77,6 +77,18 @@ function MethodButton({
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ form?: string }>();
+  const [, refreshEntryFocus] = useState(0);
+  const entryScope = useRef({ focused: true, revision: 0, form: params.form });
+  if (entryScope.current.form !== params.form) {
+    entryScope.current.form = params.form;
+    entryScope.current.revision++;
+  }
+  const entryRevision = entryScope.current.revision;
+  useFocusEffect(useCallback(() => {
+    entryScope.current.focused = true;
+    refreshEntryFocus(value => value + 1);
+    return () => { entryScope.current.focused = false; entryScope.current.revision++; };
+  }, []));
   const [otvoren, setOtvoren] = useState(params.form === 'login' || params.form === 'recovery');
   const [entrySeen, setEntrySeen] = useState(!otvoren);
   useEffect(() => { if (!otvoren) setEntrySeen(true); }, [otvoren]);
@@ -162,11 +174,15 @@ export default function AuthScreen() {
     setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušajte ponovo.');
   }
 
-  async function izaberiNameru(intent: 'REQUESTER' | 'WORKER') {
-    await commands.run(() => entryIntentClientService.prepare(intent), () => {
+  async function izaberiNameru(intent: 'REQUESTER' | 'WORKER', selection?: EntryIntentSelection) {
+    const current = () => entryScope.current.focused && entryScope.current.revision === entryRevision &&
+      (selection?.isCurrent() ?? true);
+    if (!current()) return;
+    await commands.run(() => entryIntentClientService.prepare(intent, current), () => {
+      if (!current()) return;
       setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
       setRezim('LOGIN'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
-    }, () => setGreska('Izbor nije sačuvan. Pokušajte ponovo.'));
+    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušajte ponovo.'); });
   }
 
   async function emailAkcija() {
@@ -264,7 +280,7 @@ export default function AuthScreen() {
   return (
     <><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
     <AuthSheet visible={otvoren} expanded={rezim === 'SIGNUP'} backdrop={entrySeen ? <EntryWelcome
-      onRequester={() => izaberiNameru('REQUESTER')} onWorker={() => izaberiNameru('WORKER')}
+      onRequester={selection => izaberiNameru('REQUESTER', selection)} onWorker={selection => izaberiNameru('WORKER', selection)}
       onSignIn={() => otvori('LOGIN')} onSignUp={() => otvori('SIGNUP')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
     <View onLayout={onFormLayout} style={styles.screen}>
       <StatusBar style="light" />

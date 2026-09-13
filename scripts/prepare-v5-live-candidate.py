@@ -58,7 +58,7 @@ for edge in edges:
     edge.update(preparedVerifyJwt=True, preparedPayloadSha256=payload['payloadSha256'],
                 preparedPayloadBytes=payload['payloadBytes'], sourceFiles=payload['files'],
                 externalDependencies=payload['externalDependencies'])
-result = {'status': 'PREPARATION_ONLY_NOT_APPROVED_OR_APPLIED', 'sourceCommit': args.source,
+result = {'status': 'DEV_ALPHA_AUTHORIZED_SOURCE_PREPARATION_NOT_APPLIED', 'sourceCommit': args.source,
           'sourceTree': git('rev-parse', f'{args.source}^{{tree}}').decode().strip(),
           'projectRef': baseline['projectRef'], 'observedBaseline': {'count': 108, 'head': baseline['head']},
           'migrations': rows, 'edgeEntrypoints': edges,
@@ -66,9 +66,15 @@ result = {'status': 'PREPARATION_ONLY_NOT_APPROVED_OR_APPLIED', 'sourceCommit': 
           'edgePayloadPreparation': {'manifest': payload_manifest_path.as_posix(),
                                      'manifestSha256': hashlib.sha256(payload_manifest_bytes).hexdigest(),
                                      'status': 'LOCAL_EXACT_SOURCE_PAYLOADS_NOT_DEPLOYED'},
-          'liveApproval': None, 'paidProbeApprovalForThisBatch': None,
-          'requiredBeforeApproval': ['Complete exact-source disposable proof', 'Reviewed forward backfills and postflight/stop plan',
-                                    'Exact provider-key to paid-project association plan', 'Specific executable policy documents and test accounts'],
+          'authorization': {'ownerDecision': 'AF-D26 BACKEND PROMOTION', 'environment': 'CANONICAL_DEV_ALPHA',
+                            'projectRef': 'leqcwgzvjsxugfgzdmth', 'verifiedBackendPromotionAuthorized': True,
+                            'authorityDocument': 'docs/implementation/v5-ai-first/OWNER_PRIVATE_TEST_DECISIONS_20260913.md',
+                            'separateProductionAuthorized': False},
+          'paidProbeConstraints': 'Existing approved Google processing and shared USD5 internal reservations; controlled short probes and spend verification',
+          'requiredBeforeApplication': ['Complete exact-source disposable proof', 'Reviewed forward backfills and postflight/stop plan',
+                                       'Fresh canonical DEV/ALPHA predecessor and source-byte checks'],
+          'requiredBeforeProviderProbe': ['Verified paid-project key and exact models', 'Bounded test accounts, configuration and existing budget ledger',
+                                          'Applicable executable product policy and exact source/APK'],
           'operationsPerformed': ['Read local Git objects and previously observed baseline', 'Write this candidate manifest']}
 destination = root / 'docs/implementation/v5-ai-first/LIVE_BATCH_CANDIDATE.json'
 destination.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')

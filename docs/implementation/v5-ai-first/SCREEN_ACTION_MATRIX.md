@@ -2,20 +2,26 @@
 
 ## Current deltas, 2026-09-13
 
-Latest saved entry/auth snapshot is e446509dcc65783c3e3f07e3e275954fde7f3fac,
-tree885e476e8b68bdf570cca1cefe4816dc2ecf913d. The remote PR and disposable FULL141
-candidate remain a6f60077409dfac1cccd2d1cdce69ccd157e2cdb, tree
-beb6ba219852e306829066e3f0dd3c474b3d4391. Exact disposable FULL141
-run34737782759 is queued; no execution result is inferred from that state.
-The last completed run34736927496 at dc0f08a passed11 source gates,
-185 Jest suites/3711 tests,714 Node tests and25 actual reports through135.
-136's original snapshot timed out; its separately labelled materialized-body
-diagnostic passed in278ms. The a6 candidate changes only that undeployed CTE
-materialization and its registry hashes. Actual corrected136–141 and the real
-export-handler/Storage flags remain pending, not promoted from the diagnostic.
-The native review now restores a saved manual location across remount and
-unrelated fact changes, with an explicit geography conflict instead of silently
-discarding the proposal;49 focused tests and TypeScript PASS.
+The latest installed saved source before144 is78bbd1cb338e, tree2ac97f7b45d9.
+Its APK and installed base.apk share SHA2564b08053318498e7ad4dbd4e938d412ec873a4c38fc087c4e31d098e672a072b3.
+Actual device checks now confirm both Auth→Back paths, complete Entry after
+warm restart and original cold assembly in95 actual decoded frames. Reduced
+motion and200%Auth/IME review are finishing. The artifact still connects to
+canonical DEV/ALPHA108; this is not a connected signed-in V5 E2E claim.
+
+Actual FULL143 run34744679836 on78 passed11 source gates,190 Jest suites/
+3949 tests and740 Node tests.135 passed five checks then LOCAL_RPC57014
+stopped the run;136–143 were not reached. Earlier source70 passed through137.
+Corrected136 previously passed actual export handlers/Storage, not merely a
+clone diagnostic. Those scoped passes do not substitute for full144 proof.
+
+AF-D24 editable transcript/explicit Send is in78 (7 suites/157 focused tests).
+Private Agreement photo144 is registered and frozen for independent review:
+13 native/client/support suites/273 tests and36 server/source tests pass;
+actual144 SQL/Auth/Storage and its final APK remain pending. AF-D26 authorizes
+verified canonical DEV/ALPHA promotion; extra staging/live permission is closed.
+
+Historical build notes below retain their original source scope:
 
 The first4a06c9c Android build compiled but its packaged source map resolved231
 first-party modules from the older54abcbe checkout through shared Router cache.

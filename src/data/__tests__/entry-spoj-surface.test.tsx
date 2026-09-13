@@ -36,7 +36,7 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get(target, key) {
     if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, fontScale: mockFontScale });
     if (key === 'AppState') return { addEventListener: (_: string, callback: (state: string) => void) => { mockForeground.add(callback); return { remove: () => mockForeground.delete(callback) }; } };
-    return ['View', 'ScrollView', 'Pressable', 'Text'].includes(String(key)) ? key : Reflect.get(target, key);
+    return ['View', 'ScrollView', 'Pressable', 'Text', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 33, bottom: 0 }) }));
@@ -284,7 +284,7 @@ it.each([['Objavi zadatak', requester], ['Uskoči i zaradi', worker]] as const)(
   await render(); const oldPress = button(label).props.onPress;
   await act(async () => { oldPress(); oldPress(); });
   for (const name of ['Objavi zadatak', 'Uskoči i zaradi', 'Prijavi se', 'Napravi nalog']) expect(button(name).props.disabled).toBe(true);
-  const groups = tree.root.findAll(node => ['View', 'AnimatedView'].includes(String(node.type)) && node.props.importantForAccessibility === 'no-hide-descendants');
+  const groups = tree.root.findAll(node => ['entry-intents', 'entry-auth-footer'].includes(node.props.testID) && node.props.importantForAccessibility === 'no-hide-descendants');
   expect(groups).toHaveLength(2);
   groups.forEach(group => expect(group.props.pointerEvents).toBe('none'));
   expect(tree.root.findByProps({ testID: 'entry-brand-panel' })).toBeDefined();
@@ -295,7 +295,57 @@ it('keeps the selected state while the real owned callback is pending', async ()
   let finish!: () => void; requester.mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
   await render(); await press('Objavi zadatak'); await advance(760);
   expect(button('Objavi zadatak').props.disabled).toBe(true);
+  expect(tree.root.findByProps({ testID: 'entry-intent-preparation' }).props.importantForAccessibility).toBe('auto');
+  expect(tree.root.findByProps({ accessibilityRole: 'progressbar' }).props.accessibilityState).toEqual({ busy: true });
   await act(async () => finish()); expect(button('Objavi zadatak').props.disabled).toBe(false);
+  expect(tree.root.findAllByProps({ testID: 'entry-intent-preparation' })).toHaveLength(0);
+});
+it.each(['Objavi zadatak', 'Uskoči i zaradi'])('shows real preparation at the completed %s doorway even before the JS timer runs', async label => {
+  await render(); mockIntentTime = 0; await press(label);
+  const status = tree.root.findByProps({ testID: 'entry-intent-preparation' });
+  const handle = status.props.style.at(-1);
+  expect(status.props.accessibilityElementsHidden).toBe(true);
+  for (const time of [0, 500, 759]) { mockIntentTime = time; expect(mockStyleReaders.get(handle)!().opacity).toBe(0); }
+  mockIntentTime = 760;
+  expect(mockStyleReaders.get(handle)!().opacity).toBe(1);
+  expect(requester).not.toHaveBeenCalled(); expect(worker).not.toHaveBeenCalled();
+  expect(status.findAllByProps({ accessibilityLabel: 'USKOČI' }).length).toBeGreaterThan(0);
+  expect(status.findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(1);
+  expect(status.findAllByProps({ accessibilityRole: 'progressbar' })[0].props.accessibilityLabel).toBe('Pripremamo prijavu');
+});
+it('shows immediate static preparation for a reduced-motion pending choice without starting a clock', async () => {
+  worker.mockReturnValue(new Promise(() => {})); mockReduced = true; await render(); await press('Uskoči i zaradi');
+  const overlay = tree.root.findByProps({ testID: 'entry-intent-doorway' });
+  expect(mockStyleReaders.get(overlay.props.style.at(-1))!()).toMatchObject({ opacity: 1, transform: [{ translateY: 0 }] });
+  const status = tree.root.findByProps({ testID: 'entry-intent-preparation' });
+  expect(mockStyleReaders.get(status.props.style.at(-1))!()).toEqual({ opacity: 1 });
+  expect(status.props.importantForAccessibility).toBe('auto'); expect(mockTiming).not.toHaveBeenCalled();
+});
+it.each(['background', 'inactive', 'cancel', 'account', 'unmount', 'reflow'])('invalidates the delivered selection on %s before late completion', async boundary => {
+  let reject!: (error: Error) => void;
+  requester.mockReturnValue(new Promise<void>((_done, fail) => { reject = fail; }));
+  await render(); await press('Objavi zadatak'); await advance(760);
+  const current = requester.mock.calls[0][0].isCurrent;
+  expect(current()).toBe(true);
+  await act(async () => {
+    if (boundary === 'unmount') tree.unmount();
+    else if (boundary === 'cancel') button('Otkaži izbor').props.onPress();
+    else if (boundary === 'account') mockAccount = { user: null, accountRevision: 2 };
+    else if (boundary === 'reflow') { mockFontScale = 2; tree.update(element()); }
+    else mockForeground.forEach(callback => callback(boundary));
+  });
+  expect(current()).toBe(false);
+  await act(async () => reject(new Error('late failed storage')));
+  expect(current()).toBe(false);
+  if (boundary !== 'unmount') expect(tree.root.findAllByProps({ accessibilityRole: 'alert' })).toHaveLength(0);
+});
+it('restores both choices with retry text after current storage failure without claiming confirmation', async () => {
+  requester.mockRejectedValue(new Error('storage failed'));
+  await render(); await press('Objavi zadatak'); await advance(760);
+  expect(tree.root.findAllByProps({ testID: 'entry-intent-preparation' })).toHaveLength(0);
+  expect(button('Objavi zadatak').props.disabled).toBe(false); expect(button('Uskoči i zaradi').props.disabled).toBe(false);
+  expect(tree.root.findByProps({ accessibilityRole: 'alert' }).children).toEqual(['Izbor trenutno nije sačuvan. Pokušajte ponovo.']);
+  expect(requester.mock.calls[0][0].isCurrent()).toBe(false);
 });
 it.each(['background', 'inactive'])('cancels a pending choice on %s', async state => {
   await render(); await press('Objavi zadatak');

@@ -76,6 +76,16 @@ it('accepts registered image identity without granting raw Storage URLs', () => 
   expect(decodeSupportSnapshot({ ...data, content: { ...data.content, media: [{ ...m, url: 'PRIVATE' }] } })).toBeNull();
   expect(decodeSupportSnapshot({ ...data, content: { ...data.content, media: [m, m] } })).toBeNull();
 });
+it('admits optional selected private-message photo identities while retaining the old exact text snapshot', () => {
+  const old = { kind: 'AGREEMENT_MESSAGE', id: E, revision: 2, content: { agreementId: C, body: '', createdAt: time, mine: true } };
+  const m = { assetId: D, sha256: 'b'.repeat(64), width: 1600, height: 1200 };
+  expect(decodeSupportSnapshot(old)).toEqual(old);
+  expect(decodeSupportSnapshot({ ...old, content: { ...old.content, media: [m] } })).not.toBeNull();
+  for (const media of [[{ ...m, storagePath: 'PRIVATE' }], [{ ...m, ownerAccountId: A }], [m, m], null, [{ ...m, width: 1601 }]])
+    expect(decodeSupportSnapshot({ ...old, content: { ...old.content, media } })).toBeNull();
+  expect(decodeSupportSnapshot({ kind: 'GROUP_MESSAGE', id: E, revision: null,
+    content: { groupId: C, sequence: '1', body: '', createdAt: time, mine: true, media: [m] } })).toBeNull();
+});
 it('uses existing safety vocabulary without copying the report narrative or identity', () => {
   const data = { kind: 'SAFETY_REPORT', id: E, revision: null, content: { category: 'FRAUD', needId: null, agreementId: C, createdAt: time } };
   expect(decodeSupportSnapshot(data)).not.toBeNull();

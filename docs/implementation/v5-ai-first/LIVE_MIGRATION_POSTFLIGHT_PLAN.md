@@ -1,8 +1,37 @@
-# V5 forward109–141: konkretni postflight i zaustavljanje
+# V5 forward109–144: konkretni postflight i zaustavljanje
 
-Plan za pregled, **nije odobrenje ni zapis izvršene migracije/deploy-a**. Pregledani sačuvani izvor je `28c47c01a3637e67ce767910ed213477a9a933b1`, tree `f7e169159ff528d74b97606fb8bb1fb8ed7b59fa`:33 forward migracije109–141 i11 Edge entrypoint-a.141 [Worker restart recovery](../../../supabase/migrations/20260913022110_clean_v5_worker_turn_restart_recovery.sql) ima SHA256 `f167555f07f9929681afa5774c2848a3b72b08fecb89b9575d9335b9da36960a`. Root i nezavisni source review su završeni; fokusirane141 provere imaju43 Jest,25 Node i TypeScript PASS. CI34734349508 za28c47c01 je prošao11 source gates,185 Jest suites/3711 testova,686 Node testova i25 actual izveštaja do135.136 je primenjen i prošao2 provere, zatim stao na20s SQL timeout-u;137–141 nisu dostignuti. Zbog nedostajućeg phase/wait zapisa tačan SQL poziv i uzrok još nisu dokazani. Ne prihvatati radne bajtove umesto sačuvanog izvora.
+**Najnovija vlasnička odluka AF-D26:** `leqcwgzvjsxugfgzdmth` je canonical
+DEV/ALPHA i dozvoljena je potrebna proverena backend promocija za povezani APK.
+Ovaj projekat jeste naredni razvojni cilj; dodatni staging i novi blanket live
+approval nisu potrebni. Zabrana do **ODOBRAVAM LIVE DEPLOY** ostaje samo za
+zaseban budući production projekat. Tehnički preflight/postflight, tačan Git
+izvor, izolovani dokazi, zaštita postojećih podataka i rekonstrukcija ostaju
+obavezni. Istorijski zahtevi za dodatnu dozvolu ovog istog DEV cilja u nastavku
+nisu aktivna kapija. Ovaj zapis sam ne tvrdi da je išta primenjeno.
 
-Poslednji završeni izolovani run [34732513050](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/34732513050), na `8c250b23c00fe505fd6960b72213b1675e500c23`, ima11 source gates PASS,182 Jest suite/3637 testova i664 Node testa PASS;24 SQL reporta do134 PASS.135 ima8 PASS provera i actual Edge200, zatim pad proof poređenja internog receipt.ok sa klijentskom projekcijom. Ispravka samo tog poređenja sačuvana je u5737f43 i uključena u28c47c01 (47 handler testova PASS);136–140 nisu dostignuti u tom run-u, a141 tada nije bila obuhvaćena. Novi31-report CI mora potvrditi i taj135 nastavak i136–141; pripremljen dokaz nije izvršeni PASS. Nijedna od ovih činjenica nije live/provajder dokaz.
+Ovaj plan izvršava već odobrenu AF-D26 DEV/ALPHA promociju; nije zapis da je
+izvršena. Poslednji sačuvani izvor pre integracije144 je78bbd1cb338e,
+tree2ac97f7b45d9. Manifest na tom izvoru ima35 migracija109–143 i11 Edge
+funkcija. Privatne Agreement fotografije144 su dodatni pregledani kandidat;
+pre primene obnoviti manifest iz sačuvanog izvora koji ih stvarno sadrži.
+
+Actual FULL143 run34744679836 na78 završio je07:20:28UTC FAIL:11 source
+gates,190 Jest suites/3949 testova,740 Node testova PASS;135 je prošao pet
+provera pa stao na LOCAL_RPC57014 statement timeout-u.136–143 nisu dostignuti.
+Artifact SHA256745e632f5009c06e18408fae1d567e39e979ee0874ef777e512e6d00e0b7e868.
+Ispituje se tačan poziv bez povećanja timeout-a. Raniji70 run34743587492 ima
+27 actual izveštaja do137 PASS;138 je otkrio neusaglašeno očekivanje zatvorenog
+HTTP korisnika.78 sadrži korekciju tih138/141/142 proof očekivanja i stvarno
+143 povezivanje odobrenog support safe-exit-a u tačni HTTP pre-request guard.
+Novi izvor mora proći FULL144/34 actual izveštaja. Pojedinačni stariji prolazi
+nisu potvrda celog novog izvora.
+
+Fresh canonical preflight07:14:22UTC:108 migracija,3 Auth naloga,7 Task-ova,
+2 Agreement-a/verzije,0 profile-media objekata i0 retention politika; oba bucket-a
+su private, postojeći cron i pet Edge verzija nepromenjeni. Svi108 predecessor-i
+su provereni:87 istorijskih stored-statement MD5 i21 tačnih source/alias MD5.
+Detalji su u DEV_ALPHA_PREFLIGHT_20260913.json; neposredno pre primene ponoviti
+brojače/digest-e i uporediti novi drift. Nije bilo backend mutacija.
 
 ## 1. Poznato početno stanje i svež read-only dodatak
 
@@ -16,7 +45,7 @@ Dodatni read-only upiti u02:12:36 i02:13:05 UTC vratili su samo brojače i klasi
 
 ## 2. Raspored koji već radi i šta aktivacija stvarno može pokrenuti
 
-Aktuelni `private.marketplace_tick` već poziva, redom, `expire_lifecycle`, `dispatch_tick`, `rpc_tick_auto_completion`, `data_export_maintenance` i `retention_maintenance`. Izvor je [P3 execution105](../../../supabase/migrations/20260910162955_clean_p3_retention_execution_authority.sql);108 je kasnije popravio zaključavanje dispatch/expiry funkcija. Nema novog cron-a u109–141;140 i141 ne menjaju postojeći raspored.
+Aktuelni `private.marketplace_tick` već poziva, redom, `expire_lifecycle`, `dispatch_tick`, `rpc_tick_auto_completion`, `data_export_maintenance` i `retention_maintenance`. Izvor je [P3 execution105](../../../supabase/migrations/20260910162955_clean_p3_retention_execution_authority.sql);108 je kasnije popravio zaključavanje dispatch/expiry funkcija. Nema novog cron-a u109–144;140–144 ne menjaju postojeći raspored.
 
 | Postojeći/predloženi potrošač | Šta radi bez novog rasporeda | Kapija i postflight |
 | --- | --- | --- |
@@ -27,12 +56,13 @@ Aktuelni `private.marketplace_tick` već poziva, redom, `expire_lifecycle`, `dis
 | `uskoci-push-transport` | Service-only `tick` čita postojeće delivery/attempt ledgere i poziva Expo. `probe` upisuje readiness i kada je disabled. | `EXPO_PUSH_TRANSPORT_ENABLED` mora ostati false dok konkretan transport scenario nije odobren. Disabled `tick` ne radi DB/provider IO; `probe` nije read-only. Deployment sam ne uvodi raspored. |
 | `uskoci-account-closure-worker` | Service-only jedan account/generation ili bounded maintenance1..8. Može obrisati pripremljene Storage objekte i soft-obrisati Auth identitet uz zadržan application subject. | `USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED` default false, dodatno tačna izvršna politika, owned start/generation/dispatch, dokazni i hold guard-ovi.131 ne instalira cron; **ne uključivati** bez zasebne konkretne dozvole. |
 | Publication/QA provider | Nema cron consumer-a za Gemini u pregledanom SQL-u. Postojeći korisnik/klijent ipak može inicirati poziv čim policy/source/env dozvole. |127 allowlist ograničava plaćeni AI poziv, ne javnost marketplace-a, čitanje objave ili sve legacy poslovne RPC-eve. |
+| Support143 | Authenticated autori mogu otvoriti sopstveni case čim se primene RPC grantovi; operatorov pristup zahteva zaseban aktivan singleton grant. Novi safety report dobija case atomskim trigger-om. |Nema support allowlist-a ili enable env flaga. Prazan/revoked operator grant ne zatvara author CREATE. Privatni APK i127 AI allowlist ne izoluju ovu publiku; finalni batch mora obuhvatiti stvarne postojeće naloge. |
 
 Predlog finalnog batch-a treba da izričito obuhvati kratko održavanje postojećeg jobid1, očuvanje njegove tačne konfiguracije, proveru da se prethodna izvršenja stvarno završila i kasnije vraćanje njegovog prethodnog active stanja. Sama činjenica `end_time IS NULL`=0 pre pauze nije drain dokaz. Ako pauza nije u odobrenom batch-u ili se ne može bezbedno završiti drain, ne improvizovati `pg_terminate_backend`, ne povećavati lock timeout i ne menjati SQL radi prolaza. Ne zaustavljati zauvek auto-completion/expiry da bi se uklonio simptom.
 
 ## 3. Migracije koje menjaju više od dostupnosti novih RPC-eva
 
-Sve datoteke primenjivati u tačnom redosledu iz obnovljenog [LIVE_BATCH_CANDIDATE.json](LIVE_BATCH_CANDIDATE.json); ova tabela nije zamena za33 pune datoteke i njihove hash-eve.
+Sve datoteke primenjivati u tačnom redosledu iz obnovljenog [LIVE_BATCH_CANDIDATE.json](LIVE_BATCH_CANDIDATE.json); ova tabela nije zamena za36 punih datoteka i njihove hash-eve.
 
 | Ordinal | Stvarni efekat koji mora biti vidljiv u odobrenju i postflight-u |
 | --- | --- |
@@ -52,8 +82,11 @@ Sve datoteke primenjivati u tačnom redosledu iz obnovljenog [LIVE_BATCH_CANDIDA
 |**139** |Rekonstruiše snapshot za **svaku** postojeću Agreement verziju; postojeće safety report/problem/active hold veze postaju zaštita medijskog dokaza. Nedokaziva istorijska fotografija ostaje UNRESOLVED; istorijski Task-only safety kontekst pravi gap. Ni0 sadašnjih Storage objekata ne garantuje0 takvih snapshot/gap redova. Nema izmišljanja starih bajtova ili brisanja gap-a radi prolaza. Dodaje Storage/asset immutable guard-ove i export42/V5_4. |
 |**140 — registrovan, actual CI nastavak pending** |Narrow P3 source compatibility i shared closure lock u postojećim claim/execute/candidate putanjama. Isključuje7 novih non-FK command/review/media sidecar izvora iz starog volatile purge-a. Ne seed-uje rok/policy i ne menja raspored; može vratiti izvršnost **već** validne P3 politike. Posmatrani live ima0 takvih politika; finalno osvežiti pre admission-a. |
 |**141 — registrovan, actual CI pending** |Postojeći `private.worker_ai_turns` dobija3 kolone: `provider_dispatched` se za stare redove konzervativno postavlja na true, za nove default=false; `cancelled_at` i `user_message_id` za stare ostaju null. Nema novih relacija/FK, brisanja poruka ni izmišljene veze sa starom porukom. Owned read/cancel i service dispatch koriste isti account/session/key autoritet. Otkazivanje pre dispatch-a trajno zatvara isti zahtev; nepoznat već dispatchovan zahtev ne dobija novu provider obradu. Samo dokazano otkazana poruka sa tačnom novom message-ID vezom izostaje iz budućeg provider konteksta, dok owned istorija ostaje.141 zahteva tačna128 claim/complete/context tela i tačno140 readiness telo, zatim osvežava tehnički closure digest i samo njegov vezani literal u140 guard-u. Ne menja allowlist, candidate, rokove ni policy redove. Export ostaje42 dataset-a, prelazi na `OWN_ACCOUNT_V5_5` i dodaje samo `cancelledAt` postojećem own `workerAiTurns`; provider metadata/request key/message veza ne ulaze u export. |
+|**142 — registrovan, actual CI pending** |AF-D15 dozvoljava eksplicitno odustajanje i posle Task/Worker dispatch-a uz zadržanu potrošnju. Isti zahtev postaje terminalni FAILED sa `cancelled_at`; `provider_dispatched` i rezervacija ostaju. Ako completion pobedi, vraća se stvarni raniji receipt; ako cancel pobedi, kasni completion ne menja kandidat/profil/poruke. Nema novog provider poziva, retry-ja, refund-a, brisanja istorije, promene postojećih redova ili export42/V5_5. Menjaju se tačno cancellation constraints/helper-i i tehnički source seal, uz očuvanje140 guard-a. |
+|**143 — registrovan, actual CI pending** |AF-D17/18 uvodi10 private RLS tabela za support, own/autorizovane operator RPC-eve, ne seed-uje operatora. Za svaki postojeći safety report pravi novi case RECEIVED/revision1/sequence1 i jedan početni event, **bez obzira na prethodni status report-a**; originalni report ostaje nepromenjen. Novi trigger-i nastavljaju atomsku vezu. Predate Task/review fotografije mogu dobiti143 evidence reference kroz postojeću139 zaštitu; nema novih upload-a ili automatskog prenosa celog chata. Svaki vlasnik case-a dobija `SUPPORT_RETENTION_POLICY_NOT_READY`, uključujući CLOSED case, dok nedostaje pregledan retention ugovor. Closure katalog dobija10 relacija u3 postojeće klase, export42→49/`OWN_ACCOUNT_V5_6`, a source roster6→33 tačna helper-a. Ne aktivira policy, Gemini, sankcije, objavu, push ili rokove čuvanja. |
+|**144 — registrovan, actual CI pending** |Privatne bilateralne fotografije:1 private FORCE RLS upload tabela, eksplicitni message asset ID-evi, immutable Storage/asset/message granice,120/24h i12/min anti-abuse, novi photo RPC uz neizmenjene text writer-e. Oporavak čita isti dispatch; nema novog POST-a pri nepoznatom ishodu. Support prima samo odabrani message snapshot. Closure inventar dobija tačne Storage putanje, export49→50/V5_7, source seal33→45. Nema grupnih fotografija, Gemini obrade privatnih slika, javnih URL-ova, policy seed-a ili30-dnevnog brisanja istorije. |
 
-Posle140 closure digest i dalje odgovara139 inventaru;141 ga namerno menja zbog novih kolona i tačno ponovo vezuje neizmenjeni140 guard. Ne očekivati isti139/141 digest. Stari closure source i export projection binding-i nisu prepisani niti odobreni ovom tehničkom izmenom i ostaju nevažeći za novu projekciju/inventar. Postojeća validna P3 retention politika ima zaseban ugovor:141 ne zatvara već dozvoljeni retention consumer. SourceReady=true nije PolicyReady=true. Pri novoj obaveznoj kategoriji/projekciji očekivan NOT_READY ne „popravljati“ dopisivanjem lažnih pravnih podataka.
+Posle140 closure digest i dalje odgovara139 inventaru;141–143 ga namerno menjaju i tačno ponovo vezuju neizmenjeni140 guard. Ne očekivati isti139/141/143 digest. Stari closure source i export projection binding-i nisu prepisani niti odobreni ovom tehničkom izmenom i ostaju nevažeći za novu projekciju/inventar. Postojeća validna P3 retention politika ima zaseban ugovor: tehnička source kompatibilnost može ostaviti već dozvoljeni retention consumer izvršivim. SourceReady=true nije PolicyReady=true. Pri novoj obaveznoj kategoriji/projekciji očekivan NOT_READY ne „popravljati“ dopisivanjem lažnih pravnih podataka.
 
 ## 4. Jedanaest Edge entrypoint-a: konkretan auth/deploy ugovor
 
@@ -66,7 +99,7 @@ Repo pri pregledu nema `supabase/config.toml`. Zato finalni deploy manifest mora
 |`uskoci-publication-evaluate` |User Auth, tačan owned Need/review/policy context,126 eval claim/dispatch+127. |Paid=false; `USKOCI_GEMINI_IMAGE_REVIEW_ENABLED=false` do odobrene odabrane slike. Sama obična HTTP proba sa validnim review-em može rezervisati/pozvati model. |
 |`uskoci-qa-classify` |User Auth +context/hash/classification/recovery+135 dispatch i127. |Paid=false; `USKOCI_QA_CLASSIFIER_ENABLED=false`; nedostajući reviewed QA dokument ostaje zatvoren. |
 |`uskoci-location-search` |User Auth, bounded LocationIQ forward/reverse; read-only prema aplikacionoj bazi. |Postojeći provider/key, bez novog provider izbora. Stvarni query ipak izlazi LocationIQ-u i nije dokaz samo deploy-a. |
-|`uskoci-media` |User Auth +owned Task/avatar scope; server derivative, Storage i durable key/recovery; bez Gemini. |Nema opšteg enable flaga. Proveriti tačan `npm:@imagemagick/magick-wasm@0.0.43`, `magick.wasm` asset i sve lokalne import-e u stvarnom bundle-u. Deno2.9.6 lokalni smoke ne dokazuje hosted bundler/Storage tok. |
+|`uskoci-media` |User Auth +owned Task/avatar scope; server derivative, Storage i durable key/recovery; bez Gemini.143 dodaje čitanje tačno case-bound fotografije preko service RPC-a sa stvarnom human session/case/grant proverom. |Nema opšteg enable flaga. Proveriti tačan `npm:@imagemagick/magick-wasm@0.0.43`, `magick.wasm` asset i sve lokalne import-e u stvarnom bundle-u. Deno2.9.6 lokalni smoke ne dokazuje hosted bundler/Storage tok. Operator photo read upisuje audit; nije read-only DB smoke. |
 |`uskoci-data-export-download` |User Auth +owned receipt/generation, kratki jednokratni DB grant i ponovna provera uz privatne bytes. |Nije čist read-only healthcheck: authorize kreira download grant. Za negativni anon test ne slati validan owned receipt. |
 |`uskoci-data-export-worker` |Dual: user prepare/cleanup tačne potvrde ili interni service `tick`. `Transport.isInternal()` poredi ceo očekivani `SUPABASE_SERVICE_ROLE_KEY`, ne samo claim `role`. |Legacy service-role JWT ide samo interno u Bearer; handler ne prihvata običnog user-a za tick. Bez scheduler-a/maintenance poziva dok njihov scope nije odobren. |
 |`uskoci-push-transport` |Samo exact service Bearer. User/anon ne smeju claim-ovati delivery. |`EXPO_PUSH_TRANSPORT_ENABLED=false`. Čuvati razliku probe-upis / ticket / provider receipt / stvarni uređaj. |
@@ -77,7 +110,7 @@ Zvanična dokumentacija opisuje gateway i handler kao odvojene auth slojeve, pa 
 
 Sačuvati stare5 Edge verzije/EZBR hash-eve iz baseline-a, a posle deploy-a svih11: version/status/verify_jwt/EZBR i sadržaj stvarnog bundle-a sa lokalnim i npm/WASM zavisnostima. Hash samo `index.ts` nije sufficient bundle dokaz. Ne koristiti `--no-verify-jwt` kao popravku gateway401 bez konkretnog transport/auth pregleda. Hosted asset nedostajanje ili gateway/handler auth mismatch zaustavlja rollout tog toka; ne premešta se provider key u APK.
 
-Lokalni `scripts/prepare-v5-edge-payloads.cjs --source <40-char SHA>` sada priprema tačne MCP JSON payload-e iz Git objekata, bez uvoza/izvršenja product koda ili mreže. Za28c47c01 manifest je regenerisan:11 funkcija,29 per-function unosa/22 jedinstvena source fajla; svaki sadržaj i konačan payload imaju SHA256. Manifest u `artifacts/v5-edge-payloads/<SHA>/manifest.json` ima SHA256 `4937f7e077491db6ad1fa647bfaf25302d7dd99609fb30f031095eb78b8405ba` i vezan je u LIVE_BATCH_CANDIDATE.json.7 usmerenih guard provera i nezavisan pregled prolaze. Eksterni `npm:@imagemagick/magick-wasm@0.0.43` i njegov `magick.wasm` zabeleženi su kao spoljne zavisnosti; **njihovi bajtovi nisu u lokalnim tekstualnim payload-ima**. Supabase zvanični [image-manipulation primer](https://supabase.com/docs/guides/functions/examples/image-manipulation) koristi npm WASM resolver, ali to ne zamenjuje hosted readback našeg bundla. Za zasebne lokalne WASM/static fajlove postoji drugačiji [static_files deployment ugovor](https://supabase.com/docs/guides/functions/wasm); ne dodavati ih API payload-u kao neproverenu zamenu.
+Lokalni `scripts/prepare-v5-edge-payloads.cjs --source <40-char SHA>` priprema tačne MCP JSON payload-e iz Git objekata, bez uvoza/izvršenja product koda ili mreže. Za2b0542c0 manifest je regenerisan:11 funkcija,29 per-function unosa/22 jedinstvena source fajla; svaki sadržaj i konačan payload imaju SHA256. Manifest u `artifacts/v5-edge-payloads/2b0542c0401a51a30edaa3d67bdae0101e7a281d/manifest.json` ima SHA256 `e4ddecd15dfe73f695451efe193de751d2bf545d68426a4293ae5d1054728e2e` i vezan je u LIVE_BATCH_CANDIDATE.json. To je lokalna priprema, ne deploy potvrda. Eksterni `npm:@imagemagick/magick-wasm@0.0.43` i njegov `magick.wasm` zabeleženi su kao spoljne zavisnosti; **njihovi bajtovi nisu u lokalnim tekstualnim payload-ima**. Supabase zvanični [image-manipulation primer](https://supabase.com/docs/guides/functions/examples/image-manipulation) koristi npm WASM resolver, ali to ne zamenjuje hosted readback našeg bundla. Za zasebne lokalne WASM/static fajlove postoji drugačiji [static_files deployment ugovor](https://supabase.com/docs/guides/functions/wasm); ne dodavati ih API payload-u kao neproverenu zamenu.
 
 ## 5. Konkretni read-only upiti i očekivanja
 
@@ -141,7 +174,7 @@ where b.policy_id='RS_PUBLICATION_POLICY_MINIMUM' and b.jurisdiction='RS' and b.
 
 Očekivati baš16 zamrznutih pravila;124 ready/current=true, a125 dodatno executable=true i tačan approved document digest. QA aktivacija nije implicitni očekivani rezultat ovog SQL paketa. Ne izvršavati posebni QA candidate generator ili126 publish RPC kao postflight.
 
-**D — odvojene zatvorene kapije, post141 final:**
+**D — odvojene zatvorene kapije, očekivanja po konkretnom koraku:**
 
 ```sql
 select enabled,ceiling_microusd,reserved_microusd,price_valid_until from private.ai_test_budget_v5;
@@ -162,7 +195,7 @@ select key,value->>'enabled' as enabled,
 from private.marketplace_config where key='urgent_activation_policy';
 ```
 
-Pre plaćenog batch-a očekivati127 disabled/0/0, ceiling5000000 i predviđen expiry. Ne resetovati ledger da proba stane u budžet.140/141 mogu imati source_ready=true uz sva tri policy_ready=false; to je ispravno zatvoreno stanje. Finalni export catalog i posle141 ima42 dataset-a; sada je projekcija V5_5, sa istim own filtrom i dodatim cancellation timestamp-om samo u `workerAiTurns`. Postojeći export/retention job i artifact brojači se porede odvojeno; null policy nije dozvola za brisanje njihove evidencije.
+Pre plaćenog batch-a očekivati127 disabled/0/0, ceiling5000000 i predviđen expiry, ako nije bilo zasebno odobrenih poziva; postojeće rezervacije sačuvati. Ne resetovati ledger da proba stane u budžet.140–143 mogu imati source_ready=true uz sva tri policy_ready=false; to je ispravno zatvoreno stanje. Neposredno posle141 i142 export katalog ima42 dataset-a/`OWN_ACCOUNT_V5_5`, sa istim own filtrom i cancellation timestamp-om u `workerAiTurns`. **Finalno posle143 očekivati49 dataset-a/`OWN_ACCOUNT_V5_6`**, sedam novih own support projekcija i nov compiled binding. Postojeći export/retention job i artifact brojači se porede odvojeno; null policy nije dozvola za brisanje njihove evidencije.
 
 **E —137/139 backfill i138 bez izmišljenih koordinata:**
 
@@ -235,7 +268,7 @@ where p.oid='private.retention_ai_source_ready()'::regprocedure and s.singleton;
 
 Broj redova, `prior_columns_sha256`, stvarni state brojači i `policy_rows_sha256` ostaju isti kroz samu141; `expired_processing` može porasti samo protokom vremena i nije novi dispatch. Oba guard boolean-a moraju biti true pre i posle. Novi closure SHA se beleži kao namerna141 promena; njegovu vrednost porediti sa tačnim disposable141 izvornim inventarom. U catalog-u izF ne očekuje se nova privatna relacija.141 ne dodaje FK; postojeća Worker veza ka `worker_ai_sessions` ostaje, a incoming FK ka `ai_messages` mora ostati0 kako proverava sledeći blok.
 
-Sledeći blok je **samo posle141**, pre bilo kog user/provider test slanja:
+Sledeći blok je **neposredno posle141, pre142** i pre bilo kog user/provider test slanja:
 
 ```sql
 select a.attname,format_type(a.atttypid,a.atttypmod) as type,a.attnotnull,
@@ -256,7 +289,7 @@ select d->>'key' as dataset,d->'fields' as fields,d->>'ownershipFilter' as owner
 from jsonb_array_elements(private.data_export_dataset_catalog()) d where d->>'key'='workerAiTurns';
 ```
 
-Očekivati3 kolone: `provider_dispatched` boolean NOT NULL/default false; `cancelled_at` timestamptz i `user_message_id` uuid nullable/bez default-a. Neposredno posle mirne migracije `conservative_existing_dispatch` je prethodni broj turnova, a ostala3 brojača su0; true nije dokaz stvarnog poziva ili potrošnje. Incoming message FK count ostaje0. Check constraint dozvoljava cancellation samo uz FAILED, provider_dispatched=false i completion_hash=null. Export fields su tačno `cancelledAt,conversationId,createdAt,id,state`, filter `t.account_id=REQUEST_ACCOUNT`; D i dalje mora pokazati42 dataset-a i očekivano zatvorene policy kapije. Source/runtime oznaka V5_5 potvrđuje se poređenjem zamrznutog compiled snapshot/policy-binding izvora; ne generisati stvarni export radi proveravanja verzije.
+Očekivati3 kolone: `provider_dispatched` boolean NOT NULL/default false; `cancelled_at` timestamptz i `user_message_id` uuid nullable/bez default-a. Neposredno posle mirne141 migracije `conservative_existing_dispatch` je prethodni broj turnova, a ostala3 brojača su0; true nije dokaz stvarnog poziva ili potrošnje. Incoming message FK count ostaje0. **Samo u141 stanju** constraint dozvoljava cancellation uz FAILED, provider_dispatched=false i completion_hash=null;142 namerno uklanja uslov provider_dispatched=false. Export fields su tačno `cancelledAt,conversationId,createdAt,id,state`, filter `t.account_id=REQUEST_ACCOUNT`; neposredno posle141 D pokazuje42 dataset-a/V5_5. To nije finalno143 očekivanje. Source/runtime oznaka potvrđuje se poređenjem zamrznutog compiled snapshot/policy-binding izvora; ne generisati stvarni export radi proveravanja verzije.
 
 Za tačna141 execute prava koristiti samo metadata, bez poziva recovery/cancel/dispatch-a:
 
@@ -278,14 +311,125 @@ from (values
 
 Svih5 signature-a mora postojati. Anon/PUBLIC su false za sve; authenticated true samo za owned read/cancel; service true samo za dispatch/context; private helper nema nijedan od navedenih grantova. Sama141 ne claim-uje Worker turn, ne poziva Gemini, ne zapisuje novu USER poruku niti učitava audio. Oporavak/cancel↔dispatch race i izostavljanje otkazanog teksta iz sledećeg provider konteksta pripadaju tačno vezanom actual141 CI dokazu i kasnijem posebno odobrenom native testu, ne ovim read-only upitima.
 
+**H —142: promena ugovora odustajanja, bez odustajanja tokom postflight-a:**
+
+[SQL142](../../../supabase/migrations/20260913044510_clean_v5_unknown_ai_turn_exit.sql) menja dve imenovane constraints i tačno pregledana Task/Worker recovery/cancel/complete tela. Pre i posle mirne primene sačuvati brojače i interne aggregate SHA256 postojećih `private.ai_need_turn_commands`, `private.worker_ai_turns`, vezanih poruka/kandidata,127 rezervacija i retention policy redova. U izlaz idu samo brojevi/hash-evi, bez UUID-eva komandi, narativa ili provider podataka. Sama migracija ne menja te redove: broj i hash moraju ostati isti; tehnički closure source hash se namerno menja.
+
+```sql
+select c.conrelid::regclass::text as relation,c.conname,c.convalidated,
+ pg_get_constraintdef(c.oid,true) as constraint_definition
+from pg_constraint c where
+ (c.conrelid='private.ai_need_turn_commands'::regclass and c.conname='ai_need_turn_cancelled_check')
+ or (c.conrelid='private.worker_ai_turns'::regclass and c.conname='worker_ai_turn_cancelled_fence')
+order by relation;
+select 'TASK' as kind,count(*) as turns,
+ count(*) filter(where provider_dispatched) as dispatched,
+ count(*) filter(where cancelled_at is not null) as cancelled,
+ count(*) filter(where cancelled_at is not null and provider_dispatched) as cancelled_after_dispatch
+from private.ai_need_turn_commands
+union all
+select 'WORKER',count(*),count(*) filter(where provider_dispatched),
+ count(*) filter(where cancelled_at is not null),
+ count(*) filter(where cancelled_at is not null and provider_dispatched)
+from private.worker_ai_turns;
+```
+
+Oba constraints moraju biti validated. Finalno142/143: Task cancellation zahteva `state='FAILED' AND receipt IS NULL`; Worker zahteva `state='FAILED' AND completion_hash IS NULL`. Nijedan više ne zahteva `provider_dispatched=false`. Metadata/helper SHA porediti sa tačnim disposable142 izvorom; ACL ostaje isti. Izvršeni cancel nije read-only proba. Kasniji odobreni scenario dokazuje isti UUID, completion-vs-cancel race, terminalni owned recovery i odsustvo kasnog upisa. `canCancel=false`/`retry=false` posle terminalnog cancellation-a ne znači povraćaj novca ili prekid već prihvaćene Google obrade.127 admission/ledger ne menjati da bi se dokaz ostvario. Posle142 export ostaje42/V5_5;143 ga zatim menja.
+
+**I —143: backfill i metadata-only postflight pre operatorskog granta:**
+
+Pre143 (posle142, ne na108) sačuvati sledeće rezultate i prethodne source/policy/ACL hash-eve. Ako postojeći safety report ima RESOLVED ili IN_REVIEW status, njegov novi support case ipak počinje RECEIVED. To mora biti vidljivo u konačnom odobrenom backfill obimu; ne prevoditi stare statuse ili izmišljati ranije operatorske odluke. Po sadašnjem108 pregledu119 tabela još ne postoji, pa bi miran novi lanac mogao dati0; taj očekivani broj treba stvarno ponovo izmeriti neposredno pre143.
+
+```sql
+select status,count(*) as reports from private.safety_reports group by status order by status;
+select count(*) as reports,
+ encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(r) order by r.id),'[]'::jsonb)::text,'UTF8')),'hex') as safety_rows_sha256
+from private.safety_reports r;
+```
+
+Posle143 ponoviti isti hash upit. Originalni safety report redovi ostaju identični. Svaki dobija tačno jedan case i početni event sa originalnim owner-om/vremenom; narativ ostaje u originalnom safety report-u, ne u novom event body-ju. Sledeće SQL provere vraćaju samo brojače; ne pozivaju user/operator RPC, tick, grant ili upload:
+
+```sql
+select count(*) as cases,
+ count(*) filter(where safety_report_id is not null) as linked_safety_cases,
+ count(*) filter(where safety_report_id is null) as other_cases
+from private.support_cases_v5;
+select count(*) as invalid_safety_links from private.safety_reports r
+left join private.support_cases_v5 c on c.safety_report_id=r.id
+where c.id is null or c.account_id<>r.reporter_account_id
+ or c.channel<>'SAFETY' or c.topic<>'SAFETY_REPORT' or c.ordinary
+ or c.title<>r.reason or c.status<>'RECEIVED' or c.revision<>1 or c.sequence<>1
+ or c.created_at<>r.created_at or c.updated_at<>r.created_at
+ or c.context is distinct from jsonb_build_object('kind','SAFETY_REPORT','id',r.id,'revision',null,
+  'content',jsonb_build_object('category',r.category,'needId',r.need_id,'agreementId',r.agreement_id,'createdAt',r.created_at))
+ or (select count(*) from private.support_events_v5 e where e.case_id=c.id)<>1
+ or not exists(select 1 from private.support_events_v5 e where e.case_id=c.id
+  and e.sequence=1 and e.actor_account_id=r.reporter_account_id and e.author_role='AUTHOR'
+  and e.kind='SAFETY_REPORT' and e.body is null and e.created_at=r.created_at
+  and e.decision_id is null and e.appeal_id is null);
+select 'operator_grants' as kind,count(*) from private.support_operator_grants_v5
+union all select 'operator_audit',count(*) from private.support_operator_audit_v5
+union all select 'grant_commands',count(*) from private.support_grant_commands_v5
+union all select 'commands',count(*) from private.support_commands_v5
+union all select 'read_markers',count(*) from private.support_read_markers_v5
+union all select 'evidence',count(*) from private.support_evidence_v5
+union all select 'decisions',count(*) from private.support_decisions_v5
+union all select 'appeals',count(*) from private.support_appeals_v5;
+select count(*) as support_media_refs from private.media_evidence_refs_v5 where source_kind='SUPPORT_CASE';
+```
+
+U mirnom migration-only prozoru očekivati `invalid_safety_links=0`, case/event broj jednak tačnom pre143 report broju, `other_cases=0` i sve ostale brojače0.143 backfill ne pravi SUPPORT_CASE media refs: postojeća139 safety zaštita ostaje, a143 refs nastaju tek kada korisnik namerno preda Task/review referencu. Neočekivanu konkurentnu novu komandu ne proglasiti backfill-om; zaustaviti sledeći korak i utvrditi izvor pre nastavka.
+
+F proveru proširiti na tačno deset tabela: `support_operator_grants_v5`, `support_cases_v5`, `support_events_v5`, `support_decisions_v5`, `support_appeals_v5`, `support_evidence_v5`, `support_commands_v5`, `support_read_markers_v5`, `support_operator_audit_v5`, `support_grant_commands_v5`. Svih10 mora postojati u `private`, sa RLS i FORCE RLS, bez direktnog anon/authenticated/service SELECT/INSERT/UPDATE/DELETE i bez PUBLIC grantova. Proveriti i da sekvenca `support_cases_v5_case_number_seq` nije dodeljena tim ulogama. Tačne trigger/constraint/function hash-eve uporediti sa sačuvanim143 izvorom; source seal uključuje33 eksplicitna helper-a, ne proizvoljan wildcard.
+
+Za public RPC-eve upotrebiti isti metadata obrazac izG, sa ovim tačnim potpisima:
+
+| Potpis | Jedina runtime EXECUTE uloga |
+| --- | --- |
+| `public.rpc_support_set_operator_service_v5(uuid,boolean,integer,uuid)` | service_role |
+| `public.rpc_support_media_service_v5(uuid,uuid,uuid,uuid)` | service_role |
+| `public.rpc_support_submit_v5(uuid,uuid,text,uuid,integer,text)` | authenticated |
+| `public.rpc_support_read_command_v5(uuid,uuid)` | authenticated |
+| `public.rpc_support_cancel_command_v5(uuid,uuid)` | authenticated |
+| `public.rpc_support_capabilities_v5(uuid)` | authenticated |
+| `public.rpc_support_inbox_v5(uuid,text,text)` | authenticated |
+| `public.rpc_support_detail_v5(uuid,uuid,text)` | authenticated |
+| `public.rpc_support_mark_read_v5(uuid,uuid,text)` | authenticated |
+| `public.rpc_support_find_context_v5(uuid,text,uuid)` | authenticated |
+
+Anon/PUBLIC execute ostaju false, a private helper-i nemaju nijedan od tih runtime grantova. `private.closure_source_v5.sha256=private.closure_source_digest_v5()` i tačno normalizovani140 readiness guard moraju biti true; očekivati `retention_ai_source_ready=true`. Finalni export katalog mora imati49 dataset-a, sedam tačnih `ownSupport*` key/field/ownership allowlist-a i compiled `OWN_ACCOUNT_V5_6` verziju. Closure katalog mora uključiti svih10 novih relacija u postojećim AUDIT_SECURITY_LOGS/COMMAND_LEDGERS/NOTIFICATION_DELIVERY klasama. Retention policy redovi ostaju identični pre143 hash-u; export/closure izvršna kapija ostaje zatvorena bez nove pregledane mape. Ne generisati export, ne aktivirati sintetičku politiku i ne brisati case radi provere. `SUPPORT_RETENTION_POLICY_NOT_READY` je očekivani blokator za vlasnika svakog case-a, uključujući CLOSED; nije novi rok čuvanja.
+
+**J — zaseban predlog operator grant/revoke i positive support probe:**
+
+AF-D17/18 su već prihvaćene odluke o granicama i jednom vlasničkom operateru za privatni test; ne tražiti ih ponovo. Konkretan live batch treba da veže potvrđeni owner account, trenutnu grant revision, jedan command UUID i tačne kasnije probe. U ovom dokumentu nema stvarnog korisničkog UUID-a, email-a, tajnog ključa niti izvršenog API poziva.
+
+Grant API je [SQL143, funkcija rpc_support_set_operator_service_v5](../../../supabase/migrations/20260913045824_clean_v5_support_case_authority.sql): `p_account_id uuid`, `p_active boolean`, `p_expected_revision integer`, `p_client_request_id uuid`; rezultat je `{accountId,purpose:'PRIVATE_TEST_OWNER_SUPPORT',active,revision,authoritative:true}`. Zahteva stvarni privilegovani service-role request kontekst. Običan postgres/MCP SELECT bez tog konteksta nije ekvivalent API pozivu; ne uklanjati role guard. Metod transporta i tajni credential ostaju u server izvršenju, van APK-a i logova.
+
+1. Neposredno pre granta privilegovano pročitati samo metapodatke singleton-a i eventualnu potvrdu tačno planiranog opaque command-a. Samo ako singleton stvarno ne postoji, prvi grant koristi `p_expected_revision=0`, `p_active=true` i jedan unapred vezan UUID. Uspeh pravi1 singleton red,1 SERVICE_GRANT audit i1 grant command receipt; vraća revision1. Proveriti ceo receipt i stvarne metapodatke, ne email ili `user_metadata`.
+2. Ako odgovor izostane, sačuvati isti key/args. Najpre pročitati tačan `support_grant_commands_v5` zapis i trenutni singleton kroz odobren privilegovani read. Isti key/args ima kanonski replay, dok drugačiji args odbijaju `SUPPORT_KEY_REUSED`; novi UUID nije automatski oporavak. Ako je account u međuvremenu closing, i identičan aktivacioni poziv može pasti pre replay-a, pa je read potvrde potreban. Sačuvati samo opaque receipt/revision/hash; ne objavljivati account identitet.
+3. Postoji jedan singleton i jedan aktivan operator. Za opoziv je ista API sa `p_active=false`, **stvarno trenutnom revision** i zasebnim unapred odobrenim command UUID-em. Opoziv inkrementira revision i čuva audit/receipt/case/evidence. Promena naloga zahteva prvo opoziv starog granta. Race sa već commitovanom radnjom čuva postojeći receipt; grant revocation ne briše raniji odgovor ili već pročitani sadržaj. Pri unknown/stale stanju ne nagađati novu revision ili novi key.
+4. `capabilities` i owned `findContext` mogu služiti unapred odobrenim authenticated read proverama. Operator OPERATOR/SAFETY inbox, čitanje tuđeg case detalja i case fotografije **upisuju audit**; `markRead` upisuje watermark. Uvrstiti ih kao konkretne operacije, ne metadata-only smoke. Grant nema pravo na ceo privatni chat, susednu neizabranu poruku, novi upload ili Gemini obradu support sadržaja.
+5. Pozitivni scenario treba unapred navesti drugog kontrolisanog autora, jednu poruku ili Task/review referencu, CREATE→CLAIM→odgovor→DECIDE→APPEAL tok, opaque komande i očekivane receipts. Kada je operator i sam autor, viewerRole je AUTHOR; to nije nezavisna presuda sopstvenom zahtevu. Odluka ima `effect=NONE` i ne objavljuje Task/Q&A niti menja Agreement/sankciju. Nijedan scenario se ne izvršava samim ovim planom.
+
+Autorstvo ostaje otvoreno svim stvarno authenticated nalozima projekta koji nisu pod izvršnim closure ograničenjem. **Prazan/opozvan operator grant nije author kill switch.** Nema support allowlist-a ili enable flaga; kontrolisana publika i miran prozor moraju biti konkretni. Stop obim treba unapred odvojiti na nove provider admission-e, eventualni operator revoke i postojeće author poslovne radnje. Ne uvoditi neodobren globalni prekid Auth-a, novu policy ili brisanje privatne evidencije kao improvizovani rollback.
+
 ## 6. Redosled dokaza i stop ponašanje
 
-1. **Pre odobrenja:**31 PASS report tačnog sačuvanog28c47c01 izvora kroz141, uključujući prethodno nedostignute korake posle135; pregled pune33 forward datoteke/11 bundle-a; sveži preflight, stvarna publika, stari klijenti, brojevi137/139 backfill-a i maintenance/restore obim. Ne koristiti sintetičke CI policy/pravne aktore u live-u.
+AF-D26 odobrava ovaj razvojni cilj i potrebne proverene backend operacije.
+Dodatna staging/live dozvola se ne traži za canonical DEV/ALPHA. Za zaseban
+budući production projekat ostaje posebna owner odluka.
+
+1. **Pre primene:**34 PASS reporta tačnog sačuvanog izvora kroz144; pregled36 forward datoteka/11 bundle-a; sveži preflight, postojeći klijenti,137/139/143 backfill brojači i bezbedan maintenance/restore redosled. Trenutni78 run stao je135 i nije completePASS. Sintetičke CI policy/pravne aktore ne prenositi na DEV kao vlasnički pravni sadržaj.
 2. **Pre migracija:** sačuvati history/counter/catalog/function/policy/scheduler/Edge metadata baseline i odobreni način quiescence-a. Zatvoriti samo konkretne unapred odobrene provider admission zastavice i ne menjati credentials/keys naslepo. Nemati nekontrolisan postojeći evaluator/klijent tokom124/125 aktivacije. Gore navedene nove zastavice važe za pregledani V5 source; ne pretpostavljati da ih prethodni deploy podržava bez njegovog zasebnog pregleda.
 3. **Svaka transakcija:** tačni odobreni bajtovi, postojeći lock/statement timeout-i i ugrađeni predecessor/postcondition guard-ovi. Posle uspeha proveriti history append, prethodne hash-eve i ciljane postuslove. Prvi neuspeh zaustavlja sledeći korak. SQL greška/lock timeout nije dozvola za preskakanje guard-a ili historical rewrite.
 4. **Ako DDL čeka:** sačuvati bounded pid/state/wait/relation/mode/blocking_pids metapodatke dok wait traje. Bez query teksta i credentials. U run34730098067 dva puta je131 imala lock_timeout, dok novi34731211318 isti SQL prolazi bez observed wait-a; konkretan istorijski blocker nije dokazan. Ne tvrditi da je problem uklonjen ili promeniti production SQL samo na osnovu prolaznog ponavljanja.
 5. **Deploy i auth smoke:** prvo stvarni bundle/readback, zatim unapred dozvoljeni negative-auth/malformed-input testovi bez validnog owned mutation konteksta. Ne predstavljati push probe, export grant, maintenance tick, Storage upload ili WS rezervaciju kao read-only proveru. Prava pozitivna native/Edge/Auth/server/govor/fotografija/objava proba ostaje tačno opisana u plaćenom/poslovnom batch-u.
 6. **Pre ponovnog puštanja rada:** svi osnovni read DTO/ACL/hook i source/binding rezultati zadovoljeni; scheduler vraćen u prethodno odobreno stanje tek kada ne može potrošiti neodobrenu otvorenu politiku. Ako mora ostati pauziran, eksplicitno evidentirati zastoj expiry/dispatch/completion/export/retention i naredni konkretni oporavak. Ne ostaviti korisniku privid normalnog automatskog rada.
-7. **Incident/unknown:** zaustaviti nove odgovarajuće dispatch-e/admission, zadržati postojeće durable potvrde i pune rezervacije nepoznatog ishoda; prvo owned read/recovery. Već uspešne SQL migracije se ne „vraćaju“ `migration repair`, reset-om, brisanjem redova ili prepisivanjem hash-eva. Ispravka je nova pregledana forward migracija. Stari Edge bundle vraćati samo uz dokaz kompatibilnosti sa novom šemom; u suprotnom ostaviti konkretnu funkciju zatvorenu.
+7. **Incident/unknown:** zaustaviti nove odgovarajuće dispatch-e/admission, zadržati postojeće durable potvrde i pune rezervacije nepoznatog ishoda; prvo owned read/recovery.142 daje eksplicitno odustajanje uz zadržanu rezervaciju, ne automatski refund/retry. Za support grant/komandu primenitiJ: read tačnog key-a, eventualni zasebno odobren revoke sa stvarnom revision, bez brisanja audit/case/evidence. Opoziv operatora ne zatvara author CREATE. Već uspešne SQL migracije se ne „vraćaju“ `migration repair`, reset-om, brisanjem redova ili prepisivanjem hash-eva. Ispravka je nova pregledana forward migracija. Stari Edge bundle vraćati samo uz dokaz kompatibilnosti sa novom šemom; u suprotnom ostaviti konkretnu funkciju zatvorenu.
 
-Ovaj plan ne zatvara preostale vlasničke/legal/identity/support/HITNO odluke i ne tvrdi live poziv modela, stvarnu objavu, fizički mikrofon/GPS ili dostavljen push. Instalabilni signed138 APK i raniji UI snimci su odvojen dokaz tačnog54abcbe izvora; ne potvrđuju141 oporavak niti nov28c47c01 Android build.
+AF-D15–26 zatvaraju odustajanje, email Auth, support, privatne medije,
+self-reported identity, Urgent obim, test naloge i canonical DEV promociju.
+Ne pitati poznate odluke ponovo. Preostaju izvršna primena tih odluka,
+applicable closure redakcija, provere hostovanog providera/Storage/Auth i stvarni
+povezani native E2E. Raniji APK-ovi i snimci dokazuju samo sopstveni sačuvani
+source/build/screen obim; ne potvrđuju završeni144 ni konačni povezani APK.

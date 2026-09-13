@@ -62,6 +62,17 @@ it('case photo read sends only the selected asset and private case identity thro
  expect(mockInvoke.mock.calls[0]).toEqual(['uskoci-media',{body:{assetId:ASSET,caseId:CID},headers:{'x-media-operation':'read'},signal:controller.signal}]);
  expect(mockRpc).not.toHaveBeenCalled();
 });
+it('uses the private Agreement byte operation for an owned draft or exact canonical message, without Storage paths',async()=>{
+ mockInvoke.mockResolvedValue({data:null,error:{message:'MEDIA_NOT_FOUND'}});
+ await service.readMedia(ASSET,{agreementId:CID});
+ expect(mockInvoke.mock.calls[0][1]).toEqual({body:{assetId:ASSET,agreementId:CID},headers:{'x-media-operation':'agreement-read'},signal:undefined});
+ await service.readMedia(ASSET,{agreementId:CID,messageId:KEY});
+ expect(mockInvoke.mock.calls[1][1]).toEqual({body:{assetId:ASSET,agreementId:CID,messageId:KEY},headers:{'x-media-operation':'agreement-read'},signal:undefined});
+});
+it.each([{messageId:KEY},{agreementId:CID,caseId:KEY},{agreementId:CID,needId:KEY},{agreementId:CID,profileId:PROFILE},
+ {agreementId:CID,messageId:'bad'},{agreementId:CID,path:'PRIVATE'}])('rejects mixed Agreement photo authority before HTTP %#',async context=>{
+ await expect(service.readMedia(ASSET,context)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();
+});
 it.each([{caseId:'bad'},{caseId:CID,needId:CID},{caseId:CID,profileId:PROFILE},{caseId:CID,path:'PRIVATE'},
  {needId:CID,profileId:PROFILE},{caseId:''}])('rejects ambiguous or leaked photo read context before HTTP %#',async context=>{
  await expect(service.readMedia(ASSET,context)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();

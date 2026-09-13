@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'phosphor-react-native';
 import Svg, { Defs, Ellipse, LinearGradient, Rect, Stop, SvgXml } from 'react-native-svg';
@@ -16,6 +16,7 @@ import { ENTRY_V49, entryV49Intent, entryV49Intro, entryV49Layout, type EntryV49
 import { requesterNoteXml, workerNoteXml } from './entryV49Notes';
 
 type Intent = 'REQUESTER' | 'WORKER';
+export type EntryIntentSelection = { isCurrent: () => boolean };
 type Measurements = { brand?: number; requester?: number; worker?: number; requesterNote?: number; workerNote?: number; footer?: number };
 const requesterPhoto = require('../../../assets/brand/entry-v49/requester.webp');
 const workerPhoto = require('../../../assets/brand/entry-v49/worker.jpg');
@@ -113,7 +114,8 @@ function IntentColumn({ intent, selected, enabled, settled, layout: g, time, sel
 }
 
 export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy = false, error }: {
-  onRequester: () => void | Promise<void>; onWorker: () => void | Promise<void>; onSignIn: () => void;
+  onRequester: (selection: EntryIntentSelection) => void | Promise<void>;
+  onWorker: (selection: EntryIntentSelection) => void | Promise<void>; onSignIn: () => void;
   onSignUp?: () => void; busy?: boolean; error?: string | null;
 }) {
   const { width, height, fontScale } = useWindowDimensions();
@@ -124,6 +126,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   const [logo, setLogo] = useState<Box | null>(null);
   const [measured, setMeasured] = useState<Measurements>({});
   const [selected, setSelected] = useState<Intent | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const pending = useRef<{ generation: number; timer?: ReturnType<typeof setTimeout> } | null>(null);
   const generation = useRef(0), selectionTime = useSharedValue(0);
@@ -166,16 +169,22 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       transform: [{ translateX: selected ? (selected === 'REQUESTER' ? 1 : -1) * f.fillTravel : 0 }] };
   });
   const doorway = useAnimatedStyle(() => {
+    if (reduced) return { opacity: 1, borderTopLeftRadius: 0, borderTopRightRadius: 0, transform: [{ translateY: 0 }] };
     const f = entryV49Intent(selectionTime.get(), width, g.motionPhotoH);
     return { opacity: f.doorwayOpen > 0 ? 1 : 0, borderTopLeftRadius: f.doorwayRadius, borderTopRightRadius: f.doorwayRadius,
       transform: [{ translateY: height * (1 - f.doorwayOpen) }] };
   });
+  // Reveal from the same UI clock as the original doorway: a delayed JS timer
+  // or local storage callback must not leave its completed native fill empty.
+  const preparation = useAnimatedStyle(() => ({
+    opacity: reduced || entryV49Intent(selectionTime.get(), width, g.motionPhotoH).doorwayOpen === 1 ? 1 : 0,
+  }));
 
   useEffect(() => {
     const cancel = () => {
       generation.current += 1;
       if (pending.current?.timer) clearTimeout(pending.current.timer);
-      pending.current = null; cancelAnimation(selectionTime); setSelected(null);
+      pending.current = null; cancelAnimation(selectionTime); setSelected(null); setPreparing(false);
     };
     cancel();
     const subscription = AppState.addEventListener('change', state => { if (state !== 'active') cancel(); });
@@ -189,13 +198,16 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   const choose = (intent: Intent) => {
     if (phase !== 'welcome' || busy || pending.current || sesijaSada().accountRevision !== account || sesijaSada().user) return;
     const id = ++generation.current;
-    pending.current = { generation: id }; setSelected(intent); setSelectionError(null);
+    pending.current = { generation: id }; setSelected(intent); setSelectionError(null); setPreparing(false);
     const callback = intent === 'REQUESTER' ? onRequester : onWorker;
+    const isCurrent = () => generation.current === id && pending.current?.generation === id &&
+      sesijaSada().accountRevision === account && !sesijaSada().user;
     const deliver = async () => {
-      if (generation.current !== id || sesijaSada().accountRevision !== account || sesijaSada().user) return;
-      try { await callback(); }
-      catch { if (generation.current === id) setSelectionError('Izbor trenutno nije potvrđen. Pokušajte ponovo.'); }
-      finally { if (generation.current === id) { pending.current = null; setSelected(null); } }
+      if (!isCurrent()) return;
+      setPreparing(true);
+      try { await callback({ isCurrent }); }
+      catch { if (isCurrent()) setSelectionError('Izbor trenutno nije sačuvan. Pokušajte ponovo.'); }
+      finally { if (generation.current === id) { pending.current = null; setSelected(null); setPreparing(false); } }
     };
     if (reduced) { void deliver(); return; }
     selectionTime.set(0);
@@ -206,7 +218,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
     if (busy) return;
     generation.current += 1;
     if (pending.current?.timer) clearTimeout(pending.current.timer);
-    pending.current = null; cancelAnimation(selectionTime); setSelected(null);
+    pending.current = null; cancelAnimation(selectionTime); setSelected(null); setPreparing(false);
   };
   const enabled = phase === 'welcome' && !busy && !selected;
   const openAuth = (callback?: () => void) => {
@@ -253,7 +265,19 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       </ChoiceView>
     </ScrollView>
     {phase !== 'welcome' && logo ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><BrandArtwork time={time} phone={phone} logo={logo} /></View> : null}
-    {selected && !reduced ? <Animated.View pointerEvents="none" testID="entry-intent-doorway" style={[StyleSheet.absoluteFill, styles.doorway, doorway]} /> : null}
+    {selected ? <Animated.View pointerEvents="none" testID="entry-intent-doorway" style={[StyleSheet.absoluteFill, styles.doorway, doorway]}>
+      <Animated.View testID="entry-intent-preparation" pointerEvents="none"
+        accessibilityElementsHidden={!preparing} importantForAccessibility={preparing ? 'auto' : 'no-hide-descendants'}
+        style={[styles.preparation, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }, preparation]}>
+        <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.preparationBrand}>
+          <BrandLockup width={Math.min(200, Math.max(100, width - 80))} />
+        </View>
+        <View accessible accessibilityRole="progressbar" accessibilityLabel="Pripremamo prijavu" accessibilityState={{ busy: true }} accessibilityLiveRegion="polite" style={styles.preparationStatus}>
+          <ActivityIndicator accessible={false} color={ENTRY_V49.green} size="small" />
+          <Text style={styles.preparationText}>Pripremamo prijavu…</Text>
+        </View>
+      </Animated.View>
+    </Animated.View> : null}
     {intro ? <Pressable accessibilityRole="button" accessibilityLabel="Preskoči uvod" onPress={finish} style={[styles.skip, { top: Math.max(12, insets.top) }]}><Text style={styles.skipText}>Preskoči</Text></Pressable> : null}
     {selected && !busy ? <Pressable accessibilityRole="button" accessibilityLabel="Otkaži izbor" onPress={cancelChoice} style={[styles.skip, { top: Math.max(12, insets.top) }]}><Text style={styles.skipText}>Otkaži</Text></Pressable> : null}
   </View>;
@@ -288,6 +312,10 @@ const styles = StyleSheet.create({
   registerText: { color: ENTRY_V49.ink, fontSize: 12, lineHeight: 14.4, fontWeight: '600', textAlign: 'center', includeFontPadding: false },
   error: { color: '#943A30', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, fontSize: 14, lineHeight: 21 },
   doorway: { backgroundColor: '#F5F7F3' },
+  preparation: { flex: 1, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', gap: 24 },
+  preparationBrand: { alignItems: 'center' },
+  preparationStatus: { alignItems: 'center', gap: 12 },
+  preparationText: { color: ENTRY_V49.ink, fontSize: 16, lineHeight: 23, fontWeight: '600', textAlign: 'center' },
   skip: { position: 'absolute', right: 16, minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, backgroundColor: '#FFFFFF', borderRadius: 24 },
   skipText: { color: ENTRY_V49.ink, fontSize: 14, lineHeight: 22, fontWeight: '600' },
 });

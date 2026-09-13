@@ -7,11 +7,12 @@ type Row=Record<string,any>;
 const row=(v:unknown):Row|null=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Row:null;
 const id=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
 const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info,x-media-operation,x-media-scope,x-media-target,x-media-request-id',
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info,x-media-operation,x-media-scope,x-media-target,x-media-request-id,x-media-version',
  'Access-Control-Allow-Methods':'POST,OPTIONS','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const json=(status:number,data:unknown)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
 const safeCodes=['MEDIA_INPUT_INVALID','MEDIA_FORMAT_UNSUPPORTED','MEDIA_DIMENSIONS_TOO_LARGE','MEDIA_SANITIZATION_FAILED','MEDIA_LIMIT_REACHED',
- 'MEDIA_NOT_FOUND','MEDIA_NOT_EDITABLE','MEDIA_TURN_PENDING','MEDIA_UPLOAD_PENDING','IDEMPOTENCY_KEY_REUSED'];
+ 'MEDIA_NOT_FOUND','MEDIA_NOT_EDITABLE','MEDIA_TURN_PENDING','MEDIA_UPLOAD_PENDING','IDEMPOTENCY_KEY_REUSED',
+ 'MEDIA_VERSION_CONFLICT','MEDIA_COMMAND_CONFLICT','MEDIA_RATE_LIMITED','INTERACTION_BLOCKED','ACCOUNT_CLOSING'];
 class Safe extends Error{constructor(readonly code:string,readonly status=400){super(code);}}
 let initialized:Promise<void>|undefined,busy=false;
 export async function loadMediaRuntime(){
@@ -51,8 +52,30 @@ function supportMedia(raw:unknown,caseId:string,assetId:string):Row{
  if(!r||Object.keys(r).length!==8||Object.keys(r).some(k=>!['assetId','caseId','bucket','path','sha256','contentType','byteSize','authoritative'].includes(k))
   ||r.assetId!==assetId||r.caseId!==caseId||r.bucket!=='profile-media'||!hash(r.sha256)||r.contentType!=='image/jpeg'||r.authoritative!==true
   ||!Number.isInteger(r.byteSize)||r.byteSize<1||r.byteSize>5242880||path.length!==4||!id(path[0])
-  ||r.path!==`${path[0]}/v5/${assetId}/${r.sha256}.jpg`)throw new Error('INVALID_SUPPORT_MEDIA');
+  ||!['v5','agreement-v5'].includes(path[1])||r.path!==`${path[0]}/${path[1]}/${assetId}/${r.sha256}.jpg`)throw new Error('INVALID_SUPPORT_MEDIA');
  return r;
+}
+const exact=(v:Row,keys:string[])=>Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
+function photoReceipt(raw:unknown,accountId:string,agreementId:string,version?:number,key?:string):Row{
+ const r=row(raw),p=row(r?.photo);if(!r||!exact(r,['accountId','agreementId','agreementVersion','clientRequestId','assetId','state','attachedMessageId','photo','authoritative'])
+ ||r.accountId!==accountId||r.agreementId!==agreementId||!Number.isSafeInteger(r.agreementVersion)||r.agreementVersion<1||r.agreementVersion>2147483647
+ ||(version!==undefined&&r.agreementVersion!==version)||!id(r.clientRequestId)||(key!==undefined&&r.clientRequestId!==key)||r.authoritative!==true
+ ||!['ABSENT','PROCESSING','STAGED','READY','FAILED','CANCELLED'].includes(r.state)
+ ||(r.state==='ABSENT'?r.assetId!==null:!id(r.assetId))||(r.attachedMessageId!==null&&(!id(r.attachedMessageId)||r.state!=='READY')))throw new Error('INVALID_PHOTO_RECEIPT');
+ if(r.state==='READY'){
+  if(!p||!exact(p,['assetId','width','height','byteSize','contentType'])||p.assetId!==r.assetId||p.contentType!=='image/jpeg'
+  ||!Number.isInteger(p.width)||p.width<1||p.width>1600||!Number.isInteger(p.height)||p.height<1||p.height>1600
+  ||!Number.isInteger(p.byteSize)||p.byteSize<1||p.byteSize>5242880)throw new Error('INVALID_PHOTO_RECEIPT');
+ }else if(r.photo!==null)throw new Error('INVALID_PHOTO_RECEIPT');return r;
+}
+function photoTransfer(raw:unknown,accountId:string,agreementId:string,version:number,key:string):Row{
+ const t=row(raw);if(!t)throw new Error('INVALID_PHOTO_TRANSFER');const r=photoReceipt(t.receipt,accountId,agreementId,version,key);
+ if(r.state==='ABSENT'){if(!exact(t,['receipt']))throw new Error('INVALID_PHOTO_TRANSFER');return t;}
+ if(!exact(t,['receipt','attemptId','path','sha256','byteSize','dispatchState','dispatchOutcome','acquired'])||!id(t.attemptId)||typeof t.acquired!=='boolean'
+ ||!['NOT_DISPATCHED','DISPATCHING','SETTLED'].includes(t.dispatchState)||(t.dispatchState==='SETTLED'?!['STORED','REJECTED'].includes(t.dispatchOutcome):t.dispatchOutcome!==null))throw new Error('INVALID_PHOTO_TRANSFER');
+ if(t.path!==null){if(!hash(t.sha256)||t.path!==`${accountId}/agreement-v5/${r.assetId}/${t.sha256}.jpg`||!Number.isInteger(t.byteSize)||t.byteSize<1||t.byteSize>5242880)throw new Error('INVALID_PHOTO_TRANSFER');}
+ else if(t.sha256!==null||t.byteSize!==null||t.dispatchState!=='NOT_DISPATCHED'||r.state==='READY'||r.state==='STAGED')throw new Error('INVALID_PHOTO_TRANSFER');
+ if(r.state==='READY'&&(t.dispatchOutcome!=='STORED'||r.photo.byteSize!==t.byteSize))throw new Error('INVALID_PHOTO_TRANSFER');return t;
 }
 export async function handleMedia(req:Request):Promise<Response>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
@@ -64,8 +87,8 @@ export async function handleMedia(req:Request):Promise<Response>{
  const fetchBound=(path:string,init:RequestInit)=>fetch(path,{...init,redirect:'error',signal:abort.signal});
  const userHeaders={apikey:anon,Authorization:authorization,'Content-Type':'application/json'};
  const serviceHeaders={apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'};
- const rpc=async(name:string,args:Row)=>{const r=await fetchBound(url.origin+'/rest/v1/rpc/'+name,{method:'POST',headers:serviceHeaders,body:JSON.stringify(args)});
-  const v=parse(await bytes(r,32768,abort.signal));if(!r.ok){const code=row(v)?.message;if(safeCodes.includes(code))throw new Safe(code,code==='MEDIA_NOT_FOUND'?403:409);throw new Error('MEDIA_RPC_FAILED');}return v;};
+ const rpc=async(name:string,args:Row,maxBytes=32768)=>{const r=await fetchBound(url.origin+'/rest/v1/rpc/'+name,{method:'POST',headers:serviceHeaders,body:JSON.stringify(args)});
+  const v=parse(await bytes(r,maxBytes,abort.signal));if(!r.ok){const code=row(v)?.message;if(safeCodes.includes(code))throw new Safe(code,code==='MEDIA_NOT_FOUND'?403:code==='MEDIA_RATE_LIMITED'?429:409);throw new Error('MEDIA_RPC_FAILED');}return v;};
  const objectBytes=async(path:string,expected:string,size:number,strictMime=false)=>{const r=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+path,{headers:{apikey:service,Authorization:'Bearer '+service}});
   if(!r.ok||(strictMime&&r.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='image/jpeg'))throw new Error('STORAGE_UNCONFIRMED');const b=await bytes(r,5242880,abort.signal);if(b.length!==size||await digest(b)!==expected)throw new Error('STORAGE_UNCONFIRMED');return b;};
  let held=false;
@@ -73,6 +96,74 @@ export async function handleMedia(req:Request):Promise<Response>{
   const auth=await fetchBound(url.origin+'/auth/v1/user',{headers:userHeaders});if(!auth.ok)return json(401,{code:'AUTH_REQUIRED'});
   const user=row(parse(await bytes(auth,65536,abort.signal)));if(!id(user?.id))return json(401,{code:'AUTH_REQUIRED'});const aid=user.id;
   const op=req.headers.get('x-media-operation'),preview=(a:Row)=>({assetId:a.assetId,width:a.width,height:a.height,contentType:'image/jpeg'});
+  if(op?.startsWith('agreement-')){
+   const sessionId=supportSession(authorization,aid,url.origin);
+   if(op==='agreement-read'){
+    const i=row(parse(await bytes(req,2048,abort.signal)));if(!i||!id(i.agreementId)||!id(i.assetId)
+    ||!(exact(i,['agreementId','assetId'])||(exact(i,['agreementId','assetId','messageId'])&&id(i.messageId))))throw new Safe('MEDIA_INPUT_INVALID');
+    const args={p_account_id:aid,p_session_id:sessionId,p_agreement_id:i.agreementId,p_asset_id:i.assetId,p_message_id:i.messageId??null};
+    const authorize=async()=>{const r=row(await rpc('rpc_agreement_photo_read_service_v5',args)),parts=typeof r?.path==='string'?r.path.split('/'):[];
+     if(!r||!exact(r,['assetId','agreementId','messageId','bucket','path','sha256','contentType','byteSize','authoritative'])||r.assetId!==i.assetId||r.agreementId!==i.agreementId
+     ||r.messageId!==(i.messageId??null)||r.bucket!=='profile-media'||r.authoritative!==true||r.contentType!=='image/jpeg'||!hash(r.sha256)||parts.length!==4||!id(parts[0])
+     ||r.path!==`${parts[0]}/agreement-v5/${i.assetId}/${r.sha256}.jpg`||!Number.isInteger(r.byteSize)||r.byteSize<1||r.byteSize>5242880)throw new Error('INVALID_PHOTO_READ');return r;};
+    const r=await authorize(),b=await objectBytes(r.path,r.sha256,r.byteSize,true);try{const after=await authorize();
+     if(after.path!==r.path||after.sha256!==r.sha256||after.byteSize!==r.byteSize||abort.signal.aborted)throw new Error('PHOTO_AUTH_CHANGED');
+     return new Response(new Uint8Array(b),{headers:{...cors,'Content-Type':'image/jpeg'}});
+    }finally{b.fill(0);}
+   }
+   const upload=op==='agreement-upload';let agreementId:string,version:number|undefined,key:string|undefined,input:Uint8Array|undefined;
+   if(upload){agreementId=req.headers.get('x-media-target')??'';key=req.headers.get('x-media-request-id')??'';const rawVersion=req.headers.get('x-media-version')??'';
+    if(!id(agreementId)||!id(key)||!/^[1-9][0-9]{0,9}$/.test(rawVersion)||Number(rawVersion)>2147483647)throw new Safe('MEDIA_INPUT_INVALID');version=Number(rawVersion);
+   }else{
+    const i=row(parse(await bytes(req,2048,abort.signal)));if(!i||!id(i.agreementId))throw new Safe('MEDIA_INPUT_INVALID');agreementId=i.agreementId;
+    if(op==='agreement-upload-list'){if(!exact(i,['agreementId']))throw new Safe('MEDIA_INPUT_INVALID');}
+    else{if(!['agreement-upload-read','agreement-upload-cancel'].includes(op)||!exact(i,['agreementId','agreementVersion','clientRequestId'])||!id(i.clientRequestId)
+     ||!Number.isInteger(i.agreementVersion)||i.agreementVersion<1||i.agreementVersion>2147483647)throw new Safe('MEDIA_INPUT_INVALID');version=i.agreementVersion;key=i.clientRequestId;}
+   }
+   const rawCall=(operation:string,data:Row={})=>rpc('rpc_agreement_photo_upload_service_v5',{p_account_id:aid,p_session_id:sessionId,p_operation:operation,p_agreement_id:agreementId,p_version:version??null,p_key:key??null,p_input:data},65536);
+   if(op==='agreement-upload-list'){
+    const list=row(await rawCall('LIST'));if(!list||!exact(list,['accountId','agreementId','uploads','authoritative'])||list.accountId!==aid||list.agreementId!==agreementId||list.authoritative!==true
+    ||!Array.isArray(list.uploads)||list.uploads.length>120)throw new Error('INVALID_PHOTO_LIST');const keys=new Set<string>();for(const r of list.uploads){const p=photoReceipt(r,aid,agreementId);
+     if(['ABSENT','FAILED','CANCELLED'].includes(p.state)||p.attachedMessageId!==null||keys.has(p.clientRequestId))throw new Error('INVALID_PHOTO_LIST');keys.add(p.clientRequestId);}return json(200,list);
+   }
+   const call=async(operation:string,data:Row={})=>photoTransfer(await rawCall(operation,data),aid,agreementId,version!,key!);
+   if(!upload){
+    let t=await call(op==='agreement-upload-cancel'?'CANCEL':'READ');
+    // A restart need not retain the original image to settle an already-issued
+    // upload. Positive readback may advance this same immutable dispatch only.
+    // Missing/unknown bytes remain unresolved; there is never a second POST.
+    if(op==='agreement-upload-read'&&t.dispatchState==='DISPATCHING'&&['STAGED','CANCELLED'].includes(t.receipt.state)){
+     let stored:Uint8Array|undefined;try{stored=await objectBytes(t.path,t.sha256,t.byteSize,true);}
+     catch{if(abort.signal.aborted)throw new Error('PHOTO_RECOVERY_ABORTED');}
+     if(stored){stored.fill(0);t=await call('SETTLE',{sha256:t.sha256,outcome:'STORED'});}
+    }return json(200,t.receipt);
+   }
+   if(busy)throw new Safe('MEDIA_BUSY',429);busy=true;held=true;
+   const contentType=req.headers.get('content-type')?.split(';')[0].trim().toLowerCase();if(!contentType||!['image/jpeg','image/png','image/webp'].includes(contentType))throw new Safe('MEDIA_FORMAT_UNSUPPORTED');
+   try{
+    input=await bytes(req,10485760,abort.signal);if(!input.length)throw new Safe('MEDIA_INPUT_INVALID');
+    let t=await call('CLAIM',{sha256:await digest(input),byteSize:input.length,contentType});
+    if(!t.acquired){
+     if(t.receipt.state==='STAGED'&&t.dispatchState==='DISPATCHING'){
+      const existing=await objectBytes(t.path,t.sha256,t.byteSize,true);existing.fill(0);t=await call('SETTLE',{sha256:t.sha256,outcome:'STORED'});
+     }return json(200,t.receipt);
+    }
+    if(t.receipt.state!=='PROCESSING'||t.path!==null)throw new Error('INVALID_PHOTO_CLAIM');
+    let clean:{bytes:Uint8Array;width:number;height:number};try{await loadMediaRuntime();clean=sanitizeImage(input,contentType,magick);}catch(error){await call('FAIL');
+     const code=error instanceof Error?error.message:'';throw new Safe(safeCodes.includes(code)?code:'MEDIA_SANITIZATION_FAILED');}
+    input.fill(0);try{
+     const sha256=await digest(clean.bytes);t=await call('STAGE',{attemptId:t.attemptId,sha256,width:clean.width,height:clean.height,byteSize:clean.bytes.length});
+     if(t.receipt.state==='CANCELLED')return json(200,t.receipt);
+     if(t.receipt.state!=='STAGED'||t.sha256!==sha256||t.byteSize!==clean.bytes.length)throw new Error('INVALID_PHOTO_STAGE');
+     t=await call('DISPATCH');if(!t.acquired)return json(200,t.receipt);
+     if(t.receipt.state!=='STAGED'||t.dispatchState!=='DISPATCHING'||t.sha256!==sha256||t.byteSize!==clean.bytes.length)throw new Error('INVALID_PHOTO_DISPATCH');
+     const posted=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+t.path,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'image/jpeg','x-upsert':'false'},body:new Uint8Array(clean.bytes)});
+     void posted.body?.cancel();
+     if(!posted.ok&&posted.status!==409){if(posted.status>=400&&posted.status<500)await call('SETTLE',{sha256,outcome:'REJECTED'});throw new Error('PHOTO_STORAGE_UNCONFIRMED');}
+     const stored=await objectBytes(t.path,sha256,t.byteSize,true);stored.fill(0);t=await call('SETTLE',{sha256,outcome:'STORED'});return json(200,t.receipt);
+    }finally{clean.bytes.fill(0);}
+   }finally{input?.fill(0);}
+  }
   if(op==='list-need'||op==='list-profile'){
    const input=row(parse(await bytes(req,2048,abort.signal)));if(!input||Object.keys(input).length!==1)throw new Safe('MEDIA_INPUT_INVALID');
    if(op==='list-need'){

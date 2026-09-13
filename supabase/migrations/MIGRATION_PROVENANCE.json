@@ -2514,6 +2514,19 @@
       "raw_md5": "3f3f25fc910b8b64f97a0b41f9683288",
       "raw_sha256": "04fccf338a482849ef08fcbc0a0ceeef9354e0b02105d0eaa101dcd05ccaaed5",
       "raw_bytes": 65032
+    },
+    {
+      "version": "20260913065130",
+      "name": "clean_v5_agreement_private_photos",
+      "file": "20260913065130_clean_v5_agreement_private_photos.sql",
+      "classification": "PENDING_FORWARD_MIGRATION",
+      "live_applied": false,
+      "predecessor_live_migration_count": 87,
+      "predecessor_live_head": "20260907135905",
+      "note": "Unapplied V5 private Agreement photograph candidate. Historical87 replay is preserved; canonical DEV/ALPHA is108 before V5 promotion. AF-D26 authorizes verified canonical DEV/ALPHA promotion; separate future production is outside scope. Requires exact-source disposable144 proof.",
+      "raw_md5": "77d385ff29ff4d4eb1b0ec54bfc70a60",
+      "raw_sha256": "6403a3d39479d3c180f4acdf005f187fb4052ced33ca3efaaa4ae57f73e0f56c",
+      "raw_bytes": 40120
     }
   ],
   "p2_data_export_requests": {

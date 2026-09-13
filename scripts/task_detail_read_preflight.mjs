@@ -11,7 +11,7 @@ import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../supabase/proofs/ru5_device_ui_local_guard.mjs';
 
-const modules = ['contracts/workerCapacity', 'data/supabaseIzvor', 'data/needClientService', 'data/publicProfileClientService',
+const modules = ['contracts/workerCapacity', 'data/supabaseIzvor', 'data/needClientService', 'data/needUrgencyClientService', 'data/publicProfileClientService',
   'data/calendarErrors', 'data/legacyRpcFailure', 'data/serverReceipt', 'data/needDetailPresentation', 'lib/capabilityTerms',
   'lib/calendarTime', 'lib/market', 'lib/location', 'ui/calendar/calendarPresentation'];
 export function readSourceAdapters(sourceRoot, worker, workerId, trace = []) {
@@ -46,6 +46,7 @@ export function assertReadProbeRequest(input, init = {}) {
     '/rest/v1/needs': ['GET'],
     '/rest/v1/app_profiles': ['GET'],
     '/rest/v1/rpc/rpc_get_public_profile': ['POST'],
+    '/rest/v1/rpc/fn_need_urgency': ['POST'],
   };
   assert.ok(allowed[url.pathname]?.includes(method), 'W05_PROBE_READ_ONLY_BOUNDARY');
   if (url.pathname === '/auth/v1/token') assert.equal(url.searchParams.get('grant_type'), 'password');

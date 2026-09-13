@@ -24,6 +24,20 @@ function setup(patch: Partial<AgreementOutboxOptions> = {}) {
 const first = (model: ReturnType<typeof createAgreementOutbox>) => model.getSnapshot().entries[0];
 const stored = (storage: ReturnType<typeof memory>) => JSON.parse([...storage.values.values()][0]);
 afterEach(() => { for (const model of models.splice(0)) model.stop(); });
+it('persists a photo-only command without bytes and requires exact ordered attachment/version recovery after restart', async () => {
+  const { model, storage, options, send } = setup(); send.mockRejectedValue(new AgreementMessageError('UNAVAILABLE'));
+  await model.start(); const selected = { agreementVersion: 3, assetIds: [messageId, anotherMessage] };
+  const sending = model.sendDraft(selected); selected.assetIds.reverse(); await sending;
+  const original = first(model).command; expect(original.body).toBe(''); expect(original.photos).toEqual({ agreementVersion: 3, assetIds: [messageId, anotherMessage] });
+  expect(JSON.stringify(stored(storage))).not.toMatch(/image\/|base64|file:|bytes/);
+  model.stop(); const restarted = createAgreementOutbox({ ...options, storage }); models.push(restarted); await restarted.start();
+  expect(first(restarted).state).toBe('unknown'); expect(send).toHaveBeenCalledTimes(1);
+  const row = { senderAccountId: accountId, clientMessageId: original.clientMessageId, messageId, body: '', photos: { agreementVersion: 4, assetIds: [messageId, anotherMessage] } };
+  await restarted.reconcile([row]); expect(first(restarted).state).toBe('unknown'); expect(restarted.getSnapshot().error).toBe('CONFLICT');
+  await restarted.reconcile([{ ...row, photos: { agreementVersion: 3, assetIds: [anotherMessage, messageId] } }]); expect(first(restarted).state).toBe('unknown');
+  await restarted.reconcile([{ ...row, photos: original.photos }]); expect(first(restarted)).toMatchObject({ state: 'confirmed', messageId });
+  expect(send).toHaveBeenCalledTimes(1);
+});
 
 it('persists the immutable scoped command before invoking the actual injected port', async () => {
   const { model, storage, send } = setup(); await model.start();

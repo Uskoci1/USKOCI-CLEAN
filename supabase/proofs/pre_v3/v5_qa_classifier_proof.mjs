@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {assert,rows,sql,prove,pass,apply,login,need,actor,requester,anon,service,ok,denied,requesterId,rp,randomUUID,q,lockedRace,env} from './closure_runtime.mjs';
 import {renderQaPolicyCandidate} from '../../../scripts/render-qa-policy-bundle.mjs';
 import {loadQaClassifierHandler} from '../ai/qa_classifier_edge_runtime.mjs';
+import {createObservedQaRpc} from './observed_qa_rpc.mjs';
 const hash=s=>createHash('sha256').update(s.trim()).digest('hex');
 const input=(a,n,text='Da li postoji lift?',qid=null,key=randomUUID())=>({p_account_id:a.id,p_type:qid?'ANSWER':'ASK',p_need_id:n,p_need_revision:1,p_question_id:qid,p_text:text,p_client_request_id:key});
 const owner={id:requesterId,client:requester};
@@ -42,6 +43,7 @@ const questionCount=n=>Number(sql(`select count(*) from private.preselection_qa_
 async function ready(i){const c=await claim(i);assert.ok(c.claim);assert.equal(await dispatch(i,c),true);assert.equal((await complete(i,c)).state,'READY');return c;}
 
 await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async report=>{
+ const observedRpc=createObservedQaRpc({report,databaseUrl:env.RU5_DEVICE_DB_URL});
  await apply(report,'20260913000144_clean_v5_qa_classifier_authority.sql',134);await login();
  const a=await worker('qa135-a'),b=await worker('qa135-b'),n=qaNeed('QA135 canonical'),first=input(a,n);
  assert.equal((await read(a,first)).state,'ABSENT');
@@ -57,6 +59,7 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
  // Activate exact owner-rule artifact only inside the disposable database.
  sql(`update private.publication_policy_bundles set is_reviewed=true,is_active=true,reviewed_at=clock_timestamp(),activated_at=clock_timestamp(),review_provenance=review_provenance||'{"disposable135Fixture":true}'::jsonb where id=${q(bundle)}::uuid`);
  report.policyFixture='PREPARED_OWNER_RULES_DISPOSABLE_REVIEW_ACTIVATION_NOT_LIVE';
+ let primaryError=null;
  try{
   for(const policy of ['PRESELECTION_QA_V1','RS_PUBLICATION_POLICY_MINIMUM']){
    assert.equal(sql(`select private.current_publication_policy_bundle(${q(policy)},'RS',statement_timestamp()) is not null`),'t',policy+':READY');
@@ -94,15 +97,19 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
   await denied(b.client.rpc('rpc_ru4b_ask_preselection_question',{p_need_id:n,p_expected_revision:1,p_question_text:cancelled.p_text,p_request_id:cancelled.p_client_request_id}),'PRESELECTION_QA_POLICY_NOT_READY');
   pass(report,'OBSERVED_SUBMIT_CANCEL_BOTH_ORDERS_CANONICAL_RECEIPT_WINS_ONE_QUESTION_EVENT_CANCELLED_DECISION_NOT_REUSABLE');
 
-  const answer=input(owner,n,'Da, postoji lift.',qid);await ready(answer);
-  const competing=input(owner,n,'Lift je dostupan.',qid);await ready(competing);
-  const publicAnswer=await submit(owner,answer);assert.equal(publicAnswer.state,'COMMITTED');assert.equal(publicAnswer.receipt.answerVersion,1);
-  assert.equal((await submit(owner,competing)).state,'STALE');assert.equal(sql(`select count(*) from private.preselection_qa_answer_versions where question_id=${q(qid)}::uuid`),'1');
-  const material=input(owner,n,'Menjam cenu na 9000 dinara.',qid),mc=await claim(material);assert.equal(await dispatch(material,mc),true);
+  const answer=input(owner,n,'Da, postoji lift.',qid),ac=await observedRpc('ANSWER_CLAIM',()=>claim(answer));assert.ok(ac.claim);
+  assert.equal(await observedRpc('ANSWER_DISPATCH',()=>dispatch(answer,ac)),true);
+  assert.equal((await observedRpc('ANSWER_COMPLETE',()=>complete(answer,ac))).state,'READY');
+  const competing=input(owner,n,'Lift je dostupan.',qid),cc=await observedRpc('COMPETING_CLAIM',()=>claim(competing));assert.ok(cc.claim);
+  assert.equal(await observedRpc('COMPETING_DISPATCH',()=>dispatch(competing,cc)),true);
+  assert.equal((await observedRpc('COMPETING_COMPLETE',()=>complete(competing,cc))).state,'READY');
+  const publicAnswer=await observedRpc('ANSWER_SUBMIT',()=>submit(owner,answer));assert.equal(publicAnswer.state,'COMMITTED');assert.equal(publicAnswer.receipt.answerVersion,1);
+  assert.equal((await observedRpc('COMPETING_SUBMIT',()=>submit(owner,competing))).state,'STALE');assert.equal(sql(`select count(*) from private.preselection_qa_answer_versions where question_id=${q(qid)}::uuid`),'1');
+  const material=input(owner,n,'Menjam cenu na 9000 dinara.',qid),mc=await observedRpc('MATERIAL_CLAIM',()=>claim(material));assert.equal(await observedRpc('MATERIAL_DISPATCH',()=>dispatch(material,mc)),true);
   const before=sql(`select private.need_edit_base_marker(${q(n)}::uuid)`),agreements=sql('select count(*) from public.agreements');
-  const mr=await complete(material,mc,output(material,true));assert.equal(mr.state,'REJECTED');assert.equal(mr.materiality,'MATERIAL');assert.equal((await submit(owner,material)).state,'REJECTED');
+  const mr=await observedRpc('MATERIAL_COMPLETE',()=>complete(material,mc,output(material,true)));assert.equal(mr.state,'REJECTED');assert.equal(mr.materiality,'MATERIAL');assert.equal((await observedRpc('MATERIAL_SUBMIT',()=>submit(owner,material))).state,'REJECTED');
   assert.equal(sql(`select private.need_edit_base_marker(${q(n)}::uuid)`),before);assert.equal(sql('select count(*) from public.agreements'),agreements);
-  const feed=await ok(b.client.rpc('rpc_ru4b_public_preselection_qa',{p_need_id:n}));assert.ok(!JSON.stringify(feed).includes(a.id));
+  const feed=await observedRpc('PUBLIC_FEED',()=>ok(b.client.rpc('rpc_ru4b_public_preselection_qa',{p_need_id:n})));assert.ok(!JSON.stringify(feed).includes(a.id));
   pass(report,'ANSWER_SINGLE_VERSION_COMPETING_REVIEW_STALE_MATERIAL_TASK_EDIT_ONLY_AGREEMENTS_UNCHANGED');
 
   const limitActor=await worker('qa135-final-rate'),i1=input(limitActor,n,'First prepared question'),i2=input(limitActor,n,'Second prepared question');await ready(i1);await ready(i2);
@@ -165,7 +172,11 @@ await prove('V5_DURABLE_QA_CLASSIFIER','v5-qa-classifier-report.json',async repo
    assert.deepEqual(rows('select * from private.ai_test_accounts_v5 order by account_id'),savedAccounts);
   }
   pass(report,'LATEST_ACTUAL_HANDLER_AUTH_SQL_CLAIM_DISPATCH_BUDGET_CANONICAL_WRITE_RECOVERY_ONE_SYNTHETIC_GEMINI');
- }finally{sql(`update private.publication_policy_bundles set is_active=false where id=${q(bundle)}::uuid`);}
+ }catch(error){primaryError=error;throw error;}
+ finally{
+  try{sql(`update private.publication_policy_bundles set is_active=false where id=${q(bundle)}::uuid`);}
+  catch(error){report.qaPolicyCleanup={status:'FAILED',code:'LOCAL_SQL_FAILURE'};throw primaryError??error;}
+ }
  assert.equal(sql("select 'private.qa_ai_commands'=any(relations) from private.closure_dataset_catalog_v5 where data_class='COMMAND_LEDGERS'"),'t');
  assert.equal(sql('select sha256=private.closure_source_digest_v5() from private.closure_source_v5 where singleton'),'t');
  pass(report,'POLICY_FIXTURE_DEACTIVATED_CLOSURE_METADATA_INVENTORY_EXACT_NO_LIVE_ACTIVATION');

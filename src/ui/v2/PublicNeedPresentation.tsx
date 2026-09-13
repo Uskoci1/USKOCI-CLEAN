@@ -8,6 +8,7 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
 import { v2 } from './tokens';
+import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 const body = { ...v2.text.body, color: v2.color.ink };
 const caption = { ...v2.text.label, color: v2.color.muted };
@@ -36,7 +37,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
       </View> : null}
       {need ? <>
         <View style={{ gap: 12 }}>
-          <T style={{ ...caption, color: v2.color.teal, fontWeight: '700' }}>{need.statusTekst}</T>
+          <NeedUrgencyBadge urgency={need.urgency} /><T style={{ ...caption, color: v2.color.teal, fontWeight: '700' }}>{need.statusTekst}</T>
           <T accessibilityRole="header" style={{ ...v2.text.hero, fontSize: 29, lineHeight: 34, letterSpacing: -0.5, color: v2.color.ink }}>{need.naslov}</T>
           <T style={caption}>{remote ? 'Na daljinu' : need.podrucjeTekst}</T>
           <T style={caption}>{need.vremeTekst}</T>

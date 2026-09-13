@@ -1,7 +1,7 @@
 {
-  "status": "PREPARATION_ONLY_NOT_APPROVED_OR_APPLIED",
-  "sourceCommit": "28c47c01a3637e67ce767910ed213477a9a933b1",
-  "sourceTree": "f7e169159ff528d74b97606fb8bb1fb8ed7b59fa",
+  "status": "DEV_ALPHA_AUTHORIZED_SOURCE_PREPARATION_NOT_APPLIED",
+  "sourceCommit": "78bbd1cb338ea0d51e4924f16bf8f1a34a241c8d",
+  "sourceTree": "2ac97f7b45d96f2bc187429ca1d69d2e23c6fce7",
   "projectRef": "leqcwgzvjsxugfgzdmth",
   "observedBaseline": {
     "count": 108,
@@ -259,9 +259,9 @@
       "file": "supabase/migrations/20260913001000_clean_v5_owned_export_projection.sql",
       "version": "20260913001000",
       "name": "clean_v5_owned_export_projection",
-      "sha256": "73e5f3b0fab4fd8ca096ca3ef75a49054e06b1cc3583950b2f9223759dea7dad",
-      "md5": "3ae278bfba9cebff4372af9082706091",
-      "bytes": 36093
+      "sha256": "43f42b801e4bb06245aac6e5dd42c719ba808d88dce57357ffd8b8b1c2efadb6",
+      "md5": "1ba865c7d23a41dcab7c1b60bb847f40",
+      "bytes": 36106
     },
     {
       "ordinal": 137,
@@ -307,6 +307,24 @@
       "sha256": "f167555f07f9929681afa5774c2848a3b72b08fecb89b9575d9335b9da36960a",
       "md5": "484cb918f8b525fb2dc90af8211babea",
       "bytes": 20355
+    },
+    {
+      "ordinal": 142,
+      "file": "supabase/migrations/20260913044510_clean_v5_unknown_ai_turn_exit.sql",
+      "version": "20260913044510",
+      "name": "clean_v5_unknown_ai_turn_exit",
+      "sha256": "ee76aaa08153b28142e764d7c0863f8386c292692010f9a25d0f0a1d4b9a3ce1",
+      "md5": "d8e456c7195188856f63b7a463b48c42",
+      "bytes": 20714
+    },
+    {
+      "ordinal": 143,
+      "file": "supabase/migrations/20260913045824_clean_v5_support_case_authority.sql",
+      "version": "20260913045824",
+      "name": "clean_v5_support_case_authority",
+      "sha256": "04fccf338a482849ef08fcbc0a0ceeef9354e0b02105d0eaa101dcd05ccaaed5",
+      "md5": "3f3f25fc910b8b64f97a0b41f9683288",
+      "bytes": 65032
     }
   ],
   "edgeEntrypoints": [
@@ -428,10 +446,10 @@
     {
       "name": "uskoci-media",
       "entrypoint": "supabase/functions/uskoci-media/index.ts",
-      "entrypointSha256": "d731a675b4ea4fffadc7c3b2feab32e2fb2e31be54a0a0afb3e80aefd945eeb1",
+      "entrypointSha256": "b057c5ccb3d12c6d979322d3e74d1742696e7f1f161edd497d2bf434de56b096",
       "preparedVerifyJwt": true,
-      "preparedPayloadSha256": "50ceebd7ea9cba6095433c9e703d5a31c7ebf42f3a660e2aeb21a2090d8c4492",
-      "preparedPayloadBytes": 18334,
+      "preparedPayloadSha256": "028a6798135a1b38ff25417c058d5c325e36b239d075023a16664809faa638cc",
+      "preparedPayloadBytes": 21685,
       "sourceFiles": [
         {
           "name": "supabase/functions/_shared/mediaImageSanitizer.mjs",
@@ -440,8 +458,8 @@
         },
         {
           "name": "supabase/functions/uskoci-media/index.ts",
-          "sha256": "d731a675b4ea4fffadc7c3b2feab32e2fb2e31be54a0a0afb3e80aefd945eeb1",
-          "bytes": 14628
+          "sha256": "b057c5ccb3d12c6d979322d3e74d1742696e7f1f161edd497d2bf434de56b096",
+          "bytes": 17937
         }
       ],
       "externalDependencies": [
@@ -588,17 +606,28 @@
   ],
   "edgeDependencyBinding": "Complete exact source tree; entrypoint hashes alone are not deployed bundle proof",
   "edgePayloadPreparation": {
-    "manifest": "artifacts/v5-edge-payloads/28c47c01a3637e67ce767910ed213477a9a933b1/manifest.json",
-    "manifestSha256": "4937f7e077491db6ad1fa647bfaf25302d7dd99609fb30f031095eb78b8405ba",
+    "manifest": "artifacts/v5-edge-payloads/78bbd1cb338ea0d51e4924f16bf8f1a34a241c8d/manifest.json",
+    "manifestSha256": "7585a0d68300f383367b721db0f2b85773ef6d3eba00983c178a71c8f714fe91",
     "status": "LOCAL_EXACT_SOURCE_PAYLOADS_NOT_DEPLOYED"
   },
-  "liveApproval": null,
-  "paidProbeApprovalForThisBatch": null,
-  "requiredBeforeApproval": [
+  "authorization": {
+    "ownerDecision": "AF-D26 BACKEND PROMOTION",
+    "environment": "CANONICAL_DEV_ALPHA",
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "verifiedBackendPromotionAuthorized": true,
+    "authorityDocument": "docs/implementation/v5-ai-first/OWNER_PRIVATE_TEST_DECISIONS_20260913.md",
+    "separateProductionAuthorized": false
+  },
+  "paidProbeConstraints": "Existing approved Google processing and shared USD5 internal reservations; controlled short probes and spend verification",
+  "requiredBeforeApplication": [
     "Complete exact-source disposable proof",
     "Reviewed forward backfills and postflight/stop plan",
-    "Exact provider-key to paid-project association plan",
-    "Specific executable policy documents and test accounts"
+    "Fresh canonical DEV/ALPHA predecessor and source-byte checks"
+  ],
+  "requiredBeforeProviderProbe": [
+    "Verified paid-project key and exact models",
+    "Bounded test accounts, configuration and existing budget ledger",
+    "Applicable executable product policy and exact source/APK"
   ],
   "operationsPerformed": [
     "Read local Git objects and previously observed baseline",

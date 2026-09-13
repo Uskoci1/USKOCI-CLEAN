@@ -19,7 +19,9 @@ export function SupportReferenceView({ value, caseId }: { value: SupportSnapshot
   const content = snapshot.content;
   // These fields have already passed the fixed nested snapshot decoder. No
   // generic object, link, signed URL, storage path or policy digest is rendered.
-  const media = Array.isArray(content.media) ? content.media : [];
+  // Agreement photos are readable here only as an explicitly captured message
+  // snapshot. The case gateway, not Agreement membership, authorizes each byte.
+  const media = ['TASK', 'TASK_REVIEW', 'AGREEMENT_MESSAGE'].includes(snapshot.kind) && Array.isArray(content.media) ? content.media : [];
   const facts = snapshot.kind === 'TASK_REVIEW' && Array.isArray(content.publicFacts) ? content.publicFacts : [];
   const evaluation = record(content.evaluation);
   return <View style={styles.row}><T variant="bodyStrong">{supportReferenceNames[snapshot.kind]}</T>

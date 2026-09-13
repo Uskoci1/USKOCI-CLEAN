@@ -7,6 +7,7 @@ import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
 import { readPublicNeedDetail } from './needClientService';
 import { needScheduleText } from './needDetailPresentation';
+import { readNeedUrgencies } from './needUrgencyClientService';
 import { supabaseKlijent } from './supabaseClient';
 import type {
   JavniProfilProjekcija,
@@ -124,7 +125,7 @@ export const supabaseIzvor: SupabaseIzvor = {
   async otvorenePrilike() {
     const { data, error } = await supabase.from('needs')
       .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
+        id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
         covered_slots, mode, requester_price_rsd, requester_profile_id,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
@@ -137,12 +138,13 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (error) throw error;
     if (!data) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
 
-    const profiles = await safePublicProfiles(data.map((r: any) => r.requester_profile_id));
+    const [profiles, urgency] = await Promise.all([safePublicProfiles(data.map((r: any) => r.requester_profile_id)), readNeedUrgencies(data)]);
 
     return data.map((r: any) => {
       const narucilac = profiles.get(r.requester_profile_id) ?? null;
       return {
         id: r.id,
+        urgency: urgency.get(r.id),
         naslov: r.title,
         statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
         ...publicTaskContext(r),
@@ -160,7 +162,7 @@ export const supabaseIzvor: SupabaseIzvor = {
   async prilika(id: string) {
     const { data, error } = await supabase.from('needs')
       .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
+        id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
         covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
@@ -182,11 +184,12 @@ export const supabaseIzvor: SupabaseIzvor = {
       || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(rok)
       || !Number.isFinite(Date.parse(rok)))) throw new Error('TASK_DEADLINE_INVALID');
 
-    const profiles = await safePublicProfiles([data.requester_profile_id]);
+    const [profiles, urgency] = await Promise.all([safePublicProfiles([data.requester_profile_id]), readNeedUrgencies([data])]);
     const narucilac = profiles.get(data.requester_profile_id) ?? null;
 
     return {
       id: data.id,
+      urgency: urgency.get(data.id),
       naslov: data.title,
       statusTekst: ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
       primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)

@@ -11,6 +11,7 @@ const mockGroupContext = jest.fn();
 const mockRead = jest.fn();
 const mockMessages = jest.fn();
 const mockProblemSubmit = jest.fn(), mockProblemRead = jest.fn();
+const mockPhotoRead = jest.fn((_id: string, rows: unknown[]) => Promise.resolve(rows));
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(),
   prijaviProblem: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn() };
 const mockOutbox = { reconcile: jest.fn().mockResolvedValue(undefined) };
@@ -42,6 +43,8 @@ jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateM
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, useUloga: () => 'narucilac', ulogaSada: () => 'narucilac' }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: mockOutbox, state: mockOutboxState }) }));
+jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockId, loaded: true, busy: false, items: [] }) }));
+jest.mock('../agreementPhotoClientService', () => ({ agreementPhotoClientService: { messages: (...args: Parameters<typeof mockPhotoRead>) => mockPhotoRead(...args) } }));
 import Dogovor from '../../app/dogovor/[id]';
 
 const workspace = { id: '20000000-0000-4000-8000-000000000001', naslov: 'Pomoć pri selidbi', stanje: 'CONFIRMED',
@@ -66,6 +69,7 @@ beforeEach(() => {
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([ownMessage]);
   mockProblemSubmit.mockReset().mockResolvedValue({ ok: false, kod: 'NOT_CONFIGURED', poruka: 'unconfirmed' });
   mockProblemRead.mockReset();
+  mockPhotoRead.mockReset().mockImplementation((_id, rows) => Promise.resolve(rows));
   mockGroupContext.mockReset().mockResolvedValue({ ok: true, podatak: { group: null } });
   mockOutboxState = { phase: 'loading', entries: [] };
   for (const name of ['oznaciZavrsetak', 'potvrdiZavrsetak', 'prijaviProblem', 'podeliTelefon', 'opoziviTelefon'] as const) {

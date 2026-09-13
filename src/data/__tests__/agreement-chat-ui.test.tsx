@@ -12,6 +12,8 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
+jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer' }));
+jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 import { AgreementChat } from '../../ui/AgreementChat';
 
@@ -39,6 +41,44 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 describe('D03 actual message component', () => {
+  it('sends one explicit photo-only command and preserves a pending selection instead of silently sending text alone', async () => {
+    const attachments = { agreementVersion: 3, assetIds: ['40000000-0000-4000-8000-000000000001'] };
+    const photos = { loaded: true, busy: false, ready: true, hasSelection: true, agreementId: agreement,
+      canSubmit: jest.fn(() => true), capture: jest.fn(() => attachments), refresh: jest.fn().mockResolvedValue(undefined) } as any;
+    await render({ state: { ...state, draft: '' }, photos });
+    expect(button('Pošalji poruku').props.disabled).toBe(false); expect(outbox.sendDraft).not.toHaveBeenCalled();
+    await act(async () => button('Pošalji poruku').props.onPress()); expect(outbox.sendDraft).toHaveBeenCalledWith(attachments);
+    expect(photos.refresh).toHaveBeenCalledTimes(1);
+    const retained = button('Pošalji poruku').props.onPress;
+    photos.canSubmit.mockReturnValue(false);
+    await act(async () => retained()); expect(outbox.sendDraft).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, ready: false }} />));
+    expect(button('Pošalji poruku').props.disabled).toBe(true);
+  });
+  it('reads historical photographs under exact Agreement/message IDs and refuses false local reconciliation on attachment mismatch', async () => {
+    const photo = { assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const };
+    const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 3, clientMessageId: command.clientMessageId,
+      posiljalacAccountId: account, telo: command.body, moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null, fotografije: [photo] };
+    const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, canSubmit: () => false } as any;
+    const pending = { command: { ...command, photos: { agreementVersion: 2, assetIds: [photo.assetId] } }, state: 'unknown' as const, persisted: true, attempt: 1 };
+    await render({ messages: [read], terminal: true, writable: false, photos, state: { ...state, entries: [pending] } });
+    const images = tree.root.findAllByType('AuthorizedPhoto' as React.ElementType);
+    expect(images[0].props).toMatchObject({ assetId: photo.assetId, agreementId: agreement, messageId: read.id });
+    expect(texts()).toContain('Slanje nije potvrđeno');
+    await act(async () => tree.update(<AgreementChat {...props} photos={photos} messages={[read]} state={{ ...state,
+      entries: [{ ...pending, command: { ...pending.command, photos: { ...pending.command.photos, agreementVersion: 3 } } }] }} />));
+    expect(texts()).not.toContain('Slanje nije potvrđeno');
+  });
+  it('permits explicit support selection of a photo-only message without changing its canonical empty body', async () => {
+    const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 3, clientMessageId: 'photo_message_key',
+      posiljalacAccountId: account, telo: '', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null,
+      fotografije: [{ assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const }] };
+    await render({ messages: [read], support: { canAct: () => true, navigate: jest.fn() } });
+    const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
+    expect(entry.previewText).toContain('Privatne fotografije uz ovu poruku: 1');
+    expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 3 }); expect(read.telo).toBe('');
+    expect(outbox.sendDraft).not.toHaveBeenCalled();
+  });
   it('shows latest history initially, preserves an older reading position, and follows an explicit outgoing message', async () => {
     await render();
     const scroll = tree.root.findByType('ScrollView' as any);

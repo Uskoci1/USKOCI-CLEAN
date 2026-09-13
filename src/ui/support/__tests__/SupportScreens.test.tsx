@@ -208,3 +208,11 @@ it('renders only strictly decoded selected media with case scope, never a raw ob
   expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0); expect(text()).not.toContain('DO NOT RENDER');
   expect(text()).toContain('nije potvrđen');
 });
+it('renders a photo-only selected private message through case authorization without opening the Agreement or its other media', async () => {
+  const value = { kind: 'AGREEMENT_MESSAGE' as const, id: E, revision: 3, content: { agreementId: D, body: '', createdAt: time, mine: true,
+    media: [{ assetId: K, sha256: 'a'.repeat(64), width: 1600, height: 900 }] } };
+  await act(async () => { tree = create(<SupportReferenceView value={value} caseId={C} />); });
+  const image = tree.root.findByType('AuthorizedPhoto' as React.ElementType).props;
+  expect(image).toMatchObject({ assetId: K, caseId: C }); expect(image.agreementId).toBeUndefined(); expect(image.messageId).toBeUndefined();
+  expect(mockRouter.push).not.toHaveBeenCalled(); expect(text()).not.toContain(D);
+});

@@ -9,6 +9,7 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
 import { v2 } from './tokens';
+import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
@@ -51,7 +52,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </Press>
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <View style={s.hero}>
-          <T style={s.status}>{STATUS[need.stanje]}</T>
+          <NeedUrgencyBadge urgency={need.urgency} /><T style={s.status}>{STATUS[need.stanje]}</T>
           {need.detalji ? <T style={s.caption}>{need.detalji.kategorija}</T> : null}
           <T accessibilityRole="header" style={s.title}>{need.naslov}</T>
           <View style={s.meta}><MapPin size={17} color={v2.color.teal} /><T style={[s.caption, s.grow]}>{need.detalji?.geografija?.mode === 'REMOTE' ? 'Na daljinu' : need.podrucjeTekst}</T></View>

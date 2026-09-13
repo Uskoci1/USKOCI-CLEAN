@@ -9,7 +9,7 @@ export type MediaAsset = Readonly<{ assetId:string; accountId:string; scope:'TAS
 export type TaskPhotos = Readonly<{ conversationId:string; accountId:string; photos:MediaAsset[]; ready:boolean; authoritative:true }>;
 export type MediaUpload = Readonly<{ clientRequestId:string; bytes:ArrayBuffer; contentType:'image/jpeg'|'image/png'|'image/webp' }>;
 export type MediaRequestOptions = Readonly<{ signal?:AbortSignal }>;
-export type MediaReadContext = Readonly<{needId?:string;profileId?:string;caseId?:string}>;
+export type MediaReadContext = Readonly<{needId?:string;profileId?:string;caseId?:string;agreementId?:string;messageId?:string}>;
 export type MediaImage = Readonly<{ bytes:ArrayBuffer; contentType:'image/jpeg'; assetId:string }>;
 export type AvatarSaved = Readonly<{ profileId:string; accountId:string; assetId:string; avatarPath:string; saved:true; authoritative:true }>;
 export type ProfileAvatar = Readonly<{ profileId:string; accountId:string; avatarPath:string|null; authoritative:true }>;
@@ -107,12 +107,16 @@ export const mediaClientService={
     const owner=sesijaSada();if(!owner.user?.id)return failure('AUTH_REQUIRED',errors.AUTH_REQUIRED);
     const account={accountId:owner.user.id,accountRevision:owner.accountRevision};
     const input=record(context),values=input?Object.values(input).filter(v=>v!==undefined):[];
-    if(!uuid(assetId)||!input||Object.keys(input).some(k=>!['needId','profileId','caseId'].includes(k))
-      ||values.length>1||values.some(v=>!uuid(v))||options.signal?.aborted)return failure('MEDIA_NOT_FOUND',errors.MEDIA_NOT_FOUND);
+    const agreement = context.agreementId !== undefined;
+    if(!uuid(assetId)||!input||Object.keys(input).some(k=>!['needId','profileId','caseId','agreementId','messageId'].includes(k))
+      ||(agreement ? !uuid(context.agreementId)||context.needId!==undefined||context.profileId!==undefined||context.caseId!==undefined
+        : values.length>1||context.messageId!==undefined)
+      ||values.some(v=>!uuid(v))||options.signal?.aborted)return failure('MEDIA_NOT_FOUND',errors.MEDIA_NOT_FOUND);
     const readContext={...(context.needId?{needId:context.needId}:{}),...(context.profileId?{profileId:context.profileId}:{}),
-      ...(context.caseId?{caseId:context.caseId}:{})};
+      ...(context.caseId?{caseId:context.caseId}:{}), ...(context.agreementId?{agreementId:context.agreementId}:{}),
+      ...(context.messageId?{messageId:context.messageId}:{})};
     return readOwnedResult({account,errors,fallback:'MEDIA_UNAVAILABLE',invalid:'MEDIA_INVALID_RESPONSE',request:async()=>{
-      const result=await supabaseKlijent().functions.invoke('uskoci-media',{body:{assetId,...readContext},headers:{'x-media-operation':'read'},signal:options.signal});
+      const result=await supabaseKlijent().functions.invoke('uskoci-media',{body:{assetId,...readContext},headers:{'x-media-operation':agreement?'agreement-read':'read'},signal:options.signal});
       if(result.error)return result;
       if(!(result.data instanceof Blob)||result.data.type!=='image/jpeg'||result.data.size<1||result.data.size>5242880)return {data:null,error:null};
       return {data:{bytes:await result.data.arrayBuffer(),contentType:'image/jpeg',assetId},error:null};
