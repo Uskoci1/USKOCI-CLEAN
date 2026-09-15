@@ -120,6 +120,40 @@ describe('authoritative fact review and correction values', () => {
   });
 });
 
+describe('PKG-003 deterministic manual task time correction', () => {
+  const start = typedFact({ key: 'need.starts_at', valueType: 'TIMESTAMPTZ', value: '2026-09-15T10:00:00Z' });
+
+  it('resolves a plain civil time in the explicit review zone rather than the host/device timezone', () => {
+    expect(correctionFromText(start, '2026-09-15 12:00')).toEqual({
+      ok: true,
+      value: '2026-09-15T10:00:00.000Z',
+      displayValue: '2026-09-15 12:00',
+    });
+  });
+
+  it('rejects impossible civil dates instead of Date.parse normalization', () => {
+    expect(correctionFromText(start, '2026-02-30 12:00')).toMatchObject({ ok: false });
+  });
+
+  it('rejects a DST gap and repeated wall clock in Europe/Belgrade', () => {
+    const gap = correctionFromText(start, '2026-03-29 02:30');
+    const repeated = correctionFromText(start, '2026-10-25 02:30');
+    expect(gap).toMatchObject({ ok: false });
+    expect(repeated).toMatchObject({ ok: false });
+    if (!gap.ok) expect(gap.message).toContain('ne postoji');
+    if (!repeated.ok) expect(repeated.message).toContain('ponavlja');
+  });
+
+  it('preserves an exact valid ISO offset and microseconds byte-for-byte', () => {
+    const exact = '2026-09-15T12:00:45.123456+02:00';
+    expect(correctionFromText(start, exact)).toEqual({ ok: true, value: exact, displayValue: exact });
+  });
+
+  it.each(['09/15/2026 12:00', 'September 15 2026 12:00', '2026-09-15T12:00'])('rejects ambiguous/free-form time %s', input => {
+    expect(correctionFromText(start, input)).toMatchObject({ ok: false });
+  });
+});
+
 describe('AF-D23 unavailable external identity requirement', () => {
   const identity = typedFact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN', value: true });
   it.each(['Da', 'yes', 'true', '1'])('rejects explicit true alias %s with a truthful explanation', text => {
