@@ -20,11 +20,13 @@ const initial: ViewState = { loading: true, review: null, command: null, state: 
 const label = (action: Action) => action === 'DELETE_DRAFT' ? 'Obriši nacrt' : 'Otkaži zadatak';
 
 /** Existing revision-bound terminal authority. Persist only opaque command identity;
- * restoration reads the private receipt and never infers deletion from a list. */
-export function NeedLifecycleActions(p: { need: PotrebaProjekcija; disabled: boolean;
+ * restoration reads the private receipt and never infers deletion from a list.
+ * Recovery is deliberately mountable without the Need row: a successful delete
+ * may make that row disappear before the client receives its terminal reply. */
+export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId?: string; disabled: boolean;
   onActiveChange: (active: boolean) => void; onRefresh: () => void }) {
   const { user, accountRevision } = useSesija(), intent = useUloga(), source = useIzvor();
-  const accountId = user?.id ?? '', needId = p.need.id;
+  const accountId = user?.id ?? '', needId = p.need?.id ?? p.needId ?? '';
   const storageKey = `uskoci:need-lifecycle:v5:${accountId}:${needId}`;
   const [view, setView] = useState<ViewState>(initial), [reload, setReload] = useState(0);
   const latestView = useRef(view); latestView.current = view;
@@ -74,15 +76,19 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija; disabled: boo
   const active = view.loading || view.review !== null || view.command !== null || view.error !== null;
   useEffect(() => { p.onActiveChange(active); return () => p.onActiveChange(false); }, [active, p.onActiveChange]);
   const owner = scope.current;
-  const eligible = (action: Action) => current(owner) && !latest.current.disabled && !latch.current
-    && latest.current.need.pokrivenost.popunjeno === 0 && latest.current.need.stanje !== 'ZATVORENA'
-    && (action !== 'DELETE_DRAFT' || latest.current.need.stanje === 'NACRT');
+  const eligible = (action: Action) => {
+    const need = latest.current.need;
+    return current(owner) && !!need && need.id === needId && !latest.current.disabled && !latch.current
+      && need.pokrivenost.popunjeno === 0 && need.stanje !== 'ZATVORENA'
+      && (action !== 'DELETE_DRAFT' || need.stanje === 'NACRT');
+  };
   const review = (action: Action) => { if (latestView.current === view && !active && eligible(action)) setView({ ...view, review: action, error: null }); };
   const submit = async () => {
-    const action = view.review;
-    if (latestView.current !== view || !action || view.command || !eligible(action) || latest.current.need.revizija !== p.need.revizija || !owner) return;
+    const action = view.review, need = p.need, currentNeed = latest.current.need;
+    if (latestView.current !== view || !action || view.command || !need || !currentNeed || !eligible(action)
+      || currentNeed.revizija !== need.revizija || !owner) return;
     latch.current = true;
-    const command = Object.freeze({ action, needId, expectedRevision: p.need.revizija, reason: '' });
+    const command = Object.freeze({ action, needId, expectedRevision: need.revizija, reason: '' });
     try {
       // Persist before sending. A storage failure never licenses an untracked write.
       await AsyncStorage.setItem(storageKey, JSON.stringify(command));
@@ -107,6 +113,9 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija; disabled: boo
   const phase = view.state?.phase;
   const busy = view.loading || phase === 'SUBMITTING' || phase === 'RECONCILING';
   if (intent !== 'narucilac') return null;
+  // With no current row and no retained command there is no lifecycle UI to show.
+  // The initial loading pass still runs so a retained command can be recovered.
+  if (!p.need && !view.loading && !view.state && !view.error) return null;
   return <View style={s.panel}>
     <T style={s.title}>Upravljanje zadatkom</T>
     {view.error ? <T accessibilityLiveRegion="polite" style={s.error}>{view.error}</T> : null}
@@ -124,7 +133,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija; disabled: boo
           {view.state.collectionRefreshRequired ? <V2Action label="Osveži moje zadatke" kind="quiet" onPress={() => run('refreshCollection')} /> : null}
           <V2Action label="Moji zadaci" onPress={() => { void finish(true); }} />
         </> : phase === 'REJECTED' ? <V2Action label="Učitaj aktuelni zadatak" kind="quiet" onPress={() => { void finish(false); }} /> : null}
-      </> : view.review ? <>
+      </> : view.review && p.need ? <>
         <T style={s.title}>{label(view.review)}?</T><T style={s.copy}>{view.review === 'DELETE_DRAFT'
           ? 'Brišete ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo uklonite iz nacrta.'
           : 'Zadatak prestaje da prima prijave, a postojeće prijave se zatvaraju. Ako već postoji Dogovor, otkazivanje ide kroz taj Dogovor.'}</T>
@@ -132,12 +141,13 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija; disabled: boo
         <V2Action label={label(view.review)} disabled={busy || p.disabled} onPress={() => { void submit(); }} />
         <V2Action label="Odustani" kind="quiet" disabled={busy} onPress={() => { if (latestView.current === view && current(owner) && !latch.current && !controller.current) setView({ ...initial, loading: false }); }} />
       </> : view.error ? <V2Action label="Ponovo proveri prethodni zahtev" kind="quiet" onPress={() => { if (current(owner)) setReload(value => value + 1); }} />
-        : p.need.pokrivenost.popunjeno > 0 ? <><T style={s.copy}>Postojeći Dogovori se otkazuju zasebno.</T>
-          <V2Action label="Otvori moje Dogovore" kind="quiet" disabled={p.disabled} onPress={() => { if (current(owner) && !p.disabled) router.push('/dogovori'); }} /></>
-          : p.need.stanje !== 'ZATVORENA' ? <>
-            {p.need.stanje === 'NACRT' ? <V2Action label="Brisanje nacrta" kind="quiet" disabled={p.disabled} onPress={() => review('DELETE_DRAFT')} /> : null}
-            <V2Action label="Otkazivanje zadatka" kind="quiet" disabled={p.disabled} onPress={() => review('CANCEL')} />
-          </> : <T style={s.copy}>Zadatak je zatvoren.</T>}
+        : !p.need ? null
+          : p.need.pokrivenost.popunjeno > 0 ? <><T style={s.copy}>Postojeći Dogovori se otkazuju zasebno.</T>
+            <V2Action label="Otvori moje Dogovore" kind="quiet" disabled={p.disabled} onPress={() => { if (current(owner) && !p.disabled) router.push('/dogovori'); }} /></>
+            : p.need.stanje !== 'ZATVORENA' ? <>
+              {p.need.stanje === 'NACRT' ? <V2Action label="Brisanje nacrta" kind="quiet" disabled={p.disabled} onPress={() => review('DELETE_DRAFT')} /> : null}
+              <V2Action label="Otkazivanje zadatka" kind="quiet" disabled={p.disabled} onPress={() => review('CANCEL')} />
+            </> : <T style={s.copy}>Zadatak je zatvoren.</T>}
   </View>;
 }
 const s = StyleSheet.create({ panel: { gap: 12, paddingVertical: 18, borderTopWidth: 1, borderTopColor: a.color.line },
