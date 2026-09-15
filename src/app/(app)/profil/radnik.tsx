@@ -148,7 +148,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (value?.capacityRevision === null) return { label: 'Učitaj kapacitet profila', run: refresh };
     if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
-    if (!basicsReady) return { label: 'Dopuni osnovne podatke', run: () => guide(value?.ime.trim().length ? 'skill' : 'name',
+    if (!basicsReady) return { label: 'Dopuni osnovne podatke', run: () => guide((value?.ime.trim().length ?? 0) >= 2 ? 'skill' : 'name',
       'Pre aktivacije unesite ime od najmanje 2 znaka i bar jednu veštinu.') };
     if (!capacityReady) return { label: 'Unesi kapacitet tima', run: () => guide('capacity', 'Unesite kapacitet od 1 do 50 ljudi.') };
     return { label: 'Proveri i aktiviraj profil', run: () => { void save(true); } };
