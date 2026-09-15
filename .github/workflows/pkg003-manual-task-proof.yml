@@ -59,33 +59,63 @@ jobs:
           node-version: '24'
           cache: npm
 
-      - name: Start disposable database and replay exact source migrations
+      # A raw `supabase db reset` over the source directory cannot replay this history:
+      # migration 3 needs the hosted helper public.rls_auto_enable() (run 35033856315),
+      # three 2026-09-01 files carry runtime proofs that need live fixtures (run 35035407188),
+      # and from migration 57 on each file asserts the exact recorded history count and
+      # the live alias version of its predecessor. The shared proof environment below
+      # reconstructs the recorded live79 exactly as the PRE-P4 domain proofs do.
+      - name: Reconstruct disposable historical live79
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+
+      - name: Replay recorded live80-87 aliases and every pending source migration in order
         shell: bash
         run: |
           set -euo pipefail
-          # Shared replay pattern (P0D-02, RU-5 and the PRE-P4 domain proofs): an isolated
-          # project in /tmp, the proof-only predecessor shim as the earliest migration so
-          # that 20260829183528_clean_security_hardening.sql finds public.rls_auto_enable(),
-          # then every exact source migration file in timestamp order. Run 35033856315
-          # showed that a raw reset without the shim stops at migration 3.
-          rm -rf /tmp/uskoci-pkg003-proof
-          mkdir -p /tmp/uskoci-pkg003-proof
-          cd /tmp/uskoci-pkg003-proof
-          supabase init
-          rm -rf supabase/migrations
-          mkdir -p supabase/migrations
-          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
-             supabase/migrations/20260825000000_pkg003_live_bootstrap.sql
-          cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
-          expected="$(ls "$GITHUB_WORKSPACE"/supabase/migrations/*.sql | wc -l | tr -d ' ')"
-          supabase db start
-          supabase db reset --local | tee /tmp/pkg003-db-reset.log
-          psql "$DB_URL" -v ON_ERROR_STOP=1 \
-            -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
-            "select count(*)::text || '/' || coalesce(max(version),'<none>') from supabase_migrations.schema_migrations" \
-            | tee /tmp/pkg003-schema-before.txt
-          test "$(cut -d/ -f1 /tmp/pkg003-schema-before.txt)" = "$expected"
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          root = os.environ['GITHUB_WORKSPACE']
+          db = os.environ['DB_URL']
+          prov = json.load(open(f'{root}/supabase/migrations/MIGRATION_PROVENANCE.json', encoding='utf-8'))
+
+          def scalar(sql):
+              return subprocess.run(['psql', db, '-X', '-Atc', sql], text=True, capture_output=True, check=True).stdout.strip()
+
+          def run_sql(sql, label):
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1'], input=sql, text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:])
+                  sys.exit(f'PKG003_REPLAY_FAILED {label}')
+
+          def apply(file, version, name):
+              path = f'{root}/supabase/migrations/{file}'
+              print(f'apply_source={file} recorded_as={version}_{name}', flush=True)
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', path], text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:])
+                  sys.exit(f'PKG003_REPLAY_FAILED {file}')
+              body = open(path, encoding='utf-8', newline='').read()
+              tag = '$pkg003stmt$'
+              assert tag not in body, file
+              # Same shape the shared prepare helpers use: the recorded statement is the exact file.
+              run_sql(f"insert into supabase_migrations.schema_migrations(version,name,statements) "
+                      f"values ('{version}','{name}',array[{tag}{body}{tag}]);", file)
+
+          assert scalar('select max(version) from supabase_migrations.schema_migrations') == '20260906141409'
+          entries = [e for e in prov['live_history_snapshot']['entries'] if e['version'] > '20260906141409']
+          assert len(entries) == 8, len(entries)
+          for e in entries:
+              apply(e.get('file') or f"{e['version']}_{e['name']}.sql", e['version'], e['name'])
+          assert scalar('select count(*) from supabase_migrations.schema_migrations') == '87'
+          limit = os.environ.get('PKG003_REPLAY_LIMIT', '')
+          for p in prov['pending_forward_migrations']:
+              apply(p['file'], p['version'], p['name'])
+              if limit and p['file'] == limit:
+                  break
+          history = scalar("select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations")
+          open('/tmp/pkg003-schema-before.txt', 'w').write(history + '\n')
+          print('history=' + history)
+          PY
 
       - name: Apply PKG-003 source candidate only in disposable database
         shell: bash
@@ -113,7 +143,7 @@ jobs:
       - name: Stop disposable database
         if: always()
         shell: bash
-        run: cd /tmp/uskoci-pkg003-proof 2>/dev/null && supabase stop --no-backup || true
+        run: cd /tmp/uskoci-ru5-device-ui 2>/dev/null && supabase stop --no-backup || true
 
       - name: Install exact app dependencies
         run: npm ci
