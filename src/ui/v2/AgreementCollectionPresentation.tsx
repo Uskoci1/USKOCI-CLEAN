@@ -46,7 +46,8 @@ export function AgreementCollectionPresentation(props: Props) {
       {([['active', 'Aktivni'], ['history', 'Istorija'], ['all', 'Svi']] as const).map(([value, label]) => <Press key={value}
         accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: value === section }} onPress={() => props.onSection(value)}
         haptic="select" style={[s.choice, section === value && s.selected]}><T style={[s.choiceText, section === value && s.selectedText]}>{label}</T></Press>)}
-    </ScrollView><Press accessibilityRole="button" accessibilityLabel="Kalendar Dogovora" onPress={props.onCalendar} haptic="select" style={s.icon}><CalendarBlank size={22} color={v2.color.ink} /></Press></View>
+    </ScrollView>{!props.requester ? <Press accessibilityRole="button" accessibilityLabel="Radni raspored (JA MOGU)" onPress={props.onCalendar} haptic="select" style={s.icon}>
+      <CalendarBlank size={22} color={v2.color.ink} /></Press> : null}</View>
     <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
       onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select" style={s.attention}>
       <View style={[s.check, confirmationOnly && s.checked]}>{confirmationOnly ? <Check size={14} color={v2.color.surface} weight="bold" /> : null}</View>
