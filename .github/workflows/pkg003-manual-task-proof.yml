@@ -8,6 +8,8 @@ on:
       - 'src/data/manualNeedFactClientService.ts'
       - 'src/data/__tests__/pkg003-manual-need-fact.test.ts'
       - 'src/data/__tests__/pkg003-manual-entry-source.test.ts'
+      - 'src/data/__tests__/pkg003-location-return.test.tsx'
+      - 'src/data/__tests__/pkg003-timezone.test.ts'
       - 'src/app/(app)/novi-zadatak.tsx'
       - 'src/app/(app)/rucni-zadatak.tsx'
       - 'src/app/(app)/potrebe.tsx'
