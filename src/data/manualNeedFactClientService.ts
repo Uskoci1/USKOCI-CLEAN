@@ -67,8 +67,28 @@ function safeValue(value: unknown, depth = 0): boolean {
   return entries.length <= 50 && entries.every(([, item]) => safeValue(item, depth + 1));
 }
 
+function sameManualValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+}
+
 export function canBootstrapManualNeedFact(key: NeedFactV2Key): boolean {
   return MANUAL_FACT_KEYS.has(key);
+}
+
+/** A lost write acknowledgement is retired only after canonical readback proves
+ * the exact human-confirmed value. This never guesses from local draft state. */
+export function manualNeedFactMatchesReadback(
+  fact: AiNeedV2Fact | undefined,
+  key: NeedFactV2Key,
+  value: unknown,
+  displayValue: string,
+): boolean {
+  return !!fact && fact.key === key && fact.status === 'CONFIRMED'
+    && fact.source === 'EXPLICIT_USER_ANSWER'
+    && sameManualValue(fact.value, value)
+    && fact.displayValue === displayValue;
 }
 
 /** Reuse the canonical correction parser for a missing scalar/list fact.
