@@ -51,7 +51,8 @@ jobs:
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
         with:
-          version: latest
+          # Same pin as the PRE-P4 domain proofs; "latest" pulled a newer Postgres image on 2026-09-15.
+          version: 2.116.0
 
       - uses: actions/setup-node@v4
         with:
@@ -62,11 +63,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Shared replay pattern (P0D-02, RU-5 and the PRE-P4 domain proofs): an isolated
+          # project in /tmp, the proof-only predecessor shim as the earliest migration so
+          # that 20260829183528_clean_security_hardening.sql finds public.rls_auto_enable(),
+          # then every exact source migration file in timestamp order. Run 35033856315
+          # showed that a raw reset without the shim stops at migration 3.
+          rm -rf /tmp/uskoci-pkg003-proof
+          mkdir -p /tmp/uskoci-pkg003-proof
+          cd /tmp/uskoci-pkg003-proof
+          supabase init
+          rm -rf supabase/migrations
+          mkdir -p supabase/migrations
+          cp "$GITHUB_WORKSPACE/supabase/proofs/ru2_predecessor_bootstrap.sql" \
+             supabase/migrations/20260825000000_pkg003_live_bootstrap.sql
+          cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
+          expected="$(ls "$GITHUB_WORKSPACE"/supabase/migrations/*.sql | wc -l | tr -d ' ')"
           supabase db start
           supabase db reset --local | tee /tmp/pkg003-db-reset.log
+          psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -c "delete from supabase_migrations.schema_migrations where version='20260825000000';"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
             "select count(*)::text || '/' || coalesce(max(version),'<none>') from supabase_migrations.schema_migrations" \
             | tee /tmp/pkg003-schema-before.txt
+          test "$(cut -d/ -f1 /tmp/pkg003-schema-before.txt)" = "$expected"
 
       - name: Apply PKG-003 source candidate only in disposable database
         shell: bash
@@ -94,7 +113,7 @@ jobs:
       - name: Stop disposable database
         if: always()
         shell: bash
-        run: supabase stop --no-backup || true
+        run: cd /tmp/uskoci-pkg003-proof 2>/dev/null && supabase stop --no-backup || true
 
       - name: Install exact app dependencies
         run: npm ci
