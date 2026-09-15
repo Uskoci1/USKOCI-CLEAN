@@ -44,12 +44,15 @@ export function NeedPresentation(props: NeedPresentationProps) {
       </Press>
       <View style={{ flex: 1 }}><T style={s.caption}>Tvoj radni prostor</T><T accessibilityRole="header" style={s.headerTitle}>Zadatak</T></View>
     </View>
-    {loading ? <View style={s.state}><ActivityIndicator color={v2.color.teal} /><T style={s.caption}>Učitavamo Zadatak…</T></View>
+    {loading ? <View style={s.state}><ActivityIndicator color={v2.color.teal} /><T style={s.caption}>Učitavamo Zadatak…</T>
+        {props.lifecycleActions}
+      </View>
       : error || !need ? <View style={s.state}>
         <T style={s.headerTitle}>Zadatak nije dostupan</T><T style={s.body}>{error ?? 'Pokušajte ponovo.'}</T>
         <Press accessibilityRole="button" accessibilityLabel="Pokušaj ponovo" haptic="light" onPress={props.onRefresh} style={s.retry}>
           <T style={[s.body, { color: v2.color.surface, fontWeight: '700' }]}>Pokušajte ponovo</T>
         </Press>
+        {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <View style={s.hero}>
           <NeedUrgencyBadge urgency={need.urgency} /><T style={s.status}>{STATUS[need.stanje]}</T>
