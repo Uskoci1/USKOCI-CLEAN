@@ -35,7 +35,8 @@ function mapProvider(raw: unknown): ProcessorMapProvider | null {
   const value = object(raw);
   if (!value || !exact(value, PROVIDER_FIELDS)) return null;
   if (!nonEmptyText(value.providerCode) || !nonEmptyText(value.providerDisplayName) || !nonEmptyText(value.legalEntityName)
-    || !ROLES.has(value.legalRole) || !nonEmptyText(value.purpose) || !Array.isArray(value.dataCategories)
+    || typeof value.legalRole !== 'string' || !ROLES.has(value.legalRole)
+    || !nonEmptyText(value.purpose) || !Array.isArray(value.dataCategories)
     || value.dataCategories.length === 0 || value.dataCategories.some(category => !nonEmptyText(category))
     || !nonEmptyText(value.processingRegions) || typeof value.crossBorderTransfer !== 'boolean'
     || !nonEmptyText(value.transferMechanism) || !nonEmptyText(value.dpaReference)
