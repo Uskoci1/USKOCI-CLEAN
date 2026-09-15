@@ -68,7 +68,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     }
     if (confirmed) {
       pendingRef.current = null; setPending(null); setValidation(null);
-      setMessage(attempt.command.zavrsi ? 'Profil je aktivan. Sačuvani podaci su potvrđeni.' : 'Izmene profila su sačuvane i proverene.');
+      setMessage(attempt.command.zavrsi ? 'Profil je aktivan. Sačuvani podaci su potvrđeni.'
+        : attempt.profileId === null ? 'Profil je sačuvan i provereno učitan. Nastavite sa podešavanjem.'
+          : 'Izmene profila su sačuvane i proverene.');
     }
   }, [editor.data, transportBusy]);
   useEffect(() => {
@@ -124,13 +126,18 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     router.navigate(path);
   };
   const visible = foreground && !resumeRequired && !!editor.data && !!draft && !!focus;
-  const status = editor.data?.profile?.stanje ?? null;
+  const profile = editor.data?.profile ?? null;
+  const status = profile?.stanje ?? null;
+  const firstSave = profile === null;
+  const canRequestActivation = status === 'DRAFT' && draft?.value.capacityRevision !== null;
   return <WorkerProfileFrame back={back} footer={visible ? <>
     {pending && (editor.uncertain || editor.error) ? <V2Action label="Proverite sačuvani profil" disabled={transportBusy} onPress={refresh} />
-      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : status === 'ACTIVE' || status === 'SUSPENDED' ? 'Sačuvaj izmene' : 'Proveri i aktiviraj profil'}
-        disabled={!enabled} onPress={() => { void save(status !== 'ACTIVE' && status !== 'SUSPENDED'); }}
+      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje'
+        : status === 'ACTIVE' || status === 'SUSPENDED' ? 'Sačuvaj izmene'
+          : firstSave ? 'Sačuvaj profil' : 'Proveri i aktiviraj profil'}
+        disabled={!enabled} onPress={() => { void save(canRequestActivation); }}
         style={{ backgroundColor: v2.color.orange, borderWidth: 0 }} />}
-    {!pending && status !== 'ACTIVE' && status !== 'SUSPENDED' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
+    {!pending && status === 'DRAFT' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
     {pending && enabled ? <V2Action label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
   </> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} /> : <>
