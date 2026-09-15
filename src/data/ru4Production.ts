@@ -45,9 +45,10 @@ export const ru4Production = {
       .select('remaining_search_closed_at')
       .eq('id', needId)
       .maybeSingle();
-    if (error) throw new Error('REMAINING_SEARCH_STATE_READ_FAILED');
-    const closedAt = typeof data?.remaining_search_closed_at === 'string' ? data.remaining_search_closed_at : null;
-    return { closed: !!closedAt, closedAt };
+    if (error || !data || !Object.hasOwn(data, 'remaining_search_closed_at')) throw new Error('REMAINING_SEARCH_STATE_READ_FAILED');
+    const raw = data.remaining_search_closed_at;
+    if (raw !== null && !isoInstant(raw)) throw new Error('REMAINING_SEARCH_STATE_INVALID');
+    return { closed: raw !== null, closedAt: raw };
   },
 
   async closeRemainingSearch(
