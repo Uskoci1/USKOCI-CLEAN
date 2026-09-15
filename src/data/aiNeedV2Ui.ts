@@ -2,7 +2,7 @@ import { capabilityTerms } from '../lib/capabilityTerms';
 import { countryCode } from '../lib/market';
 import { calendarInstant } from '../lib/calendarTime';
 import { locationSlots, normalizeNeedLocation, normalizeTaskGeography } from '../lib/location';
-import { displayDate, zonedParts } from '../ui/calendar/calendarPresentation';
+import { civilInstant, displayDate, zonedParts } from '../ui/calendar/calendarPresentation';
 import type { AiNeedSafety, AiNeedV2Fact } from '../contracts/aiNeedV2';
 import {
   NEED_FACT_V2_DEFINITIONS,
@@ -60,6 +60,7 @@ const SCHEDULE_LABELS: Record<string, string> = { FIXED_WINDOW: 'Tačan termin',
   TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };
 const GEOGRAPHY_LABELS: Record<NeedTaskGeography['mode'], string> = { STATIONARY: 'Na jednom mestu', POINT_TO_POINT: 'Od mesta do mesta',
   MULTI_STOP: 'Više stanica', AREA_BASED: 'Na području', REMOTE: 'Na daljinu' };
+const REVIEW_TIMEZONE = 'Europe/Belgrade';
 function slotLabel(slot: LocationSlot, stationary = false): string {
   return slot === 'start' ? stationary ? 'Mesto' : 'Polazište' : slot === 'end' ? 'Odredište'
     : slot === 'serviceArea' ? 'Područje' : `Stanica ${Number(slot.split('/')[1]) + 1}`;
@@ -107,7 +108,7 @@ export function factReviewValue(fact: AiNeedV2Fact): string {
     if (instant === null) return 'Termin nije dostupan';
     try {
       const milliseconds = instant >= 0 ? instant / 1000n : (instant - 999n) / 1000n;
-      const parts = zonedParts(new Date(Number(milliseconds)), 'Europe/Belgrade');
+      const parts = zonedParts(new Date(Number(milliseconds)), REVIEW_TIMEZONE);
       // Include date/year/seconds and exact fractional precision, never device timezone.
       const fraction = typeof value === 'string' ? /\.(\d+)(?:Z|[+-])/.exec(value)?.[1] : undefined;
       return `${displayDate(parts.date)} ${parts.date.slice(0, 4)} · ${parts.time}${fraction ? `.${fraction}` : ''} (vreme u Beogradu)`;
@@ -169,15 +170,21 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       return { ok: true, value: values, displayValue: values.join(', ') };
     }
     case 'TIMESTAMPTZ': {
+      // Existing canonical instants remain byte-identical after strict validation,
+      // including their explicit offset and microseconds. Never reinterpret them
+      // in the device zone.
       if (/^\d{4}-\d{2}-\d{2}T/.test(text)) {
         return calendarInstant(text) !== null ? { ok: true, value: text, displayValue: text }
           : { ok: false, message: 'Termin nije ispravan. Proverite datum, vreme i vremensku zonu.' };
       }
-      const parsed = Date.parse(text);
-      if (!Number.isFinite(parsed)) {
-        return { ok: false, message: 'Termin nije prepoznat. Izmenite ga kroz razgovor.' };
-      }
-      return { ok: true, value: new Date(parsed).toISOString(), displayValue: text };
+      // Manual civil input is intentionally narrow and uses the same explicit
+      // zone shown by review. Date.parse is forbidden here because its meaning
+      // depends on the host zone and it silently normalizes impossible dates.
+      const civil = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}(?::\d{2})?)$/.exec(text);
+      if (!civil) return { ok: false, message: 'Termin unesite kao GGGG-MM-DD HH:MM ili kao ISO vreme sa zonom.' };
+      const resolved = civilInstant(civil[1], civil[2], REVIEW_TIMEZONE);
+      return resolved.value ? { ok: true, value: resolved.value, displayValue: text }
+        : { ok: false, message: resolved.error ?? 'Termin nije ispravan.' };
     }
     case 'ENUM': {
       const normalized = text.toLocaleLowerCase('sr-Latn-RS');
