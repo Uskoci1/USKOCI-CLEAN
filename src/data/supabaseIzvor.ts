@@ -58,6 +58,12 @@ function publicTaskContext(raw: Record<string, any>) {
     podrucjeTekst: remote ? 'Na daljinu' : fLoc(raw.approximate_area, raw.approximate_city), priblizno };
 }
 
+function validPublicInstant(value: unknown): value is string {
+  return typeof value === 'string'
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+    && Number.isFinite(Date.parse(value));
+}
+
 function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): string | null {
   if (!profile?.poverenje.ocenaDostupna || profile.poverenje.ocenaProsek === null) return null;
   return profile.poverenje.ocenaProsek.toLocaleString('sr-Latn-RS', {
@@ -127,7 +133,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id,
+        covered_slots, mode, requester_price_rsd, requester_profile_id, remaining_search_closed_at,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
         required_licenses, minimum_experience_years, verified_identity_required,
         need_geography(public_topology), need_requirement_details(critical_conditions)
@@ -138,9 +144,12 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (error) throw error;
     if (!data) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
 
-    const [profiles, urgency] = await Promise.all([safePublicProfiles(data.map((r: any) => r.requester_profile_id)), readNeedUrgencies(data)]);
+    // Missing/malformed closure state is not permission to advertise a Task.
+    // Only an explicit null means that remaining search is still open.
+    const openData = data.filter((r: any) => r?.remaining_search_closed_at === null);
+    const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id)), readNeedUrgencies(openData)]);
 
-    return data.map((r: any) => {
+    return openData.map((r: any) => {
       const narucilac = profiles.get(r.requester_profile_id) ?? null;
       return {
         id: r.id,
@@ -164,7 +173,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline,
+        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline, remaining_search_closed_at,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
         required_licenses, minimum_experience_years, verified_identity_required,
         need_geography(public_topology), need_requirement_details(critical_conditions)
@@ -180,9 +189,10 @@ export const supabaseIzvor: SupabaseIzvor = {
       throw new Error('TASK_CAPACITY_INVALID');
     }
     const rok = data.response_deadline;
-    if (rok !== null && (typeof rok !== 'string'
-      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(rok)
-      || !Number.isFinite(Date.parse(rok)))) throw new Error('TASK_DEADLINE_INVALID');
+    if (rok !== null && !validPublicInstant(rok)) throw new Error('TASK_DEADLINE_INVALID');
+    const remainingClosedAt = data.remaining_search_closed_at;
+    if (remainingClosedAt !== null && !validPublicInstant(remainingClosedAt)) throw new Error('TASK_REMAINING_SEARCH_STATE_INVALID');
+    const remainingClosed = remainingClosedAt !== null;
 
     const [profiles, urgency] = await Promise.all([safePublicProfiles([data.requester_profile_id]), readNeedUrgencies([data])]);
     const narucilac = profiles.get(data.requester_profile_id) ?? null;
@@ -191,8 +201,8 @@ export const supabaseIzvor: SupabaseIzvor = {
       id: data.id,
       urgency: urgency.get(data.id),
       naslov: data.title,
-      statusTekst: ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
-      primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
+      statusTekst: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
+      primaNovePrijave: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status)
         && data.required_slots > data.covered_slots && (rok === null || Date.parse(rok) > Date.now()),
       rokZaPrijaveIso: rok,
       ...publicTaskContext(data),
