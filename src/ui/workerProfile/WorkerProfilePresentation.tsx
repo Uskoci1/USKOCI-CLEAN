@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
@@ -31,16 +31,17 @@ export function WorkerProfileStatus({ loading, error, retry }: { loading: boolea
     <V2Action label="Ponovo učitaj profil" onPress={retry} />
   </>}</View>;
 }
-function Field({ label, value, change, disabled, multiline = false, numeric = false, hint }: {
+function Field({ label, value, change, disabled, multiline = false, numeric = false, hint, inputRef }: {
   label: string; value: string; change: (text: string) => void; disabled: boolean; multiline?: boolean; numeric?: boolean; hint?: string;
+  inputRef?: RefObject<TextInput | null>;
 }) {
-  return <View style={{ gap: 8 }}><T style={body}>{label}</T><TextInput accessibilityLabel={label} value={value}
+  return <View style={{ gap: 8 }}><T style={body}>{label}</T><TextInput ref={inputRef} accessibilityLabel={label} value={value}
     editable={!disabled} onChangeText={text => { if (!disabled) change(text); }} multiline={multiline}
     keyboardType={numeric ? 'number-pad' : 'default'} maxLength={numeric ? 3 : multiline ? 4000 : 160}
     style={[input, multiline ? { minHeight: 96, textAlignVertical: 'top' } : undefined]} />{hint ? <T style={caption}>{hint}</T> : null}</View>;
 }
-function Terms({ label, values, pending, setPending, change, disabled }: { label: string; values: string[]; pending: string;
-  setPending: (text: string) => void; change: (terms: string[], clearPending?: boolean) => void; disabled: boolean }) {
+function Terms({ label, values, pending, setPending, change, disabled, inputRef }: { label: string; values: string[]; pending: string;
+  setPending: (text: string) => void; change: (terms: string[], clearPending?: boolean) => void; disabled: boolean; inputRef?: RefObject<TextInput | null> }) {
   const add = () => { const term = pending.replace(/^ +| +$/g, '');
     if (disabled || !term || Array.from(term).length > 500 || values.length >= 50) return;
     change([...values, term], true); };
@@ -50,7 +51,7 @@ function Terms({ label, values, pending, setPending, change, disabled }: { label
       style={{ minHeight: 44, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: v2.color.soft }}>
       <T style={body}>{value} ×</T></Press>)}
     </View><View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-      <TextInput accessibilityLabel={`Nova stavka: ${label}`} placeholder="Dodajte jednu stavku" placeholderTextColor={v2.color.muted}
+      <TextInput ref={inputRef} accessibilityLabel={`Nova stavka: ${label}`} placeholder="Dodajte jednu stavku" placeholderTextColor={v2.color.muted}
         value={pending} editable={!disabled && values.length < 50} onChangeText={text => { if (!disabled) setPending(text); }}
         onSubmitEditing={add} maxLength={500} style={[input, { flex: 1 }]} />
       <Press accessibilityRole="button" accessibilityLabel={`Dodaj: ${label}`} onPress={add}
@@ -58,9 +59,17 @@ function Terms({ label, values, pending, setPending, change, disabled }: { label
         style={{ minWidth: 60, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}><T style={{ ...body, color: v2.color.teal }}>Dodaj</T></Press>
     </View><T style={caption}>Dodajte svaku stavku zasebno. {values.length}/50</T></View>;
 }
-export function WorkerProfileForm({ draft, change, disabled, status, navigate }: { draft: WorkerDraft; change: (value: WorkerDraft) => void;
-  disabled: boolean; status: StanjeProfila | null; navigate: (path: '/profil/lokacija' | '/profil/dostupnost' | '/raspored') => void }) {
+export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'capacity'; token: number };
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest }: { draft: WorkerDraft; change: (value: WorkerDraft) => void;
+  disabled: boolean; status: StanjeProfila | null; navigate: (path: '/profil/lokacija' | '/profil/dostupnost' | '/raspored') => void;
+  focusRequest?: WorkerProfileFocusRequest | null }) {
   const [resourcesOpen, setResourcesOpen] = useState(false), [bioOpen, setBioOpen] = useState(!!draft.biografija);
+  const nameRef = useRef<TextInput>(null), skillRef = useRef<TextInput>(null), capacityRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (!focusRequest || disabled) return;
+    const selected = focusRequest.target === 'name' ? nameRef.current : focusRequest.target === 'skill' ? skillRef.current : capacityRef.current;
+    (selected as { focus?: () => void } | null)?.focus?.();
+  }, [focusRequest, disabled]);
   const patch = (value: Partial<WorkerDraft>) => { if (!disabled) change({ ...draft, ...value }); };
   const initials = draft.ime.trim().split(/\s+/).slice(0, 2).map(part => part.slice(0, 1)).join('').toUpperCase();
   return <>
@@ -70,12 +79,12 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate }:
       <T style={caption}>JA MOGU</T><T style={{ ...v2.text.hero, color: v2.color.ink }}>{draft.ime.trim() || 'Šta možete da preuzmete?'}</T>
       <T style={caption}>{status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Dopunite ključne sposobnosti pre prijave'}</T>
     </View>
-    <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} />
+    <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
     <Field label="Koliko ljudi možeš da obezbediš" value={draft.capacity} change={capacity => patch({ capacity })}
-      disabled={disabled || draft.capacityRevision === null} numeric
+      disabled={disabled || draft.capacityRevision === null} numeric inputRef={capacityRef}
       hint={draft.capacityRevision === null ? 'Sačuvajte profil i učitajte kapacitet sa servera.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
     <Terms label="Veštine i usluge" values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
-      change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} />
+      change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} inputRef={skillRef} />
     <Press accessibilityRole="button" accessibilityLabel="Alat i vozila" accessibilityState={{ expanded: resourcesOpen }}
       onPress={() => setResourcesOpen(value => !value)} style={{ minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderColor: v2.color.line }}>
       <View style={{ flex: 1 }}><T style={body}>Alat i vozila</T><T style={caption}>{draft.alati.length + draft.vozila.length ? `${draft.alati.length} stavki alata · ${draft.vozila.length} vozila` : 'Dodajte kada je relevantno · opciono'}</T></View>
