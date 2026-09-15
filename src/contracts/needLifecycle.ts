@@ -15,3 +15,17 @@ export type DraftDeletionReceipt = {
   deleted: true;
   idempotentReplay: boolean;
 };
+
+/** One immutable terminal command. Retrying must retain all original arguments. */
+export type NeedLifecycleCommand = Readonly<{
+  action: 'CANCEL' | 'DELETE_DRAFT';
+  needId: string;
+  expectedRevision: number;
+  reason: string;
+}>;
+export type NeedLifecycleConfirmation =
+  | { action: 'CANCEL'; receipt: NeedCancellationReceipt }
+  | { action: 'DELETE_DRAFT'; receipt: DraftDeletionReceipt };
+export type NeedLifecycleReadback =
+  | { state: 'CONFIRMED'; confirmation: NeedLifecycleConfirmation }
+  | { state: 'NOT_CONFIRMED' };

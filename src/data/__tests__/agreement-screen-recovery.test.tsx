@@ -6,10 +6,12 @@ let mockPlatform = 'android';
 let mockFocused = true;
 const mockAppListeners = new Set<(state: string) => void>();
 let mockId: string | string[] = '20000000-0000-4000-8000-000000000001';
-const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn() };
+const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn() };
+const mockGroupContext = jest.fn();
 const mockRead = jest.fn();
 const mockMessages = jest.fn();
 const mockProblemSubmit = jest.fn(), mockProblemRead = jest.fn();
+const mockPhotoRead = jest.fn((_id: string, rows: unknown[]) => Promise.resolve(rows));
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(),
   prijaviProblem: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn() };
 const mockOutbox = { reconcile: jest.fn().mockResolvedValue(undefined) };
@@ -27,6 +29,7 @@ jest.mock('react-native', () => {
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: (...args: unknown[]) => mockProblemSubmit(...args), read: (...args: unknown[]) => mockProblemRead(...args) } }));
+jest.mock('../groupConversationService', () => ({ groupConversationService: { context: (...args: unknown[]) => mockGroupContext(...args) } }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' }, FadeIn: { duration: () => undefined } }));
 jest.mock('phosphor-react-native', () => ({ CaretLeft: 'Icon', Clock: 'Icon', ArrowRight: 'Icon', ClockCountdown: 'Icon', CheckCircle: 'Icon', Phone: 'Icon', MapPin: 'Icon' }));
@@ -40,6 +43,8 @@ jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateM
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, useUloga: () => 'narucilac', ulogaSada: () => 'narucilac' }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: mockOutbox, state: mockOutboxState }) }));
+jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockId, loaded: true, busy: false, items: [] }) }));
+jest.mock('../agreementPhotoClientService', () => ({ agreementPhotoClientService: { messages: (...args: Parameters<typeof mockPhotoRead>) => mockPhotoRead(...args) } }));
 import Dogovor from '../../app/dogovor/[id]';
 
 const workspace = { id: '20000000-0000-4000-8000-000000000001', naslov: 'Pomoć pri selidbi', stanje: 'CONFIRMED',
@@ -49,7 +54,7 @@ const workspace = { id: '20000000-0000-4000-8000-000000000001', naslov: 'Pomoć 
   hronologija: [], kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: false },
   chatDostupan: true, vremeTekst: 'Fleksibilno', putanjaTekst: 'Beograd', problemOtvoren: false, rokPotvrdeIso: null };
 const ownMessage = { id: '30000000-0000-4000-8000-000000000001', clientMessageId: 'poruka_retry_123',
-  posiljalacAccountId: '10000000-0000-4000-8000-000000000001', telo: 'Stižem.', moja: true };
+  dogovorVerzija: 2, posiljalacAccountId: '10000000-0000-4000-8000-000000000001', telo: 'Stižem.', moja: true };
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
@@ -64,6 +69,8 @@ beforeEach(() => {
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([ownMessage]);
   mockProblemSubmit.mockReset().mockResolvedValue({ ok: false, kod: 'NOT_CONFIGURED', poruka: 'unconfirmed' });
   mockProblemRead.mockReset();
+  mockPhotoRead.mockReset().mockImplementation((_id, rows) => Promise.resolve(rows));
+  mockGroupContext.mockReset().mockResolvedValue({ ok: true, podatak: { group: null } });
   mockOutboxState = { phase: 'loading', entries: [] };
   for (const name of ['oznaciZavrsetak', 'potvrdiZavrsetak', 'prijaviProblem', 'podeliTelefon', 'opoziviTelefon'] as const) {
     mockSource[name].mockReset().mockResolvedValue({ ok: true, podatak: null });
@@ -71,6 +78,13 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('D03 actual route and scoped resource integration', () => {
+  it('opens the server-admitted group for this owned Agreement with its unread count', async () => {
+    mockGroupContext.mockResolvedValue({ ok: true, podatak: { group: { groupId: '30000000-0000-4000-8000-000000000001', unreadCount: 2 } } });
+    await render();
+    expect(mockGroupContext).toHaveBeenCalledWith(workspace.id, { accountId: mockAccount, accountRevision: 0 });
+    await act(async () => button('Grupni razgovor · 2 nepročitanih').props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/grupa', params: { id: workspace.id } });
+  });
   it.each(['android', 'ios'])('owns keyboard avoidance at the full-screen boundary on %s without changing workspace/outbox authority', async platform => {
     mockPlatform = platform;
     await render();
@@ -476,5 +490,21 @@ describe('D03 actual route and scoped resource integration', () => {
     mockRead.mockResolvedValue({ ...workspace, stanje: 'COMPLETED' });
     await act(async () => button('Osveži status Dogovora').props.onPress());
     expect(texts()).toContain('Dogovor je završen');
+  });
+  it('keeps the support selection exit for readable terminal history and latches its navigation', async () => {
+    mockRead.mockResolvedValue({ ...workspace, verzija: 7, stanje: 'COMPLETED', chatDostupan: false }); await render();
+    await act(async () => button('Poruke').props.onPress()); const chat = tree.root.findByType('AgreementChat' as React.ElementType).props;
+    expect(chat.writable).toBe(false); expect(chat.messages[0].dogovorVerzija).toBe(2); expect(chat.support.canAct()).toBe(true);
+    const open = jest.fn(); await act(async () => { chat.support.navigate(open); chat.support.navigate(open); });
+    expect(open).toHaveBeenCalledTimes(1); expect(chat.support.canAct()).toBe(false);
+    expect(mockSource.prijaviProblem).not.toHaveBeenCalled(); expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+  });
+  it.each(['blur/focus', 'account ABA'] as const)('fences an old message support entry after %s', async change => {
+    await render(); await act(async () => button('Poruke').props.onPress()); const old = tree.root.findByType('AgreementChat' as React.ElementType).props.support;
+    expect(old.canAct()).toBe(true);
+    if (change === 'blur/focus') { mockFocused = false; await act(async () => tree.update(<Dogovor />)); mockFocused = true; }
+    else mockAccountRevision = 2;
+    await act(async () => tree.update(<Dogovor />)); const open = jest.fn(); await act(async () => old.navigate(open));
+    expect(old.canAct()).toBe(false); expect(open).not.toHaveBeenCalled();
   });
 });

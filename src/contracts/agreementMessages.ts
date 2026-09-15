@@ -3,7 +3,17 @@ export type AgreementMessageCommand = Readonly<{
   agreementId: string;
   clientMessageId: string;
   body: string;
+  photos?: Readonly<{ agreementVersion: number; assetIds: readonly string[] }>;
 }>;
+
+export function validMessagePhotos(value: unknown): value is NonNullable<AgreementMessageCommand['photos']> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  if (Object.keys(v).length !== 2 || !Number.isInteger(v.agreementVersion) || (v.agreementVersion as number) < 1
+    || (v.agreementVersion as number) > 2147483647 || !Array.isArray(v.assetIds) || v.assetIds.length < 1 || v.assetIds.length > 6
+    || v.assetIds.some(id => typeof id !== 'string' || id.length !== 36 || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id))) return false;
+  return new Set(v.assetIds.map(id => id.toLowerCase())).size === v.assetIds.length;
+}
 
 export type AgreementMessageErrorCode = 'AUTH_CONTEXT_CHANGED' | 'INVALID_MESSAGE' | 'READ_ONLY'
   | 'NOT_AVAILABLE' | 'CONFLICT' | 'UNAVAILABLE' | 'INVALID_RESPONSE';

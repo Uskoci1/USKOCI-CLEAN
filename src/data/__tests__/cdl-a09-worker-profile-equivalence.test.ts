@@ -62,15 +62,15 @@ describe('CDL-A09 — canonical Worker profile mutation contract', () => {
     expect(result.trace).toEqual([['auth.getUser']]);
   });
   it('preserves the existing-profile patch and activation and binds update to owner and kind', async () => {
-    const result=await run({ime:'Miloš',grad:'Novi Sad',biografija:'Pouzdan.',vestine:['selidbe'],alati:['bušilica'],vozila:['automobil'],dostupanOdmah:false,radijusKm:15,zavrsi:true},{});
+    const result=await run({ime:'Miloš',biografija:'Pouzdan.',vestine:['selidbe'],alati:['bušilica'],vozila:['automobil'],zavrsi:true},{});
     expect(result.value).toEqual({ok:true,podatak:null});
-    expect(result.trace).toContainEqual(['update',{display_name:'Miloš',city:'Novi Sad',bio:'Pouzdan.',skills:['selidbe'],tools:['bušilica'],vehicles:['automobil'],available_now:false,radius_km:15}]);
+    expect(result.trace).toContainEqual(['update',{display_name:'Miloš',bio:'Pouzdan.',skills:['selidbe'],tools:['bušilica'],vehicles:['automobil']}]);
     expect(result.trace).toContainEqual(['update.eq','account_id',A]); expect(result.trace).toContainEqual(['update.eq','kind','WORKER']);
     expect(result.trace).toContainEqual(['rpc','rpc_complete_worker_profile',{p_profile_id:P}]);
   });
-  it('preserves the DRAFT create defaults and activates only the returned profile id', async () => {
-    const result=await run({ime:'Ana',grad:'Novi Sad',vestine:['čišćenje'],zavrsi:true},{existingResult:{data:null,error:null}});
-    expect(result.trace).toContainEqual(['insert',{account_id:A,kind:'WORKER',display_name:'Ana',city:'Novi Sad',bio:'',skills:['čišćenje'],tools:[],vehicles:[],available_now:false,radius_km:15,profile_status:'DRAFT'}]);
+  it('leaves geography and availability defaults to the server and preserves DRAFT creation and activates only the returned profile id', async () => {
+    const result=await run({ime:'Ana',vestine:['čišćenje'],zavrsi:true},{existingResult:{data:null,error:null}});
+    expect(result.trace).toContainEqual(['insert',{account_id:A,kind:'WORKER',display_name:'Ana',bio:'',skills:['čišćenje'],tools:[],vehicles:[],profile_status:'DRAFT'}]);
     expect(result.trace).toContainEqual(['rpc','rpc_complete_worker_profile',{p_profile_id:P}]);
     expect(result.value).toEqual({ok:true,podatak:null});
   });
@@ -81,10 +81,15 @@ describe('CDL-A09 — canonical Worker profile mutation contract', () => {
   it.each([
     ['profile read',{existingResult:{data:null,error:{code:'READ_DENIED'}}},{ime:'Ime'},'PROFILE_READ_FAILED'],
     ['profile create no data',{existingResult:{data:null,error:null},insertResult:{data:null,error:null}},{ime:'Ime'},'PROFILE_INVALID_RESPONSE'],
-    ['profile update',{updateResult:{data:null,error:{message:'UPDATE_DENIED',code:'42501'}}},{grad:'Novi Sad'},'PROFILE_UPDATE_FAILED'],
+    ['profile update',{updateResult:{data:null,error:{message:'UPDATE_DENIED',code:'42501'}}},{ime:'Novo ime'},'PROFILE_UPDATE_FAILED'],
     ['profile activation',{rpcResult:{data:null,error:{message:'SKILL_REQUIRED',code:'P0001'}}},{zavrsi:true},'SKILL_REQUIRED'],
   ] as const)('maps %s without leaking arbitrary backend text', async (_label,scenario,k,expected) => {
     const result=await run(k,scenario); expect(result.value).toMatchObject({ok:false,kod:expected});
     if (!result.value.ok) expect(result.value.poruka).not.toMatch(/READ_DENIED|UPDATE_DENIED|P0001/);
   });
+});
+
+it.each([{grad:'Novi Sad'},{radijusKm:15},{dostupanOdmah:false}])('refuses a duplicate protected-fact writer before any SDK call: %j',async k=>{
+  const trace=configure({});const result=await workerProfileClientService.azurirajRadnikProfil(k);
+  expect(result.ok).toBe(false);expect(trace).toEqual([]);
 });

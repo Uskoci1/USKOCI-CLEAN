@@ -19,7 +19,7 @@ const declaration=name=>{
 };
 const expectedFiles=[
   'src/data/workerCalendarClientService.ts','src/data/serverReceipt.ts','src/lib/calendarTime.ts',
-  'src/data/agreementClientService.ts','src/data/calendarErrors.ts','src/data/needDetailPresentation.ts',
+  'src/data/agreementClientService.ts','src/data/calendarErrors.ts','src/data/legacyRpcFailure.ts','src/data/needDetailPresentation.ts',
   'src/lib/location.ts','src/lib/market.ts','src/ui/calendar/calendarPresentation.ts',
 ].sort();
 const digest=file=>createHash('sha256').update(readFileSync(file)).digest('hex');

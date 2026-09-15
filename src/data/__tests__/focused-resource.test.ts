@@ -47,3 +47,13 @@ describe('focused account reads', () => {
     model.start(); await flush(); expect(model.snapshot().data).toEqual(['current']);
   });
 });
+
+
+it('clears a successful snapshot when its owner leaves the foreground and refuses hidden refreshes', async () => {
+  const load = jest.fn().mockResolvedValue(['private data']);
+  const model = createFocusedResource<string[]>(load, () => true);
+  model.start(); await flush(); expect(model.snapshot().data).toEqual(['private data']);
+  model.stop(); expect(model.snapshot()).toEqual({ data: null, loading: true, error: false });
+  await model.refresh(); expect(load).toHaveBeenCalledTimes(1);
+  model.start(); await flush(); expect(load).toHaveBeenCalledTimes(2);
+});

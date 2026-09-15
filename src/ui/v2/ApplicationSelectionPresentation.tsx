@@ -191,11 +191,12 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
   return <><T style={s.caption}>{state.loading ? 'Proveravamo Dogovor uz ovu Prijavu…' : 'Veza sa Dogovorom trenutno nije dostupna.'}</T>
     <V2Action label="Proveri Dogovor" onPress={() => { if (!state.loading) void read(); }} disabled={state.loading} /></>;
 }
-export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement }: {
+export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto }: {
   need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void; publicProfile: () => Promise<JavniProfilProjekcija | null>; choose: () => void;
   busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void; error: string | null; confirmed: boolean;
   openAgreement: () => void; reset?: () => void;
   readAgreement: () => Promise<Ishod<{ dogovorId: string | null }>>; openLinkedAgreement: (id: string) => void;
+  publicPhoto?: (profileId: string) => ReactNode;
 }) {
   const reduced = useReducedMotion();
   const [review, setReview] = useState(false);
@@ -241,11 +242,11 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       <SelectionFrame title="Javni profil" back={closeProfile}>
         {profile.loading ? <ActivityIndicator accessibilityLabel="Učitavanje javnog profila" color={v2.color.teal} />
           : !profile.data ? <><ErrorMessage error="Javni profil trenutno nije dostupan." /><V2Action label="Pokušajte ponovo" onPress={() => { void openProfile(); }} /></>
-          : <View style={s.offer}><T style={s.hero}>{profile.data.ime ?? 'Uskočer'}</T>
+          : <View style={s.offer}>{publicPhoto?.(profile.data.profilId)}<T style={s.hero}>{profile.data.ime ?? 'Uskočer'}</T>
             {profile.data.grad ? <T style={s.caption}>{profile.data.grad}</T> : null}
             {profile.data.naslov ? <T style={s.title}>{profile.data.naslov}</T> : null}
             {profile.data.biografija ? <T style={s.body}>{profile.data.biografija}</T> : null}
-            {profile.data.poverenje.ocenaDostupna ? <T style={s.body}>Ocena: {profile.data.poverenje.ocenaProsek ?? '—'}</T> : <T style={s.caption}>Ocena nije dostupna.</T>}
+            {profile.data.poverenje.recenzijeDostupne && profile.data.poverenje.brojRecenzija === 0 ? <T style={s.caption}>Još nema ocena</T> : profile.data.poverenje.ocenaDostupna ? <T style={s.body}>Ocena: {profile.data.poverenje.ocenaProsek ?? '—'}</T> : <T style={s.caption}>Ocena nije dostupna.</T>}
             {profile.data.poverenje.verifikacijaIdentitetaDostupna && profile.data.poverenje.identitetVerifikovan ? <T style={s.strong}>Identitet je potvrđen.</T> : null}
           </View>}
       </SelectionFrame>

@@ -1,3 +1,4 @@
+import { legacyRpcFailure } from './legacyRpcFailure';
 import type { Ishod, Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import type { ExactLocationReveal, LocationGrant, LocationGrantState } from '../contracts/contact';
@@ -74,12 +75,8 @@ async function setLocationGrant(agreementId: string, granted: boolean): Promise<
   return result.ok ? { ok: true, podatak: null } : result;
 }
 
-function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string): Ishod<T> {
-  return {
-    ok: false,
-    kod: error?.message || error?.code || fallbackCode,
-    poruka: error?.message || fallbackMessage,
-  };
+function rpcFailure<T>(error: unknown, fallbackCode: string, fallbackMessage: string): Ishod<T> {
+  return legacyRpcFailure(error, fallbackCode, fallbackMessage);
 }
 
 /**

@@ -38,6 +38,9 @@ export type StanjePotrebe =
 
 export type RezimCene = 'MY_PRICE' | 'OFFERS';
 
+/** Existing fn_need_urgency result; missing means unobserved, never active. */
+export type NeedUrgencyProjection = { level: 'NORMAL'; expiresAt: null } | { level: 'HITNO'; expiresAt: string };
+
 /** Exact current Need schedule columns; absence never means a guessed interval. */
 export type NeedScheduleProjection = {
   kind: 'FIXED_WINDOW' | 'FLEXIBLE' | 'REMOTE_ANYTIME' | 'TODAY_FLEXIBLE' | 'TOMORROW_FLEXIBLE' | 'WEEK_FLEXIBLE';
@@ -56,6 +59,7 @@ export type NeedDetailProjection = {
 
 export type PotrebaProjekcija = {
   id: string;
+  urgency?: NeedUrgencyProjection;
   /** Tačna revizija. Izbor mora da se veže za nju. */
   revizija: number;
   naslov: string;
@@ -84,6 +88,7 @@ export type PotrebaProjekcija = {
  */
 export type PrilikaProjekcija = {
   id: string;
+  urgency?: NeedUrgencyProjection;
   naslov: string;
   opis?: string;
   detalji?: NeedDetailProjection;
@@ -124,6 +129,9 @@ export type RadnikProfilProjekcija = {
   stanje: StanjeProfila;
   dostupanOdmah: boolean;
   radijusKm: number;
+  /** Present only after authoritative capacity readback; never inferred from a vehicle. */
+  kapacitetTima?: number;
+  capacityRevision?: string;
 };
 
 /**
@@ -374,6 +382,10 @@ export type PorukaRazgovora = {
 
 export type PorukaProjekcija = {
   id: string;
+  /** Authorized immutable metadata, independently bound to this canonical row. */
+  fotografije?: readonly { assetId: string; width: number; height: number; byteSize: number; contentType: 'image/jpeg' }[];
+  /** Exact version persisted with this message; never the current Agreement version. */
+  dogovorVerzija?: number;
   clientMessageId?: string | null;
   posiljalacAccountId?: string;
   posiljalacIme: string;

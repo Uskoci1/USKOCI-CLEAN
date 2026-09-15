@@ -48,13 +48,13 @@ function routeFiles(directory: string): string[] {
   });
 }
 
-describe('06.09 three-zone intent navigation and system navigation clearance', () => {
-  it('exposes only Requester tasks, creation and agreements in order', () => {
-    expect(visibleNames('narucilac')).toEqual(['potrebe', 'nova', 'dogovori']);
+describe('V5 three-zone intent navigation and system navigation clearance', () => {
+  it('exposes Requester tasks, shared map and agreements in order', () => {
+    expect(visibleNames('narucilac')).toEqual(['potrebe', 'mapa', 'dogovori']);
   });
 
-  it('exposes only Worker applications, discovery and agreements in order', () => {
-    expect(visibleNames('uskocer')).toEqual(['moje-prijave', 'prilike', 'dogovori']);
+  it('exposes Worker applications, shared map and agreements in order', () => {
+    expect(visibleNames('uskocer')).toEqual(['moje-prijave', 'mapa', 'dogovori']);
   });
 
   it.each(['narucilac', 'uskocer'] as const)('keeps detail routes registered but hidden for %s', (role) => {

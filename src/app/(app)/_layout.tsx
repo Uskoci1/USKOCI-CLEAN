@@ -30,17 +30,29 @@ export default function TabLayout() {
     <Tabs.Screen name="potrebe" options={{ href: requester ? undefined : null, title: 'Zadaci',
       tabBarAccessibilityLabel: 'Zadaci',
       tabBarIcon: ({ color, focused }) => <Package size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
-    <Tabs.Screen name="nova" options={{ href: requester ? undefined : null, title: 'Novi',
-      tabBarAccessibilityLabel: 'Novi Zadatak', tabBarIcon: CenterMark }} />
+    <Tabs.Screen name="novi-zadatak" options={{ href: null }} />
+    <Tabs.Screen name="nova" options={{ href: null }} />
+    <Tabs.Screen name="rucni-zadatak" options={{ href: null }} />
     <Tabs.Screen name="moje-prijave" options={{ href: requester ? null : undefined, title: 'Prijave',
       tabBarAccessibilityLabel: 'Prijave',
       tabBarIcon: ({ color, focused }) => <PaperPlaneTilt size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
-    <Tabs.Screen name="prilike" options={{ href: requester ? null : undefined, title: 'Zadaci',
-      tabBarAccessibilityLabel: 'Zadaci', tabBarIcon: CenterMark }} />
+    <Tabs.Screen name="prilike" options={{ href: null }} />
+    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa', tabBarIcon: CenterMark }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori',
       tabBarIcon: ({ color, focused }) => <Handshake size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="profil" options={{ href: null }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null }} />
+    <Tabs.Screen name="profil/razgovor" options={{ href: null }} />
+    <Tabs.Screen name="profil/podaci" options={{ href: null }} />
+    <Tabs.Screen name="profil/fotografija" options={{ href: null }} />
+    <Tabs.Screen name="profil/blokirani" options={{ href: null }} />
+    <Tabs.Screen name="profil/pravna" options={{ href: null }} />
+    <Tabs.Screen name="profil/o-aplikaciji" options={{ href: null }} />
+    <Tabs.Screen name="bezbednost" options={{ href: null }} />
+    <Tabs.Screen name="podrska/index" options={{ href: null }} />
+    <Tabs.Screen name="podrska/novi" options={{ href: null }} />
+    <Tabs.Screen name="podrska/[id]" options={{ href: null }} />
+    <Tabs.Screen name="podrska/operator" options={{ href: null }} />
     <Tabs.Screen name="profil/lokacija" options={{ href: null }} />
     <Tabs.Screen name="profil/dostupnost" options={{ href: null }} />
     <Tabs.Screen name="profil/izvoz" options={{ href: null }} />
@@ -49,6 +61,10 @@ export default function TabLayout() {
     <Tabs.Screen name="raspored" options={{ href: null }} />
     <Tabs.Screen name="mesto-zadatka" options={{ href: null }} />
     <Tabs.Screen name="pregled-nacrta" options={{ href: null }} />
+    <Tabs.Screen name="pregled-zadatka" options={{ href: null }} />
+    <Tabs.Screen name="fotografije-zadatka" options={{ href: null }} />
+    <Tabs.Screen name="pitanja-zadatka" options={{ href: null }} />
+    <Tabs.Screen name="oceni-dogovor" options={{ href: null }} />
     <Tabs.Screen name="potrebe/[id]/kandidati" options={{ href: null }} />
     <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null }} />
     <Tabs.Screen name="prilike/[id]" options={{ href: null }} />

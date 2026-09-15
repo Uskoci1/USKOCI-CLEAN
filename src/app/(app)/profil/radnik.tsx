@@ -9,7 +9,7 @@ import { ulogaSada, useIzvor, useUloga } from '../../../store/uloga';
 import { T } from '../../../ui/Text';
 import { v2 } from '../../../ui/v2/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
-import { WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
+import { WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
 
 type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
@@ -57,6 +57,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const [pending, setPending] = useState<Attempt | null>(null), pendingRef = useRef<Attempt | null>(null);
   const [transportBusy, setTransportBusy] = useState(false), transportRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null), [validation, setValidation] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState<WorkerProfileFocusRequest | null>(null), focusRequestSequence = useRef(0);
   const setLocal = (next: Draft) => { draftGeneration.current++; draftRef.current = next; setDraft(next); };
   useEffect(() => {
     if (!editor.data || transportBusy) return;
@@ -68,7 +69,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     }
     if (confirmed) {
       pendingRef.current = null; setPending(null); setValidation(null);
-      setMessage(attempt.command.zavrsi ? 'Profil je aktivan. Sačuvani podaci su potvrđeni.' : 'Izmene profila su sačuvane i proverene.');
+      setMessage(attempt.command.zavrsi ? 'Profil je aktivan. Sačuvani podaci su potvrđeni.'
+        : attempt.profileId === null ? 'Profil je sačuvan i provereno učitan. Nastavite sa podešavanjem.'
+          : 'Izmene profila su sačuvane i proverene.');
     }
   }, [editor.data, transportBusy]);
   useEffect(() => {
@@ -86,7 +89,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const back = () => { if (!current()) return; if (router.canGoBack()) router.back(); else router.replace('/profil'); };
   const change = (value: WorkerDraft) => {
     if (!enabled || transportRef.current || pendingRef.current || renderedDraft !== draftGeneration.current || !draftRef.current || !current()) return;
-    setLocal({ ...draftRef.current, value }); setMessage(null); setValidation(null);
+    setLocal({ ...draftRef.current, value }); setMessage(null); setValidation(null); setFocusRequest(null);
   };
   const save = async (activate: boolean) => {
     if (!enabled || !current() || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
@@ -123,21 +126,53 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     }
     router.navigate(path);
   };
+  const guide = (target: WorkerProfileFocusRequest['target'], copy: string) => {
+    if (!enabled || !current() || pendingRef.current || transportRef.current) return;
+    setValidation(copy); setMessage(null);
+    setFocusRequest({ target, token: ++focusRequestSequence.current });
+  };
   const visible = foreground && !resumeRequired && !!editor.data && !!draft && !!focus;
-  const status = editor.data?.profile?.stanje ?? null;
+  const profile = editor.data?.profile ?? null;
+  const status = profile?.stanje ?? null;
+  const firstSave = profile === null;
+  const localDirty = !!draft && JSON.stringify(draft.value) !== JSON.stringify(draft.initial);
+  const value = draft?.value;
+  const basicsReady = !!value && value.ime.trim().length >= 2 && value.vestine.length > 0;
+  const locationReady = !!value && value.grad.trim().length >= 2 && /^\d{1,3}$/.test(value.radius)
+    && Number(value.radius) >= 1 && Number(value.radius) <= 200;
+  const capacityReady = !!value && /^[0-9]{1,2}$/.test(value.capacity) && Number(value.capacity) >= 1 && Number(value.capacity) <= 50;
+  const primary = (() => {
+    if (status === 'ACTIVE' || status === 'SUSPENDED') return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
+    if (firstSave) return { label: 'Sačuvaj profil', run: () => { void save(false); } };
+    if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
+    if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
+    if (value?.capacityRevision === null) return { label: 'Učitaj kapacitet profila', run: refresh };
+    if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
+    if (!basicsReady) return { label: 'Dopuni osnovne podatke', run: () => guide((value?.ime.trim().length ?? 0) >= 2 ? 'skill' : 'name',
+      'Pre aktivacije unesite ime od najmanje 2 znaka i bar jednu veštinu.') };
+    if (!capacityReady) return { label: 'Unesi kapacitet tima', run: () => guide('capacity', 'Unesite kapacitet od 1 do 50 ljudi.') };
+    return { label: 'Proveri i aktiviraj profil', run: () => { void save(true); } };
+  })();
   return <WorkerProfileFrame back={back} footer={visible ? <>
     {pending && (editor.uncertain || editor.error) ? <V2Action label="Proverite sačuvani profil" disabled={transportBusy} onPress={refresh} />
-      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : status === 'ACTIVE' || status === 'SUSPENDED' ? 'Sačuvaj izmene' : 'Proveri i aktiviraj profil'}
-        disabled={!enabled} onPress={() => { void save(status !== 'ACTIVE' && status !== 'SUSPENDED'); }}
+      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}
+        disabled={!enabled} onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={{ backgroundColor: v2.color.orange, borderWidth: 0 }} />}
-    {!pending && status !== 'ACTIVE' && status !== 'SUSPENDED' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
+    {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
     {pending && enabled ? <V2Action label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
   </> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} /> : <>
       {message ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.teal }}>{message}</T> : null}
+      <V2Action label="Uredi profil kroz razgovor" disabled={!enabled || !!pending} onPress={() => {
+        if (!enabled || !current() || transportRef.current || pendingRef.current) return;
+        if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
+          setValidation('Sačuvajte unos pre otvaranja razgovora.'); return;
+        }
+        router.push('/profil/razgovor');
+      }} />
       {validation || editor.error ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.danger }}>{validation ?? editor.error}</T> : null}
       {pending && !transportBusy ? <T style={{ ...v2.text.label, color: v2.color.muted }}>Vaš unos je zadržan. Prikaz potvrđuje samo podatke koji su ponovo pročitani sa servera.</T> : null}
-      <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} />
+      <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest} />
     </>}
   </WorkerProfileFrame>;
 }

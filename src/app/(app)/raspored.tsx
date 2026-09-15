@@ -29,12 +29,12 @@ export default function Raspored() {
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <View style={s.header}><Press accessibilityRole="button" accessibilityLabel="Nazad" style={s.icon}
       onPress={() => router.canGoBack() ? router.back() : router.replace('/dogovori')}><ArrowLeft size={22} color={v2.color.ink} /></Press>
-      <View style={{ flex: 1, gap: 3 }}><T variant="meta" tone="muted">Dogovori i dostupnost</T><T variant="heading" accessibilityRole="header">Raspored</T></View>
+      <View style={{ flex: 1, gap: 3 }}><T variant="meta" tone="muted">JA MOGU · radni raspored</T><T variant="heading" accessibilityRole="header">Raspored</T></View>
     </View>
     <ScrollView contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={calendar.loading} onRefresh={refresh} tintColor={v2.color.teal} />}>
       <View style={{ gap: 14 }}>
         <View style={s.row}><View style={{ flex: 1, minWidth: 160, gap: 4 }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T>
-          <T variant="meta" tone="muted">Tvoji Dogovori, u obe namere</T></View>
+          <T variant="meta" tone="muted">Potvrđeni termini kada radiš kao Uskočer</T></View>
           <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" style={[s.icon, { borderWidth: 1, borderColor: v2.color.line, borderRadius: 22 }]}
             onPress={() => setSelected(shiftDate(selected, -7))}><ArrowLeft size={20} color={v2.color.ink} /></Press>
           <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" style={[s.icon, { borderWidth: 1, borderColor: v2.color.line, borderRadius: 22 }]}
@@ -55,7 +55,9 @@ export default function Raspored() {
       {worker ? <Press accessibilityRole="button" accessibilityLabel="Uredi dostupnost za rad" onPress={() => router.navigate('/profil/dostupnost')} style={[s.note, s.row]}>
         <Clock size={22} color={v2.color.teal} /><View style={{ flex: 1, gap: 4 }}><T variant="bodyStrong">Moja dostupnost za rad</T>
           <T variant="meta" tone="muted">Redovna nedelja i posebni datumi</T></View><CaretRight size={20} color={v2.color.ink} />
-      </Press> : null}
+      </Press> : <View style={s.note}><T variant="bodyStrong">Ovo je raspored za JA MOGU</T>
+        <T variant="meta" tone="muted">Prikazuje samo potvrđene termine u kojima radiš kao Uskočer. Dogovore koje si napravio kao naručilac vidiš u Dogovorima.</T>
+      </View>}
       <View style={{ gap: 16 }}><View style={{ gap: 4 }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
         <T variant="meta" tone="muted">Prikaz vremena: {Intl.DateTimeFormat().resolvedOptions().timeZone}</T></View>
         {calendar.loading ? <ActivityIndicator accessibilityLabel="Učitavanje rasporeda" color={v2.color.teal} /> : null}
@@ -81,8 +83,8 @@ export default function Raspored() {
           </View>;
         })}
       </View>
-      <T variant="meta" tone="muted">Samo tačan prihvaćeni interval zauzima termin. Fleksibilni termini i datumi bez pune satnice prikazuju se u Dogovorima.</T>
-      {agreements.error ? <T variant="meta" tone="muted">Detalji Dogovora nisu učitani. Tačni termini iz rasporeda ostaju dostupni.</T> : null}
+      <T variant="meta" tone="muted">Samo tačan prihvaćeni interval u kome radiš kao Uskočer zauzima termin. Fleksibilni termini i datumi bez pune satnice prikazuju se u Dogovorima.</T>
+      {agreements.error ? <T variant="meta" tone="muted">Detalji Dogovora nisu učitani. Tačni termini iz radnog rasporeda ostaju dostupni.</T> : null}
       <Button label="Otvori sve Dogovore" kind="secondary" onPress={() => router.navigate('/dogovori')} full />
     </ScrollView>
   </SafeAreaView>;

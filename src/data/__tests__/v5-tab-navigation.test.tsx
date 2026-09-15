@@ -1,0 +1,22 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+let mockIntent = 'narucilac';
+jest.mock('expo-router', () => { const React = require('react');
+  const Tabs = (props: object) => React.createElement('Tabs', props);
+  Tabs.Screen = (props: object) => React.createElement('Screen', props); return { Tabs };
+});
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ bottom: 24 }) }));
+jest.mock('phosphor-react-native', () => ({ Package: 'Icon', Handshake: 'Icon', PaperPlaneTilt: 'Icon' }));
+jest.mock('../../ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: 'Mark' }));
+jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent }));
+import Tabs from '../../app/(app)/_layout';
+let tree: ReactTestRenderer;
+afterEach(async () => { await act(async () => tree?.unmount()); });
+it.each([['narucilac', 'potrebe'], ['uskocer', 'moje-prijave']])('retains three zones with a shared central map for %s', async (intent, left) => {
+  mockIntent = intent; await act(async () => { tree = create(<Tabs />); });
+  const screens = tree.root.findAllByType('Screen' as React.ElementType);
+  expect(screens.filter(screen => screen.props.options.href !== null).map(screen => screen.props.name)).toEqual([left, 'mapa', 'dogovori']);
+  expect(screens.find(screen => screen.props.name === 'mapa')?.props.options.title).toBe('Mapa');
+  expect(screens.find(screen => screen.props.name === 'nova')?.props.options.href).toBeNull();
+  expect(screens.find(screen => screen.props.name === 'prilike')?.props.options.href).toBeNull();
+});

@@ -14,9 +14,12 @@ import { useIzvor, useUloga, ulogaSada } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
+import { useAgreementPhotos } from '../../hooks/useAgreementPhotos';
+import { agreementPhotoClientService } from '../../data/agreementPhotoClientService';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementChat } from '../../ui/AgreementChat';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
+import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, type AgreementProblemSnapshot } from '../../data/agreementClientService';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -120,16 +123,22 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     });
     return () => { current = false; };
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
-  const messages = useFocusedResource(useCallback(() => izvor.poruke(id, accountId), [izvor, id, accountId]));
+  const messages = useFocusedResource(useCallback(async () => {
+    const rows = await izvor.poruke(id, accountId);
+    if (!ownsAccount()) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
+    return agreementPhotoClientService.messages(id, rows, { accountId, accountRevision });
+  }, [izvor, id, accountId, accountRevision, ownsAccount]));
   const dogovor = workspace.data;
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
   const writable = enabled && dogovor?.chatDostupan === true;
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
+  const photos = useAgreementPhotos(accountId, id, dogovor?.verzija ?? null, writable, outbox);
   const osvezi = workspace.refresh;
   useEffect(() => {
     if (messages.data && !messages.error) void outbox.reconcile(messages.data
       .filter(message => !!message.clientMessageId && !!message.posiljalacAccountId)
-      .map(message => ({ clientMessageId: message.clientMessageId!, senderAccountId: message.posiljalacAccountId!, messageId: message.id, body: message.telo })));
+      .map(message => ({ clientMessageId: message.clientMessageId!, senderAccountId: message.posiljalacAccountId!, messageId: message.id, body: message.telo,
+        ...(message.fotografije?.length ? { photos: { agreementVersion: message.dogovorVerzija!, assetIds: message.fotografije.map(photo => photo.assetId) } } : {}) })));
   }, [messages.data, messages.error, outbox, outboxState.phase]);
   const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
     .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
@@ -189,10 +198,19 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <AgreementTabs tab={tab} onChange={setTab} />
       </View>
       {tab === 'poruke' ? <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
-        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} /> : <>
+        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}
+        support={{ canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } }} /> : <>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
           <AgreementHero agreement={dogovor} />
           <AgreementPeople agreement={dogovor} />
+          {me && enabled ? <GroupConversationEntry agreementId={id} /> : null}
+          {me ? <V2Action label="Izmene i otkazivanje Dogovora" kind="quiet" disabled={!enabled}
+            onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} /> : null}
+          {me && active && dogovor.rezim !== 'DALJINSKI' ? <V2Action label="Dobrovoljna lokacija Uskočera" kind="quiet" disabled={!enabled}
+            onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
+          {other && me ? <V2Action label="Bezbednost i privatna prijava" kind="quiet" disabled={!enabled}
+            onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
+              router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
           <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Vaš broj je podeljen' : 'Podelite svoj broj kada vam odgovara'}>
             <T style={metaStyle}>Deljenje je odvojeno u oba smera. Kada podelite svoj broj, druga strana ne deli automatski svoj.</T>
             <T style={bodyStyle}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>
@@ -251,6 +269,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         <View style={{ padding: 18, gap: 6, borderTopWidth: 1, borderColor: v2.color.line, backgroundColor: v2.color.surface }}>
           <V2Action label="Otvori poruke" kind="primary" onPress={() => setTab('poruke')} style={{ backgroundColor: v2.color.orange, borderWidth: 0, minHeight: 50, borderRadius: 16 }} />
           {canComplete ? <V2Action label={workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak'} kind="quiet" disabled={!enabled} onPress={complete} /> : null}
+          {dogovor.stanje === 'COMPLETED' && me ? <V2Action label="Oceni saradnju" kind="quiet" disabled={!enabled}
+            onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); }} /> : null}
         </View>
       </>}
     </KeyboardAvoidingView>

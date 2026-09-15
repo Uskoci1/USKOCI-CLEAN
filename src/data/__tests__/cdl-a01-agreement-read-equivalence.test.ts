@@ -147,7 +147,7 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
   it('mojiDogovori remains fail-loud on backend error', async () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'LIST_DENIED' } });
 
-    await expect(agreementClientService.mojiDogovori()).rejects.toThrow('LIST_DENIED');
+    await expect(agreementClientService.mojiDogovori()).rejects.toThrow('AGREEMENT_LIST_FAILED');
     expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements']]);
   });
 
@@ -171,7 +171,7 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
   it('dogovor remains fail-loud on backend error', async () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'WORKSPACE_DENIED' } });
 
-    await expect(agreementClientService.dogovor('agr-1')).rejects.toThrow('WORKSPACE_DENIED');
+    await expect(agreementClientService.dogovor('agr-1')).rejects.toThrow('AGREEMENT_READ_FAILED');
   });
 
   it('AUTH_REQUIRED is preserved and prevents RPC execution', async () => {

@@ -1,9 +1,11 @@
-﻿import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import type { Uloga } from '../contracts/projections';
 import { izvor as defaultIzvor } from '../data';
 import type { Izvor } from '../data/ports';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createAccountIntentPreference } from './accountIntentPreference';
 
-let trenutna: Uloga = 'narucilac';
+const preference = createAccountIntentPreference(AsyncStorage);
 let trenutniIzvor: Izvor = defaultIzvor;
 const pretplatnici = new Set<() => void>();
 
@@ -11,14 +13,17 @@ function obavesti() {
   pretplatnici.forEach((f) => f());
 }
 
-export function postaviUlogu(u: Uloga) {
-  if (trenutna === u) return;
-  trenutna = u;
-  obavesti();
+preference.subscribe(obavesti);
+
+export function postaviUlogu(u: Uloga) { preference.select(u); }
+
+/** Session runtime binds identity; UI reset must not overwrite the saved choice. */
+export function vezujUloguZaNalog(accountId: string | null): Promise<void> {
+  return preference.bind(accountId);
 }
 
 export function promeniProstor() {
-  postaviUlogu(trenutna === 'narucilac' ? 'uskocer' : 'narucilac');
+  postaviUlogu(preference.current() === 'narucilac' ? 'uskocer' : 'narucilac');
 }
 
 export function postaviIzvor(i: Izvor) {
@@ -27,9 +32,9 @@ export function postaviIzvor(i: Izvor) {
   obavesti();
 }
 
-/** Za slojeve van Reacta ?" izvor podataka je ?ita ovako. */
+/** Trenutna namera za slojeve van Reacta. */
 export function ulogaSada(): Uloga {
-  return trenutna;
+  return preference.current();
 }
 
 export function izvorSada(): Izvor {
@@ -60,5 +65,5 @@ export function useIzvor(): Izvor {
 
 /** Samo za testove. */
 export function resetujUlogu() {
-  trenutna = 'narucilac';
+  void preference.bind(null);
 }

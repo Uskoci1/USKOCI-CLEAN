@@ -14,30 +14,50 @@ function assertCurrentAccount(expected: AuthAccountScope) {
   }
 }
 
+type UserAuthOperation = 'SIGN_IN' | 'SIGN_UP' | 'PHONE_SEND' | 'PHONE_VERIFY';
+function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
+  const value = error && typeof error === 'object' ? error as { status?: unknown; code?: unknown } : {};
+  const status = typeof value.status === 'number' ? value.status : null;
+  const code = typeof value.code === 'string' ? value.code.toLowerCase() : '';
+  if (status === 429 || code.includes('rate') || code.includes('over_request')) {
+    return new Error('Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.');
+  }
+  if ((status !== null && status >= 500) || code.includes('unexpected_failure') || code.includes('service_unavailable')) {
+    return new Error('Prijava trenutno nije dostupna. Pokušajte ponovo.');
+  }
+  if (operation === 'SIGN_IN') return new Error('Prijava nije uspela. Proverite email i lozinku i pokušajte ponovo.');
+  if (operation === 'SIGN_UP') return new Error('Registracija trenutno nije uspela. Proverite podatke i pokušajte ponovo.');
+  if (operation === 'PHONE_SEND') return new Error('Kod trenutno nije moguće poslati. Proverite broj i pokušajte ponovo.');
+  return new Error('Kod nije potvrđen. Proverite kod i pokušajte ponovo.');
+}
+
 /** The existing Auth transport boundary; no provider, policy or session authority is added. */
 export const authClientService: AuthClientPort = {
   async signInWithPassword(input) {
     const { error } = await supabaseKlijent().auth.signInWithPassword(input);
-    if (error) throw error;
+    if (error) throw safeAuthFailure(error, 'SIGN_IN');
   },
 
   async signUp({ email, password, firstName, lastName, city }) {
     const { data, error } = await supabaseKlijent().auth.signUp({
       email, password,
-      options: { data: { first_name: firstName, last_name: lastName, city } },
+      // The existing signup trigger reads full_name. Keep the split metadata
+      // as well; neither credentials nor historical profile rows are rewritten.
+      options: { data: { first_name: firstName, last_name: lastName,
+        full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), city } },
     });
-    if (error) throw error;
+    if (error) throw safeAuthFailure(error, 'SIGN_UP');
     return { hasSession: !!data.session };
   },
 
   async sendPhoneOtp(input) {
     const { error } = await supabaseKlijent().auth.signInWithOtp(input);
-    if (error) throw error;
+    if (error) throw safeAuthFailure(error, 'PHONE_SEND');
   },
 
   async verifyPhoneOtp(input) {
     const { error } = await supabaseKlijent().auth.verifyOtp({ ...input, type: 'sms' });
-    if (error) throw error;
+    if (error) throw safeAuthFailure(error, 'PHONE_VERIFY');
   },
 
   async requestPasswordRecovery(email) {

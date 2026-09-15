@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Switch, View } from 'react-native';
 import { CaretDown, CaretUp, PencilSimple, Plus, Trash } from 'phosphor-react-native';
-import type { AvailabilityRule, AvailabilityWindow, WorkerAvailability, WorkerAvailabilityInput } from '../../contracts/workerAvailability';
+import type { AvailabilityRule, AvailabilityWindow, WorkerAvailabilityInput } from '../../contracts/workerAvailability';
 import { normalizeWorkerAvailability } from '../../lib/workerAvailability';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { v2 } from '../v2/tokens';
@@ -105,8 +105,8 @@ function WindowEditor({ window, timezone, close, accept }: {
   </EditorSheet>;
 }
 
-export function AvailabilityForm({ availability, busy, uncertain, onSave }: {
-  availability: WorkerAvailability; busy: boolean; uncertain: boolean; onSave: (value: WorkerAvailabilityInput) => void;
+export function AvailabilityForm({ availability, busy, uncertain, onSave, candidateMode = false }: {
+  availability: WorkerAvailabilityInput; busy: boolean; uncertain: boolean; onSave: (value: WorkerAvailabilityInput) => void; candidateMode?: boolean;
 }) {
   const [draft, setDraft] = useState<WorkerAvailabilityInput>(() => ({ timezone: availability.timezone,
     availableNow: availability.availableNow, rules: availability.rules, windows: availability.windows }));
@@ -147,7 +147,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave }: {
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
       <View style={{ gap: 8 }}><T variant="label" style={{ color: v2.color.teal, fontWeight: '700', letterSpacing: 1 }}>RADNI PROFIL</T>
         <T variant="title" accessibilityRole="header">Tvoj ritam rada.</T>
-        <T tone="muted">Odredi kada možeš da uskočiš. Potvrđeni Dogovori ostaju obaveze.</T>
+        <T tone="muted">{candidateMode ? 'Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.' : 'Odredi kada možeš da uskočiš. Potvrđeni Dogovori ostaju obaveze.'}</T>
       </View>
       <View style={s.note}>
         <Toggle label="Dostupan sada" value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
@@ -213,7 +213,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave }: {
       {error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}
       {dirty ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Imate nesačuvane izmene.</T> : null}
       {uncertain ? <T variant="meta" tone="muted">Prvo učitajte sačuvano stanje. Ishod izmene još nije potvrđen.</T> : null}
-      <Button label={busy ? 'Čuvamo dostupnost…' : 'Sačuvaj dostupnost'} disabled={blocked || !dirty || !!editing || !!windowEditor} onPress={save} full />
+      <Button label={busy ? 'Čuvamo unos…' : candidateMode ? 'Primeni na pregled profila' : 'Sačuvaj dostupnost'} disabled={blocked || !dirty || !!editing || !!windowEditor} onPress={save} full />
       {dirty ? <Button label="Odustani od izmena" kind="quiet" disabled={blocked} onPress={() => {
         if (blocked) return;
         setDraft({ timezone: availability.timezone, availableNow: availability.availableNow, rules: availability.rules, windows: availability.windows }); setDirty(false); setError(null);

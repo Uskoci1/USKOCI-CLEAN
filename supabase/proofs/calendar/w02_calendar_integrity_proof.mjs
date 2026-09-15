@@ -90,6 +90,7 @@ function connectedCalendar(client,userId){
     './workerCalendarClientService':'src/data/workerCalendarClientService.ts',
     './agreementClientService':'src/data/agreementClientService.ts',
     './calendarErrors':'src/data/calendarErrors.ts',
+    './legacyRpcFailure':'src/data/legacyRpcFailure.ts',
     './needDetailPresentation':'src/data/needDetailPresentation.ts',
     '../lib/location':'src/lib/location.ts',
     './market':'src/lib/market.ts',

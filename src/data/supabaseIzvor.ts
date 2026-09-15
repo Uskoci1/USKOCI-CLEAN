@@ -1,10 +1,13 @@
+import { workerCapacityRevision, workerCapacityValue } from '../contracts/workerCapacity';
+import { legacyRpcFailure } from './legacyRpcFailure';
 import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
-import { readOwnedResult, record, sameId, uuid } from './serverReceipt';
+import { positiveInteger, readOwnedResult, record, sameId, uuid } from './serverReceipt';
 import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
 import { readPublicNeedDetail } from './needClientService';
 import { needScheduleText } from './needDetailPresentation';
+import { readNeedUrgencies } from './needUrgencyClientService';
 import { supabaseKlijent } from './supabaseClient';
 import type {
   JavniProfilProjekcija,
@@ -19,12 +22,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 function handleRpcError<T>(error: unknown, defaultCode: string, defaultMessage: string): Ishod<T> {
   const calendar = calendarFailure(error);
   if (calendar) return calendar;
-  const value = record(error);
-  return {
-    ok: false,
-    kod: typeof value?.code === 'string' ? value.code : defaultCode,
-    poruka: typeof value?.message === 'string' ? value.message : defaultMessage,
-  };
+  return legacyRpcFailure(error, defaultCode, defaultMessage);
 }
 
 const rsd = (iznos: number): Novac => ({
@@ -58,6 +56,12 @@ function publicTaskContext(raw: Record<string, any>) {
   return { opis: raw.description, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
     taskTimezone: raw.task_timezone ?? undefined, vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
     podrucjeTekst: remote ? 'Na daljinu' : fLoc(raw.approximate_area, raw.approximate_city), priblizno };
+}
+
+function validPublicInstant(value: unknown): value is string {
+  return typeof value === 'string'
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+    && Number.isFinite(Date.parse(value));
 }
 
 function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): string | null {
@@ -127,9 +131,9 @@ export const supabaseIzvor: SupabaseIzvor = {
   async otvorenePrilike() {
     const { data, error } = await supabase.from('needs')
       .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
+        id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id,
+        covered_slots, mode, requester_price_rsd, requester_profile_id, remaining_search_closed_at,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
         required_licenses, minimum_experience_years, verified_identity_required,
         need_geography(public_topology), need_requirement_details(critical_conditions)
@@ -140,12 +144,16 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (error) throw error;
     if (!data) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
 
-    const profiles = await safePublicProfiles(data.map((r: any) => r.requester_profile_id));
+    // Missing/malformed closure state is not permission to advertise a Task.
+    // Only an explicit null means that remaining search is still open.
+    const openData = data.filter((r: any) => r?.remaining_search_closed_at === null);
+    const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id)), readNeedUrgencies(openData)]);
 
-    return data.map((r: any) => {
+    return openData.map((r: any) => {
       const narucilac = profiles.get(r.requester_profile_id) ?? null;
       return {
         id: r.id,
+        urgency: urgency.get(r.id),
         naslov: r.title,
         statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
         ...publicTaskContext(r),
@@ -163,9 +171,9 @@ export const supabaseIzvor: SupabaseIzvor = {
   async prilika(id: string) {
     const { data, error } = await supabase.from('needs')
       .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
+        id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline,
+        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline, remaining_search_closed_at,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
         required_licenses, minimum_experience_years, verified_identity_required,
         need_geography(public_topology), need_requirement_details(critical_conditions)
@@ -181,18 +189,20 @@ export const supabaseIzvor: SupabaseIzvor = {
       throw new Error('TASK_CAPACITY_INVALID');
     }
     const rok = data.response_deadline;
-    if (rok !== null && (typeof rok !== 'string'
-      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(rok)
-      || !Number.isFinite(Date.parse(rok)))) throw new Error('TASK_DEADLINE_INVALID');
+    if (rok !== null && !validPublicInstant(rok)) throw new Error('TASK_DEADLINE_INVALID');
+    const remainingClosedAt = data.remaining_search_closed_at;
+    if (remainingClosedAt !== null && !validPublicInstant(remainingClosedAt)) throw new Error('TASK_REMAINING_SEARCH_STATE_INVALID');
+    const remainingClosed = remainingClosedAt !== null;
 
-    const profiles = await safePublicProfiles([data.requester_profile_id]);
+    const [profiles, urgency] = await Promise.all([safePublicProfiles([data.requester_profile_id]), readNeedUrgencies([data])]);
     const narucilac = profiles.get(data.requester_profile_id) ?? null;
 
     return {
       id: data.id,
+      urgency: urgency.get(data.id),
       naslov: data.title,
-      statusTekst: ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
-      primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
+      statusTekst: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
+      primaNovePrijave: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status)
         && data.required_slots > data.covered_slots && (rok === null || Date.parse(rok) > Date.now()),
       rokZaPrijaveIso: rok,
       ...publicTaskContext(data),
@@ -218,7 +228,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
     }
     const { data, error } = await supabase.from('agreement_messages')
-      .select(`id, sender_account_id, client_message_id, body, created_at`)
+      .select(`id, agreement_version, sender_account_id, client_message_id, body, created_at`)
       .eq('agreement_id', dogovorId)
       .order('created_at', { ascending: true })
       .order('id', { ascending: true });
@@ -228,7 +238,7 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (currentError || current?.user?.id !== accountId) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
 
     return data.map((r: any) => {
-      if (!uuid(r?.id) || !uuid(r?.sender_account_id) || typeof r.body !== 'string'
+      if (!uuid(r?.id) || !positiveInteger(r?.agreement_version) || !uuid(r?.sender_account_id) || typeof r.body !== 'string'
         || typeof r.created_at !== 'string' || !Number.isFinite(Date.parse(r.created_at))
         || !(r.client_message_id === null || (typeof r.client_message_id === 'string'
           && /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/.test(r.client_message_id) && !/\s/.test(r.client_message_id)))) {
@@ -236,6 +246,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       }
       return {
         id: r.id,
+        dogovorVerzija: r.agreement_version,
         clientMessageId: r.client_message_id,
         posiljalacAccountId: r.sender_account_id,
         posiljalacIme: r.sender_account_id === accountId ? 'Ja' : 'Sagovornik',
@@ -267,20 +278,19 @@ export const supabaseIzvor: SupabaseIzvor = {
     const auth = await readOwnedResult({ ...options, request: () => supabase.auth.getUser(),
       decode: raw => sameId(record(record(raw)?.user)?.id, account.accountId) ? true : null });
     if (!auth.ok) throw new Error('WORKER_PROFILE_READ_FAILED');
-    const result = await readOwnedResult({ ...options, request: () => supabase.from('app_profiles')
-      .select('id,account_id,kind,display_name,city,bio,skills,tools,vehicles,profile_status,available_now,radius_km')
-      .eq('account_id', account.accountId).eq('kind', 'WORKER').maybeSingle(),
+    const result = await readOwnedResult({ ...options, request: () => supabase.rpc('rpc_get_worker_profile_for_edit', {}),
       decode: raw => {
         if (raw === null) return { profile: null };
         const data = record(raw);
-        if (!data || !uuid(data.id) || !sameId(data.account_id, account.accountId) || data.kind !== 'WORKER' ||
+        if (!data || !uuid(data.id) || !workerCapacityValue(data.team_capacity) || !workerCapacityRevision(data.capacity_revision) || !sameId(data.account_id, account.accountId) || data.kind !== 'WORKER' ||
           !['DRAFT', 'ACTIVE', 'SUSPENDED'].includes(String(data.profile_status)) || typeof data.available_now !== 'boolean' ||
           typeof data.radius_km !== 'number' || !Number.isInteger(data.radius_km) || data.radius_km < 1 || data.radius_km > 200 ||
           !['display_name', 'city', 'bio'].every(key => data[key] === null || typeof data[key] === 'string') ||
           !['skills', 'tools', 'vehicles'].every(key => Array.isArray(data[key]) && data[key].every((item: unknown) => typeof item === 'string'))) return null;
         return { profile: { id: data.id, ime: data.display_name as string ?? '', grad: data.city as string ?? '',
           biografija: data.bio as string ?? '', vestine: data.skills as string[], alati: data.tools as string[], vozila: data.vehicles as string[],
-          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: data.available_now, radijusKm: data.radius_km } };
+          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: data.available_now, radijusKm: data.radius_km,
+          kapacitetTima: data.team_capacity as number, capacityRevision: data.capacity_revision as string } };
       },
     });
     if (!result.ok) throw new Error('WORKER_PROFILE_READ_FAILED');

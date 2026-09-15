@@ -1,8 +1,17 @@
+import { historicalSource108Fixture } from '../historical_source108_fixture.mjs';
 import assert from 'node:assert/strict';
 import {ownedIntakeForward,pushTransportForward,dispatchLockForward} from '../../../scripts/ci/owned-intake-source.mjs';
 import { test } from 'node:test';
-import { readP2ExportPredecessorPlan } from './p2_data_export_predecessor.mjs';
+import { readP2ExportPredecessorPlan as readCurrentPlan } from './p2_data_export_predecessor.mjs';
 import { deliveryBoundary, deliveryForward, retentionExecutionForward } from './p2_export_delivery_source_boundary.mjs';
+
+// This historical planner intentionally remains closed to the larger integration source.
+const readP2ExportPredecessorPlan = (root) => root ? readCurrentPlan(root) : historicalSource108Fixture(readCurrentPlan);
+test('expanded current source is rejected by the unchanged SQL108 boundary', () => {
+  const current = readCurrentPlan();
+  assert.ok(current.source_migration_count > 108);
+  assert.throws(() => deliveryBoundary(current), /W03_EXACT_SOURCE108_REQUIRED/);
+});
 
 test('full source108 is admitted before original P2 assertions at source103 and delivery104', () => {
   const plan = readP2ExportPredecessorPlan(), boundary = deliveryBoundary(plan);

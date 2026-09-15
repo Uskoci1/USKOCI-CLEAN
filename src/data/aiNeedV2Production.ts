@@ -1,12 +1,13 @@
 import type {
   AiNeedConversationAbandoned, AiNeedConversationOpened, AiNeedDraftSaved,
   AiNeedEditConfirmed, AiNeedEditOpened, AiNeedMessage, AiNeedSafety,
-  AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
+  AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedTurnRecovery, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
 } from '../contracts/aiNeedV2';
 import { NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { sesijaSada } from '../store/sesija';
+import { requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
 import { capabilityTerms } from '../lib/capabilityTerms';
 import { countryCode } from '../lib/market';
 import { locationPayloadFits, normalizeNeedLocation, normalizeTaskGeography } from '../lib/location';
@@ -35,6 +36,7 @@ const NEED_EDIT_COPY: Record<string, string> = {
 
 const ERRORS: Readonly<Record<string, string>> = {
   ...NEED_EDIT_COPY,
+  IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu uklonite taj uslov da biste nastavili običnim zadatkom.',
   AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
   AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvorite razgovor.',
   CONVERSATION_NOT_FOUND: 'Razgovor nije pronađen.',
@@ -44,7 +46,9 @@ const ERRORS: Readonly<Record<string, string>> = {
   REQUESTER_PROFILE_NOT_READY: 'Profil za MENI TREBA nije spreman.',
   NEED_REVISION_STALE: 'Zadatak je u međuvremenu promenjen. Ponovo proverite podatke.',
   CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvorite razgovor.',
-  AI_RATE_LIMITED: 'Sačekajte malo pre novog pokušaja.',
+  AI_RATE_LIMITED: 'Zahtevi su trenutno ograničeni. Proverite ishod pre ponovnog pokušaja.',
+  AI_ACCESS_DENIED: 'Pristup razgovoru nije odobren. Ponovo otvorite razgovor.',
+  AI_SERVICE_UNAVAILABLE: 'Obrada razgovora trenutno nije dostupna. Proverite ishod pre ponavljanja.',
   AI_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj poruci. Proverite prethodni rezultat.',
   CONVERSATION_NOT_ABANDONABLE: 'Ovaj razgovor više ne može da se napusti. Proverite njegovo stanje.',
   CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT: 'Ovaj zahtev već pripada drugom pregledu. Proverite sačuvano stanje.',
@@ -108,11 +112,40 @@ function turnStatus(raw: unknown, conversationId: string, clientRequestId: strin
   if (r.state === 'ABSENT') return r.turnId === null && r.receipt === null
     ? { ...ids, state: r.state, turnId: null, retryAllowed: r.retryAllowed, receipt: null } : null;
   if (!uuid(r.turnId)) return null;
-  if (r.state === 'PROCESSING' || r.state === 'FAILED') return r.receipt === null
+  if (r.state === 'PROCESSING' || r.state === 'FAILED') return r.receipt === null && (r.state !== 'PROCESSING' || r.retryAllowed === false)
     ? { ...ids, state: r.state, turnId: r.turnId, retryAllowed: r.retryAllowed, receipt: null } : null;
   const receipt = turnReceipt(r.receipt);
   return r.state === 'SUCCEEDED' && r.retryAllowed === false && receipt
     ? { ...ids, state: r.state, turnId: r.turnId, retryAllowed: false, receipt } : null;
+}
+
+function turnRecovery(raw: unknown, accountId: string, conversationId: string, clientRequestId: string): AiNeedTurnRecovery | null {
+  const r = exact(raw, ['accountId', 'conversationId', 'clientRequestId', 'conversationStatus', 'turn',
+    'providerDispatched', 'cancelled', 'canCancel', 'authoritative']);
+  if (!r || !sameId(r.accountId, accountId) || !sameId(r.conversationId, conversationId)
+    || !sameId(r.clientRequestId, clientRequestId) || !STATUS.includes(r.conversationStatus as typeof STATUS[number])
+    || typeof r.providerDispatched !== 'boolean' || typeof r.cancelled !== 'boolean' || typeof r.canCancel !== 'boolean'
+    || r.authoritative !== true) return null;
+  const turn = turnStatus(r.turn, conversationId, clientRequestId);
+  if (!turn || (r.providerDispatched && turn.retryAllowed)
+    || (r.cancelled && (turn.state !== 'FAILED' || turn.retryAllowed || r.canCancel))
+    || (r.canCancel && (r.conversationStatus !== 'OPEN' || turn.state === 'SUCCEEDED'
+      || (r.providerDispatched && turn.state !== 'PROCESSING')))
+    || (turn.state === 'ABSENT' && (r.providerDispatched || r.cancelled))) return null;
+  return { accountId: r.accountId, conversationId: r.conversationId, clientRequestId: r.clientRequestId,
+    conversationStatus: r.conversationStatus as AiNeedTurnRecovery['conversationStatus'], turn,
+    providerDispatched: r.providerDispatched, cancelled: r.cancelled, canCancel: r.canCancel, authoritative: true };
+}
+
+/** HTTP status is diagnostic, never a write receipt or permission to retry.
+ * Do not read provider/Auth response bodies to obtain user-facing copy. */
+function transportErrorName(error: unknown): string | null {
+  const status = record(record(error)?.context)?.status;
+  if (status === 401) return 'AUTH_REQUIRED';
+  if (status === 403) return 'AI_ACCESS_DENIED';
+  if (status === 429) return 'AI_RATE_LIMITED';
+  if (status === 502 || status === 503 || status === 504) return 'AI_SERVICE_UNAVAILABLE';
+  return null;
 }
 
 /** Only the documented HTTP409 terminal envelope can turn an SDK error into a
@@ -178,7 +211,7 @@ function mapFact(raw: unknown): AiNeedV2Fact | null {
   if (!r || !uuid(r.id) || typeof r.key !== 'string' || !isNeedFactV2Key(r.key) || r.schemaVersion !== NEED_FACT_SCHEMA_V2
     || !boundedText(r.displayValue, 1000) || typeof r.material !== 'boolean'
     || !['NEEDS_CONFIRMATION', 'INFERRED', 'CONFIRMED', 'UNKNOWN'].some(item => item === r.status)
-    || !['EXPLICIT_USER_ANSWER', 'CONFIRMED_PROFILE', 'AI_INFERENCE', 'SYSTEM'].some(item => item === r.source)
+    || !['EXPLICIT_USER_ANSWER', 'CONFIRMED_PROFILE', 'AI_INFERENCE', 'SYSTEM', 'SYSTEM_DERIVED'].some(item => item === r.source)
     || !(r.evidence === null || boundedText(r.evidence, 4000))) return null;
   const definition = NEED_FACT_V2_DEFINITIONS[r.key];
   if (r.valueType !== definition.valueType || r.privacyClass !== definition.privacyClass
@@ -280,7 +313,25 @@ export const aiNeedV2Production = {
       errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE', decode: raw => turnStatus(raw, conversationId, clientRequestId) });
   },
 
-  async sendMessage(conversationId: string, body: string, clientRequestId: string): Promise<Ishod<AiNeedTurnStatus>> {
+  async recoverTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnRecovery>> {
+    const account = scope();
+    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
+    return readReceipt({ rpc: 'rpc_ai_recover_need_turn_v2',
+      args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
+      errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE',
+      decode: raw => turnRecovery(raw, account.accountId, conversationId, clientRequestId) });
+  },
+
+  async cancelTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnRecovery>> {
+    const account = scope();
+    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
+    return readReceipt({ write: true, rpc: 'rpc_ai_cancel_need_turn_v2',
+      args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
+      errors: ERRORS, fallback: 'AI_TURN_CANCEL_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
+      decode: raw => turnRecovery(raw, account.accountId, conversationId, clientRequestId) });
+  },
+
+  async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions): Promise<Ishod<AiNeedTurnStatus>> {
     if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     const text = typeof body === 'string' ? body.trim() : '';
     if (!text) return fail('MESSAGE_REQUIRED', 'Unesite poruku.');
@@ -289,12 +340,21 @@ export const aiNeedV2Production = {
     return readOwnedResult({ account, write: true, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
       request: async () => {
         if (!account) return scopeChanged();
+        if (stream) {
+          const session = sesijaSada().session;
+          const url = process.env.EXPO_PUBLIC_SUPABASE_URL, anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          if (!session?.access_token || !url || !anonKey) return scopeChanged();
+          return requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
+            conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account) });
+        }
         const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', { body: { conversationId, text, clientRequestId } });
         if (!scopeCurrent(account)) return scopeChanged();
         if (Date.now() >= deadline) return invalidResponse();
         if (response.error) {
           const envelope = await failedTurnEnvelope(response.error, conversationId, clientRequestId, deadline, account);
-          return envelope ? { data: envelope, error: null } : response;
+          if (envelope) return { data: envelope, error: null };
+          const name = transportErrorName(response.error);
+          return name ? { data: null, error: { message: name } } : response;
         }
         const envelope = turnStatus(response.data, conversationId, clientRequestId);
         return envelope && (envelope.state === 'SUCCEEDED' || envelope.state === 'PROCESSING') ? { data: envelope, error: null } : invalidResponse();

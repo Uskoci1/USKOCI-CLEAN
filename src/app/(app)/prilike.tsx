@@ -4,17 +4,17 @@ import { router, useFocusEffect } from 'expo-router';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, type MarketplaceItem } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { izvorSada, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { izvorSada, postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 
-export default function Prilike() {
+export default function Prilike({ initialMode = 'list' }: { initialMode?: 'map' | 'list' } = {}) {
   const { user, accountRevision } = useSesija(), intent = useUloga();
-  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}:${intent}`} />;
+  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}:${intent}`} initialMode={initialMode} />;
 }
-function OwnedCollection() {
+function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
   const source = useIzvor(), intent = useUloga(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
-  const [view, setView] = useState(initialMarketplaceView);
+  const [view, setView] = useState(() => ({ ...initialMarketplaceView(), mode: initialMode }));
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
     return () => { if (focus.current === owner) focus.current = null; };
@@ -39,6 +39,12 @@ function OwnedCollection() {
   return <MarketplacePresentation owned={false} items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
     scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
-    onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}
-    onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/nova')) : undefined} />;
+    onSwitch={() => navigate(() => {
+      if (intent === 'narucilac') router.navigate('/potrebe');
+      else { postaviUlogu('narucilac'); router.replace('/potrebe'); }
+    })} onProfile={() => navigate(() => router.navigate('/profil'))}
+    onNew={() => navigate(() => {
+      if (intent === 'narucilac') router.navigate('/nova');
+      else { postaviUlogu('narucilac'); router.replace('/nova'); }
+    })} />;
 }

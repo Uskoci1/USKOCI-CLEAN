@@ -1,0 +1,44 @@
+import React from 'react';
+import {act,create,type ReactTestRenderer} from 'react-test-renderer';
+const mockReview=jest.fn(),mockStart=jest.fn(),mockRead=jest.fn(),mockLoad=jest.fn(),mockSave=jest.fn(),mockClear=jest.fn(),mockLogout=jest.fn(),mockPush=jest.fn();
+const A='11111111-1111-4111-8111-111111111111',R='22222222-2222-4222-8222-222222222222',mockKey='33333333-3333-4333-8333-333333333333';
+let mockOwner={user:{id:A},accountRevision:1};
+jest.mock('../../../store/sesija',()=>({sesijaSada:()=>mockOwner,useSesija:()=>mockOwner}));
+jest.mock('expo-router',()=>({useFocusEffect:(f:()=>unknown)=>require('react').useEffect(f,[f]),useRouter:()=>({push:mockPush})}));
+jest.mock('react-native',()=>{const original=jest.requireActual('react-native');return new Proxy(original,{get:(o,k)=>['View','ActivityIndicator','Modal'].includes(String(k))?k:k==='AppState'?{currentState:'active',addEventListener:()=>({remove:jest.fn()})}:Reflect.get(o,k)});});
+jest.mock('../../../data/closureExecutionClientService',()=>({...jest.requireActual('../../../data/closureExecutionClientService'),closureExecutionClientService:{review:(...a:unknown[])=>mockReview(...a),read:(...a:unknown[])=>mockRead(...a),start:(...a:unknown[])=>mockStart(...a)}}));
+jest.mock('../../../data/accountClosureClientService',()=>({accountClosureClientService:{read:jest.fn(),prepare:jest.fn(),readReceipt:jest.fn()}}));
+jest.mock('../../../data/authClientService',()=>({authClientService:{signOutLocal:(...a:unknown[])=>mockLogout(...a)}}));
+jest.mock('../../../data/supabaseClient',()=>({supabaseKlijent:jest.fn()}));
+jest.mock('../closureIntent',()=>({closureIntentJournal:{load:(...a:unknown[])=>mockLoad(...a),save:(...a:unknown[])=>mockSave(...a),clear:(...a:unknown[])=>mockClear(...a)}}));
+jest.mock('../../../lib/idempotencija',()=>({noviUuidZahtevId:()=>mockKey}));
+jest.mock('../../settings/SettingsPresentation',()=>{const component=(name:string)=>({children,...props}:any)=>require('react').createElement(name,props,children);return Object.fromEntries(['SettingsScreen','SettingsIntro','SettingsPanel','SettingsInfo','SettingsText','SettingsAction'].map(n=>[n,component(n)]));});
+import {ClosureDialog} from '../ClosureDialog';
+const ok=(podatak:unknown)=>({ok:true,podatak}),ready=()=>({accountId:A,requestId:R,revision:1,ready:true,policySha256:'a'.repeat(64),blockers:[],code:null,retainedDatasets:[],authoritative:true});
+const pending=()=>({kind:'START',accountId:A,requestId:R,expectedRevision:1,clientRequestId:mockKey,policySha256:'a'.repeat(64)});
+let tree:ReactTestRenderer;
+const button=(label:string)=>tree.root.findAll(n=>n.type==='SettingsAction' as React.ElementType).find(n=>n.props.label===label)!;
+const text=()=>tree.root.findAll(n=>typeof n.type==='string').flatMap(n=>n.children.filter(c=>typeof c==='string')).join(' ');
+const render=async()=>{await act(async()=>{tree=create(<ClosureDialog onClose={jest.fn()}/>);});};
+beforeEach(()=>{jest.clearAllMocks();mockOwner={user:{id:A},accountRevision:1};mockLoad.mockResolvedValue(null);mockSave.mockResolvedValue(undefined);mockClear.mockResolvedValue(undefined);mockReview.mockResolvedValue(ok(ready()));mockRead.mockResolvedValue(ok({found:false,receipt:null,execution:null}));mockStart.mockResolvedValue({ok:false,kod:'CLOSURE_OUTCOME_UNKNOWN',poruka:'Ishod nije potvrđen.'});});
+afterEach(async()=>{await act(async()=>tree?.unmount());});
+it('reads only on entry and starts once after explicit double tap, saving the key first',async()=>{await render();expect(mockStart).not.toHaveBeenCalled();mockSave.mockImplementation(async()=>{expect(mockStart).not.toHaveBeenCalled();});const press=button('Pokreni zatvaranje naloga').props.onPress;await act(async()=>{press();press();});expect(mockStart).toHaveBeenCalledTimes(1);expect(mockSave).toHaveBeenCalledWith(pending());expect(mockRead).toHaveBeenCalledWith(mockKey,{accountId:A,accountRevision:1});});
+it('restores persisted unknown key with read only; absent does not auto-submit',async()=>{mockLoad.mockResolvedValue(pending());await render();expect(mockRead).toHaveBeenCalledWith(mockKey,{accountId:A,accountRevision:1});expect(mockStart).not.toHaveBeenCalled();expect(mockReview).not.toHaveBeenCalled();expect(button('Ponovi isti zahtev za zatvaranje')).toBeDefined();await act(async()=>button('Ponovi isti zahtev za zatvaranje').props.onPress());expect(mockStart).toHaveBeenCalledTimes(1);expect(mockStart.mock.calls[0][0]).toEqual(pending());});
+it('restored executing receipt does not become completed without worker evidence',async()=>{mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,receipt:{},execution:{state:'EXECUTING',accountId:A,generation:R}}));await render();expect(text()).toContain('Zatvaranje još nije završeno');expect(text()).not.toContain('Nalog je zatvoren.');expect(mockStart).not.toHaveBeenCalled();expect(button('Pokreni zatvaranje naloga')).toBeUndefined();});
+it('server-ready false displays gate with no final action or invented period',async()=>{mockReview.mockResolvedValue(ok({...ready(),ready:false,code:'CLOSURE_POLICY_NOT_READY',retainedDatasets:null}));await render();expect(text()).toContain('Potpuna pravila zatvaranja i čuvanja još nisu objavljena');expect(button('Pokreni zatvaranje naloga')).toBeUndefined();expect(mockStart).not.toHaveBeenCalled();});
+it('cannot submit after local durable storage failure',async()=>{mockSave.mockRejectedValue(new Error('unavailable'));await render();await act(async()=>button('Pokreni zatvaranje naloga').props.onPress());expect(mockStart).not.toHaveBeenCalled();});
+it('account ABA during key persistence fences the network write',async()=>{let resolve!:()=>void;mockSave.mockReturnValue(new Promise<void>(r=>{resolve=r;}));await render();await act(async()=>{button('Pokreni zatvaranje naloga').props.onPress();});mockOwner={user:{id:A},accountRevision:3};await act(async()=>{resolve();});expect(mockStart).not.toHaveBeenCalled();});
+it('closed receipt accurately reports retained identity/evidence and offers existing local logout',async()=>{mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,receipt:{},execution:{state:'CLOSED',accountId:A,generation:R,closedAt:'2026-09-13T01:00:00Z',retainedDatasets:[]}}));await render();expect(text()).toContain('Identifikator naloga i evidencije');expect(text()).toContain('Podaci za prijavu su uklonjeni');await act(async()=>button('Odjavite se sa ovog uređaja').props.onPress());expect(mockLogout).toHaveBeenCalledWith({accountId:A,accountRevision:1});});
+it('explains partial AF22 erasure and a real support exit without a fake completion or duration',async()=>{
+ mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,receipt:{},execution:{state:'EXECUTING',accountId:A,generation:R,adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',ordinaryContentErased:true,completedSteps:74,totalSteps:74,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED']}}));
+ await render();expect(text()).toContain('Obični podaci aplikacije su uklonjeni');expect(text()).toContain('nalog nije zatvoren');expect(text()).not.toContain('Nalog je zatvoren.');expect(text()).not.toContain('Ograničeno čuvanje:');
+ await act(async()=>button('Otvorite privatnu podršku').props.onPress());expect(mockPush).toHaveBeenCalledWith('/podrska');expect(mockStart).not.toHaveBeenCalled();
+});
+it('guards support navigation on account incarnation and shows the approved final ordinary erasure',async()=>{
+ mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,receipt:{},execution:{state:'EXECUTING',accountId:A,generation:R,adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',ordinaryContentErased:true,completedSteps:74,totalSteps:74,exceptions:['SCOPED_EVIDENCE_REVIEW_REQUIRED']}}));await render();
+ const go=button('Otvorite privatnu podršku').props.onPress;mockOwner={user:{id:A},accountRevision:3};await act(async()=>go());expect(mockPush).not.toHaveBeenCalled();
+});
+it('complete AF22 receipt states limited pseudonymous records rather than retaining all plaintext',async()=>{
+ mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,receipt:{},execution:{state:'CLOSED',accountId:A,generation:R,adapterVersion:'OWNER_AF_D22_EVENT_ERASURE_V1',ordinaryContentErased:true,pseudonymousAuditRetained:true,exceptions:[],retainedDatasets:[],closedAt:'2026-09-13T09:00:00Z'}}));await render();
+ expect(text()).toContain('Obični lični i privatni podaci aplikacije su uklonjeni');expect(text()).toContain('minimalni pseudonimni zapisi');expect(text()).not.toContain('Identifikator naloga i evidencije obuhvaćene objavljenim pravilima');
+});

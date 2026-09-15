@@ -6,6 +6,7 @@ import { countryCode, timeZone } from '../lib/market';
 import { normalizeTaskGeography } from '../lib/location';
 import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
+import { readNeedUrgencies } from './needUrgencyClientService';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -120,7 +121,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
 }
 
 const NEED_SELECT = `
-  id, revision, title, description, category, status, schedule_kind, starts_at, ends_at,
+  id, revision, title, description, category, status, urgent, schedule_kind, starts_at, ends_at,
   task_country_code, task_timezone, execution_location_mode,
   approximate_area, approximate_city,
   required_slots, required_skills, required_tools, required_vehicles, required_licenses,
@@ -149,7 +150,8 @@ export const needClientService: NeedReadService = {
 
     if (error) throw new Error(error.message || 'NEED_LIST_FAILED');
     if (!Array.isArray(data)) throw new Error('NEED_LIST_INVALID_PROJECTION');
-    return data.map(mapNeed);
+    const urgency = await readNeedUrgencies(data);
+    return data.map(row => ({ ...mapNeed(row), urgency: urgency.get(row.id) }));
   },
 
   async potreba(id) {
@@ -163,6 +165,8 @@ export const needClientService: NeedReadService = {
       .maybeSingle();
 
     if (error) throw new Error(error.message || 'NEED_READ_FAILED');
-    return data ? mapNeed(data) : null;
+    if (!data) return null;
+    const urgency = await readNeedUrgencies([data]);
+    return { ...mapNeed(data), urgency: urgency.get(data.id) };
   },
 };

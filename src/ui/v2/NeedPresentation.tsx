@@ -1,35 +1,25 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, MapPin, Users } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
-import type { PublicationEvaluation, PublicationNotReadyCode } from '../../contracts/publication';
 import { needGeographyRows, needPeopleText, needRequirementRows } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
 import { v2 } from './tokens';
+import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
-const NOT_READY: Record<PublicationNotReadyCode, string> = {
-  POLICY_NOT_READY: 'Provera za objavu još nije dostupna. Nacrt je sačuvan.',
-  POLICY_CONTENT_NOT_READY: 'Provera za objavu još nije dostupna. Nacrt je sačuvan.',
-  LOCATION_INCOMPLETE: 'Potvrdite sva potrebna mesta izvršenja pre objave.',
-  COUNTRY_NOT_READY: 'Objava u izabranoj državi trenutno nije dostupna.',
-  PUBLIC_MEDIA_NOT_READY: 'Fotografije još nisu spremne za objavu.',
-  EVALUATOR_UNAVAILABLE: 'Provera trenutno nije dostupna. Pokušajte ponovo.',
-  EVALUATOR_INVALID_RESPONSE: 'Rezultat provere nije potvrđen. Pokušajte ponovo.',
-  RATE_LIMITED: 'Sačekajte malo pre nove provere.',
-  NEED_CHANGED: 'Zadatak je promenjen. Učitajte trenutno stanje pre nove provere.',
-};
 export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
-  ownerIntent: boolean; remainingClosed: boolean; publishedReceipt: boolean;
-  evaluation: PublicationEvaluation | null; retrying: boolean;
-  onBack: () => void; onRefresh: () => void; onEvaluate: () => void; onPublish: () => void;
-  onRetry: () => void; onEdit: () => void; onCloseRemaining: () => void; onCandidates: () => void;
+  ownerIntent: boolean; remainingClosed: boolean;
+  onBack: () => void; onRefresh: () => void; onReview: () => void; onEdit: () => void; onCloseRemaining: () => void; onCandidates: () => void;
+  photos?: ReactNode;
+  lifecycleActions?: ReactNode;
+  qaAction?: ReactNode;
 };
 function DetailRows({ rows }: { rows: { label: string; value: string }[] }) {
   return <View style={s.details}>{rows.map((row, index) => <View key={`${index}:${row.label}`} style={s.detailRow}>
@@ -39,22 +29,13 @@ function DetailRows({ rows }: { rows: { label: string; value: string }[] }) {
 /** Executable V2 cDetails/cCard.large + 09_task.png: open hero, grouped rows and
  * pinned action. Only existing controller callbacks can perform business actions. */
 export function NeedPresentation(props: NeedPresentationProps) {
-  const { need, loading, error, busy, ownerIntent, remainingClosed, publishedReceipt, evaluation, retrying } = props;
+  const { need, loading, error, busy, ownerIntent, remainingClosed } = props;
   const [expanded, setExpanded] = useState<'location' | 'requirements' | null>(null);
   const draft = need?.stanje === 'NACRT' && ownerIntent;
-  const decision = evaluation?.kind === 'DECISION' ? evaluation.decision : null;
-  const allowed = decision?.authoritative === true && decision.outcome === 'ALLOW' && decision.publishable;
-  const publicationCopy = evaluation?.kind === 'NOT_READY' ? NOT_READY[evaluation.code]
-    : decision?.outcome === 'CLARIFY' ? 'Za objavu su potrebna dodatna pojašnjenja. Pregledajte i izmenite nacrt.'
-      : decision?.outcome === 'REVIEW' ? 'Provera nije odobrila objavu. Zadatak ostaje sačuvan kao nacrt.'
-        : decision?.outcome === 'BLOCK' ? 'Ovaj Zadatak nije odobren za objavu. Nacrt ostaje sačuvan.'
-          : allowed ? 'Provera je odobrila ovu verziju Zadatka. Objavu potvrđujete zasebno.'
-            : 'Nacrt je privatan. Proverite da li je spreman za objavu.';
   const usable = !!need && !loading && !error;
   const rows = need ? needGeographyRows(need) : [], requirements = need ? needRequirementRows(need) : [];
-  const primaryLabel = draft ? retrying ? 'Ponovi isti zahtev za objavu' : busy ? 'Radnja je u toku…'
-    : allowed ? 'Objavi Zadatak' : evaluation ? 'Ponovi proveru za objavu' : 'Proveri za objavu' : 'Pogledaj prijave';
-  const primaryAction = draft ? retrying ? props.onRetry : allowed ? props.onPublish : props.onEvaluate : props.onCandidates;
+  const primaryLabel = busy ? 'Radnja je u toku…' : draft ? 'Pregledaj za objavu' : 'Pogledaj prijave';
+  const primaryAction = draft ? props.onReview : props.onCandidates;
   const toggle = (key: 'location' | 'requirements') => setExpanded(current => current === key ? null : key);
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <View style={s.header}>
@@ -63,19 +44,18 @@ export function NeedPresentation(props: NeedPresentationProps) {
       </Press>
       <View style={{ flex: 1 }}><T style={s.caption}>Tvoj radni prostor</T><T accessibilityRole="header" style={s.headerTitle}>Zadatak</T></View>
     </View>
-    {publishedReceipt ? <View style={s.receipt}><T accessibilityRole="alert" style={s.body}>{error
-      ? 'Objava je potvrđena. Trenutni prikaz treba osvežiti.'
-      : loading || busy ? 'Objava je potvrđena. Učitavamo trenutno stanje Zadatka.'
-        : 'Server je potvrdio objavu. Prikazujemo ponovo učitano stanje Zadatka.'}</T></View> : null}
-    {loading ? <View style={s.state}><ActivityIndicator color={v2.color.teal} /><T style={s.caption}>Učitavamo Zadatak…</T></View>
+    {loading ? <View style={s.state}><ActivityIndicator color={v2.color.teal} /><T style={s.caption}>Učitavamo Zadatak…</T>
+        {props.lifecycleActions}
+      </View>
       : error || !need ? <View style={s.state}>
         <T style={s.headerTitle}>Zadatak nije dostupan</T><T style={s.body}>{error ?? 'Pokušajte ponovo.'}</T>
         <Press accessibilityRole="button" accessibilityLabel="Pokušaj ponovo" haptic="light" onPress={props.onRefresh} style={s.retry}>
           <T style={[s.body, { color: v2.color.surface, fontWeight: '700' }]}>Pokušajte ponovo</T>
         </Press>
+        {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <View style={s.hero}>
-          <T style={s.status}>{STATUS[need.stanje]}</T>
+          <NeedUrgencyBadge urgency={need.urgency} /><T style={s.status}>{STATUS[need.stanje]}</T>
           {need.detalji ? <T style={s.caption}>{need.detalji.kategorija}</T> : null}
           <T accessibilityRole="header" style={s.title}>{need.naslov}</T>
           <View style={s.meta}><MapPin size={17} color={v2.color.teal} /><T style={[s.caption, s.grow]}>{need.detalji?.geografija?.mode === 'REMOTE' ? 'Na daljinu' : need.podrucjeTekst}</T></View>
@@ -89,11 +69,11 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <T style={s.caption}>{needPeopleText(need.pokrivenost.ukupno)} potrebno</T>
         </View>
         <T style={s.description}>{need.opis}</T>
+        {props.photos}
         {draft ? <View style={s.publication}>
-          <T style={s.sectionTitle}>Objava Zadatka</T><T accessibilityLiveRegion="polite" style={s.body}>{publicationCopy}</T>
-          {retrying ? <T style={s.caption}>Prethodna objava nije potvrđena. Provereno je trenutno stanje; možete ponoviti isti zahtev.</T> : null}
-          {allowed && !retrying ? <V2Action label="Ponovi proveru za objavu" kind="quiet" disabled={busy} onPress={props.onEvaluate} /> : null}
-          <V2Action label="Izmeni nacrt" kind="quiet" disabled={busy || retrying} onPress={props.onEdit} />
+          <T style={s.sectionTitle}>Spremi zadatak za objavu</T>
+          <T style={s.body}>Pregledaj sve podatke, fotografije i rok za prijave. Zadatak objavljuješ jednom akcijom na detaljnom pregledu.</T>
+          <V2Action label="Izmeni nacrt" kind="quiet" disabled={busy} onPress={props.onEdit} />
         </View> : null}
         {!draft && ownerIntent ? <View style={s.group}>
           <Press accessibilityRole="button" accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`} onPress={props.onCandidates} haptic="select" style={s.menu}>
@@ -119,9 +99,10 @@ export function NeedPresentation(props: NeedPresentationProps) {
           : ownerIntent && need.pokrivenost.popunjeno > 0 && need.pokrivenost.preostalo > 0
             ? <V2Action label="Ne traži više nikoga" kind="quiet" disabled={busy} onPress={props.onCloseRemaining} /> : null}
         <T style={s.caption}>Tačna lokacija i privatne napomene ostaju privatni.</T>
+        {props.lifecycleActions}
+        {props.qaAction}
       </ScrollView>}
     {usable && ownerIntent ? <View style={s.footer}>
-      {draft && allowed && !retrying ? <T style={s.caption}>Dodatni rok za prijave nije izabran. Objavljujete Zadatak bez dodatnog roka za prijave.</T> : null}
       <V2Action label={primaryLabel} disabled={busy} onPress={primaryAction} style={s.primary} />
     </View> : null}
   </SafeAreaView>;

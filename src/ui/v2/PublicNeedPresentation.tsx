@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PrilikaProjekcija } from '../../contracts/projections';
@@ -8,12 +8,15 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
 import { v2 } from './tokens';
+import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 const body = { ...v2.text.body, color: v2.color.ink };
 const caption = { ...v2.text.label, color: v2.color.muted };
-export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, back, retry, apply }: {
+export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, back, retry, apply, photos, qa }: {
   need: PrilikaProjekcija | null; loading: boolean; error: boolean; missing: boolean; stale: boolean; busy: boolean;
   canApply: boolean; canRetry: boolean; back: () => void; retry: () => void; apply: () => void;
+  photos?: ReactNode;
+  qa?: ReactNode;
 }) {
   const [expanded, setExpanded] = useState<'location' | 'requirements' | null>(null);
   const rows = expanded === 'location' && need ? needGeographyRows(need) : expanded === 'requirements' && need ? needRequirementRows(need) : [];
@@ -34,7 +37,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
       </View> : null}
       {need ? <>
         <View style={{ gap: 12 }}>
-          <T style={{ ...caption, color: v2.color.teal, fontWeight: '700' }}>{need.statusTekst}</T>
+          <NeedUrgencyBadge urgency={need.urgency} /><T style={{ ...caption, color: v2.color.teal, fontWeight: '700' }}>{need.statusTekst}</T>
           <T accessibilityRole="header" style={{ ...v2.text.hero, fontSize: 29, lineHeight: 34, letterSpacing: -0.5, color: v2.color.ink }}>{need.naslov}</T>
           <T style={caption}>{remote ? 'Na daljinu' : need.podrucjeTekst}</T>
           <T style={caption}>{need.vremeTekst}</T>
@@ -45,6 +48,8 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           <T style={caption}>Popunjeno {need.pokrivenost.popunjeno} od {need.pokrivenost.ukupno} mesta</T>
         </View>
         {need.opis ? <View style={{ gap: 10 }}><T style={{ ...body, fontWeight: '700' }}>Šta treba uraditi</T><T style={body}>{need.opis}</T></View> : null}
+        {!loading && !error && !missing && !stale ? photos : null}
+        {!loading && !error && !missing && !stale ? qa : null}
         <View style={{ borderWidth: 1, borderColor: v2.color.line, backgroundColor: v2.color.surface, borderRadius: 18, overflow: 'hidden' }}>
           {(['location', 'requirements'] as const).map((section, index) => <View key={section} style={{ borderTopWidth: index ? 1 : 0, borderColor: v2.color.line }}>
             <Press accessibilityRole="button" accessibilityLabel={section === 'location' ? 'Mesto izvršenja' : 'Uslovi Zadatka'} accessibilityState={{ expanded: expanded === section }}

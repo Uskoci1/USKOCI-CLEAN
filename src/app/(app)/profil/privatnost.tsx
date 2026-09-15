@@ -9,6 +9,7 @@ import { ulogaSada, useUloga } from '../../../store/uloga';
 import { v2 } from '../../../ui/v2/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsInfo, SettingsAction, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { Press } from '../../../ui/Press';
+import { ClosureEntry } from '../../../ui/closure/ClosureDialog';
 
 const labels: Readonly<Record<string, string>> = {
   ACCOUNT_IDENTITY: 'Nalog i identitet', PROFILE_DATA: 'Podaci profila', NEED_PUBLIC: 'Javni podaci Zadatka',
@@ -69,7 +70,7 @@ function OwnedPrivacy() {
         Pregledajte zahtev, pripremu i dostupnost svoje kopije.
       </SettingsInfo>
       <SettingsAction label="Otvorite izvoz" kind="secondary" onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
-      <SettingsInfo title="Zatvaranje naloga" last>Zatvaranje naloga trenutno nije dostupno u aplikaciji.</SettingsInfo>
+      <ClosureEntry />
     </SettingsPanel>
 
     <View style={{ marginTop: 20, gap: 12 }}>

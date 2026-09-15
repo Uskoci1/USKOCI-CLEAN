@@ -30,6 +30,7 @@ export type ReceiptAccount = { accountId: string; accountRevision: number };
 
 /** RPC wrapper retains the same server authority and receipt validation. */
 export function readReceipt<T>(options: ReceiptOptions<T> & {
+  account?: ReceiptAccount;
   rpc: string;
   args: Record<string, unknown>;
 }): Promise<Ishod<T>> {

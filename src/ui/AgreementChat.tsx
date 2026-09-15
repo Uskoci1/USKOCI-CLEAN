@@ -3,10 +3,15 @@ import { ActivityIndicator, RefreshControl, ScrollView, TextInput, View } from '
 import { V2Icon } from './v2/icons';
 import { v2 } from './v2/tokens';
 import type { PorukaProjekcija } from '../contracts/projections';
-import type { createAgreementOutbox, OutboxError } from '../data/agreementOutbox';
+import { sameMessagePhotos, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
+import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
+import { AgreementPhotoComposer } from './media/AgreementPhotoComposer';
+import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { palette, radius, space, touch } from '../theme/tokens';
 import { Press } from './Press';
 import { T } from './Text';
+import { positiveInteger, uuid } from '../data/serverReceipt';
+import { SupportContextEntry } from './support/SupportContextEntry';
 
 type Outbox = ReturnType<typeof createAgreementOutbox>;
 type Props = {
@@ -19,6 +24,8 @@ type Props = {
   refreshWorkspace: () => Promise<void>;
   outbox: Outbox;
   state: ReturnType<Outbox['getSnapshot']>;
+  photos?: AgreementPhotosController;
+  support?: { canAct: () => boolean; navigate: (action: () => void) => void };
 };
 
 const errors: Record<OutboxError, string> = {
@@ -35,11 +42,14 @@ const errors: Record<OutboxError, string> = {
   NOT_READY: 'Sačekajte da se učitaju sačuvane poruke.',
 };
 
-export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state }: Props) {
+export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos }: Props) {
   const list = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const initialScroll = useRef(true);
   const previousOutgoing = useRef(new Set<string>());
+  const source = useRef({ messages, support, loading, error, photos }); source.current = { messages, support, loading, error, photos };
+  const supportCurrent = () => !!support && source.current.support === support && source.current.messages === messages
+    && !source.current.loading && !source.current.error && support.canAct();
   const outgoingIds = state.entries.map(entry => entry.command.clientMessageId).join('|');
   useEffect(() => {
     const currentIds = new Set(outgoingIds ? outgoingIds.split('|') : []);
@@ -57,13 +67,22 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   };
   const ready = state.phase === 'ready';
   const length = Array.from(state.draft.trim()).length;
-  const canSend = ready && writable && !state.capturing && length > 0 && length <= 2000;
-  const send = () => { void outbox.sendDraft().then(() => refresh()); };
+  const canSend = ready && writable && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
+    && (!photos?.hasSelection || photos.ready);
+  const send = () => {
+    const currentPhotos = source.current.photos;
+    if (currentPhotos && !currentPhotos.canSubmit()) return;
+    const attachments = currentPhotos?.capture();
+    if (currentPhotos?.hasSelection && !attachments) return;
+    void outbox.sendDraft(attachments ?? undefined).then(async () => { await refresh(); await currentPhotos?.refresh(); });
+  };
   // Reconciliation includes the real sender/key/body in the model. Never use
   // matching text alone to pretend that an uncertain send was accepted.
   const local = state.entries.filter(entry => error || !messages.some(message =>
     message.posiljalacAccountId === entry.command.accountId && message.telo === entry.command.body
       && message.clientMessageId === entry.command.clientMessageId
+      && sameMessagePhotos(entry.command.photos, message.fotografije?.length
+        ? { agreementVersion: message.dogovorVerzija!, assetIds: message.fotografije.map(photo => photo.assetId) } : undefined)
       && (!entry.messageId || message.id === entry.messageId)));
   return (
     <View style={{ flex: 1 }}>
@@ -91,13 +110,24 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         }}>
           {!message.moja && <T variant="meta" tone="muted">{message.posiljalacIme}</T>}
           <T selectable variant="body" style={{ ...v2.text.body, color: v2.color.ink }}>{message.telo}</T>
+          {message.fotografije?.map((photo, index) => photos ? <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId}
+            agreementId={photos.agreementId} messageId={message.id} label={`Fotografija poruke ${index + 1}`}
+            style={{ width: 220, maxWidth: '100%' }} /> : null)}
           <T variant="meta" style={{ ...v2.text.label, color: v2.color.muted, textAlign: 'right' }}>{message.vremeTekst}</T>
+          {support && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <SupportContextEntry
+            reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
+            label="Izaberi ovu poruku za podršku" previewText={[message.telo, message.fotografije?.length
+              ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
+            canAct={supportCurrent} navigate={support.navigate} /> : null}
         </View>)}
         {local.map(entry => <View key={entry.command.clientMessageId} style={{
           alignSelf: 'flex-end', maxWidth: '88%', borderRadius: radius.lg,
           padding: space.md, gap: space.xs, backgroundColor: v2.color.answer, borderWidth: 1, borderColor: v2.color.contextLine, borderBottomRightRadius: 4,
         }}>
           <T selectable variant="body" style={{ color: v2.color.ink }}>{entry.command.body}</T>
+          {entry.command.photos?.assetIds.map((assetId, index) => <AuthorizedPhoto key={assetId} assetId={assetId}
+            agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${index + 1}`}
+            style={{ width: 220, maxWidth: '100%' }} />)}
           <T variant="meta" style={{ color: v2.color.muted }} accessibilityLiveRegion="polite">
             {entry.state === 'sending' ? 'Šalje se…' : entry.state === 'confirmed' ? 'Poslato'
               : entry.state === 'unknown' ? 'Slanje nije potvrđeno' : 'Nije poslato'}
@@ -126,6 +156,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           <Press accessibilityRole="button" accessibilityLabel="Osveži status Dogovora" onPress={() => void refreshWorkspace()}
             style={{ minHeight: touch.min, justifyContent: 'center' }}><T variant="action" tone="orange">Osvežite Dogovor</T></Press>}
         {length > 2000 && <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skratite poruku.</T>}
+        {photos ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, padding: space.sm,
           borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 20, backgroundColor: v2.color.surface }}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}

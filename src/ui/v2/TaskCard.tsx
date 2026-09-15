@@ -6,6 +6,7 @@ import { needPeopleText, needScheduleText } from '../../data/needDetailPresentat
 import { Press } from '../Press';
 import { T } from '../Text';
 import { v2 } from './tokens';
+import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 const STATUS = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
 /** Shared V2 cCard anatomy; each caller supplies its existing authorized projection. */
 export function TaskCard({ item, onOpen, compact = false, disabled = false }: { item: MarketplaceItem; onOpen: () => void; compact?: boolean; disabled?: boolean }) {
@@ -14,7 +15,7 @@ export function TaskCard({ item, onOpen, compact = false, disabled = false }: { 
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
   return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvorite Zadatak' : 'Otvorite priliku'} ${item.naslov}`}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986} style={[s.card, compact && s.compact]}>
-    <T style={s.status}>{status}</T><T style={s.title}>{item.naslov}</T>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}><NeedUrgencyBadge urgency={item.urgency} /><T style={s.status}>{status}</T></View><T style={s.title}>{item.naslov}</T>
     <View style={s.meta}>{item.detalji?.rezimLokacije !== 'REMOTE' ? <MapPin size={15} color={v2.color.teal} /> : null}<T style={s.metaText}>{item.detalji?.rezimLokacije === 'REMOTE' ? 'Na daljinu' : item.podrucjeTekst}</T></View>
     <View style={s.meta}><Clock size={15} color={v2.color.teal} /><T style={s.metaText}>{schedule}</T></View>
     <View style={s.bottom}><T style={s.price}>{item.rezimCene === 'OFFERS' ? 'Tražim ponude' : item.ponudjenaCena?.prikaz ?? 'Cena nije navedena'}</T>

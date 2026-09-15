@@ -28,10 +28,13 @@ function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
 }
 
 describe('RU-2 typed R02 → R07 contract', () => {
-  it('keeps 22 canonical facts, with the private resolved fact outside the 21 AI proposals', () => {
+  it('keeps 22 canonical facts with resolved geography, owned photos and unavailable identity outside the 19 AI proposals', () => {
     expect(NEED_FACT_V2_KEYS).toHaveLength(22);
-    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(21);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(19);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.verified_identity_required');
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.resolved_location');
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.public_photo_paths');
+    expect(NEED_FACT_V2_DEFINITIONS['need.public_photo_paths'].manualOnly).toBe(true);
     expect(NEED_FACT_V2_DEFINITIONS['need.resolved_location']).toMatchObject({ privacyClass: 'PRIVATE', manualOnly: true, requiredForDraft: false });
     expect(REQUIRED_NEED_FACT_V2_KEYS).toEqual(expect.arrayContaining([
       'need.title',
@@ -53,10 +56,10 @@ describe('RU-2 typed R02 → R07 contract', () => {
       value: 3,
       displayValue: '3',
     });
-    expect(correctionFromText(fact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN' }), 'da')).toEqual({
+    expect(correctionFromText(fact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN' }), 'ne')).toEqual({
       ok: true,
-      value: true,
-      displayValue: 'Da',
+      value: false,
+      displayValue: 'Ne',
     });
     expect(correctionFromText(fact({ key: 'need.required_tools', valueType: 'TEXT_ARRAY' }), 'bušilica, merdevine')).toEqual({
       ok: true,

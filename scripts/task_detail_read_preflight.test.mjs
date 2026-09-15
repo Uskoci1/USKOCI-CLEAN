@@ -9,6 +9,7 @@ test('read probe admits only the actual local read routes and fixture login', ()
   }
   assert.equal(assertReadProbeRequest('http://127.0.0.1:54321/auth/v1/token?grant_type=password', { method: 'POST' }).method, 'POST');
   assert.equal(assertReadProbeRequest('http://127.0.0.1:54321/rest/v1/rpc/rpc_get_public_profile', { method: 'POST' }).method, 'POST');
+  assert.equal(assertReadProbeRequest('http://127.0.0.1:54321/rest/v1/rpc/fn_need_urgency', { method: 'POST' }).method, 'POST');
 });
 test('read probe rejects writes, arbitrary RPCs and nonlocal/redirected hosts before fetch', () => {
   for (const [url, method] of [
@@ -30,5 +31,8 @@ test('current actual source dependency graph loads with only transport/account i
   assert.equal(typeof adapters.baseline.prilika, 'function');
   assert.equal(typeof adapters.needService.potreba, 'function');
   assert.ok(adapters.sources.some(item => item.path === 'src/lib/location.ts'));
+  assert.ok(adapters.sources.some(item => item.path === 'src/data/legacyRpcFailure.ts'));
+  assert.ok(adapters.sources.some(item => item.path === 'src/data/needUrgencyClientService.ts'));
+  assert.ok(adapters.sources.some(item => item.path === 'src/contracts/workerCapacity.ts'));
   assert.ok(adapters.sources.every(item => /^[a-f0-9]{64}$/.test(item.sha256)));
 });

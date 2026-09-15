@@ -7,13 +7,14 @@ const { setImmediate: nextTick } = require('node:timers/promises');
 const source = readFileSync(join(__dirname, '..', 'metro.config.cjs'), 'utf8');
 const projectRoot = join(__dirname, '..');
 
-function load(platform, stores) {
-  const original = { cacheStores: stores, resolver: {}, transformer: {}, serializer: {} };
+function load(platform, stores, { root = 'test-project', defaults } = {}) {
+  const original = defaults ?? { projectRoot: root, cacheVersion: 'expo-default', cacheStores: stores, resolver: {}, transformer: {}, serializer: {} };
   const module = { exports: {} };
-  runInNewContext(source, { module, __dirname: 'test-project', process: { platform },
+  runInNewContext(source, { module, __dirname: root, process: { platform },
     require(name) {
+      if (name === 'node:crypto' || name === 'node:path') return require(name);
       assert.equal(name, 'expo/metro-config');
-      return { getDefaultConfig(root) { assert.equal(root, 'test-project'); return original; } };
+      return { getDefaultConfig(actualRoot) { assert.equal(actualRoot, root); return original; } };
     },
   });
   assert.equal(module.exports, original);
@@ -94,6 +95,96 @@ test('installed Metro discovers the CommonJS config and loads Expo defaults', as
   assert.equal(resolved.config.projectRoot, projectRoot);
   assert.ok(resolved.config.resolver.sourceExts.includes('tsx'));
   assert.ok(resolved.config.cacheStores.length > 0);
+});
+
+test('sibling projects sharing the real Router context get isolated installed Metro keys and correct Babel roots', t => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { getDefaultConfig } = require('expo/metro-config');
+  const getTransformCacheKey = require('@expo/metro/metro/DeltaBundler/getTransformCacheKey').default;
+  const babelTransformerPath = getDefaultConfig(projectRoot).transformer.babelTransformerPath;
+  const babelTransformer = require(babelTransformerPath);
+  const { resolveBabelrcName } = require(path.join(path.dirname(babelTransformerPath), 'loadBabelConfig.js'));
+  const traverse = require('@babel/traverse').default;
+  const types = require('@babel/types');
+  // Fixture package manifests must remain outside the app/Jest watched tree.
+  const scratchParent = path.resolve(require('node:os').tmpdir());
+  const scratch = fs.mkdtempSync(path.join(scratchParent, 'uskoci-metro-project-cache-proof-'));
+  const sharedModules = fs.realpathSync(path.join(projectRoot, 'node_modules'));
+  const oldNodeEnv = process.env.NODE_ENV;
+  const fixtures = [], dependencyLinks = [];
+  function key(config) {
+    const { getTransformOptions, transformVariants, unstable_workerThreads, ...transformerConfig } = config.transformer;
+    return getTransformCacheKey({ cacheVersion: config.cacheVersion, projectRoot: config.projectRoot,
+      transformerConfig: { transformerPath: config.transformerPath, transformerConfig } });
+  }
+  try {
+    assert.ok(scratch.startsWith(scratchParent + path.sep + 'uskoci-metro-project-cache-proof-'));
+    for (const name of ['snapshot-a', 'snapshot-b']) {
+      const root = path.join(scratch, name);
+      fs.mkdirSync(path.join(root, 'src', 'app'), { recursive: true });
+      fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'metro-router-cache-fixture', private: true }));
+      fs.symlinkSync(sharedModules, path.join(root, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
+      dependencyLinks.push(path.join(root, 'node_modules'));
+      assert.equal(resolveBabelrcName(root), undefined, 'fixture must use the installed Expo default preset');
+      assert.equal(babelTransformer.getCacheKey({ projectRoot: root, enableBabelRCLookup: true }), '');
+      const config = getDefaultConfig(root);
+      const filename = fs.realpathSync(path.join(root, 'node_modules', 'expo-router', '_ctx.android.js'));
+      fixtures.push({ root, filename, localPath: path.relative(root, filename), config, baseline: key(config), version: config.cacheVersion });
+    }
+    const [a, b] = fixtures;
+    assert.equal(a.filename, b.filename);
+    assert.equal(a.localPath, b.localPath);
+    assert.equal(a.config.transformer._expoRelativeProjectRoot, b.config.transformer._expoRelativeProjectRoot);
+    assert.equal(a.config.transformer._expoRouterPath, b.config.transformer._expoRouterPath);
+    assert.equal(a.baseline, b.baseline, 'installed default global keys collide for these shared dependency paths');
+    for (const fixture of fixtures) {
+      const stores = fixture.config.cacheStores;
+      fixture.isolated = load('linux', stores, { root: fixture.root, defaults: fixture.config });
+      assert.equal(fixture.isolated.cacheStores, stores, 'project isolation must not replace Expo stores');
+      assert.ok(fixture.isolated.cacheVersion.startsWith(fixture.version + ':'));
+      fixture.isolatedKey = key(fixture.isolated);
+      const again = getDefaultConfig(fixture.root);
+      assert.equal(key(load('linux', again.cacheStores, { root: fixture.root, defaults: again })), fixture.isolatedKey);
+    }
+    assert.notEqual(a.isolatedKey, b.isolatedKey);
+    assert.notEqual(a.isolatedKey, a.baseline);
+
+    // This is the installed Expo Babel transformer on the actual shared Router
+    // source, not a replacement plugin or a mocked app-root expression. No
+    // Metro server, bundle, native build or shared cache entry is produced.
+    process.env.NODE_ENV = 'production';
+    for (const fixture of fixtures) {
+      const { ast } = babelTransformer.transform({ filename: fixture.filename, src: fs.readFileSync(fixture.filename, 'utf8'),
+        options: { ...fixture.config.transformer, projectRoot: fixture.root, platform: 'android', dev: false,
+          type: 'module', customTransformOptions: { routerRoot: 'src/app' }, enableBabelRCLookup: true } });
+      const roots = [];
+      traverse(ast, { CallExpression({ node }) {
+        if (types.isMemberExpression(node.callee) && types.isIdentifier(node.callee.object, { name: 'require' })
+          && types.isIdentifier(node.callee.property, { name: 'context' })) {
+          assert.ok(types.isStringLiteral(node.arguments[0]));
+          roots.push(node.arguments[0].value);
+        }
+      } });
+      assert.equal(roots.length, 1);
+      assert.equal(roots[0], path.relative(path.dirname(fixture.filename), path.join(fixture.root, 'src', 'app')));
+      assert.equal(path.resolve(path.dirname(fixture.filename), roots[0]), path.join(fixture.root, 'src', 'app'));
+      fixture.routerRoot = roots[0];
+    }
+    assert.notEqual(a.routerRoot, b.routerRoot, 'different output must never share the dependency transform cache entry');
+    t.diagnostic(`Metro ${require('metro/package.json').version}; Expo ${require('expo/package.json').version}; shared real _ctx.android.js; baseline keys equal; isolated keys distinct; both installed Babel roots exact`);
+  } finally {
+    if (oldNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldNodeEnv;
+    // Remove the links themselves before recursive fixture cleanup; never walk
+    // or delete the shared dependency target through a junction/symlink.
+    for (const link of dependencyLinks) {
+      assert.ok(link.startsWith(scratch + path.sep));
+      assert.ok(fs.lstatSync(link).isSymbolicLink());
+      fs.unlinkSync(link);
+    }
+    assert.ok(path.resolve(scratch).startsWith(scratchParent + path.sep + 'uskoci-metro-project-cache-proof-'));
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
 });
 
 test('installed Expo binary store survives controlled descriptor pressure with unchanged disk values', async t => {

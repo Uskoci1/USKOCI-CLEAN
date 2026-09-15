@@ -129,7 +129,7 @@ export interface Komande {
   /** rpc_respond_agreement_change */
   odgovoriNaIzmenu(predlogId: string, prihvatam: boolean): Promise<Ishod<null>>;
 
-  /** M04 — chat radi nezavisno od privatnih grantova */
+  /** @deprecated Non-writing compatibility stub; use agreementMessageClientService + a stable clientMessageId. */
   posaljiPoruku(dogovorId: string, telo: string): Promise<Ishod<{ porukaId: string }>>;
 
   /** M06 — jednostrano otkazivanje. Oslobađa samo tu alokaciju. */
@@ -170,11 +170,11 @@ export interface Komande {
 
 /**
  * Istorijski V1 lanac. Produkcijski V2 lanac je aiNeedV2Izvor:
- *   rpc_ai_open_need_conversation_v2 → uskoci-ai-interview → rpc_ai_need_review_v2
+ *   rpc_ai_open_need_conversation_owned_v2 → uskoci-ai-interview → rpc_ai_need_review_v2
  *   → rpc_save_need_draft_from_review → rpc_publish_need_canonical (fail-closed do D-0140)
  */
 export interface AiIntake {
-  /** rpc_ai_open_conversation */
+  /** @deprecated Non-writing compatibility stub; use aiNeedV2Izvor.openConversation with a stable request ID. */
   otvoriRazgovor(): Promise<Ishod<{ razgovorId: string }>>;
 
   /** Poruke i nacrt su dve projekcije istog stanja — čitaju se zajedno. */
@@ -223,6 +223,8 @@ export type AzurirajProfilKomanda = {
   licence?: string[]; // Self-declared resources, never verification authority.
   dostupanOdmah?: boolean;
   radijusKm?: number;
+  kapacitetTima?: number;
+  capacityRevision?: string; // Required together with an explicit team capacity edit.
   zavrsi?: boolean; // Setuje DRAFT u ACTIVE
 };
 

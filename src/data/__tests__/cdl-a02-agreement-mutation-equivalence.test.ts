@@ -67,15 +67,12 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
     }
   });
 
-  it('posaljiPoruku preserves trim, exact RPC and success result', async () => {
+  it('retires the unkeyed send instead of inventing a retry key or calling V1', async () => {
     resetRpc({ data: 'msg-1', error: null });
-
     const result = await agreementClientService.posaljiPoruku('agr-1', '  Stižem u 17h.  ');
-
-    expect(mockRpc.mock.calls).toEqual([
-      ['rpc_send_agreement_message', { p_agreement_id: 'agr-1', p_body: 'Stižem u 17h.' }],
-    ]);
-    expect(result).toEqual({ ok: true, podatak: { porukaId: 'msg-1' } });
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, kod: 'MESSAGE_RETRY_KEY_REQUIRED',
+      poruka: 'Otvorite Poruke u Dogovoru i pošaljite poruku iz tog prikaza.' });
   });
 
   it('posaljiPoruku preserves empty-body validation and makes no RPC call', async () => {
@@ -90,12 +87,13 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
   it.each([
     [{ data: null, error: { message: 'CHAT_DENIED', code: '42501' } }, 'CHAT_DENIED'],
     [{ data: null, error: null }, 'MESSAGE_SEND_FAILED'],
-  ])('posaljiPoruku preserves failure semantics %#', async (rpcResult, code) => {
+  ])('retired send never reaches even a failed or empty V1 response %#', async (rpcResult, code) => {
     resetRpc(rpcResult);
 
     const result = await agreementClientService.posaljiPoruku('agr-1', 'Poruka');
 
-    expect(result).toMatchObject({ ok: false, kod: code });
+    expect(result).toMatchObject({ ok: false, kod: 'MESSAGE_RETRY_KEY_REQUIRED' });
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 
   it('predloziIzmenu preserves exact full patch, version, reason and idempotency params', async () => {

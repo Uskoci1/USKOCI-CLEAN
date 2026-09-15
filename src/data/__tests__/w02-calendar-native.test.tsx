@@ -176,7 +176,9 @@ describe('actual availability editor interactions', () => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
     await act(async () => tree.update(<AvailabilityForm availability={loaded} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
-    await press(state === 'busy' ? 'Čuvamo dostupnost…' : 'Sačuvaj dostupnost'); expect(onSave).not.toHaveBeenCalled();
+    const label = state === 'busy' ? 'Čuvamo unos…' : 'Sačuvaj dostupnost';
+    expect(button(label).props.disabled).toBe(true);
+    await press(label); expect(onSave).not.toHaveBeenCalled();
   });
 
   it('discard restores the server value without any save', async () => {

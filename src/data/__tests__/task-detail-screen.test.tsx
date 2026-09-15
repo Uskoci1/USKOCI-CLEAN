@@ -1,4 +1,5 @@
 import React from 'react';
+jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos' }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 

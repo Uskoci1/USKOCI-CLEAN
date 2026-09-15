@@ -15,7 +15,7 @@ const account = '10000000-0000-4000-8000-000000000001';
 const other = '10000000-0000-4000-8000-000000000002';
 const agreement = '20000000-0000-4000-8000-000000000001';
 const message = '30000000-0000-4000-8000-000000000001';
-const row = { id: message, sender_account_id: account, client_message_id: 'poruka_retry_123', body: 'Stižem uskoro.', created_at: '2026-09-07T11:00:00Z' };
+const row = { id: message, agreement_version: 2, sender_account_id: account, client_message_id: 'poruka_retry_123', body: 'Stižem uskoro.', created_at: '2026-09-07T11:00:00Z' };
 beforeEach(() => {
   jest.clearAllMocks(); mockAuth.mockReset(); mockRead.mockReset();
   mockAuth.mockResolvedValue({ data: { user: { id: account } }, error: null });
@@ -24,15 +24,20 @@ beforeEach(() => {
 describe('real Agreement message read and retry reconciliation fields', () => {
   it('preserves persisted sender/key/body and has no invented read receipt', async () => {
     const [result] = await supabaseIzvor.poruke(agreement, account);
-    expect(result).toMatchObject({ id: message, clientMessageId: row.client_message_id,
+    expect(result).toMatchObject({ id: message, dogovorVerzija: 2, clientMessageId: row.client_message_id,
       posiljalacAccountId: account, telo: row.body, moja: true, procitano: null });
     expect(mockFrom).toHaveBeenCalledWith('agreement_messages');
     expect(mockEq).toHaveBeenCalledWith('agreement_id', agreement);
-    expect(mockSelect).toHaveBeenCalledWith('id, sender_account_id, client_message_id, body, created_at');
+    expect(mockSelect).toHaveBeenCalledWith('id, agreement_version, sender_account_id, client_message_id, body, created_at');
   });
   it('preserves legacy messages with no client command key', async () => {
     mockRead.mockResolvedValue({ data: [{ ...row, sender_account_id: other, client_message_id: null }], error: null });
     expect((await supabaseIzvor.poruke(agreement, account))[0]).toMatchObject({ moja: false, clientMessageId: null, procitano: null });
+  });
+  it('keeps different historical message versions instead of replacing them with the latest Agreement version', async () => {
+    mockRead.mockResolvedValue({ data: [row, { ...row, id: other, agreement_version: 7, body: 'Novija poruka' }], error: null });
+    expect((await supabaseIzvor.poruke(agreement, account)).map(item => item.dogovorVerzija)).toEqual([2, 7]);
+    expect(mockFrom.mock.calls.map((call: string[]) => call[0])).toEqual(['agreement_messages']);
   });
   it('only a successful empty array means no messages', async () => {
     mockRead.mockResolvedValueOnce({ data: [], error: null }).mockResolvedValueOnce({ data: null, error: null });
@@ -55,7 +60,8 @@ describe('real Agreement message read and retry reconciliation fields', () => {
       .mockResolvedValueOnce({ data: { user: { id: other } }, error: null });
     await expect(supabaseIzvor.poruke(agreement, account)).rejects.toThrow('MESSAGE_AUTH_CONTEXT_CHANGED');
   });
-  it.each([{ id: 'invalid' }, { sender_account_id: 'invalid' }, { client_message_id: 'retry_key\n' },
+  it.each([{ id: 'invalid' }, { agreement_version: undefined }, { agreement_version: 0 }, { agreement_version: -1 }, { agreement_version: '2' },
+    { agreement_version: 1.5 }, { agreement_version: 2147483648 }, { sender_account_id: 'invalid' }, { client_message_id: 'retry_key\n' },
     { client_message_id: undefined }, { body: null }, { created_at: 'invalid' }])('rejects a malformed projection: %j', async patch => {
     mockRead.mockResolvedValue({ data: [{ ...row, ...patch }], error: null });
     await expect(supabaseIzvor.poruke(agreement, account)).rejects.toThrow('MESSAGE_PROJECTION_INVALID');

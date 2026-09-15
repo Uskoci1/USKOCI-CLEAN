@@ -1,4 +1,5 @@
 import React from 'react';
+jest.mock('../../ui/legal/LegalDocuments', () => ({ PublicLegalModal: 'LegalModal' }));
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
@@ -9,6 +10,8 @@ const mockAuth = { signInWithPassword: jest.fn(), signUp: jest.fn(), sendPhoneOt
   verifyPhoneOtp: jest.fn(), requestPasswordRecovery: jest.fn() };
 let mockSession = { user: null as null | { id: string }, accountRevision: 0 };
 let mockForeground: (state: string) => void;
+let mockFocus: () => void | (() => void);
+let mockBlur: undefined | (() => void);
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -24,9 +27,17 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   useSharedValue: () => ({ value: 0 }), withTiming: (value: unknown) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Defs: 'Defs', LinearGradient: 'LinearGradient',
   RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', AppleLogo: 'Icon', GoogleLogo: 'Icon', EnvelopeSimple: 'Icon', Eye: 'Icon', EyeSlash: 'Icon',
   LockKey: 'Icon', MapPin: 'Icon', Phone: 'Icon', User: 'Icon', X: 'Icon' }));
-jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams,
+  useFocusEffect: (effect: () => void | (() => void)) => {
+    const React = jest.requireActual('react');
+    React.useEffect(() => {
+      mockFocus = effect; mockBlur = effect() || undefined;
+      return () => { mockBlur?.(); };
+    }, [effect]);
+  },
+}));
 jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { prepare: (...args: unknown[]) => mockPrepare(...args) } }));
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 jest.mock('../../ui/entry/EntryWelcome', () => ({ EntryWelcome: 'Hero' }));
@@ -69,15 +80,30 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('shows actual email-only entry without provider placeholders or invented saved targets', async () => {
+it('keeps email functional and required provider tiles visibly unavailable without a command', async () => {
   await render();
   expect(input('ime@primer.rs')).toBeDefined(); expect(button('Prijavite se')).toBeDefined();
   expect(button('Napravi nalog').props.accessibilityRole).toBe('button');
   expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
   expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
   expect(text()).not.toContain('JA MOGU · ISTI NALOG');
-  for (const fake of ['Google', 'Apple', 'Telefon', 'Sačuvali smo', 'istu Priliku', 'ili nastavite preko']) expect(text()).not.toContain(fake);
+  for (const provider of ['Google', 'Apple', 'Telefon']) {
+    const tile = host('Pressable').find(node => node.props.accessibilityLabel === provider)!;
+    expect(tile.props.accessibilityState).toEqual({ disabled: true });
+    expect(tile.props.disabled).toBe(true);
+    expect(tile.props.onPress).toBeUndefined();
+    expect(textOf(tile)).toContain('Trenutno nije dostupno');
+  }
+  for (const fake of ['Sačuvali smo', 'istu Priliku', 'ili nastavite preko']) expect(text()).not.toContain(fake);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
+});
+it('connects the V4.9 welcome signup action to the existing real signup sheet without submitting', async () => {
+  await act(async () => { tree = create(<AuthScreen />); });
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignUp());
+  expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka', 'Potvrdite lozinku']);
+  expect(button('Napravite nalog')).toBeDefined();
+  expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
+  expect(mockPrepare).not.toHaveBeenCalled();
 });
 
 it('uses the flatter signup stage while retaining all real fields and the explicit primary command', async () => {
@@ -106,17 +132,24 @@ it('keeps an empty password submission local and immediately editable', async ()
 
 it('hides a revealed password when switching form mode, preserving the entered value without submitting', async () => {
   await render(); await fill('Unesite lozinku', 'local-dummy-value');
+  const loginScroll = host('ScrollView')[0];
   const toggle = () => host('Pressable').find(node => node.props.accessibilityLabel === 'Prikaži lozinku')!;
   await act(async () => toggle().props.onPress());
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(false);
   await press('Napravi nalog');
+  const signupScroll = host('ScrollView')[0];
+  // Each form starts at its own top; the old login offset must not hide signup
+  // fields at200% text size. Ordinary editing stays in the same scroll surface.
+  expect(signupScroll).not.toBe(loginScroll);
   expect(button('Već imaš nalog? Prijavi se').props.accessibilityRole).toBe('button');
   expect(button('Napravi nalog')).toBeUndefined();
   expect(host('Pressable').some(node => node.props.accessibilityRole === 'tab')).toBe(false);
   expect(input('Unesite lozinku').props.value).toBe('local-dummy-value');
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
   await act(async () => toggle().props.onPress());
+  expect(host('ScrollView')[0]).toBe(signupScroll);
   await press('Već imaš nalog? Prijavi se');
+  expect(host('ScrollView')[0]).not.toBe(signupScroll);
   expect(input('Unesite lozinku').props.secureTextEntry).toBe(true);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });
@@ -229,7 +262,8 @@ it.each([['onRequester', 'REQUESTER'], ['onWorker', 'WORKER']])('prepares %s onc
   const press = tree.root.findByType('Hero' as React.ElementType).props[action];
   await act(async () => { press(); press(); });
   expect(mockPrepare).toHaveBeenCalledTimes(1);
-  expect(mockPrepare).toHaveBeenCalledWith(intent);
+  expect(mockPrepare).toHaveBeenCalledWith(intent, expect.any(Function));
+  expect(mockPrepare.mock.calls[0][1]()).toBe(true);
   expect(host('TextInput')).toHaveLength(0);
   expect(text()).not.toContain('ISTI NALOG');
   await act(async () => pending.resolve());
@@ -243,6 +277,47 @@ it('retains the entry and exposes retry after failed intent storage', async () =
   await act(async () => { tree = create(<AuthScreen />); });
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   expect(tree.root.findByType('Hero' as React.ElementType).props.error).toContain('Pokušajte ponovo');
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
+  expect(input('ime@primer.rs')).toBeDefined();
+});
+it.each(['cancel', 'blur', 'route', 'unmount'])('does not open Auth or retain a selection when %s supersedes a pending prepare', async boundary => {
+  const pending = deferred<void>(); mockPrepare.mockReturnValueOnce(pending.promise);
+  await act(async () => { tree = create(<AuthScreen />); });
+  let active = true;
+  await act(async () => { tree.root.findByType('Hero' as React.ElementType).props.onRequester({ isCurrent: () => active }); });
+  const current = mockPrepare.mock.calls[0][1]; expect(current()).toBe(true);
+  expect(host('TextInput')).toHaveLength(0); expect(mockRead).not.toHaveBeenCalled();
+  await act(async () => {
+    if (boundary === 'cancel') active = false;
+    else if (boundary === 'blur') mockBlur?.();
+    else if (boundary === 'unmount') tree.unmount();
+    else { mockParams = { form: 'recovery' }; tree.update(<AuthScreen />); }
+  });
+  expect(current()).toBe(false);
+  await act(async () => pending.resolve());
+  expect(current()).toBe(false);
+  expect(mockRead).not.toHaveBeenCalled();
+  if (boundary !== 'unmount') {
+    expect(host('TextInput')).toHaveLength(0);
+    expect(tree.root.findByType('Hero' as React.ElementType).props.error).toBeNull();
+  }
+});
+it('rejects a retained pre-blur callback after refocus while allowing a fresh choice', async () => {
+  await act(async () => { tree = create(<AuthScreen />); });
+  const stale = tree.root.findByType('Hero' as React.ElementType).props.onRequester;
+  await act(async () => mockBlur?.());
+  await act(async () => { mockBlur = mockFocus() || undefined; });
+  await act(async () => stale()); expect(mockPrepare).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
+  expect(mockPrepare).toHaveBeenCalledTimes(1); expect(input('ime@primer.rs')).toBeDefined();
+});
+it('ignores a cancelled selection storage error and permits a fresh retry without opening Auth early', async () => {
+  const pending = deferred<void>(); mockPrepare.mockReturnValueOnce(pending.promise);
+  await act(async () => { tree = create(<AuthScreen />); });
+  let active = true;
+  await act(async () => { tree.root.findByType('Hero' as React.ElementType).props.onWorker({ isCurrent: () => active }); });
+  active = false; await act(async () => pending.reject(new Error('late storage failure')));
+  expect(tree.root.findByType('Hero' as React.ElementType).props.error).toBeNull(); expect(host('TextInput')).toHaveLength(0);
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   expect(input('ime@primer.rs')).toBeDefined();
 });

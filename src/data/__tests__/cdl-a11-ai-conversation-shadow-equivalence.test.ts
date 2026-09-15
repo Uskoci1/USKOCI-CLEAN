@@ -2,8 +2,7 @@
  * CDL-A11 — canonical AI conversation open/read contract after shadow deletion.
  *
  * Pre-deletion proof run 33966439120 was green while the stale NEW_NEED open
- * path and null conversation-read shadow still existed. The active
- * aiProductionOverrides runtime behavior remains unchanged.
+ * path and null conversation-read shadow still existed. The retained read adapter remains; unkeyed opens are retired by owner stabilization.
  */
 
 import { readFileSync } from 'node:fs';
@@ -42,7 +41,8 @@ describe('CDL-A11 — canonical AI conversation owner after shadow deletion', ()
 
     expect(winnerSource).toContain("type AiOverrides = Pick<Izvor, 'otvoriRazgovor' | 'razgovor'>;");
     expect(winnerSource).toContain('async otvoriRazgovor()');
-    expect(winnerSource).toContain("p_purpose: 'NEED_INTAKE'");
+    expect(winnerSource).toContain("'OWNED_CONVERSATION_REQUIRED'");
+    expect(winnerSource).not.toContain("rpc('rpc_ai_open_conversation'");
     expect(winnerSource).toContain('async razgovor(razgovorId)');
     expect(winnerSource).toContain(".from('ai_conversations')");
     expect(winnerSource).toContain(".from('ai_structured_facts')");
@@ -50,23 +50,19 @@ describe('CDL-A11 — canonical AI conversation owner after shadow deletion', ()
     expect(winnerSource).toContain('spremnoZaObjavu: false');
   });
 
-  it('preserves the exact NEED_INTAKE open-conversation RPC contract', async () => {
+  it('retires the unkeyed opener without creating a conversation', async () => {
     mockRpc.mockResolvedValue({ data: 'conv-1', error: null });
-
     const result = await aiProductionOverrides.otvoriRazgovor();
-
-    expect(mockRpc).toHaveBeenCalledTimes(1);
-    expect(mockRpc).toHaveBeenCalledWith('rpc_ai_open_conversation', {
-      p_purpose: 'NEED_INTAKE',
-    });
-    expect(result).toEqual({ ok: true, podatak: { razgovorId: 'conv-1' } });
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, kod: 'OWNED_CONVERSATION_REQUIRED',
+      poruka: 'Otvorite Novi Zadatak da započnete razgovor.' });
   });
 
-  it('preserves fail-closed open-conversation error mapping', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'BAD_PURPOSE' } });
-
-    const result = await aiProductionOverrides.otvoriRazgovor();
-
-    expect(result).toEqual({ ok: false, kod: 'BAD_PURPOSE', poruka: 'BAD_PURPOSE' });
+  it('repeated legacy opens remain non-writing rather than creating duplicate records', async () => {
+    const a = await aiProductionOverrides.otvoriRazgovor();
+    const b = await aiProductionOverrides.otvoriRazgovor();
+    expect(a).toEqual(b);
+    expect(a.ok).toBe(false);
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 });
