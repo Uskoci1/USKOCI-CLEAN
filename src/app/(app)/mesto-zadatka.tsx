@@ -14,7 +14,9 @@ export default function MestoZadatka() {
   const read = useCallback(() => needLocationClientService.read(id), [id]);
   const editor = useOwnedEditor(read);
   const resolver = useMemo(() => createProductionLocationResolver(), [id, editor.data?.accountId, editor.data?.revision]);
-  const back = () => router.canGoBack() ? router.back() : router.replace({ pathname: '/pregled-nacrta', params: { conversationId: id } });
+  // A direct/deep entry must return to the current complete review, never the
+  // retired per-fact draft review. A real back stack is still preserved.
+  const back = () => router.canGoBack() ? router.back() : router.replace({ pathname: '/pregled-zadatka', params: { conversationId: id } });
   return <LocationScreen title="Mesto Zadatka" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
     {editor.saved ? <>
       <T accessibilityRole="alert" tone="success">Lokacija je sačuvana u pregledu Zadatka.</T>
