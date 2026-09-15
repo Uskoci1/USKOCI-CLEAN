@@ -41,7 +41,18 @@ describe('P4 — readStatus', () => {
   });
 
   it('maps a ready map and drops nothing the server published', async () => {
-    resetRpc({ data: { ready: true, reason: null, mapVersion: 'v1', effectiveAt: '2026-09-08T00:00:00+00:00', providers: [provider('SUPABASE_PLATFORM'), provider('OPENAI_AI', { legalRole: 'SUBPROCESSOR' })] }, error: null });
+    resetRpc({ data: {
+      ready: true,
+      reason: null,
+      mapVersion: 'v1',
+      effectiveAt: '2026-09-08T00:00:00+00:00',
+      counselReference: 'reviewed-reference',
+      technicalProviderCount: 2,
+      requiredCurrentProviders: 2,
+      coveredCurrentProviders: 2,
+      providers: [provider('SUPABASE_PLATFORM'), provider('OPENAI_AI', { legalRole: 'SUBPROCESSOR' })],
+      runtimeProviderGateAdmitted: false,
+    }, error: null });
     const result = await processorMapClientService.readStatus();
     expect(result.ok).toBe(true);
     if (!result.ok || !result.podatak.ready) return;
