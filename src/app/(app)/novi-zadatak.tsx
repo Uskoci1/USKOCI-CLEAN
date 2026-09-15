@@ -82,7 +82,7 @@ export default function NoviZadatak() {
       <View style={s.card}>
         <T style={s.cardTitle}>Razgovorom</T>
         <T style={s.body}>Preporučeno. Opiši šta ti treba, a AI pomaže da se podaci slože. Objavu i dalje potvrđuješ tek posle pregleda.</T>
-        <V2Action label="Nastavi razgovorom" disabled={!requester || busy} onPress={openAi} />
+        <V2Action label="Nastavi razgovorom" kind="primary" disabled={!requester || busy} onPress={openAi} />
       </View>
 
       <View style={s.card}>
