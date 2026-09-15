@@ -97,7 +97,9 @@ it('activation remains unconfirmed while the server still reports DRAFT and neve
 });
 it('a missing required skill prevents activation but permits an explicitly saved draft', async () => {
   mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT', vestine: [] }); await render();
-  click('Proveri i aktiviraj profil'); expect(texts()).toContain('bar jednu veštinu'); expect(mockWrite).not.toHaveBeenCalled();
+  // PKG-005 progressive CTA: activation is not offered until the basics exist; the primary action guides to the missing skill.
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
+  click('Dopuni osnovne podatke'); expect(texts()).toContain('bar jednu veštinu'); expect(mockWrite).not.toHaveBeenCalled();
   click('Sačuvaj kao nacrt'); await settle(); expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false });
   expect(texts()).toContain('Izmene profila su sačuvane i proverene');
 });

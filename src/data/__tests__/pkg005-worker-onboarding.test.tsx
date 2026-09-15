@@ -1,33 +1,35 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-let accountId = '10000000-0000-4000-8000-000000000001';
-let accountRevision = 1;
-let intent = 'uskocer';
+let mockAccountId = '10000000-0000-4000-8000-000000000001';
+let mockAccountRevision = 1;
+let mockIntent = 'uskocer';
 const readProfile = jest.fn();
 const writeProfile = jest.fn();
-const navigate = jest.fn();
-const back = jest.fn();
-const replace = jest.fn();
-const push = jest.fn();
-const source = { mojRadnikProfil: readProfile, azurirajRadnikProfil: writeProfile };
+const mockNavigate = jest.fn();
+const mockBack = jest.fn();
+const mockReplace = jest.fn();
+const mockPush = jest.fn();
+const mockSource = { mojRadnikProfil: readProfile, azurirajRadnikProfil: writeProfile };
 
-jest.mock('react-native', () => ({
-  AppState: { currentState: 'active', addEventListener: jest.fn(() => ({ remove: jest.fn() })) },
-}));
+jest.mock('react-native', () => {
+  const actual = jest.requireActual('react-native');
+  const appState = { currentState: 'active', addEventListener: jest.fn(() => ({ remove: jest.fn() })) };
+  return new Proxy(actual, { get: (target, key) => key === 'AppState' ? appState : Reflect.get(target, key) });
+});
 jest.mock('expo-router', () => ({
-  router: { navigate: (...args: unknown[]) => navigate(...args), back: (...args: unknown[]) => back(...args),
-    replace: (...args: unknown[]) => replace(...args), push: (...args: unknown[]) => push(...args), canGoBack: () => true },
+  router: { navigate: (...args: unknown[]) => mockNavigate(...args), back: (...args: unknown[]) => mockBack(...args),
+    replace: (...args: unknown[]) => mockReplace(...args), push: (...args: unknown[]) => mockPush(...args), canGoBack: () => true },
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]),
 }));
 jest.mock('../../store/sesija', () => ({
-  useSesija: () => ({ user: { id: accountId }, accountRevision }),
-  sesijaSada: () => ({ user: { id: accountId }, accountRevision }),
+  useSesija: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }),
+  sesijaSada: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }),
 }));
 jest.mock('../../store/uloga', () => ({
-  useIzvor: () => source,
-  useUloga: () => intent,
-  ulogaSada: () => intent,
+  useIzvor: () => mockSource,
+  useUloga: () => mockIntent,
+  ulogaSada: () => mockIntent,
 }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/tokens', () => ({ v2: { text: { body: {}, label: {} }, color: { teal: '#0a0', muted: '#777', danger: '#a00', orange: '#f80' } } }));
@@ -55,7 +57,7 @@ async function render() { await act(async () => { tree = create(<Profile />); })
 
 beforeEach(() => {
   jest.clearAllMocks();
-  accountId = '10000000-0000-4000-8000-000000000001'; accountRevision = 1; intent = 'uskocer';
+  mockAccountId = '10000000-0000-4000-8000-000000000001'; mockAccountRevision = 1; mockIntent = 'uskocer';
   readProfile.mockReset(); writeProfile.mockReset().mockResolvedValue({ ok: true, podatak: null });
 });
 afterEach(async () => { if (tree) await act(async () => tree?.unmount()); tree = undefined; });
@@ -77,7 +79,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Proveri i aktiviraj profil')).toHaveLength(0);
 
     await act(async () => action('Podesi područje rada').props.onPress());
-    expect(navigate).toHaveBeenCalledWith('/profil/lokacija');
+    expect(mockNavigate).toHaveBeenCalledWith('/profil/lokacija');
   });
 
   it('refreshes a DRAFT that has no capacityRevision instead of constructing a predictable failed activation', async () => {
