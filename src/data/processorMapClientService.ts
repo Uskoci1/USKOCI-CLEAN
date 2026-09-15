@@ -82,7 +82,7 @@ export const processorMapClientService = {
       return { ok: true, podatak: { ready: false, reason, missingProviders: missing } };
     }
 
-    const rawProviders = Array.isArray(data.providers) ? data.providers : null;
+    const rawProviders: unknown[] | null = Array.isArray(data.providers) ? data.providers : null;
     const technicalCount = data.technicalProviderCount;
     const requiredCount = data.requiredCurrentProviders;
     const coveredCount = data.coveredCurrentProviders;
