@@ -30,7 +30,9 @@ export default function TabLayout() {
     <Tabs.Screen name="potrebe" options={{ href: requester ? undefined : null, title: 'Zadaci',
       tabBarAccessibilityLabel: 'Zadaci',
       tabBarIcon: ({ color, focused }) => <Package size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+    <Tabs.Screen name="novi-zadatak" options={{ href: null }} />
     <Tabs.Screen name="nova" options={{ href: null }} />
+    <Tabs.Screen name="rucni-zadatak" options={{ href: null }} />
     <Tabs.Screen name="moje-prijave" options={{ href: requester ? null : undefined, title: 'Prijave',
       tabBarAccessibilityLabel: 'Prijave',
       tabBarIcon: ({ color, focused }) => <PaperPlaneTilt size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
