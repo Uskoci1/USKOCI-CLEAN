@@ -48,10 +48,15 @@ it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on
   expect(tree.root.findByType('SafeAreaView' as any).props.edges).toEqual(['top']);
   expect(mockWrite).not.toHaveBeenCalled();
 });
-it('only a successfully absent profile starts with availability false and an explicit empty radius', async () => {
-  mockRead.mockResolvedValue(null); await render();
+it('a successfully absent profile starts with truthful empty values and the primary action saves the first draft before activation', async () => {
+  mockRead.mockResolvedValueOnce(null).mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
   expect(control('Dostupan sam').props.value).toBe(false); expect(control('Radijus rada (km)').props.value).toBe('');
-  click('Proveri i aktiviraj profil'); expect(mockWrite).not.toHaveBeenCalled(); expect(texts()).toContain('Najpre sačuvajte i učitajte profil');
+  expect(control('Koliko ljudi možeš da obezbediš').props.editable).toBe(false);
+  click('Sačuvaj profil'); await settle();
+  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false });
+  expect(texts()).toContain('Profil je sačuvan i provereno učitan');
+  expect(control('Koliko ljudi možeš da obezbediš').props.editable).toBe(true);
+  expect(control('Proveri i aktiviraj profil')).toBeTruthy();
 });
 it('read failure offers retry without constructing a false/15km draft', async () => {
   mockRead.mockRejectedValueOnce(new Error('private diagnostic')); await render();
