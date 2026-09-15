@@ -93,7 +93,7 @@ describe('PKG-003 provider-independent manual NEED_FACT_V2 bootstrap client', ()
     };
     expect(manualNeedFactMatchesReadback(fact, 'need.required_tools', ['bušilica', 'merdevine'], 'bušilica, merdevine')).toBe(true);
     expect(manualNeedFactMatchesReadback(fact, 'need.required_tools', ['bušilica'], 'bušilica')).toBe(false);
-    expect(manualNeedFactMatchesReadback({ ...fact, source: 'AI_PROPOSED' }, 'need.required_tools', ['bušilica', 'merdevine'], 'bušilica, merdevine')).toBe(false);
+    expect(manualNeedFactMatchesReadback({ ...fact, source: 'AI_INFERENCE' }, 'need.required_tools', ['bušilica', 'merdevine'], 'bušilica, merdevine')).toBe(false);
   });
 
   it('keeps location/media on their dedicated authority and refuses unavailable verified identity=true before transport', async () => {
