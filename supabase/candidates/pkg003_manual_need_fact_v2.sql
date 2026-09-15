@@ -12,7 +12,8 @@ begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';
 
--- Fail closed if the established V2 authority is not present.
+-- Fail closed if the established V2 authority is not present or this candidate
+-- was already installed through some other history.
 do $pkg003_preflight$
 begin
   if to_regclass('public.ai_conversations') is null
@@ -25,10 +26,14 @@ begin
     raise exception 'PKG003_PREDECESSOR_MISMATCH: canonical NEED_FACT_V2 authority is incomplete'
       using errcode = '55000';
   end if;
+  if to_regclass('private.manual_need_fact_commands') is not null
+     or to_regprocedure('public.rpc_set_manual_need_fact_v2(uuid,uuid,text,jsonb,text)') is not null then
+    raise exception 'PKG003_ALREADY_PRESENT' using errcode = '55000';
+  end if;
 end
 $pkg003_preflight$;
 
-create table if not exists private.manual_need_fact_commands (
+create table private.manual_need_fact_commands (
   account_id uuid not null references auth.users(id) on delete cascade,
   client_request_id uuid not null,
   request_hash text not null,
@@ -49,7 +54,7 @@ revoke all on table private.manual_need_fact_commands from public, anon, authent
 comment on table private.manual_need_fact_commands is
   'PKG-003 idempotency ledger for owner-authenticated NEED_FACT_V2 manual bootstrap commands; never a Need/publication writer.';
 
-create or replace function public.rpc_set_manual_need_fact_v2(
+create function public.rpc_set_manual_need_fact_v2(
   p_conversation_id uuid,
   p_client_request_id uuid,
   p_fact_key text,
@@ -71,6 +76,7 @@ declare
   v_display text := nullif(btrim(p_display_value), '');
   v_request_hash text;
   v_fact_id uuid;
+  v_previous_id uuid;
   v_result jsonb;
 begin
   if v_uid is null then
@@ -189,10 +195,14 @@ begin
          or v_current.scope <> 'NEED_DRAFT' then
         raise exception 'FACT_NOT_EDITABLE' using errcode = 'P0001';
       end if;
+      v_previous_id := v_current.id;
+      -- Preserve the existing fact guard's canonical two-step supersession:
+      -- first mark the old live fact superseded without a link, then create the
+      -- replacement, then link only to that verified live replacement.
       update public.ai_structured_facts
          set superseded_at = statement_timestamp(),
-             superseded_by = v_fact_id
-       where id = v_current.id;
+             superseded_by = null
+       where id = v_previous_id;
     end if;
 
     insert into public.ai_structured_facts(
@@ -204,6 +214,12 @@ begin
       'CONFIRMED', 'EXPLICIT_USER_ANSWER', 'NEED_DRAFT', 1, null,
       v_uid, statement_timestamp(), 'NEED_FACT_V2', v_value_type, v_display
     );
+
+    if v_previous_id is not null then
+      update public.ai_structured_facts
+         set superseded_by = v_fact_id
+       where id = v_previous_id;
+    end if;
   end if;
 
   v_result := jsonb_build_object(
