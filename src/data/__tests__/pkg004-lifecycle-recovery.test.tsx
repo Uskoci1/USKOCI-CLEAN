@@ -1,11 +1,15 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-jest.mock('react-native', () => ({
-  AppState: { currentState: 'active', addEventListener: jest.fn(() => ({ remove: jest.fn() })) },
-  StyleSheet: { create: (value: unknown) => value },
-  View: 'View',
-}));
+jest.mock('react-native', () => {
+  const actual = jest.requireActual('react-native');
+  const overrides: Record<string, unknown> = {
+    AppState: { currentState: 'active', addEventListener: jest.fn(() => ({ remove: jest.fn() })) },
+    StyleSheet: { create: (value: unknown) => value },
+    View: 'View',
+  };
+  return new Proxy(actual, { get: (target, key) => typeof key === 'string' && key in overrides ? overrides[key] : Reflect.get(target, key) });
+});
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() },
