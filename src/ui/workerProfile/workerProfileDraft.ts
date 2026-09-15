@@ -27,7 +27,9 @@ export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate
   if (Object.values(lists).some(value => value === null)) return { error: 'Svaka lista može imati do 50 stavki, do 500 znakova po stavci.' };
   const values = { ime: draft.ime.trim(), grad: draft.grad.trim(), biografija: draft.biografija.trim(),
     vestine: lists.vestine!, alati: lists.alati!, vozila: lists.vozila!, radijusKm: Number(draft.radius), dostupanOdmah: draft.dostupanOdmah };
-  if (activate && (!values.ime || !values.grad || !values.vestine.length)) return { error: 'Za aktivaciju unesite ime i bar jednu veštinu; mesto potvrdite u području rada.' };
+  if (activate && (values.ime.length < 2 || values.grad.length < 2 || !values.vestine.length)) {
+    return { error: 'Za aktivaciju unesite ime od najmanje 2 znaka i bar jednu veštinu; mesto potvrdite u području rada.' };
+  }
   const before = { ...initial, radijusKm: Number(initial.radius) };
   const command: AzurirajProfilKomanda = { zavrsi: activate };
   // Only changed fields are written. A location edit elsewhere cannot be
