@@ -54,8 +54,6 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
   finally { if (timer) clearTimeout(timer); }
  }
  async function read(scope: Scope, generation: number, ask: boolean): Promise<Snapshot> {
-  // Independent read-only transport evidence. Its failure cannot disable device
-  // controls, request OS consent or change the existing preference revision.
   const transport = readTransport();
   const preferences = await notificationPreferencesClientService.read(scope.accountId, scope.role);
   if (!current(scope, generation)) throw Error('STALE');
@@ -85,7 +83,6 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
   scopeRef.current = scope; setView(null); setDraft(null); setError(false); setValidation(null); setBusy(false);
   if (accountId) void run(scope, generation => read(scope, generation, false));
   return () => { scope.alive = false; scope.generation++; if (scopeRef.current === scope) scopeRef.current = null; };
- // A fresh focus is an authoritative readback; no automatic write replay.
  // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [accountId, accountRevision, role]));
  const owner = scopeRef.current;
@@ -98,8 +95,6 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
   void run(scope, async generation => {
    const fresh = await read(scope, generation, true);
    if (fresh.native.kind !== 'READY' || !fresh.device) return fresh;
-   // OS consent, explicit role opt-in and registration are separate owners.
-   // No registration can silently turn an N08 preference on.
    const registered = await pushDeviceClientService.set(scope, fresh.native.token, fresh.native.platform, true, fresh.device.revision);
    if (!current(scope, generation) || !registered.ok) throw Error('REGISTRATION_UNCONFIRMED');
    if (!fresh.preferences.settings.push_enabled) await notificationPreferencesClientService.save(scope.accountId, scope.role,
@@ -110,7 +105,6 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
  }
  function disable() {
   const scope = scopeRef.current; if (!scope || !snapshot || view?.owner !== scope || scope.busy || scope.generation !== renderedGeneration) return;
-  // Immutable displayed revision. A conflicting concurrent edit requires readback.
   const original = snapshot.preferences;
   void run(scope, async generation => {
    await notificationPreferencesClientService.save(scope.accountId, scope.role, { ...original.settings, push_enabled: false }, original.revision);
@@ -205,7 +199,7 @@ const styles = StyleSheet.create({
  divider: { height: 1, backgroundColor: v2.color.line },
  timeRow: { flexDirection: 'row', gap: v2.space.md },
  timeField: { flex: 1, gap: 6 },
- input: { minHeight: 48, borderWidth: 1, borderColor: v2.color.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, color: v2.color.ink, backgroundColor: v2.color.paper, fontSize: 16 },
+ input: { minHeight: 48, borderWidth: 1, borderColor: v2.color.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, color: v2.color.ink, backgroundColor: v2.color.surface, fontSize: 16 },
 });
 
 async function readTransport(): Promise<PushReadiness | null> {
