@@ -221,6 +221,10 @@ $location_review_and_draft$;
 
 -- ACL/privacy guard: the authenticated caller may execute only the RPC, never
 -- inspect the private replay ledger directly. Service-only AI writer stays closed.
+-- The privilege lookups below resolve private.* names, which needs USAGE on the
+-- schema; run them as the proof superuser, not as the last impersonated owner
+-- (run 35035945857 failed here with "permission denied for schema private").
+reset role;
 do $acl_guard$
 begin
   if has_table_privilege('authenticated','private.manual_need_fact_commands','SELECT')
