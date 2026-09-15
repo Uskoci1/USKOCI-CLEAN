@@ -33,13 +33,13 @@ export default function NoviZadatak() {
     return () => { if (focus.current === scope) focus.current = null; };
   }, [accountId, accountRevision, intent]));
 
-  const scope = focus.current;
-  const current = () => scope !== null && focus.current === scope && !!accountId
+  const current = (scope: object | null) => scope !== null && focus.current === scope && !!accountId
     && sesijaSada().user?.id === accountId
     && sesijaSada().accountRevision === accountRevision
     && ulogaSada() === intent;
   const navigate = (action: () => void) => {
-    if (!current() || navigating.current) return;
+    const scope = focus.current;
+    if (!current(scope) || navigating.current) return;
     navigating.current = true;
     action();
   };
@@ -50,17 +50,20 @@ export default function NoviZadatak() {
   };
 
   const openManual = async () => {
-    if (!current() || busy || navigating.current || intent !== 'narucilac') return;
+    const scope = focus.current;
+    if (!current(scope) || busy || navigating.current || intent !== 'narucilac') return;
     setBusy(true);
     setError(null);
     const result = await aiNeedV2Izvor.openConversation(openRequestId);
-    if (!current()) return;
+    if (!current(scope)) return;
     setBusy(false);
     if (!result.ok) {
       setError(result.poruka);
       return;
     }
-    navigate(() => router.replace({ pathname: '/rucni-zadatak', params: { conversationId: result.podatak.conversationId } }));
+    if (navigating.current) return;
+    navigating.current = true;
+    router.replace({ pathname: '/rucni-zadatak', params: { conversationId: result.podatak.conversationId } });
   };
 
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'));
