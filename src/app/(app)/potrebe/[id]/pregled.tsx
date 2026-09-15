@@ -113,7 +113,12 @@ function OwnedNeed({ id }: { id: string }) {
       'Zatvori potragu', async () => { await editor.save(async () => {
         const result = await ru4Production.closeRemainingSearch(potreba.id, potreba.revizija, noviZahtevId('zatvori-preostalu-potragu'));
         if (!current()) return changed();
-        return result.ok ? read() : failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitajte trenutno stanje.');
+        if (!result.ok) return failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitajte trenutno stanje.');
+        const after = await read();
+        if (!current()) return changed();
+        if (!after.ok) return after;
+        return after.podatak.remainingClosed ? after
+          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Server nije potvrdio zatvaranje preostale potrage. Učitajte trenutno stanje.');
       }); });
   };
   const openOwnedReview = async (destination: '/nova' | '/pregled-zadatka') => {
@@ -144,7 +149,7 @@ function OwnedNeed({ id }: { id: string }) {
     photos={potreba ? <NeedPhotos needId={potreba.id} /> : undefined}
     qaAction={potreba && intent === 'narucilac' ? <TaskQaEntry disabled={!canAct()}
       onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id } })); }} /> : undefined}
-    lifecycleActions={potreba && intent === 'narucilac' ? <NeedLifecycleActions need={potreba}
+    lifecycleActions={intent === 'narucilac' && uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}
       disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
     error={greska} busy={akcijaUToku || terminalActive} ownerIntent={intent === 'narucilac'} remainingClosed={preostalaPotragaZatvorena}
     onBack={() => navigate(() => router.back())} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
