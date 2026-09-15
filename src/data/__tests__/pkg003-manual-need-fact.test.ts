@@ -8,6 +8,7 @@ import {
   canBootstrapManualNeedFact,
   manualNeedFactClientService,
   manualNeedFactFromText,
+  manualNeedFactMatchesReadback,
 } from '../manualNeedFactClientService';
 
 const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -75,6 +76,24 @@ describe('PKG-003 provider-independent manual NEED_FACT_V2 bootstrap client', ()
     const result = await pending;
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.kod).toBe('AUTH_ACCOUNT_CHANGED');
+  });
+
+  it('retires an unknown-outcome command only on exact canonical human-confirmed readback', () => {
+    const fact = {
+      id: factId,
+      key: 'need.required_tools' as const,
+      value: ['bušilica', 'merdevine'],
+      displayValue: 'bušilica, merdevine',
+      valueType: 'TEXT_ARRAY' as const,
+      privacyClass: 'PUBLIC' as const,
+      requiredForDraft: false,
+      status: 'CONFIRMED' as const,
+      source: 'EXPLICIT_USER_ANSWER' as const,
+      evidence: null,
+    };
+    expect(manualNeedFactMatchesReadback(fact, 'need.required_tools', ['bušilica', 'merdevine'], 'bušilica, merdevine')).toBe(true);
+    expect(manualNeedFactMatchesReadback(fact, 'need.required_tools', ['bušilica'], 'bušilica')).toBe(false);
+    expect(manualNeedFactMatchesReadback({ ...fact, source: 'AI_PROPOSED' }, 'need.required_tools', ['bušilica', 'merdevine'], 'bušilica, merdevine')).toBe(false);
   });
 
   it('keeps location/media on their dedicated authority and refuses unavailable verified identity=true before transport', async () => {
