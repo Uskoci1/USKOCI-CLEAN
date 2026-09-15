@@ -1,5 +1,6 @@
 import { legacyRpcFailure } from './legacyRpcFailure';
 import type { Ishod } from './ports';
+import { failure, positiveInteger, record, sameId } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -9,6 +10,20 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 function fail<T>(error: unknown, fallbackCode: string, fallbackMessage: string): Ishod<T> {
   return legacyRpcFailure(error, fallbackCode, fallbackMessage);
 }
+const isoInstant = (value: unknown): value is string => typeof value === 'string'
+  && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+  && Number.isFinite(Date.parse(value));
+
+export type RemainingSearchCloseReceipt = {
+  needId: string;
+  revision: number;
+  requiredSlots: number;
+  closedRemainingSlots: number | null;
+  remainingSearchClosed: true;
+  closedAt: string;
+  idempotentReplay: boolean;
+  authoritative: true;
+};
 
 export type Ru4RazresiPrijavuInput = {
   prijavaId: string;
@@ -40,7 +55,7 @@ export const ru4Production = {
     expectedRevision: number,
     clientRequestId: string,
     reason = '',
-  ): Promise<Ishod<{ closedRemainingSlots: number }>> {
+  ): Promise<Ishod<RemainingSearchCloseReceipt>> {
     const { data, error } = await supabase.rpc('rpc_close_remaining_search', {
       p_need_id: needId,
       p_expected_revision: expectedRevision,
@@ -48,10 +63,29 @@ export const ru4Production = {
       p_reason: reason,
     });
     if (error) return fail(error, 'REMAINING_SEARCH_CLOSE_FAILED', 'Preostala potraga nije mogla da se zatvori.');
-    return {
-      ok: true,
-      podatak: { closedRemainingSlots: Number(data?.closedRemainingSlots ?? 0) },
-    };
+    const receipt = record(data);
+    if (!receipt || receipt.authoritative !== true || receipt.remainingSearchClosed !== true
+      || !sameId(receipt.needId, needId) || !positiveInteger(receipt.revision) || receipt.revision !== expectedRevision
+      || !positiveInteger(receipt.requiredSlots) || !isoInstant(receipt.closedAt)
+      || typeof receipt.idempotentReplay !== 'boolean') {
+      return failure('REMAINING_SEARCH_CLOSE_INVALID_RESPONSE', 'Server nije vratio potvrdu zatvaranja preostale potrage.');
+    }
+    const rawClosed = receipt.closedRemainingSlots;
+    const closedRemainingSlots = rawClosed === undefined && receipt.idempotentReplay === true ? null
+      : typeof rawClosed === 'number' && Number.isSafeInteger(rawClosed) && rawClosed > 0 ? rawClosed : undefined;
+    if (closedRemainingSlots === undefined) {
+      return failure('REMAINING_SEARCH_CLOSE_INVALID_RESPONSE', 'Server nije vratio potvrdu zatvaranja preostale potrage.');
+    }
+    return { ok: true, podatak: {
+      needId: receipt.needId,
+      revision: receipt.revision,
+      requiredSlots: receipt.requiredSlots,
+      closedRemainingSlots,
+      remainingSearchClosed: true,
+      closedAt: receipt.closedAt,
+      idempotentReplay: receipt.idempotentReplay,
+      authoritative: true,
+    } };
   },
 
   async resolveChangedApplication(input: Ru4RazresiPrijavuInput): Promise<Ishod<{ status: string; version: number }>> {
