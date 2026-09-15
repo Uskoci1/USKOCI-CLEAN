@@ -15,6 +15,7 @@ import {
   canBootstrapManualNeedFact,
   manualNeedFactClientService,
   manualNeedFactFromText,
+  manualNeedFactMatchesReadback,
 } from '../../data/manualNeedFactClientService';
 import type { Ishod } from '../../data/ports';
 import { uuid } from '../../data/serverReceipt';
@@ -107,11 +108,25 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
 
   useEffect(() => {
     if (!conversation) return;
+    // A transport timeout does not retire a command. Only exact canonical
+    // readback of the same human-confirmed value can clear the retained ID.
+    const reconciled = new Set<NeedFactV2Key>();
+    for (const [key, command] of pending.current) {
+      const fact = currentFact(conversation, key);
+      if (manualNeedFactMatchesReadback(fact, key, command.value, command.displayValue)) {
+        pending.current.delete(key);
+        reconciled.add(key);
+      }
+    }
     setFields(previous => {
       const next: FieldStates = { ...previous };
       for (const key of MANUAL_FIELDS) {
-        if (next[key] !== undefined || pending.current.has(key)) continue;
         const fact = currentFact(conversation, key);
+        if (reconciled.has(key) && fact) {
+          next[key] = { value: factCorrectionValue(fact), error: null };
+          continue;
+        }
+        if (next[key] !== undefined || pending.current.has(key)) continue;
         next[key] = { value: fact ? factCorrectionValue(fact) : '', error: null };
       }
       return next;
@@ -228,7 +243,7 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
             style={[s.input, (key === 'need.description' ? { minHeight: 96 } : null)]}
           />
           {state.error ? <T accessibilityRole="alert" style={s.error}>{state.error}</T> : null}
-          {isPending ? <T style={s.meta}>Ishod prethodnog čuvanja nije povučen iz memorije. Isti zahtev će se ponoviti sa istim ID-em.</T> : null}
+          {isPending ? <T style={s.meta}>Ishod prethodnog čuvanja nije potvrđen. Osvežite stanje; isti zahtev se ponavlja samo sa istim ID-em.</T> : null}
           <V2Action label={existing ? 'Sačuvaj izmenu' : 'Sačuvaj podatak'} disabled={!canAct()} onPress={() => { void save(key); }} />
         </View>;
       })}
