@@ -13,6 +13,7 @@ describe('PKG-003 one New Task entry and manual authority boundaries', () => {
     expect(chooser).toContain("router.replace('/nova')");
     expect(chooser).toContain('aiNeedV2Izvor.openConversation(openRequestId)');
     expect(chooser).toContain("pathname: '/rucni-zadatak'");
+    expect(chooser).toContain('label="Nastavi razgovorom" kind="primary"');
     expect(chooser.indexOf('Nastavi razgovorom')).toBeLessThan(chooser.indexOf('Unesi ručno'));
 
     expect(manual).toContain("pathname: '/mesto-zadatka'");
@@ -44,6 +45,16 @@ describe('PKG-003 one New Task entry and manual authority boundaries', () => {
     expect(sql).not.toMatch(/insert\s+into\s+public\.needs/i);
     expect(sql).not.toContain('rpc_publish_need_canonical');
     expect(sql).not.toContain('rpc_ai_propose_fact');
+  });
+
+  it('uses the existing canonical two-step supersession contract instead of bypassing the fact guard', () => {
+    const sql = source('supabase/candidates/pkg003_manual_need_fact_v2.sql');
+    const start = sql.indexOf('set superseded_at = statement_timestamp(),\n             superseded_by = null');
+    const insert = sql.indexOf('insert into public.ai_structured_facts', start);
+    const link = sql.indexOf('set superseded_by = v_fact_id', insert);
+    expect(start).toBeGreaterThan(-1);
+    expect(insert).toBeGreaterThan(start);
+    expect(link).toBeGreaterThan(insert);
   });
 
   it('registers both manual routes as hidden tab routes, never as new visible navigation zones', () => {
