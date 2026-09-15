@@ -110,4 +110,14 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(writeProfile).not.toHaveBeenCalled();
     expect(form().props.focusRequest).toMatchObject({ target: 'name' });
   });
+
+  it('focuses the invalid one-character name before a skill that is already present', async () => {
+    readProfile.mockResolvedValue(readyDraft({ ime: 'A', vestine: ['Selidbe'] }));
+    await render();
+
+    expect(action('Dopuni osnovne podatke')).toBeTruthy();
+    await act(async () => action('Dopuni osnovne podatke').props.onPress());
+    expect(writeProfile).not.toHaveBeenCalled();
+    expect(form().props.focusRequest).toMatchObject({ target: 'name' });
+  });
 });
