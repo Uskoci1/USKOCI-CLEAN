@@ -29,7 +29,11 @@ export function createAiTurnStreamDecoder(input: {
       text += e.text; input.onText(e.text);
     } else if (e.kind === 'final') {
       const result = record(e.turn);
-      if (!result || !turn || result.state !== 'SUCCEEDED' || !sameId(result.turnId, turn)) throw new Error('AI_STREAM_INVALID');
+      if (!result || !turn || !attempt || result.state !== 'SUCCEEDED'
+        || !sameId(result.conversationId, input.conversationId)
+        || !sameId(result.clientRequestId, input.clientRequestId)
+        || !sameId(result.turnId, turn)
+        || (Object.hasOwn(result, 'attemptId') && !sameId(result.attemptId, attempt))) throw new Error('AI_STREAM_INVALID');
       receipt = e.turn; terminal = true;
     } else if (e.kind === 'safe_error') {
       // Never reflect provider, SQL, Auth or arbitrary event text in the UI.
