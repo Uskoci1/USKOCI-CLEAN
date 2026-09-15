@@ -19,7 +19,7 @@ module.exports = ({ config }) => {
     plugins.push([photoPlugin, {
       photosPermission: 'Izaberi fotografiju za svoj zadatak ili profil.',
       cameraPermission: 'USKOČI koristi kameru kada želiš da dodaš fotografiju zadatka ili profila.',
-      microphonePermission: 'Drži mikrofon za razgovor sa USKOČI asistentom. Puštanje šalje poruku, a ne objavljuje zadatak.',
+      microphonePermission: 'Drži mikrofon za razgovor sa USKOČI asistentom. Puštanje završava transkript koji možeš da izmeniš; poruku šalješ tek kada izabereš Pošalji.',
     }]);
   }
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === mapPlugin)) {
