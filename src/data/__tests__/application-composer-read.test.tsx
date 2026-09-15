@@ -69,7 +69,6 @@ afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined
 async function offer() { await render(); await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '2'); }
 async function selection() { mockRole = 'narucilac'; await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
-
 it('rearms read and Retry after returning to the same retained tab', async () => {
   mockNeed.mockResolvedValue({ ...need(), naslov: 'Restored task' });
   mockTask.mockRejectedValueOnce(new Error('first outage')).mockRejectedValueOnce(new Error('second outage'))
@@ -95,6 +94,14 @@ it('recovers the actual composer from a rejected detail read without leaking err
   await render(); expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati'); expect(text()).not.toContain('private');
   const retry = press('Pokušajte ponovo'); await act(async () => { retry(); retry(); });
   expect(mockTask).toHaveBeenCalledTimes(2); expect(press('Pošalji ovu Prijavu')).toBeDefined(); expect(mockSubmit).not.toHaveBeenCalled();
+});
+it('refuses a submission when the authoritative task gate says remaining search is closed', async () => {
+  mockTask.mockResolvedValue({ ...need(), primaNovePrijave: false, rokZaPrijaveIso: null });
+  await offer();
+  const send = press('Pošalji ovu Prijavu'); expect(send).toBeDefined();
+  await act(async () => { send(); });
+  expect(mockSubmit).not.toHaveBeenCalled();
+  expect(text()).toContain('Proverite aktuelni Zadatak i aktivan radni profil.');
 });
 it('shows successful unavailability and a single real detail fallback navigation', async () => {
   mockTask.mockResolvedValue(null); mockRouter.canGoBack.mockReturnValue(false); await render();
