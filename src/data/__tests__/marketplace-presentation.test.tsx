@@ -13,7 +13,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => mockReduced }));
-jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', MagnifyingGlass: 'Icon', Plus: 'Icon', SlidersHorizontal: 'Icon', User: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', MagnifyingGlass: 'Icon', Plus: 'Icon', SlidersHorizontal: 'Icon', User: 'Icon', Check: 'Icon', X: 'Icon', Lightning: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
@@ -35,7 +35,7 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('List/Map preserves search and viewport; panning alone keeps same exact result set', async () => {
- await render(); await act(async () => press('Pretraži zadatke').props.onChangeText('Novi Sad')); await tap('Mapa');
+ await render(); await tap('Pretraga'); await act(async () => press('Pretraži zadatke').props.onChangeText('Novi Sad')); await tap('Mapa');
  expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one', 'two']);
  const viewport = { center: [0, 0], zoom: 6, bounds: [-1, -1, 1, 1] };
  await act(async () => map().props.onViewport(viewport)); expect(map().props.items).toHaveLength(2); expect(snapshot.area).toBeNull();
@@ -64,7 +64,7 @@ test.each(['loading', 'error'])('%s removes stale cards/map; retry is bound', as
 });
 test('owned active/draft/attention filters use actual rows and full long title remains readable', async () => {
  owned = true; const long = 'Pomoć pri prenošenju i raspoređivanju nameštaja u Novom Sadu '.repeat(3); rows = [row('one', { naslov: long, stanje: 'OBJAVLJENA', brojPrijava: 1 }), row('two', { stanje: 'NACRT', brojPrijava: 0 })];
- await render(); expect(texts()).toContain(long); await tap('Treba moja radnja'); expect(snapshot.attention).toBe(true); await tap('Nacrti'); expect(texts()).toContain('Nema zadataka u ovom prikazu');
+ await render(); expect(texts()).toContain(long); await tap('Filteri'); await tap('Treba moja radnja'); expect(snapshot.attention).toBe(true); await tap('Nacrti'); expect(texts()).toContain('Nema zadataka u ovom prikazu');
  await tap('Treba moja radnja'); expect(press('Otvorite Zadatak Pomoć two')).toBeTruthy();
 });
 test('requester creation stays reachable from both discovery list and map, while worker discovery has no creation action', async () => {

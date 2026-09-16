@@ -129,7 +129,7 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, grow: { flex: 1, minWidth: 0 },
   state: { padding: 20, gap: 16 },
   card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 10 },
-  draftCard: { borderColor: sys.color.lineStrong, backgroundColor: sys.color.orangeSoft }, mutedCard: { backgroundColor: sys.color.ground },
+  draftCard: { borderColor: sys.color.lineStrong, backgroundColor: sys.color.orangeSoft }, mutedCard: { backgroundColor: sys.color.wash },
   retry: { minHeight: 50, borderRadius: sys.radius.control, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.orange, paddingHorizontal: 16 },
   content: { padding: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },

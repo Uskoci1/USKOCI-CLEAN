@@ -13,7 +13,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => false }));
-jest.mock('phosphor-react-native', () => Object.fromEntries(['Clock', 'MapPin', 'Users', 'MagnifyingGlass', 'Plus', 'SlidersHorizontal', 'User', 'CalendarBlank', 'Check'].map(name => [name, 'Icon'])));
+jest.mock('phosphor-react-native', () => Object.fromEntries(['Clock', 'MapPin', 'Users', 'MagnifyingGlass', 'Plus', 'SlidersHorizontal', 'User', 'CalendarBlank', 'Check', 'X', 'Lightning'].map(name => [name, 'Icon'])));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
@@ -82,8 +82,8 @@ test('agreements name the intent, keep the accepted facts and mark an open probl
   await act(async () => { tree = create(<Agreements intent="narucilac" rows={rows} />); });
   const copy = texts();
   expect(copy).toContain('Meni treba'); expect(copy).toContain('Dogovori'); expect(copy).toContain('2.500 RSD'); expect(copy).toContain('1 osoba');
-  expect(copy).toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledajte Dogovor');
-  expect(copy).toContain('Mila'); expect(copy).toContain('Ti naručuješ');
+  expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledajte Dogovor');
+  expect(copy).toContain('Mila'); expect(copy).toContain('radi za tebe');
   expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).not.toContain('Radni raspored (JA MOGU)');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Agreements intent="uskocer" rows={rows} />); });

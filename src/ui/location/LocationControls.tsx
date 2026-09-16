@@ -60,7 +60,7 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
     <T variant="meta" tone="muted">{label}</T>
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={{ text: selected?.label ?? 'Nije izabrano' }}
       accessibilityState={{ disabled, expanded: open }} disabled={disabled} haptic="select" scaleTo={0.99} onPress={() => setOpen(true)}
-      style={[locationStyles.input, locationStyles.row, disabled && { backgroundColor: sys.color.ground }]}>
+      style={[locationStyles.input, locationStyles.row, disabled && { backgroundColor: sys.color.wash }]}>
       <T variant="body" style={{ flex: 1, color: selected ? sys.color.ink : sys.color.muted }}>{selected?.label ?? 'Izaberi'}</T><CaretDown size={18} color={sys.color.green} />
     </Press>
     <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>

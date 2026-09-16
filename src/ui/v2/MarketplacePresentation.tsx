@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Keyboard, Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MagnifyingGlass, Plus, SlidersHorizontal } from 'phosphor-react-native';
+import { Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import type { Uloga } from '../../contracts/projections';
 import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceView';
-import { initialMarketplaceView, marketplaceItems, publicPoint } from '../../data/marketplaceView';
+import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, publicPoint } from '../../data/marketplaceView';
 import { Press } from '../Press';
-import { ScreenHeader } from '../system/ScreenHeader';
+import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
 import { brandAction, intentLabel, sys } from '../system/tokens';
@@ -22,28 +22,41 @@ export type MarketplacePresentationProps = { owned: boolean; items: readonly Mar
   /** Which intent the user is in; the header says it so the context is never implicit. */
   intent?: Uloga };
 
-const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'drafts', label: 'Nacrti' }, { key: 'history', label: 'Istorija' }, { key: 'all', label: 'Svi' }] as const;
+const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'drafts', label: 'Nacrti' }, { key: 'history', label: 'Istorija' }] as const;
+const SECTION_TITLES: Record<MarketplaceView['section'], string> = { active: 'Aktivni zadaci', drafts: 'Nacrti', history: 'Istorija', all: 'Svi zadaci' };
 const MODES = [{ key: 'list', label: 'Lista' }, { key: 'map', label: 'Mapa' }] as const;
 const PRICES = [['all', 'Svi načini'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']] as const;
-const Separator = () => <View style={{ height: 14 }} />;
+const Separator = () => <View style={{ height: 12 }} />;
 const keyOf = (item: MarketplaceItem) => item.id;
 
 /**
- * Zadaci — one screen for both intents: the owner's Tasks ("Moji") and public
- * discovery ("Istraži") as List or Map. Same existing read and filter state in
- * both views; map gestures only change the viewport until explicitly applied.
- * Presentation only: every callback is the route's existing command.
+ * Zadaci. Owned: the requester's own Tasks in three sets (Aktivni · Nacrti ·
+ * Istorija). Discovery: open Tasks as a List or a Map. One segmented control,
+ * then a section row that names the set and holds search and filters as quiet
+ * icon controls, then the cards. Creation is the one orange action, floating
+ * above the list. Presentation only: every callback is the route's existing command.
  */
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const { owned, items, loading, error, view, onOpen } = props, reduced = useReducedMotion();
   const [filterOpen, setFilterOpen] = useState(false), [priceDraft, setPriceDraft] = useState(view.price);
+  const [searchOpen, setSearchOpen] = useState(!!view.query);
   const visible = useMemo(() => marketplaceItems(items, view, owned), [items, view, owned]);
+  const attentionCount = useMemo(() => owned ? items.filter(item => isOwnedNeed(item) && hasNeedAttention(item) && item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA').length : 0, [items, owned]);
+  const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount ? { ...option, badge: attentionCount } : option), [attentionCount]);
   const selected = visible.find(item => item.id === view.selectedId && publicPoint(item)) ?? null;
   const withoutPins = visible.filter(item => !publicPoint(item)).length;
   const hasFilter = !!view.query || view.price !== 'all' || view.attention || !!view.area || owned && view.section !== 'active';
+  const filterActive = view.price !== 'all' || view.attention;
   const change = (patch: Partial<MarketplaceView>) => props.onView({ ...view, ...patch });
   const toggleMode = (mode: 'list' | 'map') => { Keyboard.dismiss(); change({ mode }); };
+  const toggleSearch = () => { Keyboard.dismiss(); if (searchOpen && view.query) change({ query: '', selectedId: null }); setSearchOpen(open => !open); };
+  const openFilters = () => { Keyboard.dismiss(); setPriceDraft(view.price); setFilterOpen(true); };
   const eyebrow = props.intent ? intentLabel(props.intent) : owned ? 'Meni treba' : 'Ja mogu';
+  const sectionTitle = owned ? SECTION_TITLES[view.section] : 'Otvoreni zadaci';
+  const count = loading || error ? null : visible.length;
+  /** The floating action appears only above cards; an empty set carries its own inline primary, so a screen state never shows two orange actions. */
+  const showCards = !loading && !error && visible.length > 0;
+  const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
   const renderItem = useCallback(({ item }: { item: MarketplaceItem }) => <TaskCard item={item} onOpen={() => onOpen(item)} />, [onOpen]);
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
@@ -52,40 +65,38 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         <V2Action label="Pokušajte ponovo" onPress={props.onRefresh} style={brandAction} /></View>
         : hasFilter ? <View style={s.state}><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promenite pretragu ili poništite filtere.</T>
           <V2Action label="Poništi filtere" onPress={() => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport })} /></View>
-          : owned ? <View style={s.state}><T style={s.stateTitle}>{items.length ? 'Nema aktivnih zadataka' : 'Još nemate Zadatak'}</T><T style={s.stateBody}>Recite šta Vam treba. Pregledaćete nacrt pre objave.</T>
-            {props.onNew ? <V2Action label="Napravite prvi Zadatak" onPress={props.onNew} style={brandAction} /> : null}
+          : owned ? <View style={s.state}><T style={s.stateTitle}>{items.length ? 'Nema aktivnih zadataka' : 'Još nemate Zadatak'}</T>
+            <T style={s.stateBody}>{items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Recite šta Vam treba. Nacrt pregledate pre objave.'}</T>
+            {props.onNew ? <V2Action label={items.length ? 'Napravite novi Zadatak' : 'Napravite prvi Zadatak'} onPress={props.onNew} style={brandAction} /> : null}
             {items.length ? <V2Action label="Prikaži sve moje zadatke" kind="quiet" onPress={() => change({ section: 'all' })} /> : null}</View>
-            : <View style={s.state}><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T><T style={s.stateBody}>Možete osvežiti listu ili urediti svoj profil.</T>
+            : <View style={s.state}><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T><T style={s.stateBody}>Osvežite listu ili dopunite svoj profil.</T>
               <V2Action label="Osveži zadatke" onPress={props.onRefresh} style={brandAction} /><V2Action label="Moj profil" kind="quiet" onPress={props.onProfile} /></View>}
   </View>;
 
   return <SafeAreaView edges={['top']} style={s.screen}>
     <View accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       <ScreenHeader eyebrow={eyebrow} title="Zadaci" onProfile={props.onProfile} />
-      <Segmented options={[{ key: 'owned', label: 'Moji' }, { key: 'discover', label: 'Istraži' }]} value={owned ? 'owned' : 'discover'}
-        onChange={() => props.onSwitch()} style={s.scope} />
-      <View style={s.search}>
+      <View style={s.segmentRow}>
+        {owned ? <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
+          : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
+      </View>
+      <View style={s.sectionRow}>
+        <View style={s.sectionCopy}>
+          <T variant="heading" style={s.sectionTitle}>{sectionTitle}</T>
+          {count !== null ? <T variant="heading" style={s.count}>{count}</T> : null}
+        </View>
+        <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
+        <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
+      </View>
+      {searchOpen ? <View style={s.search}>
         <MagnifyingGlass size={19} color={sys.color.muted} />
-        <TextInput accessibilityLabel="Pretraži zadatke" placeholder="Naslov, mesto ili uslov…" placeholderTextColor={sys.color.muted}
+        <TextInput accessibilityLabel="Pretraži zadatke" autoFocus placeholder="Naslov, mesto ili uslov…" placeholderTextColor={sys.color.muted}
           value={view.query} onChangeText={query => change({ query: query.slice(0, 1000), selectedId: null })} maxLength={1000} style={s.input}
           returnKeyType="search" onSubmitEditing={() => Keyboard.dismiss()} />
-      </View>
-      <View style={s.toolbar}>
-        {owned ? <Segmented options={SECTIONS} value={view.section} onChange={section => change({ section, selectedId: null })} scroll style={s.grow} />
-          : <Segmented options={MODES} value={view.mode} onChange={toggleMode} style={s.grow} />}
-        <Press accessibilityRole="button" accessibilityLabel={`Filteri${view.price === 'all' ? '' : ', aktivni'}`}
-          onPress={() => { Keyboard.dismiss(); setPriceDraft(view.price); setFilterOpen(true); }} haptic="select" style={[s.tool, view.price !== 'all' && s.toolActive]}>
-          <SlidersHorizontal size={21} color={sys.color.ink} />
-        </Press>
-        {props.onNew ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara razgovor za novi Zadatak."
-          onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" style={s.add}><Plus size={22} weight="bold" color={sys.color.onOrange} /></Press> : null}
-      </View>
-      {owned ? <Press accessibilityRole="checkbox" accessibilityLabel="Treba moja radnja" accessibilityState={{ checked: view.attention }} haptic="select"
-        onPress={() => change({ attention: !view.attention })} style={s.attention}>
-        <View style={[s.check, view.attention && s.checked]}>{view.attention ? <View style={s.checkMark} /> : null}</View>
-        <T variant="bodyStrong" style={s.attentionText}>Treba moja radnja</T>
-      </Press> : null}
-      {view.area ? <View style={s.areaNotice}><T variant="meta" tone="muted" style={s.grow}>Izabrana oblast sa mape · isti zadaci u Listi i Mapi</T>
+        {view.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => change({ query: '', selectedId: null })} haptic="select" style={s.clear}>
+          <X size={16} weight="bold" color={sys.color.ink} /></Press> : null}
+      </View> : null}
+      {view.area ? <View style={s.areaNotice}><T variant="note" tone="muted" style={s.grow}>Izabrana oblast sa mape · isti zadaci u Listi i Mapi</T>
         <V2Action label="Ukloni oblast" kind="quiet" onPress={() => change({ area: null, selectedId: null })} /></View> : null}
       {!owned && view.mode === 'map' && !loading && !error ? <View style={s.mapArea}>
         <DiscoveryMap items={visible} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
@@ -96,17 +107,20 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           <V2Action label="Otvori detalj Zadatka" onPress={() => onOpen(selected)} style={brandAction} />
           <V2Action label="Zatvori pregled pina" kind="quiet" onPress={() => change({ selectedId: null })} />
         </ScrollView> : null}
-        <View style={s.mapLegend}><T variant="meta" tone="muted" style={s.grow}>{visible.length} zadataka · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
+        <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{visible.length} zadataka · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
           {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={loading} onRefresh={props.onRefresh}
-        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem} />}
+      {props.onNew && showCards ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
+        onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>
+        <Plus size={26} weight="bold" color={sys.color.onOrange} /></Press> : null}
     </View>
     <Modal visible={filterOpen} transparent animationType={reduced ? 'none' : 'slide'} onRequestClose={() => setFilterOpen(false)}>
       <View style={s.scrim}><SafeAreaView edges={['bottom']} style={s.sheet}><ScrollView contentContainerStyle={s.sheetContent} keyboardShouldPersistTaps="handled">
         <View style={s.handle} />
         <T accessibilityRole="header" variant="title" style={s.sheetTitle}>Filteri</T>
-        <T variant="meta" tone="muted">Način cene</T>
+        <T variant="label" style={s.groupLabel}>Način cene</T>
         <View accessibilityRole="radiogroup" style={s.options}>
           {PRICES.map(([value, label]) => <Press key={value} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: priceDraft === value }}
             haptic="select" onPress={() => setPriceDraft(value)} style={[s.option, priceDraft === value && s.optionChecked]}>
@@ -114,6 +128,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             <T variant={priceDraft === value ? 'bodyStrong' : 'body'} style={s.optionText}>{label}</T>
           </Press>)}
         </View>
+        {owned ? <Press accessibilityRole="checkbox" accessibilityLabel="Treba moja radnja" accessibilityState={{ checked: view.attention }} haptic="select"
+          onPress={() => change({ attention: !view.attention })} style={[s.option, view.attention && s.optionChecked]}>
+          <View style={[s.check, view.attention && s.checked]}>{view.attention ? <Check size={14} weight="bold" color={sys.color.surface} /> : null}</View>
+          <View style={s.grow}><T variant="bodyStrong" style={s.optionText}>Treba moja radnja</T><T variant="note" tone="muted">Samo zadaci sa novim prijavama ili potvrdom.</T></View>
+        </Press> : null}
         <V2Action label="Prikaži zadatke" onPress={() => { change({ price: priceDraft, selectedId: null }); setFilterOpen(false); }} style={brandAction} />
         <View style={s.sheetRow}>
           <V2Action label="Poništi izbor" kind="quiet" onPress={() => setPriceDraft('all')} />
@@ -126,23 +145,23 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  scope: { marginHorizontal: 20 },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginTop: 12, paddingHorizontal: 14, backgroundColor: sys.color.surface,
+  segmentRow: { paddingHorizontal: 20, paddingTop: 6 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  sectionCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  sectionTitle: { color: sys.color.ink, flexShrink: 1 },
+  count: { color: sys.color.muted, fontWeight: '500', fontVariant: ['tabular-nums'] },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
   input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
-  tool: { minWidth: 46, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line },
-  toolActive: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
-  add: { minWidth: 46, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, backgroundColor: sys.color.orange },
-  attention: { flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 44, marginHorizontal: 20, marginBottom: 4 },
-  attentionText: { color: sys.color.ink },
-  check: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: sys.color.green, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
-  checked: { backgroundColor: sys.color.green }, checkMark: { width: 10, height: 10, borderRadius: 2, backgroundColor: sys.color.surface },
+  clear: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   areaNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: sys.color.greenSoft, paddingHorizontal: 20, paddingVertical: 2 },
-  list: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, flexGrow: 1 },
+  list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
+  listWithAction: { paddingBottom: 96 },
+  add: { position: 'absolute', right: 20, bottom: 20, width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: sys.color.orange, ...sys.elevation.raised },
   empty: { paddingVertical: 8, gap: 16, flex: 1 }, center: { textAlign: 'center' },
-  state: { paddingVertical: 32, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
-  stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.body, color: sys.color.muted, marginBottom: 6 },
+  state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
+  stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
   mapArea: { flex: 1, minHeight: 180 },
   preview: { position: 'absolute', left: 12, right: 12, bottom: 40, maxHeight: '70%', backgroundColor: sys.color.surface, borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.line, ...sys.elevation.raised },
   previewContent: { padding: 14, gap: 10 },
@@ -152,10 +171,13 @@ const s = StyleSheet.create({
   sheetContent: { padding: 24, paddingTop: 12, gap: 12 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong, marginBottom: 8 },
   sheetTitle: { color: sys.color.ink },
+  groupLabel: { color: sys.color.muted, marginTop: 4 },
   options: { gap: 6 },
-  option: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 50, paddingHorizontal: 14, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   optionChecked: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft }, optionText: { color: sys.color.ink, flex: 1 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
   radioChecked: { borderColor: sys.color.green }, radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: sys.color.green },
+  check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, borderColor: sys.color.green, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
+  checked: { backgroundColor: sys.color.green },
   sheetRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
 });

@@ -116,7 +116,7 @@ function PrivateReport(context: Context) {
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
         style={{ minHeight: 48, padding: 12, borderWidth: 1, borderRadius: 13, borderColor: category === value ? sys.color.green : sys.color.line,
-          backgroundColor: category === value ? sys.color.ground : sys.color.surface }}><T>{safetyCategoryCopy[value]}</T></Press>)}</View>
+          backgroundColor: category === value ? sys.color.wash : sys.color.surface }}><T>{safetyCategoryCopy[value]}</T></Press>)}</View>
       <T variant="bodyStrong">Kratak razlog</T><TextInput accessibilityLabel="Kratak razlog privatne prijave" value={reason} maxLength={200}
         onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setReason(value); }} editable={editable} style={input} />
       <T variant="bodyStrong">Dodatni opis, ako želiš</T><TextInput accessibilityLabel="Dodatni privatni opis" value={narrative} maxLength={2000}

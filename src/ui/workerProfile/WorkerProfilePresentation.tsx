@@ -142,7 +142,7 @@ const s = StyleSheet.create({
   statusChip: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
   field: { gap: 6 },
   input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 11, minHeight: 48, backgroundColor: sys.color.surface },
-  multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.ground, color: sys.color.muted },
+  multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 20, backgroundColor: sys.color.greenSoft },
   chipText: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 }, chipRemove: { color: sys.color.green, fontWeight: '700' },

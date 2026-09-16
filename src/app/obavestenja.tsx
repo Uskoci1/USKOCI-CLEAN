@@ -102,7 +102,7 @@ export default function Obavestenja() {
             <ActivityIndicator color={sys.color.green}/><T style={styles.body}>Učitavamo obaveštenja…</T>
           </View>
         : state.page && !state.error ? <View style={styles.empty}>
-            <View accessible={false} importantForAccessibility="no-hide-descendants"><SvgXml xml={spojInboxArt} width={180} height={128} color={sys.color.ink}/></View>
+            <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><SvgXml xml={spojInboxArt} width={180} height={128} color={sys.color.ink}/></View>
             <T style={styles.kicker}>Na jednom mestu</T>
             <T style={[styles.title,{textAlign:'center'}]}>Još nema obaveštenja</T>
             <T style={[styles.body,{textAlign:'center',maxWidth:280}]}>Nove Prijave, poruke i važne promene stižu ovde — uz Zadatak ili Dogovor na koji se odnose.</T>

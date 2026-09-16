@@ -10,7 +10,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ CalendarBlank: 'Icon', Check: 'Icon', User: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ CalendarBlank: 'Icon', Check: 'Icon', User: 'Icon', Clock: 'Icon', MapPin: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
@@ -45,7 +45,7 @@ beforeEach(() => {
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('active and history preserve both actual participant roles; attention means my requester confirmation', async () => {
-  await render(); expect(titles()).toHaveLength(3); expect(texts()).toContain('Ti naručuješ'); expect(texts()).toContain('Ti radiš');
+  await render(); expect(titles()).toHaveLength(3); expect(texts()).toContain('radi za tebe'); expect(texts()).toContain('naručuje');
   await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvorite Dogovor Posao waiting-mine']);
   await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvorite Dogovor Posao done', 'Otvorite Dogovor Posao cancelled']);
   await tap('Svi'); expect(titles()).toHaveLength(5);

@@ -39,7 +39,7 @@ export const palette = {
 
   // tekst
   ink: '#0E3D37', // na svetloj = 11.78
-  inkMuted: '#5C6F69', // na svetloj = 5.22 (original #657872 je padao na 3.98)
+  inkMuted: '#586B62', // na beloj = 5.7 (original #657872 je padao na 3.98)
   onDark: '#FBF2E5', // na forest800 = 10.87
   onDarkMuted: '#73A99D', // na forest800 = 4.53 (teal400 je padao na 3.44)
 
@@ -79,14 +79,24 @@ export const radius = {
  * referenca je imala tekst od 7px, uključujući labelu na dugmetu.
  */
 export const type = {
-  display: { fontSize: 30, lineHeight: 34, fontWeight: '800' as const, letterSpacing: -0.6 },
-  title: { fontSize: 22, lineHeight: 27, fontWeight: '800' as const, letterSpacing: -0.4 },
-  heading: { fontSize: 17, lineHeight: 22, fontWeight: '700' as const, letterSpacing: -0.2 },
-  body: { fontSize: 16, lineHeight: 23, fontWeight: '400' as const },
-  bodyStrong: { fontSize: 16, lineHeight: 23, fontWeight: '600' as const },
+  /** AI intro and other one-line statements that carry a whole screen. */
+  display: { fontSize: 32, lineHeight: 37, fontWeight: '700' as const, letterSpacing: -1.15 },
+  /** The real title of a detail screen (Task, Dogovor, profile name). */
+  hero: { fontSize: 30, lineHeight: 35, fontWeight: '700' as const, letterSpacing: -1 },
+  /** Screen title in the top bar. */
+  title: { fontSize: 21, lineHeight: 26, fontWeight: '700' as const, letterSpacing: -0.55 },
+  /** Section title inside a screen. */
+  heading: { fontSize: 18, lineHeight: 24, fontWeight: '700' as const, letterSpacing: -0.3 },
+  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const },
+  bodyStrong: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const },
+  /** A sentence of quiet copy under a title. */
+  copy: { fontSize: 15, lineHeight: 22, fontWeight: '400' as const },
+  /** Facts inside cards and rows: where, when, a hint. Never below this for a sentence. */
+  note: { fontSize: 14, lineHeight: 20, fontWeight: '400' as const },
+  /** One- or two-word labels only. */
   meta: { fontSize: 13, lineHeight: 18, fontWeight: '500' as const },
   label: { fontSize: 12, lineHeight: 16, fontWeight: '700' as const, letterSpacing: 0.6 },
-  action: { fontSize: 15, lineHeight: 20, fontWeight: '700' as const, letterSpacing: -0.1 },
+  action: { fontSize: 16, lineHeight: 22, fontWeight: '700' as const, letterSpacing: -0.1 },
 } as const;
 
 /**
@@ -114,6 +124,14 @@ export const touch = {
 } as const;
 
 export const elevation = {
+  /** A card resting on a white screen: definition without a grey smear (V4.9 card shadow). */
+  soft: {
+    shadowColor: '#173D35',
+    shadowOpacity: 0.04,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 1,
+  },
   card: {
     shadowColor: '#0E3D37',
     shadowOpacity: 0.06,

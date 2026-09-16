@@ -1,34 +1,45 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { User } from 'phosphor-react-native';
+import { User, type Icon } from 'phosphor-react-native';
 import { InboxBell } from '../InboxBell';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { sys } from './tokens';
+import { iconButton, sys } from './tokens';
+
+/** 44px icon control in a quiet well; `active` is shown by weight and colour together. */
+export function HeaderIconButton({ label, hint, icon: IconComponent, active = false, onPress, children }: {
+  label: string; hint?: string; icon: Icon; active?: boolean; onPress: () => void; children?: ReactNode;
+}) {
+  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ selected: active }}
+    onPress={onPress} haptic="select" style={[iconButton, active && s.active]}>
+    <IconComponent size={22} color={active ? sys.color.green : sys.color.ink} weight={active ? 'fill' : 'regular'} />
+    {children}
+  </Press>;
+}
 
 /**
- * Top bar of a tab surface: eyebrow (which intent you are in), title, bell → inbox,
- * avatar → profile. Owner decision 2 (2026-09-16): the user must always know
- * which context they are in, so the eyebrow carries the intent, not a slogan.
+ * Top bar of a tab surface (V5 head): a quiet eyebrow that names the intent you are
+ * in (owner decision 2, 2026-09-16), the 21px screen title, bell to the inbox, avatar
+ * to the profile. Extra controls belong in the section row below, not here.
  */
 export function ScreenHeader({ eyebrow, title, onProfile, right }: { eyebrow: string; title: string; onProfile: () => void; right?: ReactNode }) {
   return <View style={s.header}>
     <View style={s.copy}>
-      <T variant="meta" tone="muted" style={s.eyebrow}>{eyebrow}</T>
+      <T variant="label" style={s.eyebrow}>{eyebrow}</T>
       <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
     </View>
     {right}
     <InboxBell />
-    <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={onProfile} haptic="select" style={s.avatar}>
+    <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={onProfile} haptic="select" style={iconButton}>
       <User size={22} color={sys.color.ink} />
     </Press>
   </View>;
 }
 
 const s = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
-  copy: { flex: 1, minWidth: 0, gap: 1 },
-  eyebrow: { color: sys.color.green, fontWeight: '600' },
-  title: { color: sys.color.ink, fontSize: 26, lineHeight: 31 },
-  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
+  copy: { flex: 1, minWidth: 0 },
+  eyebrow: { color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
+  title: { color: sys.color.ink },
+  active: { backgroundColor: sys.color.greenSoft },
 });
