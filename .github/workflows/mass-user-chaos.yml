@@ -1,0 +1,72 @@
+name: Mass user chaos (isolated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      users:
+        description: Synthetic Auth users (2..5000)
+        required: true
+        default: '20'
+      concurrency:
+        description: Concurrent operations (1..250)
+        required: true
+        default: '20'
+      reads_per_user:
+        description: Pressure reads per user (1..100)
+        required: true
+        default: '4'
+      keep_data:
+        description: Keep synthetic users after run (diagnostic only)
+        required: true
+        type: choice
+        options: ['0', '1']
+        default: '0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mass-user-chaos-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  phase1-auth-rls:
+    runs-on: ubuntu-latest
+    environment: mass-test
+    timeout-minutes: 60
+    env:
+      MASS_TARGET_URL: ${{ vars.MASS_TARGET_URL }}
+      MASS_PUBLISHABLE_KEY: ${{ vars.MASS_PUBLISHABLE_KEY }}
+      MASS_SERVICE_ROLE_KEY: ${{ secrets.MASS_SERVICE_ROLE_KEY }}
+      MASS_USERS: ${{ inputs.users }}
+      MASS_CONCURRENCY: ${{ inputs.concurrency }}
+      MASS_READS_PER_USER: ${{ inputs.reads_per_user }}
+      MASS_KEEP_DATA: ${{ inputs.keep_data }}
+      MASS_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+      MASS_OUT: artifacts/mass-user-chaos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Static syntax check
+        run: node --check scripts/load/mass_user_chaos.mjs
+
+      - name: Run isolated Auth/RLS/load phase
+        run: node scripts/load/mass_user_chaos.mjs
+
+      - name: Upload machine-readable receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mass-user-chaos-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/mass-user-chaos/mass-user-chaos-report.json
+          if-no-files-found: error
+          retention-days: 14
