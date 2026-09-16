@@ -12,12 +12,11 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 
 | Status | Packages |
 |---|---|
-| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-004 (as of `bdcb2c8`, run 35038650179; re-verified on `ba098b8`, run 35042851321 and on `089527a`, run 35056728310), PKG-005, PKG-006 (as of `089527a`, run 35056728390), PKG-007 (as of `ba098b8`, run 35042851269), PKG-008 (as of `f833cd4`, run 35045306378; candidate SQL disposable-proven, unapplied on DEV), PKG-010 (as of `7403270`, run 35066812081; closure execution on DEV still waits for PKG-014), PKG-009, PKG-011 |
+| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-004 (as of `bdcb2c8`, run 35038650179; re-verified on `ba098b8`, run 35042851321 and on `089527a`, run 35056728310), PKG-005, PKG-006 (as of `089527a`, run 35056728390), PKG-007 (as of `ba098b8`, run 35042851269), PKG-008 (as of `f833cd4`, run 35045306378; candidate SQL disposable-proven, unapplied on DEV), PKG-010 (as of `7403270`, run 35066812081; closure execution on DEV still waits for PKG-014), PKG-009, PKG-011, PKG-012 |
 | DONE_VERIFIED (audit only), inventory stale | PKG-001 |
 | IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | PKG-013 |
 | BLOCKED | PKG-014 (needs PKG-013 + owner batch approval), PKG-018 (provider diagnosis + AF-D04) |
-| IMPLEMENTED_PENDING_VERIFICATION | PKG-012 |
 | NOT_STARTED | PKG-015, 016, 017, 019, 020, 021, 022, 023, 024 |
 
 Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007, PKG-008, PKG-006 and PKG-010 are done; the next package is PKG-011.
@@ -120,6 +119,7 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 - Slice 4 delivered 2026-09-16 (`pkg011/PKG011_SLICE4_ZADATAK_KREIRANJE_20260916.md`): own Task detail, New Task chooser, location controls/form, lifecycle panel, manual entry grouped into topic cards (still PKG-014-dependent for the live RPC). `/nova` and `/pregled-zadatka` left as the owner-approved V5 experience.
 - Slices 5–6 delivered 2026-09-16 (`pkg011/PKG011_SLICE5_RADNI_PROFIL_20260916.md`, `pkg011/PKG011_SLICE6_DELJENA_PODESAVANJA_20260916.md`): worker profile suite and the shared settings system with every account surface on it. Only the owner-approved V5 conversation/review screens keep their scoped AI-first tokens.
 - Slice 7 delivered 2026-09-16 (`pkg011/PKG011_SLICE7_DOZVOLE_20260916.md`): permission recovery after a denial (owner decision 4). Accessibility plan and status: `pkg011/PKG011_A11Y_PLAN_20260916.md`.
+- PKG-011B presentation pass (owner directive 2026-09-16, commits `0ca76a4`…`a713b87`): re-verified on `0846870` by PRE-P4 run 35108179048, Ledger `PKG-011-RECEIPT-20260916-002`, evidence `evidence/PKG011B_VERIFIED_20260916_35108179048.json`; engine diff under src/data, src/store, src/hooks and supabase is empty. Rationale per screen: `pkg011/PKG011B_UX_PASS_20260916.md`.
 - Ledger note 2026-09-16: `PKG-011-RECEIPT-20260916-001` was written with an empty `gapIds` list and failed the Ledger validator (CI red from `2d165e2`); a `gapIdsNote` was added to that line and the validator now accepts an empty list only with such a note. No other field changed.
 - Current status: DONE_VERIFIED on `c2d3b36` — Ledger `PKG-011-RECEIPT-20260916-001`, evidence `evidence/PKG011_VERIFIED_20260916_35086055299.json`, PRE-P4 run 35086055299 on the exact candidate. Open observations (not PKG-011 gaps): device/a11y acceptance in PKG-017/021; live promotion of manual entry, photo cancellation, Q&A activation and closure execution in PKG-014; public profile sheet not reachable from Dogovor participants / Prijave (account ids, not profile ids); `/pregled-nacrta` and `/prijave` retirement pending parity and owner approval. Next per V19 topology: PKG-012.
 
@@ -127,7 +127,7 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 - Gap: GAP-0012.
 - Implementation present: no. `docs/implementation/v5-ai-first/EXECUTION.md` still opens with the 2026-09-13 "FINAL STOP CHECKPOINT"; V19 remains historical by design; 19 cleanup candidates, 0 retirement-eligible (V18).
 - Implementation 2026-09-16: `execution/CURRENT_ENTRY_MAP_20260916.md` is the one current entry (reading order, historical table, package state, legacy inventory after reachability review, simulations/exports policy, CI invariants); HISTORICAL banners on `HANDOFF.md`, `CURRENT_IMPLEMENTATION_HANDOFF.md`, `CURRENT_IMPLEMENTATION_STATUS.md`, `IMPLEMENTATION_CONTINUITY.md`, `v5-ai-first/EXECUTION.md`; `AGENTS.md` names the entry map first; `scripts/ci/pkg012-source-authority.test.cjs` (runs in PRE-P4 with `scripts/ci/*.test.cjs`) asserts the fake source is imported only through `src/data/index.ts` behind the explicit switch and fails loudly otherwise, that the APK build and every mobile proof set the switch to 0, that the historical banners and the AGENTS pointer exist, and that `/pregled-nacrta` and `/prijave` still resolve explicitly. No code deleted, no migration touched, no fake data for acceptance.
-- Current status: IMPLEMENTED_PENDING_VERIFICATION (PRE-P4 on the exact candidate pending; Ledger receipt follows the run). Legacy retirement itself stays with PKG-023.
+- Current status: DONE_VERIFIED on `0846870` — Ledger `PKG-012-RECEIPT-20260916-001`, evidence `evidence/PKG012_VERIFIED_20260916_35108179048.json`, PRE-P4 run 35108179048 on the exact candidate (source-authority test green in the CI-routing step). Legacy retirement itself stays with PKG-023. Next per topology: PKG-013.
 
 ### PKG-013 — Exact source: regression and full schema147 disposable integration
 - Gap: GAP-0005.
