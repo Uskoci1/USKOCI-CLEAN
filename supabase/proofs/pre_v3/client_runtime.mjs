@@ -13,7 +13,7 @@ const allowed=new Set(['src/data/serverReceipt.ts','src/data/needLifecycleClient
  'src/data/needLifecycleController.ts','src/data/aiNeedV2Production.ts','src/data/aiNeedTurnStream.ts','src/contracts/needFactsV2.ts',
  'src/lib/market.ts','src/lib/location.ts','src/lib/capabilityTerms.ts',
  'src/data/locationClientService.ts','src/data/configuredLocationResolver.ts','src/data/publicationClientService.ts',
- 'src/data/pushReadinessClientService.ts','src/data/accountClosureClientService.ts','src/data/reviewsClientService.ts','src/data/agreementClientService.ts','src/data/legacyRpcFailure.ts','src/data/calendarErrors.ts',
+ 'src/data/pushReadinessClientService.ts','src/data/accountClosureClientService.ts','src/data/reviewsClientService.ts','src/data/agreementClientService.ts','src/data/agreementCompletion.ts','src/data/legacyRpcFailure.ts','src/data/calendarErrors.ts',
  'src/lib/calendarTime.ts','src/data/needDetailPresentation.ts','src/ui/calendar/calendarPresentation.ts']);
 export function loadPreV3Clients({client,session,sourceSha}) {
  assert.equal(typeof client,'function');assert.equal(typeof session,'function');
