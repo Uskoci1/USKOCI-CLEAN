@@ -16,10 +16,10 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 | DONE_VERIFIED (audit only), inventory stale | PKG-001 |
 | IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | none |
-| BLOCKED | PKG-014 (needs owner batch approval AF-D07; PKG-013 is done), PKG-018 (provider diagnosis + AF-D04) |
+| BLOCKED | PKG-014 (needs the owner's authorization of the exact DEV batch, V19 gate CANONICAL_DEV_AUTHORIZATION_REQUIRED; PKG-013 is done), PKG-018 (provider diagnosis + AF-D04) |
 | NOT_STARTED | PKG-015, 016, 017, 019, 020, 021, 022, 023, 024 |
 
-Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007, PKG-008, PKG-006 and PKG-010 are done; PKG-011, PKG-012 and PKG-013 are done; the next package is PKG-014, which needs the owner batch approval AF-D07 before any DEV change.
+Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007, PKG-008, PKG-006 and PKG-010 are done; PKG-011, PKG-012 and PKG-013 are done; the next package is PKG-014, which needs the owner's explicit authorization of the exact batch (SQL 145→147 + Edge, V19 gate CANONICAL_DEV_AUTHORIZATION_REQUIRED) before any DEV change.
 
 ## Per package
 
@@ -149,7 +149,7 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 | domain-consent (P1) | failure | `ADMITTED_SUCCESSOR_DOMAIN_INTEGRATION`: `DOMAIN_STATE_SECURITY_OR_RPC_CHANGED_BY_SUCCESSOR` (columnGrants diff on `private.legal_document_kind_version_uq…`) with SQLSTATE 23505; the ten P1 checks themselves passed | UNREVIEWED: a successor migration changes legal-domain state the proof expects unchanged; whether that change is intended has not been reviewed |
 
   The source108 boundary is deliberate: the harnesses contain passing tests named "expanded current source is rejected by the unchanged SQL108 boundary", so they refuse source147 by design until re-baselined. These proofs therefore currently prove the historical source108 boundary, not the head candidate.
-- Current status: DONE_VERIFIED on `cffd03d` — Ledger `PKG-013-RECEIPT-20260916-002`, evidence `evidence/PKG013_VERIFIED_20260916_35124126819.json`, release-level PRE-P4 run 35124126819 on the exact candidate: pre-p4-integrity, all nine domain disposable proofs and the W01 android native proof green. Harness re-baseline: `docs/implementation/execution/pkg013/PKG013_HARNESS_REBASELINE_20260916.md`. Next: PKG-014 with the owner batch approval AF-D07. (Before this run: MISSING_PROOF with executed evidence of why, see the table above.)
+- Current status: DONE_VERIFIED on `cffd03d` — Ledger `PKG-013-RECEIPT-20260916-002`, evidence `evidence/PKG013_VERIFIED_20260916_35124126819.json`, release-level PRE-P4 run 35124126819 on the exact candidate: pre-p4-integrity, all nine domain disposable proofs and the W01 android native proof green. Harness re-baseline: `docs/implementation/execution/pkg013/PKG013_HARNESS_REBASELINE_20260916.md`. Next: PKG-014 once the owner authorizes the exact DEV batch (V19 gate CANONICAL_DEV_AUTHORIZATION_REQUIRED). (Before this run: MISSING_PROOF with executed evidence of why, see the table above.)
 - Missing proof: re-baselined domain harnesses (source147 admission, current Edge fingerprints, current TAP counts), the two unreviewed failures explained, and hostile/replay/concurrency/Storage cases on head. No release-level PRE-P4 had ever run on this branch before this run because PR #102 is a draft and pushes do not run domains.
 - Partial positive evidence, 2026-09-16: the PKG-003 workflow (`.github/workflows/pkg003-manual-task-proof.yml` at `ddae0c5`) now reconstructs the recorded live79 through the shared environment and replays live80-87 with their provenance aliases and all 60 pending files in order; run 35037260591 reached `history=147/20260913081242` in a disposable database, so the ordered chain through 145→146→147 is replayable under that reconstruction. That covers the schema chain only, not the domain harnesses' hostile/replay/Storage cases.
 
@@ -157,7 +157,7 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 
 ### PKG-014 — Canonical DEV alignment and Edge deployment
 - Gaps: GAP-0001, GAP-0002, GAP-0019 — all confirmed live on 2026-09-15: 146 migrations applied, `clean_v5_self_reported_identity_requirement`, `clean_v5_event_bound_account_erasure`, `clean_v5_qa_owner_product_activation` not applied; `uskoci-account-closure-worker` present in source, absent from the 10 deployed functions; `uskoci-ai-interview` v32 (deployed 2026-09-13 13:33Z) rewrites the Gemini stream URL to `generateContent` and emits one text delta, while the repository helper (2026-09-13 15:46Z) parses SSE progressively.
-- Current status: BLOCKED. Blocker: owner batch approval (AF-D07) only; PKG-013 is DONE_VERIFIED and its exact chain is the input for the exact 145→147 + Edge batch; AF-D26 already authorizes DEV/ALPHA changes with reconstructible source.
+- Current status: BLOCKED. Blocker: the owner's authorization of the exact batch only (V19 gate CANONICAL_DEV_AUTHORIZATION_REQUIRED; earlier text named this "AF-D07", but AF-D07 is the media decision and names no such approval); PKG-013 is DONE_VERIFIED and its exact chain is the input for the exact 145→147 + Edge batch; AF-D26 already authorizes DEV/ALPHA changes with reconstructible source.
 
 ### PKG-015 — DEV data lineage and isolated test accounts
 - Gap: GAP-0018.

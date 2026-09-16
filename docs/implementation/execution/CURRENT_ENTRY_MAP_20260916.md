@@ -33,7 +33,7 @@ listed at the end (`scripts/ci/pkg012-source-authority.test.cjs`).
 ## Package state, one sentence
 
 DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013.
-BLOCKED: PKG-014 (needs the owner batch approval AF-D07), PKG-018 (provider).
+BLOCKED: PKG-014 (needs the owner's authorization of the exact DEV batch, V19 gate CANONICAL_DEV_AUTHORIZATION_REQUIRED), PKG-018 (provider).
 PKG-012 created this map. NOT_STARTED: 015–017, 019–024. The Ledger, not this file, is authoritative.
 
 ## Legacy inventory after reachability review (no deletion in PKG-012)
