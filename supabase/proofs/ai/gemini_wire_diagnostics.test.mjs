@@ -24,9 +24,30 @@ test('wire conversion preserves all constraints, contents and token cap; normali
   assert.deepEqual(parsed.contents,JSON.parse(input).contents);
   assert.equal(parsed.generationConfig.maxOutputTokens,8192);
   assert.deepEqual(parsed.generationConfig.thinkingConfig,{thinkingLevel:'low'});
-  assert.deepEqual(parsed.generationConfig.responseFormat,{text:{mimeType:'application/json',schema:{
-    type:'object',additionalProperties:false,properties:{assistantMessage:{type:'string'},facts:{type:'array',items:{type:'integer'}}},required:['assistantMessage','facts']}}});
-  for(const old of ['temperature','topP','topK','responseMimeType','responseSchema'])assert.ok(!(old in parsed.generationConfig));
+  // Structured output travels in the provider's documented fields. additionalProperties is not
+  // part of that schema subset, so the adapter drops it; the caller's own decoder still refuses
+  // unknown keys, so the accepted answer shape does not widen.
+  assert.equal(parsed.generationConfig.responseMimeType,'application/json');
+  assert.deepEqual(parsed.generationConfig.responseSchema,{
+    type:'OBJECT',properties:{assistantMessage:{type:'STRING'},facts:{type:'ARRAY',items:{type:'INTEGER'}}},required:['assistantMessage','facts']});
+  assert.ok(!('responseFormat' in parsed.generationConfig));
+  assert.ok(!JSON.stringify(parsed).includes('additionalProperties'));
+  for(const old of ['temperature','topP','topK'])assert.ok(!(old in parsed.generationConfig));
+});
+
+test('only additionalProperties is dropped; every other constraint and type survives',()=>{
+  const {api}=load();
+  const schema={type:'OBJECT',additionalProperties:false,required:['facts'],properties:{
+    facts:{type:'ARRAY',maxItems:12,minItems:1,items:{type:'OBJECT',additionalProperties:false,
+      properties:{key:{type:'STRING',enum:['a','b']},score:{type:'NUMBER',minimum:0,maximum:1},note:{type:'STRING',nullable:true}},
+      required:['key','score']}}}};
+  const input=JSON.stringify({contents:[{role:'user',parts:[{text:'x'}]}],
+    generationConfig:{temperature:0.2,maxOutputTokens:8192,responseMimeType:'application/json',responseSchema:schema}});
+  const out=JSON.parse(api.geminiRequestBody(input)).generationConfig.responseSchema;
+  assert.deepEqual(out,{type:'OBJECT',required:['facts'],properties:{
+    facts:{type:'ARRAY',maxItems:12,minItems:1,items:{type:'OBJECT',
+      properties:{key:{type:'STRING',enum:['a','b']},score:{type:'NUMBER',minimum:0,maximum:1},note:{type:'STRING',nullable:true}},
+      required:['key','score']}}}});
 });
 test('malformed configuration cannot become a permissive unstructured request',()=>{
   const {api}=load();for(const value of ['null','[]','{}','{"generationConfig":[]}',

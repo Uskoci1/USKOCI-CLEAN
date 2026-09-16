@@ -48,18 +48,23 @@ export function assistantPrefix(input: string): string {
   return '';
 }
 
-const schemaTypes: Record<string, string> = {
-  OBJECT: 'object', ARRAY: 'array', STRING: 'string', NUMBER: 'number', INTEGER: 'integer', BOOLEAN: 'boolean', NULL: 'null',
-};
+// The callers already declare the provider's own schema subset, with its UPPERCASE type
+// names, so the adapter forwards types unchanged instead of rewriting them.
 
-function jsonSchema(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(jsonSchema);
+/** `responseSchema` takes the provider's own schema subset, which has no
+ * `additionalProperties`. Sending it makes the request fail as a whole, and dropping it
+ * loosens nothing: each caller's decoder still refuses any key it did not ask for. Every
+ * other declared constraint, including enum, nullable, maxItems, minimum and maximum, is
+ * part of that subset and is forwarded unchanged. */
+const wireUnsupportedKeywords = new Set(['additionalProperties']);
+
+function providerSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(providerSchema);
   if (!value || typeof value !== 'object') return value;
   const result: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-    result[key] = key === 'type' && typeof item === 'string' && schemaTypes[item]
-      ? schemaTypes[item]
-      : jsonSchema(item);
+    if (wireUnsupportedKeywords.has(key)) continue;
+    result[key] = providerSchema(item);
   }
   return result;
 }
@@ -76,10 +81,16 @@ export function geminiRequestBody(raw: string): string {
   delete generation.topK;
   delete generation.responseMimeType;
   delete generation.responseSchema;
+  delete generation.responseFormat;
   generation.thinkingConfig = { thinkingLevel: 'low' };
   if (mime !== undefined || schema !== undefined) {
     if (mime !== 'application/json' || !schema || typeof schema !== 'object' || Array.isArray(schema)) throw new Error('AI_STREAM_INVALID');
-    generation.responseFormat = { text: { mimeType: mime, schema: jsonSchema(schema) } };
+    // Structured output travels in the provider's documented generateContent fields. The
+    // earlier `responseFormat: { text: { mimeType, schema } }` wrapper is rejected by this
+    // API with INVALID_ARGUMENT on `responseFormat.text.mimeType`, which is what broke every
+    // turn after the function was redeployed onto it.
+    generation.responseMimeType = mime;
+    generation.responseSchema = providerSchema(schema);
   }
   return JSON.stringify(payload);
 }
@@ -96,6 +107,19 @@ const fields: Record<string, string> = {
   'generation_config.response_schema': 'RESPONSE_SCHEMA', 'generationConfig.responseSchema': 'RESPONSE_SCHEMA',
   'generation_config.thinking_config.thinking_level': 'THINKING_LEVEL', 'generationConfig.thinkingConfig.thinkingLevel': 'THINKING_LEVEL',
   'generation_config.max_output_tokens': 'MAX_OUTPUT_TOKENS', 'generationConfig.maxOutputTokens': 'MAX_OUTPUT_TOKENS',
+  // Structural paths only, still a closed list: an unlisted path stays UNKNOWN so no
+  // upstream string can ever be printed. These narrow an INVALID_ARGUMENT to one node.
+  'generation_config.response_format.text.schema': 'RESPONSE_FORMAT_SCHEMA',
+  'generationConfig.responseFormat.text.schema': 'RESPONSE_FORMAT_SCHEMA',
+  'generation_config.response_format.text.mime_type': 'RESPONSE_FORMAT_MIME',
+  'generationConfig.responseFormat.text.mimeType': 'RESPONSE_FORMAT_MIME',
+  'generation_config.response_format.text': 'RESPONSE_FORMAT_TEXT',
+  'generationConfig.responseFormat.text': 'RESPONSE_FORMAT_TEXT',
+  'generation_config.thinking_config': 'THINKING_CONFIG', 'generationConfig.thinkingConfig': 'THINKING_CONFIG',
+  'generation_config': 'GENERATION_CONFIG', 'generationConfig': 'GENERATION_CONFIG',
+  'system_instruction': 'SYSTEM_INSTRUCTION', 'systemInstruction': 'SYSTEM_INSTRUCTION',
+  'contents': 'CONTENTS', 'model': 'MODEL', 'tools': 'TOOLS',
+  'safety_settings': 'SAFETY_SETTINGS', 'safetySettings': 'SAFETY_SETTINGS',
 };
 
 export function geminiFailureDiagnostic(raw: unknown): { status: string; reason: string; field: string } {

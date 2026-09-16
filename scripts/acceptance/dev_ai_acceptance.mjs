@@ -234,11 +234,20 @@ async function workerScenario() {
 
 async function needScenario() {
   const scenario = { turns: [], review: null, readback: {} };
-  const opened = await rpc('rpc_ai_open_need_conversation_owned_v2', { p_client_request_id: randomUUID() });
+  const resume = process.env.DEV_ACCEPTANCE_NEED_CONVERSATION ?? '';
+  const opened = resume
+    ? { conversationId: resume }
+    : await rpc('rpc_ai_open_need_conversation_owned_v2', { p_client_request_id: randomUUID() });
   scenario.conversationId = opened.conversationId;
-  log('NEED conversation', scenario.conversationId);
+  scenario.resumed = Boolean(resume);
+  log('NEED conversation', scenario.conversationId, resume ? '(resumed)' : '');
 
-  for (const turn of NEED_TURNS) {
+  // A single follow-up message may be supplied to keep the shared provider budget small
+  // while still exercising an addition, a correction and a deliberately vague fact.
+  const turns = process.env.DEV_ACCEPTANCE_NEED_MESSAGE
+    ? [{ label: 'addition, correction and vague fact in one message', text: process.env.DEV_ACCEPTANCE_NEED_MESSAGE }]
+    : NEED_TURNS;
+  for (const turn of turns) {
     if (report.providerCalls >= maxProviderCalls) { scenario.stoppedAt = 'PROVIDER_CALL_CEILING'; break; }
     const key = randomUUID();
     const result = await providerTurn('uskoci-ai-interview', scenario.conversationId, key, turn.text);
