@@ -12,7 +12,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
-jest.mock('phosphor-react-native', () => ({ User: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ User: 'Icon', Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', Wallet: 'Icon', ArrowLeft: 'Icon', CaretRight: 'Icon', Lightning: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));

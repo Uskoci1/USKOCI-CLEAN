@@ -42,7 +42,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretRight: 'Icon', Clock: 'Icon', MapPin: 'Icon', PencilSimple: 'Icon', UserMinus: 'Icon', Users: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretRight: 'Icon', Clock: 'Icon', MapPin: 'Icon', PencilSimple: 'Icon', UserMinus: 'Icon', Users: 'Icon', Wallet: 'Icon', Lightning: 'Icon', PaperPlaneTilt: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));

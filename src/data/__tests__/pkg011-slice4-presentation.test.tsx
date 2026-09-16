@@ -6,7 +6,7 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get(target, key) { return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', Wallet: 'Icon', ArrowLeft: 'Icon', CaretRight: 'Icon', Lightning: 'Icon', PaperPlaneTilt: 'Icon', PencilSimple: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
@@ -30,7 +30,7 @@ function Screen({ value, loading = false, error = null, remainingClosed = false 
 test('a published Task leads with its state, price and people, shows the applications row with a count, and has one brand action: the applications', async () => {
   await act(async () => { tree = create(<Screen value={need()} />); });
   const copy = texts();
-  expect(copy).toContain('Objavljena'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe potrebno');
+  expect(copy).toContain('Objavljena'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe');
   expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za pregled');
   expect(labels()).toContain('Otvori prijave, ukupno 3'); expect(labels()).toContain('Izmeni Zadatak');
   expect(brand()).toEqual(['Pogledaj prijave']);
