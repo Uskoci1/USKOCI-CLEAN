@@ -81,10 +81,10 @@ export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;
 }
 const s=StyleSheet.create({
   ink:{color:sys.color.ink},
-  card:{padding:18,borderRadius:sys.radius.card,backgroundColor:sys.color.surface,gap:6,borderWidth:1,borderColor:sys.color.line},
+  card:{padding:18,borderRadius:sys.radius.card,backgroundColor:sys.color.surface,gap:6,borderWidth:1,borderColor:sys.color.cardLine,...sys.elevation.soft},
   cardCompact:{padding:12,borderRadius:sys.radius.card-4},
   title:{...sys.type.cardTitle,color:sys.color.ink},label:{color:sys.color.green,fontWeight:'600'},
-  section:{gap:10,padding:18,borderRadius:sys.radius.card,backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.line},
+  section:{gap:10,padding:20,borderRadius:sys.radius.card,backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.cardLine,...sys.elevation.soft},
   row:{gap:3,paddingVertical:8,borderBottomWidth:1,borderColor:sys.color.line},
   notice:{padding:14,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft},
   input:{...sys.type.body,color:sys.color.ink,borderWidth:1,borderColor:sys.color.lineStrong,borderRadius:sys.radius.control,paddingHorizontal:12,paddingVertical:11,minHeight:48,backgroundColor:sys.color.surface},

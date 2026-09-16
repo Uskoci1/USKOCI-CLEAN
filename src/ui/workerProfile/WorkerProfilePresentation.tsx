@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
 import { Press } from '../Press';
-import { sys } from '../system/tokens';
+import { card, iconButton, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { V2Icon } from '../v2/icons';
 import type { WorkerDraft } from './workerProfileDraft';
@@ -130,27 +130,27 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink }, center: { textAlign: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
-  topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' },
-  content: { padding: 20, paddingTop: 4, gap: 14, paddingBottom: 28 },
-  footer: { padding: 16, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 12 },
-  hero: { alignItems: 'center', gap: 8 },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: sys.color.greenSoft, justifyContent: 'center', alignItems: 'center' },
-  initials: { color: sys.color.green },
-  statusChip: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
+  back: { ...iconButton },
+  topCopy: { flex: 1, minWidth: 0 }, eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
+  content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 28 },
+  footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  card: { ...card, gap: 12 },
+  hero: { alignItems: 'center', gap: 8, borderWidth: 0, backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0, paddingVertical: 8 },
+  avatar: { width: 96, height: 96, borderRadius: 30, backgroundColor: sys.color.greenSoft, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  initials: { color: sys.color.green, fontSize: 30, lineHeight: 36 },
+  statusChip: { borderRadius: sys.radius.badge, paddingHorizontal: 12, paddingVertical: 7 },
   field: { gap: 6 },
   input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 11, minHeight: 48, backgroundColor: sys.color.surface },
   multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 20, backgroundColor: sys.color.greenSoft },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft },
   chipText: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 }, chipRemove: { color: sys.color.green, fontWeight: '700' },
   addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   addButton: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.green, paddingHorizontal: 12 },
   addButtonOff: { opacity: 0.45 },
-  rows: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, overflow: 'hidden' },
-  row: { minHeight: 64, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rows: { ...card, padding: 0, overflow: 'hidden' },
+  row: { minHeight: 62, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowDivider: { borderTopWidth: 1, borderColor: sys.color.line }, rowBody: { paddingHorizontal: 18, paddingBottom: 18, gap: 14 },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },

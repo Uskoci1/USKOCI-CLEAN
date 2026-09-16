@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, Check, LockKey } from 'phosphor-react-native';
-import { sys } from '../system/tokens';
+import { card, iconButton, sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { V2Icon } from '../v2/icons';
 import { Press } from '../Press';
@@ -12,10 +12,10 @@ import { T } from '../Text';
 export const locationStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   content: { padding: 20, gap: 16, paddingBottom: 36 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
+  back: { ...iconButton },
   section: { gap: 12 },
-  card: { backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.card, padding: 18, gap: 12 },
+  card: { ...card, gap: 12 },
   input: { minHeight: 50, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12,
     paddingVertical: 12, backgroundColor: sys.color.surface, color: sys.color.ink, ...sys.type.body },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
