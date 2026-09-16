@@ -2,6 +2,8 @@
 
 Scope: isolated test branch only. Original runtime snapshot under test: PR #102 head `6b0e59ae534c9c1ee177562badda29561f3c61af`, reconstructed as source history `147/20260913081242` in disposable local Supabase instances. No canonical DEV/ALPHA writes. No AI/provider calls in these mass runs.
 
+The later PR #102 delta through `7288a779061378cec18e99b02b85af1da46ce7ce` changes only the AI provider adapter/acceptance/proof surface and PKG-014 documentation; it does not change the marketplace/Auth/RLS/Agreement runtime exercised below, so these results remain applicable to that later integration head for the tested domains.
+
 ## R1 — full marketplace A↔B journeys — PASS
 
 Run: `35149548244`
@@ -112,9 +114,54 @@ Combined timed request sample (login/getUser/profile hostile/pressure operations
 - p99: 1078.90 ms
 - max: 1135.07 ms
 
+## R5 — 20 complete A↔B journeys / 40 Auth users — PASS
+
+Run: `35150173412`
+Candidate: `c430174dd2df49e232924d18348260f9214e82f4`
+Concurrency: 10 complete journeys.
+
+- Requesters: 20
+- Workers: 20
+- total real local Auth users: 40
+- completed journeys: 20
+- Needs: 20
+- Applications: 20
+- Selections: 20
+- Agreements: 20
+- Agreement messages: 40
+- COMPLETED Agreements: 20
+- Reviews: 40
+- duplicate Need→Agreement bindings: 0
+- duplicate Response→Agreement bindings: 0
+- provider calls: 0
+
+Observed p95 ms:
+
+| operation | p95 ms |
+|---|---:|
+| signup | 597.04 |
+| getUser | 279.93 |
+| public Need read | 103.51 |
+| Application submit | 349.58 |
+| Application exact replay | 15.45 |
+| candidate read | 583.49 |
+| Selection | 466.59 |
+| Selection exact replay | 10.01 |
+| foreign message read | 13.27 |
+| requester message | 43.53 |
+| worker message | 31.77 |
+| worker mark done | 27.05 |
+| requester completion | 33.44 |
+| requester review | 44.29 |
+| worker review | 32.79 |
+| reputation read | 11.83 |
+
+This workflow completed with `success`, including disposable database teardown.
+
 ## Running
 
-- `35150173412` — 20 complete Requester/Worker pairs = 40 real local Auth users, concurrency 10.
+- `35150395247` — 500 real local Auth users, concurrency 50, 500 hostile cross-account reads + 1500 pressure reads + cleanup.
+- `35150533367` — 100 complete Requester/Worker pairs = 200 real local Auth users, concurrency 20.
 
 ## Interpretation boundary
 
