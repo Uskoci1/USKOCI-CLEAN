@@ -1,0 +1,145 @@
+name: Mass marketplace journey (disposable)
+
+on:
+  push:
+    branches:
+      - test/mass-user-chaos-harness-20260916
+    paths:
+      - 'scripts/load/marketplace_mass_journey.mjs'
+      - '.github/workflows/mass-marketplace-disposable.yml'
+  workflow_dispatch:
+    inputs:
+      pairs:
+        description: Requester/Worker journey pairs (1..500)
+        required: true
+        default: '8'
+      concurrency:
+        description: Concurrent journeys (1..50)
+        required: true
+        default: '8'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mass-marketplace-disposable-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      MASS_JOURNEY_PAIRS: ${{ github.event_name == 'workflow_dispatch' && inputs.pairs || '4' }}
+      MASS_JOURNEY_CONCURRENCY: ${{ github.event_name == 'workflow_dispatch' && inputs.concurrency || '4' }}
+      MASS_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+      MASS_JOURNEY_OUT: artifacts/mass-marketplace
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Bind isolated candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse --abbrev-ref HEAD)" = "test/mass-user-chaos-harness-20260916" || true
+          echo "CANDIDATE_SHA=$GITHUB_SHA"
+          echo "TREE_SHA=$(git rev-parse 'HEAD^{tree}')"
+
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Static harness syntax
+        run: node --check scripts/load/marketplace_mass_journey.mjs
+
+      - name: Reconstruct disposable historical live79
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+
+      - name: Replay recorded live80-87 aliases and all source successors through147
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          root = os.environ['GITHUB_WORKSPACE']
+          db = os.environ['DB_URL']
+          prov = json.load(open(f'{root}/supabase/migrations/MIGRATION_PROVENANCE.json', encoding='utf-8'))
+
+          def scalar(sql):
+              return subprocess.run(['psql', db, '-X', '-Atc', sql], text=True, capture_output=True, check=True).stdout.strip()
+
+          def run_sql(sql, label):
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1'], input=sql, text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:])
+                  sys.exit(f'MASS_REPLAY_FAILED {label}')
+
+          def apply(file, version, name):
+              path = f'{root}/supabase/migrations/{file}'
+              print(f'apply_source={file} recorded_as={version}_{name}', flush=True)
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', path], text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:])
+                  sys.exit(f'MASS_REPLAY_FAILED {file}')
+              body = open(path, encoding='utf-8', newline='').read()
+              tag = '$massstmt$'
+              assert tag not in body, file
+              run_sql(f"insert into supabase_migrations.schema_migrations(version,name,statements) values ('{version}','{name}',array[{tag}{body}{tag}]);", file)
+
+          assert scalar('select max(version) from supabase_migrations.schema_migrations') == '20260906141409'
+          entries = [e for e in prov['live_history_snapshot']['entries'] if e['version'] > '20260906141409']
+          assert len(entries) == 8, len(entries)
+          for e in entries:
+              apply(e.get('file') or f"{e['version']}_{e['name']}.sql", e['version'], e['name'])
+          assert scalar('select count(*) from supabase_migrations.schema_migrations') == '87'
+          for p in prov['pending_forward_migrations']:
+              apply(p['file'], p['version'], p['name'])
+          run_sql("notify pgrst, 'reload schema';", 'reload')
+          history = scalar("select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations")
+          print('history=' + history)
+          assert history == '147/20260913081242', history
+          PY
+
+      - name: Run real-JWT marketplace journeys on disposable stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/load/marketplace_mass_journey.mjs | tee /tmp/mass-marketplace.log
+          node - <<'NODE'
+          const fs = require('fs');
+          const r = JSON.parse(fs.readFileSync('artifacts/mass-marketplace/mass-marketplace-report.json','utf8'));
+          if (r.result !== 'PASS' || r.disposableLocalOnly !== true || r.realAiProviderCalls !== 0 || r.serviceRoleUsedForProductActions !== false || r.hostile.leaks !== 0) {
+            console.error(JSON.stringify(r,null,2)); process.exit(1);
+          }
+          console.log(`PASS pairs=${r.config.pairs} agreements=${r.counts.agreements} reviews=${r.counts.reviews} p95=${r.latencyMs.p95}`);
+          NODE
+
+      - name: Upload mass journey receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mass-marketplace-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/mass-marketplace/mass-marketplace-report.json
+            /tmp/mass-marketplace.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop disposable database
+        if: always()
+        shell: bash
+        run: cd /tmp/uskoci-ru5-device-ui 2>/dev/null && supabase stop --no-backup || true
