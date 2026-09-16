@@ -23,7 +23,7 @@ const uid=value=>{assert.match(value,/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{1
 const sql=query=>{try{return execFileSync('psql',[db,'-X','-At','-v','ON_ERROR_STOP=1'],{input:query,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();}
   catch {throw new Error('ISOLATED_SQL_FAILED');}};
 const ok=async promise=>{const result=await promise;assert.equal(result.error,null,'ISOLATED_REQUEST_REFUSED');return result.data;};
-const value=async promise=>{const result=await promise;assert.equal(result.ok,true,'ACTUAL_CLIENT_REFUSED');return result.podatak;};
+const value=async promise=>{const result=await promise;assert.equal(result.ok,true,'ACTUAL_CLIENT_REFUSED:'+(result.ok?'':String(result.kod??'')+':'+String(result.poruka??'').slice(0,120)));return result.podatak;};
 const hash=table=>sql(`select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]'::jsonb)::text) from ${table} x`);
 let stage='SETUP';
 const begin=name=>{stage=name;};
