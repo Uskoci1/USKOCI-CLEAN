@@ -51,10 +51,12 @@ try{
   // Every later file is applied in order with a registry row; SQL108 is idempotent
   // (function bodies only) and is recorded on this pass.
   const boundary=ownedIntakeSourceBoundary(readP3RetentionPredecessorPlan());
+  // Registry rows 1-87 carry the recorded live aliases, not the source file prefixes, so the
+  // remaining work is taken from the admitted plan's pending forward files (88-147) minus
+  // the versions this database already registered.
   const registered=new Set(sql('select version from supabase_migrations.schema_migrations').split('\n').filter(Boolean));
-  const toHead=boundary.fullPlan.source_inventory.filter(entry=>!registered.has(entry.file.slice(0,14))).map(entry=>{
-    const match=entry.file.match(/^(\d{14})_([a-z0-9_]+)\.sql$/);assert.ok(match,'UNEXPECTED_SOURCE_FILE_NAME');
-    return {version:match[1],name:match[2],file:entry.file,md5:entry.md5};});
+  const toHead=boundary.fullPlan.pending_successors.filter(entry=>!registered.has(entry.version));
+  assert.equal(toHead[0]?.file,'20260910172132_clean_w03_owned_ai_intake_authority.sql','W02_SHARED_CAPABILITY_EXPECTS_REGISTRY105');
   report.replayed_to_head={history_before:registered.size,count:toHead.length,first:toHead[0]?.file??null,last:toHead.at(-1)?.file??null,
     applied_authority:'REGISTRY105_PLUS_UNRECORDED_DISPATCH108_THEN_EXACT_SOURCE147',source_migration_count:boundary.fullPlan.source_migration_count};
   applyPendingSuccessors({plan:{source_migration_count:boundary.fullPlan.source_migration_count,source_inventory:boundary.fullPlan.source_inventory,pending_successors:toHead},sql,db,url});
