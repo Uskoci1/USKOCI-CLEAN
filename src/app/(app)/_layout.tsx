@@ -8,9 +8,9 @@ import { CanonicalMark } from '../../ui/referenceEntry/ReferenceEntryHero';
 
 /** The brand mark carries the center zone; focus is shown by the orange ring (shape, not color alone). */
 function CenterMark({ focused }: { focused: boolean }) {
-  return <View style={{ width: 58, height: 42, borderRadius: sys.radius.control, backgroundColor: sys.color.ink,
+  return <View style={{ width: 52, height: 40, borderRadius: 20, backgroundColor: sys.color.ink,
     borderWidth: 2, borderColor: focused ? sys.color.orange : sys.color.ink, alignItems: 'center', justifyContent: 'center' }}>
-    <CanonicalMark size={38} />
+    <CanonicalMark size={34} />
   </View>;
 }
 

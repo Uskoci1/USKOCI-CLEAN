@@ -9,7 +9,7 @@ import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
-import { brandAction, sys } from '../system/tokens';
+import { brandAction, card, iconButton, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
@@ -270,36 +270,36 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 }, topCopy: { flex: 1, minWidth: 0, gap: 1 },
-  eyebrow: { color: sys.color.green, fontWeight: '600' }, ink: { color: sys.color.ink }, muted: { color: sys.color.muted },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
+  back: { ...iconButton }, topCopy: { flex: 1, minWidth: 0 },
+  eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 }, ink: { color: sys.color.ink }, muted: { color: sys.color.muted },
   content: { padding: 20, paddingTop: 4, paddingBottom: 28 },
-  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 10 },
+  card: { ...card, gap: 10 },
   cardSuccess: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   warnCard: { backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.card, padding: 18, gap: 8 },
   notice: { padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
-  context: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 16, gap: 4 },
-  contextTitle: { ...sys.type.heading, color: sys.color.ink, marginBottom: 2 },
+  context: { ...card, gap: 4 },
+  contextTitle: { ...sys.type.cardTitle, color: sys.color.ink, marginBottom: 4 },
   contextPrice: { ...sys.type.price, fontSize: 20, lineHeight: 26, color: sys.color.money, flex: 1 }, offers: { color: sys.color.ink, fontSize: 17, lineHeight: 23 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  pill: { backgroundColor: sys.color.greenSoft, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 }, pillText: { color: sys.color.ink, fontWeight: '700' },
+  pill: { paddingVertical: 4 }, pillText: { color: sys.color.ink, fontWeight: '600' },
   offerRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' }, field: { flex: 1, gap: 6 },
   input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, padding: 12 },
   amountInput: { ...sys.type.price, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, minHeight: 54, paddingHorizontal: 12, paddingVertical: 10 },
   inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderColor: sys.color.line },
-  footer: { backgroundColor: sys.color.surface, paddingHorizontal: 18, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
+  footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   summaryRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, fontVariant: ['tabular-nums'] },
   listHeader: { gap: 14, marginBottom: 14 }, compareIntro: { gap: 4 },
-  candidate: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 8 },
+  candidate: { ...card, gap: 8 },
   candidateSelectable: { borderColor: sys.color.lineStrong },
-  stateChip: { backgroundColor: sys.color.wash, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, maxWidth: '45%' },
+  stateChip: { backgroundColor: sys.color.wash, borderRadius: sys.radius.badge, paddingHorizontal: 9, paddingVertical: 5, maxWidth: '45%' },
   price: { ...sys.type.price, color: sys.color.money },
-  comparison: { flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, gap: 8 },
+  comparison: { ...card, flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, gap: 8 },
   compareCell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line }, compareLabel: { letterSpacing: 0.2 },
   comparePrice: { ...sys.type.price, fontSize: 19, lineHeight: 24, color: sys.color.money },
   divider: { height: 1, backgroundColor: sys.color.line, marginVertical: 2 },
-  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }, initial: { color: sys.color.green },
+  avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }, initial: { color: sys.color.green },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 }, footerAction: { alignSelf: 'center', marginTop: 8 },
 });

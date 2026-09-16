@@ -58,12 +58,11 @@ export default function Raspored() {
       </Press> : <View style={s.note}><T variant="bodyStrong">Ovo je raspored za JA MOGU</T>
         <T variant="meta" tone="muted">Prikazuje samo potvrđene termine u kojima radiš kao Uskočer. Dogovore koje si napravio kao naručilac vidiš u Dogovorima.</T>
       </View>}
-      <View style={{ gap: 16 }}><View style={{ gap: 4 }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
-        <T variant="meta" tone="muted">Prikaz vremena: {Intl.DateTimeFormat().resolvedOptions().timeZone}</T></View>
+      <View style={{ gap: 16 }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
         {calendar.loading ? <ActivityIndicator accessibilityLabel="Učitavanje rasporeda" color={sys.color.green} /> : null}
         {error ? <View style={s.note}><T accessibilityRole="alert" tone="danger">{error}</T><Button label="Pokušaj ponovo" onPress={refresh} /></View> : null}
         {!calendar.loading && !error && !visible.length ? <View style={[s.note, { gap: 12 }]}><Clock size={28} color={sys.color.green} />
-          <T variant="heading">Nema potvrđenih tačnih termina</T><T tone="muted">Za ovaj dan nema Dogovora sa potvrđenim početkom i krajem.</T></View> : null}
+          <T variant="heading">Nema potvrđenih tačnih termina</T><T tone="muted">Za ovaj dan nema Dogovora sa potvrđenim početkom i krajem. Fleksibilni termini stoje u Dogovorima.</T></View> : null}
         {!error && visible.map(event => {
           const detail = agreements.data?.find(item => item.id === event.agreementId && item.verzija === event.agreementVersion && item.stanje === 'CONFIRMED');
           const fromTime = displayTime(event.startsAt), toTime = displayTime(event.endsAt);
@@ -83,7 +82,6 @@ export default function Raspored() {
           </View>;
         })}
       </View>
-      <T variant="meta" tone="muted">Samo tačan prihvaćeni interval u kome radiš kao Uskočer zauzima termin. Fleksibilni termini i datumi bez pune satnice prikazuju se u Dogovorima.</T>
       {agreements.error ? <T variant="meta" tone="muted">Detalji Dogovora nisu učitani. Tačni termini iz radnog rasporeda ostaju dostupni.</T> : null}
       <Button label="Otvori sve Dogovore" kind="secondary" onPress={() => router.navigate('/dogovori')} full />
     </ScrollView>

@@ -73,10 +73,8 @@ export default function Obavestenja() {
             <T style={[styles.filterText, {color:role===filter.role?sys.color.ink:sys.color.muted}]}>{filter.label}</T>
           </Press>)}
         </View>
-        {state.page && <View style={styles.summary}>
-          <T style={styles.meta} accessibilityLiveRegion="polite">
-            {state.page.unreadCount>0?`${state.page.unreadCount} nepročitanih`:'Sve je pročitano'}
-          </T>
+        {state.page && state.page.unreadCount>0 && <View style={styles.summary}>
+          <T style={styles.meta} accessibilityLiveRegion="polite">{`${state.page.unreadCount} nepročitanih`}</T>
           {state.page.unreadCount>0 && <Press accessibilityRole="button" disabled={busy}
             accessibilityState={{disabled:busy,busy:state.acting==='all'}}
             onPress={()=>void model.readAll()} style={styles.readAll}>
