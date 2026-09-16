@@ -519,12 +519,110 @@ session. No credential for it is safely available here either, so per the owner'
 is left untouched and marked **LEGACY_OWNER_SESSION_BLOCKER**. It blocks only new turns inside that one
 conversation and nothing else; the acceptance harness uses its own conversations.
 
+## 10. Autonomous authenticated acceptance, executed (2026-09-16)
+
+The owner authorised rotating the dedicated QA password through the canonical Auth admin mechanism and
+storing it locally. That unblocked everything below, which ran without any owner participation.
+
+### Credential, handled without ever being seen
+
+`scripts/acceptance/set_dev_qa_password.ps1 -RotateQaPassword` minted a 48-character random password,
+handed it to GoTrue through `PUT /auth/v1/admin/users/{id}` so the provider hashes it, proved it with an
+ordinary password grant, and stored it DPAPI-encrypted in `artifacts/dev-alpha-qa/qa-credential.clixml`.
+The script refuses to write there unless git reports that exact path as ignored. Receipt:
+`adminStatus 200`, `loginStatus 200`, `verifiedRealUserSession true`. The value never appeared in any
+output, file, document or commit.
+
+`scripts/acceptance/run_dev_acceptance.ps1` decrypts it into one process environment variable, runs the
+Node harness and clears it again.
+
+### A. WORKER_PROFILE acceptance — PASS
+
+Account `2e7310cf…` (`msljivic031+uskoci-qa@gmail.com`), real password grant, real user JWT, six real
+Gemini turns on conversation `5ae0ff4b…`, every turn HTTP 200 and SUCCEEDED, 2.7 s to 9.2 s each.
+
+| User text | What the model proposed | Confirmed | Canonical writer | Live DB value |
+| --- | --- | --- | --- | --- |
+| "Radim selidbe i montažu nameštaja. Imam bušilicu i set ključeva." | skills `selidbe`, `montaža nameštaja`; tools `bušilica`, `set ključeva` | yes, in one review | `rpc_save_worker_ai_review` writes `app_profiles` | `skills=selidbe\|montaža nameštaja tools=bušilica\|set ključeva` |
+| "Imam kombi. Najčešće radimo u dvoje." | vehicles `kombi`; teamCapacity 2 | yes | vehicles in the same statement; capacity through `rpc_save_worker_capacity` | `vehicles=kombi`, `team_capacity=2` |
+| "Radim u Novom Sadu i okolini, u krugu od 25 kilometara." | city `Novi Sad`, radiusKm 25, country left null | yes, country supplied by the owner in review | `rpc_save_worker_location(…, confirmed=true)` | `country=RS city=Novi Sad radius_km=25` |
+| "Radnim danima sam slobodan od 9 do 17, a subotom do 14." | one Mon–Fri rule and one Saturday rule | superseded by the next turn | `rpc_save_worker_availability` | — |
+| "Ispravka: subotom ipak ne radim, samo radnim danima." | Saturday rule removed, Mon–Fri 09:00–17:00 kept | yes | `rpc_save_worker_availability` | `profile_availability_rules: weekdays=1,2,3,4,5 09:00:00-17:00:00 active=true`, `worker_match_preferences.timezone=Europe/Belgrade`, `available_now=false` |
+| "Mislim da imam i neku licencu, ali stvarno nisam siguran koju tačno." | nothing: "Bez tačnog naziva ne mogu dodati licencu na profil" | nothing to confirm | none | `licenses` empty |
+
+The model also refused to guess the country and asked for it in four consecutive turns. The review
+therefore reported `canAccept false, missing ["Država i mesto rada"]`, and the owner-side correction was
+applied through the same `rpc_patch_worker_ai` the review screen uses, with a value a human supplied.
+The review then reported `canAccept true`, and one `rpc_save_worker_ai_review` produced
+`profileStatus ACTIVE`, one row in `private.worker_ai_saves` and conversation status `COMPLETED`.
+
+**Chain proven: AUTH → conversation → real Gemini → proposed facts → further turns → review →
+correction → confirmation → four canonical writers → authoritative readback.**
+
+### B. NEED acceptance — BLOCKED by a real provider defect
+
+Conversation `56cd34ac…` opened, first turn dispatched to the provider, and the provider rejected the
+request. Function log, from the diagnostics added in `eb2b500`:
+
+```
+GEMINI_STREAM_HTTP_FAILED 400 INVALID_ARGUMENT UNKNOWN UNKNOWN
+AI_PROVIDER_FAILED
+```
+
+The turn correctly stayed `PROCESSING` with `provider_dispatched = true`: an uncertain outcome is never
+silently retried. No fact was invented and nothing was written.
+
+Why the NEED path fails while WORKER succeeds on the same helper, same model and same deployment: the
+two functions send different schema dialects.
+
+| Schema key | `uskoci-worker-interview` | `uskoci-ai-interview` NEED V2 |
+| --- | --- | --- |
+| `enum`, `maximum` | used, accepted | used |
+| `nullable` | used, accepted | not used |
+| `maxItems` | not used | used twice |
+| `additionalProperties` | **not used** | **used four times** |
+
+`geminiRequestBody` maps only the `type` names and passes every other key through unchanged.
+`additionalProperties` is not part of Gemini's schema dialect, which makes it the prime suspect for the
+`INVALID_ARGUMENT`. This is a defect in the AI intake contract, not in the deployment, the auth, the
+budget or the canonical writers. Confirming it needs one controlled provider call with that key removed,
+which is a scoped change to `supabase/functions/uskoci-ai-interview/index.ts` and therefore a decision
+for the owner: it touches the PKG-013 frozen Edge fingerprint and would need a redeploy and a refreeze.
+
+### C. Provider proof
+
+| Claim | Evidence |
+| --- | --- |
+| real provider, not a mock | deployed `uskoci-ai-interview` v33 and `uskoci-worker-interview` v11 call `generativelanguage.googleapis.com` only; the worker turns returned model-authored Serbian text that reacted to each correction |
+| exact model | the Edge gate admits the request only when `AI_PROVIDER=gemini` and `GEMINI_MODEL=gemini-3.8-flash`; both functions passed that gate |
+| dispatch evidence | every worker turn reached `SUCCEEDED` through `rpc_dispatch_worker_ai_turn_service`; the NEED turn recorded `provider_dispatched = true` before the rejection |
+| budget accounting | `private.ai_test_budget_v5` moved from 1750000 to 3500000 reserved, exactly seven reservations of 250000 for the seven provider calls of this session; six calls remain of the 5 USD ceiling |
+| no fabricated content | the licence request produced no licence, and the country was asked for rather than guessed |
+
+### D. Unknown-outcome recovery — PASS
+
+The NEED turn this session created was closed through the canonical owner mechanism, signed in as the
+QA account, with no direct table write:
+
+```
+before: {"state":"PROCESSING","providerDispatched":true,"canCancel":true}
+after : {"state":"FAILED","providerDispatched":true,"cancelled":true}
+```
+
+`rpc_ai_cancel_need_turn_v2` marks the turn FAILED with a cancellation time and keeps
+`provider_dispatched` true, so a real dispatch is never denied and no success is fabricated.
+
+The older turn of `uskocibusiness@gmail.com` in conversation `23e74284…` is untouched and stays
+**LEGACY_OWNER_SESSION_BLOCKER**: closing it needs that account's own session, and rotating a second
+identity's password was not authorised.
+
 ## Live state now
 
-- Schema: all 147 source migrations applied, the three-file delta 145 to 147 included.
-- Ledger: 149 rows, which is 147 source migrations plus the two `dev_alpha` operational rows.
-- Edge: `uskoci-ai-interview` version 33 byte-identical to source, `uskoci-account-closure-worker`
-  version 1 deployed, the other eight functions untouched.
-- Config: three accounts admitted to the unchanged paid AI test gate.
-- Data: no domain row changed anywhere in this package.
-- Open: the stuck turn of `uskocibusiness@gmail.com`, and the end-to-end AI acceptance evidence.
+- Schema: all 147 source migrations applied, the delta 145 to 147 included.
+- Ledger: 149 rows, 147 source migrations plus the two `dev_alpha` operational rows.
+- Edge: `uskoci-ai-interview` v33 byte-identical to source, `uskoci-account-closure-worker` v1 deployed.
+- Config: three accounts admitted to the unchanged paid AI test gate; six provider calls remain.
+- Acceptance: WORKER_PROFILE proven end to end on a real session; NEED blocked at the provider by the
+  schema dialect defect; unknown-outcome recovery proven.
+- Data: the only domain rows written are the QA account's own worker profile and its AI conversations.
+- Open: the NEED provider schema decision, and the legacy stuck turn of `uskocibusiness@gmail.com`.

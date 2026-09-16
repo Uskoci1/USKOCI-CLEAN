@@ -164,14 +164,18 @@ const NEED_TURNS = [
 
 async function workerScenario() {
   const scenario = { turns: [], facts: [], writers: {}, readback: {} };
-  const opened = await rpc('rpc_open_worker_ai', { p_client_request_id: randomUUID() });
+  const resume = process.env.DEV_ACCEPTANCE_WORKER_CONVERSATION ?? '';
+  const opened = resume
+    ? await rpc('rpc_read_worker_ai', { p_conversation_id: resume })
+    : await rpc('rpc_open_worker_ai', { p_client_request_id: randomUUID() });
   scenario.conversationId = opened.conversationId;
   scenario.profileId = opened.profileId;
   scenario.initialCandidate = opened.candidate;
-  log('WORKER conversation', opened.conversationId, 'profile', opened.profileId);
+  scenario.resumed = Boolean(resume);
+  log('WORKER conversation', opened.conversationId, 'profile', opened.profileId, resume ? '(resumed)' : '');
 
   let snapshot = opened;
-  for (const turn of WORKER_TURNS) {
+  for (const turn of resume ? [] : WORKER_TURNS) {
     if (report.providerCalls >= maxProviderCalls) { scenario.stoppedAt = 'PROVIDER_CALL_CEILING'; break; }
     const key = randomUUID();
     const result = await providerTurn('uskoci-worker-interview', scenario.conversationId, key, turn.text);
@@ -189,10 +193,31 @@ async function workerScenario() {
 
   scenario.candidateBeforeReview = snapshot?.candidate ?? null;
   if (!scenario.stoppedAt) {
-    const review = await rpc('rpc_prepare_worker_ai_review',
+    let review = await rpc('rpc_prepare_worker_ai_review',
       { p_conversation_id: scenario.conversationId, p_expected_revision: snapshot.revision, p_activate: true });
-    scenario.review = { reviewId: review.reviewId, canAccept: review.canAccept, missingRequired: review.missingRequired, profile: review.profile };
     log('WORKER review prepared, canAccept', review.canAccept, 'missing', JSON.stringify(review.missingRequired));
+
+    // The model refuses to invent a country, so the review asks the owner for it. This is
+    // the ordinary manual correction the review screen offers: the same patch RPC, with a
+    // value the owner supplies, never a value the model guessed.
+    const wantsCountry = Array.isArray(review.missingRequired)
+      && review.missingRequired.some(item => String(item).toLowerCase().includes('drž'));
+    if (!review.canAccept && wantsCountry && (process.env.DEV_ACCEPTANCE_OWNER_COUNTRY ?? '')) {
+      const country = process.env.DEV_ACCEPTANCE_OWNER_COUNTRY;
+      const current = snapshot.candidate.location ?? {};
+      scenario.ownerCorrection = { field: 'location.operatingCountryCode', value: country, suppliedBy: 'OWNER_IN_REVIEW' };
+      snapshot = await rpc('rpc_patch_worker_ai', {
+        p_conversation_id: scenario.conversationId,
+        p_expected_revision: snapshot.revision,
+        p_patch: { location: { city: current.city, radiusKm: current.radiusKm, operatingCountryCode: country } },
+      });
+      log('WORKER owner supplied the country in review:', country);
+      review = await rpc('rpc_prepare_worker_ai_review',
+        { p_conversation_id: scenario.conversationId, p_expected_revision: snapshot.revision, p_activate: true });
+      log('WORKER review re-prepared, canAccept', review.canAccept, 'missing', JSON.stringify(review.missingRequired));
+    }
+
+    scenario.review = { reviewId: review.reviewId, canAccept: review.canAccept, missingRequired: review.missingRequired, profile: review.profile };
     if (review.canAccept) {
       scenario.receipt = await rpc('rpc_save_worker_ai_review',
         { p_review_id: review.reviewId, p_displayed_digest: review.displayedContentDigest, p_client_request_id: randomUUID() });
@@ -261,16 +286,37 @@ async function needScenario() {
   return scenario;
 }
 
+/**
+ * Close an unknown-outcome turn the way the app does: the owning signed-in account
+ * calls the canonical cancel RPC. It marks the turn FAILED with a cancellation time
+ * and keeps provider_dispatched true, so a real dispatch is never denied.
+ */
+async function cancelTurn(spec) {
+  const [conversationId, clientRequestId] = spec.split(':');
+  const before = await rpc('rpc_ai_recover_need_turn_v2', { p_conversation_id: conversationId, p_client_request_id: clientRequestId });
+  log('CANCEL before:', JSON.stringify({ state: before?.turn?.state, providerDispatched: before?.providerDispatched, canCancel: before?.canCancel }));
+  const after = await rpc('rpc_ai_cancel_need_turn_v2', { p_conversation_id: conversationId, p_client_request_id: clientRequestId });
+  log('CANCEL after :', JSON.stringify({ state: after?.turn?.state, providerDispatched: after?.providerDispatched, cancelled: after?.cancelled }));
+  return { conversationId, clientRequestId, before, after };
+}
+
 try {
   mkdirSync(out, { recursive: true });
   await authenticate();
+  if (process.env.DEV_ACCEPTANCE_CANCEL) {
+    report.scenarios.turnCancellation = await cancelTurn(process.env.DEV_ACCEPTANCE_CANCEL);
+    report.result = report.scenarios.turnCancellation.after?.turn?.state === 'FAILED' ? 'PASS' : 'INCOMPLETE';
+    throw { skipScenarios: true };
+  }
   if (scenarios === 'both' || scenarios === 'worker') report.scenarios.workerProfile = await workerScenario();
   if (scenarios === 'both' || scenarios === 'need') report.scenarios.need = await needScenario();
   const stopped = Object.values(report.scenarios).some(s => s.stoppedAt);
   report.result = stopped ? 'INCOMPLETE' : 'PASS';
 } catch (error) {
-  report.result = 'FAIL';
-  report.failure = scrub(error instanceof Error ? error.message : String(error));
+  if (!error?.skipScenarios) {
+    report.result = 'FAIL';
+    report.failure = scrub(error instanceof Error ? error.message : String(error));
+  }
 } finally {
   report.finishedAt = new Date().toISOString();
   const file = resolve(out, 'ai-acceptance-report.json');
