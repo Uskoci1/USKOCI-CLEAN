@@ -42,7 +42,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretRight: 'Icon', Clock: 'Icon', MapPin: 'Icon', PencilSimple: 'Icon', UserMinus: 'Icon', Users: 'Icon', Wallet: 'Icon', Lightning: 'Icon', PaperPlaneTilt: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretRight: 'Icon', Clock: 'Icon', MapPin: 'Icon', PencilSimple: 'Icon', UserMinus: 'Icon', Users: 'Icon', Wallet: 'Icon', Lightning: 'Icon', PaperPlaneTilt: 'Icon' , ChatsCircle: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
@@ -214,10 +214,10 @@ describe('V2 saved Need presentation', () => {
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: NEED } });
   });
   it('opens Task-scoped questions with the loaded identity and rejects a callback after blur', async () => {
-    await render(); const retained = button('Otvori pitanja i odgovore').props.onPress;
+    await render(); const retained = press('Otvori pitanja i odgovore').props.onPress;
     mockFocused = false; await update(); mockFocused = true; await update();
     await act(async () => retained()); expect(mockRouter.push).not.toHaveBeenCalled();
-    await tap('Otvori pitanja i odgovore');
+    await act(async () => press('Otvori pitanja i odgovore').props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pitanja-zadatka', params: { needId: NEED } });
     expect(mockPublish).not.toHaveBeenCalled();
   });

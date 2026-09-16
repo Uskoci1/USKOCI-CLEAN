@@ -48,7 +48,7 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false }: { ite
       {draft ? <T variant="meta" style={s.next}>Nastavi uređivanje</T>
         : <View accessible accessibilityLabel={`${item.pokrivenost.popunjeno} od ${needPeopleText(item.pokrivenost.ukupno)} dogovoreno`} style={s.people}>
           <Users size={18} color={sys.color.ink} />
-          <T variant="meta" style={s.peopleText}>{item.pokrivenost.popunjeno} / {item.pokrivenost.ukupno}</T>
+          <T variant="meta" style={s.peopleText}>{own ? `${item.pokrivenost.popunjeno} / ${item.pokrivenost.ukupno}` : needPeopleText(item.pokrivenost.ukupno)}</T>
         </View>}
     </View>
   </Press>;

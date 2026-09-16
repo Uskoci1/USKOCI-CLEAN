@@ -92,11 +92,11 @@ export function AgreementCollectionPresentation(props: Props) {
         <T variant="heading" style={s.sectionTitle}>{SECTION_TITLES[section]}</T>
         {count !== null ? <T variant="heading" style={s.count}>{count}</T> : null}
       </View>
-      <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
+      {waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
         onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select" style={[s.chip, confirmationOnly && s.chipOn]}>
         {confirmationOnly ? <Check size={14} weight="bold" color={sys.color.green} /> : null}
         <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka moju potvrdu</T>
-      </Press>
+      </Press> : null}
       {!props.requester ? <HeaderIconButton label="Radni raspored (JA MOGU)" icon={CalendarBlank} onPress={props.onCalendar} /> : null}
     </View>
     <FlatList<DogovorProjekcija> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={loading}

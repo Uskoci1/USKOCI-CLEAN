@@ -17,6 +17,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeArea' })
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', DotsThree: 'Icon', PaperPlaneTilt: 'Icon' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { AiConversationShell, type AiConversationShellProps } from '../../ui/aiFirst/AiConversationShell';
 let tree: ReactTestRenderer;

@@ -1,12 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowsLeftRight, User, SignOut, MapPin, CalendarBlank, Bell, DownloadSimple, ShieldCheck, Clock } from 'phosphor-react-native';
+import { User, SignOut, MapPin, CalendarBlank, Bell, DownloadSimple, ShieldCheck, Clock, Camera } from 'phosphor-react-native';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction, settingsStyles as styles } from '../../ui/settings/SettingsPresentation';
+import { Press } from '../../ui/Press';
 import { sys } from '../../ui/system/tokens';
 import { BuildIdentity } from '../../ui/BuildIdentity';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
@@ -72,34 +73,43 @@ export default function Profil() {
   const initials = profile.data?.ime?.split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toUpperCase();
   const currentIntent = narucilac ? 'MENI TREBA' : 'JA MOGU';
   const nextIntent = narucilac ? 'JA MOGU' : 'MENI TREBA';
+  const photoReady = !!profile.data?.profileId && !profile.loading && !profile.error;
+  const openPhoto = () => { const id = profile.data?.profileId; if (!id || profile.loading || profile.error) return;
+    navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); };
+  const switchIntent = () => navigate(() => {
+    postaviUlogu(narucilac ? 'uskocer' : 'narucilac');
+    router.replace(narucilac ? '/prilike' : '/potrebe');
+  });
+  const avatar = <View style={styles.avatar}>{initials ? <T variant="display" tone="success">{initials}</T> : <User size={34} color={sys.color.green} />}</View>;
 
   return <SettingsScreen title={narucilac ? 'Profil' : 'Radni profil'} disabled={busy}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace(narucilac ? '/potrebe' : '/moje-prijave'))}>
     <View style={styles.identity}>
-      {profile.loading ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" style={styles.gap}>
+      {profile.loading ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" style={[styles.gap, { alignItems: 'center' }]}>
         <ActivityIndicator color={sys.color.green} /><T tone="muted">Učitavamo profil…</T>
       </View> : profile.error ? <View style={styles.gap}>
-        <T>Profil trenutno nije dostupan.</T><T variant="meta" tone="muted">Proverite vezu i pokušajte ponovo.</T>
+        <T>Profil trenutno nije dostupan.</T><T variant="note" tone="muted">Proverite vezu i pokušajte ponovo.</T>
         <SettingsAction label="Pokušajte ponovo" kind="secondary" onPress={() => { void profile.refresh(); }} />
       </View> : <>
-        {profile.data?.profileId ? <ProfilePhoto profileId={profile.data.profileId}
-          fallback={<View style={styles.avatar}>{initials ? <T variant="heading">{initials}</T> : <User size={28} color={sys.color.green} />}</View>} />
-          : <View style={styles.avatar}><User size={28} color={sys.color.green} /></View>}
-        <T variant="display" accessibilityRole="header" style={{ textAlign: 'center' }}>{profile.data?.ime ?? 'Ime još nije uneto'}</T>
-        <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>{profile.data?.grad ?? 'Grad još nije unet'}</T>
+        {/* The avatar itself opens the photo; the small camera badge says so without a second control. */}
+        <Press accessibilityRole="button" accessibilityLabel="Fotografija profila" accessibilityHint="Otvara izbor fotografije profila."
+          disabled={!photoReady || busy} accessibilityState={{ disabled: !photoReady || busy }} onPress={openPhoto} haptic="select" scaleTo={0.97}>
+          {profile.data?.profileId ? <ProfilePhoto profileId={profile.data.profileId} size={96} fallback={avatar} /> : avatar}
+          {photoReady ? <View style={styles.avatarBadge}><Camera size={16} color={sys.color.ink} /></View> : null}
+        </Press>
+        <T variant="display" accessibilityRole="header" style={styles.name}>{profile.data?.ime ?? 'Ime još nije uneto'}</T>
+        <T variant="copy" tone="muted" style={{ textAlign: 'center' }}>{profile.data?.grad ?? 'Grad još nije unet'}</T>
       </>}
-      <View style={styles.intent}><T variant="meta" tone="success" style={{ fontWeight: '700' }}>{currentIntent}</T></View>
-      {profile.data?.profileId ? <SettingsAction label="Fotografija profila" kind="quiet" disabled={busy || profile.loading || !!profile.error}
-        onPress={() => { const id = profile.data?.profileId; if (!id || profile.loading || profile.error) return;
-          navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); }} /> : null}
       {accountId ? <AccountReputation accountId={accountId} /> : null}
-      <SettingsAction label={`Pređite na ${nextIntent}`} kind="quiet" disabled={busy}
-        icon={<ArrowsLeftRight size={20} color={sys.color.green} />}
-        onPress={() => navigate(() => {
-          postaviUlogu(narucilac ? 'uskocer' : 'narucilac');
-          router.replace(narucilac ? '/prilike' : '/potrebe');
-        })} />
-      <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Isti nalog možete koristiti na oba načina.</T>
+      <View accessibilityRole="tablist" style={styles.roleSwitch}>
+        <View accessibilityRole="tab" accessibilityLabel={currentIntent} accessibilityState={{ selected: true }} style={[styles.roleSegment, styles.roleSegmentOn]}>
+          <T variant="meta" style={{ fontWeight: '700', color: sys.color.ink }}>{currentIntent}</T>
+        </View>
+        <Press accessibilityRole="tab" accessibilityLabel={`Pređite na ${nextIntent}`} accessibilityState={{ selected: false }} accessibilityHint="Isti nalog, druga strana aplikacije."
+          disabled={busy} onPress={switchIntent} haptic="select" style={styles.roleSegment}>
+          <T variant="meta" tone="muted" style={{ fontWeight: '600' }}>{nextIntent}</T>
+        </Press>
+      </View>
     </View>
 
     <SettingsGroup title={narucilac ? 'Tvoji Dogovori' : 'Rad i dostupnost'}>

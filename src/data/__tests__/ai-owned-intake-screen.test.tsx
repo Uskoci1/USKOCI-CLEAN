@@ -39,7 +39,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', G: 'SvgGroup',
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowRight: 'Icon', CheckCircle: 'Icon', PaperPlaneTilt: 'Icon',
-  ShieldCheck: 'Icon', Sparkle: 'Icon', Warning: 'Icon' }));
+  ShieldCheck: 'Icon', Sparkle: 'Icon', Warning: 'Icon', DotsThree: 'Icon', MapPin: 'Icon', Clock: 'Icon', Users: 'Icon', CaretRight: 'Icon', Microphone: 'Icon', StopCircle: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
@@ -72,7 +72,7 @@ const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementT
 const type = async (value = 'Treba preneti ormar sutra.') => { await act(async () => input().onChangeText(value)); };
 const blur = async () => { mockFocused = false; await update(); };
 const focus = async () => { mockFocused = true; await update(); };
-const options = async () => { await act(async () => button('Opcije').onPress()); };
+const options = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opcije' }).props.onPress()); };
 beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon, mockRecover, mockCancel]) mock.mockReset();

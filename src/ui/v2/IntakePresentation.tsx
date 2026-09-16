@@ -1,18 +1,18 @@
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useReducedMotion } from 'react-native-reanimated';
+import { ArrowRight, CaretRight, Clock, MapPin, Users } from 'phosphor-react-native';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
 import { calendarInstant } from '../../lib/calendarTime';
 import { displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
-import { v2 } from './tokens';
 import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import { aiFirst as a } from '../aiFirst/tokens';
 
@@ -63,7 +63,8 @@ function Panel({ title, children, close, reduced }: { title: string; children: R
     <View style={s.scrim}>
       <Press accessibilityRole="button" accessibilityLabel="Zatvori panel" onPress={close} style={{ flex: 1, minHeight: 44 }} />
       <SafeAreaView edges={['bottom']} accessibilityViewIsModal style={s.sheet}>
-        <View style={s.row}><T accessibilityRole="header" style={[s.title, { flex: 1 }]}>{title}</T>
+        <View style={s.handle} />
+        <View style={s.row}><T accessibilityRole="header" variant="title" style={[s.ink, { flex: 1 }]}>{title}</T>
           <V2Action kind="quiet" label="Zatvori" onPress={close} /></View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.sheetContent}>{children}</ScrollView>
       </SafeAreaView>
@@ -75,17 +76,21 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
   loading: boolean; error: string; retry?: () => void; back: () => void; recover?: () => void;
 }) {
   return <SafeAreaView style={s.canvas}><View style={s.unavailable}>
-    <V2Icon name="chat" size={36} color={v2.color.teal} />
-    <T accessibilityRole="header" style={s.title}>{loading ? 'Otvaramo razgovor' : 'Razgovor nije dostupan'}</T>
-    {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={v2.color.teal} />
-      : <><T accessibilityRole="alert" style={[s.body, s.center]}>{error}</T>
+    <View style={s.unavailableMark}><V2Icon name="chat" size={30} color={sys.color.green} /></View>
+    <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>{loading ? 'Otvaramo razgovor' : 'Razgovor nije dostupan'}</T>
+    {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.green} />
+      : <><T accessibilityRole="alert" variant="copy" tone="muted" style={s.center}>{error}</T>
         {recover ? <V2Action kind="primary" label="Otvori prethodni razgovor" onPress={recover} /> : null}
         {retry ? <V2Action kind="primary" label="Učitajte razgovor ponovo" onPress={retry} /> : null}</>}
     <V2Action kind="quiet" label="Nazad" onPress={back} />
   </View></SafeAreaView>;
 }
 
-/** Presentation only. The owned editor retains command, focus and receipt authority. */
+/**
+ * Presentation only. The owned editor retains command, focus and receipt authority.
+ * The live card follows the V5 anatomy: a kicker with a signal dot, the title, the
+ * place and time as icon rows, then a hairline foot with the price and the people.
+ */
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
   const [panel, setPanel] = useState<'options' | null>(null);
@@ -96,44 +101,49 @@ export function IntakePresentation(props: Props) {
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={conversation.messages} pending={pending} busy={busy} streamingText={props.streamingText}
-    welcome="Šta treba da se uradi?" welcomeDetail="Opiši svojim rečima. Mesto, termin, ljude i cenu možeš dodati ili promeniti u razgovoru."
+    welcome="Reci šta ti treba. Ostalo slažemo zajedno." welcomeDetail="Mesto, termin, ljude i cenu možeš reći odjednom ili dodati u razgovoru."
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
     card={compact => <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
       accessibilityHint="Detaljan pregled svih podataka pre objave." accessibilityState={{ disabled: !props.canReview }}
       disabled={!props.canReview} onPress={props.onReview} haptic={props.canReview ? 'select' : 'none'} scaleTo={1}
-      style={[s.taskCard, { backgroundColor: a.color.wash, borderColor: a.color.line, borderRadius: compact ? 18 : 23, padding: compact ? 12 : 20 }]}>
-      <View style={s.row}><T style={[s.label, { color: a.color.green, flex: 1 }]}>TVOJ ZADATAK · {busy ? 'USKLAĐUJEM' : 'NACRT'}</T>
-        {props.canReview ? <V2Icon name="chevron" size={18} color={a.color.green} /> : null}</View>
-      <T style={[s.cardTitle, { color: a.color.ink, fontSize: compact ? 17 : 20, lineHeight: compact ? 23 : 27 }]}
-        numberOfLines={compact ? 1 : 2}>{summary.title}</T>
-      {summary.zone ? <T style={[s.label, { fontSize: 13, lineHeight: 19 }]} numberOfLines={1}>{summary.zone}</T> : null}
-      {!compact && summary.schedule ? <T style={[s.label, { fontSize: 13, lineHeight: 19 }]}>{summary.schedule}</T> : null}
-      {summary.price || summary.people ? <View style={[s.row, { flexWrap: 'wrap' }]}>
-        {summary.price ? <T style={{ ...a.text.money, fontSize: compact ? 18 : 23, color: a.color.money, flexGrow: 1 }}>{summary.price}</T> : null}
-        {summary.people ? <T style={s.people}>{summary.people}</T> : null}</View> : null}
-      {!compact ? <T style={[s.label, { fontSize: 13, lineHeight: 19 }]}>{conversation.facts.length
-        ? 'Pregledaj sve podatke pre objave.' : 'Kartica se popunjava iz razgovora.'}</T> : null}
+      style={[s.taskCard, compact && s.taskCardCompact]}>
+      <View style={s.row}>
+        <View style={[s.dot, busy && s.dotBusy]} />
+        <T variant="label" style={s.kicker}>TVOJ ZADATAK · {busy ? 'USKLAĐUJEM' : 'NACRT'}</T>
+        {props.canReview ? <View style={s.detailLink}><T variant="meta" tone="muted">Detalji</T><CaretRight size={14} color={sys.color.muted} /></View> : null}
+      </View>
+      <T style={[s.cardTitle, compact && s.cardTitleCompact, !conversation.facts.length && s.cardTitleEmpty]} numberOfLines={compact ? 1 : 2}>{summary.title}</T>
+      {!compact && (summary.zone || summary.schedule) ? <View style={s.metaRows}>
+        {summary.zone ? <View style={s.metaRow}><MapPin size={16} color="#668577" /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}
+        {summary.schedule ? <View style={s.metaRow}><Clock size={16} color="#668577" /><T variant="meta" tone="muted" style={s.metaText}>{summary.schedule}</T></View> : null}
+      </View> : null}
+      {compact && summary.zone ? <T variant="meta" tone="muted" numberOfLines={1}>{summary.zone}</T> : null}
+      {!compact && (summary.price || summary.people) ? <View style={s.cardFoot}>
+        {summary.price ? <T style={s.money}>{summary.price}</T> : <View style={s.grow} />}
+        {summary.people ? <View style={s.peopleRow}><Users size={18} color={sys.color.ink} /><T variant="meta" style={s.people}>{summary.people}</T></View> : null}
+      </View> : null}
+      {!compact && !conversation.facts.length ? <T variant="note" tone="muted">Kartica se popunjava iz razgovora.</T> : null}
     </Press>}
     actions={<>
       {safetyCopy ? <T accessibilityRole={conversation.safety === 'BLOCK' ? 'alert' : undefined}
-        style={[s.label, conversation.safety === 'BLOCK' ? { color: a.color.danger } : null]}>{safetyCopy}</T> : null}
-      {props.canReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} /> : null}
+        variant="note" style={conversation.safety === 'BLOCK' ? s.danger : s.muted}>{safetyCopy}</T> : null}
+      {props.canReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} icon={<ArrowRight size={18} color={sys.color.green} />} style={s.reviewLink} /> : null}
       {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled} onPress={props.onPhotos} /> : null}
       {props.onNewTask ? <V2Action label="Novi Zadatak" kind="primary" disabled={props.newTaskDisabled} onPress={props.onNewTask} /> : null}
     </>}
     status={<>
-      {props.error ? <T accessibilityRole="alert" style={[s.label, { color: a.color.danger }]}>{props.error}</T> : null}
-      {props.statusCopy ? <T accessibilityLiveRegion="polite" style={s.label}>{props.statusCopy}</T> : null}
+      {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
+      {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>
-        <T style={s.label}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je obrada već počela, rezervisana potrošnja ostaje zadržana.</T>
+        <T variant="note" style={s.muted}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je obrada već počela, rezervisana potrošnja ostaje zadržana.</T>
         <V2Action kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
           disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
       </> : null}
       {props.showReadback ? <V2Action label="Proverite ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel ? <Panel title="Opcije razgovora" close={close} reduced={reduced}>
-      <T style={s.body}>{conversation.status === 'OPEN'
+      <T variant="copy" tone="muted">{conversation.status === 'OPEN'
         ? 'Povratak čuva razgovor. Možeš da ga nastaviš kasnije.' : 'Ovde možeš da pregledaš sačuvane poruke.'}</T>
       <V2Action label="Osveži razgovor" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
       {props.canReview ? <V2Action label={props.reviewLabel} onPress={() => { close(); props.onReview(); }} /> : null}
@@ -144,37 +154,30 @@ export function IntakePresentation(props: Props) {
 }
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: v2.color.canvas },
-  body: { ...v2.text.body, color: v2.color.ink }, label: { ...v2.text.label, color: v2.color.muted },
-  title: { ...v2.text.title, color: v2.color.ink },
-  cardTitle: { ...v2.text.title, fontSize: 17, lineHeight: 22, letterSpacing: -0.45, color: v2.color.ink },
-  hero: { ...v2.text.hero, fontSize: 23, lineHeight: 29, letterSpacing: -0.55, color: v2.color.ink }, center: { textAlign: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: v2.space.sm },
-  header: { flexDirection: 'row', alignItems: 'center', gap: v2.space.xs, paddingHorizontal: v2.space.md, paddingVertical: v2.space.sm,
-    backgroundColor: v2.color.header },
-  iconButton: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  content: { flexGrow: 1, paddingHorizontal: v2.space.lg, paddingBottom: v2.space.md, gap: v2.space.xl },
-  taskCard: { backgroundColor: v2.color.context, borderWidth: 1, borderColor: v2.color.contextLine, borderRadius: v2.radius.card,
-    padding: v2.space.lg, gap: v2.space.sm, overflow: 'hidden' },
-  people: { ...v2.text.label, color: v2.color.ink, paddingHorizontal: v2.space.sm, paddingVertical: v2.space.xs,
-    backgroundColor: v2.color.surface, borderRadius: v2.radius.input },
-  exchange: { gap: v2.space.md, flexGrow: 1 },
-  answer: { backgroundColor: v2.color.answer, padding: v2.space.md, gap: v2.space.xs,
-    borderRadius: 16, marginLeft: v2.space.xl },
-  // Native reading size is 15px, one step above the reference's 14px answer.
-  answerText: { ...v2.text.body, fontSize: 15, lineHeight: 23, color: v2.color.ink },
-  composerArea: { backgroundColor: v2.color.surface, borderTopColor: v2.color.line, borderTopWidth: 1,
-    paddingHorizontal: v2.space.lg, paddingTop: v2.space.md, paddingBottom: v2.space.sm, gap: v2.space.sm },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: v2.space.sm, borderWidth: 1, borderColor: v2.color.controlLine,
-    borderRadius: 20, padding: v2.space.sm },
-  input: { flex: 1, ...v2.text.body, fontSize: 15, lineHeight: 21, color: v2.color.ink, minHeight: v2.target.minimum, maxHeight: 112,
-    paddingHorizontal: v2.space.xs, paddingVertical: v2.space.md, textAlignVertical: 'top' },
-  send: { width: v2.target.minimum, height: v2.target.minimum, borderRadius: v2.radius.button,
-    backgroundColor: v2.color.ink, alignItems: 'center', justifyContent: 'center' },
-  scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#143D3566' },
-  sheet: { maxHeight: '85%', borderTopLeftRadius: v2.radius.sheet, borderTopRightRadius: v2.radius.sheet,
-    paddingHorizontal: v2.space.lg, paddingTop: v2.space.md, backgroundColor: v2.color.canvas },
-  sheetContent: { gap: v2.space.md, paddingVertical: v2.space.md },
-  historyMessage: { gap: v2.space.xs, paddingVertical: v2.space.sm },
-  unavailable: { flex: 1, padding: v2.space.xl, gap: v2.space.lg, alignItems: 'center', justifyContent: 'center' },
+  canvas: { flex: 1, backgroundColor: sys.color.surface },
+  ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger }, center: { textAlign: 'center' },
+  grow: { flex: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  taskCard: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: '#DCE8DF', borderRadius: a.radius.card, paddingVertical: 16, paddingHorizontal: 17, gap: 10, overflow: 'hidden', ...sys.elevation.soft },
+  taskCardCompact: { borderRadius: a.radius.compactCard, paddingVertical: 10, paddingHorizontal: 14, gap: 4 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: sys.color.green },
+  dotBusy: { backgroundColor: sys.color.orange },
+  kicker: { flex: 1, color: sys.color.green, letterSpacing: 0.9 },
+  detailLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  cardTitle: { fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.6, color: sys.color.ink },
+  cardTitleCompact: { fontSize: 16, lineHeight: 21, letterSpacing: -0.3 },
+  cardTitleEmpty: { color: '#536C60', fontSize: 18, fontWeight: '600' },
+  metaRows: { gap: 5 }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, metaText: { flexShrink: 1 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: 1, borderTopColor: '#E7EDE9', paddingTop: 12, marginTop: 3 },
+  money: { fontSize: 23, lineHeight: 28, fontWeight: '700', letterSpacing: -0.7, color: sys.color.money, fontVariant: ['tabular-nums'] },
+  peopleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  people: { color: sys.color.ink, fontWeight: '600' },
+  reviewLink: { backgroundColor: '#EDF6F0', borderWidth: 0, minHeight: 51, borderRadius: 16, justifyContent: 'flex-start', paddingHorizontal: 14 },
+  scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim },
+  sheet: { maxHeight: '85%', borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
+    paddingHorizontal: 24, paddingTop: 10, backgroundColor: sys.color.surface },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong, marginBottom: 10 },
+  sheetContent: { gap: 12, paddingVertical: 12, paddingBottom: 20 },
+  unavailable: { flex: 1, padding: 24, gap: 16, alignItems: 'center', justifyContent: 'center' },
+  unavailableMark: { width: 60, height: 60, borderRadius: 22, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
 });
