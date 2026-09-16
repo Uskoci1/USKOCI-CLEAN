@@ -170,6 +170,40 @@ def main():
     count, version = history()
     if (count, version) != (manifest['replay']['liveBaseCount'], manifest['replay']['liveBaseVersion']):
         fail(f'LIVE_BASE_MISMATCH {count}/{version}')
+
+    # The disposable database's minute scheduler (cron job uskoci_marketplace_tick ->
+    # select private.marketplace_tick(25)) is paused for the whole chain exactly as
+    # v5_retention_compatibility_proof.mjs pauses it for its own run: under chain load a
+    # tick held row locks for 10+ seconds and made proof RPCs (57014) and the erasure
+    # proof's drift DDL (20 s psql bound) time out behind it (runs 35060803243 and
+    # 35061654279). The tick's own contracts are proven by the legal P2/P3 proofs and by
+    # v5_retention_compatibility_proof, which invoke it directly; that proof's own
+    # pause/restore is idempotent against an already paused job.
+    def scheduler_job():
+        jobs = json.loads(scalar("select coalesce(jsonb_agg(to_jsonb(j)),'[]') from cron.job j where jobname='uskoci_marketplace_tick'"))
+        if len(jobs) != 1:
+            fail(f'SCHEDULER_JOB_COUNT {len(jobs)}')
+        return jobs[0]
+
+    def tick_backends():
+        return json.loads(scalar("select coalesce(jsonb_agg(pid),'[]') from pg_stat_activity where application_name='pg_cron'"
+                                 " and state is distinct from 'idle' and query like 'select private.marketplace_tick%'"))
+
+    def open_runs(jobid):
+        return int(scalar(f"select count(*) from cron.job_run_details where jobid={jobid} and end_time is null and status not in ('succeeded','failed')"))
+
+    job_before = scheduler_job()
+    run_sql(f"begin;set local lock_timeout='5s';select cron.alter_job(job_id:={job_before['jobid']}::bigint,active:=false);commit;", 'scheduler_pause')
+    drain_started = time.monotonic()
+    while tick_backends() or open_runs(job_before['jobid']):
+        if time.monotonic() - drain_started > 120:
+            fail('SCHEDULER_DRAIN_TIMEOUT')
+        time.sleep(1)
+    summary['localScheduler'] = {'job': job_before['jobname'], 'jobid': job_before['jobid'], 'before': job_before, 'paused': True,
+                                 'drainedSeconds': round(time.monotonic() - drain_started, 1), 'afterPause': scheduler_job(),
+                                 'note': 'Paused for the whole chain (same cron.alter_job form as v5_retention_compatibility_proof.mjs); no proof assertion changed.'}
+    print(f"scheduler_paused job={job_before['jobname']} jobid={job_before['jobid']} drained_in={summary['localScheduler']['drainedSeconds']}s", flush=True)
+    write_summary()
     for e in aliases:
         replay(e.get('file') or f"{e['version']}_{e['name']}.sql", e['version'], e['name'])
     if history()[0] != manifest['replay']['historyAfterAliases']:
@@ -252,6 +286,7 @@ def main():
     if (count, version) != (manifest['finalHistoryCount'], manifest['finalVersion']):
         fail(f'FINAL_HISTORY {count}/{version}')
     summary['history'] = f'{count}/{version}'
+    summary['localScheduler']['afterChain'] = scheduler_job()
     summary['result'] = 'PASS'
     summary['domainProofs'] = [p['script'] for p in summary['proofs'] if p['pkg010Domain'] and p['result'] == 'PASS']
     write_summary()
