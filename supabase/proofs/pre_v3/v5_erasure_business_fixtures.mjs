@@ -20,7 +20,9 @@ async function requesterProfile(a){
 }
 function publishedNeed(a,profileId,label){
  const id=randomUUID();
- sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);
+ // task_country_code/task_timezone writes need the confirmed-review region token (W02 guard),
+ // exactly as the qa_classifier, qa_owner_activation and unknown_ai_turn_exit proofs publish theirs.
+ sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);select set_config('uskoci.need_region','CONFIRMED_REVIEW',true);
   insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,
    approximate_city,approximate_area,mode,execution_location_mode,task_country_code,task_timezone,required_slots,schedule_kind,response_deadline,published_at)
   values(${q(id)}::uuid,${q(a.id)}::uuid,${q(profileId)}::uuid,'PUBLISHED',${q(label)},'Disposable146 privileged Task seed',
