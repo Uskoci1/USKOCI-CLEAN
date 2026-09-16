@@ -259,6 +259,12 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
     problemOtvoren: z.problemOtvoren,
     // Ocena tek posle kanonskog završetka — ne pre.
     ocenaMoguca: z.stanje === 'COMPLETED',
+    // PKG-007: isto pravilo kao serverski actionState; lažni izvor ne modelira predloge na čekanju.
+    radnje: {
+      mozeOznacitiZavrsetak: !jaSamNarucilac && z.stanje === 'CONFIRMED',
+      mozePotvrditiZavrsetak: jaSamNarucilac && (z.stanje === 'CONFIRMED' || z.stanje === 'AWAITING_REQUESTER'),
+      izmenaNaCekanju: false,
+    },
     hronologija: [
       { vremeTekst: 'sada', tekst: 'Dogovor je potvrđen' },
       {
@@ -665,8 +671,9 @@ export const lazniIzvor: Izvor = {
     }
     // Naručilac može da potvrdi i pre nego što Uskočer bilo šta označi.
     const z = zavrsetakZa(dogovorId);
+    const ponovljeno = z.stanje === 'COMPLETED';
     stanje.zavrsetak[dogovorId] = { ...z, stanje: 'COMPLETED', rokPotvrdeMs: null };
-    return { ok: true, podatak: null };
+    return { ok: true, podatak: { zavrsenoIso: new Date(stanje.sadaMs).toISOString(), ponovljeno } };
   },
 
   async prijaviProblem(dogovorId, opis) {

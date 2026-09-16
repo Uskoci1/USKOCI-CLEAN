@@ -1,8 +1,9 @@
 import { legacyRpcFailure } from './legacyRpcFailure';
-import type { DogovorProjekcija, UcesnikProjekcija } from '../contracts/projections';
-import type { Ishod, IzmenaKomanda, Izvor } from './ports';
+import type { DogovorProjekcija, DogovorRadnje, UcesnikProjekcija } from '../contracts/projections';
+import { completionErrors, completionFailure } from './agreementCompletion';
+import type { Ishod, IzmenaKomanda, Izvor, PotvrdaZavrsetka } from './ports';
 import { calendarFailure } from './calendarErrors';
-import { failure, positiveInteger, readOwnedResult, record, sameId, uuid, type ReceiptAccount } from './serverReceipt';
+import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
 import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
@@ -13,7 +14,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type AgreementService = Pick<
   Izvor,
-  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak'
+  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak' | 'potvrdiZavrsetak'
 >;
 
 function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
@@ -99,7 +100,28 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     problemOtvoren: Boolean(raw.problemOpened),
     ocenaMoguca: status === 'COMPLETED',
     hronologija: [{ vremeTekst: formatTime(raw.createdAt), tekst: 'Dogovor kreiran' }],
+    radnje: agreementActions(raw, uid),
   };
+}
+
+/** PKG-007 / GAP-0033: rpc_confirm_completion returns one authoritative terminal
+ * receipt for both the original confirmation and the already-completed replay. A
+ * void ACK, a foreign Agreement, a non-terminal state or an unreadable instant never
+ * counts as completion. */
+function decodeCompletionReceipt(raw: unknown, dogovorId: string): PotvrdaZavrsetka | null {
+  const receipt = record(raw);
+  if (!receipt || !sameId(receipt.agreementId, dogovorId) || receipt.state !== 'COMPLETED' ||
+    !timestamp(receipt.completedAt) || typeof receipt.idempotentReplay !== 'boolean' || receipt.authoritative !== true) return null;
+  return { zavrsenoIso: receipt.completedAt, ponovljeno: receipt.idempotentReplay };
+}
+
+/** PKG-007: the workspace's own actionState, bound to this Agreement, version and
+ * account, is the only completion authority. The list RPC carries none; anything
+ * missing, foreign, stale or malformed fails closed to null instead of a guess. */
+function agreementActions(raw: Record<string, unknown>, uid: string): DogovorRadnje | null {
+  const actions = decodeActionState(raw.actionState, raw.id, raw.currentVersion, uid);
+  return actions && { mozeOznacitiZavrsetak: actions.canMarkWorkDone, mozePotvrditiZavrsetak: actions.canConfirmCompletion,
+    izmenaNaCekanju: actions.pendingChanges.length > 0 };
 }
 
 function acceptedSchedule(terms: Record<string, unknown>): string {
@@ -219,6 +241,20 @@ export type AgreementCommandReadback = { found: false } | { found: true; proposa
   agreementId: string; baseVersion: number; proposedBy: string; status: AgreementChangeProposal['status'] };
 const actionKeys = ['canProposeChange', 'canRespondChange', 'canWithdrawChange',
   'canMarkWorkDone', 'canConfirmCompletion', 'canCancel'] as const;
+type ServerActionState = Record<typeof actionKeys[number], boolean> & { pendingChanges: unknown[] };
+/** One validation for both readers of actionState: authoritative, bound to the exact
+ * Agreement/version/account, every capability boolean, at most one pending change. */
+function decodeActionState(raw: unknown, agreementId: unknown, version: unknown, accountId: string): ServerActionState | null {
+  const actions = record(raw);
+  if (!actions || actions.authoritative !== true || !uuid(agreementId) || !sameId(actions.agreementId, agreementId) ||
+    !positiveInteger(version) || actions.agreementVersion !== version || !sameId(actions.accountId, accountId) ||
+    actionKeys.some(key => typeof actions[key] !== 'boolean') || !Array.isArray(actions.pendingChanges) ||
+    actions.pendingChanges.length > 1) return null;
+  return { canProposeChange: actions.canProposeChange as boolean, canRespondChange: actions.canRespondChange as boolean,
+    canWithdrawChange: actions.canWithdrawChange as boolean, canMarkWorkDone: actions.canMarkWorkDone as boolean,
+    canConfirmCompletion: actions.canConfirmCompletion as boolean, canCancel: actions.canCancel as boolean,
+    pendingChanges: actions.pendingChanges };
+}
 const changeErrors = {
   AGREEMENT_CAPABILITIES_NOT_READY: 'Radnje Dogovora još nisu spremne. Osvežite prikaz kasnije.',
   AGREEMENT_CHANGE_AFTER_WORK_DONE: 'Rad je označen kao završen. Uslovi se više ne mogu menjati.',
@@ -280,15 +316,13 @@ function decodeChangeTerms(raw: unknown): AgreementChangeTerms | null {
  * snapshot replaces the saved branch's unbounded history read and triple query.
  * Malformed historic terms are unavailable, never normalized into new terms. */
 function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: string): AgreementChangeSnapshot | null {
-  const row = record(raw), actions = record(row?.actionState);
+  const row = record(raw);
   if (!row || !sameId(row.id, agreementId) || !positiveInteger(row.currentVersion) ||
     !uuid(row.requesterAccountId) || !uuid(row.workerAccountId) || sameId(row.requesterAccountId, row.workerAccountId) ||
     (!sameId(row.requesterAccountId, accountId) && !sameId(row.workerAccountId, accountId)) ||
-    !['CONFIRMED', 'SUPERSEDED', 'COMPLETED', 'CANCELLED'].includes(row.agreementStatus as string) ||
-    !actions || actions.authoritative !== true || !sameId(actions.agreementId, agreementId) ||
-    actions.agreementVersion !== row.currentVersion || !sameId(actions.accountId, accountId) ||
-    actionKeys.some(key => typeof actions[key] !== 'boolean') || !Array.isArray(actions.pendingChanges) ||
-    actions.pendingChanges.length > 1) return null;
+    !['CONFIRMED', 'SUPERSEDED', 'COMPLETED', 'CANCELLED'].includes(row.agreementStatus as string)) return null;
+  const actions = decodeActionState(row.actionState, agreementId, row.currentVersion, accountId);
+  if (!actions) return null;
   const proposals: AgreementChangeProposal[] = [];
   for (const item of actions.pendingChanges) {
     const r = record(item);
@@ -306,9 +340,9 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
     requesterAccountId: row.requesterAccountId, workerAccountId: row.workerAccountId,
     terms: decodeChangeTerms(row.terms), proposals,
     actions: { agreementId, agreementVersion: row.currentVersion, accountId, authoritative: true,
-      canProposeChange: actions.canProposeChange as boolean, canRespondChange: actions.canRespondChange as boolean,
-      canWithdrawChange: actions.canWithdrawChange as boolean, canMarkWorkDone: actions.canMarkWorkDone as boolean,
-      canConfirmCompletion: actions.canConfirmCompletion as boolean, canCancel: actions.canCancel as boolean } };
+      canProposeChange: actions.canProposeChange, canRespondChange: actions.canRespondChange,
+      canWithdrawChange: actions.canWithdrawChange, canMarkWorkDone: actions.canMarkWorkDone,
+      canConfirmCompletion: actions.canConfirmCompletion, canCancel: actions.canCancel } };
 }
 function changeAccount(account: ReceiptAccount): ReceiptAccount | null {
   return account && uuid(account.accountId) && Number.isSafeInteger(account.accountRevision) && account.accountRevision >= 0
@@ -487,7 +521,18 @@ export const agreementClientService: AgreementService = {
     const { data, error } = await supabase.rpc('rpc_mark_work_done', {
       p_agreement_id: dogovorId,
     });
-    if (error || !data) return fail(error, 'COMPLETION_FAILED', 'Završetak nije mogao da se označi.');
+    // PKG-007: the pending-change and completion guards are known denials with their own copy.
+    if (error || !data) return completionFailure(error) ?? fail(error, 'COMPLETION_FAILED', 'Završetak nije mogao da se označi.');
     return { ok: true, podatak: { rokPotvrdeIso: data } };
+  },
+
+  /** PKG-007 / GAP-0033: sole production owner of the requester confirmation. The
+   * server's structured terminal receipt (original or already-completed replay) is
+   * required; the screen still confirms only by reading COMPLETED back. */
+  async potvrdiZavrsetak(dogovorId) {
+    if (!uuid(dogovorId)) return failure('COMPLETION_COMMAND_INVALID', 'Dogovor nije dostupan. Ponovo ga otvorite.');
+    return readOwnedResult({ write: true, errors: completionErrors, fallback: 'COMPLETION_UNCONFIRMED', invalid: 'COMPLETION_RECEIPT_INVALID',
+      request: () => supabase.rpc('rpc_confirm_completion', { p_agreement_id: dogovorId }),
+      decode: raw => decodeCompletionReceipt(raw, dogovorId) });
   },
 };

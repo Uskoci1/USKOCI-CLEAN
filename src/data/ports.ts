@@ -26,6 +26,9 @@ export type Ishod<T> =
   | { ok: true; podatak: T }
   | { ok: false; kod: string; poruka: string; naslov?: string };
 
+/** PKG-007: potvrda završetka koju je server sam vratio (`ponovljeno` = idempotentReplay). */
+export type PotvrdaZavrsetka = { zavrsenoIso: string; ponovljeno: boolean };
+
 /**
  * Idempotencija nije opcija. Isti key + isti semantički payload vraća isti
  * rezultat; isti key + drugačiji payload server odbija.
@@ -144,8 +147,10 @@ export interface Komande {
   /**
    * M07 — Naručilac potvrđuje. Može i NEZAVISNO, pre nego što Uskočer
    * bilo šta označi — to je legitiman put, ne izuzetak.
+   * PKG-007: server vraća terminalnu potvrdu (i za ponovljeni poziv);
+   * prazan ACK nije završetak. Ekran završetak potvrđuje tek čitanjem COMPLETED.
    */
-  potvrdiZavrsetak(dogovorId: string): Promise<Ishod<null>>;
+  potvrdiZavrsetak(dogovorId: string): Promise<Ishod<PotvrdaZavrsetka>>;
 
   /** M07 — prijavljen problem blokira automatsko zatvaranje po isteku prozora. */
   prijaviProblem(dogovorId: string, opis: string): Promise<Ishod<null>>;

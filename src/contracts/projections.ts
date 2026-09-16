@@ -285,6 +285,21 @@ export type KontaktProjekcija = {
   readonly emailNijeDeljen: true;
 };
 
+/**
+ * PKG-007: serverske dozvole za završetak Dogovora (actionState iz rpc_get_agreement_workspace),
+ * vezane za ovaj nalog i važeću verziju. Klijent ih nikad ne izvodi iz statusa i uloge.
+ * `null` znači da server nije potvrdio dozvole (lista, stariji ili neispravan odgovor) —
+ * ekran tada ne nudi završetak dok se prikaz ne osveži.
+ */
+export type DogovorRadnje = {
+  /** Uskočer sme da označi završetak: CONFIRMED, bez predloga izmene na čekanju. */
+  mozeOznacitiZavrsetak: boolean;
+  /** Naručilac sme da potvrdi završetak: CONFIRMED ili AWAITING_REQUESTER, bez predloga na čekanju. */
+  mozePotvrditiZavrsetak: boolean;
+  /** Predlog izmene čeka odgovor; server tada odbija oba završetka. */
+  izmenaNaCekanju: boolean;
+};
+
 export type DogovorProjekcija = {
   id: string;
   /** Prihvaćena verzija je autoritativna. */
@@ -311,6 +326,8 @@ export type DogovorProjekcija = {
   ocenaMoguca: boolean;
   /** Hronologija je deo Pregleda, ne treći tab. */
   hronologija: { vremeTekst: string; tekst: string }[];
+  /** PKG-007: serverske dozvole za završetak; `null` = nepotvrđene, završetak se ne nudi. */
+  radnje: DogovorRadnje | null;
 };
 
 /* ------------------------------------------------- AI nacrt Potrebe (R02) */

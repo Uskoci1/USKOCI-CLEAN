@@ -22,6 +22,7 @@ import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, type AgreementProblemSnapshot } from '../../data/agreementClientService';
+import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
 
 const bodyStyle = { ...v2.text.body, color: v2.color.ink };
@@ -150,7 +151,11 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const me = dogovor.ucesnici.find(party => party.viSte && party.id === accountId);
   const worker = me?.uloga === 'uskocer', requester = me?.uloga === 'narucilac';
   const active = dogovor.stanje === 'CONFIRMED' || dogovor.stanje === 'AWAITING_REQUESTER';
-  const canComplete = active && !!me && (requester || dogovor.stanje === 'CONFIRMED');
+  // PKG-007: the server's actionState (already excluding a pending change) is the only
+  // completion authority; status and party stay a necessary display condition, never a
+  // substitute. Missing or unconfirmed permissions fail closed until an explicit readback.
+  const radnje = dogovor.radnje ?? null;
+  const canComplete = active && !!me && !!radnje && (worker ? radnje.mozeOznacitiZavrsetak : requester && radnje.mozePotvrditiZavrsetak);
   const other = dogovor.ucesnici.find(party => !party.viSte);
   const formCurrent = () => enabled && !!me && ownsAccount() && activeRef.current && freshRef.current &&
     renderedFormFocus !== null && formFocus.current === renderedFormFocus;
@@ -182,7 +187,21 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
       return read();
     });
   };
-  const complete = () => { if (canComplete) void mutate(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id)); };
+  const complete = async () => {
+    if (!canComplete || !enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
+    await workspace.save(async () => {
+      const result = await bounded<Ishod<unknown>>(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id));
+      // A known server denial keeps its own copy; anything else is an unconfirmed outcome.
+      if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Promena nije potvrđena. Osvežite Dogovor pre novog pokušaja.' };
+      const next = await read();
+      if (!next.ok) return next;
+      // Only the server's own terminal readback confirms; an unchanged state stays unconfirmed.
+      const state = next.podatak?.stanje;
+      const confirmed = worker ? state === 'AWAITING_REQUESTER' || state === 'COMPLETED' : state === 'COMPLETED';
+      if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: 'Server nije potvrdio završetak. Osvežite status Dogovora.' };
+      return next;
+    });
+  };
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
   return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
@@ -261,6 +280,11 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
           {dogovor.stanje === 'CONFIRMED' && me ? <T style={metaStyle}>{worker
             ? 'Kada završite, označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
             : 'Završetak možete potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.'}</T> : null}
+          {active && me && !radnje ? <View style={{ gap: 8 }}>
+            <T style={metaStyle}>Dozvole za završetak nisu potvrđene sa servera. Osvežite status Dogovora pre završetka.</T>
+            <V2Action label="Osveži dozvole za završetak" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
+          </View> : null}
+          {active && me && radnje?.izmenaNaCekanju ? <T style={metaStyle}>Predlog izmene čeka odgovor. Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.</T> : null}
           {dogovor.stanje === 'COMPLETED' ? <T style={{ ...bodyStyle, color: v2.color.teal }}>Dogovor je završen</T> : null}
           {dogovor.stanje === 'CANCELLED' ? <T style={metaStyle}>Dogovor je otkazan.</T> : null}
           {workspace.error ? <View style={{ gap: 8 }}><T accessibilityRole="alert" style={{ ...bodyStyle, color: v2.color.danger }}>{workspace.error}</T>
@@ -268,7 +292,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         </ScrollView>
         <View style={{ padding: 18, gap: 6, borderTopWidth: 1, borderColor: v2.color.line, backgroundColor: v2.color.surface }}>
           <V2Action label="Otvori poruke" kind="primary" onPress={() => setTab('poruke')} style={{ backgroundColor: v2.color.orange, borderWidth: 0, minHeight: 50, borderRadius: 16 }} />
-          {canComplete ? <V2Action label={workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak'} kind="quiet" disabled={!enabled} onPress={complete} /> : null}
+          {canComplete ? <V2Action label={workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak'} kind="quiet" disabled={!enabled} onPress={() => { void complete(); }} /> : null}
           {dogovor.stanje === 'COMPLETED' && me ? <V2Action label="Oceni saradnju" kind="quiet" disabled={!enabled}
             onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); }} /> : null}
         </View>
