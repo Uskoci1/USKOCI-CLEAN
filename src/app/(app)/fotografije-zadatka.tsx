@@ -39,14 +39,26 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
     if (!conversationId || !key || !current()) return;
     const stored = await AsyncStorage.getItem(key);
     if (!current()) return;
-    if (stored && !uuid(stored)) throw new Error('invalid journal');
-    if (stored && !pending.current) pending.current = { id: stored };
+    if (stored && !uuid(stored)) {
+      // Not a command identity: it can never be reconciled or replayed, so it must not strand the picker.
+      await AsyncStorage.removeItem(key);
+      if (!current()) return;
+      setMessage('Zapis nepotvrđenog slanja nije čitljiv, pa je uklonjen. Proveri fotografije.');
+    } else if (stored && !pending.current) pending.current = { id: stored };
     if (pending.current) {
       setUnconfirmed(true);
       const receipt = await mediaClientService.readUploadCommand(pending.current.id);
       if (!current()) return;
       if (receipt.ok) await settle(receipt.podatak, current);
-      else { setMessage(receipt.poruka); setCanRetry(!!pending.current?.photo); }
+      else {
+        // PKG-008: absence alone is never success and never erases the identity. The owner keeps
+        // the same-key retry while the bytes exist and always has the authoritative cancel below.
+        const missing = receipt.kod === 'MEDIA_NOT_FOUND', retained = !!pending.current?.photo;
+        setCanRetry(retained);
+        setMessage(!missing ? 'Ishod slanja nije učitan. Proveri vezu i osveži prikaz.'
+          : retained ? 'Server nema ovo slanje. Možeš da pošalješ istu fotografiju ponovo ili da odustaneš od slanja.'
+            : 'Server nema ovo slanje, a fotografija više nije na uređaju. Odustani od slanja pa izaberi fotografiju ponovo.');
+      }
     }
     if (!current()) return;
     const result = await mediaClientService.readTaskPhotos(conversationId);
@@ -98,6 +110,26 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
     if (!canRetry || !pending.current?.photo || !begin()) return;
     try { await send(pending.current); } catch { if (current()) setMessage('Ishod nije potvrđen. Proveri fotografije.'); } finally { finish(); }
   };
+  // PKG-008 / GAP-0036: the server owns the exit. A tombstone (absent key) or a
+  // deselection (admitted key) is the only thing that retires the journal identity;
+  // an unconfirmed cancellation keeps it, so nothing is erased on a missing row.
+  const cancel = async () => {
+    const command = pending.current;
+    if (!command || !conversationId || !key || !begin()) return;
+    try {
+      abort.current?.abort();
+      const result = await mediaClientService.cancelUploadCommand({ conversationId, clientRequestId: command.id });
+      if (!current()) return;
+      if (!result.ok) { setMessage(result.poruka); return; }
+      await AsyncStorage.removeItem(key);
+      if (!current()) return;
+      pending.current = null; setUnconfirmed(false); setCanRetry(false);
+      setMessage(result.podatak.previousState === null ? 'Slanje je otkazano. Zakasnela fotografija sa ovog zahteva neće biti prihvaćena.'
+        : 'Slanje je otkazano. Fotografija nije u nacrtu.');
+      await read(current);
+    } catch { if (current()) setMessage('Otkazivanje nije potvrđeno. Osveži prikaz pre novog pokušaja.'); }
+    finally { finish(); }
+  };
   const remove = async (assetId: string) => {
     if (!recovered || pending.current || !conversationId || !begin()) return;
     try {
@@ -125,5 +157,6 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
     <SettingsAction label="Fotografiši" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('CAMERA'); }} />
     <SettingsAction label="Osveži i proveri fotografije" disabled={busy} onPress={() => { void refresh(); }} />
     {unconfirmed && canRetry ? <SettingsAction label="Nastavi slanje iste fotografije" disabled={busy} onPress={() => { void retry(); }} /> : null}
+    {unconfirmed ? <SettingsAction label="Odustani od nepotvrđenog slanja" kind="quiet" disabled={busy} onPress={() => { void cancel(); }} /> : null}
   </SettingsScreen>;
 }

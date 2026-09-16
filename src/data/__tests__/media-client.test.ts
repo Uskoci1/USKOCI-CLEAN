@@ -83,3 +83,36 @@ it('cancelled case image request does not invoke the gateway and an account ABA 
  mockInvoke.mockImplementation(async()=>{mockSession.accountRevision=3;return{data:null,error:{message:'MEDIA_NOT_FOUND'}};});
  await expect(service.readMedia(ASSET,{caseId:CID})).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
 });
+describe('PKG-008 — explicit cancellation of an owned Task upload command',()=>{
+ const cancelled=(previousState:string|null=null,assetId:string|null=null)=>({accountId:OWNER,conversationId:CID,clientRequestId:KEY,previousState,assetId,selected:false,cancelled:true,authoritative:true});
+ it('sends the exact RPC and accepts the absent tombstone and the deselected admitted command',async()=>{
+  mockRpc.mockResolvedValue({data:cancelled(),error:null});
+  await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY})).resolves.toEqual({ok:true,podatak:cancelled()});
+  expect(mockRpc).toHaveBeenCalledWith('rpc_cancel_media_upload',{p_conversation_id:CID,p_client_request_id:KEY});expect(mockInvoke).not.toHaveBeenCalled();
+  mockRpc.mockResolvedValue({data:cancelled('PROCESSING',ASSET),error:null});
+  await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY})).resolves.toEqual({ok:true,podatak:cancelled('PROCESSING',ASSET)});
+ });
+ it.each([{accountId:OTHER},{conversationId:OTHER},{clientRequestId:OTHER},{previousState:'CANCELLED'},{assetId:ASSET},{previousState:'READY'},
+  {selected:true},{cancelled:false},{authoritative:false},{storagePath:'PRIVATE'}])('rejects a foreign, unbound or inconsistent cancellation receipt %#',async patch=>{
+  mockRpc.mockResolvedValue({data:{...cancelled(),...patch},error:null});
+  await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY})).resolves.toMatchObject({ok:false,kod:'MEDIA_INVALID_RESPONSE'});
+ });
+ it.each([['MEDIA_COMMAND_CONFLICT','Ovaj zahtev pripada drugoj fotografiji ili zadatku. Osvežite prikaz.'],['MEDIA_NOT_FOUND','Fotografija nije dostupna.'],
+  ['MEDIA_NOT_EDITABLE','Fotografije sada ne mogu da se menjaju.']])('maps the known refusal %s to its own copy',async(name,copy)=>{
+  mockRpc.mockResolvedValue({data:null,error:{message:name,details:'private detail'}});
+  await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY})).resolves.toEqual({ok:false,kod:name,poruka:copy});
+ });
+ it('keeps an unknown refusal unconfirmed without echoing it, and refuses invalid identities before any RPC',async()=>{
+  mockRpc.mockResolvedValue({data:null,error:{message:'SQLSTATE 55000 http://internal'}});
+  const result=await service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY});
+  expect(result).toMatchObject({ok:false,kod:'MEDIA_UNCONFIRMED'});expect(JSON.stringify(result)).not.toContain('http');
+  mockRpc.mockReset();
+  await expect(service.cancelUploadCommand({conversationId:'draft',clientRequestId:KEY})).resolves.toMatchObject({ok:false,kod:'MEDIA_INPUT_INVALID'});
+  await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:'key'})).resolves.toMatchObject({ok:false,kod:'MEDIA_INPUT_INVALID'});
+  expect(mockRpc).not.toHaveBeenCalled();
+ });
+ it('discards a cancellation receipt that arrives after an account round trip',async()=>{
+  mockRpc.mockImplementation(async()=>{mockSession={user:{id:OWNER},accountRevision:3};return{data:cancelled(),error:null};});
+  await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY})).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
+ });
+});

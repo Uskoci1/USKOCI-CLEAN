@@ -17,6 +17,10 @@ export type MediaPreview = Readonly<{assetId:string;width:number;height:number;c
 export type NeedPhotos = Readonly<{needId:string;photos:MediaPreview[];authoritative:true}>;
 export type ProfilePhoto = Readonly<{profileId:string;photo:MediaPreview|null;authoritative:true}>;
 export type AvatarDiscarded = Readonly<{assetId:string;profileId:string;accountId:string;discarded:true;authoritative:true}>;
+/** PKG-008: the server's own cancellation receipt. `previousState:null` is the durable tombstone for a
+ * command that never reached the claim; any other value is an admitted command that is now deselected. */
+export type MediaUploadCancelled=Readonly<{accountId:string;conversationId:string;clientRequestId:string;previousState:MediaAsset['state']|null;
+  assetId:string|null;selected:false;cancelled:true;authoritative:true}>;
 const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const integer=(v:unknown,max:number):v is number=>typeof v==='number'&&Number.isInteger(v)&&v>=1&&v<=max;
 const errors={ AUTH_REQUIRED:'Prijavite se da biste nastavili.',MEDIA_NOT_FOUND:'Fotografija nije dostupna.',
@@ -25,6 +29,7 @@ const errors={ AUTH_REQUIRED:'Prijavite se da biste nastavili.',MEDIA_NOT_FOUND:
   MEDIA_UPLOAD_PENDING:'Prethodno slanje još nije potvrđeno. Osvežite prikaz.',MEDIA_TURN_PENDING:'Sačekajte završetak AI poruke.',
   MEDIA_NOT_EDITABLE:'Fotografije sada ne mogu da se menjaju.',MEDIA_VERSION_CONFLICT:'Avatar je promenjen. Osvežite profil.',
   IDEMPOTENCY_KEY_REUSED:'Zahtev pripada drugoj fotografiji. Osvežite prikaz.',PUBLIC_MEDIA_NOT_READY:'Sačekajte da se fotografije obrade.',
+  MEDIA_COMMAND_CONFLICT:'Ovaj zahtev pripada drugoj fotografiji ili zadatku. Osvežite prikaz.',
   MEDIA_SANITIZATION_FAILED:'Fotografija nije mogla bezbedno da se obradi.' };
 export function decodeMediaAsset(raw:unknown,accountId?:string):MediaAsset|null{
   const a=record(raw);if(!a||Object.keys(a).length!==15||!uuid(a.assetId)||!uuid(a.accountId)||(accountId&&!sameId(a.accountId,accountId))
@@ -45,6 +50,13 @@ export function decodeTaskPhotos(raw:unknown,accountId:string,cid:string):TaskPh
   if(photos.some(a=>!a||a.scope!=='TASK'||!a.selected)||(r.ready&&photos.some(a=>a?.state!=='READY'))
     ||new Set(photos.map(a=>a?.assetId)).size!==photos.length)return null;
   return {conversationId:cid,accountId,photos:photos as MediaAsset[],ready:r.ready,authoritative:true};
+}
+export function decodeMediaUploadCancelled(raw:unknown,accountId:string,cid:string,key:string):MediaUploadCancelled|null{
+  const r=record(raw);if(!r||Object.keys(r).length!==8||!sameId(r.accountId,accountId)||!sameId(r.conversationId,cid)||!sameId(r.clientRequestId,key)
+    ||!(r.previousState===null||['PROCESSING','STAGED','READY','FAILED'].includes(String(r.previousState)))
+    ||(r.previousState===null?r.assetId!==null:!uuid(r.assetId))||r.selected!==false||r.cancelled!==true||r.authoritative!==true)return null;
+  return {accountId,conversationId:cid,clientRequestId:key,previousState:r.previousState as MediaUploadCancelled['previousState'],
+    assetId:r.assetId as string|null,selected:false,cancelled:true,authoritative:true};
 }
 function decodeProfileAvatar(raw:unknown,aid:string,pid:string):ProfileAvatar|null{
   const r=record(raw);return r&&Object.keys(r).length===4&&sameId(r.accountId,aid)&&sameId(r.profileId,pid)
@@ -96,6 +108,12 @@ export const mediaClientService={
   readTaskPhotos:(conversationId:string)=>call('rpc_read_task_photos',{p_conversation_id:conversationId},(v,a)=>decodeTaskPhotos(v,a,conversationId)),
   readUploadCommand:(clientRequestId:string)=>call('rpc_read_media_upload',{p_client_request_id:clientRequestId},(v,a)=>{
     const result=decodeMediaAsset(v,a);return result&&sameId(result.clientRequestId,clientRequestId)?result:null;}),
+  /** PKG-008: authoritative owner cancellation of one unconfirmed Task upload command. The server fences a
+   * delayed first send (tombstone) or deselects an admitted one; the client never erases the identity itself. */
+  cancelUploadCommand:(input:{conversationId:string;clientRequestId:string})=>!uuid(input.conversationId)||!uuid(input.clientRequestId)
+    ?Promise.resolve(failure('MEDIA_INPUT_INVALID',errors.MEDIA_INPUT_INVALID))
+    :call('rpc_cancel_media_upload',{p_conversation_id:input.conversationId,p_client_request_id:input.clientRequestId},
+      (v,a)=>decodeMediaUploadCancelled(v,a,input.conversationId,input.clientRequestId),true),
   removeTaskPhoto:(input:{conversationId:string;assetId:string})=>call('rpc_remove_task_photo',{p_conversation_id:input.conversationId,p_asset_id:input.assetId},
     (v,a)=>decodeTaskPhotos(v,a,input.conversationId),true),
   applyAvatar:(input:{assetId:string;profileId:string;expectedAvatarPath:string|null})=>call<AvatarSaved>('rpc_apply_profile_avatar',
