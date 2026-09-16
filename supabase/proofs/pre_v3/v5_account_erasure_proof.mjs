@@ -210,7 +210,7 @@ await prove('V5_EVENT_BOUND_ACCOUNT_ERASURE','v5-account-erasure-report.json',as
  const authState=rows(`select deleted_at is not null deleted,coalesce(encrypted_password,'')='' password_empty,
   coalesce(raw_user_meta_data,'{}'::jsonb)='{}'::jsonb user_meta_empty,coalesce(raw_app_meta_data,'{}'::jsonb)='{}'::jsonb app_meta_empty,
   strpos(coalesce(email,''),${q(originalAuthEmail)})=0 email_obfuscated,
-  coalesce(phone,'')='' or (phone<>${q(originalAuthPhone)} and phone !~ '^\+?[0-9]{5,}$') phone_erased,coalesce(phone,'')<>'' phone_token
+  coalesce(phone,'')='' or (phone<>${q(originalAuthPhone)} and phone !~ '^[+]?[0-9]{5,}$') phone_erased,coalesce(phone,'')<>'' phone_token
   from auth.users where id=${q(a.id)}::uuid`)[0];
  report.authSoftErasure={deleted:authState?.deleted===true,passwordEmpty:authState?.password_empty===true,userMetaEmpty:authState?.user_meta_empty===true,
   appMetaEmpty:authState?.app_meta_empty===true,emailObfuscated:authState?.email_obfuscated===true,phoneErased:authState?.phone_erased===true,
