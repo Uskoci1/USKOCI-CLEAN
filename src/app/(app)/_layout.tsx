@@ -2,29 +2,34 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Handshake, PaperPlaneTilt } from 'phosphor-react-native';
-import { palette, radius, type as typeScale } from '../../theme/tokens';
 import { useUloga } from '../../store/uloga';
+import { sys } from '../../ui/system/tokens';
 import { CanonicalMark } from '../../ui/referenceEntry/ReferenceEntryHero';
 
-function CenterMark() {
-  return <View style={{ width: 56, height: 42, borderRadius: radius.md,
-    backgroundColor: palette.forest800, alignItems: 'center', justifyContent: 'center' }}>
-    <CanonicalMark size={40} />
+/** The brand mark carries the center zone; focus is shown by the orange ring (shape, not color alone). */
+function CenterMark({ focused }: { focused: boolean }) {
+  return <View style={{ width: 58, height: 42, borderRadius: sys.radius.control, backgroundColor: sys.color.ink,
+    borderWidth: 2, borderColor: focused ? sys.color.orange : sys.color.ink, alignItems: 'center', justifyContent: 'center' }}>
+    <CanonicalMark size={38} />
   </View>;
 }
 
-/** One account, two intents, three visible zones. Hidden routes retain their URLs. */
+/**
+ * One account, two intents, three visible zones (owner decision 1, 2026-09-16):
+ * MENI TREBA = Zadaci | Mapa | Dogovori, JA MOGU = Prijave | Mapa | Dogovori.
+ * Hidden routes retain their URLs and stay reachable in both intents.
+ */
 export default function TabLayout() {
   const intent = useUloga();
   const requester = intent === 'narucilac';
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(18, insets.bottom);
   return <Tabs key={intent} initialRouteName={requester ? 'potrebe' : 'moje-prijave'} backBehavior="history"
-    screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: palette.ground },
-      tabBarActiveTintColor: palette.ink, tabBarInactiveTintColor: palette.inkMuted,
-      tabBarLabelStyle: { ...typeScale.label, letterSpacing: 0.2, marginTop: 3 },
+    screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
+      tabBarActiveTintColor: sys.color.ink, tabBarInactiveTintColor: sys.color.muted,
+      tabBarLabelStyle: { ...sys.type.label, letterSpacing: 0.2, marginTop: 3 },
       tabBarItemStyle: { paddingVertical: 6 },
-      tabBarStyle: { backgroundColor: palette.surface, borderTopColor: palette.line100,
+      tabBarStyle: { backgroundColor: sys.color.surface, borderTopColor: sys.color.line,
         borderTopWidth: 1, height: 66 + bottomPadding, paddingTop: 8, paddingBottom: bottomPadding } }}>
     <Tabs.Screen name="index" options={{ href: null }} />
     <Tabs.Screen name="potrebe" options={{ href: requester ? undefined : null, title: 'Zadaci',
@@ -37,7 +42,7 @@ export default function TabLayout() {
       tabBarAccessibilityLabel: 'Prijave',
       tabBarIcon: ({ color, focused }) => <PaperPlaneTilt size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="prilike" options={{ href: null }} />
-    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa', tabBarIcon: CenterMark }} />
+    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa', tabBarIcon: ({ focused }) => <CenterMark focused={focused} /> }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori',
       tabBarIcon: ({ color, focused }) => <Handshake size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="profil" options={{ href: null }} />

@@ -2,21 +2,26 @@ import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { v2 } from './tokens';
+import { sys } from '../system/tokens';
 
-/** Reuses existing UI-thread press feedback, system reduced motion and haptics. */
+/**
+ * Shared action. Reuses existing UI-thread press feedback, system reduced motion and haptics.
+ * Kinds: primary = strong ink surface; secondary = white with a line; quiet = green text
+ * (a link-like action); destructive = danger text. The one brand action on a screen is a
+ * secondary with `brandAction` style (orange surface, ink text — white on orange fails AA).
+ */
 export function V2Action({ label, onPress, disabled = false, kind = 'secondary', icon, style }: {
   label: string; onPress: () => void; disabled?: boolean;
   kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode; style?: StyleProp<ViewStyle>;
 }) {
+  const color = kind === 'primary' ? sys.color.surface : kind === 'destructive' ? sys.color.danger : kind === 'quiet' ? sys.color.green : sys.color.ink;
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}
     onPress={onPress} disabled={disabled} haptic={disabled ? 'none' : kind === 'primary' ? 'light' : 'select'}
-    style={[{ minHeight: kind === 'primary' ? v2.target.primary : v2.target.minimum, borderRadius: v2.radius.button,
-      paddingHorizontal: v2.space.md, paddingVertical: v2.space.sm, gap: v2.space.sm,
+    style={[{ minHeight: kind === 'primary' ? 50 : sys.touch.min, borderRadius: sys.radius.control,
+      paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, gap: sys.space.sm,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: kind === 'primary' ? v2.color.ink : kind === 'secondary' ? v2.color.surface : 'transparent',
-      borderWidth: kind === 'secondary' ? 1 : 0, borderColor: v2.color.line, opacity: disabled ? 0.45 : 1 }, style]}>
-    {icon}<T style={[v2.text.body, { fontSize: 14, lineHeight: 20, fontWeight: '700', flexShrink: 1,
-      color: kind === 'primary' ? v2.color.surface : kind === 'destructive' ? v2.color.danger : v2.color.ink }]}>{label}</T>
+      backgroundColor: kind === 'primary' ? sys.color.ink : kind === 'secondary' ? sys.color.surface : 'transparent',
+      borderWidth: kind === 'secondary' ? 1 : 0, borderColor: sys.color.lineStrong, opacity: disabled ? 0.45 : 1 }, style]}>
+    {icon}<T variant="action" style={{ flexShrink: 1, textAlign: 'center', color }}>{label}</T>
   </Press>;
 }

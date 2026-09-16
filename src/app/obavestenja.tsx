@@ -5,9 +5,12 @@ import { router, Stack, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Bell, Check, CaretRight, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText } from 'phosphor-react-native';
 import { SvgXml } from 'react-native-svg';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
+import type { Uloga } from '../contracts/projections';
 import { useInbox } from '../hooks/useInbox';
-import { postaviUlogu } from '../store/uloga';
+import { postaviUlogu, ulogaSada, useUloga } from '../store/uloga';
 import { Press } from '../ui/Press';
+import { IntentTransition, type IntentTransitionRequest } from '../ui/system/IntentTransition';
+import { intentTitle } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
 import { v2 } from '../ui/v2/tokens';
@@ -27,18 +30,26 @@ export default function Obavestenja() {
   const busy = state.loading || state.paging || !!state.acting;
   const navigate = (action: () => void) => { if (!model.canNavigate() || navigating.current) return; navigating.current=true; action(); };
   const settings = () => navigate(() => router.push('/profil/obavestenja'));
+  const intent = useUloga();
+  const [transition,setTransition] = useState<(IntentTransitionRequest & {go:()=>void})|null>(null);
   async function open(item: InboxItem) {
     const target = await model.open(item);
     if (!target || target.kind==='UNAVAILABLE' || !model.canNavigate()) return;
-    navigate(() => { postaviUlogu(target.role==='WORKER'?'uskocer':'narucilac');
-    switch (target.kind) {
+    const go = () => { switch (target.kind) {
       case 'AGREEMENT': router.push({pathname:'/dogovor/[id]',params:{id:target.id}}); break;
       case 'APPLICATIONS': router.push('/moje-prijave'); break;
       case 'CANDIDATES': router.push({pathname:'/potrebe/[id]/kandidati',params:{id:target.id}}); break;
       case 'OWN_NEED': router.push({pathname:'/potrebe/[id]/pregled',params:{id:target.id}}); break;
       case 'OPPORTUNITY': router.push({pathname:'/prilike/[id]',params:{id:target.id}}); break;
-    } });
+    } };
+    const targetIntent: Uloga = target.role==='WORKER'?'uskocer':'narucilac';
+    // Owner decision 2 (2026-09-16): an item of the other intent asks first; nothing switches silently.
+    if (targetIntent===ulogaSada()) { navigate(go); return; }
+    setTransition({ target: targetIntent, confirmLabel: 'Pređi i otvori', go,
+      reason: `Ova stavka pripada nameri ${intentTitle(targetIntent)}. Otvaranje prelazi u tu nameru i menja donju navigaciju.` });
   }
+  const confirmTransition = () => { const pending = transition; setTransition(null);
+    if (pending && model.canNavigate()) navigate(() => { postaviUlogu(pending.target); pending.go(); }); };
   return <SafeAreaView style={styles.screen}>
     <Stack.Screen options={{headerShown:false}}/>
     <View style={styles.top}>
@@ -117,6 +128,7 @@ export default function Obavestenja() {
         onPress={()=>void model.more()} style={styles.loadMore}>
         {state.paging?<ActivityIndicator color={v2.color.teal}/>:<T style={styles.filterText}>Učitaj starija obaveštenja</T>}
       </Press>:null}/>
+    <IntentTransition request={transition} current={intent} onConfirm={confirmTransition} onCancel={()=>setTransition(null)}/>
   </SafeAreaView>;
 }
 

@@ -10,6 +10,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: jest.fn() }));
 jest.mock('../../ui/v2/MarketplacePresentation', () => ({ MarketplacePresentation: 'Marketplace' }));
+jest.mock('../../ui/system/IntentTransition', () => ({ IntentTransition: () => null }));
 import Owned from '../../app/(app)/potrebe';
 import Public from '../../app/(app)/prilike';
 import SharedMap from '../../app/(app)/mapa';

@@ -36,7 +36,7 @@ function OwnedCollection() {
     if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
     navigate(() => router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: item.id } }));
   };
-  return <MarketplacePresentation owned={true} items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
+  return <MarketplacePresentation owned={true} intent={intent} items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
     scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
     onSwitch={() => navigate(() => router.navigate('/prilike'))} onProfile={() => navigate(() => router.navigate('/profil'))}

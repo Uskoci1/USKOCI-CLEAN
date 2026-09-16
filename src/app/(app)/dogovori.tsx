@@ -60,7 +60,7 @@ function OwnedAgreements({ foreground }: { foreground: { active: boolean; genera
     navigate(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: agreement.id } }));
   };
   return <AgreementCollectionPresentation items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
-    section={section} confirmationOnly={confirmationOnly} requester={intent === 'narucilac'}
+    section={section} confirmationOnly={confirmationOnly} requester={intent === 'narucilac'} intent={intent}
     onSection={value => { if (current()) setSection(value); }}
     onConfirmationOnly={value => { if (current()) setConfirmationOnly(value); }}
     onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}

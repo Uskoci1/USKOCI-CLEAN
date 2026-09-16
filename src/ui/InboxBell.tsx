@@ -2,8 +2,8 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Bell } from 'phosphor-react-native';
 import { useInbox } from '../hooks/useInbox';
-import { palette, radius } from '../theme/tokens';
 import { Press } from './Press';
+import { sys } from './system/tokens';
 import { T } from './Text';
 
 export function InboxBell() {
@@ -12,11 +12,11 @@ export function InboxBell() {
   return <Press accessibilityRole="button" haptic="select"
     accessibilityLabel={`Obaveštenja${count==null?', broj nepročitanih nije dostupan':`, ${count} nepročitanih`}`}
     onPress={() => router.push('/obavestenja')}
-    style={{width:48,height:48,borderRadius:radius.md,alignItems:'center',justifyContent:'center'}}>
-    <Bell size={24} color={palette.ink}/>
-    {count!=null && count>0 && <View style={{position:'absolute',top:0,right:0,minWidth:20,
-      paddingHorizontal:4,borderRadius:radius.pill,backgroundColor:palette.orange,alignItems:'center'}}>
-      <T variant="label" style={{color:palette.onOrange}}>{count>99?'99+':count}</T>
+    style={{width:46,height:46,borderRadius:23,alignItems:'center',justifyContent:'center'}}>
+    <Bell size={23} color={sys.color.ink}/>
+    {count!=null && count>0 && <View style={{position:'absolute',top:2,right:2,minWidth:20,height:20,
+      paddingHorizontal:5,borderRadius:sys.radius.pill,backgroundColor:sys.color.orange,alignItems:'center',justifyContent:'center'}}>
+      <T variant="label" style={{color:sys.color.onOrange,lineHeight:14}}>{count>99?'99+':count}</T>
     </View>}
   </Press>;
 }

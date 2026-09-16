@@ -67,3 +67,8 @@ The master does not support pre-locking "Prijava → Izbor → Dogovor". The saf
 - 200% text / screen reader / reduced motion plan executed on the exact candidate (local + CI where possible; device acceptance stays in PKG-017/021).
 - Supported disabled/loading/empty/error/unknown states asserted.
 - Each surface's receipt names the untouched state owner and the replaced presentation module; DONE_VERIFIED only on the exact candidate with the pre-fix (before) witness.
+
+## Progress
+
+- 2026-09-16 — Owner decisions 1–5 recorded (`PKG011_OWNER_DECISIONS_20260916.md`); production UI authorized.
+- 2026-09-16 — Slice 1 delivered (`PKG011_SLICE1_ZADACI_DOGOVORI_20260916.md`): coherent token system, Zadaci/Mapa list+map presentation, TaskCard, Dogovori collection and Agreement hero tokens, tab bar, explicit intent transition (decision 2) on `/prilike` and the inbox. Order steps 1–2 done, step 3 (Dogovor workspace + chat) next.
