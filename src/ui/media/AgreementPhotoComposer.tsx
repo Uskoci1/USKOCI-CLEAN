@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import type { AgreementPhotosController } from '../../hooks/useAgreementPhotos';
+import { PHOTO_PERMISSION_MESSAGE } from '../../features/media/nativePhotoPicker';
+import { PermissionRecovery } from '../system/PermissionRecovery';
 import { AuthorizedPhoto } from './AuthorizedPhoto';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -11,7 +13,8 @@ export function AgreementPhotoComposer({ photos, capturing }: { photos: Agreemen
   const disabled = photos.busy || capturing;
   return <View style={{ gap: 8 }}>
     <T variant="meta" tone="muted">Do 6 fotografija uz poruku · do 10 MB po slici. Fotografije su privatne za ovaj Dogovor; uklanjamo metapodatke.</T>
-    {photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
+    {photos.message === PHOTO_PERMISSION_MESSAGE ? <PermissionRecovery compact message={photos.message} alternative="Dodaj fotografiju iz galerije" onAlternative={() => { void photos.pick('LIBRARY'); }} />
+      : photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
     {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su promenjeni. Uklonite fotografije pripremljene za raniju verziju i ponovo ih izaberite uz važeće uslove.</T> : null}
     {photos.items.length ? <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 180 }} contentContainerStyle={{ gap: 8 }}>
       {photos.items.map((item, index) => <View key={item.ref.clientRequestId} style={{ gap: 4 }}>

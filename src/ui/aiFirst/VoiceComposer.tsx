@@ -6,6 +6,7 @@ import { V2Action } from '../v2/V2Action';
 import { VOICE_ERROR_COPY, type HoldToTalkController, type VoiceSnapshot } from '../../features/voice/holdToTalk';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
+import { PermissionRecovery } from '../system/PermissionRecovery';
 import { aiFirst as a } from './tokens';
 
 export function VoiceComposer(p: { controller: HoldToTalkController; state: VoiceSnapshot; disabled: boolean;
@@ -59,7 +60,8 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
     {active ? <T accessibilityLiveRegion="polite" style={s.noticeText}>
       {explicit ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Pusti, pregledaj tekst i izaberi Pošalji.'}
     </T> : null}
-    {p.state.error ? <T accessibilityLiveRegion="polite" style={s.error}>{VOICE_ERROR_COPY[p.state.error]}</T> : null}
+    {p.state.error === 'MIC_PERMISSION_DENIED' ? <PermissionRecovery compact message={VOICE_ERROR_COPY[p.state.error]} />
+      : p.state.error ? <T accessibilityLiveRegion="polite" style={s.error}>{VOICE_ERROR_COPY[p.state.error]}</T> : null}
     {p.state.fallbackText && p.state.phase === 'IDLE' ? <V2Action kind="quiet" label="Uredi sačuvani tekst" onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
 }

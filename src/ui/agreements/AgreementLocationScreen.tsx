@@ -8,6 +8,7 @@ import { useUloga,ulogaSada } from '../../store/uloga';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
+import { PermissionRecovery } from '../system/PermissionRecovery';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { AgreementLocationController,initialLocationState } from './AgreementLocationController';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS');
@@ -36,7 +37,8 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
     <V2Action label="Nazad" kind="quiet" onPress={()=>{if(current()){if(router.canGoBack())router.back();else router.replace({pathname:'/dogovor/[id]',params:{id:agreementId}});}}}/>
     <T accessibilityRole="header" style={s.title}>Lokacija Uskočera</T>
     <T style={s.copy}>Jedna tačka, podeljena dobrovoljno sa naručiocem ovog Dogovora. Prikaz se ne pomera i ne prati putovanje.</T>
-    {state.message?<T accessibilityLiveRegion="polite" style={s.copy}>{state.message}</T>:null}
+    {state.message&&state.message.includes('podešavanjima telefona')?<PermissionRecovery message={state.message}/>
+      :state.message?<T accessibilityLiveRegion="polite" style={s.copy}>{state.message}</T>:null}
     {state.phase==='LOADING'||state.phase==='SENDING'?<T accessibilityLiveRegion="polite" style={s.copy}>{state.phase==='SENDING'?'Čekam potvrdu servera…':'Proveravam Dogovor…'}</T>:null}
     {state.phase==='CAPTURING'?<View style={s.group}><T accessibilityLiveRegion="polite" style={s.copy}>Uzimam jednu novu lokaciju telefona…</T>
       <V2Action label="Prekini deljenje" kind="quiet" onPress={()=>run('stopCapture')}/></View>:null}
