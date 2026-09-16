@@ -45,7 +45,10 @@ jobs:
         with:
           node-version: '24'
       - name: Static syntax check
-        run: node --check scripts/load/mass_user_chaos.mjs
+        run: |
+          node --check scripts/load/mass_user_chaos.mjs
+          node --check scripts/load/mass_marketplace_journey.mjs
+          node --check scripts/load/mass_selection_race.mjs
 
   phase1-auth-rls:
     if: github.event_name == 'workflow_dispatch'
