@@ -34,7 +34,9 @@ listed at the end (`scripts/ci/pkg012-source-authority.test.cjs`).
 
 DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014.
 BLOCKED: PKG-018 (AF-D04 model availability; the wire half of its provider diagnosis is answered by PKG-014).
-PKG-012 created this map. The next package is PKG-015. NOT_STARTED: 015–017, 019–024. The Ledger, not this file, is authoritative.
+PKG-012 created this map. IMPLEMENTED_PENDING_VERIFICATION: PKG-015, whose registry is proven on a disposable
+database but whose GAP-0018 stays open until the candidate is promoted to canonical DEV and the accounts are actually
+classified. The next package is PKG-016. NOT_STARTED: 016–017, 019–024. The Ledger, not this file, is authoritative.
 
 PKG-014 is verified on `7d897f7` with release-level PRE-P4 run 35151771679 bound to that exact candidate.
 It changed live canonical DEV/ALPHA `leqcwgzvjsxugfgzdmth` on 2026-09-16, so read it before
