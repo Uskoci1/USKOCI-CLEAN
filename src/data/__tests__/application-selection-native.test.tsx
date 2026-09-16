@@ -36,6 +36,11 @@ jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTi
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({
   from: () => { const builder = { select: () => builder, eq: () => builder, maybeSingle: mockLinkQuery }; return builder; },
 }) }));
+const mockStorage = new Map<string, string>();
+jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
+  getItem: jest.fn(async (key: string) => mockStorage.get(key) ?? null),
+  setItem: jest.fn(async (key: string, value: string) => { mockStorage.set(key, value); }),
+  removeItem: jest.fn(async (key: string) => { mockStorage.delete(key); }) } }));
 import Composer from '../../app/(app)/prilike/[id]/prijava';
 import Candidates from '../../app/(app)/potrebe/[id]/kandidati';
 const need = () => ({ id: mockId, revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sept · 10–11h',
@@ -68,6 +73,7 @@ beforeEach(() => {
   mockLinkQuery.mockResolvedValue({ data: null, error: null });
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
   mockViewed.mockResolvedValue({ ok: true, podatak: null });
+  mockStorage.clear();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 async function offer() { await render(); await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '2'); }

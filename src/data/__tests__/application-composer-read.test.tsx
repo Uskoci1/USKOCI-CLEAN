@@ -33,6 +33,11 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CalendarBlank: 'Icon' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
+const mockStorage = new Map<string, string>();
+jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
+  getItem: jest.fn(async (key: string) => mockStorage.get(key) ?? null),
+  setItem: jest.fn(async (key: string, value: string) => { mockStorage.set(key, value); }),
+  removeItem: jest.fn(async (key: string) => { mockStorage.delete(key); }) } }));
 import Composer from '../../app/(app)/prilike/[id]/prijava';
 import Candidates from '../../app/(app)/potrebe/[id]/kandidati';
 const need = () => ({ id: mockId, revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sept · 10–11h',
@@ -64,6 +69,7 @@ beforeEach(() => {
   mockSubmit.mockResolvedValue({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } });
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
   mockViewed.mockResolvedValue({ ok: true, podatak: null });
+  mockStorage.clear();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 async function offer() { await render(); await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '2'); }
@@ -123,4 +129,96 @@ it('keeps Back usable while read is unfinished', async () => {
 it('does not start an invalid route read or remain loading', async () => {
   mockId = undefined; await render(); expect(mockTask).not.toHaveBeenCalled();
   expect(text()).toContain('Podaci za prijavu nisu dostupni'); expect(text()).not.toContain('Učitavamo');
+});
+describe('PKG-006 durable application command identity (GAP-0031)', () => {
+  const AsyncStorage = jest.requireMock('@react-native-async-storage/async-storage').default as { setItem: jest.Mock; removeItem: jest.Mock };
+  const JOURNAL = () => `uskoci.application.command.v1.owner-a.${mockId}`;
+  const unconfirmed = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' };
+  const field = (label: string) => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label)[0].props;
+  const remount = async () => { await act(async () => tree?.unmount()); tree = undefined; await render(); };
+  it('a lost ACK survives a route remount: the original command is restored, never resent automatically, retried with the same key and payload, and cleared on the receipt', async () => {
+    mockSubmit.mockResolvedValueOnce(unconfirmed);
+    await offer(); await tap('Pošalji ovu Prijavu');
+    const original = mockSubmit.mock.calls[0][0];
+    expect([...mockStorage.keys()]).toEqual([JOURNAL()]);
+    expect(mockStorage.get(JOURNAL())).not.toMatch(/Milan|4\.500|Unos ormara/);
+    expect(AsyncStorage.setItem.mock.invocationCallOrder[0]).toBeLessThan(mockSubmit.mock.invocationCallOrder[0]);
+    await remount();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+    expect(text()).toContain('Sačuvana je ista ponuda za proveru ishoda');
+    expect(field('Cena za ponuđeni obim (RSD)').value).toBe('4500'); expect(field('Ljudi').value).toBe('2'); expect(field('Ljudi').editable).toBe(false);
+    await tap('Ponovi istu Prijavu');
+    expect(mockSubmit).toHaveBeenCalledTimes(2); expect(mockSubmit.mock.calls[1][0]).toEqual(original);
+    expect(mockSubmit.mock.calls[1][0].clientRequestId).toBe(original.clientRequestId);
+    expect(text()).toContain('Prijava je poslata.'); expect(mockStorage.size).toBe(0);
+    await remount();
+    expect(press('Pošalji ovu Prijavu')).toBeDefined(); expect(press('Ponovi istu Prijavu')).toBeUndefined();
+  });
+  it('the identity is journaled before the send; a storage failure prevents the send and keeps the composer editable', async () => {
+    AsyncStorage.setItem.mockRejectedValueOnce(new Error('disk full details'));
+    await offer(); await tap('Pošalji ovu Prijavu');
+    expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('nije sačuvan na uređaju'); expect(text()).not.toContain('disk full details');
+    expect(press('Pošalji ovu Prijavu')).toBeDefined(); expect(field('Ljudi').editable).toBe(true);
+    await tap('Pošalji ovu Prijavu');
+    expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
+  });
+  it('another account cannot see or erase the pending command; the same account restores it after a later incarnation', async () => {
+    mockSubmit.mockResolvedValueOnce(unconfirmed);
+    await offer(); await tap('Pošalji ovu Prijavu');
+    const key = JOURNAL();
+    mockAccount = { user: { id: 'owner-b' }, accountRevision: 1 };
+    await remount();
+    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(press('Pošalji ovu Prijavu')).toBeDefined();
+    expect(mockStorage.has(key)).toBe(true); expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+    mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 };
+    await remount();
+    expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+  it('a journal read that lands after an account change is not applied', async () => {
+    mockSubmit.mockResolvedValueOnce(unconfirmed);
+    await offer(); await tap('Pošalji ovu Prijavu');
+    const held = deferred();
+    const AsyncStorageMock = jest.requireMock('@react-native-async-storage/async-storage').default as { getItem: jest.Mock };
+    AsyncStorageMock.getItem.mockReturnValueOnce(held.promise);
+    await act(async () => tree?.unmount()); tree = undefined;
+    await act(async () => { tree = create(React.createElement(Composer)); });
+    mockAccount = { user: { id: 'owner-b' }, accountRevision: 1 };
+    await act(async () => { tree!.update(React.createElement(Composer)); held.resolve(mockStorage.get(JOURNAL()) ?? null); });
+    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+  it('a corrupt journal value is discarded without stranding the composer', async () => {
+    mockStorage.set(JOURNAL(), '{"version":1,"accountId":"owner-a","needId":"garbage"}');
+    await render();
+    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(AsyncStorage.removeItem).toHaveBeenCalledWith(JOURNAL());
+    expect(text()).toContain('nije čitljiv');
+    await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '2'); await tap('Pošalji ovu Prijavu');
+    expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
+  });
+  it('a known refusal of the retried command permits a reset that clears the journal; an unknown outcome keeps it', async () => {
+    mockSubmit.mockResolvedValueOnce(unconfirmed);
+    await offer(); await tap('Pošalji ovu Prijavu');
+    await remount();
+    mockSubmit.mockResolvedValueOnce(unconfirmed);
+    await tap('Ponovi istu Prijavu');
+    expect(mockStorage.has(JOURNAL())).toBe(true); expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
+    await tap('Proverite ishod');
+    mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'NEED_REVISION_MISMATCH', poruka: 'Zadatak je promenjen.' });
+    await tap('Ponovi istu Prijavu');
+    expect(text()).toContain('Zadatak je promenjen'); expect(mockStorage.has(JOURNAL())).toBe(true);
+    // The reset appears only after an explicit readback, exactly as for any known refusal.
+    expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
+    await tap('Proverite ishod'); expect(mockStorage.has(JOURNAL())).toBe(true);
+    await tap('Pregledaj uslove i uredi novu ponudu');
+    expect(mockStorage.size).toBe(0); expect(press('Pošalji ovu Prijavu')).toBeDefined();
+  });
+  it('a malformed receipt from the retried command stays unconfirmed and keeps the journal', async () => {
+    mockSubmit.mockResolvedValueOnce(unconfirmed);
+    await offer(); await tap('Pošalji ovu Prijavu');
+    await remount();
+    mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Server nije vratio potpunu potvrdu radnje.' });
+    await tap('Ponovi istu Prijavu');
+    expect(text()).not.toContain('Prijava je poslata.'); expect(mockStorage.has(JOURNAL())).toBe(true);
+    expect(press('Proverite ishod')).toBeDefined(); expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
+  });
 });
