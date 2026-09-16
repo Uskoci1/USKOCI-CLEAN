@@ -1,3 +1,5 @@
+> **HISTORICAL (PKG-012, 2026-09-16).** The checkpoints below record earlier states. The current entry map is `docs/implementation/execution/CURRENT_ENTRY_MAP_20260916.md`; package state lives in the reconciliation and the Execution Ledger there. AF decisions remain valid through `OWNER_PRIVATE_TEST_DECISIONS_20260913.md`.
+
 # FINAL STOP CHECKPOINT — NOT RELEASE COMPLETE
 
 Read EMERGENCY_HANDOFF_20260913.md and EMERGENCY_CURRENT_PRODUCT_TRUTH_20260913.md.

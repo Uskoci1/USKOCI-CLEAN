@@ -1,3 +1,5 @@
+> **HISTORICAL (PKG-012, 2026-09-16).** This document records an earlier checkpoint. The current entry map is `docs/implementation/execution/CURRENT_ENTRY_MAP_20260916.md`; package state lives in `docs/implementation/execution/PACKAGE_RECONCILIATION_20260916.md` and `EXECUTION_LEDGER.jsonl`.
+
 ## CURRENT SAFE HANDOFF — 2026-09-11T05:17:57.138Z
 
 **Owner-requested stop.** Canonical `916ffb498ba5ad47a307a3c66477757b6753095a` / `clean-alpha-backend`; freshLIVE108/head`20260911031713_clean_dispatch_need_lock_order`. Canonical/PR99source108pending0; remoteM05source109 has one unmerged/unappliedcandidate. PR99head`58e842e883db71f9118efc474c5011f3b261824c`; savedM05/M06`60a3ce68e52cbf461639f392db877d93ba0405c7`; savedforeground/channel`cba0a2645fdb31d9f19414ca7afe6a6bc93f1e0f`. No merge/live write was done forhandoff.

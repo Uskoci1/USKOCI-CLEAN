@@ -17,7 +17,8 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 | IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | PKG-013 |
 | BLOCKED | PKG-014 (needs PKG-013 + owner batch approval), PKG-018 (provider diagnosis + AF-D04) |
-| NOT_STARTED | PKG-012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
+| IMPLEMENTED_PENDING_VERIFICATION | PKG-012 |
+| NOT_STARTED | PKG-015, 016, 017, 019, 020, 021, 022, 023, 024 |
 
 Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007, PKG-008, PKG-006 and PKG-010 are done; the next package is PKG-011.
 
@@ -125,7 +126,8 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 ### PKG-012 — Documentation, test simulation and legacy isolation
 - Gap: GAP-0012.
 - Implementation present: no. `docs/implementation/v5-ai-first/EXECUTION.md` still opens with the 2026-09-13 "FINAL STOP CHECKPOINT"; V19 remains historical by design; 19 cleanup candidates, 0 retirement-eligible (V18).
-- Current status: NOT_STARTED. Blocker: PKG-011.
+- Implementation 2026-09-16: `execution/CURRENT_ENTRY_MAP_20260916.md` is the one current entry (reading order, historical table, package state, legacy inventory after reachability review, simulations/exports policy, CI invariants); HISTORICAL banners on `HANDOFF.md`, `CURRENT_IMPLEMENTATION_HANDOFF.md`, `CURRENT_IMPLEMENTATION_STATUS.md`, `IMPLEMENTATION_CONTINUITY.md`, `v5-ai-first/EXECUTION.md`; `AGENTS.md` names the entry map first; `scripts/ci/pkg012-source-authority.test.cjs` (runs in PRE-P4 with `scripts/ci/*.test.cjs`) asserts the fake source is imported only through `src/data/index.ts` behind the explicit switch and fails loudly otherwise, that the APK build and every mobile proof set the switch to 0, that the historical banners and the AGENTS pointer exist, and that `/pregled-nacrta` and `/prijave` still resolve explicitly. No code deleted, no migration touched, no fake data for acceptance.
+- Current status: IMPLEMENTED_PENDING_VERIFICATION (PRE-P4 on the exact candidate pending; Ledger receipt follows the run). Legacy retirement itself stays with PKG-023.
 
 ### PKG-013 — Exact source: regression and full schema147 disposable integration
 - Gap: GAP-0005.

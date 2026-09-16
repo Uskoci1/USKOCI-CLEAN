@@ -1,5 +1,9 @@
 # USKOČI — repository entry map
 
+Current entry (PKG-012, 2026-09-16): read `docs/implementation/execution/CURRENT_ENTRY_MAP_20260916.md`
+first. It names the one current authority chain (reconciliation, Execution Ledger, owner
+decisions, PKG-011B design system) and marks every older checkpoint historical.
+
 Current resume: owner explicitly requested V5 AI-FIRST implementation on 2026-09-12.
 Read `docs/implementation/v5-ai-first/OWNER_PRIVATE_TEST_DECISIONS_20260913.md`
 first: latest AF-D26 authorizes verified backend promotion on canonical
