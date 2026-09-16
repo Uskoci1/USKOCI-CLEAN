@@ -52,6 +52,8 @@ test('rolled-back branch tests preserve the entire migration body except its exa
  assert.match(proof,/review_provenance=review_provenance-'disposable135Fixture'/);
  assert.match(proof,/assert\.notEqual\(freshResult\.id,id\)/);assert.match(proof,/historyBefore.length,146/);
  for(const code of ['QA_OWNER_EXISTING_CANDIDATE_DRIFT','QA_OWNER_RULE_CONTENT_DRIFT','QA_OWNER_OTHER_ACTIVE_VERSION','QA_OWNER_TASK_POLICY_NOT_READY','QA_OWNER_PRIVATE_POLICY_EXPOSED'])assert.ok(proof.includes(code));
+ // The146 closure seal hashes every private/public table ACL, so the grant drift is refused by the seal guard first.
+ assert.ok(proof.includes("report.privatePolicyGrantDeniedBy=sealSeesGrant?'QA_OWNER_SOURCE_NOT_READY':'QA_OWNER_PRIVATE_POLICY_EXPOSED'"));
  assert.equal([...proof.matchAll(/await apply\(report,file,146\)/g)].length,1);
 });
 test('actual147 proof uses current remote geography and canonical worker activation with no provider, dispatch or budget-reset path',()=>{

@@ -111,7 +111,14 @@ await prove('V5_QA_OWNER_PRODUCT_ACTIVATION','v5-qa-owner-activation-report.json
  drift('CHANGED_RULE_MAPPING_WITH_SAME_DOCUMENT_DENIED',`update private.publication_policy_rule_refs set rule_provenance=jsonb_set(rule_provenance,'{sourceMapping}','{}'::jsonb) where bundle_id=${q(id)}::uuid and rule_id=${firstRule};`,'QA_OWNER_RULE_CONTENT_DRIFT');
  drift('OTHER_ACTIVE_QA_VERSION_DENIED',`insert into private.publication_policy_bundles(policy_id,version,jurisdiction,is_reviewed,is_complete,is_active,reviewed_at,activated_at) values('PRESELECTION_QA_V1',2,'RS',true,true,true,clock_timestamp(),clock_timestamp());`,'QA_OWNER_OTHER_ACTIVE_VERSION');
  drift('TASK_SAFETY_POLICY_DOCUMENT_DRIFT_DENIED',"update private.publication_policy_bundles set review_provenance=jsonb_set(review_provenance,'{evaluatorContentSha256}',to_jsonb(repeat('0',64))) where id=private.current_publication_policy_bundle('RS_PUBLICATION_POLICY_MINIMUM','RS',statement_timestamp());",'QA_OWNER_TASK_POLICY_NOT_READY');
- drift('PRIVATE_POLICY_GRANT_DENIED',"grant select on private.publication_policy_bundles to service_role;",'QA_OWNER_PRIVATE_POLICY_EXPOSED');
+ // Since146 the closure seal (closure_erasure_program_digest_v5) also hashes the ACL of
+ // every private/public table, so a grant on the private policy table is refused by the
+ // seal guard (QA_OWNER_SOURCE_NOT_READY) before the dedicated QA_OWNER_PRIVATE_POLICY_EXPOSED
+ // guard runs. Both refuse the same drift; assert the guard that actually fires.
+ const grantDrift="grant select on private.publication_policy_bundles to service_role;";
+ const sealSeesGrant=sql(`begin;${grantDrift}select (select sha256 from private.closure_source_v5 where singleton) is distinct from private.closure_source_digest_v5();rollback;`)==='t';
+ report.privatePolicyGrantDeniedBy=sealSeesGrant?'QA_OWNER_SOURCE_NOT_READY':'QA_OWNER_PRIVATE_POLICY_EXPOSED';
+ drift('PRIVATE_POLICY_GRANT_DENIED',grantDrift,report.privatePolicyGrantDeniedBy);
 
  await apply(report,file,146);
  const activated=rows(`select * from private.publication_policy_bundles where id=${q(id)}::uuid`)[0];
