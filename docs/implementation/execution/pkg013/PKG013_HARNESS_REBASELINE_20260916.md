@@ -101,6 +101,11 @@ counts are disposable database history counts, not source counts.
   order with a registry row (`applyPendingSuccessors`, shared with the domain replay) and
   asserts history 147 before exercising the client; SQL108 contains only function bodies and is
   recorded on that pass. The loader also admits the two capacity modules added on 2026-09-11.
+- **W01 Android**: with setup-android v4.0.1 and `platform-tools` the proof APK builds again
+  (`BUILD SUCCESSFUL`, run 35113177025) and the emulator boots; the native proof then lost
+  `Zaboravili ste lozinku?` because the login sheet now animates in (`AuthSheet`, 2026-09-13)
+  and the proof scrolled only downwards past it. The UI helper now waits 6 s before scrolling
+  and alternates direction; the app is unchanged.
 - **P3 source-pinning test** follows the shared helper; **D0140A** gate expects the 147-file
   inventory; **setup-android v4** installs `platform-tools` only (the legacy `tools` package no
   longer exists in the SDK repository).

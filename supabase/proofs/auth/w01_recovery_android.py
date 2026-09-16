@@ -110,6 +110,7 @@ def tree():
 
 def find(label: str, *, field: bool = False, timeout: int = 40, scroll: bool = False):
     deadline = time.monotonic() + timeout
+    started, attempt = time.monotonic(), 0
     while time.monotonic() < deadline:
         try:
             root = tree()
@@ -122,9 +123,15 @@ def find(label: str, *, field: bool = False, timeout: int = 40, scroll: bool = F
                 bounds = re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.get('bounds', ''))
                 if bounds and int(bounds[3]) > int(bounds[1]) and int(bounds[4]) > int(bounds[2]):
                     return node
-        if scroll:
+        if scroll and time.monotonic() - started > 6:
+            # The auth sheet settles after its entrance (AuthSheet, 2026-09-13). Scroll only
+            # once it had time to lay out, and alternate the direction so a target that sits
+            # above the current viewport is reached as well as one below it.
             width, height = map(int, re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').stdout)[-1])
-            adb('shell', 'input', 'swipe', str(width // 2), str(int(height * .8)), str(width // 2), str(int(height * .35)), '350')
+            lower, upper = str(int(height * .8)), str(int(height * .35))
+            start, end = (lower, upper) if attempt % 3 != 2 else (upper, lower)
+            adb('shell', 'input', 'swipe', str(width // 2), start, str(width // 2), end, '350')
+            attempt += 1
         time.sleep(0.5)
     raise AssertionError('UI_ELEMENT_NOT_REACHED')
 
