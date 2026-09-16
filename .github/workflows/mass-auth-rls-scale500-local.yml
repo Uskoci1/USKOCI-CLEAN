@@ -5,6 +5,7 @@ on:
     branches:
       - 'test/mass-user-chaos-harness-*'
     paths:
+      - 'scripts/load/mass_auth_rls_local.mjs'
       - '.github/workflows/mass-auth-rls-scale500-local.yml'
   workflow_dispatch:
 
