@@ -82,6 +82,29 @@ and `w02-calendar-authority-proof` expect 92.
 Historical fixtures keep 108: `historical_source108_fixture.mjs`, the pre_v3 and D03 history
 counts are disposable database history counts, not source counts.
 
+## Rounds 2 and 3 (from the release runs 35111501474 and 35113177025)
+
+- **P1 recorded delta** (`supabase/proofs/legal/p1_legal_consent_successor_delta.json`): two new
+  SECURITY DEFINER functions executable by `authenticated`
+  (`rpc_accept_reviewed_legal_bundle`, `rpc_read_my_legal_acceptance`, from `20260912222338`)
+  and one RESTRICTIVE SELECT policy `v5_closed_account_visibility` on
+  `public.account_legal_acceptance_events` (from `20260912230039`). The two original P1
+  functions are byte-identical before and after. Both digests come from run evidence.
+- **Declared view for catalog OIDs**: the two runs produced identical rows except the `oid` of
+  the two new functions (24133/24134 vs 24116/24117). A manifest may declare
+  `view: STRIP_CATALOG_OID` for one changed key; it removes only `oid` from each row before
+  digesting (owner, ACL, security definer, source and config stay). Unchanged keys are never
+  normalised; an unknown view name fails.
+- **W02 shared capability**: the current typed client saves owned capacity through
+  `rpc_save_worker_capacity` (SQL `20260911174500`), which the historical registry105 +
+  unrecorded dispatch108 database does not have. The proof now applies every later file in
+  order with a registry row (`applyPendingSuccessors`, shared with the domain replay) and
+  asserts history 147 before exercising the client; SQL108 contains only function bodies and is
+  recorded on that pass. The loader also admits the two capacity modules added on 2026-09-11.
+- **P3 source-pinning test** follows the shared helper; **D0140A** gate expects the 147-file
+  inventory; **setup-android v4** installs `platform-tools` only (the legacy `tools` package no
+  longer exists in the SDK repository).
+
 ## Not changed on purpose
 
 - No migration was applied to DEV/ALPHA; SQL 146/147 stay pending for PKG-014 with owner batch approval.
@@ -90,8 +113,8 @@ counts are disposable database history counts, not source counts.
 
 ## Verification
 
-Local: `node --test scripts/ci/*.test.cjs` 31/31; proof unit tests 131/131 (source plan,
-replay helper, four boundaries, W02 dispatch lock, N09 edge); `publication_evaluator_edge`
+Local: `node --test scripts/ci/*.test.cjs` 31/31; proof unit tests green (source plan,
+replay helper incl. the OID view, four boundaries, W02 dispatch lock, N09 edge, P3 pinning); `publication_evaluator_edge`
 40/40; `ai_edge_context_proof.mjs` PASS with 92 handler tests.
 
 CI: the exact head must pass `PRE-P4 integrity` at `level=release` (nine domain proofs). The

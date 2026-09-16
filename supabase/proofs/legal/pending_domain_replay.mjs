@@ -23,10 +23,24 @@ export function readAdmittedSuccessorDelta(path) {
   return delta;
 }
 
+/** A recorded delta may declare one named view for a changed key. STRIP_CATALOG_OID
+ * removes only the catalog `oid` of each row of a JSON catalog listing: object ids of a
+ * disposable database differ between builds while every security-relevant column
+ * (owner, ACL, security definer, source, config) stays in the digest. Unchanged keys are
+ * never normalised; they are compared exactly. */
+const VIEWS = {
+  EXACT: value => value,
+  STRIP_CATALOG_OID: value => {
+    const rows = JSON.parse(value);
+    assert.ok(Array.isArray(rows), 'STRIP_CATALOG_OID_EXPECTS_CATALOG_ARRAY');
+    return JSON.stringify(rows.map(row => Object.fromEntries(Object.entries(row).filter(([column]) => column !== 'oid').sort(([a], [b]) => a.localeCompare(b)))));
+  },
+};
 export function assertDomainSnapshotAfterSuccessors({ before, after, plan, admittedDelta = null, label = 'DOMAIN_STATE_SECURITY_OR_RPC_CHANGED_BY_SUCCESSOR' }) {
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
   const diverged = keys.filter(key => digest(before[key]) !== digest(after[key]));
   const changed = admittedDelta ? Object.keys(admittedDelta.changed) : [];
+  const view = key => { const name = admittedDelta?.changed?.[key]?.view ?? 'EXACT'; assert.ok(VIEWS[name], 'ADMITTED_DELTA_UNKNOWN_VIEW:' + name); return VIEWS[name]; };
   try {
     if (admittedDelta) {
       assert.equal(admittedDelta.source_migration_count, plan.source_migration_count, 'ADMITTED_DELTA_SOURCE_COUNT_MISMATCH');
@@ -37,8 +51,8 @@ export function assertDomainSnapshotAfterSuccessors({ before, after, plan, admit
       }
       for (const key of changed) {
         assert.ok(keys.includes(key), 'ADMITTED_DELTA_UNKNOWN_KEY:' + key);
-        assert.equal(digest(before[key]), admittedDelta.changed[key].before_sha256, 'ADMITTED_DELTA_BEFORE_MISMATCH:' + key);
-        assert.equal(digest(after[key]), admittedDelta.changed[key].after_sha256, 'ADMITTED_DELTA_AFTER_MISMATCH:' + key);
+        assert.equal(digest(view(key)(before[key])), admittedDelta.changed[key].before_sha256, 'ADMITTED_DELTA_BEFORE_MISMATCH:' + key);
+        assert.equal(digest(view(key)(after[key])), admittedDelta.changed[key].after_sha256, 'ADMITTED_DELTA_AFTER_MISMATCH:' + key);
       }
     }
     for (const key of keys) if (!changed.includes(key)) assert.deepEqual(after[key], before[key], `${label}:${key}`);
@@ -61,10 +75,13 @@ export function assertDomainSnapshotAfterSuccessors({ before, after, plan, admit
   };
 }
 
-export async function replayPendingDomain({ plan, snapshot, sql, db, url, admittedDelta = null }) {
+/** Apply the plan's pending successors in order with exact byte identity and a registry
+ * row each, then assert the original history is untouched and the registry equals the
+ * plan's source count. Shared by the domain replay and by proofs that need the exact
+ * current source before exercising the current client. */
+export function applyPendingSuccessors({ plan, sql, db, url }) {
   assertLocalDeviceProofTargets(url, db);
   const q = value => "'" + String(value).replaceAll("'", "''") + "'";
-  const before = await snapshot();
   const original = sql("select coalesce(jsonb_agg(to_jsonb(m) order by version),'[]'::jsonb)::text from supabase_migrations.schema_migrations m");
   const originalVersions = JSON.parse(original).map(entry => q(entry.version));
   const applied = [];
@@ -84,11 +101,18 @@ export async function replayPendingDomain({ plan, snapshot, sql, db, url, admitt
     assert.equal(sql(`select md5(statements[1]) from supabase_migrations.schema_migrations where version=${q(next.version)}`), next.md5);
     applied.push(next);
   }
-  assert.equal(sql(`select coalesce(jsonb_agg(to_jsonb(m) order by version),'[]'::jsonb)::text
+  if (originalVersions.length) assert.equal(sql(`select coalesce(jsonb_agg(to_jsonb(m) order by version),'[]'::jsonb)::text
     from supabase_migrations.schema_migrations m where version in (${originalVersions.join(',')})`), original,
     'ORIGINAL_HISTORY_CHANGED_BY_SUCCESSOR');
   assert.equal(Number(sql('select count(*) from supabase_migrations.schema_migrations')), plan.source_migration_count);
   sql("notify pgrst,'reload schema'");
+  return applied;
+}
+
+export async function replayPendingDomain({ plan, snapshot, sql, db, url, admittedDelta = null }) {
+  assertLocalDeviceProofTargets(url, db);
+  const before = await snapshot();
+  const applied = applyPendingSuccessors({ plan, sql, db, url });
   const verdict = assertDomainSnapshotAfterSuccessors({ before, after: await snapshot(), plan, admittedDelta });
   return { count: applied.length, applied, original_history_unchanged: true,
     domain_state_security_and_projection_unchanged: verdict.admitted_changed_keys.length === 0,

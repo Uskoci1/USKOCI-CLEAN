@@ -8,6 +8,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../ru5_device_ui_local_guard.mjs';
+import { ownedIntakeSourceBoundary } from '../../../scripts/ci/owned-intake-source.mjs';
+import { readP3RetentionPredecessorPlan } from '../legal/p3_retention_schedule_predecessor.mjs';
+import { applyPendingSuccessors } from '../legal/pending_domain_replay.mjs';
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL,out=env.W02_CALENDAR_ARTIFACT_DIR;
 assertLocalDeviceProofTargets(url,db);assert.ok(out);
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
@@ -43,6 +46,20 @@ function linked(client,id){
   return {...load('./workerProfileClientService').workerProfileClientService,state};
 }
 try{
+  // PKG-013: the current typed client (owned capacity since 20260911174500) is exercised
+  // against the exact current source, not the historical registry105 + unrecorded dispatch108.
+  // Every later file is applied in order with a registry row; SQL108 is idempotent
+  // (function bodies only) and is recorded on this pass.
+  const boundary=ownedIntakeSourceBoundary(readP3RetentionPredecessorPlan());
+  const registered=new Set(sql('select version from supabase_migrations.schema_migrations').split('\n').filter(Boolean));
+  const toHead=boundary.fullPlan.source_inventory.filter(entry=>!registered.has(entry.file.slice(0,14))).map(entry=>{
+    const match=entry.file.match(/^(\d{14})_([a-z0-9_]+)\.sql$/);assert.ok(match,'UNEXPECTED_SOURCE_FILE_NAME');
+    return {version:match[1],name:match[2],file:entry.file,md5:entry.md5};});
+  report.replayed_to_head={history_before:registered.size,count:toHead.length,first:toHead[0]?.file??null,last:toHead.at(-1)?.file??null,
+    applied_authority:'REGISTRY105_PLUS_UNRECORDED_DISPATCH108_THEN_EXACT_SOURCE147',source_migration_count:boundary.fullPlan.source_migration_count};
+  applyPendingSuccessors({plan:{source_migration_count:boundary.fullPlan.source_migration_count,source_inventory:boundary.fullPlan.source_inventory,pending_successors:toHead},sql,db,url});
+  report.replayed_to_head.history_after=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
+  assert.equal(report.replayed_to_head.history_after,147,'W02_SHARED_CAPABILITY_EXPECTS_EXACT_SOURCE147');
   await ok(worker.auth.signUp({email:'w02-resource-'+randomUUID()+'@example.test',password:randomUUID()+'Aa9!'}));
   const accountId=uid((await ok(worker.auth.getUser())).user.id),client=linked(worker,accountId);
   await ok(other.auth.signInWithPassword({email:env.RU5_DEVICE_WORKER_EMAIL,password:env.RU5_DEVICE_PASSWORD}));

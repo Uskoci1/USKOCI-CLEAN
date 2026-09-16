@@ -46,6 +46,22 @@ test('a recorded delta admits exactly the recorded change and nothing else', () 
   assert.throws(() => assertDomainSnapshotAfterSuccessors({ before, after: before, plan, admittedDelta: delta }), /ADMITTED_DELTA_AFTER_MISMATCH/);
 });
 
+test('a declared STRIP_CATALOG_OID view ignores only the catalog oid of a changed key', () => {
+  const rows = [{ oid: '24133', proname: 'rpc_accept_reviewed_legal_bundle', proacl: ['authenticated=X/postgres'], prosecdef: true }];
+  const otherOid = [{ ...rows[0], oid: '24116' }];
+  const otherAcl = [{ ...rows[0], proacl: ['anon=X/postgres'] }];
+  const b = { ...before, security: '[]' };
+  const strip = value => JSON.stringify(JSON.parse(value).map(row => Object.fromEntries(Object.entries(row).filter(([c]) => c !== 'oid').sort(([x], [y]) => x.localeCompare(y)))));
+  const viewDelta = { ...delta, changed: { security: { view: 'STRIP_CATALOG_OID', before_sha256: digest(strip('[]')), after_sha256: digest(strip(JSON.stringify(rows))) } } };
+  assert.deepEqual(assertDomainSnapshotAfterSuccessors({ before: b, after: { ...b, security: JSON.stringify(rows) }, plan, admittedDelta: viewDelta }).admitted_changed_keys, ['security']);
+  assert.deepEqual(assertDomainSnapshotAfterSuccessors({ before: b, after: { ...b, security: JSON.stringify(otherOid) }, plan, admittedDelta: viewDelta }).admitted_changed_keys, ['security']);
+  assert.throws(() => assertDomainSnapshotAfterSuccessors({ before: b, after: { ...b, security: JSON.stringify(otherAcl) }, plan, admittedDelta: viewDelta }), /ADMITTED_DELTA_AFTER_MISMATCH:security/);
+  const unknownView = { ...viewDelta, changed: { security: { ...viewDelta.changed.security, view: 'IGNORE_EVERYTHING' } } };
+  assert.throws(() => assertDomainSnapshotAfterSuccessors({ before: b, after: { ...b, security: JSON.stringify(rows) }, plan, admittedDelta: unknownView }), /ADMITTED_DELTA_UNKNOWN_VIEW/);
+  // the view never applies to unchanged keys: an oid-only change on a key outside the manifest still fails
+  assert.throws(() => assertDomainSnapshotAfterSuccessors({ before: { ...b, policies: JSON.stringify(rows) }, after: { ...b, security: JSON.stringify(rows), policies: JSON.stringify(otherOid) }, plan, admittedDelta: viewDelta }), /DOMAIN_STATE_SECURITY_OR_RPC_CHANGED_BY_SUCCESSOR:policies/);
+});
+
 test('a manifest must name its successors and changed keys; a missing file means strict mode', () => {
   const dir = mkdtempSync(join(tmpdir(), 'uskoci-delta-'));
   try {
