@@ -121,11 +121,26 @@ def main():
         count, version = raw.split('/')
         return int(count), version
 
+    ACTIVITY = ("select coalesce(jsonb_agg(to_jsonb(r)),'[]') from (select pid, usename, application_name, state, wait_event_type, wait_event,"
+                " extract(epoch from now()-xact_start)::int xact_seconds, extract(epoch from now()-state_change)::int state_seconds,"
+                " pg_blocking_pids(pid) blocked_by, left(regexp_replace(coalesce(query,''), '\\s+', ' ', 'g'), 300) query"
+                " from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and backend_type = 'client backend'"
+                " and (state <> 'idle' or xact_start is not null) order by xact_start nulls last) r")
+
+    def activity():
+        """Diagnostic only: sessions that are active, waiting or idle in transaction (a proof process is never alive between steps)."""
+        try:
+            return json.loads(scalar(ACTIVITY))
+        except Exception as error:  # noqa: BLE001 - diagnostics must never mask the real failure
+            return [{'diagnosticError': str(error)[:300]}]
+
     def fail(reason, log_path=None):
         summary['result'] = 'FAIL'
         summary['failure'] = reason
         summary['history'] = '%d/%s' % history()
+        summary['activityAtFailure'] = activity()
         write_summary()
+        print('activity_at_failure=' + json.dumps(summary['activityAtFailure'])[:4000], flush=True)
         if log_path and os.path.exists(log_path):
             sys.stdout.write(read_text(log_path)[-3000:] + '\n')
         raise SystemExit('PKG010_CHAIN_FAILED ' + reason)
@@ -187,6 +202,10 @@ def main():
             if expected_files != step['applies']:
                 fail(f"ORDER {step['script']} expected {expected_files} proof applies {step['applies']}")
         before = history()
+        stray = activity()
+        if stray:
+            entry['activityBefore'] = stray
+            print(f"activity_before {step['script']}: " + json.dumps(stray)[:2000], flush=True)
         log_path = os.path.join(art, step['script'] + '.log')
         started = time.monotonic()
         with open(log_path, 'w', encoding='utf-8') as log:
@@ -205,6 +224,10 @@ def main():
         entry['failure'] = report.get('failure')
         entry['migrations'] = report.get('migrations')
         after = history()
+        leftover = activity()
+        if leftover:
+            entry['activityAfter'] = leftover
+            print(f"activity_after {step['script']}: " + json.dumps(leftover)[:2000], flush=True)
         entry['historyBefore'] = '%d/%s' % before
         entry['historyAfter'] = '%d/%s' % after
         summary['proofs'].append(entry)

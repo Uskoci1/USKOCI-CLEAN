@@ -54,7 +54,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: pkg010-system-contracts-${{ github.ref }}
+  # Push runs and diagnostic dispatch runs may coexist; only same-kind runs cancel each other.
+  group: pkg010-system-contracts-${{ github.ref }}-${{ github.event_name }}-${{ github.event.inputs.proofs || 'all' }}
   cancel-in-progress: true
 
 jobs:
