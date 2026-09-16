@@ -23,9 +23,11 @@ import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { ulogaSada, useUloga } from '../../store/uloga';
+import { Press } from '../../ui/Press';
+import { brandAction, sys } from '../../ui/system/tokens';
 import { T } from '../../ui/Text';
 import { V2Action } from '../../ui/v2/V2Action';
-import { v2 } from '../../ui/v2/tokens';
+import { V2Icon } from '../../ui/v2/icons';
 
 const MANUAL_FIELDS: readonly NeedFactV2Key[] = [
   'need.title',
@@ -43,6 +45,13 @@ const MANUAL_FIELDS: readonly NeedFactV2Key[] = [
   'need.required_licenses',
   'need.minimum_experience_years',
   'need.critical_conditions',
+];
+/** Presentation grouping only (PKG-011): every field keeps its own per-fact save through the same manual writer. */
+const SECTIONS: readonly { title: string; hint: string; keys: readonly NeedFactV2Key[] }[] = [
+  { title: 'Šta treba uraditi', hint: 'Naslov, opis i vrsta posla koje će videti Uskočeri.', keys: ['need.title', 'need.description', 'need.category'] },
+  { title: 'Ljudi i cena', hint: 'Koliko ljudi tražite i da li navodite cenu ili tražite ponude.', keys: ['need.people_needed', 'need.price_mode', 'need.price_rsd'] },
+  { title: 'Termin', hint: 'Kada treba da se uradi. Tačan početak i kraj samo za tačan termin.', keys: ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] },
+  { title: 'Uslovi', hint: 'Opciono: veštine, oprema, vozila, dozvole, iskustvo i bitni uslovi.', keys: ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.minimum_experience_years', 'need.critical_conditions'] },
 ];
 
 type PendingManual = Readonly<{ id: string; value: unknown; displayValue: string }>;
@@ -201,96 +210,115 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
   };
 
   if (!conversation) {
-    return <SafeAreaView style={s.canvas}><View style={s.empty}>
-      <T accessibilityRole="header" style={s.title}>{editor.loading ? 'Učitavamo ručni unos' : 'Ručni unos nije dostupan'}</T>
-      <T accessibilityRole={editor.error ? 'alert' : undefined} style={s.body}>{editor.error ?? 'Otvorite Novi zadatak ponovo.'}</T>
-      {conversationId ? <V2Action label="Osveži" onPress={refresh} /> : null}
-      <V2Action label="Nazad" kind="quiet" onPress={back} />
+    return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}><View style={s.empty}>
+      <View style={s.card}>
+        <T accessibilityRole="header" variant="title" style={s.ink}>{editor.loading ? 'Učitavamo ručni unos' : 'Ručni unos nije dostupan'}</T>
+        <T accessibilityRole={editor.error ? 'alert' : undefined} variant="body" tone="muted">{editor.error ?? 'Otvorite Novi zadatak ponovo.'}</T>
+        {conversationId ? <V2Action label="Osveži" onPress={refresh} style={brandAction} /> : null}
+        <V2Action label="Nazad" kind="quiet" onPress={back} />
+      </View>
     </View></SafeAreaView>;
   }
 
-  return <SafeAreaView style={s.canvas}>
-    <View style={s.header}>
-      <V2Action kind="quiet" label="Nazad" onPress={back} />
-      <View style={{ flex: 1 }}><T accessibilityRole="header" style={s.title}>Ručni unos zadatka</T>
-        <T style={s.meta}>Isti V2 nacrt i isti završni pregled kao AI put — bez slanja AI provajderu.</T></View>
+  const requiredOf = (key: NeedFactV2Key) => NEED_FACT_V2_DEFINITIONS[key].requiredForDraft
+    || (key === 'need.price_rsd' && currentFact(conversation, 'need.price_mode')?.value === 'MY_PRICE')
+    || ((key === 'need.starts_at' || key === 'need.ends_at') && currentFact(conversation, 'need.schedule_kind')?.value === 'FIXED_WINDOW');
+  const savedCount = MANUAL_FIELDS.filter(key => !!currentFact(conversation, key)).length;
+
+  return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
+    <View style={s.topBar}>
+      <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={back} style={s.back}><V2Icon name="back" /></Press>
+      <View style={s.topCopy}>
+        <T variant="meta" style={s.eyebrow}>Meni treba · ručni unos</T>
+        <T accessibilityRole="header" variant="title" style={s.ink}>Ručni unos zadatka</T>
+      </View>
     </View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      {editor.error ? <View style={s.notice}><T accessibilityRole="alert" style={s.error}>{editor.error}</T>
-        <V2Action kind="quiet" label="Proveri ishod" disabled={editor.loading || editor.busy} onPress={refresh} /></View> : null}
+      <T variant="meta" tone="muted">Isti V2 nacrt i isti završni pregled kao AI put — bez slanja AI provajderu. Svaki podatak čuvaš zasebno.</T>
+      {editor.error ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{editor.error}</T>
+        <V2Action kind="quiet" label="Proveri ishod" disabled={editor.loading || editor.busy} onPress={refresh} style={s.quietLeft} /></View> : null}
 
-      {MANUAL_FIELDS.map(key => {
-        const definition = NEED_FACT_V2_DEFINITIONS[key];
-        const state = fields[key] ?? { value: '', error: null };
-        const existing = currentFact(conversation, key);
-        const isPending = pending.current.has(key);
-        const required = definition.requiredForDraft || (key === 'need.price_rsd' && currentFact(conversation, 'need.price_mode')?.value === 'MY_PRICE')
-          || ((key === 'need.starts_at' || key === 'need.ends_at') && currentFact(conversation, 'need.schedule_kind')?.value === 'FIXED_WINDOW');
-        return <View key={key} style={s.field}>
-          <View style={s.row}><T style={[s.label, { flex: 1 }]}>{factLabel(key)}{required ? ' *' : ''}</T>
-            {existing ? <T style={s.saved}>SAČUVANO</T> : missingSet.has(key) ? <T style={s.missing}>NEDOSTAJE</T> : null}</View>
-          <TextInput
-            accessibilityLabel={`Ručni unos: ${factLabel(key)}`}
-            value={state.value}
-            editable={canAct() && !isPending}
-            multiline={key === 'need.description' || key.endsWith('skills') || key.endsWith('tools') || key.endsWith('vehicles')
-              || key.endsWith('licenses') || key === 'need.critical_conditions'}
-            onChangeText={value => setField(key, value)}
-            placeholder={key === 'need.price_mode' ? 'moja cena ili ponude'
-              : key === 'need.schedule_kind' ? 'tačan termin, fleksibilno, danas, sutra...'
-                : key === 'need.starts_at' || key === 'need.ends_at' ? 'GGGG-MM-DD HH:MM'
-                  : key.includes('required_') || key === 'need.critical_conditions' ? 'Odvojite stavke zarezom' : undefined}
-            style={[s.input, (key === 'need.description' ? { minHeight: 96 } : null)]}
-          />
-          {state.error ? <T accessibilityRole="alert" style={s.error}>{state.error}</T> : null}
-          {isPending ? <T style={s.meta}>Ishod prethodnog čuvanja nije potvrđen. Osvežite stanje; isti zahtev se ponavlja samo sa istim ID-em.</T> : null}
-          <V2Action label={existing ? 'Sačuvaj izmenu' : 'Sačuvaj podatak'} disabled={!canAct()} onPress={() => { void save(key); }} />
-        </View>;
-      })}
+      {SECTIONS.map(section => <View key={section.title} style={s.card}>
+        <T variant="heading" style={s.ink}>{section.title}</T>
+        <T variant="meta" tone="muted">{section.hint}</T>
+        {section.keys.map(key => {
+          const state = fields[key] ?? { value: '', error: null };
+          const existing = currentFact(conversation, key);
+          const isPending = pending.current.has(key);
+          const required = requiredOf(key);
+          const multiline = key === 'need.description' || key.endsWith('skills') || key.endsWith('tools') || key.endsWith('vehicles')
+            || key.endsWith('licenses') || key === 'need.critical_conditions';
+          return <View key={key} style={s.field}>
+            <View style={s.row}><T variant="bodyStrong" style={[s.ink, s.grow]}>{factLabel(key)}{required ? ' *' : ''}</T>
+              {existing ? <View style={[s.chip, s.chipSaved]}><T variant="label" style={s.chipSavedText}>Sačuvano</T></View>
+                : missingSet.has(key) ? <View style={[s.chip, s.chipMissing]}><T variant="label" style={s.chipMissingText}>Nedostaje</T></View> : null}</View>
+            <TextInput
+              accessibilityLabel={`Ručni unos: ${factLabel(key)}`}
+              value={state.value}
+              editable={canAct() && !isPending}
+              multiline={multiline}
+              onChangeText={value => setField(key, value)}
+              placeholder={key === 'need.price_mode' ? 'moja cena ili ponude'
+                : key === 'need.schedule_kind' ? 'tačan termin, fleksibilno, danas, sutra...'
+                  : key === 'need.starts_at' || key === 'need.ends_at' ? 'GGGG-MM-DD HH:MM'
+                    : key.includes('required_') || key === 'need.critical_conditions' ? 'Odvojite stavke zarezom' : undefined}
+              placeholderTextColor={sys.color.muted}
+              style={[s.input, multiline && s.multiline, key === 'need.description' && { minHeight: 96 }, state.error && s.inputError]}
+            />
+            {state.error ? <T accessibilityRole="alert" variant="meta" style={s.error}>{state.error}</T> : null}
+            {isPending ? <T variant="meta" tone="muted">Ishod prethodnog čuvanja nije potvrđen. Osvežite stanje; isti zahtev se ponavlja samo sa istim ID-em.</T> : null}
+            <V2Action label={existing ? 'Sačuvaj izmenu' : 'Sačuvaj podatak'} kind={existing ? 'quiet' : 'secondary'} disabled={!canAct()} onPress={() => { void save(key); }} style={s.quietLeft} />
+          </View>;
+        })}
+      </View>)}
 
-      <View style={s.field}>
-        <View style={s.row}><T style={[s.label, { flex: 1 }]}>Mesto / način rada *</T>
-          {locationMissing ? <T style={s.missing}>NEDOSTAJE</T> : <T style={s.saved}>SAČUVANO</T>}</View>
-        <T style={s.body}>Država, tip lokacije i potvrđene tačke ostaju u postojećem bezbednom editoru lokacije.</T>
+      <View style={s.card}>
+        <View style={s.row}><T variant="heading" style={[s.ink, s.grow]}>Mesto / način rada *</T>
+          {locationMissing ? <View style={[s.chip, s.chipMissing]}><T variant="label" style={s.chipMissingText}>Nedostaje</T></View>
+            : <View style={[s.chip, s.chipSaved]}><T variant="label" style={s.chipSavedText}>Sačuvano</T></View>}</View>
+        <T variant="meta" tone="muted">Država, tip lokacije i potvrđene tačke ostaju u postojećem bezbednom editoru lokacije.</T>
         <V2Action label={locationMissing ? 'Dodaj lokaciju' : 'Izmeni lokaciju'} disabled={!canAct()} onPress={openLocation} />
       </View>
 
-      <View style={s.field}>
-        <T style={s.label}>Fotografije</T>
-        <T style={s.body}>Opcionalne fotografije ostaju u postojećem privatnom/media toku; ručni unos ne pravi drugi storage put.</T>
-        <V2Action label="Fotografije zadatka" kind="quiet" disabled={!canAct()} onPress={openPhotos} />
+      <View style={s.card}>
+        <T variant="heading" style={s.ink}>Fotografije</T>
+        <T variant="meta" tone="muted">Opcionalne fotografije ostaju u postojećem privatnom/media toku; ručni unos ne pravi drugi storage put.</T>
+        <V2Action label="Fotografije zadatka" kind="quiet" disabled={!canAct()} onPress={openPhotos} style={s.quietLeft} />
       </View>
 
-      <View style={s.notice}>
-        <T style={s.body}>{readyForReview
+      <View style={[s.card, readyForReview ? s.readyCard : null]}>
+        <T variant="meta" tone="muted">{`Sačuvano ${savedCount} od ${MANUAL_FIELDS.length} podataka`}</T>
+        <T variant="body" style={s.ink}>{readyForReview
           ? 'Obavezni podaci su u istom canonical V2 nacrtu. Sledeći korak je zajednički pregled pre eksplicitne objave.'
           : requiredScalarMissing.length || locationMissing
             ? `Još nedostaje: ${missing.map(factLabel).join(', ')}.`
             : 'Proverite nedostajuće uslove pre završnog pregleda.'}</T>
-        <V2Action label="Pregledaj zadatak" disabled={!canAct() || !readyForReview} onPress={review} />
-        <V2Action label="Osveži podatke" kind="quiet" disabled={editor.loading || editor.busy} onPress={refresh} />
+        <V2Action label="Pregledaj zadatak" disabled={!canAct() || !readyForReview} onPress={review} style={brandAction} />
+        <V2Action label="Osveži podatke" kind="quiet" disabled={editor.loading || editor.busy} onPress={refresh} style={s.quietLeft} />
       </View>
     </ScrollView>
   </SafeAreaView>;
 }
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: v2.color.canvas },
-  header: { flexDirection: 'row', alignItems: 'center', gap: v2.space.sm, paddingHorizontal: v2.space.md,
-    paddingVertical: v2.space.sm, backgroundColor: v2.color.header },
-  content: { padding: v2.space.lg, gap: v2.space.lg, paddingBottom: 48 },
-  empty: { flex: 1, justifyContent: 'center', padding: v2.space.xl, gap: v2.space.md },
-  title: { ...v2.text.title, color: v2.color.ink },
-  body: { ...v2.text.body, color: v2.color.ink },
-  meta: { ...v2.text.label, color: v2.color.muted },
-  label: { ...v2.text.label, color: v2.color.ink },
-  field: { gap: v2.space.sm, padding: v2.space.md, backgroundColor: v2.color.surface, borderRadius: v2.radius.card,
-    borderWidth: 1, borderColor: v2.color.line },
-  notice: { gap: v2.space.sm, padding: v2.space.md, backgroundColor: v2.color.context, borderRadius: v2.radius.card },
-  row: { flexDirection: 'row', alignItems: 'center', gap: v2.space.sm },
-  input: { ...v2.text.body, color: v2.color.ink, minHeight: 48, borderWidth: 1, borderColor: v2.color.controlLine,
-    borderRadius: v2.radius.input, paddingHorizontal: v2.space.md, paddingVertical: v2.space.sm, textAlignVertical: 'top' },
-  error: { ...v2.text.label, color: '#A4362B' },
-  missing: { ...v2.text.label, color: '#A4362B' },
-  saved: { ...v2.text.label, color: v2.color.teal },
+  canvas: { flex: 1, backgroundColor: sys.color.ground },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' },
+  ink: { color: sys.color.ink }, grow: { flex: 1, minWidth: 0 },
+  content: { padding: 20, paddingTop: 4, gap: 14, paddingBottom: 48 },
+  empty: { flex: 1, justifyContent: 'center', padding: 20 },
+  card: { gap: 10, padding: 18, backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line },
+  readyCard: { borderColor: sys.color.green },
+  notice: { gap: 8, padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
+  field: { gap: 8, paddingTop: 12, borderTopWidth: 1, borderColor: sys.color.line },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  chip: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  chipSaved: { backgroundColor: sys.color.greenSoft }, chipSavedText: { color: sys.color.green, letterSpacing: 0.2 },
+  chipMissing: { backgroundColor: sys.color.warnSoft }, chipMissingText: { color: sys.color.warn, letterSpacing: 0.2 },
+  input: { ...sys.type.body, color: sys.color.ink, minHeight: 48, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface,
+    borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 10 },
+  multiline: { minHeight: 72, textAlignVertical: 'top' }, inputError: { borderColor: sys.color.danger },
+  error: { color: sys.color.danger },
+  quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
 });

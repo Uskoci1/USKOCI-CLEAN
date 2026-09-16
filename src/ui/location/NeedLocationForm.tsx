@@ -4,7 +4,7 @@ import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../../contracts/
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationInput, NeedLocationReview } from '../../contracts/location';
 import { locationSlots, normalizeNeedLocation } from '../../lib/location';
 import { V2Action as Button } from '../v2/V2Action';
-import { v2 } from '../v2/tokens';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { LocationChoice, LocationConfirmation, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
 import { CountryField, selectableCountry, useCountryOptions } from './CountryField';
@@ -23,8 +23,8 @@ function PlaceFields({ title, value, disabled, onChange }: { title: string; valu
     if (text) next[key] = text; else delete next[key];
     onChange(next);
   };
-  return <View style={[s.section, { borderBottomWidth: 1, borderColor: v2.color.line, paddingBottom: v2.space.lg }]}>
-    <T variant="heading">{title}</T>
+  return <View style={s.card}>
+    <T variant="heading" style={{ color: sys.color.ink }}>{title}</T>
     <LocationField label={`${title} — grad ili mesto`} value={value.city ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('city', text)} />
     <LocationDetails label={`${title} — dodatni javni opis`} disabled={disabled} summary={[value.area, value.label].filter(Boolean).join(' · ') || 'Deo grada i opis područja, opciono'}>
@@ -94,9 +94,9 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
     onSave(value);
   }
 
-  return <View style={{ gap: 24 }}>
+  return <View style={{ gap: 16 }}>
     <View style={s.section}>
-      <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>Gde treba uskočiti?</T>
+      <T accessibilityRole="header" style={{ ...sys.type.title, color: sys.color.ink }}>Gde treba uskočiti?</T>
       <T tone="muted">Unesite mesto gde je potrebna pomoć. GPS dozvola nije potrebna.</T>
     </View>
     {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vratite se na Zadatak.</T> : null}
@@ -137,8 +137,8 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
       <LocationField label="Napomene za pristup (privatno, opciono)" value={notes} maxLength={2000} multiline
         editable={!disabled} onChangeText={text => change(() => setNotes(text), false)} />
       </LocationDetails>
-      <View style={s.section}>
-        <T variant="heading">{reviewOnly ? 'Mesta na mapi' : 'Potvrdite tačke na mapi'}</T>
+      <View style={s.card}>
+        <T variant="heading" style={{ color: sys.color.ink }}>{reviewOnly ? 'Mesta na mapi' : 'Potvrdite tačke na mapi'}</T>
         <T variant="meta" tone="muted">{reviewOnly ? 'Izaberi pravo mesto ako pretraga ponudi više rezultata. Sve podatke prihvataš zajedno tek pri objavi.' : 'Promena države, javnog mesta, redosleda stanica ili tačne adrese traži novu potvrdu tačaka.'}</T>
         {!baseValue || !slots.length ? <T>Prvo unesite državu i javno mesto za potrebne tačke.</T> : <>
           <T variant="bodyStrong">Potvrđeno tačaka: {points.length} od {slots.length}</T>

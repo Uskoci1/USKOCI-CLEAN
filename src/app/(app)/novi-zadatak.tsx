@@ -7,9 +7,11 @@ import { aiNeedV2Izvor } from '../../data';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { ulogaSada, useUloga } from '../../store/uloga';
+import { Press } from '../../ui/Press';
+import { sys } from '../../ui/system/tokens';
 import { T } from '../../ui/Text';
 import { V2Action } from '../../ui/v2/V2Action';
-import { v2 } from '../../ui/v2/tokens';
+import { V2Icon } from '../../ui/v2/icons';
 
 /** One product entry, two input methods, one existing NEED_FACT_V2 domain.
  * AI remains the primary V5 experience. Manual only opens the same owned V2
@@ -69,42 +71,42 @@ export default function NoviZadatak() {
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'));
   const requester = intent === 'narucilac';
 
-  return <SafeAreaView style={s.canvas}>
+  return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
+    <View style={s.topBar}>
+      <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" disabled={busy} onPress={back} style={s.back}><V2Icon name="back" /></Press>
+      <View style={s.topCopy}><T variant="meta" style={s.eyebrow}>Meni treba</T><T accessibilityRole="header" variant="title" style={s.ink}>Novi zadatak</T></View>
+    </View>
     <View style={s.content}>
-      <View style={s.copy}>
-        <T accessibilityRole="header" style={s.title}>Novi zadatak</T>
-        <T style={s.body}>Izaberi kako želiš da uneseš podatke. Oba načina završavaju u istom pregledu zadatka pre objave.</T>
-      </View>
+      <T variant="body" tone="muted">Izaberi kako želiš da uneseš podatke. Oba načina završavaju u istom pregledu zadatka pre objave.</T>
 
-      {!requester ? <T accessibilityRole="alert" style={s.error}>Novi zadatak je dostupan u režimu MENI TREBA.</T> : null}
-      {error ? <T accessibilityRole="alert" style={s.error}>{error}</T> : null}
+      {!requester ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>Novi zadatak je dostupan u režimu MENI TREBA.</T></View> : null}
+      {error ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View> : null}
 
-      <View style={s.card}>
-        <T style={s.cardTitle}>Razgovorom</T>
-        <T style={s.body}>Preporučeno. Opiši šta ti treba, a AI pomaže da se podaci slože. Objavu i dalje potvrđuješ tek posle pregleda.</T>
+      <View style={[s.card, s.recommended]}>
+        <T variant="meta" style={s.eyebrow}>Preporučeno</T>
+        <T variant="title" style={s.ink}>Razgovorom</T>
+        <T variant="body" tone="muted">Opiši šta ti treba, a AI pomaže da se podaci slože. Objavu i dalje potvrđuješ tek posle pregleda.</T>
         <V2Action label="Nastavi razgovorom" kind="primary" disabled={!requester || busy} onPress={openAi} />
       </View>
 
       <View style={s.card}>
-        <T style={s.cardTitle}>Ručno</T>
-        <T style={s.body}>Unesi podatke samostalno, bez AI provajdera. Koristi se isti V2 nacrt, ista lokacija, fotografije i isti završni pregled.</T>
+        <T variant="title" style={s.ink}>Ručno</T>
+        <T variant="body" tone="muted">Unesi podatke samostalno, bez AI provajdera. Koristi se isti V2 nacrt, ista lokacija, fotografije i isti završni pregled.</T>
         <V2Action label={busy ? 'Otvaramo ručni unos…' : 'Unesi ručno'} kind="quiet" disabled={!requester || busy}
-          onPress={() => { void openManual(); }} />
+          onPress={() => { void openManual(); }} style={s.quietLeft} />
       </View>
-
-      <V2Action label="Nazad" kind="quiet" disabled={busy} onPress={back} />
     </View>
   </SafeAreaView>;
 }
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: v2.color.canvas },
-  content: { flex: 1, justifyContent: 'center', padding: v2.space.xl, gap: v2.space.lg },
-  copy: { gap: v2.space.sm },
-  title: { ...v2.text.hero, color: v2.color.ink },
-  cardTitle: { ...v2.text.title, color: v2.color.ink },
-  body: { ...v2.text.body, color: v2.color.muted },
-  error: { ...v2.text.label, color: '#A4362B' },
-  card: { gap: v2.space.md, padding: v2.space.lg, backgroundColor: v2.color.surface,
-    borderWidth: 1, borderColor: v2.color.line, borderRadius: v2.radius.card },
+  canvas: { flex: 1, backgroundColor: sys.color.ground },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' }, ink: { color: sys.color.ink },
+  content: { flex: 1, padding: 20, paddingTop: 8, gap: 14 },
+  card: { gap: 10, padding: 18, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.card },
+  recommended: { borderColor: sys.color.green },
+  notice: { padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.warnSoft },
+  quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
 });

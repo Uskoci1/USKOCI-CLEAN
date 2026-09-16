@@ -10,7 +10,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { ulogaSada, useIzvor, useUloga } from '../../store/uloga';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { aiFirst as a } from '../aiFirst/tokens';
+import { sys } from '../system/tokens';
 
 type Action = NeedLifecycleCommand['action'];
 type Controller = ReturnType<typeof createNeedLifecycleController>;
@@ -150,6 +150,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
             </> : <T style={s.copy}>Zadatak je zatvoren.</T>}
   </View>;
 }
-const s = StyleSheet.create({ panel: { gap: 12, paddingVertical: 18, borderTopWidth: 1, borderTopColor: a.color.line },
-  title: { color: a.color.ink, fontSize: 17, lineHeight: 23, fontWeight: '600' },
-  copy: { color: a.color.muted, fontSize: 14, lineHeight: 21 }, error: { color: a.color.danger, fontSize: 14, lineHeight: 21 } });
+/** PKG-011: same controller and copies; a card on the shared system. */
+const s = StyleSheet.create({ panel: { gap: 12, padding: 18, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  title: { ...sys.type.heading, color: sys.color.ink },
+  copy: { ...sys.type.meta, fontWeight: '400', fontSize: 14, lineHeight: 20, color: sys.color.muted }, error: { ...sys.type.meta, fontWeight: '400', fontSize: 14, lineHeight: 20, color: sys.color.danger } });
