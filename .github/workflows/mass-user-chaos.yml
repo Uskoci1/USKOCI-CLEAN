@@ -1,6 +1,12 @@
 name: Mass user chaos (isolated)
 
 on:
+  push:
+    branches:
+      - 'test/mass-user-chaos-harness-*'
+    paths:
+      - 'scripts/load/**'
+      - '.github/workflows/mass-user-chaos.yml'
   workflow_dispatch:
     inputs:
       users:
@@ -30,7 +36,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Static syntax check
+        run: node --check scripts/load/mass_user_chaos.mjs
+
   phase1-auth-rls:
+    if: github.event_name == 'workflow_dispatch'
+    needs: syntax
     runs-on: ubuntu-latest
     environment: mass-test
     timeout-minutes: 60
@@ -55,9 +74,6 @@ jobs:
 
       - name: Install exact dependencies
         run: npm ci --ignore-scripts
-
-      - name: Static syntax check
-        run: node --check scripts/load/mass_user_chaos.mjs
 
       - name: Run isolated Auth/RLS/load phase
         run: node scripts/load/mass_user_chaos.mjs
