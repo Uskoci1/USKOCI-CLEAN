@@ -1,6 +1,6 @@
 # USKOČI — PKG-001..PKG-024 reconciliation against current source, Ledger and CI
 
-Recorded: 2026-09-16 (Europe/Belgrade). Head: `f7c7a3ee38e5e1d6df4fc185dd94b567e0e98ba3` on `work/pre-v3-engine-integration-20260911` (PR #102, draft, mergeable). Code candidate: `b2f72b78772f29c1da3fa7d3d17c48902a46171c` / tree `34b56db7881623ce496d0652b793f854c08eedca`.
+Recorded: 2026-09-16 (Europe/Belgrade). Written at head `f7c7a3ee38e5e1d6df4fc185dd94b567e0e98ba3` and updated in place through `bdcb2c834add973b8a8b14445a9791f766c47a24` on `work/pre-v3-engine-integration-20260911` (PR #102, draft, mergeable). Each package section names the exact candidate its status is bound to.
 
 Authority order used: current source on the branch, PR #102, `EXECUTION_LEDGER.jsonl` (7 events), executed GitHub Actions runs, live DEV/ALPHA reads dated 2026-09-15, then V19 (snapshot `45e0f31`, 76 commits behind head) only for package definitions, gaps and predecessors. Where V19 and current source disagree, current source and executed proof win. This file derives status; it does not rewrite V19 or any Ledger event.
 
@@ -12,9 +12,9 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 
 | Status | Packages |
 |---|---|
-| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-005, PKG-009 |
+| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-004 (as of `bdcb2c8`, run 35038650179), PKG-005, PKG-009 |
 | DONE_VERIFIED (audit only), inventory stale | PKG-001 |
-| IMPLEMENTED_PENDING_VERIFICATION | PKG-004 (executed, unreviewed) |
+| IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | PKG-013 |
 | BLOCKED | PKG-014 (needs PKG-013 + owner batch approval), PKG-018 (provider diagnosis + AF-D04) |
 | NOT_STARTED | PKG-006, 007, 008, 010, 011, 012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
@@ -56,9 +56,9 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 - Implementation present: yes. 14 commits: lifecycle recovery mounted outside the Need-success branch, strict close receipt/readback, closed public projection and application refusal; suites `pkg004-lifecycle-recovery`, `pkg004-lifecycle-wiring`, `pkg004-remaining-search` plus 6 related suites.
 - Last exact proof: run 35031817969 on `b2f72b7` (13/13 steps executed; focused 9 suites 152/152; full 212/4181). Ledger `PKG-004-RECEIPT-20260916-001`.
 - Fresh / source changed: fresh (nothing changed after the run except documentation).
-- Current status: IMPLEMENTED_PENDING_VERIFICATION.
-- Missing proof: review of suite-to-GAP mapping, positive scenarios and replay/account guards; the harness defect (react-native mock) fixed in `b2f72b7` means these suites had never executed before.
-- Blocker: none. Next: review, then DONE_VERIFIED receipt bound to run 35031817969 or a fresh exact run.
+- Review, 2026-09-16: the executed suites were mapped to the three GAP definitions. Pre-fix witness executed locally: with the five runtime files checked out from `cb8c32d` (parent of the first PKG-004 commit) the current suites fail 36 tests in 5 of 6 files; only `application-composer-read` passes, so its closed-gate refusal is positive coverage, not a repro. Two Definition-of-Done criteria were still open in source: GAP-0026 "retain the pending command key" (`pregled.tsx` minted a new `clientRequestId` on every press, so the decoder's already-closed replay path was unreachable from the screen) and GAP-0030 "closed-search RPC rejection is a known client error" (`NEED_REMAINING_SEARCH_CLOSED` was absent from `applicationSelectionErrors`, so `readOwnedResult` classified a definitive rejection as an unconfirmed outcome and the composer kept offering the same replay). Both were closed in `bdcb2c8` with failing-then-passing tests (`pkg004-close-attempt`, `pkg004-lifecycle-wiring`, `application-selection-client`, `application-composer-read`; 3 failures on the pre-fix runtime, 55/55 after).
+- Executed proof: run 35038650179 on `bdcb2c8`, 13/13 steps: TypeScript, focused 11 suites 197/197, full regression 213 suites 4186/4186. Ledger `PKG-004-RECEIPT-20260916-002`.
+- Current status: DONE_VERIFIED, resolving GAP-0025, GAP-0026 and GAP-0030 on the exact candidate. Physical device restart/route restoration proof stays with PKG-017/PKG-021.
 
 ### PKG-005 — Worker onboarding and Worker-only calendar
 - Gaps: GAP-0027, GAP-0028.
