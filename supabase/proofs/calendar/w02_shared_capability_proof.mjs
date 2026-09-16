@@ -87,8 +87,11 @@ try{
 
   begin('REAL_PROFILE_SAVE_AND_READ_REUSE_EXISTING_COLUMNS');
   assert.equal(profile.profile_status,'DRAFT');
-  await value(client.azurirajRadnikProfil({ime:'W02 synthetic person',grad:'Novi Sad',vestine:['  Selidbe  '],
-    alati:['bušilica'],vozila:[],licence:[],radijusKm:15,zavrsi:false}));
+  // Geography has its own revision-bound writer since 72cdc8c (P01-P03); the current client
+  // refuses grad/radijusKm explicitly (PROFILE_LOCATION_REQUIRES_REVIEW), so the capability
+  // save carries identity and resources only. Location is proven by w02_location_proof.
+  await value(client.azurirajRadnikProfil({ime:'W02 synthetic person',vestine:['  Selidbe  '],
+    alati:['bušilica'],vozila:[],licence:[],zavrsi:false}));
   const saved=await read();assert.deepEqual(saved.skills,['Selidbe']);assert.deepEqual(saved.tools,['bušilica']);
   assert.deepEqual(saved.vehicles,[]);assert.deepEqual(saved.licenses,[]);assert.equal(saved.profile_status,'DRAFT');pass();
 

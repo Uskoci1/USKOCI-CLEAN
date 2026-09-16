@@ -104,6 +104,11 @@ counts are disposable database history counts, not source counts.
   106 and 107 are applied, 108 is recorded exactly (bytes, md5, sha256, both current bodies
   checked against `w02_dispatch_lock_files.json`), then 109-147 follow in order. The loader
   also admits the two capacity modules added on 2026-09-11.
+- **W02 shared capability, stage 1**: the current client refuses `grad`/`radijusKm` itself
+  (`PROFILE_LOCATION_REQUIRES_REVIEW`, since `72cdc8c`: geography has its own revision-bound
+  writer); the 2026-09-10 proof still sent both. The capability save now carries identity and
+  resources only; location stays with `w02_location_proof`. Found through the recorded
+  assertion text (`ACTUAL_CLIENT_REFUSED:<code>`), which the proof now writes to its report.
 - **W01 Android**: with setup-android v4.0.1 and `platform-tools` the proof APK builds again
   (`BUILD SUCCESSFUL`, run 35113177025) and the emulator boots; the native proof then lost
   `Zaboravili ste lozinku?` because the login sheet now animates in (`AuthSheet`, 2026-09-13)
