@@ -39,6 +39,11 @@ function p(values, n) {
   const a = [...values].sort((x, y) => x - y);
   return a[Math.min(a.length - 1, Math.max(0, Math.ceil(a.length * n / 100) - 1))] ?? null;
 }
+function chunks(values, size) {
+  const out = [];
+  for (let i = 0; i < values.length; i += size) out.push(values.slice(i, i + size));
+  return out;
+}
 async function timed(fn) {
   const start = performance.now();
   try { return await fn(); } finally { latency.push(Math.round((performance.now() - start) * 100) / 100); }
@@ -95,6 +100,7 @@ await pool(pressure, concurrency, async ({ actor }) => {
   if (result.error || !Array.isArray(result.data) || result.data.some(row => row.account_id !== actor.accountId)) throw new Error('PRESSURE_SCOPE_FAILURE');
 });
 if (failures.length) throw new Error(`MASS_AUTH_PRESSURE_FAILED:${failures.length}`);
+console.log(`MASS_STAGE pressure ops=${pressureOps} failures=0`);
 
 await pool(actors, concurrency, async actor => {
   const deleted = await admin.auth.admin.deleteUser(actor.accountId, false);
@@ -102,18 +108,26 @@ await pool(actors, concurrency, async actor => {
 });
 if (failures.length) throw new Error(`MASS_AUTH_CLEANUP_FAILED:${failures.length}`);
 
+// Never build a single giant PostgREST `in(...)` URL for hundreds/thousands of
+// UUIDs. Bounded batches keep the residue assertion about database state rather
+// than HTTP request-line length.
+let cleanupProfileResidue = 0;
 const ids = actors.map(a => a.accountId);
-const residue = await admin.from('app_profiles').select('id,account_id').in('account_id', ids);
-if (residue.error) throw new Error(`RESIDUE_READ:${residue.error.message}`);
-assert.equal(residue.data.length, 0, 'PROFILE_RESIDUE');
+for (const batch of chunks(ids, 50)) {
+  const residue = await admin.from('app_profiles').select('id,account_id').in('account_id', batch);
+  if (residue.error) throw new Error(`RESIDUE_READ:${residue.error.message}`);
+  cleanupProfileResidue += residue.data.length;
+}
+assert.equal(cleanupProfileResidue, 0, 'PROFILE_RESIDUE');
+console.log(`MASS_STAGE cleanup residue=${cleanupProfileResidue}`);
 
 const report = {
   unit: 'MASS_AUTH_RLS_LOCAL', result: 'PASS', disposableLocalOnly: true, providerCalled: false,
   users, concurrency, readsPerUser, ownRows, hostileReads, crossAccountLeaks: leaks,
-  pressureOps, pressureFailures: 0, cleanupProfileResidue: 0,
+  pressureOps, pressureFailures: 0, cleanupProfileResidue,
   latencyMs: { samples: latency.length, min: Math.min(...latency), p50: p(latency, 50), p95: p(latency, 95), p99: p(latency, 99), max: Math.max(...latency) },
   createdAt: new Date().toISOString(),
 };
 mkdirSync(outDir, { recursive: true });
 writeFileSync(resolve(outDir, 'mass-auth-rls-report.json'), JSON.stringify(report, null, 2) + '\n');
-console.log(`PASS MASS_AUTH_RLS_LOCAL users=${users} hostile_reads=${hostileReads} leaks=0 pressure_ops=${pressureOps} cleanup_residue=0 provider_calls=0 p95_ms=${report.latencyMs.p95}`);
+console.log(`PASS MASS_AUTH_RLS_LOCAL users=${users} hostile_reads=${hostileReads} leaks=0 pressure_ops=${pressureOps} cleanup_residue=${cleanupProfileResidue} provider_calls=0 p95_ms=${report.latencyMs.p95}`);
