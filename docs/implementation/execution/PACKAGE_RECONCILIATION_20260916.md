@@ -12,14 +12,14 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 
 | Status | Packages |
 |---|---|
-| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-004 (as of `bdcb2c8`, run 35038650179; re-verified on `ba098b8`, run 35042851321), PKG-005, PKG-007 (as of `ba098b8`, run 35042851269), PKG-008 (as of `f833cd4`, run 35045306378; candidate SQL disposable-proven, unapplied on DEV), PKG-009 |
+| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-004 (as of `bdcb2c8`, run 35038650179; re-verified on `ba098b8`, run 35042851321 and on `089527a`, run 35056728310), PKG-005, PKG-006 (as of `089527a`, run 35056728390), PKG-007 (as of `ba098b8`, run 35042851269), PKG-008 (as of `f833cd4`, run 35045306378; candidate SQL disposable-proven, unapplied on DEV), PKG-009 |
 | DONE_VERIFIED (audit only), inventory stale | PKG-001 |
 | IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | PKG-013 |
 | BLOCKED | PKG-014 (needs PKG-013 + owner batch approval), PKG-018 (provider diagnosis + AF-D04) |
-| NOT_STARTED | PKG-006, 010, 011, 012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
+| NOT_STARTED | PKG-010, 011, 012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
 
-Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007 and PKG-008 are done; the next package is PKG-006.
+Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007, PKG-008 and PKG-006 are done; the next package is PKG-010.
 
 ## Per package
 
@@ -67,11 +67,12 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 
 ### PKG-006 — Durable application identity and concurrent selection
 - Gaps: GAP-0031, GAP-0023.
-- Implementation present: partial signals only. `prilike/[id]/prijava.tsx` creates a `clientRequestId` via `noviZahtevId` but has no persistence/journal across remount (no AsyncStorage or journal reference), so GAP-0031 is not addressed in source. Server-side selection idempotency (P0D-02, live) and worker capacity CAS (`clean_pre_v3_worker_capacity`, live) exist, but no current-source concurrency proof binds them to head.
-- Last exact proof: none for the package. Historical P0D-02 proof run 34023168764 on `c3ada42` (2026-09-06) predates the branch.
-- Current status: NOT_STARTED.
-- Missing proof: all V19 tests (lost ACK/remount/A→B→A, same-key replay, overlapping Agreements, simultaneous selections and capacity CAS).
-- Blocker: predecessor PKG-004 pending. Next: after PKG-007 and PKG-008 per topology.
+- Implementation present (before 2026-09-16): partial signals only. `prilike/[id]/prijava.tsx` created a `clientRequestId` but kept the frozen command only in the per-instance session object (EVID-0078: a remount lost the identity and a retry allocated a new key). Server-side selection idempotency (P0D-02), worker capacity CAS (pre-V3) and calendar conflicts (W02) were live but no current-source concurrency proof bound them to head.
+- Implementation, 2026-09-16 (`089527a`): `src/data/applicationCommandJournal.ts` keeps the exact frozen `rpc_submit_response` command per account and Need, written before any I/O (without it nothing is sent), replaced only by its own key, retired only on the command's own receipt or a known refusal after readback, and discarded when corrupt. The composer restores the command on remount/cold restore, shows its terms read-only, never resends it automatically and replays it explicitly with the same key; another account cannot see or erase it and a journal read landing after an account change is not applied. GAP-0023: `supabase/proofs/pkg006/pkg006_selection_concurrency_proof.mjs` runs on the fully replayed 147-file disposable history with the two real fixture accounts plus a canonically activated second Worker (`9` checks: submit replay/changed-payload denial also in parallel, same-key concurrent Selection → one Agreement, one-seat race → one winner, observed Need row-lock wait, two Workers cannot over-allocate and a two-slot Need yields one Agreement per accepted Selection, Worker capacity CAS, overlapping fixed intervals → one Agreement and blocked application path, final invariant over every proof Need). No SQL, Edge, provider or live change.
+- Pre-fix witness (local, base `34539d2`, before any source change): `Tests: 6 failed, 35 passed, 41 total` (`evidence/PKG006_VERIFIED_20260916_35056728390.json`).
+- Last exact proof: run 35056728390 (`pkg006-application-selection-proof`) on `089527a`: disposable proof PASS, TypeScript, focused `Test Suites: 4 passed, 4 total | Tests: 104 passed, 104 total`, full `Test Suites: 216 passed, 216 total | Tests: 4290 passed, 4290 total`.
+- Current status: DONE_VERIFIED (Ledger `PKG-006-RECEIPT-20260916-001`). Because `application-composer-read.test.tsx` is in the PKG-004 proof path filter, the PKG-004 workflow re-ran automatically on `089527a` (run 35056728310, success) and is recorded as a re-verification receipt.
+- Blocker: none. Real cold-launch acceptance stays with the device packages (PKG-017/PKG-021). Next: PKG-010 per topology.
 
 ### PKG-007 — Agreement completion and server permissions
 - Gaps: GAP-0032, GAP-0033.
