@@ -60,7 +60,9 @@ test('every package receipt carries the minimum execution/proof contract', () =>
     assert.equal(receipt.schemaVersion, 1, `${receipt.packageId} unexpected schemaVersion`);
     assert.ok(ALLOWED.has(receipt.startStatus), `${receipt.packageId} invalid startStatus`);
     assert.ok(ALLOWED.has(receipt.status), `${receipt.packageId} invalid final status`);
-    assert.ok(Array.isArray(receipt.gapIds) && receipt.gapIds.length > 0, `${receipt.packageId} gapIds required`);
+    assert.ok(Array.isArray(receipt.gapIds), `${receipt.packageId} gapIds must be an array`);
+    // A package that closes no numbered GAP (e.g. a presentation rebuild over a verified engine) must say so explicitly.
+    assert.ok(receipt.gapIds.length > 0 || nonEmptyString(receipt.gapIdsNote), `${receipt.packageId} gapIds required (or a gapIdsNote explaining why none)`);
     assert.ok(Array.isArray(receipt.changedFiles), `${receipt.packageId} changedFiles must be an array`);
     assert.ok(Array.isArray(receipt.touched), `${receipt.packageId} touched must be an array`);
     assert.ok(Array.isArray(receipt.resolved), `${receipt.packageId} resolved must be an array`);

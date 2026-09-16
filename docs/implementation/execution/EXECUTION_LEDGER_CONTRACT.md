@@ -22,7 +22,7 @@ Never use an unexplained generic `DONE`.
 
 Every `PACKAGE_RECEIPT` records at least:
 
-- package ID/name and GAP IDs;
+- package ID/name and GAP IDs (a receipt with no numbered GAP must carry `gapIdsNote` saying why; added 2026-09-16 for PKG-011);
 - exact goal and start status;
 - branch, PR, base SHA, branch head SHA, exact tested candidate SHA and tree SHA;
 - work window;
