@@ -169,7 +169,7 @@ export default function MojePrijave() {
   };
   const navigate = (path: '/prilike' | '/profil') => { if (current()) router.navigate(path); };
   const pending = session.pending, visible = current();
-  return <MyApplicationsPresentation rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
+  return <MyApplicationsPresentation intent={role} rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
     unavailable={!data} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
     expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}

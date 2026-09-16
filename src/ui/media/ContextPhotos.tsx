@@ -3,17 +3,18 @@ import { View } from 'react-native';
 import { mediaClientService } from '../../data/mediaClientService';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { AuthorizedPhoto } from './AuthorizedPhoto';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { aiFirst as a } from '../aiFirst/tokens';
 
 export function NeedPhotos({ needId }: { needId: string }) {
   const read = useCallback(() => mediaClientService.readNeedPhotos(needId), [needId]);
   const editor = useOwnedEditor(read);
-  return <View style={{ gap: 12 }}>
-    {editor.data?.photos.length ? <T accessibilityRole="header" style={{ ...a.text.card, color: a.color.ink }}>Fotografije</T> : null}
+  if (!editor.data?.photos.length && !editor.error) return null;
+  return <View style={{ gap: 12, backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18 }}>
+    {editor.data?.photos.length ? <T accessibilityRole="header" variant="heading" style={{ color: sys.color.ink }}>Fotografije</T> : null}
     {editor.data?.photos.map((photo, i) => <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId} needId={needId} label={`Fotografija zadatka ${i + 1}`} />)}
-    {editor.error ? <><T style={{ ...a.text.meta, color: a.color.muted }}>Fotografije trenutno nisu učitane.</T>
+    {editor.error ? <><T variant="meta" tone="muted">Fotografije trenutno nisu učitane.</T>
       <V2Action label="Učitaj fotografije" kind="quiet" disabled={editor.loading} onPress={() => { void editor.refresh(); }} /></> : null}
   </View>;
 }

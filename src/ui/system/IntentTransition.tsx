@@ -1,7 +1,7 @@
 import { Modal, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useReducedMotion } from 'react-native-reanimated';
 import { ArrowsLeftRight } from 'phosphor-react-native';
+import { useReducedMotion } from './motion';
 import type { Uloga } from '../../contracts/projections';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';

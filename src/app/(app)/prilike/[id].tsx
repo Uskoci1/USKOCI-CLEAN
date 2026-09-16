@@ -1,6 +1,7 @@
 import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
-import { NeedPhotos } from '../../../ui/media/ContextPhotos';
+import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { TaskQaEntry } from '../../../ui/qa/TaskQaEntry';
+import type { PublicProfileState } from '../../../ui/system/PublicProfileSheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useIzvor, useUloga, ulogaSada } from '../../../store/uloga';
@@ -96,6 +97,23 @@ export default function PrilikaDetaljiEkran() {
     navigate(() => router.navigate({ pathname: '/prilike/[id]/prijava', params: { id: fresh.id } }));
   }
 
+  // Owner decision 3 (2026-09-16): the requester's public profile is a sheet over the
+  // existing `javniProfil` read; opened only by an explicit press, retired with the scope.
+  const [requesterProfile, setRequesterProfile] = useState<PublicProfileState>(null);
+  const profileRequest = useRef(0);
+  useEffect(() => { profileRequest.current++; setRequesterProfile(null); }, [id, accountId, epoch, intent]);
+  useEffect(() => () => { profileRequest.current++; }, []);
+  function openRequesterProfile() {
+    const scope = currentScope();
+    if (!scope || !fresh || resource.data?.request !== readRequest.current || requesterProfile?.loading) return;
+    const request = ++profileRequest.current, profileId = fresh.narucilacProfilId;
+    setRequesterProfile({ loading: true, data: null });
+    void izvor.javniProfil(profileId)
+      .then(value => { if (request === profileRequest.current && currentScope()) setRequesterProfile({ loading: false, data: value?.profilId === profileId ? value : null }); })
+      .catch(() => { if (request === profileRequest.current && currentScope()) setRequesterProfile({ loading: false, data: null }); });
+  }
+  function closeRequesterProfile() { profileRequest.current++; setRequesterProfile(null); }
+
   return <PublicNeedPresentation key={`${accountId}:${epoch}:${intent}:${id}`}
     qa={fresh && !resource.loading && !resource.error ? <TaskQaEntry disabled={busy} onPress={() => {
       if (resource.data?.request !== readRequest.current || !currentScope()) return;
@@ -106,5 +124,7 @@ export default function PrilikaDetaljiEkran() {
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
     canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && intent === 'uskocer'}
     back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/prilike'))}
-    retry={retry} apply={compose} />;
+    retry={retry} apply={compose}
+    onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
+    publicPhoto={profileId => <ProfilePhoto profileId={profileId} size={96} fallback={null} />} />;
 }
