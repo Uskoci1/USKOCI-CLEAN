@@ -43,9 +43,10 @@ touching that project: migration ledger 149 rows (147 source + 2 dev_alpha opera
 all byte-identical to the committed tree. The closure worker is deployed but inert by design: no
 enable flag, no cron, no executions. Two items carry over and neither blocks the next package. The
 AI test budget holds 4 750 000 of 5 000 000 microUSD reserved, so one provider call remains and
-raising the ceiling is an owner decision. One legacy turn of `uskocibusiness@gmail.com` stays
-`PROCESSING` as `LEGACY_OWNER_SESSION_BLOCKER`, because cancelling it needs that account's own
-session and impersonation was forbidden.
+raising the ceiling is an owner decision. One historical turn of `uskocibusiness@gmail.com` stays
+`PROCESSING`, labelled `AWAITING_LEGITIMATE_ACCOUNT_SESSION` by owner decision of 2026-09-17: cancelling it
+needs that account's own session, impersonation is forbidden, and it blocks no package. The exact
+procedure for when the owner does sign in is in `docs/implementation/execution/AWAITING_LEGITIMATE_ACCOUNT_SESSION_20260917.md`.
 
 ## Legacy inventory after reachability review (no deletion in PKG-012)
 

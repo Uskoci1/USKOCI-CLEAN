@@ -825,3 +825,16 @@ Four open observations, none of them blocking:
 4. Release run 35151771679 needed a second attempt for the environmental W02 failure described above.
 
 Next per V19 topology: PKG-015, which was blocked only by PKG-014.
+
+---
+
+## Addendum, 2026-09-17: the stuck turn is relabelled
+
+Everything above stays as written, because it is the record of what happened. One label has since
+changed by owner decision. The turn this log calls `LEGACY_OWNER_SESSION_BLOCKER` is now
+`AWAITING_LEGITIMATE_ACCOUNT_SESSION`, since it blocks nothing and the old name implied otherwise.
+
+The row itself is untouched and still reads `PROCESSING` with `provider_dispatched` true. The exact
+procedure for closing it legitimately, once the owner signs in to that account, is written down in
+`docs/implementation/execution/AWAITING_LEGITIMATE_ACCOUNT_SESSION_20260917.md`.
+
