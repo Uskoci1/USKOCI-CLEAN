@@ -616,13 +616,109 @@ The older turn of `uskocibusiness@gmail.com` in conversation `23e74284…` is un
 **LEGACY_OWNER_SESSION_BLOCKER**: closing it needs that account's own session, and rotating a second
 identity's password was not authorised.
 
+## 11. Provider-wire diagnosis and fix, then NEED acceptance — PASS (2026-09-16)
+
+The owner refused a blind removal of `additionalProperties` and asked for the exact wire-level cause
+with as few real calls as possible. That was the right call: the first hypothesis was wrong.
+
+### Step 1, zero provider calls: the exact payloads
+
+`scripts/acceptance/gemini_wire_diff.mjs` loads both deployed Edge sources the way the repository's own
+proof runtimes do, rebuilds the body each one sends and runs it through the shared converter.
+
+| | WORKER_PROFILE (was accepted) | NEED_FACT_V2 (rejected) |
+| --- | --- | --- |
+| endpoint | `POST /v1beta/models/gemini-3.8-flash:generateContent` | same |
+| generationConfig keys | `maxOutputTokens, thinkingConfig, responseFormat` | same |
+| response format | `responseFormat.text.{mimeType,schema}` | same |
+| schema keywords | `type, enum, nullable, required` | `type, additionalProperties, enum, maxItems, minimum, maximum, required` |
+| types | object, string, array, integer, boolean | object, string, array, number |
+| body bytes | 4145 | 7644 |
+
+### Step 2, one call: strip `additionalProperties`
+
+Deployed and retried: still `400 INVALID_ARGUMENT`. The first hypothesis was refuted.
+
+### Step 3, one call: name the rejected node
+
+The closed diagnostic vocabulary was extended with more structural field paths, still a closed list so
+no upstream string can ever be printed. The next turn answered precisely:
+
+```
+GEMINI_STREAM_HTTP_FAILED 400 INVALID_ARGUMENT UNKNOWN RESPONSE_FORMAT_MIME
+```
+
+The provider blames `responseFormat.text.mimeType`, not the schema.
+
+### Step 4, one call: the control that settled it
+
+A worker turn, on the path that had succeeded six times, now failed the same way. The only thing that
+had changed for it was the redeploy onto the current shared helper. The six successes therefore ran the
+**older deployed copy** from 2026-09-13 09:18Z, which predates the `responseFormat` rewrite. The wrapper
+itself is the defect, and the need path had simply always been deployed on it.
+
+### The fix, provider adapter only
+
+`geminiRequestBody` now sends structured output in the fields this API documents,
+`generationConfig.responseMimeType` and `generationConfig.responseSchema`, and forwards every declared
+constraint unchanged. Only `additionalProperties` is dropped, because it is not part of that schema
+subset, and each caller's own decoder still refuses unknown keys, so nothing widens. The callers already
+build the provider's own uppercase type names, so types are no longer rewritten.
+
+Untouched: the fact registry, `parseV2Output` and `parseWorkerOutput`, every canonical writer, and the
+product flow. 102 AI edge tests pass, including a new one asserting that only `additionalProperties`
+disappears while enum, nullable, maxItems, minimum and maximum survive.
+
+### Redeploy, readback and refreeze
+
+`uskoci-ai-interview` is version 36, `verify_jwt` true, and all four deployed files are byte-identical
+to the working tree: `index.ts` 40772 B sha `dfe9fec7…`, `needFactsV2.ts` 5898 B, `aiTestBudget.ts`
+3147 B, `geminiTaskStream.ts` 13800 B sha `dc19d5b9…`. `uskoci-worker-interview` was redeployed from the
+same source. The PKG-013 Edge fingerprint was refrozen with provenance for the single frozen file that
+changed, `owned_intake_edge.test.mjs`, whose assertion now reads the documented field; the proof is
+green again at 92 handler tests.
+
+### NEED acceptance — PASS
+
+Real session, real provider, conversation `b1e3204f…`.
+
+| User text | Proposed facts | Canonical writer | Live DB value |
+| --- | --- | --- | --- |
+| "Treba mi sutra oko 17h dvojica ljudi da prenesu trosed sa Limana na Detelinaru. Lift je na obe lokacije. Treba kombi. Budžet oko 6000 dinara." | title, description, category, price_mode, price_rsd, schedule_kind, starts_at, ends_at, people_needed, required_vehicles, task_country_code, task_geography | — proposals only | — |
+| "Da dopunim: trosed je razvlaciv pa je tezi. Ipak neka bude u 18h, ne u 17h. Ne znam tacno koliko kilograma ima." | starts_at, ends_at, description, geography and country superseded; no weight proposed | `rpc_accept_ai_task_review` → `rpc_save_need_location_review`, bulk `rpc_ai_confirm_fact`, `rpc_save_need_draft_from_review` | need `be26c5de…` DRAFT rev 1 |
+
+Authoritative readback of the materialised Task:
+
+| Canonical field | Live value |
+| --- | --- |
+| schedule | `FIXED_WINDOW`, starts `2026-09-17 16:00Z` which is **18:00 Belgrade**, the corrected hour, tz `Europe/Belgrade` |
+| people, price | `required_slots=2`, `mode=MY_PRICE`, `requester_price_rsd=6000` |
+| resources | `required_vehicles=Kombi` |
+| category, place | `Selidbe i transport`, `Novi Sad`, `RS`, `POINT_TO_POINT` |
+| geography | `{start:{area:Liman,city:Novi Sad}, end:{area:Detelinara,city:Novi Sad}, mode:POINT_TO_POINT}` |
+| private address | no `need_sensitive` row: nothing private was invented |
+| weight | no weight anywhere in the Task: the vague fact was not invented |
+| supersession | `need.starts_at was 17:00`, `need.ends_at was 19:00`, description, geography and country all superseded by the correction |
+| conversation | `COMPLETED`, bound to the need |
+
+**Chain proven: AUTH → conversation → real Gemini → proposed facts → correction → review → confirmation
+→ canonical Need materialisation with geography, schedule, people, resources and price → readback.**
+
+### Budget
+
+The shared ceiling is spent down to one remaining provider call: 4750000 of 5000000 microUSD reserved.
+Eleven calls were used this session, six of them by the worker scenario before the wire defect was
+known. Raising the ceiling is an owner decision before the next acceptance run.
+
 ## Live state now
 
-- Schema: all 147 source migrations applied, the delta 145 to 147 included.
-- Ledger: 149 rows, 147 source migrations plus the two `dev_alpha` operational rows.
-- Edge: `uskoci-ai-interview` v33 byte-identical to source, `uskoci-account-closure-worker` v1 deployed.
-- Config: three accounts admitted to the unchanged paid AI test gate; six provider calls remain.
-- Acceptance: WORKER_PROFILE proven end to end on a real session; NEED blocked at the provider by the
-  schema dialect defect; unknown-outcome recovery proven.
-- Data: the only domain rows written are the QA account's own worker profile and its AI conversations.
-- Open: the NEED provider schema decision, and the legacy stuck turn of `uskocibusiness@gmail.com`.
+- Schema: all 147 source migrations applied, delta 145 to 147 included; ledger 149 rows.
+- Edge: `uskoci-ai-interview` v36 and `uskoci-worker-interview` redeployed, both byte-identical to
+  source, `uskoci-account-closure-worker` v1 deployed.
+- Provider: the wire defect is fixed, both AI chains complete real turns end to end.
+- Acceptance: WORKER_PROFILE and NEED both proven with a real session, real provider, review,
+  confirmation, canonical writers and readback. Unknown-outcome recovery proven.
+- Data: the only domain rows written are the QA account's own worker profile, its AI conversations and
+  one DRAFT Task.
+- Open: the shared AI test budget has one provider call left, and the legacy stuck turn of
+  `uskocibusiness@gmail.com` stays LEGACY_OWNER_SESSION_BLOCKER.
