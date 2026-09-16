@@ -6,6 +6,7 @@ import type { Ishod } from '../../../../data/ports';
 import { aiNeedV2Izvor } from '../../../../data';
 import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
 import { ru4Production } from '../../../../data/ru4Production';
+import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } from '../../../../data/remainingSearchCloseAttempt';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
@@ -37,6 +38,9 @@ function OwnedNeed({ id }: { id: string }) {
   const foreground = useRef(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const [lifecycle, setLifecycle] = useState(0);
   const reading = useRef<object | null>(null);
+  // An unconfirmed close keeps its command identity for the explicit retry; the
+  // owner remounts on id/account/intent, so the attempt never outlives them.
+  const closeAttempt = useRef<RemainingSearchCloseAttempt | null>(null);
   const [terminalActive, setTerminalActive] = useState(false);
   const terminalActiveRef = useRef(false);
   const setTerminal = useCallback((active: boolean) => { terminalActiveRef.current = active; setTerminalActive(active); }, []);
@@ -111,12 +115,15 @@ function OwnedNeed({ id }: { id: string }) {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
     ask('Ne traži više nikoga?', `Zatvorićemo potragu za preostalih ${potreba.pokrivenost.preostalo} mesta. Postojeći Dogovori i originalni uslovi Zadatka ostaju nepromenjeni.`,
       'Zatvori potragu', async () => { await editor.save(async () => {
-        const result = await ru4Production.closeRemainingSearch(potreba.id, potreba.revizija, noviZahtevId('zatvori-preostalu-potragu'));
+        const attempt = retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'));
+        closeAttempt.current = attempt;
+        const result = await ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId);
         if (!current()) return changed();
         if (!result.ok) return failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitajte trenutno stanje.');
         const after = await read();
         if (!current()) return changed();
         if (!after.ok) return after;
+        if (after.podatak.remainingClosed) closeAttempt.current = null;
         return after.podatak.remainingClosed ? after
           : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Server nije potvrdio zatvaranje preostale potrage. Učitajte trenutno stanje.');
       }); });

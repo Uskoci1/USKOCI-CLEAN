@@ -28,4 +28,11 @@ describe('PKG-004 owner lifecycle wiring invariants', () => {
     expect(route).toContain('after.podatak.remainingClosed ? after');
     expect(route).toContain('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED');
   });
+
+  it('retains one immutable close command per Need revision until the server confirms closure', () => {
+    expect(route).toContain("retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'))");
+    expect(route).toContain('ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId)');
+    expect(route).toContain('closeAttempt.current = null');
+    expect(route).not.toContain("closeRemainingSearch(potreba.id, potreba.revizija, noviZahtevId(");
+  });
 });

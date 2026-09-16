@@ -8,6 +8,8 @@ on:
       - 'src/data/needLifecycleController.ts'
       - 'src/data/needLifecycleClientService.ts'
       - 'src/data/ru4Production.ts'
+      - 'src/data/remainingSearchCloseAttempt.ts'
+      - 'src/data/applicationSelectionClientService.ts'
       - 'src/data/supabaseIzvor.ts'
       - 'src/ui/needs/NeedLifecycleActions.tsx'
       - 'src/ui/v2/NeedPresentation.tsx'
@@ -19,6 +21,8 @@ on:
       - 'src/data/__tests__/pkg004-lifecycle-recovery.test.tsx'
       - 'src/data/__tests__/pkg004-lifecycle-wiring.test.ts'
       - 'src/data/__tests__/pkg004-remaining-search.test.ts'
+      - 'src/data/__tests__/pkg004-close-attempt.test.ts'
+      - 'src/data/__tests__/application-selection-client.test.ts'
       - 'src/data/__tests__/opportunities-read.test.ts'
       - 'src/data/__tests__/task-detail-read.test.ts'
       - 'src/data/__tests__/task-detail-screen.test.tsx'
@@ -72,6 +76,8 @@ jobs:
           src/data/__tests__/pkg004-lifecycle-recovery.test.tsx
           src/data/__tests__/pkg004-lifecycle-wiring.test.ts
           src/data/__tests__/pkg004-remaining-search.test.ts
+          src/data/__tests__/pkg004-close-attempt.test.ts
+          src/data/__tests__/application-selection-client.test.ts
           src/data/__tests__/opportunities-read.test.ts
           src/data/__tests__/task-detail-read.test.ts
           src/data/__tests__/task-detail-screen.test.tsx

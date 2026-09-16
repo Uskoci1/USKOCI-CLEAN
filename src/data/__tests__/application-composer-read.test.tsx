@@ -103,6 +103,13 @@ it('refuses a submission when the authoritative task gate says remaining search 
   expect(mockSubmit).not.toHaveBeenCalled();
   expect(text()).toContain('Proverite aktuelni Zadatak i aktivan radni profil.');
 });
+it('treats the closed remaining search server rejection as a known refusal that can be reset after refresh', async () => {
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED', poruka: 'Zadatak više ne prima nove prijave. Osvežite Zadatak.' });
+  await offer(); await tap('Pošalji ovu Prijavu');
+  expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Zadatak više ne prima nove prijave');
+  await tap('Proverite ishod');
+  expect(press('Pregledaj uslove i uredi novu ponudu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
+});
 it('shows successful unavailability and a single real detail fallback navigation', async () => {
   mockTask.mockResolvedValue(null); mockRouter.canGoBack.mockReturnValue(false); await render();
   expect(text()).toContain('Podaci za prijavu nisu dostupni'); expect(press('Pošalji ovu Prijavu')).toBeUndefined();

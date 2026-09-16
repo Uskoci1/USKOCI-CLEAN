@@ -11,6 +11,7 @@ export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   NOT_REQUESTER: 'Ove Prijave su dostupne Naručiocu Zadatka.',
   NEED_NOT_FOUND: 'Zadatak više nije dostupan.',
   NEED_NOT_OPEN: 'Zadatak više ne prima prijave i izbore.',
+  NEED_REMAINING_SEARCH_CLOSED: 'Zadatak više ne prima nove prijave. Osvežite Zadatak.',
   RESPONSE_WINDOW_EXPIRED: 'Rok za prijave je istekao.',
   STALE_REVIEW_REQUIRED: 'Zadatak ili Prijava su promenjeni. Pregledajte aktuelne podatke pre novog izbora.',
   NEED_REVISION_MISMATCH: 'Zadatak je promenjen. Pregledajte aktuelne uslove pre nove prijave.',
