@@ -343,14 +343,99 @@ sha the source file declares.
 **Step 1 of PKG-014 is complete: the canonical DEV migration delta 145 to 147 is applied and
 reconciled, with no unrelated domain touched.**
 
-## 2..7 Edge deploy, AI admission, stuck turn and full postflight: not started
+## 2. Edge deploy: `uskoci-ai-interview` from current source — DONE and byte-verified
 
-Edge deployments, the admission entry, the stuck turn and the full postflight were not started. Per
-the owner's condition 8 the sequence stops at the first mismatch instead of improvising around it.
+`npx supabase functions deploy uskoci-ai-interview --project-ref leqcwgzvjsxugfgzdmth --use-api`
+uploaded exactly the four assets the previous bundle carried.
 
-## Live state at the stop
+| Check | Result |
+| --- | --- |
+| version | 33, was 32 |
+| `verify_jwt` | true, unchanged |
+| bundle `ezbr_sha256` | `0af5c48ca0616505…`, was `052a07518ad19ded…` |
+| `supabase/functions/uskoci-ai-interview/index.ts` | deployed 40772 B, sha `dfe9fec706e9e0e6…`, identical to the local file, and the same sha the PKG-013 refrozen Edge manifest records |
+| `src/contracts/needFactsV2.ts` | 5898 B, sha `1b5b122ab14c8f1d…`, identical |
+| `supabase/functions/_shared/aiTestBudget.ts` | 3147 B, sha `de9cc389c949c369…`, identical |
+| `supabase/functions/_shared/geminiTaskStream.ts` | 11943 B, sha `eb43e6d2dd7cba4d…`, identical |
 
-- Schema: source migrations 145 applied, 146 and 147 not applied.
-- Ledger: 146 rows, missing the row for 145.
-- Edge: unchanged, `uskoci-ai-interview` still version 32, closure worker still absent.
-- Data: unchanged in every domain checked.
+Every deployed file was compared against the working tree byte for byte: all four match. The stale v32
+non-stream Gemini wire and the missing stream diagnostics are therefore gone; the runtime is now the
+source this branch proves.
+
+## 3. Edge deploy: `uskoci-account-closure-worker` — DONE
+
+`npx supabase functions deploy uskoci-account-closure-worker --project-ref leqcwgzvjsxugfgzdmth --use-api`
+uploaded `index.ts`, `closure.ts` and the shared `_shared/data-export.ts`.
+
+| Check | Result |
+| --- | --- |
+| status | ACTIVE, version 1, created 2026-09-16 |
+| `verify_jwt` | true, matching the other workers |
+| files | the three source files, deployed from disk, so no transcription step exists |
+
+GAP-0019 is closed: the function that was present in source and absent from the project is now deployed.
+
+## 4. AI test admission for the owner acceptance account — DONE
+
+The account failing every turn was `1c489b37-1290-4bc2-999d-7f77a05cd342`, which is
+`msljivic031@gmail.com`, the owner's own account with 20 conversations. It was absent from
+`private.ai_test_accounts_v5`, which is why every one of its turns failed before provider dispatch and
+before any budget reservation.
+
+One guarded statement admitted exactly that account into the existing gate. It asserted the budget was
+enabled with the unchanged 5000000 ceiling, that the account is not closure restricted, that the
+admitted list held exactly 2 rows before and exactly 3 after, and it used `on conflict do nothing`.
+
+| Check | Result |
+| --- | --- |
+| admitted accounts | `msljivic031+uskoci-qa@gmail.com` 2026-09-13, `uskocibusiness@gmail.com` 2026-09-13, `msljivic031@gmail.com` 2026-09-16 |
+| gate still enforced | yes, three named accounts, nothing opened to all users |
+| budget | unchanged: enabled, ceiling 5000000, reserved 1750000 |
+| reservations | 7, unchanged |
+| `private.ai_test_accounts_v5` privileges for anon, authenticated, service_role | none |
+
+This is environment-specific DEV/ALPHA configuration, exactly like the two existing `dev_alpha_*`
+operational rows, so it is recorded here and in the receipt rather than as a new source migration.
+
+## 5. The stuck PROCESSING turn: canonical mechanism found, owner action required
+
+| Fact | Value |
+| --- | --- |
+| conversation | `23e74284-3eee-462e-b6f5-6a1c40857587` |
+| client request id | `41cf65f2-021c-45f6-b9c2-08b6ac44fa10` |
+| account | `0640a1bd-5e0a-4462-9dca-f49420582c8a`, `uskocibusiness@gmail.com` |
+| state | PROCESSING, `provider_dispatched = true`, lease expired 2026-09-13 13:44, conversation still OPEN |
+
+The canonical mechanism exists and is `public.rpc_ai_cancel_need_turn_v2(conversation_id, client_request_id)`,
+granted to `authenticated` only. For a dispatched PROCESSING turn in an OPEN conversation it sets
+`state='FAILED'` with `cancelled_at`, and returns `rpc_ai_recover_need_turn_v2`. It never fabricates a
+success and it preserves `provider_dispatched = true` as true dispatch evidence, which is exactly the
+honest closure the owner required.
+
+It reads `auth.uid()`, so only that signed-in account can close it. This session will not authenticate
+as the owner, so the step is left for the owner inside the app, signed in as `uskocibusiness@gmail.com`,
+on that conversation. Nothing was deleted or rewritten.
+
+## 6-7. Postflight so far
+
+| Gate | Result |
+| --- | --- |
+| migration postflight | ledger 149 rows, the three new rows under their source versions, digests green |
+| Edge version and hash readback | ai-interview v33 byte-identical to source, closure worker v1 deployed |
+| security and RLS sanity | advisors report 4 findings, none at ERROR level, and all four are pre-existing structural categories of this codebase: RLS-enabled private tables without policies, SECURITY DEFINER RPCs callable by anon and by authenticated, and the Auth leaked-password setting |
+| targeted grant checks for the new objects | 145's guard revoked from every role; the four new closure tables closed to anon, authenticated and service_role; the new private closure functions not callable by anon or authenticated; `rpc_redact_account_closure_step_service` service_role only; QA policy tables closed; `ai_test_accounts_v5` closed; no public table has RLS disabled |
+| no unrelated domain changed | 7 needs, 175 facts, 5 worker profiles, 7 reservations, 16 need turns, 3 worker turns, unchanged from the first preflight through every step |
+| AI provider gate, real Gemini WORKER_PROFILE turn, real Gemini NEED turn, review, confirmation, canonical writer readback | NOT YET. These require an authenticated app session, which this session must not create. |
+
+**PKG-014 is therefore not DONE_VERIFIED yet.** Steps 1 to 4 are complete and verified. Step 5 and the
+end-to-end acceptance evidence wait on two owner actions in the app.
+
+## Live state now
+
+- Schema: all 147 source migrations applied, the three-file delta 145 to 147 included.
+- Ledger: 149 rows, which is 147 source migrations plus the two `dev_alpha` operational rows.
+- Edge: `uskoci-ai-interview` version 33 byte-identical to source, `uskoci-account-closure-worker`
+  version 1 deployed, the other eight functions untouched.
+- Config: three accounts admitted to the unchanged paid AI test gate.
+- Data: no domain row changed anywhere in this package.
+- Open: the stuck turn of `uskocibusiness@gmail.com`, and the end-to-end AI acceptance evidence.
