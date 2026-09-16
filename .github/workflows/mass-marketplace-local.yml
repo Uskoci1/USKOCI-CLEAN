@@ -1,0 +1,131 @@
+name: Mass marketplace journey (disposable local)
+
+on:
+  push:
+    branches:
+      - 'test/mass-user-chaos-harness-*'
+    paths:
+      - 'scripts/load/mass_marketplace_journey.mjs'
+      - '.github/workflows/mass-marketplace-local.yml'
+  workflow_dispatch:
+    inputs:
+      pairs:
+        description: Requester/Worker journey pairs (1..200)
+        required: true
+        default: '10'
+      concurrency:
+        description: Concurrent journeys (1..50)
+        required: true
+        default: '10'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mass-marketplace-local-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  disposable-marketplace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      MASS_OUT: artifacts/mass-user-chaos
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Static syntax check
+        run: node --check scripts/load/mass_marketplace_journey.mjs
+
+      - name: Reconstruct disposable historical live79
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+
+      - name: Replay recorded live80-87 aliases and every pending source migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          root = os.environ['GITHUB_WORKSPACE']
+          db = os.environ['DB_URL']
+          prov = json.load(open(f'{root}/supabase/migrations/MIGRATION_PROVENANCE.json', encoding='utf-8'))
+
+          def scalar(sql):
+              return subprocess.run(['psql', db, '-X', '-Atc', sql], text=True, capture_output=True, check=True).stdout.strip()
+
+          def run_sql(sql, label):
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1'], input=sql, text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:]); sys.exit(f'MASS_REPLAY_FAILED {label}')
+
+          def apply(file, version, name):
+              path = f'{root}/supabase/migrations/{file}'
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', path], text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:]); sys.exit(f'MASS_REPLAY_FAILED {file}')
+              body = open(path, encoding='utf-8', newline='').read()
+              tag = '$massstmt$'
+              assert tag not in body, file
+              run_sql(f"insert into supabase_migrations.schema_migrations(version,name,statements) values ('{version}','{name}',array[{tag}{body}{tag}]);", file)
+
+          assert scalar('select max(version) from supabase_migrations.schema_migrations') == '20260906141409'
+          entries = [e for e in prov['live_history_snapshot']['entries'] if e['version'] > '20260906141409']
+          assert len(entries) == 8, len(entries)
+          for e in entries:
+              apply(e.get('file') or f"{e['version']}_{e['name']}.sql", e['version'], e['name'])
+          assert scalar('select count(*) from supabase_migrations.schema_migrations') == '87'
+          for p in prov['pending_forward_migrations']:
+              apply(p['file'], p['version'], p['name'])
+          run_sql("notify pgrst, 'reload schema';", 'reload')
+          print('history=' + scalar("select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations"))
+          PY
+
+      - name: Run real-JWT marketplace journeys
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/uskoci-ru5-device-ui
+          eval "$(supabase status -o env)"
+          cd "$GITHUB_WORKSPACE"
+          export SUPABASE_URL="${API_URL:-${SUPABASE_URL:-}}"
+          export SUPABASE_ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          export SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
+          export MASS_PAIRS="${{ github.event_name == 'workflow_dispatch' && inputs.pairs || '4' }}"
+          export MASS_CONCURRENCY="${{ github.event_name == 'workflow_dispatch' && inputs.concurrency || '4' }}"
+          export MASS_RUN_ID="gha-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node scripts/load/mass_marketplace_journey.mjs | tee /tmp/mass-marketplace.log
+          grep -F 'PASS MASS_MARKETPLACE_JOURNEY' /tmp/mass-marketplace.log
+
+      - name: Upload marketplace receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mass-marketplace-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/mass-user-chaos/mass-marketplace-report.json
+            /tmp/mass-marketplace.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop disposable database
+        if: always()
+        shell: bash
+        run: cd /tmp/uskoci-ru5-device-ui 2>/dev/null && supabase stop --no-backup || true
