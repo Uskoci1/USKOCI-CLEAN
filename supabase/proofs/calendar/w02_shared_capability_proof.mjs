@@ -27,8 +27,11 @@ const begin=name=>{stage=name;};
 const pass=()=>{report.checks.push({name:stage,result:'PASS'});console.log('PASS '+stage);};
 function linked(client,id){
   const state={user:{id},accountRevision:1},cache=new Map();
+  // Every runtime module of the actual client service is admitted by name and fingerprinted;
+  // owned capacity (72cdc8c, 2026-09-11) joined the service after the original list.
   const paths={'./workerProfileClientService':'src/data/workerProfileClientService.ts','./serverReceipt':'src/data/serverReceipt.ts',
-    '../lib/capabilityTerms':'src/lib/capabilityTerms.ts'};
+    '../lib/capabilityTerms':'src/lib/capabilityTerms.ts','../contracts/workerCapacity':'src/contracts/workerCapacity.ts',
+    './workerCapacityClientService':'src/data/workerCapacityClientService.ts'};
   function load(name){
     const path=paths[name];assert.ok(path,'UNEXPECTED_DEPENDENCY');if(cache.has(path))return cache.get(path).exports;
     const source=readFileSync(path,'utf8');report.input_sha256[path]=createHash('sha256').update(source).digest('hex');
