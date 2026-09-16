@@ -17,7 +17,8 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 | IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | PKG-013 |
 | BLOCKED | PKG-014 (needs PKG-013 + owner batch approval), PKG-018 (provider diagnosis + AF-D04) |
-| NOT_STARTED | PKG-011, 012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
+| IN_PROGRESS (read-only reconciliation delivered, no UI change yet) | PKG-011 |
+| NOT_STARTED | PKG-012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
 
 Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007, PKG-008, PKG-006 and PKG-010 are done; the next package is PKG-011.
 
@@ -109,8 +110,10 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 - Blocker: none for the package. Closure execution on DEV depends on PKG-014 (SQL 146 unapplied); the exact chain is also the re-baseline input for PKG-013. Next: PKG-011 per topology.
 
 ### PKG-011 — Coherent screens over the same engine
-- Implementation present: the V5 route inventory has 49 routes and UI modules for aiFirst, agreements, calendar, closure, groups, legal, location, media, needs, notifications, qa, reviews, safety, settings, support, workerProfile. The package itself (flow-by-flow parity, state owner extraction) is not started.
-- Current status: NOT_STARTED. Blocker: PKG-002..PKG-010.
+- Implementation present: 47 routes + 2 layouts + native-intent handler (49 surfaces) and UI modules for aiFirst, agreements, calendar, closure, groups, legal, location, media, needs, notifications, qa, reviews, safety, settings, support, workerProfile.
+- Read-only reconciliation, 2026-09-16 (owner-mandated pre-UI step, one agent, no subagents, V9 web prototype excluded as authority): `docs/implementation/execution/pkg011/` — `PKG011_FLOW_FIRST_RECONCILIATION_20260916.md` (user → ideal flow → current map → gaps, per flow), `CURRENT_SCREEN_BINDING_MASTER_20260916.md/.json` (49 surfaces: 39 CURRENT_COMPLETE, 5 CURRENT_BUT_UI_WEAK, 3 CURRENT_BUT_BINDING_INCOMPLETE because SQL 145–147 and the PKG-003/PKG-008 candidates are not live on DEV, 2 LEGACY), `CURRENT_NAVIGATION_MASTER_20260916.md` (shell/guards/graph; `/pregled-nacrta` and `/prijave` unreachable; center-zone canon conflict), `CURRENT_WRITE_AUTHORITY_MAP_20260916.md`, `CURRENT_READBACK_MAP_20260916.md`, `CURRENT_UI_STATE_GAP_MAP_20260916.md`, `V9_TO_NATIVE_SCREEN_MAPPING_20260916.md` (NOT_APPLICABLE), `PKG011_UI_REPLACEMENT_PLAN_20260916.md` (lists H/I/J, dependency-safe order, required proofs).
+- Owner decisions required before any production UI change: center zone semantics (canon `U / Novi` / `U / Zadaci` vs current shared `Mapa` tab, requester discovery inside Zadaci), implicit intent switches (`/prilike` `+`/`Moji`, inbox open), TARG-034 candidate comparison and TARG-050 public profile as new presentations, permissions primer (canon S05), retirement of `/pregled-nacrta` and the Google/Apple placeholders.
+- Current status: IN_PROGRESS (reconciliation only; no source, engine or UI change; no Ledger receipt — the contract allows only PACKAGE_RECEIPT, which follows the first verified UI candidate). Blocker: owner review of the five decisions; live binding of manual entry, photo cancellation, Q&A activation and closure execution waits for PKG-014.
 
 ### PKG-012 — Documentation, test simulation and legacy isolation
 - Gap: GAP-0012.
