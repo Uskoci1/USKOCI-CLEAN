@@ -80,6 +80,81 @@ end $outer$;
 Recording the source version rather than a generated one keeps live parity with the source tree and
 keeps `MIGRATION_PROVENANCE.json` and the PKG-013 admission manifest valid without a new alias.
 
+## 1b. Second read-only preflight: is `supabase migration repair` safe here? (2026-09-16)
+
+Owner refused a manual insert through the MCP channel and asked for proof, not guesses, on three points.
+
+### Q1. Does our release/proof/harness system depend on the remote `statements` column? NO.
+
+- Every `md5(statements[1])` assertion in the repository lives in a proof that first calls
+  `assertLocalDeviceProofTargets`, which hard-fails unless the API is `http://127.0.0.1:54321` and the
+  database is `postgresql://postgres@127.0.0.1:54322/postgres`. No proof can reach the remote ledger,
+  and each such assertion checks a row that the same proof inserted moments earlier.
+- No workflow or script runs `supabase db push`, `supabase migration list`, or links the project. Nothing
+  in CI reads the remote history table at all.
+- The authoritative identity contract is in `MIGRATION_PROVENANCE.json` → `checksum_contract`:
+  algorithm MD5, scope "raw physical migration file bytes", verified by `MD5_MANIFEST.txt`, with the
+  explicit note that live Supabase version aliases may point to a canonical source file. The three
+  pending files each carry `version`, `name`, `file`, `raw_md5` and `raw_sha256` in
+  `pending_forward_migrations`.
+- The same provenance already records a live reconciliation with `"exact_byte_mirror": false` whose
+  `"source"` is `live supabase_migrations.schema_migrations.statements`. Live statements that do not
+  mirror the file byte for byte are therefore an already-modelled state, not a contract violation.
+- PKG-013's admission manifest (`supabase/proofs/source147_admission.json`) is computed from source
+  files only.
+
+**Authoritative migration identity for us = version + name + source file bytes. Not remote `statements`.**
+
+### Q2. Structure of the remote rows
+
+| # | Column | Type | Null | Live content |
+| --- | --- | --- | --- | --- |
+| 1 | `version` | text | NOT NULL, primary key | 146 rows |
+| 2 | `statements` | text[] | nullable | non-null in all 146 rows, exactly one element each, 410 to 100965 chars |
+| 3 | `name` | text | nullable | non-null in all 146 rows |
+| 4 | `created_by` | text | nullable | unused |
+| 5 | `idempotency_key` | text | nullable | unused |
+| 6 | `rollback` | text[] | nullable | unused |
+
+### Q3. What `supabase migration repair --status applied 20260913080237` writes
+
+Proven by reading the CLI source at the version this repository pins (`supabase/setup-cli` version
+`2.116.0`, used by 26 workflows) and at the version available locally (`2.117.0`). The three relevant
+files, `internal/migration/repair/repair.go`, `pkg/migration/history.go` and `pkg/migration/file.go`,
+are byte-identical between the two tags, so the behaviour below holds for both.
+
+1. `UpdateMigrationTable` calls `CreateMigrationTable`, which is idempotent DDL:
+   `SET lock_timeout='4s'`, `CREATE SCHEMA IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`,
+   `ADD COLUMN IF NOT EXISTS statements`, `ADD COLUMN IF NOT EXISTS name`. All are no-ops here.
+2. For `--status applied` with an explicit version it calls `NewMigrationFromVersion`, which globs
+   `supabase/migrations/20260913080237_*.sql`, reads that file, and splits it with
+   `parser.SplitAndTrim`.
+3. It then queues exactly one statement:
+   `INSERT INTO supabase_migrations.schema_migrations(version, name, statements) VALUES($1,$2,$3)
+   ON CONFLICT (version) DO UPDATE SET name = EXCLUDED.name, statements = EXCLUDED.statements`.
+4. **It never executes the migration SQL.** There is no code path in `repair` that runs the file's
+   statements against the database; only the history upsert is sent.
+5. `name` becomes `clean_v5_self_reported_identity_requirement`, taken from the file name.
+
+Verdict against the owner's three conditions: registers 145 as APPLIED yes; re-executes the SQL no;
+breaks a proof or harness invariant no.
+
+One honest difference: because of `parser.SplitAndTrim`, `statements` will be a multi-element array of
+parsed statements rather than the single whole-file element the other 146 rows carry, and
+`md5(statements[1])` will therefore not equal the file md5 for this row. Nothing in our system reads
+that column remotely, and the provenance contract already tolerates a non-mirroring live statement
+record, so this is a fidelity note to record, not an invariant break. It will be written into the
+PKG-014 receipt and as a `live_source_reconciliation`-style entry with
+`exact_byte_mirror: false`, matching the existing precedent.
+
+### Execution blocker for the repair command
+
+`supabase migration repair` connects directly to Postgres. It accepts `--linked`, `--db-url`, or
+`--project-ref` together with `--password`. This worktree is not linked (`supabase/.temp` holds only
+`cli-latest`, there is no `project-ref` file), and no Supabase or Postgres credential exists in the
+environment. Obtaining or handling the database password is outside what this session may do, so the
+single command has to be run by the owner.
+
 ## 2..7 Not started
 
 Edge deployments, the admission entry, the stuck turn and the full postflight were not started. Per
