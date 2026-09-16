@@ -32,9 +32,19 @@ listed at the end (`scripts/ci/pkg012-source-authority.test.cjs`).
 
 ## Package state, one sentence
 
-DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013.
-BLOCKED: PKG-014 (needs the owner's authorization of the exact DEV batch, V19 gate CANONICAL_DEV_AUTHORIZATION_REQUIRED), PKG-018 (provider).
-PKG-012 created this map. NOT_STARTED: 015–017, 019–024. The Ledger, not this file, is authoritative.
+DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014.
+BLOCKED: PKG-018 (AF-D04 model availability; the wire half of its provider diagnosis is answered by PKG-014).
+PKG-012 created this map. The next package is PKG-015. NOT_STARTED: 015–017, 019–024. The Ledger, not this file, is authoritative.
+
+PKG-014 changed live canonical DEV/ALPHA `leqcwgzvjsxugfgzdmth` on 2026-09-16, so read it before
+touching that project: migration ledger 149 rows (147 source + 2 dev_alpha operational), Edge
+`uskoci-ai-interview` v36, `uskoci-worker-interview` v13 and `uskoci-account-closure-worker` v1,
+all byte-identical to the committed tree. The closure worker is deployed but inert by design: no
+enable flag, no cron, no executions. Two items carry over and neither blocks the next package. The
+AI test budget holds 4 750 000 of 5 000 000 microUSD reserved, so one provider call remains and
+raising the ceiling is an owner decision. One legacy turn of `uskocibusiness@gmail.com` stays
+`PROCESSING` as `LEGACY_OWNER_SESSION_BLOCKER`, because cancelling it needs that account's own
+session and impersonation was forbidden.
 
 ## Legacy inventory after reachability review (no deletion in PKG-012)
 

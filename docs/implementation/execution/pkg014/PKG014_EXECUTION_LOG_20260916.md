@@ -722,3 +722,83 @@ known. Raising the ceiling is an owner decision before the next acceptance run.
   one DRAFT Task.
 - Open: the shared AI test budget has one provider call left, and the legacy stuck turn of
   `uskocibusiness@gmail.com` stays LEGACY_OWNER_SESSION_BLOCKER.
+
+## 12. Closing postflight, receipt and verdict (2026-09-16)
+
+### The last unverified V19 clause: "with intended constrained scheduling"
+
+PKG-014's completion criterion asks for the missing worker deployed *with its intended constrained
+scheduling*, so deployment alone was not enough to close the package. The intended state is the
+closed one, and the live project matches it exactly.
+
+| Check | Live result |
+| --- | --- |
+| enable flag | `USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED` absent from the secret inventory, so every call returns `{kind:'DISABLED'}` |
+| scheduler | `cron.job` holds exactly one job, `uskoci_marketplace_tick`, running `private.marketplace_tick(25)`; nothing references the closure worker |
+| executions | `private.closure_executions_v5` has 0 rows |
+| authentication | service-role only; a user JWT is refused with `SERVICE_ROLE_REQUIRED` |
+
+This is what the source itself specifies: `CLOSURE_EXECUTOR.md` states the flag defaults to disabled,
+that only the exact string `true` admits worker RPCs, and that **no new cron is installed or
+activated**. Real activation stays closed because no approved numeric retention periods exist yet.
+Deploying the worker enabled nothing, which is the point.
+
+A related correction to the reconciliation: applying SQL 146 did *not* make account closure ready.
+`rpc_review_account_closure_execution` now exists on DEV, so the migration gap is closed, but
+`private.retention_policy_sets` holds 0 rows, so no `account_closure_execution` binding is published
+and closure still reports not ready. That is the approved-policy gap from `RETENTION_ACTIVATION_GAPS.md`,
+not a missing migration, and the two were previously conflated.
+
+### Provider truth, proven without reading a secret
+
+The owner asked which provider the deployed function really uses and whether the Gemini adapter is
+merely present in source. The secret inventory exposes a sha256 digest per secret but never a value,
+which is enough to settle it.
+
+| Secret | Digest equals | Conclusion |
+| --- | --- | --- |
+| `AI_PROVIDER` | sha256 of `gemini` | the deployed function really uses Gemini, not OpenAI |
+| `GEMINI_MODEL` | sha256 of `gemini-3.8-flash` | that is the active model |
+| `AI_TEST_BUDGET_REQUIRED` | sha256 of `true` | the budget gate is enforced |
+| `USKOCI_GEMINI_PAID_TEST_ENABLED` | sha256 of `true` | paid provider calls are admitted on this DEV project |
+
+The OpenAI secrets still exist but are never selected: both handlers refuse to dispatch unless
+`AI_PROVIDER` is `gemini` and the model is `gemini-3.8-flash`. The adapter is not just in source, it
+is what answered in both acceptance scenarios.
+
+### Deployed-byte readback, repeated at the end
+
+Rather than trust the deploy-time note, the deployed source was pulled back over the working tree
+with `supabase functions download` for all three functions. `git diff` came back empty, so the
+deployed bytes equal the committed bytes. One transcription error in an earlier section is corrected
+here: `uskoci-ai-interview/index.ts` is **40847** bytes, not 40772; its digest
+`dfe9fec706e9e0e6…` was right.
+
+### Gates on the candidate
+
+| Gate | Result |
+| --- | --- |
+| `npx tsc --noEmit` on `7288a77` | exit 0, no diagnostics |
+| `node --test supabase/proofs/ai/*.test.mjs` | 294 tests, 294 pass, 0 fail |
+| security sanity | 0 public tables without row level security |
+| unrelated domains | unchanged; only the recorded, attributed successor deltas appear |
+
+### Verdict
+
+**PKG-014 DONE_VERIFIED.** Receipt `PKG-014-RECEIPT-20260916-001`, evidence
+`evidence/PKG014_VERIFIED_20260916.json`, resolving GAP-0001, GAP-0002 and GAP-0019. All nine owner
+conditions are recorded with their result in the evidence artifact. The acceptance meets the owner's
+own PASS definition in full: real auth session, real user JWT and `auth.uid()`, real Gemini provider,
+real multi-turn conversation, real review, real confirmation, real canonical writers, real database
+readback.
+
+Four open observations, none of them blocking:
+
+1. The AI test budget holds 4 750 000 of 5 000 000 microUSD reserved and reservations are never
+   released, so one provider call remains. The ceiling is an owner decision.
+2. `LEGACY_OWNER_SESSION_BLOCKER`: one pre-existing turn of `uskocibusiness@gmail.com` stays
+   `PROCESSING`. Cancelling it needs that account's own session, so it was left exactly as found.
+3. No release-level PRE-P4 has run on this head; the next release gate should.
+4. Device and UX proof stays with the later device package, as the owner intended.
+
+Next per V19 topology: PKG-015, which was blocked only by PKG-014.
