@@ -778,15 +778,38 @@ here: `uskoci-ai-interview/index.ts` is **40847** bytes, not 40772; its digest
 
 | Gate | Result |
 | --- | --- |
-| `npx tsc --noEmit` on `7288a77` | exit 0, no diagnostics |
+| `npx tsc --noEmit` locally and in CI | exit 0, no diagnostics |
 | `node --test supabase/proofs/ai/*.test.mjs` | 294 tests, 294 pass, 0 fail |
+| full regression, release run 35151771679 | 225 suites, 4324 tests, 0 failing |
+| nine domain disposable proofs + W01 android | all green |
 | security sanity | 0 public tables without row level security |
 | unrelated domains | unchanged; only the recorded, attributed successor deltas appear |
 
+### The Ledger contract refused the first receipt, correctly
+
+The first attempt at this receipt recorded `ci` as not applicable, on the reasoning that a
+live-execution package proves itself by live readback. `scripts/ci/execution-ledger.test.cjs`
+rejected it: the universal exact-candidate rule requires every DONE_VERIFIED receipt to name a CI
+run whose conclusion is success and whose tested candidate and tree equal the receipt's own. The
+contract was not weakened to fit the package. The documentation was committed, pushed, and
+release-level PRE-P4 was dispatched on that exact head instead.
+
+That run, 35151771679, needed a second attempt. Attempt 1 failed only in
+`domain-w02 / calendar-authority-proof`, and the failure was inside the migration replay rather than
+any check: the proof report lacked `history_after` and its error type was `CLIENT_OR_RPC`, which is
+the `psql` call in `applyPendingSuccessors`, not an assertion. Not one input of that proof changed
+between the previously green run 35124126819 on `cffd03d` and this candidate. The migrations, the
+whole `supabase/proofs/calendar` directory, the shared replay helper, the source admission manifest,
+the five client modules it loads and its own workflow are byte-identical. Attempt 2 passed on those
+identical inputs with `history_before` 105, `history_after` 147, 42 migrations applied and all seven
+checks green. The failure was environmental, and it is recorded here rather than buried, because a
+rerun that is not explained is indistinguishable from one that hides a flaky proof.
+
 ### Verdict
 
-**PKG-014 DONE_VERIFIED.** Receipt `PKG-014-RECEIPT-20260916-001`, evidence
-`evidence/PKG014_VERIFIED_20260916.json`, resolving GAP-0001, GAP-0002 and GAP-0019. All nine owner
+**PKG-014 DONE_VERIFIED** on candidate `7d897f7`. Receipt `PKG-014-RECEIPT-20260916-001`, evidence
+`evidence/PKG014_VERIFIED_20260916.json`, release-level PRE-P4 run 35151771679 bound to that exact
+candidate, resolving GAP-0001, GAP-0002 and GAP-0019. All nine owner
 conditions are recorded with their result in the evidence artifact. The acceptance meets the owner's
 own PASS definition in full: real auth session, real user JWT and `auth.uid()`, real Gemini provider,
 real multi-turn conversation, real review, real confirmation, real canonical writers, real database
@@ -798,7 +821,7 @@ Four open observations, none of them blocking:
    released, so one provider call remains. The ceiling is an owner decision.
 2. `LEGACY_OWNER_SESSION_BLOCKER`: one pre-existing turn of `uskocibusiness@gmail.com` stays
    `PROCESSING`. Cancelling it needs that account's own session, so it was left exactly as found.
-3. No release-level PRE-P4 has run on this head; the next release gate should.
-4. Device and UX proof stays with the later device package, as the owner intended.
+3. Device and UX proof stays with the later device package, as the owner intended.
+4. Release run 35151771679 needed a second attempt for the environmental W02 failure described above.
 
 Next per V19 topology: PKG-015, which was blocked only by PKG-014.

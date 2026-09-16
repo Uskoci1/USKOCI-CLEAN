@@ -36,7 +36,8 @@ DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010
 BLOCKED: PKG-018 (AF-D04 model availability; the wire half of its provider diagnosis is answered by PKG-014).
 PKG-012 created this map. The next package is PKG-015. NOT_STARTED: 015–017, 019–024. The Ledger, not this file, is authoritative.
 
-PKG-014 changed live canonical DEV/ALPHA `leqcwgzvjsxugfgzdmth` on 2026-09-16, so read it before
+PKG-014 is verified on `7d897f7` with release-level PRE-P4 run 35151771679 bound to that exact candidate.
+It changed live canonical DEV/ALPHA `leqcwgzvjsxugfgzdmth` on 2026-09-16, so read it before
 touching that project: migration ledger 149 rows (147 source + 2 dev_alpha operational), Edge
 `uskoci-ai-interview` v36, `uskoci-worker-interview` v13 and `uskoci-account-closure-worker` v1,
 all byte-identical to the committed tree. The closure worker is deployed but inert by design: no
