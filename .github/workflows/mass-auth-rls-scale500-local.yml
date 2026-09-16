@@ -1,0 +1,90 @@
+name: Mass Auth RLS scale500 (disposable local)
+
+on:
+  push:
+    branches:
+      - 'test/mass-user-chaos-harness-*'
+    paths:
+      - '.github/workflows/mass-auth-rls-scale500-local.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scale500:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      MASS_OUT: /tmp/mass-user-chaos
+      MASS_USERS: '500'
+      MASS_CONCURRENCY: '50'
+      MASS_READS_PER_USER: '3'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Reconstruct disposable historical live79
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+      - name: Replay aliases and source to 147
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,subprocess,sys
+          root=os.environ['GITHUB_WORKSPACE'];db=os.environ['DB_URL'];p=json.load(open(f'{root}/supabase/migrations/MIGRATION_PROVENANCE.json'))
+          def one(s):return subprocess.run(['psql',db,'-X','-Atc',s],text=True,capture_output=True,check=True).stdout.strip()
+          def raw(s):
+            r=subprocess.run(['psql',db,'-X','-q','-v','ON_ERROR_STOP=1'],input=s,text=True,capture_output=True)
+            if r.returncode:print(r.stdout[-3000:]);print(r.stderr[-3000:],file=sys.stderr);sys.exit(1)
+          def apply(f,v,n):
+            path=f'{root}/supabase/migrations/{f}';r=subprocess.run(['psql',db,'-X','-q','-v','ON_ERROR_STOP=1','-f',path],text=True,capture_output=True)
+            if r.returncode:print(r.stdout[-3000:]);print(r.stderr[-3000:],file=sys.stderr);sys.exit(1)
+            body=open(path,encoding='utf-8',newline='').read();tag='$scale500$';assert tag not in body
+            raw(f"insert into supabase_migrations.schema_migrations(version,name,statements) values ('{v}','{n}',array[{tag}{body}{tag}]);")
+          assert one('select max(version) from supabase_migrations.schema_migrations')=='20260906141409'
+          es=[e for e in p['live_history_snapshot']['entries'] if e['version']>'20260906141409'];assert len(es)==8
+          for e in es:apply(e.get('file') or f"{e['version']}_{e['name']}.sql",e['version'],e['name'])
+          for m in p['pending_forward_migrations']:apply(m['file'],m['version'],m['name'])
+          raw("notify pgrst, 'reload schema';")
+          assert one("select count(*)::text||'/'||max(version) from supabase_migrations.schema_migrations")=='147/20260913081242'
+          PY
+      - name: Run 500-user Auth/RLS pressure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/uskoci-ru5-device-ui
+          eval "$(supabase status -o env)"
+          cd "$GITHUB_WORKSPACE"
+          export SUPABASE_URL="${API_URL:-${SUPABASE_URL:-}}"
+          export SUPABASE_ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          export SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
+          export MASS_RUN_ID="gha-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$MASS_OUT"
+          node scripts/load/mass_auth_rls_local.mjs | tee /tmp/mass-auth-rls-scale500.log
+          grep -F 'PASS MASS_AUTH_RLS_LOCAL users=500' /tmp/mass-auth-rls-scale500.log
+      - name: Upload receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mass-auth-rls-scale500-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/mass-user-chaos/mass-auth-rls-report.json
+            /tmp/mass-auth-rls-scale500.log
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Stop disposable database
+        if: always()
+        run: cd /tmp/uskoci-ru5-device-ui 2>/dev/null && supabase stop --no-backup || true
