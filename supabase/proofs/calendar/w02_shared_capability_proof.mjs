@@ -159,7 +159,9 @@ try{
   for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_function_privilege(${q(role)},'private.guard_profile_write()','EXECUTE')`),'f');
   for(const [table,digest] of Object.entries(before))assert.equal(hash(table),digest);
   report.calendar_and_snapshots_unchanged=true;pass();report.result='PASS';
-}catch(error){report.result='FAIL';report.failed_stage=stage;report.error_type=error?.code==='ERR_ASSERTION'?'ASSERTION':error?.message==='ISOLATED_SQL_FAILED'?'LOCAL_SQL':'CLIENT_OR_RPC';}
+}catch(error){report.result='FAIL';report.failed_stage=stage;report.error_type=error?.code==='ERR_ASSERTION'?'ASSERTION':error?.message==='ISOLATED_SQL_FAILED'?'LOCAL_SQL':'CLIENT_OR_RPC';
+  // Assertion text only (synthetic fixtures, no credentials); raw SQL/client errors stay out.
+  if(error?.code==='ERR_ASSERTION')report.failure=String(error.message).slice(0,400);}
 finally{
   for(const client of [worker,other])await client.auth.stopAutoRefresh();
   writeFileSync(out+'/shared-capability-proof-report.json',JSON.stringify(report,null,2)+'\n');
