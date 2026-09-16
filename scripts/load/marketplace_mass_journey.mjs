@@ -270,7 +270,7 @@ function invariantScan(rows) {
     'overfilledNeeds', (select count(*) from public.needs where id in (${ids}) and covered_slots > required_slots),
     'messages', (select count(*) from public.agreement_messages where agreement_id in (${agreementIds})),
     'completed', (select count(*) from public.agreements where id in (${agreementIds}) and status='COMPLETED'),
-    'reviews', (select count(*) from public.agreement_reviews where agreement_id in (${agreementIds}))
+    'reviews', (select count(*) from private.agreement_reviews where agreement_id in (${agreementIds}))
   )::text;`);
   const inv = JSON.parse(raw);
   report.invariants = inv;
