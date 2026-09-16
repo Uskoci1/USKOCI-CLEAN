@@ -70,7 +70,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Full history: bounded_hygiene_proof.mjs and the source-boundary proofs diff
+          # the candidate against historical commits (e.g. 06d51ec), which a shallow
+          # checkout does not contain.
+          fetch-depth: 0
 
       - name: Bind exact candidate
         shell: bash
