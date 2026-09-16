@@ -13,7 +13,7 @@ import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { aiFirst as a } from '../aiFirst/tokens';
+import { sys } from '../system/tokens';
 import { AgreementActionsController, type AgreementActionsState } from './AgreementActionsController';
 import { journalFor, normalizeAgreementCommand, validProposal, type AgreementActionCommand } from './agreementActionsModel';
 
@@ -174,9 +174,12 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     </ScrollView>
   </KeyboardAvoidingView></SafeAreaView>;
 }
-const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: a.color.surface }, header: { padding: 14, gap: 12, flexDirection: 'row', alignItems: 'center' },
-  content: { padding: 20, paddingBottom: 32, gap: 24 }, heading: { color: a.color.ink, fontSize: 18, lineHeight: 25, fontWeight: '600', flexShrink: 1 },
-  copy: { color: a.color.muted, fontSize: 15, lineHeight: 23 }, label: { color: a.color.ink, fontSize: 14, lineHeight: 21 },
-  error: { color: a.color.danger, fontSize: 15, lineHeight: 23 }, group: { gap: 10, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: a.color.line },
-  form: { gap: 14 }, field: { gap: 7 }, input: { minHeight: 50, borderWidth: 1, borderColor: a.color.line, borderRadius: 12, padding: 12,
-    color: a.color.ink, fontSize: 16, lineHeight: 24 }, multiline: { minHeight: 100, textAlignVertical: 'top' } });
+/** PKG-011: same controller, journal and copies; cards, ground and type on the shared system. */
+const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: sys.color.ground }, header: { paddingHorizontal: 12, paddingVertical: 8, gap: 4, flexDirection: 'row', alignItems: 'center' },
+  content: { padding: 20, paddingBottom: 32, gap: 16 }, heading: { ...sys.type.heading, color: sys.color.ink, flexShrink: 1 },
+  copy: { ...sys.type.body, fontSize: 15, lineHeight: 22, color: sys.color.muted }, label: { ...sys.type.meta, color: sys.color.ink },
+  error: { ...sys.type.body, fontSize: 15, lineHeight: 22, color: sys.color.danger },
+  group: { gap: 8, padding: 16, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  form: { gap: 12, padding: 16, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface }, field: { gap: 6 },
+  input: { minHeight: 50, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, padding: 12, backgroundColor: sys.color.surface,
+    ...sys.type.body, color: sys.color.ink }, multiline: { minHeight: 100, textAlignVertical: 'top' } });

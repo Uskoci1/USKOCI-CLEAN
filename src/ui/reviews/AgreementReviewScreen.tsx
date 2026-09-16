@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, ScrollView, View } from 'react-native';
+import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Star } from 'phosphor-react-native';
@@ -8,20 +8,19 @@ import { failure } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { Press } from '../Press';
+import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { V2Icon } from '../v2/icons';
-import { v2 } from '../v2/tokens';
 
 const tagLabels: Record<ReviewTag, string> = {
   AS_AGREED: 'Po dogovoru', CAREFUL: 'Pažljivo', CLEAR_COMMUNICATION: 'Jasna komunikacija',
   ON_TIME: 'Na vreme', RELIABLE: 'Pouzdano', RESPECTFUL: 'Uz poštovanje',
 };
 const ratingLabels = ['Izaberite ocenu', 'Loše', 'Ispod očekivanja', 'Dobro', 'Vrlo dobro', 'Odlično'];
-const body = { ...v2.text.body, color: v2.color.ink };
-const meta = { ...v2.text.label, color: v2.color.muted };
 export function backFromReview() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
 
+/** One rating, up to N tags, one save. The saved receipt is final and shown as such. */
 export function AgreementReviewScreen({ agreementId, accountId, accountRevision }: {
   agreementId: string; accountId: string; accountRevision: number;
 }) {
@@ -69,70 +68,86 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
       return checked;
     });
   };
-  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 }}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad" onPress={backFromReview}
-        style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}><V2Icon name="back" /></Press>
-      <T accessibilityRole="header" style={{ ...v2.text.title, color: v2.color.ink }}>Ocena saradnje</T>
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    <View style={s.topBar}>
+      <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={backFromReview} style={s.back}><V2Icon name="back" /></Press>
+      <T accessibilityRole="header" variant="title" style={s.ink}>Ocena saradnje</T>
     </View>
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 24, flexGrow: 1 }}>
-      {workspace.loading || !foreground || resumeRequired ? <ActivityIndicator accessibilityLabel="Učitavanje ocene" color={v2.color.teal} />
-        : receipt ? <View style={{ gap: 20 }}>
-          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: v2.color.warm, alignItems: 'center', justifyContent: 'center' }}>
-            <Star size={32} weight="fill" color={v2.color.orange} />
-          </View>
-          <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>Ocena je sačuvana</T>
-          <T style={body}>Vaša ocena: {receipt.rating} od 5</T>
-          {receipt.tags.length ? <T style={body}>{receipt.tags.map(tag => tagLabels[tag]).join(' · ')}</T> : null}
-          <T style={meta}>Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja.</T>
-          <V2Action label="Nazad na Dogovor" kind="primary" onPress={backFromReview} />
+    <ScrollView contentContainerStyle={s.content}>
+      {workspace.loading || !foreground || resumeRequired ? <ActivityIndicator accessibilityLabel="Učitavanje ocene" color={sys.color.green} />
+        : receipt ? <View style={s.card}>
+          <View style={s.badge}><Star size={32} weight="fill" color={sys.color.orange} /></View>
+          <T accessibilityRole="header" variant="title" style={s.ink}>Ocena je sačuvana</T>
+          <T variant="body" style={s.ink}>Vaša ocena: {receipt.rating} od 5</T>
+          {receipt.tags.length ? <View style={s.tags}>{receipt.tags.map(tag => <View key={tag} style={[s.tag, s.tagSelected]}><T variant="meta" style={s.tagTextSelected}>{tagLabels[tag]}</T></View>)}</View> : null}
+          <T variant="meta" tone="muted">Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja.</T>
+          <V2Action label="Nazad na Dogovor" onPress={backFromReview} style={brandAction} />
         </View> : context?.eligible ? <>
-          <View style={{ gap: 12 }}>
-            <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>Kako je prošla saradnja?</T>
-            <T style={body}>Ocenite drugu stranu završenog Dogovora.</T>
+          <View style={s.intro}>
+            <T accessibilityRole="header" variant="display" style={s.ink}>Kako je prošla saradnja?</T>
+            <T variant="body" tone="muted">Ocenite drugu stranu završenog Dogovora.</T>
           </View>
-          <View style={{ gap: 12, alignItems: 'center', paddingVertical: 12 }}>
-            <View accessibilityRole="radiogroup" accessibilityLabel="Ocena od 1 do 5" style={{ flexDirection: 'row', gap: 8 }}>
-              {[1, 2, 3, 4, 5].map(value => <Press key={value} accessibilityRole="radio" accessibilityLabel={`Ocena ${value} od 5`}
-                accessibilityState={{ checked: rating === value, disabled: !editable }} disabled={!editable} haptic="select"
-                onPress={() => { if (editable && current() && !attemptRef.current) setRating(value); }}
-                style={{ width: 44, height: 52, alignItems: 'center', justifyContent: 'center' }}>
-                <Star size={36} weight={value <= rating ? 'fill' : 'regular'} color={value <= rating ? v2.color.orange : v2.color.controlLine} />
-              </Press>)}
+          <View style={s.card}>
+            <View style={s.stars}>
+              <View accessibilityRole="radiogroup" accessibilityLabel="Ocena od 1 do 5" style={s.starRow}>
+                {[1, 2, 3, 4, 5].map(value => <Press key={value} accessibilityRole="radio" accessibilityLabel={`Ocena ${value} od 5`}
+                  accessibilityState={{ checked: rating === value, disabled: !editable }} disabled={!editable} haptic="select"
+                  onPress={() => { if (editable && current() && !attemptRef.current) setRating(value); }} style={s.star}>
+                  <Star size={38} weight={value <= rating ? 'fill' : 'regular'} color={value <= rating ? sys.color.orange : sys.color.lineStrong} />
+                </Press>)}
+              </View>
+              <T accessibilityLiveRegion="polite" variant="bodyStrong" style={s.ink}>{ratingLabels[rating]}</T>
             </View>
-            <T accessibilityLiveRegion="polite" style={{ ...body, fontWeight: '700' }}>{ratingLabels[rating]}</T>
-          </View>
-          <View style={{ gap: 12 }}>
-            <T style={{ ...body, fontWeight: '700' }}>Šta je obeležilo saradnju?</T>
-            <T style={meta}>Opciono · najviše {context.tagCatalog.maxTags} oznake</T>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={s.divider} />
+            <T variant="bodyStrong" style={s.ink}>Šta je obeležilo saradnju?</T>
+            <T variant="meta" tone="muted">Opciono · najviše {context.tagCatalog.maxTags} oznake</T>
+            <View style={s.tags}>
               {context.tagCatalog.tags.map(tag => {
                 const selected = tags.includes(tag), disabled = !editable || (!selected && tags.length >= context.tagCatalog.maxTags);
                 return <Press key={tag} accessibilityRole="checkbox" accessibilityLabel={tagLabels[tag]}
                   accessibilityState={{ checked: selected, disabled }} disabled={disabled} haptic="select"
                   onPress={() => { if (!disabled && current() && !attemptRef.current) setTags(values => values.includes(tag)
                     ? values.filter(value => value !== tag) : values.length < context.tagCatalog.maxTags ? [...values, tag] : values); }}
-                  style={{ minHeight: 44, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 22, borderWidth: 1,
-                    borderColor: selected ? v2.color.teal : v2.color.line, backgroundColor: selected ? v2.color.soft : v2.color.surface, opacity: disabled && !selected ? 0.5 : 1 }}>
-                  <T style={{ ...meta, color: selected ? v2.color.teal : v2.color.ink, fontWeight: selected ? '700' : '400' }}>{tagLabels[tag]}</T>
+                  style={[s.tag, selected && s.tagSelected, disabled && !selected && s.tagDisabled]}>
+                  <T variant="meta" style={selected ? s.tagTextSelected : s.tagText}>{tagLabels[tag]}</T>
                 </Press>;
               })}
             </View>
           </View>
-          {attempt ? <T style={meta}>Čuvamo vaš prvobitni izbor dok proveravate ishod slanja.</T> : null}
-          <View style={{ flex: 1 }} />
-          <V2Action label={workspace.busy ? 'Čuvamo ocenu…' : attempt ? 'Ponovi istu ocenu' : 'Sačuvaj ocenu'} kind="primary"
-            disabled={!enabled || rating < 1} onPress={submit} style={{ backgroundColor: v2.color.orange }} />
-        </> : context ? <View style={{ gap: 12 }}>
-          <T style={{ ...v2.text.title, color: v2.color.ink }}>Ocena još nije dostupna</T>
-          <T style={body}>Možete oceniti drugu stranu kada Dogovor bude završen.</T>
+          {attempt ? <T variant="meta" tone="muted">Čuvamo vaš prvobitni izbor dok proveravate ishod slanja.</T> : null}
+          <View style={s.grow} />
+          <V2Action label={workspace.busy ? 'Čuvamo ocenu…' : attempt ? 'Ponovi istu ocenu' : 'Sačuvaj ocenu'}
+            disabled={!enabled || rating < 1} onPress={submit} style={brandAction} />
+        </> : context ? <View style={s.card}>
+          <T variant="title" style={s.ink}>Ocena još nije dostupna</T>
+          <T variant="body" tone="muted">Možete oceniti drugu stranu kada Dogovor bude završen.</T>
           <V2Action label="Nazad na Dogovor" onPress={backFromReview} />
         </View> : null}
-      {workspace.error ? <View style={{ gap: 12 }}>
-        <T accessibilityRole="alert" style={{ ...body, color: v2.color.danger }}>{workspace.error}</T>
+      {workspace.error ? <View style={s.errorBlock}>
+        <T accessibilityRole="alert" variant="body" style={s.danger}>{workspace.error}</T>
         <V2Action label={attempt ? 'Proveri sačuvanu ocenu' : 'Ponovo učitaj ocenu'} disabled={workspace.busy || !foreground}
           onPress={() => { if (current()) void workspace.refresh(); }} />
       </View> : null}
     </ScrollView>
   </SafeAreaView>;
 }
+
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.ground },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  back: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 22 },
+  ink: { color: sys.color.ink }, danger: { color: sys.color.danger }, grow: { flex: 1 },
+  content: { padding: 20, gap: 16, flexGrow: 1 },
+  intro: { gap: 8, paddingHorizontal: 2 },
+  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 12 },
+  badge: { width: 64, height: 64, borderRadius: 32, backgroundColor: sys.color.orangeSoft, alignItems: 'center', justifyContent: 'center' },
+  stars: { gap: 10, alignItems: 'center', paddingVertical: 6 },
+  starRow: { flexDirection: 'row', gap: 6 },
+  star: { width: 48, height: 52, alignItems: 'center', justifyContent: 'center' },
+  divider: { height: 1, backgroundColor: sys.color.line, marginVertical: 4 },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 22, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
+  tagSelected: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft }, tagDisabled: { opacity: 0.5 },
+  tagText: { color: sys.color.ink }, tagTextSelected: { color: sys.color.green, fontWeight: '700' },
+  errorBlock: { gap: 12 },
+});

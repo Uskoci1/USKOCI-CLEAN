@@ -7,7 +7,7 @@ import { useSesija,sesijaSada } from '../../store/sesija';
 import { useUloga,ulogaSada } from '../../store/uloga';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { aiFirst as a } from '../aiFirst/tokens';
+import { sys } from '../system/tokens';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { AgreementLocationController,initialLocationState } from './AgreementLocationController';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS');
@@ -58,6 +58,8 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
     {ready||state.phase==='ERROR'?<V2Action label="Osveži prikaz" kind="quiet" onPress={()=>run('refresh')}/>:null}
   </ScrollView></SafeAreaView>;
 }
-const s=StyleSheet.create({screen:{flex:1,backgroundColor:a.color.surface},content:{padding:20,paddingBottom:40,gap:22},
-  title:{fontSize:28,lineHeight:35,fontWeight:'600',color:a.color.ink},heading:{fontSize:18,lineHeight:26,fontWeight:'600',color:a.color.ink},
-  copy:{fontSize:16,lineHeight:25,color:a.color.muted},group:{gap:14}});
+/** PKG-011: same controller and copies; ground, cards and type on the shared system. */
+const s=StyleSheet.create({screen:{flex:1,backgroundColor:sys.color.ground},content:{padding:20,paddingBottom:40,gap:16},
+  title:{...sys.type.display,fontSize:26,lineHeight:31,color:sys.color.ink},heading:{...sys.type.heading,color:sys.color.ink},
+  copy:{...sys.type.body,color:sys.color.muted},
+  group:{gap:12,padding:16,borderRadius:sys.radius.card,borderWidth:1,borderColor:sys.color.line,backgroundColor:sys.color.surface}});

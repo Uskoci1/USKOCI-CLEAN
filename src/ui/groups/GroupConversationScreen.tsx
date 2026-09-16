@@ -10,7 +10,7 @@ import { GroupConversationController,initialGroupState } from './GroupConversati
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { aiFirst as a } from '../aiFirst/tokens';
+import { sys } from '../system/tokens';
 import { SupportContextEntry } from '../support/SupportContextEntry';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const status=(value:string)=>({CONFIRMED:'Važeći Dogovor',AWAITING_REQUESTER:'Čeka potvrdu završetka',COMPLETED:'Završen',CANCELLED:'Otkazan'}[value]??'Dogovor');
@@ -74,7 +74,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
     {(ready&&group?.canSend)||retry?<View style={s.composer}>
      <T style={s.heading}>{retry?'Prvobitna poruka':'Poruka grupi'}</T>
      <TextInput accessibilityLabel={retry?'Unesite prvobitnu poruku':'Poruka grupi'} multiline value={draft} onChangeText={change} style={s.input}
-      placeholder="Dogovorite zajedničke korake…" placeholderTextColor={a.color.muted} maxLength={4000}/>
+      placeholder="Dogovorite zajedničke korake…" placeholderTextColor={sys.color.muted} maxLength={4000}/>
      <T style={s.meta}>{Array.from(normalizeGroupBody(draft)).length} / 2.000 znakova</T>
      <V2Action label={retry?'Ponovi slanje iste poruke':'Pošalji poruku grupi'} kind="primary" disabled={!groupBody(normalizeGroupBody(draft))}
       onPress={()=>{if(current()){if(retry)void controller?.retry(input.current);else void controller?.send(input.current);}}}/>
@@ -86,9 +86,12 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
    </View>}/>
  </KeyboardAvoidingView></SafeAreaView>;
 }
-const s=StyleSheet.create({screen:{flex:1,backgroundColor:a.color.surface},content:{padding:20,paddingBottom:28,gap:16},stack:{gap:12},title:{...a.text.title,fontSize:28,lineHeight:36,color:a.color.ink},
- heading:{...a.text.card,fontSize:18,lineHeight:25,color:a.color.ink},copy:{...a.text.body,color:a.color.ink},meta:{...a.text.meta,color:a.color.muted},
- bubble:{padding:16,borderRadius:20,gap:7,maxWidth:'94%'},mine:{alignSelf:'flex-end',backgroundColor:a.color.wash},peer:{alignSelf:'flex-start',backgroundColor:a.color.warm},
- composer:{borderRadius:20,borderWidth:1,borderColor:a.color.line,padding:16,gap:12},input:{fontSize:16,lineHeight:24,color:a.color.ink,minHeight:90,textAlignVertical:'top',padding:10,borderWidth:1,borderColor:a.color.line,borderRadius:12},
- member:{flexDirection:'row',alignItems:'center',gap:12},memberText:{flex:1},avatar:{height:44,width:44,borderRadius:22,overflow:'hidden',alignItems:'center',justifyContent:'center',backgroundColor:a.color.wash},initial:{fontSize:20,color:a.color.green},
- privatePanel:{backgroundColor:a.color.wash,padding:16,borderRadius:20,gap:16}});
+/** PKG-011: same controller, viewability and copies; bubbles, cards and type on the shared system. */
+const s=StyleSheet.create({screen:{flex:1,backgroundColor:sys.color.ground},content:{padding:20,paddingBottom:28,gap:12},stack:{gap:12},title:{...sys.type.display,fontSize:26,lineHeight:31,color:sys.color.ink},
+ heading:{...sys.type.heading,color:sys.color.ink},copy:{...sys.type.body,color:sys.color.ink},meta:{...sys.type.meta,color:sys.color.muted},
+ bubble:{padding:12,borderRadius:sys.radius.card,gap:4,maxWidth:'88%'},mine:{alignSelf:'flex-end',backgroundColor:sys.color.greenSoft,borderBottomRightRadius:6},
+ peer:{alignSelf:'flex-start',backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.line,borderBottomLeftRadius:6},
+ composer:{borderRadius:sys.radius.card,borderWidth:1,borderColor:sys.color.line,backgroundColor:sys.color.surface,padding:16,gap:10},
+ input:{...sys.type.body,color:sys.color.ink,minHeight:90,textAlignVertical:'top',padding:12,borderWidth:1,borderColor:sys.color.lineStrong,borderRadius:sys.radius.control},
+ member:{flexDirection:'row',alignItems:'center',gap:12},memberText:{flex:1},avatar:{height:44,width:44,borderRadius:22,overflow:'hidden',alignItems:'center',justifyContent:'center',backgroundColor:sys.color.greenSoft},initial:{fontSize:20,color:sys.color.green},
+ privatePanel:{backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.line,padding:16,borderRadius:sys.radius.card,gap:14}});

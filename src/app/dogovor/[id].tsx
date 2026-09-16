@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, ScrollView, Platform, ActivityIndicator, KeyboardAvoidingView, TextInput, AppState } from 'react-native';
+import { View, ScrollView, Platform, KeyboardAvoidingView, TextInput, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
 import { T } from '../../ui/Text';
-import { Press } from '../../ui/Press';
-import { v2 } from '../../ui/v2/tokens';
-import { V2Icon } from '../../ui/v2/icons';
+import { sys } from '../../ui/system/tokens';
+import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, WorkspaceTopBar, stateTone } from '../../ui/agreements/AgreementWorkspace';
 import { useIzvor, useUloga, ulogaSada } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
@@ -25,8 +25,6 @@ import { agreementProblemService, type AgreementProblemSnapshot } from '../../da
 import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
 
-const bodyStyle = { ...v2.text.body, color: v2.color.ink };
-const metaStyle = { ...v2.text.label, color: v2.color.muted };
 type ProblemWorkspace = DogovorProjekcija & {
   problemReport: AgreementProblemSnapshot['report'];
   problemReportState: AgreementProblemSnapshot['state'] | 'UNAVAILABLE';
@@ -42,13 +40,12 @@ async function bounded<T>(operation: () => Promise<T>): Promise<T> {
 }
 function backToAgreements() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
 function AgreementStatus({ loading = false, error = false, retry }: { loading?: boolean; error?: boolean; retry?: () => void }) {
-  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
-    <Press accessibilityRole="button" accessibilityLabel="Nazad" onPress={backToAgreements}
-      style={{ minHeight: 44, padding: 18, justifyContent: 'center' }}><V2Icon name="back" /></Press>
-    <View style={{ padding: 24, gap: 18 }}>
-      {loading ? <ActivityIndicator accessibilityLabel="Učitavanje Dogovora" color={v2.color.teal} /> : <>
-        <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
-        <T style={bodyStyle}>{error ? 'Proverite internet vezu i pokušajte ponovo.' : 'Veza je zastarela ili nemate pristup ovom Dogovoru.'}</T>
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    <WorkspaceTopBar eyebrow={loading ? 'Učitavamo' : error ? 'Nije učitano' : 'Nije dostupno'} title="Dogovor" onBack={backToAgreements} />
+    <View style={s.status} accessibilityLiveRegion="polite">
+      {loading ? <><SkeletonCard rows={2} /><T accessibilityLabel="Učitavanje Dogovora" variant="meta" tone="muted" style={s.center}>Učitavamo Dogovor…</T></> : <>
+        <T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
+        <T variant="body" tone="muted">{error ? 'Proverite internet vezu i pokušajte ponovo.' : 'Veza je zastarela ili nemate pristup ovom Dogovoru.'}</T>
         {retry ? <V2Action label="Ponovo učitaj Dogovor" onPress={retry} /> : null}
       </>}
     </View>
@@ -203,36 +200,93 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     });
   };
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
-  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
+
+  // ---- presentation (state above is untouched by PKG-011) ----
+  const tone = stateTone(dogovor.stanje);
+  const openMessages = () => setTab('poruke');
+  const completeLabel = workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak';
+  const review = () => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
+  // One brand action per state: completion when the server allows it, the review after
+  // completion, otherwise the conversation. "Otvori poruke" stays one tap away in every case.
+  const brand = canComplete ? { label: completeLabel, disabled: !enabled, onPress: () => { void complete(); } }
+    : dogovor.stanje === 'COMPLETED' && me ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
+      : { label: 'Otvori poruke', onPress: openMessages };
+  const secondary = brand.label === 'Otvori poruke' ? null : { label: 'Otvori poruke', onPress: openMessages };
+  const nextStep = dogovor.stanje === 'COMPLETED' ? { tone: 'green' as const, title: 'Dogovor je završen', body: me ? 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' : null }
+    : dogovor.stanje === 'CANCELLED' ? { tone: 'muted' as const, title: 'Dogovor je otkazan.', body: null }
+      : dogovor.stanje === 'AWAITING_REQUESTER' ? { tone: 'warn' as const, title: worker ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio',
+        body: dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` }
+        : { tone: 'green' as const, title: worker ? 'Kada završite, označite završetak' : 'Potvrdite završetak kada je posao obavljen',
+          body: !me ? null : worker ? 'Kada završite, označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
+            : 'Završetak možete potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.' };
+  const problemPanel = report ? <WorkspaceCard tone="warn">
+    <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
+    <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijavili ste vi.' : 'Prijavila je druga strana.'}</T>
+    <T variant="meta" tone="muted">{new Date(report.openedAt).toLocaleString('sr-Latn-RS')}</T>
+    <T variant="body" style={s.ink}>{report.narrative}</T>
+    <T variant="meta" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
+    {problemAttempt && problemAttempt !== report.narrative ? <T variant="meta" tone="muted">Sačuvan je prvi opis prijave. Vaš novi opis nije dodat. Za dopunu koristite Poruke.</T> : null}
+    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
+  </WorkspaceCard> : dogovor.problemOtvoren ? <WorkspaceCard tone="warn">
+    <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
+    <T variant="meta" tone="muted">{dogovor.problemReportState === 'LEGACY_UNAVAILABLE'
+      ? 'Detalji starije prijave nisu dostupni u ovom prikazu. Postojeća prijava ostaje sačuvana.'
+      : 'Detalji prijave trenutno nisu učitani. Osvežite status Dogovora da pokušate ponovo.'}</T>
+    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
+    {dogovor.problemReportState === 'UNAVAILABLE' ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} /> : null}
+  </WorkspaceCard> : active && me ? <WorkspaceCard>
+    {!problemOpen ? <>
+      <T variant="bodyStrong" style={s.ink}>Nešto nije u redu?</T>
+      <T variant="meta" tone="muted">Prijava problema zaustavlja automatski završetak i vidi je druga strana.</T>
+      <V2Action label="Prijavi problem" kind="quiet" disabled={!enabled} onPress={() => { if (formCurrent()) setProblemOpen(true); }} />
+    </> : <>
+      <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem u Dogovoru</T>
+      <T variant="meta" tone="muted">Opis će videti druga strana u Porukama. Ovo nije poverljiva prijava podršci.</T>
+      <TextInput accessibilityLabel="Opišite problem" value={problemText}
+        onChangeText={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }} multiline maxLength={4000}
+        editable={enabled && !problemAttempt} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={sys.color.muted} style={s.input} />
+      <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Ponovi istu prijavu problema' : 'Pošalji prijavu problema'}
+        disabled={!enabled || !(problemAttempt ?? problemText.trim())} onPress={() => { void reportProblem(); }} />
+      {!problemAttempt ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled}
+        onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T variant="meta" tone="muted">Opis je sačuvan na ovom ekranu. Pre ponavljanja proverite serverski status.</T>}
+    </>}
+  </WorkspaceCard> : null;
+
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
-    <KeyboardAvoidingView style={{ flex: 1 }} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
-        <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={backToAgreements}
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><V2Icon name="back" /></Press>
-        <View style={{ flex: 1, gap: 2 }}><T style={metaStyle}>{tab === 'poruke' ? other?.ime ?? 'Razgovor o Dogovoru' : active ? 'Prihvaćeni uslovi' : 'Zatvoreni Dogovor'}</T>
-          <T accessibilityRole="header" style={{ ...v2.text.title, color: v2.color.ink }}>{tab === 'poruke' ? 'Poruke' : 'Dogovor'}</T></View>
-      </View>
-      <View style={{ paddingHorizontal: 18, paddingBottom: 12, gap: 10 }}>
+    <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <WorkspaceTopBar onBack={backToAgreements} tone={tab === 'poruke' ? 'muted' : tone}
+        eyebrow={tab === 'poruke' ? other?.ime ?? 'Razgovor o Dogovoru' : agreementStateText(dogovor.stanje)} title={tab === 'poruke' ? 'Poruke' : 'Dogovor'} />
+      <View style={s.tabs}>
         {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
         <AgreementTabs tab={tab} onChange={setTab} />
       </View>
       {tab === 'poruke' ? <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
         writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}
         support={{ canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } }} /> : <>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 20 }}>
-          <AgreementHero agreement={dogovor} />
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
+          <WorkspaceCard><AgreementHero agreement={dogovor} /></WorkspaceCard>
+          <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
+            {active && me && !radnje ? <View style={s.stack}>
+              <T variant="meta" tone="muted">Dozvole za završetak nisu potvrđene sa servera. Osvežite status Dogovora pre završetka.</T>
+              <V2Action label="Osveži dozvole za završetak" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
+            </View> : null}
+            {active && me && radnje?.izmenaNaCekanju ? <T variant="meta" tone="muted">Predlog izmene čeka odgovor. Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.</T> : null}
+          </NextStepCard>
           <AgreementPeople agreement={dogovor} />
           {me && enabled ? <GroupConversationEntry agreementId={id} /> : null}
-          {me ? <V2Action label="Izmene i otkazivanje Dogovora" kind="quiet" disabled={!enabled}
-            onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} /> : null}
-          {me && active && dogovor.rezim !== 'DALJINSKI' ? <V2Action label="Dobrovoljna lokacija Uskočera" kind="quiet" disabled={!enabled}
-            onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
-          {other && me ? <V2Action label="Bezbednost i privatna prijava" kind="quiet" disabled={!enabled}
-            onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
-              router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
+          {me ? <WorkspaceRows>
+            <WorkspaceRow label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
+              onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />
+            {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow label="Dobrovoljna lokacija Uskočera" hint="Jedna tačka, samo uz pristanak" disabled={!enabled}
+              onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
+            {other ? <WorkspaceRow label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
+              onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
+                router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
+          </WorkspaceRows> : null}
           <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Vaš broj je podeljen' : 'Podelite svoj broj kada vam odgovara'}>
-            <T style={metaStyle}>Deljenje je odvojeno u oba smera. Kada podelite svoj broj, druga strana ne deli automatski svoj.</T>
-            <T style={bodyStyle}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>
+            <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podelite svoj broj, druga strana ne deli automatski svoj.</T>
+            <T variant="body" style={s.ink}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>
             {active && me ? <V2Action label={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'} disabled={!enabled}
               onPress={() => void mutate(() => dogovor.kontakt.mojTelefonPodeljen ? izvor.opoziviTelefon(id) : izvor.podeliTelefon(id))} /> : null}
           </AgreementSection>
@@ -240,63 +294,27 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
             <AgreementPrivateLocation agreement={dogovor} enabled={enabled} />
           </AgreementSection> : null}
           {dogovor.hronologija.length ? <AgreementSection label="Tok Dogovora" summary="Sačuvani događaji">
-            {dogovor.hronologija.map((event, index) => <View key={index} style={{ gap: 3 }}><T style={bodyStyle}>{event.tekst}</T><T style={metaStyle}>{event.vremeTekst}</T></View>)}
+            {dogovor.hronologija.map((event, index) => <View key={index} style={s.event}>
+              <View style={s.eventLine} /><View style={s.eventCopy}><T variant="body" style={s.ink}>{event.tekst}</T><T variant="meta" tone="muted">{event.vremeTekst}</T></View>
+            </View>)}
           </AgreementSection> : null}
-          {report ? <View style={{ gap: 10, padding: 18, borderRadius: 18, backgroundColor: v2.color.context }}>
-            <T accessibilityRole="header" style={{ ...bodyStyle, fontWeight: '700' }}>Problem je prijavljen</T>
-            <T style={metaStyle}>{report.openedBy === accountId ? 'Prijavili ste vi.' : 'Prijavila je druga strana.'}</T>
-            <T style={metaStyle}>{new Date(report.openedAt).toLocaleString('sr-Latn-RS')}</T>
-            <T style={bodyStyle}>{report.narrative}</T>
-            <T style={metaStyle}>Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
-            {problemAttempt && problemAttempt !== report.narrative ? <T style={metaStyle}>Sačuvan je prvi opis prijave. Vaš novi opis nije dodat. Za dopunu koristite Poruke.</T> : null}
-            {active ? <T style={metaStyle}>Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
-          </View> : dogovor.problemOtvoren ? <View style={{ gap: 10, padding: 18, borderRadius: 18, backgroundColor: v2.color.context }}>
-            <T accessibilityRole="header" style={{ ...bodyStyle, fontWeight: '700' }}>Problem je prijavljen</T>
-            <T style={metaStyle}>{dogovor.problemReportState === 'LEGACY_UNAVAILABLE'
-              ? 'Detalji starije prijave nisu dostupni u ovom prikazu. Postojeća prijava ostaje sačuvana.'
-              : 'Detalji prijave trenutno nisu učitani. Osvežite status Dogovora da pokušate ponovo.'}</T>
-            {active ? <T style={metaStyle}>Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
-            {dogovor.problemReportState === 'UNAVAILABLE' ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} /> : null}
-          </View> : active && me ? <View style={{ gap: 10 }}>
-            {!problemOpen ? <V2Action label="Prijavi problem" kind="quiet" disabled={!enabled}
-              onPress={() => { if (formCurrent()) setProblemOpen(true); }} /> : <>
-              <T accessibilityRole="header" style={{ ...bodyStyle, fontWeight: '700' }}>Problem u Dogovoru</T>
-              <T style={metaStyle}>Opis će videti druga strana u Porukama. Ovo nije poverljiva prijava podršci.</T>
-              <TextInput accessibilityLabel="Opišite problem" value={problemText}
-                onChangeText={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }} multiline maxLength={4000}
-                editable={enabled && !problemAttempt} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={v2.color.muted}
-                style={{ ...bodyStyle, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 11, backgroundColor: v2.color.surface }} />
-              <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Ponovi istu prijavu problema' : 'Pošalji prijavu problema'}
-                disabled={!enabled || !(problemAttempt ?? problemText.trim())} onPress={() => { void reportProblem(); }} />
-              {!problemAttempt ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled}
-                onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T style={metaStyle}>Opis je sačuvan na ovom ekranu. Pre ponavljanja proverite serverski status.</T>}
-            </>}
-          </View> : null}
-          {dogovor.stanje === 'AWAITING_REQUESTER' ? <View style={{ gap: 12, padding: 18, borderRadius: 18, backgroundColor: v2.color.context }}>
-            <T style={{ ...bodyStyle, fontWeight: '700' }}>{worker ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio'}</T>
-            <T style={metaStyle}>{dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.'
-              : `${deadline}. Bez odgovora se Dogovor zatvara sam.`}</T>
-          </View> : null}
-          {dogovor.stanje === 'CONFIRMED' && me ? <T style={metaStyle}>{worker
-            ? 'Kada završite, označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
-            : 'Završetak možete potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.'}</T> : null}
-          {active && me && !radnje ? <View style={{ gap: 8 }}>
-            <T style={metaStyle}>Dozvole za završetak nisu potvrđene sa servera. Osvežite status Dogovora pre završetka.</T>
-            <V2Action label="Osveži dozvole za završetak" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
-          </View> : null}
-          {active && me && radnje?.izmenaNaCekanju ? <T style={metaStyle}>Predlog izmene čeka odgovor. Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.</T> : null}
-          {dogovor.stanje === 'COMPLETED' ? <T style={{ ...bodyStyle, color: v2.color.teal }}>Dogovor je završen</T> : null}
-          {dogovor.stanje === 'CANCELLED' ? <T style={metaStyle}>Dogovor je otkazan.</T> : null}
-          {workspace.error ? <View style={{ gap: 8 }}><T accessibilityRole="alert" style={{ ...bodyStyle, color: v2.color.danger }}>{workspace.error}</T>
-            <V2Action label="Osveži status Dogovora" disabled={workspace.busy} onPress={() => void osvezi()} /></View> : null}
+          {problemPanel}
+          {workspace.error ? <WorkspaceNote tone="danger"><T accessibilityRole="alert" variant="body" style={s.danger}>{workspace.error}</T>
+            <V2Action label="Osveži status Dogovora" disabled={workspace.busy} onPress={() => void osvezi()} /></WorkspaceNote> : null}
         </ScrollView>
-        <View style={{ padding: 18, gap: 6, borderTopWidth: 1, borderColor: v2.color.line, backgroundColor: v2.color.surface }}>
-          <V2Action label="Otvori poruke" kind="primary" onPress={() => setTab('poruke')} style={{ backgroundColor: v2.color.orange, borderWidth: 0, minHeight: 50, borderRadius: 16 }} />
-          {canComplete ? <V2Action label={workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak'} kind="quiet" disabled={!enabled} onPress={() => { void complete(); }} /> : null}
-          {dogovor.stanje === 'COMPLETED' && me ? <V2Action label="Oceni saradnju" kind="quiet" disabled={!enabled}
-            onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); }} /> : null}
-        </View>
+        <WorkspaceFooter brand={brand} secondary={secondary} />
       </>}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
+
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.ground },
+  status: { padding: 24, gap: 16 }, center: { textAlign: 'center' },
+  ink: { color: sys.color.ink }, danger: { color: sys.color.danger },
+  tabs: { paddingHorizontal: 18, paddingBottom: 12, gap: 10 },
+  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
+  stack: { gap: 8, marginTop: 4 },
+  input: { ...sys.type.body, color: sys.color.ink, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, backgroundColor: sys.color.surface },
+  event: { flexDirection: 'row', gap: 12 }, eventLine: { width: 2, borderRadius: 1, backgroundColor: sys.color.greenSoft, marginVertical: 4 }, eventCopy: { flex: 1, gap: 2 },
+});
