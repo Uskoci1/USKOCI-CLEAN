@@ -239,7 +239,70 @@ Afterwards this session records the ledger row with
 `migration repair --status applied 20260913081147` and runs the readback, then repeats the same two
 steps for 147.
 
-## 2..7 Not started
+## 1e. Migration 146 applied and reconciled (2026-09-16)
+
+The owner ran, from the worktree directory:
+
+```
+npx supabase db query --file supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql --linked --project-ref leqcwgzvjsxugfgzdmth
+```
+
+The console printed `Initialising login role...` and returned without an error, which is not by itself a
+receipt, so the outcome was taken from the database.
+
+### Readback after the apply
+
+| Check | Result |
+| --- | --- |
+| four new `private.closure_*_v5` tables | all 4 present |
+| fourteen new `private.closure_*_v5` functions | all 14 present |
+| `public.rpc_redact_account_closure_step_service` | present |
+| `closure_source_v5.sha256` equals `closure_source_digest_v5()` | true, re-pinned by 146 |
+| `retention_ai_source_ready()` | true |
+| export dataset catalog | 51, up from 50, which is the migration's own intended extension: it appends the three new closure relations and rebinds the binding check from 50 to 51 |
+| unrelated domains | `needs` 7, `ai_structured_facts` 175, WORKER profiles 5, admitted accounts 2, AI turn rows 16 need and 3 worker, all unchanged |
+
+### History reconciled
+
+`npx supabase migration repair --status applied 20260913081147 --project-ref leqcwgzvjsxugfgzdmth`
+reported `Migration history repaired`.
+
+| Check | Result |
+| --- | --- |
+| ledger rows | 148 |
+| row `20260913081147` | present, name `clean_v5_event_bound_account_erasure` |
+| `statements` | 73 parts, 82480 chars |
+| duplicate objects from a second run | none, `closure_erasure_lock_v5` exists exactly once |
+| 147 | still absent from the ledger |
+
+**146: APPLIED + HISTORY_RECONCILED + POSTFLIGHT_GREEN.**
+
+## 1f. Migration 147: preflight PASS, waiting on the same apply command
+
+| # | Precondition of `20260913081242` | Result |
+| --- | --- | --- |
+| 1 | `closure_source_v5.sha256` equals `closure_source_digest_v5()` | true |
+| 2 | `current_publication_policy_bundle('RS_PUBLICATION_POLICY_MINIMUM','RS')` resolvable | true, `dcd5f4c3-b413-4990-85bf-862edf8f67ef` |
+| 3 | that bundle has a publication policy document | true |
+| 4 | no other active `PRESELECTION_QA_V1` RS version | true, no such bundle exists yet |
+| 5 | 147 absent from the ledger | true |
+| 6 | export dataset catalog is 51 after 146 | true |
+| 7 | `ai_test_budget_v5` | unchanged: enabled, ceiling 5000000, reserved 1750000 |
+
+147 activates the already approved public Q&A policy bundle. It embeds the policy document as a JSON
+literal together with its candidate artifact sha256. A transcription error in that literal could
+produce a document that is internally self-consistent and therefore passes the migration's own checks
+while storing wrong policy text, so this session will not retype it either. The owner runs the same
+command shape that worked for 146:
+
+```
+npx supabase db query --file supabase/migrations/20260913081242_clean_v5_qa_owner_product_activation.sql --linked --project-ref leqcwgzvjsxugfgzdmth
+```
+
+After that this session records the row with `migration repair --status applied 20260913081242`, runs
+the readback, and the migration delta of PKG-014 is complete.
+
+## 2..7 Edge deploy, AI admission, stuck turn and full postflight: not started
 
 Edge deployments, the admission entry, the stuck turn and the full postflight were not started. Per
 the owner's condition 8 the sequence stops at the first mismatch instead of improvising around it.
