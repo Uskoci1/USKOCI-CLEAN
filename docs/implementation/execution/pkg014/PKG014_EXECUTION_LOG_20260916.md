@@ -302,6 +302,47 @@ npx supabase db query --file supabase/migrations/20260913081242_clean_v5_qa_owne
 After that this session records the row with `migration repair --status applied 20260913081242`, runs
 the readback, and the migration delta of PKG-014 is complete.
 
+## 1g. Migration 147 applied and reconciled — migration delta COMPLETE (2026-09-16)
+
+The owner ran the same command shape for `20260913081242_clean_v5_qa_owner_product_activation.sql`.
+Outcome again taken from the database, not from the console.
+
+### Readback after the apply
+
+| Check | Result |
+| --- | --- |
+| `PRESELECTION_QA_V1` RS bundle | v1, reviewed, complete, active |
+| rule refs | 5, as the migration requires |
+| recorded candidate artifact sha256 | `2cab9bb4d551878a2071fff0fc7fc93383c9db2b370a13db3772b45209ab786a`, identical to the literal in the source file |
+| review state | `OWNER_PRODUCT_APPROVED_NOT_LEGAL_CERTIFICATION`, `legal_certification=false` |
+| activated_by | `20260913081242_clean_v5_qa_owner_product_activation` |
+| current bundle resolver | resolves to that bundle, and the bundle reports ready |
+| private policy tables exposed to anon, authenticated or service_role | no |
+| task policy bundle `RS_PUBLICATION_POLICY_MINIMUM` | unchanged, `dcd5f4c3-b413-4990-85bf-862edf8f67ef` |
+| `ai_test_budget_v5` | unchanged |
+
+The artifact sha match is the fidelity proof for this file: the document stored live carries exactly the
+sha the source file declares.
+
+### History reconciled
+
+`migration repair --status applied 20260913081242` reported `Migration history repaired`.
+
+| Check | Result |
+| --- | --- |
+| ledger rows | 149, which is 147 source migrations plus the two `dev_alpha` operational rows |
+| the three new rows | `20260913080237` identity, `20260913081147` erasure, `20260913081242` QA activation, all with their source names |
+| `statements` parts | 15, 73 and 6 respectively |
+| `closure_source_v5` versus digest | matches |
+| `retention_ai_source_ready()` | true |
+| export dataset catalog | 51 |
+| domains through the whole delta | 7 needs, 175 facts, 5 worker profiles, 2 admitted accounts, 7 reservations, 16 need turns, 3 worker turns, every one unchanged from the preflight |
+
+**147: APPLIED + HISTORY_RECONCILED + POSTFLIGHT_GREEN.**
+
+**Step 1 of PKG-014 is complete: the canonical DEV migration delta 145 to 147 is applied and
+reconciled, with no unrelated domain touched.**
+
 ## 2..7 Edge deploy, AI admission, stuck turn and full postflight: not started
 
 Edge deployments, the admission entry, the stuck turn and the full postflight were not started. Per
