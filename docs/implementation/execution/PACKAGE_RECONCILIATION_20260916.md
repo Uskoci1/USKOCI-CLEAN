@@ -12,14 +12,14 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 
 | Status | Packages |
 |---|---|
-| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-004 (as of `bdcb2c8`, run 35038650179), PKG-005, PKG-009 |
+| DONE_VERIFIED, fresh on head | PKG-002, PKG-003 (as of `ddae0c5`, run 35037260591), PKG-004 (as of `bdcb2c8`, run 35038650179; re-verified on `ba098b8`, run 35042851321), PKG-005, PKG-007 (as of `ba098b8`, run 35042851269), PKG-009 |
 | DONE_VERIFIED (audit only), inventory stale | PKG-001 |
 | IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | PKG-013 |
 | BLOCKED | PKG-014 (needs PKG-013 + owner batch approval), PKG-018 (provider diagnosis + AF-D04) |
-| NOT_STARTED | PKG-006, 007, 008, 010, 011, 012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
+| NOT_STARTED | PKG-006, 008, 010, 011, 012, 015, 016, 017, 019, 020, 021, 022, 023, 024 |
 
-Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped.
+Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004 and PKG-007 are done; the next package is PKG-008.
 
 ## Per package
 
@@ -75,15 +75,17 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 
 ### PKG-007 — Agreement completion and server permissions
 - Gaps: GAP-0032, GAP-0033.
-- Implementation present: no for GAP-0032. `src/app/dogovor/[id].tsx:153` derives `canComplete` from status (`active && me && (requester || stanje === 'CONFIRMED')`) while `agreementClientService.ts:283` already parses the server `actionState`; the completion buttons ignore it (DRIFT-0013 still present on head). GAP-0033 (structured completion receipt / terminal readback) not re-inspected.
-- Last exact proof: none.
-- Current status: NOT_STARTED.
-- Blocker: PKG-002 done, so ready after PKG-004 in order. Next: bounded source change plus guard tests.
+- Implementation present (before 2026-09-16): no for GAP-0032. `src/app/dogovor/[id].tsx:153` derived `canComplete` from status (`active && me && (requester || stanje === 'CONFIRMED')`) while `agreementClientService.ts:283` already parsed the server `actionState`; the completion buttons ignored it (DRIFT-0013). GAP-0033: `supabaseIzvor.potvrdiZavrsetak` read only the error and returned `ok/null` for any receipt; the route's generic `mutate` accepted any fresh workspace.
+- Implementation, 2026-09-16 (`ba098b8`): `DogovorProjekcija.radnje` is projected from `rpc_get_agreement_workspace.actionState` through the shared `decodeActionState` (authoritative, exact Agreement/version/account, boolean capabilities, ≤1 pending change); the list RPC carries none, so list rows are `null`. The route enables both completion CTAs only from `radnje` (status/party remain a necessary display condition), fails closed with "Osveži dozvole za završetak" when permissions are missing, and explains a pending change. `potvrdiZavrsetak` moved to `agreementClientService` with a structured terminal receipt (original and already-completed replay), known completion denials (`agreementCompletion.ts`, including `AGREEMENT_CHANGE_PENDING`) and no detail leak; the route confirms only by reading COMPLETED (requester) or AWAITING_REQUESTER/COMPLETED (worker) back. No SQL, Edge, provider or live change.
+- Pre-fix witness (local, base `d1c3ba4`, before any source change): new/extended suites `Tests: 49 failed, 46 passed, 95 total` (`evidence/PKG007_VERIFIED_20260916_35042851269.json`).
+- Last exact proof: run 35042851269 (`pkg007-agreement-completion-proof`) on `ba098b8`: TypeScript, focused `Test Suites: 8 passed, 8 total | Tests: 185 passed, 185 total`, full `Test Suites: 215 passed, 215 total | Tests: 4237 passed, 4237 total`.
+- Current status: DONE_VERIFIED (Ledger `PKG-007-RECEIPT-20260916-001`). Because `supabaseIzvor.ts` is in the PKG-004 proof path filter, the PKG-004 workflow re-ran automatically on `ba098b8` (run 35042851321, success) and its re-verification is recorded as `PKG-004-RECEIPT-20260916-003`.
+- Blocker: none. Next: PKG-008 per topology.
 
 ### PKG-008 — Unconfirmed photo recovery
 - Gap: GAP-0036.
 - Implementation present: partial. `fotografije-zadatka.tsx` reads the upload command receipt and offers "Nastavi slanje iste fotografije"; `AgreementPhotoComposer` shows unconfirmed states and same-key retry. This source existed at V19 (2026-09-13), so V19 judged the gap on the same code: the remount-after-lost-bytes cancel/reconcile boundary is what remains unreviewed.
-- Current status: NOT_STARTED. Blocker: none after PKG-002. Next: after PKG-007.
+- Current status: NOT_STARTED. Blocker: none after PKG-002 and PKG-007 (done). Next: this is the next package.
 
 ### PKG-009 — User-editable notification preferences
 - Gap: GAP-0034.
