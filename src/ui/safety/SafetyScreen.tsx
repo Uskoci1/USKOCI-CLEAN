@@ -10,7 +10,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { ulogaSada, useUloga } from '../../store/uloga';
 import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
-import { aiFirst as a } from '../aiFirst/tokens';
+import { sys } from '../system/tokens';
 
 export const safetyCategoryCopy: Record<SafetyCategory, string> = {
   HARASSMENT: 'Uznemiravanje', FRAUD: 'Prevara', UNSAFE_WORK: 'Nebezbedan rad', DISCRIMINATION: 'Diskriminacija', OTHER: 'Drugo',
@@ -115,8 +115,8 @@ function PrivateReport(context: Context) {
       <View accessibilityRole="radiogroup" style={{ gap: 6 }}>{SAFETY_CATEGORIES.map(value => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
-        style={{ minHeight: 48, padding: 12, borderWidth: 1, borderRadius: 13, borderColor: category === value ? a.color.green : a.color.line,
-          backgroundColor: category === value ? a.color.wash : a.color.surface }}><T>{safetyCategoryCopy[value]}</T></Press>)}</View>
+        style={{ minHeight: 48, padding: 12, borderWidth: 1, borderRadius: 13, borderColor: category === value ? sys.color.green : sys.color.line,
+          backgroundColor: category === value ? sys.color.ground : sys.color.surface }}><T>{safetyCategoryCopy[value]}</T></Press>)}</View>
       <T variant="bodyStrong">Kratak razlog</T><TextInput accessibilityLabel="Kratak razlog privatne prijave" value={reason} maxLength={200}
         onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setReason(value); }} editable={editable} style={input} />
       <T variant="bodyStrong">Dodatni opis, ako želiš</T><TextInput accessibilityLabel="Dodatni privatni opis" value={narrative} maxLength={2000}
@@ -128,4 +128,4 @@ function PrivateReport(context: Context) {
     {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} onPress={() => { void check(); }} /> : null}
   </SettingsPanel>;
 }
-const input = { borderWidth: 1, borderColor: a.color.line, borderRadius: 14, padding: 14, minHeight: 52, color: a.color.ink, fontSize: 16 };
+const input = { borderWidth: 1, borderColor: sys.color.line, borderRadius: 14, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: 16 };

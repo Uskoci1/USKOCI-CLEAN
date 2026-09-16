@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { ChatCircleText, ShieldCheck } from 'phosphor-react-native';
 import { SettingsAction, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
-import { v2 } from '../v2/tokens';
+import { sys } from '../system/tokens';
 
 export const supportLabels = {
   RECEIVED: 'Zahtev je primljen', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka tvoju dopunu',
@@ -36,17 +36,17 @@ export function SupportNotice({ children, error = false }: { children: ReactNode
     tone={error ? 'danger' : 'ink'}>{children}</T></SettingsPanel>;
 }
 export function SupportLoading() {
-  return <View style={supportStyles.loading}><ActivityIndicator color={v2.color.teal} accessibilityLabel="Učitavanje podrške" />
+  return <View style={supportStyles.loading}><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje podrške" />
     <T tone="muted">Učitavamo sačuvano stanje…</T></View>;
 }
 export function SupportPrivacy({ safety = false }: { safety?: boolean }) {
-  return <View style={supportStyles.privacy}><ShieldCheck size={22} color={v2.color.teal} />
+  return <View style={supportStyles.privacy}><ShieldCheck size={22} color={sys.color.green} />
     <T variant="meta" tone="muted" style={supportStyles.grow}>{safety
       ? 'Ovaj predmet je privatan. Prijavljena osoba i grupa ne dobijaju sadržaj tvoje prijave.'
       : 'Zahtev vide podnosilac i posebno ovlašćeni operater. Sadržaj se ne prosleđuje drugoj strani u saradnji.'}</T></View>;
 }
 export function SupportEmpty({ children }: { children: ReactNode }) {
-  return <View style={supportStyles.empty}><ChatCircleText size={32} color={v2.color.teal} />
+  return <View style={supportStyles.empty}><ChatCircleText size={32} color={sys.color.green} />
     <T style={supportStyles.center}>{children}</T></View>;
 }
 export function SupportField({ label, value, onChange, maximum, disabled = false, multiline = false, optional = false }: {
@@ -82,11 +82,11 @@ export const supportStyles = StyleSheet.create({
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginVertical: 16 },
   empty: { paddingVertical: 32, paddingHorizontal: 16, alignItems: 'center', gap: 16 },
   field: { gap: 8, marginBottom: 20 },
-  input: { minHeight: 52, borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: 12,
-    backgroundColor: v2.color.surface, color: v2.color.ink, fontSize: 16, lineHeight: 24, padding: 12 },
-  multiline: { minHeight: 144 }, invalid: { borderColor: v2.color.danger },
-  row: { gap: 6, paddingVertical: 16, borderBottomColor: v2.color.line, borderBottomWidth: 1 },
-  status: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: v2.color.soft, borderRadius: 12 },
+  input: { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: 12,
+    backgroundColor: sys.color.surface, color: sys.color.ink, fontSize: 16, lineHeight: 24, padding: 12 },
+  multiline: { minHeight: 144 }, invalid: { borderColor: sys.color.danger },
+  row: { gap: 6, paddingVertical: 16, borderBottomColor: sys.color.line, borderBottomWidth: 1 },
+  status: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: 12 },
   gap: { gap: 12 }, actions: { gap: 12, marginVertical: 16 },
-  event: { paddingLeft: 16, paddingVertical: 12, borderLeftColor: v2.color.controlLine, borderLeftWidth: 2, gap: 8 },
+  event: { paddingLeft: 16, paddingVertical: 12, borderLeftColor: sys.color.lineStrong, borderLeftWidth: 2, gap: 8 },
 });

@@ -8,7 +8,7 @@ import {authClientService} from '../../data/authClientService';
 import {noviUuidZahtevId} from '../../lib/idempotencija';
 import {closureIntentJournal,type ClosureIntent} from './closureIntent';
 import {SettingsScreen,SettingsIntro,SettingsPanel,SettingsInfo,SettingsText as T,SettingsAction} from '../settings/SettingsPresentation';
-import {v2} from '../v2/tokens';
+import { sys } from '../system/tokens';
 export function ClosureEntry(){
  const [open,setOpen]=useState(false);useFocusEffect(useCallback(()=>()=>setOpen(false),[]));
  return <><SettingsInfo title="Zatvaranje naloga" last>Pregledajte dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva.</SettingsInfo>
@@ -82,7 +82,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
   <SettingsIntro kicker="KONTROLA NALOGA" title={terminal?'Nalog je zatvoren.':state?'Zahtev je pokrenut.':'Pregled pre zatvaranja.'}>
    {terminal?'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.':state?'Zahtev je u redu za obradu. Pristup je ograničen dok server proverava i završava pokrenuti zahtev.':'Pre pokretanja proverite obaveze i šta se događa sa vašim podacima.'}
   </SettingsIntro>
-  {busy?<View accessibilityRole="progressbar" style={{gap:8,flexDirection:'row'}}><ActivityIndicator color={v2.color.teal}/><T>Proveravamo stanje…</T></View>:null}
+  {busy?<View accessibilityRole="progressbar" style={{gap:8,flexDirection:'row'}}><ActivityIndicator color={sys.color.green}/><T>Proveravamo stanje…</T></View>:null}
   {message?<T accessibilityRole="alert">{message}</T>:null}
   {state?<SettingsPanel soft><T variant="bodyStrong">{terminal?'Završene radnje':'Obrada na serveru'}</T>
    <T>{terminal?'Podaci za prijavu su uklonjeni i sesije su završene. Fotografije i datoteke naloga su obrisane.':'Zatvaranje još nije završeno. Nepotvrđen mrežni odgovor ne znači da su podaci obrisani.'}</T>

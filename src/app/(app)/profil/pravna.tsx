@@ -11,7 +11,7 @@ import { ulogaSada, useUloga } from '../../../store/uloga';
 import { LegalDocumentRows } from '../../../ui/legal/LegalDocuments';
 import { LegalReviewController, legalHttpsUrl, reviewedDocuments, sessionLegalIntentJournal } from '../../../ui/legal/legalReview';
 import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsScreen, SettingsText as T } from '../../../ui/settings/SettingsPresentation';
-import { v2 } from '../../../ui/v2/tokens';
+import { sys } from '../../../ui/system/tokens';
 
 const roles: Record<ProcessorLegalRole, string> = { PROCESSOR: 'Obrađivač', SUBPROCESSOR: 'Podobrađivač', INDEPENDENT_CONTROLLER: 'Samostalni rukovalac' };
 export default function PravnaDokumenta() {
@@ -55,7 +55,7 @@ function OwnedLegal() {
       onPress={() => { if (current()) void controller.accept(state.bundle); }} /> : null;
   return <SettingsScreen title="Pravna dokumenta" onBack={back} footer={action}>
     <SettingsIntro kicker="JASNO I DOSTUPNO" title="Uslovi i privatnost.">Pročitajte važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
-    {state.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={v2.color.teal} /> : <>
+    {state.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={sys.color.green} /> : <>
       <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={(doc: LegalDocument) => { void openUrl(doc.url); }} />
       {confirmed ? <SettingsPanel soft><T accessibilityLiveRegion="polite">Prihvaćene su aktuelne verzije dokumenata.</T></SettingsPanel>
         : state.receipt ? <SettingsPanel soft><T>Prethodno prihvatanje je potvrđeno. Učitajte aktuelne dokumente ponovo.</T></SettingsPanel> : null}

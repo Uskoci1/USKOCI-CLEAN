@@ -11,7 +11,7 @@ import { saveDataExportFile } from '../../../lib/dataExportFile';
 import { noviZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { ulogaSada, useUloga } from '../../../store/uloga';
-import { v2 } from '../../../ui/v2/tokens';
+import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 
 const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
@@ -149,23 +149,23 @@ function OwnedExport() {
     finally { bytes?.bytes.fill(0); if (download.current === controller) { download.current = null; if (current()) setSavingFile(false); } }
   };
   const step = (label: string, copy: string, active: boolean) => <View key={label}
-    style={[styles.step, { backgroundColor: active ? v2.color.soft : 'transparent' }]}>
+    style={[styles.step, { backgroundColor: active ? sys.color.greenSoft : 'transparent' }]}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: active ? v2.color.teal : v2.color.muted }} />
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: active ? sys.color.green : sys.color.muted }} />
       <T variant="bodyStrong">{label}</T>
     </View><T variant="meta" tone="muted" style={{ paddingLeft: 16 }}>{copy}</T>
   </View>;
   const readyView = !editor.loading && !editor.error && !!status && !fileReadbackRequired;
   const primary = readyView ? available
     ? <Button label={savingFile ? 'Preuzimanje i čuvanje…' : 'Preuzmite i sačuvajte'} disabled={busy}
-      icon={<DownloadSimple size={20} color={v2.color.ink} />} onPress={() => { void saveFile(); }} />
+      icon={<DownloadSimple size={20} color={sys.color.ink} />} onPress={() => { void saveFile(); }} />
     : request && ['REQUESTED', 'PROCESSING'].includes(request.status)
       ? <Button label={editor.busy ? 'Radnja je u toku…' : 'Pripremite kopiju'} disabled={busy} onPress={() => { void prepare(); }} />
       : <Button label={pendingKey.current ? 'Ponovite isti zahtev' : request ? 'Zatražite novu kopiju' : 'Zatražite izvoz'} disabled={busy} onPress={() => { void requestExport(); }} />
     : null;
   return <SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>
     <SettingsIntro kicker="VAŠA KOPIJA" title="Vaši podaci, na jednom mestu.">Zatražite kopiju podataka vezanih za svoj nalog.</SettingsIntro>
-    {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje stanja izvoza" color={v2.color.teal} />
+    {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje stanja izvoza" color={sys.color.green} />
       : editor.error || !status || fileReadbackRequired ? <SettingsPanel soft>
         <T accessibilityRole="alert">{editor.error ?? (fileReadbackRequired ? 'Učitajte trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.')}</T>
         <Button label="Učitajte stanje ponovo" onPress={refresh} disabled={editor.busy} />
@@ -184,7 +184,7 @@ function OwnedExport() {
           <T variant="meta" tone="muted">JSON · {artifact.byteLength.toLocaleString('sr-Latn')} bajtova</T>
         </SettingsPanel> : null}
         <View style={styles.notice}>
-          <ShieldCheck size={20} color={v2.color.teal} /><T variant="meta" tone="muted" style={{ flex: 1 }}>Izvoz je vezan za Vaš nalog. Kopiju čuvajte na mestu kome samo Vi imate pristup.</T>
+          <ShieldCheck size={20} color={sys.color.green} /><T variant="meta" tone="muted" style={{ flex: 1 }}>Izvoz je vezan za Vaš nalog. Kopiju čuvajte na mestu kome samo Vi imate pristup.</T>
         </View>
         <View style={{ gap: 8, marginTop: 16 }}>
           {request?.status === 'REQUESTED' ? <Button label="Otkažite zahtev" kind="quiet" disabled={busy} onPress={cancelRequest} /> : null}

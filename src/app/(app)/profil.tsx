@@ -7,7 +7,7 @@ import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction, settingsStyles as styles } from '../../ui/settings/SettingsPresentation';
-import { v2 } from '../../ui/v2/tokens';
+import { sys } from '../../ui/system/tokens';
 import { BuildIdentity } from '../../ui/BuildIdentity';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
@@ -77,24 +77,24 @@ export default function Profil() {
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace(narucilac ? '/potrebe' : '/moje-prijave'))}>
     <View style={styles.identity}>
       {profile.loading ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" style={styles.gap}>
-        <ActivityIndicator color={v2.color.teal} /><T tone="muted">Učitavamo profil…</T>
+        <ActivityIndicator color={sys.color.green} /><T tone="muted">Učitavamo profil…</T>
       </View> : profile.error ? <View style={styles.gap}>
         <T>Profil trenutno nije dostupan.</T><T variant="meta" tone="muted">Proverite vezu i pokušajte ponovo.</T>
         <SettingsAction label="Pokušajte ponovo" kind="secondary" onPress={() => { void profile.refresh(); }} />
       </View> : <>
         {profile.data?.profileId ? <ProfilePhoto profileId={profile.data.profileId}
-          fallback={<View style={styles.avatar}>{initials ? <T variant="heading">{initials}</T> : <User size={28} color={v2.color.teal} />}</View>} />
-          : <View style={styles.avatar}><User size={28} color={v2.color.teal} /></View>}
-        <T variant="display" accessibilityRole="header" style={{ textAlign: 'center', fontSize: 25, lineHeight: 30 }}>{profile.data?.ime ?? 'Ime još nije uneto'}</T>
+          fallback={<View style={styles.avatar}>{initials ? <T variant="heading">{initials}</T> : <User size={28} color={sys.color.green} />}</View>} />
+          : <View style={styles.avatar}><User size={28} color={sys.color.green} /></View>}
+        <T variant="display" accessibilityRole="header" style={{ textAlign: 'center' }}>{profile.data?.ime ?? 'Ime još nije uneto'}</T>
         <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>{profile.data?.grad ?? 'Grad još nije unet'}</T>
       </>}
-      <View style={styles.intent}><T variant="meta">{currentIntent}</T></View>
+      <View style={styles.intent}><T variant="meta" tone="success" style={{ fontWeight: '700' }}>{currentIntent}</T></View>
       {profile.data?.profileId ? <SettingsAction label="Fotografija profila" kind="quiet" disabled={busy || profile.loading || !!profile.error}
         onPress={() => { const id = profile.data?.profileId; if (!id || profile.loading || profile.error) return;
           navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); }} /> : null}
       {accountId ? <AccountReputation accountId={accountId} /> : null}
       <SettingsAction label={`Pređite na ${nextIntent}`} kind="quiet" disabled={busy}
-        icon={<ArrowsLeftRight size={20} color={v2.color.teal} />}
+        icon={<ArrowsLeftRight size={20} color={sys.color.green} />}
         onPress={() => navigate(() => {
           postaviUlogu(narucilac ? 'uskocer' : 'narucilac');
           router.replace(narucilac ? '/prilike' : '/potrebe');
@@ -105,27 +105,27 @@ export default function Profil() {
     <SettingsGroup title={narucilac ? 'Tvoji Dogovori' : 'Rad i dostupnost'}>
       {!narucilac ? <>
         <SettingsRow label="Uredite Radni profil" detail="Ime, grad i veštine za prijavljivanje na Zadatke."
-          icon={<User size={22} color={v2.color.teal} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/radnik'))} />
-        <SettingsRow label="Područje rada" detail="Gde možete da uskočite." icon={<MapPin size={22} color={v2.color.teal} />}
+          icon={<User size={22} color={sys.color.green} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/radnik'))} />
+        <SettingsRow label="Područje rada" detail="Gde možete da uskočite." icon={<MapPin size={22} color={sys.color.green} />}
           disabled={busy} onPress={() => navigate(() => router.navigate('/profil/lokacija'))} />
-        <SettingsRow label="Dostupnost" detail="Nedeljni raspored i izuzeci." icon={<Clock size={22} color={v2.color.teal} />}
+        <SettingsRow label="Dostupnost" detail="Nedeljni raspored i izuzeci." icon={<Clock size={22} color={sys.color.green} />}
           disabled={busy} onPress={() => navigate(() => router.navigate('/profil/dostupnost'))} />
       </> : null}
-      <SettingsRow label="Kalendar Dogovora" detail="Termini potvrđenih saradnji." icon={<CalendarBlank size={22} color={v2.color.teal} />}
+      <SettingsRow label="Kalendar Dogovora" detail="Termini potvrđenih saradnji." icon={<CalendarBlank size={22} color={sys.color.green} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/raspored'))} />
     </SettingsGroup>
     <SettingsGroup title="Nalog i podaci">
       {narucilac ? <SettingsRow label="Ime na profilu" detail="Ime koje prikazuješ uz svoje zadatke."
-        icon={<User size={22} color={v2.color.teal} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/podaci'))} /> : null}
-      <SettingsRow label="Obaveštenja" detail="Promene i poruke u saradnji." icon={<Bell size={22} color={v2.color.teal} />}
+        icon={<User size={22} color={sys.color.green} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/podaci'))} /> : null}
+      <SettingsRow label="Obaveštenja" detail="Promene i poruke u saradnji." icon={<Bell size={22} color={sys.color.green} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/obavestenja'))} />
-      <SettingsRow label="Privatnost i podaci" detail="Šta je javno i kako se podaci čuvaju." icon={<ShieldCheck size={22} color={v2.color.teal} />}
+      <SettingsRow label="Privatnost i podaci" detail="Šta je javno i kako se podaci čuvaju." icon={<ShieldCheck size={22} color={sys.color.green} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/privatnost'))} />
-      <SettingsRow label="Izvoz podataka" detail="Zahtev i preuzimanje svoje kopije." icon={<DownloadSimple size={22} color={v2.color.teal} />}
+      <SettingsRow label="Izvoz podataka" detail="Zahtev i preuzimanje svoje kopije." icon={<DownloadSimple size={22} color={sys.color.green} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
-      <SettingsRow label="Blokirani korisnici" detail="Tvoja blokiranja i privatne prijave." icon={<ShieldCheck size={22} color={v2.color.teal} />}
+      <SettingsRow label="Blokirani korisnici" detail="Tvoja blokiranja i privatne prijave." icon={<ShieldCheck size={22} color={sys.color.green} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/blokirani'))} />
-      <SettingsRow label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka." icon={<ShieldCheck size={22} color={v2.color.teal} />}
+      <SettingsRow label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka." icon={<ShieldCheck size={22} color={sys.color.green} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/pravna'))} />
     </SettingsGroup>
     <SettingsGroup title="USKOČI">
@@ -137,7 +137,7 @@ export default function Profil() {
     <View style={styles.logout}>
       {logoutError ? <T tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Pokušajte ponovo.</T> : null}
       <SettingsAction label={busy ? 'Sačekajte…' : 'Odjavite se'} kind="quiet" disabled={busy}
-        icon={<SignOut size={20} color={v2.color.muted} />} onPress={() => { void logout(); }} />
+        icon={<SignOut size={20} color={sys.color.muted} />} onPress={() => { void logout(); }} />
     </View>
     <BuildIdentity />
   </SettingsScreen>;

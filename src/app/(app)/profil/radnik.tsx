@@ -7,7 +7,7 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { ulogaSada, useIzvor, useUloga } from '../../../store/uloga';
 import { T } from '../../../ui/Text';
-import { v2 } from '../../../ui/v2/tokens';
+import { brandAction, sys } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
 import { WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
@@ -157,12 +157,12 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     {pending && (editor.uncertain || editor.error) ? <V2Action label="Proverite sačuvani profil" disabled={transportBusy} onPress={refresh} />
       : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}
         disabled={!enabled} onPress={() => { if (pending) void save(false); else primary.run(); }}
-        style={{ backgroundColor: v2.color.orange, borderWidth: 0 }} />}
+        style={brandAction} />}
     {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
     {pending && enabled ? <V2Action label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
   </> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} /> : <>
-      {message ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.teal }}>{message}</T> : null}
+      {message ? <T accessibilityRole="alert" variant="body" style={{ color: sys.color.green }}>{message}</T> : null}
       <V2Action label="Uredi profil kroz razgovor" disabled={!enabled || !!pending} onPress={() => {
         if (!enabled || !current() || transportRef.current || pendingRef.current) return;
         if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
@@ -170,8 +170,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
         }
         router.push('/profil/razgovor');
       }} />
-      {validation || editor.error ? <T accessibilityRole="alert" style={{ ...v2.text.body, color: v2.color.danger }}>{validation ?? editor.error}</T> : null}
-      {pending && !transportBusy ? <T style={{ ...v2.text.label, color: v2.color.muted }}>Vaš unos je zadržan. Prikaz potvrđuje samo podatke koji su ponovo pročitani sa servera.</T> : null}
+      {validation || editor.error ? <T accessibilityRole="alert" variant="body" style={{ color: sys.color.danger }}>{validation ?? editor.error}</T> : null}
+      {pending && !transportBusy ? <T variant="meta" tone="muted">Vaš unos je zadržan. Prikaz potvrđuje samo podatke koji su ponovo pročitani sa servera.</T> : null}
       <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest} />
     </>}
   </WorkerProfileFrame>;

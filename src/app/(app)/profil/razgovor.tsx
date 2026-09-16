@@ -13,7 +13,7 @@ import { ulogaSada, useUloga } from '../../../store/uloga';
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { VoiceComposer } from '../../../ui/aiFirst/VoiceComposer';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
-import { aiFirst as a } from '../../../ui/aiFirst/tokens';
+import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
@@ -176,15 +176,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     <V2Action label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></WorkerProfileFrame>;
   if(panel==='review'&&data.review){const frozen=data.review,expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision;
     return <WorkerProfileFrame back={back} footer={data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>{if(current())router.replace('/profil/radnik');}}/>:<>
-      <V2Action label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'} kind="primary"
-        disabled={!enabled||!writable||!frozen.canAccept||expired} onPress={()=>{void save();}} style={{backgroundColor:a.color.green}}/>
+      <V2Action label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
+        disabled={!enabled||!writable||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
       {(expired||editor.uncertain||editor.error)?<V2Action label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
-      {data.saved?<T accessibilityRole="alert" style={{...a.text.title,color:a.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
+      {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
       <WorkerAiReviewDetails review={frozen}/>
       {data.profileStatus==='DRAFT'&&!data.saved?<WorkerAiActivation activate={frozen.activate} disabled={!enabled} change={value=>{void review(value);}}/>:null}
       {expired&&!data.saved?<V2Action label="Učitaj novi pregled" disabled={!enabled} onPress={()=>{void review(frozen.activate);}}/>:null}
-      {editor.error?<T accessibilityRole="alert" style={{color:a.color.danger}}>{editor.error}</T>:null}
+      {editor.error?<T accessibilityRole="alert" tone="danger">{editor.error}</T>:null}
       {!data.saved?<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled} onPress={()=>setPanel('manual')}/>
         <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled} onPress={()=>setPanel('availability')}/>
         <V2Action label="Nastavi razgovor" kind="quiet" disabled={editor.busy} onPress={()=>setPanel('chat')}/></>:null}
@@ -197,15 +197,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     value={input} onChange={value=>{if(enabled&&writable)setInput(value);}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}
     onSend={()=>{if(!voiceBusy)void send(input.trim());}} onBack={back} onOptions={()=>{if(enabled&&writable)setPanel('manual');}}
-    status={<>{statusCopy?<T style={{...a.text.meta,color:a.color.muted}}>{statusCopy}</T>:null}
-      {editor.error?<T accessibilityRole="alert" style={{...a.text.meta,color:a.color.danger}}>{editor.error}</T>:null}</>}
+    status={<>{statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
+      {editor.error?<T accessibilityRole="alert" variant="meta" tone="danger">{editor.error}</T>:null}</>}
     voice={writable?<VoiceComposer controller={voice.controller} state={voice.state} disabled={!enabled||!!pending.current}
       onKeepText={keepTranscript}/>:undefined}
     actions={<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('manual')}/>
       <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('availability')}/>
       {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
       {pending.current&&recovery?.canCancel?<>
-        <T style={{...a.text.meta,color:a.color.muted}}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je obrada već počela, rezervisana potrošnja ostaje zadržana.</T>
+        <T variant="meta" tone="muted">Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je obrada već počela, rezervisana potrošnja ostaje zadržana.</T>
         <V2Action label={recovery.providerDispatched?'Odustani od odgovora':'Otkaži prethodno slanje'} kind="quiet"
           disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
       </>:null}

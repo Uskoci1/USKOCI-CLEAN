@@ -10,7 +10,7 @@ import { pushReadinessClientService, type PushReadiness } from '../../data/pushR
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
 import { V2Action as Button } from '../v2/V2Action';
-import { v2 } from '../v2/tokens';
+import { sys } from '../system/tokens';
 
 type Snapshot = { preferences: NotificationPreferences; native: NativePushState; device: PushDevice | null; readiness: PushReadiness | null };
 type Scope = AuthAccountScope & { role: NotificationRole; alive: boolean; busy: boolean; generation: number };
@@ -132,20 +132,20 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
  const registered = snapshot?.native.kind === 'READY' && snapshot.device?.active && snapshot.device.sessionBound;
  const dirty = !!snapshot && !!settings && !sameSettings(snapshot.preferences.settings, settings);
  return <View style={styles.stack}>
-  <T style={{ ...v2.text.title, color: v2.color.ink }}>Kanali obaveštenja</T>
+  <T style={{ ...sys.type.title, color: sys.color.ink }}>Kanali obaveštenja</T>
   <T tone="muted">Podešavanja važe samo za ovu ulogu. Promena kategorije ne uključuje push dozvolu na telefonu.</T>
-  {busy && <ActivityIndicator accessibilityLabel="Provera push obaveštenja" color={v2.color.teal} />}
+  {busy && <ActivityIndicator accessibilityLabel="Provera push obaveštenja" color={sys.color.green} />}
   {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proverite ga pre ponovnog pokušaja.</T><Button label="Proverite stanje" kind="secondary" onPress={refresh} disabled={busy} /></View>}
   {snapshot && settings && <>
    <SettingSwitch label="Obaveštenja u aplikaciji" help="Kontroliše in-app isporuku. Istorija događaja u Inbox-u ostaje odvojena." value={settings.in_app_enabled}
     disabled={busy} onChange={value => edit('in_app_enabled', value)} />
    <View style={styles.divider} />
-   <T style={{ ...v2.text.title, color: v2.color.ink }}>Kategorije</T>
+   <T style={{ ...sys.type.title, color: sys.color.ink }}>Kategorije</T>
    <T tone="muted">Isključena kategorija se ne isporučuje ni kao in-app ni kao push za ovu ulogu.</T>
    {CATEGORY_ROWS.map(row => <SettingSwitch key={row.key} label={row.label} help={row.help} value={settings[row.key]}
     disabled={busy} onChange={value => edit(row.key, value)} />)}
    <View style={styles.divider} />
-   <T style={{ ...v2.text.title, color: v2.color.ink }}>Tihi sati</T>
+   <T style={{ ...sys.type.title, color: sys.color.ink }}>Tihi sati</T>
    <SettingSwitch label="Uključi tihe sate" help="Push se utišava u zadatom intervalu. Interval može da prelazi preko ponoći." value={settings.quiet_hours_enabled}
     disabled={busy} onChange={value => edit('quiet_hours_enabled', value)} />
    <View style={styles.timeRow}>
@@ -164,7 +164,7 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
    {validation ? <T accessibilityRole="alert" tone="danger">{validation}</T> : null}
    <Button label="Sačuvaj podešavanja" onPress={saveSettings} disabled={busy || !dirty} />
    <View style={styles.divider} />
-   <T style={{ ...v2.text.title, color: v2.color.ink }}>Push obaveštenja</T>
+   <T style={{ ...sys.type.title, color: sys.color.ink }}>Push obaveštenja</T>
    <T tone="muted">Na zaključanom ekranu prikazujemo samo da imate novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.</T>
    <T variant="bodyStrong">{enabled ? 'Push je uključen za ovu ulogu.' : 'Push je isključen za ovu ulogu.'}</T>
    <T tone="muted">{registered ? 'Ovaj uređaj je povezan sa trenutnom prijavom.' : snapshot.native.kind === 'DENIED' ? 'Dozvolite obaveštenja u podešavanjima telefona.'
@@ -193,13 +193,13 @@ function SettingSwitch({ label, help, value, disabled, onChange }: { label: stri
   <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} /></View>;
 }
 const styles = StyleSheet.create({
- stack: { gap: v2.space.lg },
- settingRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: v2.space.md },
+ stack: { gap: 16 },
+ settingRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
  settingCopy: { flex: 1, gap: 3 },
- divider: { height: 1, backgroundColor: v2.color.line },
- timeRow: { flexDirection: 'row', gap: v2.space.md },
+ divider: { height: 1, backgroundColor: sys.color.line },
+ timeRow: { flexDirection: 'row', gap: 12 },
  timeField: { flex: 1, gap: 6 },
- input: { minHeight: 48, borderWidth: 1, borderColor: v2.color.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, color: v2.color.ink, backgroundColor: v2.color.surface, fontSize: 16 },
+ input: { minHeight: 48, borderWidth: 1, borderColor: sys.color.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, color: sys.color.ink, backgroundColor: sys.color.surface, fontSize: 16 },
 });
 
 async function readTransport(): Promise<PushReadiness | null> {

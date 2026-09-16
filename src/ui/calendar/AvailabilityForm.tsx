@@ -4,14 +4,14 @@ import { CaretDown, CaretUp, PencilSimple, Plus, Trash } from 'phosphor-react-na
 import type { AvailabilityRule, AvailabilityWindow, WorkerAvailabilityInput } from '../../contracts/workerAvailability';
 import { normalizeWorkerAvailability } from '../../lib/workerAvailability';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
-import { v2 } from '../v2/tokens';
+import { sys } from '../system/tokens';
 import { Press } from '../Press';
 import { CalendarAction as Button, CalendarText as T, CalendarField, CivilField, EditorSheet, calendarStyles as s } from './CalendarControls';
 import { civilInstant, shiftDate, weekdays, zonedParts } from './calendarPresentation';
 
 function Toggle({ label, value, change, disabled }: { label: string; value: boolean; change: (value: boolean) => void; disabled?: boolean }) {
   return <View style={s.row}><T style={{ flex: 1 }}>{label}</T><Switch accessibilityLabel={label} value={value}
-    onValueChange={change} disabled={disabled} trackColor={{ true: v2.color.teal }} /></View>;
+    onValueChange={change} disabled={disabled} trackColor={{ true: sys.color.green, false: sys.color.lineStrong }} /></View>;
 }
 type RuleDraft = AvailabilityRule;
 
@@ -52,7 +52,7 @@ function RuleEditor({ rule, timezone, close, accept }: {
     <View style={s.row}>{weekdays.map(day => <Press key={day.day} accessibilityRole="checkbox" accessibilityLabel={day.name}
       accessibilityState={{ checked: draft.weekdays.includes(day.day) }} onPress={() => set('weekdays', draft.weekdays.includes(day.day)
         ? draft.weekdays.filter(value => value !== day.day) : [...draft.weekdays, day.day])}
-      style={[s.icon, { backgroundColor: draft.weekdays.includes(day.day) ? v2.color.teal : v2.color.context }]}>
+      style={[s.icon, { backgroundColor: draft.weekdays.includes(day.day) ? sys.color.green : sys.color.greenSoft }]}>
       <T tone={draft.weekdays.includes(day.day) ? 'onDark' : 'ink'}>{day.short}</T>
     </Press>)}</View>
     <CivilField label="Početak termina" mode="time" value={draft.startTime} onChange={value => set('startTime', value)} />
@@ -89,7 +89,7 @@ function WindowEditor({ window, timezone, close, accept }: {
     accept(valid.windows[0]);
   };
   return <EditorSheet title="Poseban datum" close={close} footer={<>{error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}<Button label="Primeni izuzetak" onPress={submit} full /><Button label="Odustani od izuzetka" kind="quiet" onPress={close} full /></>}>
-    <T variant="label" tone="muted">IZUZETAK OD NEDELJE</T><T variant="title">Promenite dostupnost za poseban termin.</T>
+    <T variant="meta" tone="success">Izuzetak od nedelje</T><T variant="title">Promenite dostupnost za poseban termin.</T>
     <T tone="muted">Redovni termini ostaju sačuvani. Vremenska zona: {timezone}</T>
     <CivilField label="Početni datum izuzetka" mode="date" value={start.date} onChange={value => { setStart(current => ({ ...current, date: value })); setChangedStart(true); }} />
     <CivilField label="Početak izuzetka" mode="time" value={start.time} onChange={value => { setStart(current => ({ ...current, time: value })); setChangedStart(true); }} />
@@ -97,11 +97,11 @@ function WindowEditor({ window, timezone, close, accept }: {
     <CivilField label="Kraj izuzetka" mode="time" value={end.time} onChange={value => { setEnd(current => ({ ...current, time: value })); setChangedEnd(true); }} />
     <View style={s.row}>{(['UNAVAILABLE', 'AVAILABLE'] as const).map(option => <Press key={option} accessibilityRole="radio"
       accessibilityLabel={option === 'AVAILABLE' ? 'Dostupan za rad' : 'Nisam dostupan'} accessibilityState={{ selected: state === option }}
-      onPress={() => setState(option)} style={[s.card, { flexGrow: 1, backgroundColor: state === option ? v2.color.context : v2.color.surface }]}>
+      onPress={() => setState(option)} style={[s.card, { flexGrow: 1, borderColor: state === option ? sys.color.green : sys.color.line, backgroundColor: state === option ? sys.color.greenSoft : sys.color.surface }]}>
       <T>{option === 'AVAILABLE' ? 'Dostupan za rad' : 'Nisam dostupan'}</T>
     </Press>)}</View>
     <CalendarField label="Naziv izuzetka (opciono)" value={label} onChange={setLabel} />
-    <View style={[s.note, { backgroundColor: v2.color.warm }]}><T variant="meta">Poseban datum ne otkazuje postojeće Dogovore. Potvrđen termin ostaje obaveza.</T></View>
+    <View style={[s.note, { backgroundColor: sys.color.warnSoft }]}><T variant="meta">Poseban datum ne otkazuje postojeće Dogovore. Potvrđen termin ostaje obaveza.</T></View>
   </EditorSheet>;
 }
 
@@ -145,7 +145,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   };
   return <View style={{ flex: 1 }}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      <View style={{ gap: 8 }}><T variant="label" style={{ color: v2.color.teal, fontWeight: '700', letterSpacing: 1 }}>RADNI PROFIL</T>
+      <View style={{ gap: 8 }}><T variant="meta" tone="success" style={{ fontWeight: '600' }}>Radni profil</T>
         <T variant="title" accessibilityRole="header">Tvoj ritam rada.</T>
         <T tone="muted">{candidateMode ? 'Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.' : 'Odredi kada možeš da uskočiš. Potvrđeni Dogovori ostaju obaveze.'}</T>
       </View>
@@ -155,7 +155,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         <Press accessibilityRole="button" accessibilityLabel="O statusu Dostupan sada" accessibilityState={{ expanded: showStatusHelp }}
           onPress={() => setShowStatusHelp(value => !value)} style={[s.row, { minHeight: 44 }]}>
           <T variant="meta" style={{ flex: 1, fontWeight: '600' }}>Šta znači ovaj status?</T>
-          {showStatusHelp ? <CaretUp size={18} color={v2.color.ink} /> : <CaretDown size={18} color={v2.color.ink} />}
+          {showStatusHelp ? <CaretUp size={18} color={sys.color.ink} /> : <CaretDown size={18} color={sys.color.ink} />}
         </Press>
         {showStatusHelp ? <T variant="meta">Ovaj izbor ostaje sačuvan dok ga ne promenite. Ne uključuje HITNO i ne potvrđuje novi Dogovor.</T> : null}
       </View>
@@ -163,7 +163,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         <T variant="meta" tone="muted">Vremenska zona rasporeda: {draft.timezone}</T></View>
         <View style={[s.card, { padding: 0, gap: 0, overflow: 'hidden' }]}>{weekdays.map((day, index) => {
           const rules = draft.rules.filter(rule => rule.weekdays.includes(day.day)), expanded = expandedDay === day.day;
-          return <View key={day.day} style={{ borderTopWidth: index ? 1 : 0, borderColor: v2.color.line }}>
+          return <View key={day.day} style={{ borderTopWidth: index ? 1 : 0, borderColor: sys.color.line }}>
             <View style={[s.row, { paddingHorizontal: 14, gap: 4 }]}>
               <Press accessibilityRole="button" accessibilityLabel={`Prikaži termine — ${day.name}`} accessibilityState={{ expanded }}
                 onPress={() => setExpandedDay(expanded ? null : day.day)} style={{ flex: 1, minHeight: 70, paddingVertical: 12, gap: 4 }}>
@@ -173,7 +173,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
                   : 'Nema redovnih termina'}</T>
               </Press>
               <Press accessibilityRole="button" accessibilityLabel={`Dodaj — ${day.name}`} accessibilityState={{ disabled: blocked }}
-                disabled={blocked} onPress={() => editRule(undefined, day.day)} style={s.icon}><Plus size={20} color={v2.color.teal} /></Press>
+                disabled={blocked} onPress={() => editRule(undefined, day.day)} style={s.icon}><Plus size={20} color={sys.color.green} /></Press>
             </View>
             {expanded ? <View style={{ paddingHorizontal: 14, paddingBottom: 12, gap: 12 }}>
               {rules.length ? rules.map(rule => <View key={rule.id} style={[s.note, { padding: 12, gap: 6 }]}>
@@ -182,8 +182,8 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
                 <T variant="meta" tone="muted">Od {rule.startsOn}{rule.endsOn ? ` do ${rule.endsOn}` : ' · bez završnog datuma'}</T>
                 {rule.weekdays.length > 1 ? <T variant="meta" tone="muted">Zajednički termin: {weekdays.filter(item => rule.weekdays.includes(item.day)).map(item => item.short).join(', ')}</T> : null}
                 <View style={[s.row, { justifyContent: 'flex-end' }]}>
-                  <Press accessibilityRole="button" accessibilityLabel={`Uredi ${day.name} ${rule.startTime}`} disabled={blocked} onPress={() => editRule(rule)} style={s.icon}><PencilSimple size={21} color={v2.color.ink} /></Press>
-                  <Press accessibilityRole="button" accessibilityLabel={`Ukloni ${day.name} ${rule.startTime}`} disabled={blocked} onPress={() => deleteItem('rules', rule.id)} style={s.icon}><Trash size={21} color={v2.color.danger} /></Press>
+                  <Press accessibilityRole="button" accessibilityLabel={`Uredi ${day.name} ${rule.startTime}`} disabled={blocked} onPress={() => editRule(rule)} style={s.icon}><PencilSimple size={21} color={sys.color.ink} /></Press>
+                  <Press accessibilityRole="button" accessibilityLabel={`Ukloni ${day.name} ${rule.startTime}`} disabled={blocked} onPress={() => deleteItem('rules', rule.id)} style={s.icon}><Trash size={21} color={sys.color.danger} /></Press>
                 </View>
               </View>) : <T variant="meta" tone="muted">Dodaj jedan ili više termina za ovaj dan.</T>}
             </View> : null}
@@ -195,7 +195,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
           onPress={() => setShowWindows(value => !value)} style={[s.row, { minHeight: 48 }]}>
           <View style={{ flex: 1, gap: 4 }}><T variant="heading" accessibilityRole="header">Posebni datumi</T>
             <T variant="meta" tone="muted">{draft.windows.length ? `Posebnih intervala: ${draft.windows.length}` : 'Nema posebnih datuma.'}</T></View>
-          {showWindows ? <CaretUp size={20} color={v2.color.ink} /> : <CaretDown size={20} color={v2.color.ink} />}
+          {showWindows ? <CaretUp size={20} color={sys.color.ink} /> : <CaretDown size={20} color={sys.color.ink} />}
         </Press>
         {showWindows ? [...draft.windows].sort((a, b) => a.startsAt.localeCompare(b.startsAt)).map(window => {
           const start = zonedParts(new Date(window.startsAt), draft.timezone), end = zonedParts(new Date(window.endsAt), draft.timezone);

@@ -10,7 +10,7 @@ import {noviUuidZahtevId} from '../../lib/idempotencija';
 import {qaIntentJournal,matchesQaReceipt,type QaIntent} from './qaIntent';
 import {qaTextHash} from './qaTextHash';
 import {SettingsScreen,SettingsIntro,SettingsPanel,SettingsText as T,SettingsAction} from '../settings/SettingsPresentation';
-import {v2} from '../v2/tokens';
+import { sys } from '../system/tokens';
 
 type Question=OwnerPreselectionQuestion|PublicPreselectionQa;
 // These are explicit transactional SQL rejections, never a transport/decoder
@@ -187,7 +187,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
     <SettingsScreen title="Pitanja o zadatku" onBack={()=>{if(live(focus.current))onBack();}}>
       <SettingsIntro kicker="PRE DOGOVORA" title={context?.title??'Razjasnite zadatak.'}>Pitanja su anonimna. Javno se prikazuju pitanja sa odgovorom naručioca. Ne unosite kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
-      {busy?<ActivityIndicator color={v2.color.teal} accessibilityLabel="Proveravamo pitanja"/>:null}
+      {busy?<ActivityIndicator color={sys.color.green} accessibilityLabel="Proveravamo pitanja"/>:null}
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
       {material?<SettingsAction label="Vrati se na zadatak radi izmene" kind="secondary" onPress={()=>{if(live(focus.current)&&!lock.current)onBack();}} disabled={busy}/>:null}
@@ -213,4 +213,4 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     </SettingsScreen>
   </KeyboardAvoidingView>;
 }
-const input={minHeight:120,borderWidth:1,borderColor:v2.color.line,borderRadius:12,padding:14,fontSize:16,lineHeight:24,color:v2.color.ink,backgroundColor:v2.color.surface};
+const input={minHeight:120,borderWidth:1,borderColor:sys.color.line,borderRadius:12,padding:14,fontSize:16,lineHeight:24,color:sys.color.ink,backgroundColor:sys.color.surface};

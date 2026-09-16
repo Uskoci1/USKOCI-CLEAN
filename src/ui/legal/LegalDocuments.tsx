@@ -5,7 +5,7 @@ import type { LegalBundleStatus, LegalDocument, LegalDocumentKind } from '../../
 import { legalClientService } from '../../data/legalClientService';
 import { sesijaSada } from '../../store/sesija';
 import { SettingsAction, SettingsGroup, SettingsIntro, SettingsPanel, SettingsRow, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
-import { v2 } from '../v2/tokens';
+import { sys } from '../system/tokens';
 import { boundedLegalRead, legalHttpsUrl, reviewedDocuments } from './legalReview';
 
 export const legalTitle = (kind: LegalDocumentKind) => kind === 'TERMS' ? 'Uslovi korišćenja' : 'Politika privatnosti';
@@ -15,7 +15,7 @@ export function LegalDocumentRows({ bundle, onOpen, disabled = false }: {
   const documents = reviewedDocuments(bundle);
   return documents ? <SettingsGroup title="Objavljeni dokumenti">{documents.map((document, index) =>
     <SettingsRow key={document.kind} label={legalTitle(document.kind)} detail={`Verzija ${document.version} · Otvara se u pregledaču`}
-      icon={document.kind === 'TERMS' ? <FileText size={23} color={v2.color.teal} /> : <ShieldCheck size={23} color={v2.color.teal} />}
+      icon={document.kind === 'TERMS' ? <FileText size={23} color={sys.color.green} /> : <ShieldCheck size={23} color={sys.color.green} />}
       onPress={() => onOpen(document)} disabled={disabled} last={index === 1} />)}</SettingsGroup>
     : <SettingsPanel soft><T>{bundle ? 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.' : 'Dokumenti trenutno nisu dostupni.'}</T></SettingsPanel>;
 }
@@ -51,7 +51,7 @@ function PublicLegalContents({ kind, onClose }: { kind: LegalDocumentKind; onClo
   };
   return <SettingsScreen title={legalTitle(kind)} onBack={onClose}>
     <SettingsIntro kicker="USKOČI DOKUMENTI" title="Sve na jednom mestu.">Otvorite objavljene dokumente. Posle čitanja možete nastaviti svoj formular.</SettingsIntro>
-    {loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={v2.color.teal} /> : <LegalDocumentRows bundle={bundle} onOpen={doc => { void open(doc); }} />}
+    {loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={sys.color.green} /> : <LegalDocumentRows bundle={bundle} onOpen={doc => { void open(doc); }} />}
     {error ? <View accessibilityLiveRegion="polite"><T accessibilityRole="alert">{error}</T></View> : null}
     {!loading ? <SettingsAction label="Učitajte dokumente ponovo" kind="quiet" onPress={() => { void read(); }} /> : null}
   </SettingsScreen>;

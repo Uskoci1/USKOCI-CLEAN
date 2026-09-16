@@ -8,7 +8,7 @@ import { useSesija, sesijaSada } from '../../../store/sesija';
 import { Press } from '../../../ui/Press';
 import { T } from '../../../ui/Text';
 import { V2Icon } from '../../../ui/v2/icons';
-import { v2 } from '../../../ui/v2/tokens';
+import { sys } from '../../../ui/system/tokens';
 export default function PushSettings() {
  const intent = useUloga(), { user, accountRevision } = useSesija(); const accountId = user?.id;
  const role = intent === 'narucilac' ? 'REQUESTER' : 'WORKER';
@@ -32,9 +32,9 @@ export default function PushSettings() {
  </SafeAreaView>;
 }
 const s = StyleSheet.create({
- screen: { flex: 1, backgroundColor: v2.color.canvas },
- header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, backgroundColor: v2.color.header, borderBottomWidth: 1, borderBottomColor: v2.color.line },
- back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: v2.radius.button, backgroundColor: v2.color.surface, borderWidth: 1, borderColor: v2.color.line },
- title: { ...v2.text.title, color: v2.color.ink }, content: { padding: v2.space.xl, paddingBottom: 32 },
- footer: { padding: 18, borderTopWidth: 1, borderTopColor: v2.color.line, backgroundColor: v2.color.surface }, caption: { ...v2.text.label, color: v2.color.muted },
+ screen: { flex: 1, backgroundColor: sys.color.ground },
+ header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+ back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line },
+ title: { ...sys.type.title, color: sys.color.ink }, content: { padding: 24, paddingBottom: 32 },
+ footer: { padding: 18, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface }, caption: { ...sys.type.meta, color: sys.color.muted },
 });

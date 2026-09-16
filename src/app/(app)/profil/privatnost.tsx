@@ -6,7 +6,7 @@ import { retentionPolicyClientService } from '../../../data/retentionPolicyClien
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { ulogaSada, useUloga } from '../../../store/uloga';
-import { v2 } from '../../../ui/v2/tokens';
+import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsInfo, SettingsAction, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { Press } from '../../../ui/Press';
 import { ClosureEntry } from '../../../ui/closure/ClosureDialog';
@@ -58,15 +58,15 @@ function OwnedPrivacy() {
       Podaci za saradnju imaju različitu vidljivost. Rokove čuvanja možete pregledati ispod.
     </SettingsIntro>
     <SettingsPanel>
-      <SettingsInfo title="Javni podaci Zadatka" icon={<Eye size={22} color={v2.color.teal} />}>
+      <SettingsInfo title="Javni podaci Zadatka" icon={<Eye size={22} color={sys.color.green} />}>
         Opis objavljenog Zadatka i njegova približna lokacija dostupni su drugim korisnicima.
       </SettingsInfo>
-      <SettingsInfo title="Lokacija i kontakt" last icon={<MapPin size={22} color={v2.color.teal} />}>
+      <SettingsInfo title="Lokacija i kontakt" last icon={<MapPin size={22} color={sys.color.green} />}>
         Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup. Zadaci na daljinu nemaju adresu ni pin.
       </SettingsInfo>
     </SettingsPanel>
     <SettingsPanel soft>
-      <SettingsInfo title="Izvoz mojih podataka" last icon={<DownloadSimple size={22} color={v2.color.teal} />}>
+      <SettingsInfo title="Izvoz mojih podataka" last icon={<DownloadSimple size={22} color={sys.color.green} />}>
         Pregledajte zahtev, pripremu i dostupnost svoje kopije.
       </SettingsInfo>
       <SettingsAction label="Otvorite izvoz" kind="secondary" onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
@@ -76,7 +76,7 @@ function OwnedPrivacy() {
     <View style={{ marginTop: 20, gap: 12 }}>
       <T variant="heading" accessibilityRole="header">Rokovi čuvanja</T>
       {policy.loading ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo rokove čuvanja" style={{ flexDirection: 'row', gap: 8 }}>
-        <ActivityIndicator color={v2.color.teal} /><T tone="muted">Učitavamo rokove čuvanja…</T>
+        <ActivityIndicator color={sys.color.green} /><T tone="muted">Učitavamo rokove čuvanja…</T>
       </View> : policy.error ? <T accessibilityRole="alert">Rokovi čuvanja trenutno nisu dostupni. Pokušajte ponovo.</T>
         : publishedPolicy ? <>
           <T variant="meta" tone="muted">Verzija: {publishedPolicy.policyVersion}</T>
@@ -84,12 +84,12 @@ function OwnedPrivacy() {
             {publishedPolicy.rules.map(rule => {
               const key = `${publishedPolicy.policyVersion}:${rule.dataClass}`, expanded = expandedRule === key;
               const title = labels[rule.dataClass] ?? rule.purpose;
-              return <View key={key} style={{ borderBottomWidth: 1, borderBottomColor: v2.color.line }}>
+              return <View key={key} style={{ borderBottomWidth: 1, borderBottomColor: sys.color.line }}>
                 <Press accessibilityRole="button" accessibilityLabel={`Rokovi: ${title}`} accessibilityState={{ expanded }}
                   onPress={() => { if (current()) setExpandedRule(expanded ? null : key); }} haptic="select"
                   style={{ minHeight: 56, paddingVertical: 14, gap: 12, flexDirection: 'row', alignItems: 'center' }}>
                   <T variant="bodyStrong" style={{ flex: 1 }}>{title}</T>
-                  {expanded ? <CaretUp size={18} color={v2.color.teal} /> : <CaretDown size={18} color={v2.color.teal} />}
+                  {expanded ? <CaretUp size={18} color={sys.color.green} /> : <CaretDown size={18} color={sys.color.green} />}
                 </Press>
                 {expanded ? <View style={{ paddingBottom: 16, gap: 8 }}>
                   <T variant="meta">Svrha: {rule.purpose}</T>
