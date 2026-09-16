@@ -7,7 +7,7 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const prior = read(base + '/proof-report.json');
 assert.equal(prior.result, 'PASS');
 assert.equal(prior.source_sha, process.env.GITHUB_SHA);
-assert.equal(prior.full_source_plan.source_migration_count, 108);
+assert.equal(prior.full_source_plan.source_migration_count, 147); // admitted exact current source (PKG-013)
 assert.equal(prior.predecessor_plan.source_migration_count, 103);
 assert.equal(prior.migration_history_count, 103);
 assert.equal(prior.intentional_next_delivery_forward.file, '20260910153005_clean_p2_export_delivery_authority.sql');

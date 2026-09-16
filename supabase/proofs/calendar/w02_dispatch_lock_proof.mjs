@@ -41,7 +41,7 @@ export function admitDispatchLockReport(report, sourceSha, {root = process.cwd()
   assert.match(sourceSha ?? '', /^[0-9a-f]{40}$/);
   assert.equal(report?.source_sha, sourceSha); assert.equal(report.result, 'PASS');
   assert.equal(report.unit, 'W02_DISPATCH_NEED_LOCK_ORDER');
-  assert.equal(report.source_migration_count, 108); assert.equal(report.registry_history_count, 105);
+  assert.equal(report.source_migration_count, 147); assert.equal(report.registry_history_count, 105); // admitted exact current source147; applied authority unchanged
   assert.equal(report.applied_authority, 'REGISTRY105_PLUS_UNRECORDED_DISPATCH108');
   assert.equal(report.actual_postgres_major, 17);
   assert.deepEqual(report.observed_predecessor_body_md5, {[signature]:oldBody,[expirySignature]:oldExpiryBody});
@@ -76,7 +76,7 @@ export function admitDispatchLockReport(report, sourceSha, {root = process.cwd()
   const bytes = readFileSync(resolve(root,forward));
   const manifest = JSON.parse(readFileSync(resolve(root,manifestFile),'utf8'));
   assert.equal(manifest.unit,report.unit); assert.equal(manifest.expected_registered_history_count,105);
-  assert.equal(manifest.admitted_source_count,108); assert.equal(manifest.applied_authority,report.applied_authority);
+  assert.equal(manifest.admitted_source_count,147); assert.equal(manifest.applied_authority,report.applied_authority);
   assert.equal(manifest.forward_file,forward); assert.equal(manifest.bytes,bytes.length); assert.equal(manifest.sha256,hash(bytes));
   assert.equal(manifest.md5,createHash('md5').update(bytes).digest('hex'));
   assert.deepEqual(manifest.changed_bodies,[{signature,predecessor_md5:oldBody,current_md5:newBody},
@@ -228,7 +228,7 @@ export async function main(env = process.env) {
   }
   try {
     check('EXACT_SOURCE105_REAL_AUTH_AND_QUEUE_OWNER_PREFLIGHT');
-    assert.equal(report.source_migration_count, 108);
+    assert.equal(report.source_migration_count, 147);
     assert.match(env.GITHUB_SHA ?? '', /^[0-9a-f]{40}$/);
     assert.equal(sql('select count(*) from supabase_migrations.schema_migrations'), '105');
     assert.equal(sql('select md5(statements[1]) from supabase_migrations.schema_migrations order by version desc limit 1'), 'bad9f1317e86b2f3efaeb92f7200f0b4');

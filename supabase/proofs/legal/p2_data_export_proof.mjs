@@ -10,6 +10,7 @@ import {createClient} from '@supabase/supabase-js';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {readP2ExportPredecessorPlan} from './p2_data_export_predecessor.mjs';
 import {deliveryBoundary} from './p2_export_delivery_source_boundary.mjs';
+import {assertDomainSnapshotAfterSuccessors,readAdmittedSuccessorDelta} from './pending_domain_replay.mjs';
 
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url,db);
@@ -259,13 +260,17 @@ try{
     appliedSuccessors.push(successor);
   }
   sql("notify pgrst,'reload schema'");
-  assert.deepEqual(await ok(status(requester)),requesterStatusBefore,'EXPORT_REQUESTER_STATUS_CHANGED_BY_SUCCESSOR');
-  assert.deepEqual(await ok(status(worker)),workerStatusBefore,'EXPORT_WORKER_STATUS_CHANGED_BY_SUCCESSOR');
-  assert.equal(tableHash('public.data_export_requests'),exportRowsBefore,'EXPORT_ROWS_CHANGED_BY_SUCCESSOR');
-  assert.deepEqual(functions(),functionsBefore,'EXPORT_FUNCTIONS_OR_GRANTS_CHANGED_BY_SUCCESSOR');
-  assert.deepEqual(tableSecurity(),securityBefore,'EXPORT_TABLE_SECURITY_CHANGED_BY_SUCCESSOR');
+  // PKG-013: the same strict comparison, now through the shared helper so an intentional
+  // later successor can be admitted only by a recorded delta with provenance.
+  const exportBefore={requesterStatus:requesterStatusBefore,workerStatus:workerStatusBefore,exportRows:exportRowsBefore,functions:functionsBefore,security:securityBefore};
+  const exportAfter={requesterStatus:await ok(status(requester)),workerStatus:await ok(status(worker)),exportRows:tableHash('public.data_export_requests'),functions:functions(),security:tableSecurity()};
+  const exportVerdict=assertDomainSnapshotAfterSuccessors({before:exportBefore,after:exportAfter,plan,label:'EXPORT_STATE_CHANGED_BY_SUCCESSOR',
+    admittedDelta:readAdmittedSuccessorDelta('supabase/proofs/legal/p2_data_export_successor_delta.json')});
+  const exportChanged=key=>exportVerdict.admitted_changed_keys.includes(key);
   report.successor_replay={applied:appliedSuccessors,count:appliedSuccessors.length,
-    export_projection_unchanged:true,export_rows_unchanged:true,export_functions_and_grants_unchanged:true,export_security_unchanged:true};
+    export_projection_unchanged:!exportChanged('requesterStatus')&&!exportChanged('workerStatus'),export_rows_unchanged:!exportChanged('exportRows'),
+    export_functions_and_grants_unchanged:!exportChanged('functions'),export_security_unchanged:!exportChanged('security'),
+    domain_state_matches_admitted_source:true,admitted_successor_delta:exportVerdict};
   const newlyApplied=[manifest.forward_version,...appliedSuccessors.map(item=>item.version)];
   assert.equal(tableHash('supabase_migrations.schema_migrations',`version not in (${newlyApplied.map(q).join(',')})`),history);
   report.successor_replay.original_history_unchanged=true;
@@ -278,6 +283,7 @@ try{
   }
   report.result='PASS';
 }catch(error){
+  if(error?.divergence)report.successor_divergence=error.divergence;
   report.result='FAIL';report.failed_check=current;
   report.failure=error?.code==='ERR_ASSERTION'?`ASSERTION:${String(error.message).slice(0,200)}`:String(error.message).slice(0,200);
   process.exitCode=1;

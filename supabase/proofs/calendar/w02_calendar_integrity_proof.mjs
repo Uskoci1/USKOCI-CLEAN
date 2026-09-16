@@ -23,7 +23,7 @@ const worker=createClient(url,env.RU5_DEVICE_ANON_KEY,options);
 const q=value=>`'${String(value).replaceAll("'","''")}'`;
 const uid=value=>{assert.match(value,/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i);return value;};
 const requesterId=uid(env.RU5_DEVICE_REQUESTER_USER_ID),workerId=uid(env.RU5_DEVICE_WORKER_USER_ID);
-const report={unit:'W02_CALENDAR_INTERVAL_INTEGRITY',admitted_source_count:108,registry_history_count:105,
+const report={unit:'W02_CALENDAR_INTERVAL_INTEGRITY',admitted_source_count:147,registry_history_count:105,
   deferred_authority_successors:[sourceBoundary.next,...sourceBoundary.deferredSuccessors.filter(item=>item.file!==dispatchLockForward)],source_sha:env.GITHUB_SHA,checks:[],
   live_access:false,live_promotion:false,external_provider_called:false,visual_design_changed:false,
   fixture_sql_used:true,ui_journey_proven:false,mocked_rpc_responses:false,input_sha256:{},lock_observations:[]};
