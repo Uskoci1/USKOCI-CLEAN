@@ -57,9 +57,24 @@ try{
   const registered=new Set(sql('select version from supabase_migrations.schema_migrations').split('\n').filter(Boolean));
   const toHead=boundary.fullPlan.pending_successors.filter(entry=>!registered.has(entry.version));
   assert.equal(toHead[0]?.file,'20260910172132_clean_w03_owned_ai_intake_authority.sql','W02_SHARED_CAPABILITY_EXPECTS_REGISTRY105');
+  // SQL108 (dispatch lock order) is already applied here, unrecorded, by the dispatch-lock proof,
+  // whose bodies the authority proof re-verified. It asserts its own predecessor bodies, so it
+  // must not run twice: 106 and 107 are applied first, 108 is recorded exactly (bytes, md5,
+  // sha256 and both current bodies checked), then 109-147 are applied in order.
+  const dispatchFile='20260910214845_clean_dispatch_need_lock_order.sql';
+  const lockManifest=JSON.parse(readFileSync('supabase/proofs/calendar/w02_dispatch_lock_files.json','utf8'));
+  const beforeDispatch=toHead.filter(entry=>entry.file<dispatchFile),dispatchEntry=toHead.find(entry=>entry.file===dispatchFile),afterDispatch=toHead.filter(entry=>entry.file>dispatchFile);
+  assert.ok(dispatchEntry,'W02_SHARED_CAPABILITY_EXPECTS_UNRECORDED_DISPATCH108');
   report.replayed_to_head={history_before:registered.size,count:toHead.length,first:toHead[0]?.file??null,last:toHead.at(-1)?.file??null,
-    applied_authority:'REGISTRY105_PLUS_UNRECORDED_DISPATCH108_THEN_EXACT_SOURCE147',source_migration_count:boundary.fullPlan.source_migration_count};
-  applyPendingSuccessors({plan:{source_migration_count:boundary.fullPlan.source_migration_count,source_inventory:boundary.fullPlan.source_inventory,pending_successors:toHead},sql,db,url});
+    applied_authority:'REGISTRY105_PLUS_UNRECORDED_DISPATCH108_THEN_EXACT_SOURCE147',source_migration_count:boundary.fullPlan.source_migration_count,
+    applied:[...beforeDispatch,...afterDispatch].map(entry=>entry.file),recorded_already_applied:[dispatchFile]};
+  applyPendingSuccessors({plan:{source_migration_count:registered.size+beforeDispatch.length,source_inventory:boundary.fullPlan.source_inventory,pending_successors:beforeDispatch},sql,db,url});
+  for(const body of lockManifest.changed_bodies)assert.equal(sql(`select md5(prosrc) from pg_proc where oid=${q(body.signature)}::regprocedure`),body.current_md5,'W02_SHARED_CAPABILITY_DISPATCH108_BODY_MISMATCH');
+  const dispatchBytes=readFileSync('supabase/migrations/'+dispatchFile);
+  assert.equal(createHash('md5').update(dispatchBytes).digest('hex'),dispatchEntry.md5);assert.equal(createHash('sha256').update(dispatchBytes).digest('hex'),lockManifest.sha256);
+  assert.equal(sql(`select count(*) from supabase_migrations.schema_migrations where version=${q(dispatchEntry.version)}`),'0');
+  sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(dispatchEntry.version)},${q(dispatchEntry.name)},array[${q(dispatchBytes.toString('utf8'))}])`);
+  applyPendingSuccessors({plan:{source_migration_count:boundary.fullPlan.source_migration_count,source_inventory:boundary.fullPlan.source_inventory,pending_successors:afterDispatch},sql,db,url});
   report.replayed_to_head.history_after=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
   assert.equal(report.replayed_to_head.history_after,147,'W02_SHARED_CAPABILITY_EXPECTS_EXACT_SOURCE147');
   await ok(worker.auth.signUp({email:'w02-resource-'+randomUUID()+'@example.test',password:randomUUID()+'Aa9!'}));

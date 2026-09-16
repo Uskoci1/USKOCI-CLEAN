@@ -99,8 +99,11 @@ counts are disposable database history counts, not source counts.
   `rpc_save_worker_capacity` (SQL `20260911174500`), which the historical registry105 +
   unrecorded dispatch108 database does not have. The proof now applies every later file in
   order with a registry row (`applyPendingSuccessors`, shared with the domain replay) and
-  asserts history 147 before exercising the client; SQL108 contains only function bodies and is
-  recorded on that pass. The loader also admits the two capacity modules added on 2026-09-11.
+  asserts history 147 before exercising the client. SQL108 is already applied there, unrecorded,
+  by the dispatch-lock proof and asserts its own predecessor bodies, so it is not run twice:
+  106 and 107 are applied, 108 is recorded exactly (bytes, md5, sha256, both current bodies
+  checked against `w02_dispatch_lock_files.json`), then 109-147 follow in order. The loader
+  also admits the two capacity modules added on 2026-09-11.
 - **W01 Android**: with setup-android v4.0.1 and `platform-tools` the proof APK builds again
   (`BUILD SUCCESSFUL`, run 35113177025) and the emulator boots; the native proof then lost
   `Zaboravili ste lozinku?` because the login sheet now animates in (`AuthSheet`, 2026-09-13)
