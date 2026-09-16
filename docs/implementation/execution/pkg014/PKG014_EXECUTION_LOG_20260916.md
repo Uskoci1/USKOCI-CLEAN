@@ -430,6 +430,95 @@ on that conversation. Nothing was deleted or rewritten.
 **PKG-014 is therefore not DONE_VERIFIED yet.** Steps 1 to 4 are complete and verified. Step 5 and the
 end-to-end acceptance evidence wait on two owner actions in the app.
 
+## 8. Autonomous authenticated acceptance: exact blocker and the permanent fix (2026-09-16)
+
+The owner asked this session to run the acceptance itself, with a real Auth session on a dedicated QA
+account, without forging `auth.uid()` and without a phone test.
+
+### What exists, checked read-only
+
+| Fact | Finding |
+| --- | --- |
+| dedicated QA account | `msljivic031+uskoci-qa@gmail.com`, account `2e7310cf…`, confirmed, already admitted to the AI test gate |
+| second candidate | `uskocibusiness@gmail.com`, confirmed, admitted |
+| how the QA session used to be obtained | `scripts/dev-alpha-qa-login.ps1` reads `artifacts/dev-alpha-qa/qa-credential.clixml`, a DPAPI-protected credential, and posts a real password grant |
+| that credential store today | absent everywhere on this machine, and correctly never committed: `git log --all -- artifacts/dev-alpha-qa` is empty and `/artifacts/` is git-ignored |
+| how that password was created | `dev-alpha-qa-signup.ps1` generated a random password and saved it only into that DPAPI file, so nobody holds it any more |
+| repository Actions secrets | none at all, `total_count: 0`; no workflow references `secrets.*` for canonical DEV |
+| new signup as a way in | `mailer_autoconfirm: false`, so a fresh account stays unconfirmed and this session cannot read the confirmation mail |
+| anonymous sign-in | `anonymous_users: false` |
+| service role | not available to this session, and using it to mint a session was forbidden anyway |
+
+**Blocker, stated exactly: no confirmed DEV account has a password reachable by an automated agent on
+this machine or in CI, and every other real Auth entry point is closed. Without one secret, a real user
+JWT cannot be obtained, so the authenticated acceptance cannot run.** Nothing about the deployed
+runtime blocks it.
+
+### What is proven without a session
+
+The three deployed functions answer on canonical DEV and enforce authentication with their own code
+paths, not just the gateway:
+
+| Function | Unauthenticated POST |
+| --- | --- |
+| `uskoci-ai-interview` | HTTP 401 `{"code":"AUTH_REQUIRED","message":"Prijavite se da biste nastavili."}`, the exact shape in its source |
+| `uskoci-worker-interview` | HTTP 401 `{"code":"AUTH_REQUIRED"}` |
+| `uskoci-account-closure-worker` | HTTP 401 `{"code":"AUTH_REQUIRED"}` |
+
+### The permanent harness, committed
+
+`scripts/acceptance/dev_ai_acceptance.mjs` and `.github/workflows/dev-alpha-ai-acceptance.yml` make the
+whole chain runnable by an agent, for good:
+
+- real password grant against `/auth/v1/token`, then `/auth/v1/user` must return the same id, role
+  `authenticated` and a confirmed email;
+- WORKER_PROFILE: six turns covering services, tools, vehicle, team capacity, working area and radius,
+  regular availability, one correction of an earlier fact, and one deliberately vague licence claim the
+  model must not invent; then `rpc_prepare_worker_ai_review`, the confirmation through
+  `rpc_save_worker_ai_review`, and readback through `rpc_get_worker_profile_for_edit`,
+  `rpc_get_worker_capacity` and `rpc_read_worker_ai`;
+- NEED: the owner's own moving example, plus a later addition, a correction of the hour and a vague
+  weight the model must not invent; then the proposed facts as stored, `rpc_ai_need_review_v2`,
+  `rpc_prepare_ai_task_review`, `rpc_accept_ai_task_review`, publication readiness and a readback of
+  `needs` and `need_geography`;
+- every write goes through the same RPCs the app calls, so `auth.uid()` and RLS apply; the service role
+  is never used and no JWT claim is ever set by hand;
+- the password and both tokens are scrubbed from stdout and from the artifact, and any JWT-shaped string
+  is replaced before anything is written;
+- the run is manual only, refuses a non-canonical target, refuses to start without a credential, and
+  stops at an explicit provider call ceiling because the AI test budget is shared and finite.
+
+Guards were exercised locally: with no credential it exits `ACCEPTANCE_CREDENTIALS_MISSING`, and against
+a foreign host it exits `TARGET_NOT_CANONICAL`.
+
+### The one-time owner action that unblocks it
+
+1. In the Supabase dashboard, set a new password for `msljivic031+uskoci-qa@gmail.com`. It is the
+   dedicated QA account, already admitted to the AI gate, and it is not the owner's personal account.
+2. In GitHub, create the environment `dev-alpha-acceptance` with variable
+   `DEV_ACCEPTANCE_EMAIL = msljivic031+uskoci-qa@gmail.com` and secret `DEV_ACCEPTANCE_PASSWORD`.
+3. Run the workflow. From then on any agent can execute AUTH → AI → REVIEW → CONFIRM → CANONICAL WRITE
+   → READBACK without the owner.
+
+The password must never be pasted into chat, a document or the repository. The secret store is the only
+place it belongs.
+
+### Budget note
+
+The shared AI test ceiling is 5000000 microUSD and 1750000 is already reserved by the seven earlier
+attempts. Each provider call reserves 250000, and reservations are not released, so thirteen calls
+remain in total. The default ceiling of twelve calls per run is therefore close to the whole remaining
+budget: run `worker` and `need` separately, with a small ceiling each, or raise the budget first.
+
+## 9. The old stuck turn: LEGACY_OWNER_SESSION_BLOCKER
+
+Conversation `23e74284-3eee-462e-b6f5-6a1c40857587`, client request
+`41cf65f2-021c-45f6-b9c2-08b6ac44fa10`, belongs to `uskocibusiness@gmail.com`. Its canonical closure is
+`rpc_ai_cancel_need_turn_v2`, which reads `auth.uid()` and therefore requires that account's own
+session. No credential for it is safely available here either, so per the owner's instruction the turn
+is left untouched and marked **LEGACY_OWNER_SESSION_BLOCKER**. It blocks only new turns inside that one
+conversation and nothing else; the acceptance harness uses its own conversations.
+
 ## Live state now
 
 - Schema: all 147 source migrations applied, the three-file delta 145 to 147 included.
