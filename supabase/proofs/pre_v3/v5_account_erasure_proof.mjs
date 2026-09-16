@@ -121,6 +121,7 @@ await prove('V5_EVENT_BOUND_ACCOUNT_ERASURE','v5-account-erasure-report.json',as
  const oldSession=(await ok(a.client.auth.getSession())).session;assert.ok(oldSession);
  const originalAuthEmail=oldSession.user.email;assert.ok(originalAuthEmail);
  const originalAuthPhone=sql(`select coalesce(phone,'') from auth.users where id=${q(a.id)}::uuid`);
+ const originalIdentities=rows(`select id,provider,provider_id from auth.identities where user_id=${q(a.id)}::uuid order by id`);assert.ok(originalIdentities.length>=1);
  await prep(a);const ready=await review(a);
  assert.equal(ready.ready,true);assert.equal(ready.adapterVersion,'OWNER_AF_D22_EVENT_ERASURE_V1');assert.deepEqual(ready.exceptions,[]);
  assert.equal(ready.retainedDatasets,null);assert.equal(ready.authAction,'AUTH_IDENTITY_ERASED_SUBJECT_RETAINED');
@@ -221,7 +222,15 @@ await prove('V5_EVENT_BOUND_ACCOUNT_ERASURE','v5-account-erasure-report.json',as
  assert.equal(authState?.app_meta_empty,true,'AUTH_SOFT_DELETE_APP_METADATA_NOT_CLEARED');
  assert.equal(authState?.email_obfuscated,true,'AUTH_SOFT_DELETE_EMAIL_NOT_OBFUSCATED');
  assert.equal(authState?.phone_erased,true,'AUTH_SOFT_DELETE_PHONE_NOT_ERASED');
- assert.equal(sql(`select count(*) from auth.identities where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_IDENTITIES_REMAIN');
+ // GoTrue soft deletion keeps the identity rows (the subject is retained) but empties
+ // identity_data and replaces provider_id with a one-way token; factors are removed and
+ // sessions are logged out. No original provider identifier or email may survive.
+ const identities=rows(`select id,provider,provider_id,coalesce(identity_data,'{}'::jsonb)='{}'::jsonb data_empty,email from auth.identities where user_id=${q(a.id)}::uuid order by id`);
+ report.authSoftErasure.identitiesRetained=identities.length;
+ report.authSoftErasure.identitiesErased=identities.length===originalIdentities.length&&identities.every((row,i)=>row.id===originalIdentities[i].id
+  &&row.provider===originalIdentities[i].provider&&row.provider_id!==originalIdentities[i].provider_id&&row.data_empty===true&&row.email===null);
+ assert.equal(report.authSoftErasure.identitiesErased,true,'AUTH_SOFT_DELETE_IDENTITIES_NOT_ERASED');
+ assert.equal(sql(`select count(*) from auth.mfa_factors where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_FACTORS_REMAIN');
  assert.equal(sql(`select count(*) from auth.sessions where user_id=${q(a.id)}::uuid`),'0','AUTH_SOFT_DELETE_SESSIONS_REMAIN');
  const response=await invoke();assert.equal(response.status,200);const closed=await response.json();
  assert.equal(closed.state,'CLOSED');assert.equal(closed.relationalOutcome,'ORDINARY_PERSONAL_CONTENT_ERASED');assert.equal(closed.adapterVersion,'OWNER_AF_D22_EVENT_ERASURE_V1');
