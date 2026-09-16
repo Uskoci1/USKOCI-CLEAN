@@ -31,7 +31,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CalendarBlank: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CalendarBlank: 'Icon', CaretRight: 'Icon', ChatCircle: 'Icon', Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', Wallet: 'Icon' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({
   from: () => { const builder = { select: () => builder, eq: () => builder, maybeSingle: mockLinkQuery }; return builder; },
