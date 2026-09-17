@@ -206,7 +206,14 @@ exact rather than merely similar.
 
 `dev_alpha_pkg021_need_timestamp_fact_iso8601`, version `20260917230145`, canonical DEV
 `leqcwgzvjsxugfgzdmth`. Repo copy:
-`supabase/migrations/20260917230145_dev_alpha_pkg021_need_timestamp_fact_iso8601.sql`.
+`supabase/candidates/pkg021_need_timestamp_fact_iso8601.sql`.
+
+It is deliberately **not** placed in `supabase/migrations/`. That directory is the frozen
+source-147 inventory that `supabase/proofs/legal/pending_source_plan.test.mjs` pins, and adding
+a 148th file fails seven of its assertions. Every other `dev_alpha_*` change applied to
+canonical DEV - pkg014b, pkg015, pkg015b, pkg019, pkg019b, pkg019c, pkg019d - is recorded the
+same way. This was learned the hard way here: the file was copied into `migrations/` first and
+CI run 35285752638 went red on exactly that.
 
 Preflight refused to proceed unless `rpc_ai_open_need_edit_conversation_v2` hashed to
 `b18fbaf486ab6acdc3e3bf105e37cb1b`, `validate_need_v2_fact` to

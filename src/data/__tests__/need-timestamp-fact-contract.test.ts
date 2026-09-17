@@ -71,31 +71,28 @@ it.each([
   expect(decodeAiTaskReview(envelope(value), OWNER)).not.toBeNull();
 });
 
-it('the newest definition of the draft-seeding RPC does not cast a timestamp to text', () => {
-  // Migrations are forward-only, so older files legitimately still contain the defect and must
-  // not be rewritten. Only the newest definition describes the live function, so only that one
-  // is asserted.
-  const dir = join(__dirname, '..', '..', '..', 'supabase', 'migrations');
-  const signature = /create or replace function\s+public\.rpc_ai_open_need_edit_conversation_v2\b/i;
-  const defining = readdirSync(dir)
+it('no candidate that seeds a draft casts a timestamp fact to text', () => {
+  // `supabase/migrations` is the frozen source-147 inventory that the legal source-admission
+  // harness pins; changes applied to canonical DEV are recorded in `supabase/candidates`
+  // instead. So the candidate is the artifact to assert against.
+  const dir = join(__dirname, '..', '..', '..', 'supabase', 'candidates');
+  const seeds = /when 'need\.(starts_at|ends_at)' then/;
+  const candidates = readdirSync(dir)
     .filter(name => name.endsWith('.sql'))
-    .filter(name => signature.test(readFileSync(join(dir, name), 'utf8')))
-    .sort();
+    .map(name => [name, readFileSync(join(dir, name), 'utf8')] as const)
+    .filter(([, sql]) => seeds.test(sql));
 
-  expect(defining.length).toBeGreaterThan(0);
-  const newest = readFileSync(join(dir, defining[defining.length - 1]), 'utf8');
+  expect(candidates.length).toBeGreaterThan(0);
 
-  // The assertion is about the executable seeding statement, not about prose: the migration
-  // that fixes this necessarily quotes `starts_at::text` in its own comments and in the guards
-  // that check for it, and a whole-file match would fail on the fix itself.
-  const seeding = (column: 'starts_at' | 'ends_at') => {
-    const found = newest.match(new RegExp(`when 'need\\.${column}' then[\\s\\S]*?end if;`));
-    expect(found).not.toBeNull();
-    return found![0];
-  };
-
-  for (const column of ['starts_at', 'ends_at'] as const) {
-    expect(seeding(column)).toContain(`to_jsonb(v_need.${column})`);
-    expect(seeding(column)).not.toContain(`v_need.${column}::text`);
+  for (const [name, sql] of candidates) {
+    for (const column of ['starts_at', 'ends_at'] as const) {
+      // The assertion is about the executable seeding statement, not about prose: the candidate
+      // that fixes this necessarily quotes `starts_at::text` in its own comments and in the
+      // guards that check for it, so a whole-file match would fail on the fix itself.
+      const found = sql.match(new RegExp(`when 'need\\.${column}' then[\\s\\S]*?end if;`));
+      expect(found).not.toBeNull();
+      expect(`${name}: ${found![0]}`).toContain(`to_jsonb(v_need.${column})`);
+      expect(`${name}: ${found![0]}`).not.toContain(`v_need.${column}::text`);
+    }
   }
 });
