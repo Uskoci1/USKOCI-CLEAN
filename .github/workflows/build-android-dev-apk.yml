@@ -17,6 +17,11 @@ env:
   EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
   EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
   EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
+  # PKG-016 / GAP-0007. configuredRecoveryRedirect() returns null unless this is present
+  # and, on native, exactly equals the redirect the source pins. Without it the bundler
+  # inlines undefined and the signed APK ships an app in which password recovery can
+  # never work. The exact value is asserted below against the artifact, not assumed.
+  EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
   CI: '1'
   NODE_ENV: production
 
@@ -102,6 +107,14 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk USKOCI-DEV.apk
           sha256sum USKOCI-DEV.apk > USKOCI-DEV.apk.sha256
 
+      - name: Attest the recovery redirect is compiled into the artifact
+        run: |
+          set -euo pipefail
+          USKOCI_SOURCE_TREE="$(git rev-parse 'HEAD^{tree}')" \
+            python3 scripts/ci/attest_recovery_redirect.py \
+              USKOCI-DEV.apk USKOCI-DEV-recovery-attestation.json
+          cat USKOCI-DEV-recovery-attestation.json
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
@@ -109,9 +122,14 @@ jobs:
           path: |
             USKOCI-DEV.apk
             USKOCI-DEV.apk.sha256
+            USKOCI-DEV-recovery-attestation.json
           retention-days: 14
 
+      # A proof run from a working branch must not delete and recreate the published
+      # dev-latest release. Publishing stays bound to the canonical branch; the APK and
+      # its attestation are still uploaded as workflow artifacts on every run.
       - name: Refresh dev-latest pre-release
+        if: github.ref == 'refs/heads/clean-alpha-backend'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -119,6 +137,7 @@ jobs:
           gh release create dev-latest \
             USKOCI-DEV.apk \
             USKOCI-DEV.apk.sha256 \
+            USKOCI-DEV-recovery-attestation.json \
             --target "${GITHUB_SHA}" \
             --title 'USKOČI DEV — Android APK' \
             --notes 'Development APK connected to the live USKOČI Supabase backend. This is not a Play Store release.' \
