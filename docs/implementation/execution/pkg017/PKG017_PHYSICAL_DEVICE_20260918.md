@@ -161,3 +161,89 @@ launcher-mark halves of PKG-017 are proven on real ARM64 hardware as of 2026-09-
 The recovery screen reached in this session is in the Vi form: `Zatražite novi link`,
 `Link je nevažeći ili je istekao. Zatražite novi link.` Recorded here so the pass has a
 concrete first target rather than a file count.
+
+---
+
+## Logout and the account boundary, 2026-09-18
+
+The last pending acceptance item. The owner gave the word; the relogin half is his, because
+entering his password is not something to do on his behalf.
+
+**Before.** Account `1c489b37-1290-4bc2-999d-7f77a05cd342` (`msljivic031`, Novi Sad) owned 2
+needs, both drafts, 33 conversations and 229 structured facts. Server-side it held **15**
+sessions and **15** live refresh tokens, the newest updated at 23:32:58Z - the phone, refreshing.
+
+**Logout.** Profil, scroll to the bottom, `Odjavite se`. The app goes straight to the sign-in
+sheet. No crash across the whole sequence.
+
+**The session was actually revoked, not merely forgotten.** Sessions went **15 to 14** and live
+refresh tokens **15 to 14**, and the newest remaining session is from 18:09:23Z rather than
+23:32:58Z. So exactly one session was revoked, and it was the phone's. The other fourteen
+survive, which is the correct scope: signing out on one device must not sign the account out
+everywhere.
+
+**It does not come back.** `am force-stop` then a cold `am start`: `LaunchState: COLD`, 700ms,
+new pid 17621, and the app lands on the **entry screen**, not on a restored session.
+
+**Nothing of the account is reachable while signed out.** Deep-linking directly at three
+protected routes - `uskociapp://potrebe`, `uskociapp://dogovori`, `uskociapp://moje-prijave` -
+each lands on the entry screen instead of the route. The sign-in form's email field shows only
+the placeholder `ime@primer.rs`; the account's address is not left on screen.
+
+### A mistake of mine, and what it did not do
+
+Driving the entry screen by the coordinates that `uiautomator dump` reports is unreliable here:
+the entry is a scroll view, and the reported positions for `Prijavi se` and `Napravi nalog` do
+not match where they actually are. A tap meant for `Prijavi se` opened **Registracija**, and
+repeated taps after that landed on the on-screen keyboard and typed characters into the email
+field, which the sign-in and registration sheets share.
+
+No account was created: `Napravite nalog` was never pressed, the sheet was left through its own
+back control, and the field was cleared afterwards. Verified at the database rather than by
+assertion - **0** users created in the last 30 minutes, **0** addresses beginning `3eee`, total
+users still **5**, and the owner's session count still 14.
+
+Worth recording as a product observation rather than a defect: on this 2728px panel `Prijavi se`
+and `Napravi nalog` sit at the very bottom edge, close together, and the wrong one is easy to
+hit. If it caught an automated driver, it can catch a thumb.
+
+### Still the owner's step
+
+He signs in. After that, confirm the account comes back as the same account, that the two drafts,
+33 conversations and 229 facts are all present, and that nothing from the signed-out state
+crossed into the new session. Only then does PKG-017 close.
+
+### Relogin — the boundary closes
+
+The owner signed in on the phone at 23:44:59Z. Everything was read back rather than assumed.
+
+| check | before logout | after relogin |
+| --- | --- | --- |
+| needs owned | 2 | **2** |
+| drafts owned | 2 | **2** |
+| conversations | 33 | **33** |
+| structured facts | 229 | **229** |
+| sessions | 15 | 14 after logout, **15** after relogin |
+| total users in the project | 5 | **5** |
+| users created in the last hour | — | **0** |
+
+The identity is the same one: the profile reads `msljivic031`, `Novi Sad`, `Još nema ocena`.
+Both drafts are present and unchanged, `Prevoz i prenos stvari: 4 kutije i 2 ormara` still
+carrying `Lenke Dunđerski, Novi Sad`, and `Dostava punjača iz Novog Sada u Petrovaradin`.
+
+The conversation count did not move, so the relogin created no spurious conversation. The user
+count did not move, so nothing was created anywhere in the project during the whole sequence.
+A single new session appeared, which is exactly one device signing in.
+
+`Otvoreni zadaci` reads **0** on the map, which is the correct GAP-0042 result rather than a
+symptom: the owner is on the REAL side and no real task has been published yet.
+
+Zero `FATAL EXCEPTION`, zero `AndroidRuntime` errors and zero ANR across the entire
+logout and relogin sequence.
+
+One behavioural note, not a defect: after a fresh sign-in the app lands on **JA MOGU**, while
+the session before the logout was on MENI TREBA. A new session has no remembered side, which is
+consistent with the tab behaviour recorded earlier in this document.
+
+**PKG-017 is complete.** Every acceptance item this package names is now proven on real ARM64
+hardware, and nothing is left pending.
