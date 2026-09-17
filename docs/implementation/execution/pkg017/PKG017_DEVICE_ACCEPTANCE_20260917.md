@@ -157,3 +157,88 @@ was exercised.
 There is also a standing question either way: since GitHub runners are x86_64, an arm64-only release
 artifact can never be emulator-tested in CI. If device proof is meant to be automated, the build has
 to carry `x86_64` alongside `arm64-v8a`. That is a build-configuration decision, not a test one.
+
+---
+
+## Owner decision, 2026-09-17: phone over USB. Status PENDING_PHYSICAL_DEVICE
+
+### The artifact is now a direct download
+
+Published as a pre-release **without rebuilding anything**. The asset was downloaded back and hashed
+to confirm the published bytes are the attested bytes.
+
+| | |
+| --- | --- |
+| download | `https://github.com/Uskoci1/USKOCI-CLEAN/releases/download/pkg016-8c70826/USKOCI-DEV.apk` |
+| release page | `https://github.com/Uskoci1/USKOCI-CLEAN/releases/tag/pkg016-8c70826` |
+| SHA256 | `efd5eb476226fced90c73c68bbd47f959a27200c8418f0ef68bc5870a75bf298` |
+| size | 68 636 551 bytes |
+| tag points at | `8c70826c506a4c29c71383550ab2efa82ee44e88` |
+
+Verify before installing:
+
+```
+Get-FileHash .\USKOCI-DEV.apk -Algorithm SHA256
+sha256sum USKOCI-DEV.apk
+```
+
+The release also carries the recovery attestation from the build run and a plain-text provenance
+note. The existing `dev-latest` pre-release was not touched.
+
+**One thing the owner should know:** this repository is public, so a release asset is downloadable by
+anyone, and this build points at canonical DEV. The existing `dev-latest` release already publishes
+an APK the same way, so this is not new exposure, but it does interact with GAP-0042: a stranger who
+installs it can create an account on DEV. The release can be deleted once the phone has it.
+
+### What is proven without a device, measured rather than asserted
+
+The session boundaries the owner listed are, at the client-logic layer, **already covered**. Running
+the six session and intent suites on the candidate:
+
+```
+Test Suites: 6 passed, 6 total
+Tests:       91 passed, 91 total
+```
+
+Named coverage that maps directly onto the requested boundaries:
+
+| Requested boundary | Existing test |
+| --- | --- |
+| logout, account boundary, re-login | "fences an account switch and the A-B-A incarnation case" |
+| late old-session response cannot change a new session | "bounded read rejects a late result; explicit retry recovers without exposing raw errors" |
+| the same, after batching | "hook-bound monotonic ownership rejects dispatch after batched A→B→A while durable capture waits" |
+| account revision, not token refresh | "fences a late receipt after same-account session incarnation changes" |
+| intent persistence across identity change | `account-intent-preference.test.ts`, and `sesija.ts` resets `intentReady` only on identity change |
+| recovery deep link, cold start case | `password-recovery-intent.test.ts` asserts `redirectSystemPath` with `initial: true` |
+
+`accountRevision` increments **only** when the user identity changes, so a token refresh cannot
+cancel a restore, and a late continuation compares both the revision and the account id before
+applying. That is the "late response cannot change a new session" contract, in source.
+
+What a device adds is not the logic but the integration: that the shipped app, on real hardware,
+against the live backend, actually behaves this way.
+
+### The harness is written and its guards are proven
+
+`scripts/acceptance/device_acceptance.py` is ready to run the moment a phone is attached. It is
+deliberately not the W01 disposable proof and cannot be pointed at it.
+
+Guards, all verified by running them:
+
+| Guard | Verified behaviour |
+| --- | --- |
+| no device | `REFUSED: PENDING_PHYSICAL_DEVICE: no device attached` |
+| wrong artifact | `REFUSED: APK_NOT_THE_ATTESTED_ARTIFACT`, printing both digests |
+| missing credential | `REFUSED: ACCEPTANCE_CREDENTIALS_MISSING` |
+| real artifact and credential | `DRY_RUN_GUARDS_PASSED` |
+| secret handling | the password appears zero times in the receipt |
+
+It also refuses a non-arm64 device, refuses when more than one device is attached, and carries the
+forbidden accounts by name so the owner's personal, business and fixture accounts cannot be used.
+
+### Status
+
+`PENDING_PHYSICAL_DEVICE`. Everything that does not need hardware is done: the artifact is
+downloadable and verified, the client-side session contract is covered by 91 passing tests, and the
+device harness exists with its guards proven. The remaining boundaries need the phone attached over
+USB with debugging allowed, after which the run is fully automated and needs nothing from the owner.
