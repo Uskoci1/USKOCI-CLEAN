@@ -41,7 +41,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
     {(p.state.finalText || p.state.interimText) && active ? <T selectable style={s.transcript}>{p.state.finalText}{p.state.finalText && p.state.interimText ? ' ' : ''}{p.state.interimText}</T> : null}
     <T variant="label" style={[s.caption, listening && s.captionActive]}>{label}</T>
     <View style={s.stage}>
-      <View style={[s.ring, listening && s.ringActive]}>
+      <View style={listening ? s.ringActive : undefined}>
         <Pressable accessibilityRole="button" accessibilityLabel={label}
           accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.' : 'Drži tokom govora. Puštanje priprema tekst za pregled i izmenu. Povuci prst naviše da otkažeš.'}
           accessibilityState={{ disabled: blocked }} disabled={blocked}
@@ -51,19 +51,19 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
           onTouchMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) {
             gesture.current = null; p.controller.cancel('gesture'); } }}
           style={[s.mic, listening && s.micListening, blocked && s.disabled]}>
-          {active && explicit ? <StopCircle size={30} color={a.color.surface} weight="fill" />
-            : <Microphone size={30} color={listening ? a.color.ink : a.color.surface} weight="fill" />}
+          {active && explicit ? <StopCircle size={24} color={a.color.surface} weight="fill" />
+            : <Microphone size={24} color={listening ? a.color.ink : a.color.surface} weight="fill" />}
         </Pressable>
       </View>
       {listening && p.state.audioLevel !== null ? <View importantForAccessibility="no" style={s.levels}>
         {[0.08, 0.2, 0.4, 0.65, 0.85].map((threshold, i) => <View key={threshold}
           style={{ width: 3, height: 6 + i * 4, borderRadius: 2, backgroundColor: p.state.audioLevel! >= threshold ? a.color.green : '#CFE0D6' }} />)}
       </View> : null}
-      {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} />
-        : !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet"
-          label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'}
-          onPress={() => setAccessibleMode(value => !value)} /> : null}
+      {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
     </View>
+    {!active && !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet"
+      label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'}
+      onPress={() => setAccessibleMode(value => !value)} /> : null}
     {active ? <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>
       {explicit ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Pusti, pregledaj tekst i izaberi Pošalji.'}
     </T> : null}
@@ -76,18 +76,20 @@ const s = StyleSheet.create({
   // The bar is one row: the shell puts the keyboard on its left and the privacy info on
   // its right, so everything here stays centred and short. Anything taller steals the
   // conversation, which is what it used to do.
-  wrap: { gap: 2, alignItems: 'center' }, center: { textAlign: 'center' },
-  stage: { alignItems: 'center', gap: 6, paddingTop: 2 },
-  ring: { width: 80, height: 80, borderRadius: 40, borderWidth: 1, borderColor: '#D9E9DE', alignItems: 'center', justifyContent: 'center' },
-  ringActive: { borderColor: '#FFD2A8' },
-  mic: { width: 66, height: 66, borderRadius: 33, backgroundColor: a.color.green, borderWidth: 1, borderColor: '#226B52', alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#18583F', shadowOpacity: 0.14, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  wrap: { gap: 1, alignItems: 'center' }, center: { textAlign: 'center' },
+  stage: { alignItems: 'center', gap: 4, paddingTop: 1 },
+  // The idle ring was decoration that widened the control to 80px, and the microphone
+  // itself was 66. Together they took half the screen on a real phone. The halo now
+  // appears only while listening, when it actually says something.
+  ringActive: { padding: 3, borderRadius: 30, borderWidth: 1, borderColor: '#FFD2A8' },
+  mic: { width: 48, height: 48, borderRadius: 24, backgroundColor: a.color.green, borderWidth: 1, borderColor: '#226B52', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#18583F', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   micListening: { backgroundColor: a.color.orange, borderColor: '#E57917' },
   disabled: { opacity: 0.5 },
   caption: { color: a.color.muted, fontWeight: '500', letterSpacing: 0.2, textAlign: 'center' },
   captionActive: { color: a.color.green, fontWeight: '600' },
   levels: { flexDirection: 'row', gap: 3, height: 24, alignItems: 'center' },
-  transcript: { color: a.color.ink, fontSize: 16, lineHeight: 24, maxHeight: 96, padding: 12, borderRadius: 16, backgroundColor: '#F5F8F5' },
+  transcript: { color: a.color.ink, fontSize: 16, lineHeight: 24, maxHeight: 72, padding: 10, borderRadius: 16, backgroundColor: '#F5F8F5' },
   error: { color: a.color.danger, textAlign: 'center' },
   // The speech disclosure is a legal notice, so it must never be clipped. A single
   // non-wrapping row overflowed both edges on a real phone at 1080px with the system
