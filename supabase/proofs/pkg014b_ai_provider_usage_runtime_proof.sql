@@ -20,6 +20,17 @@ begin
   perform set_config('uskoci.pkg014b_account',v_account::text,true);
   perform set_config('uskoci.pkg014b_admitted',gen_random_uuid()::text,true);
   perform set_config('uskoci.pkg014b_unreserved',gen_random_uuid()::text,true);
+
+  -- The reservation writer is deliberately closed by default, so the proof opens the
+  -- same three gates a real operator opens, rather than bypassing the writer. All three
+  -- are synthetic and vanish with the rollback.
+  --   1. the writer refuses any caller whose JWT role is not service_role
+  perform set_config('request.jwt.claim.role','service_role',true);
+  --   2. the $5 batch ships disabled
+  update private.ai_test_budget_v5 set enabled = true where singleton;
+  --   3. only an admitted account may reserve
+  insert into private.ai_test_accounts_v5(account_id) values (v_account);
+
   -- Snapshot the budget the verified engine owns, so the proof can show it never moved.
   perform set_config('uskoci.pkg014b_reserved_before',
     (select reserved_microusd::text from private.ai_test_budget_v5 where singleton),true);
