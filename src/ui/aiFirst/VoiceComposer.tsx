@@ -89,6 +89,9 @@ const s = StyleSheet.create({
   levels: { flexDirection: 'row', gap: 3, height: 24, alignItems: 'center' },
   transcript: { color: a.color.ink, fontSize: 16, lineHeight: 24, maxHeight: 96, padding: 12, borderRadius: 16, backgroundColor: '#F5F8F5' },
   error: { color: a.color.danger, textAlign: 'center' },
-  notice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
-  noticeText: { color: a.color.muted, fontWeight: '500', letterSpacing: 0 },
+  // The speech disclosure is a legal notice, so it must never be clipped. A single
+  // non-wrapping row overflowed both edges on a real phone at 1080px with the system
+  // font scale: 'Govor' was cut off on the left and 'Detalji' on the right.
+  notice: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 8 },
+  noticeText: { color: a.color.muted, fontWeight: '500', letterSpacing: 0, flexShrink: 1, textAlign: 'center' },
 });

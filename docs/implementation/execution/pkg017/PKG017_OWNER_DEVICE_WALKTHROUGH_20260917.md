@@ -128,3 +128,110 @@ the discovery surface. A5 belongs with notifications. B is GAP-0042 and already 
 
 None of them was introduced by PKG-016 or PKG-017, and none is fixed here — they are recorded, with
 their proof, for the owner to schedule.
+
+---
+
+## Owner instruction, 2026-09-17: fix it, change nothing by guesswork, delete nothing
+
+### A correction to section C before anything else
+
+I listed *"`Napravi nalog` is clipped at the bottom edge of the entry screen"* as a finding. Reading
+the geometry rather than the screenshot, it is not clipped. `entryV49Math.ts` sizes the scroll content
+as `max(viewportHeight, footY + max(footH, measuredFooter) + safeBottom)` and says so in its own
+comment: the device's real bottom inset is reserved *"so both auth actions remain reachable."* The
+button is below the fold in a scrolling view, which is the authored V5 composition.
+
+Nothing was changed there. Touching that geometry to chase a screenshot would have damaged a protected
+composition to fix a problem that does not exist.
+
+### A new finding, in the same function as A1 and A2
+
+While reading `handle_uskoci_auth_user_created` to fix the name and the city, a third thing was sitting
+between them: **the profile copy it writes for every new account is masculine only**, and it is written
+in the user's own voice.
+
+```
+REQUESTER  bio       'Novi član USKOČI zajednice.'
+WORKER     headline  'Spreman da uskočim kada se dogovor jasno postavi.'
+WORKER     bio       'Dostupan za poslove koji odgovaraju profilu i kalendaru.'
+```
+
+This is the same defect class as A1 and A2, and arguably the plainest of the three: the system puts a
+first-person sentence on a person's public profile, in a grammatical gender it picked for them.
+
+## What is fixed
+
+### 1. The speech disclosure can no longer be clipped — `src/ui/aiFirst/VoiceComposer.tsx`
+
+The notice row was `flexDirection: 'row'` with `justifyContent: 'center'`, no wrapping and no shrink,
+so on a real 1080px phone it overflowed **both** edges: `Govor` was cut off on the left and `Detalji`
+on the right. What remained read *"…vor obrađuje Google. USKOČI ne čuva audio."*
+
+It now wraps and the text may shrink. This is a legal notice about a third party processing speech;
+it being cut in half is not a cosmetic problem.
+
+### 2. The login greeting no longer assumes the reader is a man — `src/app/auth.tsx`
+
+`Dobro došao.` becomes `Zdravo.`
+
+Deliberately narrow: `Zdravo` is neutral on gender **and** neutral on register, so it does not
+pre-empt the ti/Vi decision the owner still has open from PKG-011B. The mixed register on that same
+screen — `Nastavi do svojih Zadataka` alongside `Unesite lozinku` and `Prijavite se` — is left exactly
+as it is, because choosing between them is the owner's call, not a bug fix.
+
+Its two test assertions were updated with it; the suite passes 30/30.
+
+### 3. The account bootstrap stops asserting things nobody said
+
+`supabase/candidates/pkg019_profile_bootstrap_truthful.sql` — written, **not applied**, see the
+blocker below.
+
+| | before | after |
+| --- | --- | --- |
+| display name with no `full_name` | `split_part(email, '@', 1)` | `USKOČI korisnik` |
+| city with none supplied | `Novi Sad` | empty |
+| REQUESTER bio | `Novi član USKOČI zajednice.` | `Nov nalog u USKOČI zajednici.` |
+| WORKER headline | `Spreman da uskočim…` | `Uskačem kada se dogovor jasno postavi.` |
+| WORKER bio | `Dostupan za poslove…` | `Za poslove koji odgovaraju profilu i kalendaru.` |
+
+Everything else in that function — the insert structure, the `ON CONFLICT` arms, `SECURITY DEFINER`,
+the empty `search_path` — is byte-identical to what is live.
+
+**No existing row is touched.** The conflict arms already keep any non-empty name or city, so no
+account is renamed and nothing is deleted. `msljivic031` stays until the owner changes it in the app;
+renaming someone's account would be the same mistake in the other direction.
+
+Preconditions fail closed: the batch refuses unless the live definition still contains both
+`split_part` and `Novi Sad`, so it cannot silently overwrite a newer version. Postconditions assert
+all three defects are gone **and** that the security envelope did not change.
+
+## The blocker
+
+**Database access dropped mid-session.** The Supabase MCP server disconnected and now requires
+re-authorization, which cannot be done from a non-interactive session — the owner has to authorize it
+from an interactive `claude` terminal.
+
+So the candidate above is written and reviewable but **cannot be applied to canonical DEV right now**,
+and its precondition must be re-checked against the live definition when it is, because the last
+`pg_get_functiondef` reading is from before the disconnect.
+
+## Verified
+
+TypeScript clean. `src/store/__tests__` and the auth entry surface: 7 suites, 121 tests. `src/ui` and
+`src/features`, which cover the changed notice component: 17 suites, 233 tests. All passing.
+
+Not verified on a device: both UI changes need a build to be seen on the phone, and the AI screen
+cannot be exercised at all until the test budget counter is raised, because it is full.
+
+## Still open, deliberately not touched
+
+- **The AI budget counter is full**, so the need-turn flow cannot run. Three separable decisions in
+  `AI_TEST_BUDGET_REPORT_20260917.md`: the 250 000 microUSD per-call reservation is 164x the measured
+  cost and is held by a check constraint; reservations are never released; and the exhausted state is
+  worded as a product rule rather than a spent test cap.
+- **The dead send control.** When the turn cannot proceed the button simply stops responding, with a
+  message that does not say why. Fixing it properly means deciding what the user should be told, which
+  depends on the budget decision above.
+- **Map and List disagreeing**, and the banner that claims they cannot.
+- **Two screens both titled "Zadaci"**, and the ti/Vi register — both the owner's to decide.
+- **GAP-0042.** Unchanged and still the release blocker.

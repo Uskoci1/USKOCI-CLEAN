@@ -109,7 +109,7 @@ it('connects the V4.9 welcome signup action to the existing real signup sheet wi
 it('uses the flatter signup stage while retaining all real fields and the explicit primary command', async () => {
   await render();
   const heading = (value: string) => host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === value)!;
-  expect(StyleSheet.flatten(heading('Dobro došao.').props.style).fontSize).toBe(31);
+  expect(StyleSheet.flatten(heading('Zdravo.').props.style).fontSize).toBe(31);
   await press('Napravi nalog');
   expect(StyleSheet.flatten(heading('Napravite nalog').props.style)).toMatchObject({ fontSize: 27, lineHeight: 30.51 });
   expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka', 'Potvrdite lozinku']);
@@ -120,7 +120,7 @@ it('uses the flatter signup stage while retaining all real fields and the explic
   expect(text()).not.toContain('Korak 1 od 3');
   expect(mockAuth.signUp).not.toHaveBeenCalled();
   await press('Već imaš nalog? Prijavi se');
-  expect(StyleSheet.flatten(heading('Dobro došao.').props.style).fontSize).toBe(31);
+  expect(StyleSheet.flatten(heading('Zdravo.').props.style).fontSize).toBe(31);
 });
 
 it('keeps an empty password submission local and immediately editable', async () => {
