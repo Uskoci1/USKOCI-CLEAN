@@ -63,3 +63,23 @@ export async function reserveAiTestBudget(input: {
     return result;
   } finally { clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); stop(); }
 }
+
+/** A session that produced nothing spent nothing, so its worst-case hold goes back.
+ *  The RPC itself refuses to release any operation that has recorded usage. */
+export async function releaseUnusedAiTestReservation(input: {
+  supabaseUrl: string; serviceRoleKey: string; operationId: string;
+}): Promise<boolean> {
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 5000);
+  try {
+    const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_release_unused_reservation_service', {
+      method: 'POST', redirect: 'error', signal: abort.signal,
+      headers: { 'Content-Type': 'application/json', apikey: input.serviceRoleKey, Authorization: 'Bearer ' + input.serviceRoleKey },
+      body: JSON.stringify({ p_operation_id: input.operationId }),
+    });
+    if (!response.ok) { void response.body?.cancel(); return false; }
+    const body = await response.json().catch(() => null);
+    return !!body && body.released === true;
+  } catch { return false; }
+  finally { clearTimeout(timeout); }
+}

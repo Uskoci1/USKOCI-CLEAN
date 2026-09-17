@@ -26,6 +26,23 @@ describe('bounded native STT proxy', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
 
+  // Proven against the provider on 2026-09-17: it answers the setup with
+  // {"setupComplete": {}} delivered as a binary frame, not a string. A string-only reader
+  // rejected that entirely valid reply and killed every speech session.
+  it.each(['arraybuffer', 'blob'] as const)('accepts the provider setup when it arrives as a %s frame', async kind => {
+    const h = harness();
+    const bytes = new TextEncoder().encode(JSON.stringify({ setupComplete: {} }));
+    const data: unknown = kind === 'arraybuffer' ? bytes.buffer : new Blob([bytes]);
+    h.provider.onmessage?.({ data } as MessageEvent);
+    // Blob.text() resolves through a stream, which needs a real macrotask to drain.
+    jest.useRealTimers();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    jest.useFakeTimers();
+    expect(h.client.messages.filter(m => m.kind === 'error')).toHaveLength(0);
+    h.client.message({ kind: 'audio', sequence: 0, pcmBase64: 'AAA=' });
+    expect(h.provider.messages.at(-1)).toMatchObject({ realtimeInput: { audio: { mimeType: 'audio/pcm;rate=16000' } } });
+  });
+
   it('locks the approved model and manual VAD, forwards real interim/final, completes only on release', () => {
     const h = harness();
     expect(h.provider.messages[0]).toMatchObject({ setup: { model: 'models/gemini-3.5-transcribe-live',

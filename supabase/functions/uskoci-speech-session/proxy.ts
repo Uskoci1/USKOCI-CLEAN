@@ -7,7 +7,9 @@ const safeText = (v: unknown): v is string => typeof v === 'string' && v.length 
   && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(v);
 
 /** All audio remains in bounded memory. The client cannot choose model, tools, VAD or pricing bounds. */
-export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: string, operationId: string) {
+export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: string, operationId: string,
+  onFinished?: (transcribed: boolean) => void) {
+  let transcribedAnything = false;
   let ended = false, ready = false, providerSetup = false, released = false, eventSequence = 0, audioSequence = 0;
   let audioBytes = 0, segmentIndex = 0, finalText = '', interimText = '', turnComplete = false;
   let receivedProviderBytes = 0;
@@ -20,6 +22,9 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
   const close = () => {
     if (ended) return;
     ended = true; clearTimeout(deadline);
+    // Reported before the buffers are cleared, so the caller can settle a session that
+    // never transcribed anything and therefore cost nothing.
+    try { onFinished?.(transcribedAnything); } catch { }
     finalText = ''; interimText = '';
     try { upstream.close(1000, 'session ended'); } catch { }
     try { client.close(1000, 'session ended'); } catch { }
@@ -48,14 +53,40 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
       inputAudioTranscription: { languageCodes: ['sr-RS'], mode: 'VERBATIM' },
     } }));
   };
+  // The provider delivers its JSON frames as binary, so a string-only reader rejects even
+  // `{"setupComplete": {}}`. Decoding is async for a Blob, and transcript order matters,
+  // so frames are processed one at a time through this chain.
+  let frames: Promise<void> = Promise.resolve();
+  const frameText = async (data: unknown): Promise<string | null> => {
+    if (typeof data === 'string') return data.length > 32768 ? null : data;
+    if (data instanceof Blob) return data.size > 32768 ? null : await data.text();
+    if (data instanceof ArrayBuffer) return data.byteLength > 32768 ? null : new TextDecoder().decode(data);
+    if (ArrayBuffer.isView(data)) {
+      const view = data as ArrayBufferView;
+      return view.byteLength > 32768 ? null : new TextDecoder().decode(view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength));
+    }
+    return null;
+  };
+  // A string frame is handled synchronously exactly as before. Only a binary frame needs
+  // decoding, and while one is in flight later frames queue behind it so transcript order
+  // is never disturbed.
+  let decoding = 0;
   upstream.onmessage = event => {
     if (ended) return;
-    // Deno receives provider text frames as strings; unsupported/binary frames fail closed.
-    if (typeof event.data !== 'string' || event.data.length > 32768) { error('SPEECH_INVALID'); return; }
-    receivedProviderBytes += new TextEncoder().encode(event.data).byteLength;
+    if (typeof event.data === 'string' && decoding === 0) { handleText(event.data); return; }
+    decoding += 1;
+    frames = frames
+      .then(async () => { const raw = await frameText(event.data); if (raw === null) { error('SPEECH_INVALID'); return; } handleText(raw); })
+      .catch(() => { error('SPEECH_INVALID'); })
+      .finally(() => { decoding -= 1; });
+  };
+  const handleText = (raw: string) => {
+    if (ended) return;
+    if (raw.length > 32768) { error('SPEECH_INVALID'); return; }
+    receivedProviderBytes += new TextEncoder().encode(raw).byteLength;
     if (receivedProviderBytes > 1048576) { error('SPEECH_LIMIT'); return; }
     let message: Record<string, any>;
-    try { message = JSON.parse(event.data); } catch { error('SPEECH_INVALID'); return; }
+    try { message = JSON.parse(raw); } catch { error('SPEECH_INVALID'); return; }
     if (!object(message)) { error('SPEECH_INVALID'); return; }
     if (message.error || message.toolCall || message.goAway || message.sessionResumptionUpdate) { error('SPEECH_UNAVAILABLE'); return; }
     if (message.setupComplete) {
@@ -78,6 +109,7 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
       if (!safeText(text) || finalText.length + text.length > SPEECH_LIMITS.transcriptCharacters) { error('SPEECH_LIMIT'); return; }
       // Provider final chunks are ordered by this WebSocket; do not deduplicate repeated spoken words by value.
       finalText += text;
+      if (text.trim()) transcribedAnything = true;
       interimText = '';
       if (!send({ kind: 'segment', index: segmentIndex++, final: true, text })) { close(); return; }
     }
