@@ -32,7 +32,7 @@ listed at the end (`scripts/ci/pkg012-source-authority.test.cjs`).
 
 ## Package state, one sentence
 
-DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015.
+DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 014B, 015.
 BLOCKED: PKG-018 (AF-D04 model availability; the wire half of its provider diagnosis is answered by PKG-014).
 PKG-012 created this map. The next package is PKG-016. NOT_STARTED: 016–017, 019–024. A new gap, GAP-0042, is
 open and documented: synthetic acceptance data is not isolated from real users. The Ledger, not this file, is authoritative.
@@ -43,8 +43,9 @@ touching that project: migration ledger 149 rows (147 source + 2 dev_alpha opera
 `uskoci-ai-interview` v36, `uskoci-worker-interview` v13 and `uskoci-account-closure-worker` v1,
 all byte-identical to the committed tree. The closure worker is deployed but inert by design: no
 enable flag, no cron, no executions. Two items carry over and neither blocks the next package. The
-AI test budget holds 4 750 000 of 5 000 000 microUSD reserved, so one provider call remains. The owner decided on
-2026-09-17 not to raise the ceiling until provider usageMetadata is captured on every new call. One historical turn of `uskocibusiness@gmail.com` stays
+AI test budget holds 4 750 000 of 5 000 000 microUSD reserved, so one provider call remains and the ceiling is
+deliberately not raised. PKG-014B captured provider usage on 2026-09-17, so the next real call will be the first with
+recorded tokens; the 19 earlier calls have none and never will. One historical turn of `uskocibusiness@gmail.com` stays
 `PROCESSING`, labelled `AWAITING_LEGITIMATE_ACCOUNT_SESSION` by owner decision of 2026-09-17: cancelling it
 needs that account's own session, impersonation is forbidden, and it blocks no package. The exact
 procedure for when the owner does sign in is in `docs/implementation/execution/AWAITING_LEGITIMATE_ACCOUNT_SESSION_20260917.md`.
@@ -81,5 +82,7 @@ documented there; nothing here authorises deletion.
 3. Every historical entry document above carries the HISTORICAL banner pointing here.
 4. `/pregled-nacrta` and `/prijave` still resolve explicitly (route file present, tab registration present).
 
-PKG-015 added one DEV operational migration on 2026-09-17, `20260917053239_dev_alpha_pkg015_account_lineage`, so the DEV ledger is 150 rows: 147 source migrations plus three
-operational rows. Canonical source stays at 147 files. Every account on DEV now carries a recorded lineage.
+PKG-015 and PKG-014B each added one DEV operational migration on 2026-09-17, `20260917053239_dev_alpha_pkg015_account_lineage`
+and `20260917055559_dev_alpha_pkg014b_ai_provider_usage`, so the DEV ledger is 151 rows: 147 source migrations plus four
+operational rows. Canonical source stays at 147 files. Every account on DEV now carries a recorded lineage, and every
+new provider call records its token counts.

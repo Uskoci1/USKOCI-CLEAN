@@ -128,3 +128,44 @@ Three options, in the order I would suggest them:
    hand. This costs nothing and answers the question this report cannot.
 
 Sources for the pricing used above: [Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing), [What's new in Gemini 3.8 Flash](https://ai.google.dev/gemini-api/docs/latest-model).
+
+---
+
+## 6. Update, 2026-09-17: the measurement gap is closed, the ceiling is not raised
+
+The owner's instruction was capture first, ceiling later. Both halves were honoured.
+
+`PKG-014B` now captures the `usageMetadata` the provider already sends. The shared stream helper
+validates the counts and hands them to an optional callback; both Edge handlers record them through
+a service-only recorder **after the turn is already confirmed**, so accounting can never decide
+whether a user's answer is delivered, and a failed record is swallowed rather than allowed to fail a
+turn that succeeded.
+
+The verified budget engine was not touched, and that is asserted rather than claimed. No column was
+added to the reservation table, no function of the budget was replaced, and the ceiling is still the
+reviewed constant. Usage lives in its own table keyed by the same operation id. The live domain
+surface digest before and after promotion is identical at `9033299ca197a009b4ba03a20491b08c`.
+
+Live on canonical DEV after `20260917055559_dev_alpha_pkg014b_ai_provider_usage`:
+
+| Field | Value |
+| --- | --- |
+| `providerCalls` | 19 |
+| `callsWithReportedUsage` | 0 |
+| `callsWithoutReportedUsage` | 19 |
+| `inputTokens` | null, meaning UNKNOWN |
+| `outputTokens` | null, meaning UNKNOWN |
+| `REAL_SPEND_USD` | null, meaning UNKNOWN |
+| `INTERNAL_TEST_BUDGET_CAP_USD` | 5.00 |
+| internal reserved | 4.75 |
+| `REMAINING_ALLOWED_CALLS` | 1 |
+| `capIsACallCounter` | true |
+
+Two things this table is careful about. The 19 calls already made have **no** recorded usage and
+never will, so the report counts them separately instead of implying they used zero tokens. And
+`realSpendUsd` stays null because this database holds no approved price table; the provider's own
+billing console remains the only authority for money. The proof asserts that a zero there would be a
+lie.
+
+**The next real provider call will be the first with real numbers.** The ceiling stays at 5.00 USD,
+one call, until the owner decides with those numbers in hand.
