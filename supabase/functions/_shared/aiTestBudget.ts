@@ -83,3 +83,24 @@ export async function releaseUnusedAiTestReservation(input: {
   } catch { return false; }
   finally { clearTimeout(timeout); }
 }
+
+/** A session that did transcribe settles against the audio it actually sent, priced at the
+ *  published rate. The RPC refuses when provider usage exists, so reported usage always wins. */
+export async function settleAiTestAudio(input: {
+  supabaseUrl: string; serviceRoleKey: string; operationId: string; audioBytes: number; transcriptChars: number;
+}): Promise<boolean> {
+  if (!(input.audioBytes > 0)) return false;
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 5000);
+  try {
+    const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_settle_audio_service', {
+      method: 'POST', redirect: 'error', signal: abort.signal,
+      headers: { 'Content-Type': 'application/json', apikey: input.serviceRoleKey, Authorization: 'Bearer ' + input.serviceRoleKey },
+      body: JSON.stringify({ p_operation_id: input.operationId, p_audio_bytes: input.audioBytes, p_transcript_chars: input.transcriptChars }),
+    });
+    if (!response.ok) { void response.body?.cancel(); return false; }
+    const body = await response.json().catch(() => null);
+    return !!body && body.settled === true;
+  } catch { return false; }
+  finally { clearTimeout(timeout); }
+}

@@ -8,7 +8,7 @@ const safeText = (v: unknown): v is string => typeof v === 'string' && v.length 
 
 /** All audio remains in bounded memory. The client cannot choose model, tools, VAD or pricing bounds. */
 export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: string, operationId: string,
-  onFinished?: (transcribed: boolean) => void) {
+  onFinished?: (transcribed: boolean, audioBytes: number, transcriptChars: number) => void) {
   let transcribedAnything = false;
   let ended = false, ready = false, providerSetup = false, released = false, eventSequence = 0, audioSequence = 0;
   let audioBytes = 0, segmentIndex = 0, finalText = '', interimText = '', turnComplete = false;
@@ -24,7 +24,9 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
     ended = true; clearTimeout(deadline);
     // Reported before the buffers are cleared, so the caller can settle a session that
     // never transcribed anything and therefore cost nothing.
-    try { onFinished?.(transcribedAnything); } catch { }
+    // audioBytes counts exactly what was forwarded to the provider, which is what the
+    // provider bills for; the transcript size bounds the output side.
+    try { onFinished?.(transcribedAnything, audioBytes, finalText.length); } catch { }
     finalText = ''; interimText = '';
     try { upstream.close(1000, 'session ended'); } catch { }
     try { client.close(1000, 'session ended'); } catch { }

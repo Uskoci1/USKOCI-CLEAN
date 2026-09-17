@@ -68,6 +68,35 @@ describe('bounded native STT proxy', () => {
     expect(h.client.messages.at(-1)).toMatchObject({ kind: 'final', text: 'Hello. I need help moving a sofa on Saturday.' });
   });
 
+  // The provider reports no usage on the live stream, so a successful session settles
+  // against the audio it actually sent. The bridge must report exactly the bytes it
+  // forwarded, and the transcript size, at the moment the session ends.
+  it('reports the forwarded audio bytes and transcript size when a transcribed session ends', () => {
+    const finished = jest.fn();
+    const client = new Socket(), provider = new Socket();
+    bridgeSpeech(client, provider, 'owned-conversation', 'owned-operation', finished);
+    provider.onopen?.({} as Event); provider.message({ setupComplete: {} });
+    client.message({ kind: 'audio', sequence: 0, pcmBase64: 'AAAA' + 'AAAA' });   // 6 bytes of PCM16
+    client.message({ kind: 'audio', sequence: 1, pcmBase64: 'AAAA' + 'AAAA' });   // 6 more
+    provider.message({ serverContent: { inputTranscription: { text: 'Dve osobe.' } } });
+    client.message({ kind: 'release' });
+    provider.message({ serverContent: { generationComplete: true } });
+    expect(finished).toHaveBeenCalledTimes(1);
+    expect(finished).toHaveBeenCalledWith(true, 12, 'Dve osobe.'.length);
+  });
+
+  it('reports no transcript when a session ends without one, so its hold is released instead', () => {
+    const finished = jest.fn();
+    const client = new Socket(), provider = new Socket();
+    bridgeSpeech(client, provider, 'owned-conversation', 'owned-operation', finished);
+    provider.onopen?.({} as Event); provider.message({ setupComplete: {} });
+    client.message({ kind: 'audio', sequence: 0, pcmBase64: 'AAAA' + 'AAAA' });
+    client.message({ kind: 'release' });
+    jest.advanceTimersByTime(SPEECH_LIMITS.finalizationMs + 1);
+    expect(finished).toHaveBeenCalledTimes(1);
+    expect(finished.mock.calls[0][0]).toBe(false);
+  });
+
   it('never lets generationComplete finish a gesture that is still held', () => {
     const h = harness(); h.ready(); h.client.message({ kind: 'audio', sequence: 0, pcmBase64: 'AAA=' });
     h.provider.message({ serverContent: { inputTranscription: { text: 'Dve osobe.' } } });

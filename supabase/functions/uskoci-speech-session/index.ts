@@ -1,6 +1,6 @@
 // @ts-nocheck
 // Native authenticated bounded audio proxy. Provider key never leaves this Edge boundary.
-import { releaseUnusedAiTestReservation, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
+import { releaseUnusedAiTestReservation, reserveAiTestBudget, settleAiTestAudio } from '../_shared/aiTestBudget.ts';
 import { bridgeSpeech } from './proxy.ts';
 
 const uuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -78,13 +78,14 @@ Deno.serve(async (req: Request) => {
     const { socket, response } = Deno.upgradeWebSocket(req, { idleTimeout: 30 });
     // Browser/native peer sends only our allowlisted audio protocol; it never controls this URL or setup.
     const upstream = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(providerKey));
-    bridgeSpeech(socket, upstream, conversationId, operationId, transcribed => {
+    bridgeSpeech(socket, upstream, conversationId, operationId, (transcribed, audioBytes, transcriptChars) => {
       // Nothing transcribed means nothing was charged, so the worst-case hold goes back.
-      // A session that did transcribe keeps its hold, which holds more than reality
-      // rather than less, until STT usage capture exists.
-      if (!transcribed) {
-        EdgeRuntime.waitUntil(releaseUnusedAiTestReservation({ supabaseUrl, serviceRoleKey, operationId }));
-      }
+      // A session that did transcribe settles against the audio it actually sent, because
+      // the provider reports no usage on this stream. If that settlement cannot run, the
+      // full hold stays, which overstates cost rather than understating it.
+      EdgeRuntime.waitUntil(transcribed
+        ? settleAiTestAudio({ supabaseUrl, serviceRoleKey, operationId, audioBytes, transcriptChars })
+        : releaseUnusedAiTestReservation({ supabaseUrl, serviceRoleKey, operationId }));
     });
     // The HTTP request ends at upgrade, while the bounded socket session remains active.
     // Hold the worker until the actual close event, including delivery of its final frame.
