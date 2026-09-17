@@ -1,6 +1,6 @@
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { streamGeminiTask } from '../_shared/geminiTaskStream.ts';
+import { streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
@@ -152,14 +152,18 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       };
       try {
         send('accepted');
+        const usage:{value:GeminiUsage|null}={value:null};
         const raw=await streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-          key,body,signal:abort.signal,onText:delta=>send('text_delta',{text:delta})});
+          key,body,signal:abort.signal,onText:delta=>send('text_delta',{text:delta}),onUsage:value=>{usage.value=value;}});
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
         let output:Record<string,any>;
         try { output=parseWorkerOutput(JSON.parse(raw)); } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
         const turn=await rpc('rpc_complete_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId,p_output:output},abort.signal);
         if (!object(turn)||turn.state!=='SUCCEEDED'||turn.turnId!==claim.turn.turnId||turn.attemptId!==claim.turn.attemptId
           ||turn.conversationId!==input.conversationId||turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
+        // Accounting, after the turn is already confirmed and never able to undo it.
+        if (usage.value) { try { await rpc('rpc_ai_test_record_usage_service',{p_operation_id:input.clientRequestId,p_model:model,
+          p_prompt_tokens:usage.value.promptTokens,p_output_tokens:usage.value.outputTokens,p_total_tokens:usage.value.totalTokens},abort.signal); } catch {} }
         send('final',{turn});
       } catch { if(!abort.signal.aborted) { try { send('safe_error',{code:'AI_TURN_NOT_CONFIRMED'}); } catch {} } }
       finally { req.signal.removeEventListener('abort',stop); if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort(); }

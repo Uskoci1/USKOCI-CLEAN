@@ -167,8 +167,27 @@ async function reportGeminiHttpFailure(response: Response, signal: AbortSignal):
   console.error('GEMINI_STREAM_HTTP_FAILED', response.status, d.status, d.reason, d.field);
 }
 
+/** Provider-reported token usage. Counts only, never content. The provider sends this
+ * on the final events; taking the last complete block avoids double counting a
+ * cumulative field. A malformed block is ignored rather than allowed to fail a turn
+ * that otherwise succeeded: usage is accounting, and accounting must never decide
+ * whether a user's answer is delivered. */
+export type GeminiUsage = { promptTokens: number; outputTokens: number; totalTokens: number };
+
+const wholeCount = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 10_000_000;
+
+export function geminiUsage(raw: unknown): GeminiUsage | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const usage = raw as Record<string, unknown>;
+  const promptTokens = usage.promptTokenCount, outputTokens = usage.candidatesTokenCount, totalTokens = usage.totalTokenCount;
+  if (!wholeCount(promptTokens) || !wholeCount(outputTokens) || !wholeCount(totalTokens)) return null;
+  return { promptTokens, outputTokens, totalTokens };
+}
+
 export async function streamGeminiTask(input: {
   url: string; key: string; body: string; signal?: AbortSignal; onText: (delta: string) => void;
+  onUsage?: (usage: GeminiUsage) => void;
 }): Promise<string> {
   const controller = new AbortController();
   let rejectStopped: (error: Error) => void = () => {};
@@ -194,11 +213,15 @@ export async function streamGeminiTask(input: {
     reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8', { fatal: true });
     let buffer = '', raw = '', emitted = '', total = 0, stopped = false;
+    let lastUsage: GeminiUsage | null = null;
     const event = (value: string) => {
       const lines = value.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim());
       if (!lines.length) return;
       const data = JSON.parse(lines.join('\n'));
       if (data.error || data.promptFeedback?.blockReason) throw new Error('AI_STREAM_REJECTED');
+      // Counts only, and the last complete block wins because the field is cumulative.
+      const usage = geminiUsage(data.usageMetadata);
+      if (usage) lastUsage = usage;
       if (!Array.isArray(data.candidates) || data.candidates.length > 1) throw new Error('AI_STREAM_INVALID');
       const candidate = data.candidates[0];
       if (!candidate) return;
@@ -232,6 +255,8 @@ export async function streamGeminiTask(input: {
     buffer += decoder.decode();
     if (buffer.trim()) event(buffer);
     if (!stopped || typeof JSON.parse(raw).assistantMessage !== 'string' || JSON.parse(raw).assistantMessage !== emitted) throw new Error('AI_STREAM_INCOMPLETE');
+    // Reported only for a turn that actually completed, and never allowed to fail it.
+    if (lastUsage && input.onUsage) { try { input.onUsage(lastUsage); } catch { /* accounting never breaks delivery */ } }
     return raw;
   } finally {
     clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); controller.abort();

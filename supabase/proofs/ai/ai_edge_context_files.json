@@ -4,8 +4,8 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 40847,
-      "sha256": "dfe9fec706e9e0e6df37ed5f0593567bf7a9acc4862ba42314f3476bb581de60"
+      "bytes": 41811,
+      "sha256": "a0722a4105d3085b1427f90fbd956e3cfb16c9cfd73fb344d1e27790297882fa"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
@@ -39,76 +39,19 @@
     }
   ],
   "refrozen": {
-    "package": "PKG-014",
-    "date": "2026-09-16",
-    "reason": "The AI intake provider wire was corrected: structured output now travels in the documented responseMimeType and responseSchema fields instead of a responseFormat wrapper the API rejects with INVALID_ARGUMENT. Only the assertion that reads that field changed in the frozen test; the fact registry, the decoders and the writers are untouched. The guard stays exact: any byte change from this record fails again.",
-    "changed_files": [
+    "package": "PKG-014B",
+    "date": "2026-09-17",
+    "reason": "Provider usage capture was added on the owner's instruction of 2026-09-17, so the AI test budget can be reported in real tokens instead of bounds. The shared stream helper now parses the usageMetadata the provider already sends and hands the counts to an optional onUsage callback; both handlers record them through a service-only recorder after the turn is already confirmed. No request the provider receives changed, no answer changed, and the budget engine was not altered: the ceiling constant and the reservation writer are untouched and asserted so.",
+    "changedFiles": [
       {
-        "path": "supabase/proofs/ai/owned_intake_edge.test.mjs",
-        "previous_bytes": 14002,
-        "previous_sha256": "30df2f52c2bad4b5dc40d30e91acccd5836624519c98c94e0203e40474eddc58",
-        "bytes": 13990,
-        "sha256": "724afe1412c9b82fd1a8c7bcc80c524dce4394999f7f3fbdbbd0c134b82491af"
+        "path": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytesBefore": 40847,
+        "bytesAfter": 41811
       }
     ],
-    "evidence": "docs/implementation/execution/pkg014/PKG014_EXECUTION_LOG_20260916.md section 11",
-    "previous_refreeze": {
-      "package": "PKG-013",
-      "date": "2026-09-16",
-      "previous_freeze_commit": "0b0de80",
-      "reason": "The frozen fingerprint was recorded before the V5 AI-first Edge changes of 2026-09-12/13; the source these commits produced is the current authority. The guard stays exact: any byte change from this record fails again.",
-      "source_commits": [
-        "a97af75 2026-09-13 test(ai): assert Gemini 3.8 responseFormat wire schema",
-        "37fcf56 2026-09-13 fix(ai): use Gemini 3.8 provider wire for nonstream turns",
-        "695f4df 2026-09-13 fix(ai): require approved Gemini and shared budget for every new turn",
-        "8c80eeb 2026-09-13 fix(identity): keep private test self reported with explicit legacy correction",
-        "5945d33 2026-09-13 test: align unit fixtures with V5 dispatch and review routes",
-        "337b5f1 2026-09-13 feat: recover AI turns and wire owned task and question flows",
-        "837274f 2026-09-13 Connect private media and policy-bound closure with shared V5 map",
-        "4b4873b 2026-09-13 Connect V5 task review, bounded AI streaming and native hold-to-talk",
-        "8c4b352 2026-09-12 test(pre-v3): preserve explicit Gemini coverage and align implicit OpenAI contract",
-        "519bbda 2026-09-12 fix(pre-v3): prefer OpenAI before Gemini when provider is implicit"
-      ],
-      "handler_tests": {
-        "previous_pass_count": 98,
-        "current_pass_count": 92,
-        "files": [
-          "supabase/proofs/ai/ai_edge_context.test.mjs",
-          "supabase/proofs/ai/owned_intake_edge.test.mjs"
-        ]
-      },
-      "previous_files": [
-        {
-          "path": "supabase/functions/uskoci-ai-interview/index.ts",
-          "bytes": 38731,
-          "sha256": "9b274ae5523b7973b7c13e55b83195db622712c694602d6f3e6900a8c23c15fb"
-        },
-        {
-          "path": "src/contracts/needFactsV2.ts",
-          "bytes": 5523,
-          "sha256": "fb4b145a1f9aebe5d8b72339125153c6401ec8323f4a0107946766ab28f0218c"
-        },
-        {
-          "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-          "bytes": 21688,
-          "sha256": "a829f98706c7cb487cfc0fada045b549fe4e72476aa0f23c1d0eef1ad6ea09c2"
-        },
-        {
-          "path": ".github/workflows/ai-edge-context-proof.yml",
-          "bytes": 4051,
-          "sha256": "f18c0b6192d76ca520ea7563052a1608aea20630be65e987d9e66fab43c36c9b"
-        },
-        {
-          "path": "supabase/proofs/ai/owned_intake_edge_runtime.mjs",
-          "bytes": 2133,
-          "sha256": "e62f2989137ea30d2ba7a88b11949b54403ba4b7ce43e4a5b7dac774eb30bf4c"
-        },
-        {
-          "path": "supabase/proofs/ai/owned_intake_edge.test.mjs",
-          "bytes": 11113,
-          "sha256": "61c1d2e0de69a60acf9732ca923b2364e6a1a5eafe20f8e0431483121f4c82ac"
-        }
-      ]
+    "previousFreeze": {
+      "package": "PKG-014",
+      "date": "2026-09-16"
     }
   }
 }

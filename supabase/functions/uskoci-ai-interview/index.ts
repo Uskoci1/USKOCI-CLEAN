@@ -13,7 +13,7 @@ import {
 } from '../../../src/contracts/needFactsV2.ts';
 
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { geminiRequestBody, streamGeminiTask } from '../_shared/geminiTaskStream.ts';
+import { geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -455,6 +455,7 @@ async function callGemini(
   timeContext: ServerTimeContext,
   signal?: AbortSignal,
   onText?: (delta: string) => void,
+  onUsage?: (usage: GeminiUsage) => void,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -471,7 +472,7 @@ async function callGemini(
   if (onText) {
     const raw = await streamGeminiTask({
       url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      key, body: payloadBody, signal, onText,
+      key, body: payloadBody, signal, onText, onUsage,
     });
     return parseV2Output(JSON.parse(raw));
   }
@@ -485,6 +486,8 @@ async function callGemini(
     throw new Error('PROVIDER_HTTP_FAILED');
   }
   const payload = providerResponse.data;
+  // The non-streaming path reports the same counts on the single response body.
+  if (onUsage) { const usage = geminiUsage(payload?.usageMetadata); if (usage) { try { onUsage(usage); } catch { /* accounting never breaks delivery */ } } }
   const raw = geminiText(payload);
   if (!raw) {
     const blocked = Boolean(payload?.promptFeedback?.blockReason)
@@ -597,6 +600,9 @@ Deno.serve(async (req: Request) => {
     const timeContext = serverTimeContext(new Date());
     const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
     let aiTurn: ParsedTurn;
+    // Counts the provider reports for this call. Recorded only after the turn is
+    // confirmed, so accounting can never decide whether an answer is delivered.
+    let reportedUsage: GeminiUsage | null = null;
     try {
       if (wantsStream && (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash')) {
         await retireAttempt();
@@ -624,7 +630,8 @@ Deno.serve(async (req: Request) => {
         if (!dispatched.ok || dispatched.data !== true)
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
       }
-      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText);
+      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
+        (usage) => { reportedUsage = usage; });
     } catch {
       console.error('AI_PROVIDER_FAILED');
       await retireAttempt();
@@ -638,6 +645,13 @@ Deno.serve(async (req: Request) => {
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (result.data.state === 'SUCCEEDED' && (result.data.receipt.proposedCount !== aiTurn.proposals.length || result.data.receipt.safety !== aiTurn.safety))
         throw new Error('AI_TURN_RECEIPT_INVALID');
+      if (reportedUsage) {
+        try {
+          await rpc('rpc_ai_test_record_usage_service', { p_operation_id: requestId, p_model: geminiModel,
+            p_prompt_tokens: reportedUsage.promptTokens, p_output_tokens: reportedUsage.outputTokens,
+            p_total_tokens: reportedUsage.totalTokens }, signal);
+        } catch { /* accounting never breaks delivery */ }
+      }
       return turnResponse(result.data);
     }
     // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.
