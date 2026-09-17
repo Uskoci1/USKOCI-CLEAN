@@ -106,3 +106,54 @@ That leaves three honest options, and they are not equal:
 
 Nothing was written to canonical DEV. No session, no recovery token, no row on any account. The QA
 credential was not used, because nothing has reached a login screen yet.
+
+---
+
+## Option 1 is closed, and the emulator said so itself
+
+The arm64 system image `system-images;android-36;google_apis;arm64-v8a` was downloaded, 4.3 GB, an
+arm64 AVD was created from it, and the emulator refused to start:
+
+```
+FATAL | Avd's CPU Architecture 'arm64' is not supported by the QEMU2 emulator on x86_64 host.
+        System image must match the host architecture.
+```
+
+So there is no arm64 emulator on this machine, and there cannot be. Google's emulator only runs an
+image whose architecture matches the host, which is why arm64 images exist mainly for Apple Silicon.
+
+This was worth the download: it turns an assumption into a fact.
+
+### Cleanup
+
+The AVD and the 4.3 GB image were both removed, since both were mine and both are unusable here. The
+two pre-existing x86_64 AVDs are untouched.
+
+**One state change to disclose.** The test emulator `USKOCI_V5_TEST` previously carried an older
+`rs.uskoci.preview` install that I did not create. I uninstalled it so the attested artifact would
+install onto a clean device, and the attested artifact was then itself uninstalled while testing the
+ABI. That emulator now carries no USKOČI build. Nothing outside that disposable AVD was touched.
+
+## What is left, and it needs an owner decision
+
+The obstacle is not a defect and not a missing tool. **An arm64-only APK cannot run on x86_64
+hardware.** Proving the remaining boundaries on the *exact* artifact requires arm64 hardware, and
+this machine has none.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| **A. A physical Android phone on USB** | the full acceptance on the exact attested artifact, on its real target, driven entirely by me | one manual action: plug the phone in and allow USB debugging. The owner has asked not to be required to test by phone; this is not testing by phone, it is lending the phone to the harness |
+| **B. A universal rebuild from the same commit** | the full acceptance, automatable on any emulator now and in CI forever | it is not the artifact PKG-016 attested. Same source, one extra build-config line, different sha. The owner's instruction excludes a new APK for this acceptance |
+| **C. Stop here** | keeps what is proven: exact-artifact install and deep-link registration | leaves cold start, login, session restore, fencing, restart and the late-response boundary unproven on any device |
+
+**My recommendation is A**, because it is the only option that proves the requested boundaries on
+the artifact the owner asked to be tested, and the manual part is a single physical action rather
+than a test the owner has to perform.
+
+If A is not available, I would take B and record plainly that the acceptance ran on a universal
+rebuild of the same commit, with both digests in the receipt, rather than claim the exact artifact
+was exercised.
+
+There is also a standing question either way: since GitHub runners are x86_64, an arm64-only release
+artifact can never be emulator-tested in CI. If device proof is meant to be automated, the build has
+to carry `x86_64` alongside `arm64-v8a`. That is a build-configuration decision, not a test one.
