@@ -131,7 +131,9 @@ export function IntakePresentation(props: Props) {
       {safetyCopy && conversation.safety === 'BLOCK'
         ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : null}
     </>}
-    status={<>
+    // A fragment is truthy even when every branch inside it is null, which drew an empty
+    // panel in the thread. The slot is filled only when there is something to act on.
+    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback ? undefined : <>
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>

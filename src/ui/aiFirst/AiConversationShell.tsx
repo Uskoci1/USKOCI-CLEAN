@@ -62,9 +62,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScroll={event => { const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
           nearBottom.current = contentSize.height - contentOffset.y - layoutMeasurement.height < 80; }} scrollEventThrottle={100}
-        onContentSizeChange={() => { if (nearBottom.current) thread.current?.scrollToEnd({ animated: false }); }}>
+        // With no messages the intro is the entire content, and scrolling to the end of it
+        // cuts its first line off the top. There is nothing to follow, so stay put.
+        onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
         {p.messages.length === 0 ? <View style={s.welcome}>
-          <T accessibilityRole="header" variant="display" style={s.welcomeTitle}>{p.welcome}</T>
+          <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T>
         </View> : p.messages.map(message => <ConversationBubble key={message.id} fromAi={message.fromAi} body={message.body} />)}
         {p.streamingText ? <View style={s.message}><T variant="label" style={s.assistantLabel}>USKOČI</T>
