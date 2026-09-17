@@ -40,7 +40,7 @@ $pkg015_preflight$;
 create table private.account_lineage_v5 (
   account_id uuid primary key references auth.users(id) on delete cascade,
   lineage text not null check (lineage in
-    ('OWNER_PERSONAL','OWNER_BUSINESS','DEV_ACCEPTANCE_QA','SYNTHETIC_PROOF_FIXTURE','OPERATOR','REAL_USER')),
+    ('OWNER_PERSONAL','OWNER_BUSINESS','DEV_ACCEPTANCE_QA','SYNTHETIC_ACCEPTANCE_FIXTURE','OPERATOR','REAL_USER')),
   reason text not null check (length(btrim(reason)) between 3 and 500),
   source_ref text not null check (length(btrim(source_ref)) between 3 and 200),
   revision integer not null default 1 check (revision >= 1),
@@ -123,7 +123,7 @@ security definer
 set search_path to 'pg_catalog'
 as $function$
   select private.account_lineage(p_account_id)
-    in ('OWNER_PERSONAL','OWNER_BUSINESS','DEV_ACCEPTANCE_QA','SYNTHETIC_PROOF_FIXTURE','OPERATOR');
+    in ('OWNER_PERSONAL','OWNER_BUSINESS','DEV_ACCEPTANCE_QA','SYNTHETIC_ACCEPTANCE_FIXTURE','OPERATOR');
 $function$;
 
 revoke all on function private.account_is_non_production(uuid) from public, anon, authenticated, service_role;

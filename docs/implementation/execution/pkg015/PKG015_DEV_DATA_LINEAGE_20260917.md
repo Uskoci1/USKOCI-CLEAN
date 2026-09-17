@@ -23,18 +23,24 @@ suggest they are synthetic, and nothing in the database or the repository confir
 
 | Account | Created (Belgrade) | AI allowlisted | Proposed lineage | Basis |
 | --- | --- | --- | --- | --- |
-| `adversarial_a@example.com` | 2026-08-30 17:32 | no | `SYNTHETIC_PROOF_FIXTURE` | reserved example domain, adversarial name, created in a pair |
-| `adversarial_b@example.com` | 2026-08-30 17:32 | no | `SYNTHETIC_PROOF_FIXTURE` | same |
+| `adversarial_a@example.com` | 2026-08-30 17:32 | no | `SYNTHETIC_ACCEPTANCE_FIXTURE` | reserved example domain, adversarial name, created in a pair |
+| `adversarial_b@example.com` | 2026-08-30 17:32 | no | `SYNTHETIC_ACCEPTANCE_FIXTURE` | same |
 | `msljivic031@…` | 2026-09-01 17:14 | yes | `OWNER_PERSONAL` | the owner's own account |
 | `msljivic031+uskoci-qa@…` | 2026-09-13 11:53 | yes | `DEV_ACCEPTANCE_QA` | the dedicated QA account AF-D20 authorized; drove the PKG-014 acceptance |
 | `uskocibusiness@…` | 2026-09-13 12:14 | yes | `OWNER_BUSINESS` | the owner's business account |
 
-**The two `adversarial` accounts are unattributable.** They are referenced nowhere in the current
-repository: no proof, script, workflow or document mentions them. They were created on 2026-08-30,
-before the CLEAN branch history this workspace carries. They are almost certainly leftovers of an
-early adversarial test run, but "almost certainly" is exactly what a lineage table is supposed to
-replace with a recorded fact. Their proposed class is a **proposal for the owner to confirm**, not
-a conclusion.
+When this census was first written the two `adversarial` accounts looked unattributable, because
+nothing in the **current tree** mentions them. That was too shallow a search.
+
+**Update, 2026-09-17, after the owner asked for provenance or nothing:** searching the full git
+history rather than the current tree found them. `adversarial_a@example.com` is named verbatim in
+`adversarial_read.js`, `adversarial_read2.js` and `rls_test.js`, committed in `0aa18af` and later
+removed as scratch files, which sign in to this exact project ref with a hardcoded test password.
+`HANDOFF.md` from `df5b81f`, committed eight minutes after the accounts were created, records an
+authenticated adversarial harness passing 11 of 11. Both accounts were created 331 milliseconds
+apart on a domain reserved by RFC 2606 that cannot receive mail, so neither can belong to a real
+person and both were made by a script. The full determination, including the one discrepancy that
+remains, is in `PKG015_PROMOTION_PLAN_20260917.md`.
 
 ## Full row census, by account
 
@@ -115,6 +121,9 @@ not slipped into this package.
 their agreements stay exactly as they are. Classifying data is not the same as cleaning it, and
 cleanup belongs to PKG-023 where the owner already placed it.
 
-**Will not**: apply anything to canonical DEV. Following the PKG-003 and PKG-008 precedent, the SQL
-lands in `supabase/candidates/`, outside `supabase/migrations/`, and its promotion needs its own
-owner-authorized batch.
+**Will not, at the time this census was written**: apply anything to canonical DEV. The SQL landed
+in `supabase/candidates/`, outside `supabase/migrations/`, awaiting its own owner-authorized batch.
+
+**Update, 2026-09-17:** the owner authorized exactly that batch, as a minimal and isolated PKG-015
+promotion. The plan, the discovered constraint that forced the route taken, the preflight and the
+readback are in `PKG015_PROMOTION_PLAN_20260917.md`.

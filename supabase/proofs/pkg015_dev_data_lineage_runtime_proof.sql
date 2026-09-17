@@ -68,7 +68,7 @@ declare
 begin
   begin
     perform public.rpc_admit_account_lineage_service(
-      v_fixture,'SYNTHETIC_PROOF_FIXTURE','wrong expected revision','PKG-015 proof',7);
+      v_fixture,'SYNTHETIC_ACCEPTANCE_FIXTURE','wrong expected revision','PKG-015 proof',7);
   exception when sqlstate '40001' then v_conflict := true;
   end;
   if not v_conflict then raise exception 'PKG015_FIRST_ADMISSION_ACCEPTED_STALE_REVISION'; end if;
@@ -77,8 +77,8 @@ begin
   end if;
 
   v_receipt := public.rpc_admit_account_lineage_service(
-    v_fixture,'SYNTHETIC_PROOF_FIXTURE','adversarial pair left by an early test run','PKG-015 census 2026-09-17',0);
-  if v_receipt->>'lineage' <> 'SYNTHETIC_PROOF_FIXTURE' or (v_receipt->>'revision')::int <> 1
+    v_fixture,'SYNTHETIC_ACCEPTANCE_FIXTURE','adversarial pair left by an early test run','PKG-015 census 2026-09-17',0);
+  if v_receipt->>'lineage' <> 'SYNTHETIC_ACCEPTANCE_FIXTURE' or (v_receipt->>'revision')::int <> 1
      or (v_receipt->>'changed')::boolean is distinct from true then
     raise exception 'PKG015_FIRST_ADMISSION_RECEIPT_INVALID';
   end if;
@@ -101,7 +101,7 @@ declare
   v_receipt jsonb;
 begin
   v_receipt := public.rpc_admit_account_lineage_service(
-    v_fixture,'SYNTHETIC_PROOF_FIXTURE','adversarial pair left by an early test run','PKG-015 census 2026-09-17',1);
+    v_fixture,'SYNTHETIC_ACCEPTANCE_FIXTURE','adversarial pair left by an early test run','PKG-015 census 2026-09-17',1);
   if (v_receipt->>'changed')::boolean is distinct from false or (v_receipt->>'revision')::int <> 1 then
     raise exception 'PKG015_RESTATEMENT_NOT_IDEMPOTENT';
   end if;
@@ -127,7 +127,7 @@ begin
   if (select count(*) from private.account_lineage_events_v5 where account_id=v_fixture) <> 2
      or not exists(select 1 from private.account_lineage_events_v5
                    where account_id=v_fixture and revision=2
-                     and from_lineage='SYNTHETIC_PROOF_FIXTURE' and to_lineage='DEV_ACCEPTANCE_QA') then
+                     and from_lineage='SYNTHETIC_ACCEPTANCE_FIXTURE' and to_lineage='DEV_ACCEPTANCE_QA') then
     raise exception 'PKG015_RECLASSIFY_HISTORY_INVALID';
   end if;
 
@@ -172,7 +172,7 @@ declare
 begin
   begin
     perform public.rpc_admit_account_lineage_service(
-      v_absent,'SYNTHETIC_PROOF_FIXTURE','no such account','PKG-015 proof',0);
+      v_absent,'SYNTHETIC_ACCEPTANCE_FIXTURE','no such account','PKG-015 proof',0);
   exception when sqlstate '42501' then v_not_found := true;
   end;
   if not v_not_found then raise exception 'PKG015_UNKNOWN_ACCOUNT_ADMITTED'; end if;
