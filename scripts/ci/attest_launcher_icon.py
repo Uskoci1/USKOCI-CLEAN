@@ -37,6 +37,7 @@ from PIL import Image
 
 SHIPPED_FOREGROUND = Path('assets/brand/app-icon/android-icon-foreground.png')
 SHIPPED_ICON = Path('assets/brand/app-icon/icon.png')
+SHIPPED_MONOCHROME = Path('assets/brand/app-icon/android-icon-monochrome.png')
 TEMPLATE_ICON = Path('assets/images/icon.png')
 TEMPLATE_FOREGROUND = Path('assets/images/android-icon-foreground.png')
 
@@ -103,7 +104,7 @@ def main() -> int:
     # Only the shipped assets are required. The template files are reference material
     # for the absence check and PKG-023 is expected to retire them; when they are gone
     # the check has nothing to compare and simply reports that.
-    for asset in (SHIPPED_FOREGROUND, SHIPPED_ICON):
+    for asset in (SHIPPED_FOREGROUND, SHIPPED_ICON, SHIPPED_MONOCHROME):
         require(asset.is_file(), 'ASSET_NOT_FOUND', str(asset))
 
     images = packaged(apk_path)
@@ -111,6 +112,7 @@ def main() -> int:
 
     foreground = nearest(fingerprint(Image.open(SHIPPED_FOREGROUND)), images)
     icon = nearest(fingerprint(Image.open(SHIPPED_ICON)), images)
+    monochrome = nearest(fingerprint(Image.open(SHIPPED_MONOCHROME)), images)
     template_icon = (nearest(fingerprint(Image.open(TEMPLATE_ICON)), images)
                      if TEMPLATE_ICON.is_file() else None)
     template_fg = (nearest(fingerprint(Image.open(TEMPLATE_FOREGROUND)), images)
@@ -120,6 +122,10 @@ def main() -> int:
             'nearest %.2f at %s' % (foreground[0], foreground[1]))
     require(icon[0] <= PRESENT_AT_MOST, 'SHIPPED_ICON_NOT_PACKAGED',
             'nearest %.2f at %s' % (icon[0], icon[1]))
+    # Without this layer Android 13+ leaves USKOCI in colour while every themed icon
+    # around it is recoloured, so its absence is a visible regression, not a detail.
+    require(monochrome[0] <= PRESENT_AT_MOST, 'SHIPPED_MONOCHROME_NOT_PACKAGED',
+            'nearest %.2f at %s' % (monochrome[0], monochrome[1]))
     if template_icon is not None:
         require(template_icon[0] >= ABSENT_AT_LEAST, 'EXPO_TEMPLATE_ICON_STILL_PACKAGED',
                 'nearest %.2f at %s' % (template_icon[0], template_icon[1]))
@@ -156,7 +162,8 @@ def main() -> int:
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
     receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + '\n', encoding='utf8')
 
-    print('PASS PKG016_LAUNCHER_ICON_ATTESTATION shipped_foreground_packaged shipped_icon_packaged template_absent')
+    print('PASS PKG016_LAUNCHER_ICON_ATTESTATION shipped_foreground_packaged shipped_icon_packaged shipped_monochrome_packaged template_absent')
+    print('monochrome nearest %.2f at %s (%dpx)' % (monochrome[0], monochrome[1], monochrome[2]))
     print('foreground nearest %.2f at %s (%dpx)' % (foreground[0], foreground[1], foreground[2]))
     if template_icon is not None:
         print('template icon nearest %.2f, well outside %.1f' % (template_icon[0], ABSENT_AT_LEAST))

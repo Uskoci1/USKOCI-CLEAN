@@ -43,8 +43,12 @@ function Marketplace({ owned, intent, rows, loading = false }: { owned: boolean;
 }
 test('header names the intent the user is in, the screen title is a header, and the mode switch is a real tab list', async () => {
   await act(async () => { tree = create(<Marketplace owned={false} intent="uskocer" rows={[row('one')]} />); });
-  expect(texts()).toContain('Ja mogu'); expect(texts()).toContain('Zadaci');
-  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Zadaci'))).toBe(true);
+  // Both tabs used this presentation and both were titled Zadaci, so two different screens
+  // carried one name. Discovery is what the Mapa tab opens, and it is titled Mapa; the
+  // owned view below is still Zadaci. The invariant is unchanged: the title is a header.
+  expect(texts()).toContain('Ja mogu'); expect(texts()).toContain('Mapa');
+  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Mapa'))).toBe(true);
+  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Zadaci'))).toBe(false);
   expect(roleOf('Lista').accessibilityRole).toBe('tab'); expect(roleOf('Lista').accessibilityState).toEqual({ selected: true });
   expect(roleOf('Mapa').accessibilityState).toEqual({ selected: false });
   expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' }).length).toBeGreaterThan(0);

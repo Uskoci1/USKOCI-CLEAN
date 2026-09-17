@@ -148,6 +148,27 @@ function rpc<T>(s: ReceiptAccount, name: string, args: Record<string, unknown>, 
 async function readFor(s: ReceiptAccount, reviewId: string): Promise<Ishod<AiTaskReviewRead>> {
   return rpc(s, 'rpc_read_ai_task_review', { p_review_id: reviewId }, raw => decodeRead(raw, s.accountId, reviewId));
 }
+/** A refusal is only useful if it says what to do next. Codes come from
+ *  rpc_get_need_publication_context and from the evaluator's own readiness gates. */
+function notReadyCopy(code: string, missing?: readonly string[]): string {
+  const slots = (missing ?? []).length ? ' (' + (missing ?? []).join(', ') + ')' : '';
+  switch (code) {
+    case 'LOCATION_INCOMPLETE':
+      return 'Lokacija nije potvrđena na mapi' + slots + '. Dodirni lokaciju u pregledu i postavi je, pa objavi.';
+    case 'COUNTRY_NOT_READY':
+      return 'Država zadatka nije potvrđena. Dodirni državu u pregledu i potvrdi je.';
+    case 'PUBLIC_MEDIA_NOT_READY':
+      return 'Fotografije još nisu proverene. Sačekaj proveru ili ih ukloni, pa objavi.';
+    case 'POLICY_NOT_READY':
+    case 'POLICY_CONTENT_NOT_READY':
+      return 'Pravila objave nisu spremna na serveru. Nije na tebi — nacrt je sačuvan, probaj kasnije.';
+    case 'EVALUATOR_UNAVAILABLE':
+      return 'Provera objave trenutno nije dostupna. Nacrt je sačuvan, probaj ponovo za koji minut.';
+    default:
+      return 'Objava još nije moguća' + slots + '. Nacrt je sačuvan; učitaj pregled ponovo.';
+  }
+}
+
 async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): Promise<Ishod<AiTaskPublicationCommand>> {
   const read = await readFor(s, command.reviewId);
   if (!read.ok) return read;
@@ -173,7 +194,11 @@ async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): 
     if (!stored) return failure('TASK_REVIEW_COMMAND_MISMATCH', COPY.TASK_REVIEW_COMMAND_MISMATCH);
     if (stored.state === 'ACCEPTED') {
       if (!evaluated.ok) return evaluated;
-      return failure(evaluated.podatak.kind === 'NOT_READY' ? evaluated.podatak.code : 'TASK_REVIEW_OUTCOME_UNCONFIRMED', 'Provera objave nije završena. Nacrt je sačuvan; ponovo učitajte stanje.');
+      // The server says exactly what is missing. Repeating a generic "reload" left the
+      // owner stuck on a real device: reloading can never satisfy a missing location.
+      return failure(evaluated.podatak.kind === 'NOT_READY' ? evaluated.podatak.code : 'TASK_REVIEW_OUTCOME_UNCONFIRMED',
+        evaluated.podatak.kind === 'NOT_READY' ? notReadyCopy(evaluated.podatak.code, evaluated.podatak.missingSlots)
+          : 'Ishod objave nije potvrđen. Nacrt je sačuvan; učitaj pregled ponovo.');
     }
   }
   if (stored.state !== 'EVALUATED' || stored.evaluation?.kind !== 'DECISION' || stored.evaluation.decision.outcome !== 'ALLOW') return { ok: true, podatak: stored };

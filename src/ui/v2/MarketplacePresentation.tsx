@@ -75,7 +75,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
   return <SafeAreaView edges={['top']} style={s.screen}>
     <View accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
-      <ScreenHeader eyebrow={eyebrow} title="Zadaci" onProfile={props.onProfile} />
+      {/* Both tabs used this one presentation and both were titled Zadaci, so two different
+          screens carried the same name. The discovery view is what the Mapa tab opens. */}
+      <ScreenHeader eyebrow={eyebrow} title={owned ? 'Zadaci' : 'Mapa'} onProfile={props.onProfile} />
       <View style={s.segmentRow}>
         {owned ? <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
           : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
