@@ -115,6 +115,15 @@ jobs:
               USKOCI-DEV.apk USKOCI-DEV-recovery-attestation.json
           cat USKOCI-DEV-recovery-attestation.json
 
+      - name: Attest the launcher icon is the one in the artifact
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --disable-pip-version-check pillow
+          USKOCI_SOURCE_TREE="$(git rev-parse 'HEAD^{tree}')" \
+            python3 scripts/ci/attest_launcher_icon.py \
+              USKOCI-DEV.apk USKOCI-DEV-icon-attestation.json
+          cat USKOCI-DEV-icon-attestation.json
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
@@ -123,6 +132,7 @@ jobs:
             USKOCI-DEV.apk
             USKOCI-DEV.apk.sha256
             USKOCI-DEV-recovery-attestation.json
+            USKOCI-DEV-icon-attestation.json
           retention-days: 14
 
       # A proof run from a working branch must not delete and recreate the published
@@ -138,6 +148,7 @@ jobs:
             USKOCI-DEV.apk \
             USKOCI-DEV.apk.sha256 \
             USKOCI-DEV-recovery-attestation.json \
+            USKOCI-DEV-icon-attestation.json \
             --target "${GITHUB_SHA}" \
             --title 'USKOČI DEV — Android APK' \
             --notes 'Development APK connected to the live USKOČI Supabase backend. This is not a Play Store release.' \
