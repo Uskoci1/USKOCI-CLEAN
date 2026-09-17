@@ -32,9 +32,9 @@ listed at the end (`scripts/ci/pkg012-source-authority.test.cjs`).
 
 ## Package state, one sentence
 
-DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 014B, 015.
+DONE_VERIFIED: PKG-001 (audit only), 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 014B, 015, 016.
 BLOCKED: PKG-018 (AF-D04 model availability; the wire half of its provider diagnosis is answered by PKG-014).
-PKG-012 created this map. The next package is PKG-016. NOT_STARTED: 016–017, 019–024. A new gap, GAP-0042, is
+PKG-012 created this map. The next package is PKG-017. NOT_STARTED: 015B, 017, 019–024. A new gap, GAP-0042, is
 open and documented: synthetic acceptance data is not isolated from real users. The Ledger, not this file, is authoritative.
 
 PKG-014 is verified on `7d897f7` with release-level PRE-P4 run 35151771679 bound to that exact candidate.
