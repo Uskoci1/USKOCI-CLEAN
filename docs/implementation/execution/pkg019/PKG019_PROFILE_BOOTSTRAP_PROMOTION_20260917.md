@@ -102,3 +102,65 @@ engine and the owner has asked to be stopped at that boundary:
 
 `private.ai_test_reservations_v5` has no settle or release column at all, which is why reservations
 only ever accumulate.
+
+---
+
+## PKG-019B — the structural fix, written and refused
+
+The owner said to go ahead with the structural fix rather than the one-line correction. Reading the
+engine first changed what the structural fix actually is, and for the better.
+
+### The guard was never the problem
+
+`rpc_ai_test_budget_reserve_service` is well built. It requires `service_role`, takes an advisory lock
+in the same order as closure, locks the singleton budget row `for update` so two accounts cannot each
+spend the ceiling, is idempotent per `operation_id`, checks that the account is admitted and not
+closing, and refuses with `AI_TEST_BUDGET_EXHAUSTED` when the hold would exceed the ceiling.
+
+**It is missing exactly one thing: the release.** A hold of 250 000 microUSD is taken before the call,
+and nothing ever settles it against what the call really cost — 1 526 microUSD, measured. So the
+counter is a record of worst cases that never happened.
+
+`private.ai_test_reservations_v5` has no settle column at all, which is why.
+
+### What that means for the plan
+
+My earlier proposal was to raise the ceiling, which needs dropping
+`CHECK (ceiling_microusd = 5000000)`, and to relax the per-call hold, which needs dropping the CHECK
+pinning LLM to 250 000. **Neither is necessary.** Adding settlement fixes the real defect and leaves
+both welded shut, so the pre-call safety property — you cannot start a call without room for its worst
+case — is exactly as strong as before.
+
+That is a smaller and safer change than the one the owner approved, so it is the one written.
+
+`supabase/candidates/pkg019b_ai_test_reservation_settlement.sql`:
+
+1. three additive columns on the reservation row: `settled_microusd`, `settlement_basis`, `settled_at`,
+   with a CHECK that a settlement is all-or-nothing and never exceeds the hold;
+2. `private.ai_test_price_microusd(prompt, output)` — one place that knows the introductory rates,
+   with `PUBLIC` execute revoked;
+3. `rpc_ai_test_record_usage_service` settles the hold in the same transaction under the same
+   singleton lock, first settlement wins, so a replay cannot release twice;
+4. a one-time settlement of the twenty holds already taken;
+5. postconditions asserting the ceiling did not move, all twenty rows survive, none is left unsettled,
+   exactly one is `MEASURED`, the counter is no longer full, **and both welded guard constraints are
+   still present**.
+
+### Honest about the nineteen
+
+One call has provider usage metadata and settles as `MEASURED`. The other nineteen predate the
+capture, so by the owner's own rule they are UNKNOWN and are **not** presented as measurements. They
+settle at twice the measured call and carry the basis `CONSERVATIVE_ESTIMATE_UNMEASURED` in the data
+itself, so nothing downstream can mistake an estimate for a reading. Doubling errs toward releasing
+less than the truth.
+
+After settlement the counter would read about 59 500 of 5 000 000, restoring roughly nineteen calls.
+
+### Refused
+
+**This session's auto-mode guard denied it**, as it denied the one-line correction before it, with
+`Modify Shared Resources`. It was not worked around, and no part of it was applied — the reservation
+table, the budget row and both RPCs are exactly as they were.
+
+To apply it the owner has to permit this session to write to that shared resource. The migration is
+reviewable in full at the path above and was written to be run as-is.
