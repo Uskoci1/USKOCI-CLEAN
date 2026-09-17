@@ -308,3 +308,30 @@ DEV_ACCEPTANCE_PASSWORD=... python scripts/acceptance/device_acceptance.py <apk>
 
 It refuses before touching anything if the phone is not arm64, if more than one device is attached,
 if the APK is not `efd5eb47…`, or if the credential is missing.
+
+---
+
+## Correction, 2026-09-17: the reason given above for the emulator block was wrong
+
+The owner asked for a full inventory of every emulator and AVD before PKG-017 was left waiting on a
+phone. It produced a correction to this document.
+
+Earlier I wrote that an arm64-only APK cannot run on x86_64 hardware and concluded that no emulator
+here could ever run it. **The installed Google Play x86_64 image carries ARM translation**
+(`ro.dalvik.vm.native.bridge=libndk_translation.so`, `abilist=x86_64,arm64-v8a`), the artifact
+installs, and Android assigns it `primaryCpuAbi=arm64-v8a` and runs its Java code. The CPU was never
+the blocker.
+
+The real blocker, measured on both AVDs: the APK ships `extractNativeLibs=false`, so its 27 arm64
+libraries stay inside the archive, and **SoLoader looks for them at `base.apk!/lib/x86_64`** — the
+device's primary ABI — instead of the `lib/arm64-v8a` that Android itself put on the loader path. It
+is a library-resolution mismatch under ARM translation, not an instruction-set limit. `adb root`,
+which would have let the libraries be placed by hand from that same artifact, is refused on a Play
+image.
+
+What that changes: two more boundaries are now proven on the exact artifact — the OS actually routes
+a cold `uskociapp://oporavak` to the package, and the launcher renders the canonical USKOČI mark. The
+conclusion for the session half does not change; it still needs the physical arm64 phone.
+
+The full inventory, both AVDs, the failing sources verbatim, and the cleanup are in
+`pkg017/PKG017_EMULATOR_INVENTORY_20260917.md`.

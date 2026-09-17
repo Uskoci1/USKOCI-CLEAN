@@ -108,11 +108,25 @@ def guard_device():
     if len(devices) > 1:
         raise Refused('AMBIGUOUS_DEVICE: %d devices attached, attach exactly one' % len(devices))
     abi = shell('getprop ro.product.cpu.abi')
+    abilist = shell('getprop ro.product.cpu.abilist')
+    bridge = shell('getprop ro.dalvik.vm.native.bridge')
+    if 'arm64-v8a' not in abilist:
+        raise Refused('DEVICE_CANNOT_RUN_ARM64 abilist=%s: the attested artifact carries arm64-v8a only' % abilist)
+    # An x86_64 emulator with NDK translation advertises arm64-v8a and will install and
+    # even assign primaryCpuAbi=arm64-v8a, then fail inside the app: SoLoader resolves the
+    # in-APK library path from the device's primary ABI rather than the app's assigned one,
+    # and looks for base.apk!/lib/x86_64, which an arm64-only artifact does not contain.
+    # Measured on both AVDs on 2026-09-17. Refused here by name rather than left to crash.
     if 'arm64' not in abi:
-        raise Refused('DEVICE_NOT_ARM64 %s: the attested artifact carries arm64-v8a only' % abi)
+        raise Refused(
+            'ARM_TRANSLATION_NOT_SUFFICIENT abi=%s abilist=%s bridge=%s: the device translates '
+            'arm64 but SoLoader resolves lib/%s inside the APK, which an arm64-only artifact '
+            'does not carry. A physical arm64 device is required.' % (abi, abilist, bridge, abi))
     return {
         'serial': devices[0],
         'abi': abi,
+        'abilist': abilist,
+        'nativeBridge': bridge or None,
         'release': shell('getprop ro.build.version.release'),
         'model': shell('getprop ro.product.model'),
         'emulator': shell('getprop ro.kernel.qemu') == '1',
