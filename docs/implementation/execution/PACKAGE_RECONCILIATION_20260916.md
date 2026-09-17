@@ -17,7 +17,7 @@ Ledger statuses only. "Fresh" means the package's changed files and their produc
 | IMPLEMENTED_PENDING_VERIFICATION | none |
 | MISSING_PROOF (mechanism exists, not yet executed on head) | none |
 | BLOCKED | PKG-018 (AF-D04 model availability; the wire half of its provider diagnosis is answered by PKG-014) |
-| NOT_STARTED | PKG-016, 017, 019, 020, 021, 022, 023, 024 |
+| NOT_STARTED | PKG-015B (owner-declared release blocker, GAP-0042), 016, 017, 019, 020, 021, 022, 023, 024 |
 
 Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG-008 → PKG-006 → PKG-010 → PKG-011 → PKG-012 → PKG-013 → PKG-014 → PKG-015 → … PKG-009 is already fresh and is skipped. PKG-003, PKG-004, PKG-007, PKG-008, PKG-006, PKG-010, PKG-011, PKG-012, PKG-013 and PKG-014 are done. PKG-015 is DONE_VERIFIED with GAP-0018 closed on canonical DEV; the next package per topology is PKG-016 (source-bound Android artifact). GAP-0042, opened by the PKG-015 census, needs its own package and now has its prerequisite met. Two owner-facing items carry over from PKG-014 and neither blocks PKG-015: the AI test budget ceiling is nearly spent, and one legacy turn of `uskocibusiness@gmail.com` stays PROCESSING because closing it needs that account's own session.
 
@@ -184,6 +184,14 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 - Promoted live as `20260917055559_dev_alpha_pkg014b_ai_provider_usage`; both Edge functions redeployed and read back byte-identical. Domain surface digest unchanged at `9033299ca197a009b4ba03a20491b08c`; ceiling, reserved and reservation count all unchanged.
 - Current status: DONE_VERIFIED on `da5165a` — Ledger `PKG-014B-RECEIPT-20260917-001`. The ceiling is deliberately not raised: one call remains and the next real call will be the first with recorded tokens for the owner to decide on.
 
+### PKG-015B — Synthetic data isolation enforcement (owner-declared release blocker)
+- Gap: GAP-0042, opened by the PKG-015 census and documented at `docs/implementation/execution/GAP_0042_TEST_DATA_NOT_ISOLATED_20260917.md`. Owner decision 2026-09-17: treat it as a real release blocker before any public or production use.
+- The exact cause, recorded rather than described: the RLS policy `needs_public_discovery` on `public.needs` grants `SELECT` to every `authenticated` account for any need whose status is `PUBLISHED` or `SELECTION`, with no owner, lineage or origin condition. `public.rpc_get_public_profile(uuid)` is likewise executable by any authenticated account. Discovery is the door; application, agreement, reputation and notification all follow through it.
+- Live measurement on 2026-09-17: 4 needs are discoverable by any authenticated account and **all 4 belong to the synthetic fixture pair**. `private.marketplace_tick` filters on no lineage or test marker, because none existed. Reputation and notifications are reachable through the chain but not yet realised, since `agreement_reviews` is empty and the one registered push device is inactive.
+- Prerequisite, now met: PKG-015 delivers the fail-closed predicate `private.account_is_non_production(uuid)` and every account on DEV is classified, so an enforcement rule has something real to read. Built on an empty registry it would have blocked everything or exempted everything.
+- Scope when it runs: extend the discovery policy so a viewer sees a need only when its requester is on the same side of the production boundary, then apply the same predicate to the public profile read and to whatever writes `opportunity_deliveries`. It changes RLS on a live read path, so it needs its own disposable proof of the fail-closed behaviour: a real account that cannot see a fixture need, a fixture that cannot see a real need, and two fixtures that still see each other.
+- Current status: NOT_STARTED. Not folded into PKG-015 or PKG-016 on the owner's instruction not to change the engine in passing. **Hard blocker for PKG-021, PKG-024 and any public or production release.**
+
 ### PKG-016 — Source-bound Android artifact
 - Gaps: GAP-0007, GAP-0041.
 - Implementation present: build workflow exists. Last attempt: `944fee9` (2026-09-13) recorded as `LOCAL_SIGNED_APK_FINAL_ATTESTATION_FAILED`, package `rs.uskoci.preview`. `app.json` still points launcher/adaptive/favicon to Expo template assets (`assets/images/icon.png`, `android-icon-foreground.png`, `favicon.png`); no USKOČI launcher asset exists in the repository, so GAP-0041 is confirmed on head.
@@ -212,7 +220,7 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 - Current status: NOT_STARTED (proof). Blocker: PKG-016 and PKG-017 (PKG-009 and PKG-014 done).
 
 ### PKG-021 — Full marketplace A/B acceptance
-- Gap: GAP-0006. Current status: NOT_STARTED. Blocker: PKG-003..008, PKG-015..020.
+- Gap: GAP-0006. Current status: NOT_STARTED. Blocker: PKG-003..008, PKG-015..020, and **PKG-015B**: a marketplace acceptance run is not meaningful while synthetic and real accounts can still discover each other.
 
 ### PKG-022 — Runtime UI, accessibility and performance
 - Gaps: GAP-0013, GAP-0014. Current status: NOT_STARTED. Blocker: PKG-011, PKG-016, PKG-021.
@@ -221,7 +229,7 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 - Gap: GAP-0016. 19 cleanup candidates, 0 retirement-eligible (V18). Current status: NOT_STARTED. Blocker: PKG-021 and PKG-022 (PKG-012 and PKG-014 done).
 
 ### PKG-024 — Final candidate and owner acceptance
-- Current status: NOT_STARTED. Blocker: PKG-013..PKG-023.
+- Current status: NOT_STARTED. Blocker: PKG-013..PKG-023, and **PKG-015B as an owner-declared release blocker**: GAP-0042 must be closed before any public or production release, because until it is, synthetic acceptance data can reach real users.
 
 ## Corrections to the V19 snapshot that this reconciliation establishes
 
