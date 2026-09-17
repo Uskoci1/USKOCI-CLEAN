@@ -185,10 +185,18 @@ sha256sum USKOCI-DEV.apk
 The release also carries the recovery attestation from the build run and a plain-text provenance
 note. The existing `dev-latest` pre-release was not touched.
 
-**One thing the owner should know:** this repository is public, so a release asset is downloadable by
-anyone, and this build points at canonical DEV. The existing `dev-latest` release already publishes
-an APK the same way, so this is not new exposure, but it does interact with GAP-0042: a stranger who
-installs it can create an account on DEV. The release can be deleted once the phone has it.
+**Withdrawn on 2026-09-17.** The owner confirmed the APK was downloaded to the phone, and the release
+`pkg016-8c70826` and its tag were deleted the same day. The two links above are now 404 and are kept
+only so the record reads truthfully. `dev-latest` was not touched.
+
+Why it was withdrawn: the repository is public, so a release asset is downloadable by anyone, and this
+build points at canonical DEV — a stranger who installed it could create an account there, which is
+GAP-0042 reached from outside. The exact bytes remain available without the release: workflow artifact
+`USKOCI-DEV-APK` on run 35193545898, **which expires 2026-10-01**, plus a local copy verified at
+`efd5eb47…`. After that date the attested artifact exists only in local copies, which matters for any
+later device run that must use it rather than a rebuild.
+
+`dev-latest` still publishes an APK the same way and belongs in the GAP-0042 review.
 
 ### What is proven without a device, measured rather than asserted
 
