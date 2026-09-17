@@ -169,3 +169,90 @@ lie.
 
 **The next real provider call will be the first with real numbers.** The ceiling stays at 5.00 USD,
 one call, until the owner decides with those numbers in hand.
+
+---
+
+## Update, 2026-09-17: the first real measurement, from the owner's own phone
+
+The owner asked that the ceiling not be raised until provider `usageMetadata` was being captured for
+every new real Gemini call. That capture shipped with PKG-014B. The owner then used the app on their
+phone, which spent the last remaining call — and it recorded.
+
+### The measurement
+
+`private.ai_test_usage_v5`, one row, written `2026-09-17 09:04:58Z` for the owner's account:
+
+| | |
+| --- | --- |
+| model | `gemini-3.8-flash` |
+| prompt tokens | 1 780 |
+| output tokens | 51 |
+| total tokens | 1 831 |
+
+At the introductory rates already recorded in this report, $0.75 per 1M input and $3.75 per 1M output:
+
+```
+input    1 780 x 0.75/1M = $0.001335
+output      51 x 3.75/1M = $0.000191
+                    call = $0.001526  =  1 526 microUSD
+```
+
+**This is REAL_SPEND for that call. It is not an estimate** — the token counts come from the
+provider's own usage metadata, and the rates are the published introductory rates.
+
+### What it says about the guard
+
+| | |
+| --- | --- |
+| reservation taken per call | **250 000 microUSD** |
+| what the call actually cost | **1 526 microUSD** |
+| the guard over-reserves by | **164x** |
+
+The ceiling is 5 000 000 microUSD, which is $5.00. At the measured rate that is about **3 276 calls**
+of real spend. The guard allows **20**. If the other nineteen calls resemble this one — and they were
+the same model on the same flow, though they predate the capture so they stay **UNKNOWN** — the whole
+acceptance cycle cost around **$0.03**.
+
+So the thing that has been called a budget is not a money limit. It is a fixed 20-call counter wearing
+a money label, and it ran out at roughly three cents of actual spend.
+
+### It is now exhausted, and that is visible to the user
+
+```
+ceiling_microusd  = 5 000 000
+reserved_microusd = 5 000 000
+```
+
+Full. And `private.ai_need_turn_commands` shows precisely what that looks like from the phone, all on
+the owner's own account:
+
+| time | state | provider_dispatched |
+| --- | --- | --- |
+| 09:04:54 | **SUCCEEDED** | **true** |
+| 09:05:38 | FAILED | false |
+| 09:49:44 | FAILED | false |
+| 09:50:53 | FAILED | false |
+
+The first attempt reached the provider and returned a receipt. **Every attempt after it was never
+dispatched at all** — the gate refused before any provider call. That is exactly the owner's
+description: it worked the first time, then nothing.
+
+The user-facing consequence is worth stating plainly: the app does not say *"the test budget is
+spent"*. It says *"Zahtev traži dodatnu serversku proveru pre objavljivanja"*, which reads like a
+product rule rather than an internal test cap, and the send control stays inert. A person with no
+knowledge of the budget cannot tell the difference between a spent counter and a broken app.
+
+### The decision this unblocks
+
+The owner's precondition is met: usage capture works, and there is a measured cost rather than a
+guess. Three things follow, and they are separable.
+
+1. **The per-call reservation of 250 000 microUSD is wrong by two orders of magnitude.** It is
+   enforced by a check constraint, so it cannot be tuned without touching the engine.
+2. **Reservations are never released**, so the counter only ever moves one way, whether or not a call
+   succeeds.
+3. **The exhausted state is indistinguishable from a defect in the UI.**
+
+None of these is fixed here. (1) and (2) are budget-engine changes and (3) is a copy change on the
+need-turn surface; all three need an owner decision, and this report exists so that decision rests on
+the measurement rather than on the $5.00 label.
