@@ -156,3 +156,65 @@ account nobody has classified, and that is proven live in the readback.
 
 The PKG-003 and PKG-008 candidate SQL are **not** promoted here. The owner asked for the case for
 each to be made separately first, and it is not made in this document. They remain unapplied.
+
+---
+
+## 8. Executed, 2026-09-17
+
+Applied to canonical DEV/ALPHA `leqcwgzvjsxugfgzdmth` as migration
+`20260917053239_dev_alpha_pkg015_account_lineage`, from the bytes proven by CI run 35185612325 on
+candidate `774034a`. The candidate's own preflight and postcondition blocks both passed, so every
+privilege assertion inside the SQL held on the live project.
+
+### Readback after the write
+
+| Check | Result | Expected |
+| --- | --- | --- |
+| migration ledger rows | 150 | 149 plus one |
+| new ledger row | `20260917053239 dev_alpha_pkg015_account_lineage` | that name |
+| rows across every `public` table | 366 | unchanged |
+| accounts | 5 | unchanged |
+| agreements of the fixture pair | 2 | unchanged |
+| domain surface digest, excluding the seven new objects | `53c4e70348422b743d0e05a7632814e1` | identical to preflight |
+| fail-closed on live data, before classification | `UNCLASSIFIED`, revision 0, `nonProduction` false | that |
+
+The digest matching the preflight value byte for byte is the mechanical proof that **no existing
+function, table or policy changed**. Not one row was deleted, rewritten or reassigned.
+
+### Classification written
+
+All five accounts, each at revision 1, each carrying its reason and source reference.
+
+| Account | Class | Non-production |
+| --- | --- | --- |
+| `adversarial_a` | `SYNTHETIC_ACCEPTANCE_FIXTURE` | true |
+| `adversarial_b` | `SYNTHETIC_ACCEPTANCE_FIXTURE` | true |
+| `msljivic031` | `OWNER_PERSONAL` | true |
+| `msljivic031+uskoci-qa` | `DEV_ACCEPTANCE_QA` | true |
+| `uskocibusiness` | `OWNER_BUSINESS` | true |
+
+`adversarial_b`'s stored reason records in the row itself that its evidence is structural rather
+than by name, and that it should be reclassified if the owner disagrees. The registry keeps the
+previous value on any reclassification, so that correction costs one call.
+
+### Readback after classification
+
+| Check | Result |
+| --- | --- |
+| classified accounts | 5 |
+| accounts left unclassified | 0 |
+| history rows | 5, every one a first admission with no previous value |
+| accounts reported non-production | 5 |
+| fail-closed for an unknown account id | `UNCLASSIFIED`, `nonProduction` false |
+| `authenticated` may call the writer | false |
+| `authenticated` may read the registry table | false |
+| `service_role` may call the writer | true |
+| rows across every `public` table | 366, unchanged |
+| agreements | 2, untouched |
+
+**GAP-0018 is closed on canonical DEV.** Every account on the project now carries a recorded lineage
+with a reason and a source reference, and the question "is this row test data?" has an authoritative
+answer that survives the session.
+
+Two things this deliberately did not do, both still true after the write: the engine gates nothing on
+lineage, which is GAP-0042, and no existing data was cleaned, which remains PKG-023.
