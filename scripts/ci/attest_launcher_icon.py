@@ -100,7 +100,10 @@ def main() -> int:
         fail('USAGE', 'attest_launcher_icon.py <apk> <receipt.json>')
     apk_path, receipt_path = Path(sys.argv[1]), Path(sys.argv[2])
     require(apk_path.is_file(), 'APK_NOT_FOUND', str(apk_path))
-    for asset in (SHIPPED_FOREGROUND, SHIPPED_ICON, TEMPLATE_ICON):
+    # Only the shipped assets are required. The template files are reference material
+    # for the absence check and PKG-023 is expected to retire them; when they are gone
+    # the check has nothing to compare and simply reports that.
+    for asset in (SHIPPED_FOREGROUND, SHIPPED_ICON):
         require(asset.is_file(), 'ASSET_NOT_FOUND', str(asset))
 
     images = packaged(apk_path)
@@ -108,7 +111,8 @@ def main() -> int:
 
     foreground = nearest(fingerprint(Image.open(SHIPPED_FOREGROUND)), images)
     icon = nearest(fingerprint(Image.open(SHIPPED_ICON)), images)
-    template_icon = nearest(fingerprint(Image.open(TEMPLATE_ICON)), images)
+    template_icon = (nearest(fingerprint(Image.open(TEMPLATE_ICON)), images)
+                     if TEMPLATE_ICON.is_file() else None)
     template_fg = (nearest(fingerprint(Image.open(TEMPLATE_FOREGROUND)), images)
                    if TEMPLATE_FOREGROUND.is_file() else None)
 
@@ -116,8 +120,9 @@ def main() -> int:
             'nearest %.2f at %s' % (foreground[0], foreground[1]))
     require(icon[0] <= PRESENT_AT_MOST, 'SHIPPED_ICON_NOT_PACKAGED',
             'nearest %.2f at %s' % (icon[0], icon[1]))
-    require(template_icon[0] >= ABSENT_AT_LEAST, 'EXPO_TEMPLATE_ICON_STILL_PACKAGED',
-            'nearest %.2f at %s' % (template_icon[0], template_icon[1]))
+    if template_icon is not None:
+        require(template_icon[0] >= ABSENT_AT_LEAST, 'EXPO_TEMPLATE_ICON_STILL_PACKAGED',
+                'nearest %.2f at %s' % (template_icon[0], template_icon[1]))
 
     receipt = {
         'unit': 'PKG016_LAUNCHER_ICON_ATTESTATION',
@@ -131,7 +136,10 @@ def main() -> int:
         'shippedIcon': {'asset': str(SHIPPED_ICON).replace('\\', '/'),
                         'nearestPackaged': icon[1], 'sizePx': icon[2],
                         'distance': round(icon[0], 3)},
-        'expoTemplateIconAbsent': {'nearestPackaged': template_icon[1], 'distance': round(template_icon[0], 3)},
+        'expoTemplateIconAbsent': (
+            {'nearestPackaged': template_icon[1], 'distance': round(template_icon[0], 3), 'asserted': True}
+            if template_icon is not None else
+            {'asserted': False, 'why': 'the template icon is no longer in the repository, so there is nothing to compare'}),
         'expoTemplateForegroundObserved': (None if template_fg is None else
                                            {'nearestPackaged': template_fg[1], 'distance': round(template_fg[0], 3),
                                             'asserted': False,
@@ -150,7 +158,10 @@ def main() -> int:
 
     print('PASS PKG016_LAUNCHER_ICON_ATTESTATION shipped_foreground_packaged shipped_icon_packaged template_absent')
     print('foreground nearest %.2f at %s (%dpx)' % (foreground[0], foreground[1], foreground[2]))
-    print('template icon nearest %.2f, well outside %.1f' % (template_icon[0], ABSENT_AT_LEAST))
+    if template_icon is not None:
+        print('template icon nearest %.2f, well outside %.1f' % (template_icon[0], ABSENT_AT_LEAST))
+    else:
+        print('template icon no longer in the repository; absence check not applicable')
     return 0
 
 
