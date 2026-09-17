@@ -254,7 +254,8 @@ forbidden accounts by name so the owner's personal, business and fixture account
 ### Status
 
 `PENDING_PHYSICAL_DEVICE`. Everything that does not need hardware is done: the artifact is
-downloadable and verified, the client-side session contract is covered by 91 passing tests, and the
+downloadable and verified, the client-side session contract is covered by 91 passing tests with a
+further 74 in the data fencing suites, and the
 device harness exists with its guards proven. The remaining boundaries need the phone attached over
 USB with debugging allowed, after which the run is fully automated and needs nothing from the owner.
 
