@@ -4,21 +4,27 @@ The provider defect is fixed and deployed, but nothing about the voice path has 
 on real hardware. This is the list the owner asked for. Each line says what to do, what should
 happen, and what it would mean if it does not.
 
-**Artifact**
+**Artifact** — superseded the first build the same evening
 
 | | |
 | --- | --- |
-| download | `https://github.com/Uskoci1/USKOCI-CLEAN/releases/download/pkg020-cb5a0b2/USKOCI-DEV.apk` |
-| sha256 | `4840768342e06e955ba0cd9ee084e0a35fc084cf94e6536c3ce3bad5e7f3cc06` |
-| bytes | 68 637 007 |
-| source commit | `cb5a0b21efb05d7a2c367155a8671823d4136441` |
-| source tree | `f8e09592fdd7828436a6a786dd3a576085acdd09` |
-| build run | 35246861805, attempt 1 |
+| download | `https://github.com/Uskoci1/USKOCI-CLEAN/releases/download/pkg020-6b7e6a2/USKOCI-DEV.apk` |
+| sha256 | `a718aaa51fbf8ba1ef4dea1ad2c0a6a31be22a6efe72debbb91e1211e1db0dde` |
+| bytes | 68 636 795 |
+| source commit | `6b7e6a20307979d5163f953a50bb088602aacb17` |
+| build run | 35253482389, attempt 1 |
 
-Bound to the current source: the build ran on `cb5a0b2`, which is the branch head, and both
-attestations carry that commit and tree alongside this exact APK digest. The published asset was
-downloaded back and hashed to the same value. No parallel build exists; the two earlier runs are on
-older commits and are finished.
+Both attestations pass and carry this commit alongside this APK digest. The published asset was
+downloaded back and hashed to the same value. The first GitHub upload failed with HTTP 500 and rolled
+the release back; it was recreated and the APK uploaded on the first retry.
+
+This build carries the clean conversation surface and the finalization fix (the bridge now completes
+on `generationComplete`, which the transcribe model actually sends). Later commits are server-only -
+audio-duration settlement for STT - and are already live without a new APK: the diff from
+`6b7e6a2` to head touches only `supabase/` and one test file.
+
+The earlier `pkg020-cb5a0b2` build is superseded: it could transcribe but always ended in
+FINALIZATION_TIMEOUT.
 
 Install it over the existing app; the account and session survive.
 
