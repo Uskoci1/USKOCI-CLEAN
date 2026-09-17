@@ -118,6 +118,13 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
       if (!released) { error('SPEECH_INCOMPLETE'); return; }
       turnComplete = true;
     }
+    // Proven by a controlled probe on 2026-09-17: gemini-3.5-transcribe-live never sends
+    // turnComplete. After activityEnd it sends inputTranscription and then
+    // generationComplete: true, 306 ms later, and nothing else for 20 s. Waiting only for
+    // turnComplete is why every session ended in FINALIZATION_TIMEOUT with a perfect
+    // transcript already in hand. generationComplete counts only after release, so it can
+    // never finish a gesture that is still held.
+    if (content.generationComplete === true && released) turnComplete = true;
     complete();
   };
   client.onmessage = event => {

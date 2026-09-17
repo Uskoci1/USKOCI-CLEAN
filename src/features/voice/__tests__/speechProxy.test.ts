@@ -53,6 +53,29 @@ describe('bounded native STT proxy', () => {
     expect(h.provider.messages).toHaveLength(2); expect(h.client.messages.at(-1)).toMatchObject({ kind: 'error', code: 'SPEECH_INVALID' });
   });
 
+  // Proven against gemini-3.5-transcribe-live on 2026-09-17 with 4.29 s of real speech:
+  // after activityEnd the provider sends inputTranscription, then generationComplete: true
+  // 306 ms later, and never turnComplete. Waiting for turnComplete alone timed out every
+  // session with a perfect transcript already received.
+  it('completes on the provider generationComplete after release, as the transcribe model actually signals', () => {
+    const h = harness(); h.ready(); h.client.message({ kind: 'audio', sequence: 0, pcmBase64: 'AAA=' });
+    h.provider.message({ serverContent: { interimInputTranscription: { text: 'Hello. I need help moving a sofa on Saturday.' } } });
+    h.client.message({ kind: 'release' });
+    expect(h.provider.messages.at(-1)).toEqual({ realtimeInput: { activityEnd: {} } });
+    h.provider.message({ serverContent: { inputTranscription: { text: 'Hello. I need help moving a sofa on Saturday.' } } });
+    expect(h.client.messages.some(message => message.kind === 'final')).toBe(false);
+    h.provider.message({ serverContent: { generationComplete: true } });
+    expect(h.client.messages.at(-1)).toMatchObject({ kind: 'final', text: 'Hello. I need help moving a sofa on Saturday.' });
+  });
+
+  it('never lets generationComplete finish a gesture that is still held', () => {
+    const h = harness(); h.ready(); h.client.message({ kind: 'audio', sequence: 0, pcmBase64: 'AAA=' });
+    h.provider.message({ serverContent: { inputTranscription: { text: 'Dve osobe.' } } });
+    h.provider.message({ serverContent: { generationComplete: true } });
+    expect(h.client.messages.some(message => message.kind === 'final')).toBe(false);
+    expect(h.client.messages.some(message => message.kind === 'error')).toBe(false);
+  });
+
   it('one release produces one authoritative transcript with real server event identities', () => {
     const h = harness(); h.ready(); h.client.message({ kind: 'audio', sequence: 0, pcmBase64: 'AAA=' });
     h.provider.message({ serverContent: { interimInputTranscription: { text: 'Две' } } });
