@@ -101,13 +101,13 @@ export function IntakePresentation(props: Props) {
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={conversation.messages} pending={pending} busy={busy} streamingText={props.streamingText}
-    welcome="Reci šta ti treba. Ostalo slažemo zajedno." welcomeDetail="Mesto, termin, ljude i cenu možeš reći odjednom ili dodati u razgovoru."
+    welcome="Reci šta ti treba." welcomeDetail=""
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
     card={compact => <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
       accessibilityHint="Detaljan pregled svih podataka pre objave." accessibilityState={{ disabled: !props.canReview }}
       disabled={!props.canReview} onPress={props.onReview} haptic={props.canReview ? 'select' : 'none'} scaleTo={1}
-      style={[s.taskCard, compact && s.taskCardCompact]}>
+      style={[s.taskCard, compact && s.taskCardCompact, !conversation.facts.length && s.taskCardEmpty]}>
       <View style={s.row}>
         <View style={[s.dot, busy && s.dotBusy]} />
         <T variant="label" style={s.kicker}>TVOJ ZADATAK · {busy ? 'USKLAĐUJEM' : 'NACRT'}</T>
@@ -123,7 +123,6 @@ export function IntakePresentation(props: Props) {
         {summary.price ? <T style={s.money}>{summary.price}</T> : <View style={s.grow} />}
         {summary.people ? <View style={s.peopleRow}><Users size={18} color={sys.color.ink} /><T variant="meta" style={s.people}>{summary.people}</T></View> : null}
       </View> : null}
-      {!compact && !conversation.facts.length ? <T variant="note" tone="muted">Kartica se popunjava iz razgovora.</T> : null}
     </Press>}
     actions={<>
       {/* Only a hard block belongs in the thread. REVIEW and CLARIFY are descriptions of
@@ -166,6 +165,8 @@ const s = StyleSheet.create({
   grow: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   taskCard: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: '#DCE8DF', borderRadius: a.radius.card, paddingVertical: 16, paddingHorizontal: 17, gap: 10, overflow: 'hidden', ...sys.elevation.soft },
+  // Before the conversation has said anything the card is a label, not a panel.
+  taskCardEmpty: { paddingVertical: 10, gap: 4 },
   taskCardCompact: { borderRadius: a.radius.compactCard, paddingVertical: 10, paddingHorizontal: 14, gap: 4 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: sys.color.green },
   dotBusy: { backgroundColor: sys.color.orange },

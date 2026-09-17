@@ -39,7 +39,8 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
   const listening = p.state.phase === 'LISTENING';
   return <View style={s.wrap}>
     {(p.state.finalText || p.state.interimText) && active ? <T selectable style={s.transcript}>{p.state.finalText}{p.state.finalText && p.state.interimText ? ' ' : ''}{p.state.interimText}</T> : null}
-    <T variant="label" style={[s.caption, listening && s.captionActive]}>{label}</T>
+    {/* Idle, the microphone speaks for itself; its accessibility label still says what it does. */}
+    {p.state.phase !== 'IDLE' ? <T variant="label" style={[s.caption, listening && s.captionActive]}>{label}</T> : null}
     <View style={s.stage}>
       <View style={listening ? s.ringActive : undefined}>
         <Pressable accessibilityRole="button" accessibilityLabel={label}
@@ -61,15 +62,15 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
       </View> : null}
       {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
     </View>
-    {!active && !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet"
+    {!active && !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet" compact
       label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'}
       onPress={() => setAccessibleMode(value => !value)} /> : null}
     {active ? <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>
       {explicit ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Pusti, pregledaj tekst i izaberi Pošalji.'}
     </T> : null}
     {p.state.error === 'MIC_PERMISSION_DENIED' ? <PermissionRecovery compact message={VOICE_ERROR_COPY[p.state.error]} />
-      : p.state.error ? <T accessibilityLiveRegion="polite" variant="note" style={s.error}>{VOICE_ERROR_COPY[p.state.error]}</T> : null}
-    {p.state.fallbackText && p.state.phase === 'IDLE' ? <V2Action kind="quiet" label="Uredi sačuvani tekst" onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
+      : p.state.error ? <T accessibilityLiveRegion="polite" variant="meta" style={s.error}>{VOICE_ERROR_COPY[p.state.error]}</T> : null}
+    {p.state.fallbackText && p.state.phase === 'IDLE' ? <V2Action kind="quiet" compact label="Uredi sačuvani tekst" onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
 }
 const s = StyleSheet.create({

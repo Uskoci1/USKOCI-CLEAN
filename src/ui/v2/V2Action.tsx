@@ -10,9 +10,12 @@ import { sys } from '../system/tokens';
  * (a link-like action); destructive = danger text. The one brand action on a screen is a
  * secondary with `brandAction` style (orange surface, ink text — white on orange fails AA).
  */
-export function V2Action({ label, onPress, disabled = false, kind = 'secondary', icon, style }: {
+export function V2Action({ label, onPress, disabled = false, kind = 'secondary', icon, style, compact = false }: {
   label: string; onPress: () => void; disabled?: boolean;
   kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode; style?: StyleProp<ViewStyle>;
+  /** Smaller type for a secondary control that must not compete with the content. The
+   *  touch target keeps its full minimum height, so it is no harder to hit. */
+  compact?: boolean;
 }) {
   const color = kind === 'primary' ? sys.color.surface : kind === 'destructive' ? sys.color.danger : kind === 'quiet' ? sys.color.green : sys.color.ink;
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}
@@ -22,6 +25,6 @@ export function V2Action({ label, onPress, disabled = false, kind = 'secondary',
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       backgroundColor: kind === 'primary' ? sys.color.ink : kind === 'secondary' ? sys.color.surface : 'transparent',
       borderWidth: kind === 'secondary' ? 1 : 0, borderColor: sys.color.lineStrong, opacity: disabled ? 0.45 : 1 }, style]}>
-    {icon}<T variant="action" style={{ flexShrink: 1, textAlign: 'center', color }}>{label}</T>
+    {icon}<T variant={compact ? 'meta' : 'action'} style={{ flexShrink: 1, textAlign: 'center', color }}>{label}</T>
   </Press>;
 }

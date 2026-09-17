@@ -67,7 +67,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
         {p.messages.length === 0 ? <View style={s.welcome}>
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
-          <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T>
+          {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
         </View> : p.messages.map(message => <ConversationBubble key={message.id} fromAi={message.fromAi} body={message.body} />)}
         {p.streamingText ? <View style={s.message}><T variant="label" style={s.assistantLabel}>USKOČI</T>
           <T selectable style={s.body}>{p.streamingText}</T></View> : null}
