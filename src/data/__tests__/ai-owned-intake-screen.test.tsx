@@ -269,7 +269,10 @@ it('keeps private address and resolved coordinates out of the compact live card 
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   const card = tree.root.findByProps({ testID: 'intake-task-summary' });
   expect(card.props.accessibilityLabel).toBe('Otvori sažetak Zadatka');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pregledaj zadatak' })).toHaveLength(1);
+  // The review destination moved into the options panel with the other commands; there
+  // is still exactly one of it.
+  await options(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Pregledaj zadatak' })).toHaveLength(1);
+  await act(async () => button('Zatvori').onPress());
   await act(async () => { card.props.onPress(); card.props.onPress(); });
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
@@ -277,9 +280,10 @@ it('keeps private address and resolved coordinates out of the compact live card 
 
 it('offers the owned photo route and options without automatic abandonment', async () => {
   await render(); expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
+  await options();
   const labels = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string').map(node => node.props.accessibilityLabel).join(' ');
   expect(labels).toContain('Fotografije zadatka'); expect(labels).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
-  await options(); expect(text()).toContain('Povratak čuva razgovor.');
+  expect(text()).toContain('Povratak čuva razgovor.');
   await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
 });
 
@@ -309,6 +313,7 @@ it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])(
 it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after %s without changing the first one', async status => {
   const saved = conversation({ status }); saved.review.boundNeedId = status === 'COMPLETED' ? other : null;
   mockParams = { conversationId: id }; mockLoad.mockResolvedValue(saved); await render();
+  await options();
   const start = button('Novi Zadatak').onPress;
   await act(async () => { start(); start(); }); expect(mockRouter.replace).toHaveBeenCalledTimes(1);
   const destination = mockRouter.replace.mock.calls[0][0];
@@ -324,7 +329,8 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after
 });
 it('retains the new owned-open request after an unknown second-Task open outcome', async () => {
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await render();
-  const firstKey = mockOpen.mock.calls[0][0]; await act(async () => button('Novi Zadatak').onPress());
+  const firstKey = mockOpen.mock.calls[0][0]; await options();
+  await act(async () => button('Novi Zadatak').onPress());
   mockParams = mockRouter.replace.mock.calls[0][0].params; mockOpen.mockResolvedValueOnce(unknown());
   await update(); const nextKey = mockOpen.mock.calls[1][0]; expect(nextKey).not.toBe(firstKey);
   mockLoad.mockResolvedValue(conversation()); await act(async () => button('Učitajte razgovor ponovo').onPress());
@@ -332,12 +338,13 @@ it('retains the new owned-open request after an unknown second-Task open outcome
 });
 it('cannot use a retained new-Task action after losing its account or focus', async () => {
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await render();
-  const old = button('Novi Zadatak').onPress; await blur(); await focus(); await act(async () => old());
+  await options(); const old = button('Novi Zadatak').onPress; await blur(); await focus(); await act(async () => old());
   expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('does not advertise a new-Task bypass for an open safety-blocked conversation', async () => {
   mockLoad.mockResolvedValue(conversation({ safety: 'BLOCK' })); await render();
   expect(tree.root.findAllByProps({ label: 'Novi Zadatak' })).toHaveLength(0);
+  await options(); expect(tree.root.findAllByProps({ label: 'Novi Zadatak' })).toHaveLength(0);
 });
 it.each(['invalid', [id]])('rejects malformed new-entry key %s without creating a conversation', async entryKey => {
   mockParams = { entryKey }; await render(); expect(mockOpen).not.toHaveBeenCalled();

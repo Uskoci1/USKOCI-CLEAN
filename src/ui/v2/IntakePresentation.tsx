@@ -126,11 +126,10 @@ export function IntakePresentation(props: Props) {
       {!compact && !conversation.facts.length ? <T variant="note" tone="muted">Kartica se popunjava iz razgovora.</T> : null}
     </Press>}
     actions={<>
-      {safetyCopy ? <T accessibilityRole={conversation.safety === 'BLOCK' ? 'alert' : undefined}
-        variant="note" style={conversation.safety === 'BLOCK' ? s.danger : s.muted}>{safetyCopy}</T> : null}
-      {props.canReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} icon={<ArrowRight size={18} color={sys.color.green} />} style={s.reviewLink} /> : null}
-      {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled} onPress={props.onPhotos} /> : null}
-      {props.onNewTask ? <V2Action label="Novi Zadatak" kind="primary" disabled={props.newTaskDisabled} onPress={props.onNewTask} /> : null}
+      {/* Only a hard block belongs in the thread. REVIEW and CLARIFY are descriptions of
+          state, not requests, and they live in the options panel with the commands. */}
+      {safetyCopy && conversation.safety === 'BLOCK'
+        ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : null}
     </>}
     status={<>
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
@@ -145,8 +144,14 @@ export function IntakePresentation(props: Props) {
     {panel ? <Panel title="Opcije razgovora" close={close} reduced={reduced}>
       <T variant="copy" tone="muted">{conversation.status === 'OPEN'
         ? 'Povratak čuva razgovor. Možeš da ga nastaviš kasnije.' : 'Ovde možeš da pregledaš sačuvane poruke.'}</T>
+      {safetyCopy && conversation.safety !== 'BLOCK'
+        ? <T variant="note" style={s.muted}>{safetyCopy}</T> : null}
       <V2Action label="Osveži razgovor" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
       {props.canReview ? <V2Action label={props.reviewLabel} onPress={() => { close(); props.onReview(); }} /> : null}
+      {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled}
+        onPress={() => { close(); props.onPhotos?.(); }} /> : null}
+      {props.onNewTask ? <V2Action label="Novi Zadatak" kind="primary" disabled={props.newTaskDisabled}
+        onPress={() => { close(); props.onNewTask?.(); }} /> : null}
       {props.showAbandon ? <V2Action kind="destructive" label={props.abandonLabel} disabled={props.abandonDisabled}
         onPress={() => { close(); props.onAbandon(); }} /> : null}
     </Panel> : null}
