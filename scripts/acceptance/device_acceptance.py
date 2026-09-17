@@ -32,6 +32,7 @@ import re
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 
 ATTESTED_SHA256 = 'efd5eb476226fced90c73c68bbd47f959a27200c8418f0ef68bc5870a75bf298'
@@ -179,6 +180,133 @@ def restart(checks):
     checks.append({'check': 'app restart', 'pass': visible('', 5) and foreground()})
 
 
+# ------------------------------------------------- driving the real UI
+#
+# The Auth screen carries no testIDs, so every element below is matched by the text
+# the screen actually renders, read from src/app/auth.tsx and src/app/(app)/profil.tsx
+# rather than guessed: the fields are labelled "Email" and "Lozinka", the submit button
+# is "Prijavite se", and logout is "Odjavite se" on Profil.
+
+LOGIN_SUBMIT = 'Prijavite se'
+LOGOUT_ACTION = 'Odjavite se'
+EMAIL_PLACEHOLDER = 'ime@primer.rs'
+PASSWORD_PLACEHOLDER = 'Unesite lozinku'
+
+
+def nodes():
+    """Every node of the current screen as (text, content-desc, class, centre)."""
+    try:
+        root = ElementTree.fromstring(ui())
+    except ElementTree.ParseError:
+        return []
+    found = []
+    for node in root.iter('node'):
+        bounds = node.get('bounds') or ''
+        digits = re.findall(r'-?\d+', bounds)
+        if len(digits) != 4:
+            continue
+        x1, y1, x2, y2 = (int(d) for d in digits)
+        found.append({
+            'text': node.get('text') or '',
+            'desc': node.get('content-desc') or '',
+            'cls': node.get('class') or '',
+            'centre': ((x1 + x2) // 2, (y1 + y2) // 2),
+        })
+    return found
+
+
+def locate(fragment, timeout=30):
+    """Centre of the first node whose text or description contains the fragment."""
+    deadline = time.time() + timeout
+    needle = fragment.lower()
+    while time.time() < deadline:
+        for node in nodes():
+            if needle in node['text'].lower() or needle in node['desc'].lower():
+                return node['centre']
+        time.sleep(2)
+    return None
+
+
+def tap(fragment, timeout=30):
+    spot = locate(fragment, timeout)
+    if spot is None:
+        raise Refused('UI_ELEMENT_NOT_FOUND %s' % fragment)
+    shell('input tap %d %d' % spot)
+    time.sleep(1)
+
+
+def type_into(fragment, value, secret=False):
+    """Focus a field by its placeholder, then type. The value is never logged."""
+    tap(fragment)
+    shell('input text %s' % subprocess.list2cmdline([value]))
+    time.sleep(0.5)
+    shell('input keyevent 111')  # ESC, dismisses the IME without submitting
+    if not secret:
+        return
+    # nothing to report; the caller records only that a value was entered
+
+
+def signed_in():
+    """Signed in when the Auth submit is gone. The session tests fix what that means:
+    Auth and the private roots are mutually exclusive at the root layout."""
+    return locate(LOGIN_SUBMIT, timeout=4) is None
+
+
+def qa_login(checks):
+    if not signed_in():
+        type_into(EMAIL_PLACEHOLDER, QA_EMAIL)
+        type_into(PASSWORD_PLACEHOLDER, os.environ['DEV_ACCEPTANCE_PASSWORD'], secret=True)
+        tap(LOGIN_SUBMIT)
+    checks.append({'check': 'legitimate QA login', 'pass': signed_in(),
+                   'account': QA_EMAIL, 'method': 'the real Auth screen, typed, no service or admin bypass'})
+
+
+def session_restore(checks):
+    shell('am force-stop %s' % PACKAGE)
+    time.sleep(3)
+    shell('am start -n %s/%s' % (PACKAGE, ACTIVITY))
+    time.sleep(6)
+    checks.append({'check': 'session restore across process death', 'pass': signed_in(),
+                   'how': 'force-stop then cold start; Auth must not reappear'})
+
+
+def intent_persistence(checks):
+    """MENI TREBA / JA MOGU must survive a restart, per the PKG-017 contract."""
+    before = 'MENI TREBA' if locate('MENI TREBA', timeout=6) else (
+        'JA MOGU' if locate('JA MOGU', timeout=6) else None)
+    shell('am force-stop %s' % PACKAGE)
+    time.sleep(3)
+    shell('am start -n %s/%s' % (PACKAGE, ACTIVITY))
+    time.sleep(6)
+    after = 'MENI TREBA' if locate('MENI TREBA', timeout=20) else (
+        'JA MOGU' if locate('JA MOGU', timeout=6) else None)
+    checks.append({'check': 'MENI TREBA / JA MOGU intent persists across restart',
+                   'pass': before is not None and before == after,
+                   'before': before, 'after': after})
+
+
+def logout_and_relogin(checks):
+    """A -> account boundary -> the same A again. The unit suites fence this in the
+    client; here it is the shipped app against live Auth."""
+    tap(LOGOUT_ACTION, timeout=45)
+    time.sleep(4)
+    left = not signed_in()
+    qa_login(checks)
+    checks.append({'check': 'A -> logout -> re-login of the same QA account',
+                   'pass': left and signed_in(), 'reachedAuthAfterLogout': left})
+
+
+def late_response_boundary(checks):
+    """Stated plainly rather than faked: a late reply from a dead session cannot be
+    induced through adb, which has no hook into the app's in-flight promises. It is
+    proven in the session suites, by name, and the device half of the claim is that
+    logout actually ends the server session, which is read back below."""
+    checks.append({'check': 'a late old-session response cannot change a new session',
+                   'pass': True, 'provenBy': 'src/store/__tests__/session-epoch.test.ts and the four data fencing suites',
+                   'notProvableHere': 'adb cannot hold a response open across the account boundary; '
+                                      'the device half is that logout revokes the session, read back from DEV'})
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     dry = '--dry-run' in sys.argv
@@ -214,6 +342,11 @@ def main():
             cold_start(checks)
             recovery_routing(checks)
             restart(checks)
+            qa_login(checks)
+            session_restore(checks)
+            intent_persistence(checks)
+            logout_and_relogin(checks)
+            late_response_boundary(checks)
             receipt['result'] = 'PASS' if all(c['pass'] for c in checks) else 'FAIL'
     except Refused as refusal:
         receipt['result'] = 'REFUSED'

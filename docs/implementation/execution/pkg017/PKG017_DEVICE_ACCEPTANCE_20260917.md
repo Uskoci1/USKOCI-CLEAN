@@ -192,28 +192,43 @@ installs it can create an account on DEV. The release can be deleted once the ph
 
 ### What is proven without a device, measured rather than asserted
 
-The session boundaries the owner listed are, at the client-logic layer, **already covered**. Running
-the six session and intent suites on the candidate:
+**A correction to the first version of this section.** It printed one count, 91 tests, next to a
+table of test names, and four of those names are not in that run at all. They live in
+`src/data/__tests__`, not in the six `src/store/__tests__` suites the count came from. Both the count
+and the names were real; putting them side by side implied something that was not. Separated and
+re-measured:
 
 ```
-Test Suites: 6 passed, 6 total
-Tests:       91 passed, 91 total
+npx jest src/store/__tests__                     6 suites, 91 tests, all passing
+npx jest <the four data fencing suites>          4 suites, 74 tests, all passing
 ```
 
-Named coverage that maps directly onto the requested boundaries:
+**Session ownership and restart, `src/store/__tests__`, 91 tests.** Test names verbatim:
 
-| Requested boundary | Existing test |
+| Requested boundary | Test |
 | --- | --- |
-| logout, account boundary, re-login | "fences an account switch and the A-B-A incarnation case" |
-| late old-session response cannot change a new session | "bounded read rejects a late result; explicit retry recovers without exposing raw errors" |
-| the same, after batching | "hook-bound monotonic ownership rejects dispatch after batched A→B→A while durable capture waits" |
-| account revision, not token refresh | "fences a late receipt after same-account session incarnation changes" |
-| intent persistence across identity change | `account-intent-preference.test.ts`, and `sesija.ts` resets `intentReady` only on identity change |
-| recovery deep link, cold start case | `password-recovery-intent.test.ts` asserts `redirectSystemPath` with `initial: true` |
+| account revision on identity change, not on token refresh | `session-epoch` "increments account revision for every identity transition, including batched A→B→A, but not token refresh" |
+| a late old-session response cannot change a new session | `session-epoch` "ignores old restore success after newer SIGNED_OUT", "…after newer SIGNED_IN", and the two rejection cases |
+| the same, for an intent completion | `session-epoch` "does not apply A intent after its completion resolves during B session" and "does not let A set intent or complete a target after B signs in during its snapshot" |
+| logout, account boundary, re-login of the same account | `session-epoch` "logout resets role and invalidates A target; a new login restores only its saved local preference" |
+| A → B → A with a matching rendered account id | `session-layout` "replaces private navigation state after batched A→B→A even when the rendered account id matches" |
+| a token refresh must not look like a new account | `session-layout` "retains private navigation state across a same-account token refresh" |
+| session restore decides the route at cold launch | `session-layout` "cold launch selects the admitted entry route instead of recovery", both signed in and signed out |
+| private routes exist only behind a session | `session-layout` "exposes only Auth at cold signed-out startup and excludes every private root route" and its authenticated counterpart |
+| MENI TREBA / JA MOGU intent across Auth | `auth-runtime` "WORKER intent -> Auth -> Worker workspace without losing Requester capability" and "preserves typed requester draft and same conversation through Auth" |
+| the intent preference is per account and survives a new runtime | `account-intent-preference` "restores the actual account choice in a new runtime without a server role mutation", "keeps two account preferences isolated…", "rejects an old account incarnation restore even after A to B to A" |
+| recovery deep link, cold **and** warm OS callback | `password-recovery-intent` "captures cold/warm native OS callbacks before router params exist: initial=true and false", asserting `redirectSystemPath` returns `/oporavak` |
+
+**Account fencing in the data clients, `src/data/__tests__`, 74 tests in the four suites that carry
+the fencing cases:** `account-closure` "fences an account switch and the A-B-A incarnation case",
+`agreement-collection-screen` "bounded read rejects a late result; explicit retry recovers without
+exposing raw errors", `agreement-outbox-hook` "hook-bound monotonic ownership rejects dispatch after
+batched A→B→A while durable capture waits", `agreement-photo-client` "fences a late receipt after
+same-account session incarnation changes".
 
 `accountRevision` increments **only** when the user identity changes, so a token refresh cannot
 cancel a restore, and a late continuation compares both the revision and the account id before
-applying. That is the "late response cannot change a new session" contract, in source.
+applying. That is the "late response cannot change a new session" contract, in source and under test.
 
 What a device adds is not the logic but the integration: that the shipped app, on real hardware,
 against the live backend, actually behaves this way.
@@ -242,3 +257,53 @@ forbidden accounts by name so the owner's personal, business and fixture account
 downloadable and verified, the client-side session contract is covered by 91 passing tests, and the
 device harness exists with its guards proven. The remaining boundaries need the phone attached over
 USB with debugging allowed, after which the run is fully automated and needs nothing from the owner.
+
+### The session half of the harness, written against the real screens
+
+The Auth screen carries no `testID`s, so the harness matches the text the screen actually renders,
+read from `src/app/auth.tsx` and `src/app/(app)/profil.tsx` rather than guessed: the fields are
+labelled **Email** and **Lozinka** with placeholders `ime@primer.rs` and `Unesite lozinku`, the
+submit button is **Prijavite se**, and logout is **Odjavite se** on Profil. It drives the accessibility
+tree from `uiautomator dump`, taps by node centre, and types the password through `input text` without
+ever writing it to the receipt.
+
+Checks added, in run order after restart:
+
+| Check | How it is decided |
+| --- | --- |
+| legitimate QA login | the real Auth screen, typed; signed in means the submit button is gone, which the root-layout tests fix as mutually exclusive with the private routes |
+| session restore across process death | force-stop, cold start, Auth must not reappear |
+| MENI TREBA / JA MOGU persists across restart | read the intent before, force-stop, cold start, read it again |
+| A → logout → re-login of the same QA account | tap Odjavite se, confirm Auth is reached, sign in again |
+
+**One boundary is reported as not provable here, rather than faked.** A late reply from a dead
+session cannot be induced through adb, which has no hook into the app's in-flight promises. The
+harness says so in the receipt and points at the suites that do prove it. The device half of that
+claim — that logout actually ends the server session — is read back from DEV instead.
+
+### The DEV baseline is already taken, so the cleanup can be exact
+
+`pkg017/PKG017_DEV_BASELINE_20260917.json`, read-only, nothing written. At `2026-09-17T08:46:00Z` the
+QA account had **10 sessions and 10 refresh tokens**, no recovery token, last sign-in
+`2026-09-16T20:53:04Z`. All ten session ids are listed, and all ten were created on 2026-09-16
+between 20:26 and 20:53 UTC by the PKG-014 acceptance on this same account. They are not PKG-017's to
+clean.
+
+After the device run: re-read `auth.sessions` for that user, treat any id **not** in that list and
+created after the snapshot as created by this acceptance, revoke exactly those, then read back. An id
+of unknown origin is left alone. No recovery email is sent on this or any account — recovery routing
+is proven by the deep link reaching the screen, which needs no token.
+
+### What the owner does, and what I do
+
+The owner's part is two actions on the phone: plug it in over USB, and allow USB debugging when the
+phone asks. Nothing else — no installing, no typing, no testing.
+
+Mine is one command:
+
+```bash
+DEV_ACCEPTANCE_PASSWORD=... python scripts/acceptance/device_acceptance.py <apk> artifacts/pkg017-device-receipt.json
+```
+
+It refuses before touching anything if the phone is not arm64, if more than one device is attached,
+if the APK is not `efd5eb47…`, or if the credential is missing.
