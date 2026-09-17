@@ -206,8 +206,12 @@ Order of the next work per V19 topology: PKG-003 → PKG-004 → PKG-007 → PKG
 
 ### PKG-017 — Auth, intents, deep links and restart on device
 - Gaps: GAP-0008, GAP-0022.
-- Implementation present in source: account revision fencing, `oporavak.tsx` recovery route, `+native-intent.tsx`; no device proof after V19.
-- Current status: NOT_STARTED. Blocker: PKG-015, PKG-016.
+- Implementation present in source: account revision fencing, `oporavak.tsx` recovery route, `+native-intent.tsx`.
+- Assessment, 2026-09-17 (`pkg017/PKG017_ASSESSMENT_20260917.md`): the claim that there is "no device proof after V19" is true of the live-backend artifact but not of the behaviour. `w01-auth-recovery-proof` already runs a **native emulator proof** of native UI, a real email link, and cold and warm OS callbacks at API 34, and it was green in both the PKG-013 and PKG-014 release runs.
+- The constraint that shapes the remaining work: that proof deliberately builds a separately identified `rs.uskoci.w01proof` and **refuses any non-loopback Auth**, asserting "only disposable loopback Auth is permitted". The PKG-016 artifact points at live canonical DEV, so it cannot drive real sign-in or password change without creating real sessions and recovery tokens on the canonical project, and W01's own guard would refuse it.
+- Read from the shipped manifest of the proven artifact `efd5eb47…`: it contains `uskociapp`, `android.intent.action.VIEW` and `BROWSABLE`, so the deep-link scheme is registered in the artifact itself.
+- Remaining work, narrower than it looked: install the **exact** PKG-016 APK by digest without rebuilding it, and assert install, cold launch, scheme registration, deep-link routing to the recovery screen and restart, none of which need a session. Real-Auth device behaviour stays with W01 and is referenced rather than duplicated.
+- Current status: IN_PROGRESS. Blockers cleared: PKG-015 and PKG-016 are both DONE_VERIFIED. **One owner decision is outstanding**: proving account revision fencing on a device needs a signed-in session, so it is either accepted on the dedicated QA account against live DEV, or kept on a disposable build as W01 does.
 
 ### PKG-018 — One controlled Requester AI, then Worker AI
 - Gaps: GAP-0003, GAP-0004.
