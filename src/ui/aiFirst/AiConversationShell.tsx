@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, DotsThree, Info, Keyboard as KeyboardIcon, PaperPlaneTilt } from 'phosphor-react-native';
+import { ArrowLeft, DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { iconButton, sys } from '../system/tokens';
@@ -38,6 +38,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // Voice is the default way in; the text row is one tap away and stays open once used.
   const [typing, setTyping] = useState(false);
   const input = useRef<TextInput>(null);
+  // A draft has to be readable wherever it came from, so speech opens the field too.
+  const draft = typing || !p.voice || p.value.length > 0 || p.pending;
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const compact = keyboard || height < 700 || fontScale >= 1.5 || p.pending;
@@ -75,22 +77,25 @@ export function AiConversationShell(p: AiConversationShellProps) {
       </ScrollView>
       {/* Both current consumers live under the tab navigator, which owns bottom insets. */}
       <View testID="ai-composer-footer" style={s.footer}>
-        {/* The draft stays visible. Speech lands here for review before sending, and hiding
-            it behind a toggle would cost a tap on every typed message and lose it for a
-            screen reader. The space was never this row: it was the voice stage above it. */}
-        <View style={s.composer}>
+        {/* Typing and speaking are two modes. The field appears when the keyboard is
+            chosen and the microphone steps aside, rather than the two sharing the screen.
+            A draft also opens it unprompted, because speech lands here for review before
+            sending and must never end up somewhere the user cannot see it. */}
+        {draft ? <View style={s.composer}>
+          <Press accessibilityRole="button" accessibilityLabel="Govori umesto da pišeš" haptic="select" style={s.composerWell}
+            onPress={() => { setTyping(false); Keyboard.dismiss(); }}>
+            <Microphone size={20} color={sys.color.ink} /></Press>
           <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} onChangeText={p.onChange} editable={p.canEdit}
             placeholder="Napiši šta ti treba ili šta da promenim…" placeholderTextColor={a.color.muted} multiline maxLength={4000} style={s.input} />
           <Press accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend} onPress={p.onSend}
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
             <PaperPlaneTilt size={20} weight="fill" color={a.color.surface} /></Press>
-        </View>
-        {p.voice ? <View testID="ai-composer-bar" style={s.bar}>
-          <Press accessibilityRole="button" accessibilityLabel={typing ? 'Sakrij tastaturu' : 'Piši umesto da govoriš'}
-            accessibilityState={{ selected: typing }} haptic="select" style={[s.barWell, typing && s.barWellOn]}
-            onPress={() => { const next = !typing; setTyping(next); if (next) { requestAnimationFrame(() => input.current?.focus()); } else { Keyboard.dismiss(); } }}>
-            <KeyboardIcon size={22} color={typing ? a.color.surface : sys.color.ink} /></Press>
+        </View> : null}
+        {p.voice && !draft ? <View testID="ai-composer-bar" style={s.bar}>
+          <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.barWell}
+            onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
+            <KeyboardIcon size={22} color={sys.color.ink} /></Press>
           <View style={s.barCentre}>{p.voice}</View>
           <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.barWell}
             onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
@@ -133,7 +138,7 @@ const s = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   barCentre: { flex: 1, alignItems: 'center' },
   barWell: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
-  barWellOn: { backgroundColor: a.color.green },
+  composerWell: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
   composer: { flexDirection: 'row', gap: 9, alignItems: 'flex-end', borderRadius: a.radius.composer,
     borderWidth: 1, borderColor: '#C7DACF', backgroundColor: a.color.surface, padding: 7 },
   input: { fontSize: 16, lineHeight: 23, color: sys.color.ink, flex: 1, minHeight: 44, maxHeight: 116, paddingHorizontal: 8, paddingVertical: 10, textAlignVertical: 'top' },

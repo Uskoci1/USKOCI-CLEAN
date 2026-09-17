@@ -69,7 +69,14 @@ const button = (label: string) => tree.root.findByProps({ label }).props;
 const input = () => tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props;
 const submit = () => tree.root.findByProps({ accessibilityLabel: mockSend.mock.calls.length ? 'Ponovi istu poruku' : 'Pošalji poruku' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-const type = async (value = 'Treba preneti ormar sutra.') => { await act(async () => input().onChangeText(value)); };
+// Typing and speaking are two modes: the field opens when the keyboard is chosen, and a
+// draft keeps it open. A test that types chooses it first, exactly as a person does.
+const openKeyboard = async () => {
+  if (tree.root.findAllByProps({ accessibilityLabel: 'Poruka za AI' }).length) return;
+  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Piši umesto da govoriš' }).props;
+  await act(async () => keyboard.onPress());
+};
+const type = async (value = 'Treba preneti ormar sutra.') => { await openKeyboard(); await act(async () => input().onChangeText(value)); };
 const blur = async () => { mockFocused = false; await update(); };
 const focus = async () => { mockFocused = true; await update(); };
 const options = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opcije' }).props.onPress()); };
@@ -111,8 +118,10 @@ it.each(['stale-capture', 'blur-refocus', 'account-ABA'] as const)('rejects late
   await render(); await type('Aktuelni tekst'); const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
   if (reason === 'blur-refocus') { await blur(); await focus(); }
   if (reason === 'account-ABA') { mockSession = { ...mockSession, accountRevision: 3 }; await update(); }
+  await openKeyboard();
   const before = input().value;
   await act(async () => expect(receive({ text: 'stari privatni govor', isCurrent: () => reason !== 'stale-capture' })).toBe(false));
+  await openKeyboard();
   expect(input().value).toBe(before); expect(mockSend).not.toHaveBeenCalled(); expect(AsyncStorage.setItem).not.toHaveBeenCalled();
 });
 
@@ -124,6 +133,7 @@ it('opens once with a stable request and resumes the same conversation on refocu
 it('retains the owned open key after an unknown result and retries only by user action', async () => {
   mockOpen.mockResolvedValueOnce(unknown()); await render(); expect(mockOpen).toHaveBeenCalledTimes(1);
   await act(async () => button('Učitajte razgovor ponovo').onPress());
+  await openKeyboard();
   expect(mockOpen.mock.calls[1][0]).toBe(mockOpen.mock.calls[0][0]); expect(input().value).toBe('');
 });
 it('does not load after a late open response on a blurred screen; refocus replays its original open key', async () => {
@@ -164,7 +174,10 @@ it('keeps an in-progress server receipt read-only and never polls or retries aut
 it('resolves a lost success receipt using IDs, clears the sent draft and accepts a fresh next request', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const old = mockSend.mock.calls[0][2];
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-  await act(async () => button('Proverite ishod').onPress()); expect(input().value).toBe(''); expect(input().editable).toBe(true);
+  await act(async () => button('Proverite ishod').onPress());
+  // The readback clears the sent draft, which returns the composer to voice mode. The
+  // invariant is unchanged: the draft is empty and still editable.
+  await openKeyboard(); expect(input().value).toBe(''); expect(input().editable).toBe(true);
   await type('Druga poruka.'); await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošalji poruku' }).props.onPress());
   expect(mockSend.mock.calls[1][1]).toBe('Druga poruka.'); expect(mockSend.mock.calls[1][2]).not.toBe(old);
 });
@@ -181,6 +194,7 @@ it.each(['account ABA', 'intent', 'route'] as const)('rejects retained send call
   if (change === 'route') mockParams = { conversationId: other };
   if (change === 'route') mockLoad.mockResolvedValue(conversation({ conversationId: other }));
   await update(); await act(async () => { oldInput('old private draft'); void retained(); });
+  await openKeyboard();
   expect(mockSend).not.toHaveBeenCalled(); expect(input().value).toBe('');
 });
 it('masks old private messages immediately after account ABA and ignores the late read', async () => {
@@ -192,10 +206,12 @@ it('masks old private messages immediately after account ABA and ignores the lat
 });
 it('does not read or navigate from a late send result after account change', async () => {
   const held = deferred(); mockSend.mockReturnValueOnce(held.promise); await render(); await type();
+  await openKeyboard();
   await act(async () => { void submit().onPress(); }); const requestId = mockSend.mock.calls[0][2];
   mockSession = { user: { id: 'bbbbbbbb-1111-4111-8111-111111111111' }, accountRevision: 2 }; await update(); const reads = mockLoad.mock.calls.length;
   await act(async () => held.resolve(turn(requestId, 'SUCCEEDED')));
   expect(mockLoad).toHaveBeenCalledTimes(reads); expect(mockTurn).not.toHaveBeenCalled();
+  await openKeyboard();
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(input().value).toBe('');
 });
 it('retires a confirmation callback after blur/refocus and never abandons on Back', async () => {
@@ -323,6 +339,7 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after
   mockOpen.mockImplementation(requestId => Promise.resolve(ok({ conversationId: other, clientRequestId: requestId })));
   mockLoad.mockResolvedValue(conversation({ conversationId: other })); await update();
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockLoad).toHaveBeenLastCalledWith(other);
+  await openKeyboard();
   expect(input().value).toBe(''); expect(input().editable).toBe(true);
   expect(mockAbandon).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   await blur(); await focus(); expect(mockOpen).toHaveBeenCalledTimes(1);
@@ -379,6 +396,7 @@ it('restored absent intent is never auto retried and clears only after exact can
   mockCancel.mockResolvedValue(cancelled); mockRecover.mockResolvedValue(cancelled);
   await act(async () => button('Otkaži slanje poruke').onPress());
   expect(mockCancel).toHaveBeenCalledWith(id, requestId); expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  await openKeyboard();
   expect(input().editable).toBe(true); await type('Nova poruka');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošalji poruku' }).props.onPress());
   expect(mockSend.mock.calls[0][2]).not.toBe(requestId);
@@ -400,6 +418,7 @@ it('canonical success after restart restores conversation and retires the UUID w
   mockTurn.mockResolvedValue(turn(requestId, 'SUCCEEDED'));
   mockLoad.mockResolvedValue(conversation({ messages: [{ id, fromAi: false, body: 'Canonical private message', safety: null, proposedFactIds: [] }] }));
   await render(); expect(text()).toContain('Canonical private message'); expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  await openKeyboard();
   expect(mockSend).not.toHaveBeenCalled(); expect(input().editable).toBe(true);
 });
 it('a known terminal failure restores a bound edit without abandoning it or resending automatically', async () => {
@@ -409,6 +428,7 @@ it('a known terminal failure restores a bound edit without abandoning it or rese
   const bound = conversation(); bound.review.boundNeedId = other; mockLoad.mockResolvedValue(bound);
   await render();
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  await openKeyboard();
   expect(input().editable).toBe(true); expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
   expect(text()).toContain('AI nije primenio prethodnu poruku.');
 });
@@ -445,11 +465,13 @@ it('restored bound-edit dispatched exit explains retained cost and unlocks only 
   mockLoad.mockResolvedValue(conversation({review:{...conversation().review,boundNeedId:other}}));
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
   await render();expect(button('Odustani od odgovora').disabled).toBe(false);
+  await openKeyboard();
   expect(text()).toContain('rezervisana potrošnja ostaje zadržana');expect(input().editable).toBe(false);
   const cancelled=recovery(turn(other,'FAILED').podatak,true,true);
   mockCancel.mockResolvedValue(cancelled);mockRecover.mockResolvedValue(cancelled);
   await act(async()=>button('Odustani od odgovora').onPress());
   expect(mockCancel).toHaveBeenCalledWith(id,other);expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();
+  await openKeyboard();
   expect(input().editable).toBe(true);expect(text()).toContain('Odustali ste od odgovora');expect(mockSend).not.toHaveBeenCalled();
   await type('Izričita nova poruka');await act(async()=>tree.root.findByProps({accessibilityLabel:'Pošalji poruku'}).props.onPress());
   expect(mockSend).toHaveBeenCalledTimes(1);expect(mockSend.mock.calls[0][2]).not.toBe(other);
@@ -458,8 +480,10 @@ it('lost dispatched cancellation ACK preserves journal until restart reads its t
   const intent={accountId:mockSession.user.id,conversationId:id,clientRequestId:other};await aiTurnIntentJournal.save(intent);
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
   await render();await act(async()=>button('Odustani od odgovora').onPress());
+  await openKeyboard();
   expect(await aiTurnIntentJournal.load(intent.accountId)).toEqual(intent);expect(input().editable).toBe(false);
   await act(async()=>tree.unmount());mockRecover.mockResolvedValue(recovery(turn(other,'FAILED').podatak,true,true));await render();
+  await openKeyboard();
   expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();expect(input().editable).toBe(true);expect(mockSend).not.toHaveBeenCalled();
 });
 it('completion winning dispatched cancellation shows the actual result without claiming an owner exit',async()=>{
