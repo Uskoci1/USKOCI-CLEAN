@@ -35,7 +35,30 @@ RECOVERY = 'uskociapp://oporavak'
 ENV_NAME = 'EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL'
 BUNDLE = 'assets/index.android.bundle'
 FUNCTION = 'Function<configuredRecoveryRedirect>'
-DISABLED = re.compile(r'Function<configuredRecoveryRedirect>[^\n]*\n\s+LoadConstNull\s+r0\s*\n\s+Ret\s+r0\s*$')
+# The exact shape an absent value produces: load null, return it. Register numbers and
+# trailing whitespace vary between builds, so neither is pinned.
+DISABLED = re.compile(r'Function<configuredRecoveryRedirect>[^\n]*\n\s*LoadConstNull\s+r\d+\s*\n\s*Ret\s+r\d+\s*(?:\n|$)')
+
+# Hermes truncates string operands in its dump at 17 characters and appends an
+# ellipsis, so the full 20-character redirect never appears inside a function body.
+# Searching the body for the whole literal would fail on a correct build. The body is
+# therefore checked for the load of a matching constant, and the full literal is
+# confirmed separately in the string table, where Hermes prints it in full.
+TRUNCATION = 17
+LOAD_CONST_STRING = re.compile(r'LoadConstString\s+\w+,\s+"([^"]*)"(\.\.\.)?')
+STRING_TABLE_ENTRY = re.compile(r'^[is]\d+\[(?:ASCII|UTF-16), -?\d+\.\.-?\d+\](?: #[0-9A-Fa-f]+)?: (.*)$')
+
+
+def loads_recovery_constant(body: str) -> bool:
+    """True when the body loads a constant string that is the redirect, allowing for
+    Hermes' 17-character truncation in the dump."""
+    for literal, truncated in LOAD_CONST_STRING.findall(body):
+        if truncated:
+            if literal == RECOVERY[:TRUNCATION]:
+                return True
+        elif literal == RECOVERY:
+            return True
+    return False
 
 
 def fail(code, detail=''):
@@ -49,12 +72,27 @@ def require(condition, code, detail=''):
 
 
 def hermesc() -> Path:
-    root = Path('node_modules/react-native/sdks/hermesc')
-    for name in ('linux64-bin/hermesc', 'osx-bin/hermesc', 'win64-bin/hermesc.exe'):
+    """Find the Hermes compiler. This repository ships it under hermes-compiler;
+    other React Native layouts put it under react-native/sdks. Both are searched, and
+    a failure names every path tried so the next reader does not have to guess."""
+    roots = (Path('node_modules/hermes-compiler/hermesc'),
+             Path('node_modules/react-native/sdks/hermesc'))
+    # Select by platform, not by whichever file happens to exist: all three
+    # directories ship in the package, so a first-match search picks the Linux
+    # binary on Windows and then cannot execute it.
+    if sys.platform.startswith('win'):
+        name = 'win64-bin/hermesc.exe'
+    elif sys.platform == 'darwin':
+        name = 'osx-bin/hermesc'
+    else:
+        name = 'linux64-bin/hermesc'
+    tried = []
+    for root in roots:
         candidate = root / name
+        tried.append(str(candidate))
         if candidate.exists():
             return candidate
-    fail('HERMESC_NOT_FOUND', str(root))
+    fail('HERMESC_NOT_FOUND', ' '.join(tried))
 
 
 def recovery_blocks(dump: str):
@@ -97,14 +135,24 @@ def main() -> int:
             text=True, encoding='utf8', errors='replace', timeout=300)
     require(process.returncode == 0, 'HERMES_DUMP_FAILED', 'exit ' + str(process.returncode))
 
-    blocks = recovery_blocks(process.stdout)
+    dump = process.stdout
+    blocks = recovery_blocks(dump)
     require(len(blocks) == 1, 'EXACT_RECOVERY_FUNCTION_REQUIRED', 'found ' + str(len(blocks)))
     body = blocks[0]
 
     # The value must be baked in, not read from an environment the device lacks.
-    require(RECOVERY in body, 'RECOVERY_REDIRECT_NOT_COMPILED')
-    require(ENV_NAME not in body, 'RECOVERY_ENV_LEFT_FOR_RUNTIME')
+    # Most specific diagnosis first: a load-null body is what an absent value actually
+    # produces, and saying so is more useful than "the constant is missing".
     require(not DISABLED.search(body), 'RECOVERY_COMPILED_DISABLED')
+    require(loads_recovery_constant(body), 'RECOVERY_REDIRECT_NOT_COMPILED')
+    require(ENV_NAME not in body, 'RECOVERY_ENV_LEFT_FOR_RUNTIME')
+
+    # The body only ever shows a truncated operand, so confirm the exact, whole value
+    # in the string table where Hermes prints it in full.
+    strings = [match.group(1) for line in dump.splitlines()
+               for match in [STRING_TABLE_ENTRY.match(line)] if match]
+    require(RECOVERY in strings, 'RECOVERY_LITERAL_NOT_IN_STRING_TABLE')
+    require(ENV_NAME not in strings, 'RECOVERY_ENV_NAME_PACKAGED')
 
     receipt = {
         'unit': 'PKG016_RECOVERY_REDIRECT_ATTESTATION',
