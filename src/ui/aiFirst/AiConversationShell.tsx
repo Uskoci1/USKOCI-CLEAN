@@ -1,10 +1,11 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, DotsThree, PaperPlaneTilt } from 'phosphor-react-native';
+import { ArrowLeft, DotsThree, Info, Keyboard as KeyboardIcon, PaperPlaneTilt } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { iconButton, sys } from '../system/tokens';
+import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { aiFirst as a } from './tokens';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
@@ -21,12 +22,22 @@ export type AiConversationShellProps = {
 /**
  * V5 AI-FIRST shell: a quiet head (back well, eyeline, 21px title, options well), the
  * live card pinned above an independent thread, a 32px intro when the thread is
- * empty, and one composer footer that hosts the voice control above the text row.
+ * empty, and one bottom bar.
+ *
+ * The bar carries the keyboard on the left, the microphone in the middle and the
+ * speech-privacy info on the right, and the text row appears only once the keyboard is
+ * chosen. That ordering is the point: the voice stage used to sit above a permanent
+ * text row, and together they took so much of a real phone that the conversation itself
+ * was not visible. The thread comes first now.
+ *
  * No domain mutations: card, transcript and composer share one bounded surface.
  */
 export function AiConversationShell(p: AiConversationShellProps) {
   const { height, fontScale } = useWindowDimensions();
   const [keyboard, setKeyboard] = useState(false);
+  // Voice is the default way in; the text row is one tap away and stays open once used.
+  const [typing, setTyping] = useState(false);
+  const input = useRef<TextInput>(null);
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const compact = keyboard || height < 700 || fontScale >= 1.5 || p.pending;
@@ -64,15 +75,27 @@ export function AiConversationShell(p: AiConversationShellProps) {
       </ScrollView>
       {/* Both current consumers live under the tab navigator, which owns bottom insets. */}
       <View testID="ai-composer-footer" style={s.footer}>
-        {p.voice}
+        {/* The draft stays visible. Speech lands here for review before sending, and hiding
+            it behind a toggle would cost a tap on every typed message and lose it for a
+            screen reader. The space was never this row: it was the voice stage above it. */}
         <View style={s.composer}>
-          <TextInput accessibilityLabel="Poruka za AI" value={p.value} onChangeText={p.onChange} editable={p.canEdit}
+          <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} onChangeText={p.onChange} editable={p.canEdit}
             placeholder="Napiši šta ti treba ili šta da promenim…" placeholderTextColor={a.color.muted} multiline maxLength={4000} style={s.input} />
           <Press accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend} onPress={p.onSend}
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
             <PaperPlaneTilt size={20} weight="fill" color={a.color.surface} /></Press>
         </View>
+        {p.voice ? <View testID="ai-composer-bar" style={s.bar}>
+          <Press accessibilityRole="button" accessibilityLabel={typing ? 'Sakrij tastaturu' : 'Piši umesto da govoriš'}
+            accessibilityState={{ selected: typing }} haptic="select" style={[s.barWell, typing && s.barWellOn]}
+            onPress={() => { const next = !typing; setTyping(next); if (next) { requestAnimationFrame(() => input.current?.focus()); } else { Keyboard.dismiss(); } }}>
+            <KeyboardIcon size={22} color={typing ? a.color.surface : sys.color.ink} /></Press>
+          <View style={s.barCentre}>{p.voice}</View>
+          <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.barWell}
+            onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
+            <Info size={22} color={sys.color.muted} /></Press>
+        </View> : null}
       </View>
     </KeyboardAvoidingView>
     {p.children}
@@ -107,6 +130,10 @@ const s = StyleSheet.create({
   actions: { gap: 10 },
   processing: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   footer: { borderTopWidth: 1, borderTopColor: '#EEF2EF', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10, gap: 8, backgroundColor: a.color.surface },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  barCentre: { flex: 1, alignItems: 'center' },
+  barWell: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
+  barWellOn: { backgroundColor: a.color.green },
   composer: { flexDirection: 'row', gap: 9, alignItems: 'flex-end', borderRadius: a.radius.composer,
     borderWidth: 1, borderColor: '#C7DACF', backgroundColor: a.color.surface, padding: 7 },
   input: { fontSize: 16, lineHeight: 23, color: sys.color.ink, flex: 1, minHeight: 44, maxHeight: 116, paddingHorizontal: 8, paddingVertical: 10, textAlignVertical: 'top' },
