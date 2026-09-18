@@ -80,7 +80,10 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('keeps email functional and required provider tiles visibly unavailable without a command', async () => {
+it('keeps email functional and shows no way in that does not work', async () => {
+  // Owner decision, 2026-09-18. Google and Apple wait on an OAuth client that server settings alone
+  // cannot make ready, and Telefon appears only when the server says it is on. Three dead buttons
+  // under "Drugi načini prijave" read as an app that is broken rather than one that is early.
   await render();
   expect(input('ime@primer.rs')).toBeDefined(); expect(button('Prijavi se')).toBeDefined();
   expect(button('Napravi nalog').props.accessibilityRole).toBe('button');
@@ -88,12 +91,11 @@ it('keeps email functional and required provider tiles visibly unavailable witho
   expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
   expect(text()).not.toContain('JA MOGU · ISTI NALOG');
   for (const provider of ['Google', 'Apple', 'Telefon']) {
-    const tile = host('Pressable').find(node => node.props.accessibilityLabel === provider)!;
-    expect(tile.props.accessibilityState).toEqual({ disabled: true });
-    expect(tile.props.disabled).toBe(true);
-    expect(tile.props.onPress).toBeUndefined();
-    expect(textOf(tile)).toContain('Trenutno nije dostupno');
+    expect(host('Pressable').find(node => node.props.accessibilityLabel === provider)).toBeUndefined();
   }
+  expect(text()).not.toContain('Drugi načini prijave');
+  expect(text()).not.toContain('Trenutno nije dostupno');
+  expect(text()).toContain('Za sada se ulazi email adresom i lozinkom.');
   for (const fake of ['Sačuvali smo', 'istu Priliku', 'ili nastavi preko']) expect(text()).not.toContain(fake);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });

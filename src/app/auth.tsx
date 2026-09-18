@@ -20,9 +20,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
-  AppleLogo,
   EnvelopeSimple,
-  GoogleLogo,
   LockKey,
   MapPin,
   Phone,
@@ -42,33 +40,25 @@ import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 type Rezim = 'LOGIN' | 'SIGNUP';
 type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT';
 
-function MethodButton({
-  title,
-  icon,
-  onPress,
-  disabled,
-  unavailable,
-}: {
+/** Only ways in that work are drawn, so there is no unavailable state left to draw. */
+function MethodButton({ title, icon, onPress, disabled }: {
   title: string;
   icon: React.ReactNode;
   onPress?: () => void;
   disabled?: boolean;
-  unavailable?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
-      accessibilityHint={unavailable ? 'Ovaj način prijave trenutno nije dostupan.' : undefined}
-      accessibilityState={{ disabled: !!(disabled || unavailable) }}
-      onPress={unavailable ? undefined : onPress}
-      disabled={disabled || unavailable}
-      style={({ pressed }) => [styles.method, unavailable && styles.methodUnavailable, pressed && !disabled && !unavailable && styles.methodPressed]}
+      accessibilityState={{ disabled: !!disabled }}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [styles.method, pressed && !disabled && styles.methodPressed]}
     >
       <View style={styles.methodIcon} accessible={false} importantForAccessibility="no-hide-descendants">{icon}</View>
       <View style={styles.methodCopy}>
-        <Text style={[styles.methodText, unavailable && styles.methodUnavailableText]}>{title}</Text>
-        {unavailable ? <Text style={styles.methodStatus}>Trenutno nije dostupno</Text> : null}
+        <Text style={styles.methodText}>{title}</Text>
       </View>
     </Pressable>
   );
@@ -430,19 +420,23 @@ export default function AuthScreen() {
                 {rezim === 'SIGNUP' && methods.emailSignup && methods.emailConfirmationRequired ? (
                   <Text style={styles.smallNote}>Pre prve prijave potrebno je da potvrdiš email.</Text>
                 ) : null}
-                <View style={styles.methods}>
-                  <Text style={styles.methodHeading}>Drugi načini prijave</Text>
-                  {/* Server settings alone cannot make the pending OAuth client ready. */}
-                  <MethodButton title="Google" icon={<GoogleLogo size={23} color={authColors.muted} />} unavailable />
-                  <MethodButton title="Apple" icon={<AppleLogo size={23} color={authColors.muted} />} unavailable />
-                  <MethodButton
-                    title="Telefon"
-                    icon={<Phone size={23} color={methods.phoneOtp ? '#174B43' : authColors.muted} />}
-                    disabled={radi}
-                    unavailable={!methods.phoneOtp}
-                    onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
-                  />
-                </View>
+                {/* Owner decision, 2026-09-18: a way in that does not work is not shown. Google and
+                    Apple wait on an OAuth client that server settings alone cannot make ready, and
+                    Telefon appears only when the server says it is on. Three dead buttons under
+                    "Drugi načini prijave" read as an app that is broken, not one that is early. */}
+                {methods.phoneOtp ? (
+                  <View style={styles.methods}>
+                    <Text style={styles.methodHeading}>Drugi načini prijave</Text>
+                    <MethodButton
+                      title="Telefon"
+                      icon={<Phone size={23} color="#174B43" />}
+                      disabled={radi}
+                      onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.smallNote}>Za sada se ulazi email adresom i lozinkom.</Text>
+                )}
 
 
               </>
@@ -599,9 +593,6 @@ const styles = StyleSheet.create({
   methodIcon: { width: 24, height: 24, flexShrink: 0 },
   methodCopy: { flex: 1, minWidth: 0, gap: 3 },
   methodText: { color: '#143D35', fontSize: 16, lineHeight: 23, fontWeight: '600' },
-  methodUnavailable: { backgroundColor: authColors.input, borderColor: authColors.line },
-  methodUnavailableText: { color: authColors.ink },
-  methodStatus: { color: authColors.muted, fontSize: 13, lineHeight: 20 },
   consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 15, backgroundColor: authColors.input },
   checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: authColors.muted, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: authColors.surface },
   checkboxChecked: { backgroundColor: authColors.accent },
