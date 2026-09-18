@@ -90,7 +90,7 @@ export const settingsStyles = StyleSheet.create({
   /** The role switch: one segmented control, the other role is one explicit tap away. */
   roleSwitch: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: 14, backgroundColor: sys.color.control, alignSelf: 'stretch', marginTop: 18 },
   roleSegment: { flex: 1, minHeight: 44, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
-  roleSegmentOn: { backgroundColor: sys.color.surface, shadowColor: '#183F35', shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  roleSegmentOn: { backgroundColor: sys.color.surface, shadowColor: sys.color.ink, shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   intent: { backgroundColor: sys.color.greenSoft, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
   logout: { paddingTop: 18, borderTopWidth: 1, borderTopColor: sys.color.line, marginTop: 6, marginBottom: 12, alignItems: 'flex-start' },
   notice: { padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.greenSoft, flexDirection: 'row', gap: 10 },

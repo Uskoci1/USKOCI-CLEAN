@@ -40,6 +40,10 @@ export const sys = {
     money: '#205C45',
     skeleton: '#E9F0EC',
     scrim: '#183A3066',
+    /** Hairlines on a filled control, and the ring that appears only while listening. */
+    greenEdge: '#226B52',
+    orangeEdge: '#E57917',
+    orangeHalo: '#FFD2A8',
   },
   radius: { badge: 9, chip: 13, control: 16, primary: 17, cardCompact: 18, card: 22, sheet: 28, pill: 999 },
   space,

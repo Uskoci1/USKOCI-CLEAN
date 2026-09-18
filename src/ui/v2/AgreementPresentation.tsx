@@ -80,7 +80,7 @@ const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
   hero: { gap: 12 },
   title: { ...sys.type.hero, fontSize: 28, lineHeight: 33, letterSpacing: -0.8, color: sys.color.ink },
-  compact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 16, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: '#E1EBE3' },
+  compact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 16, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
   compactIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   people: { paddingVertical: 4 },
   person: { paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },

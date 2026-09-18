@@ -140,8 +140,8 @@ export function IntakePresentation(props: Props) {
       </View>
       <T style={[s.cardTitle, compact && s.cardTitleCompact, !conversation.facts.length && s.cardTitleEmpty]} numberOfLines={compact ? 1 : 2}>{summary.title}</T>
       {!compact && (summary.zone || summary.schedule) ? <View style={s.metaRows}>
-        {summary.zone ? <View style={s.metaRow}><MapPin size={16} color="#668577" /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}
-        {summary.schedule ? <View style={s.metaRow}><Clock size={16} color="#668577" /><T variant="meta" tone="muted" style={s.metaText}>{summary.schedule}</T></View> : null}
+        {summary.zone ? <View style={s.metaRow}><MapPin size={16} color={sys.color.muted} /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}
+        {summary.schedule ? <View style={s.metaRow}><Clock size={16} color={sys.color.muted} /><T variant="meta" tone="muted" style={s.metaText}>{summary.schedule}</T></View> : null}
       </View> : null}
       {compact && summary.zone ? <T variant="meta" tone="muted" numberOfLines={1}>{summary.zone}</T> : null}
       {!compact && (summary.price || summary.people) ? <View style={s.cardFoot}>
@@ -211,7 +211,7 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger }, center: { textAlign: 'center' },
   grow: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  taskCard: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: '#DCE8DF', borderRadius: a.radius.card, paddingVertical: 16, paddingHorizontal: 17, gap: 10, overflow: 'hidden', ...sys.elevation.soft },
+  taskCard: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderRadius: a.radius.card, paddingVertical: 16, paddingHorizontal: 17, gap: 10, overflow: 'hidden', ...sys.elevation.soft },
   // Before the conversation has said anything the card is a label, not a panel.
   taskCardEmpty: { paddingVertical: 10, gap: 4 },
   taskCardCompact: { borderRadius: a.radius.compactCard, paddingVertical: 10, paddingHorizontal: 14, gap: 4 },
@@ -221,13 +221,13 @@ const s = StyleSheet.create({
   detailLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   cardTitle: { fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.6, color: sys.color.ink },
   cardTitleCompact: { fontSize: 16, lineHeight: 21, letterSpacing: -0.3 },
-  cardTitleEmpty: { color: '#536C60', fontSize: 18, fontWeight: '600' },
+  cardTitleEmpty: { color: sys.color.muted, fontSize: 18, fontWeight: '600' },
   metaRows: { gap: 5 }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, metaText: { flexShrink: 1 },
-  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: 1, borderTopColor: '#E7EDE9', paddingTop: 12, marginTop: 3 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12, marginTop: 3 },
   money: { fontSize: 23, lineHeight: 28, fontWeight: '700', letterSpacing: -0.7, color: sys.color.money, fontVariant: ['tabular-nums'] },
   peopleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   people: { color: sys.color.ink, fontWeight: '600' },
-  reviewLink: { backgroundColor: '#EDF6F0', borderWidth: 0, minHeight: 51, borderRadius: 16, justifyContent: 'flex-start', paddingHorizontal: 14 },
+  reviewLink: { backgroundColor: sys.color.greenSoft, borderWidth: 0, minHeight: 51, borderRadius: 16, justifyContent: 'flex-start', paddingHorizontal: 14 },
   scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim },
   sheet: { maxHeight: '85%', borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
     paddingHorizontal: 24, paddingTop: 10, backgroundColor: sys.color.surface },
