@@ -89,7 +89,13 @@ function NewContents({ model, initialReference }: { model: ReturnType<typeof use
             setContextTitle(item.naslov || 'Dogovor'); setChoices(null); } }} />)}
         {choices.length > (choicePage + 1) * 50 ? <SettingsAction label="Još Dogovora" kind="quiet" disabled={disabled} onPress={() => { if (current()) setChoicePage(value => value + 1); }} /> : null}
         {choicePage > 0 ? <SettingsAction label="Prethodni Dogovori" kind="quiet" disabled={disabled} onPress={() => { if (current()) setChoicePage(value => value - 1); }} /> : null}
-      </SettingsGroup> : <T>Trenutno nema dostupnih Dogovora za izbor.</T> : null}
+      </SettingsGroup> : <>
+        {/* Choosing this topic with no agreements made the send button unreachable, with nothing
+            anywhere saying why: the requirement is stated up here and the way out is beside it. */}
+        <T>Ova tema traži Dogovor, a ti još nemaš nijedan.</T>
+        <SettingsAction label="Izaberi drugu temu" kind="quiet" disabled={disabled}
+          onPress={() => { if (current() && !disabled) { setTopic('OTHER'); setContext(null); setContextTitle(null); setChoices(null); } }} />
+      </> : null}
     </SettingsPanel> : context ? <SettingsPanel soft><T variant="bodyStrong">Izabrani kontekst</T>
       <T>{context.kind === 'TASK_REVIEW' ? 'Pregledana odluka o Zadatku' : context.kind === 'TASK' ? 'Izabrani Zadatak'
         : context.kind === 'AGREEMENT_MESSAGE' ? 'Izabrana poruka iz Dogovora' : context.kind === 'GROUP_MESSAGE' ? 'Izabrana grupna poruka' : 'Namerno izabrana referenca'}{context.revision ? `, verzija ${context.revision}` : ''}.</T>

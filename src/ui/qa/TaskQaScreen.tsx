@@ -39,7 +39,16 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     if(!live(token))return;
     if(!feed.ok){setContext(null);setRows([]);setMessage(feed.poruka);return;}
     if(c.mode==='PUBLIC'&&feed.podatak.some(q=>q.needRevision!==c.needRevision)) {
-      setContext(null);setRows([]);setMessage('Zadatak je izmenjen. Osveži pitanja.');return;
+      // One answer belonging to an older revision used to blank the whole public feed: every
+      // question and every answer vanished, including the asker's own, with a message offering no
+      // way forward. An answer written for an older version of the task is still that person's
+      // answer; it is the ones that do not match the version on screen that are set aside.
+      const current=feed.podatak.filter(q=>q.needRevision===c.needRevision);
+      setContext(c);setRows(current);
+      setMessage(current.length
+        ?'Zadatak je izmenjen posle nekih pitanja. Prikazana su ona koja pripadaju važećoj verziji.'
+        :'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.');
+      return;
     }
     setContext(c);setRows(feed.podatak);
   }

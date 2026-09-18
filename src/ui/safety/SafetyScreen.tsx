@@ -43,6 +43,15 @@ export function SafetyScreen(p: Context) {
       {editor.error ? <SettingsAction label="Proveri blokiranje" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
     </SettingsPanel>
     <PrivateReport {...p} />
+    {/* This screen is where a person arrives when something has gone wrong with another person, and
+        it had no way through to support at all — the only paths in were the profile row and a
+        publication review. */}
+    <SettingsPanel>
+      <T variant="bodyStrong">Treba ti operater?</T>
+      <T variant="note" tone="muted">Privatna prijava ide automatskoj proveri. Ako ti treba čovek, otvori zahtev podršci.</T>
+      <SettingsAction label="Otvori zahtev podršci" kind="quiet"
+        onPress={() => router.push('/podrska/novi')} />
+    </SettingsPanel>
   </SettingsScreen>;
 }
 

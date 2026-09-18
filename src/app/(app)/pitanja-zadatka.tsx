@@ -8,5 +8,8 @@ export default function TaskQuestionsRoute() {
   const router=useRouter(),s=useSesija();
   return <TaskQaScreen key={`${s.user?.id}:${s.accountRevision}:${String(needId)}`}
     needId={uuid(needId)?needId:null}
-    onBack={()=>router.canGoBack()?router.back():router.replace('/mapa')}/>;
+    // Questions belong to one task; leaving them used to land on the map. With no stack to go back
+    // to, the task they are about is the place to be.
+    onBack={()=>router.canGoBack()?router.back()
+      :uuid(needId)?router.replace({pathname:'/prilike/[id]',params:{id:String(needId)}}):router.replace('/prilike')}/>;
 }
