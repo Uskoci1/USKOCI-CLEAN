@@ -164,6 +164,14 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
     {!reviewOnly ? <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>
       {mode === 'REMOTE' ? 'Potvrđujem da se Zadatak radi na daljinu.' : 'Proverio/la sam javno mesto i privatne podatke.'}
     </LocationConfirmation> : null}
+    {/* Typing in the search field near the top invalidates the point, which kills this button three
+        screenfuls below — and the only explanation was a small grey line back up inside the card,
+        with the escape hatch up there too. The reason and the way out stand where the dead button is. */}
+    {pendingPoint ? <View style={{ gap: 8 }}>
+      <T accessibilityLiveRegion="polite" variant="meta" tone="muted">Potvrdi tačku na mapi da bi sačuvao mesto.</T>
+      <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
+        onPress={() => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } }} />
+    </View> : null}
     <Button kind="primary" label={busy ? 'Pripremam mesto…' : reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'}
       disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
     <T variant="meta" tone="muted">{reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.' : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.'}</T>

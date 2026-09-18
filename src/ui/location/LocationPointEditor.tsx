@@ -53,6 +53,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const [focused, setFocused] = useState(false);
   const focus = useRef(false), requestEpoch = useRef(0), renderEpoch = useRef(0);
   const rendered = ++renderEpoch.current;
+  const located = useRef(false);
   const alive = useRef(true);
   const current = useRef({ disabled, point }); current.current = { disabled, point };
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -61,7 +62,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     return () => {
       focus.current = false; renderEpoch.current++; requestEpoch.current++; resolver.cancel();
       const saved = current.current.point;
-      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setSearchText(''); setError(false);
+      // Clearing the search text on blur left the point ask seedless for the rest of the session:
+      // the address the conversation worked to obtain was gone, the field empty and "Pronađi na
+      // mapi" greyed out. Coming back restores the seed and lets the automatic lookup run again.
+      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setSearchText(initialQuery); located.current = false; setError(false);
       setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
       setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });setAddress(saved?.address ?? '');setNotes(saved?.accessNotes ?? '');
     };
@@ -102,7 +106,6 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   // Placed after `search` so the effect calls the same guarded path a press does, once per scope.
   // A saved point wins: nothing here may move a point the person already confirmed.
-  const located = useRef(false);
   useEffect(() => {
     if (!autoLocate || located.current || !focused || disabled || point || !searchText.trim()) return;
     located.current = true;
@@ -183,7 +186,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={`${lookupMode === 'reverse' ? 'Koristi privatnu adresu' : 'Izaberi predlog'}: ${candidate.label}`}
       kind="quiet" disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
     {selectedLabel ? <T variant="meta">Predlog za proveru: {selectedLabel}</T> : null}
-    {lookup.status !== 'IDLE' || selectedLabel ? <Button label="Otkaži pretragu" kind="quiet" disabled={disabled || !focused} onPress={cancelSearch} /> : null}
+    {/* After a suggestion is applied there is no search in flight, so "Otkaži pretragu" was really
+        "delete the pin I just chose", under a name that promised the opposite. */}
+    {lookup.status !== 'IDLE' ? <Button label="Otkaži pretragu" kind="quiet" disabled={disabled || !focused} onPress={cancelSearch} /> : null}
+    {lookup.status === 'IDLE' && selectedLabel ? <Button label="Ukloni izabranu tačku" kind="quiet" disabled={disabled || !focused} onPress={cancelSearch} /> : null}
     {!autoLocate || position || placeByHand
       ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={disabled || !focused} />
       : <Button label="Izaberi tačku sam na mapi" kind="quiet" disabled={disabled || !focused}

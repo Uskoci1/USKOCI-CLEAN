@@ -121,7 +121,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
 
   if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaram mesto zadatka…</T>;
   if (state.kind === 'SAVED') return <View style={{ gap: 12 }}>
-    <T accessibilityRole="alert" tone="success">Mesto je sačuvano. Zadatak sada može da se objavi.</T>
+    <T accessibilityRole="alert" tone="success">Mesto je sačuvano.</T>
     <Button kind="primary" label="Vrati se u razgovor" onPress={props.onClose} />
   </View>;
   // A failed save used to offer a reload, which re-read the server over the pins the person had
@@ -135,6 +135,13 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     <Button kind="quiet" label="Zatvori" onPress={leave} />
   </View>;
 
+  // The thread asks for the point from the geography alone, which never looks at the country, so a
+  // draft with no country yet met "Fali još mesto na mapi" and, two lines below, "nije potrebno".
+  // A missing country is a question for the conversation, not a statement about the task.
+  if (review && geography && slots.length && !country) return <View style={{ gap: 12 }}>
+    <T accessibilityRole="alert" tone="muted">Prvo reci u kojoj je državi zadatak — bez toga mapa ne zna gde da traži.</T>
+    <Button kind="primary" label="Reci u razgovoru" onPress={props.onClose} />
+  </View>;
   if (!review || !country || !geography || !slots.length) return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="muted">Za ovaj zadatak mesto na mapi nije potrebno.</T>
     <Button kind="quiet" label="Zatvori" onPress={props.onClose} />
@@ -147,7 +154,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
 
   return <View style={{ gap: 14 }}>
     <T accessibilityRole="header" variant="title">Gde tačno?</T>
-    <T tone="muted">Ovo vidi samo onaj s kim se dogovoriš. Pin stoji na mestu koje si rekao — potvrdi ga ili ga prevuci.</T>
+    <T tone="muted">Ovo vidi samo onaj s kim se dogovoriš. Kad se pin pojavi, potvrdi ga ili ga prevuci na tačno mesto.</T>
     {slots.length > 1
       ? <T variant="meta" tone="muted">{`Potvrđeno ${points.filter(point => slots.includes(point.slot)).length} od ${slots.length}`}</T>
       : null}

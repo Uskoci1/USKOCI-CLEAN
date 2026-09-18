@@ -159,7 +159,9 @@ it('blur/refocus clears candidates and prevents retained clicks and confirmation
   mockFocused = false;await update();expect(map().props.disabled).toBe(true);
   mockFocused = true;await update();
   await act(async () => { retained(); oldConfirm(); });
-  expect(map().props.position).toBeNull();expect(field('pronađi mesto').props.value).toBe('');expect(props.onConfirm).not.toHaveBeenCalled();
+  // Blur no longer throws the seed away with the candidates: an empty field left the point ask
+  // unusable for the rest of the session. The retained handlers are still dead, which is the point.
+  expect(map().props.position).toBeNull();expect(field('pronađi mesto').props.value).toBe('Place');expect(props.onConfirm).not.toHaveBeenCalled();
 });
 
 it('a temporary disabled state invalidates an in-flight lookup before the editor is enabled again', async () => {
