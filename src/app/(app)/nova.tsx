@@ -100,7 +100,14 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     } catch { return unavailable(); }
   }, [accountId, accountRevision, intent, invalidRoute, openRequestId, resumeId]);
   const editor = useOwnedEditor(read);
-  const stanje = editor.data?.conversation ?? null, turn = editor.data?.turn ?? null;
+  // The two controls offered at the worst moment - "Proveri ishod" and "Osveži razgovor" - used to
+  // unmount the whole thread and, if the re-read then failed, leave "Razgovor nije dostupan" where
+  // the conversation had been. Every word looked deleted by the button meant to save them. This
+  // component is keyed by account, revision, intent and conversation id, so what it remembers can
+  // only ever belong to the conversation on screen.
+  const lastGood = useRef<AiNeedV2Conversation | null>(null);
+  if (editor.data?.conversation) lastGood.current = editor.data.conversation;
+  const stanje = editor.data?.conversation ?? lastGood.current, turn = editor.data?.turn ?? null;
   const razgovorId = stanje?.conversationId ?? null;
   const radi = editor.busy, greska = editor.error;
   const view = useMemo(() => ({}), [editor.data]), currentView = useRef(view);
@@ -224,6 +231,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   return <IntakePresentation conversation={stanje} value={unos} busy={radi} error={greska}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}
+    sentMessage={request.current?.body ?? null}
     streamingText={streamingText}
     photosDisabled={!canAct() || !writable || !!request.current || voiceBusy}
     onPhotos={writable ? () => {

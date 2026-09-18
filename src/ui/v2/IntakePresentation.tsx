@@ -25,6 +25,8 @@ type Props = {
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
   pending: boolean; statusCopy: string | null; showReadback: boolean; readbackDisabled: boolean;
+  /** The sentence that was sent and is waiting for its answer. */
+  sentMessage?: string | null;
   showAbandon: boolean; abandonDisabled: boolean; abandonLabel: string;
   onBack: () => void; onChange: (value: string) => void; onSend: () => void;
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
@@ -114,6 +116,12 @@ export function IntakePresentation(props: Props) {
   const held = (key: AiNeedV2Fact['key']) => conversation.facts.find(fact => fact.key === key)?.value;
   const gap = pointsMissing(held('need.task_geography'), held('need.resolved_location'));
   const needsPoint = conversation.status === 'OPEN' && gap.total > 0 && gap.done < gap.total;
+  // What is still missing belonged only to the review screen, so the one question a person has
+  // during the conversation - am I two answers away or eight - could only be answered by leaving it.
+  // The map point is counted here too: the server's required list cannot contain it, because the AI
+  // is not allowed to propose it, and leaving it out is how "spremno" became a promise that failed.
+  const stillNeeded = [...conversation.review.missingRequired.map(factDisplayLabel),
+    ...(needsPoint ? ['tačka na mapi'] : [])];
   // Each turn carries the ids of the facts it proposed, so the sentence it wrote can be shown
   // beside what it actually took. A private value is named but never printed here: the thread is
   // the conversation surface, not the place to restate an exact address.
@@ -129,6 +137,7 @@ export function IntakePresentation(props: Props) {
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
+    sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
     welcomeDetail="Ispričaj svojim rečima — glasom ili kucanjem. Ja hvatam detalje sa strane, ti potvrđuješ šta je tačno."
     openings={OPENINGS}
@@ -146,6 +155,9 @@ export function IntakePresentation(props: Props) {
         {props.canReview ? <View style={s.detailLink}><T variant="meta" tone="muted">Detalji</T><CaretRight size={14} color={sys.color.muted} /></View> : null}
       </View>
       <T style={[s.cardTitle, compact && s.cardTitleCompact, !conversation.facts.length && s.cardTitleEmpty]} numberOfLines={compact ? 1 : 2}>{summary.title}</T>
+      {conversation.status === 'OPEN' ? <T variant="meta" tone="muted" numberOfLines={2}>
+        {stillNeeded.length ? `Još treba: ${stillNeeded.join(' · ')}` : 'Sve traženo je uneto — otvori pregled'}
+      </T> : null}
       {!compact && (summary.zone || summary.schedule) ? <View style={s.metaRows}>
         {summary.zone ? <View style={s.metaRow}><MapPin size={16} color={sys.color.muted} /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}
         {summary.schedule ? <View style={s.metaRow}><Clock size={16} color={sys.color.muted} /><T variant="meta" tone="muted" style={s.metaText}>{summary.schedule}</T></View> : null}

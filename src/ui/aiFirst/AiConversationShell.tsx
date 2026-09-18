@@ -20,6 +20,8 @@ export type AiConversationShellProps = {
   status?: ReactNode; actions?: ReactNode; voice?: ReactNode; children?: ReactNode;
   /** Openings offered before the first word. 38 of the first 62 conversations never got one. */
   openings?: readonly string[];
+  /** A sentence already sent and not yet read back from the server. It belongs on screen. */
+  sentMessage?: string | null;
   /** Only real server text deltas belong here. No typewriter animation. */
   streamingText?: string;
 };
@@ -73,7 +75,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         // With no messages the intro is the entire content, and scrolling to the end of it
         // cuts its first line off the top. There is nothing to follow, so stay put.
         onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
-        {p.messages.length === 0 ? <View style={s.welcome}>
+        {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
           {p.openings?.length && p.canEdit ? <View style={s.openings}>
@@ -83,6 +85,13 @@ export function AiConversationShell(p: AiConversationShellProps) {
               <T variant="meta" style={s.openingText}>{opening}</T></Press>)}
           </View> : null}
         </View> : p.messages.map(message => <ConversationBubble key={message.id} {...message} />)}
+        {/* Until the server read brings it back, what was said is still what was said. Without this
+            the thread stayed on "Reci šta ti treba." while the answer streamed in underneath, and
+            nothing on screen confirmed the app had heard the person at all. */}
+        {p.sentMessage ? <View style={[s.message, s.userMessage, s.sending]}>
+          <T variant="label" style={s.userLabel}>Ti</T>
+          <T selectable style={s.userBody}>{p.sentMessage}</T>
+        </View> : null}
         {p.streamingText ? <View style={s.message}><T variant="label" style={s.assistantLabel}>USKOČI</T>
           <T selectable style={s.body}>{p.streamingText}</T></View> : null}
         {p.busy ? <View accessibilityLiveRegion="polite" style={s.processing}><ActivityIndicator color={a.color.green} />
@@ -176,4 +185,6 @@ const s = StyleSheet.create({
   input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 44, maxHeight: 116, paddingHorizontal: 8, paddingVertical: 10, textAlignVertical: 'top' },
   send: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: a.color.green, alignItems: 'center', justifyContent: 'center' },
   disabled: { opacity: 0.4 },
+  /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
+  sending: { opacity: 0.6 },
 });
