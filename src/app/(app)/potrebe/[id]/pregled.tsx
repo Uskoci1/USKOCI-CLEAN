@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../../../contracts/projections';
@@ -7,6 +7,7 @@ import { aiNeedV2Izvor } from '../../../../data';
 import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
 import { ru4Production } from '../../../../data/ru4Production';
 import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } from '../../../../data/remainingSearchCloseAttempt';
+import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
@@ -90,6 +91,9 @@ function OwnedNeed({ id }: { id: string }) {
   }, [id, identity, izvor, accountId, accountRevision, intent, lifecycle]);
   const editor = useOwnedEditor(read);
   const potreba = editor.data?.need ?? null;
+  // A draft is told why it cannot be published, by the gate that decides it rather than by a
+  // guess. Read-only: it reports, and the server decides again when publishing is attempted.
+  const [readiness, setReadiness] = useState<NeedPublicationReadiness | null>(null);
   const preostalaPotragaZatvorena = editor.data?.remainingClosed ?? false;
   const ucitava = editor.loading, greska = editor.error, akcijaUToku = editor.busy || editor.uncertain;
   const renderedFocus = focus.current, renderedLife = life.current;
@@ -97,6 +101,19 @@ function OwnedNeed({ id }: { id: string }) {
   const current = () => focus.current !== null && focus.current === renderedFocus && foreground.current
     && life.current === renderedLife && latestIdentity.current === identity && latestData.current === editor.data
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+  useEffect(() => {
+    setReadiness(null);
+    const draft = potreba && potreba.stanje === 'NACRT' && intent === 'narucilac';
+    if (!draft || !potreba) return;
+    const scope = focus.current, lifeAt = life.current, ownedBy = latestIdentity.current;
+    let alive = true;
+    void needPublicationReadiness.read(potreba.id, potreba.revizija).then(result => {
+      // A late answer must not land on another account, another task or another focus.
+      if (!alive || focus.current !== scope || life.current !== lifeAt || latestIdentity.current !== ownedBy) return;
+      setReadiness(result.ok ? result.podatak : { kind: 'UNKNOWN' });
+    }, () => {});
+    return () => { alive = false; };
+  }, [potreba?.id, potreba?.revizija, potreba?.stanje, intent, identity, lifecycle]);
   const canAct = () => current() && intent === 'narucilac' && !terminalActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
   const navigate = (action: () => void) => { if (!current() || navigating.current) return;
     dialog.current = null; navigating.current = true; action(); };
@@ -159,6 +176,7 @@ function OwnedNeed({ id }: { id: string }) {
     lifecycleActions={intent === 'narucilac' && uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}
       disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
     error={greska} busy={akcijaUToku || terminalActive} ownerIntent={intent === 'narucilac'} remainingClosed={preostalaPotragaZatvorena}
+    readiness={readiness}
     onBack={() => navigate(() => router.back())} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
     onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />;
 }

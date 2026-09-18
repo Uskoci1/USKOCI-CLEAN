@@ -4,6 +4,7 @@ import { Linking, View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationPinOrigin, LocationSlot } from '../../contracts/location';
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution, type LocationResolverCandidate } from '../../data/configuredLocationResolver';
 import { locationPrivateText } from '../../lib/location';
+import { captureCurrentLocation } from '../../data/nativeCurrentLocation';
 import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
 import { LocationDetails, LocationField, locationStyles as s } from './LocationControls';
@@ -38,6 +39,13 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   // broken. Where the address is already known the map has no job until something resolves,
   // so it waits. Opt-in with autoLocate; the long form still shows it from the start.
   const [placeByHand, setPlaceByHand] = useState(false);
+  // "The work starts where I am" is the shortest path to a point, and it was missing. The
+  // permission is requested only when this is pressed, never on opening; one foreground
+  // observation, no geocoder and no background listener. Opt-in with autoLocate, so the long
+  // form gains no permission prompt it did not have.
+  const [here, setHere] = useState<null | 'BUSY' | 'DENIED' | 'UNAVAILABLE'>(null);
+  const hereRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => hereRequest.current?.abort(), []);
   const [searchText, setSearchText] = useState(initialQuery);
   const [lookup, setLookup] = useState<ConfiguredLocationResolution | { status: 'IDLE' | 'LOADING' }>({ status: 'IDLE' });
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
@@ -100,6 +108,22 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     located.current = true;
     void search();
   }, [autoLocate, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
+  const useHere = async () => {
+    if (!owns() || here === 'BUSY') return;
+    const request = new AbortController();
+    hereRequest.current?.abort();
+    hereRequest.current = request;
+    setHere('BUSY');
+    const result = await captureCurrentLocation(request.signal, owns);
+    if (!owns() || hereRequest.current !== request) return;
+    if (result.kind === 'POINT') {
+      setHere(null); setPlaceByHand(true);
+      // The same path a tap on the map takes: a manual pin the person still confirms.
+      choose({ latitude: result.point.latitude, longitude: result.point.longitude });
+      return;
+    }
+    setHere(result.kind === 'CANCELLED' ? null : result.kind === 'DENIED' ? 'DENIED' : 'UNAVAILABLE');
+  };
   const reverse = async () => {
     if (!owns() || !position || lookup.status === 'LOADING') return;
     // Explicit lookup only; preserve the user's point throughout transport.
@@ -142,6 +166,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     <LocationField label={`${title} — pronađi mesto`} value={searchText} maxLength={1000} editable={!disabled && focused} onChangeText={changeSearch} />
     <Button label={lookup.status === 'LOADING' ? 'Tražimo mesto…' : lookup.status === 'UNAVAILABLE' ? 'Pokušaj ponovo' : 'Pronađi na mapi'}
       kind="secondary" disabled={disabled || !focused || !searchText.trim() || !countryCode || lookup.status === 'LOADING'} onPress={search} />
+    {autoLocate ? <Button label={here === 'BUSY' ? 'Tražim gde si…' : 'Koristi gde sam'} kind="quiet"
+      disabled={disabled || !focused || here === 'BUSY'} onPress={useHere} /> : null}
+    {here === 'DENIED' ? <T variant="meta" accessibilityRole="alert">Pristup lokaciji nije dozvoljen. Možeš ga dozvoliti u podešavanjima ili upisati mesto iznad.</T> : null}
+    {here === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Ne mogu da očitam gde si. Upiši mesto iznad ili izaberi tačku na mapi.</T> : null}
     {lookup.status === 'LOADING' ? <T variant="meta" accessibilityLiveRegion="polite">Tražimo predloge za uneto mesto…</T> : null}
     {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga mesta još nije aktivirana. Tačku možeš izabrati sam na mapi.</T> : null}
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi trenutno nisu dostupni. Pokušaj ponovo ili izaberi tačku na mapi.</T> : null}

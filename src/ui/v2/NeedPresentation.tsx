@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
+import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needPeopleText, needRequirementRows } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
@@ -20,16 +21,20 @@ export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
   ownerIntent: boolean; remainingClosed: boolean;
   onBack: () => void; onRefresh: () => void; onReview: () => void; onEdit: () => void; onCloseRemaining: () => void; onCandidates: () => void;
+  /** What the publish gate says about a draft, asked of the gate itself. Absent means not asked. */
+  readiness?: NeedPublicationReadiness | null;
   photos?: ReactNode;
   lifecycleActions?: ReactNode;
   qaAction?: ReactNode;
 };
 
 /** What the state means and what comes next, in one strip. */
-function nextStep(need: PotrebaProjekcija, remainingClosed: boolean): { title: string; detail?: string; tone: 'green' | 'warn' | 'muted' } {
+function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: { title: string; detail: string } | null): { title: string; detail?: string; tone: 'green' | 'warn' | 'muted' } {
   const { popunjeno, ukupno } = need.pokrivenost;
   switch (need.stanje) {
-    case 'NACRT': return { title: STATUS.NACRT, detail: 'Sledeće: pregled i objava jednim korakom.', tone: 'muted' };
+    case 'NACRT': return blocked
+      ? { title: blocked.title, detail: blocked.detail, tone: 'warn' }
+      : { title: STATUS.NACRT, detail: 'Sledeće: pregled i objava jednim korakom.', tone: 'muted' };
     case 'OBJAVLJENA': case 'CEKA_PRIJAVE':
       return { title: STATUS[need.stanje], detail: need.brojPrijava ? 'Sledeće: izbor. Izbor odmah formira potvrđen Dogovor.' : 'Sledeće: prijave stižu ovde, izbor formira Dogovor.', tone: 'green' };
     case 'DELIMICNO_POPUNJENA':
@@ -51,12 +56,16 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const draft = need?.stanje === 'NACRT' && ownerIntent;
   const usable = !!need && !loading && !error;
   const rows = need ? needGeographyRows(need) : [], requirements = need ? needRequirementRows(need) : [];
-  const primaryLabel = busy ? 'Radnja je u toku…' : draft ? 'Pregledaj za objavu' : 'Pogledaj prijave';
-  const primaryAction = draft ? props.onReview : props.onCandidates;
+  // A draft the gate refuses is not sent to a review that will refuse it again: the action leads
+  // to the conversation, which is where the missing thing is asked for.
+  const blocked = draft ? readinessCopy(props.readiness ?? { kind: 'UNKNOWN' }) : null;
+  const primaryLabel = busy ? 'Radnja je u toku…'
+    : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu' : 'Pogledaj prijave';
+  const primaryAction = blocked ? props.onEdit : draft ? props.onReview : props.onCandidates;
   const toggle = (key: 'location' | 'requirements') => setExpanded(current => current === key ? null : key);
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
   const price = need ? need.rezimCene === 'OFFERS' ? 'Tražim ponude' : need.ponudjenaCena ? need.ponudjenaCena.prikaz : 'Cena nije navedena' : '';
-  const step = need ? nextStep(need, remainingClosed) : null;
+  const step = need ? nextStep(need, remainingClosed, blocked) : null;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Zadatak" onBack={props.onBack} />
     {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
@@ -83,8 +92,9 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
         {props.photos}
         {draft ? <View style={[card, s.draftCard]}>
-          <T variant="heading" style={s.ink}>Spremi zadatak za objavu</T>
-          <T variant="copy" tone="muted">Pregledaj podatke, fotografije i rok za prijave. Objavljuješ jednom akcijom na pregledu.</T>
+          <T variant="heading" style={s.ink}>{blocked ? blocked.title : 'Spremi zadatak za objavu'}</T>
+          <T variant="copy" tone="muted">{blocked ? blocked.detail
+            : 'Pregledaj podatke, fotografije i rok za prijave. Objavljuješ jednom akcijom na pregledu.'}</T>
           <V2Action label="Izmeni nacrt" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.quietLeft} />
         </View> : null}
         {!draft && ownerIntent ? <DisclosureGroup>

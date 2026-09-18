@@ -11,6 +11,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails', locationStyles: { card: {} } }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
+jest.mock('../nativeCurrentLocation', () => ({ captureCurrentLocation: jest.fn() }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return key === 'View' ? 'View' : Reflect.get(target, key); } });
@@ -223,5 +224,48 @@ describe('autoLocate', () => {
     const resolver = configured();
     await render({ resolver: resolver as never, autoLocate: true, initialQuery: '   ' });
     expect(resolver.search).not.toHaveBeenCalled();
+  });
+});
+
+describe('use where I am', () => {
+  const capture = jest.requireMock('../nativeCurrentLocation').captureCurrentLocation as jest.Mock;
+  beforeEach(() => capture.mockReset());
+
+  it('is not offered where it was never asked for, so the long form gains no permission prompt', async () => {
+    await render({ resolver: configured() as never, initialQuery: 'Novi Sad' });
+    expect(buttons().some(node => node.props.label === 'Koristi gde sam')).toBe(false);
+  });
+
+  it('asks for the position only when pressed, and never on opening', async () => {
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    expect(capture).not.toHaveBeenCalled();
+    capture.mockResolvedValue({ kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8, capturedAt: '2026-09-18T10:00:00Z' } });
+    await press('Koristi gde sam');
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(map().props.position).toEqual({ latitude: 45.2551, longitude: 19.8451 });
+  });
+
+  it('places a pin the person still has to confirm, never a confirmed point', async () => {
+    capture.mockResolvedValue({ kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8, capturedAt: '2026-09-18T10:00:00Z' } });
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    await press('Koristi gde sam');
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(props.onInvalidate).toHaveBeenCalled();
+  });
+
+  it('says a refusal plainly and leaves the other ways open', async () => {
+    capture.mockResolvedValue({ kind: 'DENIED' });
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    await press('Koristi gde sam');
+    expect(text()).toContain('Pristup lokaciji nije dozvoljen');
+    expect(buttons().some(node => node.props.label === 'Pronađi na mapi')).toBe(true);
+  });
+
+  it('does not treat an unavailable reading as a position', async () => {
+    capture.mockResolvedValue({ kind: 'UNAVAILABLE' });
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    await press('Koristi gde sam');
+    expect(text()).toContain('Ne mogu da očitam gde si');
+    expect(props.onConfirm).not.toHaveBeenCalled();
   });
 });
