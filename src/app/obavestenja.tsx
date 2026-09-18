@@ -34,12 +34,19 @@ export default function Obavestenja() {
   async function open(item: InboxItem) {
     const target = await model.open(item);
     if (!target || target.kind==='UNAVAILABLE' || !model.canNavigate()) return;
+    // A question resolves to the Zadatak it belongs to, because the Need id is the only one the
+    // server hands out for a CLARIFICATION. "Neko je postavio pitanje" then opened the task and left
+    // the question to be found inside it. The event type says what it was about, so the landing does
+    // too — for both sides, since answering and being answered are the same screen.
+    const questions = item.eventType.startsWith('CLARIFICATION_');
+    const needTarget = (id: string, own: boolean) => questions ? {pathname:'/pitanja-zadatka' as const,params:{needId:id}}
+      : own ? {pathname:'/potrebe/[id]/pregled' as const,params:{id}} : {pathname:'/prilike/[id]' as const,params:{id}};
     const go = () => { switch (target.kind) {
       case 'AGREEMENT': router.push({pathname:'/dogovor/[id]',params:{id:target.id}}); break;
       case 'APPLICATIONS': router.push({pathname:'/moje-prijave',params:{prijavaId:target.id}}); break;
       case 'CANDIDATES': router.push({pathname:'/potrebe/[id]/kandidati',params:{id:target.id}}); break;
-      case 'OWN_NEED': router.push({pathname:'/potrebe/[id]/pregled',params:{id:target.id}}); break;
-      case 'OPPORTUNITY': router.push({pathname:'/prilike/[id]',params:{id:target.id}}); break;
+      case 'OWN_NEED': router.push(needTarget(target.id,true)); break;
+      case 'OPPORTUNITY': router.push(needTarget(target.id,false)); break;
     } };
     const targetIntent: Uloga = target.role==='WORKER'?'uskocer':'narucilac';
     // Owner decision 2 (2026-09-16): an item of the other intent asks first; nothing switches silently.

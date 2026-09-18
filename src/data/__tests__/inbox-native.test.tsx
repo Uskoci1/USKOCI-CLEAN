@@ -4,7 +4,7 @@ const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 let mockIntent='narucilac';
 const at='2026-09-10T12:00:00Z';
-const item={id:'event',title:'Vaša Prijava je izabrana',body:'Otvori Dogovor.',readAt:null,occurredAt:at,role:'WORKER',family:'responses'};
+const item={id:'event',eventType:'RESPONSE_SELECTED',title:'Vaša Prijava je izabrana',body:'Otvori Dogovor.',readAt:null,occurredAt:at,role:'WORKER',family:'responses'};
 let mockState:any;
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),React=require('react');return new Proxy(native,{get(target,key){
   if(['View','ActivityIndicator'].includes(String(key)))return key;
@@ -40,6 +40,23 @@ test.each(['load','action','page'])('%s failure preserves last data without asse
   mockState={...mockState,error,page:error==='load'?null:{...mockState.page,items:[item],unreadCount:1}};await render();
   expect(text()).not.toContain('Još nema obaveštenja');expect(text()).toContain(error==='load'?'pokušaj ponovo da učitaš obaveštenja.':'Poslednje učitano stanje ostaje prikazano.');
   if(error!=='load')expect(text()).toContain(item.title);
+});
+test.each([
+  ['CLARIFICATION_CREATED','narucilac',{kind:'OWN_NEED',id:'actual-need',role:'REQUESTER'}],
+  ['CLARIFICATION_ANSWERED','uskocer',{kind:'OPPORTUNITY',id:'actual-need',role:'WORKER'}],
+])('%s opens the questions themselves, not the Zadatak they are somewhere inside',async(eventType,intent,target)=>{
+  // The server can only answer a CLARIFICATION with the Need it belongs to, so both sides used to
+  // land on the task. The event type is the part that says it was about a question.
+  mockIntent=intent;mockModel.open.mockResolvedValue(target);
+  mockState.page.items=[{...item,eventType,role:target.role}];mockState.page.unreadCount=1;await render();
+  await act(async()=>press(`Nepročitano. ${item.title}. ${item.body}`).props.onPress());
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/pitanja-zadatka',params:{needId:'actual-need'}}]]);
+});
+test('an event about the Zadatak itself still opens the Zadatak',async()=>{
+  mockModel.open.mockResolvedValue({kind:'OWN_NEED',id:'actual-need',role:'REQUESTER'});
+  mockState.page.items=[{...item,eventType:'NEED_REVISED',role:'REQUESTER'}];mockState.page.unreadCount=1;await render();
+  await act(async()=>press(`Nepročitano. ${item.title}. ${item.body}`).props.onPress());
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/pregled',params:{id:'actual-need'}}]]);
 });
 test('an event of the other intent asks first; one confirm switches the intent and opens only the resolved target',async()=>{
   mockState.page.items=[item];mockState.page.unreadCount=1;await render();
