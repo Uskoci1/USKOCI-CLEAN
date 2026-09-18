@@ -94,7 +94,7 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
   return <View style={{ gap: 6 }}><T variant="meta" tone="muted">{label}</T>
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={openPicker} style={[calendarStyles.input, calendarStyles.row, disabled && { backgroundColor: sys.color.ground }]}>
-      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{value || (mode === 'date' ? 'Izaberite datum' : 'Izaberite vreme')}</T>
+      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{value || (mode === 'date' ? 'Izaberi datum' : 'Izaberi vreme')}</T>
       <CalendarBlank size={20} color={sys.color.green} />
     </Press>
     {open && Platform.OS === 'android' ? <DateTimePicker mode={mode} value={selection} is24Hour

@@ -49,27 +49,27 @@ it('shows only the exact server documents and opens their HTTPS URLs', async () 
 });
 it('the single action accepts exact displayed hashes once', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
-  await act(async () => action('Prihvatite pregledane dokumente').props.onPress());
+  await act(async () => action('Prihvati pregledane dokumente').props.onPress());
   expect(mockAccept).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333', 'a'.repeat(64), 'b'.repeat(64));
-  expect(action('Prihvatite pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
+  expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
 });
 it('unknown acceptance offers an owned readback and confirms its exact receipt', async () => {
   mockAccept.mockResolvedValue({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
   await act(async () => { tree = create(<LegalRoute />); });
-  await act(async () => action('Prihvatite pregledane dokumente').props.onPress());
-  await act(async () => action('Proverite ishod prihvatanja').props.onPress());
+  await act(async () => action('Prihvati pregledane dokumente').props.onPress());
+  await act(async () => action('Proveri ishod prihvatanja').props.onPress());
   expect(mockOutcome).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333'); expect(mockAccept).toHaveBeenCalledTimes(1);
 });
 it('old account callbacks cannot accept, open documents or navigate', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
-  const accept = action('Prihvatite pregledane dokumente').props.onPress, link = hosts('SettingsRow')[0].props.onPress, back = hosts('SettingsScreen')[0].props.onBack;
+  const accept = action('Prihvati pregledane dokumente').props.onPress, link = hosts('SettingsRow')[0].props.onPress, back = hosts('SettingsScreen')[0].props.onBack;
   mockOwner = { ...mockOwner, accountRevision: 3 }; await act(async () => { accept(); link(); back(); });
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockOpen).not.toHaveBeenCalled(); expect(mockBack).not.toHaveBeenCalled();
 });
 it('unpublished documents never display an accept action', async () => {
   mockRead.mockResolvedValue(ok({ ready: false, acceptedCurrentBundle: false, reason: 'LEGAL_DOCUMENTS_NOT_PUBLISHED', documents: [] }));
   await act(async () => { tree = create(<LegalRoute />); });
-  expect(hosts('SettingsRow')).toHaveLength(0); expect(action('Prihvatite pregledane dokumente')).toBeUndefined();
+  expect(hosts('SettingsRow')).toHaveLength(0); expect(action('Prihvati pregledane dokumente')).toBeUndefined();
 });
 it('the public modal reads anonymously and never offers or records ledger acceptance', async () => {
   mockOwner = { user: null, accountRevision: 0 }; const close = jest.fn();

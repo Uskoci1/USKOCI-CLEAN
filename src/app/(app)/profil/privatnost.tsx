@@ -67,9 +67,9 @@ function OwnedPrivacy() {
     </SettingsPanel>
     <SettingsPanel soft>
       <SettingsInfo title="Izvoz mojih podataka" last icon={<DownloadSimple size={22} color={sys.color.green} />}>
-        Pregledajte zahtev, pripremu i dostupnost svoje kopije.
+        Pogledaj zahtev, pripremu i dostupnost svoje kopije.
       </SettingsInfo>
-      <SettingsAction label="Otvorite izvoz" kind="secondary" onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
+      <SettingsAction label="Otvori izvoz" kind="secondary" onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
       <ClosureEntry />
     </SettingsPanel>
 
@@ -77,7 +77,7 @@ function OwnedPrivacy() {
       <T variant="heading" accessibilityRole="header">Rokovi čuvanja</T>
       {policy.loading ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo rokove čuvanja" style={{ flexDirection: 'row', gap: 8 }}>
         <ActivityIndicator color={sys.color.green} /><T tone="muted">Učitavamo rokove čuvanja…</T>
-      </View> : policy.error ? <T accessibilityRole="alert">Rokovi čuvanja trenutno nisu dostupni. Pokušajte ponovo.</T>
+      </View> : policy.error ? <T accessibilityRole="alert">Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.</T>
         : publishedPolicy ? <>
           <T variant="meta" tone="muted">Verzija: {publishedPolicy.policyVersion}</T>
           <SettingsPanel>
@@ -111,7 +111,7 @@ function OwnedPrivacy() {
                 : <T variant="meta" tone="muted">Automatsko brisanje napuštenih AI razgovora trenutno nije dostupno.</T>}
         </View>
       </View>
-      <SettingsAction label="Osvežite stanje" kind="quiet" disabled={policy.loading || execution.loading} onPress={refresh} />
+      <SettingsAction label="Osveži stanje" kind="quiet" disabled={policy.loading || execution.loading} onPress={refresh} />
     </View>
   </SettingsScreen>;
 }

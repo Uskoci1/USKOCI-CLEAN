@@ -20,7 +20,7 @@ export default function Raspored() {
   const from = localDayRange(days[0]).from, to = localDayRange(days[6]).to;
   const calendar = useFocusedResource(useCallback(() => workerCalendarClientService.readRange(from, to), [from, to]));
   const agreements = useFocusedResource(useCallback(() => agreementClientService.mojiDogovori(), []));
-  const error = calendar.error ? 'Raspored nije učitan. Proverite vezu i pokušajte ponovo.'
+  const error = calendar.error ? 'Raspored nije učitan. Proveri vezu pa probaj ponovo.'
     : calendar.data && !calendar.data.ok ? calendar.data.poruka : null;
   const events = calendar.data?.ok ? calendar.data.podatak.events : [];
   const dayRange = localDayRange(selected);

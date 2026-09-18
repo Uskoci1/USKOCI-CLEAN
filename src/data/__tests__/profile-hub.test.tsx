@@ -18,7 +18,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon', MapPin: 'Icon', CalendarBlank: 'Icon', Bell: 'Icon', DownloadSimple: 'Icon', ShieldCheck: 'Icon', Clock: 'Icon', Eye: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon', Camera: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon', MapPin: 'Icon', CalendarBlank: 'Icon', Bell: 'Icon', DownloadSimple: 'Icon', ShieldCheck: 'Icon', Clock: 'Icon', Lock: 'Icon', Prohibit: 'Icon', FileText: 'Icon', Lifebuoy: 'Icon', Info: 'Icon', Eye: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon', Camera: 'Icon' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }),
   sesijaSada: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }) }));
@@ -35,7 +35,7 @@ import Profil from '../../app/(app)/profil';
 let tree: ReactTestRenderer;
 async function render() { await act(async () => { tree = create(<Profil />); }); }
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label }).props.onPress();
-const logout = () => tree.root.findByProps({ label: 'Odjavite se' }).props.onPress();
+const logout = () => tree.root.findByProps({ label: 'Odjavi se' }).props.onPress();
 const visibleText = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 
 beforeEach(() => {
@@ -102,7 +102,7 @@ describe('real profile hub', () => {
     mockResource = { ...mockResource, error: true };
     await act(async () => tree.update(<Profil />));
     expect(visibleText()).not.toContain('Ime još nije uneto');
-    await act(async () => tree.root.findByProps({ label: 'Pokušajte ponovo' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Probaj ponovo' }).props.onPress());
     expect(mockRefresh).toHaveBeenCalledTimes(1);
     mockResource = { ...mockResource, error: false, loading: true };
     await act(async () => tree.update(<Profil />));
@@ -111,7 +111,7 @@ describe('real profile hub', () => {
 
   it('double-tap switches intent once and enters real Worker discovery', async () => {
     await render();
-    const onPress = tree.root.findByProps({ accessibilityLabel: 'Pređite na JA MOGU' }).props.onPress;
+    const onPress = tree.root.findByProps({ accessibilityLabel: 'Pređi na JA MOGU' }).props.onPress;
     await act(async () => { onPress(); onPress(); });
     expect(mockPostaviUlogu.mock.calls).toEqual([['uskocer']]);
     expect(mockRouter.replace.mock.calls).toEqual([['/prilike']]);
@@ -120,7 +120,7 @@ describe('real profile hub', () => {
   it('Worker hub opens the real editor and Back restores source or intent root', async () => {
     mockIntent = 'uskocer';
     await render();
-    await act(async () => press('Uredite Radni profil'));
+    await act(async () => press('Uredi radni profil'));
     expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/radnik');
     await act(async () => tree.unmount());
     mockRouter.canGoBack.mockReturnValue(false);
@@ -132,7 +132,7 @@ describe('real profile hub', () => {
   it('does not let a stale press act on a newly signed-in account', async () => {
     await render();
     mockAccountId = 'account-b';
-    await act(async () => { press('Pređite na JA MOGU'); logout(); });
+    await act(async () => { press('Pređi na JA MOGU'); logout(); });
     expect(mockSignOut).not.toHaveBeenCalled();
     expect(mockPostaviUlogu).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
@@ -149,7 +149,7 @@ describe('real profile hub', () => {
     mockSignOut.mockRejectedValueOnce(new Error('secret transport detail'));
     await render();
     await act(async () => logout());
-    expect(visibleText()).toContain('Odjava nije potvrđena. Pokušajte ponovo.');
+    expect(visibleText()).toContain('Odjava nije potvrđena. Probaj ponovo.');
     expect(visibleText()).not.toContain('secret transport detail');
     await act(async () => logout());
     expect(mockSignOut).toHaveBeenCalledTimes(2);
@@ -160,7 +160,7 @@ describe('real profile hub', () => {
     let reject!: (reason: Error) => void;
     mockSignOut.mockImplementation(() => new Promise((_, fail) => { reject = fail; }));
     await render();
-    const onPress = tree.root.findByProps({ label: 'Odjavite se' }).props.onPress;
+    const onPress = tree.root.findByProps({ label: 'Odjavi se' }).props.onPress;
     await act(async () => { onPress(); onPress(); });
     expect(mockSignOut.mock.calls).toEqual([[{ accountId: 'account-a', accountRevision: 1 }]]);
     mockAccountId = 'account-b';
@@ -174,7 +174,7 @@ describe('real profile hub', () => {
     await render();
     mockAccountId = 'account-b'; mockAccountRevision = 2;
     mockAccountId = 'account-a'; mockAccountRevision = 3;
-    await act(async () => { press('Pređite na JA MOGU'); logout(); });
+    await act(async () => { press('Pređi na JA MOGU'); logout(); });
     expect(mockSignOut).not.toHaveBeenCalled();
     expect(mockPostaviUlogu).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();

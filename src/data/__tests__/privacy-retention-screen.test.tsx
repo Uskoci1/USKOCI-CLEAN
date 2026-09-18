@@ -47,7 +47,7 @@ it.each(['narucilac', 'uskocer'])('reads both actual services in parallel for %s
   mockIntent = intent; const first = deferred(), second = deferred();
   mockPolicy.mockReturnValueOnce(first.promise); mockExecution.mockReturnValueOnce(second.promise);
   await render(); expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
-  expect(texts()).toContain('Učitavamo rokove čuvanja'); expect(button('Osvežite stanje').disabled).toBe(true);
+  expect(texts()).toContain('Učitavamo rokove čuvanja'); expect(button('Osveži stanje').disabled).toBe(true);
   expect(mockRouter.navigate).not.toHaveBeenCalled();
 });
 it('keeps unpublished retention explicit and opens closure through a separate review', async () => {
@@ -55,7 +55,7 @@ it('keeps unpublished retention explicit and opens closure through a separate re
   expect(texts()).toContain('Pregledajte dostupnost, obaveze i pravila čuvanja');
   expect(texts()).not.toContain('fixture duration');
   expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label !== 'Nazad'))
-    .toEqual(['Otvorite izvoz', 'Pregledajte zatvaranje', 'Osvežite stanje']);
+    .toEqual(['Otvori izvoz', 'Pregledajte zatvaranje', 'Osveži stanje']);
 });
 it('renders every published rule field and only the narrow matching capability', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
@@ -86,7 +86,7 @@ it('does not carry expanded legal content across a newly read policy version', a
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
   expect(texts()).toContain('fixture duration');
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2')));
-  await act(async () => button('Osvežite stanje').onPress());
+  await act(async () => button('Osveži stanje').onPress());
   expect(texts()).toContain('fixture-v2'); expect(texts()).not.toContain('fixture duration');
 });
 it('does not combine different policy versions into an admission', async () => {
@@ -102,15 +102,15 @@ it.each(['policy', 'execution'])('keeps the other reader usable after %s fails w
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
     expect(texts()).toContain('fixture duration');
   }
-  await act(async () => button('Osvežite stanje').onPress());
+  await act(async () => button('Osveži stanje').onPress());
   expect(mockPolicy).toHaveBeenCalledTimes(2); expect(mockExecution).toHaveBeenCalledTimes(2);
 });
 it('opens existing export once after an explicit double tap', async () => {
-  await render(); const open = button('Otvorite izvoz').onPress;
+  await render(); const open = button('Otvori izvoz').onPress;
   await act(async () => { open(); open(); }); expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
 });
 it.each(['account', 'incarnation', 'intent', 'blur'])('retires retained navigation after %s changes', async change => {
-  await render(); const open = button('Otvorite izvoz').onPress;
+  await render(); const open = button('Otvori izvoz').onPress;
   if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2 };
   else if (change === 'incarnation') mockSession = { user: { id: 'account-a' }, accountRevision: 3 };
   else if (change === 'intent') mockIntent = 'uskocer';

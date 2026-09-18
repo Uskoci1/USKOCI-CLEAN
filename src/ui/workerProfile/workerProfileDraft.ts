@@ -14,21 +14,21 @@ export function workerDraft(profile: RadnikProfilProjekcija | null): WorkerDraft
 }
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate: boolean): { command?: AzurirajProfilKomanda; expected?: AzurirajProfilKomanda; error?: string } {
-  if ([draft.newSkill, draft.newTool, draft.newVehicle].some(value => value.trim())) return { error: 'Uneta stavka još nije dodata. Dodajte je u listu pre čuvanja.' };
+  if ([draft.newSkill, draft.newTool, draft.newVehicle].some(value => value.trim())) return { error: 'Uneta stavka još nije dodata. Dodaj je u listu pre čuvanja.' };
   if (draft.grad !== initial.grad || draft.radius !== initial.radius || draft.dostupanOdmah !== initial.dostupanOdmah) {
-    return { error: 'Mesto i radijus menjajte u području rada, a dostupnost u podešavanju dostupnosti.' };
+    return { error: 'Mesto i radijus menjaj u području rada, a dostupnost u podešavanju dostupnosti.' };
   }
   const capacityChanged = draft.capacity !== initial.capacity;
   if ((capacityChanged || activate) && (!/^[0-9]{1,2}$/.test(draft.capacity) ||
       !workerCapacityValue(Number(draft.capacity)) || !workerCapacityRevision(initial.capacityRevision))) {
-    return { error: 'Najpre sačuvajte i učitajte profil, zatim unesite kapacitet od 1 do 50 ljudi.' };
+    return { error: 'Najpre sačuvaj i učitaj profil, zatim unesi kapacitet od 1 do 50 ljudi.' };
   }
   const lists = { vestine: capabilityTerms(draft.vestine), alati: capabilityTerms(draft.alati), vozila: capabilityTerms(draft.vozila) };
   if (Object.values(lists).some(value => value === null)) return { error: 'Svaka lista može imati do 50 stavki, do 500 znakova po stavci.' };
   const values = { ime: draft.ime.trim(), grad: draft.grad.trim(), biografija: draft.biografija.trim(),
     vestine: lists.vestine!, alati: lists.alati!, vozila: lists.vozila!, radijusKm: Number(draft.radius), dostupanOdmah: draft.dostupanOdmah };
   if (activate && (values.ime.length < 2 || values.grad.length < 2 || !values.vestine.length)) {
-    return { error: 'Za aktivaciju unesite ime od najmanje 2 znaka i bar jednu veštinu; mesto potvrdite u području rada.' };
+    return { error: 'Za aktivaciju unesi ime od najmanje 2 znaka i bar jednu veštinu; mesto potvrdi u području rada.' };
   }
   const before = { ...initial, radijusKm: Number(initial.radius) };
   const command: AzurirajProfilKomanda = { zavrsi: activate };

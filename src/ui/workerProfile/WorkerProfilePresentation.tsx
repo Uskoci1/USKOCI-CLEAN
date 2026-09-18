@@ -49,13 +49,13 @@ function Terms({ label, values, pending, setPending, change, disabled, inputRef 
         <T variant="meta" style={s.chipText}>{value}</T><T variant="meta" style={s.chipRemove}>×</T></Press>)}
     </View> : null}
     <View style={s.addRow}>
-      <TextInput ref={inputRef} accessibilityLabel={`Nova stavka: ${label}`} placeholder="Dodajte jednu stavku" placeholderTextColor={sys.color.muted}
+      <TextInput ref={inputRef} accessibilityLabel={`Nova stavka: ${label}`} placeholder="Dodaj jednu stavku" placeholderTextColor={sys.color.muted}
         value={pending} editable={!disabled && values.length < 50} onChangeText={text => { if (!disabled) setPending(text); }}
         onSubmitEditing={add} maxLength={500} style={[s.input, s.grow]} />
       <Press accessibilityRole="button" accessibilityLabel={`Dodaj: ${label}`} onPress={add} haptic="select"
         disabled={disabled || !pending.trim() || values.length >= 50}
         style={[s.addButton, (disabled || !pending.trim() || values.length >= 50) && s.addButtonOff]}><T variant="action" style={{ color: sys.color.green }}>Dodaj</T></Press>
-    </View><T variant="meta" tone="muted">Dodajte svaku stavku zasebno. {values.length}/50</T></View>;
+    </View><T variant="meta" tone="muted">Dodaj svaku stavku zasebno. {values.length}/50</T></View>;
 }
 function Row({ label, hint, expanded, onPress }: { label: string; hint: string; expanded: boolean; onPress: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded }} haptic="select" scaleTo={0.99} onPress={onPress} style={s.row}>
@@ -98,19 +98,19 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
       <Field label="Koliko ljudi možeš da obezbediš" value={draft.capacity} change={capacity => patch({ capacity })}
         disabled={disabled || draft.capacityRevision === null} numeric inputRef={capacityRef}
-        hint={draft.capacityRevision === null ? 'Sačuvajte profil i učitajte kapacitet sa servera.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
+        hint={draft.capacityRevision === null ? 'Sačuvaj profil i učitaj kapacitet sa servera.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
       <Terms label="Veštine i usluge" values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
         change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} inputRef={skillRef} />
     </View>
     <View style={s.rows}>
       <Row label="Alat i vozila" expanded={resourcesOpen} onPress={() => setResourcesOpen(value => !value)}
-        hint={draft.alati.length + draft.vozila.length ? `${draft.alati.length} stavki alata · ${draft.vozila.length} vozila` : 'Dodajte kada je relevantno · opciono'} />
+        hint={draft.alati.length + draft.vozila.length ? `${draft.alati.length} stavki alata · ${draft.vozila.length} vozila` : 'Dodaj kada je relevantno · opciono'} />
       {resourcesOpen ? <View style={s.rowBody}><Terms label="Alat i oprema" values={draft.alati} pending={draft.newTool} setPending={newTool => patch({ newTool })}
         change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} />
         <Terms label="Vozila" values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}
           change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} /></View> : null}
       <View style={s.rowDivider}>
-        <Row label="Kratko predstavljanje" expanded={bioOpen} onPress={() => setBioOpen(value => !value)} hint="Iskustvo koje želite da navedete · opciono" />
+        <Row label="Kratko predstavljanje" expanded={bioOpen} onPress={() => setBioOpen(value => !value)} hint="Iskustvo koje želiš da navedeš · opciono" />
         {bioOpen ? <View style={s.rowBody}><Field label="O vašem iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline /></View> : null}
       </View>
     </View>
@@ -124,11 +124,11 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
         <T variant="meta" tone="muted">{draft.dostupanOdmah ? 'Uključeno · sačuvano stanje' : 'Isključeno · sačuvano stanje'}</T></View>
         <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={true}
           trackColor={{ true: sys.color.green, false: sys.color.lineStrong }} onValueChange={() => {}} /></View>
-      <T variant="meta" tone="muted">Ovu dostupnost menjate kroz „Redovna dostupnost“, jednim zajedničkim načinom čuvanja. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
+      <T variant="meta" tone="muted">Ovu dostupnost menjaš kroz „Redovna dostupnost“, jednim zajedničkim načinom čuvanja. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
       <V2Action label="Redovna dostupnost" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/dostupnost')} style={s.quietLeft} />
       <V2Action label="Pogledaj raspored" kind="quiet" disabled={disabled} onPress={() => navigate('/raspored')} style={s.quietLeft} />
     </View>
-    <T variant="meta" tone="muted" style={s.center}>Veštine, alat i vozila su podaci koje navodite sami. Izmena profila ne prepisuje već poslate Prijave.</T>
+    <T variant="meta" tone="muted" style={s.center}>Veštine, alat i vozila su podaci koje sam navodiš. Izmena profila ne prepisuje već poslate Prijave.</T>
   </>;
 }
 const s = StyleSheet.create({

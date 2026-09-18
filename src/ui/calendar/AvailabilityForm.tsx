@@ -28,27 +28,27 @@ function RuleEditor({ rule, timezone, close, accept }: {
     };
     const startSeconds = seconds(draft.startTime), endSeconds = seconds(draft.endTime);
     if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || startSeconds === endSeconds) {
-      setError('Izaberite različito vreme početka i kraja.'); return;
+      setError('Izaberi različito vreme početka i kraja.'); return;
     }
     const overnight = endSeconds < startSeconds;
     let rules: AvailabilityRule[] = [draft];
     if (overnight) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startsOn) || (draft.endsOn && !/^\d{4}-\d{2}-\d{2}$/.test(draft.endsOn))) {
-        setError('Proverite početni i završni datum.'); return;
+        setError('Proveri početni i završni datum.'); return;
       }
       try {
         rules = [{ ...draft, endTime: '24:00' }];
         if (endSeconds !== 0) rules.push({ ...draft, id: noviUuidZahtevId(),
           weekdays: draft.weekdays.map(day => (day + 1) % 7), startTime: '00:00',
           startsOn: shiftDate(draft.startsOn, 1), endsOn: draft.endsOn ? shiftDate(draft.endsOn, 1) : null });
-      } catch { setError('Proverite početni i završni datum.'); return; }
+      } catch { setError('Proveri početni i završni datum.'); return; }
     }
     const valid = normalizeWorkerAvailability({ timezone, availableNow: false, rules, windows: [] });
-    if (!valid) { setError('Izaberite dane, datume i vremenski interval sa različitim početkom i krajem.'); return; }
+    if (!valid) { setError('Izaberi dane, datume i vremenski interval sa različitim početkom i krajem.'); return; }
     accept(valid.rules);
   };
   return <EditorSheet title="Redovni termin" close={close} footer={<>{error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}<Button label="Primeni termin" onPress={submit} full /><Button label="Odustani od termina" kind="quiet" onPress={close} full /></>}>
-    <T variant="heading">Kada obično možete da radite?</T><T tone="muted">Vremenska zona: {timezone}</T>
+    <T variant="heading">Kada obično možeš da radiš?</T><T tone="muted">Vremenska zona: {timezone}</T>
     <View style={s.row}>{weekdays.map(day => <Press key={day.day} accessibilityRole="checkbox" accessibilityLabel={day.name}
       accessibilityState={{ checked: draft.weekdays.includes(day.day) }} onPress={() => set('weekdays', draft.weekdays.includes(day.day)
         ? draft.weekdays.filter(value => value !== day.day) : [...draft.weekdays, day.day])}
@@ -89,7 +89,7 @@ function WindowEditor({ window, timezone, close, accept }: {
     accept(valid.windows[0]);
   };
   return <EditorSheet title="Poseban datum" close={close} footer={<>{error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}<Button label="Primeni izuzetak" onPress={submit} full /><Button label="Odustani od izuzetka" kind="quiet" onPress={close} full /></>}>
-    <T variant="meta" tone="success">Izuzetak od nedelje</T><T variant="title">Promenite dostupnost za poseban termin.</T>
+    <T variant="meta" tone="success">Izuzetak od nedelje</T><T variant="title">Promeni dostupnost za poseban termin.</T>
     <T tone="muted">Redovni termini ostaju sačuvani. Vremenska zona: {timezone}</T>
     <CivilField label="Početni datum izuzetka" mode="date" value={start.date} onChange={value => { setStart(current => ({ ...current, date: value })); setChangedStart(true); }} />
     <CivilField label="Početak izuzetka" mode="time" value={start.time} onChange={value => { setStart(current => ({ ...current, time: value })); setChangedStart(true); }} />
@@ -135,7 +135,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   const save = () => {
     if (blocked || !dirty || editing || windowEditor) return;
     const normalized = normalizeWorkerAvailability(draft);
-    if (!normalized) { setError('Proverite unetu vremensku zonu i raspored.'); return; }
+    if (!normalized) { setError('Proveri unetu vremensku zonu i raspored.'); return; }
     onSave(normalized);
   };
   const editRule = (rule?: AvailabilityRule, day?: number) => {
@@ -157,7 +157,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
           <T variant="meta" style={{ flex: 1, fontWeight: '600' }}>Šta znači ovaj status?</T>
           {showStatusHelp ? <CaretUp size={18} color={sys.color.ink} /> : <CaretDown size={18} color={sys.color.ink} />}
         </Press>
-        {showStatusHelp ? <T variant="meta">Ovaj izbor ostaje sačuvan dok ga ne promenite. Ne uključuje HITNO i ne potvrđuje novi Dogovor.</T> : null}
+        {showStatusHelp ? <T variant="meta">Ovaj izbor ostaje sačuvan dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.</T> : null}
       </View>
       <View style={{ gap: 12 }}><View style={{ gap: 4 }}><T variant="heading" accessibilityRole="header">Redovna nedelja</T>
         <T variant="meta" tone="muted">Vremenska zona rasporeda: {draft.timezone}</T></View>
@@ -212,7 +212,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     <View style={s.footer}>
       {error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}
       {dirty ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Imate nesačuvane izmene.</T> : null}
-      {uncertain ? <T variant="meta" tone="muted">Prvo učitajte sačuvano stanje. Ishod izmene još nije potvrđen.</T> : null}
+      {uncertain ? <T variant="meta" tone="muted">Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.</T> : null}
       <Button label={busy ? 'Čuvamo unos…' : candidateMode ? 'Primeni na pregled profila' : 'Sačuvaj dostupnost'} disabled={blocked || !dirty || !!editing || !!windowEditor} onPress={save} full />
       {dirty ? <Button label="Odustani od izmena" kind="quiet" disabled={blocked} onPress={() => {
         if (blocked) return;

@@ -43,22 +43,22 @@ function OwnedLegal() {
     if (!current() || !url || opening.current) return;
     opening.current = true; setLinkError(null);
     try { await Linking.openURL(url); }
-    catch { if (focus.current === token && current()) setLinkError('Dokument nije otvoren. Pokušajte ponovo.'); }
+    catch { if (focus.current === token && current()) setLinkError('Dokument nije otvoren. Probaj ponovo.'); }
     finally { opening.current = false; }
   };
   const documents = reviewedDocuments(state.bundle);
   const receiptCurrent = state.receipt && documents && documents[0].sha256 === state.receipt.termsSha256 && documents[1].sha256 === state.receipt.privacySha256;
   const confirmed = state.bundle?.acceptedCurrentBundle || !!receiptCurrent;
-  const action = state.pending ? <SettingsAction label={state.busy ? 'Provera je u toku…' : state.pending === 'READ_REQUIRED' ? 'Proverite ishod prihvatanja' : 'Ponovite isto prihvatanje'}
+  const action = state.pending ? <SettingsAction label={state.busy ? 'Provera je u toku…' : state.pending === 'READ_REQUIRED' ? 'Proveri ishod prihvatanja' : 'Ponovi isto prihvatanje'}
     disabled={state.busy || state.loading} onPress={() => { if (!current()) return; void (state.pending === 'READ_REQUIRED' ? controller.readOutcome() : controller.accept(state.bundle)); }} />
-    : documents && !confirmed ? <SettingsAction label={state.busy ? 'Beleženje prihvatanja…' : 'Prihvatite pregledane dokumente'} disabled={state.busy || state.loading}
+    : documents && !confirmed ? <SettingsAction label={state.busy ? 'Beleženje prihvatanja…' : 'Prihvati pregledane dokumente'} disabled={state.busy || state.loading}
       onPress={() => { if (current()) void controller.accept(state.bundle); }} /> : null;
   return <SettingsScreen title="Pravna dokumenta" onBack={back} footer={action}>
-    <SettingsIntro kicker="JASNO I DOSTUPNO" title="Uslovi i privatnost.">Pročitajte važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
+    <SettingsIntro kicker="JASNO I DOSTUPNO" title="Uslovi i privatnost.">Pročitaj važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
     {state.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={sys.color.green} /> : <>
       <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={(doc: LegalDocument) => { void openUrl(doc.url); }} />
       {confirmed ? <SettingsPanel soft><T accessibilityLiveRegion="polite">Prihvaćene su aktuelne verzije dokumenata.</T></SettingsPanel>
-        : state.receipt ? <SettingsPanel soft><T>Prethodno prihvatanje je potvrđeno. Učitajte aktuelne dokumente ponovo.</T></SettingsPanel> : null}
+        : state.receipt ? <SettingsPanel soft><T>Prethodno prihvatanje je potvrđeno. Učitaj aktuelne dokumente ponovo.</T></SettingsPanel> : null}
       <SettingsGroup title="Obrađivači podataka">
         {state.processors?.ready ? <SettingsInfo title={`Mapa obrade · ${state.processors.mapVersion}`} last>Podaci iz objavljene mape obrade.</SettingsInfo>
           : <SettingsInfo title={state.processorError ? 'Podaci o obrađivačima nisu dostupni' : 'Mapa obrade još nije objavljena'} last>{state.processorError ?? 'Podaci će biti dostupni kada bude objavljena potpuna mapa obrade.'}</SettingsInfo>}
@@ -74,7 +74,7 @@ function OwnedLegal() {
         ].filter(([, value]) => !!value).map(([title, value]) => <View key={title} style={{ gap: 3 }}><T variant="bodyStrong">{title}</T><T variant="meta" tone="muted">{value}</T></View>)}
         <SettingsAction label={`Obaveštenje o privatnosti · ${provider.providerDisplayName}`} kind="quiet" onPress={() => { void openUrl(provider.privacyNoticeUrl); }} />
       </SettingsPanel>) : null}
-      <SettingsAction label="Učitajte stanje ponovo" kind="quiet" disabled={state.busy} onPress={() => { if (current()) void controller.refresh(); }} />
+      <SettingsAction label="Učitaj stanje ponovo" kind="quiet" disabled={state.busy} onPress={() => { if (current()) void controller.refresh(); }} />
     </>}
     {state.error || linkError ? <SettingsPanel><T accessibilityRole="alert" accessibilityLiveRegion="polite">{linkError ?? state.error}</T></SettingsPanel> : null}
   </SettingsScreen>;
