@@ -123,6 +123,7 @@ export default function PrilikaDetaljiEkran() {
     need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
     canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && intent === 'uskocer'}
+    openToOthers={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && intent !== 'uskocer'}
     back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/prilike'))}
     retry={retry} apply={compose}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}

@@ -57,6 +57,14 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   /** The floating action appears only above cards; an empty set carries its own inline primary, so a screen state never shows two orange actions. */
   const showCards = !loading && !error && visible.length > 0;
   const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
+  // "1 zadataka" was on the map legend. Serbian counts in three shapes, not one.
+  const plural = (count: number) => {
+    const hundred = count % 100, ten = count % 10;
+    if (hundred >= 11 && hundred <= 14) return `${count} zadataka`;
+    if (ten === 1) return `${count} zadatak`;
+    if (ten >= 2 && ten <= 4) return `${count} zadatka`;
+    return `${count} zadataka`;
+  };
   const renderItem = useCallback(({ item }: { item: MarketplaceItem }) => <TaskCard item={item} onOpen={() => onOpen(item)} />, [onOpen]);
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
@@ -100,7 +108,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       </View> : null}
       {view.area ? <View style={s.areaNotice}><T variant="note" tone="muted" style={s.grow}>Izabrana oblast sa mape · isti zadaci u Listi i Mapi</T>
         <V2Action label="Ukloni oblast" kind="quiet" onPress={() => change({ area: null, selectedId: null })} /></View> : null}
-      {!owned && view.mode === 'map' && !loading && !error ? <View style={s.mapArea}>
+      {/* With nothing to show, a map is not a data state: the Mapa tab used to open on the whole
+          world centred in the Atlantic with "0 zadataka", while the composed empty state sat
+          unreachable in the other branch. Emptiness is answered the same way in both modes. */}
+      {!owned && view.mode === 'map' && !loading && !error && !visible.length ? empty
+        : !owned && view.mode === 'map' && !loading && !error ? <View style={s.mapArea}>
         <DiscoveryMap items={visible} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
           onSelect={selectedId => change({ selectedId })} onViewport={viewport => change({ viewport })}
           onSearchArea={area => change({ area, selectedId: null })} onList={() => toggleMode('list')} />
@@ -109,7 +121,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           <V2Action label="Otvori detalj Zadatka" onPress={() => onOpen(selected)} style={brandAction} />
           <V2Action label="Zatvori pregled pina" kind="quiet" onPress={() => change({ selectedId: null })} />
         </ScrollView> : null}
-        <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{visible.length} zadataka · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
+        <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{plural(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
           {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}

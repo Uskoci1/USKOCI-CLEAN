@@ -19,10 +19,12 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
  * brand action, "Sastavi prijavu", only while the server accepts applications.
  * Presentation only; the route owns reads, deadline and guards.
  */
-export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, back, retry, apply, photos, qa,
+export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, openToOthers, back, retry, apply, photos, qa,
   onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto }: {
   need: PrilikaProjekcija | null; loading: boolean; error: boolean; missing: boolean; stale: boolean; busy: boolean;
   canApply: boolean; canRetry: boolean; back: () => void; retry: () => void; apply: () => void;
+  /** The Task is open, but this account is standing on the requester side of the app. */
+  openToOthers?: boolean;
   photos?: ReactNode; qa?: ReactNode;
   /** Owner decision 3: the requester's public profile as a sheet over the existing read. */
   onRequesterProfile?: () => void; requesterProfile?: PublicProfileState; onCloseRequesterProfile?: () => void; publicPhoto?: (profileId: string) => ReactNode;
@@ -81,7 +83,11 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
     </ScrollView>
     {ready ? <View style={s.footer}>
       {canApply ? <V2Action label="Sastavi prijavu" onPress={apply} disabled={busy} style={brandAction} />
-        : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
+        : openToOthers
+          // An intent mismatch is not a property of the Task. Saying "nove prijave nisu dostupne"
+          // about a Task that is wide open states something false about the app's own data.
+          ? <T variant="note" tone="muted" style={s.center}>Ovaj zadatak prima prijave. Prijavljuješ se iz režima JA MOGU — promeni ga u Profilu.</T>
+          : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
     </View> : null}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
       photo={publicPhoto} roleLabel="Naručilac" /> : null}

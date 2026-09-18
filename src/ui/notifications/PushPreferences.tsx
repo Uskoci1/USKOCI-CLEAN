@@ -67,7 +67,11 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
  }
  async function run(scope: Scope, work: (generation: number) => Promise<Snapshot>) {
   if (scope.busy || !current(scope, scope.generation)) return;
-  scope.busy = true; const generation = ++scope.generation; setBusy(true); setError(false); setValidation(null); setView(null);
+  // setView(null) here meant that pressing "Sačuvaj podešavanja" made nine switches, three fields
+  // and five buttons vanish behind a spinner, and on any failure the wipe was permanent: the error
+  // panel replaced the settings instead of standing beside them. The last good state stays mounted
+  // and is dimmed while the work runs; only a first read has nothing to show.
+  scope.busy = true; const generation = ++scope.generation; setBusy(true); setError(false); setValidation(null);
   try {
    const snapshot = await bounded(work(generation), scope);
    if (current(scope, generation)) {
@@ -131,23 +135,26 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
  const enabled = snapshot?.preferences.settings.push_enabled === true;
  const registered = snapshot?.native.kind === 'READY' && snapshot.device?.active && snapshot.device.sessionBound;
  const dirty = !!snapshot && !!settings && !sameSettings(snapshot.preferences.settings, settings);
+ // An unconfirmed outcome used to remove the controls by wiping the whole body. Keeping them on
+ // screen must not make them usable: until the state is read back, everything here is locked.
+ const locked = busy || error;
  return <View style={styles.stack}>
   <T style={{ ...sys.type.title, color: sys.color.ink }}>Kanali obaveštenja</T>
   <T tone="muted">Podešavanja važe samo za ovu ulogu. Promena kategorije ne uključuje push dozvolu na telefonu.</T>
   {busy && <ActivityIndicator accessibilityLabel="Provera push obaveštenja" color={sys.color.green} />}
-  {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja.</T><Button label="Proveri stanje" kind="secondary" onPress={refresh} disabled={busy} /></View>}
-  {snapshot && settings && <>
+  {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja.</T><Button label="Proveri stanje" kind="secondary" onPress={refresh} disabled={locked} /></View>}
+  {snapshot && settings && <View style={busy ? styles.working : undefined}>
    <SettingSwitch label="Obaveštenja u aplikaciji" help="Kontroliše in-app isporuku. Istorija događaja u Inbox-u ostaje odvojena." value={settings.in_app_enabled}
-    disabled={busy} onChange={value => edit('in_app_enabled', value)} />
+    disabled={locked} onChange={value => edit('in_app_enabled', value)} />
    <View style={styles.divider} />
    <T style={{ ...sys.type.title, color: sys.color.ink }}>Kategorije</T>
    <T tone="muted">Isključena kategorija se ne isporučuje ni kao in-app ni kao push za ovu ulogu.</T>
    {CATEGORY_ROWS.map(row => <SettingSwitch key={row.key} label={row.label} help={row.help} value={settings[row.key]}
-    disabled={busy} onChange={value => edit(row.key, value)} />)}
+    disabled={locked} onChange={value => edit(row.key, value)} />)}
    <View style={styles.divider} />
    <T style={{ ...sys.type.title, color: sys.color.ink }}>Tihi sati</T>
    <SettingSwitch label="Uključi tihe sate" help="Push se utišava u zadatom intervalu. Interval može da prelazi preko ponoći." value={settings.quiet_hours_enabled}
-    disabled={busy} onChange={value => edit('quiet_hours_enabled', value)} />
+    disabled={locked} onChange={value => edit('quiet_hours_enabled', value)} />
    <View style={styles.timeRow}>
     <View style={styles.timeField}><T variant="meta" tone="muted">Početak</T><TextInput accessibilityLabel="Početak tihih sati" value={settings.quiet_start ?? ''}
       editable={!busy && settings.quiet_hours_enabled} placeholder="22:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
@@ -160,9 +167,9 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
      editable={!busy} placeholder="Europe/Belgrade" autoCapitalize="none" autoCorrect={false} style={styles.input}
      onChangeText={value => edit('quiet_timezone', value)} /></View>
    <SettingSwitch label="HITNO može preko tihih sati" help="Važi samo za HITNO događaj i samo kada je ovo posebno uključeno." value={settings.urgent_overrides_quiet_hours}
-    disabled={busy || !settings.quiet_hours_enabled} onChange={value => edit('urgent_overrides_quiet_hours', value)} />
+    disabled={locked || !settings.quiet_hours_enabled} onChange={value => edit('urgent_overrides_quiet_hours', value)} />
    {validation ? <T accessibilityRole="alert" tone="danger">{validation}</T> : null}
-   <Button label="Sačuvaj podešavanja" onPress={saveSettings} disabled={busy || !dirty} />
+   <Button label="Sačuvaj podešavanja" onPress={saveSettings} disabled={locked || !dirty} />
    <View style={styles.divider} />
    <T style={{ ...sys.type.title, color: sys.color.ink }}>Push obaveštenja</T>
    <T tone="muted">Na zaključanom ekranu prikazujemo samo da imaš novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.</T>
@@ -179,12 +186,12 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
    </View>
    {snapshot.native.kind === 'DENIED' && <Button label="Podešavanja telefona" kind="secondary" onPress={() => { void Linking.openSettings().catch(() => undefined); }} />}
    {snapshot.native.kind !== 'UNSUPPORTED' && snapshot.native.kind !== 'UNCONFIGURED' && snapshot.native.kind !== 'DENIED' && (!registered || !enabled)
-    && <Button label="Uključi push za ovu ulogu" onPress={enable} disabled={busy || dirty} />}
-   {enabled && <Button label="Isključi push za ovu ulogu" kind="secondary" onPress={disable} disabled={busy || dirty} />}
-   <Button label="Osveži stanje" kind="secondary" onPress={refresh} disabled={busy || dirty} />
+    && <Button label="Uključi push za ovu ulogu" onPress={enable} disabled={locked || dirty} />}
+   {enabled && <Button label="Isključi push za ovu ulogu" kind="secondary" onPress={disable} disabled={locked || dirty} />}
+   <Button label="Osveži stanje" kind="secondary" onPress={refresh} disabled={locked || dirty} />
    {dirty ? <T variant="meta" tone="muted">Sačuvaj izmene kategorija i tihih sati pre promene push registracije ili osvežavanja.</T> : null}
    <T variant="meta" tone="muted">Povezan uređaj ne znači da je pojedinačno obaveštenje isporučeno.</T>
-  </>}
+  </View>}
  </View>;
 }
 
@@ -197,6 +204,8 @@ const styles = StyleSheet.create({
  settingRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
  settingCopy: { flex: 1, gap: 3 },
  divider: { height: 1, backgroundColor: sys.color.line },
+ /** Still readable, visibly not accepting input yet. */
+ working: { opacity: 0.55 },
  timeRow: { flexDirection: 'row', gap: 12 },
  timeField: { flex: 1, gap: 6 },
  input: { minHeight: 48, borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, paddingHorizontal: 14, paddingVertical: 10, color: sys.color.ink, backgroundColor: sys.color.surface, fontSize: sys.type.body.fontSize },

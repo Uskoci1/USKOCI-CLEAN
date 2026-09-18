@@ -42,7 +42,10 @@ it('explicit enable preserves category/quiet fields, registers once and writes r
 it('OS denial never registers or opts in', async () => { await mount(); mockNative.mockResolvedValue({ kind: 'DENIED' }); await act(async () => { button('Uključi push za ovu ulogu').props.onPress(); await flush(); }); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
 it('unknown registration clears action and requires readback; retained callback cannot resend', async () => {
  await mount(); const old = button('Uključi push za ovu ulogu').props.onPress; mockSet.mockResolvedValue({ ok: false });
- await act(async () => { old(); await flush(); }); expect(button('Proveri stanje')).toBeDefined(); expect(button('Uključi push za ovu ulogu')).toBeUndefined();
+ // The settings are no longer wiped off the screen by an unconfirmed outcome, so the control is
+ // still there — locked until the state is read back, which is what it was protecting.
+ await act(async () => { old(); await flush(); }); expect(button('Proveri stanje')).toBeDefined();
+ expect(button('Uključi push za ovu ulogu').props.disabled).toBe(true);
  await act(async () => { old(); await flush(); }); expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
 });
 it('blur during permission/registration prevents later preference opt-in', async () => {
