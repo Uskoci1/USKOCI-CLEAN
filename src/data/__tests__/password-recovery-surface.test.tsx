@@ -1,4 +1,5 @@
 import React from 'react';
+import { type } from '../../theme/tokens';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
@@ -61,7 +62,7 @@ it('does not render password controls or success before server verification fini
   expect(field('Nova lozinka').props.autoComplete).toBe('new-password');
   expect(text()).toContain('account-a@example.test');
   const title = hosts('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Postavi novu lozinku.')!;
-  expect(StyleSheet.flatten(title.props.style).fontSize).toBe(27);
+  expect(StyleSheet.flatten(title.props.style).fontSize).toBe(type.pageTitle.fontSize);
   const form = hosts('View').find(node => node.props.accessibilityLiveRegion === 'polite')!;
   expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
   expect(field('Potvrdi novu lozinku').props.secureTextEntry).toBe(true);

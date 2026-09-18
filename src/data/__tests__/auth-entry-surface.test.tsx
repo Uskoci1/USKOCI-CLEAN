@@ -1,5 +1,6 @@
 import React from 'react';
 jest.mock('../../ui/legal/LegalDocuments', () => ({ PublicLegalModal: 'LegalModal' }));
+import { type } from '../../theme/tokens';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
@@ -111,9 +112,11 @@ it('connects the V4.9 welcome signup action to the existing real signup sheet wi
 it('uses the flatter signup stage while retaining all real fields and the explicit primary command', async () => {
   await render();
   const heading = (value: string) => host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === value)!;
-  expect(StyleSheet.flatten(heading('Zdravo.').props.style).fontSize).toBe(31);
+  // The two compositions are different sizes from the one scale, not two hand-picked numbers.
+  expect(StyleSheet.flatten(heading('Zdravo.').props.style)).toMatchObject(type.hero);
   await press('Napravi nalog');
-  expect(StyleSheet.flatten(heading('Napravi nalog').props.style)).toMatchObject({ fontSize: 27, lineHeight: 30.51 });
+  expect(StyleSheet.flatten(heading('Napravi nalog').props.style)).toMatchObject(type.pageTitle);
+  expect(type.pageTitle.fontSize).toBeLessThan(type.hero.fontSize);
   expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka', 'Potvrdi lozinku']);
   const form = host('View').find(node => node.findAllByType('TextInput' as React.ElementType).length === 6 && StyleSheet.flatten(node.props.style)?.borderBottomWidth === 1)!;
   expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
@@ -122,7 +125,7 @@ it('uses the flatter signup stage while retaining all real fields and the explic
   expect(text()).not.toContain('Korak 1 od 3');
   expect(mockAuth.signUp).not.toHaveBeenCalled();
   await press('Već imaš nalog? Prijavi se');
-  expect(StyleSheet.flatten(heading('Zdravo.').props.style).fontSize).toBe(31);
+  expect(StyleSheet.flatten(heading('Zdravo.').props.style).fontSize).toBe(type.hero.fontSize);
 });
 
 it('keeps an empty password submission local and immediately editable', async () => {
@@ -203,7 +206,7 @@ it('visibly gates unfinished recovery and never sends a broken reset link', asyn
   expect(text()).toContain('Oporavak lozinke još nije dostupan');
   expect(host('Text').some(node => textOf(node) === 'Oporavak pristupa')).toBe(true);
   const title = host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Vrati pristup nalogu.')!;
-  expect(StyleSheet.flatten(title.props.style).fontSize).toBe(27);
+  expect(StyleSheet.flatten(title.props.style).fontSize).toBe(type.pageTitle.fontSize);
   expect(textOf(title)).not.toContain('\n');
   expect(host('TextInput')).toHaveLength(0); expect(button('Pošalji link')).toBeUndefined();
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();

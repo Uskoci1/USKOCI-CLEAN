@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Eye, EyeSlash } from 'phosphor-react-native';
 import { authTheme as c } from './authTheme';
+import { nested, radius, type } from '../../theme/tokens';
 
 export function AuthField({
   label,
@@ -83,18 +84,19 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   field: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.input,
-    borderWidth: 1, borderColor: c.line, borderRadius: 18, minHeight: 66, paddingLeft: 15 },
+    borderWidth: 1, borderColor: c.line, borderRadius: radius.cardCompact, minHeight: 66, paddingLeft: 15 },
   icon: { width: 22, alignItems: 'center' },
   inputColumn: { flex: 1, minWidth: 0, paddingVertical: 9 },
-  fieldLabel: { color: c.muted, fontSize: 12, lineHeight: 17, fontWeight: '600' },
-  fieldInput: { minWidth: 0, minHeight: 30, paddingHorizontal: 0, paddingRight: 12, paddingVertical: 2, color: c.ink, fontSize: 16, lineHeight: 23 },
+  fieldLabel: { ...type.label, fontWeight: '600', letterSpacing: 0.4, color: c.muted },
+  fieldInput: { ...type.body, minWidth: 0, minHeight: 30, paddingHorizontal: 0, paddingRight: 12, paddingVertical: 2, color: c.ink },
   focused: { borderColor: c.accentLight },
   focusedLabel: { color: c.accentLight },
   fieldDisabled: { opacity: .65 },
-  passToggle: { width: 48, minHeight: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 3 },
+  // Inside the field, so its corner follows the field's rather than being picked to look near it.
+  passToggle: { width: 48, minHeight: 56, borderRadius: nested(radius.cardCompact, 4), alignItems: 'center', justifyContent: 'center', marginRight: 3 },
   togglePressed: { backgroundColor: c.soft },
-  primary: { minHeight: 54, borderRadius: 17, borderWidth: 1, borderColor: '#FFAD63', backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 18 },
-  primaryText: { color: c.buttonInk, fontSize: 16, lineHeight: 23, fontWeight: '700' },
+  primary: { minHeight: 54, borderRadius: radius.primary, borderWidth: 1, borderColor: '#FFAD63', backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 18 },
+  primaryText: { ...type.action, color: c.buttonInk },
   primaryPressed: { backgroundColor: '#FFA342' },
   disabled: { opacity: 0.45 },
 });
