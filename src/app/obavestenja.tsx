@@ -36,7 +36,7 @@ export default function Obavestenja() {
     if (!target || target.kind==='UNAVAILABLE' || !model.canNavigate()) return;
     const go = () => { switch (target.kind) {
       case 'AGREEMENT': router.push({pathname:'/dogovor/[id]',params:{id:target.id}}); break;
-      case 'APPLICATIONS': router.push('/moje-prijave'); break;
+      case 'APPLICATIONS': router.push({pathname:'/moje-prijave',params:{prijavaId:target.id}}); break;
       case 'CANDIDATES': router.push({pathname:'/potrebe/[id]/kandidati',params:{id:target.id}}); break;
       case 'OWN_NEED': router.push({pathname:'/potrebe/[id]/pregled',params:{id:target.id}}); break;
       case 'OPPORTUNITY': router.push({pathname:'/prilike/[id]',params:{id:target.id}}); break;

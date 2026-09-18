@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { Ishod, PovuciPrijavuKomanda } from '../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../data/applicationSelectionClientService';
@@ -44,6 +44,13 @@ function observed(pending: Pending, rows: MojaPrijavaProjekcija[]) {
 }
 export default function MojePrijave() {
   const izvor = useIzvor(), router = useRouter(), role = useUloga();
+  // "Zadatak je izmenjen — proveri svoju prijavu" used to land on the list and stop there, leaving
+  // the person to find which of their applications it meant. The notification knows; it now says.
+  const params = useLocalSearchParams<{ prijavaId?: string | string[] }>();
+  const named = typeof params.prijavaId === 'string' ? params.prijavaId : null;
+  const landing = useRef<string | null>(null);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  useEffect(() => { landing.current = named; setFocusId(null); }, [named]);
   const { user, accountRevision } = useSesija();
   const session = useMemo(() => ({ focused: false, active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
     token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: 'all' as ApplicationsTab,
@@ -87,6 +94,13 @@ export default function MojePrijave() {
   // Resume retires the hook's old owner and reads before showing actions.
   }, [session, izvor, accountCurrent, clearReview, resume]);
   const editor = useOwnedEditor(read), data = editor.data;
+  // Every read closes any open review, so the named row is opened after one arrives, and only once:
+  // closing it afterwards is the person's decision and is not undone on the next refresh.
+  useEffect(() => {
+    const id = landing.current;
+    if (!id || !data?.rows.some(row => row.prijavaId === id)) return;
+    landing.current = null; session.expanded = id; setFocusId(id); render(v => v + 1);
+  }, [data, session]);
   const token = session.token, revision = session.readRevision, editRevision = session.editRevision;
   const current = () => session.focused && session.active && token === session.token && revision === session.readRevision && accountCurrent();
   const rowCurrent = (p: MojaPrijavaProjekcija) => current() && !!data?.rows.some(row => identity(row) === identity(p));
@@ -172,6 +186,7 @@ export default function MojePrijave() {
   return <MyApplicationsPresentation intent={role} rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
     unavailable={!data} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
+    focusId={visible ? focusId : null}
     expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}
     editingLoading={session.editingLoading} pending={!!pending} canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
     canReset={!!pending?.reconciled && !editor.uncertain && (pending.result === 'rejected' || pending.result === 'receipt')}

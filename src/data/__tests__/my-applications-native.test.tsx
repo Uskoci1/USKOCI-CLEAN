@@ -4,6 +4,7 @@ const mockRead = jest.fn(), mockWithdraw = jest.fn(), mockResolve = jest.fn(), m
 const mockSource = { mojePrijave: mockRead, povuciPrijavu: mockWithdraw };
 const mockRouter = { navigate: jest.fn(), push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true };
 let mockFocused = true, mockRole = 'uskocer';
+let mockParams: { prijavaId?: string } = {};
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
 let mockState = 'active';
 const mockListeners = new Set<(state: string) => void>();
@@ -21,7 +22,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter,
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, useUloga: () => mockRole, ulogaSada: () => mockRole }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
@@ -54,6 +55,7 @@ async function review() { mockRows = [stale()]; await render(); await tap('Pregl
 async function editing() { await review(); await tap('Izmeni prijavu'); }
 beforeEach(() => {
   jest.clearAllMocks(); mockFocused = true; mockState = 'active'; mockRole = 'uskocer'; mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
+  mockParams = {};
   mockRows = [row()]; mockRead.mockImplementation(async () => mockRows);
   mockWithdraw.mockImplementation(async () => { mockRows = [row({ stanje: 'WITHDRAWN', mozePovuci: false })]; return { ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }; });
   mockResolve.mockImplementation(async () => { mockRows = [row({ prijavaVerzija: 3 })]; return { ok: true, podatak: { status: 'SUBMITTED', version: 3 } }; });
@@ -69,6 +71,22 @@ it('filters actual attention, active and finished rows without changing their st
   await tap('Aktivne'); expect(text()).toContain('Poslata'); expect(text()).not.toContain('Potrebna nova provera');
   await tap('Završene'); expect(text()).toContain('Završena ponuda');
 });
+it('opens the one application a notification names, and keeps it closed once closed', async () => {
+  // "Zadatak je izmenjen" landed on the list and stopped there. The event knows which application
+  // it is about, so the row it means is open on arrival — with its review, not just its summary.
+  mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' }), stale()];
+  mockParams = { prijavaId: stale().prijavaId };
+  await render();
+  expect(text()).toContain('Dvoje ljudi i trake.');
+  expect(press('Zadrži prijavu')).toBeDefined();
+
+  // Closing it is the person's decision; the next read does not reopen it.
+  await tap('Zatvori pregled izmena');
+  expect(press('Zadrži prijavu')).toBeUndefined();
+  await act(async () => { mockListeners.forEach(f => f('active')); });
+  expect(press('Zadrži prijavu')).toBeUndefined();
+});
+
 it('routes only a selected row to its exact existing Agreement', async () => {
   mockRows = [row({ stanje: 'SELECTED', dogovorId: 'agreement-123', mozePovuci: false, traziPaznju: true })]; await render();
   const old = press('Otvori Dogovor: Unos ormara'); await tap('Otvori Dogovor: Unos ormara'); expect(mockRouter.push).toHaveBeenCalledWith('/dogovor/agreement-123');

@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react';
+import { memo, useEffect, useRef, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, MapPin } from 'phosphor-react-native';
@@ -39,6 +39,8 @@ type Props = {
   onTask: (p: MojaPrijavaProjekcija) => void;
   /** Which intent the user is in; shown in the header eyebrow. */
   intent?: Uloga;
+  /** An application arrived at from a notification, brought into view once. */
+  focusId?: string | null;
 };
 function Note({ children, tone = 'muted' }: { children: ReactNode; tone?: 'muted' | 'warn' }) {
   return <View style={[s.notice, tone === 'warn' && s.noticeWarn]}><T accessibilityRole="alert" variant="body" style={s.ink}>{children}</T></View>;
@@ -78,6 +80,16 @@ const deviceZone = (): string | undefined => {
 
 export function MyApplicationsPresentation(props: Props) {
   const visible = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
+  // A notification names one application. Opening its row is not enough if the row is the ninth one
+  // down, so the list also goes to it — once, and never fighting a scroll the person then makes.
+  const list = useRef<FlatList<MojaPrijavaProjekcija> | null>(null);
+  const brought = useRef<string | null>(null);
+  const index = props.focusId ? visible.findIndex(p => p.prijavaId === props.focusId) : -1;
+  useEffect(() => {
+    if (index < 0 || !props.focusId || brought.current === props.focusId) return;
+    brought.current = props.focusId;
+    list.current?.scrollToIndex({ index, viewPosition: 0.15, animated: true });
+  }, [index, props.focusId]);
   const disabled = props.busy || props.pending || props.editingLoading;
   const count = (tab: ApplicationsTab) => tab === 'all' ? props.rows.length : props.rows.filter(p => applicationSection(p) === tab).length;
   const badge = (tab: ApplicationsTab) => count(tab) || undefined;
@@ -98,8 +110,8 @@ export function MyApplicationsPresentation(props: Props) {
       options={[{ key: 'all', label: 'Sve', badge: badge('all') }, { key: 'attention', label: 'Čeka te', badge: badge('attention') },
         { key: 'active', label: 'Aktivne', badge: badge('active') }, { key: 'finished', label: 'Završene', badge: badge('finished') }] as const} /> : null}
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
-      <FlatList<MojaPrijavaProjekcija> data={props.loading || props.unavailable ? [] : visible} keyExtractor={p => p.prijavaId}
-        initialNumToRender={8} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={s.list}
+      <FlatList<MojaPrijavaProjekcija> ref={list} data={props.loading || props.unavailable ? [] : visible} keyExtractor={p => p.prijavaId}
+        onScrollToIndexFailed={() => undefined} initialNumToRender={8} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={s.list}
         refreshing={props.loading} onRefresh={props.onRefresh} ListEmptyComponent={empty}
         ListHeaderComponent={!props.loading && !props.unavailable && (props.message || props.notice || props.pending) ? <View style={s.feedback}>
           {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}
