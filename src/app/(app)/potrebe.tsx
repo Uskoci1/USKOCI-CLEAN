@@ -40,5 +40,5 @@ function OwnedCollection() {
     scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
     onSwitch={() => navigate(() => router.navigate('/prilike'))} onProfile={() => navigate(() => router.navigate('/profil'))}
-    onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/novi-zadatak')) : undefined} />;
+    onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/nova')) : undefined} />;
 }

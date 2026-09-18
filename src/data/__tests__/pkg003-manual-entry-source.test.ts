@@ -2,64 +2,67 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const source = (relative: string) => fs.readFileSync(path.join(process.cwd(), relative), 'utf8');
+const missing = (relative: string) => !fs.existsSync(path.join(process.cwd(), relative));
 
-describe('PKG-003 one New Task entry and manual authority boundaries', () => {
-  it('keeps AI-first as primary while exposing a provider-independent manual branch from the same New Task entry', () => {
+/**
+ * PKG-003 defined one New Task entry with a provider-independent manual branch beside it. The owner
+ * retired that branch on 2026-09-18: "+" enters the conversation directly, and manual entry is gone
+ * from the client. What PKG-003 was protecting — that nothing else writes Need facts behind the AI's
+ * back, and that the entry stays single — is what this file now holds to.
+ *
+ * The server side of PKG-003 is untouched: `rpc_set_manual_need_fact_v2` and its candidate and
+ * runtime proof remain, so the boundary is still proven where it is enforced.
+ */
+describe('PKG-003 one New Task entry, after the manual branch was retired', () => {
+  it('sends the New Task control straight into the conversation from both lists', () => {
     const potrebe = source('src/app/(app)/potrebe.tsx');
-    const chooser = source('src/app/(app)/novi-zadatak.tsx');
-    const manual = source('src/app/(app)/rucni-zadatak.tsx');
+    const prilike = source('src/app/(app)/prilike.tsx');
 
-    expect(potrebe).toContain("router.navigate('/novi-zadatak')");
-    expect(chooser).toContain("router.replace('/nova')");
-    expect(chooser).toContain('aiNeedV2Izvor.openConversation(openRequestId)');
-    expect(chooser).toContain("pathname: '/rucni-zadatak'");
-    expect(chooser).toContain('label="Nastavi razgovorom" kind="primary"');
-    expect(chooser.indexOf('Nastavi razgovorom')).toBeLessThan(chooser.indexOf('Unesi ručno'));
-
-    expect(manual).toContain("pathname: '/mesto-zadatka'");
-    expect(manual).toContain("pathname: '/fotografije-zadatka'");
-    expect(manual).toContain("pathname: '/pregled-zadatka'");
-    expect(manual).not.toContain("'/pregled-nacrta'");
+    expect(potrebe).toContain("router.navigate('/nova')");
+    expect(potrebe).not.toContain('novi-zadatak');
+    // The worker list already asked for the intent switch first, and still does.
+    expect(prilike).toContain("router.navigate('/nova')");
+    expect(prilike).toContain("router.replace('/nova')");
   });
 
-  it('never turns manual fallback into the legacy proposer, provider dispatch, second Need writer or publisher', () => {
-    const client = source('src/data/manualNeedFactClientService.ts');
-    const chooser = source('src/app/(app)/novi-zadatak.tsx');
-    const manual = source('src/app/(app)/rucni-zadatak.tsx');
+  it('leaves no chooser, no manual screen and no second Need-fact writer in the client', () => {
+    expect(missing('src/app/(app)/novi-zadatak.tsx')).toBe(true);
+    expect(missing('src/app/(app)/rucni-zadatak.tsx')).toBe(true);
+    expect(missing('src/data/manualNeedFactClientService.ts')).toBe(true);
+
+    const layout = source('src/app/_layout.tsx');
+    const appLayout = source('src/app/(app)/_layout.tsx');
+    expect(appLayout).not.toContain('novi-zadatak');
+    expect(appLayout).not.toContain('rucni-zadatak');
+    expect(layout + appLayout).not.toContain('rpc_set_manual_need_fact_v2');
+  });
+
+  it('keeps the conversation as the only client that proposes or writes Need facts', () => {
+    const intake = source('src/app/(app)/nova.tsx');
+    const client = source('src/data/aiNeedV2Production.ts');
+
+    expect(intake).toContain('aiNeedV2Izvor.sendMessage');
+    expect(client).toContain('uskoci-ai-interview');
+
+    const root = path.join(process.cwd(), 'src');
+    const writers: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) { walk(full); continue; }
+        if (!/\.tsx?$/.test(entry.name) || full.includes('__tests__')) continue;
+        if (fs.readFileSync(full, 'utf8').includes('rpc_set_manual_need_fact_v2')) writers.push(full);
+      }
+    };
+    walk(root);
+    expect(writers).toEqual([]);
+  });
+
+  it('still keeps the retired branch proven where it is enforced, on the server', () => {
     const sql = source('supabase/candidates/pkg003_manual_need_fact_v2.sql');
-    const combined = `${client}\n${chooser}\n${manual}`;
-
-    expect(client).toContain("rpc: 'rpc_set_manual_need_fact_v2'");
-    expect(combined).not.toContain('rpc_ai_propose_fact');
-    expect(combined).not.toContain('sendMessage(');
-    expect(combined).not.toContain('uskoci-ai-interview');
-
     expect(sql).toContain("v_conv.purpose <> 'NEED_INTAKE'");
     expect(sql).toContain("v_conv.fact_schema_version <> 'NEED_FACT_V2'");
     expect(sql).toContain("v_conv.status <> 'OPEN'");
     expect(sql).toContain("'CONFIRMED', 'EXPLICIT_USER_ANSWER', 'NEED_DRAFT'");
-    expect(sql).toContain('CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT');
-    expect(sql).toContain('MANUAL_FACT_USE_LOCATION_EDITOR');
-    expect(sql).toContain('MANUAL_FACT_USE_MEDIA_EDITOR');
-    expect(sql).toContain('grant execute on function public.rpc_set_manual_need_fact_v2');
-    expect(sql).not.toMatch(/insert\s+into\s+public\.needs/i);
-    expect(sql).not.toContain('rpc_publish_need_canonical');
-    expect(sql).not.toContain('rpc_ai_propose_fact');
-  });
-
-  it('uses the existing canonical two-step supersession contract instead of bypassing the fact guard', () => {
-    const sql = source('supabase/candidates/pkg003_manual_need_fact_v2.sql');
-    const start = sql.indexOf('set superseded_at = statement_timestamp(),\n             superseded_by = null');
-    const insert = sql.indexOf('insert into public.ai_structured_facts', start);
-    const link = sql.indexOf('set superseded_by = v_fact_id', insert);
-    expect(start).toBeGreaterThan(-1);
-    expect(insert).toBeGreaterThan(start);
-    expect(link).toBeGreaterThan(insert);
-  });
-
-  it('registers both manual routes as hidden tab routes, never as new visible navigation zones', () => {
-    const layout = source('src/app/(app)/_layout.tsx');
-    expect(layout).toContain('<Tabs.Screen name="novi-zadatak" options={{ href: null }} />');
-    expect(layout).toContain('<Tabs.Screen name="rucni-zadatak" options={{ href: null }} />');
   });
 });

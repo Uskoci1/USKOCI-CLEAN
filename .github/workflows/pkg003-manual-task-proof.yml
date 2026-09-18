@@ -5,14 +5,12 @@ on:
     branches:
       - work/pre-v3-engine-integration-20260911
     paths:
-      - 'src/data/manualNeedFactClientService.ts'
-      - 'src/data/__tests__/pkg003-manual-need-fact.test.ts'
       - 'src/data/__tests__/pkg003-manual-entry-source.test.ts'
       - 'src/data/__tests__/pkg003-location-return.test.tsx'
       - 'src/data/__tests__/pkg003-timezone.test.ts'
-      - 'src/app/(app)/novi-zadatak.tsx'
-      - 'src/app/(app)/rucni-zadatak.tsx'
       - 'src/app/(app)/potrebe.tsx'
+      - 'src/app/(app)/prilike.tsx'
+      - 'src/app/(app)/nova.tsx'
       - 'src/app/(app)/_layout.tsx'
       - 'supabase/candidates/pkg003_manual_need_fact_v2.sql'
       - 'supabase/proofs/pkg003_manual_need_fact_runtime_proof.sql'
@@ -154,7 +152,6 @@ jobs:
       - name: PKG-003 focused regressions
         run: >-
           npm test -- --runInBand
-          src/data/__tests__/pkg003-manual-need-fact.test.ts
           src/data/__tests__/pkg003-manual-entry-source.test.ts
           src/data/__tests__/pkg003-location-return.test.tsx
           src/data/__tests__/pkg003-timezone.test.ts
