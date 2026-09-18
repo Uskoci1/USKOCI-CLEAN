@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { V2Icon } from './v2/icons';
 import type { PorukaProjekcija } from '../contracts/projections';
@@ -54,6 +54,8 @@ function ChatAction({ label, text = label, onPress, tone = 'green' }: { label: s
  * outbox state (never a text-match guess). The composer stays above the keyboard.
  */
 export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos }: Props) {
+  // Which message the person is holding, for the support path that used to stand under every one.
+  const [chosen, setChosen] = useState<string | null>(null);
   const list = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const initialScroll = useRef(true);
@@ -114,20 +116,28 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           </Press>
         </View>}
         {!loading && !error && messages.length === 0 && local.length === 0 &&
-          <T variant="meta" tone="muted" style={[s.center, s.emptyCopy]}>Još nema poruka.</T>}
-        {!error && messages.map(message => <View key={message.id} style={[s.bubble, message.moja ? s.mine : s.theirs]}>
+          <View style={[s.emptyCopy, { gap: 6, alignItems: 'center' }]}>
+            <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>Napiši prvu poruku</T>
+            <T variant="copy" tone="muted" style={s.center}>Dogovor je potvrđen. Ovde se dogovarate oko detalja — sve ostaje između vas dvoje.</T>
+          </View>}
+        {!error && messages.map(message => <Press key={message.id} accessibilityRole="button"
+          accessibilityLabel={`Poruka: ${message.posiljalacIme}`} accessibilityHint="Dugi pritisak nudi prijavu podršci."
+          onLongPress={() => setChosen(current => current === message.id ? null : message.id)} haptic="select" scaleTo={1}
+          style={[s.bubble, message.moja ? s.mine : s.theirs]}>
           {!message.moja && <T variant="meta" style={s.sender}>{message.posiljalacIme}</T>}
           <T selectable variant="body" style={s.ink}>{message.telo}</T>
           {message.fotografije?.map((photo, index) => photos ? <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId}
             agreementId={photos.agreementId} messageId={message.id} label={`Fotografija poruke ${index + 1}`}
             style={s.photo} /> : null)}
           <T variant="label" style={s.time}>{message.vremeTekst}</T>
-          {support && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <SupportContextEntry
+          {/* This stood under every message, full width, doubling the height of the transcript. It
+              belongs to the message a person actually wants to report, which is the one they hold. */}
+          {support && chosen === message.id && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <SupportContextEntry
             reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
             label="Izaberi ovu poruku za podršku" previewText={[message.telo, message.fotografije?.length
               ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
             canAct={supportCurrent} navigate={support.navigate} /> : null}
-        </View>)}
+        </Press>)}
         {local.map(entry => <View key={entry.command.clientMessageId} style={[s.bubble, s.mine, entry.state === 'failed' && s.failed]}>
           <T selectable variant="body" style={s.ink}>{entry.command.body}</T>
           {entry.command.photos?.assetIds.map((assetId, index) => <AuthorizedPhoto key={assetId} assetId={assetId}

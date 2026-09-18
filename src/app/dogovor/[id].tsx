@@ -290,8 +290,12 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
             {active && me ? <V2Action label={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'} disabled={!enabled}
               onPress={() => void mutate(() => dogovor.kontakt.mojTelefonPodeljen ? izvor.opoziviTelefon(id) : izvor.podeliTelefon(id))} /> : null}
           </AgreementSection>
+          {/* The child renders nothing once the agreement is finished or cancelled, so this section
+              opened onto an empty card on exactly the agreements a person revisits. */}
           {dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji ? <AgreementSection label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
-            <AgreementPrivateLocation agreement={dogovor} enabled={enabled} />
+            {dogovor.stanje === 'CONFIRMED' || dogovor.stanje === 'AWAITING_REQUESTER'
+              ? <AgreementPrivateLocation agreement={dogovor} enabled={enabled} />
+              : <T variant="note" tone="muted">Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.</T>}
           </AgreementSection> : null}
           {dogovor.hronologija.length ? <AgreementSection label="Tok Dogovora" summary="Sačuvani događaji">
             {dogovor.hronologija.map((event, index) => <View key={index} style={s.event}>

@@ -74,6 +74,8 @@ describe('D03 actual message component', () => {
       posiljalacAccountId: account, telo: '', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null,
       fotografije: [{ assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const }] };
     await render({ messages: [read], support: { canAct: () => true, navigate: jest.fn() } });
+    // The support entry no longer stands under every message; it belongs to the one being held.
+    await act(async () => tree.root.findByProps({ accessibilityLabel: `Poruka: ${read.posiljalacIme}` }).props.onLongPress());
     const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
     expect(entry.previewText).toContain('Privatne fotografije uz ovu poruku: 1');
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 3 }); expect(read.telo).toBe('');
@@ -103,13 +105,13 @@ describe('D03 actual message component', () => {
     expect(outbox.retry).not.toHaveBeenCalled();
   });
   it('distinguishes successful empty, loading and failed reads', async () => {
-    await render(); expect(texts()).toContain('Još nema poruka.');
+    await render(); expect(texts()).toContain('Napiši prvu poruku');
     await act(async () => tree.update(<AgreementChat {...props} error />));
-    expect(texts()).toContain('Poruke nisu učitane'); expect(texts()).not.toContain('Još nema poruka.');
+    expect(texts()).toContain('Poruke nisu učitane'); expect(texts()).not.toContain('Napiši prvu poruku');
     await act(async () => button('Ponovo učitaj poruke').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<AgreementChat {...props} loading />));
-    expect(texts()).not.toContain('Još nema poruka.');
+    expect(texts()).not.toContain('Napiši prvu poruku');
   });
   it('preserves composer text in offline/error state and keeps it outside the history scroller', async () => {
     await render({ error: true });
@@ -171,6 +173,8 @@ describe('D03 actual message component', () => {
     const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 2, clientMessageId: null,
       posiljalacAccountId: account, telo: 'Samo ova stara poruka.', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null };
     await render({ messages: [read], terminal: true, writable: false, support });
+    // The support entry no longer stands under every message; it belongs to the one being held.
+    await act(async () => tree.root.findByProps({ accessibilityLabel: `Poruka: ${read.posiljalacIme}` }).props.onLongPress());
     const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 2 });
     expect(entry.previewText).toBe(read.telo); expect(entry.canAct()).toBe(true);
