@@ -66,6 +66,20 @@ describe('V5 three-zone intent navigation and system navigation clearance', () =
     }
   });
 
+  it('hides the tab bar under the screens that are one task with one way out', () => {
+    // Owner decision, 2026-09-18. A tap along the bottom edge used to leave an unfinished Zadatak,
+    // and the bar was not honest either: these screens are pushed, so no tab was ever current.
+    const { screens } = configuration();
+    const hidden = screens.filter((screen) => (screen.options as { tabBarStyle?: { display?: string } })
+      .tabBarStyle?.display === 'none').map((screen) => screen.name).sort();
+    expect(hidden).toEqual(['fotografije-zadatka', 'mesto-zadatka', 'nova', 'pregled-zadatka']);
+    // The three real tabs keep theirs, and so does every settings screen you can leave freely.
+    for (const name of ['potrebe', 'mapa', 'dogovori', 'profil', 'podrska/index']) {
+      const screen = screens.find((candidate) => candidate.name === name)!;
+      expect((screen.options as { tabBarStyle?: unknown }).tabBarStyle).toBeUndefined();
+    }
+  });
+
   it('covers every existing leaf route so Router cannot append unnamed extra tabs', () => {
     const directory = resolve(__dirname, '../src/app/(app)');
     const files = routeFiles(directory).map((path) => relative(directory, path)

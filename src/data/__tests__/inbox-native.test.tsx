@@ -62,7 +62,7 @@ test('an event of the other intent asks first; one confirm switches the intent a
   mockState.page.items=[item];mockState.page.unreadCount=1;await render();
   await openItem();
   expect(mockModel.open).toHaveBeenCalledWith(item);expect(mockRole).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(text()).toContain('Prelaziš u JA MOGU');expect(text()).toContain('Sada ste u MENI TREBA');
+  expect(text()).toContain('Prelaziš u JA MOGU');expect(text()).toContain('Sada si u MENI TREBA');
   await act(async()=>press('Pređi i otvori').props.onPress());
   expect(mockRole).toHaveBeenCalledWith('uskocer');expect(mockRole).toHaveBeenCalledTimes(1);
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/dogovor/[id]',params:{id:'actual-agreement'}}]]);

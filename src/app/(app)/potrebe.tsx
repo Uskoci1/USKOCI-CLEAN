@@ -4,7 +4,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, type MarketplaceItem } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { izvorSada, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { izvorSada, postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { CrossIntentNotice } from '../../ui/system/CrossIntentNotice';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 
 export default function Potrebe() {
@@ -40,5 +41,11 @@ function OwnedCollection() {
     scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
     onSwitch={() => navigate(() => router.navigate('/prilike'))} onProfile={() => navigate(() => router.navigate('/profil'))}
+    // A link, a notification or a return target can land a worker here, on the requester's own
+    // Zadaci: worker navigation underneath, requester content above, and "+" simply missing with
+    // nothing saying why. The screen says what it is and offers the one step across.
+    notice={intent === 'narucilac' ? undefined : <CrossIntentNotice belongsTo="narucilac"
+      detail="Ovo su Zadaci koje si napravio kao naručilac. Prelazak menja donju navigaciju na Zadaci · Mapa · Dogovori; ostaješ na ovom ekranu."
+      onSwitch={() => { if (current()) postaviUlogu('narucilac'); }} />}
     onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/nova')) : undefined} />;
 }

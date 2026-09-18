@@ -6,7 +6,7 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get(target, key) { return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', Wallet: 'Icon', ArrowLeft: 'Icon', CaretRight: 'Icon', Lightning: 'Icon', PaperPlaneTilt: 'Icon', PencilSimple: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', Wallet: 'Icon', ArrowLeft: 'Icon', CaretRight: 'Icon', Lightning: 'Icon', PaperPlaneTilt: 'Icon', PencilSimple: 'Icon', ArrowsLeftRight: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
@@ -23,10 +23,31 @@ const need = (patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ i
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, vremeTekst: 'Sutra', podrucjeTekst: 'Novi Sad, Liman', uslovi: ['Trake'], brojPrijava: 3, rezimCene: 'MY_PRICE',
   ponudjenaCena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, ...patch });
 const noop = () => {};
-function Screen({ value, loading = false, error = null, remainingClosed = false }: { value: PotrebaProjekcija | null; loading?: boolean; error?: string | null; remainingClosed?: boolean }) {
-  return <NeedPresentation need={value} loading={loading} error={error} busy={false} ownerIntent remainingClosed={remainingClosed}
+function Screen({ value, loading = false, error = null, remainingClosed = false, ownerIntent = true, onSwitchIntent }: {
+  value: PotrebaProjekcija | null; loading?: boolean; error?: string | null; remainingClosed?: boolean;
+  ownerIntent?: boolean; onSwitchIntent?: () => void }) {
+  return <NeedPresentation need={value} loading={loading} error={error} busy={false} ownerIntent={ownerIntent} remainingClosed={remainingClosed}
+    onSwitchIntent={onSwitchIntent}
     onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} />;
 }
+
+test('a draft seen from JA MOGU offers the way across, not directions to the Profile', async () => {
+  // It used to end with "Pređi u MENI TREBA iz Profila" — directions to a screen, where the step
+  // itself belongs (owner decision, 2026-09-18).
+  const switchIntent = jest.fn();
+  await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })}
+    ownerIntent={false} onSwitchIntent={switchIntent} />); });
+  expect(texts()).toContain('Ovo radiš kao naručilac');
+  expect(texts()).not.toContain('iz Profila');
+  await act(async () => byLabel('Pređi u MENI TREBA').props.onPress());
+  expect(switchIntent).toHaveBeenCalledTimes(1);
+
+  // Without a way across, the screen states the fact and offers nothing it cannot do.
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} ownerIntent={false} />); });
+  expect(texts()).toContain('Ovo je tvoj nacrt kao naručioca');
+  expect(labels()).not.toContain('Pređi u MENI TREBA');
+});
 test('a published Task leads with its state, price and people, shows the applications row with a count, and has one brand action: the applications', async () => {
   await act(async () => { tree = create(<Screen value={need()} />); });
   const copy = texts();

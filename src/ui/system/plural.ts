@@ -18,4 +18,6 @@ export function plural(count: number, one: string, few: string, many: string): s
 
 export const zadataka = (count: number) => plural(count, 'zadatak', 'zadatka', 'zadataka');
 export const dogovora = (count: number) => plural(count, 'Dogovor', 'Dogovora', 'Dogovora');
-export const prijava = (count: number) => plural(count, 'Prijava', 'Prijave', 'Prijava');
+// Lower case: this one is used inside a sentence ("3 prijave za pregled"), while a Zadatak and a
+// Dogovor are named as such wherever they are counted.
+export const prijava = (count: number) => plural(count, 'prijava', 'prijave', 'prijava');

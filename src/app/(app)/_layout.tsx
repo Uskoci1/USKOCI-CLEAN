@@ -29,6 +29,14 @@ function CenterMark({ focused }: { focused: boolean }) {
 const PUSHED = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.enter } } };
 
+/**
+ * A full screen has no tab bar (owner decision, 2026-09-18). The conversation, the review before
+ * publishing and the map point are one task each with one way out, the back arrow. Leaving the tab
+ * bar under them made a tap anywhere along the bottom edge an exit from an unfinished Zadatak, and
+ * it was not even honest about where you were: the screens are pushed, so no tab was current.
+ */
+const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
+
 export default function TabLayout() {
   const intent = useUloga();
   const requester = intent === 'narucilac';
@@ -50,7 +58,7 @@ export default function TabLayout() {
     <Tabs.Screen name="potrebe" options={{ href: requester ? undefined : null, title: 'Zadaci',
       tabBarAccessibilityLabel: 'Zadaci',
       tabBarIcon: ({ color, focused }) => <Package size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
-    <Tabs.Screen name="nova" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="moje-prijave" options={{ href: requester ? null : undefined, title: 'Prijave',
       tabBarAccessibilityLabel: 'Prijave',
       tabBarIcon: ({ color, focused }) => <PaperPlaneTilt size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
@@ -77,9 +85,9 @@ export default function TabLayout() {
     <Tabs.Screen name="profil/privatnost" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="profil/obavestenja" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="raspored" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="mesto-zadatka" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="pregled-zadatka" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="fotografije-zadatka" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="mesto-zadatka" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="pregled-zadatka" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="fotografije-zadatka" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="pitanja-zadatka" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="oceni-dogovor" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="potrebe/[id]/kandidati" options={{ href: null, ...PUSHED }} />

@@ -13,16 +13,9 @@ import { card, iconButton, sys } from './tokens';
  */
 
 /** Back well + the screen name. The real title is the hero below, so this one stays small. */
-export function DetailTopBar({ title, onBack, backLabel = 'Nazad', disabled = false, right }: {
-  title: string; onBack: () => void; backLabel?: string; disabled?: boolean; right?: ReactNode;
-}) {
-  return <View style={s.topBar}>
-    <Press accessibilityRole="button" accessibilityLabel={backLabel} accessibilityState={{ disabled }} disabled={disabled}
-      onPress={onBack} haptic="select" style={iconButton}><ArrowLeft size={22} color={sys.color.ink} /></Press>
-    <T accessibilityRole="header" variant="title" style={s.topTitle}>{title}</T>
-    {right}
-  </View>;
-}
+// The detail screens had their own copy of the top bar, without the eyebrow the screen anatomy
+// asks for. It is the same bar; it is re-exported here so these screens' imports stay one line.
+export { DetailTopBar } from './DetailTopBar';
 
 /** One line that says what happens next, with a quiet sentence under it. */
 export function NextStrip({ icon: IconComponent, title, detail, tone = 'green' }: {

@@ -15,7 +15,7 @@ import { NeedLifecycleActions } from '../../../../ui/needs/NeedLifecycleActions'
 import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
@@ -179,6 +179,7 @@ function OwnedNeed({ id }: { id: string }) {
     lifecycleActions={intent === 'narucilac' && uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}
       disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
     error={greska} busy={akcijaUToku || terminalActive} ownerIntent={intent === 'narucilac'} remainingClosed={preostalaPotragaZatvorena}
+    onSwitchIntent={() => { if (current()) postaviUlogu('narucilac'); }}
     readiness={readiness}
     onBack={() => navigate(() => router.back())} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
     onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />;

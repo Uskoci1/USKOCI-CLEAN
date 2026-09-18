@@ -36,7 +36,7 @@ export function IntentTransition({ request, current, onConfirm, onCancel }: {
         <T variant="meta" tone="muted">Promena namere</T>
         <T accessibilityRole="header" variant="title" style={s.title}>{`Prelaziš u ${intentTitle(request.target)}`}</T>
         <T variant="body" style={s.body}>{request.reason}</T>
-        <T variant="meta" tone="muted">{`Sada ste u ${intentTitle(current)}. Isti nalog ima obe namere; nazad se vraćate preko profila.`}</T>
+        <T variant="meta" tone="muted">{`Sada si u ${intentTitle(current)}. Isti nalog ima obe namere; nazad se vraćaš preko profila.`}</T>
         <View style={s.actions}>
           <V2Action label={request.confirmLabel} onPress={onConfirm} style={brandAction} />
           <V2Action label={`Ostani u ${intentTitle(current)}`} kind="quiet" onPress={onCancel} />

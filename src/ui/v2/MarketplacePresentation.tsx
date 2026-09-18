@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { FlatList, Keyboard, Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from 'phosphor-react-native';
@@ -22,7 +22,9 @@ export type MarketplacePresentationProps = { owned: boolean; items: readonly Mar
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onSwitch: () => void; onProfile: () => void; onNew?: () => void;
   /** Which intent the user is in; the header says it so the context is never implicit. */
-  intent?: Uloga };
+  intent?: Uloga;
+  /** Shown above the list when this screen belongs to the intent the user is not in. */
+  notice?: ReactNode };
 
 const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'drafts', label: 'Nacrti' }, { key: 'history', label: 'Istorija' }] as const;
 const SECTION_TITLES: Record<MarketplaceView['section'], string> = { active: 'Aktivni zadaci', drafts: 'Nacrti', history: 'Istorija', all: 'Svi zadaci' };
@@ -109,6 +111,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         {view.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => change({ query: '', selectedId: null })} haptic="select" style={s.clear}>
           <X size={16} weight="bold" color={sys.color.ink} /></Press> : null}
       </View> : null}
+      {props.notice}
       {view.area ? <View style={s.areaNotice}><T variant="note" tone="muted" style={s.grow}>Izabrana oblast sa mape · isti zadaci u Listi i Mapi</T>
         <V2Action label="Ukloni oblast" kind="quiet" onPress={() => change({ area: null, selectedId: null })} /></View> : null}
       {/* With nothing to show, a map is not a data state: the Mapa tab used to open on the whole

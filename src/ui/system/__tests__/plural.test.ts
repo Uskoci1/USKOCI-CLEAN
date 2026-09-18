@@ -18,9 +18,9 @@ describe('counting in Serbian', () => {
     expect(dogovora(1)).toBe('1 Dogovor');
     expect(dogovora(3)).toBe('3 Dogovora');
     expect(dogovora(13)).toBe('13 Dogovora');
-    expect(prijava(1)).toBe('1 Prijava');
-    expect(prijava(2)).toBe('2 Prijave');
-    expect(prijava(5)).toBe('5 Prijava');
+    expect(prijava(1)).toBe('1 prijava');
+    expect(prijava(2)).toBe('2 prijave');
+    expect(prijava(5)).toBe('5 prijava');
     expect(plural(2, 'poruka', 'poruke', 'poruka')).toBe('2 poruke');
   });
 });

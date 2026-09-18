@@ -7,6 +7,7 @@ import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPub
 import { needGeographyRows, needPeopleText, needRequirementRows } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
+import { CrossIntentNotice } from '../system/CrossIntentNotice';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -15,7 +16,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
-const prijave = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'prijava' : n % 10 >= 2 && n % 10 <= 4 ? 'prijave' : 'prijava'}`;
+import { prijava as prijave } from '../system/plural';
 
 export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
@@ -23,6 +24,8 @@ export type NeedPresentationProps = {
   onBack: () => void; onRefresh: () => void; onReview: () => void; onEdit: () => void; onCloseRemaining: () => void; onCandidates: () => void;
   /** What the publish gate says about a draft, asked of the gate itself. Absent means not asked. */
   readiness?: NeedPublicationReadiness | null;
+  /** Offered when this is the owner's own draft seen from JA MOGU; absent means no way across. */
+  onSwitchIntent?: () => void;
   photos?: ReactNode;
   lifecycleActions?: ReactNode;
   qaAction?: ReactNode;
@@ -80,7 +83,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
   // to the conversation, which is where the missing thing is asked for.
   const blocked = draft ? readinessCopy(props.readiness ?? { kind: 'UNKNOWN' }) : null;
   const otherIntentCopy = draftInOtherIntent
-    ? { title: 'Ovo je tvoj nacrt kao naručioca', detail: 'U režimu JA MOGU ga vidiš, ali ga ne uređuješ ni objavljuješ. Pređi u MENI TREBA iz Profila.' }
+    ? { title: 'Ovo je tvoj nacrt kao naručioca', detail: 'U JA MOGU ga vidiš, ali ga ne uređuješ ni objavljuješ.' }
     : null;
   // `busy` is true while anything on the screen is loading, including the first read, so the one
   // action announced work in progress before anything had been asked for.
@@ -104,6 +107,11 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {step ? <NextStrip icon={PaperPlaneTilt} title={step.title} detail={step.detail} tone={step.tone} /> : null}
+        {/* The strip used to end with "Pređi u MENI TREBA iz Profila" — directions to a screen,
+            where the step itself belongs. */}
+        {draftInOtherIntent && props.onSwitchIntent ? <CrossIntentNotice belongsTo="narucilac" disabled={busy}
+          detail="Uređivanje i objava tvog nacrta stoje u MENI TREBA. Prelazak menja donju navigaciju; ostaješ na ovom Zadatku."
+          onSwitch={props.onSwitchIntent} /> : null}
         <View style={s.hero}>
           {need.urgency || need.detalji?.kategorija ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} />{readableCategory(need.detalji?.kategorija) ? <T variant="meta" tone="muted">{readableCategory(need.detalji?.kategorija)}</T> : null}</View> : null}
           <T accessibilityRole="header" style={s.heroTitle}>{need.naslov}</T>
