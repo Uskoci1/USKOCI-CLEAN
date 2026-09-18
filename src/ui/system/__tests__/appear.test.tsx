@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { Appear, useAppear } from '../Appear';
 
@@ -21,7 +22,7 @@ describe('a row arriving in a list', () => {
     appear.settle(keys);
     rows = keys.map(key => ({ key, animate: appear.isNew(key) }));
     return <>{keys.map((key, index) => <Appear key={key} index={index} animate={rows[index].animate}>
-      <mock-row testID={key} />
+      <View testID={key} />
     </Appear>)}</>;
   }
   const draw = async (keys: string[]) => { await act(async () => { tree = create(<List keys={keys} />); }); };
@@ -44,18 +45,20 @@ describe('a row arriving in a list', () => {
     expect(animate()).toEqual([false, false, false]);
   });
 
+  /** Only `Appear` ever sets one, so this counts the rows actually asking to animate. */
+  const entrances = () => tree.root.findAll(node => typeof node.type === 'string' && !!node.props.entering).length;
+
   it('carries an entrance only for the row the list called new', async () => {
     await draw(['a']);
+    expect(entrances()).toBe(0);
     await redraw(['a', 'b']);
-    const views = tree.root.findAllByType('View' as React.ElementType);
-    expect(views[0].props.entering).toBeUndefined();
-    expect(views[1].props.entering).toBeDefined();
+    expect(entrances()).toBe(1);
   });
 
   it('does nothing at all when the system asks for less motion', async () => {
     mockReduced = true;
     await draw(['a']);
     await redraw(['a', 'b']);
-    expect(tree.root.findAllByType('View' as React.ElementType).every(view => view.props.entering === undefined)).toBe(true);
+    expect(entrances()).toBe(0);
   });
 });

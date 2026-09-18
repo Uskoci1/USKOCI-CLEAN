@@ -24,13 +24,17 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
         <T variant="label" style={s.badgeText}>{String(option.badge)}</T></View> : null}
     </Press>;
   });
-  if (scroll) return <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" style={style}
-    contentContainerStyle={s.track}>{items}</ScrollView>;
+  // The track is the grey band, and when the segments scroll it has to be the part that stays put.
+  // Putting it on the scrolling content made the band end wherever the last visible segment did,
+  // mid-word, so a control that scrolls looked like a control that was cut off.
+  if (scroll) return <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist"
+    style={[s.track, style]} contentContainerStyle={s.scrollRow}>{items}</ScrollView>;
   return <View accessibilityRole="tablist" style={[s.track, style]}>{items}</View>;
 }
 
 const s = StyleSheet.create({
   track: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.control },
+  scrollRow: { flexDirection: 'row', gap: 3, alignItems: 'center' },
   segment: { flexGrow: 1, flexBasis: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: nested(sys.radius.control, 4),
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   selected: { backgroundColor: sys.color.surface, shadowColor: '#183F35', shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
