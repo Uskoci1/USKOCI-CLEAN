@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { ArrowClockwise, ArrowLeft, Bell, Check, CaretRight, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText } from 'phosphor-react-native';
+import { ArrowClockwise, Bell, Check, CaretRight, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText } from 'phosphor-react-native';
 import { SvgXml } from 'react-native-svg';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
 import type { Uloga } from '../contracts/projections';
@@ -12,6 +12,7 @@ import { Press } from '../ui/Press';
 import { IntentTransition, type IntentTransitionRequest } from '../ui/system/IntentTransition';
 import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
+import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { intentTitle, sys } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
 
@@ -58,17 +59,11 @@ export default function Obavestenja() {
     if (pending && model.canNavigate()) navigate(() => { postaviUlogu(pending.target); pending.go(); }); };
   return <SafeAreaView style={styles.screen}>
     <Stack.Screen options={{headerShown:false}}/>
-    <View style={styles.top}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad" style={styles.iconButton}
-        onPress={()=>navigate(()=>router.canGoBack()?router.back():router.replace('/'))}>
-        <ArrowLeft size={22} color={sys.color.ink}/>
-      </Press>
-      <View style={{flex:1,gap:3}}><T style={styles.meta}>Poruke i važne promene</T>
-        <T accessibilityRole="header" style={styles.title}>Obaveštenja</T></View>
-      <Press accessibilityRole="button" accessibilityLabel="Podesi obaveštenja" style={styles.iconButton} onPress={settings}>
+    <DetailTopBar eyebrow="Poruke i važne promene" title="Obaveštenja"
+      onBack={()=>navigate(()=>router.canGoBack()?router.back():router.replace('/'))}
+      right={<Press accessibilityRole="button" accessibilityLabel="Podesi obaveštenja" style={styles.iconButton} onPress={settings}>
         <GearSix size={22} color={sys.color.ink}/>
-      </Press>
-    </View>
+      </Press>} />
     <FlatList data={state.page?.items??[]} keyExtractor={item=>item.id}
       contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
       refreshing={state.loading && !!state.page} onRefresh={()=>void model.refresh()}
@@ -150,7 +145,6 @@ function EventIcon({family,unread}:{family:string;unread:boolean}) {
 
 const styles=StyleSheet.create({
   screen:{flex:1,backgroundColor:sys.color.ground},
-  top:{flexDirection:'row',alignItems:'center',paddingHorizontal:12,paddingVertical:9,gap:2,backgroundColor:sys.color.surface},
   title:{...sys.type.title,color:sys.color.ink}, body:{fontSize:15,lineHeight:22.5,color:sys.color.muted},
   strong:{fontSize:15,lineHeight:22.5,fontWeight:'700',color:sys.color.ink}, meta:{...sys.type.meta,color:sys.color.muted},
   filterText:{fontSize:13,lineHeight:19,fontWeight:'600',color:sys.color.ink},

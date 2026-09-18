@@ -7,7 +7,7 @@ import { useUloga, ulogaSada } from '../../../store/uloga';
 import { useSesija, sesijaSada } from '../../../store/sesija';
 import { Press } from '../../../ui/Press';
 import { T } from '../../../ui/Text';
-import { V2Icon } from '../../../ui/v2/icons';
+import { DetailTopBar } from '../../../ui/system/DetailTopBar';
 import { sys } from '../../../ui/system/tokens';
 export default function PushSettings() {
  const intent = useUloga(), { user, accountRevision } = useSesija(); const accountId = user?.id;
@@ -25,8 +25,7 @@ export default function PushSettings() {
  }
  return <SafeAreaView style={s.screen} edges={['top']}>
   <Stack.Screen options={{ headerShown: false }} />
-  <View style={s.header}><Press accessibilityRole="button" accessibilityLabel="Nazad na profil" onPress={back} style={s.back}><V2Icon name="back" size={20} /></Press>
-   <T accessibilityRole="header" style={s.title}>Podešavanja obaveštenja</T></View>
+  <DetailTopBar backLabel="Nazad na profil" eyebrow="Profil" title="Podešavanja obaveštenja" onBack={back} />
   <ScrollView contentContainerStyle={s.content}><PushPreferences role={role} /></ScrollView>
   <View style={s.footer}><T style={s.caption}>Podešavanja za: {intent === 'narucilac' ? 'Meni treba' : 'Ja mogu'}</T></View>
  </SafeAreaView>;

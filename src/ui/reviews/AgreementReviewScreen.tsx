@@ -8,10 +8,10 @@ import { failure } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { Press } from '../Press';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { V2Icon } from '../v2/icons';
 
 const tagLabels: Record<ReviewTag, string> = {
   AS_AGREED: 'Po dogovoru', CAREFUL: 'Pažljivo', CLEAR_COMMUNICATION: 'Jasna komunikacija',
@@ -69,10 +69,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
     });
   };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <View style={s.topBar}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={backFromReview} style={s.back}><V2Icon name="back" /></Press>
-      <T accessibilityRole="header" variant="title" style={s.ink}>Ocena saradnje</T>
-    </View>
+    <DetailTopBar eyebrow="Dogovor" title="Ocena saradnje" onBack={backFromReview} />
     <ScrollView contentContainerStyle={s.content}>
       {workspace.loading || !foreground || resumeRequired ? <ActivityIndicator accessibilityLabel="Učitavanje ocene" color={sys.color.green} />
         : receipt ? <View style={s.card}>
@@ -134,8 +131,6 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  back: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: sys.radius.pill },
   ink: { color: sys.color.ink }, danger: { color: sys.color.danger }, grow: { flex: 1 },
   content: { padding: 20, gap: 16, flexGrow: 1 },
   intro: { gap: 8, paddingHorizontal: 2 },

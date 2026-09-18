@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
 import { Press } from '../Press';
-import { card, iconButton, sys } from '../system/tokens';
+import { DetailTopBar } from '../system/DetailTopBar';
+import { card, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { V2Icon } from '../v2/icons';
 import type { WorkerDraft } from './workerProfileDraft';
@@ -12,10 +13,7 @@ import type { WorkerDraft } from './workerProfileDraft';
 /** Frame of the worker profile: back, intent eyebrow, title, keyboard-safe body, sticky footer. */
 export function WorkerProfileFrame({ back, children, footer }: { back: () => void; children: ReactNode; footer?: ReactNode }) {
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <View style={s.topBar}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad na profil" haptic="select" onPress={back} style={s.back}><V2Icon name="back" /></Press>
-      <View style={s.topCopy}><T variant="meta" style={s.eyebrow}>Ja mogu</T><T accessibilityRole="header" variant="title" style={s.ink}>Radni profil</T></View>
-    </View>
+    <DetailTopBar backLabel="Nazad na profil" eyebrow="Ja mogu" title="Radni profil" onBack={back} />
     <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
       {footer ? <View style={s.footer}>{footer}</View> : null}
@@ -141,9 +139,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink }, center: { textAlign: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
-  back: { ...iconButton },
-  topCopy: { flex: 1, minWidth: 0 }, eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
+eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
   content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 28 },
   footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   card: { ...card, gap: 12 },

@@ -2,8 +2,9 @@ import { useState, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
-import { ArrowLeft, CalendarBlank } from 'phosphor-react-native';
+import { CalendarBlank } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { brandAction, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { Press } from '../Press';
@@ -13,14 +14,13 @@ import { deviceDate, deviceTime } from './calendarPresentation';
 /** Calendar surfaces on the shared system: ground, white cards, green as orientation, orange as the one brand action. */
 export const calendarStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  header: { paddingHorizontal: 12, paddingVertical: 8, gap: 10, flexDirection: 'row', alignItems: 'center' },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
+  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   card: { padding: 16, gap: 12, borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.card, backgroundColor: sys.color.surface },
   note: { padding: 16, gap: 8, borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   input: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1,
     borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, ...sys.type.body, color: sys.color.ink, backgroundColor: sys.color.surface },
-  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   footer: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 12, gap: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line },
   divider: { height: 1, backgroundColor: sys.color.line },
 });
@@ -42,17 +42,13 @@ export function CalendarAction({ kind = 'primary', full: _full, style, ...props 
 }
 const Button = CalendarAction;
 
-export function CalendarScreen({ title, back, children, loading = false, scroll = true, footer }: {
-  title: string; back: () => void; children: ReactNode; loading?: boolean; scroll?: boolean; footer?: ReactNode;
+export function CalendarScreen({ title, eyebrow, back, children, loading = false, scroll = true, footer }: {
+  title: string; eyebrow?: string; back: () => void; children: ReactNode; loading?: boolean; scroll?: boolean; footer?: ReactNode;
 }) {
   const body = loading ? <View style={calendarStyles.note} accessibilityLabel="Učitavanje dostupnosti" accessibilityRole="progressbar">
     <ActivityIndicator color={sys.color.green} /><T>Učitavamo sačuvanu dostupnost…</T></View> : children;
   return <SafeAreaView edges={['top', 'bottom']} style={calendarStyles.screen}>
-    <View style={calendarStyles.header}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={back} style={calendarStyles.icon}>
-        <ArrowLeft size={22} color={sys.color.ink} />
-      </Press><T variant="title" accessibilityRole="header" style={{ flex: 1 }}>{title}</T>
-    </View>
+    <DetailTopBar eyebrow={eyebrow} title={title} onBack={back} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {scroll || loading ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={calendarStyles.content}>{body}</ScrollView> : <View style={{ flex: 1 }}>{body}</View>}
       {!loading && footer ? <View style={calendarStyles.footer}>{footer}</View> : null}

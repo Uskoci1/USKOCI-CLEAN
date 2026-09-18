@@ -7,6 +7,7 @@ import { workerCalendarClientService } from '../../data/workerCalendarClientServ
 import { agreementClientService } from '../../data/agreementClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useUloga } from '../../store/uloga';
+import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { CalendarAction as Button, CalendarText as T, calendarStyles as s } from '../../ui/calendar/CalendarControls';
@@ -27,10 +28,8 @@ export default function Raspored() {
   const visible = events.filter(event => overlapsInterval(event.startsAt, event.endsAt, dayRange.from, dayRange.to));
   const refresh = () => { void calendar.refresh(); void agreements.refresh(); };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <View style={s.header}><Press accessibilityRole="button" accessibilityLabel="Nazad" style={s.icon}
-      onPress={() => router.canGoBack() ? router.back() : router.replace('/dogovori')}><ArrowLeft size={22} color={sys.color.ink} /></Press>
-      <View style={{ flex: 1, gap: 3 }}><T variant="meta" tone="muted">JA MOGU · radni raspored</T><T variant="heading" accessibilityRole="header">Raspored</T></View>
-    </View>
+    <DetailTopBar eyebrow="JA MOGU · radni raspored" title="Raspored"
+      onBack={() => router.canGoBack() ? router.back() : router.replace('/dogovori')} />
     <ScrollView contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={calendar.loading} onRefresh={refresh} tintColor={sys.color.green} />}>
       <View style={{ gap: 14 }}>
         <View style={s.row}><View style={{ flex: 1, minWidth: 160, gap: 4 }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T>

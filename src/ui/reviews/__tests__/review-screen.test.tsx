@@ -11,7 +11,7 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native');re
  return ['View','ScrollView','ActivityIndicator'].includes(String(key))?key:Reflect.get(target,key);
 }});});
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
-jest.mock('phosphor-react-native',()=>({Star:'Star'}));
+jest.mock('phosphor-react-native',()=>({Star:'Star',ArrowLeft:'Icon'}));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchParams:()=>({agreementId:mockAgreementId}),
  useFocusEffect:(fn:()=>void)=>require('react').useEffect(()=>mockFocused?fn():undefined,[fn,mockFocused])}));
 jest.mock('../../../store/sesija',()=>({useSesija:()=>({user:mockAccount?{id:mockAccount}:null,accountRevision:mockRevision}),

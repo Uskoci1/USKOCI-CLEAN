@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, Check, LockKey } from 'phosphor-react-native';
-import { card, iconButton, sys } from '../system/tokens';
+import { DetailTopBar } from '../system/DetailTopBar';
+import { card, sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { V2Icon } from '../v2/icons';
 import { Press } from '../Press';
@@ -12,8 +13,6 @@ import { T } from '../Text';
 export const locationStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   content: { padding: 20, gap: 16, paddingBottom: 36 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
-  back: { ...iconButton },
   section: { gap: 12 },
   card: { ...card, gap: 12 },
   input: { minHeight: 50, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12,
@@ -109,16 +108,11 @@ export function PrivateLocationNote() {
   </View>;
 }
 
-export function LocationScreen({ title, onBack, loading, error, onRetry, children }: {
-  title: string; onBack: () => void; loading: boolean; error?: string | null; onRetry: () => void; children?: ReactNode;
+export function LocationScreen({ title, eyebrow, onBack, loading, error, onRetry, children }: {
+  title: string; eyebrow?: string; onBack: () => void; loading: boolean; error?: string | null; onRetry: () => void; children?: ReactNode;
 }) {
   return <SafeAreaView style={locationStyles.screen} edges={['top', 'bottom']}>
-    <View style={locationStyles.header}>
-      <Press accessibilityLabel="Nazad" accessibilityRole="button" haptic="select" onPress={onBack} style={locationStyles.back}>
-        <V2Icon name="back" />
-      </Press>
-      <T accessibilityRole="header" variant="title" style={{ flex: 1, color: sys.color.ink }}>{title}</T>
-    </View>
+    <DetailTopBar eyebrow={eyebrow} title={title} onBack={onBack} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={locationStyles.content}>
         {loading ? <View style={locationStyles.notice} accessibilityRole="progressbar" accessibilityLabel="Učitavanje lokacije">

@@ -10,7 +10,8 @@ import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPrese
 import { Press } from '../Press';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
 import { ProfilePhoto } from '../media/ContextPhotos';
-import { brandAction, card, iconButton, sys } from '../system/tokens';
+import { DetailTopBar } from '../system/DetailTopBar';
+import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
@@ -39,9 +40,7 @@ export function SelectionFrame({ title, subtitle, back, children, footer, scroll
 }) {
   const reduced = useReducedMotion();
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <View style={s.topBar}><Press accessibilityRole="button" accessibilityLabel="Nazad na zadatak" haptic="select" onPress={back} style={s.back}>
-      <V2Icon name="back" /></Press><View style={s.topCopy}>{subtitle ? <T variant="meta" style={s.eyebrow}>{subtitle}</T> : null}
-      <T accessibilityRole="header" variant="title" style={s.ink}>{title}</T></View></View>
+    <DetailTopBar backLabel="Nazad na zadatak" eyebrow={subtitle} title={title} onBack={back} />
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       {scroll ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         <Animated.View entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} style={s.stack}>{children}</Animated.View>
@@ -277,8 +276,6 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
-  back: { ...iconButton }, topCopy: { flex: 1, minWidth: 0 },
   eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 }, ink: { color: sys.color.ink }, muted: { color: sys.color.muted },
   content: { padding: 20, paddingTop: 4, paddingBottom: 28 },
   card: { ...card, gap: 10 },

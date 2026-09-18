@@ -21,6 +21,9 @@ jest.mock('../workerCalendarClientService', () => ({ workerCalendarClientService
 jest.mock('../agreementClientService', () => ({ agreementClientService: { mojiDogovori: () => mockAgreements() } }));
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: (read: () => unknown) => ({ data: read(), loading: false, error: false, refresh: jest.fn() }) }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+// The top bar is the shared one and draws with the real T; render it as the same host node the
+// rest of this screen uses, so the scope label it carries is inside what these tests read.
+jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/calendar/CalendarControls', () => ({
   CalendarAction: (props: Record<string, unknown>) => require('react').createElement('Button', { ...props, accessibilityLabel: props.label }),
   CalendarText: 'T',
