@@ -91,17 +91,18 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     <View accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {/* Both tabs used this one presentation and both were titled Zadaci, so two different
           screens carried the same name. The discovery view is what the Mapa tab opens. */}
-      <ScreenHeader eyebrow={eyebrow} title={owned ? 'Zadaci' : 'Prilike'} onProfile={props.onProfile} />
-      {/* One row of controls, not two. Which set you are looking at and the two ways to narrow it
-          belong together, and the count is not a control: it belongs with what it counts, at the top
-          of the list. Two bands plus a header pushed the first card to 40% down the screen. */}
+      {/* Search and filters sit in the top bar, and the segment has the row under it to itself.
+          Sharing one row left the segment 217dp on a 361dp phone, and three sections need more than
+          that as soon as the reader has enlarged their text — "Istorija" was cut through the middle.
+          The count is not a control either: it belongs with what it counts, at the top of the list. */}
+      <ScreenHeader eyebrow={eyebrow} title={owned ? 'Zadaci' : 'Prilike'} onProfile={props.onProfile}
+        right={<>
+          <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
+          <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
+        </>} />
       <View style={s.controls}>
-        <View style={s.grow}>
-          {owned ? <Segmented scroll options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
-            : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
-        </View>
-        <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
-        <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
+        {owned ? <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
+          : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
       </View>
       {searchOpen ? <View style={s.search}>
         <MagnifyingGlass size={19} color={sys.color.muted} />
@@ -169,7 +170,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6 },
+  controls: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6 },
   countRow: { paddingBottom: 8 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },

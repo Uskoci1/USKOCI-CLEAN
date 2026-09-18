@@ -94,18 +94,18 @@ export function AgreementCollectionPresentation(props: Props) {
             <V2Action label="Pogledaj Zadatke" onPress={props.onTasks} style={brandAction} /></View>}
   </View>;
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <ScreenHeader eyebrow={props.intent ? intentLabel(props.intent) : 'Obe uloge'} title="Dogovori" onProfile={props.onProfile} />
-    {/* One row: which set, and the ways to narrow it. The heading that used to sit under it said
-        "Aktivni dogovori" beside a segment already reading "Aktivni", and it said it above an empty
-        state that says the same thing better. The count belongs with what it counts. */}
+    {/* The heading that used to sit here said "Aktivni dogovori" beside a segment already reading
+        "Aktivni", over an empty state that says it better still. The count belongs with what it
+        counts. The segment keeps this row to itself so no section is ever cut through the middle. */}
+    <ScreenHeader eyebrow={props.intent ? intentLabel(props.intent) : 'Obe uloge'} title="Dogovori" onProfile={props.onProfile}
+      right={!props.requester ? <HeaderIconButton label="Radni raspored (JA MOGU)" icon={CalendarBlank} onPress={props.onCalendar} /> : undefined} />
     <View style={s.controls}>
-      <View style={s.grow}><Segmented options={sections} value={section} onChange={props.onSection} /></View>
+      <Segmented options={sections} value={section} onChange={props.onSection} />
       {waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
         onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select" style={[s.chip, confirmationOnly && s.chipOn]}>
         {confirmationOnly ? <Check size={14} weight="bold" color={sys.color.green} /> : null}
         <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka moju potvrdu</T>
       </Press> : null}
-      {!props.requester ? <HeaderIconButton label="Radni raspored (JA MOGU)" icon={CalendarBlank} onPress={props.onCalendar} /> : null}
     </View>
     <FlatList<DogovorProjekcija> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading}
       onRefresh={props.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
@@ -115,7 +115,7 @@ export function AgreementCollectionPresentation(props: Props) {
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6 },
+  controls: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6, gap: 8, alignItems: 'flex-start' },
   countRow: { paddingBottom: 8 },
   count: { color: sys.color.muted, fontWeight: '500', fontVariant: ['tabular-nums'] },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: sys.radius.chip, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },

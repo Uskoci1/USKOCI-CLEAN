@@ -18,9 +18,14 @@ export function HeaderIconButton({ label, hint, icon: IconComponent, active = fa
 }
 
 /**
- * Top bar of a tab surface (V5 head): a quiet eyebrow that names the intent you are
- * in (owner decision 2, 2026-09-16), the 21px screen title, bell to the inbox, avatar
- * to the profile. Extra controls belong in the section row below, not here.
+ * Top bar of a tab surface (V5 head): a quiet eyebrow that names the intent you are in (owner
+ * decision 2, 2026-09-16), the screen title, bell to the inbox, avatar to the profile.
+ *
+ * `right` is for the controls that narrow what the screen shows — search, filters, the worker
+ * calendar. They used to sit in a row beside the segmented control, which left the segment 217dp on
+ * a 361dp phone: enough at the default text size and not enough once the reader has enlarged it, so
+ * a section was cut through the middle. Up here they cost no vertical band at all, and the segment
+ * has its row to itself at every text size.
  */
 export function ScreenHeader({ eyebrow, title, onProfile, right }: { eyebrow: string; title: string; onProfile: () => void; right?: ReactNode }) {
   return <View style={s.header}>
