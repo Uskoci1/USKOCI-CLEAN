@@ -115,6 +115,8 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
           <View style={s.grow} />
           <V2Action label={workspace.busy ? 'Čuvamo ocenu…' : attempt ? 'Ponovi istu ocenu' : 'Sačuvaj ocenu'}
             disabled={!enabled || rating < 1} onPress={submit} style={brandAction} />
+          {/* A grey button with nothing saying why is a dead end. It waits on one thing. */}
+          {enabled && rating < 1 ? <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Izaberi ocenu od 1 do 5 pre slanja.</T> : null}
         </> : context ? <View style={s.card}>
           <T variant="title" style={s.ink}>Ocena još nije dostupna</T>
           <T variant="body" tone="muted">Možeš oceniti drugu stranu kada Dogovor bude završen.</T>
