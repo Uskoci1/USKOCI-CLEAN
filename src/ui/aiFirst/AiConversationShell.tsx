@@ -18,6 +18,8 @@ export type AiConversationShellProps = {
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void; onOptions: () => void;
   status?: ReactNode; actions?: ReactNode; voice?: ReactNode; children?: ReactNode;
+  /** Openings offered before the first word. 38 of the first 62 conversations never got one. */
+  openings?: readonly string[];
   /** Only real server text deltas belong here. No typewriter animation. */
   streamingText?: string;
 };
@@ -46,6 +48,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const compact = keyboard || height < 700 || fontScale >= 1.5 || p.pending;
+  const pinned = p.card(compact);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
     const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboard(false));
@@ -60,7 +63,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
         <Press accessibilityRole="button" accessibilityLabel="Opcije" accessibilityHint="Opcije razgovora." onPress={p.onOptions} haptic="select" style={iconButton}>
           <DotsThree size={26} weight="bold" color={sys.color.ink} /></Press>
       </View>
-      <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardCompact]}>{p.card(compact)}</View>
+      {/* Before the first word there is no draft to pin, and an empty card pushed the one
+          invitation on the screen below the fold. The caller returns null until it has something. */}
+      {pinned ? <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardCompact]}>{pinned}</View> : null}
       <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex} contentContainerStyle={s.thread}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScroll={event => { const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -71,6 +76,12 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.messages.length === 0 ? <View style={s.welcome}>
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
+          {p.openings?.length && p.canEdit ? <View style={s.openings}>
+            {p.openings.map(opening => <Press key={opening} accessibilityRole="button" accessibilityLabel={opening}
+              accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš." haptic="select" style={s.opening}
+              onPress={() => { p.onChange(opening + ' '); setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
+              <T variant="meta" style={s.openingText}>{opening}</T></Press>)}
+          </View> : null}
         </View> : p.messages.map(message => <ConversationBubble key={message.id} {...message} />)}
         {p.streamingText ? <View style={s.message}><T variant="label" style={s.assistantLabel}>USKOČI</T>
           <T selectable style={s.body}>{p.streamingText}</T></View> : null}
@@ -139,6 +150,10 @@ const s = StyleSheet.create({
   welcome: { gap: 12, paddingTop: 14, paddingBottom: 8, maxWidth: 330 },
   welcomeTitle: { color: sys.color.ink },
   welcomeCopy: { lineHeight: 24 },
+  openings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
+  opening: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: sys.radius.pill,
+    borderWidth: 1, borderColor: a.color.cardLine, backgroundColor: a.color.wash },
+  openingText: { color: a.color.green, fontWeight: '600' },
   assistantLabel: { color: a.color.green, letterSpacing: 0.9 },
   userLabel: { color: sys.color.muted, letterSpacing: 0.6 },
   message: { gap: 6, alignSelf: 'flex-start', maxWidth: '96%' },

@@ -38,6 +38,30 @@ it('keeps recovery scrollable and composer reachable, without discarding a pendi
   expect(StyleSheet.flatten(thread.props.style).minHeight).toBe(0);
   expect(p.onSend).not.toHaveBeenCalled();
 });
+it('offers a way in before the first word, and one tap puts it in the message',async()=>{
+  // 38 of the first 62 conversations never received a single message: the screen opened, said
+  // "Reci šta ti treba" over an empty card, and was left. An opening is a start, not a command,
+  // so it lands in the composer for the person to finish rather than being sent for them.
+  const p=props();p.openings=['Treba mi prevoz','Treba mi majstor'];
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  const opening=tree.root.findByProps({accessibilityLabel:'Treba mi prevoz'});
+  await act(async()=>opening.props.onPress());
+  expect(p.onChange).toHaveBeenCalledWith('Treba mi prevoz ');
+  expect(p.onSend).not.toHaveBeenCalled();
+});
+it('hides the pinned area entirely when there is nothing yet to pin',async()=>{
+  const p=props();p.card=jest.fn(()=>null);
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(tree.root.findAllByProps({testID:'ai-pinned-card'})).toHaveLength(0);
+});
+it('does not offer openings once the conversation has started, or while it cannot be edited',async()=>{
+  const p=props();p.openings=['Treba mi prevoz'];p.messages=[{id:'m1',fromAi:false,body:'Treba mi krečenje'}];
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(tree.root.findAllByProps({accessibilityLabel:'Treba mi prevoz'})).toHaveLength(0);
+  const closed=props();closed.openings=['Treba mi prevoz'];closed.canEdit=false;
+  await act(async()=>tree.update(<AiConversationShell {...closed}/>));
+  expect(tree.root.findAllByProps({accessibilityLabel:'Treba mi prevoz'})).toHaveLength(0);
+});
 it('an empty status fragment does not permanently collapse a normal task card',async()=>{
   const p=props();p.status=<></>;
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});

@@ -96,6 +96,9 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
  * The live card follows the V5 anatomy: a kicker with a signal dot, the title, the
  * place and time as icon rows, then a hairline foot with the price and the people.
  */
+/** Three ways in, taken from what people actually opened a conversation to ask for. */
+const OPENINGS = ['Treba mi prevoz', 'Treba mi majstor', 'Treba mi pomoć oko selidbe'] as const;
+
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
   const [panel, setPanel] = useState<'options' | 'points' | null>(null);
@@ -126,10 +129,14 @@ export function IntakePresentation(props: Props) {
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
-    welcome="Reci šta ti treba." welcomeDetail=""
+    welcome="Reci šta ti treba."
+    welcomeDetail="Ispričaj svojim rečima — glasom ili kucanjem. Ja hvatam detalje sa strane, ti potvrđuješ šta je tačno."
+    openings={OPENINGS}
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
-    card={compact => <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
+    // Nothing is pinned until the conversation has said or taken something: an empty card at the
+    // top of a fresh screen states a draft that does not exist yet and buries the invitation.
+    card={compact => !conversation.facts.length && !messages.length ? null : <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
       accessibilityHint="Detaljan pregled svih podataka pre objave." accessibilityState={{ disabled: !props.canReview }}
       disabled={!props.canReview} onPress={props.onReview} haptic={props.canReview ? 'select' : 'none'} scaleTo={1}
       style={[s.taskCard, compact && s.taskCardCompact, !conversation.facts.length && s.taskCardEmpty]}>
