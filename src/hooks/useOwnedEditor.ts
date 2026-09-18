@@ -12,6 +12,10 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
   const identity = useMemo(() => ({}), [read, accountId, accountRevision, intent]);
   const owner = useRef<{ identity: object; current: () => boolean; generation: number;
     writing: boolean; reading: boolean; loaded: boolean; reconcileRequired: boolean } | null>(null);
+  const seenIdentity = useRef<object | null>(null);
+  // Losing focus has to reach the render, and it used to reach it only as a side effect of emptying
+  // the data. Nothing is emptied now, so the blur says so itself.
+  const [, redraw] = useState(0);
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -52,19 +56,29 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
   }, [read, identity]);
 
   useFocusEffect(useCallback(() => {
+    // This effect runs both when the screen is focused again and when the account or intent has
+    // changed under it. Only the second is a reason to forget: coming back to a screen you left a
+    // moment ago used to empty it and read it from the server again, so every step in and out of a
+    // sub-screen cost a round trip and a skeleton. The unknown outcome of a save survives too,
+    // because leaving the screen does not settle it.
+    const changed = seenIdentity.current !== identity;
+    seenIdentity.current = identity;
     const scope = { identity, generation: 0, writing: false, reading: false, loaded: false, reconcileRequired: false,
       current: () => owner.current === scope &&
       !!accountId && sesijaSada().user?.id === accountId &&
       sesijaSada().accountRevision === accountRevision && ulogaSada() === intent };
     owner.current = scope;
-    setBusy(false); setUncertain(false); setSaved(false); setData(null);
+    setBusy(false); setSaved(false);
+    if (changed) { setUncertain(false); setData(null); }
     if (accountId) void refresh();
     else { setLoading(false); setError('Prijavi se da urediš podatke.'); }
     return () => {
       if (owner.current !== scope) return;
       owner.current = null;
-      // Native modals live above retained tabs; unmount the editor body on blur.
-      setData(null); setLoading(true); setBusy(false); setSaved(false); setError(null);
+      // Nothing is shown while blurred either way: `visible` below is false without an owner, so a
+      // native modal above a retained tab still sees no editor body. What is kept is only kept for
+      // the moment the screen comes back.
+      setBusy(false); setSaved(false); setError(null); redraw(value => value + 1);
     };
   }, [accountId, accountRevision, intent, refresh, identity]));
 

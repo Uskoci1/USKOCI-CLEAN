@@ -87,6 +87,24 @@ describe('owned location editor lifecycle', () => {
     expect(snapshot().error).toContain('Proveri vezu');
   });
 
+  it('shows what the screen had when it comes back, and forgets only when the account changes', async () => {
+    // Stepping into a sub-screen and back used to empty the editor and read it from the server
+    // again — a round trip and a skeleton for every step in and out.
+    const read = jest.fn().mockResolvedValueOnce(ok('Knez Mihailova 6')).mockResolvedValueOnce(ok('Knez Mihailova 8'));
+    await render(read);
+    mockFocused = false; await act(async () => tree.update(<Probe read={read} />));
+    mockFocused = true; await act(async () => tree.update(<Probe read={read} />));
+    // The value is there before the second read lands, not after it.
+    expect(snapshot().data).toBe('Knez Mihailova 8');
+    expect(read).toHaveBeenCalledTimes(2);
+
+    // A different account is a different person: nothing of the previous one survives the change.
+    mockSession = { user: { id: 'account-b' }, accountRevision: 1, sessionEpoch: 1 };
+    read.mockReturnValueOnce(new Promise(() => undefined));
+    await act(async () => tree.update(<Probe read={read} />));
+    expect(snapshot().data).toBeNull();
+  });
+
   it('discards an older overlapping read even when it resolves last', async () => {
     const old = deferred<Ishod<string>>(), current = deferred<Ishod<string>>();
     const read = jest.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);

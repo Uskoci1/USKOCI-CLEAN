@@ -19,8 +19,10 @@ export function useFocusedResource<T>(load: () => Promise<T>) {
     // but never start a known-background read. Every pause retires its generation.
     if (AppState.currentState !== 'background' && AppState.currentState !== 'inactive') model.start();
     const subscription = AppState.addEventListener('change', value => {
+      // Leaving the app is not the same as leaving the screen: the recents switcher photographs
+      // whatever is on it, so that one forgets, and moving between screens does not.
       if (value === 'active') model.start();
-      else model.stop();
+      else model.forget();
     });
     return () => { subscription.remove(); model.stop(); };
   }, [model]));
