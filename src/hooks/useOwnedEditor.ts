@@ -29,14 +29,22 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
     scope.loaded = false;
     setLoading(true);
     setError(null);
-    setData(null);
+    // Not `setData(null)` here. Pressing "Osveži" or "Proveri stanje" used to empty the screen and
+    // then draw it again, which on a phone reads as having deleted the thing you were looking at.
+    // A change of account or intent is what makes a previous read worthless, and that is the identity
+    // guard above and the reset in the identity effect — both still clear everything. Whether this
+    // read keeps the old values is decided below, by what comes back.
     setSaved(false);
     try {
       const result = await read();
       if (!scope.current() || generation !== scope.generation) return;
       if (result.ok) { scope.loaded = true; scope.reconcileRequired = false; setData(result.podatak); setUncertain(false); }
-      else setError(result.poruka);
+      // The server answered and refused: it is saying our view is not the current one, so there is
+      // nothing left on screen worth believing.
+      else { setData(null); setError(result.poruka); }
     } catch {
+      // The call never got an answer. Nothing has said the values are wrong — only that we could not
+      // check them — so they stay, under the error.
       if (scope.current() && generation === scope.generation) setError('Podaci nisu učitani. Proveri vezu i pokušaj ponovo.');
     } finally {
       if (scope.current() && generation === scope.generation) { scope.reading = false; setLoading(false); }

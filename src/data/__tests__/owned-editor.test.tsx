@@ -68,6 +68,25 @@ describe('owned location editor lifecycle', () => {
     expect(command).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps what is on screen while it re-reads, and after a call that never answered', async () => {
+    const pending = deferred<Ishod<string>>();
+    const read = jest.fn().mockResolvedValueOnce(ok('Knez Mihailova 6'))
+      .mockReturnValueOnce(pending.promise).mockRejectedValueOnce(new Error('offline'));
+    await render(read);
+
+    // Pressing "Osveži" used to empty the screen first and fill it again, which reads as loss.
+    await act(async () => { void snapshot().refresh(); });
+    expect(snapshot()).toMatchObject({ data: 'Knez Mihailova 6', loading: true });
+    await act(async () => pending.resolve(ok('Knez Mihailova 8')));
+    expect(snapshot()).toMatchObject({ data: 'Knez Mihailova 8', loading: false });
+
+    // The phone lost the network mid-read. Nothing said the address changed, only that we could not
+    // check it, so it stays under the error rather than the screen going blank.
+    await act(async () => { await snapshot().refresh(); });
+    expect(snapshot()).toMatchObject({ data: 'Knez Mihailova 8', loading: false });
+    expect(snapshot().error).toContain('Proveri vezu');
+  });
+
   it('discards an older overlapping read even when it resolves last', async () => {
     const old = deferred<Ishod<string>>(), current = deferred<Ishod<string>>();
     const read = jest.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
