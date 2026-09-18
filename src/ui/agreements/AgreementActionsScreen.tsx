@@ -21,8 +21,12 @@ type Form = { token: object; kind: 'PROPOSE' | 'CANCEL'; reentry: boolean; key: 
   price: string; scope: string; reason: string; zone: string; startDate: string; startTime: string; endDate: string; endTime: string;
   priceChanged: boolean; scopeChanged: boolean; startChanged: boolean; endChanged: boolean };
 const initial: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
+const deviceZone = (): string | undefined => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { return undefined; }
+};
+/** The same zone the form below types in, so the review and the fields cannot disagree. */
 const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && terms.endsAt === null ? 'Termin nije potvrđen'
-  : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt });
+  : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt }, deviceZone());
 function Terms({ title, terms }: { title: string; terms: AgreementChangeTerms | null }) {
   return <View style={s.group}><T style={s.heading}>{title}</T>{terms ? <>
     <T style={s.copy}>Cena: {terms.priceRsd.toLocaleString('sr-Latn-RS')} RSD</T>

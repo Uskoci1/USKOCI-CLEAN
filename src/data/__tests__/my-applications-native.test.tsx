@@ -92,7 +92,7 @@ it('shows distinct microsecond endpoints with an honest unknown timezone and the
   mockInterval.mockResolvedValue({ ok: true, podatak: { start: '2026-09-20T10:00:00.000001Z', end: '2026-09-20T10:00:00.000009Z' } });
   await render(); await tap('Pregledaj izmene: Unos ormara'); await tap('Izmeni prijavu');
   expect(text()).toContain('10:00:00.000001'); expect(text()).toContain('10:00:00.000009');
-  expect(text()).toContain('UTC · zona nije navedena'); expect(text()).toContain('12 osoba'); expect(text()).not.toContain('12 osobe');
+  expect(text()).not.toContain('zona nije navedena'); expect(text()).toContain('12 osoba'); expect(text()).not.toContain('12 osobe');
 });
 it('does not infer a missing interval as null and refuses editing after an interval read failure', async () => {
   mockInterval.mockResolvedValue({ ok: false, kod: 'CHANGED', poruka: 'private raw error' }); await editing();

@@ -67,6 +67,10 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
   </View>;
 });
 /** Prijave — the worker's personal workspace: what you applied to and where each application stands. Presentation only. */
+const deviceZone = (): string | undefined => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { return undefined; }
+};
+
 export function MyApplicationsPresentation(props: Props) {
   const visible = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
   const disabled = props.busy || props.pending || props.editingLoading;
@@ -112,7 +116,7 @@ export function MyApplicationsPresentation(props: Props) {
               <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T><TextInput accessibilityLabel="Broj ljudi" value={props.draft.people} keyboardType="number-pad" editable={!disabled} onChangeText={people => props.onChange({ ...props.draft!, people })} style={s.input} />
               <T variant="meta" tone="muted">Napomena</T><TextInput accessibilityLabel="Napomena uz ponudu" value={props.draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...props.draft!, note })} style={[s.input, s.multiline]} />
               <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {props.draft.start || props.draft.end
-                ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: props.draft.start, endsAt: props.draft.end }) : 'Nije naveden u Prijavi.'}</T>
+                ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: props.draft.start, endsAt: props.draft.end }, deviceZone()) : 'Nije naveden u Prijavi.'}</T>
               <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled} style={brandAction} />
               <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
             </View> : <><V2Action label="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} kind="primary" />

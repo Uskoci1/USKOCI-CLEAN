@@ -124,14 +124,21 @@ function agreementActions(raw: Record<string, unknown>, uid: string): DogovorRad
     izmenaNaCekanju: actions.pendingChanges.length > 0 };
 }
 
+const viewerZone = (): string | undefined => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { return undefined; }
+};
+
 function acceptedSchedule(terms: Record<string, unknown>): string {
   const start = terms.proposed_start_at, end = terms.proposed_end_at;
   if (start == null && end == null) return 'Termin nije potvrđen';
   if ((start != null && (typeof start !== 'string' || calendarInstant(start) === null)) ||
     (end != null && (typeof end !== 'string' || calendarInstant(end) === null))) return 'Termin nije dostupan';
-  // The workspace returns accepted instants but no accepted display timezone.
-  // Keep both endpoints and their precision; never substitute the parent task's time.
-  return needScheduleText({ kind: 'FIXED_WINDOW', startsAt: start as string | null ?? null, endsAt: end as string | null ?? null })
+  // The workspace returns accepted instants but no accepted display timezone, and the answer to
+  // that was UTC — so a Belgrade user read every agreed window two hours early, under a printed
+  // "(UTC · zona nije navedena)". The parent task's zone is still never substituted; the instants
+  // are simply shown in the zone the reader's own phone is in, which is what a time is read in.
+  return needScheduleText({ kind: 'FIXED_WINDOW', startsAt: start as string | null ?? null, endsAt: end as string | null ?? null },
+    viewerZone())
     + (start == null ? ' · početak nije potvrđen' : end == null ? ' · kraj nije potvrđen' : '');
 }
 

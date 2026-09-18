@@ -187,7 +187,7 @@ it('uses immutable agreed terms rather than the mutable parent task schedule', a
   mockRpc.mockResolvedValue({ data: { ...rawAgreement, startsAt: '2030-01-01T12:00:00Z' }, error: null });
   const result = await agreementClientService.dogovor('agr-1');
   expect(result?.vremeTekst).toContain('2026 · 10:00');
-  expect(result?.vremeTekst).toContain('UTC · zona nije navedena');
+  expect(result?.vremeTekst).not.toContain('zona nije navedena');
   expect(result?.vremeTekst).toContain('kraj nije potvrđen');
   expect(result?.vremeTekst).not.toContain('2030');
 });
