@@ -37,7 +37,10 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel }
             <V2Action label="Pokušaj ponovo" onPress={onRetry} />
           </View> : <>
             <View style={s.identity}>
-              <View style={s.avatar}>{photo?.(profile.profilId) ?? <T variant="title" style={s.initial}>{(profile.ime ?? 'U').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T>}</View>
+              {/* `photo` always returned an element, so this ?? never ran and every person without
+                  a picture got an empty disc. ProfilePhoto owns the fallback now. */}
+              <View style={s.avatar}>{photo ? photo(profile.profilId)
+                : <T variant="title" style={s.initial}>{(profile.ime ?? 'U').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T>}</View>
               <T accessibilityRole="header" variant="display" style={[s.ink, s.center]}>{profile.ime ?? 'Uskočer'}</T>
               {profile.grad ? <T variant="meta" tone="muted">{profile.grad}</T> : null}
               {profile.naslov ? <T variant="bodyStrong" style={[s.ink, s.center]}>{profile.naslov}</T> : null}

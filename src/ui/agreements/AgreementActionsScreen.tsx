@@ -152,7 +152,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
       </View> : review ? <View style={s.form}>
         {review.kind === 'CANCEL' ? <><T style={s.heading}>Otkazivanje Dogovora</T><T style={s.copy}>Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.</T><T style={s.copy}>{review.reason}</T></>
           : <><Terms title="Predloženi uslovi" terms={proposed} /><T style={s.copy}>{review.kind === 'PROPOSE' ? review.value.razlog : review.proposal.reason}</T>
-            <T style={s.copy}>{review.kind === 'PROPOSE' ? 'Uslovi se menjaju tek kada druga strana prihvati predlog.' : review.kind === 'WITHDRAW' ? 'Povlačite svoj predlog. Važeći uslovi ostaju.' : review.accept ? 'Prihvatanjem odmah počinju da važe prikazani novi uslovi. Server ponovo proverava raspored.' : 'Odbijate ovaj predlog. Važeći uslovi ostaju.'}</T></>}
+            <T style={s.copy}>{review.kind === 'PROPOSE' ? 'Uslovi se menjaju tek kada druga strana prihvati predlog.' : review.kind === 'WITHDRAW' ? 'Povlačiš svoj predlog. Važeći uslovi ostaju.' : review.accept ? 'Prihvatanjem odmah počinju da važe prikazani novi uslovi. Server ponovo proverava raspored.' : 'Odbijaš ovaj predlog. Važeći uslovi ostaju.'}</T></>}
         <V2Action label={actionLabel(review)} disabled={busy} onPress={() => { void send(); }} />
         <V2Action label="Odustani od radnje" kind="quiet" disabled={busy} onPress={() => { if (current() && reviewRef.current === review && !submitting.current) { reviewRef.current = null; setReview(null); setError(null); } }} />
       </View> : state.phase === 'UNKNOWN' ? <View style={s.form}>

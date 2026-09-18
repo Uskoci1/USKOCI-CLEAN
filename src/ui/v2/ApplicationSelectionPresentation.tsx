@@ -9,6 +9,7 @@ import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
+import { ProfilePhoto } from '../media/ContextPhotos';
 import { brandAction, card, iconButton, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
@@ -183,17 +184,23 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
       ListEmptyComponent={<View style={s.card}><T variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
       renderItem={({ item: k }) => compare ? <View style={s.comparison}>
         <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{k.ime}</T><T variant="meta" style={{ color: candidateTone(k) }}>{candidateState(k)}</T>
+        <T variant="meta" tone="muted" numberOfLines={1}>{k.ocenaTekst === '—' ? 'Nov Uskočer' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
         <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Cena za obim</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
         <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{peopleText(k.pokrivaMesta)}</T></View>
         <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T><T variant="meta" style={s.ink}>{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
         <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Uz ovu prijavu</T><T variant="meta" style={s.ink}>{capabilities(k)}</T></View>
         <V2Action label={`Otvori prijavu: ${k.ime}`} onPress={() => open(k)} />
       </View> : <View style={[s.candidate, k.mozeIzabrati && s.candidateSelectable]}>
-        <View style={s.row}><View style={s.avatar}><T variant="bodyStrong" style={s.initial}>{k.inicijali}</T></View>
-          <View style={s.grow}><T variant="heading" style={s.ink}>{k.ime}</T><T variant="meta" tone="muted">{k.pokrivaMesta} {k.pokrivaMesta === 1 ? 'osoba · dolazi samostalno' : 'osobe · dolazi tim'}</T></View>
+        {/* Choosing a person is the decision this screen exists for, and the row offered a name,
+            a price and a monogram: no face, no rating, nothing they said they can do. */}
+        <View style={s.row}><View style={s.avatar}><ProfilePhoto profileId={k.radnikProfilId} size={44} initial={k.inicijali} /></View>
+          <View style={s.grow}><T variant="heading" style={s.ink}>{k.ime}</T>
+            <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Nov Uskočer' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
+            <T variant="meta" tone="muted">{k.pokrivaMesta} {k.pokrivaMesta === 1 ? 'osoba · dolazi samostalno' : 'osobe · dolazi tim'}</T></View>
           <View style={s.stateChip}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View></View>
         <View style={s.row}><T style={[s.price, s.grow]}>{k.cena.prikaz}</T><T variant="meta" tone="muted">Za {k.pokrivaMesta} ljudi</T></View>
         <T variant="meta" tone="muted">{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T>
+        <T variant="meta" tone="muted" numberOfLines={2}>{capabilities(k)}</T>
         {k.napomena ? <T variant="body" style={s.ink}>{k.napomena}</T> : null}
         <V2Action label={`Pogledaj ponudu: ${k.ime}`} onPress={() => open(k)} kind={k.mozeIzabrati ? 'primary' : 'secondary'} />
       </View>}

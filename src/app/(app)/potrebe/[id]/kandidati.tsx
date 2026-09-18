@@ -100,7 +100,7 @@ export default function Kandidati() {
     open={openOffer} />;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
-    publicPhoto={profileId => <ProfilePhoto profileId={profileId} fallback={null} />}
+    publicPhoto={profileId => <ProfilePhoto profileId={profileId} initial={null} />}
     readAgreement={async () => {
       if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
       const result = await readSelectedAgreement(data.need.id, candidate.prijavaId);

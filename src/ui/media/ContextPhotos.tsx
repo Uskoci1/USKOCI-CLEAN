@@ -6,6 +6,7 @@ import { AuthorizedPhoto } from './AuthorizedPhoto';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { User } from 'phosphor-react-native';
 
 export function NeedPhotos({ needId }: { needId: string }) {
   const read = useCallback(() => mediaClientService.readNeedPhotos(needId), [needId]);
@@ -19,11 +20,27 @@ export function NeedPhotos({ needId }: { needId: string }) {
   </View>;
 }
 
-export function ProfilePhoto({ profileId, fallback, size }: { profileId: string; fallback: ReactNode; size?: number }) {
+/**
+ * A person's face, or something standing in for it.
+ *
+ * Two call sites passed `fallback={null}` and the sheet above them tried to catch that with `??`,
+ * which never fired because this component always returned an element. Anyone without a photo got
+ * an empty green disc, and a photo that failed to load looked exactly like a person who had none.
+ * The decision belongs here: a caller may pass its own fallback, but it cannot ask for nothing.
+ */
+export function ProfilePhoto({ profileId, fallback, size, initial }: { profileId: string; fallback?: ReactNode; size?: number; initial?: string | null }) {
   const read = useCallback(() => mediaClientService.readProfilePhoto(profileId), [profileId]);
   const editor = useOwnedEditor(read), photo = editor.data?.photo;
-  return photo ? <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija"
-    contentFit={size ? 'cover' : 'contain'}
-    style={size ? { width: size, height: size, borderRadius: size / 2, aspectRatio: 1 }
-      : { width: 112, height: 132, borderRadius: sys.radius.card, aspectRatio: 112 / 132 }} /> : <>{fallback}</>;
+  const box = size ? { width: size, height: size, borderRadius: size / 2, aspectRatio: 1 }
+    : { width: 112, height: 132, borderRadius: sys.radius.card, aspectRatio: 112 / 132 };
+  if (photo) return <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija"
+    contentFit={size ? 'cover' : 'contain'} style={box} />;
+  if (editor.loading) return <View accessibilityLabel="Učitavamo fotografiju" style={[box, { backgroundColor: sys.color.skeleton }]} />;
+  if (fallback) return <>{fallback}</>;
+  const letter = (initial ?? '').trim().slice(0, 1).toLocaleUpperCase('sr-Latn-RS');
+  return <View accessibilityLabel={letter ? `Bez fotografije: ${letter}` : 'Bez fotografije'}
+    style={[box, { backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }]}>
+    {letter ? <T variant="title" style={{ color: sys.color.green }}>{letter}</T>
+      : <User size={size ? Math.round(size / 2.6) : 34} color={sys.color.green} />}
+  </View>;
 }

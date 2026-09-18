@@ -104,7 +104,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} />}
         contentContainerStyle={s.list}>
-        <T variant="meta" tone="muted" style={s.center}>Razgovor o ovom Dogovoru. Povucite naniže za nove poruke.</T>
+        <T variant="meta" tone="muted" style={s.center}>Razgovor o ovom Dogovoru. Povuci naniže za nove poruke.</T>
         {loading && <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} />}
         {error && <View style={s.errorBlock}>
           <T variant="bodyStrong" style={s.ink}>Poruke nisu učitane</T>

@@ -127,5 +127,5 @@ export default function PrilikaDetaljiEkran() {
     back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/prilike'))}
     retry={retry} apply={compose}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
-    publicPhoto={profileId => <ProfilePhoto profileId={profileId} size={96} fallback={null} />} />;
+    publicPhoto={profileId => <ProfilePhoto profileId={profileId} size={96} initial={null} />} />;
 }
