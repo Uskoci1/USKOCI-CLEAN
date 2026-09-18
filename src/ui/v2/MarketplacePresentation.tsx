@@ -97,8 +97,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       </View>
       <View style={s.sectionRow}>
         <View style={s.sectionCopy}>
-          <T variant="heading" style={s.sectionTitle}>{sectionTitle}</T>
-          {count !== null ? <T variant="heading" style={s.count}>{count}</T> : null}
+          {count === null ? <T variant="note" tone="muted">Učitavamo…</T>
+            : <T variant="note" tone="muted" numberOfLines={1}>{plural(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
         </View>
         <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
         <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
@@ -165,10 +165,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
   segmentRow: { paddingHorizontal: 20, paddingTop: 6 },
-  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6 },
   sectionCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  sectionTitle: { color: sys.color.ink, flexShrink: 1 },
-  count: { color: sys.color.muted, fontWeight: '500', fontVariant: ['tabular-nums'] },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
   input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
