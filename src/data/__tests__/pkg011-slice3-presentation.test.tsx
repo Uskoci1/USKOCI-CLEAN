@@ -37,7 +37,7 @@ function Applications({ rows, loading = false }: { rows: MojaPrijavaProjekcija[]
   return <MyApplicationsPresentation intent="uskocer" rows={rows} loading={loading} unavailable={false} message={null} notice={null} tab="all" onTab={noop}
     expanded={null} draft={null} busy={false} editingLoading={false} pending={false} canRetry={false} canReset={false}
     onRefresh={noop} onExplore={noop} onProfile={noop} onBack={noop} onReview={noop} onClose={noop} onEdit={noop} onChange={noop} onCancelEdit={noop}
-    onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onRetry={noop} onReset={noop} />;
+    onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} />;
 }
 test('Prijave names the intent, offers tabs with counts as real tabs, and gives each application the actions its state allows', async () => {
   await act(async () => { tree = create(<Applications rows={[application('a', 'SUBMITTED'), application('b', 'SELECTED'), application('c', 'STALE_REVIEW_REQUIRED')]} />); });

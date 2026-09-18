@@ -173,7 +173,7 @@ function OwnedNeed({ id }: { id: string }) {
   };
 
   return <NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
-    photos={potreba ? <NeedPhotos needId={potreba.id} /> : undefined}
+    photos={potreba ? <NeedPhotos needId={potreba.id} owned={intent === 'narucilac'} /> : undefined}
     qaAction={potreba && intent === 'narucilac' ? <TaskQaEntry disabled={!canAct()}
       onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id } })); }} /> : undefined}
     lifecycleActions={intent === 'narucilac' && uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}

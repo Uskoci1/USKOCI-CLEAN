@@ -183,6 +183,7 @@ export default function MojePrijave() {
     onCancelEdit={() => { if (current() && idle()) { session.draft = null; session.editRevision++; session.message = null; render(v => v + 1); } }}
     onKeep={p => makeIntent(p, 'KEEP')} onUpdate={p => makeIntent(p, 'UPDATE')} onWithdraw={withdraw}
     onAgreement={p => { if (rowCurrent(p) && !session.pending && p.stanje === 'SELECTED' && p.dogovorId) router.push(`/dogovor/${p.dogovorId}` as any); }}
+    onTask={p => { if (rowCurrent(p) && !session.pending) router.push({ pathname: '/prilike/[id]', params: { id: p.potrebaId } }); }}
     onRetry={() => { if (pending?.result === 'unknown' && pending === session.pending) perform(pending); }}
     onReset={() => { if (current() && pending === session.pending && pending?.reconciled && (pending.result === 'rejected' || pending.result === 'receipt') && !editor.busy && !editor.uncertain) {
       session.pending = null; clearReview(); render(v => v + 1);

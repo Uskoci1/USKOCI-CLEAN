@@ -8,10 +8,21 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { User } from 'phosphor-react-native';
 
-export function NeedPhotos({ needId }: { needId: string }) {
+/**
+ * `owned` is the owner looking at their own task: for them an absence is something they can still
+ * do something about, and saying nothing at all made "no photos" indistinguishable from "photos did
+ * not load". For everyone else an empty section is just noise, so it stays hidden.
+ */
+export function NeedPhotos({ needId, owned = false }: { needId: string; owned?: boolean }) {
   const read = useCallback(() => mediaClientService.readNeedPhotos(needId), [needId]);
   const editor = useOwnedEditor(read);
-  if (!editor.data?.photos.length && !editor.error) return null;
+  if (editor.loading && !editor.data) return null;
+  if (!editor.data?.photos.length && !editor.error && !owned) return null;
+  if (!editor.data?.photos.length && !editor.error) return <View style={{ gap: 8, backgroundColor: sys.color.surface,
+    borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18 }}>
+    <T accessibilityRole="header" variant="heading" style={{ color: sys.color.ink }}>Fotografije</T>
+    <T variant="note" tone="muted">Nema nijedne. Fotografija pomaže da neko odmah vidi o čemu se radi.</T>
+  </View>;
   return <View style={{ gap: 12, backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18 }}>
     {editor.data?.photos.length ? <T accessibilityRole="header" variant="heading" style={{ color: sys.color.ink }}>Fotografije</T> : null}
     {editor.data?.photos.map((photo, i) => <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId} needId={needId} label={`Fotografija zadatka ${i + 1}`} />)}

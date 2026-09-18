@@ -35,6 +35,8 @@ type Props = {
   onChange: (draft: OfferEdit) => void; onCancelEdit: () => void; onKeep: (p: MojaPrijavaProjekcija) => void;
   onUpdate: (p: MojaPrijavaProjekcija) => void; onWithdraw: (p: MojaPrijavaProjekcija) => void;
   onAgreement: (p: MojaPrijavaProjekcija) => void; onRetry: () => void; onReset: () => void;
+  /** The task the application belongs to. Without it a worker who applied cannot get back to it. */
+  onTask: (p: MojaPrijavaProjekcija) => void;
   /** Which intent the user is in; shown in the header eyebrow. */
   intent?: Uloga;
 };
@@ -42,9 +44,9 @@ function Note({ children, tone = 'muted' }: { children: ReactNode; tone?: 'muted
   return <View style={[s.notice, tone === 'warn' && s.noticeWarn]}><T accessibilityRole="alert" variant="body" style={s.ink}>{children}</T></View>;
 }
 /** One application with the shared card anatomy: status → Task → where/when → your offer in the foot → the actions this state allows. */
-const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, children, onReview, onAgreement, onWithdraw, disabled }: {
+const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, children, onReview, onAgreement, onWithdraw, onTask, disabled }: {
   row: MojaPrijavaProjekcija; expanded: boolean; children?: ReactNode; onReview: () => void;
-  onAgreement: () => void; onWithdraw: () => void; disabled: boolean;
+  onAgreement: () => void; onWithdraw: () => void; onTask: () => void; disabled: boolean;
 }) {
   const stale = p.stanje === 'STALE_REVIEW_REQUIRED';
   return <View style={[card, s.card, stale && s.attentionCard, p.stanje === 'SELECTED' && s.selectedCard]}>
@@ -62,6 +64,9 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
       {!expanded ? <V2Action label={`Pregledaj izmene: ${p.naslov}`} onPress={onReview} disabled={disabled} style={brandAction} /> : null}</> : null}
     {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label={`Otvori Dogovor: ${p.naslov}`} onPress={onAgreement} kind="primary" disabled={disabled} /> : null}
     {p.stanje !== 'STALE_REVIEW_REQUIRED' && p.napomena ? <T variant="note" tone="muted">{p.napomena}</T> : null}
+    {/* The list offered the agreement, the changes and the withdrawal — never the task itself, so a
+        worker who had applied could not read it again, or reach its questions, from here. */}
+    <V2Action label={`Otvori zadatak: ${p.naslov}`} onPress={onTask} kind="quiet" disabled={disabled} style={s.quietLeft} />
     {!stale && p.mozePovuci ? <V2Action label={`Povuci prijavu: ${p.naslov}`} onPress={onWithdraw} kind="destructive" disabled={disabled} style={s.quietLeft} /> : null}
     {children}
   </View>;
@@ -104,7 +109,8 @@ export function MyApplicationsPresentation(props: Props) {
             {props.canReset ? <V2Action label="Pregledaj aktuelnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</View> : null}
         </View> : null}
         renderItem={({ item: p }) => <ApplicationCard row={p} expanded={props.expanded === p.prijavaId} disabled={disabled}
-          onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)}>
+          onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)}
+          onTask={() => props.onTask(p)}>
           {props.expanded === p.prijavaId ? <View style={s.review}>
             <T variant="label" style={s.eyebrow}>Aktuelni uslovi · verzija {p.potrebaRevizija}</T><T variant="body" style={s.ink}>{p.opis || 'Dodatni opis nije naveden.'}</T>
             <T variant="note" tone="muted">Tvoja Prijava se odnosi na verziju {p.prijavaRevizija}. Zadržavanje čuva ponuđenu cenu, obim, termin i napomenu.</T>
