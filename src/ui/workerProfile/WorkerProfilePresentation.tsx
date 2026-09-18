@@ -69,9 +69,11 @@ export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'capacity';
  * and vehicles behind a row → work area → introduction behind a row → availability.
  * Every field keeps its label as the input's spoken name; the route owns saving.
  */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest }: { draft: WorkerDraft; change: (value: WorkerDraft) => void;
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, unmet }: { draft: WorkerDraft; change: (value: WorkerDraft) => void;
   disabled: boolean; status: StanjeProfila | null; navigate: (path: '/profil/lokacija' | '/profil/dostupnost' | '/raspored') => void;
-  focusRequest?: WorkerProfileFocusRequest | null }) {
+  focusRequest?: WorkerProfileFocusRequest | null;
+  /** What activation is actually waiting for, named by the same checks that gate it. */
+  unmet?: readonly string[] }) {
   const [resourcesOpen, setResourcesOpen] = useState(false), [bioOpen, setBioOpen] = useState(!!draft.biografija);
   const nameRef = useRef<TextInput>(null), skillRef = useRef<TextInput>(null), capacityRef = useRef<TextInput>(null);
   useEffect(() => {
@@ -89,9 +91,15 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <T variant="title" style={[s.ink, s.center]}>{draft.ime.trim() || 'Šta možeš da preuzmeš?'}</T>
       <View style={[s.statusChip, { backgroundColor: status === 'ACTIVE' ? sys.color.greenSoft : status === 'SUSPENDED' ? sys.color.dangerSoft : sys.color.warnSoft }]}>
         <T variant="meta" style={{ color: statusTone, fontWeight: '600' }}>{statusText}</T></View>
+      {/* The old sentence sent people to Dostupnost and then to skills, and activation gates on
+          neither of those two alone: it gates on the name and one skill, on the work area, and on
+          the team capacity — and never on availability at all. Doing what the screen said left the
+          profile a draft with nothing saying why. It now names the checks that are actually open. */}
       {status !== 'ACTIVE' ? <T variant="meta" tone="muted" style={s.center}>{status === 'SUSPENDED'
         ? 'Dok traje suspenzija, zadaci ti se ne nude.'
-        : 'Dok je nacrt, zadaci ti se ne nude. Dopuni veštine i dostupnost pa se aktivira.'}</T> : null}
+        : unmet?.length ? `Dok je nacrt, zadaci ti se ne nude. Za aktivaciju još treba: ${unmet.join(' · ')}.`
+          : 'Dok je nacrt, zadaci ti se ne nude. Sačuvaj i aktiviraj profil.'}</T> : null}
+      {status === 'DRAFT' && unmet?.length ? <T variant="meta" tone="muted" style={s.center}>Dostupnost nije uslov za aktivaciju.</T> : null}
     </View>
     <View style={s.card}>
       <T variant="heading" style={s.ink}>Ko si i šta preuzimaš</T>

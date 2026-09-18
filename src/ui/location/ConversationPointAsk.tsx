@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationReview } from '../../contracts/location';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { needLocationClientService } from '../../data/locationClientService';
@@ -110,15 +110,29 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     if (slots.every(slot => all.some(existing => existing.slot === slot))) void commit(all, review);
   };
 
+  // Leaving with a point confirmed but not yet committed threw it away without a word. Only the
+  // last point of a set commits, so on a two-point task that is exactly what "Kasnije" did.
+  const leave = () => {
+    if (!points.length || state.kind === 'SAVED') { props.onClose(); return; }
+    Alert.alert('Potvrđena tačka nije sačuvana',
+      'Potvrdio si tačku, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova se gubi.',
+      [{ text: 'Nastavi potvrđivanje', style: 'cancel' }, { text: 'Izađi ipak', style: 'destructive', onPress: props.onClose }]);
+  };
+
   if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaram mesto zadatka…</T>;
   if (state.kind === 'SAVED') return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="success">Mesto je sačuvano. Zadatak sada može da se objavi.</T>
     <Button kind="primary" label="Vrati se u razgovor" onPress={props.onClose} />
   </View>;
+  // A failed save used to offer a reload, which re-read the server over the pins the person had
+  // just placed by hand: the work that is hardest to get was the work least protected. The points
+  // stay in state, and the retry sends the same ones again.
   if (state.kind === 'FAILED') return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="danger">{state.message}</T>
-    <Button label="Pokušaj ponovo" onPress={() => { void load(); }} />
-    <Button kind="quiet" label="Zatvori" onPress={props.onClose} />
+    {points.length ? <T variant="meta" tone="muted">Tvoje potvrđene tačke nisu izgubljene.</T> : null}
+    {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { void commit(points, review); }} /> : null}
+    <Button kind="quiet" label="Učitaj mesto ponovo" onPress={() => { void load(); }} />
+    <Button kind="quiet" label="Zatvori" onPress={leave} />
   </View>;
 
   if (!review || !country || !geography || !slots.length) return <View style={{ gap: 12 }}>
@@ -142,7 +156,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
       point={points.find(point => point.slot === next)} scopeKey={`${review.conversationId}:${review.revision}`}
       countryCode={country} initialQuery={seed(next, review.value)} autoLocate resolver={resolver}
       disabled={state.kind === 'SAVING'} onInvalidate={() => {}} onConfirm={confirm} /> : null}
-    <Button kind="quiet" label="Kasnije" onPress={props.onClose} />
+    <Button kind="quiet" label="Kasnije" onPress={leave} />
   </View>;
 }
 

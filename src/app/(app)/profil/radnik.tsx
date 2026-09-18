@@ -172,7 +172,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       }} />
       {validation || editor.error ? <T accessibilityRole="alert" variant="body" style={{ color: sys.color.danger }}>{validation ?? editor.error}</T> : null}
       {pending && !transportBusy ? <T variant="meta" tone="muted">Tvoj unos je zadržan. Prikaz potvrđuje samo podatke koji su ponovo pročitani sa servera.</T> : null}
-      <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest} />
+      <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
+        unmet={[...(!basicsReady ? ['ime i bar jedna veština'] : []), ...(!locationReady ? ['područje rada'] : []),
+          ...(!capacityReady ? ['kapacitet tima'] : [])]} />
     </>}
   </WorkerProfileFrame>;
 }
