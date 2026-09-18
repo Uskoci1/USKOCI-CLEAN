@@ -153,7 +153,7 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     await chooseMode('Od mesta do mesta'); await check(); await save();
     expect(onSave).not.toHaveBeenCalled();
-    expect(text()).toContain('Unesite mesto');
+    expect(text()).toContain('Unesi mesto');
     await edit('Odredište — grad ili mesto', 'Beograd');
     await check(); await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd' } } }));

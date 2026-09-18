@@ -34,6 +34,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const [notes, setNotes] = useState(point?.accessNotes ?? '');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
+  // With no point the map opens at [0,0] zoom 1 - a hemisphere of empty ocean, which reads as
+  // broken. Where the address is already known the map has no job until something resolves,
+  // so it waits. Opt-in with autoLocate; the long form still shows it from the start.
+  const [placeByHand, setPlaceByHand] = useState(false);
   const [searchText, setSearchText] = useState(initialQuery);
   const [lookup, setLookup] = useState<ConfiguredLocationResolution | { status: 'IDLE' | 'LOADING' }>({ status: 'IDLE' });
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
@@ -134,17 +138,17 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   return <View style={s.card}>
     <T variant="heading">{title} na mapi</T>
-    <T variant="meta" tone="muted">Izaberite tačno mesto i potvrdite ga. Tačka i detalji ispod ostaju privatni.</T>
+    <T variant="meta" tone="muted">Izaberi tačno mesto i potvrdi ga. Tačka i detalji ispod ostaju privatni.</T>
     <LocationField label={`${title} — pronađi mesto`} value={searchText} maxLength={1000} editable={!disabled && focused} onChangeText={changeSearch} />
     <Button label={lookup.status === 'LOADING' ? 'Tražimo mesto…' : lookup.status === 'UNAVAILABLE' ? 'Pokušaj ponovo' : 'Pronađi na mapi'}
       kind="secondary" disabled={disabled || !focused || !searchText.trim() || !countryCode || lookup.status === 'LOADING'} onPress={search} />
     {lookup.status === 'LOADING' ? <T variant="meta" accessibilityLiveRegion="polite">Tražimo predloge za uneto mesto…</T> : null}
-    {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga mesta još nije aktivirana. Tačku možete izabrati na mapi.</T> : null}
-    {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi trenutno nisu dostupni. Pokušajte ponovo ili izaberite tačku na mapi.</T> : null}
-    {lookup.status === 'RATE_LIMITED' ? <T variant="meta" accessibilityRole="alert">Previše pretraga za kratko vreme. Sačekajte pa pokušajte ponovo ili izaberite tačku na mapi.</T> : null}
-    {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesite mesto i proverite izabranu državu.</T> : null}
+    {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga mesta još nije aktivirana. Tačku možeš izabrati sam na mapi.</T> : null}
+    {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi trenutno nisu dostupni. Pokušaj ponovo ili izaberi tačku na mapi.</T> : null}
+    {lookup.status === 'RATE_LIMITED' ? <T variant="meta" accessibilityRole="alert">Previše pretraga za kratko vreme. Sačekaj pa pokušaj ponovo ili izaberi tačku na mapi.</T> : null}
+    {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesi mesto i proveri izabranu državu.</T> : null}
     {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">{lookupMode === 'reverse'
-      ? 'Adresa za ovu tačku nije pronađena. Možete je uneti ručno.' : 'Nema predloga za uneti tekst. Precizirajte mesto ili izaberite tačku na mapi.'}</T> : null}
+      ? 'Adresa za ovu tačku nije pronađena. Možeš je uneti sam.' : 'Nema predloga za uneti tekst. Preciziraj mesto ili izaberi tačku na mapi.'}</T> : null}
     {lookup.status === 'PROPOSALS' ? <T variant="meta" accessibilityRole="link"
       onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
     {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <Button
@@ -152,17 +156,20 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       kind="quiet" disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
     {selectedLabel ? <T variant="meta">Predlog za proveru: {selectedLabel}</T> : null}
     {lookup.status !== 'IDLE' || selectedLabel ? <Button label="Otkaži pretragu" kind="quiet" disabled={disabled || !focused} onPress={cancelSearch} /> : null}
-    <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={disabled || !focused} />
+    {!autoLocate || position || placeByHand
+      ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={disabled || !focused} />
+      : <Button label="Izaberi tačku sam na mapi" kind="quiet" disabled={disabled || !focused}
+        onPress={() => setPlaceByHand(true)} />}
     {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}
       kind="quiet" disabled={disabled || !focused || lookup.status === 'LOADING'} onPress={reverse} /> : null}
     <LocationDetails label={`${title} — privatni detalji tačke`} disabled={disabled || !focused}
-      summary={address || notes ? 'Privatni detalji su uneti. Otvorite za pregled.' : 'Dodajte adresu ili napomenu po potrebi'}>
+      summary={address || notes ? 'Privatni detalji su uneti. Otvori za pregled.' : 'Dodaj adresu ili napomenu po potrebi'}>
     <LocationField label={`${title} — privatna adresa (opciono)`} value={address} maxLength={1000} editable={!disabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(true); setAddress(value); invalidate(); } }} />
     <LocationField label={`${title} — privatne napomene za pristup (opciono)`} value={notes} maxLength={2000} multiline editable={!disabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(true); setNotes(value); invalidate(); } }} />
     </LocationDetails>
-    {error ? <T accessibilityRole="alert" tone="danger">Proverite izabranu tačku i privatne podatke.</T> : null}
+    {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
     <T variant="meta" tone={point && !pending ? 'success' : 'muted'}>
       {point && !pending ? 'Tačka je potvrđena u ovom obrascu.' : pending ? 'Izmena tačke još nije potvrđena.' : 'Tačka još nije potvrđena.'}
     </T>
