@@ -55,13 +55,13 @@ procedure for when the owner does sign in is in `docs/implementation/execution/A
 | Item | Reachable from | Verdict |
 | --- | --- | --- |
 | `src/data/lazniIzvor.ts`, `src/data/lazniAi.ts` (fake source) | Only `src/data/index.ts`, and only under `EXPO_PUBLIC_USE_FAKE_SOURCE=1` or Jest. Production throws without Supabase config instead of falling back. Every mobile proof and the APK workflow set the switch to `0`. | Keep as an explicit DEV/test double. Never acceptance data. |
-| `src/ui/v2/tokens.ts` (SPOJ V2 palette) | `src/app/(app)/pregled-nacrta.tsx`, `src/ui/aiFirst/ResponseDeadlineEditor.tsx`, `src/ui/media/AgreementPhotoComposer.tsx`, `src/ui/v2/icons.tsx` default colour. | Legacy dependency; migrate to `src/ui/system/tokens.ts` when those surfaces are touched. |
+| `src/ui/v2/tokens.ts` (SPOJ V2 palette) | `src/ui/aiFirst/ResponseDeadlineEditor.tsx`, `src/ui/media/AgreementPhotoComposer.tsx`, `src/ui/v2/icons.tsx` default colour. | Legacy dependency; migrate to `src/ui/system/tokens.ts` when those surfaces are touched. |
 | `src/ui/v2/icons.tsx` (V2Icon), `src/ui/Button.tsx` | Five and one production importers; many route tests mock them. | Compatibility helpers; keep until their importers move to phosphor and V2Action. |
 | `src/ui/referenceEntry/ReferenceEntryHero.tsx` | Only `CanonicalMark` is imported, by the tab layout. Its hero (with the `textShadow*` web warning) never mounts. | Brand asset; keep the mark, hero is dormant. |
-| `src/app/(app)/pregled-nacrta.tsx` | Hidden tab route; reachable by URL and by the AI review recovery. | Retirement candidate for PKG-023, after parity with `/pregled-zadatka` and owner approval. Resolves explicitly today. |
+| `src/app/(app)/pregled-nacrta.tsx` | Hidden tab route, reachable by URL. Since 2026-09-18 it is an explicit `Redirect` to `/pregled-zadatka` carrying its `conversationId`, after the screen body was deleted without authority and restored as this shim. | Retirement candidate for PKG-023, after parity with `/pregled-zadatka` and owner approval. Parity is not reached: `aiNeedV2Izvor.saveDraft` has no caller, so no client path saves a draft without asking for publication. Resolves explicitly today. |
 | `src/app/prijave.tsx` | Redirect to `/` or `/auth?form=login`. | Kept deliberately (owner decision 5). Resolves explicitly. |
 | `spojInboxArt` (SPOJ V2 illustration in `src/app/obavestenja.tsx`) | Inbox empty state. | Illustration asset; keep. |
-| Google/Apple sign-in tiles | `src/app/auth.tsx`, hard-coded unavailable. | Owner decision 5: visible, disabled, no false success. |
+| Google/Apple/Telefon sign-in tiles | Removed from `src/app/auth.tsx` on 2026-09-18. | Owner decision of 2026-09-18 supersedes owner decision 5: a way in that does not work is not drawn. Telefon appears only when the server reports it available; otherwise one sentence says email and password are the way in. |
 
 Cleanup candidates counted by V18 (19 items, 0 retirement-eligible) belong to PKG-023 and stay
 documented there; nothing here authorises deletion.

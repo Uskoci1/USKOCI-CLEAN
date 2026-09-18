@@ -119,6 +119,25 @@ kad niko ne radi ni na čemu.
 | 7 | Prijava — svoja tamna površina ili u sistem? | ostaje svoja; njenih 27 veličina slova i 12 ćoškova još nisu u lestvici | čeka (Faza D) |
 
 
+## 7a. Ruta `/pregled-nacrta` — ispravka od 2026-09-18
+
+Drugi ekran za pregled (`R07`) je 18.09. obrisan iz izvora uz obrazloženje da ga je V5 zamenio.
+**To nije bila moja odluka da donesem.** PKG-012 entry map ga vodi kao kandidata za penzionisanje
+tek *„after parity with `/pregled-zadatka` and owner approval"*, broji nula stavki kao
+retirement-eligible i izričito kaže da ništa u njemu ne odobrava brisanje. PKG-023 je NOT_STARTED.
+
+GitHub PRE-P4 invariant `legacy routes resolve explicitly until PKG-023 retires them with parity and
+approval` je zbog toga pao na `72d248a`.
+
+Stanje posle ispravke:
+
+- Ruta postoji ponovo i razrešava se izričito — kao `Redirect` na `/pregled-zadatka`, sa svojim
+  `conversationId`. Stari dupli ekran se **ne** vraća kao proizvod.
+- **Parity i dalje nije postignut.** `aiNeedV2Izvor.saveDraft` nema nijednog klijentskog pozivaoca,
+  pa nijedan put ne čuva nacrt bez traženja objave. R07 je to umeo.
+- Penzionisanje ostaje posao PKG-023: parity, pa vlasnikovo odobrenje, pa uklanjanje rute i njenog
+  invarianta u istom koraku.
+
 ## 8. Redosled rada koji predlažem
 
 1. **Ćorsokaci** — sivo dugme dobija razlog; „Novi zadatak" dobija prelaz režima; režim se ne lomi između ekrana.

@@ -86,6 +86,7 @@ export default function TabLayout() {
     <Tabs.Screen name="profil/obavestenja" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="raspored" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="mesto-zadatka" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="pregled-nacrta" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="pregled-zadatka" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="fotografije-zadatka" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="pitanja-zadatka" options={{ href: null, ...PUSHED }} />
