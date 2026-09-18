@@ -47,6 +47,20 @@ const render = async (onSave = jest.fn(), value = availability()) => {
 };
 afterEach(async () => { await act(async () => tree?.unmount()); jest.clearAllMocks(); mockFontScale = 1; });
 
+it('says that being available now means nothing while the work profile is still a draft', async () => {
+  // The two screens contradicted each other: the work profile said it was a draft and so nothing
+  // would be offered, and this one showed "Dostupan sada" as if it decided something.
+  await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false}
+    onSave={jest.fn()} profileDraft />); });
+  expect(text()).toContain('Radni profil je nacrt');
+  expect(text()).not.toContain('Ručni status');
+
+  await act(async () => tree.unmount());
+  await render();
+  expect(text()).toContain('Ručni status');
+  expect(text()).not.toContain('Radni profil je nacrt');
+});
+
 describe('actual availability editor interactions', () => {
   it('saves Available Now only with explicit Save and preserves existing owned data', async () => {
     const loaded = { ...availability(), rules: [{ id: ruleId, weekdays: [1, 3], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-09-01', endsOn: null, label: 'Redovno', active: true }] };

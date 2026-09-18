@@ -105,8 +105,11 @@ function WindowEditor({ window, timezone, close, accept }: {
   </EditorSheet>;
 }
 
-export function AvailabilityForm({ availability, busy, uncertain, onSave, candidateMode = false }: {
-  availability: WorkerAvailabilityInput; busy: boolean; uncertain: boolean; onSave: (value: WorkerAvailabilityInput) => void; candidateMode?: boolean;
+export function AvailabilityForm({ availability, busy, uncertain, onSave, candidateMode = false, profileDraft = false }: {
+  availability: WorkerAvailabilityInput; busy: boolean; uncertain: boolean; onSave: (value: WorkerAvailabilityInput) => void;
+  candidateMode?: boolean;
+  /** The work profile is still a draft, so nothing here changes what is offered yet. */
+  profileDraft?: boolean;
 }) {
   const [draft, setDraft] = useState<WorkerAvailabilityInput>(() => ({ timezone: availability.timezone,
     availableNow: availability.availableNow, rules: availability.rules, windows: availability.windows }));
@@ -145,13 +148,14 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   };
   return <View style={{ flex: 1 }}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      <View style={{ gap: 8 }}><T variant="meta" tone="success" style={{ fontWeight: '600' }}>Radni profil</T>
-        <T variant="title" accessibilityRole="header">Tvoj ritam rada.</T>
-        <T tone="muted">{candidateMode ? 'Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.' : 'Odredi kada možeš da uskočiš. Potvrđeni Dogovori ostaju obaveze.'}</T>
-      </View>
+      {/* The screen is already named at its top edge. Repeating the name here, with a second title
+          under it, pushed the first weekday past halfway down the screen. */}
+      <T tone="muted">{candidateMode ? 'Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.' : 'Odredi kada možeš da uskočiš. Potvrđeni Dogovori ostaju obaveze.'}</T>
       <View style={s.note}>
         <Toggle label="Dostupan sada" value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
-        <T variant="meta" tone="muted">Ručni status · menja se tek kada sačuvaš dostupnost.</T>
+        <T variant="meta" tone="muted">{profileDraft
+          ? 'Radni profil je nacrt, pa ovaj status još nikome ništa ne govori. Aktiviraj profil da počne da važi.'
+          : 'Ručni status · menja se tek kada sačuvaš dostupnost.'}</T>
         <Press accessibilityRole="button" accessibilityLabel="O statusu Dostupan sada" accessibilityState={{ expanded: showStatusHelp }}
           onPress={() => setShowStatusHelp(value => !value)} style={[s.row, { minHeight: 44 }]}>
           <T variant="meta" style={{ flex: 1, fontWeight: '600' }}>Šta znači ovaj status?</T>
