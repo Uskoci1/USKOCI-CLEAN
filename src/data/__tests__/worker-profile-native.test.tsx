@@ -217,3 +217,24 @@ it('writes capacity using the captured authoritative revision, not a direct gene
  mockRead.mockResolvedValue({...profile,kapacitetTima:3,capacityRevision:'b'.repeat(64)});
  click('Proverite sačuvani profil');await settle();expect(texts()).toContain('Izmene profila su sačuvane i proverene');
 });
+// A draft profile is not merely incomplete: private.dispatch_cheap_candidate_admitted requires
+// profile_status = 'ACTIVE', so while it is a draft nothing is offered at all. Saying only
+// "dopunite pre prijave" left the owner's own business account invisible to every task while
+// looking like a small omission. The consequence is stated, not implied.
+it('says a draft profile is offered nothing, not merely that it is incomplete', async () => {
+  mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' });
+  await render();
+  expect(texts()).toContain('Radni profil je još nacrt');
+  expect(texts()).toContain('zadaci ti se ne nude');
+});
+
+it('says the same about a suspended profile, and nothing at all about an active one', async () => {
+  mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' });
+  await render();
+  expect(texts()).toContain('Dok traje suspenzija, zadaci ti se ne nude.');
+  await act(async () => tree.unmount());
+  mockRead.mockResolvedValue(profile);
+  await render();
+  expect(texts()).toContain('Profil je aktivan');
+  expect(texts()).not.toContain('zadaci ti se ne nude');
+});

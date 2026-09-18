@@ -29,7 +29,7 @@ test('the frame names the intent; the form leads with who you are, keeps every f
   await act(async () => { tree = create(<Screen value={draft()} />); });
   const copy = texts();
   expect(copy).toContain('Ja mogu'); expect(copy).toContain('Radni profil'); expect(copy).toContain('MM'); expect(copy).toContain('Marko Marić');
-  expect(copy).toContain('Dopunite ključne sposobnosti pre prijave'); expect(copy).toContain('Selidbe'); expect(copy).toContain('Montaža');
+  expect(copy).toContain('Radni profil je još nacrt'); expect(copy).toContain('zadaci ti se ne nude'); expect(copy).toContain('Selidbe'); expect(copy).toContain('Montaža');
   expect(inputs()).toEqual(expect.arrayContaining(['Ime na radnom profilu', 'Koliko ljudi možeš da obezbediš', 'Nova stavka: Veštine i usluge', 'Grad ili mesto rada', 'Radijus rada (km)']));
   expect(inputs()).not.toContain('Nova stavka: Alat i oprema');
   expect(byLabel('Alat i vozila').props.accessibilityState).toEqual({ expanded: false }); expect(copy).toContain('1 stavki alata · 0 vozila');

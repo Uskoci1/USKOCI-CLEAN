@@ -81,17 +81,20 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   }, [focusRequest, disabled]);
   const patch = (value: Partial<WorkerDraft>) => { if (!disabled) change({ ...draft, ...value }); };
   const initials = draft.ime.trim().split(/\s+/).slice(0, 2).map(part => part.slice(0, 1)).join('').toUpperCase();
-  const statusText = status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Dopunite ključne sposobnosti pre prijave';
+  const statusText = status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Radni profil je još nacrt';
   const statusTone = status === 'ACTIVE' ? sys.color.green : status === 'SUSPENDED' ? sys.color.danger : sys.color.warn;
   return <>
     <View style={[s.card, s.hero]}>
       <View style={s.avatar}><T variant="title" style={s.initials}>{initials || 'JA'}</T></View>
-      <T variant="title" style={[s.ink, s.center]}>{draft.ime.trim() || 'Šta možete da preuzmete?'}</T>
+      <T variant="title" style={[s.ink, s.center]}>{draft.ime.trim() || 'Šta možeš da preuzmeš?'}</T>
       <View style={[s.statusChip, { backgroundColor: status === 'ACTIVE' ? sys.color.greenSoft : status === 'SUSPENDED' ? sys.color.dangerSoft : sys.color.warnSoft }]}>
         <T variant="meta" style={{ color: statusTone, fontWeight: '600' }}>{statusText}</T></View>
+      {status !== 'ACTIVE' ? <T variant="meta" tone="muted" style={s.center}>{status === 'SUSPENDED'
+        ? 'Dok traje suspenzija, zadaci ti se ne nude.'
+        : 'Dok je nacrt, zadaci ti se ne nude. Dopuni veštine i dostupnost pa se aktivira.'}</T> : null}
     </View>
     <View style={s.card}>
-      <T variant="heading" style={s.ink}>Ko ste i šta preuzimate</T>
+      <T variant="heading" style={s.ink}>Ko si i šta preuzimaš</T>
       <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
       <Field label="Koliko ljudi možeš da obezbediš" value={draft.capacity} change={capacity => patch({ capacity })}
         disabled={disabled || draft.capacityRevision === null} numeric inputRef={capacityRef}
