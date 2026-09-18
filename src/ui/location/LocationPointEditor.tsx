@@ -12,6 +12,10 @@ import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
 type Props = {
   slot: LocationSlot; title: string; point?: ConfirmedLocationPoint; scopeKey: string; disabled: boolean;
   countryCode: string; initialQuery?: string; resolver?: ReturnType<typeof createConfiguredLocationResolver>;
+  /** Look the seeded query up once, so a caller that already knows the address can show the pin
+   *  standing on it instead of asking the person to search for what they just said. Opt-in: a
+   *  lookup marks the point pending, which the long form treats as an unsaved change. */
+  autoLocate?: boolean;
   onInvalidate: () => void; onConfirm: (point: ConfirmedLocationPoint) => void;
 };
 /** One visible point proposal. Only the explicit confirmation emits a saved value. */
@@ -20,7 +24,7 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, disabled, onInvalidate, onConfirm }: Props) {
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
   const [position, setPosition] = useState<ResolvedPinPosition | null>(point
@@ -84,6 +88,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
     }
   };
+  // Placed after `search` so the effect calls the same guarded path a press does, once per scope.
+  // A saved point wins: nothing here may move a point the person already confirmed.
+  const located = useRef(false);
+  useEffect(() => {
+    if (!autoLocate || located.current || !focused || disabled || point || !searchText.trim()) return;
+    located.current = true;
+    void search();
+  }, [autoLocate, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
   const reverse = async () => {
     if (!owns() || !position || lookup.status === 'LOADING') return;
     // Explicit lookup only; preserve the user's point throughout transport.

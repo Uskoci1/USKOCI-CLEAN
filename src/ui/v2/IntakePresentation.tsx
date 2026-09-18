@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -12,9 +12,13 @@ import { Press } from '../Press';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
+import { pointsMissing } from '../../lib/location';
 import { V2Icon } from './icons';
 import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import { aiFirst as a } from '../aiFirst/tokens';
+
+// The point sheet reaches the native map through the point editor, so it loads only when opened.
+const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
 
 type Props = {
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
@@ -93,11 +97,17 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
  */
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
-  const [panel, setPanel] = useState<'options' | null>(null);
+  const [panel, setPanel] = useState<'options' | 'points' | null>(null);
   const reduced = useReducedMotion();
   const summary = publicSummary(conversation.facts);
   const safetyCopy = safetyMessage(conversation.safety);
   const close = () => setPanel(null);
+  // The map point is the one thing publishing cannot do without and the AI may not propose, so
+  // the conversation asks for it rather than leaving it to be discovered. Read from the facts
+  // the conversation already holds, including the owner-private one; no extra server call.
+  const held = (key: AiNeedV2Fact['key']) => conversation.facts.find(fact => fact.key === key)?.value;
+  const gap = pointsMissing(held('need.task_geography'), held('need.resolved_location'));
+  const needsPoint = conversation.status === 'OPEN' && gap.total > 0 && gap.done < gap.total;
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={conversation.messages} pending={pending} busy={busy} streamingText={props.streamingText}
@@ -132,7 +142,13 @@ export function IntakePresentation(props: Props) {
     </>}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
-    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback ? undefined : <>
+    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !needsPoint ? undefined : <>
+      {needsPoint ? <>
+        <T variant="note" style={s.muted}>{gap.total > 1
+          ? 'Fali još mesto na mapi, da radnik zna gde da dođe. Dve tačke, dva dodira.'
+          : 'Fali još mesto na mapi, da radnik zna gde da dođe.'}</T>
+        <V2Action kind="primary" label="Pokaži na mapi" onPress={() => { Keyboard.dismiss(); setPanel('points'); }} />
+      </> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>
@@ -142,12 +158,23 @@ export function IntakePresentation(props: Props) {
       </> : null}
       {props.showReadback ? <V2Action label="Proverite ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
-    {panel ? <Panel title="Opcije razgovora" close={close} reduced={reduced}>
+    {panel === 'points' ? <Panel title="Mesto zadatka" close={close} reduced={reduced}>
+      <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>
+        <ConversationPointAsk conversationId={conversation.conversationId}
+          onSaved={props.onRefresh} onClose={close} />
+      </Suspense>
+    </Panel> : null}
+    {panel === 'options' ? <Panel title="Opcije razgovora" close={close} reduced={reduced}>
       <T variant="copy" tone="muted">{conversation.status === 'OPEN'
         ? 'Povratak čuva razgovor. Možeš da ga nastaviš kasnije.' : 'Ovde možeš da pregledaš sačuvane poruke.'}</T>
       {safetyCopy && conversation.safety !== 'BLOCK'
         ? <T variant="note" style={s.muted}>{safetyCopy}</T> : null}
       <V2Action label="Osveži razgovor" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
+      {/* Reachable whenever the task has a place, not only while a point is missing, so a point
+          can also be moved without hunting for the long form. */}
+      {conversation.status === 'OPEN' && gap.total > 0
+        ? <V2Action label={needsPoint ? 'Mesto na mapi' : 'Izmeni mesto na mapi'} kind="quiet"
+          onPress={() => setPanel('points')} /> : null}
       {props.canReview ? <V2Action label={props.reviewLabel} onPress={() => { close(); props.onReview(); }} /> : null}
       {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled}
         onPress={() => { close(); props.onPhotos?.(); }} /> : null}
