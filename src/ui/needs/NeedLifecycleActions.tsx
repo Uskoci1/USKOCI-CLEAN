@@ -135,7 +135,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         </> : phase === 'REJECTED' ? <V2Action label="Učitaj aktuelni zadatak" kind="quiet" onPress={() => { void finish(false); }} /> : null}
       </> : view.review && p.need ? <>
         <T style={s.title}>{label(view.review)}?</T><T style={s.copy}>{view.review === 'DELETE_DRAFT'
-          ? 'Brišete ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo ukloni iz nacrta.'
+          ? 'Brišeš ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo ukloni iz nacrta.'
           : 'Zadatak prestaje da prima prijave, a postojeće prijave se zatvaraju. Ako već postoji Dogovor, otkazivanje ide kroz taj Dogovor.'}</T>
         <T style={s.copy}>{p.need.naslov}</T>
         <V2Action label={label(view.review)} disabled={busy || p.disabled} onPress={() => { void submit(); }} />
@@ -145,7 +145,8 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
           : p.need.pokrivenost.popunjeno > 0 ? <><T style={s.copy}>Postojeći Dogovori se otkazuju zasebno.</T>
             <V2Action label="Otvori moje Dogovore" kind="quiet" disabled={p.disabled} onPress={() => { if (current(owner) && !p.disabled) router.push('/dogovori'); }} /></>
             : p.need.stanje !== 'ZATVORENA' ? <>
-              {p.need.stanje === 'NACRT' ? <V2Action label="Brisanje nacrta" kind="quiet" disabled={p.disabled} onPress={() => review('DELETE_DRAFT')} /> : null}
+              {/* Two quiet buttons of the same weight, one of which destroys the draft for good. */}
+              {p.need.stanje === 'NACRT' ? <V2Action label="Obriši nacrt" kind="destructive" disabled={p.disabled} onPress={() => review('DELETE_DRAFT')} /> : null}
               <V2Action label="Otkazivanje zadatka" kind="quiet" disabled={p.disabled} onPress={() => review('CANCEL')} />
             </> : <T style={s.copy}>Zadatak je zatvoren.</T>}
   </View>;

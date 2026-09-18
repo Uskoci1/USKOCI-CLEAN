@@ -47,7 +47,9 @@ function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: {
   switch (need.stanje) {
     case 'NACRT': return blocked
       ? { title: blocked.title, detail: blocked.detail, tone: 'warn' }
-      : { title: STATUS.NACRT, detail: 'Sledeće: pregled i objava jednim korakom.', tone: 'muted' };
+      // An unknown answer from the publish gate is not a yes. Until it answers, the draft says what
+      // it knows - that it is a draft - rather than promising a step that may be refused.
+      : { title: STATUS.NACRT, detail: 'Otvori pregled da vidiš da li može da se objavi.', tone: 'muted' };
     case 'OBJAVLJENA': case 'CEKA_PRIJAVE':
       return { title: STATUS[need.stanje], detail: need.brojPrijava ? 'Sledeće: izbor. Izbor odmah formira potvrđen Dogovor.' : 'Sledeće: prijave stižu ovde, izbor formira Dogovor.', tone: 'green' };
     case 'DELIMICNO_POPUNJENA':
@@ -80,7 +82,9 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const otherIntentCopy = draftInOtherIntent
     ? { title: 'Ovo je tvoj nacrt kao naručioca', detail: 'U režimu JA MOGU ga vidiš, ali ga ne uređuješ ni objavljuješ. Pređi u MENI TREBA iz Profila.' }
     : null;
-  const primaryLabel = busy ? 'Radnja je u toku…'
+  // `busy` is true while anything on the screen is loading, including the first read, so the one
+  // action announced work in progress before anything had been asked for.
+  const primaryLabel = busy && !loading ? 'Radnja je u toku…'
     : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu' : 'Pogledaj prijave';
   const primaryAction = blocked ? props.onEdit : draft ? props.onReview : props.onCandidates;
   const toggle = (key: 'location' | 'requirements') => setExpanded(current => current === key ? null : key);

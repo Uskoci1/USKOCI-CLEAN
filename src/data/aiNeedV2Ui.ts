@@ -52,7 +52,13 @@ export function sortFacts(facts: AiNeedV2Fact[]): AiNeedV2Fact[] {
 }
 
 export function canEditFactInline(fact: AiNeedV2Fact): boolean {
-  return fact.valueType !== 'OBJECT';
+  // A timestamp and a list have no editor here, only a text box: correcting a date meant retyping
+  // `2026-09-15T10:00:00Z` by hand, and correcting a list meant editing `["Prevoz","utovar"]` as
+  // JSON. Both were kept in those shapes deliberately, so that a comma inside an item and the exact
+  // precision of an instant survive the round trip — which is right, and is also why neither should
+  // be offered as a text box. Until there is a picker and a chip field, these are corrected the way
+  // they were given: by saying so in the conversation.
+  return fact.valueType !== 'OBJECT' && fact.valueType !== 'TIMESTAMPTZ' && fact.valueType !== 'TEXT_ARRAY';
 }
 
 const PRICE_LABELS: Record<string, string> = { MY_PRICE: 'Moja cena', OFFERS: 'Ponude', FASTEST: 'Najbrže (raniji način)' };

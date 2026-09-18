@@ -51,7 +51,7 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); mockListeners.clear(); });
 it('reviews consequences, persists the frozen identity first and deduplicates retained final taps', async () => {
-  await render(); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled(); await tap('Brisanje nacrta');
+  await render(); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled(); await tap('Obriši nacrt');
   const wait = deferred<void>(); mockStorage.setItem.mockReturnValue(wait.promise); const send = action('Obriši nacrt').onPress;
   await act(async () => { send(); send(); }); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled();
   expect(JSON.parse(mockStorage.setItem.mock.calls[0][1])).toEqual(command);
@@ -62,7 +62,7 @@ it('reviews consequences, persists the frozen identity first and deduplicates re
 });
 it('keeps cancellation separate from deleting a published Task', async () => {
   need = { ...need, stanje: 'OBJAVLJENA' }; await render();
-  expect(tree.root.findAllByProps({ label: 'Brisanje nacrta' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Obriši nacrt' })).toHaveLength(0);
   await tap('Otkazivanje zadatka'); await tap('Otkaži zadatak');
   expect(mockService.cancelNeed).toHaveBeenCalledWith(N, 3, ''); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled();
 });
@@ -73,23 +73,23 @@ it('offers the existing Agreement path when places are already agreed', async ()
   expect(mockService.cancelNeed).not.toHaveBeenCalled();
 });
 it('does not send after choosing Odustani or while another route action is busy', async () => {
-  await render(); await tap('Brisanje nacrta'); const retained = action('Obriši nacrt').onPress;
+  await render(); await tap('Obriši nacrt'); const retained = action('Obriši nacrt').onPress;
   disabled = true; await refresh(); await act(async () => retained()); expect(mockStorage.setItem).not.toHaveBeenCalled();
   disabled = false; await refresh(); await tap('Odustani'); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled();
 });
 it('storage failure cannot become an untracked destructive command', async () => {
-  mockStorage.setItem.mockRejectedValue(new Error('DISK_FULL')); await render(); await tap('Brisanje nacrta'); await tap('Obriši nacrt');
+  mockStorage.setItem.mockRejectedValue(new Error('DISK_FULL')); await render(); await tap('Obriši nacrt'); await tap('Obriši nacrt');
   expect(mockService.deleteDraftNeed).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
 });
 it('retires confirmation after Odustani and does not let an old cancel discard an unknown command', async () => {
-  await render(); await tap('Brisanje nacrta'); const oldSend = action('Obriši nacrt').onPress;
+  await render(); await tap('Obriši nacrt'); const oldSend = action('Obriši nacrt').onPress;
   await tap('Odustani'); await act(async () => oldSend()); expect(mockStorage.setItem).not.toHaveBeenCalled();
-  await tap('Brisanje nacrta'); const oldCancel = action('Odustani').onPress;
+  await tap('Obriši nacrt'); const oldCancel = action('Odustani').onPress;
   mockService.deleteDraftNeed.mockResolvedValue(unknown); await tap('Obriši nacrt'); await act(async () => oldCancel());
-  expect(action('Proveri ishod')).toBeDefined(); expect(tree.root.findAllByProps({ label: 'Brisanje nacrta' })).toHaveLength(0);
+  expect(action('Proveri ishod')).toBeDefined(); expect(tree.root.findAllByProps({ label: 'Obriši nacrt' })).toHaveLength(0);
 });
 it('unknown command requires successful readback before an explicit identical retry', async () => {
-  mockService.deleteDraftNeed.mockResolvedValueOnce(unknown); await render(); await tap('Brisanje nacrta'); await tap('Obriši nacrt');
+  mockService.deleteDraftNeed.mockResolvedValueOnce(unknown); await render(); await tap('Obriši nacrt'); await tap('Obriši nacrt');
   expect(action('Ponovi isti zahtev').disabled).toBe(true); await tap('Ponovi isti zahtev'); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
   await tap('Proveri ishod'); expect(mockService.readCommandReceipt).toHaveBeenCalledWith(command);
   expect(action('Ponovi isti zahtev').disabled).toBe(false); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
@@ -97,7 +97,7 @@ it('unknown command requires successful readback before an explicit identical re
 });
 it('failed readback never licenses retry and missing list rows do not prove deletion', async () => {
   mockService.deleteDraftNeed.mockResolvedValue(unknown); mockService.readCommandReceipt.mockResolvedValue({ ok: false, kod: 'READ_FAILED', poruka: 'Nedostupno.' });
-  await render(); await tap('Brisanje nacrta'); await tap('Obriši nacrt'); await tap('Proveri ishod'); await tap('Ponovi isti zahtev');
+  await render(); await tap('Obriši nacrt'); await tap('Obriši nacrt'); await tap('Proveri ishod'); await tap('Ponovi isti zahtev');
   expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1); expect(mockSource.mojePotrebe).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ label: 'Moji zadaci' })).toHaveLength(0);
 });
@@ -111,17 +111,17 @@ it.each(['corrupt', JSON.stringify({ ...command, needId: A }), JSON.stringify({ 
   'corrupt or cross-Task restore stays fail closed: %s', async raw => {
     mockStorage.getItem.mockResolvedValue(raw); await render(); expect(action('Ponovo proveri prethodni zahtev')).toBeDefined();
     expect(mockService.readCommandReceipt).not.toHaveBeenCalled(); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled();
-    expect(tree.root.findAllByProps({ label: 'Brisanje nacrta' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Obriši nacrt' })).toHaveLength(0);
   });
 it('server stale rejection needs a fresh review and cannot force replay', async () => {
   mockService.deleteDraftNeed.mockResolvedValue({ ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Osveži zadatak.' });
-  await render(); await tap('Brisanje nacrta'); await tap('Obriši nacrt');
+  await render(); await tap('Obriši nacrt'); await tap('Obriši nacrt');
   expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0); await tap('Učitaj aktuelni zadatak');
   expect(mockRefresh).toHaveBeenCalledTimes(1); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
 });
 it.each(['blur', 'account', 'background'])('fences pending persistence and retained handlers after %s', async change => {
   const wait = deferred<void>(); mockStorage.setItem.mockReturnValue(wait.promise);
-  await render(); await tap('Brisanje nacrta'); const send = action('Obriši nacrt').onPress; await act(async () => send());
+  await render(); await tap('Obriši nacrt'); const send = action('Obriši nacrt').onPress; await act(async () => send());
   if (change === 'blur') { mockFocused = false; await refresh(); }
   else if (change === 'account') { mockSession = { user: { id: N }, accountRevision: 2 }; await refresh(); }
   else { await act(async () => { mockForeground = 'background'; for (const listener of mockListeners) listener('background'); }); }
@@ -129,12 +129,12 @@ it.each(['blur', 'account', 'background'])('fences pending persistence and retai
 });
 it('late receipt after blur cannot refresh collection or navigate; refocus restores via readback', async () => {
   const wait = deferred<typeof success>(); mockService.deleteDraftNeed.mockReturnValue(wait.promise);
-  await render(); await tap('Brisanje nacrta'); await tap('Obriši nacrt'); mockFocused = false; await refresh();
+  await render(); await tap('Obriši nacrt'); await tap('Obriši nacrt'); mockFocused = false; await refresh();
   await act(async () => wait.resolve(success)); expect(mockSource.mojePotrebe).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
   mockStorage.getItem.mockResolvedValue(JSON.stringify(command)); mockFocused = true; await refresh();
   expect(mockService.readCommandReceipt).toHaveBeenCalledWith(command); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
 });
 it('retained final callback cannot accept an unseen newer Need revision', async () => {
-  await render(); await tap('Brisanje nacrta'); const send = action('Obriši nacrt').onPress;
+  await render(); await tap('Obriši nacrt'); const send = action('Obriši nacrt').onPress;
   need = { ...need, revizija: 4 }; await refresh(); await act(async () => send()); expect(mockStorage.setItem).not.toHaveBeenCalled();
 });

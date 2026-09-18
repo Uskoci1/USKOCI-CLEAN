@@ -298,14 +298,14 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
               return text ? <T accessibilityRole="header" style={s.hero}>{text}</T> : null;
             })()}
             <T style={s.meta}>Ovako će drugi videti zadatak</T>
-            {rows(review.publicProjection.filter(fact => fact.key !== 'need.public_photo_paths'))}
-            <View style={s.notice}><T style={s.meta}>{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
-              {unavailableIdentityFact ? <>
-                <T>U ovom pregledu je ostao uslov koji aplikacija ne može da proveri. Ukloni ga izričito da nastaviš običnim zadatkom.</T>
-                {!command && unavailableIdentityFact.id ? <V2Action label="Nastavi bez uslova provere identiteta" kind="quiet"
-                  disabled={disabled || !!edit || !!locationEditor || deadlineEditor} onPress={removeUnavailableIdentityRequirement} /> : null}
-              </> : null}
-            </View>
+            {rows(review.publicProjection.filter(fact => fact.key !== 'need.public_photo_paths' && fact.key !== 'need.title'))}
+            {/* This orange box used to stand on every task, warning about a condition the task did
+                not have. It belongs to the tasks that actually carry the unverifiable requirement. */}
+            {unavailableIdentityFact ? <View style={s.notice}><T style={s.meta}>{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
+              <T>U ovom pregledu je ostao uslov koji aplikacija ne može da proveri. Ukloni ga izričito da nastaviš običnim zadatkom.</T>
+              {!command && unavailableIdentityFact.id ? <V2Action label="Nastavi bez uslova provere identiteta" kind="quiet"
+                disabled={disabled || !!edit || !!locationEditor || deadlineEditor} onPress={removeUnavailableIdentityRequirement} /> : null}
+            </View> : null}
             {review.location?.resolvedLocation?.points.length ? <T style={s.meta}>Na javnoj mapi prikazuje se približno područje. Tačne tačke ostaju privatne.</T> : null}
           </View>
           {review.ownerPrivateProjection.length ? <View style={[s.section, s.private]}>
