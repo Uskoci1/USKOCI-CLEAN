@@ -1,8 +1,9 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CaretRight } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import { Press } from '../Press';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { brandAction, card, iconButton, sys } from '../system/tokens';
 import { nested } from '../../theme/tokens';
 import { T } from '../Text';
@@ -23,15 +24,11 @@ export function SettingsText({ variant = 'body', tone = 'ink', style, ...props }
     { color: tone === 'muted' ? sys.color.muted : tone === 'danger' ? sys.color.danger : tone === 'success' ? sys.color.green : sys.color.ink }, style]} />;
 }
 
-export function SettingsScreen({ title, onBack, disabled = false, children, footer }: {
-  title: string; onBack: () => void; disabled?: boolean; children: ReactNode; footer?: ReactNode;
+export function SettingsScreen({ title, eyebrow, onBack, disabled = false, children, footer }: {
+  title: string; eyebrow?: string; onBack: () => void; disabled?: boolean; children: ReactNode; footer?: ReactNode;
 }) {
   return <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-    <View style={styles.header}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad" disabled={disabled} accessibilityState={{ disabled }}
-        onPress={onBack} haptic="select" style={iconButton}><ArrowLeft size={22} color={sys.color.ink} /></Press>
-      <SettingsText variant="title" accessibilityRole="header" style={{ flex: 1 }}>{title}</SettingsText>
-    </View>
+    <DetailTopBar eyebrow={eyebrow} title={title} onBack={onBack} disabled={disabled} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>{children}</ScrollView>
     {footer ? <View testID="settings-primary-footer" style={styles.footer}>{footer}</View> : null}
   </SafeAreaView>;

@@ -9,7 +9,8 @@ import { sys } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, WorkspaceTopBar, stateTone } from '../../ui/agreements/AgreementWorkspace';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, stateTone } from '../../ui/agreements/AgreementWorkspace';
+import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { useIzvor, useUloga, ulogaSada } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
@@ -41,7 +42,7 @@ async function bounded<T>(operation: () => Promise<T>): Promise<T> {
 function backToAgreements() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
 function AgreementStatus({ loading = false, error = false, retry }: { loading?: boolean; error?: boolean; retry?: () => void }) {
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <WorkspaceTopBar eyebrow={loading ? 'Učitavamo' : error ? 'Nije učitano' : 'Nije dostupno'} title="Dogovor" onBack={backToAgreements} />
+    <DetailTopBar eyebrow={loading ? 'Učitavamo' : error ? 'Nije učitano' : 'Nije dostupno'} title="Dogovor" onBack={backToAgreements} />
     <View style={s.status} accessibilityLiveRegion="polite">
       {loading ? <><SkeletonCard rows={2} /><T accessibilityLabel="Učitavanje Dogovora" variant="meta" tone="muted" style={s.center}>Učitavamo Dogovor…</T></> : <>
         <T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
@@ -255,7 +256,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <WorkspaceTopBar onBack={backToAgreements} tone={tab === 'poruke' ? 'muted' : tone}
+      <DetailTopBar onBack={backToAgreements} tone={tab === 'poruke' ? 'muted' : tone}
         eyebrow={tab === 'poruke' ? other?.ime ?? 'Razgovor o Dogovoru' : agreementStateText(dogovor.stanje)} title={tab === 'poruke' ? 'Poruke' : 'Dogovor'} />
       <View style={s.tabs}>
         {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}

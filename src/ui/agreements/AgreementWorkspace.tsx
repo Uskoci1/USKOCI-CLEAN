@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { ArrowLeft, CaretRight } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
-import { brandAction, card, iconButton, sys } from '../system/tokens';
+import { type EyebrowTone } from '../system/DetailTopBar';
+import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
@@ -16,23 +17,12 @@ import { V2Action } from '../v2/V2Action';
  * isolate those), so it uses only Press/T/icons/V2Action.
  */
 
-export type WorkspaceTone = 'green' | 'warn' | 'muted' | 'danger';
+export type WorkspaceTone = EyebrowTone;
 const toneColor: Record<WorkspaceTone, string> = { green: sys.color.green, warn: sys.color.warn, muted: sys.color.muted, danger: sys.color.danger };
 const toneSoft: Record<WorkspaceTone, string> = { green: sys.color.greenSoft, warn: sys.color.warnSoft, muted: sys.color.wash, danger: sys.color.dangerSoft };
 
 export const stateTone = (state: DogovorProjekcija['stanje']): WorkspaceTone =>
   state === 'CANCELLED' ? 'muted' : state === 'AWAITING_REQUESTER' ? 'warn' : 'green';
-
-/** Back well + a quiet eyebrow (the Agreement state, or the other party in Poruke) + the screen name. */
-export function WorkspaceTopBar({ eyebrow, title, tone = 'muted', onBack }: { eyebrow: string; title: string; tone?: WorkspaceTone; onBack: () => void }) {
-  return <View style={s.topBar}>
-    <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={onBack} style={iconButton}><ArrowLeft size={22} color={sys.color.ink} /></Press>
-    <View style={s.topCopy}>
-      <T variant="label" style={[s.eyebrow, { color: toneColor[tone] }]}>{eyebrow}</T>
-      <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
-    </View>
-  </View>;
-}
 
 export function WorkspaceCard({ children, style, tone }: { children: ReactNode; style?: StyleProp<ViewStyle>; tone?: WorkspaceTone }) {
   return <View style={[card, s.cardGap, tone ? { backgroundColor: toneSoft[tone], borderColor: toneSoft[tone] } : null, style]}>{children}</View>;
@@ -75,11 +65,8 @@ export function WorkspaceFooter({ brand, secondary }: {
 }
 
 const s = StyleSheet.create({
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
-  topCopy: { flex: 1, minWidth: 0 },
-  eyebrow: { fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
-  title: { color: sys.color.ink },
   cardGap: { gap: 10 },
+  eyebrow: { fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
   next: { borderRadius: sys.radius.card, padding: 20, gap: 8 },
   nextHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },

@@ -1,9 +1,10 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt } from 'phosphor-react-native';
+import { DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { iconButton, sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
@@ -65,13 +66,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
   }, []);
   return <SafeAreaView edges={['top']} style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={s.header}>
-        <Press accessibilityRole="button" accessibilityLabel="Nazad" onPress={p.onBack} haptic="select" style={iconButton}>
-          <ArrowLeft size={22} color={sys.color.ink} /></Press>
-        <View style={s.flex}><T variant="label" style={s.eyeline}>{p.subtitle}</T><T accessibilityRole="header" variant="title" style={s.title}>{p.title}</T></View>
-        <Press accessibilityRole="button" accessibilityLabel="Opcije" accessibilityHint="Opcije razgovora." onPress={p.onOptions} haptic="select" style={iconButton}>
-          <DotsThree size={26} weight="bold" color={sys.color.ink} /></Press>
-      </View>
+      <DetailTopBar eyebrow={p.subtitle} title={p.title} onBack={p.onBack}
+        right={<Press accessibilityRole="button" accessibilityLabel="Opcije" accessibilityHint="Opcije razgovora." onPress={p.onOptions} haptic="select" style={iconButton}>
+          <DotsThree size={26} weight="bold" color={sys.color.ink} /></Press>} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one
           invitation on the screen below the fold. The caller returns null until it has something. */}
       {pinned ? <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardCompact]}>{pinned}</View> : null}
@@ -180,9 +177,6 @@ const ConversationBubble = memo(function ConversationBubble({ fromAi, body, unde
 
 const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: a.color.surface }, flex: { flex: 1, minHeight: 0 },
-  header: { flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 62, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
-  eyeline: { color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
-  title: { color: sys.color.ink },
   body: { ...sys.type.speech, color: sys.color.ink },
   userBody: { ...sys.type.body, color: sys.color.ink },
   cardArea: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 12 }, cardCompact: { paddingTop: 0, paddingBottom: 8 },

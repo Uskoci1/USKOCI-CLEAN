@@ -18,8 +18,8 @@ import { ulogaSada, useUloga } from '../../store/uloga';
 import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { V2Action } from '../../ui/v2/V2Action';
-import { V2Icon } from '../../ui/v2/icons';
 import { aiFirst as a } from '../../ui/aiFirst/tokens';
+import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { sys } from '../../ui/system/tokens';
 import { type } from '../../theme/tokens';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
@@ -282,12 +282,10 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   };
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={s.header}><Press accessibilityRole="button" accessibilityLabel="Nazad u razgovor" style={s.back} onPress={back}>
-        <V2Icon name="back" color={a.color.ink} /></Press><View style={{ flex: 1 }}>
-        <T style={s.meta}>{published ? 'Spremno za prijave'
-          : revising ? 'Izmena postojećeg zadatka' : 'Ti odlučuješ šta objavljuješ'}</T>
-        <T accessibilityRole="header" style={s.title}>{published ? 'Objavljeno'
-          : revising ? 'Pregled izmena' : 'Pregled zadatka'}</T></View></View>
+      <DetailTopBar backLabel="Nazad u razgovor" onBack={back}
+        eyebrow={published ? 'Spremno za prijave'
+          : revising ? 'Izmena postojećeg zadatka' : 'Ti odlučuješ šta objavljuješ'}
+        title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled zadatka'} />
       {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pregleda" color={a.color.green} style={{ padding: 30 }} /> : null}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {review ? <>
@@ -375,8 +373,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
 }
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: a.color.surface }, header: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  back: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }, title: { ...a.text.title, color: a.color.ink },
+  canvas: { flex: 1, backgroundColor: a.color.surface },
   meta: { ...a.text.meta, color: a.color.muted }, body: { ...a.text.body, color: a.color.ink },
   content: { padding: 20, gap: 24 }, section: { gap: 8 }, sectionTitle: { ...a.text.card, color: a.color.ink },
   hero: { ...type.hero, color: a.color.ink },
