@@ -8,6 +8,7 @@ import { nativePushDevice, type NativePushState } from '../../data/nativePushDev
 import { pushDeviceClientService, type PushDevice } from '../../data/pushDeviceClientService';
 import { pushReadinessClientService, type PushReadiness } from '../../data/pushReadinessClientService';
 import { sesijaSada, useSesija } from '../../store/sesija';
+import { Press } from '../Press';
 import { T } from '../Text';
 import { V2Action as Button } from '../v2/V2Action';
 import { sys } from '../system/tokens';
@@ -163,9 +164,14 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
       editable={!busy && settings.quiet_hours_enabled} placeholder="07:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
       style={styles.input} onChangeText={value => edit('quiet_end', value.trim() || null)} /></View>
    </View>
-   <View style={styles.timeField}><T variant="meta" tone="muted">Vremenska zona</T><TextInput accessibilityLabel="Vremenska zona tihih sati" value={settings.quiet_timezone}
-     editable={!busy} placeholder="Europe/Belgrade" autoCapitalize="none" autoCorrect={false} style={styles.input}
-     onChangeText={value => edit('quiet_timezone', value)} /></View>
+   {/* A text box asking a person to type an IANA identifier by hand, where one typo silently moves
+       their quiet hours. The device already knows its zone, and that is the answer in every real
+       case; the stored value stays exactly what the server accepts. */}
+   <View style={styles.timeField}><T variant="meta" tone="muted">Vremenska zona tihih sati</T>
+     <T variant="bodyStrong">{zoneLabel(settings.quiet_timezone)}</T>
+     {settings.quiet_timezone !== deviceZone() && deviceZone()
+       ? <Button label={`Koristi zonu telefona (${zoneLabel(deviceZone()!)})`} kind="quiet" disabled={locked}
+         onPress={() => edit('quiet_timezone', deviceZone()!)} /> : null}</View>
    <SettingSwitch label="HITNO može preko tihih sati" help="Važi samo za HITNO događaj i samo kada je ovo posebno uključeno." value={settings.urgent_overrides_quiet_hours}
     disabled={locked || !settings.quiet_hours_enabled} onChange={value => edit('urgent_overrides_quiet_hours', value)} />
    {validation ? <T accessibilityRole="alert" tone="danger">{validation}</T> : null}
@@ -195,9 +201,19 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
  </View>;
 }
 
+const deviceZone = (): string | null => {
+ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; }
+};
+/** The city, not the database identifier. */
+const zoneLabel = (zone: string): string => zone.split('/').pop()?.replace(/_/g, ' ') ?? zone;
+
 function SettingSwitch({ label, help, value, disabled, onChange }: { label: string; help: string; value: boolean; disabled: boolean; onChange: (value: boolean) => void }) {
- return <View style={styles.settingRow}><View style={styles.settingCopy}><T variant="bodyStrong">{label}</T><T variant="meta" tone="muted">{help}</T></View>
-  <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} /></View>;
+ // Nine of these, each togglable only by hitting the switch itself — a 51x31 target at the right
+ // edge, on rows that are already 56 tall and full width.
+ return <Press accessibilityRole="switch" accessibilityLabel={label} accessibilityHint={help} accessibilityState={{ checked: value, disabled }}
+   disabled={disabled} haptic="select" scaleTo={1} onPress={() => onChange(!value)} style={styles.settingRow}>
+  <View style={styles.settingCopy}><T variant="bodyStrong">{label}</T><T variant="meta" tone="muted">{help}</T></View>
+  <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} /></Press>;
 }
 const styles = StyleSheet.create({
  stack: { gap: 16 },

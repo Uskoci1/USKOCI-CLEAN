@@ -37,8 +37,10 @@ export function SupportInboxScreen({ mode = 'OWN', onMode }: { mode?: SupportMod
       label={mode === 'SAFETY' ? 'Svi operaterski predmeti' : 'Bezbednosni predmeti'}
       onPress={() => { if (current()) onMode(mode === 'SAFETY' ? 'OPERATOR' : 'SAFETY'); }} /> : null}
     {inbox ? inbox.cases.length ? <SettingsGroup title={mode === 'OWN' ? 'Primljeni zahtevi' : 'Predmeti'}>
-      {inbox.cases.map((item, index) => <SettingsRow key={item.id} label={`Zahtev #${item.caseNumber}${item.unread ? ' · Novo' : ''}`}
-        detail={`${supportLabel(item.topic)}\n${supportLabel(item.status)}\n${supportTime(item.updatedAt)}`}
+      {/* A list of "Zahtev #14" tells a person nothing about their own requests. What it was about
+          is the name; the number is how support refers to it, so it goes in the detail. */}
+      {inbox.cases.map((item, index) => <SettingsRow key={item.id} label={`${supportLabel(item.topic)}${item.unread ? ' · Novo' : ''}`}
+        detail={`${supportLabel(item.status)} · ${supportTime(item.updatedAt)} · #${item.caseNumber}`}
         last={index === inbox.cases.length - 1} disabled={busy}
         onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: item.id } }))} />)}
     </SettingsGroup> : <SupportEmpty>{mode === 'OWN' ? 'Još nema primljenih zahteva. Novi zahtev možeš da pošalješ odavde.'

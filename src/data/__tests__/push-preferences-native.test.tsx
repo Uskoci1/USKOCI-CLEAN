@@ -12,6 +12,8 @@ jest.mock('../pushDeviceClientService', () => ({ pushDeviceClientService: { read
 jest.mock('../pushReadinessClientService', () => ({ pushReadinessClientService: { read: () => mockReadiness() } }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: (props: unknown) => require('react').createElement('Button', props) }));
 jest.mock('../../ui/Text', () => ({ T: (props: unknown) => require('react').createElement('Text', props) }));
+// The settings rows are pressable now; Press reaches the native gesture and haptics layers.
+jest.mock('../../ui/Press', () => ({ Press: (props: unknown) => require('react').createElement('Press', props) }));
 const settings = {
  in_app_enabled: true, push_enabled: false, opportunities_enabled: true, responses_enabled: true, dogovor_enabled: true,
  execution_enabled: true, recovery_enabled: true, account_enabled: true, quiet_hours_enabled: true,
@@ -88,7 +90,7 @@ it('late transport result cannot replace a new account snapshot', async () => {
 
 it('exposes category controls and saves an explicit opt-out without silently enabling push', async () => {
  await mount();
- act(() => control('Nove prilike').props.onValueChange(false));
+ act(() => control('Nove prilike').props.onPress());
  expect(button('Uključi push za ovu ulogu').props.disabled).toBe(true);
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(mockSave).toHaveBeenCalledTimes(1);
@@ -100,8 +102,9 @@ it('saves overnight quiet hours, timezone and explicit HITNO override through th
  await mount();
  act(() => control('Početak tihih sati').props.onChangeText('23:15'));
  act(() => control('Kraj tihih sati').props.onChangeText('06:45'));
- act(() => control('Vremenska zona tihih sati').props.onChangeText('Europe/Belgrade'));
- act(() => control('HITNO može preko tihih sati').props.onValueChange(true));
+ // The zone is no longer typed by hand; the saved value is the one that was read back, and the
+ // only way to change it is the explicit "use the phone's zone" action.
+ act(() => control('HITNO može preko tihih sati').props.onPress());
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', {
   ...settings, quiet_start: '23:15', quiet_end: '06:45', urgent_overrides_quiet_hours: true,
@@ -116,7 +119,7 @@ it('enabled quiet hours refuse incomplete or malformed local times before any wr
 });
 it('a preference write with unknown outcome requires authoritative readback instead of a blind second write', async () => {
  await mount(); let done!: (value: unknown) => void; mockSave.mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
- act(() => control('Dogovor i poruke').props.onValueChange(false)); const save = button('Sačuvaj podešavanja').props.onPress;
+ act(() => control('Dogovor i poruke').props.onPress()); const save = button('Sačuvaj podešavanja').props.onPress;
  await act(async () => { save(); await flush(); });
  expect(mockSave).toHaveBeenCalledTimes(1);
  mockAccount = { user: { id: preferences.userId }, accountRevision: 3 };
