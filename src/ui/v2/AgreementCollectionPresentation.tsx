@@ -55,6 +55,11 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
       <T style={s.price}>{item.cena.prikaz}</T>
       <T variant="meta" style={s.people}>{peopleText(item.pokrivenost.popunjeno)}</T>
     </View>
+    {/* The only route to rating a finished collaboration was: open the agreement, find the action.
+        Nothing anywhere asked for it, and the person who confirmed the completion is not even sent
+        an event. The card that is already in front of them says it instead. */}
+    {item.stanje === 'COMPLETED' ? <View style={s.statusRow}>
+      <T variant="meta" tone="muted">Saradnja je završena — ocena pomaže drugima da izaberu.</T></View> : null}
     <View style={s.person}>
       <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>
       <T variant="bodyStrong" style={s.personName}>{other?.ime ?? 'Druga strana'}</T>

@@ -7,6 +7,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { palette } from '../theme/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
+import { pendingRoute } from '../store/pendingRoute';
 import { postaviUlogu } from '../store/uloga';
 import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
@@ -41,6 +42,9 @@ export default function RootLayout() {
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
       sesijaSada().user?.id !== session?.user.id) return;
     if (!session && !naAuth && !naOporavku) {
+      // The path was used to choose the form and then thrown away, so a tapped Dogovor became the
+      // tab home after signing in. Remember it; the consumer below hands it back exactly once.
+      pendingRoute.remember(pathname);
       router.replace(pathname === '/' ? '/auth' : { pathname: '/auth', params: { form: 'login' } });
       return;
     }
@@ -57,9 +61,20 @@ export default function RootLayout() {
     const isCurrent = () => aktivan && sesijaSada().sessionEpoch === sessionEpoch &&
       sesijaSada().user?.id === session.user.id;
     void povratniCilj.consumeCompleted(session.user.id, isCurrent).then((record) => {
-      if (!isCurrent() || !record) return;
-      if (record.intent.intent === 'WORKER') postaviUlogu('uskocer');
-      else postaviUlogu('narucilac');
+      if (!isCurrent()) return;
+      if (record) {
+        if (record.intent.intent === 'WORKER') postaviUlogu('uskocer');
+        else postaviUlogu('narucilac');
+      }
+
+      // Where they were going wins over where the app would otherwise drop them. A person who was
+      // sent to sign in by a link or a push is finishing that journey, not starting a new one.
+      const resumed = pendingRoute.take();
+      if (resumed) {
+        router.replace(resumed as Parameters<typeof router.replace>[0]);
+        return;
+      }
+      if (!record) return;
 
       const target = record.intent.returnTarget;
       if (!target || target.kind === 'NONE') {

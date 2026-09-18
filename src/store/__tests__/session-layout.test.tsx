@@ -68,9 +68,12 @@ jest.mock('../povratniCilj', () => ({ povratniCilj: { consumeCompleted: (...args
 jest.mock('../uloga', () => ({ postaviUlogu: (role: string) => mockRole(role) }));
 
 import RootLayout from '../../app/_layout';
+import { pendingRoute } from '../pendingRoute';
 
 let tree: ReactTestRenderer;
 beforeEach(() => {
+  // A bounce remembers where the person was going; each test starts with nobody going anywhere.
+  pendingRoute.clear();
   jest.clearAllMocks(); mockPath = '/';
   mockSegments.splice(0, mockSegments.length, '(app)');
   mockStackMounts = 0;

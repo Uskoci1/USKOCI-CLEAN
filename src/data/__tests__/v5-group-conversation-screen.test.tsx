@@ -92,7 +92,12 @@ it('entry becomes reachable only after authoritative group context and routes ex
 });
 it('entry hides unsupported group and discards late availability after account transition',async()=>{
  entry=true;const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise).mockResolvedValue(ok({...context(),group:null,available:false}));await render();expect(text()).toBe('null');
- await act(async()=>{mockSession={user:{id:B},accountRevision:2};tree!.update(page());gate.resolve(ok(context()));});expect(text()).toBe('null');expect(mockPush).not.toHaveBeenCalled();
+ // The absence now explains itself, so the new account reads why there is no group rather than a
+ // blank. What this test is about is unchanged: the late answer for the old account is discarded,
+ // no entry appears, and nothing navigates.
+ await act(async()=>{mockSession={user:{id:B},accountRevision:2};tree!.update(page());gate.resolve(ok(context()));});
+ expect(text()).toBe('Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.');
+ expect(mockPush).not.toHaveBeenCalled();
 });
 it('selects only an actually visible group message and preserves the read-only support exit',async()=>{
  mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false,terminal:true}}));await render();
