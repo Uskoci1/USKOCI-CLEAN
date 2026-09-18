@@ -636,8 +636,12 @@ Deno.serve(async (req: Request) => {
       }
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
         (usage) => { reportedUsage = usage; });
-    } catch {
-      console.error('AI_PROVIDER_FAILED');
+    } catch (providerError) {
+      // On 2026-09-18 this line was the only trace of two failures that left the person staring at
+      // "AI jos obradjuje poruku" for over two hours, and it did not say which failure it was. The
+      // thrown names are our own (AI_CONTEXT_TOO_LARGE, PROVIDER_HTTP_FAILED, PROVIDER_OUTPUT_MISSING)
+      // or a runtime error name; neither the key, the prompt nor anything the person wrote is logged.
+      console.error('AI_PROVIDER_FAILED', providerError instanceof Error ? providerError.message : 'UNKNOWN');
       await retireAttempt();
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
     }

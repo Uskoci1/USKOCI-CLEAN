@@ -204,7 +204,15 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       : stanje.status === 'COMPLETED' ? 'Razgovor je završen. Sačuvani Zadatak možeš otvoriti iz pregleda.'
         : 'Nastavak ovog razgovora nije dostupan.'
     : abandoning.current ? 'Napuštanje razgovora još nije potvrđeno. Proveri stanje pre ponovnog pokušaja.'
-      : pending ? turn?.state === 'PROCESSING' ? 'AI još obrađuje poruku. Proveri ishod.'
+      // A dispatched attempt that can already be cancelled is one whose lease the server has let
+      // go: on 2026-09-18 two of these sat at "AI još obrađuje poruku" for over two hours while the
+      // function had already logged AI_PROVIDER_FAILED. The server still cannot call the turn
+      // failed - it does not know what the provider did with the money - but the screen must stop
+      // implying that an answer is on its way, and must name the way out.
+      : pending ? turn?.state === 'PROCESSING'
+        ? editor.data?.recovery?.canCancel && editor.data.recovery.providerDispatched
+          ? 'AI još nije odgovorio na ovu poruku. Ako ne stigne, otkaži slanje pa pošalji ponovo.'
+          : 'AI još obrađuje poruku. Proveri ishod.'
         : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Ponovi isti zahtev.'
           : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkaži ga da ponovo uneseš poruku.'
           : 'Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.'
