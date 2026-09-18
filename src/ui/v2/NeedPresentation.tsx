@@ -116,10 +116,12 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </FactGrid>
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
         {props.photos}
-        {draft ? <View style={[card, s.draftCard]}>
-          <T variant="heading" style={s.ink}>{blocked ? blocked.title : 'Spremi zadatak za objavu'}</T>
-          <T variant="copy" tone="muted">{blocked ? blocked.detail
-            : 'Pregledaj podatke, fotografije i rok za prijave. Objavljuješ jednom akcijom na pregledu.'}</T>
+        {/* The strip at the top already carries the blocking reason; this card repeated it word for
+            word further down, so a blocked draft stated its one problem twice in two boxes. It is
+            now only what it was for: what to do with a draft that is not blocked. */}
+        {draft && !blocked && ownerIntent ? <View style={[card, s.draftCard]}>
+          <T variant="heading" style={s.ink}>Spremi zadatak za objavu</T>
+          <T variant="copy" tone="muted">Pregledaj podatke, fotografije i rok za prijave. Objavljuješ jednom akcijom na pregledu.</T>
           <V2Action label="Izmeni nacrt" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.quietLeft} />
         </View> : null}
         {!draft && ownerIntent ? <DisclosureGroup>
