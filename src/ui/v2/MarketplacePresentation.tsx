@@ -8,6 +8,7 @@ import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceVie
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, publicPoint } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
+import { zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
@@ -58,14 +59,6 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   /** The floating action appears only above cards; an empty set carries its own inline primary, so a screen state never shows two orange actions. */
   const showCards = !loading && !error && visible.length > 0;
   const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
-  // "1 zadataka" was on the map legend. Serbian counts in three shapes, not one.
-  const plural = (count: number) => {
-    const hundred = count % 100, ten = count % 10;
-    if (hundred >= 11 && hundred <= 14) return `${count} zadataka`;
-    if (ten === 1) return `${count} zadatak`;
-    if (ten >= 2 && ten <= 4) return `${count} zadatka`;
-    return `${count} zadataka`;
-  };
   // A task that arrives while you are looking says so; the ones that were already there do not
   // replay every time the list is pulled. `Appear` holds that distinction.
   const appear = useAppear();
@@ -131,14 +124,14 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           <V2Action label="Otvori detalj Zadatka" onPress={() => onOpen(selected)} style={brandAction} />
           <V2Action label="Zatvori pregled pina" kind="quiet" onPress={() => change({ selectedId: null })} />
         </ScrollView> : null}
-        <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{plural(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
+        <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{zadataka(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
           {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
         ListHeaderComponent={loading || error || !visible.length ? null : <View style={s.countRow}>
           {count === null ? <T variant="note" tone="muted">Učitavamo…</T>
-            : <T variant="note" tone="muted" numberOfLines={1}>{plural(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
+            : <T variant="note" tone="muted" numberOfLines={1}>{zadataka(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
         </View>} />}
       {props.onNew && showCards ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
         onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>

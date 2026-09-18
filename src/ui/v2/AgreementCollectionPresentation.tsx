@@ -5,6 +5,7 @@ import { CalendarBlank, Check, Clock, MapPin } from 'phosphor-react-native';
 import type { DogovorProjekcija, Uloga } from '../../contracts/projections';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
+import { dogovora } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
@@ -24,7 +25,6 @@ type Props = {
   intent?: Uloga;
 };
 const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'history', label: 'Istorija' }, { key: 'all', label: 'Svi' }] as const;
-const SECTION_TITLES: Record<AgreementCollectionSection, string> = { active: 'Aktivni dogovori', history: 'Istorija', all: 'Svi dogovori' };
 const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER';
 const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje === 'AWAITING_REQUESTER'
   && item.ucesnici.some(person => person.viSte && person.uloga === 'narucilac');
@@ -89,18 +89,17 @@ export function AgreementCollectionPresentation(props: Props) {
         : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledaj sve saradnje iz obe uloge.</T>
           <V2Action label="Prikaži sve Dogovore" onPress={() => { props.onSection('all'); props.onConfirmationOnly(false); }} /></View>
           : <View style={s.state}><T style={s.stateTitle}>Još nemaš Dogovor</T><T style={s.stateBody}>{props.requester
-            ? 'Kada izaberete nekoga iz Prijava, Dogovor se pojavljuje ovde.'
+            ? 'Kada izabereš nekoga iz Prijava, Dogovor se pojavljuje ovde.'
             : 'Kada tvoja Prijava bude izabrana, Dogovor se pojavljuje ovde.'}</T>
             <V2Action label="Pogledaj Zadatke" onPress={props.onTasks} style={brandAction} /></View>}
   </View>;
   return <SafeAreaView edges={['top']} style={s.screen}>
     <ScreenHeader eyebrow={props.intent ? intentLabel(props.intent) : 'Obe uloge'} title="Dogovori" onProfile={props.onProfile} />
-    <View style={s.segmentRow}><Segmented options={sections} value={section} onChange={props.onSection} /></View>
-    <View style={s.sectionRow}>
-      <View style={s.sectionCopy}>
-        <T variant="heading" style={s.sectionTitle}>{SECTION_TITLES[section]}</T>
-        {count !== null ? <T variant="heading" style={s.count}>{count}</T> : null}
-      </View>
+    {/* One row: which set, and the ways to narrow it. The heading that used to sit under it said
+        "Aktivni dogovori" beside a segment already reading "Aktivni", and it said it above an empty
+        state that says the same thing better. The count belongs with what it counts. */}
+    <View style={s.controls}>
+      <View style={s.grow}><Segmented options={sections} value={section} onChange={props.onSection} /></View>
       {waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
         onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select" style={[s.chip, confirmationOnly && s.chipOn]}>
         {confirmationOnly ? <Check size={14} weight="bold" color={sys.color.green} /> : null}
@@ -110,15 +109,14 @@ export function AgreementCollectionPresentation(props: Props) {
     </View>
     <FlatList<DogovorProjekcija> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading}
       onRefresh={props.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
-      ItemSeparatorComponent={Separator} renderItem={renderItem} />
+      ItemSeparatorComponent={Separator} renderItem={renderItem}
+      ListHeaderComponent={count ? <View style={s.countRow}><T variant="note" tone="muted">{dogovora(count)}</T></View> : null} />
   </SafeAreaView>;
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  segmentRow: { paddingHorizontal: 20, paddingTop: 6 },
-  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  sectionCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  sectionTitle: { color: sys.color.ink, flexShrink: 1 },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6 },
+  countRow: { paddingBottom: 8 },
   count: { color: sys.color.muted, fontWeight: '500', fontVariant: ['tabular-nums'] },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: sys.radius.chip, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
