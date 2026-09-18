@@ -87,7 +87,7 @@ export const settingsStyles = StyleSheet.create({
   identity: { alignItems: 'center', gap: 6, paddingTop: 8, paddingBottom: 22 },
   avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10, ...sys.elevation.soft },
   avatarBadge: { position: 'absolute', right: -4, bottom: -4, width: 30, height: 30, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
-  name: { ...sys.type.hero, fontSize: 28, lineHeight: 33, letterSpacing: -0.8, textAlign: 'center' },
+  name: { ...sys.type.pageTitle, textAlign: 'center' },
   /** The role switch: one segmented control, the other role is one explicit tap away. */
   roleSwitch: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.control, alignSelf: 'stretch', marginTop: 18 },
   roleSegment: { flex: 1, minHeight: 44, borderRadius: nested(sys.radius.control, 4), alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   label: { ...sys.type.label },
   title: { ...sys.type.title },
   heading: { ...sys.type.heading },
-  hero: { ...sys.type.hero, fontSize: 28, lineHeight: 33, letterSpacing: -0.8 },
+  hero: { ...sys.type.pageTitle },
   intro: { paddingTop: 4, marginBottom: 18, gap: 8 },
   kicker: { color: sys.color.muted, letterSpacing: 0.4 },
   lead: { marginTop: 2 },

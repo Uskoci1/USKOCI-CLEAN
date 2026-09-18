@@ -79,7 +79,7 @@ export function AgreementSection({ label, summary, children }: { label: string; 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
   hero: { gap: 12 },
-  title: { ...sys.type.hero, fontSize: 28, lineHeight: 33, letterSpacing: -0.8, color: sys.color.ink },
+  title: { ...sys.type.pageTitle, color: sys.color.ink },
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
   compactIcon: { width: 36, height: 36, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   people: { paddingVertical: 4 },

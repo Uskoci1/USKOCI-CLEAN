@@ -94,7 +94,7 @@ const s = StyleSheet.create({
   factWide: { width: '100%' },
   factLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   factValue: { ...sys.type.bodyStrong, color: sys.color.ink },
-  factMoney: { ...sys.type.price, fontSize: 24, lineHeight: 30, color: sys.color.money },
+  factMoney: { ...sys.type.priceLarge, color: sys.color.money },
   section: { color: sys.color.ink, marginTop: 6 },
   group: { ...card, padding: 0, overflow: 'hidden' },
   divider: { borderTopWidth: 1, borderTopColor: sys.color.line },

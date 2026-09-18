@@ -83,7 +83,7 @@ export const supportStyles = StyleSheet.create({
   empty: { paddingVertical: 32, paddingHorizontal: 16, alignItems: 'center', gap: 16 },
   field: { gap: 8, marginBottom: 20 },
   input: { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
-    backgroundColor: sys.color.surface, color: sys.color.ink, fontSize: 16, lineHeight: 24, padding: 12 },
+    backgroundColor: sys.color.surface, ...sys.type.body, color: sys.color.ink, padding: 12 },
   multiline: { minHeight: 144 }, invalid: { borderColor: sys.color.danger },
   row: { gap: 6, paddingVertical: 16, borderBottomColor: sys.color.line, borderBottomWidth: 1 },
   status: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.chip },

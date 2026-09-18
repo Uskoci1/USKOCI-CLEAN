@@ -177,8 +177,8 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
 /** PKG-011: same controller, journal and copies; cards, ground and type on the shared system. */
 const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: sys.color.ground }, header: { paddingHorizontal: 12, paddingVertical: 8, gap: 4, flexDirection: 'row', alignItems: 'center' },
   content: { padding: 20, paddingBottom: 32, gap: 16 }, heading: { ...sys.type.heading, color: sys.color.ink, flexShrink: 1 },
-  copy: { ...sys.type.body, fontSize: 15, lineHeight: 22, color: sys.color.muted }, label: { ...sys.type.meta, color: sys.color.ink },
-  error: { ...sys.type.body, fontSize: 15, lineHeight: 22, color: sys.color.danger },
+  copy: { ...sys.type.copy, color: sys.color.muted }, label: { ...sys.type.meta, color: sys.color.ink },
+  error: { ...sys.type.copy, color: sys.color.danger },
   group: { gap: 8, padding: 16, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   form: { gap: 12, padding: 16, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface }, field: { gap: 6 },
   input: { minHeight: 50, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, padding: 12, backgroundColor: sys.color.surface,

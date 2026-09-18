@@ -91,7 +91,7 @@ const s = StyleSheet.create({
   caption: { color: a.color.muted, fontWeight: '500', letterSpacing: 0.2, textAlign: 'center' },
   captionActive: { color: a.color.green, fontWeight: '600' },
   levels: { flexDirection: 'row', gap: 3, height: 24, alignItems: 'center' },
-  transcript: { color: a.color.ink, fontSize: 16, lineHeight: 24, maxHeight: 72, padding: 10, borderRadius: sys.radius.control, backgroundColor: a.color.iconWell },
+  transcript: { ...sys.type.body, color: a.color.ink, maxHeight: 72, padding: 10, borderRadius: sys.radius.control, backgroundColor: a.color.iconWell },
   error: { color: a.color.danger, textAlign: 'center' },
   // The speech disclosure is a legal notice, so it must never be clipped. A single
   // non-wrapping row overflowed both edges on a real phone at 1080px with the system

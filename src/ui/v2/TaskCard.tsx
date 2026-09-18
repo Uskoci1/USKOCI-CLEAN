@@ -69,7 +69,7 @@ const s = StyleSheet.create({
   factText: { flex: 1 },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderTopColor: sys.color.line },
   price: { ...sys.type.price, color: sys.color.money, flexShrink: 1 },
-  offers: { color: sys.color.ink, fontSize: 16, lineHeight: 22, fontWeight: '600', letterSpacing: -0.2 },
+  offers: { ...sys.type.bodyStrong, color: sys.color.ink },
   people: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   peopleText: { color: sys.color.ink, fontWeight: '600', fontVariant: ['tabular-nums'] },
   next: { color: sys.color.green, fontWeight: '600' },

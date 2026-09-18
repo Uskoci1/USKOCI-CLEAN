@@ -73,7 +73,7 @@ const s = StyleSheet.create({
   card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 10 },
   identity: { alignItems: 'center', gap: 8, paddingVertical: 8 },
   avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, overflow: 'hidden', backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  initial: { color: sys.color.green, fontSize: 36, lineHeight: 42 },
+  initial: { ...sys.type.monogram, color: sys.color.green },
   trust: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   trustCell: { flexGrow: 1, flexBasis: 0, minWidth: 140, backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 16, gap: 4 },
   trustWide: { flexBasis: '100%' },

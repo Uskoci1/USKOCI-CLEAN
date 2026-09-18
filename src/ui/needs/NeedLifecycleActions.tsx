@@ -153,4 +153,4 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
 /** PKG-011: same controller and copies; a card on the shared system. */
 const s = StyleSheet.create({ panel: { gap: 12, padding: 18, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   title: { ...sys.type.heading, color: sys.color.ink },
-  copy: { ...sys.type.meta, fontWeight: '400', fontSize: 14, lineHeight: 20, color: sys.color.muted }, error: { ...sys.type.meta, fontWeight: '400', fontSize: 14, lineHeight: 20, color: sys.color.danger } });
+  copy: { ...sys.type.note, color: sys.color.muted }, error: { ...sys.type.note, color: sys.color.danger } });

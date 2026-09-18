@@ -34,7 +34,7 @@ const s = StyleSheet.create({
   segment: { flexGrow: 1, flexBasis: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: nested(sys.radius.control, 4),
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   selected: { backgroundColor: sys.color.surface, shadowColor: '#183F35', shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  text: { color: sys.color.muted, fontWeight: '600', fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  text: { ...sys.type.tab, color: sys.color.muted, textAlign: 'center' },
   selectedText: { color: sys.color.ink, fontWeight: '700' },
   badge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: sys.color.onOrange, lineHeight: 14, letterSpacing: 0 },

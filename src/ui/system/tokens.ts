@@ -53,6 +53,8 @@ export const sys = {
     /** Money and counts use tabular figures so columns and cards line up. */
     price: { fontSize: 23, lineHeight: 28, fontWeight: '700', letterSpacing: -0.7, fontVariant: ['tabular-nums'] } as TextStyle,
     cardTitle: { fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.6 } as TextStyle,
+    /** The title of a card that is showing itself small, inside a list of other cards. */
+    cardTitleCompact: { fontSize: 16, lineHeight: 21, fontWeight: '700', letterSpacing: -0.3 } as TextStyle,
     /** The one money figure a detail screen is built around. */
     priceLarge: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.7, fontVariant: ['tabular-nums'] } as TextStyle,
     /** Money inside a row that is compared with other rows. */

@@ -141,7 +141,7 @@ const s = StyleSheet.create({
   card: { ...card, gap: 12 },
   hero: { alignItems: 'center', gap: 8, borderWidth: 0, backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0, paddingVertical: 8 },
   avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  initials: { color: sys.color.green, fontSize: 30, lineHeight: 36 },
+  initials: { ...sys.type.monogram, color: sys.color.green },
   statusChip: { borderRadius: sys.radius.badge, paddingHorizontal: 12, paddingVertical: 7 },
   field: { gap: 6 },
   input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 11, minHeight: 48, backgroundColor: sys.color.surface },
