@@ -56,18 +56,18 @@ export default function PregledNacrtaR07() {
       sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
     try {
       const conversation = await aiNeedV2Izvor.loadConversation(conversationId);
-      if (!current()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      if (!current()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled.' };
       if (!conversation || conversation.conversationId !== conversationId) {
         return { ok: false, kod: 'REVIEW_UNAVAILABLE', poruka: 'Nacrt nije dostupan ovom nalogu.' };
       }
       const need = conversation.review.boundNeedId ? await izvor.potreba(conversation.review.boundNeedId) : null;
-      if (!current()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      if (!current()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled.' };
       if (conversation.review.boundNeedId && (!need || need.id !== conversation.review.boundNeedId)) {
-        return { ok: false, kod: 'BOUND_NEED_UNAVAILABLE', poruka: 'Zadatak trenutno nije dostupan. Učitajte pregled ponovo.' };
+        return { ok: false, kod: 'BOUND_NEED_UNAVAILABLE', poruka: 'Zadatak trenutno nije dostupan. Učitaj pregled ponovo.' };
       }
       return { ok: true, podatak: { conversation, need } };
     } catch {
-      return { ok: false, kod: 'REVIEW_READ_FAILED', poruka: 'Pregled trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' };
+      return { ok: false, kod: 'REVIEW_READ_FAILED', poruka: 'Pregled trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' };
     }
   }, [conversationId, routeIdentity, accountId, accountRevision, intent]);
   const editor = useOwnedEditor(read);
@@ -116,7 +116,7 @@ export default function PregledNacrtaR07() {
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.confirmFact(fact.id);
       if (!result.ok) return result;
-      if (!isCurrent()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      if (!isCurrent()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled.' };
       return read();
     });
   };
@@ -127,7 +127,7 @@ export default function PregledNacrtaR07() {
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.correctFact(edit.fact.id, parsed.value, parsed.displayValue);
       if (!result.ok) return result;
-      if (!isCurrent()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled.' };
+      if (!isCurrent()) return { ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled.' };
       return read();
     });
   };
@@ -176,7 +176,7 @@ export default function PregledNacrtaR07() {
     <View style={{ gap: v2.space.lg }}>
       {loading ? <ActivityIndicator accessibilityLabel="Učitavamo pregled" color={v2.color.teal} /> : <>
         <T accessibilityRole="alert" style={textStyle}>{greska ?? 'Nacrt nije dostupan.'}</T>
-        <V2Action label="Učitajte pregled ponovo" onPress={retry} />
+        <V2Action label="Učitaj pregled ponovo" onPress={retry} />
       </>}
       <V2Action label="Nazad" kind="quiet" onPress={() => navigate(() => router.back())} />
     </View>
@@ -191,20 +191,20 @@ export default function PregledNacrtaR07() {
         </Press>
         <View style={{ flex: 1 }}>
           <T style={metaStyle}>{editMode ? 'Pregled izmena' : alreadySaved ? 'Sačuvani Zadatak' : 'Još ništa nije objavljeno'}</T>
-          <T accessibilityRole="header" style={{ ...v2.text.title, color: v2.color.ink }}>Proverite Zadatak</T>
+          <T accessibilityRole="header" style={{ ...v2.text.title, color: v2.color.ink }}>Proveri Zadatak</T>
         </View>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: v2.space.lg, gap: v2.space.xl, paddingBottom: v2.space.xl }}>
         <View style={{ gap: v2.space.md }}>
-          <T style={{ ...metaStyle, color: v2.color.teal }}>{alreadySaved ? 'Zadatak je već sačuvan' : editMode ? 'Izmene čekaju vašu potvrdu' : 'Privatan nacrt · pre objave'}</T>
-          <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>{title ?? 'Vaš novi zadatak'}</T>
+          <T style={{ ...metaStyle, color: v2.color.teal }}>{alreadySaved ? 'Zadatak je već sačuvan' : editMode ? 'Izmene čekaju tvoju potvrdu' : 'Privatan nacrt · pre objave'}</T>
+          <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>{title ?? 'Tvoj novi zadatak'}</T>
           {description ? <T style={textStyle}>{description}</T> : null}
           <T style={metaStyle}>{confirmed} od {facts.length} podataka potvrđeno</T>
           <View style={{ height: 3, backgroundColor: v2.color.line, borderRadius: sys.radius.pill }}>
             <View style={{ height: 3, width: `${facts.length ? confirmed / facts.length * 100 : 0}%`, backgroundColor: v2.color.teal, borderRadius: sys.radius.pill }} />
           </View>
           {stanje.review.missingRequired.length ? <T style={metaStyle}>Još treba potvrditi ili dopuniti: {stanje.review.missingRequired.map(factLabel).join(' · ')}</T>
-            : pendingFacts ? <T style={metaStyle}>Obavezni podaci su potvrđeni. Pregledajte i preostale predloge pre čuvanja.</T> : null}
+            : pendingFacts ? <T style={metaStyle}>Obavezni podaci su potvrđeni. Pregledaj i preostale predloge pre čuvanja.</T> : null}
         </View>
 
         {safetyCopy ? <View style={{ padding: v2.space.md, backgroundColor: v2.color.warm, borderRadius: sys.radius.control }}>
@@ -218,13 +218,13 @@ export default function PregledNacrtaR07() {
             const expanded = expandedFactId === fact.id, editing = edit?.fact.id === fact.id;
             const locationFact = ['need.task_geography', 'need.task_country_code', 'need.exact_address', 'need.access_notes', 'need.resolved_location'].includes(fact.key);
             return <View key={fact.id} style={{ borderTopWidth: index ? 1 : 0, borderColor: v2.color.line }}>
-              <Press accessibilityRole="button" accessibilityLabel={`Pregledajte: ${label}`} accessibilityState={{ expanded, disabled: !!edit }} disabled={!!edit}
+              <Press accessibilityRole="button" accessibilityLabel={`Pregledaj: ${label}`} accessibilityState={{ expanded, disabled: !!edit }} disabled={!!edit}
                 onPress={() => { if (isCurrent() && !saving && !editor.uncertain && !navigating.current && !currentEdit.current) setExpandedFactId(expanded ? null : fact.id); }}
                 style={{ minHeight: 76, padding: v2.space.lg, flexDirection: 'row', alignItems: 'center', gap: v2.space.md }}>
                 <View style={{ flex: 1, gap: v2.space.xs }}>
                   <T style={metaStyle}>{label}{fact.privacyClass === 'PRIVATE' ? ' · privatno' : ''}</T>
-                  <T style={textStyle} numberOfLines={expanded ? undefined : 2}>{fact.privacyClass === 'PRIVATE' && !expanded ? 'Prikažite privatni podatak' : factReviewValue(fact)}</T>
-                  <T style={{ ...metaStyle, color: confirmedFact ? v2.color.teal : v2.color.muted }}>{confirmedFact ? 'Potvrđeno' : 'Predlog · čeka vašu potvrdu'}</T>
+                  <T style={textStyle} numberOfLines={expanded ? undefined : 2}>{fact.privacyClass === 'PRIVATE' && !expanded ? 'Prikaži privatni podatak' : factReviewValue(fact)}</T>
+                  <T style={{ ...metaStyle, color: confirmedFact ? v2.color.teal : v2.color.muted }}>{confirmedFact ? 'Potvrđeno' : 'Predlog · čeka tvoju potvrdu'}</T>
                 </View>
                 <View style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }}><V2Icon name="chevron" size={18} /></View>
               </Press>
@@ -243,9 +243,9 @@ export default function PregledNacrtaR07() {
                     <V2Action label="Odustani" kind="quiet" disabled={blocked} onPress={() => { if (canAct()) setEdit(null); }} />
                   </View>
                 </> : <View style={{ gap: v2.space.sm }}>
-                  {!confirmedFact && fact.key !== 'need.resolved_location' ? <V2Action label="Potvrdite" disabled={blocked}
+                  {!confirmedFact && fact.key !== 'need.resolved_location' ? <V2Action label="Potvrdi" disabled={blocked}
                     onPress={() => void potvrdi(fact)} /> : null}
-                  <V2Action label={locationFact ? 'Izmenite mesto' : canEditFactInline(fact) ? 'Izmenite' : 'Izmenite u razgovoru'} kind="quiet" disabled={blocked}
+                  <V2Action label={locationFact ? 'Izmeni mesto' : canEditFactInline(fact) ? 'Izmeni' : 'Izmeni u razgovoru'} kind="quiet" disabled={blocked}
                     onPress={() => {
                       if (!canAct() || currentEdit.current) return;
                       if (locationFact) { openLocation(); return; }
@@ -259,22 +259,22 @@ export default function PregledNacrtaR07() {
           })}
         </View> : <View style={{ gap: v2.space.md }}>
           <T style={textStyle}>Još nema podataka za pregled</T>
-          <T style={metaStyle}>Vratite se u razgovor i opišite šta Vam treba.</T>
+          <T style={metaStyle}>Vrati se u razgovor i opiši šta ti treba.</T>
           <V2Action label="Nazad u razgovor" onPress={vratiSeURazgovor} />
         </View>}
 
         {editMode ? <T style={metaStyle}>Zadatak se vraća u nacrt i prolazi ponovnu proveru pre nego što ponovo bude vidljiv. Postojeće Prijave će morati da se osveže; Dogovori se ne menjaju.</T> : null}
-        {!alreadySaved && !editMode && stanje.status !== 'OPEN' ? <T style={metaStyle}>Ovaj razgovor je zatvoren. Prikazane podatke možete pregledati.</T> : null}
+        {!alreadySaved && !editMode && stanje.status !== 'OPEN' ? <T style={metaStyle}>Ovaj razgovor je zatvoren. Prikazane podatke možeš pregledati.</T> : null}
       </ScrollView>
       <View style={{ paddingHorizontal: v2.space.lg, paddingVertical: v2.space.md, gap: v2.space.sm, backgroundColor: v2.color.canvas, borderTopWidth: 1, borderColor: v2.color.line }}>
         {greska ? <><T accessibilityRole="alert" style={{ ...metaStyle, color: v2.color.danger }}>{greska}</T>
-          <V2Action label="Učitajte pregled ponovo" disabled={saving || loading} onPress={retry} /></> : null}
-        {alreadySaved ? <V2Action label="Otvorite sačuvani Zadatak" kind="primary"
+          <V2Action label="Učitaj pregled ponovo" disabled={saving || loading} onPress={retry} /></> : null}
+        {alreadySaved ? <V2Action label="Otvori sačuvani Zadatak" kind="primary"
           onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: alreadySaved } }))} />
           : stanje.status === 'OPEN' ? <>
-            <V2Action label={saving ? 'Čuvanje...' : editMode ? 'Sačuvajte izmene' : 'Sačuvajte nacrt'} kind="primary"
+            <V2Action label={saving ? 'Čuvanje...' : editMode ? 'Sačuvaj izmene' : 'Sačuvaj nacrt'} kind="primary"
               disabled={!saveAllowed || blocked || !!edit} onPress={editMode ? sacuvajIzmene : sacuvajNacrt} />
-            <T style={{ ...metaStyle, textAlign: 'center' }}>{saveAllowed ? 'Nacrt ostaje privatan. Objava je sledeći korak.' : 'Potvrdite ili ispravite sve prikazane predloge pre čuvanja.'}</T>
+            <T style={{ ...metaStyle, textAlign: 'center' }}>{saveAllowed ? 'Nacrt ostaje privatan. Objava je sledeći korak.' : 'Potvrdi ili ispravi sve prikazane predloge pre čuvanja.'}</T>
           </> : null}
       </View>
     </KeyboardAvoidingView>

@@ -31,10 +31,10 @@ const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?$/;
 function sameSettings(a: NotificationSettings, b: NotificationSettings) { return SETTING_KEYS.every(key => a[key] === b[key]); }
 function cloneSettings(value: NotificationSettings): NotificationSettings { return { ...value }; }
 function validateDraft(value: NotificationSettings): string | null {
- if (!value.quiet_timezone.trim()) return 'Unesite vremensku zonu, na primer Europe/Belgrade.';
+ if (!value.quiet_timezone.trim()) return 'Unesi vremensku zonu, na primer Europe/Belgrade.';
  if (!value.quiet_hours_enabled) return null;
- if (!value.quiet_start || !value.quiet_end) return 'Za tihe sate unesite početak i kraj.';
- if (!TIME.test(value.quiet_start) || !TIME.test(value.quiet_end)) return 'Vreme unesite kao HH:MM, na primer 22:00 i 07:00.';
+ if (!value.quiet_start || !value.quiet_end) return 'Za tihe sate unesi početak i kraj.';
+ if (!TIME.test(value.quiet_start) || !TIME.test(value.quiet_end)) return 'Vreme unesi kao HH:MM, na primer 22:00 i 07:00.';
  return null;
 }
 
@@ -135,7 +135,7 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
   <T style={{ ...sys.type.title, color: sys.color.ink }}>Kanali obaveštenja</T>
   <T tone="muted">Podešavanja važe samo za ovu ulogu. Promena kategorije ne uključuje push dozvolu na telefonu.</T>
   {busy && <ActivityIndicator accessibilityLabel="Provera push obaveštenja" color={sys.color.green} />}
-  {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proverite ga pre ponovnog pokušaja.</T><Button label="Proverite stanje" kind="secondary" onPress={refresh} disabled={busy} /></View>}
+  {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja.</T><Button label="Proveri stanje" kind="secondary" onPress={refresh} disabled={busy} /></View>}
   {snapshot && settings && <>
    <SettingSwitch label="Obaveštenja u aplikaciji" help="Kontroliše in-app isporuku. Istorija događaja u Inbox-u ostaje odvojena." value={settings.in_app_enabled}
     disabled={busy} onChange={value => edit('in_app_enabled', value)} />
@@ -165,9 +165,9 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
    <Button label="Sačuvaj podešavanja" onPress={saveSettings} disabled={busy || !dirty} />
    <View style={styles.divider} />
    <T style={{ ...sys.type.title, color: sys.color.ink }}>Push obaveštenja</T>
-   <T tone="muted">Na zaključanom ekranu prikazujemo samo da imate novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.</T>
+   <T tone="muted">Na zaključanom ekranu prikazujemo samo da imaš novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.</T>
    <T variant="bodyStrong">{enabled ? 'Push je uključen za ovu ulogu.' : 'Push je isključen za ovu ulogu.'}</T>
-   <T tone="muted">{registered ? 'Ovaj uređaj je povezan sa trenutnom prijavom.' : snapshot.native.kind === 'DENIED' ? 'Dozvolite obaveštenja u podešavanjima telefona.'
+   <T tone="muted">{registered ? 'Ovaj uređaj je povezan sa trenutnom prijavom.' : snapshot.native.kind === 'DENIED' ? 'Dozvoli obaveštenja u podešavanjima telefona.'
     : snapshot.native.kind === 'UNSUPPORTED' ? 'Push obaveštenja zahtevaju podržan fizički telefon.' : snapshot.native.kind === 'UNCONFIGURED' ? 'Push još nije dostupan u ovoj verziji aplikacije.' : 'Ovaj uređaj još nije povezan za push obaveštenja.'}</T>
    <View style={styles.stack}><T variant="bodyStrong">Poslednja provera slanja</T>
     <T tone="muted">{snapshot.readiness?.state === 'OPERATIONAL' ? 'Server je pri proveri uspešno obrađivao slanje obaveštenja.'
@@ -175,14 +175,14 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
       : snapshot.readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na serveru trenutno nije uključeno.'
        : 'Nema sveže potvrde da je slanje na serveru dostupno.'}</T>
     {snapshot.readiness ? <T variant="meta" tone="muted">Provereno: {new Date(snapshot.readiness.checkedAt).toLocaleString('sr-Latn')}</T> : null}
-    <T variant="meta" tone="muted">Ovo je stanje sistema za slanje, a ne potvrda da je obaveštenje stiglo na vaš telefon.</T>
+    <T variant="meta" tone="muted">Ovo je stanje sistema za slanje, a ne potvrda da je obaveštenje stiglo na tvoj telefon.</T>
    </View>
    {snapshot.native.kind === 'DENIED' && <Button label="Podešavanja telefona" kind="secondary" onPress={() => { void Linking.openSettings().catch(() => undefined); }} />}
    {snapshot.native.kind !== 'UNSUPPORTED' && snapshot.native.kind !== 'UNCONFIGURED' && snapshot.native.kind !== 'DENIED' && (!registered || !enabled)
     && <Button label="Uključi push za ovu ulogu" onPress={enable} disabled={busy || dirty} />}
    {enabled && <Button label="Isključi push za ovu ulogu" kind="secondary" onPress={disable} disabled={busy || dirty} />}
    <Button label="Osveži stanje" kind="secondary" onPress={refresh} disabled={busy || dirty} />
-   {dirty ? <T variant="meta" tone="muted">Sačuvajte izmene kategorija i tihih sati pre promene push registracije ili osvežavanja.</T> : null}
+   {dirty ? <T variant="meta" tone="muted">Sačuvaj izmene kategorija i tihih sati pre promene push registracije ili osvežavanja.</T> : null}
    <T variant="meta" tone="muted">Povezan uređaj ne znači da je pojedinačno obaveštenje isporučeno.</T>
   </>}
  </View>;

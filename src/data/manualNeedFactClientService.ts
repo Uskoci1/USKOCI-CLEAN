@@ -43,18 +43,18 @@ const MANUAL_FACT_KEYS = new Set<NeedFactV2Key>([
 ]);
 
 const ERRORS: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste ručno uneli podatak.',
+  AUTH_REQUIRED: 'Prijavi se da ručno uneseš podatak.',
   CONVERSATION_NOT_FOUND: 'Priprema Zadatka nije pronađena.',
   CONVERSATION_NOT_EDITABLE: 'Ovaj Zadatak više ne može ručno da se menja.',
   V2_FACT_KEY_INVALID: 'Ovaj podatak nije podržan za ručni unos.',
-  V2_FACT_VALUE_REQUIRED: 'Unesite vrednost.',
+  V2_FACT_VALUE_REQUIRED: 'Unesi vrednost.',
   V2_FACT_TYPE_INVALID: 'Vrednost nije u očekivanom formatu.',
   V2_FACT_DISPLAY_INVALID: 'Prikaz vrednosti nije ispravan.',
-  MANUAL_FACT_USE_LOCATION_EDITOR: 'Lokaciju unesite kroz postojeći editor mesta.',
-  MANUAL_FACT_USE_MEDIA_EDITOR: 'Fotografije dodajte kroz postojeći editor fotografija.',
-  VERIFIED_IDENTITY_UNAVAILABLE: 'Provera identiteta nije dostupna. Nastavite bez tog uslova.',
-  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvorite ručni unos.',
-  CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT: 'Ovaj zahtev već pripada drugoj izmeni. Osvežite podatke pre ponovnog pokušaja.',
+  MANUAL_FACT_USE_LOCATION_EDITOR: 'Lokaciju unesi kroz postojeći editor mesta.',
+  MANUAL_FACT_USE_MEDIA_EDITOR: 'Fotografije dodaj kroz postojeći editor fotografija.',
+  VERIFIED_IDENTITY_UNAVAILABLE: 'Provera identiteta nije dostupna. Nastavi bez tog uslova.',
+  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvori ručni unos.',
+  CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT: 'Ovaj zahtev već pripada drugoj izmeni. Osveži podatke pre ponovnog pokušaja.',
 };
 
 function safeValue(value: unknown, depth = 0): boolean {
@@ -119,7 +119,7 @@ export const manualNeedFactClientService = {
     if (!uuid(command?.conversationId) || !uuid(command?.clientRequestId) || !isNeedFactV2Key(command?.key)
       || !MANUAL_FACT_KEYS.has(command.key) || !displayValue || Array.from(displayValue).length > 1000
       || !safeValue(command.value) || JSON.stringify(command.value).length > 16_384) {
-      return Promise.resolve(failure('MANUAL_FACT_INPUT_INVALID', 'Proverite ručno uneti podatak.'));
+      return Promise.resolve(failure('MANUAL_FACT_INPUT_INVALID', 'Proveri ručno uneti podatak.'));
     }
     if (command.key === 'need.verified_identity_required' && command.value !== false) {
       return Promise.resolve(failure('VERIFIED_IDENTITY_UNAVAILABLE', ERRORS.VERIFIED_IDENTITY_UNAVAILABLE));

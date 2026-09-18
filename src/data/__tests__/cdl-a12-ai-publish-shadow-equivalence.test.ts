@@ -89,7 +89,7 @@ describe('CDL-A12 — legacy AI publish single owner after shadow deletion', () 
   it('preserves fail-closed auth/profile boundaries before the RPC', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
     const unauth = await productionAuthorityOverrides.objaviPotrebu('conv-1');
-    expect(unauth).toEqual({ ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se pre objave Potrebe.' });
+    expect(unauth).toEqual({ ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavi se pre objave Potrebe.' });
     expect(mockRpc).not.toHaveBeenCalled();
 
     mockGetUser.mockResolvedValue({ data: { user: { id: 'acct-1' } }, error: null });

@@ -206,7 +206,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       if (!isCurrent()) return;
       setPreparing(true);
       try { await callback({ isCurrent }); }
-      catch { if (isCurrent()) setSelectionError('Izbor trenutno nije sačuvan. Pokušajte ponovo.'); }
+      catch { if (isCurrent()) setSelectionError('Izbor trenutno nije sačuvan. Pokušaj ponovo.'); }
       finally { if (generation.current === id) { pending.current = null; setSelected(null); setPreparing(false); } }
     };
     if (reduced) { void deliver(); return; }

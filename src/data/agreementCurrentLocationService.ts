@@ -26,11 +26,11 @@ function receipt(raw: unknown,j: LocationJournal): LocationReceipt | null {
     || !timestamp(r.recordedAt) || r.authoritative!==true) return null;
   return r as LocationReceipt;
 }
-const options={ errors:{ AUTH_REQUIRED:'Prijavite se da biste nastavili.',AUTH_CONTEXT_CHANGED:'Nalog je promenjen.',
+const options={ errors:{ AUTH_REQUIRED:'Prijavi se da nastaviš.',AUTH_CONTEXT_CHANGED:'Nalog je promenjen.',
   AGREEMENT_NOT_AVAILABLE:'Dogovor nije dostupan.', LOCATION_NOT_AVAILABLE:'Deljenje lokacije trenutno nije dostupno u ovom Dogovoru.',
   INTERACTION_BLOCKED:'Deljenje lokacije trenutno nije dostupno.', ACCOUNT_CLOSING:'Nalog je u postupku zatvaranja.',
-  VERSION_CONFLICT:'Uslovi Dogovora su promenjeni. Osvežite prikaz.', LOCATION_KEY_REUSED:'Potvrda ne odgovara prvobitnom zahtevu.',
-  LOCATION_INPUT_INVALID:'Lokacija nije ispravna. Ponovo otvorite prikaz.' }, fallback:'LOCATION_UNCONFIRMED',invalid:'LOCATION_RECEIPT_INVALID' };
+  VERSION_CONFLICT:'Uslovi Dogovora su promenjeni. Osveži prikaz.', LOCATION_KEY_REUSED:'Potvrda ne odgovara prvobitnom zahtevu.',
+  LOCATION_INPUT_INVALID:'Lokacija nije ispravna. Ponovo otvori prikaz.' }, fallback:'LOCATION_UNCONFIRMED',invalid:'LOCATION_RECEIPT_INVALID' };
 export const agreementCurrentLocationService={
   read(agreementId:string,account:ReceiptAccount){return readReceipt<AgreementLocationContext>({...options,account,
     rpc:'rpc_read_agreement_current_location',args:{p_expected_user_id:account.accountId,p_agreement_id:agreementId},decode:raw=>{

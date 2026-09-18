@@ -199,7 +199,7 @@ describe('actual native Need location form', () => {
     const loaded: NeedLocationReview = { ...base, value: { ...base.value, geography, resolvedLocation } };
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByType('ResolvedPinMap' as never).props.position).toEqual({ latitude: 45.251234, longitude: 19.831234 });
-    expect(text()).not.toContain('Prvo unesite državu i javno mesto');
+    expect(text()).not.toContain('Prvo unesi državu i javno mesto');
     act(() => { saveButton().props.onPress(); }); expect(onSave).not.toHaveBeenCalled();
     act(() => { tree.root.findByProps({ label: 'Potvrdi tačku: Polazište' }).props.onPress(); });
     act(() => { confirm().props.onPress(); });

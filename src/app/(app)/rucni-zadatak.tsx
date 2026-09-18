@@ -49,7 +49,7 @@ const MANUAL_FIELDS: readonly NeedFactV2Key[] = [
 /** Presentation grouping only (PKG-011): every field keeps its own per-fact save through the same manual writer. */
 const SECTIONS: readonly { title: string; hint: string; keys: readonly NeedFactV2Key[] }[] = [
   { title: 'Šta treba uraditi', hint: 'Naslov, opis i vrsta posla koje će videti Uskočeri.', keys: ['need.title', 'need.description', 'need.category'] },
-  { title: 'Ljudi i cena', hint: 'Koliko ljudi tražite i da li navodite cenu ili tražite ponude.', keys: ['need.people_needed', 'need.price_mode', 'need.price_rsd'] },
+  { title: 'Ljudi i cena', hint: 'Koliko ljudi tražiš i da li navodiš cenu ili tražiš ponude.', keys: ['need.people_needed', 'need.price_mode', 'need.price_rsd'] },
   { title: 'Termin', hint: 'Kada treba da se uradi. Tačan početak i kraj samo za tačan termin.', keys: ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] },
   { title: 'Uslovi', hint: 'Opciono: veštine, oprema, vozila, dozvole, iskustvo i bitni uslovi.', keys: ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.minimum_experience_years', 'need.critical_conditions'] },
 ];
@@ -58,7 +58,7 @@ type PendingManual = Readonly<{ id: string; value: unknown; displayValue: string
 type FieldState = Readonly<{ value: string; error: string | null }>;
 type FieldStates = Partial<Record<NeedFactV2Key, FieldState>>;
 
-const changed = (): Ishod<never> => ({ ok: false, kod: 'MANUAL_TASK_CHANGED', poruka: 'Ponovo otvorite ručni unos za trenutni nalog.' });
+const changed = (): Ishod<never> => ({ ok: false, kod: 'MANUAL_TASK_CHANGED', poruka: 'Ponovo otvori ručni unos za trenutni nalog.' });
 const valueFingerprint = (value: unknown, displayValue: string) => JSON.stringify([value, displayValue]);
 
 function currentFact(conversation: AiNeedV2Conversation, key: NeedFactV2Key): AiNeedV2Fact | undefined {
@@ -166,7 +166,7 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
     if (old && valueFingerprint(old.value, old.displayValue) !== valueFingerprint(parsed.value, parsed.displayValue)) {
       setFields(previous => ({ ...previous, [key]: {
         value: text,
-        error: 'Prethodno čuvanje nema potvrđen ishod. Vratite prethodnu vrednost i ponovite isto čuvanje ili osvežite prikaz.',
+        error: 'Prethodno čuvanje nema potvrđen ishod. Vrati prethodnu vrednost i ponovi isto čuvanje ili osveži prikaz.',
       } }));
       return;
     }
@@ -213,7 +213,7 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
     return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}><View style={s.empty}>
       <View style={s.card}>
         <T accessibilityRole="header" variant="title" style={s.ink}>{editor.loading ? 'Učitavamo ručni unos' : 'Ručni unos nije dostupan'}</T>
-        <T accessibilityRole={editor.error ? 'alert' : undefined} variant="body" tone="muted">{editor.error ?? 'Otvorite Novi zadatak ponovo.'}</T>
+        <T accessibilityRole={editor.error ? 'alert' : undefined} variant="body" tone="muted">{editor.error ?? 'Otvori Novi zadatak ponovo.'}</T>
         {conversationId ? <V2Action label="Osveži" onPress={refresh} style={brandAction} /> : null}
         <V2Action label="Nazad" kind="quiet" onPress={back} />
       </View>
@@ -266,7 +266,7 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
               style={[s.input, multiline && s.multiline, key === 'need.description' && { minHeight: 96 }, state.error && s.inputError]}
             />
             {state.error ? <T accessibilityRole="alert" variant="meta" style={s.error}>{state.error}</T> : null}
-            {isPending ? <T variant="meta" tone="muted">Ishod prethodnog čuvanja nije potvrđen. Osvežite stanje; isti zahtev se ponavlja samo sa istim ID-em.</T> : null}
+            {isPending ? <T variant="meta" tone="muted">Ishod prethodnog čuvanja nije potvrđen. Osveži stanje; isti zahtev se ponavlja samo sa istim ID-em.</T> : null}
             <V2Action label={existing ? 'Sačuvaj izmenu' : 'Sačuvaj podatak'} kind={existing ? 'quiet' : 'secondary'} disabled={!canAct()} onPress={() => { void save(key); }} style={s.quietLeft} />
           </View>;
         })}
@@ -292,7 +292,7 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
           ? 'Obavezni podaci su u istom canonical V2 nacrtu. Sledeći korak je zajednički pregled pre eksplicitne objave.'
           : requiredScalarMissing.length || locationMissing
             ? `Još nedostaje: ${missing.map(factLabel).join(', ')}.`
-            : 'Proverite nedostajuće uslove pre završnog pregleda.'}</T>
+            : 'Proveri nedostajuće uslove pre završnog pregleda.'}</T>
         <V2Action label="Pregledaj zadatak" disabled={!canAct() || !readyForReview} onPress={review} style={brandAction} />
         <V2Action label="Osveži podatke" kind="quiet" disabled={editor.loading || editor.busy} onPress={refresh} style={s.quietLeft} />
       </View>

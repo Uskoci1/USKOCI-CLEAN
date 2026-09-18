@@ -55,7 +55,7 @@ export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija })
       <View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>
       <View style={s.grow}>
         <T variant="bodyStrong" style={s.ink}>{person.ime}</T>
-        <T variant="note" tone="muted">{person.viSte ? 'Vi · ' : ''}{person.uloga === 'narucilac' ? 'Naručilac' : 'Uskočer'}
+        <T variant="note" tone="muted">{person.viSte ? 'Ti · ' : ''}{person.uloga === 'narucilac' ? 'Naručilac' : 'Uskočer'}
           {person.mesta !== null ? ` · ${peopleText(person.mesta)}` : ''}</T>
       </View>
     </View>)}

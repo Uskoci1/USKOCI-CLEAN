@@ -28,17 +28,17 @@ type Props = {
 };
 
 const errors: Record<OutboxError, string> = {
-  STORAGE_UNAVAILABLE: 'Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušajte ponovo.',
+  STORAGE_UNAVAILABLE: 'Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušaj ponovo.',
   STORAGE_INVALID: 'Sačuvane poruke nije moguće učitati. Ostale poruke su bezbedne na serveru.',
-  CAPACITY: 'Imate 50 nepotvrđenih poruka. Proverite njihovo slanje pre nove poruke.',
-  INVALID_MESSAGE: 'Poruka može imati od 1 do 2.000 znakova. Proverite tekst.',
-  READ_ONLY: 'Dogovor trenutno ne prihvata nove poruke. Osvežite njegov status.',
-  NOT_AVAILABLE: 'Više nemate pristup slanju u ovom Dogovoru. Osvežite njegov status.',
-  AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Vratite se na Dogovore.',
-  CONFLICT: 'Ovaj pokušaj slanja ne odgovara sačuvanoj poruci. Tekst možete kopirati.',
+  CAPACITY: 'Imaš 50 nepotvrđenih poruka. Proveri njihovo slanje pre nove poruke.',
+  INVALID_MESSAGE: 'Poruka može imati od 1 do 2.000 znakova. Proveri tekst.',
+  READ_ONLY: 'Dogovor trenutno ne prihvata nove poruke. Osveži njegov status.',
+  NOT_AVAILABLE: 'Više nemaš pristup slanju u ovom Dogovoru. Osveži njegov status.',
+  AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Vrati se na Dogovore.',
+  CONFLICT: 'Ovaj pokušaj slanja ne odgovara sačuvanoj poruci. Tekst možeš kopirati.',
   UNAVAILABLE: 'Veza je prekinuta. Slanje još nije potvrđeno.',
-  INVALID_RESPONSE: 'Potvrda slanja nije stigla. Pokušajte ponovo za istu poruku.',
-  NOT_READY: 'Sačekajte da se učitaju sačuvane poruke.',
+  INVALID_RESPONSE: 'Potvrda slanja nije stigla. Pokušaj ponovo za istu poruku.',
+  NOT_READY: 'Sačekaj da se učitaju sačuvane poruke.',
 };
 
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
@@ -108,9 +108,9 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {loading && <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} />}
         {error && <View style={s.errorBlock}>
           <T variant="bodyStrong" style={s.ink}>Poruke nisu učitane</T>
-          <T variant="meta" tone="muted">Proverite vezu. Vaš tekst ostaje sačuvan.</T>
+          <T variant="meta" tone="muted">Proveri vezu. Tvoj tekst ostaje sačuvan.</T>
           <Press accessibilityRole="button" accessibilityLabel="Ponovo učitaj poruke" haptic="select" onPress={() => void refresh()} style={s.chatAction}>
-            <T variant="action" style={{ color: sys.color.green }}>Pokušajte ponovo</T>
+            <T variant="action" style={{ color: sys.color.green }}>Pokušaj ponovo</T>
           </Press>
         </View>}
         {!loading && !error && messages.length === 0 && local.length === 0 &&
@@ -139,7 +139,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           </T>
           {entry.state === 'failed' && entry.error && <T variant="meta" tone="muted">{errors[entry.error]}</T>}
           {(entry.state === 'unknown' || entry.state === 'failed') &&
-            <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušajte ponovo" tone="ink"
+            <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone="ink"
               onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => refresh()); }} />}
         </View>)}
       </ScrollView>
@@ -147,13 +147,13 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {state.error && <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T>}
         {state.phase === 'error' && <ChatAction label="Ponovo učitaj sačuvane poruke" onPress={() => void outbox.start()} />}
         {terminal && <T variant="meta" tone="muted">Dogovor je zatvoren; poruke su samo za čitanje.</T>}
-        {!terminal && !writable && <T variant="meta" tone="muted">Osvežite Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T>}
+        {!terminal && !writable && <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T>}
         {(!writable || denied) && <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} />}
-        {length > 2000 && <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skratite poruku.</T>}
+        {length > 2000 && <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T>}
         {photos ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
         <View style={[s.composer, !writable && s.composerLocked]}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
-            accessibilityLabel="Napišite poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted} style={s.input} />
+            accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted} style={s.input} />
           <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
             accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'}
             style={[s.send, canSend && s.sendReady]}>

@@ -78,21 +78,21 @@ export default function PasswordRecoveryScreen() {
               <Text style={styles.copy}>Postavite novu lozinku za nalog:</Text>
               <Text selectable style={styles.email}>{state.identity.email}</Text>
               <AuthField label="Nova lozinka" value={password} onChangeText={value => { setPassword(value); setValidation(null); }}
-                placeholder="Unesite novu lozinku" secure newPassword editable={!busy} />
-              <AuthField label="Potvrdite novu lozinku" value={confirmation} onChangeText={value => { setConfirmation(value); setValidation(null); }}
-                placeholder="Ponovite novu lozinku" secure newPassword editable={!busy} />
-              <Text style={styles.note}>Ne menjaju se Vaši Zadaci, Prijave ni Dogovori. Posle promene prijavite se novom lozinkom.</Text>
+                placeholder="Unesi novu lozinku" secure newPassword editable={!busy} />
+              <AuthField label="Potvrdi novu lozinku" value={confirmation} onChangeText={value => { setConfirmation(value); setValidation(null); }}
+                placeholder="Ponovi novu lozinku" secure newPassword editable={!busy} />
+              <Text style={styles.note}>Ne menjaju se tvoji Zadaci, Prijave ni Dogovori. Posle promene prijavi se novom lozinkom.</Text>
               {validation || state.error ? <Text accessibilityRole="alert" style={styles.error}>{validation ?? state.error?.message}</Text> : null}
-              <PrimaryButton title="Sačuvajte novu lozinku" onPress={() => void save()} busy={busy} />
+              <PrimaryButton title="Sačuvaj novu lozinku" onPress={() => void save()} busy={busy} />
             </> : null}
             {state.status === 'success' ? <>
-              <Text style={styles.copy}>Možete da nastavite tamo gde ste stali. Za ulazak koristite novu lozinku.</Text>
-              <PrimaryButton title="Prijavite se" onPress={back} />
+              <Text style={styles.copy}>Možeš da nastaviš. Za ulazak koristiš novu lozinku.</Text>
+              <PrimaryButton title="Prijavi se" onPress={back} />
             </> : null}
             {state.status === 'error' ? <>
               <Text accessibilityRole="alert" style={styles.error}>{state.error.message}</Text>
-              {state.error.code === 'VERIFY_UNAVAILABLE' ? <PrimaryButton title="Pokušajte ponovo" onPress={recovery.retry} /> : null}
-              {!user ? <PrimaryButton title="Zatražite novi link" onPress={() => router.replace({ pathname: '/auth', params: { form: 'recovery' } })} /> : null}
+              {state.error.code === 'VERIFY_UNAVAILABLE' ? <PrimaryButton title="Pokušaj ponovo" onPress={recovery.retry} /> : null}
+              {!user ? <PrimaryButton title="Zatraži novi link" onPress={() => router.replace({ pathname: '/auth', params: { form: 'recovery' } })} /> : null}
               <Pressable accessibilityRole="button" style={styles.link} onPress={back}>
                 <Text style={styles.linkText}>{user ? 'Nazad u aplikaciju' : 'Nazad na prijavu'}</Text>
               </Pressable>

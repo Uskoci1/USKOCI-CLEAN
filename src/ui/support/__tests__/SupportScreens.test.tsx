@@ -92,7 +92,7 @@ it('preserves only the selected message as evidence when its request is attached
   reference = { kind: 'AGREEMENT_MESSAGE', id: E, revision: 2 }; await render();
   await act(async () => action('Prijava nedolaska').onPress()); await act(async () => action('Izaberi Dogovor').onPress());
   await act(async () => action('Stvarni sopstveni Dogovor').onPress());
-  await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Pogledajte izabranu poruku.');
+  await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Pogledaj izabranu poruku.');
   await act(async () => action('Pošalji privatni zahtev').onPress());
   expect(mockService.prepare.mock.calls[0][3]).toMatchObject({ context: { kind: 'AGREEMENT', id: C, revision: 4 }, evidence: [reference] });
 });

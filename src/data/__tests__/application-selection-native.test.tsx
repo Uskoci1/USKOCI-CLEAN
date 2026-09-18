@@ -157,7 +157,7 @@ it('unknown submit requires readback; absence never unlocks changed fields and e
   await offer(); const oldSend = press('Pošalji ovu Prijavu'); await tap('Pošalji ovu Prijavu');
   await act(async () => { oldSend(); }); expect(mockSubmit).toHaveBeenCalledTimes(1);
   await edit('Cena za ponuđeni obim (RSD)', '9999');
-  mockNeed.mockResolvedValue({ ...need(), revizija: 4 }); await tap('Proverite ishod');
+  mockNeed.mockResolvedValue({ ...need(), revizija: 4 }); await tap('Proveri ishod');
   expect(mockApplications).toHaveBeenCalledTimes(2); expect(mockSubmit).toHaveBeenCalledTimes(1);
   await tap('Ponovi istu Prijavu'); expect(mockSubmit.mock.calls[1][0]).toEqual(mockSubmit.mock.calls[0][0]);
   expect(mockSubmit.mock.calls[1][0].cenaRsd).toBe(4500); expect(mockSubmit.mock.calls[1][0].potrebaRevizija).toBe(3);
@@ -167,7 +167,7 @@ it('late application response after blur cannot navigate and in-flight request r
   mockFocused = false; await update(); mockFocused = true; await update();
   expect(mockSubmit).toHaveBeenCalledTimes(1); expect(press('Ponovi istu Prijavu')).toBeUndefined();
   await act(async () => d.resolve({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } }));
-  expect(mockRouter.replace).not.toHaveBeenCalled(); await tap('Proverite ishod');
+  expect(mockRouter.replace).not.toHaveBeenCalled(); await tap('Proveri ishod');
   expect(text()).toContain('Prijava je poslata.');
 });
 it('old-account completion and retained callbacks cannot send or navigate after A→B→A', async () => {
@@ -206,7 +206,7 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
 it('retains exact selection on unknown even when fresh candidate state is SELECTED', async () => {
   mockSelect.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
   await selection(); await tap('Izaberi ovu Prijavu');
-  mockCandidates.mockResolvedValue([{ ...k(), stanje: 'SELECTED', mozeIzabrati: false }]); await tap('Proverite ishod');
+  mockCandidates.mockResolvedValue([{ ...k(), stanje: 'SELECTED', mozeIzabrati: false }]); await tap('Proveri ishod');
   await tap('Ponovi isti izbor'); expect(mockSelect.mock.calls[1][0]).toEqual(mockSelect.mock.calls[0][0]);
   await tap('Otvori Dogovor'); expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: agreement } });
 });
@@ -240,8 +240,8 @@ it('public profile panel uses the real public port and drops a late prior-accoun
   expect(text()).not.toContain('Late prior-account profile');
 });
 it('a retained reset callback cannot discard a later successful selection receipt', async () => {
-  mockSelect.mockResolvedValueOnce({ ok: false, kod: 'CALENDAR_RECHECK_REQUIRED', poruka: 'Proverite kalendar.' });
-  await selection(); await tap('Izaberi ovu Prijavu'); await tap('Proverite ishod');
+  mockSelect.mockResolvedValueOnce({ ok: false, kod: 'CALENDAR_RECHECK_REQUIRED', poruka: 'Proveri kalendar.' });
+  await selection(); await tap('Izaberi ovu Prijavu'); await tap('Proveri ishod');
   const oldReset = press('Pregledaj aktuelne prijave'); expect(oldReset).toBeDefined();
   await tap('Ponovi isti izbor'); await act(async () => oldReset());
   expect(press('Otvori Dogovor')).toBeDefined(); expect(mockCandidates).toHaveBeenCalledTimes(2);
@@ -254,9 +254,9 @@ it('passes all received candidates to native virtualization with a bounded initi
   expect(press('Pogledaj ponudu: Osoba 0')).toBeDefined(); expect(press('Pogledaj ponudu: Osoba 599')).toBeUndefined();
 });
 it('owned readback can replay only the frozen request when Need visibility closes after unknown submit', async () => {
-  mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proverite ishod.' });
+  mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proveri ishod.' });
   await offer(); await tap('Pošalji ovu Prijavu'); mockTask.mockResolvedValue(null); mockNeed.mockResolvedValue(null);
-  await tap('Proverite ishod'); expect(mockApplications).toHaveBeenCalledTimes(2);
+  await tap('Proveri ishod'); expect(mockApplications).toHaveBeenCalledTimes(2);
   await tap('Ponovi istu Prijavu'); expect(mockSubmit.mock.calls[1][0]).toEqual(mockSubmit.mock.calls[0][0]);
   expect(text()).toContain('Prijava je poslata.');
 });
@@ -285,9 +285,9 @@ it.each(['application', 'candidates'] as const)('bounds %s context read at 15 se
     await render(surface === 'application' ? Composer : Candidates);
     expect(text()).toContain('Učitavamo aktuelne podatke');
     await act(async () => { await jest.advanceTimersByTimeAsync(15001); });
-    expect(text()).not.toContain('Učitavamo aktuelne podatke'); expect(press('Pokušajte ponovo')).toBeDefined();
+    expect(text()).not.toContain('Učitavamo aktuelne podatke'); expect(press('Pokušaj ponovo')).toBeDefined();
     mockNeed.mockResolvedValue({ ...need(), naslov: 'Aktuelan pregled' });
-    await tap('Pokušajte ponovo'); expect(text()).toContain('Aktuelan pregled');
+    await tap('Pokušaj ponovo'); expect(text()).toContain('Aktuelan pregled');
     await act(async () => late.resolve({ ...need(), naslov: 'Zakasneli stari pregled', primaNovePrijave: true }));
     expect(text()).not.toContain('Zakasneli stari pregled'); expect(text()).toContain('Aktuelan pregled');
     expect(mockSubmit).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();

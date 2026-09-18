@@ -11,8 +11,8 @@ import {SettingsScreen,SettingsIntro,SettingsPanel,SettingsInfo,SettingsText as 
 import { sys } from '../system/tokens';
 export function ClosureEntry(){
  const [open,setOpen]=useState(false);useFocusEffect(useCallback(()=>()=>setOpen(false),[]));
- return <><SettingsInfo title="Zatvaranje naloga" last>Pregledajte dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva.</SettingsInfo>
-  <SettingsAction label="Pregledajte zatvaranje" kind="secondary" onPress={()=>setOpen(true)}/>
+ return <><SettingsInfo title="Zatvaranje naloga" last>Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva.</SettingsInfo>
+  <SettingsAction label="Pregledaj zatvaranje" kind="secondary" onPress={()=>setOpen(true)}/>
   {open?<Modal visible presentationStyle="fullScreen" animationType="none" onRequestClose={()=>setOpen(false)}><ClosureDialog onClose={()=>setOpen(false)}/></Modal>:null}</>;
 }
 const duration=(n:number)=>n%86400===0?`${n/86400} dana`:n%3600===0?`${n/3600} sati`:`${n} sekundi`;
@@ -26,11 +26,11 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
   if(i.kind==='START'){
    const result=await closureExecutionClientService.read(i.clientRequestId,owner);if(!live(token))return;
    if(!result.ok){setMessage(result.poruka);return;}setAbsent(!result.podatak.found);setState(result.podatak.execution);
-   setMessage(result.podatak.found?'':'Server još nema potvrdu ovog zahteva. Isti zahtev ostaje sačuvan; možete ga izričito ponoviti.');
+   setMessage(result.podatak.found?'':'Server još nema potvrdu ovog zahteva. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.');
   }else{
    const result=await accountClosureClientService.readReceipt(i.clientRequestId,owner);if(!live(token))return;
    if(!result.ok){setMessage(result.poruka);return;}
-   if(!result.podatak.found){setAbsent(true);setMessage('Priprema još nema potvrdu. Možete ponoviti isti zahtev.');return;}
+   if(!result.podatak.found){setAbsent(true);setMessage('Priprema još nema potvrdu. Možeš ponoviti isti zahtev.');return;}
    await closureIntentJournal.clear(i.accountId,i.clientRequestId);if(!live(token))return;setIntent(null);setAbsent(false);await readReview(token);
   }
  }
@@ -45,7 +45,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
  }
  useFocusEffect(useCallback(()=>{
   const token={};focus.current=token;locked.current=true;setBusy(true);
-  void restore(token).catch(()=>{if(live(token))setMessage('Sačuvani zahtev trenutno nije dostupan. Pokušajte ponovo.');}).finally(()=>{if(live(token)){locked.current=false;setBusy(false);}});
+  void restore(token).catch(()=>{if(live(token))setMessage('Sačuvani zahtev trenutno nije dostupan. Pokušaj ponovo.');}).finally(()=>{if(live(token)){locked.current=false;setBusy(false);}});
   const subscription=AppState.addEventListener('change',next=>{active.current=next==='active';if(!active.current){focus.current=null;locked.current=false;}else if(focus.current===null){focus.current={};void run(restore);}});
   return()=>{focus.current=null;locked.current=false;subscription.remove();};
  // Scope follows account incarnation; token refresh leaves the pending intent intact.
@@ -80,7 +80,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
  const support=()=>{if(!live(focus.current)||busy)return;onClose();router.push('/podrska');};
  return <SettingsScreen title="Zatvaranje naloga" onBack={()=>{if(live(focus.current))onClose();}}>
   <SettingsIntro kicker="KONTROLA NALOGA" title={terminal?'Nalog je zatvoren.':state?'Zahtev je pokrenut.':'Pregled pre zatvaranja.'}>
-   {terminal?'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.':state?'Zahtev je u redu za obradu. Pristup je ograničen dok server proverava i završava pokrenuti zahtev.':'Pre pokretanja proverite obaveze i šta se događa sa vašim podacima.'}
+   {terminal?'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.':state?'Zahtev je u redu za obradu. Pristup je ograničen dok server proverava i završava pokrenuti zahtev.':'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}
   </SettingsIntro>
   {busy?<View accessibilityRole="progressbar" style={{gap:8,flexDirection:'row'}}><ActivityIndicator color={sys.color.green}/><T>Proveravamo stanje…</T></View>:null}
   {message?<T accessibilityRole="alert">{message}</T>:null}
@@ -93,20 +93,20 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
    {terminal?<T tone="muted">Završeno: {new Date(state.closedAt!).toLocaleString('sr-Latn')}</T>:null}
   </SettingsPanel>:null}
   {!intent&&!state&&review?<>
-   {!review.ready?<SettingsPanel soft><T>{review.code==='CLOSURE_POLICY_NOT_READY'?(erasure?'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.':'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.'):review.code==='CLOSURE_PREPARATION_REQUIRED'?'Pripremite pregled trenutnih obaveza pre zatvaranja.':'Najpre rešite obaveze navedene ispod.'}</T>
+   {!review.ready?<SettingsPanel soft><T>{review.code==='CLOSURE_POLICY_NOT_READY'?(erasure?'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.':'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.'):review.code==='CLOSURE_PREPARATION_REQUIRED'?'Pripremi pregled trenutnih obaveza pre zatvaranja.':'Najpre reši obaveze navedene ispod.'}</T>
     {review.blockers.map(code=><T key={code}>{closureBlockerLabels[code]}</T>)}
-    {review.code==='CLOSURE_PREPARATION_REQUIRED'?<SettingsAction label="Pripremite pregled" kind="secondary" disabled={busy} onPress={prepare}/>:null}
-   </SettingsPanel>:<SettingsPanel soft><T variant="bodyStrong">Posle pokretanja</T><T>{erasure?'Pristup običnim funkcijama se ograničava. Server uklanja nezaštićene datoteke, obične lične i privatne podatke, pa podatke za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možete poništiti iz aplikacije.':'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možete otkazati iz aplikacije.'}</T></SettingsPanel>}
+    {review.code==='CLOSURE_PREPARATION_REQUIRED'?<SettingsAction label="Pripremi pregled" kind="secondary" disabled={busy} onPress={prepare}/>:null}
+   </SettingsPanel>:<SettingsPanel soft><T variant="bodyStrong">Posle pokretanja</T><T>{erasure?'Pristup običnim funkcijama se ograničava. Server uklanja nezaštićene datoteke, obične lične i privatne podatke, pa podatke za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možeš poništiti iz aplikacije.':'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možeš otkazati iz aplikacije.'}</T></SettingsPanel>}
   </>:null}
   {erasure&&pendingExceptions.length>0?<SettingsPanel soft><T variant="bodyStrong">Pre konačnog zatvaranja</T>
    <T>Ovi izdvojeni podaci još zahtevaju rešavanje. Nepovezani obični podaci mogu se ukloniti dok ta provera traje.</T>
    {pendingExceptions.map(code=><T key={code}>{erasureExceptionLabels[code]}</T>)}
-   <SettingsAction label="Otvorite privatnu podršku" kind="secondary" disabled={busy} onPress={support}/>
+   <SettingsAction label="Otvori privatnu podršku" kind="secondary" disabled={busy} onPress={support}/>
   </SettingsPanel>:null}
   {(terminal?state.retainedDatasets:review?.retainedDatasets)?.map(d=><SettingsInfo key={d.dataClass} title={closureClassLabels[d.dataClass]} last>Ograničeno čuvanje: {duration(d.retentionSeconds)} od pokretanja zahteva.</SettingsInfo>)}
   {!intent&&review?.ready&&!state?<SettingsAction label="Pokreni zatvaranje naloga" kind="destructive" disabled={busy} onPress={start}/>:null}
   {intent&&absent&&!state?<SettingsAction label={intent.kind==='START'?'Ponovi isti zahtev za zatvaranje':'Ponovi istu pripremu'} kind="destructive" disabled={busy} onPress={retry}/>:null}
-  <SettingsAction label="Proverite stanje zahteva" kind="secondary" disabled={busy} onPress={refresh}/>
-  {state?<SettingsAction label="Odjavite se sa ovog uređaja" kind="quiet" disabled={busy} onPress={logout}/>:null}
+  <SettingsAction label="Proveri stanje zahteva" kind="secondary" disabled={busy} onPress={refresh}/>
+  {state?<SettingsAction label="Odjavi se sa ovog uređaja" kind="quiet" disabled={busy} onPress={logout}/>:null}
  </SettingsScreen>;
 }

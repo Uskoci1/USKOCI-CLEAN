@@ -20,15 +20,15 @@ function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
   const status = typeof value.status === 'number' ? value.status : null;
   const code = typeof value.code === 'string' ? value.code.toLowerCase() : '';
   if (status === 429 || code.includes('rate') || code.includes('over_request')) {
-    return new Error('Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.');
+    return new Error('Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.');
   }
   if ((status !== null && status >= 500) || code.includes('unexpected_failure') || code.includes('service_unavailable')) {
-    return new Error('Prijava trenutno nije dostupna. Pokušajte ponovo.');
+    return new Error('Prijava trenutno nije dostupna. Pokušaj ponovo.');
   }
-  if (operation === 'SIGN_IN') return new Error('Prijava nije uspela. Proverite email i lozinku i pokušajte ponovo.');
-  if (operation === 'SIGN_UP') return new Error('Registracija trenutno nije uspela. Proverite podatke i pokušajte ponovo.');
-  if (operation === 'PHONE_SEND') return new Error('Kod trenutno nije moguće poslati. Proverite broj i pokušajte ponovo.');
-  return new Error('Kod nije potvrđen. Proverite kod i pokušajte ponovo.');
+  if (operation === 'SIGN_IN') return new Error('Prijava nije uspela. Proveri email i lozinku i pokušaj ponovo.');
+  if (operation === 'SIGN_UP') return new Error('Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.');
+  if (operation === 'PHONE_SEND') return new Error('Kod trenutno nije moguće poslati. Proveri broj i pokušaj ponovo.');
+  return new Error('Kod nije potvrđen. Proveri kod i pokušaj ponovo.');
 }
 
 /** The existing Auth transport boundary; no provider, policy or session authority is added. */

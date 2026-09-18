@@ -42,7 +42,7 @@ it('explicit enable preserves category/quiet fields, registers once and writes r
 it('OS denial never registers or opts in', async () => { await mount(); mockNative.mockResolvedValue({ kind: 'DENIED' }); await act(async () => { button('Uključi push za ovu ulogu').props.onPress(); await flush(); }); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
 it('unknown registration clears action and requires readback; retained callback cannot resend', async () => {
  await mount(); const old = button('Uključi push za ovu ulogu').props.onPress; mockSet.mockResolvedValue({ ok: false });
- await act(async () => { old(); await flush(); }); expect(button('Proverite stanje')).toBeDefined(); expect(button('Uključi push za ovu ulogu')).toBeUndefined();
+ await act(async () => { old(); await flush(); }); expect(button('Proveri stanje')).toBeDefined(); expect(button('Uključi push za ovu ulogu')).toBeUndefined();
  await act(async () => { old(); await flush(); }); expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
 });
 it('blur during permission/registration prevents later preference opt-in', async () => {
@@ -109,7 +109,7 @@ it('enabled quiet hours refuse incomplete or malformed local times before any wr
  await mount();
  act(() => control('Početak tihih sati').props.onChangeText('25:99'));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
- expect(mockSave).not.toHaveBeenCalled(); expect(screenText()).toContain('Vreme unesite kao HH:MM');
+ expect(mockSave).not.toHaveBeenCalled(); expect(screenText()).toContain('Vreme unesi kao HH:MM');
 });
 it('a preference write with unknown outcome requires authoritative readback instead of a blind second write', async () => {
  await mount(); let done!: (value: unknown) => void; mockSave.mockReturnValueOnce(new Promise(resolve => { done = resolve; }));

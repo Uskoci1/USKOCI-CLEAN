@@ -132,7 +132,7 @@ it('opens once with a stable request and resumes the same conversation on refocu
 });
 it('retains the owned open key after an unknown result and retries only by user action', async () => {
   mockOpen.mockResolvedValueOnce(unknown()); await render(); expect(mockOpen).toHaveBeenCalledTimes(1);
-  await act(async () => button('Učitajte razgovor ponovo').onPress());
+  await act(async () => button('Učitaj razgovor ponovo').onPress());
   await openKeyboard();
   expect(mockOpen.mock.calls[1][0]).toBe(mockOpen.mock.calls[0][0]); expect(input().value).toBe('');
 });
@@ -148,7 +148,7 @@ it.each([['ambiguous', [id]], ['malformed', 'wrong']] as const)('rejects %s resu
 });
 it('keeps a failed resume as a read failure and does not create another conversation', async () => {
   mockParams = { conversationId: id }; mockLoad.mockRejectedValueOnce(new Error('private backend detail')); await render();
-  expect(text()).not.toContain('private backend detail'); await act(async () => button('Učitajte razgovor ponovo').onPress());
+  expect(text()).not.toContain('private backend detail'); await act(async () => button('Učitaj razgovor ponovo').onPress());
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).toHaveBeenCalledTimes(2);
 });
 it('serializes two retained send taps before render and keeps the original body and key', async () => {
@@ -161,20 +161,20 @@ it('serializes two retained send taps before render and keeps the original body 
 it('requires real readback after unknown and retries the same key/body only when the server permits', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const sent = mockSend.mock.calls[0];
   await act(async () => submit().onPress()); expect(mockSend).toHaveBeenCalledTimes(1);
-  await act(async () => button('Proverite ishod').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
+  await act(async () => button('Proveri ishod').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
   await act(async () => input().onChangeText('different body')); expect(input().value).toBe(sent[1]);
   await act(async () => submit().onPress()); expect(mockSend.mock.calls[1].slice(0,3)).toEqual(sent.slice(0,3));
 });
 it('keeps an in-progress server receipt read-only and never polls or retries automatically', async () => {
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
-  await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proverite ishod').onPress());
+  await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proveri ishod').onPress());
   expect(submit().disabled).toBe(true); expect(text()).toContain('AI još obrađuje poruku'); expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockTurn).toHaveBeenCalledTimes(1);
 });
 it('resolves a lost success receipt using IDs, clears the sent draft and accepts a fresh next request', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const old = mockSend.mock.calls[0][2];
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-  await act(async () => button('Proverite ishod').onPress());
+  await act(async () => button('Proveri ishod').onPress());
   // The readback clears the sent draft, which returns the composer to voice mode. The
   // invariant is unchanged: the draft is empty and still editable.
   await openKeyboard(); expect(input().value).toBe(''); expect(input().editable).toBe(true);
@@ -350,7 +350,7 @@ it('retains the new owned-open request after an unknown second-Task open outcome
   await act(async () => button('Novi Zadatak').onPress());
   mockParams = mockRouter.replace.mock.calls[0][0].params; mockOpen.mockResolvedValueOnce(unknown());
   await update(); const nextKey = mockOpen.mock.calls[1][0]; expect(nextKey).not.toBe(firstKey);
-  mockLoad.mockResolvedValue(conversation()); await act(async () => button('Učitajte razgovor ponovo').onPress());
+  mockLoad.mockResolvedValue(conversation()); await act(async () => button('Učitaj razgovor ponovo').onPress());
   expect(mockOpen.mock.calls[2][0]).toBe(nextKey);
 });
 it('cannot use a retained new-Task action after losing its account or focus', async () => {

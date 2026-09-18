@@ -284,12 +284,12 @@ it('preserves a server CAS conflict after recovery read without silently retryin
   const saved = locatedReview(location('B'));
   mockLatest.mockResolvedValue(ok({ review: saved, command: null }));
   mockLocationRead.mockResolvedValue(ok(canonicalLocation(location('A'))));
-  mockPrepare.mockResolvedValue({ ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Mesto je promenjeno. Pregledajte novu lokaciju.' });
+  mockPrepare.mockResolvedValue({ ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Mesto je promenjeno. Pregledaj novu lokaciju.' });
   await render();
   expect(mockPrepare).toHaveBeenCalledTimes(1);
   expect(mockPrepare).toHaveBeenCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
     location: { expectedRevision: saved.geographyRevision, value: saved.location } });
-  expect(text()).toContain('Mesto je promenjeno. Pregledajte novu lokaciju.');
+  expect(text()).toContain('Mesto je promenjeno. Pregledaj novu lokaciju.');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
   expect(mockAccept).not.toHaveBeenCalled();
 });
@@ -303,11 +303,11 @@ it('recovers a retained local B proposal after an external C revision on the nex
   await render(); await act(async () => action('Uredi mesto').onPress());
   // C wins after the read but before preparing B: the first CAS failure is not
   // hidden, and the same mounted screen still holds its local B proposal.
-  mockPrepare.mockResolvedValueOnce({ ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Mesto je promenjeno. Pregledajte novu lokaciju.' });
+  mockPrepare.mockResolvedValueOnce({ ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Mesto je promenjeno. Pregledaj novu lokaciju.' });
   await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(b));
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
     location: { expectedRevision: saved.geographyRevision, value: b } });
-  expect(text()).toContain('Mesto je promenjeno. Pregledajte novu lokaciju.');
+  expect(text()).toContain('Mesto je promenjeno. Pregledaj novu lokaciju.');
   expect(mockPrepare).toHaveBeenCalledTimes(2);
   mockLocationRead.mockResolvedValue(ok(canonicalLocation(c, newer.geographyRevision)));
   mockPrepare.mockResolvedValue(ok(newer));

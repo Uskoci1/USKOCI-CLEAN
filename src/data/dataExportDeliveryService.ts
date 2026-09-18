@@ -6,14 +6,14 @@ import { failure, readOwnedResult, record, sameId, timestamp, uuid } from './ser
 import { supabaseKlijent } from './supabaseClient';
 
 const codeSet = new Set(['POLICY_NOT_READY', 'BUSY', 'RETRY_REQUIRED', 'NOT_AVAILABLE']);
-const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvorite izvoz podataka.');
-const interrupted = () => failure('DATA_EXPORT_INTERRUPTED', 'Preuzimanje je prekinuto. Izvoz možete ponovo preuzeti dok je dostupan.');
-const unavailable = () => failure('DATA_EXPORT_NOT_AVAILABLE', 'Izvoz trenutno nije dostupan. Učitajte trenutno stanje.');
+const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori izvoz podataka.');
+const interrupted = () => failure('DATA_EXPORT_INTERRUPTED', 'Preuzimanje je prekinuto. Izvoz možeš ponovo preuzeti dok je dostupan.');
+const unavailable = () => failure('DATA_EXPORT_NOT_AVAILABLE', 'Izvoz trenutno nije dostupan. Učitaj trenutno stanje.');
 
 export async function prepareExport(receiptId: string): Promise<Ishod<DataExportPreparation>> {
   if (!uuid(receiptId)) return failure('INVALID_RECEIPT_ID', 'Zahtev nije pronađen.');
   const identity = sesijaSada();
-  if (!identity.user) return failure('AUTH_REQUIRED', 'Prijavite se da biste nastavili.');
+  if (!identity.user) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
   const account = { accountId: identity.user.id, accountRevision: identity.accountRevision };
   const current = () => sesijaSada().user?.id === account.accountId && sesijaSada().accountRevision === account.accountRevision;
   const controller = new AbortController();
@@ -48,7 +48,7 @@ export async function downloadExport(input: DataExportDownloadRequest, signal?: 
   const command = { receiptId: input?.receiptId, artifactGeneration: input?.artifactGeneration };
   if (!uuid(command.receiptId) || !uuid(command.artifactGeneration)) return failure('INVALID_RECEIPT_ID', 'Zahtev nije pronađen.');
   const identity = sesijaSada(), accountId = identity.user?.id, revision = identity.accountRevision;
-  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavite se da biste preuzeli izvoz.');
+  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavi se da preuzmeš izvoz.');
   const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === revision;
   if (signal?.aborted) return interrupted();
   const controller = new AbortController();

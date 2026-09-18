@@ -15,13 +15,13 @@ export function AgreementPhotoComposer({ photos, capturing }: { photos: Agreemen
     <T variant="meta" tone="muted">Do 6 fotografija uz poruku · do 10 MB po slici. Fotografije su privatne za ovaj Dogovor; uklanjamo metapodatke.</T>
     {photos.message === PHOTO_PERMISSION_MESSAGE ? <PermissionRecovery compact message={photos.message} alternative="Dodaj fotografiju iz galerije" onAlternative={() => { void photos.pick('LIBRARY'); }} />
       : photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
-    {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su promenjeni. Uklonite fotografije pripremljene za raniju verziju i ponovo ih izaberite uz važeće uslove.</T> : null}
+    {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su promenjeni. Ukloni fotografije pripremljene za raniju verziju i ponovo ih izaberi uz važeće uslove.</T> : null}
     {photos.items.length ? <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 180 }} contentContainerStyle={{ gap: 8 }}>
       {photos.items.map((item, index) => <View key={item.ref.clientRequestId} style={{ gap: 4 }}>
       {item.receipt?.photo ? <AuthorizedPhoto assetId={item.receipt.photo.assetId} agreementId={photos.agreementId}
         label={`Pripremljena fotografija ${index + 1}`} style={{ width: 160, maxWidth: '100%' }} />
         : <T variant="meta">{item.receipt?.state === 'ABSENT' ? 'Slanje fotografije nije započeto.' : 'Ishod slanja fotografije još nije potvrđen.'}</T>}
-      {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je vezana za poslatu poruku. Proverite njen ishod.</T> : <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je vezana za poslatu poruku. Proveri njen ishod.</T> : <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Press accessibilityRole="button" accessibilityLabel={`Ukloni pripremljenu fotografiju ${index + 1}`} disabled={disabled}
           onPress={() => { void photos.remove(item.ref); }} style={{ minHeight: 44, justifyContent: 'center' }}>
           <T variant="action" style={{ color: v2.color.ink }}>Ukloni</T>

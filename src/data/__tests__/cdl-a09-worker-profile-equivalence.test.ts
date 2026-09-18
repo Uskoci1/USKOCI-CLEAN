@@ -58,7 +58,7 @@ describe('CDL-A09 — canonical Worker profile mutation contract', () => {
   });
   it('preserves auth-required behavior before any profile access', async () => {
     const result=await run({ ime:'Miloš' },{userResult:{data:{user:null},error:{message:'session missing'}}});
-    expect(result.value).toEqual({ok:false,kod:'AUTH_REQUIRED',poruka:'Prijavite se da biste izmenili profil.'});
+    expect(result.value).toEqual({ok:false,kod:'AUTH_REQUIRED',poruka:'Prijavi se da izmeniš profil.'});
     expect(result.trace).toEqual([['auth.getUser']]);
   });
   it('preserves the existing-profile patch and activation and binds update to owner and kind', async () => {

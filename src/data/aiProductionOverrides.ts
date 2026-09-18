@@ -76,7 +76,7 @@ function mapFact(raw: any): Cinjenica | null {
 export const aiProductionOverrides: AiOverrides = {
   async otvoriRazgovor() {
     return { ok: false, kod: 'OWNED_CONVERSATION_REQUIRED',
-      poruka: 'Otvorite Novi Zadatak da započnete razgovor.' };
+      poruka: 'Otvori Novi Zadatak da započneš razgovor.' };
   },
 
   async razgovor(razgovorId) {

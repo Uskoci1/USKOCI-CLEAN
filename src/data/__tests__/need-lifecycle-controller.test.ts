@@ -76,7 +76,7 @@ test('failed readback does not license another mutation', async () => {
 
 test.each(['STALE_REVIEW_REQUIRED', 'NEED_NOT_DELETABLE_DRAFT', 'DRAFT_HAS_AUTHORITATIVE_HISTORY', 'NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW'])(
   'authoritative %s requires fresh review instead of forced retry', async kod => {
-    const h = setup(); h.service.deleteDraftNeed.mockResolvedValue({ ok: false, kod, poruka: 'Pregledajte aktuelno stanje.' });
+    const h = setup(); h.service.deleteDraftNeed.mockResolvedValue({ ok: false, kod, poruka: 'Pregledaj aktuelno stanje.' });
     await h.controller.submit(); await h.controller.reconcile(); await h.controller.retrySame();
     expect(h.controller.snapshot()).toMatchObject({ phase: 'REJECTED', error: { kod } });
     expect(h.service.deleteDraftNeed).toHaveBeenCalledTimes(1); expect(h.service.readCommandReceipt).not.toHaveBeenCalled();

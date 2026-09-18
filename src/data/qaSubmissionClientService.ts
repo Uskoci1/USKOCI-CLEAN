@@ -5,9 +5,9 @@ import { readOwnedResult, failure, positiveInteger, uuid, type ReceiptAccount } 
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 export type { QaSubmissionIdentity, QaSubmissionInput, QaSubmissionStatus } from '../contracts/qaSubmission';
-const errors = { AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvorite pitanja.',
-  IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev pripada drugom tekstu. Proverite prethodni ishod.',
-  ACCOUNT_CLOSING: 'Nalog je u postupku zatvaranja.', QA_INPUT_INVALID: 'Proverite tekst i ponovo otvorite zadatak.' };
+const errors = { AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori pitanja.',
+  IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev pripada drugom tekstu. Proveri prethodni ishod.',
+  ACCOUNT_CLOSING: 'Nalog je u postupku zatvaranja.', QA_INPUT_INVALID: 'Proveri tekst i ponovo otvori zadatak.' };
 const owner = (explicit?: ReceiptAccount): ReceiptAccount | undefined => {
   const s = sesijaSada(); return explicit ?? (s.user ? { accountId: s.user.id, accountRevision: s.accountRevision } : undefined);
 };

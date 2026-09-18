@@ -52,7 +52,7 @@ export function SelectionUnavailable({ loading, message, retry, back }: { loadin
   return <SelectionFrame title="Prijave" back={back}><View style={s.card}>
     {loading ? <ActivityIndicator accessibilityLabel="Učitavanje prijava" color={sys.color.green} /> : null}
     <T accessibilityRole={loading ? undefined : 'alert'} variant="body" style={loading ? s.muted : s.ink}>{loading ? 'Učitavamo aktuelne podatke…' : message}</T>
-    {!loading && retry ? <V2Action label="Pokušajte ponovo" onPress={retry} style={brandAction} /> : null}
+    {!loading && retry ? <V2Action label="Pokušaj ponovo" onPress={retry} style={brandAction} /> : null}
   </View></SelectionFrame>;
 }
 /** The Task the offer belongs to, as a compact context card. */
@@ -92,7 +92,7 @@ function IntervalEditor({ draft, timezone, close, accept }: {
     <SelectionFrame title="Predlog termina" back={close} footer={<BrandAction label="Potvrdi termin" onPress={apply} />}>
       <View style={s.card}>
         <T variant="meta" style={s.eyebrow}>Vreme bez izmišljanja</T><T variant="title" style={s.ink}>Ponudite tačan početak i kraj.</T>
-        <T variant="body" tone="muted">Vremenska zona: {timezone}. Ovaj predlog pripada Vašoj Prijavi.</T>
+        <T variant="body" tone="muted">Vremenska zona: {timezone}. Ovaj predlog pripada tvojoj Prijavi.</T>
       </View>
       <View style={s.card}>
         <CivilField label="Datum početka" mode="date" value={start.date} onChange={value => { setStart(v => ({ ...v, date: value })); setDirtyStart(true); }} />
@@ -118,7 +118,7 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
   return <SelectionFrame title="Tvoja prijava" back={back} footer={<>
     <View style={s.summaryRow}><T variant="meta" tone="muted">Tvoja ponuda</T><T style={s.summary}>{draft.price || '—'} RSD · {draft.people || '—'} ljudi</T></View>
     {confirmed ? <BrandAction label="Otvori moje prijave" onPress={openApplications} />
-      : uncertain ? <BrandAction label="Proverite ishod" onPress={refresh} disabled={busy} />
+      : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
       : <BrandAction label={busy ? 'Slanje…' : pending ? 'Ponovi istu Prijavu' : 'Pošalji ovu Prijavu'} onPress={submit}
         disabled={busy || (!pending && !canSubmit)} send />}
   </>}>
@@ -135,7 +135,7 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
             onChangeText={people => { if (!disabled) change({ ...draft, people }); }} />
         </Field>
       </View>
-      <T variant="meta" tone="muted">{priceLocked ? 'Cena je navedena u Zadatku. ' : ''}Cena se čita zajedno sa brojem ljudi koje obezbeđujete. Ne deli se automatski na osobe.</T>
+      <T variant="meta" tone="muted">{priceLocked ? 'Cena je navedena u Zadatku. ' : ''}Cena se čita zajedno sa brojem ljudi koje obezbeđuješ. Ne deli se automatski na osobe.</T>
     </View>
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Termin i poruka</T>
       <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
@@ -147,7 +147,7 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
         <TextInput accessibilityLabel="Kratka napomena" multiline maxLength={4000} value={draft.note} editable={!disabled} style={[s.input, s.multiline]}
           onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
       </Field>
-      <T variant="meta" tone="muted">Napišite ono što pomaže Naručiocu da razume Vašu ponudu.</T>
+      <T variant="meta" tone="muted">Napiši ono što pomaže Naručiocu da razume tvoju ponudu.</T>
     </View>
     <ErrorMessage error={error} />
     {error && !pending ? <V2Action label="Osveži Zadatak" onPress={refresh} disabled={busy} /> : null}
@@ -242,7 +242,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   return <SelectionFrame title={review || pending ? 'Pregled izbora' : 'Ponuda'} subtitle="Izbor konkretne Prijave" back={back}
     footer={confirmed ? <BrandAction label="Otvori Dogovor" onPress={openAgreement} />
       : candidate.stanje === 'SELECTED' && !pending ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
-      : uncertain ? <BrandAction label="Proverite ishod" onPress={refresh} disabled={busy} />
+      : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
       : review || pending ? <BrandAction label={busy ? 'Povezivanje…' : pending ? 'Ponovi isti izbor' : 'Izaberi ovu Prijavu'} onPress={choose}
         disabled={busy || (!pending && !candidate.mozeIzabrati)} />
       : candidate.mozeIzabrati ? <BrandAction label="Pregledaj povezivanje" onPress={() => setReview(true)} /> : undefined}>
@@ -261,9 +261,9 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     </View>
     {review || pending ? <View style={s.warnCard}><T variant="title" style={s.ink}>Jedan izbor sklapa Dogovor.</T><T variant="body" style={s.ink}>
       Izborom prihvatate ovu ponudu: {candidate.cena.prikaz} za {candidate.pokrivaMesta} ljudi. Dogovor odmah važi za obe strane.</T>
-      <T variant="meta" tone="muted">Vaši paralelni zadaci ostaju odvojeni. Termin Uskočera ponovo se proverava pri izboru.</T></View> : null}
+      <T variant="meta" tone="muted">Tvoji paralelni zadaci ostaju odvojeni. Termin Uskočera ponovo se proverava pri izboru.</T></View> : null}
     {confirmed ? <T variant="title" style={s.ink}>Dogovor je sklopljen.</T> : candidate.stanje === 'SELECTED' && !pending ? <T variant="body" style={s.ink}>Ova ponuda je izabrana.</T>
-      : !candidate.mozeIzabrati && !pending ? <T variant="body" tone="muted">{candidateState(candidate)}. Osvežite Prijave da proverite aktuelno stanje.</T> : null}
+      : !candidate.mozeIzabrati && !pending ? <T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T> : null}
     <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
     <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Uskočer" />
   </SelectionFrame>;

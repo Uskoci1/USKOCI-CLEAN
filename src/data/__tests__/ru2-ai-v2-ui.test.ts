@@ -94,7 +94,7 @@ describe('RU-2 typed R02 → R07 contract', () => {
     expect(canEditFactInline(geo)).toBe(false);
     expect(correctionFromText(geo, 'Beograd')).toEqual({
       ok: false,
-      message: 'Lokaciju izmenite kroz razgovor da bi struktura ostala bezbedna.',
+      message: 'Lokaciju izmeni kroz razgovor da bi struktura ostala bezbedna.',
     });
   });
 

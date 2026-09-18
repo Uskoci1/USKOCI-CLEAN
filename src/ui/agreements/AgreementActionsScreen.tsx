@@ -75,7 +75,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     if (!actionCurrent() || busy || submitting.current || !snapshot || reviewRef.current || (!fromForm && formRef.current)) return;
     const normalized = normalizeAgreementCommand(command);
     if (state.journal && journalFor(normalized).payloadHash !== state.journal.payloadHash) {
-      setError('Unos se razlikuje od prvobitnog zahteva. Ponovo unesite iste izmenjene podatke i isti razlog.'); return;
+      setError('Unos se razlikuje od prvobitnog zahteva. Ponovo unesi iste izmenjene podatke i isti razlog.'); return;
     }
     reviewBase.current = snapshot; reviewRef.current = normalized; setReview(normalized); formRef.current = null; setForm(null); setError(null);
   };
@@ -83,12 +83,12 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     if (!form || formRef.current !== form || !current() || busy || !snapshot) return;
     const version = form.reentry ? state.journal!.agreementVersion : snapshot.agreementVersion;
     if (form.kind === 'CANCEL') {
-      if (!form.reason.trim()) { setError('Unesite razlog otkazivanja.'); return; }
+      if (!form.reason.trim()) { setError('Unesi razlog otkazivanja.'); return; }
       prepare({ kind: 'CANCEL', agreementId, version, reason: form.reason }, true); return;
     }
     const patch: { cenaIznos?: number; cenaValuta?: string; obim?: string; pocetakIso?: string; krajIso?: string } = {};
     if (form.priceChanged && (form.reentry || Number(form.price) !== snapshot.terms?.priceRsd)) {
-      if (!/^[1-9][0-9]*$/.test(form.price.trim()) || !Number.isSafeInteger(Number(form.price))) { setError('Unesite pozitivan ceo iznos u RSD.'); return; }
+      if (!/^[1-9][0-9]*$/.test(form.price.trim()) || !Number.isSafeInteger(Number(form.price))) { setError('Unesi pozitivan ceo iznos u RSD.'); return; }
       patch.cenaIznos = Number(form.price); patch.cenaValuta = 'RSD';
     }
     if (form.scopeChanged && (form.reentry || form.scope.trim() !== (snapshot.terms?.scopeNote ?? ''))) patch.obim = form.scope;
@@ -103,7 +103,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
       patch.pocetakIso = start.value; patch.krajIso = end.value;
     }
     const value = { dogovorId: agreementId, ocekivanaVerzija: version, clientRequestId: form.key, izmena: patch, razlog: form.reason };
-    if (!validProposal(value)) { setError('Izmenite bar jedan podatak. Oba kraja termina moraju biti određena.'); return; }
+    if (!validProposal(value)) { setError('Izmeni bar jedan podatak. Oba kraja termina moraju biti određena.'); return; }
     prepare({ kind: 'PROPOSE', value }, true);
   };
   const send = async () => {
@@ -132,7 +132,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
       {state.phase === 'ERROR' ? <V2Action label="Ponovo učitaj Dogovor" onPress={() => run('refresh')} /> : null}
       {form ? <View style={s.form}>
         <T style={s.heading}>{form.reentry ? 'Ponovni unos prvobitnog zahteva' : form.kind === 'CANCEL' ? 'Razlog otkazivanja' : 'Predlog novih uslova'}</T>
-        {form.reentry ? <T style={s.copy}>Sadržaj prethodnog zahteva nije sačuvan na uređaju. Ponovo unesite samo podatke koje ste tada menjali i isti razlog. Provera mora da potvrdi potpuno isti zahtev.</T> : null}
+        {form.reentry ? <T style={s.copy}>Sadržaj prethodnog zahteva nije sačuvan na uređaju. Ponovo unesi iste podatke iz tog pokušaja i isti razlog. Provera mora da potvrdi potpuno isti zahtev.</T> : null}
         {form.kind === 'PROPOSE' ? <>
           {field('Predložena cena u RSD', form.price, price => edit({ price, priceChanged: true }))}
           {field('Predloženi obim posla', form.scope, scope => edit({ scope, scopeChanged: true }), true)}
@@ -159,7 +159,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
       </View> : state.phase === 'CONFIRMED' || state.phase === 'REJECTED' ? <V2Action label="Prikaži aktuelni Dogovor" onPress={() => run('acknowledge')} />
         : state.phase === 'READY' && snapshot ? <View style={s.form}>
           {snapshot.proposals.map(proposal => <View key={proposal.proposalId} style={s.form}>
-            <Terms title={proposal.proposedBy === accountId ? 'Vaš predlog čeka odgovor' : 'Predlog druge strane'} terms={proposal.terms} />
+            <Terms title={proposal.proposedBy === accountId ? 'Tvoj predlog čeka odgovor' : 'Predlog druge strane'} terms={proposal.terms} />
             {proposal.reason ? <T style={s.copy}>{proposal.reason}</T> : null}
             {snapshot.actions.canRespondChange && proposal.proposedBy !== accountId ? <>
               <V2Action label="Pregledaj prihvatanje izmene" disabled={!proposal.termsAvailable} onPress={() => prepare({ kind: 'RESPOND', proposal, accept: true })} />

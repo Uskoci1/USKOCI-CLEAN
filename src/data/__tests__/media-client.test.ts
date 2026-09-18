@@ -97,7 +97,7 @@ describe('PKG-008 — explicit cancellation of an owned Task upload command',()=
   mockRpc.mockResolvedValue({data:{...cancelled(),...patch},error:null});
   await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY})).resolves.toMatchObject({ok:false,kod:'MEDIA_INVALID_RESPONSE'});
  });
- it.each([['MEDIA_COMMAND_CONFLICT','Ovaj zahtev pripada drugoj fotografiji ili zadatku. Osvežite prikaz.'],['MEDIA_NOT_FOUND','Fotografija nije dostupna.'],
+ it.each([['MEDIA_COMMAND_CONFLICT','Ovaj zahtev pripada drugoj fotografiji ili zadatku. Osveži prikaz.'],['MEDIA_NOT_FOUND','Fotografija nije dostupna.'],
   ['MEDIA_NOT_EDITABLE','Fotografije sada ne mogu da se menjaju.']])('maps the known refusal %s to its own copy',async(name,copy)=>{
   mockRpc.mockResolvedValue({data:null,error:{message:name,details:'private detail'}});
   await expect(service.cancelUploadCommand({conversationId:CID,clientRequestId:KEY})).resolves.toEqual({ok:false,kod:name,poruka:copy});

@@ -17,7 +17,7 @@ const tagLabels: Record<ReviewTag, string> = {
   AS_AGREED: 'Po dogovoru', CAREFUL: 'Pažljivo', CLEAR_COMMUNICATION: 'Jasna komunikacija',
   ON_TIME: 'Na vreme', RELIABLE: 'Pouzdano', RESPECTFUL: 'Uz poštovanje',
 };
-const ratingLabels = ['Izaberite ocenu', 'Loše', 'Ispod očekivanja', 'Dobro', 'Vrlo dobro', 'Odlično'];
+const ratingLabels = ['Izaberi ocenu', 'Loše', 'Ispod očekivanja', 'Dobro', 'Vrlo dobro', 'Odlično'];
 export function backFromReview() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
 
 /** One rating, up to N tags, one save. The saved receipt is final and shown as such. */
@@ -63,7 +63,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
       const checked = await read();
       if (!checked.ok) return checked;
       if (checked.podatak.review?.reviewId !== result.podatak.reviewId) {
-        return failure('REVIEW_READBACK_REQUIRED', 'Potvrda ocene nije učitana. Proverite sačuvanu ocenu.');
+        return failure('REVIEW_READBACK_REQUIRED', 'Potvrda ocene nije učitana. Proveri sačuvanu ocenu.');
       }
       return checked;
     });
@@ -78,14 +78,14 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
         : receipt ? <View style={s.card}>
           <View style={s.badge}><Star size={32} weight="fill" color={sys.color.orange} /></View>
           <T accessibilityRole="header" variant="title" style={s.ink}>Ocena je sačuvana</T>
-          <T variant="body" style={s.ink}>Vaša ocena: {receipt.rating} od 5</T>
+          <T variant="body" style={s.ink}>Tvoja ocena: {receipt.rating} od 5</T>
           {receipt.tags.length ? <View style={s.tags}>{receipt.tags.map(tag => <View key={tag} style={[s.tag, s.tagSelected]}><T variant="meta" style={s.tagTextSelected}>{tagLabels[tag]}</T></View>)}</View> : null}
           <T variant="meta" tone="muted">Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja.</T>
           <V2Action label="Nazad na Dogovor" onPress={backFromReview} style={brandAction} />
         </View> : context?.eligible ? <>
           <View style={s.intro}>
             <T accessibilityRole="header" variant="display" style={s.ink}>Kako je prošla saradnja?</T>
-            <T variant="body" tone="muted">Ocenite drugu stranu završenog Dogovora.</T>
+            <T variant="body" tone="muted">Oceni drugu stranu završenog Dogovora.</T>
           </View>
           <View style={s.card}>
             <View style={s.stars}>
@@ -114,13 +114,13 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
               })}
             </View>
           </View>
-          {attempt ? <T variant="meta" tone="muted">Čuvamo vaš prvobitni izbor dok proveravate ishod slanja.</T> : null}
+          {attempt ? <T variant="meta" tone="muted">Čuvamo tvoj prvobitni izbor dok proveravaš ishod slanja.</T> : null}
           <View style={s.grow} />
           <V2Action label={workspace.busy ? 'Čuvamo ocenu…' : attempt ? 'Ponovi istu ocenu' : 'Sačuvaj ocenu'}
             disabled={!enabled || rating < 1} onPress={submit} style={brandAction} />
         </> : context ? <View style={s.card}>
           <T variant="title" style={s.ink}>Ocena još nije dostupna</T>
-          <T variant="body" tone="muted">Možete oceniti drugu stranu kada Dogovor bude završen.</T>
+          <T variant="body" tone="muted">Možeš oceniti drugu stranu kada Dogovor bude završen.</T>
           <V2Action label="Nazad na Dogovor" onPress={backFromReview} />
         </View> : null}
       {workspace.error ? <View style={s.errorBlock}>

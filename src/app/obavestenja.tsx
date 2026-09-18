@@ -84,7 +84,7 @@ export default function Obavestenja() {
         </View>}
         {state.error && <View style={styles.notice} accessibilityLiveRegion="polite">
           <T style={styles.strong}>{state.error==='action'?'Radnja nije potvrđena.':'Obaveštenja nisu osvežena.'}</T>
-          <T style={styles.body}>{state.page?'Proverite vezu i pokušajte ponovo. Poslednje učitano stanje ostaje prikazano.':'Proverite vezu i pokušajte ponovo da učitate obaveštenja.'}</T>
+          <T style={styles.body}>{state.page?'Proveri vezu i pokušaj ponovo. Poslednje učitano stanje ostaje prikazano.':'Proveri vezu i pokušaj ponovo da učitaš obaveštenja.'}</T>
           <Press accessibilityRole="button" disabled={busy} style={styles.retry}
             onPress={()=>state.error==='page'?void model.more():void model.refresh()}>
             <T style={styles.filterText}>Pokušaj ponovo</T>
@@ -92,7 +92,7 @@ export default function Obavestenja() {
         </View>}
         {state.unavailable && <View style={styles.notice} accessibilityLiveRegion="polite">
           <T style={styles.strong}>Sadržaj više nije dostupan.</T>
-          <T style={styles.body}>Možda je uklonjen ili mu više nemate pristup.</T>
+          <T style={styles.body}>Možda je uklonjen ili mu više nemaš pristup.</T>
         </View>}
       </View>}
       ListEmptyComponent={state.loading || !state.page && !state.error

@@ -344,7 +344,7 @@ it('restores both choices with retry text after current storage failure without 
   await render(); await press('Objavi zadatak'); await advance(760);
   expect(tree.root.findAllByProps({ testID: 'entry-intent-preparation' })).toHaveLength(0);
   expect(button('Objavi zadatak').props.disabled).toBe(false); expect(button('Uskoči i zaradi').props.disabled).toBe(false);
-  expect(tree.root.findByProps({ accessibilityRole: 'alert' }).children).toEqual(['Izbor trenutno nije sačuvan. Pokušajte ponovo.']);
+  expect(tree.root.findByProps({ accessibilityRole: 'alert' }).children).toEqual(['Izbor trenutno nije sačuvan. Pokušaj ponovo.']);
   expect(requester.mock.calls[0][0].isCurrent()).toBe(false);
 });
 it.each(['background', 'inactive'])('cancels a pending choice on %s', async state => {

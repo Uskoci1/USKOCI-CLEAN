@@ -73,7 +73,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await render();
     expect(text()).toContain('Zadatak trenutno nije moguće učitati'); expect(text()).not.toContain('secret');
     expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    const press = buttons('Pokušajte ponovo')[0].props.onPress;
+    const press = buttons('Pokušaj ponovo')[0].props.onPress;
     await act(async () => { press(); press(); }); expect(mockLoad).toHaveBeenCalledTimes(2);
     expect(text()).toContain('Učitavamo zadatak');
     await act(async () => retry.resolve(detail()));
@@ -96,7 +96,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(text()).toContain('Zadatak task-a'); expect(text()).toContain('Poslednji učitani podaci');
     await act(async () => refresh.reject(new Error('offline')));
     expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    await act(async () => buttons('Pokušajte ponovo')[0].props.onPress());
+    await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).not.toContain('Poslednji učitani podaci'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
   });
 
@@ -104,7 +104,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockLoad.mockResolvedValueOnce(detail()).mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('offline'));
     await render(); await act(async () => mockAppListeners.forEach(listener => listener('active')));
     expect(text()).toContain('Zadatak nije dostupan'); expect(text()).not.toContain('Zadatak task-a');
-    await act(async () => buttons('Pokušajte ponovo')[0].props.onPress());
+    await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
   });
 
@@ -262,7 +262,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await render();
     await act(async () => jest.advanceTimersByTime(15_000));
     expect(text()).toContain('Zadatak trenutno nije moguće učitati');
-    await act(async () => buttons('Pokušajte ponovo')[0].props.onPress());
+    await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).toContain('Sveži Zadatak');
     await act(async () => old.resolve({ ...detail(), naslov: 'Istekli Zadatak' }));
     expect(text()).not.toContain('Istekli Zadatak');

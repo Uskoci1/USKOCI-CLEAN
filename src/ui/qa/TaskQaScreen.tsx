@@ -39,7 +39,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     if(!live(token))return;
     if(!feed.ok){setContext(null);setRows([]);setMessage(feed.poruka);return;}
     if(c.mode==='PUBLIC'&&feed.podatak.some(q=>q.needRevision!==c.needRevision)) {
-      setContext(null);setRows([]);setMessage('Zadatak je izmenjen. Osvežite pitanja.');return;
+      setContext(null);setRows([]);setMessage('Zadatak je izmenjen. Osveži pitanja.');return;
     }
     setContext(c);setRows(feed.podatak);
   }
@@ -54,7 +54,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   async function consumeAi(i:Exclude<QaIntent,{type:'DISPOSITION'}>,s:QaSubmissionStatus,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
     if(!live(token))return 'UNKNOWN';
     if(s.state!=='ABSENT'&&(s.type!==i.type||s.needRevision!==i.needRevision||s.textSha256!==i.textSha256||s.questionId!==(i.type==='ANSWER'?i.questionId:null))){
-      setClassification(null);setAbsent(false);setMessage('Potvrda obrade ne odgovara sačuvanom zahtevu. Proverite stanje ponovo.');return 'UNKNOWN';
+      setClassification(null);setAbsent(false);setMessage('Potvrda obrade ne odgovara sačuvanom zahtevu. Proveri stanje ponovo.');return 'UNKNOWN';
     }
     setClassification(s);setAbsent(s.state==='ABSENT'||s.state==='READY');
     if(s.state==='COMMITTED')return finish(i,{type:i.type,needRevision:i.needRevision,textSha256:i.textSha256,receipt:s.receipt!},token);
@@ -62,17 +62,17 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);if(!live(token))return 'UNKNOWN';
       setIntent(null);setAbsent(false);setClassification(null);setMaterial(s.materiality==='MATERIAL');
       setReceipt(s.state==='CANCELLED'?'Slanje je otkazano na serveru. Ova radnja neće naknadno objaviti tekst.'
-        :s.state==='STALE'?'Zadatak ili pravila su promenjeni. Pregledajte aktuelna pitanja pre novog slanja.'
-         :s.materiality==='MATERIAL'?'Odgovor menja uslove zadatka. Izmenite zadatak kroz pregled i objavu.'
-          :s.safeReasonCodes.some(c=>['QA_ACCOUNT_DAILY_LIMIT','QA_TASK_DAILY_LIMIT','QA_ASK_COOLDOWN'].includes(c))?'Dostignuto je ograničenje slanja pitanja. Pokušajte kasnije.'
+        :s.state==='STALE'?'Zadatak ili pravila su promenjeni. Pregledaj aktuelna pitanja pre novog slanja.'
+         :s.materiality==='MATERIAL'?'Odgovor menja uslove zadatka. Izmeni zadatak kroz pregled i objavu.'
+          :s.safeReasonCodes.some(c=>['QA_ACCOUNT_DAILY_LIMIT','QA_TASK_DAILY_LIMIT','QA_ASK_COOLDOWN'].includes(c))?'Dostignuto je ograničenje slanja pitanja. Pokušaj kasnije.'
            :s.safeReasonCodes.includes('QA_DUPLICATE_QUESTION')?'Isto pitanje je već postavljeno za ovu verziju zadatka.'
-            :s.outcome==='CLARIFY'?'Tekst treba jasnije da opiše pitanje ili odgovor. Doradite ga pre novog slanja.'
+            :s.outcome==='CLARIFY'?'Tekst treba jasnije da opiše pitanje ili odgovor. Doradi ga pre novog slanja.'
              :s.outcome==='REVIEW'?'Predloženi tekst trenutno nije odobren za javnu objavu.'
-              :'Predloženi tekst nije objavljen. Pregledajte ga pre novog slanja.');
+              :'Predloženi tekst nije objavljen. Pregledaj ga pre novog slanja.');
       return 'TERMINAL';
     }
-    if(s.state==='PROCESSING'){setMessage('Prethodni zahtev se obrađuje. Proverite ishod ili izričito otkažite slanje.');return 'UNKNOWN';}
-    if(s.state==='READY')setMessage('Provera teksta je završena. Isti zahtev možete ručno nastaviti do objave.');
+    if(s.state==='PROCESSING'){setMessage('Prethodni zahtev se obrađuje. Proveri ishod ili izričito otkaži slanje.');return 'UNKNOWN';}
+    if(s.state==='READY')setMessage('Provera teksta je završena. Isti zahtev možeš ručno nastaviti do objave.');
     return 'ABSENT';
   }
   async function readIntent(i:QaIntent,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
@@ -97,12 +97,12 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   async function run(work:(token:object)=>Promise<void>) {
     const token=focus.current;if(!live(token)||lock.current)return;
     lock.current=true;setBusy(true);setMessage('');
-    try{await work(token!);}catch{if(live(token))setMessage('Stanje radnje nije potvrđeno. Proverite ponovo pre slanja.');}
+    try{await work(token!);}catch{if(live(token))setMessage('Stanje radnje nije potvrđeno. Proveri ponovo pre slanja.');}
     finally{if(live(token)){lock.current=false;setBusy(false);}}
   }
   useFocusEffect(useCallback(()=>{
     const token={};focus.current=token;active.current=AppState.currentState==='active';lock.current=false;
-    if(needId&&accountId)void run(restore);else{setBusy(false);setMessage('Ponovo otvorite zadatak sa prijavljenog naloga.');}
+    if(needId&&accountId)void run(restore);else{setBusy(false);setMessage('Ponovo otvori zadatak sa prijavljenog naloga.');}
     const subscription=AppState.addEventListener('change',next=>{
       active.current=next==='active';
       if(!active.current){focus.current=null;lock.current=false;}
@@ -142,7 +142,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       if(action?context.mode!=='OWNER'||q?.status!=='PENDING_ANSWER'
         :q?(!context.canComposeAnswer||q.needRevision!==context.needRevision||!body)
         :(!context.canAsk||!body))return;
-      if(!action&&((q?context.answerMaxChars:context.questionMaxChars)??Infinity)<Array.from(body).length){setMessage('Tekst je duži od dozvoljenog. Skratite ga pre slanja.');return;}
+      if(!action&&((q?context.answerMaxChars:context.questionMaxChars)??Infinity)<Array.from(body).length){setMessage('Tekst je duži od dozvoljenog. Skrati ga pre slanja.');return;}
       const common={accountId:accountId!,needId:needId!,needRevision:q?.needRevision??context.needRevision,clientRequestId:noviUuidZahtevId()};
       const i:QaIntent=action?{...common,type:'DISPOSITION',questionId:q!.questionId,action,textSha256:null}
         :q?{...common,type:'ANSWER',questionId:q.questionId,textSha256:qaTextHash(body)}
@@ -155,7 +155,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     if(renderGeneration!==viewGeneration.current)return;
     if(!intent||!absent)return;
     const body=text.trim();
-    if(intent.textSha256!==null&&qaTextHash(body)!==intent.textSha256){setMessage('Za isti zahtev unesite potpuno isti tekst. Prethodni tekst se ne čuva na uređaju.');return;}
+    if(intent.textSha256!==null&&qaTextHash(body)!==intent.textSha256){setMessage('Za isti zahtev unesi potpuno isti tekst. Prethodni tekst se ne čuva na uređaju.');return;}
     if(await readIntent(intent,token)!=='ABSENT'||!live(token))return;
     await send(intent,body,token);
   });
@@ -186,22 +186,22 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
 
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
     <SettingsScreen title="Pitanja o zadatku" onBack={()=>{if(live(focus.current))onBack();}}>
-      <SettingsIntro kicker="PRE DOGOVORA" title={context?.title??'Razjasnite zadatak.'}>Pitanja su anonimna. Javno se prikazuju pitanja sa odgovorom naručioca. Ne unosite kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
+      <SettingsIntro kicker="PRE DOGOVORA" title={context?.title??'Razjasni zadatak.'}>Pitanja su anonimna. Javno se prikazuju pitanja sa odgovorom naručioca. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
       {busy?<ActivityIndicator color={sys.color.green} accessibilityLabel="Proveravamo pitanja"/>:null}
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
       {material?<SettingsAction label="Vrati se na zadatak radi izmene" kind="secondary" onPress={()=>{if(live(focus.current)&&!lock.current)onBack();}} disabled={busy}/>:null}
       {intent?<SettingsPanel soft><T variant="bodyStrong">Provera prethodne radnje</T><T>Sačuvan je identifikator zahteva. Izlazak iz prikaza ne šalje ponovo radnju i ne poništava ono što server već obrađuje.</T>
-        {intent.type!=='DISPOSITION'?<><T>Za ručno ponavljanje unesite isti tekst. Tekst se ne čuva na uređaju.</T><TextInput accessibilityLabel="Isti tekst prethodne radnje" value={text} onChangeText={setText} editable={!busy} multiline style={input}/></>:null}
+        {intent.type!=='DISPOSITION'?<><T>Za ručno ponavljanje unesi isti tekst. Tekst se ne čuva na uređaju.</T><TextInput accessibilityLabel="Isti tekst prethodne radnje" value={text} onChangeText={setText} editable={!busy} multiline style={input}/></>:null}
         {absent?<SettingsAction label="Ponovi isti zahtev" kind="secondary" disabled={busy} onPress={()=>void retry()}/>:null}
         {classification?.canCancel?<SettingsAction label="Odustani od ovog slanja" kind="quiet" disabled={busy} onPress={()=>void cancel()}/>:null}
       </SettingsPanel>:null}
       {context?.mode==='PUBLIC'&&!context.canAsk?<SettingsPanel soft><T>{!context.activeWorker?'Za postavljanje pitanja potreban je aktivan Radni profil.':context.ratePolicyState==='NOT_READY'?'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.':'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}</T></SettingsPanel>:null}
-      {!intent&&(target||context?.canAsk)?<SettingsPanel soft><T variant="heading">{target?'Odgovor naručioca':'Vaše pitanje'}</T>
+      {!intent&&(target||context?.canAsk)?<SettingsPanel soft><T variant="heading">{target?'Odgovor naručioca':'Tvoje pitanje'}</T>
         {target?<T>{target.questionText}</T>:null}
-        {target?<T tone="muted">Odgovor razjašnjava postojeće uslove. Za promenu uslova vratite se na zadatak i izmenite ga kroz pregled i objavu.</T>:null}
+        {target?<T tone="muted">Odgovor razjašnjava postojeće uslove. Za promenu uslova vrati se na zadatak i izmeni ga kroz pregled i objavu.</T>:null}
         <TextInput accessibilityLabel={target?'Tekst odgovora':'Tekst pitanja'} value={text} onChangeText={setText} editable={!busy} multiline textAlignVertical="top" style={input}/>
-        {target&&target.needRevision!==context?.needRevision?<T accessibilityRole="alert">Zadatak je izmenjen. Zatvorite odgovor i pregledajte aktuelna pitanja pre slanja.</T>:null}
+        {target&&target.needRevision!==context?.needRevision?<T accessibilityRole="alert">Zadatak je izmenjen. Zatvori odgovor i pregledaj aktuelna pitanja pre slanja.</T>:null}
         <SettingsAction label={target?'Objavi odgovor':'Pošalji pitanje'} disabled={busy||!text.trim()||!!target&&target.needRevision!==context?.needRevision} onPress={()=>submit()}/>
         {target?<SettingsAction label="Zatvori odgovor" kind="quiet" disabled={busy} onPress={()=>{setTarget(null);setText('');}}/>:null}
       </SettingsPanel>:null}

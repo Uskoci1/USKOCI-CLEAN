@@ -35,12 +35,12 @@ export default function Kandidati() {
       // RPC needRevision is the current Need revision for every row, including
       // STALE. Its separate responseNeedRevision is the older submitted snapshot.
       // Never combine independent reads from different current Need revisions.
-      if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Zadatak se upravo promenio. Učitajte Prijave ponovo.' };
-      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelno stanje.' };
+      if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Zadatak se upravo promenio. Učitaj Prijave ponovo.' };
+      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { need, candidates, receipt: result?.ok ? result.podatak : null } };
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   }, [id, izvor, session]);
   const editor = useOwnedEditor(read), data = editor.data;
@@ -68,7 +68,7 @@ export default function Kandidati() {
       request.inFlight = true; request.reconciled = false;
       let result: Ishod<Receipt>;
       try { result = await izvor.izaberiPrijavu(request.command); }
-      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod izbora nije potvrđen. Proverite stanje.' }; }
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod izbora nije potvrđen. Proveri stanje.' }; }
       finally { request.inFlight = false; }
       request.result = result;
       if (session.focused && currentAccount()) render(v => v + 1);
@@ -102,9 +102,9 @@ export default function Kandidati() {
   return <CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
     publicPhoto={profileId => <ProfilePhoto profileId={profileId} fallback={null} />}
     readAgreement={async () => {
-      if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite Prijavu.' };
+      if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
       const result = await readSelectedAgreement(data.need.id, candidate.prijavaId);
-      return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite Prijavu.' };
+      return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
     }} openLinkedAgreement={agreementId => {
       if (!current() || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } });
@@ -115,7 +115,7 @@ export default function Kandidati() {
       return current() ? profile : null;
     }}
     choose={choose} busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} refresh={refresh}
-    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora ponovite isti zahtev.'
+    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora ponovi isti zahtev.'
       : session.viewed.get(candidate.prijavaId)?.state === 'UNCONFIRMED'
         ? 'Ponuda je otvorena, ali oznaka viđenosti nije potvrđena. Vrati se na Prijave i ponovo otvori ovu ponudu da pokušaš još jednom.' : null)}
     confirmed={!!data.receipt} openAgreement={() => {

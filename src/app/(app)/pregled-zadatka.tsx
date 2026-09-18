@@ -282,7 +282,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             {rows(review.publicProjection.filter(fact => fact.key !== 'need.public_photo_paths'))}
             <View style={s.notice}><T style={s.meta}>{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
               {unavailableIdentityFact ? <>
-                <T>U ovom pregledu je ostao uslov koji aplikacija ne može da proveri. Uklonite ga izričito da biste nastavili običnim zadatkom.</T>
+                <T>U ovom pregledu je ostao uslov koji aplikacija ne može da proveri. Ukloni ga izričito da nastaviš običnim zadatkom.</T>
                 {!command && unavailableIdentityFact.id ? <V2Action label="Nastavi bez uslova provere identiteta" kind="quiet"
                   disabled={disabled || !!edit || !!locationEditor || deadlineEditor} onPress={removeUnavailableIdentityRequirement} /> : null}
               </> : null}

@@ -34,7 +34,7 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel }
         {state.loading ? <View style={s.card}><ActivityIndicator accessibilityLabel="Učitavanje javnog profila" color={sys.color.green} /><T variant="meta" tone="muted" style={s.center}>Učitavamo javni profil…</T></View>
           : !profile ? <View style={s.card}>
             <T accessibilityRole="alert" variant="body" style={s.ink}>Javni profil trenutno nije dostupan.</T>
-            <V2Action label="Pokušajte ponovo" onPress={onRetry} />
+            <V2Action label="Pokušaj ponovo" onPress={onRetry} />
           </View> : <>
             <View style={s.identity}>
               <View style={s.avatar}>{photo?.(profile.profilId) ?? <T variant="title" style={s.initial}>{(profile.ime ?? 'U').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T>}</View>

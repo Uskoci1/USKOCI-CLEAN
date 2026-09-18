@@ -113,9 +113,9 @@ describe('D03 actual message component', () => {
   });
   it('preserves composer text in offline/error state and keeps it outside the history scroller', async () => {
     await render({ error: true });
-    expect(button('Napišite poruku').props.value).toBe('Nova poruka');
+    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
     const scroll = tree.root.findByType('ScrollView' as any);
-    expect(scroll.findAllByProps({ accessibilityLabel: 'Napišite poruku' })).toHaveLength(0);
+    expect(scroll.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
     // The screen owns the one KAV; a nested KAV loses the header origin on Android.
     expect(tree.root.findAllByType('KeyboardAvoidingView' as any)).toHaveLength(0);
     expect(button('Pošalji poruku')).toBeTruthy();
@@ -136,7 +136,7 @@ describe('D03 actual message component', () => {
   });
   it('terminal state blocks new text/send but leaves unknown-intent retry', async () => {
     await render({ terminal: true, writable: false, state: { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
-    expect(button('Napišite poruku').props.editable).toBe(false);
+    expect(button('Napiši poruku').props.editable).toBe(false);
     expect(button('Pošalji poruku').props.disabled).toBe(true);
     expect(texts()).toContain('samo za čitanje');
     await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
@@ -156,13 +156,13 @@ describe('D03 actual message component', () => {
     expect(button('Pošalji poruku').props.disabled).toBe(false);
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, draft: '😀'.repeat(2001) }} />));
     expect(button('Pošalji poruku').props.disabled).toBe(true);
-    expect(button('Napišite poruku').props.value).toBe('😀'.repeat(2001));
-    expect(texts()).toContain('skratite poruku');
+    expect(button('Napiši poruku').props.value).toBe('😀'.repeat(2001));
+    expect(texts()).toContain('skrati poruku');
   });
   it('shows actionable storage failure and retains the draft', async () => {
     await render({ state: { ...state, phase: 'error', error: 'STORAGE_UNAVAILABLE' } });
     expect(button('Pošalji poruku').props.disabled).toBe(true);
-    expect(button('Napišite poruku').props.value).toBe('Nova poruka');
+    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
     await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
     expect(outbox.start).toHaveBeenCalledTimes(1);
   });

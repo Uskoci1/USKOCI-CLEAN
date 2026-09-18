@@ -60,11 +60,11 @@ describe('PKG-007 — requester confirmation receipt', () => {
     expect(result.poruka).not.toContain('AWAITING');
   });
   it.each([
-    ['AGREEMENT_CHANGE_PENDING', 'Najpre odgovorite na postojeći predlog izmene.'],
-    ['COMPLETION_NOT_CONFIRMABLE', 'Dogovor trenutno nije u stanju za potvrdu završetka. Osvežite njegov status.'],
+    ['AGREEMENT_CHANGE_PENDING', 'Najpre odgovori na postojeći predlog izmene.'],
+    ['COMPLETION_NOT_CONFIRMABLE', 'Dogovor trenutno nije u stanju za potvrdu završetka. Osveži njegov status.'],
     ['ONLY_REQUESTER_CAN_CONFIRM_COMPLETION', 'Završetak potvrđuje Naručilac iz Dogovora.'],
     ['AGREEMENT_CANCELLED', 'Dogovor je otkazan. Završetak više nije moguć.'],
-    ['EXECUTION_VERSION_MISMATCH', 'Dogovor je promenjen. Osvežite važeće uslove pre završetka.'],
+    ['EXECUTION_VERSION_MISMATCH', 'Dogovor je promenjen. Osveži važeće uslove pre završetka.'],
   ])('maps the known server denial %s to its own copy without leaking details', async (name, copy) => {
     mockRpc.mockResolvedValue({ data: null, error: { message: name, details: 'private detail', hint: 'http://internal', code: 'P0001' } });
     expect(await confirm(ID)).toEqual({ ok: false, kod: name, poruka: copy });

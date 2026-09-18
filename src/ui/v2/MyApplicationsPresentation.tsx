@@ -75,7 +75,7 @@ export function MyApplicationsPresentation(props: Props) {
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {props.loading ? <><SkeletonList count={3} rows={2} /><T variant="meta" tone="muted" style={s.center}>Učitavamo tvoje Prijave…</T></>
       : props.unavailable ? <View style={s.state}><T style={s.stateTitle}>Prijave trenutno nisu dostupne</T><T variant="copy" tone="muted">{props.message}</T>
-        <V2Action label="Pokušajte ponovo" onPress={props.onRefresh} disabled={props.busy} style={brandAction} /><V2Action label="Nazad" onPress={props.onBack} kind="quiet" /></View>
+        <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} disabled={props.busy} style={brandAction} /><V2Action label="Nazad" onPress={props.onBack} kind="quiet" /></View>
         : props.rows.length ? <View style={s.state}><T style={s.stateTitle}>Nema prijava u ovom prikazu</T><T variant="copy" tone="muted">Ostale Prijave su sačuvane u svojim statusima.</T>
           <V2Action label="Prikaži sve prijave" onPress={() => props.onTab('all')} /></View>
           : <View style={s.state}><View style={s.emptyArt}><V2Icon name="send" size={44} color={sys.color.green} /></View>

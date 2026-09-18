@@ -12,7 +12,7 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSad
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 
 const ok = (value: string): Ishod<string> => ({ ok: true, podatak: value });
-const conflict: Ishod<string> = { ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Učitajte sačuvano stanje.' };
+const conflict: Ishod<string> = { ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Učitaj sačuvano stanje.' };
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: Error) => void;

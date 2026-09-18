@@ -10,8 +10,8 @@ export type NeedLifecycleState = Readonly<{
   collectionRefreshRequired: boolean;
 }>;
 const CHANGED: NeedLifecycleState = Object.freeze({ phase: 'ACCOUNT_CHANGED', confirmation: null,
-  error: { kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Zadatak.' }, collectionRefreshRequired: false });
-const UNCERTAIN = { kod: 'UNKNOWN_OUTCOME', poruka: 'Radnja nije potvrđena. Proverite ishod pre ponovnog pokušaja.' };
+  error: { kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Zadatak.' }, collectionRefreshRequired: false });
+const UNCERTAIN = { kod: 'UNKNOWN_OUTCOME', poruka: 'Radnja nije potvrđena. Proveri ishod pre ponovnog pokušaja.' };
 const REJECTIONS = new Set(['AUTH_REQUIRED', 'FORBIDDEN', 'NEED_COMMAND_INVALID_INPUT', 'NEED_NOT_FOUND',
   'NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW', 'NEED_NOT_CANCELLABLE', 'NEED_NOT_DELETABLE_DRAFT',
   'DRAFT_MEDIA_CLEANUP_REQUIRED', 'DRAFT_HAS_AUTHORITATIVE_HISTORY', 'STALE_REVIEW_REQUIRED']);
@@ -40,7 +40,7 @@ export function createNeedLifecycleController(options: {
     confirmation: null, error: options.restoreUnknownOutcome ? UNCERTAIN : null, collectionRefreshRequired: false };
   if (!uuid(command.needId) || !positiveInteger(command.expectedRevision) ||
     !['CANCEL', 'DELETE_DRAFT'].includes(command.action) || typeof command.reason !== 'string' || Array.from(command.reason).length > 500) {
-    state = { ...state, phase: 'REJECTED', error: { kod: 'NEED_COMMAND_INVALID_INPUT', poruka: 'Ponovo otvorite Zadatak i pregledajte aktuelne podatke.' } };
+    state = { ...state, phase: 'REJECTED', error: { kod: 'NEED_COMMAND_INVALID_INPUT', poruka: 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.' } };
   }
   const listeners = new Set<() => void>();
   const current = () => {

@@ -31,7 +31,7 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false }: { ite
   const remote = item.detalji?.rezimLokacije === 'REMOTE';
   const offers = item.rezimCene === 'OFFERS';
   const price = offers ? 'Tražim ponude' : item.ponudjenaCena?.prikaz ?? 'Cena nije navedena';
-  return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvorite Zadatak' : 'Otvorite priliku'} ${item.naslov}`}
+  return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${item.naslov}`}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986}
     style={[compact ? cardCompact : card, attention && s.attentionCard, disabled && s.disabled]}>
     {status || urgent ? <View style={s.top}>

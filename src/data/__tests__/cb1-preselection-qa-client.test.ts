@@ -73,7 +73,7 @@ describe('CB1 — ask / answer / disposition', () => {
     if (!stale.ok) expect(stale.poruka).toContain('izmenjen');
     resetRpc({ data: null, error: { code: 'P0001', message: 'RU4B_MATERIAL_REQUIRES_RU4_EDIT' } });
     const material = await preselectionQaClientService.answerQuestion(Q, 'Treba i kombi.', REQ);
-    if (!material.ok) expect(material.poruka).toContain('Izmenite Zadatak');
+    if (!material.ok) expect(material.poruka).toContain('Izmeni Zadatak');
   });
 
   it('answers and reports a replayed receipt as replay', async () => {

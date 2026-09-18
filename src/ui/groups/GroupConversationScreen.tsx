@@ -53,17 +53,17 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
       <View style={s.avatar}><ProfilePhoto profileId={member.profileId} size={44} fallback={<T style={s.initial}>{member.displayName.slice(0,1).toLocaleUpperCase('sr-Latn-RS')}</T>}/></View>
       <View style={s.memberText}><T style={s.copy}>{member.displayName}</T><T style={s.meta}>{member.role==='REQUESTER'?'Naručilac':'Učesnik'}</T></View>
      </View>)}{group.members.length===0?<T style={s.meta}>Prikazana je ranije dostupna istorija.</T>:null}</View>:null}
-     {group.role==='REQUESTER'&&showPeople?<View style={s.privatePanel}><T style={s.heading}>Vaši pojedinačni Dogovori</T><T style={s.meta}>Ovo upravljanje vidite samo vi.</T>
+     {group.role==='REQUESTER'&&showPeople?<View style={s.privatePanel}><T style={s.heading}>Tvoji pojedinačni Dogovori</T><T style={s.meta}>Ovo upravljanje vidiš samo vi.</T>
       {(group.management??[]).map(item=><View key={item.agreementId} style={s.stack}><T style={s.copy}>{group.members.find(m=>m.accountId===item.accountId)?.displayName??'Učesnik'} · {status(item.executionState??item.status)}</T>
        {item.problemOpened?<T style={s.meta}>Privatan problem u Dogovoru</T>:null}<V2Action label="Otvori pojedinačni Dogovor" onPress={()=>openAgreement(item.agreementId)}/></View>)}
       {group.managementNextId?<V2Action label="Još pojedinačnih Dogovora" onPress={()=>invoke('managementNext')}/>:null}
      </View>:null}
-    </>:state.phase==='READY'?<T style={s.copy}>Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika. Vaš privatni Dogovor je i dalje dostupan.</T>:null}
+    </>:state.phase==='READY'?<T style={s.copy}>Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika. Tvoj privatni Dogovor je i dalje dostupan.</T>:null}
     {state.message?<T accessibilityLiveRegion="polite" style={s.copy}>{state.message}</T>:null}
     {state.before?<V2Action label="Starije poruke" disabled={!ready} onPress={()=>invoke('older')}/>:null}
-    {ready&&group&&state.messages.length===0?<T style={s.copy}>Još nema poruka u istoriji dostupnoj vašem nalogu.</T>:null}
+    {ready&&group&&state.messages.length===0?<T style={s.copy}>Još nema poruka u istoriji dostupnoj tvom nalogu.</T>:null}
    </View>}
-   renderItem={({item})=><View style={[s.bubble,item.mine?s.mine:s.peer]}><T style={s.meta}>{item.mine?'Vi':group?.members.find(m=>m.accountId===item.senderAccountId)?.displayName??'Učesnik'}</T>
+   renderItem={({item})=><View style={[s.bubble,item.mine?s.mine:s.peer]}><T style={s.meta}>{item.mine?'Ti':group?.members.find(m=>m.accountId===item.senderAccountId)?.displayName??'Učesnik'}</T>
     <T style={s.copy}>{item.body}</T><T style={s.meta}>{date(item.createdAt)}</T>
     {group ? <SupportContextEntry reference={{ kind:'GROUP_MESSAGE',id:item.messageId,revision:null }} previewText={item.body}
       label="Izaberi ovu poruku za podršku" disabled={!ready}
@@ -73,7 +73,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
    ListFooterComponent={<View style={s.stack}>
     {(ready&&group?.canSend)||retry?<View style={s.composer}>
      <T style={s.heading}>{retry?'Prvobitna poruka':'Poruka grupi'}</T>
-     <TextInput accessibilityLabel={retry?'Unesite prvobitnu poruku':'Poruka grupi'} multiline value={draft} onChangeText={change} style={s.input}
+     <TextInput accessibilityLabel={retry?'Unesi prvobitnu poruku':'Poruka grupi'} multiline value={draft} onChangeText={change} style={s.input}
       placeholder="Dogovorite zajedničke korake…" placeholderTextColor={sys.color.muted} maxLength={4000}/>
      <T style={s.meta}>{Array.from(normalizeGroupBody(draft)).length} / 2.000 znakova</T>
      <V2Action label={retry?'Ponovi slanje iste poruke':'Pošalji poruku grupi'} kind="primary" disabled={!groupBody(normalizeGroupBody(draft))}

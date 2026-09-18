@@ -12,7 +12,7 @@ export function readExistingApplicationInterval(p: MojaPrijavaProjekcija) {
   const owner = sesijaSada(), accountId = owner.user?.id;
   if (!accountId || !uuid(p.prijavaId) || !uuid(p.potrebaId) || !positiveInteger(p.prijavaVerzija) ||
       !positiveInteger(p.potrebaRevizija) || !positiveInteger(p.prijavaRevizija)) {
-    return Promise.resolve(failure('APPLICATION_INTERVAL_UNAVAILABLE', 'Ponovo otvorite aktuelnu Prijavu.'));
+    return Promise.resolve(failure('APPLICATION_INTERVAL_UNAVAILABLE', 'Ponovo otvori aktuelnu Prijavu.'));
   }
   return readOwnedResult<ExistingApplicationInterval>({ account: { accountId, accountRevision: owner.accountRevision },
     errors: {}, fallback: 'APPLICATION_INTERVAL_UNAVAILABLE', invalid: 'APPLICATION_INTERVAL_CHANGED',

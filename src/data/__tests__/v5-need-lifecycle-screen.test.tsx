@@ -114,7 +114,7 @@ it.each(['corrupt', JSON.stringify({ ...command, needId: A }), JSON.stringify({ 
     expect(tree.root.findAllByProps({ label: 'Brisanje nacrta' })).toHaveLength(0);
   });
 it('server stale rejection needs a fresh review and cannot force replay', async () => {
-  mockService.deleteDraftNeed.mockResolvedValue({ ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Osvežite zadatak.' });
+  mockService.deleteDraftNeed.mockResolvedValue({ ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Osveži zadatak.' });
   await render(); await tap('Brisanje nacrta'); await tap('Obriši nacrt');
   expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0); await tap('Učitaj aktuelni zadatak');
   expect(mockRefresh).toHaveBeenCalledTimes(1); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);

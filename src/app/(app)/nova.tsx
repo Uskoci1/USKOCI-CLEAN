@@ -51,7 +51,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     const current = () => scope !== null && scope === focus.current && !!accountId
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
     const unavailable = (): Ishod<never> => ({ ok: false, kod: 'AI_INTAKE_UNAVAILABLE',
-      poruka: 'Razgovor trenutno nije dostupan. Proverite vezu i učitajte ga ponovo.' });
+      poruka: 'Razgovor trenutno nije dostupan. Proveri vezu i učitaj ga ponovo.' });
     if (invalidRoute || !current()) return unavailable();
     try {
       const stored = await aiTurnIntentJournal.load(accountId!);
@@ -59,7 +59,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       if (stored) {
         if (resumeId && resumeId !== stored.conversationId) {
           setRecoveryConversation(stored.conversationId);
-          return { ok: false, kod: 'AI_OTHER_TURN_PENDING', poruka: 'Najpre proverite prethodno slanje poruke.' };
+          return { ok: false, kod: 'AI_OTHER_TURN_PENDING', poruka: 'Najpre proveri prethodno slanje poruke.' };
         }
         if (conversation.current && conversation.current !== stored.conversationId) return unavailable();
         conversation.current = stored.conversationId;
@@ -124,11 +124,11 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       try {
         await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: razgovorId, clientRequestId: command.id });
       } catch {
-        return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Slanje nije pokrenuto. Proverite stanje pre ponovnog pokušaja.' };
+        return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Slanje nije pokrenuto. Proveri stanje pre ponovnog pokušaja.' };
       }
       // Storage completion is asynchronous: recheck focus/account before HTTP.
       if (!isCurrent() || !command.body)
-        return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
+        return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
       const abort = new AbortController(); streamAbort.current?.abort(); streamAbort.current = abort;
       setStreamingText('');
       let result: Ishod<AiNeedTurnStatus>;
@@ -138,7 +138,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       } finally {
         if (streamAbort.current === abort) { streamAbort.current = null; if (isCurrent()) setStreamingText(''); }
       }
-      if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
+      if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
       if (!result.ok) return result;
       return read();
     });
@@ -148,7 +148,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     if (!canAct() || !razgovorId || !command || !editor.data?.recovery?.canCancel) return;
     void editor.save(async () => {
       const result = await aiNeedV2Izvor.cancelTurn(razgovorId, command.id);
-      if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
+      if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
       if (!result.ok) return result;
       // Completion may win this race. Only exact canonical readback retires
       // the intent; transport abort or a lost cancel ACK cannot retire it.
@@ -185,13 +185,13 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       void editor.save(async () => {
         abandoning.current = true;
         const result = await aiNeedV2Izvor.abandonConversation(razgovorId);
-        if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
+        if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
         if (!result.ok) return result;
         return read();
       });
     };
     if (abandoning.current) { submit(); return; }
-    Alert.alert('Napustiti razgovor?', 'Ovaj razgovor više nećete moći da nastavite. Podaci se čuvaju prema objavljenim pravilima; ovo ih ne briše odmah.',
+    Alert.alert('Napustiti razgovor?', 'Ovaj razgovor više ne možeš da nastaviš. Podaci se čuvaju prema objavljenim pravilima; ovo ih ne briše odmah.',
       [{ text: 'Nastavi razgovor', style: 'cancel' }, { text: 'Napusti razgovor', style: 'destructive', onPress: submit }]);
   };
 
@@ -201,17 +201,17 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
 
   const statusCopy = stanje.status !== 'OPEN'
     ? stanje.status === 'ABANDONED' ? 'Razgovor je napušten.'
-      : stanje.status === 'COMPLETED' ? 'Razgovor je završen. Sačuvani Zadatak možete otvoriti iz pregleda.'
+      : stanje.status === 'COMPLETED' ? 'Razgovor je završen. Sačuvani Zadatak možeš otvoriti iz pregleda.'
         : 'Nastavak ovog razgovora nije dostupan.'
-    : abandoning.current ? 'Napuštanje razgovora još nije potvrđeno. Proverite stanje pre ponovnog pokušaja.'
-      : pending ? turn?.state === 'PROCESSING' ? 'AI još obrađuje poruku. Proverite ishod.'
-        : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Ponovite isti zahtev.'
-          : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkažite ga da biste ponovo uneli poruku.'
-          : 'Ishod slanja nije potvrđen. Proverite ga pre sledeće poruke.'
+    : abandoning.current ? 'Napuštanje razgovora još nije potvrđeno. Proveri stanje pre ponovnog pokušaja.'
+      : pending ? turn?.state === 'PROCESSING' ? 'AI još obrađuje poruku. Proveri ishod.'
+        : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Ponovi isti zahtev.'
+          : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkaži ga da ponovo uneseš poruku.'
+          : 'Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.'
         : editor.data?.recovery?.cancelled && editor.data.recovery.providerDispatched
           ? 'Odustali ste od odgovora. Podaci su ostali nepromenjeni, a rezervisana potrošnja je zadržana.'
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
-          ? 'AI nije primenio prethodnu poruku. Možete je izmeniti i poslati ponovo.' : null;
+          ? 'AI nije primenio prethodnu poruku. Možeš je izmeniti i poslati ponovo.' : null;
 
   return <IntakePresentation conversation={stanje} value={unos} busy={radi} error={greska}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
@@ -233,7 +233,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     cancelPendingDispatched={editor.data?.recovery?.providerDispatched}
     showAbandon={stanje.status === 'OPEN' && !stanje.review.boundNeedId}
     abandonDisabled={radi || editor.loading || editor.uncertain}
-    abandonLabel={abandoning.current ? 'Ponovite napuštanje razgovora' : 'Napusti razgovor'}
+    abandonLabel={abandoning.current ? 'Ponovi napuštanje razgovora' : 'Napusti razgovor'}
     onNewTask={stanje.status === 'COMPLETED' || stanje.status === 'ABANDONED' ? noviZadatak : undefined}
     newTaskDisabled={!canAct() || !!request.current}
     onBack={back} onSend={posalji} onRefresh={osvezi} onAbandon={napusti}

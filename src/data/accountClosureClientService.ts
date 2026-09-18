@@ -25,11 +25,11 @@ export type ClosureCommand = { expectedRevision: number; clientRequestId: string
 export type ClosureReceiptLookup = { accountId: string; clientRequestId: string; found: boolean;
   receipt: ClosureReceipt | null; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
-  AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvorite podešavanja naloga.',
-  CLOSURE_INPUT_INVALID: 'Zahtev nije potpun. Osvežite stanje naloga.',
-  CLOSURE_REVISION_CONFLICT: 'Stanje naloga se promenilo. Proverite ga pre novog zahteva.',
-  REQUEST_ID_REUSED: 'Ovaj zahtev je već upotrebljen. Proverite njegovu postojeću potvrdu.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori podešavanja naloga.',
+  CLOSURE_INPUT_INVALID: 'Zahtev nije potpun. Osveži stanje naloga.',
+  CLOSURE_REVISION_CONFLICT: 'Stanje naloga se promenilo. Proveri ga pre novog zahteva.',
+  REQUEST_ID_REUSED: 'Ovaj zahtev je već upotrebljen. Proveri njegovu postojeću potvrdu.',
   ACCOUNT_CLOSING: 'Nalog je već u ograničenoj fazi zatvaranja.',
 };
 const revision = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 2_147_483_647;

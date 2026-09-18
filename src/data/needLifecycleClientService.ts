@@ -6,15 +6,15 @@ const LIFECYCLE_COPY: Readonly<Record<string, string>> = {
   NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW: 'Zadatak već ima Dogovor. Otkazivanje ide kroz Dogovor, ne kroz Zadatak.',
   NEED_NOT_CANCELLABLE: 'Ovaj Zadatak više ne može da se otkaže.',
   NEED_NOT_DELETABLE_DRAFT: 'Samo neobjavljen nacrt može da se obriše.',
-  DRAFT_MEDIA_CLEANUP_REQUIRED: 'Uklonite fotografije iz nacrta pre brisanja.',
-  DRAFT_HAS_AUTHORITATIVE_HISTORY: 'Ovaj nacrt ima istoriju i ne može da se obriše. Možete ga otkazati.',
-  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Osvežite prikaz pa pokušajte ponovo.',
-  NEED_NOT_FOUND: 'Zadatak nije pronađen.', FORBIDDEN: 'Ovo nije Vaš Zadatak.',
-  AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
+  DRAFT_MEDIA_CLEANUP_REQUIRED: 'Ukloni fotografije iz nacrta pre brisanja.',
+  DRAFT_HAS_AUTHORITATIVE_HISTORY: 'Ovaj nacrt ima istoriju i ne može da se obriše. Možeš ga otkazati.',
+  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Osveži prikaz pa pokušaj ponovo.',
+  NEED_NOT_FOUND: 'Zadatak nije pronađen.', FORBIDDEN: 'Ovo nije tvoj Zadatak.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
 };
 function invalidInput(needId: string, revision: number, reason: string): Ishod<never> | null {
   return uuid(needId) && positiveInteger(revision) && typeof reason === 'string' && Array.from(reason).length <= 500 ? null
-    : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvorite Zadatak i pregledajte aktuelne podatke.');
+    : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.');
 }
 
 /** Revision-bound terminal commands. No defaults may manufacture a server outcome. */
@@ -25,7 +25,7 @@ export const needLifecycleClientService = {
     const invalid = invalidInput(command.needId, command.expectedRevision, command.reason);
     if (invalid) return invalid;
     if (command.action !== 'CANCEL' && command.action !== 'DELETE_DRAFT')
-      return failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvorite Zadatak i pregledajte aktuelne podatke.');
+      return failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.');
     return readReceipt({
       rpc: 'rpc_get_need_lifecycle_receipt',
       args: { p_need_id: command.needId, p_need_revision: command.expectedRevision, p_action: command.action },

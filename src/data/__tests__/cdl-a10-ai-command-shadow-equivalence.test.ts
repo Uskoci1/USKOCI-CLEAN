@@ -82,7 +82,7 @@ describe('CDL-A10 — canonical AI command owner after shadow deletion', () => {
 
   it('preserves fail-fast message validation before Edge', async () => {
     const blank = await aiCommandOverrides.posaljiKorisnikovuPoruku!('conv-1', '   ');
-    expect(blank).toEqual({ ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' });
+    expect(blank).toEqual({ ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesi poruku.' });
     expect(mockInvoke).not.toHaveBeenCalled();
 
     const tooLong = await aiCommandOverrides.posaljiKorisnikovuPoruku!('conv-1', 'x'.repeat(4001));
@@ -130,7 +130,7 @@ describe('CDL-A10 — canonical AI command owner after shadow deletion', () => {
 
   it('preserves fact correction validation and server failure mapping', async () => {
     const blank = await aiCommandOverrides.ispraviCinjenicu!('fact-1', '   ');
-    expect(blank).toEqual({ ok: false, kod: 'FACT_VALUE_REQUIRED', poruka: 'Unesite vrednost.' });
+    expect(blank).toEqual({ ok: false, kod: 'FACT_VALUE_REQUIRED', poruka: 'Unesi vrednost.' });
     expect(mockRpc).not.toHaveBeenCalled();
 
     mockRpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'NOT_OWNER' } });

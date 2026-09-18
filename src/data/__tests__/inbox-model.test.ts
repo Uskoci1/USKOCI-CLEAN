@@ -1,7 +1,7 @@
 import { createInboxModel } from '../inboxModel';
 import type { InboxItem, InboxPage, InboxPort } from '../../contracts/inbox';
 const at='2026-09-07T07:00:00Z';
-const row=(id='1'): InboxItem=>({id,role:'WORKER',readAt:null,occurredAt:at,eventType:'RESPONSE_SELECTED',family:'responses',title:'Izabrani ste',body:'Otvorite Dogovor.'});
+const row=(id='1'): InboxItem=>({id,role:'WORKER',readAt:null,occurredAt:at,eventType:'RESPONSE_SELECTED',family:'responses',title:'Izabrani ste',body:'Otvori Dogovor.'});
 const page=(items=[row()],hasMore=false): InboxPage=>({items,hasMore,unreadCount:items.length,asOf:at});
 const deferred=<T,>()=>{let resolve!:(v:T)=>void;let reject!:(e:unknown)=>void;const promise=new Promise<T>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const flush=async()=>{await Promise.resolve();await Promise.resolve();await Promise.resolve();};

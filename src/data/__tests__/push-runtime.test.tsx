@@ -68,7 +68,7 @@ it('web never invokes unsupported notification listener or native APIs', async (
 });
 
 const notification = (content: Record<string, unknown> = {}) => ({ date: 1, request: { identifier: 'foreground', trigger: { type: 'push' },
- content: { title: 'USKOČI', subtitle: null, body: 'Imate novo obaveštenje. Otvorite aplikaciju.', data: { kind: 'INBOX' },
+ content: { title: 'USKOČI', subtitle: null, body: 'Imaš novo obaveštenje. Otvori aplikaciju.', data: { kind: 'INBOX' },
   categoryIdentifier: null, sound: 'default', ...content } } });
 const hidden = { shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false };
 const visible = { shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false };

@@ -211,7 +211,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     </ScrollView>
     <View style={s.footer}>
       {error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}
-      {dirty ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Imate nesačuvane izmene.</T> : null}
+      {dirty ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Imaš nesačuvane izmene.</T> : null}
       {uncertain ? <T variant="meta" tone="muted">Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.</T> : null}
       <Button label={busy ? 'Čuvamo unos…' : candidateMode ? 'Primeni na pregled profila' : 'Sačuvaj dostupnost'} disabled={blocked || !dirty || !!editing || !!windowEditor} onPress={save} full />
       {dirty ? <Button label="Odustani od izmena" kind="quiet" disabled={blocked} onPress={() => {

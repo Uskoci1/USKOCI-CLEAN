@@ -164,7 +164,7 @@ it('announces real selected coordinates outside the Android bitmap and updates o
   const status = tree.root.findByProps({ accessibilityLabel: 'Predložena tačka na mapi. Geografska širina 45.251234; geografska dužina 19.831234.' });
   expect(status.props.accessible).toBe(true);
   expect(annotation().findAllByProps({ accessibilityRole: 'text' })).toHaveLength(0);
-  expect(text()).toContain('Proverite položaj oznake');
+  expect(text()).toContain('Proveri položaj oznake');
   await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.8312344, 45.2512344], zoom: 15 } }));
   expect(text()).toContain('Mapa je centrirana na izabranu tačku.');
 });

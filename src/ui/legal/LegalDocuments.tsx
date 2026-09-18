@@ -37,7 +37,7 @@ function PublicLegalContents({ kind, onClose }: { kind: LegalDocumentKind; onClo
     try { const result = await boundedLegalRead(() => legalClientService.readBundle());
       if (!current(token)) return;
       if (result.ok) setBundle(result.podatak); else setError(result.poruka);
-    } catch { if (current(token)) setError('Dokumenti trenutno nisu dostupni. Pokušajte ponovo.'); }
+    } catch { if (current(token)) setError('Dokumenti trenutno nisu dostupni. Pokušaj ponovo.'); }
     finally { if (current(token)) setLoading(false); }
   }, []);
   useEffect(() => { void read(); return () => { scope.current = null; }; }, [read]);
@@ -46,13 +46,13 @@ function PublicLegalContents({ kind, onClose }: { kind: LegalDocumentKind; onClo
     if (!current(token) || !url || opening.current) return;
     opening.current = true; setError(null);
     try { await Linking.openURL(url); }
-    catch { if (current(token)) setError('Dokument nije otvoren. Pokušajte ponovo.'); }
+    catch { if (current(token)) setError('Dokument nije otvoren. Pokušaj ponovo.'); }
     finally { opening.current = false; }
   };
   return <SettingsScreen title={legalTitle(kind)} onBack={onClose}>
-    <SettingsIntro kicker="USKOČI DOKUMENTI" title="Sve na jednom mestu.">Otvorite objavljene dokumente. Posle čitanja možete nastaviti svoj formular.</SettingsIntro>
+    <SettingsIntro kicker="USKOČI DOKUMENTI" title="Sve na jednom mestu.">Otvori objavljene dokumente. Posle čitanja možeš nastaviti svoj formular.</SettingsIntro>
     {loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={sys.color.green} /> : <LegalDocumentRows bundle={bundle} onOpen={doc => { void open(doc); }} />}
     {error ? <View accessibilityLiveRegion="polite"><T accessibilityRole="alert">{error}</T></View> : null}
-    {!loading ? <SettingsAction label="Učitajte dokumente ponovo" kind="quiet" onPress={() => { void read(); }} /> : null}
+    {!loading ? <SettingsAction label="Učitaj dokumente ponovo" kind="quiet" onPress={() => { void read(); }} /> : null}
   </SettingsScreen>;
 }

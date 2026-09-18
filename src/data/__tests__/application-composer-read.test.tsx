@@ -83,7 +83,7 @@ it('rearms read and Retry after returning to the same retained tab', async () =>
   mockFocused = false; await update(); expect(mockTask).toHaveBeenCalledTimes(1);
   mockFocused = true; await update(); expect(mockTask).toHaveBeenCalledTimes(2);
   expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati');
-  const retry = press('Pokušajte ponovo'); await act(async () => { retry(); retry(); });
+  const retry = press('Pokušaj ponovo'); await act(async () => { retry(); retry(); });
   expect(mockTask).toHaveBeenCalledTimes(3); expect(press('Pošalji ovu Prijavu')).toBeDefined();
   expect(text()).toContain('Restored task'); expect(mockSubmit).not.toHaveBeenCalled();
 });
@@ -98,7 +98,7 @@ it('ignores a late blurred read and revalidates next focus', async () => {
 it('recovers the actual composer from a rejected detail read without leaking errors or mutating', async () => {
   mockTask.mockRejectedValueOnce(new Error('private transport detail')).mockResolvedValueOnce({ ...need(), primaNovePrijave: true });
   await render(); expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati'); expect(text()).not.toContain('private');
-  const retry = press('Pokušajte ponovo'); await act(async () => { retry(); retry(); });
+  const retry = press('Pokušaj ponovo'); await act(async () => { retry(); retry(); });
   expect(mockTask).toHaveBeenCalledTimes(2); expect(press('Pošalji ovu Prijavu')).toBeDefined(); expect(mockSubmit).not.toHaveBeenCalled();
 });
 it('refuses a submission when the authoritative task gate says remaining search is closed', async () => {
@@ -107,13 +107,13 @@ it('refuses a submission when the authoritative task gate says remaining search 
   const send = press('Pošalji ovu Prijavu'); expect(send).toBeDefined();
   await act(async () => { send(); });
   expect(mockSubmit).not.toHaveBeenCalled();
-  expect(text()).toContain('Proverite aktuelni Zadatak i aktivan radni profil.');
+  expect(text()).toContain('Proveri aktuelni Zadatak i aktivan radni profil.');
 });
 it('treats the closed remaining search server rejection as a known refusal that can be reset after refresh', async () => {
-  mockSubmit.mockResolvedValue({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED', poruka: 'Zadatak više ne prima nove prijave. Osvežite Zadatak.' });
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED', poruka: 'Zadatak više ne prima nove prijave. Osveži Zadatak.' });
   await offer(); await tap('Pošalji ovu Prijavu');
   expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Zadatak više ne prima nove prijave');
-  await tap('Proverite ishod');
+  await tap('Proveri ishod');
   expect(press('Pregledaj uslove i uredi novu ponudu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
 });
 it('shows successful unavailability and a single real detail fallback navigation', async () => {
@@ -202,13 +202,13 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     mockSubmit.mockResolvedValueOnce(unconfirmed);
     await tap('Ponovi istu Prijavu');
     expect(mockStorage.has(JOURNAL())).toBe(true); expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
-    await tap('Proverite ishod');
+    await tap('Proveri ishod');
     mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'NEED_REVISION_MISMATCH', poruka: 'Zadatak je promenjen.' });
     await tap('Ponovi istu Prijavu');
     expect(text()).toContain('Zadatak je promenjen'); expect(mockStorage.has(JOURNAL())).toBe(true);
     // The reset appears only after an explicit readback, exactly as for any known refusal.
     expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
-    await tap('Proverite ishod'); expect(mockStorage.has(JOURNAL())).toBe(true);
+    await tap('Proveri ishod'); expect(mockStorage.has(JOURNAL())).toBe(true);
     await tap('Pregledaj uslove i uredi novu ponudu');
     expect(mockStorage.size).toBe(0); expect(press('Pošalji ovu Prijavu')).toBeDefined();
   });
@@ -219,6 +219,6 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Server nije vratio potpunu potvrdu radnje.' });
     await tap('Ponovi istu Prijavu');
     expect(text()).not.toContain('Prijava je poslata.'); expect(mockStorage.has(JOURNAL())).toBe(true);
-    expect(press('Proverite ishod')).toBeDefined(); expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
+    expect(press('Proveri ishod')).toBeDefined(); expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
   });
 });

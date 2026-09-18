@@ -53,12 +53,12 @@ function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
       onSwitch={() => {
         if (intent === 'narucilac') navigate(() => router.navigate('/potrebe'));
         else ask({ target: 'narucilac', confirmLabel: 'Pređi na moje Zadatke', go: () => router.replace('/potrebe'),
-          reason: 'Vaši Zadaci kao naručioca stoje u MENI TREBA. Prelazak menja donju navigaciju na Zadaci | Mapa | Dogovori.' });
+          reason: 'Tvoji Zadaci kao naručioca stoje u MENI TREBA. Prelazak menja donju navigaciju na Zadaci | Mapa | Dogovori.' });
       }} onProfile={() => navigate(() => router.navigate('/profil'))}
       onNew={() => {
         if (intent === 'narucilac') navigate(() => router.navigate('/nova'));
         else ask({ target: 'narucilac', confirmLabel: 'Pređi i napravi Zadatak', go: () => router.replace('/nova'),
-          reason: 'Novi Zadatak pravite kao naručilac. Prelazak menja donju navigaciju na Zadaci | Mapa | Dogovori.' });
+          reason: 'Novi Zadatak praviš kao naručilac. Prelazak menja donju navigaciju na Zadaci | Mapa | Dogovori.' });
       }} />
     <IntentTransition request={transition} current={intent} onConfirm={confirmTransition} onCancel={() => setTransition(null)} />
   </>;

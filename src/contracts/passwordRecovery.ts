@@ -6,17 +6,17 @@ export type RecoveryErrorCode =
 
 const messages: Record<RecoveryErrorCode, string> = {
   UNCONFIGURED: 'Oporavak lozinke još nije podešen za ovu verziju aplikacije.',
-  INVALID_EMAIL: 'Unesite ispravnu email adresu.',
-  INVALID_LINK: 'Link je nevažeći ili je istekao. Zatražite novi link.',
-  SIGNED_IN: 'Najpre se odjavite sa otvorenog naloga, pa ponovo otvorite link za oporavak.',
-  ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvorite link za oporavak.',
+  INVALID_EMAIL: 'Unesi ispravnu email adresu.',
+  INVALID_LINK: 'Link je nevažeći ili je istekao. Zatraži novi link.',
+  SIGNED_IN: 'Najpre se odjavi sa otvorenog naloga, pa ponovo otvori link za oporavak.',
+  ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvori link za oporavak.',
   BUSY: 'Prethodni zahtev se još obrađuje.',
-  VERIFY_UNAVAILABLE: 'Ne možemo da proverimo link. Proverite vezu i pokušajte ponovo.',
-  REQUEST_UNCONFIRMED: 'Ne možemo da potvrdimo slanje zahteva. Proverite email pre ponovnog pokušaja.',
-  RATE_LIMITED: 'Previše zahteva za kratko vreme. Sačekajte pre ponovnog pokušaja.',
-  WEAK_PASSWORD: 'Nova lozinka ne ispunjava bezbednosne uslove. Izaberite dužu i manje predvidljivu lozinku.',
+  VERIFY_UNAVAILABLE: 'Ne možemo da proverimo link. Proveri vezu i pokušaj ponovo.',
+  REQUEST_UNCONFIRMED: 'Ne možemo da potvrdimo slanje zahteva. Proveri email pre ponovnog pokušaja.',
+  RATE_LIMITED: 'Previše zahteva za kratko vreme. Sačekaj pre ponovnog pokušaja.',
+  WEAK_PASSWORD: 'Nova lozinka ne ispunjava bezbednosne uslove. Izaberi dužu i manje predvidljivu lozinku.',
   SAME_PASSWORD: 'Nova lozinka mora da se razlikuje od prethodne.',
-  UPDATE_UNKNOWN: 'Nije potvrđeno da li je lozinka promenjena. Pokušajte prijavu novom lozinkom ili zatražite novi link.',
+  UPDATE_UNKNOWN: 'Nije potvrđeno da li je lozinka promenjena. Pokušaj prijavu novom lozinkom ili zatraži novi link.',
 };
 
 export class PasswordRecoveryError extends Error {

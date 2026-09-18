@@ -42,7 +42,7 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
   const tone = item.stanje === 'CANCELLED' ? sys.color.muted : item.stanje === 'AWAITING_REQUESTER' ? sys.color.warn : sys.color.green;
   const dot = item.stanje === 'CANCELLED' ? sys.color.lineStrong : item.stanje === 'AWAITING_REQUESTER' ? sys.color.orange : sys.color.green;
   const relation = mine?.uloga === 'narucilac' ? 'radi za tebe' : mine?.uloga === 'uskocer' ? 'naručuje' : '';
-  return <Press accessibilityRole="button" accessibilityLabel={`Otvorite Dogovor ${item.naslov}`} onPress={onOpen}
+  return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${item.naslov}`} onPress={onOpen}
     haptic="select" scaleTo={0.986} style={[card, attention && s.attentionCard, settled && s.settledCard]}>
     {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
       <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
@@ -60,7 +60,7 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
       <T variant="bodyStrong" style={s.personName}>{other?.ime ?? 'Druga strana'}</T>
       {relation ? <T variant="meta" tone="muted">{relation}</T> : null}
     </View>
-    {item.problemOtvoren ? <View style={s.problem}><T variant="meta" style={s.problemText}>Prijavljen je problem · pogledajte Dogovor</T></View> : null}
+    {item.problemOtvoren ? <View style={s.problem}><T variant="meta" style={s.problemText}>Prijavljen je problem · pogledaj Dogovor</T></View> : null}
   </Press>;
 }
 
@@ -75,14 +75,14 @@ export function AgreementCollectionPresentation(props: Props) {
   const renderItem = useCallback(({ item }: { item: DogovorProjekcija }) => <AgreementCard item={item} onOpen={() => onOpen(item)} />, [onOpen]);
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} rows={2} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Dogovore…</T></>
-      : error ? <View style={s.state}><T style={s.stateTitle}>Dogovore trenutno nije moguće učitati</T><T style={s.stateBody}>Proverite internet vezu i pokušajte ponovo.</T>
-        <V2Action label="Pokušajte ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledajte sve saradnje iz obe uloge.</T>
+      : error ? <View style={s.state}><T style={s.stateTitle}>Dogovore trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
+        <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
+        : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledaj sve saradnje iz obe uloge.</T>
           <V2Action label="Prikaži sve Dogovore" onPress={() => { props.onSection('all'); props.onConfirmationOnly(false); }} /></View>
-          : <View style={s.state}><T style={s.stateTitle}>Još nemate Dogovor</T><T style={s.stateBody}>{props.requester
+          : <View style={s.state}><T style={s.stateTitle}>Još nemaš Dogovor</T><T style={s.stateBody}>{props.requester
             ? 'Kada izaberete nekoga iz Prijava, Dogovor se pojavljuje ovde.'
-            : 'Kada Vaša Prijava bude izabrana, Dogovor se pojavljuje ovde.'}</T>
-            <V2Action label="Pogledajte Zadatke" onPress={props.onTasks} style={brandAction} /></View>}
+            : 'Kada tvoja Prijava bude izabrana, Dogovor se pojavljuje ovde.'}</T>
+            <V2Action label="Pogledaj Zadatke" onPress={props.onTasks} style={brandAction} /></View>}
   </View>;
   return <SafeAreaView edges={['top']} style={s.screen}>
     <ScreenHeader eyebrow={props.intent ? intentLabel(props.intent) : 'Obe uloge'} title="Dogovori" onProfile={props.onProfile} />

@@ -20,19 +20,19 @@ export type VoiceErrorCode =
   | 'DRAFT_NOT_ACCEPTED';
 
 export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
-  VOICE_NOT_CONFIGURED: 'Govorni unos još nije povezan. Možete da nastavite kucanjem.',
-  MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možete promeniti u podešavanjima telefona ili nastaviti kucanjem.',
-  MIC_PERMISSION_TIMEOUT: 'Zahtev za mikrofon je istekao. Pokrenite novi unos kada budete spremni.',
-  MIC_UNAVAILABLE: 'Mikrofon trenutno nije dostupan. Nastavite kucanjem.',
-  CAPTURE_FAILED: 'Govorni unos je prekinut. Sačuvani tekst možete da izmenite.',
-  CAPTURE_TIMEOUT: 'Govorni unos je zaustavljen zbog ograničenja trajanja. Sačuvani tekst možete da dopunite.',
-  AUDIO_INTERRUPTED: 'Zvuk je prekinut. Proverite sačuvani tekst ili pokrenite novi unos.',
-  FINALIZATION_FAILED: 'Završni transkript nije potvrđen. Proverite i izmenite sačuvani tekst.',
-  FINALIZATION_TIMEOUT: 'Završavanje govora je trajalo predugo. Proverite sačuvani tekst.',
-  FINAL_TRANSCRIPT_MISSING: 'Nije stigao završni transkript. Sačuvani deo možete da izmenite i pošaljete kucanjem.',
-  TRANSCRIPT_INVALID: 'Govorni unos nije mogao bezbedno da se pročita. Proverite sačuvani tekst.',
-  TRANSCRIPT_TOO_LONG: 'Govorni unos prelazi 4.000 znakova. Sačuvan je prethodni deo; skratite ili podelite poruku.',
-  AI_SPEAKING: 'Sačekajte da se čitanje odgovora završi pre govornog unosa.',
+  VOICE_NOT_CONFIGURED: 'Govorni unos još nije povezan. Možeš da nastaviš kucanjem.',
+  MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možeš promeniti u podešavanjima telefona ili nastaviti kucanjem.',
+  MIC_PERMISSION_TIMEOUT: 'Zahtev za mikrofon je istekao. Pokreni novi unos ponovo.',
+  MIC_UNAVAILABLE: 'Mikrofon trenutno nije dostupan. Nastavi kucanjem.',
+  CAPTURE_FAILED: 'Govorni unos je prekinut. Sačuvani tekst možeš da izmeniš.',
+  CAPTURE_TIMEOUT: 'Govorni unos je zaustavljen zbog ograničenja trajanja. Sačuvani tekst možeš da dopuniš.',
+  AUDIO_INTERRUPTED: 'Zvuk je prekinut. Proveri sačuvani tekst ili pokreni novi unos.',
+  FINALIZATION_FAILED: 'Završni transkript nije potvrđen. Proveri i izmeni sačuvani tekst.',
+  FINALIZATION_TIMEOUT: 'Završavanje govora je trajalo predugo. Proveri sačuvani tekst.',
+  FINAL_TRANSCRIPT_MISSING: 'Nije stigao završni transkript. Sačuvani deo možeš da izmeniš i pošalješ kucanjem.',
+  TRANSCRIPT_INVALID: 'Govorni unos nije mogao bezbedno da se pročita. Proveri sačuvani tekst.',
+  TRANSCRIPT_TOO_LONG: 'Govorni unos prelazi 4.000 znakova. Sačuvan je prethodni deo; skrati ili podeli poruku.',
+  AI_SPEAKING: 'Sačekaj da se čitanje odgovora završi pre govornog unosa.',
   DRAFT_NOT_ACCEPTED: 'Završni tekst je sačuvan. Otvori ga za izmenu pre slanja; ako je poruka puna, najpre je skrati.',
 };
 

@@ -12,13 +12,13 @@ async function edgeFailure(_error: unknown) {
   // This historical adapter has no bounded trusted envelope decoder. Do not
   // consume an unbounded provider/auth error body merely to display its text.
   return { ok: false as const, kod: 'AI_EDGE_FAILED',
-    poruka: 'Obrada nije potvrđena. Otvorite Novi Zadatak i proverite stanje razgovora.' };
+    poruka: 'Obrada nije potvrđena. Otvori Novi Zadatak i proveri stanje razgovora.' };
 }
 
 export const aiCommandOverrides: AiCommandOverrides = {
   async posaljiKorisnikovuPoruku(razgovorId, telo) {
     const text = telo.trim();
-    if (!text) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
+    if (!text) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesi poruku.' };
     if (text.length > 4000) {
       return { ok: false, kod: 'MESSAGE_TOO_LONG', poruka: 'Poruka može imati najviše 4000 znakova.' };
     }
@@ -41,7 +41,7 @@ export const aiCommandOverrides: AiCommandOverrides = {
 
   async ispraviCinjenicu(cinjenicaId, novaVrednost) {
     const value = novaVrednost.trim();
-    if (!value) return { ok: false, kod: 'FACT_VALUE_REQUIRED', poruka: 'Unesite vrednost.' };
+    if (!value) return { ok: false, kod: 'FACT_VALUE_REQUIRED', poruka: 'Unesi vrednost.' };
     if (value.length > 2000) {
       return { ok: false, kod: 'FACT_VALUE_TOO_LONG', poruka: 'Vrednost može imati najviše 2000 znakova.' };
     }
@@ -51,7 +51,7 @@ export const aiCommandOverrides: AiCommandOverrides = {
       p_value: value,
     });
     if (error || typeof data !== 'string' || !data) {
-      return legacyRpcFailure(error, 'AI_FACT_CORRECTION_FAILED', 'Ispravka nije potvrđena. Učitajte pregled ponovo.');
+      return legacyRpcFailure(error, 'AI_FACT_CORRECTION_FAILED', 'Ispravka nije potvrđena. Učitaj pregled ponovo.');
     }
     return { ok: true, podatak: { novaCinjenicaId: data } };
   },

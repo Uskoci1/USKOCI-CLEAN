@@ -133,14 +133,14 @@ export function factCorrectionValue(fact: AiNeedV2Fact): string {
 
 export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorrection {
   const text = input.trim();
-  if (!text) return { ok: false, message: 'Unesite vrednost.' };
+  if (!text) return { ok: false, message: 'Unesi vrednost.' };
 
   switch (fact.valueType) {
     case 'INTEGER': {
       const normalized = text.replace(/\s/g, '').replace(',', '.');
       const parsed = Number(normalized);
       if (!Number.isInteger(parsed)) {
-        return { ok: false, message: 'Unesite ceo broj.' };
+        return { ok: false, message: 'Unesi ceo broj.' };
       }
       return { ok: true, value: parsed, displayValue: text };
     }
@@ -148,13 +148,13 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       const normalized = text.toLocaleLowerCase('sr-Latn-RS');
       if (['da', 'yes', 'true', '1'].includes(normalized)) {
         if (fact.key === 'need.verified_identity_required') return { ok: false,
-          message: 'Provera identiteta nije dostupna u ovoj test verziji. Izaberite „Ne“ da biste nastavili bez tog uslova.' };
+          message: 'Provera identiteta nije dostupna u ovoj test verziji. Izaberi „Ne“ da nastaviš bez tog uslova.' };
         return { ok: true, value: true, displayValue: 'Da' };
       }
       if (['ne', 'no', 'false', '0'].includes(normalized)) {
         return { ok: true, value: false, displayValue: 'Ne' };
       }
-      return { ok: false, message: 'Unesite „da“ ili „ne“.' };
+      return { ok: false, message: 'Unesi „da“ ili „ne“.' };
     }
     case 'TEXT_ARRAY': {
       if (text.startsWith('[')) {
@@ -162,11 +162,11 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
           const values = capabilityTerms(JSON.parse(text));
           const display = values?.length ? Array.from(values.join(', ')).slice(0, 1000).join('') : 'Nema navedenih stavki';
           return values ? { ok: true, value: values, displayValue: display }
-            : { ok: false, message: 'Proverite listu: najviše 50 stavki, do 500 znakova po stavci.' };
-        } catch { return { ok: false, message: 'Lista nije ispravna. Proverite navodnike i zagrade.' }; }
+            : { ok: false, message: 'Proveri listu: najviše 50 stavki, do 500 znakova po stavci.' };
+        } catch { return { ok: false, message: 'Lista nije ispravna. Proveri navodnike i zagrade.' }; }
       }
       const values = capabilityTerms(text.split(',').map((item) => item.trim()).filter(Boolean));
-      if (!values?.length) return { ok: false, message: 'Unesite najviše 50 stavki, do 500 znakova po stavci.' };
+      if (!values?.length) return { ok: false, message: 'Unesi najviše 50 stavki, do 500 znakova po stavci.' };
       return { ok: true, value: values, displayValue: values.join(', ') };
     }
     case 'TIMESTAMPTZ': {
@@ -175,13 +175,13 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       // in the device zone.
       if (/^\d{4}-\d{2}-\d{2}T/.test(text)) {
         return calendarInstant(text) !== null ? { ok: true, value: text, displayValue: text }
-          : { ok: false, message: 'Termin nije ispravan. Proverite datum, vreme i vremensku zonu.' };
+          : { ok: false, message: 'Termin nije ispravan. Proveri datum, vreme i vremensku zonu.' };
       }
       // Manual civil input is intentionally narrow and uses the same explicit
       // zone shown by review. Date.parse is forbidden here because its meaning
       // depends on the host zone and it silently normalizes impossible dates.
       const civil = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}(?::\d{2})?)$/.exec(text);
-      if (!civil) return { ok: false, message: 'Termin unesite kao GGGG-MM-DD HH:MM ili kao ISO vreme sa zonom.' };
+      if (!civil) return { ok: false, message: 'Termin unesi kao GGGG-MM-DD HH:MM ili kao ISO vreme sa zonom.' };
       const resolved = civilInstant(civil[1], civil[2], REVIEW_TIMEZONE);
       return resolved.value ? { ok: true, value: resolved.value, displayValue: text }
         : { ok: false, message: resolved.error ?? 'Termin nije ispravan.' };
@@ -191,26 +191,26 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       if (fact.key === 'need.price_mode') {
         const value = PRICE_MODE[normalized] ?? text.toUpperCase();
         if (!['MY_PRICE', 'OFFERS'].includes(value)) {
-          return { ok: false, message: 'Koristite: moja cena ili ponude.' };
+          return { ok: false, message: 'Koristiš: moja cena ili ponude.' };
         }
         return { ok: true, value, displayValue: text };
       }
       if (fact.key === 'need.schedule_kind') {
         const value = SCHEDULE_KIND[normalized] ?? text.toUpperCase();
         if (!['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'].includes(value)) {
-          return { ok: false, message: 'Termin izmenite prirodnim jezikom kroz razgovor.' };
+          return { ok: false, message: 'Termin izmeni prirodnim jezikom kroz razgovor.' };
         }
         return { ok: true, value, displayValue: text };
       }
       return { ok: true, value: text, displayValue: text };
     }
     case 'OBJECT':
-      return { ok: false, message: 'Lokaciju izmenite kroz razgovor da bi struktura ostala bezbedna.' };
+      return { ok: false, message: 'Lokaciju izmeni kroz razgovor da bi struktura ostala bezbedna.' };
     case 'TEXT':
     default:
       if (fact.key === 'need.task_country_code') {
         const value = countryCode(text);
-        return value ? { ok: true, value, displayValue: value } : { ok: false, message: 'Unesite dvoslovnu oznaku države, npr. RS.' };
+        return value ? { ok: true, value, displayValue: value } : { ok: false, message: 'Unesi dvoslovnu oznaku države, npr. RS.' };
       }
       return { ok: true, value: text, displayValue: text };
   }
@@ -221,9 +221,9 @@ export function safetyMessage(safety: AiNeedSafety): string | null {
     case 'BLOCK':
       return 'Ovaj zahtev ne može da nastavi kroz AI unos.';
     case 'REVIEW':
-      return 'Zahtev traži dodatnu serversku proveru pre objavljivanja. Nacrt možete pregledati i sačuvati.';
+      return 'Zahtev traži dodatnu serversku proveru pre objavljivanja. Nacrt možeš pregledati i sačuvati.';
     case 'CLARIFY':
-      return 'AI još razjašnjava važan podatak. Odgovorite u razgovoru pre završnog pregleda.';
+      return 'AI još razjašnjava važan podatak. Odgovori u razgovoru pre završnog pregleda.';
     case 'ALLOW':
     default:
       return null;

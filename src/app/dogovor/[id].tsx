@@ -45,7 +45,7 @@ function AgreementStatus({ loading = false, error = false, retry }: { loading?: 
     <View style={s.status} accessibilityLiveRegion="polite">
       {loading ? <><SkeletonCard rows={2} /><T accessibilityLabel="Učitavanje Dogovora" variant="meta" tone="muted" style={s.center}>Učitavamo Dogovor…</T></> : <>
         <T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
-        <T variant="body" tone="muted">{error ? 'Proverite internet vezu i pokušajte ponovo.' : 'Veza je zastarela ili nemate pristup ovom Dogovoru.'}</T>
+        <T variant="body" tone="muted">{error ? 'Proveri internet vezu i pokušaj ponovo.' : 'Veza je zastarela ili nemaš pristup ovom Dogovoru.'}</T>
         {retry ? <V2Action label="Ponovo učitaj Dogovor" onPress={retry} /> : null}
       </>}
     </View>
@@ -72,16 +72,16 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
     && ulogaSada() === intent, [accountId, accountRevision, intent]);
   const read = useCallback(async (): Promise<Ishod<ProblemWorkspace | null>> => {
-    if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
+    if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
     try {
       const data = await bounded(() => izvor.dogovor(id));
-      if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
+      if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
       if (data && data.id !== id) return { ok: false, kod: 'INVALID_RESPONSE', poruka: 'Dogovor nije dostupan.' };
       if (!data) return { ok: true, podatak: null };
       if (data.problemOtvoren) {
         const result = await agreementProblemService.read(id, data.verzija, data.ucesnici.map(party => party.id), { accountId, accountRevision })
           .catch(() => null);
-        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
+        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
         if (result?.ok && result.podatak.state === 'AVAILABLE') {
           return { ok: true, podatak: { ...data, problemReport: result.podatak.report, problemReportState: 'AVAILABLE' } };
         }
@@ -91,7 +91,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
           problemReportState: result?.ok && result.podatak.state === 'LEGACY_UNAVAILABLE' ? 'LEGACY_UNAVAILABLE' : 'UNAVAILABLE' } };
       }
       return { ok: true, podatak: { ...data, problemReport: null, problemReportState: 'ABSENT' } };
-    } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proverite vezu i pokušajte ponovo.' }; }
+    } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proveri vezu i pokušaj ponovo.' }; }
   }, [izvor, id, accountId, accountRevision, ownsAccount]);
   const workspace = useOwnedEditor(read);
   const activeRef = useRef(!AppState.currentState || AppState.currentState === 'active');
@@ -166,12 +166,12 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
       problemAttemptRef.current = narrative;
       setProblemAttempt(narrative);
       const receipt = await agreementProblemService.submit(id, narrative, { accountId, accountRevision });
-      if (!receipt.ok) return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Prijava nije potvrđena. Proverite status Dogovora pre ponovnog pokušaja.' };
+      if (!receipt.ok) return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Prijava nije potvrđena. Proveri status Dogovora pre ponovnog pokušaja.' };
       const next = await read();
       if (!next.ok) return next;
       const stored = next.podatak?.problemReport;
       if (!stored || stored.openedBy !== receipt.podatak.problemOpenedBy || calendarInstant(stored.openedAt) !== calendarInstant(receipt.podatak.problemOpenedAt)) {
-        return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Sačuvana prijava nije potvrđena. Osvežite status Dogovora.' };
+        return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Sačuvana prijava nije potvrđena. Osveži status Dogovora.' };
       }
       return next;
     });
@@ -180,7 +180,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     if (!enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
     await workspace.save(async () => {
       const result = await bounded(command);
-      if (!result.ok) return { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Promena nije potvrđena. Osvežite Dogovor pre novog pokušaja.' };
+      if (!result.ok) return { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
       return read();
     });
   };
@@ -189,13 +189,13 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     await workspace.save(async () => {
       const result = await bounded<Ishod<unknown>>(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id));
       // A known server denial keeps its own copy; anything else is an unconfirmed outcome.
-      if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Promena nije potvrđena. Osvežite Dogovor pre novog pokušaja.' };
+      if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
       const next = await read();
       if (!next.ok) return next;
       // Only the server's own terminal readback confirms; an unchanged state stays unconfirmed.
       const state = next.podatak?.stanje;
       const confirmed = worker ? state === 'AWAITING_REQUESTER' || state === 'COMPLETED' : state === 'COMPLETED';
-      if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: 'Server nije potvrdio završetak. Osvežite status Dogovora.' };
+      if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: 'Server nije potvrdio završetak. Osveži status Dogovora.' };
       return next;
     });
   };
@@ -216,22 +216,22 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     : dogovor.stanje === 'CANCELLED' ? { tone: 'muted' as const, title: 'Dogovor je otkazan.', body: null }
       : dogovor.stanje === 'AWAITING_REQUESTER' ? { tone: 'warn' as const, title: worker ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio',
         body: dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` }
-        : { tone: 'green' as const, title: worker ? 'Kada završite, označite završetak' : 'Potvrdite završetak kada je posao obavljen',
-          body: !me ? null : worker ? 'Kada završite, označite završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
-            : 'Završetak možete potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.' };
+        : { tone: 'green' as const, title: worker ? 'Kada završi, označi završetak' : 'Potvrdi završetak kada je posao obavljen',
+          body: !me ? null : worker ? 'Kada završi, označi završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
+            : 'Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.' };
   const problemPanel = report ? <WorkspaceCard tone="warn">
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
-    <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijavili ste vi.' : 'Prijavila je druga strana.'}</T>
+    <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijava je tvoja.' : 'Prijavila je druga strana.'}</T>
     <T variant="meta" tone="muted">{new Date(report.openedAt).toLocaleString('sr-Latn-RS')}</T>
     <T variant="body" style={s.ink}>{report.narrative}</T>
     <T variant="meta" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
-    {problemAttempt && problemAttempt !== report.narrative ? <T variant="meta" tone="muted">Sačuvan je prvi opis prijave. Vaš novi opis nije dodat. Za dopunu koristite Poruke.</T> : null}
+    {problemAttempt && problemAttempt !== report.narrative ? <T variant="meta" tone="muted">Sačuvan je prvi opis prijave. Tvoj novi opis nije dodat. Za dopunu koristiš Poruke.</T> : null}
     {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
   </WorkspaceCard> : dogovor.problemOtvoren ? <WorkspaceCard tone="warn">
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
     <T variant="meta" tone="muted">{dogovor.problemReportState === 'LEGACY_UNAVAILABLE'
       ? 'Detalji starije prijave nisu dostupni u ovom prikazu. Postojeća prijava ostaje sačuvana.'
-      : 'Detalji prijave trenutno nisu učitani. Osvežite status Dogovora da pokušate ponovo.'}</T>
+      : 'Detalji prijave trenutno nisu učitani. Osveži status Dogovora da pokušate ponovo.'}</T>
     {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
     {dogovor.problemReportState === 'UNAVAILABLE' ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} /> : null}
   </WorkspaceCard> : active && me ? <WorkspaceCard>
@@ -242,13 +242,13 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     </> : <>
       <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem u Dogovoru</T>
       <T variant="meta" tone="muted">Opis će videti druga strana u Porukama. Ovo nije poverljiva prijava podršci.</T>
-      <TextInput accessibilityLabel="Opišite problem" value={problemText}
+      <TextInput accessibilityLabel="Opiši problem" value={problemText}
         onChangeText={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }} multiline maxLength={4000}
         editable={enabled && !problemAttempt} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={sys.color.muted} style={s.input} />
       <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Ponovi istu prijavu problema' : 'Pošalji prijavu problema'}
         disabled={!enabled || !(problemAttempt ?? problemText.trim())} onPress={() => { void reportProblem(); }} />
       {!problemAttempt ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled}
-        onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T variant="meta" tone="muted">Opis je sačuvan na ovom ekranu. Pre ponavljanja proverite serverski status.</T>}
+        onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T variant="meta" tone="muted">Opis je sačuvan na ovom ekranu. Pre ponavljanja proveri serverski status.</T>}
     </>}
   </WorkspaceCard> : null;
 
@@ -268,7 +268,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
           <WorkspaceCard><AgreementHero agreement={dogovor} /></WorkspaceCard>
           <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
             {active && me && !radnje ? <View style={s.stack}>
-              <T variant="meta" tone="muted">Dozvole za završetak nisu potvrđene sa servera. Osvežite status Dogovora pre završetka.</T>
+              <T variant="meta" tone="muted">Dozvole za završetak nisu potvrđene sa servera. Osveži status Dogovora pre završetka.</T>
               <V2Action label="Osveži dozvole za završetak" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
             </View> : null}
             {active && me && radnje?.izmenaNaCekanju ? <T variant="meta" tone="muted">Predlog izmene čeka odgovor. Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.</T> : null}
@@ -284,8 +284,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
               onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
                 router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
           </WorkspaceRows> : null}
-          <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Vaš broj je podeljen' : 'Podelite svoj broj kada vam odgovara'}>
-            <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podelite svoj broj, druga strana ne deli automatski svoj.</T>
+          <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Tvoj broj je podeljen' : 'Podeli svoj broj kada ti odgovara'}>
+            <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
             <T variant="body" style={s.ink}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>
             {active && me ? <V2Action label={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'} disabled={!enabled}
               onPress={() => void mutate(() => dogovor.kontakt.mojTelefonPodeljen ? izvor.opoziviTelefon(id) : izvor.podeliTelefon(id))} /> : null}

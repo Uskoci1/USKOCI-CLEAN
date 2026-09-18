@@ -6,16 +6,16 @@ import type { Ishod } from './ports';
 import { failure, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste uredili lokaciju.',
+  AUTH_REQUIRED: 'Prijavi se da urediš lokaciju.',
   LOCATION_COUNTRY_UNAVAILABLE: 'U ovoj državi priprema lokacije trenutno nije dostupna.',
-  LOCATION_COUNTRY_REQUIRED: 'Izaberite državu lokacije pre čuvanja.',
-  LOCATION_INPUT_INVALID: 'Proverite javno mesto, privatnu adresu i način rada.',
-  LOCATION_CONFIRMATION_REQUIRED: 'Potvrdite lokaciju pre čuvanja.',
+  LOCATION_COUNTRY_REQUIRED: 'Izaberi državu lokacije pre čuvanja.',
+  LOCATION_INPUT_INVALID: 'Proveri javno mesto, privatnu adresu i način rada.',
+  LOCATION_CONFIRMATION_REQUIRED: 'Potvrdi lokaciju pre čuvanja.',
   LOCATION_REVIEW_NOT_FOUND: 'Priprema Zadatka nije pronađena.',
   LOCATION_REVIEW_NOT_EDITABLE: 'Ova priprema Zadatka više ne može da se menja.',
-  LOCATION_VERSION_CONFLICT: 'Lokacija je u međuvremenu promenjena. Učitajte novo stanje pre čuvanja.',
-  LOCATION_BINDING_CHANGED: 'Mesto je promenjeno. Ponovo označite i potvrdite tačke na mapi.',
-  WORKER_PROFILE_REQUIRED: 'Najpre sačuvajte svoj radni profil.',
+  LOCATION_VERSION_CONFLICT: 'Lokacija je u međuvremenu promenjena. Učitaj novo stanje pre čuvanja.',
+  LOCATION_BINDING_CHANGED: 'Mesto je promenjeno. Ponovo označi i potvrdi tačke na mapi.',
+  WORKER_PROFILE_REQUIRED: 'Najpre sačuvaj svoj radni profil.',
   WORKER_PROFILE_RESTRICTED: 'Lokacija ovog profila trenutno ne može da se menja.',
 };
 const INVALID = 'LOCATION_INVALID_RESPONSE';
@@ -54,7 +54,7 @@ function worker(raw: unknown, accountId: string | undefined): WorkerLocation | n
 }
 async function receipt<T>(options: Parameters<typeof readReceipt<T>>[0]): Promise<Ishod<T>> {
   const result = await readReceipt(options);
-  if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') return failure(result.kod, 'Nalog je promenjen. Ponovo otvorite lokaciju.');
+  if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') return failure(result.kod, 'Nalog je promenjen. Ponovo otvori lokaciju.');
   if (!result.ok && result.kod === 'AUTH_REQUIRED') return failure(result.kod, COPY.AUTH_REQUIRED);
   return result;
 }

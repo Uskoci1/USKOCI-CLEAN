@@ -64,7 +64,7 @@ it('double tap sends one immutable command and only matching server readback sho
  expect(texts()).toContain('5');expect(mockRouter.back).not.toHaveBeenCalled();
 });
 it('unknown outcome freezes selection, requires readback, and retries exactly the original command',async()=>{
- mockSubmit.mockResolvedValue({ok:false,kod:'REVIEW_OUTCOME_UNKNOWN',poruka:'Proverite sačuvanu ocenu.'});
+ mockSubmit.mockResolvedValue({ok:false,kod:'REVIEW_OUTCOME_UNKNOWN',poruka:'Proveri sačuvanu ocenu.'});
  await render();click('Ocena 3 od 5');const staleRating=button('Ocena 1 od 5').props.onPress;
  const staleSave=button('Sačuvaj ocenu').props.onPress;click('Sačuvaj ocenu');await settle();
  act(()=>{staleRating();staleSave();});expect(mockSubmit).toHaveBeenCalledTimes(1);
@@ -74,7 +74,7 @@ it('unknown outcome freezes selection, requires readback, and retries exactly th
  expect(mockSubmit.mock.calls[1]).toEqual(mockSubmit.mock.calls[0]);
 });
 it('lost acknowledgement resolves from own stored review without another write',async()=>{
- mockSubmit.mockResolvedValue({ok:false,kod:'REVIEW_OUTCOME_UNKNOWN',poruka:'Proverite sačuvanu ocenu.'});
+ mockSubmit.mockResolvedValue({ok:false,kod:'REVIEW_OUTCOME_UNKNOWN',poruka:'Proveri sačuvanu ocenu.'});
  await render();click('Ocena 4 od 5');click('Sačuvaj ocenu');await settle();
  mockContext.mockResolvedValue({ok:true,podatak:{...context(),eligible:false,review:receipt(mockSubmit.mock.calls[0][0])}});
  click('Proveri sačuvanu ocenu');await settle();expect(texts()).toContain('Ocena je sačuvana');expect(mockSubmit).toHaveBeenCalledTimes(1);

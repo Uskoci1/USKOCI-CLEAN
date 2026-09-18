@@ -19,7 +19,7 @@ export const productionAuthorityOverrides: CommandOverrides = {
   async objaviPotrebu(razgovorId) {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
-      return { ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se pre objave Potrebe.' };
+      return { ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavi se pre objave Potrebe.' };
     }
 
     const { data: requesterProfile, error: profileError } = await supabase

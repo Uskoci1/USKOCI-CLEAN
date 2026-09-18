@@ -72,7 +72,7 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
     const result = await agreementClientService.posaljiPoruku('agr-1', '  Stižem u 17h.  ');
     expect(mockRpc).not.toHaveBeenCalled();
     expect(result).toEqual({ ok: false, kod: 'MESSAGE_RETRY_KEY_REQUIRED',
-      poruka: 'Otvorite Poruke u Dogovoru i pošaljite poruku iz tog prikaza.' });
+      poruka: 'Otvori Poruke u Dogovoru i pošalji poruku iz tog prikaza.' });
   });
 
   it('posaljiPoruku preserves empty-body validation and makes no RPC call', async () => {
@@ -81,7 +81,7 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
     const result = await agreementClientService.posaljiPoruku('agr-1', '   ');
 
     expect(mockRpc).not.toHaveBeenCalled();
-    expect(result).toEqual({ ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' });
+    expect(result).toEqual({ ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesi poruku.' });
   });
 
   it.each([
@@ -156,7 +156,7 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
     expect(result).toEqual({
       ok: false,
       kod: 'CHANGE_PATCH_REQUIRED',
-      poruka: 'Izmenite bar jedno polje Dogovora.',
+      poruka: 'Izmeni bar jedno polje Dogovora.',
     });
   });
 

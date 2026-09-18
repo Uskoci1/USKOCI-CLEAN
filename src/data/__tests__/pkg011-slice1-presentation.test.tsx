@@ -58,7 +58,7 @@ test('header names the intent the user is in, the screen title is a header, and 
 });
 test('loading shows placeholder geometry and a spoken status, never a stale card', async () => {
   await act(async () => { tree = create(<Marketplace owned={false} rows={[row('one')]} loading />); });
-  expect(labels().some(label => String(label).startsWith('Otvorite'))).toBe(false);
+  expect(labels().some(label => String(label).startsWith('Otvori'))).toBe(false);
   expect(texts()).toContain('Učitavamo zadatke…');
   expect(tree.root.findAllByProps({ importantForAccessibility: 'no-hide-descendants' }).length).toBeGreaterThan(0);
 });
@@ -66,7 +66,7 @@ test('an owner draft shows a quiet draft status and "Nastavi uređivanje", never
   await act(async () => { tree = create(<Marketplace owned intent="narucilac" rows={[row('d', { stanje: 'NACRT', brojPrijava: 0 })]} />); });
   await act(async () => roleOf('Nacrti').onPress());
   const copy = texts(); expect(copy).toContain('Privatan nacrt'); expect(copy).toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 \/ 2/);
-  expect(roleOf('Otvorite Zadatak Pomoć d')).toBeTruthy();
+  expect(roleOf('Otvori Zadatak Pomoć d')).toBeTruthy();
 });
 test('the filter sheet offers price modes as radios and the primary action is the only brand action', async () => {
   await act(async () => { tree = create(<Marketplace owned={false} rows={[row('one')]} />); });
@@ -86,7 +86,7 @@ test('agreements name the intent, keep the accepted facts and mark an open probl
   await act(async () => { tree = create(<Agreements intent="narucilac" rows={rows} />); });
   const copy = texts();
   expect(copy).toContain('Meni treba'); expect(copy).toContain('Dogovori'); expect(copy).toContain('2.500 RSD'); expect(copy).toContain('1 osoba');
-  expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledajte Dogovor');
+  expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
   expect(copy).toContain('Mila'); expect(copy).toContain('radi za tebe');
   expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).not.toContain('Radni raspored (JA MOGU)');
   await act(async () => tree.unmount());
@@ -95,5 +95,5 @@ test('agreements name the intent, keep the accepted facts and mark an open probl
 });
 test('agreements loading shows placeholders and a spoken status without private rows', async () => {
   await act(async () => { tree = create(<Agreements intent="narucilac" rows={[agreement('a', 'CONFIRMED')]} loading />); });
-  expect(labels().some(label => String(label).startsWith('Otvorite Dogovor'))).toBe(false); expect(texts()).toContain('Učitavamo Dogovore…');
+  expect(labels().some(label => String(label).startsWith('Otvori Dogovor'))).toBe(false); expect(texts()).toContain('Učitavamo Dogovore…');
 });

@@ -41,8 +41,8 @@ type Dependencies = {
   accept: (key: string, terms: string, privacy: string) => Promise<Ishod<LegalAcceptanceReceipt>>;
   readAcceptance: (key: string) => Promise<Ishod<{ found: boolean; receipt: LegalAcceptanceReceipt | null }>>;
 };
-const unavailable = 'Dokumenti trenutno nisu dostupni. Pokušajte ponovo.';
-const unknown = 'Prihvatanje još nije potvrđeno. Proverite ishod svog zahteva.';
+const unavailable = 'Dokumenti trenutno nisu dostupni. Pokušaj ponovo.';
+const unknown = 'Prihvatanje još nije potvrđeno. Proveri ishod svog zahteva.';
 
 /** Keeps one exact reviewed intent across blur/readback/replay; no automatic write retry. */
 export class LegalReviewController {
@@ -108,7 +108,7 @@ export class LegalReviewController {
         const documents = reviewedDocuments(this.state.bundle);
         const same = documents?.[0].sha256 === intent.terms && documents?.[1].sha256 === intent.privacy;
         this.patch({ pending: same ? 'REPLAY_AVAILABLE' : 'READ_REQUIRED',
-          error: same ? 'Prihvatanje još nije zabeleženo. Možete ponoviti isti zahtev.' : 'Dokumenti su promenjeni dok proveravamo prethodni zahtev. Proverite ishod ponovo.' });
+          error: same ? 'Prihvatanje još nije zabeleženo. Možeš ponoviti isti zahtev.' : 'Dokumenti su promenjeni dok proveravamo prethodni zahtev. Proveri ishod ponovo.' });
       } else this.patch({ error: result.ok ? unknown : result.poruka, pending: 'READ_REQUIRED' });
     } catch { if (this.current(generation)) this.patch({ error: unknown, pending: 'READ_REQUIRED' }); }
     finally { if (this.current(generation)) this.patch({ busy: false }); }

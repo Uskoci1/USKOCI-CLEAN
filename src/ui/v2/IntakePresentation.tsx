@@ -86,7 +86,7 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
     {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.green} />
       : <><T accessibilityRole="alert" variant="copy" tone="muted" style={s.center}>{error}</T>
         {recover ? <V2Action kind="primary" label="Otvori prethodni razgovor" onPress={recover} /> : null}
-        {retry ? <V2Action kind="primary" label="Učitajte razgovor ponovo" onPress={retry} /> : null}</>}
+        {retry ? <V2Action kind="primary" label="Učitaj razgovor ponovo" onPress={retry} /> : null}</>}
     <V2Action kind="quiet" label="Nazad" onPress={back} />
   </View></SafeAreaView>;
 }
@@ -176,7 +176,7 @@ export function IntakePresentation(props: Props) {
         <V2Action kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
           disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
       </> : null}
-      {props.showReadback ? <V2Action label="Proverite ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
+      {props.showReadback ? <V2Action label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel === 'points' ? <Panel title="Mesto zadatka" close={close} reduced={reduced}>
       <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>

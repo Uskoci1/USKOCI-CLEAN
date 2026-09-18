@@ -64,15 +64,15 @@ it('does not render password controls or success before server verification fini
   expect(StyleSheet.flatten(title.props.style).fontSize).toBe(27);
   const form = hosts('View').find(node => node.props.accessibilityLiveRegion === 'polite')!;
   expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
-  expect(field('Potvrdite novu lozinku').props.secureTextEntry).toBe(true);
+  expect(field('Potvrdi novu lozinku').props.secureTextEntry).toBe(true);
   expect(mockSave).not.toHaveBeenCalled();
 });
 it('validates confirmation locally, single-flights the write and waits for confirmed success', async () => {
-  await render(); await fill('Nova lozinka', '  Nova Lozinka!  '); await fill('Potvrdite novu lozinku', 'different');
-  await press('Sačuvajte novu lozinku'); expect(mockSave).not.toHaveBeenCalled(); expect(text()).toContain('Lozinke se ne poklapaju.');
-  await fill('Potvrdite novu lozinku', '  Nova Lozinka!  ');
+  await render(); await fill('Nova lozinka', '  Nova Lozinka!  '); await fill('Potvrdi novu lozinku', 'different');
+  await press('Sačuvaj novu lozinku'); expect(mockSave).not.toHaveBeenCalled(); expect(text()).toContain('Lozinke se ne poklapaju.');
+  await fill('Potvrdi novu lozinku', '  Nova Lozinka!  ');
   const waiting = deferred<void>(); mockSave.mockReturnValue(waiting.promise);
-  const send = button('Sačuvajte novu lozinku').props.onPress;
+  const send = button('Sačuvaj novu lozinku').props.onPress;
   await act(async () => { send(); send(); });
   expect(mockSave.mock.calls).toEqual([['  Nova Lozinka!  ']]);
   expect(field('Nova lozinka').props.editable).toBe(false);
@@ -80,11 +80,11 @@ it('validates confirmation locally, single-flights the write and waits for confi
   await act(async () => waiting.resolve());
   expect(text()).toContain('Lozinka je promenjena.'); expect(hosts('TextInput')).toHaveLength(0);
   expect(mockReplace).not.toHaveBeenCalled();
-  await press('Prijavite se'); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
+  await press('Prijavi se'); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
 });
 it('refuses a signed-in actor before checking the supplied link', async () => {
   mockAccount = { user: { id: 'another-account' }, accountRevision: 1 }; await render();
-  expect(text()).toContain('Najpre se odjavite'); expect(mockVerify).not.toHaveBeenCalled();
+  expect(text()).toContain('Najpre se odjavi'); expect(mockVerify).not.toHaveBeenCalled();
   expect(hosts('TextInput')).toHaveLength(0); await press('Nazad u aplikaciju'); expect(mockReplace).toHaveBeenCalledWith('/');
 });
 it('drops a late verified identity after account change and never displays its email', async () => {
@@ -96,30 +96,30 @@ it('drops a late verified identity after account change and never displays its e
 it('shows a used/expired link without a password form and offers the recovery request route', async () => {
   mockVerify.mockRejectedValue(new PasswordRecoveryError('INVALID_LINK')); await render();
   expect(text()).toContain('Link je nevažeći ili je istekao'); expect(hosts('TextInput')).toHaveLength(0);
-  await press('Zatražite novi link'); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'recovery' } });
+  await press('Zatraži novi link'); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'recovery' } });
 });
 it('retries a verification read with a new lease, not a password update', async () => {
   mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('VERIFY_UNAVAILABLE')); await render();
-  await press('Pokušajte ponovo'); expect(mockVerify).toHaveBeenCalledTimes(2); expect(mockSave).not.toHaveBeenCalled();
+  await press('Pokušaj ponovo'); expect(mockVerify).toHaveBeenCalledTimes(2); expect(mockSave).not.toHaveBeenCalled();
   expect(field('Nova lozinka')).toBeDefined();
 });
 it('does not claim success or offer blind write retry after an unknown outcome', async () => {
-  await render(); await fill('Nova lozinka', 'new-password'); await fill('Potvrdite novu lozinku', 'new-password');
-  mockSave.mockRejectedValue(new PasswordRecoveryError('UPDATE_UNKNOWN')); await press('Sačuvajte novu lozinku');
+  await render(); await fill('Nova lozinka', 'new-password'); await fill('Potvrdi novu lozinku', 'new-password');
+  mockSave.mockRejectedValue(new PasswordRecoveryError('UPDATE_UNKNOWN')); await press('Sačuvaj novu lozinku');
   expect(text()).toContain('Nije potvrđeno da li je lozinka promenjena'); expect(hosts('TextInput')).toHaveLength(0);
-  expect(button('Pokušajte ponovo')).toBeUndefined(); expect(mockSave).toHaveBeenCalledTimes(1);
+  expect(button('Pokušaj ponovo')).toBeUndefined(); expect(mockSave).toHaveBeenCalledTimes(1);
 });
 it('clears entered secrets when another recovery link arrives', async () => {
-  await render(); await fill('Nova lozinka', 'previous-password'); await fill('Potvrdite novu lozinku', 'previous-password');
+  await render(); await fill('Nova lozinka', 'previous-password'); await fill('Potvrdi novu lozinku', 'previous-password');
   mockLink = 'uskociapp://oporavak#different-synthetic'; mockVerify.mockResolvedValue({ email: 'account-b@example.test' });
   await act(async () => tree.update(<PasswordRecoveryScreen />));
-  expect(field('Nova lozinka').props.value).toBe(''); expect(field('Potvrdite novu lozinku').props.value).toBe('');
+  expect(field('Nova lozinka').props.value).toBe(''); expect(field('Potvrdi novu lozinku').props.value).toBe('');
   expect(text()).toContain('account-b@example.test'); expect(mockSave).not.toHaveBeenCalled();
 });
 it('does not hide an interrupted write behind a newer link or a late success', async () => {
-  await render(); await fill('Nova lozinka', 'new-password'); await fill('Potvrdite novu lozinku', 'new-password');
+  await render(); await fill('Nova lozinka', 'new-password'); await fill('Potvrdi novu lozinku', 'new-password');
   const waiting = deferred<void>(); mockSave.mockReturnValue(waiting.promise);
-  await act(async () => button('Sačuvajte novu lozinku').props.onPress());
+  await act(async () => button('Sačuvaj novu lozinku').props.onPress());
   mockLink = 'uskociapp://oporavak#different-synthetic';
   await act(async () => tree.update(<PasswordRecoveryScreen />));
   await act(async () => waiting.resolve());
@@ -153,8 +153,8 @@ it('scrubs the focused route rather than just the enclosing navigator params', (
 it('revalidates a repeated OS callback instead of displaying the preceding success', async () => {
   await render();
   await fill('Nova lozinka', 'new-password');
-  await fill('Potvrdite novu lozinku', 'new-password');
-  await press('Sačuvajte novu lozinku');
+  await fill('Potvrdi novu lozinku', 'new-password');
+  await press('Sačuvaj novu lozinku');
   expect(text()).toContain('Lozinka je promenjena.');
   mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('INVALID_LINK'));
   mockIntent = { id: mockIntent!.id + 1, link: mockLink! };

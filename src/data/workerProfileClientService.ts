@@ -9,16 +9,16 @@ import { supabaseKlijent } from './supabaseClient';
 type WorkerProfileClientService = Pick<Izvor, 'azurirajRadnikProfil'>;
 const inFlight = new Set<string>();
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste izmenili profil.',
-  DISPLAY_NAME_REQUIRED: 'Unesite ime pre završetka profila.',
-  CITY_REQUIRED: 'Unesite mesto rada pre završetka profila.',
-  SKILL_REQUIRED: 'Unesite bar jednu veštinu pre završetka profila.',
+  AUTH_REQUIRED: 'Prijavi se da izmeniš profil.',
+  DISPLAY_NAME_REQUIRED: 'Unesi ime pre završetka profila.',
+  CITY_REQUIRED: 'Unesi mesto rada pre završetka profila.',
+  SKILL_REQUIRED: 'Unesi bar jednu veštinu pre završetka profila.',
   PROFILE_NOT_ACTIVATABLE: 'Profil trenutno ne može da se aktivira.',
-  PROFILE_NOT_FOUND: 'Profil nije pronađen. Osvežite prikaz.',
-  NOT_WORKER_PROFILE_OWNER: 'Nalog je promenjen. Ponovo otvorite profil.',
-  V2_FACT_TYPE_INVALID: 'Unesite najviše 50 stavki u svaku listu.',
+  PROFILE_NOT_FOUND: 'Profil nije pronađen. Osveži prikaz.',
+  NOT_WORKER_PROFILE_OWNER: 'Nalog je promenjen. Ponovo otvori profil.',
+  V2_FACT_TYPE_INVALID: 'Unesi najviše 50 stavki u svaku listu.',
   V2_FACT_ARRAY_ITEM_INVALID: 'Svaka stavka mora imati tekst do 500 znakova.',
-  V2_FACT_VALUE_REQUIRED: 'Unesite ispravne podatke profila.',
+  V2_FACT_VALUE_REQUIRED: 'Unesi ispravne podatke profila.',
 };
 const RESOURCE_FIELDS = { vestine: 'skills', alati: 'tools', vozila: 'vehicles', licence: 'licenses' } as const;
 const TEXT_FIELDS = { ime: 'display_name', biografija: 'bio' } as const;
@@ -55,7 +55,7 @@ export const workerProfileClientService: WorkerProfileClientService = {
     }
     const capacityEdit = input.kapacitetTima !== undefined || input.capacityRevision !== undefined;
     if (capacityEdit && (!workerCapacityValue(input.kapacitetTima) || !workerCapacityRevision(input.capacityRevision))) {
-      return failure('WORKER_CAPACITY_INPUT_INVALID', 'Unesite ceo broj od 1 do 50 ljudi i učitajte aktuelni profil.');
+      return failure('WORKER_CAPACITY_INPUT_INVALID', 'Unesi ceo broj od 1 do 50 ljudi i učitaj aktuelni profil.');
     }
     const patch: Record<string, unknown> = {};
     for (const [field, column] of Object.entries(TEXT_FIELDS)) {
@@ -66,7 +66,7 @@ export const workerProfileClientService: WorkerProfileClientService = {
     for (const [field, column] of Object.entries(RESOURCE_FIELDS)) {
       if (input[field] === undefined) continue;
       const terms = capabilityTerms(input[field]);
-      if (!terms) return failure('PROFILE_CAPABILITY_INPUT_INVALID', 'Unesite do 50 nepraznih stavki, do 500 znakova po stavci.');
+      if (!terms) return failure('PROFILE_CAPABILITY_INPUT_INVALID', 'Unesi do 50 nepraznih stavki, do 500 znakova po stavci.');
       patch[column] = terms;
     }
     if (input.zavrsi !== undefined && typeof input.zavrsi !== 'boolean') return failure('PROFILE_INPUT_INVALID', 'Radnja profila nije ispravna.');
@@ -75,7 +75,7 @@ export const workerProfileClientService: WorkerProfileClientService = {
     async function run<T>(options: Omit<ReceiptOptions<T>, 'errors'> & { request: () => PromiseLike<unknown> }): Promise<Ishod<T>> {
       const result = await readOwnedResult({ ...options, errors: COPY, account });
       if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') {
-        return failure(result.kod, 'Nalog je promenjen. Ponovo otvorite profil.');
+        return failure(result.kod, 'Nalog je promenjen. Ponovo otvori profil.');
       }
       return result;
     }
@@ -122,7 +122,7 @@ export const workerProfileClientService: WorkerProfileClientService = {
         const result = await workerCapacityClientService.save({ teamCapacity: input.kapacitetTima as number,
           expectedRevision: input.capacityRevision as string }, account);
         if (!result.ok) return result;
-        if (!sameId(result.podatak.capacity.profileId, profileId)) return failure('PROFILE_INVALID_RESPONSE', 'Ponovo učitajte radni profil.');
+        if (!sameId(result.podatak.capacity.profileId, profileId)) return failure('PROFILE_INVALID_RESPONSE', 'Ponovo učitaj radni profil.');
       }
       if (activate) {
         const result = await run({ request: () => supabase.rpc('rpc_complete_worker_profile', { p_profile_id: profileId }),
@@ -132,9 +132,9 @@ export const workerProfileClientService: WorkerProfileClientService = {
       return { ok: true, podatak: null };
     } catch {
       if (sesijaSada().user?.id !== account.accountId || sesijaSada().accountRevision !== account.accountRevision) {
-        return failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvorite profil.');
+        return failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori profil.');
       }
-      return failure('PROFILE_UPDATE_FAILED', 'Ishod čuvanja nije potvrđen. Osvežite profil pre ponovnog pokušaja.');
+      return failure('PROFILE_UPDATE_FAILED', 'Ishod čuvanja nije potvrđen. Osveži profil pre ponovnog pokušaja.');
     } finally {
       inFlight.delete(lock);
     }

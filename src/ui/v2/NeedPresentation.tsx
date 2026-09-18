@@ -73,7 +73,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
       </View>
       : error || !need ? <View style={s.state}>
         <View style={card}>
-          <T variant="title" style={s.ink}>Zadatak nije dostupan</T><T variant="copy" tone="muted" style={s.gapTop}>{error ?? 'Pokušajte ponovo.'}</T>
+          <T variant="title" style={s.ink}>Zadatak nije dostupan</T><T variant="copy" tone="muted" style={s.gapTop}>{error ?? 'Pokušaj ponovo.'}</T>
           <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={[brandAction, s.gapTop]} />
         </View>
         {props.lifecycleActions}

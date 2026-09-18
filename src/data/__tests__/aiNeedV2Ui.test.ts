@@ -32,11 +32,11 @@ describe('Need V2 price-mode retirement', () => {
   it('rejects retired FASTEST and former najbrže aliases', () => {
     expect(correctionFromText(priceModeFact, 'FASTEST')).toEqual({
       ok: false,
-      message: 'Koristite: moja cena ili ponude.',
+      message: 'Koristiš: moja cena ili ponude.',
     });
     expect(correctionFromText(priceModeFact, 'najbrže')).toEqual({
       ok: false,
-      message: 'Koristite: moja cena ili ponude.',
+      message: 'Koristiš: moja cena ili ponude.',
     });
   });
 });

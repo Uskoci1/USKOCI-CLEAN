@@ -16,10 +16,10 @@ function fail(kod: string, poruka: string): Ishod<never> {
 const LEGAL_COPY: Record<string, string> = {
   LEGAL_DOCUMENTS_NOT_PUBLISHED: 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.',
   LEGAL_ACCEPTANCE_REQUEST_REUSED_FOR_DIFFERENT_BUNDLE:
-    'Uslovi su u međuvremenu ažurirani. Pročitajte ih ponovo pre prihvatanja.',
-  INVALID_CLIENT_REQUEST_ID: 'Prihvatanje trenutno nije moglo da se zabeleži. Pokušajte ponovo.',
-  AUTH_REQUIRED: 'Prijavite se da biste prihvatili uslove.',
-  LEGAL_REVIEW_CHANGED: 'Dokumenti su ažurirani. Pročitajte aktuelnu verziju pre prihvatanja.',
+    'Uslovi su u međuvremenu ažurirani. Pročitaj ih ponovo pre prihvatanja.',
+  INVALID_CLIENT_REQUEST_ID: 'Prihvatanje trenutno nije moglo da se zabeleži. Pokušaj ponovo.',
+  AUTH_REQUIRED: 'Prijavi se da prihvatiš uslove.',
+  LEGAL_REVIEW_CHANGED: 'Dokumenti su ažurirani. Pročitaj aktuelnu verziju pre prihvatanja.',
 };
 
 function acceptance(raw: unknown): LegalAcceptanceReceipt | null {
@@ -34,7 +34,7 @@ function acceptance(raw: unknown): LegalAcceptanceReceipt | null {
 
 function legalFailure(error: any, fallback: string): Ishod<never> {
   const name = typeof error?.message === 'string' ? error.message : '';
-  return fail(name || error?.code || fallback, LEGAL_COPY[name] ?? 'Radnja trenutno nije mogla da se završi. Pokušajte ponovo.');
+  return fail(name || error?.code || fallback, LEGAL_COPY[name] ?? 'Radnja trenutno nije mogla da se završi. Pokušaj ponovo.');
 }
 
 function mapDocument(raw: any): LegalDocument | null {

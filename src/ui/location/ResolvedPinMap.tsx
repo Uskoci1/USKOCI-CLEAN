@@ -168,7 +168,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
       </Map>
       {status !== 'ready' ? <View style={styles.feedback}>
         {status === 'loading' ? <><ActivityIndicator color={palette.teal500} accessibilityLabel="Učitavanje mape" /><T>Učitavamo mapu…</T></>
-          : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proverite vezu. Uneti podaci ostaju u obrascu.</T>
+          : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proveri vezu. Uneti podaci ostaju u obrascu.</T>
             <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
     </View>
@@ -177,12 +177,12 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         accessibilityLabel={`${coarse ? 'Približna tačka na mapi' : 'Predložena tačka na mapi'}. ${coordinateText}`}
         variant="meta" tone="muted">{coordinateText}</T>
       <T accessibilityLiveRegion="polite" variant="meta" tone="muted">{centeredToken === token && imageToken === token && status === 'ready' && !offset
-        ? 'Mapa je centrirana na izabranu tačku.' : 'Proverite položaj oznake na mapi.'}</T>
+        ? 'Mapa je centrirana na izabranu tačku.' : 'Proveri položaj oznake na mapi.'}</T>
     </View> : null}
     {!pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađite područje i dodirnite mapu.</T>
       : <T variant="meta" tone="muted">{disabled ? 'Prikazana je izabrana lokacija.'
-        : coarse ? 'Prikazana je približna tačka. Dodirnite mapu ili prevucite oznaku da predložite drugu.'
-          : 'Dodirnite mapu ili prevucite oznaku da predložite drugu tačku.'}</T>}
+        : coarse ? 'Prikazana je približna tačka. Dodirni mapu ili prevuci oznaku da predložiš drugu.'
+          : 'Dodirni mapu ili prevuci oznaku da predložiš drugu tačku.'}</T>}
     {!disabled ? <T variant="meta" tone="muted">Izbor na mapi treba potvrditi u obrascu.</T> : null}
     <View style={styles.attribution}>
       <T variant="meta" accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>

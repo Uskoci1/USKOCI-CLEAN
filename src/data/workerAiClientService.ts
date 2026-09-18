@@ -125,12 +125,12 @@ export function decodeWorkerAiSnapshot(raw:unknown,account:string,cid?:string):W
     profileStatus:v.profileStatus,revision:v.revision,candidate,safety:v.safety,stale:v.stale,messages,turn,review,saved};
 }
 const ERRORS:Readonly<Record<string,string>>={
-  AUTH_REQUIRED:'Prijavite se da biste uredili radni profil.',WORKER_AI_DENIED:'Ponovo otvorite svoj radni profil.',
-  WORKER_AI_STALE:'Profil je promenjen. Sačuvani podaci ostaju; pokrenite nov razgovor iz aktuelnog profila.',
-  WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvorite sačuvani profil.',
-  WORKER_PROFILE_RESTRICTED:'Profil trenutno ne može da se menja.',WORKER_AI_TURN_PENDING:'Prethodna poruka još nema potvrđen ishod. Proverite stanje.',
-  WORKER_AI_PATCH_INVALID:'Proverite unos profila, radnog područja i dostupnosti.',WORKER_AI_REQUEST_CONFLICT:'Ovaj zahtev je već vezan za drugi unos. Proverite sačuvano stanje.',
-  WORKER_AI_RATE_LIMITED:'Poslali ste više poruka. Sačekajte kratko i proverite razgovor.',
+  AUTH_REQUIRED:'Prijavi se da urediš radni profil.',WORKER_AI_DENIED:'Ponovo otvori svoj radni profil.',
+  WORKER_AI_STALE:'Profil je promenjen. Sačuvani podaci ostaju; pokreni nov razgovor iz aktuelnog profila.',
+  WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvori sačuvani profil.',
+  WORKER_PROFILE_RESTRICTED:'Profil trenutno ne može da se menja.',WORKER_AI_TURN_PENDING:'Prethodna poruka još nema potvrđen ishod. Proveri stanje.',
+  WORKER_AI_PATCH_INVALID:'Proveri unos profila, radnog područja i dostupnosti.',WORKER_AI_REQUEST_CONFLICT:'Ovaj zahtev je već vezan za drugi unos. Proveri sačuvano stanje.',
+  WORKER_AI_RATE_LIMITED:'Poslato je previše poruka zaredom. Sačekaj kratko i proveri razgovor.',
 };
 const scope=():ReceiptAccount|undefined=>{const s=sesijaSada();return s.user?{accountId:s.user.id,accountRevision:s.accountRevision}:undefined;};
 function call<T>(name:string,args:Record<string,unknown>,decode:(v:unknown,aid:string)=>T|null,write=false):Promise<Ishod<T>>{
@@ -140,7 +140,7 @@ function call<T>(name:string,args:Record<string,unknown>,decode:(v:unknown,aid:s
 }
 function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker_ai_turn',conversationId:string,clientRequestId:string){
   const owner=scope();
-  if(!owner||!uuid(conversationId)||!uuid(clientRequestId))return Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.'));
+  if(!owner||!uuid(conversationId)||!uuid(clientRequestId))return Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.'));
   return readOwnedResult({account:owner,errors:ERRORS,write:name==='rpc_cancel_worker_ai_turn',fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
     request:()=>supabaseKlijent().rpc(name,{p_expected_user_id:owner.accountId,p_conversation_id:conversationId,p_client_request_id:clientRequestId}),
     decode:v=>decodeWorkerAiTurnRecovery(v,owner.accountId,conversationId,clientRequestId)});
@@ -148,9 +148,9 @@ function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker
 export const workerAiClientService={
   recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
   cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
-  open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite radni profil.')):
+  open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori radni profil.')):
     call('rpc_open_worker_ai',{p_client_request_id:clientRequestId},decodeWorkerAiSnapshot,true),
-  read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.')):
+  read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.')):
     call('rpc_read_worker_ai',{p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId)),
   patch:(conversationId:string,expectedRevision:number,patch:WorkerAiPatch)=>call('rpc_patch_worker_ai',
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_patch:JSON.parse(JSON.stringify(patch))},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),true),
@@ -158,7 +158,7 @@ export const workerAiClientService={
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate},(v,a)=>decodeWorkerAiReview(v,a,conversationId),true),
   save:(review:WorkerAiReview,clientRequestId:string)=>{
     const owner=scope(),frozen=owner?decodeWorkerAiReview(review,owner.accountId,review.conversationId):null;
-    if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvorite potpun pregled profila.'));
+    if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvori potpun pregled profila.'));
     return call('rpc_save_worker_ai_review',{p_review_id:frozen.reviewId,p_displayed_digest:frozen.displayedContentDigest,p_client_request_id:clientRequestId},
       (v,a)=>a===frozen.accountId?decodeWorkerAiSaved(v,frozen):null,true);
   },
@@ -166,7 +166,7 @@ export const workerAiClientService={
   async send(conversationId:string,body:string,clientRequestId:string,stream:AiTurnStreamOptions):Promise<Ishod<WorkerAiTurn>>{
     const account=scope(),session=sesijaSada().session,url=process.env.EXPO_PUBLIC_SUPABASE_URL,anonKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     if(!account||!session?.access_token||!url||!anonKey)return failure('AUTH_REQUIRED',ERRORS.AUTH_REQUIRED);
-    if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesite poruku do 4000 znakova.');
+    if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesi poruku do 4000 znakova.');
     return readOwnedResult({account,errors:ERRORS,write:true,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
       request:()=>requestAiTurnStream({...stream,endpoint:'uskoci-worker-interview',url,anonKey,accessToken:session.access_token,
         conversationId,clientRequestId,text:body,deadline:Date.now()+15000,

@@ -19,13 +19,13 @@ type Pending = { intent: Intent; row: MojaPrijavaProjekcija; inFlight: boolean; 
 type Loaded = { rows: MojaPrijavaProjekcija[]; notice: string | null };
 const errors: Readonly<Record<string, string>> = { ...applicationSelectionErrors,
   FORBIDDEN: 'Ova Prijava nije dostupna na ovom nalogu.', RESPONSE_NOT_OWNED: 'Ova Prijava nije dostupna na ovom nalogu.',
-  RESPONSE_NOT_WITHDRAWABLE: 'Prijavu sada nije moguće povući. Proverite aktuelno stanje.',
-  RESPONSE_NOT_AWAITING_REVIEW: 'Prijava više ne čeka ovu proveru. Učitajte aktuelno stanje.',
-  RESPONSE_ALREADY_CURRENT: 'Prijava je već usklađena. Učitajte aktuelno stanje.',
-  INVALID_PROPOSED_WINDOW: 'Sačuvani termin nije prihvaćen. Proverite aktuelnu Prijavu.',
+  RESPONSE_NOT_WITHDRAWABLE: 'Prijavu sada nije moguće povući. Proveri aktuelno stanje.',
+  RESPONSE_NOT_AWAITING_REVIEW: 'Prijava više ne čeka ovu proveru. Učitaj aktuelno stanje.',
+  RESPONSE_ALREADY_CURRENT: 'Prijava je već usklađena. Učitaj aktuelno stanje.',
+  INVALID_PROPOSED_WINDOW: 'Sačuvani termin nije prihvaćen. Proveri aktuelnu Prijavu.',
   SCOPE_NOTE_TOO_LONG: 'Napomena može imati najviše 1.200 znakova.',
 };
-const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ishod radnje nije potvrđen. Proverite sačuvano stanje pre ponavljanja.' });
+const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ishod radnje nije potvrđen. Proveri sačuvano stanje pre ponavljanja.' });
 const identity = (p: MojaPrijavaProjekcija) => `${p.prijavaId}:${p.potrebaId}:${p.potrebaRevizija}:${p.prijavaRevizija}:${p.prijavaVerzija}:${p.stanje}`;
 const withdrawal = (pending: Pending) => pending.intent.kind === 'withdraw' || pending.intent.command.akcija === 'WITHDRAW';
 function observed(pending: Pending, rows: MojaPrijavaProjekcija[]) {
@@ -71,7 +71,7 @@ export default function MojePrijave() {
     const owned = () => session.focused && session.active && token === session.token && generation === session.readRevision && accountCurrent();
     try {
       const rows = await boundedApplicationSelectionRead(izvor.mojePrijave());
-      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelne Prijave.' };
+      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelne Prijave.' };
       const pending = session.pending;
       let notice: string | null = null;
       if (pending && !pending.inFlight) {
@@ -79,10 +79,10 @@ export default function MojePrijave() {
         if (observed(pending, rows)) {
           notice = withdrawal(pending) ? 'Sačuvano stanje: Prijava je povučena.' : 'Prijava je usklađena sa pregledanom verzijom Zadatka.';
           session.pending = null;
-        } else if (pending.result === 'receipt') notice = 'Server je potvrdio radnju. Aktuelna lista još ne potvrđuje očekivano stanje; proverite ponovo.';
+        } else if (pending.result === 'receipt') notice = 'Server je potvrdio radnju. Aktuelna lista još ne potvrđuje očekivano stanje; proveri ponovo.';
       }
       return { ok: true, podatak: { rows, notice } };
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave nisu učitane. Proverite vezu i pokušajte ponovo.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave nisu učitane. Proveri vezu i pokušaj ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   // Resume retires the hook's old owner and reads before showing actions.
   }, [session, izvor, accountCurrent, clearReview, resume]);
@@ -121,7 +121,7 @@ export default function MojePrijave() {
       if (!session.focused || !session.active || token !== session.token) return unknown();
       if (!result.ok) return result;
       const fresh = await read();
-      if (!fresh.ok) return { ok: false, kod: 'APPLICATION_REFRESH_REQUIRED', poruka: 'Server je potvrdio radnju, ali lista nije učitana. Proverite sačuvano stanje.' };
+      if (!fresh.ok) return { ok: false, kod: 'APPLICATION_REFRESH_REQUIRED', poruka: 'Server je potvrdio radnju, ali lista nije učitana. Proveri sačuvano stanje.' };
       return fresh;
     });
   };
@@ -133,7 +133,7 @@ export default function MojePrijave() {
     if (action === 'UPDATE') {
       if (!draft) return;
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN, people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
-      if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesite celu pozitivnu cenu u RSD i ceo broj ljudi.'; render(v => v + 1); return; }
+      if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesi celu pozitivnu cenu u RSD i ceo broj ljudi.'; render(v => v + 1); return; }
       // Existing RU4 SQL limit, not a new UI/business policy.
       if (Array.from(draft.note.trim()).length > 1200) { session.message = errors.SCOPE_NOTE_TOO_LONG; render(v => v + 1); return; }
     }
@@ -163,8 +163,8 @@ export default function MojePrijave() {
       const result = await readExistingApplicationInterval(p);
       if (!rowCurrent(p) || generation !== session.editRevision) return;
       if (result.ok) session.draft = { price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak };
-      else session.message = 'Sačuvani termin nije potvrđen. Osvežite Prijave pre izmene ponude.';
-    } catch { if (current() && generation === session.editRevision) session.message = 'Termin nije učitan. Osvežite Prijave pre izmene.'; }
+      else session.message = 'Sačuvani termin nije potvrđen. Osveži Prijave pre izmene ponude.';
+    } catch { if (current() && generation === session.editRevision) session.message = 'Termin nije učitan. Osveži Prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };
   const navigate = (path: '/prilike' | '/profil') => { if (current()) router.navigate(path); };

@@ -9,7 +9,7 @@ const REJECTIONS = new Set(['VERSION_CONFLICT','AGREEMENT_NOT_ACTIVE','CHANGE_RE
   'AGREEMENT_CHANGE_AFTER_WORK_DONE','AGREEMENT_CHANGE_PENDING','NOT_PROPOSER','NOT_PARTY','PROPOSER_CANNOT_RESPOND',
   'PROPOSAL_NOT_PENDING','CHANGE_TERMS_INVALID','WORKER_CALENDAR_CONFLICT','CALENDAR_RECHECK_REQUIRED','ALREADY_COMPLETED',
   'AGREEMENT_CHANGE_INVALID','INVALID_PRICE','CHANGE_INPUT_TOO_LARGE','CHANGE_SCOPE_INVALID','AGREEMENT_CALENDAR_INTERVAL_INVALID']);
-const unknown = 'Ishod nije potvrđen. Proverite sačuvano stanje pre ponavljanja.';
+const unknown = 'Ishod nije potvrđen. Proveri sačuvano stanje pre ponavljanja.';
 export class AgreementActionsController {
   private state: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
   private listeners = new Set<() => void>(); private disposed = false; private busy = false;
@@ -76,7 +76,7 @@ export class AgreementActionsController {
       }
     }
     if (resolved) this.update({ phase: resolved, error: null, canRetry: false, needsReentry: false,
-      message: resolved === 'REJECTED' ? 'Dogovor ili predlog je u međuvremenu drugačije završen. Pregledajte sačuvano stanje.'
+      message: resolved === 'REJECTED' ? 'Dogovor ili predlog je u međuvremenu drugačije završen. Pregledaj sačuvano stanje.'
         : journal.kind === 'CANCEL' ? 'Dogovor je otkazan.' : journal.kind === 'PROPOSE' ? 'Predlog izmene je sačuvan.'
           : journal.kind === 'WITHDRAW' ? 'Predlog izmene je povučen.' : journal.accept ? 'Izmena je prihvaćena. Prikazani su važeći uslovi.' : 'Predlog izmene je odbijen.' });
     else this.update({ phase: 'UNKNOWN', error: unknown, canRetry: true, needsReentry: this.command === null });
@@ -90,7 +90,7 @@ export class AgreementActionsController {
     if (previous) {
       if (this.state.phase !== 'UNKNOWN' || !this.state.canRetry) return;
       if (JSON.stringify(previous) !== JSON.stringify(journal)) {
-        this.update({ error: 'Unos se razlikuje od prvobitnog zahteva. Unesite iste uslove i razlog; ključ se ne menja.' }); return;
+        this.update({ error: 'Unos se razlikuje od prvobitnog zahteva. Unesi iste uslove i razlog; ključ se ne menja.' }); return;
       }
     } else if (this.state.phase !== 'READY' || !permits(this.state.snapshot, command, this.deps.account.accountId)) return;
     this.command = command;

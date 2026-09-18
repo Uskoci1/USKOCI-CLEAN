@@ -37,7 +37,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
       if (result.ok) { scope.loaded = true; scope.reconcileRequired = false; setData(result.podatak); setUncertain(false); }
       else setError(result.poruka);
     } catch {
-      if (scope.current() && generation === scope.generation) setError('Podaci nisu učitani. Proverite vezu i pokušajte ponovo.');
+      if (scope.current() && generation === scope.generation) setError('Podaci nisu učitani. Proveri vezu i pokušaj ponovo.');
     } finally {
       if (scope.current() && generation === scope.generation) { scope.reading = false; setLoading(false); }
     }
@@ -51,7 +51,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
     owner.current = scope;
     setBusy(false); setUncertain(false); setSaved(false); setData(null);
     if (accountId) void refresh();
-    else { setLoading(false); setError('Prijavite se da biste uredili podatke.'); }
+    else { setLoading(false); setError('Prijavi se da urediš podatke.'); }
     return () => {
       if (owner.current !== scope) return;
       owner.current = null;
@@ -80,7 +80,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
       }
     } catch {
       if (scope.current()) { scope.reconcileRequired = true;
-        setError('Čuvanje nije potvrđeno. Proverite sačuvano stanje pre novog pokušaja.'); setUncertain(true); }
+        setError('Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja.'); setUncertain(true); }
     } finally {
       if (scope.current()) { scope.writing = false; setBusy(false); }
     }

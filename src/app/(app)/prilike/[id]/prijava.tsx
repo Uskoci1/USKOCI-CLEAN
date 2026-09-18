@@ -42,8 +42,8 @@ export default function Prijava() {
       const opportunity = liveOpportunity ?? session.pending?.opportunity;
       const need = liveNeed ?? session.pending?.need;
       const profile = liveProfile ?? session.pending?.profile;
-      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite Zadatak i radni profil.' };
-      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelno stanje.' };
+      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proveri Zadatak i radni profil.' };
+      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
       session.notice = null;
       if (!session.pending && user?.id) {
         // A recreated instance restores only the exact unresolved command of this account and
@@ -52,18 +52,18 @@ export default function Prijava() {
         try {
           const stored = await applicationCommandJournal.load(user.id, id);
           const owned = sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision && ulogaSada() === role;
-          if (generation !== session.readRevision || !owned) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelno stanje.' };
+          if (generation !== session.readRevision || !owned) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
           if (stored.state === 'CORRUPT') {
             await applicationCommandJournal.discard(user.id, id);
-            if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelno stanje.' };
-            session.notice = 'Sačuvani zapis Prijave nije čitljiv, pa je uklonjen. Proverite svoje Prijave.';
+            if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
+            session.notice = 'Sačuvani zapis Prijave nije čitljiv, pa je uklonjen. Proveri svoje Prijave.';
           } else if (stored.state === 'PRESENT' && !session.pending) {
             const command = stored.record.command;
             session.pending = { command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
             session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
               start: command.predlozeniPocetak, end: command.predlozeniKraj };
           }
-        } catch { session.notice = 'Sačuvani zahtev nije bilo moguće proveriti. Osvežite prikaz.'; }
+        } catch { session.notice = 'Sačuvani zahtev nije bilo moguće proveriti. Osveži prikaz.'; }
       }
       // Displayed terms and command revision come from the same Need read.
       const displayedOpportunity = { ...opportunity, naslov: need.naslov, podrucjeTekst: need.podrucjeTekst, vremeTekst: need.vremeTekst,
@@ -73,7 +73,7 @@ export default function Prijava() {
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { opportunity: displayedOpportunity, need, profile, applications, receipt: result?.ok ? result.podatak : null } };
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   }, [id, izvor, session]);
   const editor = useOwnedEditor(read), data = editor.data;
@@ -97,10 +97,10 @@ export default function Prijava() {
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN;
       const people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
       if (!Number.isSafeInteger(price) || price < 1 || price > 2_147_483_647 || !Number.isSafeInteger(people) ||
-          people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesite celu cenu u RSD i broj ljudi koji staje u preostala mesta.'); return; }
-      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proverite aktuelni Zadatak i aktivan radni profil.'); return; }
+          people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesi celu cenu u RSD i broj ljudi koji staje u preostala mesta.'); return; }
+      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proveri aktuelni Zadatak i aktivan radni profil.'); return; }
       const deadline = data.opportunity.rokZaPrijaveIso;
-      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osvežite Zadatak.'); return; }
+      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osveži Zadatak.'); return; }
       const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
         predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null });
@@ -108,7 +108,7 @@ export default function Prijava() {
       // composer stays editable for a plain retry (no request ever left this device).
       session.journaling = true;
       try { await applicationCommandJournal.save({ version: 1, accountId, needId: data.need.id, command }, current); }
-      catch { if (current()) setValidation('Zahtev nije sačuvan na uređaju. Oslobodite prostor i pokušajte ponovo.'); return; }
+      catch { if (current()) setValidation('Zahtev nije sačuvan na uređaju. Oslobodi prostor i pokušaj ponovo.'); return; }
       finally { session.journaling = false; }
       if (!current() || session.pending) return;
       session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
@@ -119,7 +119,7 @@ export default function Prijava() {
       pending.inFlight = true; pending.reconciled = false;
       let result: Ishod<Receipt>;
       try { result = await izvor.podnesiPrijavu(pending.command); }
-      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proverite stanje.' }; }
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proveri stanje.' }; }
       finally { pending.inFlight = false; }
       pending.result = result;
       // Only this command's own authoritative receipt retires the durable identity.
@@ -144,7 +144,7 @@ export default function Prijava() {
   return <ApplicationSelectionPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = draft; setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
-    error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovite isti sačuvani zahtev.' : null)}
+    error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' : null)}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     submit={submit} back={back} refresh={refresh} reset={reset}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true; router.replace('/moje-prijave'); }} />;

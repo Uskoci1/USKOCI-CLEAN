@@ -87,7 +87,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       <View style={s.zoom}>{[['Uvećaj mapu', '+', 1], ['Umanji mapu', '−', -1]].map(([label, text, delta]) => <Press key={String(label)} accessibilityRole="button" accessibilityLabel={String(label)}
         accessibilityState={{ disabled: !viewport }} disabled={!viewport} haptic="select" onPress={() => changeZoom(Number(delta))} style={s.zoomButton}><T style={s.zoomText}>{text}</T></Press>)}</View>
     </> : <View style={s.feedback}>{status === 'loading' ? <><ActivityIndicator color={v2.color.teal} /><T style={v2.text.body}>Učitavamo mapu…</T></>
-      : <><T accessibilityRole="alert" style={v2.text.title}>Mapa nije učitana</T><T style={v2.text.body}>Proverite vezu. Zadaci i filteri ostaju u Listi.</T>
+      : <><T accessibilityRole="alert" style={v2.text.title}>Mapa nije učitana</T><T style={v2.text.body}>Proveri vezu. Zadaci i filteri ostaju u Listi.</T>
         <V2Action label="Pokušaj ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
         <V2Action label="Pogledaj listu" onPress={props.onList} /></>}</View>}
     <View style={s.attribution}><T style={s.credit} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>

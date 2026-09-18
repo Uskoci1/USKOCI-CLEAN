@@ -60,7 +60,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         const engine = install(owner, Object.freeze(command), true);
         await engine.reconcile();
       } catch { if (!retired && current(owner)) setView({ ...initial, loading: false,
-        error: 'Prethodni zahtev nije moguće proveriti. Pokušajte ponovo pre nove radnje.' }); }
+        error: 'Prethodni zahtev nije moguće proveriti. Pokušaj ponovo pre nove radnje.' }); }
     };
     void restore();
     const app = AppState.addEventListener('change', state => {
@@ -94,7 +94,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
       await AsyncStorage.setItem(storageKey, JSON.stringify(command));
       if (!current(owner)) return;
       const engine = install(owner, command, false); await engine.submit();
-    } catch { if (current(owner)) setView({ ...view, error: 'Zahtev nije poslat jer nije sačuvana njegova potvrda. Pokušajte ponovo.' }); }
+    } catch { if (current(owner)) setView({ ...view, error: 'Zahtev nije poslat jer nije sačuvana njegova potvrda. Pokušaj ponovo.' }); }
     finally { if (current(owner)) latch.current = false; }
   };
   const run = (operation: 'reconcile' | 'retrySame' | 'refreshCollection') => {
@@ -107,7 +107,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
       await AsyncStorage.removeItem(storageKey); if (!current(owner)) return;
       controller.current?.dispose(); controller.current = null;
       if (navigate) router.replace('/potrebe'); else { setReload(value => value + 1); p.onRefresh(); }
-    } catch { if (current(owner)) setView({ ...view, error: 'Potvrda je sačuvana. Pokušajte ponovo da nastavite.' }); }
+    } catch { if (current(owner)) setView({ ...view, error: 'Potvrda je sačuvana. Pokušaj ponovo da nastaviš.' }); }
     finally { if (current(owner)) latch.current = false; }
   };
   const phase = view.state?.phase;
@@ -124,7 +124,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         <T accessibilityLiveRegion="polite" style={s.copy}>{phase === 'CONFIRMED'
           ? view.command?.action === 'DELETE_DRAFT' ? 'Server je potvrdio brisanje nacrta.' : 'Server je potvrdio otkazivanje zadatka.'
           : phase === 'SUBMITTING' ? 'Šaljem pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravam potvrdu…'
-            : view.state.error?.poruka ?? 'Ponovo otvorite zadatak.'}</T>
+            : view.state.error?.poruka ?? 'Ponovo otvori zadatak.'}</T>
         {phase === 'UNKNOWN_OUTCOME' ? <>
           <V2Action label="Proveri ishod" kind="quiet" onPress={() => run('reconcile')} />
           <V2Action label="Ponovi isti zahtev" kind="quiet" disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
@@ -135,7 +135,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         </> : phase === 'REJECTED' ? <V2Action label="Učitaj aktuelni zadatak" kind="quiet" onPress={() => { void finish(false); }} /> : null}
       </> : view.review && p.need ? <>
         <T style={s.title}>{label(view.review)}?</T><T style={s.copy}>{view.review === 'DELETE_DRAFT'
-          ? 'Brišete ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo uklonite iz nacrta.'
+          ? 'Brišete ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo ukloni iz nacrta.'
           : 'Zadatak prestaje da prima prijave, a postojeće prijave se zatvaraju. Ako već postoji Dogovor, otkazivanje ide kroz taj Dogovor.'}</T>
         <T style={s.copy}>{p.need.naslov}</T>
         <V2Action label={label(view.review)} disabled={busy || p.disabled} onPress={() => { void submit(); }} />

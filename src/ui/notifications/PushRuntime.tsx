@@ -13,7 +13,7 @@ function publicInbox(notification: Notifications.Notification): boolean {
  const data = content.data, value = content as unknown as Record<string, unknown>;
  // Only the existing worker's public copy may reach native presentation. Native
  // metadata is allowed, but no subtitle, attachment, category action or summary.
- if (content.title !== 'USKOČI' || content.body !== 'Imate novo obaveštenje. Otvorite aplikaciju.'
+ if (content.title !== 'USKOČI' || content.body !== 'Imaš novo obaveštenje. Otvori aplikaciju.'
   || !data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length !== 1 || data.kind !== 'INBOX') return false;
  if (['subtitle', 'categoryIdentifier', 'summaryArgument', 'launchImageName', 'targetContentIdentifier', 'threadIdentifier']
   .some(key => value[key] != null && value[key] !== '')) return false;

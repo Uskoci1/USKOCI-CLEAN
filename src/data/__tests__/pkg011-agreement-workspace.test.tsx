@@ -53,8 +53,8 @@ test('a confirmed Agreement without server permission leads with the conversatio
   await render(base());
   expect(brand()).toEqual(['Otvori poruke']); expect(labels().filter(label => label === 'Otvori poruke')).toHaveLength(1);
   const copy = texts();
-  expect(copy).toContain('Dogovoreno'); expect(copy).toContain('Sledeći korak'); expect(copy).toContain('Potvrdite završetak kada je posao obavljen');
-  expect(copy).toContain('Završetak možete potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.');
+  expect(copy).toContain('Dogovoreno'); expect(copy).toContain('Sledeći korak'); expect(copy).toContain('Potvrdi završetak kada je posao obavljen');
+  expect(copy).toContain('Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.');
   expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Dobrovoljna lokacija Uskočera', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
   // The timeline is progressive disclosure: collapsed until the user asks for it.
   expect(copy).not.toContain('Dogovor je potvrđen');
@@ -84,6 +84,6 @@ test('a completed Agreement leads with the review; a cancelled one offers only t
 });
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
   await render(base({ radnje: null }));
-  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dozvole za završetak nisu potvrđene sa servera. Osvežite status Dogovora pre završetka.');
+  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dozvole za završetak nisu potvrđene sa servera. Osveži status Dogovora pre završetka.');
   expect(labels()).toContain('Osveži dozvole za završetak');
 });

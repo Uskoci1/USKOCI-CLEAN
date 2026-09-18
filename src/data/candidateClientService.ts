@@ -152,7 +152,7 @@ export const candidateClientService: CandidateService = {
         } catch { return null; }
       },
     });
-    if (!result.ok) throw new Error('Prijave trenutno nije moguće učitati. Pokušajte ponovo.');
+    if (!result.ok) throw new Error('Prijave trenutno nije moguće učitati. Pokušaj ponovo.');
     return result.podatak;
   },
 };

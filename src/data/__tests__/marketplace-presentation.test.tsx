@@ -43,13 +43,13 @@ test('List/Map preserves search and viewport; panning alone keeps same exact res
 });
 test('explicit area applies identical subset to both modes and removal restores unlocated items', async () => {
  await render(); await tap('Mapa'); await act(async () => map().props.onSearchArea([19, 45, 20, 46])); expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one']);
- await tap('Lista'); expect(tree.root.findAllByType('List' as React.ElementType)[0].findAllByProps({ accessibilityLabel: 'Otvorite priliku Pomoć two' })).toHaveLength(0);
- await click('Ukloni oblast'); expect(press('Otvorite priliku Pomoć two')).toBeTruthy();
+ await tap('Lista'); expect(tree.root.findAllByType('List' as React.ElementType)[0].findAllByProps({ accessibilityLabel: 'Otvori priliku Pomoć two' })).toHaveLength(0);
+ await click('Ukloni oblast'); expect(press('Otvori priliku Pomoć two')).toBeTruthy();
 });
 test('filter working copy can cancel and hardware back does not apply; Apply preserves selected choice', async () => {
  await render(); await tap('Filteri'); await tap('Tražim ponude'); await click('Odustani od filtera'); expect(snapshot.price).toBe('all');
  await tap('Filteri'); await tap('Navedena cena'); await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose()); expect(snapshot.price).toBe('all');
- await tap('Filteri'); await tap('Tražim ponude'); await click('Prikaži zadatke'); expect(snapshot.price).toBe('OFFERS'); expect(press('Otvorite priliku Pomoć two')).toBeTruthy(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvorite priliku Pomoć one' })).toHaveLength(0);
+ await tap('Filteri'); await tap('Tražim ponude'); await click('Prikaži zadatke'); expect(snapshot.price).toBe('OFFERS'); expect(press('Otvori priliku Pomoć two')).toBeTruthy(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori priliku Pomoć one' })).toHaveLength(0);
 });
 test('only a visible real point produces selected preview; actual detail callback receives same row', async () => {
  await render(); await tap('Mapa'); await act(async () => map().props.onSelect('two')); expect(tree.root.findAllByProps({ label: 'Otvori detalj Zadatka' })).toHaveLength(0);
@@ -59,13 +59,13 @@ test('only a visible real point produces selected preview; actual detail callbac
 });
 test.each(['loading', 'error'])('%s removes stale cards/map; retry is bound', async status => {
  initial.mode = 'map'; loading = status === 'loading'; error = status === 'error'; await render();
- expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0); expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvorite priliku Pomoć one' })).toHaveLength(0);
- if (error) { await click('Pokušajte ponovo'); expect(refresh).toHaveBeenCalledTimes(1); }
+ expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0); expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori priliku Pomoć one' })).toHaveLength(0);
+ if (error) { await click('Pokušaj ponovo'); expect(refresh).toHaveBeenCalledTimes(1); }
 });
 test('owned active/draft/attention filters use actual rows and full long title remains readable', async () => {
  owned = true; const long = 'Pomoć pri prenošenju i raspoređivanju nameštaja u Novom Sadu '.repeat(3); rows = [row('one', { naslov: long, stanje: 'OBJAVLJENA', brojPrijava: 1 }), row('two', { stanje: 'NACRT', brojPrijava: 0 })];
  await render(); expect(texts()).toContain(long); await tap('Filteri'); await tap('Treba moja radnja'); expect(snapshot.attention).toBe(true); await tap('Nacrti'); expect(texts()).toContain('Nema zadataka u ovom prikazu');
- await tap('Treba moja radnja'); expect(press('Otvorite Zadatak Pomoć two')).toBeTruthy();
+ await tap('Treba moja radnja'); expect(press('Otvori Zadatak Pomoć two')).toBeTruthy();
 });
 test('requester creation stays reachable from both discovery list and map, while worker discovery has no creation action', async () => {
  await render(); expect(press('Dodaj zadatak')).toBeTruthy(); await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(1);

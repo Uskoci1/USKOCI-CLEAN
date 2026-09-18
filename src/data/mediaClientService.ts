@@ -23,13 +23,13 @@ export type MediaUploadCancelled=Readonly<{accountId:string;conversationId:strin
   assetId:string|null;selected:false;cancelled:true;authoritative:true}>;
 const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const integer=(v:unknown,max:number):v is number=>typeof v==='number'&&Number.isInteger(v)&&v>=1&&v<=max;
-const errors={ AUTH_REQUIRED:'Prijavite se da biste nastavili.',MEDIA_NOT_FOUND:'Fotografija nije dostupna.',
-  MEDIA_INPUT_INVALID:'Fotografija mora biti JPEG, PNG ili WebP do 10 MB.',MEDIA_FORMAT_UNSUPPORTED:'Izaberite JPEG, PNG ili WebP fotografiju.',
+const errors={ AUTH_REQUIRED:'Prijavi se da nastaviš.',MEDIA_NOT_FOUND:'Fotografija nije dostupna.',
+  MEDIA_INPUT_INVALID:'Fotografija mora biti JPEG, PNG ili WebP do 10 MB.',MEDIA_FORMAT_UNSUPPORTED:'Izaberi JPEG, PNG ili WebP fotografiju.',
   MEDIA_DIMENSIONS_TOO_LARGE:'Smanjite fotografiju pre slanja.',MEDIA_LIMIT_REACHED:'Jedan Zadatak može imati najviše šest fotografija.',
-  MEDIA_UPLOAD_PENDING:'Prethodno slanje još nije potvrđeno. Osvežite prikaz.',MEDIA_TURN_PENDING:'Sačekajte završetak AI poruke.',
-  MEDIA_NOT_EDITABLE:'Fotografije sada ne mogu da se menjaju.',MEDIA_VERSION_CONFLICT:'Avatar je promenjen. Osvežite profil.',
-  IDEMPOTENCY_KEY_REUSED:'Zahtev pripada drugoj fotografiji. Osvežite prikaz.',PUBLIC_MEDIA_NOT_READY:'Sačekajte da se fotografije obrade.',
-  MEDIA_COMMAND_CONFLICT:'Ovaj zahtev pripada drugoj fotografiji ili zadatku. Osvežite prikaz.',
+  MEDIA_UPLOAD_PENDING:'Prethodno slanje još nije potvrđeno. Osveži prikaz.',MEDIA_TURN_PENDING:'Sačekaj završetak AI poruke.',
+  MEDIA_NOT_EDITABLE:'Fotografije sada ne mogu da se menjaju.',MEDIA_VERSION_CONFLICT:'Avatar je promenjen. Osveži profil.',
+  IDEMPOTENCY_KEY_REUSED:'Zahtev pripada drugoj fotografiji. Osveži prikaz.',PUBLIC_MEDIA_NOT_READY:'Sačekaj da se fotografije obrade.',
+  MEDIA_COMMAND_CONFLICT:'Ovaj zahtev pripada drugoj fotografiji ili zadatku. Osveži prikaz.',
   MEDIA_SANITIZATION_FAILED:'Fotografija nije mogla bezbedno da se obradi.' };
 export function decodeMediaAsset(raw:unknown,accountId?:string):MediaAsset|null{
   const a=record(raw);if(!a||Object.keys(a).length!==15||!uuid(a.assetId)||!uuid(a.accountId)||(accountId&&!sameId(a.accountId,accountId))

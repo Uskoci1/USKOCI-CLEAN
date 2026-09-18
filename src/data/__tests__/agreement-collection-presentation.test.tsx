@@ -36,7 +36,7 @@ function Screen() {
 }
 const render = async () => act(async () => { tree = create(<Screen />); });
 const tap = async (label: string) => act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onPress());
-const titles = () => tree.root.findAllByType('Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label?.startsWith('Otvorite Dogovor'));
+const titles = () => tree.root.findAllByType('Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label?.startsWith('Otvori Dogovor'));
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {}); loading = error = false; requester = false;
@@ -46,22 +46,22 @@ beforeEach(() => {
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('active and history preserve both actual participant roles; attention means my requester confirmation', async () => {
   await render(); expect(titles()).toHaveLength(3); expect(texts()).toContain('radi za tebe'); expect(texts()).toContain('naručuje');
-  await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvorite Dogovor Posao waiting-mine']);
-  await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvorite Dogovor Posao done', 'Otvorite Dogovor Posao cancelled']);
+  await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
+  await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
   await tap('Svi'); expect(titles()).toHaveLength(5);
 });
 test('reuses full accepted amount, precise interval and coverage, without exposing contact or exact address', async () => {
   rows = [agreement('remote', 'CONFIRMED')]; rows[0].rezim = 'DALJINSKI'; rows[0].putanjaTekst = 'REMOTE_MUST_HIDE_LOCATION';
   await render(); const text = texts(); expect(text).toContain(rows[0].vremeTekst); expect(text).toContain('2.500 RSD'); expect(text).toContain('3'); expect(text).toContain('osobe');
   expect(text).toContain('Na daljinu'); expect(text).not.toMatch(/PRIVATE_|REMOTE_MUST_HIDE_LOCATION/);
-  await tap('Otvorite Dogovor Posao remote'); expect(open).toHaveBeenCalledWith(rows[0]);
+  await tap('Otvori Dogovor Posao remote'); expect(open).toHaveBeenCalledWith(rows[0]);
 });
 test.each(['loading', 'error'])('%s hides stale private rows and error retry uses actual callback', async state => {
   loading = state === 'loading'; error = state === 'error'; await render(); expect(titles()).toEqual([]);
-  if (error) { await act(async () => tree.root.findByProps({ label: 'Pokušajte ponovo' }).props.onPress()); expect(refresh).toHaveBeenCalledTimes(1); }
+  if (error) { await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress()); expect(refresh).toHaveBeenCalledTimes(1); }
 });
 test('empty history still offers a real task route, with no invented review or unread controls', async () => {
-  rows = []; await render(); await tap('Istorija'); expect(texts()).toContain('Još nemate Dogovor');
-  await act(async () => tree.root.findByProps({ label: 'Pogledajte Zadatke' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
+  rows = []; await render(); await tap('Istorija'); expect(texts()).toContain('Još nemaš Dogovor');
+  await act(async () => tree.root.findByProps({ label: 'Pogledaj Zadatke' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
   expect(texts()).not.toMatch(/Oceni|nepročitan/);
 });

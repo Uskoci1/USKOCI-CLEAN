@@ -111,7 +111,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
           change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} /></View> : null}
       <View style={s.rowDivider}>
         <Row label="Kratko predstavljanje" expanded={bioOpen} onPress={() => setBioOpen(value => !value)} hint="Iskustvo koje želiš da navedeš · opciono" />
-        {bioOpen ? <View style={s.rowBody}><Field label="O vašem iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline /></View> : null}
+        {bioOpen ? <View style={s.rowBody}><Field label="O tvom iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline /></View> : null}
       </View>
     </View>
     <View style={s.card}><T variant="heading" style={s.ink}>Područje rada</T>

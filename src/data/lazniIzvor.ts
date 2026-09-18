@@ -109,7 +109,7 @@ const POCETNO: Stanje = {
   brojac: 0,
   profil: {
     id: 'moj-profil-1',
-    ime: 'Uskočer (Vi)',
+    ime: 'Uskočer (Ti)',
     grad: 'Beograd',
     biografija: 'Ja sam majstor',
     vestine: [],
@@ -234,7 +234,7 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
     ucesnici: [
       {
         id: 'narucilac',
-        ime: jaSamNarucilac ? 'Vi' : 'Miloš',
+        ime: jaSamNarucilac ? 'Ti' : 'Miloš',
         inicijali: jaSamNarucilac ? 'VI' : 'MŠ',
         uloga: 'narucilac',
         mesta: null,
@@ -243,7 +243,7 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
       },
       {
         id: k.prijavaId,
-        ime: jaSamNarucilac ? k.ime : 'Vi',
+        ime: jaSamNarucilac ? k.ime : 'Ti',
         inicijali: jaSamNarucilac ? k.inicijali : 'VI',
         uloga: 'uskocer',
         mesta: a.mesta,
@@ -478,7 +478,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: "STALE_REVIEW_REQUIRED",
         naslov: "Potreba je izmenjena",
-        poruka: "Potreba je promenjena. Osvežite pregled prilike.",
+        poruka: "Potreba je promenjena. Osveži pregled prilike.",
       };
     }
     if (k.cenaRsd <= 0) {
@@ -498,7 +498,7 @@ export const lazniIzvor: Izvor = {
       radnikProfilId: stanje.profil.id,
       verzija: 1,
       hash,
-      ime: "Uskočer (Vi)",
+      ime: "Uskočer (Ti)",
       inicijali: "VI",
       ocenaTekst: "Novo",
       recenzijeTekst: "Nema ocena",
@@ -530,7 +530,7 @@ export const lazniIzvor: Izvor = {
       return { ok: false, kod: 'RESPONSE_ALREADY_SELECTED', poruka: 'Izabrana Prijava se više ne može povući.' };
     }
     if ((stanje.prijavaRevizije[k.prijavaId] ?? stanje.potrebaRevizija) !== k.potrebaRevizija || kandidat.verzija !== k.prijavaVerzija) {
-      return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Prijava ili Potreba su promenjene. Osvežite pregled.' };
+      return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Prijava ili Potreba su promenjene. Osveži pregled.' };
     }
     stanje.povlacenja.set(k.clientRequestId, signature);
     stanje.povucenePrijave.add(k.prijavaId);
@@ -550,7 +550,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'STALE_REVIEW_REQUIRED',
         naslov: 'Potreba je izmenjena',
-        poruka: 'Prijave su ponovo na proveri jer je Potreba promenjena. Pogledajte ih ponovo pre izbora.',
+        poruka: 'Prijave su ponovo na proveri jer je Potreba promenjena. Pogledaj ih ponovo pre izbora.',
       };
     }
 
@@ -563,7 +563,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'STALE_REVIEW_REQUIRED',
         naslov: 'Prijava je izmenjena',
-        poruka: 'Uskočer je izmenio prijavu otkad ste je pogledali. Proverite je ponovo.',
+        poruka: 'Uskočer je izmenio prijavu posle tvog pregleda. Proveri je ponovo.',
       };
     }
 
@@ -609,7 +609,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'VERSION_CONFLICT',
         naslov: 'Dogovor je u međuvremenu promenjen',
-        poruka: 'Osvežite Dogovor pa pokušajte ponovo.',
+        poruka: 'Osveži Dogovor pa pokušaj ponovo.',
       };
     }
     return { ok: true, podatak: { predlogId: `pred-${k.dogovorId}-${trenutna}` } };
@@ -633,7 +633,7 @@ export const lazniIzvor: Izvor = {
     const id = `m-${dogovorId}-${lista.length + 1}`;
     stanje.poruke[dogovorId] = [
       ...lista,
-      { id, posiljalacIme: 'Vi', moja: true, telo, vremeTekst: 'sada', procitano: false },
+      { id, posiljalacIme: 'Ti', moja: true, telo, vremeTekst: 'sada', procitano: false },
     ];
     return { ok: true, podatak: { porukaId: id } };
   },
@@ -679,7 +679,7 @@ export const lazniIzvor: Izvor = {
   async prijaviProblem(dogovorId, opis) {
     await kasnjenje();
     if (!opis.trim()) {
-      return { ok: false, kod: 'EMPTY', naslov: 'Opišite problem', poruka: 'Bez opisa ne možemo da pomognemo.' };
+      return { ok: false, kod: 'EMPTY', naslov: 'Opiši problem', poruka: 'Bez opisa ne možemo da pomognemo.' };
     }
     const z = zavrsetakZa(dogovorId);
     if (z.stanje === 'COMPLETED') {

@@ -52,10 +52,10 @@ it.each(['narucilac', 'uskocer'])('reads both actual services in parallel for %s
 });
 it('keeps unpublished retention explicit and opens closure through a separate review', async () => {
   await render(); expect(texts()).toContain('Potpun raspored rokova čuvanja još nije dostupan.');
-  expect(texts()).toContain('Pregledajte dostupnost, obaveze i pravila čuvanja');
+  expect(texts()).toContain('Pregledaj dostupnost, obaveze i pravila čuvanja');
   expect(texts()).not.toContain('fixture duration');
   expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label !== 'Nazad'))
-    .toEqual(['Otvori izvoz', 'Pregledajte zatvaranje', 'Osveži stanje']);
+    .toEqual(['Otvori izvoz', 'Pregledaj zatvaranje', 'Osveži stanje']);
 });
 it('renders every published rule field and only the narrow matching capability', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();

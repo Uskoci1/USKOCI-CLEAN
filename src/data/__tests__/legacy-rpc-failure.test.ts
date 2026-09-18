@@ -15,8 +15,8 @@ describe('one public failure boundary for retained legacy adapters', () => {
   });
   it.each([
     ['NOT_OWNER', 'Ova radnja nije dostupna na ovom nalogu.'],
-    ['NEED_VERSION_MISMATCH', 'Zadatak je izmenjen. Pregledajte važeće uslove.'],
-    ['RESPONSE_NOT_WITHDRAWABLE', 'Prijavu sada nije moguće povući. Proverite aktuelno stanje.'],
+    ['NEED_VERSION_MISMATCH', 'Zadatak je izmenjen. Pregledaj važeće uslove.'],
+    ['RESPONSE_NOT_WITHDRAWABLE', 'Prijavu sada nije moguće povući. Proveri aktuelno stanje.'],
     ['POLICY_BUNDLE_NOT_READY', 'Objava trenutno nije dostupna.'],
   ])('maps the exact known symbolic name %s to fixed user copy', (message, poruka) => {
     const result = fail({ message, code: 'P0001', details: 'private SQL', hint: 'secret' });

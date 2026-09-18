@@ -171,7 +171,7 @@ export default function AuthScreen() {
   }
 
   function prijaviGresku(error: unknown) {
-    setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušajte ponovo.');
+    setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušaj ponovo.');
   }
 
   async function izaberiNameru(intent: 'REQUESTER' | 'WORKER', selection?: EntryIntentSelection) {
@@ -182,7 +182,7 @@ export default function AuthScreen() {
       if (!current()) return;
       setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
       setRezim('LOGIN'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
-    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušajte ponovo.'); });
+    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušaj ponovo.'); });
   }
 
   async function emailAkcija() {
@@ -191,12 +191,12 @@ export default function AuthScreen() {
     await commands.run(async () => {
       setGreska(null);
       setPoruka(null);
-      if (!email.trim() || !lozinka) throw new Error('Unesite email i lozinku.');
+      if (!email.trim() || !lozinka) throw new Error('Unesi email i lozinku.');
       if (rezim === 'LOGIN') {
         await authClientService.signInWithPassword({ email: email.trim(), password: lozinka });
         return true;
       }
-      if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesite ime, prezime i grad.');
+      if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesi ime, prezime i grad.');
       if (lozinka.length < 6) throw new Error('Lozinka mora imati najmanje 6 znakova.');
       if (lozinka !== potvrda) throw new Error('Lozinke se ne poklapaju.');
       if (!saglasnost) throw new Error('Potrebno je prihvatiti Uslove korišćenja i Politiku privatnosti.');
@@ -247,31 +247,31 @@ export default function AuthScreen() {
 
   const naslov =
     faza === 'PHONE'
-      ? rezim === 'SIGNUP' ? 'Napravite nalog telefonom' : 'Prijavite se telefonom'
+      ? rezim === 'SIGNUP' ? 'Napravi nalog telefonom' : 'Prijavi se telefonom'
       : faza === 'OTP'
-        ? 'Unesite kod'
+        ? 'Unesi kod'
         : faza === 'RECOVERY'
-          ? 'Vratite pristup nalogu.'
-          : faza === 'RECOVERY_SENT' ? 'Proverite email'
+          ? 'Vrati pristup nalogu.'
+          : faza === 'RECOVERY_SENT' ? 'Proveri email'
           : faza === 'SIGNUP_NEXT_STEP'
-            ? confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'
+            ? confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'
             : rezim === 'SIGNUP'
-              ? 'Napravite nalog'
-              : 'Prijavite se emailom';
+              ? 'Napravi nalog'
+              : 'Prijavi se emailom';
 
   const podnaslov =
     faza === 'PHONE'
-      ? 'Unesite broj telefona.'
+      ? 'Unesi broj telefona.'
       : faza === 'OTP'
-        ? 'Unesite kod kada stigne na Vaš broj.'
+        ? 'Unesi kod kada stigne na tvoj broj.'
         : faza === 'RECOVERY'
-          ? methods?.passwordRecovery ? 'Unesite email koji koristite za USKOČI.' : 'Ova mogućnost još nije dostupna u aplikaciji.'
+          ? methods?.passwordRecovery ? 'Unesi email koji koristiš za USKOČI.' : 'Ova mogućnost još nije dostupna u aplikaciji.'
           : faza === 'RECOVERY_SENT' ? 'Zahtev za oporavak je prihvaćen.'
           : faza === 'SIGNUP_NEXT_STEP'
-            ? confirmationRequired ? 'Pratite uputstvo za potvrdu registracije.' : 'Vratite se na prijavu.'
+            ? confirmationRequired ? 'Prati uputstvo za potvrdu registracije.' : 'Vrati se na prijavu.'
             : rezim === 'SIGNUP'
-              ? 'Unesite osnovne podatke za nalog.'
-              : 'Unesite email i lozinku.';
+              ? 'Unesi osnovne podatke za nalog.'
+              : 'Unesi email i lozinku.';
 
   const recoveryStage = faza === 'RECOVERY' || faza === 'RECOVERY_SENT';
   const stageComposition = recoveryStage || (rezim === 'SIGNUP' && (faza === 'EMAIL' || faza === 'SIGNUP_NEXT_STEP'));
@@ -311,8 +311,8 @@ export default function AuthScreen() {
               </View>
             ) : availability.status === 'error' ? (
               <View style={formStyle}>
-                <Text style={styles.stateCopy}>Ne možemo da proverimo dostupne načine prijave. Proverite vezu i pokušajte ponovo.</Text>
-                <PrimaryButton title="Pokušajte ponovo" busy={radi} onPress={() => void availability.retry()} />
+                <Text style={styles.stateCopy}>Ne možemo da proverimo dostupne načine prijave. Proveri vezu i pokušaj ponovo.</Text>
+                <PrimaryButton title="Pokušaj ponovo" busy={radi} onPress={() => void availability.retry()} />
               </View>
             ) : null}
 
@@ -345,7 +345,7 @@ export default function AuthScreen() {
                         onChangeText={(value) => commands.changeForm(() => setGrad(value))}
                         editable={!radi}
                         autoCapitalize="words"
-                        placeholder="Vaš grad"
+                        placeholder="Tvoj grad"
                         icon={<MapPin size={21} color={authColors.muted} />}
                       />
                     </>
@@ -366,7 +366,7 @@ export default function AuthScreen() {
                     value={lozinka}
                     onChangeText={(value) => commands.changeForm(() => setLozinka(value))}
                     editable={!radi}
-                    placeholder="Unesite lozinku"
+                    placeholder="Unesi lozinku"
                     secure
                     icon={<LockKey size={21} color={authColors.muted} />}
                   />
@@ -374,11 +374,11 @@ export default function AuthScreen() {
                   {rezim === 'SIGNUP' && methods.emailSignup ? (
                     <>
                       <AuthField
-                        label="Potvrdite lozinku"
+                        label="Potvrdi lozinku"
                         value={potvrda}
                         onChangeText={(value) => commands.changeForm(() => setPotvrda(value))}
                         editable={!radi}
-                        placeholder="Ponovite lozinku"
+                        placeholder="Ponovi lozinku"
                         secure
                         icon={<LockKey size={21} color={authColors.muted} />}
                       />
@@ -423,7 +423,7 @@ export default function AuthScreen() {
                   <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
                 ) : null}
                 {rezim === 'SIGNUP' && methods.emailSignup && methods.emailConfirmationRequired ? (
-                  <Text style={styles.smallNote}>Pre prve prijave potrebno je da potvrdite email.</Text>
+                  <Text style={styles.smallNote}>Pre prve prijave potrebno je da potvrdiš email.</Text>
                 ) : null}
                 <View style={styles.methods}>
                   <Text style={styles.methodHeading}>Drugi načini prijave</Text>
@@ -458,8 +458,8 @@ export default function AuthScreen() {
                   placeholder="+381 6x xxx xxxx"
                   icon={<Phone size={21} color={authColors.muted} />}
                 />
-                <Text style={styles.smallNote}>Poslaćemo Vam jednokratni kod.</Text>
-                <PrimaryButton title="Pošaljite kod" onPress={() => void posaljiTelefon()} busy={radi} />
+                <Text style={styles.smallNote}>Poslaćemo ti jednokratni kod.</Text>
+                <PrimaryButton title="Pošalji kod" onPress={() => void posaljiTelefon()} busy={radi} />
               </View>
             ) : null}
 
@@ -467,11 +467,11 @@ export default function AuthScreen() {
               <View style={formStyle}>
                 <Pressable disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
                   <ArrowLeft size={16} color={authColors.muted} />
-                  <Text style={styles.backText}>Promenite broj</Text>
+                  <Text style={styles.backText}>Promeni broj</Text>
                 </Pressable>
                 <View style={styles.stateIcon}><Phone size={28} color={authColors.muted} /></View>
-                <Text style={styles.stateTitle}>Unesite kod</Text>
-                <Text style={styles.stateCopy}>Unesite primljeni kod. Ako ne stigne, možete zatražiti novi.</Text>
+                <Text style={styles.stateTitle}>Unesi kod</Text>
+                <Text style={styles.stateCopy}>Unesi primljeni kod. Ako ne stigne, možeš zatražiti novi.</Text>
                 <AuthField
                   label="Kod"
                   value={otp}
@@ -481,9 +481,9 @@ export default function AuthScreen() {
                   placeholder="123456"
                   icon={<LockKey size={21} color={authColors.muted} />}
                 />
-                <PrimaryButton title="Potvrdite kod" onPress={() => void potvrdiOtp()} busy={radi} />
+                <PrimaryButton title="Potvrdi kod" onPress={() => void potvrdiOtp()} busy={radi} />
                 <Pressable disabled={radi} onPress={() => void posaljiTelefon()} style={styles.linkButton}>
-                  <Text style={styles.linkText}>Pošaljite novi kod</Text>
+                  <Text style={styles.linkText}>Pošalji novi kod</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -501,9 +501,9 @@ export default function AuthScreen() {
                 {methods.passwordRecovery ? <>
                   <AuthField label="Email" value={email} onChangeText={value => commands.changeForm(() => setEmail(value))}
                     editable={!radi} keyboardType="email-address" placeholder="ime@primer.rs" />
-                  <Text style={styles.stateCopy}>Otvorićete link iz emaila i izabrati novu lozinku. Vaši Zadaci i Dogovori ostaju na istom nalogu.</Text>
-                  <PrimaryButton title="Pošaljite link" busy={radi} onPress={() => void zatraziOporavak()} />
-                </> : <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možete se vratiti na prijavu.</Text>}
+                  <Text style={styles.stateCopy}>Otvorićeš link iz emaila i izabrati novu lozinku. Tvoji Zadaci i Dogovori ostaju na istom nalogu.</Text>
+                  <PrimaryButton title="Pošalji link" busy={radi} onPress={() => void zatraziOporavak()} />
+                </> : <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možeš se vratiti na prijavu.</Text>}
                 <Pressable accessibilityRole="button" disabled={radi} style={styles.linkButton} onPress={nazadNaEmail}>
                   <Text style={styles.linkText}>Nazad na prijavu</Text>
                 </Pressable>
@@ -512,40 +512,40 @@ export default function AuthScreen() {
 
             {faza === 'RECOVERY_SENT' ? <View style={formStyle}>
               <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
-              <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićete link za novu lozinku. Proverite i neželjenu poštu.</Text>
+              <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićeš link za novu lozinku. Proveri i neželjenu poštu.</Text>
               <Text style={styles.smallNote}>{email.trim()}</Text>
               <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} />
               <Pressable accessibilityRole="button" style={styles.linkButton} onPress={() => commands.changeForm(() => {
                 setFaza('RECOVERY'); setGreska(null); setPoruka(null);
-              })}><Text style={styles.linkText}>Izmenite email ili ponovite zahtev</Text></Pressable>
+              })}><Text style={styles.linkText}>Izmeni email ili ponovi zahtev</Text></Pressable>
             </View> : null}
 
             {faza === 'SIGNUP_NEXT_STEP' ? (
               <View style={formStyle}>
                 <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
-                <Text style={styles.stateTitle}>{confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'}</Text>
+                <Text style={styles.stateTitle}>{confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'}</Text>
                 <Text style={styles.stateCopy}>{confirmationRequired
-                  ? 'Ako je registracija prihvaćena, dobićete poruku sa daljim uputstvom. Posle potvrde emaila vratite se na prijavu.'
-                  : 'Nalog još nije prijavljen. Vratite se na prijavu. Ako ste dobili poruku za potvrdu emaila, prvo pratite njeno uputstvo.'}</Text>
+                  ? 'Ako je registracija prihvaćena, dobićeš poruku sa daljim uputstvom. Posle potvrde emaila vrati se na prijavu.'
+                  : 'Nalog još nije prijavljen. Vrati se na prijavu. Ako ti je stigla poruka za potvrdu emaila, prvo prati njeno uputstvo.'}</Text>
                 <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
                 <Pressable disabled={radi} onPress={() => commands.changeForm(() => {
                   setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null);
                 })} style={styles.linkButton}>
-                  <Text style={styles.linkText}>Izmenite email</Text>
+                  <Text style={styles.linkText}>Izmeni email</Text>
                 </Pressable>
               </View>
             ) : null}
             {faza !== 'EMAIL' && greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
             {faza === 'EMAIL' && rezim === 'LOGIN' ? <View style={styles.notice}>
               <Text style={styles.noticeTitle}>Jedan nalog.</Text>
-              <Text style={styles.noticeCopy}>Možete i da tražite pomoć i da uskočite drugima.</Text>
+              <Text style={styles.noticeCopy}>Možeš i da tražiš pomoć i da uskočiš drugima.</Text>
             </View> : null}
           </View>
         </ScrollView>
         {faza === 'EMAIL' && methods?.emailPassword ? <View style={[styles.authFooter, { paddingBottom: Math.max(16, insets.bottom) }]}>
           <View style={styles.footerColumn}>
             <PrimaryButton
-              title={rezim === 'SIGNUP' ? 'Napravite nalog' : 'Prijavite se'}
+              title={rezim === 'SIGNUP' ? 'Napravi nalog' : 'Prijavi se'}
               disabled={rezim === 'SIGNUP' && !methods.emailSignup}
               onPress={() => void emailAkcija()}
               busy={radi}

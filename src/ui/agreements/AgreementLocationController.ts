@@ -22,7 +22,7 @@ export class AgreementLocationController {
   stopCapture=()=>{if(this.state.phase==='CAPTURING')this.capture?.abort();};
   private update(p:Partial<LocationState>){if(!this.current())return;this.state={...this.state,...p};this.listeners.forEach(fn=>fn());}
   private async run(fn:()=>Promise<void>){if(this.busy||!this.current())return;this.busy=true;
-    try{await fn();}catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',message:'Ishod nije potvrđen. Proverite sačuvano stanje.'});}
+    try{await fn();}catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',message:'Ishod nije potvrđen. Proveri sačuvano stanje.'});}
     finally{this.busy=false;}}
   load=()=>this.run(async()=>{
     this.update({phase:'LOADING',context:null,message:null});
@@ -38,7 +38,7 @@ export class AgreementLocationController {
   private async recover(){
     const j=this.state.journal;if(!j)return;this.update({phase:'LOADING',message:null});
     const result=await this.service.recover(j,this.deps.account);if(!this.current())return;
-    if(!result.ok||!result.podatak.found){this.update({phase:'UNKNOWN',message:'Potvrda još nije pronađena. Proverite ponovo ili zaustavite prvobitni zahtev.'});return;}
+    if(!result.ok||!result.podatak.found){this.update({phase:'UNKNOWN',message:'Potvrda još nije pronađena. Proveri ponovo ili zaustavi prvobitni zahtev.'});return;}
     this.confirm(result.podatak.command!.state);
   }
   private confirm(state:'COMMITTED'|'CANCELLED'){
@@ -62,8 +62,8 @@ export class AgreementLocationController {
       const result=await (this.deps.capture??captureCurrentLocation)(capture.signal,this.current);this.capture=null;
       if(!this.current())return;
       if(capture.signal.aborted){this.update({phase:'READY',message:'Deljenje je prekinuto.'});return;}
-      if(result.kind!=='POINT'){this.update({phase:'READY',message:result.kind==='DENIED'?'Lokacija nije podeljena. Dozvolu možete promeniti u podešavanjima telefona.'
-        :result.kind==='CANCELLED'?'Deljenje je prekinuto.':result.kind==='UNSUPPORTED'?'Deljenje trenutne lokacije dostupno je u mobilnoj aplikaciji.':'Nova lokacija nije dobijena. Pokušajte ponovo kada budete spremni.'});return;}
+      if(result.kind!=='POINT'){this.update({phase:'READY',message:result.kind==='DENIED'?'Lokacija nije podeljena. Dozvolu možeš promeniti u podešavanjima telefona.'
+        :result.kind==='CANCELLED'?'Deljenje je prekinuto.':result.kind==='UNSUPPORTED'?'Deljenje trenutne lokacije dostupno je u mobilnoj aplikaciji.':'Nova lokacija nije dobijena. Pokušaj ponovo.'});return;}
       point=result.point;
     }
     if(!this.current())return;

@@ -5,7 +5,7 @@ import {readOwnedResult,record,sameId,uuid,positiveInteger,failure,type ReceiptA
 import type {AskQuestionReceipt,AnswerQuestionReceipt,DispositionReceipt} from '../contracts/preselectionQa';
 export type QaContext={accountId:string;needId:string;needRevision:number;title:string;mode:'OWNER'|'PUBLIC';publicRevision:boolean;activeWorker:boolean;canAsk:boolean;canComposeAnswer:boolean;ratePolicyState:'NOT_READY'|'READY';questionMaxChars:number|null;answerMaxChars:number|null;authoritative:true};
 export type QaRecoveredCommand={type:'ASK'|'ANSWER'|'DISPOSITION';needRevision:number;textSha256:string|null;receipt:AskQuestionReceipt|AnswerQuestionReceipt|DispositionReceipt};
-const errors={AUTH_CONTEXT_CHANGED:'Nalog je promenjen. Otvorite zadatak ponovo.',NEED_NOT_FOUND:'Zadatak nije dostupan ovom nalogu.',QA_INPUT_INVALID:'Ponovo otvorite zadatak.',ACCOUNT_CLOSING:'Nalog je u postupku zatvaranja.',INTERACTION_BLOCKED:'Pitanja za ovaj zadatak nisu dostupna.',QA_RECEIPT_UNAVAILABLE:'Potvrda trenutno nije dostupna.'};
+const errors={AUTH_CONTEXT_CHANGED:'Nalog je promenjen. Otvori zadatak ponovo.',NEED_NOT_FOUND:'Zadatak nije dostupan ovom nalogu.',QA_INPUT_INVALID:'Ponovo otvori zadatak.',ACCOUNT_CLOSING:'Nalog je u postupku zatvaranja.',INTERACTION_BLOCKED:'Pitanja za ovaj zadatak nisu dostupna.',QA_RECEIPT_UNAVAILABLE:'Potvrda trenutno nije dostupna.'};
 const hash=(x:unknown):x is string=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 function owner(explicit?:ReceiptAccount){const s=sesijaSada();return explicit??(s.user?{accountId:s.user.id,accountRevision:s.accountRevision}:null);}
 const invalid=<T>():Promise<Ishod<T>>=>Promise.resolve(failure('QA_INPUT_INVALID',errors.QA_INPUT_INVALID));

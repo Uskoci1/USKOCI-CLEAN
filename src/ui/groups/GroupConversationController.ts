@@ -16,7 +16,7 @@ export class GroupConversationController{
  dispose=()=>{this.disposed=true;this.inMemoryBody=null;this.state={...initialGroupState};this.listeners.clear();};
  private update(patch:Partial<GroupState>){if(!this.current())return;this.state={...this.state,...patch};this.listeners.forEach(fn=>fn());}
  private async run(fn:()=>Promise<void>){if(this.busy||!this.current())return;this.busy=true;try{await fn();}
- catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',canRetry:false,message:'Provera nije završena. Osvežite sačuvano stanje.'});}finally{this.busy=false;}}
+ catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',canRetry:false,message:'Provera nije završena. Osveži sačuvano stanje.'});}finally{this.busy=false;}}
  load=()=>this.run(async()=>{
   this.journalLoaded=false;this.update({...initialGroupState});const raw=await this.deps.storage.getItem(this.key);if(!this.current())return;
   const journal=raw===null?null:parseGroupJournal(raw);this.journalLoaded=true;this.update({journal});
@@ -54,7 +54,7 @@ export class GroupConversationController{
   const result=await this.service.recover(j,this.deps.account);if(!this.current())return;
   if(!result.ok){this.update({phase:'UNKNOWN',canRetry:false,message:result.poruka});return;}
   if(result.podatak.found){this.confirm(result.podatak.receipt!);return;}
-  this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:'Potvrda prvobitne poruke nije pronađena. Za ponovni pokušaj unesite istu poruku.'});
+  this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:'Potvrda prvobitne poruke nije pronađena. Za ponovni pokušaj unesi istu poruku.'});
  }
  private confirm(receipt:GroupReceipt){this.inMemoryBody=null;this.update({phase:'CONFIRMED',receipt,canRetry:false,message:'Server je sačuvao poruku u ovom grupnom razgovoru.'});}
  send=(input:string)=>this.run(async()=>{
@@ -73,7 +73,7 @@ export class GroupConversationController{
  retry=(reentry?:string)=>this.run(async()=>{
   const j=this.state.journal,body=reentry===undefined?this.inMemoryBody:normalizeGroupBody(reentry);
   if(this.state.phase!=='UNKNOWN'||!this.state.canRetry||!j||!this.state.context?.group?.canSend)return;
-  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256){this.update({message:'Tekst se razlikuje od prvobitne poruke. Unesite prvobitnu poruku bez izmene.'});return;}
+  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256){this.update({message:'Tekst se razlikuje od prvobitne poruke. Unesi prvobitnu poruku bez izmene.'});return;}
   await this.write(body);
  });
  acknowledge=()=>this.run(async()=>{if(this.state.phase!=='CONFIRMED')return;await this.deps.storage.removeItem(this.key);if(!this.current())return;

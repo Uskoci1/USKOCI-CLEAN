@@ -31,7 +31,7 @@ export function CountryField({ label, value, disabled, onChange, options }: {
       onChange={onChange} options={options.countries.map(country => ({ value: country.countryCode,
         label: NAMES[country.countryCode] ?? country.countryCode, disabled: !selectableCountry(options.countries, country.countryCode) }))} />
     {options.loading ? <T>Učitavamo države…</T> : null}
-    {value && !options.countries.some(country => country.countryCode === value) ? <T>Sačuvana država: {NAMES[value] ?? value}. Izaberite dostupnu državu pre čuvanja.</T> : null}
+    {value && !options.countries.some(country => country.countryCode === value) ? <T>Sačuvana država: {NAMES[value] ?? value}. Izaberi dostupnu državu pre čuvanja.</T> : null}
     {options.error || (!options.loading && !options.countries.length) ? <View style={s.notice}>
       <T accessibilityRole="alert">{options.error ?? 'Izbor država trenutno nije dostupan.'}</T>
       <Button kind="secondary" label="Ponovo učitaj države" onPress={() => { void options.refresh(); }} />

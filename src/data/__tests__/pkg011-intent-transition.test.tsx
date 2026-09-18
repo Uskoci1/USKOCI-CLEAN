@@ -28,9 +28,9 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 test('no request renders nothing at all', async () => { await render(null); expect(tree.toJSON()).toBeNull(); });
 
 test('states where the user is, where the action leads and why; confirm and stay are the only two actions', async () => {
-  await render({ target: 'narucilac', reason: 'Novi Zadatak pravite kao naručilac.', confirmLabel: 'Pređi i napravi Zadatak' });
+  await render({ target: 'narucilac', reason: 'Novi Zadatak praviš kao naručilac.', confirmLabel: 'Pređi i napravi Zadatak' });
   const copy = text();
-  expect(copy).toContain('Prelazite u MENI TREBA'); expect(copy).toContain('Novi Zadatak pravite kao naručilac.'); expect(copy).toContain('Sada ste u JA MOGU');
+  expect(copy).toContain('Prelaziš u MENI TREBA'); expect(copy).toContain('Novi Zadatak praviš kao naručilac.'); expect(copy).toContain('Sada ste u JA MOGU');
   expect(tree.root.findAllByType('Press' as React.ElementType).map(node => node.props.accessibilityLabel)).toEqual(['Pređi i napravi Zadatak', 'Ostani u JA MOGU']);
   await act(async () => press('Pređi i napravi Zadatak').props.onPress()); expect(confirm).toHaveBeenCalledTimes(1); expect(cancel).not.toHaveBeenCalled();
   await act(async () => press('Ostani u JA MOGU').props.onPress()); expect(cancel).toHaveBeenCalledTimes(1);

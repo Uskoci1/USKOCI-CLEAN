@@ -49,7 +49,7 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
       <T style={s.copy}>Ovo je ranije zabeležena tačka. Ne potvrđuje sadašnji položaj.</T>
       <ResolvedPinMap position={{latitude:point.latitude,longitude:point.longitude}} onChoose={()=>{}} disabled scopeKey={`${accountId}:${agreementId}:${point.sharedAt}`}/>
     </View>:null}
-    {ready&&state.context?.canShare?<View style={s.group}><T style={s.copy}>Dugme uzima novu lokaciju uz dozvolu telefona i šalje je naručiocu. Možete nastaviti Dogovor i bez deljenja.</T>
+    {ready&&state.context?.canShare?<View style={s.group}><T style={s.copy}>Dugme uzima novu lokaciju uz dozvolu telefona i šalje je naručiocu. Možeš nastaviti Dogovor i bez deljenja.</T>
       <V2Action label="Podeli jednu trenutnu lokaciju" onPress={()=>{if(current())void controller?.send('SHARE');}}/></View>:null}
     {ready&&state.context?.canRequest?<V2Action label="Zatraži lokaciju Uskočera" onPress={()=>{if(current())void controller?.send('REQUEST');}}/>:null}
     {ready&&!state.context?.canShare&&!state.context?.canRequest?<T style={s.copy}>Deljenje je dostupno samo učesnicima aktivnog fizičkog Dogovora kada važe dozvole za kontakt.</T>:null}

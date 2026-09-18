@@ -20,7 +20,7 @@ import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
 type Snapshot = { need: PotrebaProjekcija; remainingClosed: boolean };
-const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvorite Zadatak i pregledajte trenutno stanje.');
+const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvori Zadatak i pregledaj trenutno stanje.');
 
 export default function PregledPotrebe() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
@@ -80,9 +80,9 @@ function OwnedNeed({ id }: { id: string }) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([load(), new Promise<Ishod<Snapshot>>(resolve => {
-        timer = setTimeout(() => resolve(failure('NEED_READ_TIMEOUT', 'Učitavanje traje predugo. Proverite vezu i pokušajte ponovo.')), 15_000);
+        timer = setTimeout(() => resolve(failure('NEED_READ_TIMEOUT', 'Učitavanje traje predugo. Proveri vezu i pokušaj ponovo.')), 15_000);
       })]);
-    } catch { return failure('NEED_READ_FAILED', 'Zadatak trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.'); }
+    } catch { return failure('NEED_READ_FAILED', 'Zadatak trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.'); }
     finally {
       if (timer !== undefined) clearTimeout(timer);
       // SDK reads may finish after the timeout. Retire their side-effect authority.
@@ -136,13 +136,13 @@ function OwnedNeed({ id }: { id: string }) {
         closeAttempt.current = attempt;
         const result = await ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId);
         if (!current()) return changed();
-        if (!result.ok) return failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitajte trenutno stanje.');
+        if (!result.ok) return failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitaj trenutno stanje.');
         const after = await read();
         if (!current()) return changed();
         if (!after.ok) return after;
         if (after.podatak.remainingClosed) closeAttempt.current = null;
         return after.podatak.remainingClosed ? after
-          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Server nije potvrdio zatvaranje preostale potrage. Učitajte trenutno stanje.');
+          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Server nije potvrdio zatvaranje preostale potrage. Učitaj trenutno stanje.');
       }); });
   };
   const openOwnedReview = async (destination: '/nova' | '/pregled-zadatka') => {
@@ -153,10 +153,10 @@ function OwnedNeed({ id }: { id: string }) {
       if (!result.ok) return result;
       if (!sameId(result.podatak.needId, potreba.id) || !uuid(result.podatak.conversationId) || !positiveInteger(result.podatak.revision)
         || result.podatak.authoritative !== true || !['DRAFT', 'PUBLISHED', 'SELECTION'].includes(result.podatak.needStatus)) {
-        return failure('NEED_EDIT_INVALID_RESPONSE', 'Otvaranje izmene nije potvrđeno. Učitajte Zadatak ponovo.');
+        return failure('NEED_EDIT_INVALID_RESPONSE', 'Otvaranje izmene nije potvrđeno. Učitaj Zadatak ponovo.');
       }
       if (result.podatak.revision !== potreba.revizija || (potreba.stanje === 'NACRT' && result.podatak.needStatus !== 'DRAFT')) {
-        return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitajte trenutno stanje pre otvaranja izmene.');
+        return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitaj trenutno stanje pre otvaranja izmene.');
       }
       navigate(() => router.push({ pathname: destination, params: { conversationId: result.podatak.conversationId } }));
       return { ok: true, podatak: editor.data! };
@@ -166,7 +166,7 @@ function OwnedNeed({ id }: { id: string }) {
     if (!canAct() || !potreba) return;
     if (potreba.stanje === 'NACRT') { void openOwnedReview('/nova'); return; }
     ask('Izmena Zadatka', 'Izmene pregledaš pre objave. Prihvatanje nove verzije ponovo pokreće proveru za objavu i postojeće Prijave tada moraju da se osveže.',
-      'Nastavite', async () => openOwnedReview('/nova'));
+      'Nastavi', async () => openOwnedReview('/nova'));
   };
 
   return <NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}

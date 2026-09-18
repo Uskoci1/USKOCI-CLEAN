@@ -60,24 +60,24 @@ afterEach(async () => { await act(async () => { tree?.unmount(); }); jest.useRea
 describe('Agreement private location uses server grant and ephemeral focused state', () => {
   it('reveals coordinate-only per-stop details only after an explicit action and matching grant readback', async () => {
     await render(); expect(mockReveal).not.toHaveBeenCalled(); expect(content()).not.toContain('PRIVATE START');
-    expect(content()).not.toContain('Podelite lokaciju'); // active intent is requester, actual party is worker
-    await press('Prikažite privatnu lokaciju');
+    expect(content()).not.toContain('Podeli lokaciju'); // active intent is requester, actual party is worker
+    await press('Prikaži privatnu lokaciju');
     expect(mockRead).toHaveBeenCalledTimes(2); expect(content()).toContain('PRIVATE START'); expect(content()).toContain('PRIVATE END');
     expect(content()).toContain('PRIVATE ACCESS');
     expect(tree.root.findAllByProps({ selectable: true })[0].children.join('')).toBe('0.000000, 0.000000');
     expect(tree.root.findByType('PrivateMap' as React.ElementType).props).toMatchObject({ disabled: true, position: { latitude: 0, longitude: 0 } });
-    await press('Prikažite na mapi: Završno mesto');
+    await press('Prikaži na mapi: Završno mesto');
     expect(tree.root.findByType('PrivateMap' as React.ElementType).props.position).toEqual({ latitude: 45.271234, longitude: 19.831234 });
   });
   it('does not reveal when the grant is absent or belongs to different participants', async () => {
     mockRead.mockResolvedValueOnce({ ok: true, podatak: state(false) }); await render();
-    expect(content()).not.toContain('Prikažite privatnu lokaciju'); expect(mockReveal).not.toHaveBeenCalled();
+    expect(content()).not.toContain('Prikaži privatnu lokaciju'); expect(mockReveal).not.toHaveBeenCalled();
     mockRead.mockResolvedValueOnce({ ok: true, podatak: { ...state(), grants: [{ ...state().grants[0], ownerAccountId: 'third' }] } });
-    await press('Osvežite dozvolu za lokaciju'); expect(content()).not.toContain('Prikažite privatnu lokaciju'); expect(mockReveal).not.toHaveBeenCalled();
+    await press('Osveži dozvolu za lokaciju'); expect(content()).not.toContain('Prikaži privatnu lokaciju'); expect(mockReveal).not.toHaveBeenCalled();
   });
   it('serializes duplicate reveal taps and rejects callbacks retained before the readback', async () => {
     const pending = deferred<unknown>(); mockReveal.mockReturnValueOnce(pending.promise); await render();
-    const old = button('Prikažite privatnu lokaciju').props.onPress;
+    const old = button('Prikaži privatnu lokaciju').props.onPress;
     await act(async () => { old(); old(); }); expect(mockReveal).toHaveBeenCalledTimes(1);
     await act(async () => { pending.resolve({ ok: true, podatak: receipt() }); }); expect(content()).toContain('PRIVATE START');
     await act(async () => { old(); }); expect(mockReveal).toHaveBeenCalledTimes(1);
@@ -86,12 +86,12 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     await render();
     mockRead.mockResolvedValueOnce({ ok: true, podatak: change === 'revoke' ? state(false)
       : { ...state(), grants: [{ ...state().grants[0], grantedAt: '2026-09-10T13:00:00Z' }] } });
-    await press('Prikažite privatnu lokaciju'); expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('PrivateMap');
+    await press('Prikaži privatnu lokaciju'); expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('PrivateMap');
     expect(content()).toContain('Dozvola za lokaciju je promenjena');
   });
   it.each(['blur', 'account', 'revision', 'participant', 'background'] as const)('removes private state and fences late callbacks on %s', async change => {
-    await render(); const old = button('Prikažite privatnu lokaciju').props.onPress;
-    await press('Prikažite privatnu lokaciju'); expect(content()).toContain('PRIVATE START');
+    await render(); const old = button('Prikaži privatnu lokaciju').props.onPress;
+    await press('Prikaži privatnu lokaciju'); expect(content()).toContain('PRIVATE START');
     if (change === 'blur') mockFocused = false;
     if (change === 'account') mockSession = { user: { id: workerId }, accountRevision: 2 };
     if (change === 'revision') agreement = { ...agreement, verzija: 2 };
@@ -104,7 +104,7 @@ describe('Agreement private location uses server grant and ephemeral focused sta
   });
   it.each(['blur', 'revision', 'account'] as const)('discards a late private network response after %s', async change => {
     const late = deferred<unknown>(); mockReveal.mockReturnValueOnce(late.promise); await render();
-    await press('Prikažite privatnu lokaciju');
+    await press('Prikaži privatnu lokaciju');
     if (change === 'blur') mockFocused = false;
     if (change === 'revision') agreement = { ...agreement, verzija: 2 };
     if (change === 'account') mockSession = { user: { id: workerId }, accountRevision: 2 };
@@ -112,12 +112,12 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('PrivateMap');
   });
   it('removes displayed points on failed refresh', async () => {
-    await render(); await press('Prikažite privatnu lokaciju');
-    mockRead.mockResolvedValueOnce({ ok: false, kod: 'UNAVAILABLE', poruka: 'Proverite vezu i pokušajte ponovo.' });
-    await press('Osvežite dozvolu za lokaciju'); expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('PrivateMap');
+    await render(); await press('Prikaži privatnu lokaciju');
+    mockRead.mockResolvedValueOnce({ ok: false, kod: 'UNAVAILABLE', poruka: 'Proveri vezu i pokušaj ponovo.' });
+    await press('Osveži dozvolu za lokaciju'); expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('PrivateMap');
   });
   it('fences a retained tap synchronously with background notification before React cleanup', async () => {
-    await render(); const old = button('Prikažite privatnu lokaciju').props.onPress;
+    await render(); const old = button('Prikaži privatnu lokaciju').props.onPress;
     await act(async () => { mockAppStateListener('background'); old(); });
     expect(mockReveal).not.toHaveBeenCalled(); expect(content()).not.toContain('PrivateMap');
   });
@@ -126,27 +126,27 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     const expiresAt = '2026-09-10T12:00:02Z';
     mockRead.mockImplementation(async () => ({ ok: true, podatak: state(true, expiresAt) }));
     mockReveal.mockResolvedValue({ ok: true, podatak: receipt(expiresAt) });
-    await render(); await press('Prikažite privatnu lokaciju'); expect(content()).toContain('PRIVATE START');
+    await render(); await press('Prikaži privatnu lokaciju'); expect(content()).toContain('PRIVATE START');
     await act(async () => { jest.advanceTimersByTime(2001); });
-    expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('Prikažite privatnu lokaciju');
+    expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('Prikaži privatnu lokaciju');
   });
   it('lets the actual requester grant coordinate-only data, blocks duplicates and unknown-write replay until readback', async () => {
     mockSession = { user: { id: ownerId }, accountRevision: 1 }; mockIntent = 'uskocer';
     agreement.ucesnici = agreement.ucesnici.map(party => ({ ...party, viSte: party.id === ownerId }));
     mockRead.mockImplementation(async () => ({ ok: true, podatak: state(false) }));
     const pending = deferred<unknown>(); mockGrant.mockReturnValueOnce(pending.promise); await render();
-    const old = button('Podelite lokaciju').props.onPress;
+    const old = button('Podeli lokaciju').props.onPress;
     await act(async () => { old(); old(); }); expect(mockGrant).toHaveBeenCalledTimes(1);
-    await act(async () => { pending.resolve({ ok: false, kod: 'UNKNOWN', poruka: 'Osvežite prikaz.' }); });
-    await act(async () => { old(); button('Podelite lokaciju').props.onPress(); }); expect(mockGrant).toHaveBeenCalledTimes(1);
-    await press('Osvežite dozvolu za lokaciju'); await act(async () => { old(); }); expect(mockGrant).toHaveBeenCalledTimes(1);
-    mockRead.mockImplementation(async () => ({ ok: true, podatak: state() })); await press('Podelite lokaciju');
-    expect(mockGrant).toHaveBeenCalledTimes(2); expect(content()).toContain('Opozovite deljenje lokacije'); expect(mockReveal).not.toHaveBeenCalled();
-    mockRead.mockImplementation(async () => ({ ok: true, podatak: state(false) })); await press('Opozovite deljenje lokacije');
-    expect(mockRevoke).toHaveBeenCalledTimes(1); expect(content()).toContain('Podelite lokaciju');
+    await act(async () => { pending.resolve({ ok: false, kod: 'UNKNOWN', poruka: 'Osveži prikaz.' }); });
+    await act(async () => { old(); button('Podeli lokaciju').props.onPress(); }); expect(mockGrant).toHaveBeenCalledTimes(1);
+    await press('Osveži dozvolu za lokaciju'); await act(async () => { old(); }); expect(mockGrant).toHaveBeenCalledTimes(1);
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: state() })); await press('Podeli lokaciju');
+    expect(mockGrant).toHaveBeenCalledTimes(2); expect(content()).toContain('Opozovi deljenje lokacije'); expect(mockReveal).not.toHaveBeenCalled();
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: state(false) })); await press('Opozovi deljenje lokacije');
+    expect(mockRevoke).toHaveBeenCalledTimes(1); expect(content()).toContain('Podeli lokaciju');
   });
   it.each(['COMPLETED', 'CANCELLED', 'REMOTE'] as const)('removes private state for %s', async status => {
-    await render(); await press('Prikažite privatnu lokaciju');
+    await render(); await press('Prikaži privatnu lokaciju');
     agreement = status === 'REMOTE' ? { ...agreement, rezim: 'DALJINSKI' } : { ...agreement, stanje: status };
     await update(); expect(tree.toJSON()).toBeNull();
   });

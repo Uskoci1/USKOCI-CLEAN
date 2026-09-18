@@ -6,22 +6,22 @@ import type { Ishod } from './ports';
  * module stays dependency-free so the screen can own denial copy without loading
  * the Supabase client. */
 export const completionErrors: Readonly<Record<string, string>> = Object.freeze({
-  AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.',
   NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan.',
-  AGREEMENT_NEED_MISMATCH: 'Dogovor nije dostupan. Osvežite prikaz.',
-  EXECUTION_NOT_FOUND: 'Stanje izvršenja Dogovora nije dostupno. Osvežite prikaz.',
-  EXECUTION_VERSION_MISMATCH: 'Dogovor je promenjen. Osvežite važeće uslove pre završetka.',
+  AGREEMENT_NEED_MISMATCH: 'Dogovor nije dostupan. Osveži prikaz.',
+  EXECUTION_NOT_FOUND: 'Stanje izvršenja Dogovora nije dostupno. Osveži prikaz.',
+  EXECUTION_VERSION_MISMATCH: 'Dogovor je promenjen. Osveži važeće uslove pre završetka.',
   ONLY_REQUESTER_CAN_CONFIRM_COMPLETION: 'Završetak potvrđuje Naručilac iz Dogovora.',
   ONLY_WORKER_CAN_MARK_DONE: 'Završetak označava Uskočer iz Dogovora.',
   AGREEMENT_CANCELLED: 'Dogovor je otkazan. Završetak više nije moguć.',
-  AGREEMENT_ALREADY_COMPLETED: 'Dogovor je već završen. Osvežite njegov status.',
-  AGREEMENT_NOT_ACTIVE: 'Dogovor više nije aktivan. Osvežite njegov status.',
-  COMPLETION_NOT_CONFIRMABLE: 'Dogovor trenutno nije u stanju za potvrdu završetka. Osvežite njegov status.',
-  EXECUTION_NOT_MARKABLE_DONE: 'Završetak trenutno nije moguće označiti. Osvežite status Dogovora.',
-  COMPLETION_STATE_CORRUPT: 'Stanje završetka nije čitljivo. Osvežite status Dogovora.',
-  COMPLETION_TRANSITION_RACE: 'Dogovor se upravo promenio. Osvežite status pre novog pokušaja.',
-  AGREEMENT_CHANGE_PENDING: 'Najpre odgovorite na postojeći predlog izmene.',
+  AGREEMENT_ALREADY_COMPLETED: 'Dogovor je već završen. Osveži njegov status.',
+  AGREEMENT_NOT_ACTIVE: 'Dogovor više nije aktivan. Osveži njegov status.',
+  COMPLETION_NOT_CONFIRMABLE: 'Dogovor trenutno nije u stanju za potvrdu završetka. Osveži njegov status.',
+  EXECUTION_NOT_MARKABLE_DONE: 'Završetak trenutno nije moguće označiti. Osveži status Dogovora.',
+  COMPLETION_STATE_CORRUPT: 'Stanje završetka nije čitljivo. Osveži status Dogovora.',
+  COMPLETION_TRANSITION_RACE: 'Dogovor se upravo promenio. Osveži status pre novog pokušaja.',
+  AGREEMENT_CHANGE_PENDING: 'Najpre odgovori na postojeći predlog izmene.',
 });
 
 /** Screen-owned copy for a known completion denial; any other code stays generic. */

@@ -13,12 +13,12 @@ export type SafetyReportReceipt = { reportId: string; received: true; createdAt:
 export type MyBlockedAccounts = { accountId: string; items: Array<AccountBlockState & { displayName: string | null }>; nextCursor: string | null; authoritative: true };
 export type MySafetyReportCommand = { accountId: string; clientRequestId: string; found: boolean; receipt: SafetyReportReceipt | null; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
-  BLOCK_INPUT_INVALID: 'Ponovo otvorite profil korisnika.',
-  BLOCK_REVISION_CONFLICT: 'Izbor blokiranja je promenjen. Proverite aktuelno stanje.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  BLOCK_INPUT_INVALID: 'Ponovo otvori profil korisnika.',
+  BLOCK_REVISION_CONFLICT: 'Izbor blokiranja je promenjen. Proveri aktuelno stanje.',
   TARGET_NOT_AVAILABLE: 'Korisnik trenutno nije dostupan.',
-  REQUEST_ID_REUSED: 'Zahtev je već upotrebljen. Proverite potvrdu prethodne radnje.',
-  SAFETY_REPORT_INPUT_INVALID: 'Proverite kategoriju i dužinu privatne prijave.',
+  REQUEST_ID_REUSED: 'Zahtev je već upotrebljen. Proveri potvrdu prethodne radnje.',
+  SAFETY_REPORT_INPUT_INVALID: 'Proveri kategoriju i dužinu privatne prijave.',
   SAFETY_CONTEXT_NOT_AVAILABLE: 'Ovaj kontekst nije dostupan za prijavu.',
   REPORT_NOT_AVAILABLE: 'Privatna prijava nije dostupna ovom nalogu.',
   INTERACTION_BLOCKED: 'Ova komunikacija trenutno nije dostupna.',

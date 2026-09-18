@@ -3,7 +3,7 @@ jest.mock('../supabaseClient',()=>({supabaseKlijent:jest.fn()}));
 const id='12345678-1234-1234-1234-123456789012';
 const at='2026-09-07T07:00:00Z';
 const event={id,eventType:'RESPONSE_SELECTED',role:'WORKER',occurredAt:at,readAt:null,
-  title:'Vaša prijava je izabrana',body:'Otvorite Dogovor.',family:'responses'};
+  title:'Vaša prijava je izabrana',body:'Otvori Dogovor.',family:'responses'};
 describe('Inbox production adapter',()=>{
   it('sends paired cursor and role and returns only a validated projection',async()=>{
     const rpc=jest.fn().mockResolvedValue({data:{items:[event],unreadCount:1,hasMore:false,asOf:at},error:null});

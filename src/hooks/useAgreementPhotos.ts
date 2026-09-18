@@ -42,13 +42,13 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
     if (!current()) return;
     if (!inventory.ok) { apply({ loaded: false, items, saved: [], message: inventory.poruka }); return; }
     apply({ loaded: true, items, saved: inventory.podatak.filter(upload => !items.some(item => item.ref.clientRequestId === upload.clientRequestId)),
-      ...(unknown ? { message: 'Ishod fotografije nije učitan. Proverite ishod pre novog izbora.' } : {}) });
+      ...(unknown ? { message: 'Ishod fotografije nije učitan. Proveri ishod pre novog izbora.' } : {}) });
   }
   useFocusEffect(useCallback(() => {
     const token = {}; focus.current = token; operation.current = token; navigate.current = false;
     const current = () => focus.current === token && owns();
     apply({ loaded: false, busy: true, items: [], saved: [], message: null });
-    void read(current).catch(() => { if (current()) apply({ loaded: false, message: 'Sačuvani izbor nije učitan. Osvežite fotografije.' }); })
+    void read(current).catch(() => { if (current()) apply({ loaded: false, message: 'Sačuvani izbor nije učitan. Osveži fotografije.' }); })
       .finally(() => { if (current()) { operation.current = null; apply({ busy: false }); } });
     return () => { if (focus.current === token) focus.current = null; operation.current = null; abort.current?.abort(); prepared.current.clear(); };
   }, [identity]));
@@ -58,14 +58,14 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
     if (!current() || operation.current) return;
     const token = {}; operation.current = token; apply({ busy: true, message: null });
     const valid = () => current() && operation.current === token;
-    try { await work(valid); } catch { if (valid()) apply({ loaded: false, message: 'Ishod nije potvrđen. Proverite fotografije pre novog pokušaja.' }); }
+    try { await work(valid); } catch { if (valid()) apply({ loaded: false, message: 'Ishod nije potvrđen. Proveri fotografije pre novog pokušaja.' }); }
     finally { if (valid()) { operation.current = null; apply({ busy: false }); } }
   }
   async function upload(ref: AgreementUploadRef, photo: PreparedPhoto, valid: () => boolean) {
     await agreementPhotoJournal.save(accountId, ref, valid);
     if (!valid()) return;
     if (!live.current.writable || live.current.agreementVersion !== ref.agreementVersion) {
-      apply({ message: 'Osvežite uslove Dogovora pre slanja fotografije.' }); await read(valid); return;
+      apply({ message: 'Osveži uslove Dogovora pre slanja fotografije.' }); await read(valid); return;
     }
     const controller = new AbortController(); abort.current = controller;
     const result = await agreementPhotoClientService.upload(ref, photo.bytes, identity, controller.signal);

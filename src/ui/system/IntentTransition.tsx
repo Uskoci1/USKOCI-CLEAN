@@ -34,7 +34,7 @@ export function IntentTransition({ request, current, onConfirm, onCancel }: {
         <View style={s.handle} />
         <View style={s.badge}><ArrowsLeftRight size={20} color={sys.color.green} /></View>
         <T variant="meta" tone="muted">Promena namere</T>
-        <T accessibilityRole="header" variant="title" style={s.title}>{`Prelazite u ${intentTitle(request.target)}`}</T>
+        <T accessibilityRole="header" variant="title" style={s.title}>{`Prelaziš u ${intentTitle(request.target)}`}</T>
         <T variant="body" style={s.body}>{request.reason}</T>
         <T variant="meta" tone="muted">{`Sada ste u ${intentTitle(current)}. Isti nalog ima obe namere; nazad se vraćate preko profila.`}</T>
         <View style={s.actions}>

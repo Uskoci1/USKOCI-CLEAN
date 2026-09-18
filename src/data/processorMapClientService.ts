@@ -72,8 +72,8 @@ export const processorMapClientService = {
     if (error) {
       const name = typeof error.message === 'string' ? error.message : '';
       return fail(name || error.code || 'PROCESSOR_MAP_READ_FAILED', name === 'AUTH_REQUIRED'
-        ? 'Prijavite se da biste videli obrađivače podataka.'
-        : 'Podaci o obrađivačima trenutno nisu dostupni. Pokušajte ponovo.');
+        ? 'Prijavi se da vidiš obrađivače podataka.'
+        : 'Podaci o obrađivačima trenutno nisu dostupni. Pokušaj ponovo.');
     }
     if (!data || typeof data.ready !== 'boolean') return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Server nije vratio stanje mape obrađivača.');
     if (data.ready !== true) {

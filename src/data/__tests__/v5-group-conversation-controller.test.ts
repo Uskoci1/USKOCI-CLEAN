@@ -4,7 +4,7 @@ import { GroupConversationController } from '../../ui/groups/GroupConversationCo
 import { groupBodyHash,type GroupJournal } from '../groupConversationService';
 const A='10000000-0000-4000-8000-000000000001',ID='20000000-0000-4000-8000-000000000001',G='30000000-0000-4000-8000-000000000001',K='40000000-0000-4000-8000-000000000001',M='50000000-0000-4000-8000-000000000001';
 const j:GroupJournal={version:1,groupId:G,clientRequestId:K,bodySha256:groupBodyHash('Privatna zajednička poruka')};
-const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'GROUP_UNCONFIRMED',poruka:'Proverite ishod.'};
+const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'GROUP_UNCONFIRMED',poruka:'Proveri ishod.'};
 const context=()=>({accountId:A,agreementId:ID,needId:ID,available:true,authoritative:true,group:{groupId:G,title:'Zadatak',canSend:true,terminal:false,role:'PARTICIPANT',members:[],management:null,managementNextId:null,unreadCount:1}});
 const message=(sequence='1')=>({messageId:M,sequence,senderAccountId:A,body:'Privatna zajednička poruka',createdAt:'2026-09-13T12:00:00Z',mine:true});
 function deferred<T>(){let resolve!:(v:T)=>void;const promise=new Promise<T>(r=>{resolve=r;});return{promise,resolve};}

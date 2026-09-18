@@ -71,7 +71,7 @@ it('reviews actual entered terms and reason once, persists opaque metadata and d
 });
 const mockSessionAccount=()=>({accountId:A,accountRevision:1});
 it('requires a positive bounded price and a real change before review',async()=>{
- await render();await tap('Predloži izmenu uslova');await tap('Pregledaj radnju');expect(text()).toContain('Izmenite bar jedan');
+ await render();await tap('Predloži izmenu uslova');await tap('Pregledaj radnju');expect(text()).toContain('Izmeni bar jedan');
  await type('Predložena cena u RSD','-5');await tap('Pregledaj radnju');expect(text()).toContain('pozitivan ceo iznos');
  expect(mockService.propose).not.toHaveBeenCalled();expect(tree.root.findAllByProps({label:'Pošalji predlog izmene'})).toHaveLength(0);
 });
@@ -88,7 +88,7 @@ it('retires the final callback immediately after canceling its review, including
  await act(async()=>{cancel();old();});expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
 it('cancel reason is required and a transport ACK remains unknown until canonical CANCELLED',async()=>{
- await render();await tap('Otkazivanje Dogovora');await tap('Pregledaj radnju');expect(text()).toContain('Unesite razlog otkazivanja');
+ await render();await tap('Otkazivanje Dogovora');await tap('Pregledaj radnju');expect(text()).toContain('Unesi razlog otkazivanja');
  await type('Razlog otkazivanja Dogovora','Otkazujem');await tap('Pregledaj radnju');expect(text()).toContain('precizna lokacija se opozivaju');
  mockService.cancel.mockResolvedValue(ok({acknowledged:true}));await tap('Otkaži Dogovor');expect(action('Proveri ishod radnje')).toBeDefined();
  expect(text()).not.toContain('Dogovor je otkazan.');snapshot={...snapshot,agreementStatus:'CANCELLED'};

@@ -16,21 +16,21 @@ function current(scope: SupportScope) {
   const s = sesijaSada();
   return s.user?.id === scope.accountId && s.accountRevision === scope.accountRevision && (scope.isCurrent?.() ?? true);
 }
-const changed = () => failure('SUPPORT_SCOPE_CHANGED', 'Ponovo otvorite podršku da biste nastavili.');
-const invalid = () => failure('SUPPORT_INPUT_INVALID', 'Proverite podatke zahteva.');
+const changed = () => failure('SUPPORT_SCOPE_CHANGED', 'Ponovo otvori podršku da nastaviš.');
+const invalid = () => failure('SUPPORT_INPUT_INVALID', 'Proveri podatke zahteva.');
 const options = { fallback: 'SUPPORT_UNCONFIRMED', invalid: 'SUPPORT_RECEIPT_INVALID', errors: {
-  AUTH_REQUIRED: 'Prijavite se ponovo da biste otvorili podršku.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvorite podršku.',
+  AUTH_REQUIRED: 'Prijavi se ponovo da otvoriš podršku.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori podršku.',
   SUPPORT_CASE_NOT_AVAILABLE: 'Zahtev nije dostupan ovom nalogu.', SUPPORT_OPERATOR_REQUIRED: 'Operaterski pristup više nije dostupan.',
-  SUPPORT_REVISION_STALE: 'Zahtev je promenjen. Osvežite ga pre sledeće radnje.',
-  SUPPORT_KEY_REUSED: 'Ovaj zahtev za slanje pripada prvobitnom sadržaju.', SUPPORT_INPUT_INVALID: 'Proverite podatke zahteva.',
+  SUPPORT_REVISION_STALE: 'Zahtev je promenjen. Osveži ga pre sledeće radnje.',
+  SUPPORT_KEY_REUSED: 'Ovaj zahtev za slanje pripada prvobitnom sadržaju.', SUPPORT_INPUT_INVALID: 'Proveri podatke zahteva.',
   SUPPORT_CASE_DAILY_LIMIT: 'Dostignut je limit od 5 novih običnih zahteva za 24 sata.',
-  SUPPORT_CREATE_COOLDOWN: 'Sačekajte najmanje 60 sekundi između novih običnih zahteva.',
+  SUPPORT_CREATE_COOLDOWN: 'Sačekaj najmanje 60 sekundi između novih običnih zahteva.',
   SUPPORT_REPLY_DAILY_LIMIT: 'Dostignut je limit od 50 dopuna običnih zahteva za 24 sata.',
-  SUPPORT_REFERENCE_NOT_AVAILABLE: 'Odabrani kontekst više nije dostupan.', SUPPORT_REFERENCE_INVALID: 'Proverite odabrani kontekst.',
-  SUPPORT_REFERENCE_STALE: 'Odabrani kontekst je promenjen. Učitajte njegovu trenutnu verziju.',
+  SUPPORT_REFERENCE_NOT_AVAILABLE: 'Odabrani kontekst više nije dostupan.', SUPPORT_REFERENCE_INVALID: 'Proveri odabrani kontekst.',
+  SUPPORT_REFERENCE_STALE: 'Odabrani kontekst je promenjen. Učitaj njegovu trenutnu verziju.',
   SUPPORT_MEDIA_REFERENCE_NOT_AVAILABLE: 'Izabrane fotografije još nisu dostupne za ovaj zahtev.',
-  SUPPORT_CONTEXT_REQUIRED: 'Odaberite saradnju ili pregled na koji se zahtev odnosi.',
-  SUPPORT_ACTION_NOT_AVAILABLE: 'Radnja trenutno nije dostupna.', SUPPORT_CURSOR_INVALID: 'Ponovo osvežite prikaz podrške.',
+  SUPPORT_CONTEXT_REQUIRED: 'Odaberi saradnju ili pregled na koji se zahtev odnosi.',
+  SUPPORT_ACTION_NOT_AVAILABLE: 'Radnja trenutno nije dostupna.', SUPPORT_CURSOR_INVALID: 'Ponovo osveži prikaz podrške.',
   SUPPORT_APPEAL_ALREADY_OPEN: 'Za ovu odluku već postoji otvorena žalba.', SUPPORT_APPEAL_NOT_AVAILABLE: 'Žalba trenutno nije dostupna.',
   SUPPORT_DECISION_NOT_AVAILABLE: 'Odabrana odluka nije dostupna.', ACCOUNT_CLOSING: 'Nalog je u postupku zatvaranja.',
 } };
@@ -127,7 +127,7 @@ async function recover(value: SupportIntent, scope: SupportScope): Promise<Ishod
     raw => decodeSupportCommand(raw, intent));
   if (result.ok && result.podatak.state !== 'ABSENT' && current(scope)) {
     try { await supportCaseJournal.clear(intent, () => current(scope)); }
-    catch { return failure('SUPPORT_LOCAL_RECOVERY_FAILED', 'Potvrda postoji, ali oporavak na uređaju nije dovršen. Proverite ponovo.'); }
+    catch { return failure('SUPPORT_LOCAL_RECOVERY_FAILED', 'Potvrda postoji, ali oporavak na uređaju nije dovršen. Proveri ponovo.'); }
   }
   return current(scope) ? result : changed();
 }
@@ -178,7 +178,7 @@ export const supportCaseClientService = {
     inFlight.add(lock);
     try {
       try { await supportCaseJournal.save(intent, () => current(scope)); }
-      catch { return failure('SUPPORT_UNRESOLVED_INTENT', 'Najpre proverite ili otkažite prethodno slanje.'); }
+      catch { return failure('SUPPORT_UNRESOLVED_INTENT', 'Najpre proveri ili otkaži prethodno slanje.'); }
       if (!current(scope)) return changed();
       const acknowledgement = await request('rpc_support_submit_v5', { p_client_request_id: intent.clientRequestId, p_kind: intent.kind,
         p_case_id: intent.caseId, p_expected_revision: intent.expectedRevision, p_payload_text: payloadText }, scope,

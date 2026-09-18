@@ -92,7 +92,7 @@ it('opens a cold native login destination whose query arrives after the Auth scr
   expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
   expect(host('View').some(node => node.props.importantForAccessibility === 'no-hide-descendants' && node.props.pointerEvents === 'none')).toBe(true);
   expect(input('ime@primer.rs')).toBeDefined();
-  expect(button('Prijavite se')).toBeDefined();
+  expect(button('Prijavi se')).toBeDefined();
   expect(mockSplashOptions).toHaveBeenLastCalledWith({ enabled: true });
   expect(host('View').some(node => node.props.onLayout === mockFormLayout)).toBe(true);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
@@ -102,17 +102,17 @@ it('handles a later recovery destination without remounting or carrying an enter
   mockParams = { form: 'login' };
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   await act(async () => { tree = create(<AuthScreen />); });
-  await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesite lozinku', 'private-password');
-  const oldLogin = button('Prijavite se').props.onPress;
+  await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesi lozinku', 'private-password');
+  const oldLogin = button('Prijavi se').props.onPress;
   mockParams = { form: 'recovery' };
   await act(async () => tree.update(<AuthScreen />));
-  expect(button('Pošaljite link')).toBeDefined();
+  expect(button('Pošalji link')).toBeDefined();
   expect(host('TextInput')).toHaveLength(1);
   expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
   await act(async () => oldLogin());
   expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
   await press('Nazad na prijavu');
-  expect(input('Unesite lozinku').props.value).toBe('');
+  expect(input('Unesi lozinku').props.value).toBe('');
 });
 
 it('does not replay an unchanged route parameter over the user-selected registration form', async () => {
@@ -121,7 +121,7 @@ it('does not replay an unchanged route parameter over the user-selected registra
   await press('Napravi nalog'); await fill('Ime', 'Ana');
   await act(async () => tree.update(<AuthScreen />));
   expect(button('Već imaš nalog? Prijavi se')).toBeDefined();
-  expect(button('Napravi nalog')).toBeUndefined();
+  expect(button('Prijavi se')).toBeUndefined();
   expect(input('Ime').props.value).toBe('Ana');
 });
 
@@ -129,16 +129,16 @@ it('does not interrupt or silently queue a conflicting route during an in-flight
   mockParams = { form: 'login' };
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   await act(async () => { tree = create(<AuthScreen />); });
-  await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesite lozinku', 'private-password');
+  await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesi lozinku', 'private-password');
   const pending = deferred<void>(); mockAuth.signInWithPassword.mockReturnValueOnce(pending.promise);
-  await act(async () => button('Prijavite se').props.onPress());
+  await act(async () => button('Prijavi se').props.onPress());
   mockParams = { form: 'recovery' };
   await act(async () => tree.update(<AuthScreen />));
   expect(host('TextInput')).toHaveLength(2);
-  expect(button('Pošaljite link')).toBeUndefined();
+  expect(button('Pošalji link')).toBeUndefined();
   await act(async () => pending.reject(new Error('Prijava nije potvrđena.')));
-  expect(input('Unesite lozinku').props.value).toBe('private-password');
-  expect(button('Pošaljite link')).toBeUndefined();
+  expect(input('Unesi lozinku').props.value).toBe('private-password');
+  expect(button('Pošalji link')).toBeUndefined();
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
 });
 
@@ -149,6 +149,6 @@ it('ignores an unknown or removed form parameter without discarding user input',
   for (const form of ['untrusted', undefined]) {
     mockParams = { form }; await act(async () => tree.update(<AuthScreen />));
     expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
-    expect(button('Prijavite se')).toBeDefined();
+    expect(button('Prijavi se')).toBeDefined();
   }
 });

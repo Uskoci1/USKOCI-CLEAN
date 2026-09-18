@@ -4,7 +4,7 @@ const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 let mockIntent='narucilac';
 const at='2026-09-10T12:00:00Z';
-const item={id:'event',title:'Vaša Prijava je izabrana',body:'Otvorite Dogovor.',readAt:null,occurredAt:at,role:'WORKER',family:'responses'};
+const item={id:'event',title:'Vaša Prijava je izabrana',body:'Otvori Dogovor.',readAt:null,occurredAt:at,role:'WORKER',family:'responses'};
 let mockState:any;
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),React=require('react');return new Proxy(native,{get(target,key){
   if(['View','ActivityIndicator'].includes(String(key)))return key;
@@ -38,14 +38,14 @@ test('successful empty uses the original vector and one owned settings destinati
 });
 test.each(['load','action','page'])('%s failure preserves last data without asserting a successful empty state',async error=>{
   mockState={...mockState,error,page:error==='load'?null:{...mockState.page,items:[item],unreadCount:1}};await render();
-  expect(text()).not.toContain('Još nema obaveštenja');expect(text()).toContain(error==='load'?'pokušajte ponovo da učitate obaveštenja.':'Poslednje učitano stanje ostaje prikazano.');
+  expect(text()).not.toContain('Još nema obaveštenja');expect(text()).toContain(error==='load'?'pokušaj ponovo da učitaš obaveštenja.':'Poslednje učitano stanje ostaje prikazano.');
   if(error!=='load')expect(text()).toContain(item.title);
 });
 test('an event of the other intent asks first; one confirm switches the intent and opens only the resolved target',async()=>{
   mockState.page.items=[item];mockState.page.unreadCount=1;await render();
   await openItem();
   expect(mockModel.open).toHaveBeenCalledWith(item);expect(mockRole).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(text()).toContain('Prelazite u JA MOGU');expect(text()).toContain('Sada ste u MENI TREBA');
+  expect(text()).toContain('Prelaziš u JA MOGU');expect(text()).toContain('Sada ste u MENI TREBA');
   await act(async()=>press('Pređi i otvori').props.onPress());
   expect(mockRole).toHaveBeenCalledWith('uskocer');expect(mockRole).toHaveBeenCalledTimes(1);
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/dogovor/[id]',params:{id:'actual-agreement'}}]]);

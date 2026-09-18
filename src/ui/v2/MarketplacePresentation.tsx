@@ -61,15 +61,15 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
-      : error ? <View style={s.state}><T style={s.stateTitle}>Zadatke trenutno nije moguće učitati</T><T style={s.stateBody}>Proverite internet vezu i pokušajte ponovo.</T>
-        <V2Action label="Pokušajte ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : hasFilter ? <View style={s.state}><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promenite pretragu ili poništite filtere.</T>
+      : error ? <View style={s.state}><T style={s.stateTitle}>Zadatke trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
+        <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
+        : hasFilter ? <View style={s.state}><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promeni pretragu ili poništite filtere.</T>
           <V2Action label="Poništi filtere" onPress={() => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport })} /></View>
-          : owned ? <View style={s.state}><T style={s.stateTitle}>{items.length ? 'Nema aktivnih zadataka' : 'Još nemate Zadatak'}</T>
-            <T style={s.stateBody}>{items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Recite šta Vam treba. Nacrt pregledate pre objave.'}</T>
-            {props.onNew ? <V2Action label={items.length ? 'Napravite novi Zadatak' : 'Napravite prvi Zadatak'} onPress={props.onNew} style={brandAction} /> : null}
+          : owned ? <View style={s.state}><T style={s.stateTitle}>{items.length ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak'}</T>
+            <T style={s.stateBody}>{items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}</T>
+            {props.onNew ? <V2Action label={items.length ? 'Napravi novi Zadatak' : 'Napravi prvi Zadatak'} onPress={props.onNew} style={brandAction} /> : null}
             {items.length ? <V2Action label="Prikaži sve moje zadatke" kind="quiet" onPress={() => change({ section: 'all' })} /> : null}</View>
-            : <View style={s.state}><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T><T style={s.stateBody}>Osvežite listu ili dopunite svoj profil.</T>
+            : <View style={s.state}><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T><T style={s.stateBody}>Osveži listu ili dopuni svoj profil.</T>
               <V2Action label="Osveži zadatke" onPress={props.onRefresh} style={brandAction} /><V2Action label="Moj profil" kind="quiet" onPress={props.onProfile} /></View>}
   </View>;
 
