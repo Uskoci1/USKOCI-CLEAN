@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationReview } from '../../contracts/location';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { needLocationClientService } from '../../data/locationClientService';
+import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import { locationSlots } from '../../lib/location';
 import { T } from '../Text';
 import { V2Action as Button } from '../v2/V2Action';
@@ -48,6 +49,12 @@ type State =
   | { kind: 'SAVED' };
 
 export function ConversationPointAsk(props: { conversationId: string; onSaved: () => void; onClose: () => void }) {
+  // Without this the point editor falls back to an unconfigured resolver, which answers
+  // PROVIDER_ACTIVATION_BLOCKED without making a request at all: the search never leaves the
+  // device, no candidate arrives, no pin is placed, and the map sits at [0,0] zoom 1 showing
+  // half the world. The long form has always passed this; the conversation must too.
+  const resolver = useMemo(() => createProductionLocationResolver(), [props.conversationId]);
+  useEffect(() => () => resolver.cancel(), [resolver]);
   const [state, setState] = useState<State>({ kind: 'LOADING' });
   const [points, setPoints] = useState<readonly ConfirmedLocationPoint[]>([]);
   const alive = useRef(true);
@@ -133,7 +140,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     {state.kind === 'SAVING' ? <T accessibilityLiveRegion="polite" tone="muted">Čuvam mesto…</T> : null}
     {next ? <LocationPointEditor key={next} slot={next} title={title(next, geography)}
       point={points.find(point => point.slot === next)} scopeKey={`${review.conversationId}:${review.revision}`}
-      countryCode={country} initialQuery={seed(next, review.value)} autoLocate
+      countryCode={country} initialQuery={seed(next, review.value)} autoLocate resolver={resolver}
       disabled={state.kind === 'SAVING'} onInvalidate={() => {}} onConfirm={confirm} /> : null}
     <Button kind="quiet" label="Kasnije" onPress={props.onClose} />
   </View>;

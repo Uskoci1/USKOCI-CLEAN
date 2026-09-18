@@ -56,6 +56,11 @@ const mockRead = jest.fn(), mockSave = jest.fn();
 jest.mock('../locationClientService', () => ({
   needLocationClientService: { read: (...args: unknown[]) => mockRead(...args), save: (...args: unknown[]) => mockSave(...args) },
 }));
+const resolverDouble = { search: jest.fn(), reverse: jest.fn(), cancel: jest.fn() };
+const mockProductionResolver = jest.fn(() => resolverDouble);
+jest.mock('../productionLocationResolver', () => ({
+  createProductionLocationResolver: () => mockProductionResolver(),
+}));
 // The point editor reaches the native map; this suite is about the ask, not the map.
 jest.mock('../../ui/location/LocationPointEditor', () => ({
   LocationPointEditor: () => null,
@@ -101,6 +106,16 @@ describe('the conversation point ask', () => {
     expect(editor().props.slot).toBe('start');
     expect(editor().props.initialQuery).toBe('Lenke Dunđerski 11, Novi Sad');
     expect(editor().props.autoLocate).toBe(true);
+  });
+
+  it('hands the editor a resolver that can actually reach the search endpoint', async () => {
+    // Without one the editor builds an unconfigured resolver, which answers
+    // PROVIDER_ACTIVATION_BLOCKED without a request: the seeded lookup never leaves the device,
+    // no pin is placed, and the map opens on half the world. That is what shipped in
+    // pkg022-b9231a3 and what this pins closed.
+    await mount();
+    expect(mockProductionResolver).toHaveBeenCalled();
+    expect(editor().props.resolver).toBe(resolverDouble);
   });
 
   it('writes nothing until every required point is confirmed', async () => {

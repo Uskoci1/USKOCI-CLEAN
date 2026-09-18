@@ -197,3 +197,31 @@ it('cancelling reverse lookup preserves an explicitly confirmed provider pin and
   expect(button('Koristi privatnu adresu: '+candidate.label)).toBeUndefined();
   expect(props.onConfirm).toHaveBeenCalledTimes(1);
 });
+
+describe('autoLocate', () => {
+  it('looks up the seeded query once, without being pressed', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, autoLocate: true, initialQuery: 'Lenke Dunđerski 11, Novi Sad' });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(resolver.search.mock.calls[0][0]).toMatchObject({ text: 'Lenke Dunđerski 11, Novi Sad', countryCode: 'RS' });
+  });
+
+  it('does not look anything up when it is not asked to', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, initialQuery: 'Lenke Dunđerski 11, Novi Sad' });
+    expect(resolver.search).not.toHaveBeenCalled();
+  });
+
+  it('never moves a point the person already confirmed', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, autoLocate: true, initialQuery: 'Novi Sad',
+      point: { slot: 'start', latitudeE6: 45_255_000, longitudeE6: 19_845_000, origin: { kind: 'MANUAL_PIN' } } });
+    expect(resolver.search).not.toHaveBeenCalled();
+  });
+
+  it('does not look up an empty seed', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, autoLocate: true, initialQuery: '   ' });
+    expect(resolver.search).not.toHaveBeenCalled();
+  });
+});
