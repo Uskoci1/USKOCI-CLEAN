@@ -59,11 +59,11 @@ function OwnedAgreements({ foreground }: { foreground: { active: boolean; genera
     if (value.loading || value.error || value.data !== resource.data || !value.data?.includes(agreement)) return;
     navigate(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: agreement.id } }));
   };
-  return <AgreementCollectionPresentation items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
+  return <AgreementCollectionPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     section={section} confirmationOnly={confirmationOnly} requester={intent === 'narucilac'} intent={intent}
     onSection={value => { if (current()) setSection(value); }}
     onConfirmationOnly={value => { if (current()) setConfirmationOnly(value); }}
-    onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
+    onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={() => navigate(() => router.navigate('/profil'))}
     onTasks={() => navigate(() => router.navigate(intent === 'narucilac' ? '/potrebe' : '/prilike'))} />;

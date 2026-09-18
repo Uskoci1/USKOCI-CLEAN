@@ -16,7 +16,7 @@ import { DiscoveryMap } from './DiscoveryMap';
 import { TaskCard } from './TaskCard';
 import { V2Action } from './V2Action';
 
-export type MarketplacePresentationProps = { owned: boolean; items: readonly MarketplaceItem[]; loading: boolean; error: boolean;
+export type MarketplacePresentationProps = { owned: boolean; items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onSwitch: () => void; onProfile: () => void; onNew?: () => void;
   /** Which intent the user is in; the header says it so the context is never implicit. */
@@ -128,7 +128,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         </ScrollView> : null}
         <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{plural(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
           {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}</View>
-      </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={loading} onRefresh={props.onRefresh}
+      </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem} />}
       {props.onNew && showCards ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."

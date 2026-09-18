@@ -14,7 +14,7 @@ import { V2Action } from './V2Action';
 
 export type AgreementCollectionSection = 'active' | 'history' | 'all';
 type Props = {
-  items: readonly DogovorProjekcija[]; loading: boolean; error: boolean; requester: boolean;
+  items: readonly DogovorProjekcija[]; loading: boolean; refreshing?: boolean; error: boolean; requester: boolean;
   section: AgreementCollectionSection; confirmationOnly: boolean;
   onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void;
   onRefresh: () => void; onOpen: (agreement: DogovorProjekcija) => void;
@@ -99,7 +99,7 @@ export function AgreementCollectionPresentation(props: Props) {
       </Press> : null}
       {!props.requester ? <HeaderIconButton label="Radni raspored (JA MOGU)" icon={CalendarBlank} onPress={props.onCalendar} /> : null}
     </View>
-    <FlatList<DogovorProjekcija> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={loading}
+    <FlatList<DogovorProjekcija> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading}
       onRefresh={props.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
       ItemSeparatorComponent={Separator} renderItem={renderItem} />
   </SafeAreaView>;

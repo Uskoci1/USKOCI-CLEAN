@@ -13,9 +13,9 @@ describe('focused account reads', () => {
     const load = jest.fn<Promise<string[]>, []>().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]);
     const model = createFocusedResource(load, () => true);
     model.start(); await flush();
-    expect(model.snapshot()).toEqual({ data: null, loading: false, error: true });
+    expect(model.snapshot()).toEqual({ data: null, loading: false, error: true , refreshing: false });
     await model.refresh();
-    expect(model.snapshot()).toEqual({ data: [], loading: false, error: false });
+    expect(model.snapshot()).toEqual({ data: [], loading: false, error: false , refreshing: false });
   });
   it('latest retry wins even when the older request finishes last', async () => {
     const first = deferred<string[]>();
@@ -49,11 +49,35 @@ describe('focused account reads', () => {
 });
 
 
+it('keeps what is on screen during a refresh the person asked for, and still retires it on blur', async () => {
+  // Pulling a list down used to delete every card, the count and the create button and replace them
+  // with skeletons. The authority rule is unchanged: only `stop()` clears, because only a change of
+  // account or intent means the previous read is no longer this person's truth.
+  let resolve!: (value: string) => void;
+  const load = jest.fn()
+    .mockResolvedValueOnce('first')
+    .mockImplementationOnce(() => new Promise<string>(keep => { resolve = keep; }));
+  const resource = createFocusedResource(load, () => true);
+  resource.start();
+  await flush();
+  expect(resource.snapshot()).toEqual({ data: 'first', loading: false, error: false, refreshing: false });
+
+  void resource.refresh(true);
+  expect(resource.snapshot()).toEqual({ data: 'first', loading: false, error: false, refreshing: true });
+
+  resolve('second');
+  await flush();
+  expect(resource.snapshot()).toEqual({ data: 'second', loading: false, error: false, refreshing: false });
+
+  resource.stop();
+  expect(resource.snapshot()).toEqual({ data: null, loading: true, error: false, refreshing: false });
+});
+
 it('clears a successful snapshot when its owner leaves the foreground and refuses hidden refreshes', async () => {
   const load = jest.fn().mockResolvedValue(['private data']);
   const model = createFocusedResource<string[]>(load, () => true);
   model.start(); await flush(); expect(model.snapshot().data).toEqual(['private data']);
-  model.stop(); expect(model.snapshot()).toEqual({ data: null, loading: true, error: false });
+  model.stop(); expect(model.snapshot()).toEqual({ data: null, loading: true, error: false , refreshing: false });
   await model.refresh(); expect(load).toHaveBeenCalledTimes(1);
   model.start(); await flush(); expect(load).toHaveBeenCalledTimes(2);
 });

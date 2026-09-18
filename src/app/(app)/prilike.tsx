@@ -47,9 +47,9 @@ function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
     if (pending) navigate(() => { postaviUlogu(pending.target); pending.go(); });
   };
   return <>
-    <MarketplacePresentation owned={false} intent={intent} items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
+    <MarketplacePresentation owned={false} intent={intent} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
       scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
-      onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
+      onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
       onSwitch={() => {
         if (intent === 'narucilac') navigate(() => router.navigate('/potrebe'));
         else ask({ target: 'narucilac', confirmLabel: 'Pređi na moje Zadatke', go: () => router.replace('/potrebe'),
