@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarBlank, Check, Clock, MapPin } from 'phosphor-react-native';
 import type { DogovorProjekcija, Uloga } from '../../contracts/projections';
 import { Press } from '../Press';
+import { Appear, useAppear } from '../system/Appear';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
@@ -77,7 +78,10 @@ export function AgreementCollectionPresentation(props: Props) {
   const waiting = useMemo(() => items.filter(awaitsMyConfirmation).length, [items]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && waiting ? { ...option, badge: waiting } : option), [waiting]);
   const count = loading || error ? null : visible.length;
-  const renderItem = useCallback(({ item }: { item: DogovorProjekcija }) => <AgreementCard item={item} onOpen={() => onOpen(item)} />, [onOpen]);
+  const appear = useAppear();
+  appear.settle(visible.map(keyOf));
+  const renderItem = useCallback(({ item, index }: { item: DogovorProjekcija; index: number }) =>
+    <Appear index={index} animate={appear.isNew(keyOf(item))}><AgreementCard item={item} onOpen={() => onOpen(item)} /></Appear>, [onOpen, appear]);
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} rows={2} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Dogovore…</T></>
       : error ? <View style={s.state}><T style={s.stateTitle}>Dogovore trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>

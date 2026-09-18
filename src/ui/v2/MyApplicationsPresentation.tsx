@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, MapPin } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija, Uloga } from '../../contracts/projections';
 import { needPeopleText, needScheduleText } from '../../data/needDetailPresentation';
+import { Appear, useAppear } from '../system/Appear';
 import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
@@ -82,6 +83,8 @@ export function MyApplicationsPresentation(props: Props) {
   const visible = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
   // A notification names one application. Opening its row is not enough if the row is the ninth one
   // down, so the list also goes to it — once, and never fighting a scroll the person then makes.
+  const appear = useAppear();
+  appear.settle(visible.map(p => p.prijavaId));
   const list = useRef<FlatList<MojaPrijavaProjekcija> | null>(null);
   const brought = useRef<string | null>(null);
   const index = props.focusId ? visible.findIndex(p => p.prijavaId === props.focusId) : -1;
@@ -120,7 +123,8 @@ export function MyApplicationsPresentation(props: Props) {
             {props.canRetry ? <V2Action label="Ponovi isti zahtev" onPress={props.onRetry} disabled={props.busy} /> : null}
             {props.canReset ? <V2Action label="Pregledaj aktuelnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</View> : null}
         </View> : null}
-        renderItem={({ item: p }) => <ApplicationCard row={p} expanded={props.expanded === p.prijavaId} disabled={disabled}
+        renderItem={({ item: p, index }) => <Appear index={index} animate={appear.isNew(p.prijavaId)}>
+          <ApplicationCard row={p} expanded={props.expanded === p.prijavaId} disabled={disabled}
           onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)}
           onTask={() => props.onTask(p)}>
           {props.expanded === p.prijavaId ? <View style={s.review}>
@@ -142,7 +146,7 @@ export function MyApplicationsPresentation(props: Props) {
               <V2Action label="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} kind="destructive" /></>}
             <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" />
           </View> : null}
-        </ApplicationCard>} />
+        </ApplicationCard></Appear>} />
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }

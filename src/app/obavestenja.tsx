@@ -12,6 +12,7 @@ import { Press } from '../ui/Press';
 import { IntentTransition, type IntentTransitionRequest } from '../ui/system/IntentTransition';
 import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
+import { Appear, useAppear } from '../ui/system/Appear';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { intentTitle, sys } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
@@ -28,6 +29,10 @@ export default function Obavestenja() {
   const navigating = useRef(false);
   useFocusEffect(useCallback(() => { navigating.current=false; return () => { navigating.current=true; }; },[model]));
   const busy = state.loading || state.paging || !!state.acting;
+  // An event that arrives while the Inbox is open is worth a moment of motion; the ones that were
+  // there when it opened, and the ones a refresh returns unchanged, are not.
+  const appear = useAppear();
+  appear.settle((state.page?.items ?? []).map(item => item.id));
   const navigate = (action: () => void) => { if (!model.canNavigate() || navigating.current) return; navigating.current=true; action(); };
   const settings = () => navigate(() => router.push('/profil/obavestenja'));
   const intent = useUloga();
@@ -108,7 +113,7 @@ export default function Obavestenja() {
             <T style={[styles.body,{textAlign:'center',maxWidth:280}]}>Nove Prijave, poruke i važne promene stižu ovde — uz Zadatak ili Dogovor na koji se odnose.</T>
             <View style={styles.emptyAction}><V2Action label="Podesi obaveštenja" kind="quiet" onPress={settings}/></View>
           </View> : null}
-      renderItem={({item})=><Press accessibilityRole="button" disabled={busy}
+      renderItem={({item,index})=><Appear index={index} animate={appear.isNew(item.id)}><Press accessibilityRole="button" disabled={busy}
         accessibilityState={{disabled:busy,busy:state.acting===item.id}}
         accessibilityLabel={`${item.readAt?'Pročitano':'Nepročitano'}. ${item.title}. ${item.body}`}
         onPress={()=>void open(item)} style={[styles.item,!item.readAt && styles.unread]}>
@@ -122,7 +127,7 @@ export default function Obavestenja() {
           </T>
         </View>
         <CaretRight size={17} color={sys.color.muted}/>
-      </Press>}
+      </Press></Appear>}
       ListFooterComponent={state.page?.hasMore?<Press accessibilityRole="button" disabled={busy}
         onPress={()=>void model.more()} style={styles.loadMore}>
         {state.paging?<ActivityIndicator color={sys.color.green}/>:<T style={styles.filterText}>Učitaj starija obaveštenja</T>}

@@ -7,6 +7,7 @@ import type { Uloga } from '../../contracts/projections';
 import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceView';
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, publicPoint } from '../../data/marketplaceView';
 import { Press } from '../Press';
+import { Appear, useAppear } from '../system/Appear';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
@@ -65,7 +66,12 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     if (ten >= 2 && ten <= 4) return `${count} zadatka`;
     return `${count} zadataka`;
   };
-  const renderItem = useCallback(({ item }: { item: MarketplaceItem }) => <TaskCard item={item} onOpen={() => onOpen(item)} />, [onOpen]);
+  // A task that arrives while you are looking says so; the ones that were already there do not
+  // replay every time the list is pulled. `Appear` holds that distinction.
+  const appear = useAppear();
+  appear.settle(visible.map(keyOf));
+  const renderItem = useCallback(({ item, index }: { item: MarketplaceItem; index: number }) =>
+    <Appear index={index} animate={appear.isNew(keyOf(item))}><TaskCard item={item} onOpen={() => onOpen(item)} /></Appear>, [onOpen, appear]);
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
