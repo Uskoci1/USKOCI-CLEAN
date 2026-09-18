@@ -112,6 +112,26 @@ it('prepares the displayed public and private review with one publish action and
   expect(mockAlert).not.toHaveBeenCalled();
 });
 
+it('says it is confirming changes when the review belongs to a task that already exists', async () => {
+  // The conversation offers "Pregledaj izmene" for a bound Need; this screen then said
+  // "Objavi zadatak", as if the task were being created now. The server never confused the two:
+  // accepting a bound review confirms an edit rather than creating a draft.
+  const bound = { ...review(), draftId: NEED, draftRevision: 4 };
+  mockRead.mockResolvedValue(ok({ review: bound, command: null })); mockPrepare.mockResolvedValue(ok(bound));
+  await render();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene i objavi' }).props.disabled).toBe(false);
+  expect(text()).toContain('Izmena postojećeg zadatka');
+  expect(text()).toContain('Pregled izmena');
+
+  // A task being published for the first time still reads as a first publication.
+  await act(async () => tree.unmount());
+  mockRead.mockResolvedValue(ok({ review: review(), command: null })); mockPrepare.mockResolvedValue(ok(review()));
+  await render();
+  expect(publish().disabled).toBe(false);
+  expect(text()).toContain('Ti odlučuješ šta objavljuješ');
+});
+
 it('serializes retained taps to one immutable review command and freezes an unknown result until explicit readback', async () => {
   const held = deferred(); mockAccept.mockReturnValueOnce(held.promise); await render(); const retained = publish().onPress;
   await act(async () => { void retained(); void retained(); });

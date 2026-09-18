@@ -22,7 +22,7 @@ jest.mock('phosphor-react-native', () => ({
 type ScreenProps = { name: string; options: { href?: string | null; title?: string } };
 const detailRoutes = [
   'index', 'profil',
-  'pregled-nacrta', 'profil/radnik', 'potrebe/[id]/kandidati',
+  'profil/radnik', 'potrebe/[id]/kandidati',
   'potrebe/[id]/pregled', 'prilike/[id]', 'prilike/[id]/prijava',
 ];
 

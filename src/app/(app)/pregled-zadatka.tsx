@@ -210,6 +210,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const evaluation = command?.evaluation;
   const outcome = evaluation?.kind === 'DECISION' ? evaluation.decision.outcome : null;
   const published = command?.state === 'PUBLISHED' && snapshot?.publishedReadback;
+  // `draftId` is the Need this conversation is bound to, and it is set exactly when the person came
+  // here to change a task that already exists rather than to publish a new one. The server already
+  // knows the difference — accepting a bound review confirms an edit instead of creating a draft —
+  // but the screen said "Objavi zadatak" either way, right after the conversation had offered
+  // "Pregledaj izmene". The button now says what the tap does.
+  const revising = !!review?.draftId;
+  const acceptLabel = revising ? 'Potvrdi izmene i objavi' : 'Objavi zadatak';
   // A faded "Objavi zadatak" with a caption saying what the tap would accept, and nothing anywhere
   // saying why the tap does nothing. `canAccept` is false for exactly three server reasons, and the
   // screen adds three of its own; whichever one is in the way now says so, at the top of the review
@@ -222,7 +229,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             : edit ? 'Sačuvaj ili otkaži izmenu koju si otvorio.'
               : locationEditor ? 'Sačuvaj ili zatvori mesto koje uređuješ.'
                 : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
-  const resultCopy = published ? 'Zadatak je objavljen.' : command?.state === 'PUBLISHED'
+  const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
     ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
     : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravi ga u razgovoru i pregledaj novu verziju.'
     : outcome === 'REVIEW' ? 'Zadatak zahteva dodatnu proveru i još nije objavljen. Možeš da ga izmeniš.'
@@ -277,8 +284,10 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={s.header}><Press accessibilityRole="button" accessibilityLabel="Nazad u razgovor" style={s.back} onPress={back}>
         <V2Icon name="back" color={a.color.ink} /></Press><View style={{ flex: 1 }}>
-        <T style={s.meta}>{published ? 'Spremno za prijave' : 'Ti odlučuješ šta objavljuješ'}</T>
-        <T accessibilityRole="header" style={s.title}>{published ? 'Objavljeno' : 'Pregled zadatka'}</T></View></View>
+        <T style={s.meta}>{published ? 'Spremno za prijave'
+          : revising ? 'Izmena postojećeg zadatka' : 'Ti odlučuješ šta objavljuješ'}</T>
+        <T accessibilityRole="header" style={s.title}>{published ? 'Objavljeno'
+          : revising ? 'Pregled izmena' : 'Pregled zadatka'}</T></View></View>
       {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pregleda" color={a.color.green} style={{ padding: 30 }} /> : null}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {review ? <>
@@ -352,11 +361,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
               || (!!unavailableIdentityFact && command.authoritative && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')))
               ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
           </> : review ? <>
-            <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" disabled={disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
+            <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
               accessibilityState={{ disabled: disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
               style={[s.publish, (disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
-              {editor.busy ? <ActivityIndicator color={a.color.surface} /> : <T style={s.publishLabel}>Objavi zadatak</T>}
-            </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? 'Klikom prihvataš ovu prikazanu verziju i tražiš objavu.'}</T>
+              {editor.busy ? <ActivityIndicator color={a.color.surface} /> : <T style={s.publishLabel}>{acceptLabel}</T>}
+            </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? (revising
+              ? 'Klikom potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'
+              : 'Klikom prihvataš ovu prikazanu verziju i tražiš objavu.')}</T>
           </> : null}
       </View>
     </KeyboardAvoidingView>
