@@ -351,6 +351,15 @@ it('names the first few missing things and counts the rest instead of a wall tha
   mockLoad.mockResolvedValue(three); await resume();
   expect(text()).toContain('Još treba: Kategorija · Cena · Ljudi');
   expect(text()).not.toContain('i još');
+
+  // A title the AI has already proposed is the card's own heading. Listing it underneath as still
+  // needed made the card contradict itself; confirming it is the review screen's job.
+  await act(async () => tree.unmount());
+  const titled = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
+  titled.review.missingRequired = ['need.title', 'need.category'];
+  mockLoad.mockResolvedValue(titled); await resume();
+  expect(text()).toContain('Još treba: Kategorija');
+  expect(text()).not.toContain('Još treba: Naslov');
 });
 
 it('offers the owned photo route and options without automatic abandonment', async () => {

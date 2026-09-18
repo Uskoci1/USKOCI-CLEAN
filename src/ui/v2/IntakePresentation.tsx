@@ -120,7 +120,12 @@ export function IntakePresentation(props: Props) {
   // during the conversation - am I two answers away or eight - could only be answered by leaving it.
   // The map point is counted here too: the server's required list cannot contain it, because the AI
   // is not allowed to propose it, and leaving it out is how "spremno" became a promise that failed.
-  const stillNeeded = [...conversation.review.missingRequired.map(factDisplayLabel),
+  // A required fact stays in the server's list until it is confirmed, so a title the AI has already
+  // proposed — and which this very card is showing as its heading — was listed underneath as still
+  // needed. What the conversation still has to ask for is what has no value at all; confirming what
+  // it proposed is the review screen's job, and the card's heading already shows it.
+  const proposed = new Set(conversation.facts.map(fact => fact.key));
+  const stillNeeded = [...conversation.review.missingRequired.filter(key => !proposed.has(key)).map(factDisplayLabel),
     ...(needsPoint ? ['tačka na mapi'] : [])];
   // At the start nothing is filled, so the full list is eight items long — a wall exactly when it
   // helps least, and it was being cut mid-word to fit two lines. The AI asks for them one at a time
