@@ -30,6 +30,11 @@ export default function NovaPotrebaV2() {
     resumeId={resumeId} invalidRoute={invalidRoute} />;
 }
 
+/** A conversation that has not been started. It is never sent anywhere and never read back. */
+const BLANK: AiNeedV2Conversation = { conversationId: '', schemaVersion: 'NEED_FACT_V2', status: 'OPEN',
+  messages: [], facts: [], safety: 'ALLOW',
+  review: { conversationId: '', schemaVersion: 'NEED_FACT_V2', boundNeedId: null, canSaveDraft: false, missingRequired: [], facts: [] } };
+
 function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRoute: boolean }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id, intent = useUloga();
   const [openRequestId] = useState(noviUuidZahtevId);
@@ -66,12 +71,11 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         if (!request.current || request.current.id !== stored.clientRequestId)
           request.current = { id: stored.clientRequestId, body: null };
       }
-      if (!conversation.current) {
-        const opened = await aiNeedV2Izvor.openConversation(openRequestId);
-        if (!current()) return unavailable();
-        if (!opened.ok) return opened;
-        conversation.current = opened.podatak.conversationId;
-      }
+      // Opening the screen used to open a row: 38 of 62 conversations had no message in them, one
+      // for every time someone looked and left. Nothing exists until the first word (owner decision,
+      // 2026-09-18), so until then this is a local screen with nothing behind it. `conversationId`
+      // is empty, which is what every write on this screen already checks before it does anything.
+      if (!conversation.current) return { ok: true, podatak: { conversation: BLANK, turn: null, recovery: null } };
       const id = conversation.current;
       const pending = request.current;
       let turn: AiNeedTurnStatus | null = null;
@@ -124,12 +128,21 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const canSubmit = writable && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
 
   const submitTurn = async (body: string) => {
-    if (!canAct() || !canSubmit || !razgovorId || !body) return;
+    if (!canAct() || !canSubmit || !body) return;
     await editor.save(async () => {
+      // The first word is what makes the conversation exist. `openRequestId` is fixed for this
+      // screen, so a second tap or a retry asks for the same conversation rather than another one.
+      let id = conversation.current;
+      if (!id) {
+        const opened = await aiNeedV2Izvor.openConversation(openRequestId);
+        if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+        if (!opened.ok) return opened;
+        conversation.current = id = opened.podatak.conversationId;
+      }
       const command = request.current ?? { id: noviUuidZahtevId(), body };
       request.current = command;
       try {
-        await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: razgovorId, clientRequestId: command.id });
+        await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: id, clientRequestId: command.id });
       } catch {
         return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Slanje nije pokrenuto. Proveri stanje pre ponovnog pokušaja.' };
       }
@@ -140,7 +153,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       setStreamingText('');
       let result: Ishod<AiNeedTurnStatus>;
       try {
-        result = await aiNeedV2Izvor.sendMessage(razgovorId, command.body, command.id, { signal: abort.signal,
+        result = await aiNeedV2Izvor.sendMessage(id, command.body, command.id, { signal: abort.signal,
           onText: delta => { if (isCurrent() && !abort.signal.aborted && request.current === command) setStreamingText(previous => previous + delta); } });
       } finally {
         if (streamAbort.current === abort) { streamAbort.current = null; if (isCurrent()) setStreamingText(''); }

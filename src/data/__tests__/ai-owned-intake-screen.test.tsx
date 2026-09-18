@@ -81,6 +81,15 @@ const openKeyboard = async () => {
   await act(async () => keyboard.onPress());
 };
 const type = async (value = 'Treba preneti ormar sutra.') => { await openKeyboard(); await act(async () => input().onChangeText(value)); };
+/**
+ * A conversation exists once someone has said something into it (owner decision, 2026-09-18), so a
+ * test that needs one either starts it by speaking, or comes back to one that already exists — the
+ * two ways a person gets to a conversation with a row behind it.
+ */
+const start = async (body = 'Treba preneti ormar sutra.') => {
+  await render(); await type(body); await act(async () => submit().onPress());
+};
+const resume = async () => { mockParams = { conversationId: id }; await render(); };
 const blur = async () => { mockFocused = false; await update(); };
 const focus = async () => { mockFocused = true; await update(); };
 const options = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opcije' }).props.onPress()); };
@@ -129,21 +138,45 @@ it.each(['stale-capture', 'blur-refocus', 'account-ABA'] as const)('rejects late
   expect(input().value).toBe(before); expect(mockSend).not.toHaveBeenCalled(); expect(AsyncStorage.setItem).not.toHaveBeenCalled();
 });
 
-it('opens once with a stable request and resumes the same conversation on refocus without sending or abandoning', async () => {
-  await render(); expect(mockOpen).toHaveBeenCalledTimes(1); await blur(); await focus();
-  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockLoad).toHaveBeenCalledTimes(2);
-  expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
+it('creates nothing until the first word, and then exactly one conversation', async () => {
+  // Opening the screen used to open a row: 38 of 62 conversations had no message in them, one for
+  // every time someone looked and left.
+  await render();
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).not.toHaveBeenCalled();
+  await blur(); await focus();
+  expect(mockOpen).not.toHaveBeenCalled();
+  expect(text()).toContain('Reci šta ti treba.');
+
+  await type(); await act(async () => submit().onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(mockSend.mock.calls[0][0]).toBe(id);
+  await blur(); await focus();
+  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
 });
 it('retains the owned open key after an unknown result and retries only by user action', async () => {
-  mockOpen.mockResolvedValueOnce(unknown()); await render(); expect(mockOpen).toHaveBeenCalledTimes(1);
-  await act(async () => button('Učitaj razgovor ponovo').onPress());
+  mockOpen.mockResolvedValueOnce(unknown());
+  await render(); await type(); await act(async () => submit().onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).not.toHaveBeenCalled();
+  expect(text()).toContain('Ishod nije potvrđen');
+  await act(async () => button('Proveri ishod').onPress());
   await openKeyboard();
-  expect(mockOpen.mock.calls[1][0]).toBe(mockOpen.mock.calls[0][0]); expect(input().value).toBe('');
+  // The typed words are still there: nothing was sent, so nothing was consumed.
+  expect(input().value).toBe('Treba preneti ormar sutra.');
+  await act(async () => submit().onPress());
+  expect(mockOpen.mock.calls[1][0]).toBe(mockOpen.mock.calls[0][0]);
 });
-it('does not load after a late open response on a blurred screen; refocus replays its original open key', async () => {
-  const old = deferred(); mockOpen.mockReturnValueOnce(old.promise); await render(); const key = mockOpen.mock.calls[0][0];
+it('does not adopt a late open response on a blurred screen; the next send replays its original key', async () => {
+  const old = deferred(); mockOpen.mockReturnValueOnce(old.promise);
+  await render(); await type(); const send = submit().onPress;
+  await act(async () => { void send(); });
+  const key = mockOpen.mock.calls[0][0];
   await blur(); await act(async () => old.resolve(ok({ conversationId: other, clientRequestId: key })));
-  expect(mockLoad).not.toHaveBeenCalled(); await focus(); expect(mockOpen.mock.calls[1][0]).toBe(key);
+  expect(mockLoad).not.toHaveBeenCalled();
+  await focus(); await type(); await act(async () => submit().onPress());
+  expect(mockOpen.mock.calls[1][0]).toBe(key);
+  // The conversation the screen now has is the one its own second open answered with, never the
+  // one the abandoned first attempt came back with.
+  await act(async () => button('Proveri ishod').onPress());
   expect(mockLoad).toHaveBeenCalledWith(id); expect(mockLoad).not.toHaveBeenCalledWith(other);
 });
 it.each([['ambiguous', [id]], ['malformed', 'wrong']] as const)('rejects %s resume route without opening a replacement conversation', async (_label, value) => {
@@ -202,11 +235,13 @@ it.each(['account ABA', 'intent', 'route'] as const)('rejects retained send call
   expect(mockSend).not.toHaveBeenCalled(); expect(input().value).toBe('');
 });
 it('masks old private messages immediately after account ABA and ignores the late read', async () => {
-  const held = deferred(); mockLoad.mockReturnValueOnce(held.promise); await render();
+  const held = deferred(); mockLoad.mockReturnValueOnce(held.promise); await resume();
   mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 3 }; await update();
   await act(async () => held.resolve(conversation({ messages: [{ id, body: 'old private account message', fromAi: false,
     safety: null, proposedFactIds: [] }] })));
-  expect(text()).not.toContain('old private account message'); expect(mockOpen).toHaveBeenCalledTimes(2);
+  expect(text()).not.toContain('old private account message');
+  // The new account reads the conversation for itself; nothing is created for either of them.
+  expect(mockLoad).toHaveBeenCalledTimes(2); expect(mockOpen).not.toHaveBeenCalled();
 });
 it('does not read or navigate from a late send result after account change', async () => {
   const held = deferred(); mockSend.mockReturnValueOnce(held.promise); await render(); await type();
@@ -219,20 +254,20 @@ it('does not read or navigate from a late send result after account change', asy
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(input().value).toBe('');
 });
 it('retires a confirmation callback after blur/refocus and never abandons on Back', async () => {
-  await render(); await options(); await act(async () => button('Napusti razgovor').onPress());
+  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress());
   const confirm = mockAlert.mock.calls[0][2][1].onPress; await blur(); await focus();
   await act(async () => confirm()); expect(mockAbandon).not.toHaveBeenCalled();
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
   expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
 });
 it('explicit abandonment uses the actual authority and becomes closed only after readback', async () => {
-  await render(); await options(); await act(async () => button('Napusti razgovor').onPress()); expect(mockAbandon).not.toHaveBeenCalled();
+  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress()); expect(mockAbandon).not.toHaveBeenCalled();
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   await act(async () => mockAlert.mock.calls[0][2][1].onPress());
   expect(mockAbandon).toHaveBeenCalledWith(id); expect(text()).toContain('Razgovor je napušten.'); expect(input().editable).toBe(false);
 });
 it.each(['PERMISSION_PENDING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
-  mockVoicePhase = phase; await render();
+  mockVoicePhase = phase; await resume();
   expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBe(id);
   await options(); await act(async () => button('Napusti razgovor').onPress());
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
@@ -246,18 +281,18 @@ it.each(['PERMISSION_PENDING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)(
   expect(mockSend).not.toHaveBeenCalled();
 });
 it.each(['COMPLETED', 'ABANDONED', 'BLOCK'])('does not retain a microphone scope after canonical %s readback', async state => {
-  await render();
+  await resume();
   mockLoad.mockResolvedValue(conversation(state === 'BLOCK' ? { safety: 'BLOCK' } : { status: state as 'COMPLETED' | 'ABANDONED' }));
   await blur(); await focus();
   expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBeNull();
   expect(mockSend).not.toHaveBeenCalled();
 });
 it.each(['COMPLETED', 'ABANDONED'] as const)('keeps actual %s conversations read-only', async status => {
-  mockLoad.mockResolvedValue(conversation({ status })); await render(); expect(input().editable).toBe(false); await options();
+  mockLoad.mockResolvedValue(conversation({ status })); await resume(); expect(input().editable).toBe(false); await options();
   expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
 });
 it('does not expose abandonment for an edit conversation bound to a Zadatak', async () => {
-  const data = conversation(); data.review.boundNeedId = other; mockLoad.mockResolvedValue(data); await render(); await options();
+  const data = conversation(); data.review.boundNeedId = other; mockLoad.mockResolvedValue(data); await resume(); await options();
   expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
 });
 
@@ -266,7 +301,7 @@ it('keeps the complete conversation in its own scroll area beneath the pinned ca
     { id: 'old-ai', fromAi: true, body: 'Ranije pitanje' }, { id: 'old-user', fromAi: false, body: 'Raniji odgovor' },
     { id: 'new-ai', fromAi: true, body: 'Koliko ljudi je potrebno?' }, { id: 'new-user', fromAi: false, body: 'Dve osobe.' },
   ].map(message => ({ ...message, safety: null, proposedFactIds: [] }));
-  mockLoad.mockResolvedValue(conversation({ messages })); await render();
+  mockLoad.mockResolvedValue(conversation({ messages })); await resume();
   expect(text()).toContain('Koliko ljudi je potrebno?'); expect(text()).toContain('Dve osobe.');
   expect(text()).toContain('Ranije pitanje'); expect(text()).toContain('Raniji odgovor');
   const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
@@ -284,7 +319,7 @@ it('keeps private address and resolved coordinates out of the compact live card 
     { id: 'points', key: 'need.resolved_location', value: { latitudeE6: 45255123 }, displayValue: '45255123', valueType: 'OBJECT', privacyClass: 'PRIVATE',
       requiredForDraft: false, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null },
   ];
-  mockLoad.mockResolvedValue(conversation({ facts })); await render();
+  mockLoad.mockResolvedValue(conversation({ facts })); await resume();
   expect(text()).toContain('Unos ormara'); expect(text()).toContain('NACRT');
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   const card = tree.root.findByProps({ testID: 'intake-task-summary' });
@@ -316,7 +351,7 @@ it('respects reduced motion for screen entry and the options panel', async () =>
 it('shows actual typed fixed dates and times in the existing explicit Belgrade display zone', async () => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.schedule_kind', 'FIXED_WINDOW'),
     publicFact('need.starts_at', '2026-09-10T16:00:00Z'), publicFact('need.ends_at', '2026-09-10T17:00:00Z')] }));
-  await render(); expect(text()).toContain('10.'); expect(text()).toContain('18:00–19:00');
+  await resume(); expect(text()).toContain('10.'); expect(text()).toContain('18:00–19:00');
   expect(text()).toContain('vreme u Beogradu'); expect(text()).not.toContain('Tačan termin');
 });
 it('omits an incomplete fixed interval without inventing an end time', async () => {
@@ -326,13 +361,13 @@ it('omits an incomplete fixed interval without inventing an end time', async () 
 });
 it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])('uses the correct people label for %s', async (count, label) => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.people_needed', count)] }));
-  await render(); expect(text()).toContain(label as string);
+  await resume(); expect(text()).toContain(label as string);
 });
 
 // Owner-requested pre-HTML stabilization: terminal conversation is not a dead end.
 it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after %s without changing the first one', async status => {
   const saved = conversation({ status }); saved.review.boundNeedId = status === 'COMPLETED' ? other : null;
-  mockParams = { conversationId: id }; mockLoad.mockResolvedValue(saved); await render();
+  mockParams = { conversationId: id }; mockLoad.mockResolvedValue(saved); await resume();
   await options();
   const start = button('Novi Zadatak').onPress;
   await act(async () => { start(); start(); }); expect(mockRouter.replace).toHaveBeenCalledTimes(1);
@@ -342,23 +377,32 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after
   mockParams = destination.params;
   mockOpen.mockImplementation(requestId => Promise.resolve(ok({ conversationId: other, clientRequestId: requestId })));
   mockLoad.mockResolvedValue(conversation({ conversationId: other })); await update();
-  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockLoad).toHaveBeenLastCalledWith(other);
+  // The second Task is a blank screen until it is spoken to, exactly like the first one was.
+  expect(mockOpen).not.toHaveBeenCalled();
   await openKeyboard();
   expect(input().value).toBe(''); expect(input().editable).toBe(true);
   expect(mockAbandon).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
-  await blur(); await focus(); expect(mockOpen).toHaveBeenCalledTimes(1);
+  await blur(); await focus(); expect(mockOpen).not.toHaveBeenCalled();
+  await type(); await act(async () => submit().onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend.mock.calls[0][0]).toBe(other);
+  expect(mockAbandon).not.toHaveBeenCalled();
 });
 it('retains the new owned-open request after an unknown second-Task open outcome', async () => {
-  mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await render();
-  const firstKey = mockOpen.mock.calls[0][0]; await options();
+  mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await resume();
+  await options();
   await act(async () => button('Novi Zadatak').onPress());
   mockParams = mockRouter.replace.mock.calls[0][0].params; mockOpen.mockResolvedValueOnce(unknown());
-  await update(); const nextKey = mockOpen.mock.calls[1][0]; expect(nextKey).not.toBe(firstKey);
-  mockLoad.mockResolvedValue(conversation()); await act(async () => button('Učitaj razgovor ponovo').onPress());
-  expect(mockOpen.mock.calls[2][0]).toBe(nextKey);
+  await update();
+  mockLoad.mockResolvedValue(conversation());
+  await type(); await act(async () => submit().onPress());
+  const key = mockOpen.mock.calls[0][0];
+  // The outcome is unknown, so the retry asks for the same conversation rather than another one.
+  await act(async () => button('Proveri ishod').onPress());
+  await type(); await act(async () => submit().onPress());
+  expect(mockOpen.mock.calls[1][0]).toBe(key);
 });
 it('cannot use a retained new-Task action after losing its account or focus', async () => {
-  mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await render();
+  mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await resume();
   await options(); const old = button('Novi Zadatak').onPress; await blur(); await focus(); await act(async () => old());
   expect(mockRouter.replace).not.toHaveBeenCalled();
 });
@@ -518,7 +562,7 @@ describe('what a turn took', () => {
       facts: [publicFact('need.title', 'Krečenje stana')],
       messages: [said('Zabeležio sam krečenje stana.', ['need.title'])],
     }));
-    await render();
+    await resume();
     expect(text()).toContain('Naslov');
     expect(text()).toContain('public display');
   });
@@ -530,7 +574,7 @@ describe('what a turn took', () => {
         source: 'EXPLICIT_USER_ANSWER', evidence: null }],
       messages: [said('Zapamtio sam adresu.', ['address'])],
     }));
-    await render();
+    await resume();
     expect(text()).toContain('Tačna adresa');
     expect(text()).not.toContain('Lenke Dunđerski 11');
   });
