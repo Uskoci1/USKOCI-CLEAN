@@ -33,7 +33,7 @@ function IdentityForm(p: { value: RequesterIdentity; busy: boolean; uncertain: b
   return <SettingsPanel><View style={{ gap: 12 }}><T>Ime za prikaz</T>
     <TextInput accessibilityLabel="Ime za prikaz" autoComplete="name" textContentType="name" value={name} maxLength={200}
       editable={!p.busy && !p.uncertain} onChangeText={value => { request.current = null; setName(value); }}
-      style={{ color: sys.color.ink, borderColor: sys.color.line, borderWidth: 1, borderRadius: 14, minHeight: 54, padding: 14, fontSize: 16 }} />
+      style={{ color: sys.color.ink, borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.control, minHeight: 54, padding: 14, fontSize: 16 }} />
     <SettingsAction label={p.busy ? 'Čuvam ime…' : 'Sačuvaj ime'} disabled={p.busy || p.uncertain || !name.trim() || name.trim() === p.value.displayName}
       onPress={() => { const command = request.current ?? { name: name.trim(), id: noviUuidZahtevId() }; request.current = command; void p.save(command.name, command.id); }} />
   </View></SettingsPanel>;

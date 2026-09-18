@@ -101,7 +101,7 @@ const s = StyleSheet.create({
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
   requesterCard: { gap: 10 },
   requester: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   initial: { color: sys.color.green },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },

@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
  divider: { height: 1, backgroundColor: sys.color.line },
  timeRow: { flexDirection: 'row', gap: 12 },
  timeField: { flex: 1, gap: 6 },
- input: { minHeight: 48, borderWidth: 1, borderColor: sys.color.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, color: sys.color.ink, backgroundColor: sys.color.surface, fontSize: 16 },
+ input: { minHeight: 48, borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, paddingHorizontal: 14, paddingVertical: 10, color: sys.color.ink, backgroundColor: sys.color.surface, fontSize: 16 },
 });
 
 async function readTransport(): Promise<PushReadiness | null> {

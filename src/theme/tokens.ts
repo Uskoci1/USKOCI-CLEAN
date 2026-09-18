@@ -66,13 +66,39 @@ export const space = {
   huge: 48,
 } as const;
 
+/**
+ * Zaobljenja. Jedna lestvica za celu aplikaciju, imenovana po ULOZI a ne po broju.
+ *
+ * Do 2026-09-18 su postojale dve lestvice koje se ne slažu — ova (8/12/16/20) i
+ * `sys.radius` (9/13/16/17/18/22/28) — pa je u fajlovima bilo 27 različitih ručno
+ * upisanih vrednosti. Dva ćoška koja se skoro slažu su gore od dva koja se razlikuju:
+ * ništa se ne poravna i ništa ne izgleda namerno. Ovo je sada jedini izvor, a
+ * `sys.radius` je pogled na njega.
+ *
+ * Krug i kapsula NISU na lestvici — oni su `pill`, jer polovina širine nije izbor
+ * dizajna nego geometrija. Ugnežden ćošak se računa: `nested(spolja, razmak)`.
+ */
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  /** Sitna oznaka: tačka, brojač, mali badž. */
+  badge: 9,
+  /** Čip, ikona u ležištu 36–44px, mali kontrol. */
+  chip: 13,
+  /** Polje, red liste, tiha napomena, dugme koje nije glavno. */
+  control: 16,
+  /** Glavna akcija na ekranu. */
+  primary: 17,
+  /** Zbijena kartica i kvadrat od 56px. */
+  cardCompact: 18,
+  /** Kartica. */
+  card: 22,
+  /** Plahta odozdo i velika površina. */
+  sheet: 28,
+  /** Sve što je krug ili kapsula. */
   pill: 999,
 } as const;
+
+/** Ugnežden ćošak: unutrašnji je spoljašnji minus razmak, inače se linije ne prate. */
+export const nested = (outer: number, pad: number) => Math.max(0, outer - pad);
 
 /**
  * Tipografija. Minimum 12px za sve što nosi značenje —
@@ -97,6 +123,12 @@ export const type = {
   meta: { fontSize: 13, lineHeight: 18, fontWeight: '500' as const },
   label: { fontSize: 12, lineHeight: 16, fontWeight: '700' as const, letterSpacing: 0.6 },
   action: { fontSize: 16, lineHeight: 22, fontWeight: '700' as const, letterSpacing: -0.1 },
+  /** The name of what a screen is about: a person, an agreement, a profile. */
+  pageTitle: { fontSize: 28, lineHeight: 33, fontWeight: '700' as const, letterSpacing: -0.8 },
+  /** A sentence said in the conversation. Same size as body, looser leading, because it is read as speech. */
+  speech: { fontSize: 16, lineHeight: 26, fontWeight: '400' as const },
+  /** A tab or segment label. */
+  tab: { fontSize: 14, lineHeight: 20, fontWeight: '600' as const },
 } as const;
 
 /**

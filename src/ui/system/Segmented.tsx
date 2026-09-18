@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { sys } from './tokens';
+import { nested } from '../../theme/tokens';
 
 export type SegmentedOption<K extends string> = { key: K; label: string; /** Optional count shown beside the label; not part of the spoken label. */ badge?: number | string };
 
@@ -29,12 +30,12 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
 }
 
 const s = StyleSheet.create({
-  track: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: 14, backgroundColor: sys.color.control },
-  segment: { flexGrow: 1, flexBasis: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 11,
+  track: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.control },
+  segment: { flexGrow: 1, flexBasis: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: nested(sys.radius.control, 4),
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   selected: { backgroundColor: sys.color.surface, shadowColor: '#183F35', shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   text: { color: sys.color.muted, fontWeight: '600', fontSize: 14, lineHeight: 20, textAlign: 'center' },
   selectedText: { color: sys.color.ink, fontWeight: '700' },
-  badge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
+  badge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: sys.color.onOrange, lineHeight: 14, letterSpacing: 0 },
 });

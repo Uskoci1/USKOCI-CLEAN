@@ -20,6 +20,7 @@ import { Press } from '../../ui/Press';
 import { V2Action } from '../../ui/v2/V2Action';
 import { V2Icon } from '../../ui/v2/icons';
 import { aiFirst as a } from '../../ui/aiFirst/tokens';
+import { sys } from '../../ui/system/tokens';
 import { type } from '../../theme/tokens';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
@@ -354,10 +355,10 @@ const s = StyleSheet.create({
   inlineValue: { flexShrink: 1, textAlign: 'right' },
   field: { borderBottomWidth: 1, borderBottomColor: a.color.line, paddingVertical: 12, gap: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 }, editButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', alignItems: 'flex-end' },
-  editLabel: { ...a.text.meta, fontWeight: '600', color: a.color.green }, private: { padding: 16, borderRadius: 18, backgroundColor: a.color.wash },
-  input: { ...a.text.body, padding: 12, borderWidth: 1, borderColor: a.color.green, borderRadius: 12, minHeight: 56, color: a.color.ink },
-  notice: { padding: 16, borderRadius: 16, backgroundColor: a.color.warm, gap: 12 }, error: { ...a.text.meta, color: a.color.danger },
+  editLabel: { ...a.text.meta, fontWeight: '600', color: a.color.green }, private: { padding: 16, borderRadius: sys.radius.cardCompact, backgroundColor: a.color.wash },
+  input: { ...a.text.body, padding: 12, borderWidth: 1, borderColor: a.color.green, borderRadius: sys.radius.control, minHeight: 56, color: a.color.ink },
+  notice: { padding: 16, borderRadius: sys.radius.control, backgroundColor: a.color.warm, gap: 12 }, error: { ...a.text.meta, color: a.color.danger },
   footer: { padding: 20, borderTopWidth: 1, borderTopColor: a.color.line, gap: 10 },
-  publish: { minHeight: 54, borderRadius: a.radius.primary, backgroundColor: a.color.green, alignItems: 'center', justifyContent: 'center', padding: 14 },
+  publish: { minHeight: 54, borderRadius: sys.radius.primary, backgroundColor: a.color.green, alignItems: 'center', justifyContent: 'center', padding: 14 },
   publishLabel: { ...a.text.body, fontWeight: '700', color: a.color.surface },
 });

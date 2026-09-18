@@ -61,7 +61,7 @@ const s = StyleSheet.create({
   grow: { flex: 1 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   status: { flexShrink: 1, letterSpacing: 0.3 },
   title: { ...sys.type.cardTitle, color: sys.color.ink },
   facts: { gap: 6, marginTop: 9 },

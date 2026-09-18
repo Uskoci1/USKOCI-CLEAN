@@ -82,7 +82,7 @@ const s = StyleSheet.create({
   cardGap: { gap: 10 },
   next: { borderRadius: sys.radius.card, padding: 20, gap: 8 },
   nextHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   nextTitle: { color: sys.color.ink },
   rows: { padding: 0, overflow: 'hidden' },
   row: { minHeight: 60, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: 1, borderColor: sys.color.line, marginTop: -1 },

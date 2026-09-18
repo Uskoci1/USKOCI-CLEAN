@@ -25,5 +25,5 @@ export function ProfilePhoto({ profileId, fallback, size }: { profileId: string;
   return photo ? <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija"
     contentFit={size ? 'cover' : 'contain'}
     style={size ? { width: size, height: size, borderRadius: size / 2, aspectRatio: 1 }
-      : { width: 112, height: 132, borderRadius: 24, aspectRatio: 112 / 132 }} /> : <>{fallback}</>;
+      : { width: 112, height: 132, borderRadius: sys.radius.card, aspectRatio: 112 / 132 }} /> : <>{fallback}</>;
 }

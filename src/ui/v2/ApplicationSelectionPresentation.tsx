@@ -300,6 +300,6 @@ const s = StyleSheet.create({
   compareCell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line }, compareLabel: { letterSpacing: 0.2 },
   comparePrice: { ...sys.type.price, fontSize: 19, lineHeight: 24, color: sys.color.money },
   divider: { height: 1, backgroundColor: sys.color.line, marginVertical: 2 },
-  avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }, initial: { color: sys.color.green },
+  avatar: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }, initial: { color: sys.color.green },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 }, footerAction: { alignSelf: 'center', marginTop: 8 },
 });

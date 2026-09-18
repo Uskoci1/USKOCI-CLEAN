@@ -18,7 +18,7 @@ export function WorkspaceHeader({ title }: { title: string }) {
     <InboxBell />
     <Press accessibilityRole="button" accessibilityLabel={intent === 'narucilac' ? 'Profil' : 'Radni profil'}
       haptic="select" onPress={() => router.navigate('/profil')}
-      style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: palette.cream050,
+      style={{ width: 48, height: 48, borderRadius: radius.chip, backgroundColor: palette.cream050,
         alignItems: 'center', justifyContent: 'center' }}>
       <User size={24} color={palette.ink} />
     </Press>

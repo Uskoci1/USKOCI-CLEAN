@@ -7,6 +7,7 @@ import { VOICE_ERROR_COPY, type HoldToTalkController, type VoiceSnapshot } from 
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { PermissionRecovery } from '../system/PermissionRecovery';
 import { aiFirst as a } from './tokens';
+import { sys } from '../system/tokens';
 
 /**
  * V5 microphone: one 66px round control in the middle of the composer, its state
@@ -58,7 +59,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
       </View>
       {listening && p.state.audioLevel !== null ? <View importantForAccessibility="no" style={s.levels}>
         {[0.08, 0.2, 0.4, 0.65, 0.85].map((threshold, i) => <View key={threshold}
-          style={{ width: 3, height: 6 + i * 4, borderRadius: 2, backgroundColor: p.state.audioLevel! >= threshold ? a.color.green : a.color.lineStrong }} />)}
+          style={{ width: 3, height: 6 + i * 4, borderRadius: sys.radius.pill, backgroundColor: p.state.audioLevel! >= threshold ? a.color.green : a.color.lineStrong }} />)}
       </View> : null}
       {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
     </View>
@@ -82,15 +83,15 @@ const s = StyleSheet.create({
   // The idle ring was decoration that widened the control to 80px, and the microphone
   // itself was 66. Together they took half the screen on a real phone. The halo now
   // appears only while listening, when it actually says something.
-  ringActive: { padding: 3, borderRadius: 30, borderWidth: 1, borderColor: a.color.orangeHalo },
-  mic: { width: 48, height: 48, borderRadius: 24, backgroundColor: a.color.green, borderWidth: 1, borderColor: a.color.greenEdge, alignItems: 'center', justifyContent: 'center',
+  ringActive: { padding: 3, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: a.color.orangeHalo },
+  mic: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: a.color.green, borderWidth: 1, borderColor: a.color.greenEdge, alignItems: 'center', justifyContent: 'center',
     shadowColor: a.color.ink, shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   micListening: { backgroundColor: a.color.orange, borderColor: a.color.orangeEdge },
   disabled: { opacity: 0.5 },
   caption: { color: a.color.muted, fontWeight: '500', letterSpacing: 0.2, textAlign: 'center' },
   captionActive: { color: a.color.green, fontWeight: '600' },
   levels: { flexDirection: 'row', gap: 3, height: 24, alignItems: 'center' },
-  transcript: { color: a.color.ink, fontSize: 16, lineHeight: 24, maxHeight: 72, padding: 10, borderRadius: 16, backgroundColor: a.color.iconWell },
+  transcript: { color: a.color.ink, fontSize: 16, lineHeight: 24, maxHeight: 72, padding: 10, borderRadius: sys.radius.control, backgroundColor: a.color.iconWell },
   error: { color: a.color.danger, textAlign: 'center' },
   // The speech disclosure is a legal notice, so it must never be clipped. A single
   // non-wrapping row overflowed both edges on a real phone at 1080px with the system

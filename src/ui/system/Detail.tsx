@@ -87,7 +87,7 @@ const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
   topTitle: { flex: 1, minWidth: 0, color: sys.color.ink },
-  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 16, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: '#E1EBE3' },
+  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: '#E1EBE3' },
   stripTitle: { fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderTopColor: sys.color.line },
   fact: { width: '50%', paddingVertical: 14, paddingRight: 12, gap: 6, borderBottomWidth: 1, borderBottomColor: sys.color.line },
@@ -101,5 +101,5 @@ const s = StyleSheet.create({
   row: { minHeight: 60, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBody: { paddingHorizontal: 18, paddingBottom: 16, gap: 10 },
   pairs: { gap: 10 }, pair: { gap: 2 },
-  note: { borderRadius: 15, backgroundColor: sys.color.wash, paddingVertical: 12, paddingHorizontal: 14 },
+  note: { borderRadius: sys.radius.control, backgroundColor: sys.color.wash, paddingVertical: 12, paddingHorizontal: 14 },
 });

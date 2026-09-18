@@ -303,7 +303,7 @@ function OwnedManualTask({ conversationId }: { conversationId: string | null }) 
 const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.color.ground },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' },
   ink: { color: sys.color.ink }, grow: { flex: 1, minWidth: 0 },
   content: { padding: 20, paddingTop: 4, gap: 14, paddingBottom: 48 },
@@ -313,7 +313,7 @@ const s = StyleSheet.create({
   notice: { gap: 8, padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
   field: { gap: 8, paddingTop: 12, borderTopWidth: 1, borderColor: sys.color.line },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  chip: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  chip: { borderRadius: sys.radius.badge, paddingHorizontal: 8, paddingVertical: 4 },
   chipSaved: { backgroundColor: sys.color.greenSoft }, chipSavedText: { color: sys.color.green, letterSpacing: 0.2 },
   chipMissing: { backgroundColor: sys.color.warnSoft }, chipMissingText: { color: sys.color.warn, letterSpacing: 0.2 },
   input: { ...sys.type.body, color: sys.color.ink, minHeight: 48, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface,

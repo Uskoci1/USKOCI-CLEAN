@@ -35,19 +35,19 @@ export default function Raspored() {
       <View style={{ gap: 14 }}>
         <View style={s.row}><View style={{ flex: 1, minWidth: 160, gap: 4 }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T>
           <T variant="meta" tone="muted">Potvrđeni termini kada radiš kao Uskočer</T></View>
-          <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: 22 }]}
+          <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
             onPress={() => setSelected(shiftDate(selected, -7))}><ArrowLeft size={20} color={sys.color.ink} /></Press>
-          <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: 22 }]}
+          <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
             onPress={() => setSelected(shiftDate(selected, 7))}><ArrowRight size={20} color={sys.color.ink} /></Press>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5, flexGrow: 1 }}>{days.map((day, index) => {
           const range = localDayRange(day), hasEvents = events.some(event => overlapsInterval(event.startsAt, event.endsAt, range.from, range.to));
           return <Press key={day} accessibilityRole="button" accessibilityLabel={`${weekdays[index].name}, ${displayDate(day)}${hasEvents ? ', ima Dogovor' : ''}`}
             accessibilityState={{ selected: selected === day }} onPress={() => setSelected(day)} style={{ flexGrow: 1, minWidth: 44, minHeight: 71,
-              paddingHorizontal: 8, paddingVertical: 10, gap: 5, alignItems: 'center', borderRadius: 16, backgroundColor: selected === day ? sys.color.green : sys.color.greenSoft }}>
+              paddingHorizontal: 8, paddingVertical: 10, gap: 5, alignItems: 'center', borderRadius: sys.radius.control, backgroundColor: selected === day ? sys.color.green : sys.color.greenSoft }}>
             <T variant="meta" tone={selected === day ? 'onDark' : 'muted'}>{weekdays[index].short}</T>
             <T variant="heading" tone={selected === day ? 'onDark' : 'ink'}>{Number(day.slice(-2))}</T>
-            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: hasEvents ? sys.color.orange : 'transparent' }} />
+            <View style={{ width: 5, height: 5, borderRadius: sys.radius.pill, backgroundColor: hasEvents ? sys.color.orange : 'transparent' }} />
           </Press>;
         })}</ScrollView>
         <Button label="Danas" kind="quiet" onPress={() => setSelected(deviceDate(new Date()))} style={{ alignSelf: 'flex-start' }} />

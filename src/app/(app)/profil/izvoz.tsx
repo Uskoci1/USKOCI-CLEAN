@@ -151,7 +151,7 @@ function OwnedExport() {
   const step = (label: string, copy: string, active: boolean) => <View key={label}
     style={[styles.step, { backgroundColor: active ? sys.color.greenSoft : 'transparent' }]}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: active ? sys.color.green : sys.color.muted }} />
+      <View style={{ width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: active ? sys.color.green : sys.color.muted }} />
       <T variant="bodyStrong">{label}</T>
     </View><T variant="meta" tone="muted" style={{ paddingLeft: 16 }}>{copy}</T>
   </View>;

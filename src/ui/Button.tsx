@@ -53,7 +53,7 @@ export function Button({
         {
           minHeight: touch.min,
           paddingHorizontal: space.base,
-          borderRadius: radius.md,
+          borderRadius: radius.primary,
           backgroundColor: skin.bg,
           borderWidth: kind === 'secondary' ? 1.5 : 0,
           borderColor: skin.border,
@@ -95,7 +95,7 @@ export function Card({
       style={[
         {
           backgroundColor: raised ? palette.raised : palette.surface,
-          borderRadius: radius.lg,
+          borderRadius: radius.card,
           borderWidth: 1,
           borderColor: palette.line100,
           overflow: 'hidden',

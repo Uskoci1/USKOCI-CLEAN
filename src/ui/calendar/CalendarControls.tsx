@@ -20,7 +20,7 @@ export const calendarStyles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   input: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1,
     borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, ...sys.type.body, color: sys.color.ink, backgroundColor: sys.color.surface },
-  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   footer: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 12, gap: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line },
   divider: { height: 1, backgroundColor: sys.color.line },
 });

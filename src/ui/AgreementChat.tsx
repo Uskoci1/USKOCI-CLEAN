@@ -179,9 +179,9 @@ const s = StyleSheet.create({
   photo: { width: 220, maxWidth: '100%' },
   time: { color: sys.color.muted, textAlign: 'right', fontWeight: '500', letterSpacing: 0 }, timeFailed: { color: sys.color.danger },
   composerArea: { padding: 16, paddingTop: 10, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 6, paddingLeft: 12, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: 24, backgroundColor: sys.color.surface },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 6, paddingLeft: 12, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, backgroundColor: sys.color.surface },
   composerLocked: { backgroundColor: sys.color.wash },
   input: { flex: 1, minHeight: sys.touch.min, maxHeight: 140, ...sys.type.body, color: sys.color.ink, paddingVertical: 10 },
-  send: { width: sys.touch.min, height: sys.touch.min, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.control },
+  send: { width: sys.touch.min, height: sys.touch.min, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.control },
   sendReady: { backgroundColor: sys.color.ink },
 });

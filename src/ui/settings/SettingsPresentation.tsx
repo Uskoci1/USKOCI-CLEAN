@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CaretRight } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { brandAction, card, iconButton, sys } from '../system/tokens';
+import { nested } from '../../theme/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
@@ -84,14 +85,14 @@ export function SettingsAction({ label, onPress, disabled = false, kind = 'prima
 export const settingsStyles = StyleSheet.create({
   /** Identity block of the profile hub: no card, centred, breathing (V5 profile head). */
   identity: { alignItems: 'center', gap: 6, paddingTop: 8, paddingBottom: 22 },
-  avatar: { width: 96, height: 96, borderRadius: 30, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10, ...sys.elevation.soft },
-  avatarBadge: { position: 'absolute', right: -4, bottom: -4, width: 30, height: 30, borderRadius: 11, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10, ...sys.elevation.soft },
+  avatarBadge: { position: 'absolute', right: -4, bottom: -4, width: 30, height: 30, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
   name: { ...sys.type.hero, fontSize: 28, lineHeight: 33, letterSpacing: -0.8, textAlign: 'center' },
   /** The role switch: one segmented control, the other role is one explicit tap away. */
-  roleSwitch: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: 14, backgroundColor: sys.color.control, alignSelf: 'stretch', marginTop: 18 },
-  roleSegment: { flex: 1, minHeight: 44, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  roleSwitch: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.control, alignSelf: 'stretch', marginTop: 18 },
+  roleSegment: { flex: 1, minHeight: 44, borderRadius: nested(sys.radius.control, 4), alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
   roleSegmentOn: { backgroundColor: sys.color.surface, shadowColor: sys.color.ink, shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  intent: { backgroundColor: sys.color.greenSoft, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
+  intent: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.chip, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
   logout: { paddingTop: 18, borderTopWidth: 1, borderTopColor: sys.color.line, marginTop: 6, marginBottom: 12, alignItems: 'flex-start' },
   notice: { padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.greenSoft, flexDirection: 'row', gap: 10 },
   gap: { gap: 12 },
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
   groupTitle: { color: sys.color.muted, letterSpacing: 0.4, paddingHorizontal: 2 },
   list: { ...card, paddingVertical: 0, paddingHorizontal: 18 },
   row: { minHeight: 66, paddingVertical: 13, flexDirection: 'row', gap: 12, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  rowIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   rowCopy: { flex: 1, gap: 2, minWidth: 0 },
   rowTitle: { color: sys.color.ink },
   flat: { ...card, padding: 18, marginBottom: 14, gap: 12 },

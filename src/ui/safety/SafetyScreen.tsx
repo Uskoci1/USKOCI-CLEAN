@@ -115,7 +115,7 @@ function PrivateReport(context: Context) {
       <View accessibilityRole="radiogroup" style={{ gap: 6 }}>{SAFETY_CATEGORIES.map(value => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
-        style={{ minHeight: 48, padding: 12, borderWidth: 1, borderRadius: 13, borderColor: category === value ? sys.color.green : sys.color.line,
+        style={{ minHeight: 48, padding: 12, borderWidth: 1, borderRadius: sys.radius.control, borderColor: category === value ? sys.color.green : sys.color.line,
           backgroundColor: category === value ? sys.color.wash : sys.color.surface }}><T>{safetyCategoryCopy[value]}</T></Press>)}</View>
       <T variant="bodyStrong">Kratak razlog</T><TextInput accessibilityLabel="Kratak razlog privatne prijave" value={reason} maxLength={200}
         onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setReason(value); }} editable={editable} style={input} />
@@ -128,4 +128,4 @@ function PrivateReport(context: Context) {
     {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} onPress={() => { void check(); }} /> : null}
   </SettingsPanel>;
 }
-const input = { borderWidth: 1, borderColor: sys.color.line, borderRadius: 14, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: 16 };
+const input = { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: 16 };

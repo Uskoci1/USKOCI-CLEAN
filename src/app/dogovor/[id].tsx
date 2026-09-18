@@ -316,5 +316,5 @@ const s = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
   stack: { gap: 8, marginTop: 4 },
   input: { ...sys.type.body, color: sys.color.ink, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, backgroundColor: sys.color.surface },
-  event: { flexDirection: 'row', gap: 12 }, eventLine: { width: 2, borderRadius: 1, backgroundColor: sys.color.greenSoft, marginVertical: 4 }, eventCopy: { flex: 1, gap: 2 },
+  event: { flexDirection: 'row', gap: 12 }, eventLine: { width: 2, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, marginVertical: 4 }, eventCopy: { flex: 1, gap: 2 },
 });

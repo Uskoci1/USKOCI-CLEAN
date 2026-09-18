@@ -32,13 +32,6 @@ export const aiFirst = {
     orangeEdge: sys.color.orangeEdge,
     orangeHalo: sys.color.orangeHalo,
   },
-  radius: {
-    card: sys.radius.card,
-    compactCard: sys.radius.cardCompact,
-    composer: sys.radius.control,
-    primary: sys.radius.primary,
-    chip: sys.radius.chip,
-  },
   text: {
     title: sys.type.title,
     card: sys.type.cardTitle,

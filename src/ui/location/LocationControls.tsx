@@ -69,7 +69,7 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
           style={{ flex: 1, minHeight: 44 }} />
         <SafeAreaView edges={['bottom']} accessibilityViewIsModal
           style={{ maxHeight: '80%', borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet, backgroundColor: sys.color.surface, padding: 20, paddingTop: 12, gap: 14 }}>
-          <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong }} />
+          <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong }} />
           <T variant="heading" style={{ color: sys.color.ink }}>{label}</T>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 6 }}>
             {options.map(option => <Press key={option.value} accessibilityRole="radio" accessibilityLabel={option.label}
@@ -94,7 +94,7 @@ export function LocationConfirmation({ checked, disabled, onChange, children }: 
   return <Press accessibilityRole="checkbox" accessibilityLabel="Potvrđujem unetu lokaciju"
     accessibilityState={{ checked, disabled }} disabled={disabled} haptic="select" onPress={() => onChange(!checked)}
     style={[locationStyles.notice, locationStyles.row, { minHeight: 50 }]}>
-    <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: 1.5, borderColor: sys.color.green,
+    <View style={{ width: 24, height: 24, borderRadius: sys.radius.badge, borderWidth: 1.5, borderColor: sys.color.green,
       alignItems: 'center', justifyContent: 'center', backgroundColor: checked ? sys.color.green : sys.color.surface }}>
       {checked ? <Check size={16} color={sys.color.surface} weight="bold" /> : null}
     </View>

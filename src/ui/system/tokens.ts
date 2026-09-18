@@ -1,5 +1,5 @@
 import type { TextStyle, ViewStyle } from 'react-native';
-import { elevation, motion, space, touch, type } from '../../theme/tokens';
+import { elevation, motion, radius, space, touch, type } from '../../theme/tokens';
 
 /**
  * One light system for every inner screen (PKG-011, redesigned 2026-09-16 against
@@ -45,13 +45,20 @@ export const sys = {
     orangeEdge: '#E57917',
     orangeHalo: '#FFD2A8',
   },
-  radius: { badge: 9, chip: 13, control: 16, primary: 17, cardCompact: 18, card: 22, sheet: 28, pill: 999 },
+  /** One scale, defined once in `theme/tokens`. A circle or capsule is `pill`, never half of its own width. */
+  radius,
   space,
   type: {
     ...type,
     /** Money and counts use tabular figures so columns and cards line up. */
     price: { fontSize: 23, lineHeight: 28, fontWeight: '700', letterSpacing: -0.7, fontVariant: ['tabular-nums'] } as TextStyle,
     cardTitle: { fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.6 } as TextStyle,
+    /** The one money figure a detail screen is built around. */
+    priceLarge: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.7, fontVariant: ['tabular-nums'] } as TextStyle,
+    /** Money inside a row that is compared with other rows. */
+    priceSmall: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.5, fontVariant: ['tabular-nums'] } as TextStyle,
+    /** The letter standing in for a photo, on a 96px avatar. */
+    monogram: { fontSize: 30, lineHeight: 36, fontWeight: '700' } as TextStyle,
   },
   motion,
   touch,
@@ -67,7 +74,7 @@ export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCo
 export const brandAction: ViewStyle = { backgroundColor: sys.color.orange, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
 
 /** 44px icon control in a quiet well (V5 head icon button). */
-export const iconButton: ViewStyle = { width: 44, height: 44, borderRadius: 15, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
+export const iconButton: ViewStyle = { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
 
 export const intentLabel = (intent: 'narucilac' | 'uskocer') => intent === 'narucilac' ? 'Meni treba' : 'Ja mogu';
 export const intentTitle = (intent: 'narucilac' | 'uskocer') => intent === 'narucilac' ? 'MENI TREBA' : 'JA MOGU';

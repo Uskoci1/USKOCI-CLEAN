@@ -33,7 +33,6 @@ export const v2 = {
     danger: sys.color.danger,
     warm: sys.color.orangeSoft,
   },
-  radius: { input: sys.radius.control, button: sys.radius.chip, card: sys.radius.cardCompact, sheet: sys.radius.sheet },
   space: { xs: space.xs, sm: space.sm, md: space.md, lg: space.lg, xl: space.xl },
   text: { body: type.body, label: type.label, title: type.title, hero: type.hero },
   target: { minimum: 44, primary: 50 },

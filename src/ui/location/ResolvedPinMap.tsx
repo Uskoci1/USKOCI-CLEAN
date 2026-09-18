@@ -212,7 +212,7 @@ export function ResolvedPinMap(props: ResolvedPinMapProps) {
 
 const styles = StyleSheet.create({
   container: { gap: space.sm },
-  frame: { height: 320, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: palette.successBg },
+  frame: { height: 320, borderRadius: radius.card, overflow: 'hidden', backgroundColor: palette.successBg },
   map: { flex: 1 },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: space.lg,
     gap: space.md, backgroundColor: palette.surface },

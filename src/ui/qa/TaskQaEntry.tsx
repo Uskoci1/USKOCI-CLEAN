@@ -18,6 +18,6 @@ export function TaskQaEntry({ onPress, disabled = false }: { onPress: () => void
 }
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 18 },
-  icon: { width: 40, height: 40, borderRadius: 13, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink }, disabled: { opacity: 0.5 },
 });

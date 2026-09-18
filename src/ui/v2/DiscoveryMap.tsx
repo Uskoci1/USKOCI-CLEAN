@@ -10,6 +10,7 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
 import { v2 } from './tokens';
+import { sys } from '../system/tokens';
 import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
@@ -106,8 +107,8 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
 }
 const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: v2.color.soft }, map: { flex: 1 },
   area: { position: 'absolute', top: 12, left: 16, right: 76 }, zoom: { position: 'absolute', top: 12, right: 12, gap: 6 },
-  zoomButton: { minWidth: 44, minHeight: 44, borderRadius: 13, justifyContent: 'center', alignItems: 'center', backgroundColor: v2.color.surface },
-  zoomText: { fontSize: 25, color: v2.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: 15, borderBottomLeftRadius: 5,
+  zoomButton: { minWidth: 44, minHeight: 44, borderRadius: sys.radius.chip, justifyContent: 'center', alignItems: 'center', backgroundColor: v2.color.surface },
+  zoomText: { fontSize: 25, color: v2.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: sys.radius.chip, borderBottomLeftRadius: 5,
     borderWidth: 3, borderColor: v2.color.orange, backgroundColor: v2.color.ink, alignItems: 'center', justifyContent: 'center' },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: v2.color.canvas },
   attribution: { position: 'absolute', bottom: 4, left: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: v2.color.surface, padding: 4 },

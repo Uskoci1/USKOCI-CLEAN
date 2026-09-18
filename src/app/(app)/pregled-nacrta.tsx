@@ -9,6 +9,7 @@ import { aiNeedV2Izvor, izvor } from '../../data';
 import type { Ishod } from '../../data/ports';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { sesijaSada, useSesija } from '../../store/sesija';
+import { sys } from '../../ui/system/tokens';
 import { ulogaSada, useUloga } from '../../store/uloga';
 import {
   canEditFactInline,
@@ -199,19 +200,19 @@ export default function PregledNacrtaR07() {
           <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>{title ?? 'Vaš novi zadatak'}</T>
           {description ? <T style={textStyle}>{description}</T> : null}
           <T style={metaStyle}>{confirmed} od {facts.length} podataka potvrđeno</T>
-          <View style={{ height: 3, backgroundColor: v2.color.line, borderRadius: 2 }}>
-            <View style={{ height: 3, width: `${facts.length ? confirmed / facts.length * 100 : 0}%`, backgroundColor: v2.color.teal, borderRadius: 2 }} />
+          <View style={{ height: 3, backgroundColor: v2.color.line, borderRadius: sys.radius.pill }}>
+            <View style={{ height: 3, width: `${facts.length ? confirmed / facts.length * 100 : 0}%`, backgroundColor: v2.color.teal, borderRadius: sys.radius.pill }} />
           </View>
           {stanje.review.missingRequired.length ? <T style={metaStyle}>Još treba potvrditi ili dopuniti: {stanje.review.missingRequired.map(factLabel).join(' · ')}</T>
             : pendingFacts ? <T style={metaStyle}>Obavezni podaci su potvrđeni. Pregledajte i preostale predloge pre čuvanja.</T> : null}
         </View>
 
-        {safetyCopy ? <View style={{ padding: v2.space.md, backgroundColor: v2.color.warm, borderRadius: v2.radius.input }}>
+        {safetyCopy ? <View style={{ padding: v2.space.md, backgroundColor: v2.color.warm, borderRadius: sys.radius.control }}>
           <T accessibilityRole="alert" style={{ ...textStyle, color: stanje.safety === 'BLOCK' ? v2.color.danger : v2.color.ink }}>{safetyCopy}</T>
         </View> : null}
 
         {!alreadySaved && conversationId ? <V2Action label="Mesto Zadatka" disabled={blocked || !!edit} onPress={openLocation} /> : null}
-        {facts.length ? <View style={{ backgroundColor: v2.color.surface, borderColor: v2.color.line, borderWidth: 1, borderRadius: v2.radius.card, overflow: 'hidden' }}>
+        {facts.length ? <View style={{ backgroundColor: v2.color.surface, borderColor: v2.color.line, borderWidth: 1, borderRadius: sys.radius.cardCompact, overflow: 'hidden' }}>
           {facts.map((fact, index) => {
             const label = factLabel(fact.key), confirmedFact = fact.status === 'CONFIRMED';
             const expanded = expandedFactId === fact.id, editing = edit?.fact.id === fact.id;
@@ -235,7 +236,7 @@ export default function PregledNacrtaR07() {
                     onChangeText={value => { if (canAct()) setEdit({ ...edit, text: value, error: null }); }}
                     editable={!blocked} autoFocus multiline={fact.valueType === 'TEXT' || fact.valueType === 'TEXT_ARRAY'}
                     style={{ ...textStyle, minHeight: v2.target.minimum, padding: v2.space.md, borderWidth: 1,
-                      borderColor: edit.error ? v2.color.danger : v2.color.teal, backgroundColor: v2.color.canvas, borderRadius: v2.radius.input }} />
+                      borderColor: edit.error ? v2.color.danger : v2.color.teal, backgroundColor: v2.color.canvas, borderRadius: sys.radius.control }} />
                   {edit.error ? <T accessibilityRole="alert" style={{ ...metaStyle, color: v2.color.danger }}>{edit.error}</T> : null}
                   <View style={{ gap: v2.space.sm }}>
                     <V2Action label="Sačuvaj ispravku" kind="primary" disabled={blocked} onPress={sacuvajIspravku} />

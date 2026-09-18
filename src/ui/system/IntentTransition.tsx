@@ -49,8 +49,8 @@ export function IntentTransition({ request, current, onConfirm, onCancel }: {
 const s = StyleSheet.create({
   scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim },
   sheet: { backgroundColor: sys.color.surface, borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet, padding: 24, paddingTop: 12, gap: 10 },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong, marginBottom: 8 },
-  badge: { width: 40, height: 40, borderRadius: 20, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong, marginBottom: 8 },
+  badge: { width: 40, height: 40, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   title: { color: sys.color.ink },
   body: { color: sys.color.ink },
   actions: { gap: 8, marginTop: 10 },

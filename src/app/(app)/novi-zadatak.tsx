@@ -102,7 +102,7 @@ export default function NoviZadatak() {
 const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.color.ground },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' }, ink: { color: sys.color.ink },
   content: { flex: 1, padding: 20, paddingTop: 8, gap: 14 },
   card: { gap: 10, padding: 18, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.card },
