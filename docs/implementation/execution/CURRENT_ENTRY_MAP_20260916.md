@@ -164,9 +164,17 @@ the recovery screen and forest headers.
 Entry, auth and the brand artwork keep their own palette by instruction, and this system never
 restyles them.
 
-**Only the measure has been unified. No screen has been recomposed.** The owner's standing
-complaint - that the inside is cluttered and unarranged - is answered only in part; composition is
-the next design step and needs his eye before any screen changes shape.
+Later the same day the owner ordered the rest, in his order: the type sizes and corner radii first
+because they touch all 48 screens at once, then Profil, then Prijava. The first two are done, and
+`pkg022/PKG022_DESIGN_MEASURE_AND_REGISTER_20260918.md` records them: one radius scale instead of
+two that disagree, a circle written as `pill` rather than as half its own width, every hand-written
+size replaced by a role, the Profil hub regrouped and given icons that mean something, and 977 lines
+moved from "Vi" to "ti" across 104 source files. The auth sheet keeps its own dark palette and its
+own numbers until the owner decides on it, which is still an open PKG-011B question.
+
+**Beyond Profil and the review screen, no screen has been recomposed.** The owner's standing
+complaint - that the inside is cluttered and unarranged - is answered for the measure and the
+register; composition of the remaining screens needs his eye before they change shape.
 
 ## Documents written on 2026-09-18
 
@@ -176,3 +184,4 @@ the next design step and needs his eye before any screen changes shape.
 | `pkg021/PKG021_PUBLISH_BLOCKER_ROOT_CAUSE_20260918.md` | Why every saved draft was unreviewable, proven at wire and source |
 | `pkg022/PKG022_LOCATION_FUNCTION_AUDIT_20260918.md` | The location path audited as functions |
 | `pkg022/PKG022_MAP_LAYER_AUDIT_20260918.md` | The map layer end to end, and which of its faults were mine |
+| `pkg022/PKG022_DESIGN_MEASURE_AND_REGISTER_20260918.md` | The one measure and the one register: what moved, what was left locked |
