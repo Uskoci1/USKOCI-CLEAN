@@ -91,14 +91,13 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       {/* Both tabs used this one presentation and both were titled Zadaci, so two different
           screens carried the same name. The discovery view is what the Mapa tab opens. */}
       <ScreenHeader eyebrow={eyebrow} title={owned ? 'Zadaci' : 'Prilike'} onProfile={props.onProfile} />
-      <View style={s.segmentRow}>
-        {owned ? <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
-          : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
-      </View>
-      <View style={s.sectionRow}>
-        <View style={s.sectionCopy}>
-          {count === null ? <T variant="note" tone="muted">Učitavamo…</T>
-            : <T variant="note" tone="muted" numberOfLines={1}>{plural(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
+      {/* One row of controls, not two. Which set you are looking at and the two ways to narrow it
+          belong together, and the count is not a control: it belongs with what it counts, at the top
+          of the list. Two bands plus a header pushed the first card to 40% down the screen. */}
+      <View style={s.controls}>
+        <View style={s.grow}>
+          {owned ? <Segmented scroll options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
+            : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
         </View>
         <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
         <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
@@ -130,7 +129,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
-        ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem} />}
+        ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
+        ListHeaderComponent={loading || error || !visible.length ? null : <View style={s.countRow}>
+          {count === null ? <T variant="note" tone="muted">Učitavamo…</T>
+            : <T variant="note" tone="muted" numberOfLines={1}>{plural(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
+        </View>} />}
       {props.onNew && showCards ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
         onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>
         <Plus size={26} weight="bold" color={sys.color.onOrange} /></Press> : null}
@@ -164,9 +167,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  segmentRow: { paddingHorizontal: 20, paddingTop: 6 },
-  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6 },
-  sectionCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6 },
+  countRow: { paddingBottom: 8 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
   input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 },

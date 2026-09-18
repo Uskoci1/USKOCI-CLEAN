@@ -10,7 +10,7 @@ import { CalendarAction as Button, CalendarText as T, CalendarScreen, calendarSt
 const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
 function OwnedAvailability() {
   const editor = useOwnedEditor(useCallback(() => workerAvailabilityClientService.read(), []));
-  return <CalendarScreen title="Dostupnost za rad" back={back} loading={editor.loading} scroll={false}>
+  return <CalendarScreen eyebrow="Ja mogu" title="Dostupnost za rad" back={back} loading={editor.loading} scroll={false}>
     {editor.error ? <View style={[calendarStyles.note, { marginHorizontal: 20, marginTop: 12 }]}><T accessibilityRole="alert" tone="danger">{editor.error}</T>
       <Button label="Učitaj sačuvano stanje" kind="secondary" disabled={editor.busy} onPress={() => void editor.refresh()} />
     </View> : null}
@@ -25,7 +25,7 @@ function OwnedAvailability() {
 }
 export default function Dostupnost() {
   const worker = useUloga() === 'uskocer';
-  if (!worker) return <CalendarScreen title="Dostupnost za rad" back={back}>
+  if (!worker) return <CalendarScreen eyebrow="Ja mogu" title="Dostupnost za rad" back={back}>
     <T>Dostupnost se uređuje u nameri „Ja mogu“.</T><Button label="Otvori Profil" onPress={() => router.replace('/profil')} />
   </CalendarScreen>;
   return <OwnedAvailability />;

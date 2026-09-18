@@ -17,7 +17,7 @@ export default function MestoZadatka() {
   // A direct/deep entry must return to the current complete review, never the
   // retired per-fact draft review. A real back stack is still preserved.
   const back = () => router.canGoBack() ? router.back() : router.replace({ pathname: '/pregled-zadatka', params: { conversationId: id } });
-  return <LocationScreen title="Mesto Zadatka" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
+  return <LocationScreen eyebrow="Zadatak" title="Mesto Zadatka" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
     {editor.saved ? <>
       <T accessibilityRole="alert" tone="success">Lokacija je sačuvana u pregledu Zadatka.</T>
       <Button label="Vrati se na pregled" onPress={back} />
