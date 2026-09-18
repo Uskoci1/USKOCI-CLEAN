@@ -8,7 +8,10 @@ import { iconButton, sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { aiFirst as a } from './tokens';
 
-export type ConversationMessage = { id: string; fromAi: boolean; body: string };
+export type ConversationMessage = { id: string; fromAi: boolean; body: string;
+  /** What this turn actually took from what was said, shown under it. A sentence saying
+   *  "zabelezio sam" is a claim; this is the claim made checkable. */
+  understood?: readonly { key: string; label: string; value: string }[] };
 export type AiConversationShellProps = {
   title: string; subtitle: string; card: (compact: boolean) => ReactNode;
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
@@ -68,7 +71,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.messages.length === 0 ? <View style={s.welcome}>
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
-        </View> : p.messages.map(message => <ConversationBubble key={message.id} fromAi={message.fromAi} body={message.body} />)}
+        </View> : p.messages.map(message => <ConversationBubble key={message.id} {...message} />)}
         {p.streamingText ? <View style={s.message}><T variant="label" style={s.assistantLabel}>USKOČI</T>
           <T selectable style={s.body}>{p.streamingText}</T></View> : null}
         {p.busy ? <View accessibilityLiveRegion="polite" style={s.processing}><ActivityIndicator color={a.color.green} />
@@ -110,10 +113,17 @@ export function AiConversationShell(p: AiConversationShellProps) {
 }
 
 /** Persisted messages do not rerender for each keystroke or incoming draft chunk. */
-const ConversationBubble = memo(function ConversationBubble({ fromAi, body }: { fromAi: boolean; body: string }) {
+const ConversationBubble = memo(function ConversationBubble({ fromAi, body, understood }: ConversationMessage) {
   return <View style={[s.message, !fromAi && s.userMessage]}>
     {fromAi ? <T variant="label" style={s.assistantLabel}>USKOČI</T> : <T variant="label" style={s.userLabel}>Ti</T>}
     <T selectable style={fromAi ? s.body : s.userBody}>{body}</T>
+    {understood?.length ? <View accessibilityLabel={`Iz ovoga je uzeto: ${understood.map(item => `${item.label} ${item.value}`).join(', ')}`}
+      style={s.understood}>
+      {understood.map(item => <View key={item.key} style={s.understoodRow}>
+        <T variant="meta" tone="muted" style={s.understoodLabel} numberOfLines={1}>{item.label}</T>
+        <T variant="meta" style={s.understoodValue} numberOfLines={2}>{item.value}</T>
+      </View>)}
+    </View> : null}
   </View>;
 });
 
@@ -132,6 +142,11 @@ const s = StyleSheet.create({
   assistantLabel: { color: a.color.green, letterSpacing: 0.9 },
   userLabel: { color: sys.color.muted, letterSpacing: 0.6 },
   message: { gap: 6, alignSelf: 'flex-start', maxWidth: '96%' },
+  // A quiet ledger under the sentence, never louder than the words above it.
+  understood: { gap: 4, marginTop: 2, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: '#DCE8DF' },
+  understoodRow: { flexDirection: 'row', gap: 8, alignItems: 'baseline' },
+  understoodLabel: { minWidth: 76 },
+  understoodValue: { flex: 1, color: sys.color.ink },
   userMessage: { alignSelf: 'flex-end', paddingVertical: 12, paddingHorizontal: 15, borderRadius: 20, borderBottomRightRadius: 5, backgroundColor: a.color.wash, marginLeft: 30 },
   recovery: { gap: 10, padding: 14, borderRadius: 16, backgroundColor: a.color.wash },
   actions: { gap: 10 },

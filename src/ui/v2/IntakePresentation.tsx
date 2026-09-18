@@ -6,6 +6,7 @@ import { ArrowRight, CaretRight, Clock, MapPin, Users } from 'phosphor-react-nat
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
+import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
 import { displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
@@ -98,6 +99,8 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
   const [panel, setPanel] = useState<'options' | 'points' | null>(null);
+  // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
+  const [pointAskHidden, setPointAskHidden] = useState(false);
   const reduced = useReducedMotion();
   const summary = publicSummary(conversation.facts);
   const safetyCopy = safetyMessage(conversation.safety);
@@ -108,9 +111,21 @@ export function IntakePresentation(props: Props) {
   const held = (key: AiNeedV2Fact['key']) => conversation.facts.find(fact => fact.key === key)?.value;
   const gap = pointsMissing(held('need.task_geography'), held('need.resolved_location'));
   const needsPoint = conversation.status === 'OPEN' && gap.total > 0 && gap.done < gap.total;
+  // Each turn carries the ids of the facts it proposed, so the sentence it wrote can be shown
+  // beside what it actually took. A private value is named but never printed here: the thread is
+  // the conversation surface, not the place to restate an exact address.
+  const messages = conversation.messages.map(message => {
+    if (!message.fromAi || !message.proposedFactIds.length) return message;
+    const understood = message.proposedFactIds
+      .map(id => conversation.facts.find(fact => fact.id === id))
+      .filter((fact): fact is AiNeedV2Fact => !!fact)
+      .map(fact => ({ key: fact.id, label: factDisplayLabel(fact.key),
+        value: fact.privacyClass === 'PRIVATE' ? 'privatno, vidi samo onaj s kim se dogovoriš' : fact.displayValue }));
+    return understood.length ? { ...message, understood } : message;
+  });
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
-    messages={conversation.messages} pending={pending} busy={busy} streamingText={props.streamingText}
+    messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     welcome="Reci šta ti treba." welcomeDetail=""
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
@@ -143,12 +158,17 @@ export function IntakePresentation(props: Props) {
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
     status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !needsPoint ? undefined : <>
-      {needsPoint ? <>
+      {needsPoint && !pointAskHidden ? <>
         <T variant="note" style={s.muted}>{gap.total > 1
-          ? 'Fali još mesto na mapi, da radnik zna gde da dođe. Dve tačke, dva dodira.'
-          : 'Fali još mesto na mapi, da radnik zna gde da dođe.'}</T>
-        <V2Action kind="primary" label="Pokaži na mapi" onPress={() => { Keyboard.dismiss(); setPanel('points'); }} />
+          ? 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe. Dve tačke, dva dodira.'
+          : 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe.'}</T>
+        <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>
+          <ConversationPointAsk conversationId={conversation.conversationId}
+            onSaved={props.onRefresh} onClose={() => setPointAskHidden(true)} />
+        </Suspense>
       </> : null}
+      {needsPoint && pointAskHidden
+        ? <V2Action kind="primary" label="Pokaži mesto na mapi" onPress={() => { Keyboard.dismiss(); setPointAskHidden(false); }} /> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>
@@ -174,7 +194,7 @@ export function IntakePresentation(props: Props) {
           can also be moved without hunting for the long form. */}
       {conversation.status === 'OPEN' && gap.total > 0
         ? <V2Action label={needsPoint ? 'Mesto na mapi' : 'Izmeni mesto na mapi'} kind="quiet"
-          onPress={() => setPanel('points')} /> : null}
+          onPress={() => { close(); setPointAskHidden(false); setPanel(gap.done < gap.total ? null : 'points'); }} /> : null}
       {props.canReview ? <V2Action label={props.reviewLabel} onPress={() => { close(); props.onReview(); }} /> : null}
       {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled}
         onPress={() => { close(); props.onPhotos?.(); }} /> : null}

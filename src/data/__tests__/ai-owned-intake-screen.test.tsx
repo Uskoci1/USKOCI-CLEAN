@@ -502,3 +502,42 @@ it('late dispatched cancellation after blur cannot retire the journal or load an
   await blur();const reads=mockLoad.mock.calls.length;await act(async()=>held.resolve(recovery(turn(other,'FAILED').podatak,true,true)));
   expect(await aiTurnIntentJournal.load(intent.accountId)).toEqual(intent);expect(mockLoad).toHaveBeenCalledTimes(reads);expect(mockSend).not.toHaveBeenCalled();
 });
+
+describe('what a turn took', () => {
+  // "Zabelezio sam cenu od 500 evra" is a claim about bookkeeping. Each message already carries
+  // the ids of the facts it proposed, so the claim can be shown beside what was actually taken.
+  const said = (body: string, proposedFactIds: string[]) => ({ id: `m-${proposedFactIds.join('-') || 'none'}`,
+    fromAi: true, body, safety: null, proposedFactIds });
+
+  it('shows the label and the value under the message that produced them', async () => {
+    mockLoad.mockResolvedValue(conversation({
+      facts: [publicFact('need.title', 'Krečenje stana')],
+      messages: [said('Zabeležio sam krečenje stana.', ['need.title'])],
+    }));
+    await render();
+    expect(text()).toContain('Naslov');
+    expect(text()).toContain('public display');
+  });
+
+  it('names a private fact without printing it into the thread', async () => {
+    mockLoad.mockResolvedValue(conversation({
+      facts: [{ id: 'address', key: 'need.exact_address', value: 'Lenke Dunđerski 11', displayValue: 'Lenke Dunđerski 11',
+        valueType: 'TEXT', privacyClass: 'PRIVATE', requiredForDraft: false, status: 'CONFIRMED',
+        source: 'EXPLICIT_USER_ANSWER', evidence: null }],
+      messages: [said('Zapamtio sam adresu.', ['address'])],
+    }));
+    await render();
+    expect(text()).toContain('Tačna adresa');
+    expect(text()).not.toContain('Lenke Dunđerski 11');
+  });
+
+  it('says nothing under a turn that took nothing, and under the person\u2019s own words', async () => {
+    mockLoad.mockResolvedValue(conversation({
+      facts: [publicFact('need.title', 'Krečenje stana')],
+      messages: [said('Pitanje bez izdvojenih podataka.', []),
+        { id: 'mine', fromAi: false, body: 'Treba mi krečenje.', safety: null, proposedFactIds: ['need.title'] }],
+    }));
+    await render();
+    expect(text()).not.toContain('Naslov');
+  });
+});
