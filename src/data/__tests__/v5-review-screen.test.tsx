@@ -465,3 +465,45 @@ it.each(['EVALUATING', 'UNKNOWN_OUTCOME'] as const)('does not turn historical tr
   expect(tree.root.findAllByProps({ label: 'Nastavi istu objavu' })).toHaveLength(0);
   expect(mockOpenEdit).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
+
+// The review was a table: twelve identical two-line rows, four of them saying "Nema navedenih
+// stavki", each with its own Izmeni, under a section header rather than under the task. These
+// pin the composition that replaced it, so the wall cannot come back unnoticed.
+describe('the review reads as a task', () => {
+  const withEmpties = (): AiTaskReviewEnvelope => ({ ...review(), publicProjection: [
+    ...review().publicProjection,
+    { id: 'skills', key: 'need.required_skills', value: [], displayValue: '—',
+      privacyClass: 'PUBLIC', source: 'SYSTEM_DERIVED', status: 'CONFIRMED' },
+    { id: 'tools', key: 'need.required_tools', value: [], displayValue: '—',
+      privacyClass: 'PUBLIC', source: 'SYSTEM_DERIVED', status: 'CONFIRMED' },
+    { id: 'category', key: 'need.category', value: 'Selidbe i transport', displayValue: 'Selidbe i transport',
+      privacyClass: 'PUBLIC', source: 'SYSTEM_DERIVED', status: 'CONFIRMED' },
+  ] });
+
+  it('leads with the task, not with a heading about the task', async () => {
+    mockPrepare.mockResolvedValue(ok(review()));
+    await render();
+    expect(text()).toContain('Prenos ormara');
+    expect(text()).toContain('Ovako će drugi videti zadatak');
+  });
+
+  it('names what is not stated in one line instead of a row each', async () => {
+    mockPrepare.mockResolvedValue(ok(withEmpties()));
+    await render();
+    const copy = text();
+    expect(copy).toContain('Nije navedeno');
+    expect(copy).toContain('Selidbe i transport');
+    // Two empty facts, one line, and no repetition of the empty marker.
+    expect(copy.split('Nije navedeno').length - 1).toBe(1);
+  });
+
+  it('opens them on request, so nothing is hidden from what is being accepted', async () => {
+    mockPrepare.mockResolvedValue(ok(withEmpties()));
+    await render();
+    const opener = tree.root.findAll(node => typeof node.props?.accessibilityLabel === 'string'
+      && node.props.accessibilityLabel.startsWith('Prikaži šta nije navedeno'))[0];
+    expect(opener).toBeDefined();
+    await act(async () => { opener.props.onPress(); });
+    expect(text()).not.toContain('Nije navedeno');
+  });
+});

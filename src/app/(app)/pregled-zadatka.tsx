@@ -20,6 +20,7 @@ import { Press } from '../../ui/Press';
 import { V2Action } from '../../ui/v2/V2Action';
 import { V2Icon } from '../../ui/v2/icons';
 import { aiFirst as a } from '../../ui/aiFirst/tokens';
+import { type } from '../../theme/tokens';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
@@ -50,6 +51,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
   const [edit, setEdit] = useState<Edit | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
+  // Facts with nothing in them are named in one line rather than given a row each, and that
+  // line opens them. Nothing is hidden; a wall of "Nema navedenih stavki" is just not a wall.
+  const [showEmpty, setShowEmpty] = useState(false);
   const [deadlineEditor, setDeadlineEditor] = useState(false);
   const deadlineProposal = useRef<string | null | undefined>(undefined);
   const [deadlineTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -213,10 +217,28 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     : evaluation?.kind === 'NOT_READY' ? 'Provera objave trenutno nije spremna. Tvoj zadatak je sačuvan kao privatan nacrt.'
     : command ? 'Objava još nije potvrđena. Proveri ishod pre novog pokušaja.' : null;
   const disabled = editor.busy || editor.loading || editor.uncertain;
-  const rows = (items: readonly AiTaskReviewFact[]) => items.map(fact => {
+  const EMPTY_VALUE = new Set(['—', 'Nema navedenih stavki', 'Bez fotografija', '']);
+  const rows = (items: readonly AiTaskReviewFact[]) => {
+    const blank = items.filter(fact => edit?.fact.id !== fact.id
+      && EMPTY_VALUE.has(factReviewValue(displayFact(fact)).trim()));
+    const carried = showEmpty ? items : items.filter(fact => !blank.includes(fact));
+    return <>
+      {carried.map(fact => row(fact))}
+      {blank.length && !showEmpty ? <Press accessibilityRole="button" style={s.field}
+        accessibilityLabel={`Prikaži šta nije navedeno: ${blank.map(fact => factLabel(fact.key)).join(', ')}`}
+        onPress={() => setShowEmpty(true)}>
+        <T style={s.meta}>Nije navedeno: {blank.map(fact => factLabel(fact.key)).join(' · ')}</T>
+      </Press> : null}
+    </>;
+  };
+  const row = (fact: AiTaskReviewFact) => {
     const shown = displayFact(fact), editing = edit?.fact.id === shown.id;
+    const value = factReviewValue(shown);
+    // A short value belongs beside its label, not under it. Twelve two-line stacks is the wall.
+    const inline = !editing && value.length <= 32;
     return <View key={fact.key} style={s.field}>
-      <View style={s.row}><T style={[s.meta, { flex: 1 }]}>{factLabel(fact.key)}</T>
+      <View style={s.row}><T style={[s.meta, inline ? undefined : { flex: 1 }]}>{factLabel(fact.key)}</T>
+        {inline ? <T selectable style={[s.body, s.inlineValue]} numberOfLines={1}>{value}</T> : null}
         {!command && fact.id ? <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${factLabel(fact.key)}`}
           disabled={disabled || !!edit || !!locationEditor || deadlineEditor} style={s.editButton} onPress={() => {
             if (!canAct() || edit || locationEditor || deadlineEditor) return;
@@ -230,10 +252,10 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         {edit.error ? <T accessibilityRole="alert" style={s.error}>{edit.error}</T> : null}
         <V2Action label="Sačuvaj ispravku" disabled={disabled} onPress={saveEdit} />
         <V2Action label="Odustani od ispravke" kind="quiet" disabled={disabled} onPress={() => setEdit(null)} />
-      </> : <T selectable style={s.body}>{factReviewValue(shown)}</T>}
+      </> : inline ? null : <T selectable style={s.body}>{value}</T>}
       {fact.source === 'SYSTEM' ? <T style={s.meta}>Podrazumevana vrednost</T> : null}
     </View>;
-  });
+  };
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={s.header}><Press accessibilityRole="button" accessibilityLabel="Nazad u razgovor" style={s.back} onPress={back}>
@@ -249,7 +271,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
           {locationEditor ? <View style={s.section}><NeedLocationForm reviewOnly review={locationEditor}
             resolver={resolver} busy={editor.busy} uncertain={editor.uncertain} onSave={proposeLocation} />
             <V2Action label="Vrati se na pregled" kind="quiet" disabled={disabled} onPress={() => { resolver.cancel(); setLocationEditor(null); }} /></View> : null}
-          <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Ovako će drugi videti zadatak</T>
+          <View style={s.section}>
+            {(() => {
+              const title = review.publicProjection.find(fact => fact.key === 'need.title');
+              const text = title ? factReviewValue(displayFact(title)) : null;
+              return text ? <T accessibilityRole="header" style={s.hero}>{text}</T> : null;
+            })()}
+            <T style={s.meta}>Ovako će drugi videti zadatak</T>
             {rows(review.publicProjection.filter(fact => fact.key !== 'need.public_photo_paths'))}
             <View style={s.notice}><T style={s.meta}>{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
               {unavailableIdentityFact ? <>
@@ -322,6 +350,8 @@ const s = StyleSheet.create({
   back: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }, title: { ...a.text.title, color: a.color.ink },
   meta: { ...a.text.meta, color: a.color.muted }, body: { ...a.text.body, color: a.color.ink },
   content: { padding: 20, gap: 24 }, section: { gap: 8 }, sectionTitle: { ...a.text.card, color: a.color.ink },
+  hero: { ...type.hero, color: a.color.ink },
+  inlineValue: { flexShrink: 1, textAlign: 'right' },
   field: { borderBottomWidth: 1, borderBottomColor: a.color.line, paddingVertical: 12, gap: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 }, editButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', alignItems: 'flex-end' },
   editLabel: { ...a.text.meta, fontWeight: '600', color: a.color.green }, private: { padding: 16, borderRadius: 18, backgroundColor: a.color.wash },
