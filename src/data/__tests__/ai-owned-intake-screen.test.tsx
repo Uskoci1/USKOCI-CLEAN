@@ -334,10 +334,19 @@ it('keeps private address and resolved coordinates out of the compact live card 
 });
 
 it('offers the owned photo route and options without automatic abandonment', async () => {
-  await render(); expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
+  // Photos belong to a conversation, so before the first word there is nothing to attach them to
+  // and the entry is not offered.
+  await render(); await options();
+  const optionLabels = () => tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string')
+    .map(node => node.props.accessibilityLabel).join(' ');
+  expect(optionLabels()).not.toContain('Fotografije zadatka');
+  await act(async () => button('Zatvori').onPress());
+
+  await act(async () => tree.unmount());
+  await resume(); expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
   await options();
-  const labels = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string').map(node => node.props.accessibilityLabel).join(' ');
-  expect(labels).toContain('Fotografije zadatka'); expect(labels).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
+  expect(optionLabels()).toContain('Fotografije zadatka');
+  expect(optionLabels()).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
   expect(text()).toContain('Povratak čuva razgovor.');
   await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
 });

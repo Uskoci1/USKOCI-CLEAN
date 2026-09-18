@@ -247,7 +247,9 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     sentMessage={request.current?.body ?? null}
     streamingText={streamingText}
     photosDisabled={!canAct() || !writable || !!request.current || voiceBusy}
-    onPhotos={writable ? () => {
+    // Photos and leaving both need a conversation to act on. Before the first word there is none,
+    // so offering either would be offering a control that does nothing.
+    onPhotos={writable && razgovorId ? () => {
       if (!canAct() || !razgovorId || !writable || request.current || voiceBusy) return;
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId: razgovorId } }));
     } : undefined}
@@ -260,7 +262,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     onCancelPending={pending && editor.data?.recovery?.canCancel ? cancelPendingTurn : undefined}
     cancelPendingDisabled={!canAct()}
     cancelPendingDispatched={editor.data?.recovery?.providerDispatched}
-    showAbandon={stanje.status === 'OPEN' && !stanje.review.boundNeedId}
+    showAbandon={!!razgovorId && stanje.status === 'OPEN' && !stanje.review.boundNeedId}
     abandonDisabled={radi || editor.loading || editor.uncertain}
     abandonLabel={abandoning.current ? 'Ponovi napuštanje razgovora' : 'Napusti razgovor'}
     onNewTask={stanje.status === 'COMPLETED' || stanje.status === 'ABANDONED' ? noviZadatak : undefined}
