@@ -106,17 +106,18 @@ ne zna šta je provajder uradio sa rezervisanom potrošnjom. Ali ekran sme da pr
 **Pravilo:** kad ishod nije poznat, ekran kaže da nije poznat i nudi izlaz. Nikad „radim na tome"
 kad niko ne radi ni na čemu.
 
-## 7. Šta mora da se definiše, a nije — odluke za vlasnika
+## 7. Odluke vlasnika — donete 2026-09-18
 
-| # | Pitanje | Moja preporuka |
-| --- | --- | --- |
-| 1 | Da li „+" vodi pravo u razgovor, bez ekrana izbora „Razgovorom / Ručno"? | **Da.** AI-first je odluka proizvoda; ručni unos ostaje u „Opcije" unutar razgovora. |
-| 2 | Šta se dešava kad otvoriš ekran drugog režima? | Ekran nudi prelaz na licu mesta i nastavlja gde si stao. |
-| 3 | Da li razgovor nastaje u bazi na otvaranje ekrana ili na prvu poruku? | **Na prvu poruku.** Veća izmena, ali briše 61% smeća. |
-| 4 | Da li se nedostupni načini prijave prikazuju? | Ne prikazivati dok ne rade; jedna rečenica „za sada email i lozinka". |
-| 5 | Da li donja navigacija stoji na punim ekranima (razgovor, pregled, nacrt)? | Ne. |
-| 6 | Avatar: zaobljen kvadrat svuda (danas su bila dva kvadrata i jedan krug)? | Zaobljen kvadrat — već ujednačeno danas, treba tvoja potvrda. |
-| 7 | Prijava (ekran za ulaz) — ostaje svoja tamna površina ili ulazi u sistem? | Ostaje svoja, ali brojevi (veličine, ćoškovi) ulaze u lestvicu. |
+| # | Pitanje | Odluka | Stanje |
+| --- | --- | --- | --- |
+| 1 | Da li „+“ vodi pravo u razgovor, bez ekrana izbora? | **Da**, i ručni unos se briše iz klijenta u celosti | urađeno |
+| 2 | Šta se dešava kad otvoriš ekran druge namere? | **Ekran nudi prelaz na licu mesta** i ostaješ gde si | urađeno (`CrossIntentNotice`) |
+| 3 | Kad razgovor nastaje u bazi? | **Na prvu poruku**, ne na otvaranje ekrana | urađeno |
+| 4 | Da li se nedostupni načini prijave prikazuju? | **Ne.** Ostaje email i lozinka, uz jednu rečenicu | urađeno |
+| 5 | Donja navigacija na punim ekranima? | **Ne.** Razgovor, Pregled, Mesto i Fotografije su puni ekrani | urađeno |
+| 6 | Avatar: zaobljen kvadrat svuda? | već ujednačeno u PKG-022; posebna potvrda nije tražena | čeka |
+| 7 | Prijava — svoja tamna površina ili u sistem? | ostaje svoja; njenih 27 veličina slova i 12 ćoškova još nisu u lestvici | čeka (Faza D) |
+
 
 ## 8. Redosled rada koji predlažem
 
