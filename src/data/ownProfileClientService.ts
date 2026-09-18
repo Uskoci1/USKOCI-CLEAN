@@ -8,6 +8,8 @@ export type OwnProfileIdentity = {
   kind: 'REQUESTER' | 'WORKER';
   ime: string | null;
   grad: string | null;
+  /** Only meaningful for the work profile: whether tasks can be offered to this account at all. */
+  stanje: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null;
 };
 
 const optionalText = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null;
@@ -29,7 +31,7 @@ export const ownProfileClientService = {
       if (userData.user.id !== accountId) throw new Error('PROFILE_ACCOUNT_CHANGED');
 
       const { data, error } = await supabase.from('app_profiles')
-        .select('id,account_id,kind,display_name,city')
+        .select('id,account_id,kind,display_name,city,profile_status')
         .eq('account_id', userData.user.id)
         .eq('kind', kind)
         .maybeSingle();
@@ -45,6 +47,8 @@ export const ownProfileClientService = {
         kind,
         ime: optionalText(data.display_name),
         grad: optionalText(data.city),
+        stanje: data.profile_status === 'DRAFT' || data.profile_status === 'ACTIVE' || data.profile_status === 'SUSPENDED'
+          ? data.profile_status : null,
       };
     } catch (error) {
       if (!current()) throw new Error('PROFILE_ACCOUNT_CHANGED');

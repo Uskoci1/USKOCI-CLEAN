@@ -17,7 +17,7 @@ beforeEach(() => { jest.resetAllMocks(); mockCanBack.mockReturnValue(true); mock
 afterEach(() => act(() => tree.unmount()));
 it('renders top safe area, actual accessible header/back and footer; parent owns bottom inset', () => {
  expect(tree.root.findByType('SafeArea' as never).props.edges).toEqual(['top']);
- expect(tree.root.findByProps({ accessibilityRole: 'header' }).props.children).toBe('Obaveštenja');
+ expect(tree.root.findByProps({ accessibilityRole: 'header' }).props.children).toBe('Podešavanja obaveštenja');
  expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('REQUESTER');
  expect(JSON.stringify(tree.toJSON())).toContain('Meni treba'); act(() => back()()); expect(mockBack).toHaveBeenCalledTimes(1);
 });

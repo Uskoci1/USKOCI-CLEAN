@@ -38,10 +38,10 @@ describe('own profile identity boundary', () => {
   it('reads only the authenticated account and intended profile kind, excluding trust/private fields', async () => {
     const { eq, select } = configure();
     expect(await ownProfileClientService.read('account-a', 'narucilac')).toEqual({
-      accountId: 'account-a', profileId: 'profile-a', kind: 'REQUESTER', ime: 'Ana Petrović', grad: 'Novi Sad',
+      accountId: 'account-a', profileId: 'profile-a', kind: 'REQUESTER', ime: 'Ana Petrović', grad: 'Novi Sad', stanje: null,
     });
     expect(mockFrom).toHaveBeenCalledWith('app_profiles');
-    expect(select).toHaveBeenCalledWith('id,account_id,kind,display_name,city');
+    expect(select).toHaveBeenCalledWith('id,account_id,kind,display_name,city,profile_status');
     expect(eq.mock.calls).toEqual([['account_id', 'account-a'], ['kind', 'REQUESTER']]);
   });
 
@@ -50,7 +50,7 @@ describe('own profile identity boundary', () => {
       id: 'worker-a', account_id: 'account-a', kind: 'WORKER', display_name: '   ', city: null,
     }, error: null });
     expect(await ownProfileClientService.read('account-a', 'uskocer')).toEqual({
-      accountId: 'account-a', profileId: 'worker-a', kind: 'WORKER', ime: null, grad: null,
+      accountId: 'account-a', profileId: 'worker-a', kind: 'WORKER', ime: null, grad: null, stanje: null,
     });
     expect(eq).toHaveBeenCalledWith('kind', 'WORKER');
   });

@@ -77,15 +77,20 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             <T style={s.stateBody}>{items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}</T>
             {props.onNew ? <V2Action label={items.length ? 'Napravi novi Zadatak' : 'Napravi prvi Zadatak'} onPress={props.onNew} style={brandAction} /> : null}
             {items.length ? <V2Action label="Prikaži sve moje zadatke" kind="quiet" onPress={() => change({ section: 'all' })} /> : null}</View>
-            : <View style={s.state}><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T><T style={s.stateBody}>Osveži listu ili dopuni svoj profil.</T>
-              <V2Action label="Osveži zadatke" onPress={props.onRefresh} style={brandAction} /><V2Action label="Moj profil" kind="quiet" onPress={props.onProfile} /></View>}
+            // The brand action is what the screen wants you to do. On the screen a worker meets
+            // before anything exists, that is not "refresh" — it is the profile that decides
+            // whether a task can ever be offered to them.
+            : <View style={s.state}><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T>
+              <T style={s.stateBody}>Zadaci se nude prema tvom radnom profilu — veštinama, području i dostupnosti.</T>
+              <V2Action label="Dopuni radni profil" onPress={props.onProfile} style={brandAction} />
+              <V2Action label="Osveži zadatke" kind="quiet" onPress={props.onRefresh} /></View>}
   </View>;
 
   return <SafeAreaView edges={['top']} style={s.screen}>
     <View accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {/* Both tabs used this one presentation and both were titled Zadaci, so two different
           screens carried the same name. The discovery view is what the Mapa tab opens. */}
-      <ScreenHeader eyebrow={eyebrow} title={owned ? 'Zadaci' : 'Mapa'} onProfile={props.onProfile} />
+      <ScreenHeader eyebrow={eyebrow} title={owned ? 'Zadaci' : 'Prilike'} onProfile={props.onProfile} />
       <View style={s.segmentRow}>
         {owned ? <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
           : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
@@ -171,7 +176,8 @@ const s = StyleSheet.create({
   areaNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: sys.color.greenSoft, paddingHorizontal: 20, paddingVertical: 2 },
   list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
   listWithAction: { paddingBottom: 96 },
-  add: { position: 'absolute', right: 20, bottom: 20, width: 56, height: 56, borderRadius: sys.radius.cardCompact, alignItems: 'center', justifyContent: 'center',
+  // Above the map legend and the attribution it used to cover, not on them.
+  add: { position: 'absolute', right: 20, bottom: 72, width: 56, height: 56, borderRadius: sys.radius.cardCompact, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.orange, ...sys.elevation.raised },
   empty: { paddingVertical: 8, gap: 16, flex: 1 }, center: { textAlign: 'center' },
   state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },

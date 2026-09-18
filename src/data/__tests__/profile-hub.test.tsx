@@ -50,7 +50,7 @@ afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 describe('real profile hub', () => {
   it.each(['narucilac', 'uskocer'] as const)('keeps the existing notification entry in the grouped %s hub', async intent => {
     mockIntent = intent; await render();
-    const open = tree.root.findByProps({ label: 'Obaveštenja' }).props.onPress;
+    const open = tree.root.findByProps({ label: 'Podešavanja obaveštenja' }).props.onPress;
     await act(async () => { open(); open(); });
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/obavestenja']]);
     expect(mockSignOut).not.toHaveBeenCalled();
@@ -92,7 +92,9 @@ describe('real profile hub', () => {
     await render();
     const rendered = visibleText();
     expect(rendered).toContain('Ana Petrović'); expect(rendered).toContain('Novi Sad');
-    for (const fake of ['Miloš', 'MŠ', '4,9', '18 recenzija', 'Javni profil', 'Podešavanja']) expect(rendered).not.toContain(fake);
+    // 'Podešavanja' alone was in this list as a dead row; the hub now has a real row named
+    // 'Podešavanja obaveštenja', so the guard names what it was actually guarding.
+    for (const fake of ['Miloš', 'MŠ', '4,9', '18 recenzija', 'Javni profil']) expect(rendered).not.toContain(fake);
   });
 
   it('keeps missing identity distinct from loading and failed reads', async () => {

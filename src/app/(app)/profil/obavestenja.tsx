@@ -26,7 +26,7 @@ export default function PushSettings() {
  return <SafeAreaView style={s.screen} edges={['top']}>
   <Stack.Screen options={{ headerShown: false }} />
   <View style={s.header}><Press accessibilityRole="button" accessibilityLabel="Nazad na profil" onPress={back} style={s.back}><V2Icon name="back" size={20} /></Press>
-   <T accessibilityRole="header" style={s.title}>Obaveštenja</T></View>
+   <T accessibilityRole="header" style={s.title}>Podešavanja obaveštenja</T></View>
   <ScrollView contentContainerStyle={s.content}><PushPreferences role={role} /></ScrollView>
   <View style={s.footer}><T style={s.caption}>Podešavanja za: {intent === 'narucilac' ? 'Meni treba' : 'Ja mogu'}</T></View>
  </SafeAreaView>;

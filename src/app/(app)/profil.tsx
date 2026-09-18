@@ -71,6 +71,7 @@ export default function Profil() {
     }
   }
 
+  const workerDraft = !narucilac && profile.data?.stanje === 'DRAFT';
   const initials = profile.data?.ime?.split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toUpperCase();
   const currentIntent = narucilac ? 'MENI TREBA' : 'JA MOGU';
   const nextIntent = narucilac ? 'JA MOGU' : 'MENI TREBA';
@@ -115,20 +116,26 @@ export default function Profil() {
 
     <SettingsGroup title={narucilac ? 'Dogovori' : 'Rad i dostupnost'}>
       {!narucilac ? <>
-        <SettingsRow label="Uredi radni profil" detail="Ime, grad i veštine za prijavljivanje na Zadatke."
+        {/* The hub is where you arrive, and it said nothing about the profile being a draft — the
+            one fact that decides whether a task is ever offered to you. */}
+        <SettingsRow label="Uredi radni profil"
+          detail={workerDraft ? 'Profil je nacrt — dok je nacrt, zadaci ti se ne nude.' : 'Ime, grad i veštine za prijavljivanje na Zadatke.'}
           icon={<User size={22} color={sys.color.green} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/radnik'))} />
         <SettingsRow label="Područje rada" detail="Gde možeš da uskočiš." icon={<MapPin size={22} color={sys.color.green} />}
           disabled={busy} onPress={() => navigate(() => router.navigate('/profil/lokacija'))} />
         <SettingsRow label="Dostupnost" detail="Nedeljni raspored i izuzeci." icon={<Clock size={22} color={sys.color.green} />}
           disabled={busy} onPress={() => navigate(() => router.navigate('/profil/dostupnost'))} />
       </> : null}
-      <SettingsRow label="Kalendar Dogovora" detail="Termini potvrđenih saradnji." icon={<CalendarBlank size={22} color={sys.color.green} />}
-        disabled={busy} last onPress={() => navigate(() => router.navigate('/raspored'))} />
+      {/* /raspored reads the worker calendar, so in MENI TREBA it can only ever be empty. */}
+      {!narucilac ? <SettingsRow label="Kalendar Dogovora" detail="Termini potvrđenih saradnji." icon={<CalendarBlank size={22} color={sys.color.green} />}
+        disabled={busy} last onPress={() => navigate(() => router.navigate('/raspored'))} /> : null}
+      {narucilac ? <SettingsRow label="Tvoji Dogovori" detail="Potvrđene saradnje i njihovi termini." icon={<CalendarBlank size={22} color={sys.color.green} />}
+        disabled={busy} last onPress={() => navigate(() => router.navigate('/dogovori'))} /> : null}
     </SettingsGroup>
     <SettingsGroup title="Nalog">
       {narucilac ? <SettingsRow label="Ime na profilu" detail="Ime koje prikazuješ uz svoje zadatke."
         icon={<User size={22} color={sys.color.green} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/podaci'))} /> : null}
-      <SettingsRow label="Obaveštenja" detail="Promene i poruke u saradnji." icon={<Bell size={22} color={sys.color.green} />}
+      <SettingsRow label="Podešavanja obaveštenja" detail="Šta ti stiže i kada — kanali i tihi sati." icon={<Bell size={22} color={sys.color.green} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/obavestenja'))} />
     </SettingsGroup>
     <SettingsGroup title="Privatnost">
