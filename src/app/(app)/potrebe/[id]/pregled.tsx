@@ -103,7 +103,10 @@ function OwnedNeed({ id }: { id: string }) {
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
   useEffect(() => {
     setReadiness(null);
-    const draft = potreba && potreba.stanje === 'NACRT' && intent === 'narucilac';
+    // Gated on intent, this never ran while the owner was in JA MOGU, so his own draft answered
+    // with the old promise "Sledeće: pregled i objava jednim korakom" - for a draft the publish gate
+    // would have refused. Ownership is the server's business and it checks it.
+    const draft = potreba && potreba.stanje === 'NACRT';
     if (!draft || !potreba) return;
     const scope = focus.current, lifeAt = life.current, ownedBy = latestIdentity.current;
     let alive = true;

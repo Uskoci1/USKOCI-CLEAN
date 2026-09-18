@@ -210,6 +210,18 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const evaluation = command?.evaluation;
   const outcome = evaluation?.kind === 'DECISION' ? evaluation.decision.outcome : null;
   const published = command?.state === 'PUBLISHED' && snapshot?.publishedReadback;
+  // A faded "Objavi zadatak" with a caption saying what the tap would accept, and nothing anywhere
+  // saying why the tap does nothing. `canAccept` is false for exactly three server reasons, and the
+  // screen adds three of its own; whichever one is in the way now says so, at the top of the review
+  // and again under the button.
+  const blockReason: string | null = !review || published || command ? null
+    : review.safety === 'BLOCK' ? 'Sadržaj ne može da se objavi u ovom obliku. Izmeni ga u razgovoru.'
+      : review.missingRequired.length ? `Još nedostaje: ${review.missingRequired.map(factLabel).join(', ')}.`
+        : !review.location ? 'Fali mesto na mapi. Otvori „Dodaj mesto" i potvrdi tačku — bez nje niko ne zna gde da dođe.'
+          : unavailableIdentityFact ? IDENTITY_VERIFICATION_UNAVAILABLE_COPY
+            : edit ? 'Sačuvaj ili otkaži izmenu koju si otvorio.'
+              : locationEditor ? 'Sačuvaj ili zatvori mesto koje uređuješ.'
+                : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
   const resultCopy = published ? 'Zadatak je objavljen.' : command?.state === 'PUBLISHED'
     ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
     : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravi ga u razgovoru i pregledaj novu verziju.'
@@ -236,10 +248,14 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     const shown = displayFact(fact), editing = edit?.fact.id === shown.id;
     const value = factReviewValue(shown);
     // A short value belongs beside its label, not under it. Twelve two-line stacks is the wall.
-    const inline = !editing && value.length <= 32;
+    // Character count is not width: "Dostava i kurirske usluge" is 25 characters and still did not
+    // fit, so the row clipped it to "Dostava i kurirske" and the person read a different category
+    // than the one in their task. Only values short enough to fit any label sit inline now, and
+    // what does not fit wraps under the label instead of being cut.
+    const inline = !editing && value.length <= 16;
     return <View key={fact.key} style={s.field}>
       <View style={s.row}><T style={[s.meta, inline ? undefined : { flex: 1 }]}>{factLabel(fact.key)}</T>
-        {inline ? <T selectable style={[s.body, s.inlineValue]} numberOfLines={1}>{value}</T> : null}
+        {inline ? <T selectable style={[s.body, s.inlineValue]}>{value}</T> : null}
         {!command && fact.id ? <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${factLabel(fact.key)}`}
           disabled={disabled || !!edit || !!locationEditor || deadlineEditor} style={s.editButton} onPress={() => {
             if (!canAct() || edit || locationEditor || deadlineEditor) return;
@@ -266,6 +282,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
       {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pregleda" color={a.color.green} style={{ padding: 30 }} /> : null}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {review ? <>
+          {blockReason ? <View style={s.notice}><T accessibilityLiveRegion="polite" style={s.body}>{blockReason}</T>
+            {review.missingRequired.length || review.safety === 'BLOCK'
+              ? <V2Action label="Dopuni u razgovoru" disabled={disabled} onPress={back} /> : null}</View> : null}
           {snapshot?.locationConflict ? <View style={s.notice}><T accessibilityRole="alert" style={s.body}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
           </T></View> : null}
@@ -313,8 +332,6 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
               {!command ? <V2Action label="Uredi rok za prijave" kind="quiet" disabled={disabled || !!edit || !!locationEditor}
                 onPress={() => { if (canAct()) setDeadlineEditor(true); }} /> : null}
             </>}</View>
-          {review.missingRequired.length ? <View style={s.notice}><T style={s.body}>Još nedostaje: {review.missingRequired.map(factLabel).join(', ')}.</T>
-            <V2Action label="Dopuni u razgovoru" disabled={disabled} onPress={back} /></View> : null}
           {resultCopy ? <View style={s.notice}><T accessibilityLiveRegion="polite" style={s.body}>{resultCopy}</T></View> : null}
           {command?.state === 'EVALUATED' && outcome === 'REVIEW' ? <SupportContextEntry
             reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Zatraži pregled podrške"
@@ -339,7 +356,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
               accessibilityState={{ disabled: disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
               style={[s.publish, (disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
               {editor.busy ? <ActivityIndicator color={a.color.surface} /> : <T style={s.publishLabel}>Objavi zadatak</T>}
-            </Press><T style={[s.meta, { textAlign: 'center' }]}>Klikom prihvataš ovu prikazanu verziju i tražiš objavu.</T>
+            </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? 'Klikom prihvataš ovu prikazanu verziju i tražiš objavu.'}</T>
           </> : null}
       </View>
     </KeyboardAvoidingView>

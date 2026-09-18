@@ -28,6 +28,19 @@ export type NeedPresentationProps = {
   qaAction?: ReactNode;
 };
 
+/**
+ * The category is free text the AI writes, and the canonical project already holds four shapes for
+ * three categories: `Dostava`, `Selidbe i transport`, `transport_selidbe`, and one that kept its
+ * quotation marks. A person should not read a column name. This tidies it for display only: the
+ * projection keeps the server's exact value, which `cdl-a03-need-read-equivalence` requires and
+ * which is what a later fix in the interview prompt will correct at the source.
+ */
+function readableCategory(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const cleaned = value.trim().replace(/^["„“']+|["”“']+$/g, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : null;
+}
+
 /** What the state means and what comes next, in one strip. */
 function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: { title: string; detail: string } | null): { title: string; detail?: string; tone: 'green' | 'warn' | 'muted' } {
   const { popunjeno, ukupno } = need.pokrivenost;
@@ -53,19 +66,27 @@ function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: {
 export function NeedPresentation(props: NeedPresentationProps) {
   const { need, loading, error, busy, ownerIntent, remainingClosed } = props;
   const [expanded, setExpanded] = useState<'location' | 'requirements' | null>(null);
-  const draft = need?.stanje === 'NACRT' && ownerIntent;
+  // A draft is a draft whichever side of the app you are standing on. What changes with the intent
+  // is whether you can act on it here — and that is said out loud instead of quietly showing the
+  // wrong screen, which is how a draft the publish gate refuses ended up promising "pregled i
+  // objava jednim korakom" to an owner who happened to be in JA MOGU.
+  const draft = need?.stanje === 'NACRT';
+  const draftInOtherIntent = draft && !ownerIntent;
   const usable = !!need && !loading && !error;
   const rows = need ? needGeographyRows(need) : [], requirements = need ? needRequirementRows(need) : [];
   // A draft the gate refuses is not sent to a review that will refuse it again: the action leads
   // to the conversation, which is where the missing thing is asked for.
   const blocked = draft ? readinessCopy(props.readiness ?? { kind: 'UNKNOWN' }) : null;
+  const otherIntentCopy = draftInOtherIntent
+    ? { title: 'Ovo je tvoj nacrt kao naručioca', detail: 'U režimu JA MOGU ga vidiš, ali ga ne uređuješ ni objavljuješ. Pređi u MENI TREBA iz Profila.' }
+    : null;
   const primaryLabel = busy ? 'Radnja je u toku…'
     : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu' : 'Pogledaj prijave';
   const primaryAction = blocked ? props.onEdit : draft ? props.onReview : props.onCandidates;
   const toggle = (key: 'location' | 'requirements') => setExpanded(current => current === key ? null : key);
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
   const price = need ? need.rezimCene === 'OFFERS' ? 'Tražim ponude' : need.ponudjenaCena ? need.ponudjenaCena.prikaz : 'Cena nije navedena' : '';
-  const step = need ? nextStep(need, remainingClosed, blocked) : null;
+  const step = need ? nextStep(need, remainingClosed, otherIntentCopy ?? blocked) : null;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Zadatak" onBack={props.onBack} />
     {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
@@ -80,7 +101,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {step ? <NextStrip icon={PaperPlaneTilt} title={step.title} detail={step.detail} tone={step.tone} /> : null}
         <View style={s.hero}>
-          {need.urgency || need.detalji?.kategorija ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} />{need.detalji?.kategorija ? <T variant="meta" tone="muted">{need.detalji.kategorija}</T> : null}</View> : null}
+          {need.urgency || need.detalji?.kategorija ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} />{readableCategory(need.detalji?.kategorija) ? <T variant="meta" tone="muted">{readableCategory(need.detalji?.kategorija)}</T> : null}</View> : null}
           <T accessibilityRole="header" style={s.heroTitle}>{need.naslov}</T>
         </View>
         <FactGrid>
