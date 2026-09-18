@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
+import { pendingRoute } from '../../store/pendingRoute';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { nativePushDevice } from '../../data/nativePushDevice';
 import { pushDeviceClientService, revokePushBeforeLogout } from '../../data/pushDeviceClientService';
@@ -50,7 +51,7 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
    return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
   } });
   const remember = (set: Set<string>, value: string, max: number) => { set.add(value); if (set.size > max) set.delete(set.values().next().value!); };
-  function tap(response: Notifications.NotificationResponse | null) {
+  function tap(response: Notifications.NotificationResponse | null, cold = false) {
    const request = response?.notification?.request, data = request?.content?.data;
    if (!request || typeof request.identifier !== 'string' || request.identifier.length < 1 || request.identifier.length > 256
     || !data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length !== 1 || data.kind !== 'INBOX') return;
@@ -58,6 +59,11 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
    // A late old-account event is consumed, so a new account cannot replay it.
    remember(seen.current, request.identifier, 128);
    if (!owned()) return;
+   // On a cold start this runs beside the root layout's return-target consumer, and neither waits
+   // for the other: the consumer resolves a stored intent and replaces the route, which lands on
+   // top of the Inbox this push just opened. Recording the same destination makes the order stop
+   // mattering — whichever of the two finishes last, both of them mean the Inbox.
+   if (cold) pendingRoute.remember('/obavestenja');
    router.push('/obavestenja');
    void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
   }
@@ -89,7 +95,7 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
   const responseListener = Notifications.addNotificationResponseReceivedListener(tap);
   const tokenListener = Notifications.addPushTokenListener(reconcile);
   const appListener = AppState.addEventListener('change', state => { foreground = state === 'active'; if (foreground) reconcile(); });
-  if (!coldStarted.current) { coldStarted.current = true; void Notifications.getLastNotificationResponseAsync().then(tap).catch(() => undefined); }
+  if (!coldStarted.current) { coldStarted.current = true; void Notifications.getLastNotificationResponseAsync().then(response => tap(response, true)).catch(() => undefined); }
   reconcile();
   return () => { alive = false; generation++; Notifications.setNotificationHandler(null); if (activeTimer !== undefined) clearTimeout(activeTimer); responseListener.remove(); tokenListener.remove(); appListener.remove(); };
  }, [ready, accountId, accountRevision, sessionEpoch]);

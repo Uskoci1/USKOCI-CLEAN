@@ -2,6 +2,7 @@ import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import type { Notification, NotificationHandler } from 'expo-notifications';
+import { pendingRoute } from '../../store/pendingRoute';
 import { PushRuntime } from '../../ui/notifications/PushRuntime';
 const mockPush = jest.fn(), mockCold = jest.fn(), mockClear = jest.fn(), mockSession = jest.fn(), mockRotate = jest.fn(), mockRevoke = jest.fn(), mockNative = jest.fn();
 const mockSetHandler = jest.fn();
@@ -33,6 +34,14 @@ beforeEach(() => { jest.useRealTimers(); jest.resetAllMocks(); mockHandler = nul
 afterEach(() => { act(() => tree?.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 it('no registered session never acquires a token, requests permission, or auto-registers', async () => { await mount(); expect(mockNative).not.toHaveBeenCalled(); expect(mockRotate).not.toHaveBeenCalled(); });
 it('cold response and same live tap navigate once to the fixed owned Inbox', async () => { mockCold.mockResolvedValue(response()); await mount(); act(() => mockTap(response())); expect(mockPush.mock.calls).toEqual([['/obavestenja']]); expect(mockClear).toHaveBeenCalledTimes(1); });
+it('a cold tap leaves the Inbox where the layout looks for a destination, and a live tap does not', async () => {
+  // The root layout resolves a stored return intent on the same cold start and replaces the route
+  // when it finishes, which would land on top of the Inbox. Both now mean the same place.
+  pendingRoute.clear(); mockCold.mockResolvedValue(response()); await mount();
+  expect(pendingRoute.take()).toBe('/obavestenja');
+  act(() => mockTap(response()));
+  expect(pendingRoute.take()).toBeNull();
+});
 it.each([{ kind: 'INBOX', url: 'https://evil.test' }, { kind: 'AGREEMENT', id: 'private' }, [], null])('untrusted payload cannot select a route', async data => { await mount(); act(() => mockTap(response('one', data))); expect(mockPush).not.toHaveBeenCalled(); });
 it('late cold response after account ABA is discarded, without a new-account cold replay', async () => {
  let done!: (value: unknown) => void; mockCold.mockReturnValue(new Promise(r => { done = r; })); await mount();
