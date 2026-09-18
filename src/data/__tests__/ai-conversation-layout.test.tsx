@@ -13,6 +13,12 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'KeyboardAvoidingView', 'TextInput', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
+jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' },
+  FadeIn: { duration: (duration: number) => ({ duration }) },
+  FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
+  useReducedMotion: () => false, useSharedValue: (value: number) => ({ value }),
+  useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
+  withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeArea' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));

@@ -35,7 +35,11 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' },
-  FadeIn: { duration: (duration: number) => ({ duration }) }, useReducedMotion: () => mockReduced }));
+  FadeIn: { duration: (duration: number) => ({ duration }) },
+  FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
+  useReducedMotion: () => mockReduced, useSharedValue: (value: number) => ({ value }),
+  useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
+  withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', G: 'SvgGroup',
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
 jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowRight: 'Icon', CheckCircle: 'Icon', PaperPlaneTilt: 'Icon',
