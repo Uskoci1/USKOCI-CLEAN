@@ -230,7 +230,9 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger }, center: { textAlign: 'center' },
   grow: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  taskCard: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderRadius: sys.radius.card, paddingVertical: 16, paddingHorizontal: 17, gap: 10, overflow: 'hidden', ...sys.elevation.soft },
+  // A bordered panel over the thread made the conversation look like a form with a header. It is
+  // a quiet summary on the app's own wash now, and the shadow and outline are gone.
+  taskCard: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, paddingVertical: 14, paddingHorizontal: 16, gap: 8, overflow: 'hidden' },
   // Before the conversation has said anything the card is a label, not a panel.
   taskCardEmpty: { paddingVertical: 10, gap: 4 },
   taskCardCompact: { borderRadius: sys.radius.cardCompact, paddingVertical: 10, paddingHorizontal: 14, gap: 4 },
