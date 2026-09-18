@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { ArrowLeft, Bell, Check, CaretRight, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText } from 'phosphor-react-native';
+import { ArrowClockwise, ArrowLeft, Bell, Check, CaretRight, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText } from 'phosphor-react-native';
 import { SvgXml } from 'react-native-svg';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
 import type { Uloga } from '../contracts/projections';
@@ -129,8 +129,15 @@ export default function Obavestenja() {
   </SafeAreaView>;
 }
 
+/**
+ * The server sends six families — opportunities, responses, dogovor, execution, recovery, account
+ * (20260911183000_clean_pre_v3_inbox_delivery_visibility.sql). This map was keyed to three names it
+ * never sends ('agreements', 'messages', 'needs'), so five of the six drew the generic bell and the
+ * icon column said nothing. The same six names are already spelled correctly in PushPreferences.
+ */
 function EventIcon({family,unread}:{family:string;unread:boolean}) {
-  const Icon = family==='agreements'?Handshake:family==='messages'?ChatCircle:family==='responses'?PaperPlaneTilt:family==='needs'?ClipboardText:Bell;
+  const Icon = family==='opportunities'?ClipboardText:family==='responses'?PaperPlaneTilt
+    :family==='dogovor'?Handshake:family==='execution'?ChatCircle:family==='recovery'?ArrowClockwise:Bell;
   return <Icon size={21} color={unread?sys.color.ink:sys.color.muted}/>;
 }
 

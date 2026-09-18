@@ -52,6 +52,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const reduced = useSystemReducedMotion();
+  // Everything present on the first render is history; anything after it is news.
+  const seen = useRef<Set<string>>(new Set());
+  const settled = useRef(false);
+  if (!settled.current) { settled.current = true; p.messages.forEach(message => seen.current.add(message.id)); }
   const compact = keyboard || height < 700 || fontScale >= 1.5 || p.pending;
   const pinned = p.card(compact);
   useEffect(() => {
@@ -87,7 +91,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
               onPress={() => { p.onChange(opening + ' '); setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
               <T variant="meta" style={s.openingText}>{opening}</T></Press>)}
           </View> : null}
-        </View> : p.messages.map(message => <ConversationBubble key={message.id} {...message} reduced={reduced} />)}
+        </View> : p.messages.map(message => <ConversationBubble key={message.id} {...message}
+          // The motion gate in DESIGN_SKILLS.md is explicit: frequent updates and streamed text get
+          // no decorative entrance. A turn that arrives while you are watching is feedback; the
+          // thread you already had when the screen opened is not, and must not replay.
+          reduced={reduced || seen.current.has(message.id)} />)}
         {/* Until the server read brings it back, what was said is still what was said. Without this
             the thread stayed on "Reci šta ti treba." while the answer streamed in underneath, and
             nothing on screen confirmed the app had heard the person at all. */}

@@ -2,6 +2,7 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Press, type HapticKind } from './Press';
 import { T } from './Text';
 import { palette, radius, space, touch } from '../theme/tokens';
+import { sys } from './system/tokens';
 
 type Kind = 'primary' | 'secondary' | 'quiet' | 'danger';
 
@@ -34,8 +35,10 @@ export function Button({
   haptic = 'light',
   style,
 }: Props) {
+  // `palette.orange` is #FF7908, the pre-PKG-011 brand orange; the app's orange is #FF850F. Two
+  // screens still use this button, so the app has been showing two oranges side by side.
   const skin = {
-    primary: { bg: palette.orange, border: 'transparent', tone: 'onOrange' as const },
+    primary: { bg: sys.color.orange, border: 'transparent', tone: 'onOrange' as const },
     secondary: { bg: 'transparent', border: palette.ink, tone: 'ink' as const },
     quiet: { bg: 'transparent', border: 'transparent', tone: 'muted' as const },
     danger: { bg: 'transparent', border: 'transparent', tone: 'danger' as const },
