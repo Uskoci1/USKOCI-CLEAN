@@ -72,7 +72,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
       {/* Before the first word there is no draft to pin, and an empty card pushed the one
           invitation on the screen below the fold. The caller returns null until it has something. */}
       {pinned ? <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardCompact]}>{pinned}</View> : null}
-      <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex} contentContainerStyle={s.thread}
+      <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex}
+        // Before the first word the invitation was the only thing on screen and it hung from the
+        // top edge, with half a phone of nothing under it. With nothing to scroll, it sits in the
+        // space it has. As soon as there is a thread, the thread starts at the top as threads do.
+        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScroll={event => { const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
           nearBottom.current = contentSize.height - contentOffset.y - layoutMeasurement.height < 80; }} scrollEventThrottle={100}
@@ -181,6 +185,7 @@ const s = StyleSheet.create({
   userBody: { ...sys.type.body, color: sys.color.ink },
   cardArea: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 12 }, cardCompact: { paddingTop: 0, paddingBottom: 8 },
   thread: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 28, gap: 22 },
+  threadEmpty: { justifyContent: 'center', paddingBottom: 60 },
   welcome: { gap: 12, paddingTop: 14, paddingBottom: 8, maxWidth: 330 },
   welcomeTitle: { color: sys.color.ink },
   welcomeCopy: { lineHeight: 24 },
