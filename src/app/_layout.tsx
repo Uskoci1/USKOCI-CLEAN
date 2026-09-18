@@ -2,7 +2,7 @@ import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { palette } from '../theme/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
@@ -10,6 +10,7 @@ import { povratniCilj } from '../store/povratniCilj';
 import { postaviUlogu } from '../store/uloga';
 import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
+import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 export default function RootLayout() {
@@ -29,6 +30,12 @@ export default function RootLayout() {
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
+  // Two and a half seconds of nothing is where a person decides the app is frozen.
+  const [slowStart, setSlowStart] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlowStart(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
   useEffect(() => {
     if (!isLoaded || !routeResolved || (session && intentReady === false)) return;
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
@@ -74,11 +81,15 @@ export default function RootLayout() {
 
   if (!isLoaded || (session && intentReady === false)) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', alignItems: 'center' }}>
         {/* Same original mark and nominal size as the padded native splash. */}
         <BrandMark size={126} />
-        <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={palette.ink}
-          style={{ position: 'absolute', alignSelf: 'center', top: '65%' }} />
+        <View style={{ position: 'absolute', alignSelf: 'center', top: '65%', alignItems: 'center', gap: 10 }}>
+          <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={palette.ink} />
+          {/* A wordless white field says nothing about whether anything is happening. The restore
+              is bounded at 8s, so this sentence is never the last thing on screen for long. */}
+          {slowStart ? <T variant="copy" tone="muted">Otvaramo aplikaciju…</T> : null}
+        </View>
       </View>
     );
   }

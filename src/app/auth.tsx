@@ -115,7 +115,12 @@ export default function AuthScreen() {
 
   const commands = useAuthFormCommand();
   const radi = commands.busy;
-  const availability = useAuthAvailability(otvoren);
+  // Gated on `otvoren` alone, this 10-second read only started once the sheet had finished opening,
+  // after the 760ms doorway and after up to 5s of writing the chosen intent — so the worst case
+  // between the tap and a field you could type in was about sixteen seconds of spinner. It now
+  // starts the moment an intent is chosen, so it overlaps the doorway and the write instead of
+  // queueing behind them. Someone who never touches the entry still causes no read.
+  const availability = useAuthAvailability(otvoren || !!preparedIntent);
   const methods = availability.status === 'ready' ? availability.data : null;
   const [greska, setGreska] = useState<string | null>(null);
   const [poruka, setPoruka] = useState<string | null>(null);

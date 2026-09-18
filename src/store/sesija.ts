@@ -50,13 +50,21 @@ export function inicijalizujSesiju() {
   const finishRestore = (session: Session | null) => {
     if (trenutna.sessionEpoch === restoreEpoch) acceptSession(session);
   };
+  // Nothing bounded this read, and the native splash gives up after four seconds, so a stalled
+  // restore handed the person a white field with a spinner and no words, no retry and no way out,
+  // for as long as it hung. Every other read in the app has a bound: 10s for auth availability,
+  // 15s for recovery, 5s for the intent write. A restore that does not answer means "signed out",
+  // which lands on the entry rather than on nothing; a late real session still arrives through
+  // onAuthStateChange, which is registered above and takes precedence.
+  const bound = setTimeout(() => finishRestore(null), 8000);
+  const settle = (session: Session | null) => { clearTimeout(bound); finishRestore(session); };
   try {
     void supabase.auth.getSession().then(
-      ({ data, error }) => finishRestore(error ? null : data.session),
-      () => finishRestore(null),
+      ({ data, error }) => settle(error ? null : data.session),
+      () => settle(null),
     );
   } catch {
-    finishRestore(null);
+    settle(null);
   }
 }
 
