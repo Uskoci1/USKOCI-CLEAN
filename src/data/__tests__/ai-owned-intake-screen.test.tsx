@@ -333,6 +333,26 @@ it('keeps private address and resolved coordinates out of the compact live card 
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
 });
 
+it('names the first few missing things and counts the rest instead of a wall that gets cut', async () => {
+  // Nothing is filled at the start, so the full list is eight items — longest exactly when it helps
+  // least, and it was being cut mid-word to fit two lines. The AI asks for them one at a time.
+  const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
+  const eight = conversation({ messages: said });
+  eight.review.missingRequired = ['need.title', 'need.description', 'need.category', 'need.price_mode',
+    'need.schedule_kind', 'need.people_needed', 'need.task_country_code', 'need.task_geography'];
+  mockLoad.mockResolvedValue(eight); await resume();
+  expect(text()).toContain('Još treba: Naslov · Opis · Kategorija · i još 5');
+  expect(text()).not.toContain('Država zadatka');
+
+  // Three or fewer are all named: there is nothing to count.
+  await act(async () => tree.unmount());
+  const three = conversation({ messages: said });
+  three.review.missingRequired = ['need.category', 'need.price_mode', 'need.people_needed'];
+  mockLoad.mockResolvedValue(three); await resume();
+  expect(text()).toContain('Još treba: Kategorija · Cena · Ljudi');
+  expect(text()).not.toContain('i još');
+});
+
 it('offers the owned photo route and options without automatic abandonment', async () => {
   // Photos belong to a conversation, so before the first word there is nothing to attach them to
   // and the entry is not offered.

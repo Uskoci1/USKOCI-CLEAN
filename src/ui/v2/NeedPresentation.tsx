@@ -145,7 +145,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         <DisclosureGroup>
           <DisclosureRow first label="Mesto izvršenja" detail={need.detalji?.geografija ? rows[0]?.value : 'Približno područje'} expanded={expanded === 'location'} onPress={() => toggle('location')}>
             {!need.detalji?.geografija ? <T variant="note" tone="muted">Javna struktura lokacije nije dostupna. Prikazano je približno područje.</T> : null}
-            <DetailPairs rows={[...rows, ...(need.taskCountryCode ? [{ label: 'Država zadatka', value: need.taskCountryCode }] : [])]} />
+            <DetailPairs rows={[...rows, ...(need.taskCountryCode ? [{ label: 'Država', value: need.taskCountryCode }] : [])]} />
           </DisclosureRow>
           <DisclosureRow label="Svi uslovi" detail={requirements.length ? 'Veštine, oprema i uslovi rada' : 'Nema dodatih uslova'} expanded={expanded === 'requirements'} onPress={() => toggle('requirements')}>
             {requirements.length ? <DetailPairs rows={requirements} /> : <T variant="note" tone="muted">Nema dodatih uslova.</T>}

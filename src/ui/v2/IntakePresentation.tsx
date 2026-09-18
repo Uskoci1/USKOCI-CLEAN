@@ -122,6 +122,11 @@ export function IntakePresentation(props: Props) {
   // is not allowed to propose it, and leaving it out is how "spremno" became a promise that failed.
   const stillNeeded = [...conversation.review.missingRequired.map(factDisplayLabel),
     ...(needsPoint ? ['tačka na mapi'] : [])];
+  // At the start nothing is filled, so the full list is eight items long — a wall exactly when it
+  // helps least, and it was being cut mid-word to fit two lines. The AI asks for them one at a time
+  // anyway, so the card names the first few and counts the rest.
+  const stillNeededText = stillNeeded.length <= 3 ? stillNeeded.join(' · ')
+    : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
   // Each turn carries the ids of the facts it proposed, so the sentence it wrote can be shown
   // beside what it actually took. A private value is named but never printed here: the thread is
   // the conversation surface, not the place to restate an exact address.
@@ -156,7 +161,7 @@ export function IntakePresentation(props: Props) {
       </View>
       <T style={[s.cardTitle, compact && s.cardTitleCompact, !conversation.facts.length && s.cardTitleEmpty]} numberOfLines={compact ? 1 : 2}>{summary.title}</T>
       {conversation.status === 'OPEN' ? <T variant="meta" tone="muted" numberOfLines={2}>
-        {stillNeeded.length ? `Još treba: ${stillNeeded.join(' · ')}` : 'Sve traženo je uneto — otvori pregled'}
+        {stillNeeded.length ? `Još treba: ${stillNeededText}` : 'Sve traženo je uneto — otvori pregled'}
       </T> : null}
       {!compact && (summary.zone || summary.schedule) ? <View style={s.metaRows}>
         {summary.zone ? <View style={s.metaRow}><MapPin size={16} color={sys.color.muted} /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}

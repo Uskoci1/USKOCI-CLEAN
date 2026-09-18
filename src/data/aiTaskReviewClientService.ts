@@ -156,7 +156,7 @@ function notReadyCopy(code: string, missing?: readonly string[]): string {
     case 'LOCATION_INCOMPLETE':
       return 'Lokacija nije potvrđena na mapi' + slots + '. Dodirni lokaciju u pregledu i postavi je, pa objavi.';
     case 'COUNTRY_NOT_READY':
-      return 'Država zadatka nije potvrđena. Dodirni državu u pregledu i potvrdi je.';
+      return 'Država nije potvrđena. Dodirni je u pregledu i potvrdi.';
     case 'PUBLIC_MEDIA_NOT_READY':
       return 'Fotografije još nisu proverene. Sačekaj proveru ili ih ukloni, pa objavi.';
     case 'POLICY_NOT_READY':
