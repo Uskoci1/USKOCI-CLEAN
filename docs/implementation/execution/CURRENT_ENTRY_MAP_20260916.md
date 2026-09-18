@@ -86,3 +86,93 @@ PKG-015 and PKG-014B each added one DEV operational migration on 2026-09-17, `20
 and `20260917055559_dev_alpha_pkg014b_ai_provider_usage`, so the DEV ledger is 151 rows: 147 source migrations plus four
 operational rows. Canonical source stays at 147 files. Every account on DEV now carries a recorded lineage, and every
 new provider call records its token counts.
+
+---
+
+# State as of 2026-09-18
+
+This section, not the sentences above it, is the current picture. The reading order, the
+historical list and the CI invariants above are unchanged and still apply. Where this section and
+an earlier paragraph disagree about package state, the Execution Ledger decides and this section
+summarises it.
+
+## Package state
+
+DONE_VERIFIED adds, since 2026-09-16: **PKG-015B** (GAP-0042 closed), **PKG-017** (the shipped
+build proven on real ARM64 hardware, closed by its second receipt after logout and relogin),
+**PKG-019**, **PKG-019B**, **PKG-019C**, **PKG-019D** (the AI test budget settles, releases and
+charges honestly), **PKG-021** (a saved draft can be reviewed for publishing again).
+
+Not verified, deliberately:
+
+- **PKG-020** — the voice path. Both provider defects are fixed and proven at the wire, and the
+  owner has used speech on his phone, but the seven hand checks in
+  `pkg020/PKG020_VOICE_DEVICE_CHECKLIST_20260917.md` have not been walked end to end.
+- **PKG-022** — the conversation asks for the map point, shows what each turn took, carries the
+  map inline, and the draft screen says why it cannot be published. Six items are open on its
+  receipt; two of them only the owner can do.
+
+**GAP-0042 is closed** on canonical DEV and remains a gate for any future production project.
+
+## The two things only the owner can do
+
+1. **Deploy `uskoci-ai-interview`.** Three prompt changes are committed and undeployed: address the
+   person as ti, never promise a readiness the conversation cannot deliver, and offer photos once
+   when the work calls for it. Deploying through the MCP tool means retyping a 42 KB entrypoint
+   plus three dependencies onto the one feature that currently works, and the repository has no
+   Actions secret, so CI cannot deploy either. Two CLI commands do it safely.
+2. **Decide `dev-latest`.** It is still the only copy of the 2026-09-01 build, deleting it is
+   irreversible, and the workflow still publishes it publicly from the canonical branch.
+
+## Canonical DEV
+
+The migration ledger is **157 rows: 147 source files plus 10 dev_alpha operational rows**, newest
+`20260917230145_dev_alpha_pkg021_need_timestamp_fact_iso8601`. Canonical source stays at 147 files:
+a `dev_alpha` change is recorded in `supabase/candidates/`, never added to `supabase/migrations/`,
+because that directory is the frozen source-147 inventory the legal source-admission harness pins.
+Adding a 148th file fails seven of its assertions, which is how this was learned.
+
+Live shape: 31 public tables all with RLS, 78 policies, 151 RPCs callable by a user, 244 private
+functions, 119 triggers, 12 Edge functions, one cron (`private.marketplace_tick`, every minute,
+active).
+
+## What the product has and has not done
+
+The front half is proven: accounts, sessions and their boundaries on real hardware, the
+conversation (62 conversations, 383 facts), speech, drafts, review.
+
+The back half has never run with a person at either end, and the reason is one number: **no task
+has ever had a confirmed map point**, so **no real account has ever published**. Every published
+need, every response and both agreements belong to synthetic fixtures. Dispatch is not broken - it
+runs every minute and has no input.
+
+A probe on 2026-09-18 established what a first publication still needs, beyond the point itself:
+the owner's business worker profile is `DRAFT` and `dispatch_cheap_candidate_admitted` requires
+`ACTIVE`, and a future task also requires declared availability covering its window. Dispatch does
+**not** filter on the worker's own coordinates, so the missing area point on every profile blocks
+nothing.
+
+## Design
+
+The inner screens now speak one system. `ui/system/tokens.ts` is the direction the owner recorded;
+`ui/v2/tokens.ts` and `ui/aiFirst/tokens.ts` are views onto it rather than copies beside it, which
+resolves the legacy-inventory line above about migrating the V2 palette. `ui/Text.tsx`, which
+colours every word in 64 files, drew text in the older forest ink while every surface around it was
+built for the current one; it now takes its light tones from the system and keeps the dark ones for
+the recovery screen and forest headers.
+
+Entry, auth and the brand artwork keep their own palette by instruction, and this system never
+restyles them.
+
+**Only the measure has been unified. No screen has been recomposed.** The owner's standing
+complaint - that the inside is cluttered and unarranged - is answered only in part; composition is
+the next design step and needs his eye before any screen changes shape.
+
+## Documents written on 2026-09-18
+
+| Document | What it settles |
+| --- | --- |
+| `pkg017/PKG017_PHYSICAL_DEVICE_20260918.md` | The whole device acceptance, including logout and relogin |
+| `pkg021/PKG021_PUBLISH_BLOCKER_ROOT_CAUSE_20260918.md` | Why every saved draft was unreviewable, proven at wire and source |
+| `pkg022/PKG022_LOCATION_FUNCTION_AUDIT_20260918.md` | The location path audited as functions |
+| `pkg022/PKG022_MAP_LAYER_AUDIT_20260918.md` | The map layer end to end, and which of its faults were mine |
