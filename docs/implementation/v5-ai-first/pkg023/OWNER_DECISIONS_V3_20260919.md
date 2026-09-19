@@ -55,11 +55,22 @@ recommendation, the owner wrote "Prihvatiću tvoje predloge". The recommended an
 2. The requester's account id stays in the public task row for the first phase. The risk is
    recorded here: with a ~100 m pin, several tasks of one account can be tied to one house.
 3. The worker's own location stays on the ~1 km grid.
-4. A fixed price ("Moja cena") is offered only on a task for one person; a task for more people asks
-   for offers. No engine change: `rpc_submit_response` keeps FIXED_PRICE_MISMATCH as it is.
+4. ~~A fixed price ("Moja cena") is offered only on a task for one person; a task for more people asks
+   for offers.~~ **Superseded the same day by the owner's price-model update, below.** Nothing had been
+   built on it: a server gate was drafted and withdrawn before it was committed.
 
 These are answers, not an approval to build. The third slice still needs the owner's own word, and
 its two backend parts are forward migrations on canonical DEV.
+
+**Owner decision update — price model (2026-09-19, later the same day).** "STOP sa prethodnim pravilom:
+people_needed > 1 => OFFERS. To više nije konačna odluka." The model must be able to say what a price is
+for: **TOTAL** (the whole task), **PER_PERSON** (one person / one covered slot) or **OFFERS**. The
+owner's example: 6 people, PER_PERSON, 3000 RSD → one slot 3000, a team covering three slots 9000, all
+six 18000. Existing rows keep their existing meaning. Not to be implemented yet: first the existing
+model is read (price mode and amount, covered slots, the response writer, the selection RPC, Agreement
+terms, the publication fingerprint, the AI task schema, the edit / review / publish flow, the installed
+APK), and the smallest safe migration is proposed. That is section 8 of
+`V3_SLICE3_MIGRATION_PLAN_20260919.md`. Stop before any database change.
 
 ## Recorded for a later slice — a place said in the AI conversation (owner, 2026-09-19)
 

@@ -201,9 +201,20 @@ shells) has given way to one shell, **Početna | Mapa | Dogovori**: the second s
 requester or worker shell, of `IntentTransition` or of `CrossIntentNotice` is historical. The
 instruction that entry and auth keep their own dark palette is lifted for the palette only, and
 that part has not landed: the app still renders the dark auth sheet. The CI invariants above are
-unchanged. Of the third slice, the proof fix and the copy pass are done; its backend part (bounded
-reads, task relation, ~100 m pin) is a plan awaiting approval:
-`docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`.
+unchanged. Of the third slice, the proof fix and the copy pass are done. Its backend part exists as
+four candidates, `supabase/candidates/pkg023{a,b,d,c}_*.sql`, **applied nowhere** and proven only on a
+disposable database by `.github/workflows/pkg023-v3-reads-and-pin-proof.yml`; the plan, its second
+version, is `docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`. The owner
+re-opened the price model on 2026-09-19 (TOTAL / PER_PERSON / OFFERS); that is investigated in the
+plan and not implemented.
+
+**Read before any schema change on canonical DEV:** `private.closure_source_digest_v5()` has not
+matched its pin, and `private.retention_ai_source_ready()` has been false, since the `dev_alpha`
+migrations of 2026-09-17 changed tables without re-binding it. Function-only and plain-index
+candidates do not move the digest. Anything that adds a column, a constraint or a trigger function
+does, must re-bind it, and cannot honestly do so until that drift has been reviewed and
+re-certified. `pkg023c` refuses to run on DEV for exactly this reason. The SQL of three live DEV
+migrations (`pkg015b`, `pkg019c`, `pkg019d`) is in the live ledger and in no candidate file.
 
 Edge, 2026-09-19: `uskoci-ai-interview` is **v41** (the provider-failure log carries a class from a
 closed list, never thrown text). Three of its four files are byte-identical to `130028de`; line 34 of

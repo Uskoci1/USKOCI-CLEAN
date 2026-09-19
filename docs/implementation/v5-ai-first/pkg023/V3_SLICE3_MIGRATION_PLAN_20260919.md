@@ -1,239 +1,322 @@
-# V3 third slice, backend part — migration PLAN (2026-09-19)
+# V3 third slice, backend part — migration PLAN, second version (2026-09-19)
 
-**Status: PLAN ONLY. Nothing here is applied, and no candidate SQL exists yet.** The owner approved
-"samo plan, ne izvršenje" on 2026-09-19. Every fact below was read from canonical DEV
-`leqcwgzvjsxugfgzdmth` with read-only catalog queries on that day, or from the committed tree at
-`130028de`.
+**Status: NOTHING IS APPLIED TO CANONICAL DEV.** The owner approved the first version of this plan
+"u osnovi" and approved writing the candidate SQL and its proofs on an isolated database, asked for
+four additions and a paging proof, and then, mid-work, re-opened the price model. This version carries
+all of that. The candidates exist in `supabase/candidates/pkg023*.sql` and are proven only by
+`.github/workflows/pkg023-v3-reads-and-pin-proof.yml` on a disposable database. Applying any of them
+needs the owner's separate word.
 
-Scope, as the owner named it: A) bounded, paginated own reads; B) a single-task relation read;
-C) Agreement summary additions; D) a ~100 m public task location. Outside it and untouched: exact
-matching, the worker's own location grid, discovery paging, price engine, wallet, Edge functions.
+Every fact below was read from canonical DEV `leqcwgzvjsxugfgzdmth` with read-only catalog queries on
+2026-09-19, or from the committed tree.
 
-## How a DEV migration is made here (existing procedure, unchanged)
+## 0. One finding that changes the plan: the closure source digest
 
-`supabase/migrations/` is the frozen source-147 inventory; a 148th file fails seven assertions of the
-source-admission harness. A DEV change is therefore a **candidate**: `supabase/candidates/pkgNNN_*.sql`,
-opening with a `do $preflight$` block that compares `md5(pg_get_functiondef(...))` of every live body
-it replaces and raises if any differs, applied through `apply_migration` under the name
-`dev_alpha_pkgNNN_*`, with a runtime proof `supabase/proofs/pkgNNN_*_runtime_proof.sql` and a workflow
-that rebuilds a disposable database, applies the candidate and runs the proof (as PKG-003, 008, 014B
-and 015 do). The ledger on DEV is 157 rows today: 147 source + 10 dev_alpha.
+`private.closure_schema_digest_v5_139()` hashes **every column, constraint and trigger (with the md5 of
+its function) of every table** in `public` and `private`; `private.closure_erasure_program_digest_v5()`
+hashes the erasure program, `closure_redaction_patch_v5` included; `private.closure_source_digest_v5()`
+combines them; `private.closure_source_v5.sha256` and a constant inside
+`private.retention_ai_source_ready()` pin the result. Account erasure and AI retention report "ready"
+only while the pin matches. Source migrations 145–147 re-bind the pin in the same transaction as their
+schema change, from a predecessor they first verify is ready.
 
-## The three candidates
+- **On canonical DEV the pin has not matched since 2026-09-17.** Live digest `ac50680b…`, pinned
+  `68ae9916…`, `retention_ai_source_ready()` = **false**, zero closure executions. The `dev_alpha`
+  migrations of that day created and altered tables (`pkg015`, `pkg014b`, `pkg019b`–`d`) and none of them
+  re-bound the pin. On 2026-09-16 (PKG-014) it was true. This was recorded nowhere.
+- A candidate that only adds functions and plain indexes does not move the digest. `pkg023a`, `b` and
+  `d` are of that kind, and each proves it on itself: it raises if the digest is different after it.
+- **Any new column on `needs`, any changed trigger function, any change to the erasure patch moves it.**
+  That is `pkg023c` (the ~100 m pin) and any price-basis column. Such a candidate has to re-bind, and a
+  re-bind is only honest from a ready predecessor. `pkg023c` does exactly what migration 145 does, and
+  therefore **refuses to run on DEV today** (`PKG023C_CLOSURE_SOURCE_NOT_READY`) rather than certify, in
+  passing, schema changes it did not make.
+- Prerequisite for `pkg023c` and for a price basis on DEV: a separate, reviewed **re-certification of
+  the 17.09 drift** — do the new tables (`account_lineage_v5`, `ai_test_usage_v5`, the altered
+  `ai_test_reservations_v5`) hold anything account erasure must cover — and only then a re-bind. That
+  review is a privacy decision, not a formality, and it is not part of this plan.
 
-| # | Candidate file | Applied as | Covers |
-| --- | --- | --- | --- |
-| 1 | `supabase/candidates/pkg023a_own_reads_paged.sql` | `dev_alpha_pkg023a_own_reads_paged` | A and C |
-| 2 | `supabase/candidates/pkg023b_task_relations.sql` | `dev_alpha_pkg023b_task_relations` | B |
-| 3 | `supabase/candidates/pkg023c_public_pin_100m.sql` | `dev_alpha_pkg023c_public_pin_100m` | D |
+Related, also unrecorded until now: the SQL of three live DEV migrations — `pkg015b_gap0042_world_boundary`,
+`pkg019c_failed_reservation_release`, `pkg019d_stt_audio_duration_settlement` — is in the live ledger's
+`statements` and in no file under `supabase/candidates/`.
 
-Proofs: `supabase/proofs/pkg023a_…`, `pkg023b_…`, `pkg023c_…_runtime_proof.sql`. One workflow,
-`.github/workflows/pkg023-v3-reads-and-pin-proof.yml`, applies the three in order on a disposable
-database. 1 and 2 only add objects. 3 adds two columns and replaces eight function bodies.
+## 1. How a DEV migration is made here (existing procedure, unchanged)
 
----
+`supabase/migrations/` is the frozen source-147 inventory. A DEV change is a candidate file with a
+preflight that checks the md5 of every live body it replaces, applied as `dev_alpha_pkgNNN_*`, proven
+on a disposable database first. The DEV ledger is 157 rows: 147 source + 10 `dev_alpha`.
 
-## A + C — `pkg023a_own_reads_paged`
+## 2. The candidates
 
-**What is there today.**
+| Candidate | Covers | Touches existing objects | Closure digest | DEV |
+| --- | --- | --- | --- | --- |
+| `pkg023a_own_reads_paged.sql` | A + C | no | unchanged, self-asserted | ready for the owner's word |
+| `pkg023b_task_relations.sql` | B | no | unchanged, self-asserted | ready for the owner's word |
+| `pkg023d_marketplace_bounded.sql` | owner addition 1, and 3 | no | unchanged, self-asserted | ready for the owner's word |
+| `pkg023c_public_pin_100m.sql` | D, owner addition 4 | 9 bodies + 2 columns | re-bound from a ready predecessor | **HOLD** (section 0) |
+| ~~`pkg023e_price_gate.sql`~~ | ~~owner addition 2~~ | — | — | **withdrawn before it was committed** (section 8) |
 
-| Read | How the client does it | Bound |
-| --- | --- | --- |
-| my tasks | direct `from('needs').select(NEED_SELECT).eq('requester_account_id', uid)` under RLS | none |
-| my applications | `rpc_list_my_applications()` | none; and **no index leads with `worker_account_id`**, so it scans `marketplace_responses` |
-| my Dogovori | `rpc_list_my_agreements()` | none; two `EXISTS` and a phone lookup per row |
+## 3. A + C — own reads, paged
 
-**What is added. Nothing existing is altered or dropped.**
+Three readers beside the unpaged ones, which stay as they are: `rpc_list_my_needs_page` (SECURITY
+INVOKER: it stands on the RLS the direct read stands on today), `rpc_list_my_applications_page` and
+`rpc_list_my_agreements_page` (definer, like their siblings, own rows only). One shared private function
+for the application state vocabulary. One plain index, `marketplace_responses_worker_idx`: today no index
+leads with `worker_account_id`, so "my applications" scans the table. `pendingChange` on the Dogovor page
+is C; the start instant was already in `rpc_list_my_agreements` and needs only a client mapping.
 
-1. `public.rpc_list_my_needs_page(p_scope text default 'ALL', p_limit integer default 30, p_before_at timestamptz default null, p_before_id uuid default null) returns jsonb` —
-   `STABLE`, **`SECURITY INVOKER`**, `search_path=pg_catalog`. Invoker on purpose: today this read
-   stands on RLS (`needs_owner_select`, and the restrictive `v5_closed_account_visibility`), and an
-   invoker function inherits exactly those policies instead of re-stating them. Same fields as
-   `NEED_SELECT`, with the application count as a number instead of an embedded id list.
-2. `public.rpc_list_my_applications_page(same four parameters) returns jsonb` — `STABLE SECURITY DEFINER`,
-   `search_path=pg_catalog`, `auth.uid()` required, like its sibling (it must read a task that has
-   left `PUBLISHED`, which RLS would hide from the applicant). Same item fields and the same state
-   vocabulary as `rpc_list_my_applications`.
-3. `public.rpc_list_my_agreements_page(same four parameters) returns jsonb` — definer, as its sibling.
-   Same item fields as `rpc_list_my_agreements`, **plus C:** `pendingChange`, which is `null` or
-   `{ id, proposedByMe, createdAt }`, read from `agreement_change_proposals where status='PENDING'`
-   through the existing index `(agreement_id, status, created_at desc)`.
-4. `private.my_application_state(raw_status text, submitted_rev integer, current_rev integer, need_status text, has_agreement boolean) returns text` —
-   `IMMUTABLE`, not executable by any client role. The exact `CASE` of `rpc_list_my_applications`,
-   so the paged read and the relation read (B) cannot drift apart. The old function keeps its own
-   inline copy, untouched.
-5. `create index marketplace_responses_worker_idx on public.marketplace_responses (worker_account_id, submitted_at desc, id desc) where status <> 'DRAFT'`.
-   Needed by 2 and by B; it also speeds up the old unpaged read, which today has no usable index.
+Contract, the one `rpc_list_inbox` uses: `p_limit` 1–100 (default 30); `p_before_at` and `p_before_id`
+together or not at all, else `INVALID_PAGE`; `p_scope` ∈ `ALL | ACTIVE | HISTORY`, else `INVALID_SCOPE`;
+returns `{ items, hasMore, asOf }`, each item carrying `sortAt` and `id`. Execute: `authenticated` only.
 
-**C needs less than the second slice said.** `rpc_list_my_agreements` already returns `startsAt` and
-the accepted `terms`; the client only turns them into text. Ordering Dogovori by start time is a
-client mapping change with no migration. Only `pendingChange` is new on the server.
+### The paging claim, stated exactly
 
-**Limit / cursor / order contract** — the one `rpc_list_inbox` already uses, so there is one paging
-idiom in the app:
+"A row inserted between two pages neither repeats nor hides a row" is true **because the sort key is
+immutable and the comparison is a strict keyset**, and for no other reason. `asOf` is when that page
+was read; it is returned for display and **does not parameterise later pages and is not a snapshot**.
 
-- `p_limit` 1…100, default 30. `p_before_at` and `p_before_id` are given together or not at all.
-  Anything else raises `INVALID_PAGE` (`22023`). `p_scope` ∈ `ALL | ACTIVE | HISTORY`, else `INVALID_SCOPE`.
-- Keyset, never offset: `(sort_at, id) < (p_before_at, p_before_id)`, order `sort_at desc, id desc`,
-  `limit p_limit + 1`. A row inserted between two pages can neither repeat nor hide a row.
-- `sort_at`: tasks `created_at`; applications `coalesce(submitted_at, created_at)`; Dogovori `created_at`.
-- Returns `{ items, hasMore, asOf }`; each item carries `sortAt` and `id`, which are the next cursor.
-- `ACTIVE`: tasks `DRAFT, PUBLISHED, SELECTION, ACTIVE`; applications whose mapped state is
-  `SUBMITTED, VIEWED, SHORTLISTED, STALE_REVIEW_REQUIRED`, or `SELECTED` with a live Dogovor; Dogovori
-  whose `coalesce(execution.state, status)` is `CONFIRMED` or `AWAITING_REQUESTER`. `HISTORY` is the
-  complement. The vocabularies are the live `CHECK` constraints.
+| List | Sort column | Who can change it | Tie-breaker | If the sort value changed between page 1 and page 2 |
+| --- | --- | --- | --- | --- |
+| my tasks | `needs.created_at` | No server function writes it after insert. **The owner of a DRAFT can**, through the table UPDATE grant and the owner-DRAFT policy. | `needs.id` | A not-yet-seen row moved later drops out of the rest of that walk and is first in a fresh one; a seen row moved earlier would repeat. It can only happen to that owner's own list, by that owner's own write. The proof records which way the grant behaves and asserts exactly this. |
+| my applications | `marketplace_responses.created_at` | Nobody: no client UPDATE path, no server writer. **`submitted_at` is deliberately not used**: `rpc_submit_response` and `rpc_resolve_stale_response_after_need_edit` rewrite it on re-submission. | `marketplace_responses.id` | Cannot happen. The proof rewrites `submitted_at` of an unseen row between pages and the row stays where it was. |
+| my Dogovori | `agreements.created_at` | Nobody: there is a column grant but no UPDATE policy, and no server writer. | `agreements.id` | Cannot happen. |
+| marketplace | `needs.published_at` | Only `rpc_publish_need_canonical` sets it; `guard_need_write` refuses a client change (`PUBLISHED_AT_IS_SERVER_OWNED`); an edit clears it only after taking the task out of the open set. | `needs.id` | Cannot happen while the task is open. The proof tries as the owner and is refused. |
 
-**Grants.** `revoke all on function … from public, anon; grant execute … to authenticated`. No
-`service_role` grant: nothing server-side calls them.
+A row whose *other* fields change between pages (title, status within the scope, slots) is returned once,
+with its current values. A row that leaves the scope between pages is simply not returned later; a row
+already seen stays on the client until it refreshes. New rows appear only on a fresh first page.
 
-**Query behaviour, before → after.**
+## 4. B — the task relation, as an overlay
 
-| Read | Before | After |
-| --- | --- | --- |
-| my tasks | every owned row with three embedded relations | range scan of `needs_requester_idx`, at most `limit+1` rows |
-| my applications | sequential scan + one `agreements` sub-select per row | scan of the new worker index, at most `limit+1` rows |
-| my Dogovori | every row on both sides; 2 `EXISTS` + 1 phone lookup each | the same per row, for at most `limit+1` rows |
-| Početna | three whole lists to show ten rows | three calls with `p_scope='ACTIVE', p_limit=10` |
+`rpc_get_my_task_relations(uuid[])`, 1–100 ids, definer, `authenticated` only. It lists only tasks the
+caller owns or has applied to; every other id — unrelated, invisible, or not existing — is absent, and
+the three are indistinguishable. It is never part of a public result.
 
-## B — `pkg023b_task_relations`
+## 5. Owner addition 1 — the marketplace / map read, bounded (`pkg023d`)
 
-`public.rpc_get_my_task_relations(p_need_ids uuid[]) returns jsonb` — `STABLE SECURITY DEFINER`,
-`search_path=pg_catalog`, `auth.uid()` required, 1…100 ids or `INVALID_INPUT` (`22023`). A single task
-is an array of one; the map and the lists send one call for the rows they show, instead of one call
-per row.
+Today Mapa and the list read **every** open task: a direct table read, ordered by `created_at`, no limit,
+no geography, plus one public-profile call per distinct requester. `rpc_list_open_tasks_v3(p_bbox,
+p_filters, p_limit, p_before_at, p_before_id)`:
 
-Returns `{ items: [{ needId, relation: 'OWNER' | 'APPLIED', applicationId, applicationState, agreementId }], asOf }`.
-**Only tasks the caller owns or has applied to are listed. Every other id — unrelated, not visible
-to the caller, or not existing — is simply absent, with the same shape.** The function is therefore
-no oracle for the existence or state of a task; the client reads "absent" as `NONE`, and a failed
-call as `UNKNOWN`, exactly as `src/data/taskRelation.ts` does now. Lookups: `needs_pkey`, the unique
-partial index `(need_id, worker_account_id)`, and `agreements_selected_response_id_key`. Same grants
-as A.
+- **Geographic scope.** `p_bbox {west,south,east,north}`, at most 3° × 5° (about 330 × 390 km here), else
+  `INVALID_BBOX`. With a bbox: only tasks with a pin inside it. Without: the list, every open task,
+  `REMOTE` ones included.
+- **Server hard limit.** 1–200, default 50. There is no way to ask for more.
+- **Stable paging.** Keyset on `(published_at, id)`, newest first (table above). On a map `hasMore` means
+  "zoom in or fetch the next page"; no server-side clustering in this version.
+- **Filter semantics.** `p_filters` may hold only `category` (exact), `priceMode`, `urgentOnly`, `remote`
+  (`INCLUDE|ONLY|EXCLUDE`, list mode only), `startsFrom`, `startsTo`; anything else is `INVALID_FILTER`.
+  Always applied, as today: `remaining_search_closed_at is null`.
+- **Late-response protection on the client** (to be built with the client part): each viewport or
+  filter change takes the next number of a per-screen query generation; a response is applied only if
+  its generation is still the latest **and** the existing account / `accountRevision` / session-epoch
+  fence holds; the previous request is aborted. A page is appended only if it was asked with the cursor
+  the list currently ends on. Pure helper + tests, no new dependency.
+- **Public-safe allowlist.** Each item is built field by field from a fixed list of keys (28; 29 once
+  `pkg023c` adds `legacyPin`); the proof compares the exact key set. No `requester_account_id`, no exact coordinate, no address, no description.
+- **Relation overlay, separate.** The result is byte-identical for whoever asks (the proof compares two
+  accounts); "Tvoj zadatak" / "Prijava poslata" come from B for the ids of the page.
+- **Visibility** is SECURITY INVOKER: the RLS policies that decide it today decide it here, the DEV-only
+  same-world boundary included; the function restates none of them and cannot widen them.
+- **Old APK.** Untouched: the table read, its grants and policies stay. Retiring them is a separate decision.
 
-## D — `pkg023c_public_pin_100m`
+**Index.** The existing GiST index `needs_approx_geog_idx` is partial on `status = 'PUBLISHED'`. The open
+set is `PUBLISHED` **and** `SELECTION`, which that predicate does not imply, so it **cannot** serve this
+reader; the proof shows the plan without the new index. New: `needs_open_geog_idx` (GiST on `approx_geog`,
+partial on the open set) and `needs_open_published_idx` (`published_at desc, id desc`, same predicate).
+The proof asserts both are used. The viewport is filtered on the coarse point with a 0.01° margin and an
+exact numeric re-check, so a task whose fine pin is inside the viewport is not cut off at its edge.
 
-**What is there today.** `needs.approximate_lat numeric(6,2)` and `approximate_lng numeric(7,2)`.
-The scale is in the **column type**, not only in the `round(…, 2)` of
-`private.materialize_resolved_location`. A generated column, `approx_geog`, and its GiST index are
-built on those two columns; the constraint trigger `check_need_resolved_location_binding` demands
-`approximate_* = round(anchor, 2)`; matching reads them; the publication fingerprint includes them;
-account erasure nulls them.
+## 6. Owner addition 3 — `requester_account_id` in public
 
-**Therefore: add, do not alter.** Changing the type would rewrite the table, collide with the
-generated column, move every fingerprint and force a decision about old rows. Instead:
+- **Does the V3 public UI use it?** No. The discovery reads never select it; they select
+  `requester_profile_id`. Its only client use is the filter of the owner's own list.
+- **Does relation logic use it?** No. The client reads its own lists; the new overlay compares it to
+  `auth.uid()` on the server and never returns it.
+- **Can a public identifier replace it?** Yes, already: `requester_profile_id`, which is what
+  `rpc_get_public_profile` takes, and whose answer carries no account id.
 
-```sql
-alter table public.needs
-  add column public_lat numeric(7,3),
-  add column public_lng numeric(8,3),
-  add constraint needs_public_pin_pair_check check (
-    (public_lat is null) = (public_lng is null)
-    and (public_lat is null or (public_lat between -90 and 90 and public_lng between -180 and 180)));
-```
+So **the V3 reader does not return it**, and the proof asserts neither it nor any account id is in the
+result. **HOLD, with the reason:** the column stays readable through the legacy direct table read, because
+the installed APK — and today's own-list read — filter on that very column; revoking it breaks both. It
+closes when the legacy direct reads are retired, which is its own decision.
 
-Nullable, no default: no table rewrite, **no backfill**. Every existing row keeps `public_* = null`.
+## 7. Owner addition 4 — ~100 m, and both client generations (`pkg023c`, HOLD for DEV)
 
-Eight live bodies are replaced, each pinned by md5 in the preflight. The rule for all of them:
-**`public_*` follows the life of `approximate_*` and is only ever set by the materializer.**
+Two nullable columns, `needs.public_lat numeric(7,3)` and `public_lng numeric(8,3)`; **no backfill**.
+`approximate_lat/lng numeric(6,2)/(7,2)`, the generated `approx_geog` and its indexes are untouched. The
+reason for adding rather than altering: the scale lives in the column type and a generated geography
+column stands on the old pair.
 
-| Function | Change |
+- **Exact private location stays the authority.** `need_sensitive.resolved_location` is the one confirmed
+  record; `private.materialize_resolved_location` is the only writer of either projection and writes both
+  from it in one statement: `round(anchor, 2)` and `round(anchor, 3)`.
+- **Old client:** reads `approximate_*` from the table, as today, for old and new tasks alike.
+- **V3 client:** `pin` = the ~100 m point where the task has one, else the coarse one, with its
+  `precision`; `legacyPin` always the coarse one.
+- **Both bound.** The deferred constraint trigger refuses either projection if it is not the projection of
+  the record, and refuses a `public_*` that has no record at all (a client can write the columns of its own
+  DRAFT through the table grant). Immutable after publication, erased with the account, null for `REMOTE`,
+  never taken from a client.
+- **Old fingerprint stable, new one binding.** `publicLat/publicLng` enter the fingerprint and the
+  material snapshot only where they exist. The proof publishes a task **before** the candidates, records
+  its fingerprint, and compares it byte for byte after; and shows the new task's fingerprint carries the
+  new point.
+- **No client gets the exact coordinate to draw with**: asserted on the wire, and `need_sensitive` stays
+  unreadable to a stranger.
+- A task that is *edited* returns to DRAFT and is republished as a new revision; its pin is
+  re-materialized from the re-confirmed record and then carries both projections. A task nobody edits is
+  never touched.
+- The worker grid is untouched: `worker_match_preferences numeric(6,2)`, `rpc_save_worker_location` still
+  refuses three decimals (asserted). Matching stays on the coarse pair.
+
+The test the owner asked for is section S3 of the proof: NEW LOCATION → old client projection gets the
+legacy coarse point → V3 projection gets the ~100 m point → both computed in SQL from the same
+`resolved_location` record of the same task.
+
+## 8. Price — the gate is withdrawn; the model is re-opened (PLAN ONLY, nothing written)
+
+The rule "people > 1 ⇒ OFFERS" was drafted as a gate in `need_publication_context` and **withdrawn before
+it was committed**, on the owner's update of 2026-09-19. What the owner now wants to be expressible:
+`TOTAL`, `PER_PERSON`, `OFFERS`; e.g. 6 people, `PER_PERSON`, 3000 → one slot 3000, three slots 9000,
+all six 18000.
+
+**What exists today.**
+
+| Piece | Today |
 | --- | --- |
-| `private.materialize_resolved_location(uuid, uuid)` | also sets `public_* = round(anchor, 3)`; `approximate_*` still `round(anchor, 2)` |
-| `private.check_need_resolved_location_binding()` | when `public_*` is not null it must equal `round(anchor, 3)`, else `LOCATION_BINDING_CHANGED`; null is allowed (old tasks) |
-| `private.guard_need_write()` | `public_lat`, `public_lng` join the columns that cannot change after publication |
-| `public.rpc_confirm_need_edit(...)` | where it clears `approximate_*` it clears `public_*`; it never takes `public_*` from the client |
-| `public.rpc_confirm_need_edit_from_review(...)` | the same keep-or-null `CASE` for `public_*` as for `approximate_*` |
-| `private.closure_redaction_patch_v5(...)` | the `needs` patch also nulls `public_lat`, `public_lng` — otherwise account erasure would leave a 100 m pin behind |
-| `private.need_material_snapshot(uuid)`, `private.need_publication_fingerprint_snapshot(uuid)` | `publicLat` / `publicLng` are added **only when not null**, so the fingerprint of every existing task stays byte-identical and no accepted review in flight is invalidated |
-| `private.need_publication_location_readiness(uuid)` | the `REMOTE` branch also requires `public_*` to be null |
+| task | `needs.mode` ∈ `MY_PRICE | OFFERS` (CHECK), `needs.requester_price_rsd`; facts `need.price_mode`, `need.price_rsd` |
+| slots | `needs.required_slots`, `needs.covered_slots`; `marketplace_responses.covered_slots` |
+| response writer | `rpc_submit_response`: under `MY_PRICE` the application's `price_rsd` must **equal** the task's price, **whatever slots it covers** (`FIXED_PRICE_MISMATCH`). The installed client locks the field to that value. |
+| selection | `rpc_select_response` copies the application's `price_rsd` and `covered_slots` into the Agreement terms. **An Agreement amount is the application's amount, a total for that Dogovor.** Nothing multiplies or divides anywhere. |
+| fingerprint | `priceMode`, `requesterPriceRsd` are in the publication fingerprint and the material snapshot |
+| AI schema | registry keys `need.price_mode` (ENUM) and `need.price_rsd`; the Edge prompt knows `MY_PRICE | OFFERS`; the DB validator chain enforces it |
+| installed client | validates a submit receipt strictly: `pricingMode` must be `MY_PRICE` or `OFFERS`, else the receipt is rejected |
 
-Signatures of all eight are unchanged. `closure_redaction_allowed_v5` and
-`rpc_redact_account_closure_step_service` are read in full while authoring and changed only if their
-allowed-key derivation requires it.
+So an existing `MY_PRICE` row means: *this exact amount per application / per Dogovor*. For a one-person
+task that is at once the total and the per-person price. For a task for several people it is neither —
+which is the ambiguity the owner noticed.
 
-**Deliberately unchanged:** `approximate_*`, `approx_geog` and its index; `private.candidate_profile_ids`
-and `private.match_detail_without_calendar` (matching stays on the ~1 km grid: "NOT exact matching");
-every RLS policy; and the worker side entirely — `worker_match_preferences.approximate_* numeric(6,2)`
-and `rpc_save_worker_location`, which still refuses `lat <> round(lat, 2)`.
+**The smallest safe migration.**
 
-**2 → 3 decimals, for a person.** A new task's pin moves from a ~1.1 × 0.78 km cell to a ~110 × 78 m
-cell, deterministically, with no randomness. A task already published keeps its old pin until its
-place changes (owner answer 1). The exact point stays in `need_sensitive` and is never exposed.
+1. **A new nullable column `needs.price_basis`**, CHECK `in ('TOTAL','PER_PERSON')`, allowed only with
+   `mode = 'MY_PRICE'`. **`NULL` = the existing meaning, exactly as today.** No backfill, no existing row
+   reinterpreted. `mode` keeps its two values, because the installed client rejects any third.
+2. `rpc_submit_response`, by basis: `NULL` → today's equality, untouched; `PER_PERSON` → `price =
+   requester_price_rsd × covered_slots`; `TOTAL` → **owner decision needed** between (a) the application
+   must cover every remaining slot and carry the total, or (b) a proportional share, which then requires
+   the total to divide evenly by `required_slots` at publication. (a) is the smaller and has no rounding.
+3. The application content hash gains `priceBasis` only where it is not null (old hashes unchanged).
+   `rpc_select_response` needs **no change**: the terms already carry that application's total.
+4. The fingerprint, the material snapshot and the publication context gain `priceBasis` only where it is
+   not null (old fingerprints unchanged — the technique section 7 proves); `guard_need_write` adds it to
+   the material list; the erasure patch nulls it.
+5. A new fact key `need.price_basis` in the shared registry (`src/contracts/needFactsV2.ts`, which is also
+   an Edge source), admitted by the validator chain, written by `rpc_save_need_draft_from_review` and
+   `rpc_confirm_need_edit_from_review`, seeded by `rpc_ai_open_need_edit_conversation_v2`; the legacy
+   scalar edit clears it.
+6. Then Edge (the prompt asks "ukupno ili po osobi" when there is more than one person and a fixed price)
+   and client (review editor, "3.000 RSD po osobi · 6 osoba · ukupno 18.000", the composer showing the
+   computed amount read-only). Both are later stages, each with its own approval.
 
-**Client.** The discovery reads add `public_lat, public_lng` to their select; the pin is
-`public_* ?? approximate_*`.
+About twelve function bodies, one column, one Edge deploy, client work. **It moves the closure digest, so
+it shares `pkg023c`'s prerequisite (section 0).**
 
----
+**Installed APK.** It sees `mode = MY_PRICE` and a price, without the basis. A one-slot application to a
+`PER_PERSON` task works (3000 × 1 is what it sends). A multi-slot one is refused with
+`FIXED_PRICE_MISMATCH`: a refusal, never a wrong Agreement. It would display "3000" with no "po osobi".
 
-## Compatibility with an APK already installed
+**Open inside this model:** `private.dispatch_cheap_candidate_admitted` and
+`private.match_detail_without_calendar` compare the task price with the worker's `minimum_fee_rsd`. Under
+`PER_PERSON` comparing the unit price is right and needs no change; under `TOTAL` for several people it
+overstates. To be decided with 2(a)/(b).
 
-Everything is additive. The old APK calls `rpc_list_my_applications()` and `rpc_list_my_agreements()`
-with no arguments and selects named columns of `needs`; all of that is untouched and returns what it
-returns today, and it never sees the new columns or functions. Order of promotion is database first,
-APK second, so the new APK never meets a database without them; for one release it still falls back
-to the old unpaged readers if a paged function is missing (`PGRST202`).
+## 9. Compatibility with an installed APK
 
-**RPC signatures left exactly as they are:** `rpc_list_my_applications()`, `rpc_list_my_agreements()`,
-`rpc_get_agreement_workspace(uuid)`, `rpc_list_inbox(text, integer, timestamptz, uuid)`,
-`rpc_submit_response`, `rpc_select_response`, `rpc_withdraw_response`, `rpc_accept_ai_task_review`,
-`rpc_publish_accepted_ai_task_review`, `rpc_save_worker_location`, and — signature only, body extended
-in D — `rpc_confirm_need_edit`, `rpc_confirm_need_edit_from_review`.
+Everything that is ready for DEV is additive; the old APK calls and reads exactly what it does today.
+Signatures untouched: `rpc_list_my_applications()`, `rpc_list_my_agreements()`,
+`rpc_get_agreement_workspace`, `rpc_list_inbox`, `rpc_submit_response`, `rpc_select_response`,
+`rpc_withdraw_response`, `rpc_accept_ai_task_review`, `rpc_publish_accepted_ai_task_review`,
+`rpc_publish_need_canonical`, `rpc_save_worker_location`; and, body only in `pkg023c`,
+`rpc_confirm_need_edit`, `rpc_confirm_need_edit_from_review`.
 
-## Tests that fail first
+## 10. The tests, which fail first
 
-On a disposable database, before the candidate exists (function or column missing), then pass:
+`pkg023_v3_backend_proof.mjs` runs on the disposable database with real accounts, real RLS, real
+PostgREST and the real RPC authority (conversation → review with a confirmed place → accepted draft →
+evaluation → publication → application → selection), no provider. The workflow runs it **before** the
+candidates, where it must fail, and **after**, where every section must pass; snapshots the whole domain
+surface (every function body, grant, column, constraint, trigger, policy, index) and proves a, b, d added
+exactly nine lines and changed none, and c changed exactly the eleven functions it names; proves a
+candidate cannot be applied twice; and reproduces DEV's drift to show c refusing it.
 
-- **pkg023a:** 35 tasks of account A → page 1 has 30 and `hasMore`, page 2 has 5, no overlap and no
-  gap; a task inserted between the two calls neither repeats nor hides a row; `p_limit` 0 and 101
-  and a half cursor raise `INVALID_PAGE`; account B receives none of A's rows; `anon` is denied;
-  `ACTIVE` / `HISTORY` partition the rows; `pendingChange` is null → `{proposedByMe:true}` for the
-  proposer and `false` for the other side → null again after the answer; `EXPLAIN` of the
-  applications page uses `marketplace_responses_worker_idx`.
-- **pkg023b:** `OWNER`; `APPLIED` with state and Dogovor id; an unrelated published task, an invisible
-  draft of somebody else and a random uuid are all absent and indistinguishable; 101 ids raise
-  `INVALID_INPUT`; `anon` is denied.
-- **pkg023c:** a newly materialized task has `approximate_* = round(anchor,2)` and
-  `public_* = round(anchor,3)`; a tampered `public_lat` raises `LOCATION_BINDING_CHANGED`; after
-  publication `public_*` cannot be updated; **the fingerprint of a task published before the
-  candidate is byte-identical after it**; account erasure nulls `public_*`; a `REMOTE` task has all
-  four null; `rpc_save_worker_location` still refuses three decimals.
-- **Client (Jest):** the three paged readers (cursor passed back, `hasMore`, a malformed page
-  rejected, fallback on `PGRST202`), the relation reader (absent → `NONE`, failure → `UNKNOWN`),
-  Početna reading `ACTIVE` pages of 10, Dogovori ordered by start, the map preferring `public_*`.
+### Proof status — run 35446129464 on `1a872140`, disposable database, every step green
 
-## Rollback and fallback
+| Step | Result |
+| --- | --- |
+| Source-147 predecessor: closure source bound and `retention_ai_source_ready()` true | yes |
+| A task with a confirmed place published through the real authority **before** any candidate | done; fingerprint and coarse point recorded |
+| The proof **before** the candidates | **FAIL**, as required (`S0`: the objects do not exist) |
+| a, b, d applied; whole-surface diff | exactly 9 lines added (6 functions, 3 plain indexes), **0 changed**; closure digest unchanged |
+| c applied; whole-surface diff | exactly the 11 functions it names changed (its 9, the re-bound `retention_ai_source_ready`, and the reader of `pkg023d`); 2 columns and 1 constraint added; closure source re-bound and ready |
+| The proof **after** the candidates | **PASS**, 6 of 6 sections |
+| Re-applying any candidate | refused: `PKG023A/B/D/C_ALREADY_APPLIED` |
+| c on a predecessor with an unbound table (DEV's situation, reproduced) | refused: `PKG023C_CLOSURE_SOURCE_NOT_READY` |
 
-Migrations are forward-only; an applied one is never rewritten.
+Facts the proof recorded rather than assumed:
 
-- A, B, C only add objects. Fallback is the client using the old readers, which stay in the code for
-  one release. A removal, if ever wanted, is a successor candidate that drops the new functions.
-- D keeps the previous body of each of the eight functions verbatim in the candidate (as a commented
-  block with its md5). Rollback is a successor candidate that restores those bodies and leaves the two
-  columns in place; columns that are no longer written are inert, and the client already falls back
-  to `approximate_*`.
-- The preflight raises before anything is applied if any live body differs from the md5 recorded
-  when the candidate was written.
+- **The owner of a DRAFT can rewrite `needs.created_at`** through the table grant. The proof did it between
+  two pages: the moved row was absent from the rest of that walk, first in a fresh walk, and no other
+  account's list changed. `marketplace_responses.created_at`, `agreements.created_at` and
+  `needs.published_at` could not be moved; the last was tried as the owner and refused.
+- A re-submission's rewrite of `submitted_at`, done between two pages, moved nothing.
+- **The existing GiST index cannot serve the open set.** Without the new indexes the viewport query is a
+  sequential scan even with sequential scans disabled. With `needs_open_geog_idx` the viewport condition
+  is an index condition (`Index Cond: approx_geog && …`). With `needs_open_published_idx` a list page is
+  an ordered index-only scan under a limit, with no sort. On a table of a few rows the planner prefers the
+  small btree and filters the geography; that is the planner being right about a small table, and the
+  proof records that plan too.
+- The public result was byte-identical for two different accounts, held exactly the 29 allowlisted keys,
+  and no account id, exact coordinate, `latitudeE6` or `requester_account_id` appeared anywhere in it.
+- A task whose only slot was selected left the open set and was no longer advertised.
+- Both pins of a new task came from one confirmed record: coarse 45.25 / 19.83 for the legacy read, fine
+  45.251 / 19.831 for V3, exact 45.251234 readable by nobody but the owner. Moving either projection away
+  from the record raised `LOCATION_BINDING_CHANGED`; a client writing `public_*` on a draft without a
+  record was refused; the fingerprint of the task published before the candidates was unchanged to the
+  byte and carried no `publicLat`; the erasure patch nulls the new columns; the worker's location still
+  refuses a third decimal.
+- One defect of the first draft was found by the proof, not by reading: `needs.covered_slots` is not a
+  column but the computed field `public.covered_slots(needs)`. Both readers now call it.
 
-## Order of promotion on canonical DEV — every step reported, stop on any mismatch
+Locally on the same tree: Jest 232 suites / 4447 tests, `tsc` clean, the node proof tests 895 of 898 with
+the three known CRLF-only local failures that pass on Linux.
 
-0. The owner approves this plan.
-1. Candidates, runtime proofs, workflow and client tests are written. CI is green on the disposable
-   database. **DEV is not touched.**
-2. Read-only preflight on DEV: md5 of the eight live bodies, fingerprints of the published tasks, row
-   counts, the ledger tail.
-3. The owner's explicit word to apply. Then `pkg023a` → postflight (functions exist, grants exact,
-   index used).
-4. `pkg023b` → postflight.
-5. `pkg023c` → postflight: fingerprints of existing tasks unchanged, `public_*` null on every old row,
-   security advisors read.
-6. Client change, Jest, APK build. The old APK keeps working throughout.
-7. Ledger and entry map: 160 rows = 147 source + 13 dev_alpha.
+## 11. Rollback and fallback
 
-## Open points, stated rather than hidden
+Forward-only. a, b, d: the client falls back to the old readers, which stay for one release; a successor
+may drop the new functions. c: the candidate lists the md5 of every previous body; a successor restores
+them and leaves the two inert columns. Every preflight raises before anything is applied if a live body
+differs from the md5 it was written against.
 
-- `rpc_confirm_need_edit` writes `approximate_lat` from `p_material.approximateLat`. It has to be read in
-  full before its candidate body is written; `public_*` will never be accepted from a client.
-- Whether the data export snapshot enumerates `needs` columns (and must list `public_*`) is checked
-  while authoring D.
-- The discovery read itself (`prilike`) stays a direct, unbounded table read. It is not in A–D; it is
-  the bbox / paging redesign the owner set aside, and the next scaling item after this one.
+## 12. Order of promotion on canonical DEV — every step reported, stop on any mismatch
+
+0. The owner approves this version of the plan.
+1. Read-only preflight on DEV: the md5 of every predecessor body, the ledger tail, the digest.
+2. The owner's explicit word. `pkg023a` → postflight. `pkg023b` → postflight. `pkg023d` → postflight
+   (functions, exact grants, indexes used, **digest unchanged**, security advisors).
+3. Client: paged readers with fallback, relation overlay, bounded marketplace with the generation gate,
+   Dogovori ordered by start. Jest, APK. The old APK works throughout.
+4. Separately, and first of all for anything that touches a table: the re-certification of the 17.09
+   closure drift. Only after it: `pkg023c`, and later the price basis.
+5. Ledger and entry map.
+
+## 13. Open points and new findings
+
+- The closure digest drift on DEV since 2026-09-17, and the three DEV migrations whose SQL is not in the
+  repo (section 0).
+- `needs.created_at` is writable by the owner of a DRAFT, and the **legacy public list is ordered by it**:
+  a manipulated client could pin its task to the top of today's list. The V3 reader orders by the
+  server-owned `published_at`.
+- The legacy public list makes one public-profile call per distinct requester; bounded pages bound that too.
+- `rpc_confirm_need_edit` (the legacy scalar edit) takes `approximate_lat/lng` from the client. `pkg023c`
+  never takes `public_*` from a client.
