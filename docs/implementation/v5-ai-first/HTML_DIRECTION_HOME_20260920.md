@@ -106,3 +106,18 @@ within their existing controls, keeping system scaling with bounded fitting; bod
 The temporary phone font setting was restored to the owner's original 1.15 in a `finally` block.
 The intermediate background-only APK run `35477007610` was cancelled in favor of a build containing
 both observed visual corrections. It is not a passing artifact or device checkpoint.
+
+### Home focus-return correction found during device review
+
+After tab navigation, Home could display its cached snapshot but refuse navigation while its
+silent refresh remained pending. The screen copied a mutable focus ref during render; focus
+changed that ref after render, while a silent resource refresh intentionally published no loading
+state. Therefore the visible callbacks still belonged to the previous focus until another render.
+
+The new regression test recreates blur/refocus with a deliberately pending read. Before the fix,
+the current Earn action produces zero navigations (expected one). Home now publishes its focus
+token through React state on focus, so current actions work without waiting for data. Retained
+callbacks from the previous focus remain rejected by the same token/account/source checks.
+Four targeted suites / 54 tests pass, including this failure-before/pass-after proof. No read or
+mutation authority is weakened. Intermediate APK run `35477098597` was cancelled so this functional
+correction can be verified together with the two visual corrections in the next artifact.
