@@ -45,7 +45,8 @@ export default function TabLayout() {
       tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted,
       tabBarActiveBackgroundColor: sys.color.greenSoft, tabBarAllowFontScaling: true,
       tabBarLabelPosition: 'below-icon',
-      tabBarLabel: ({ children, color }) => <T variant="label" style={{ color, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
+      tabBarLabel: ({ children, color }) => <T variant="label" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}
+        style={{ color, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
       tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label, 'aria-selected': selected }) =>
         <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: selected === true }}
           onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hitSlop={0}

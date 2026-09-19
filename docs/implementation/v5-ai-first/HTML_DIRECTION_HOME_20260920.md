@@ -99,3 +99,10 @@ tab bar. The follow-up sets only the authenticated `(app)` stack scene to the cu
 ground. Entry artwork, auth behavior and root routing are unchanged. TypeScript and four existing
 root/session/navigation suites (53 tests) passed for that follow-up. The correction requires its
 own APK verification; the first installed APK does not prove it.
+
+At 200% system text the first APK correctly stacked the Home tiles and removed decorative artwork,
+but the narrow third tab wrapped the last letter of `Dogovori`. Tab labels now fit to a single line
+within their existing controls, keeping system scaling with bounded fitting; body text is unaffected.
+The temporary phone font setting was restored to the owner's original 1.15 in a `finally` block.
+The intermediate background-only APK run `35477007610` was cancelled in favor of a build containing
+both observed visual corrections. It is not a passing artifact or device checkpoint.
