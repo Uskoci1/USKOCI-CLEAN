@@ -15,6 +15,7 @@
 //   S6 the candidate cannot be applied twice, and the guard is as live as before: a later addition drifts
 //   S7 F4: the two service-only functions stop being executable by anon and authenticated (pkg023g)
 //   S8 F2: the export stops claiming that no charge was ever measured (pkg023h)
+//   S9 the bounded marketplace reader carries the three fields a task card needs (pkg023i)
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -334,4 +335,24 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
   bases:[...new Set(exportAfter.map(r=>r.settlementBasis))].sort()};
  assert.deepEqual(certificate(),certified);
  pass(report,'F2_THE_EXPORT_NO_LONGER_CLAIMS_NOTHING_WAS_MEASURED_AND_CARRIES_THE_SETTLEMENT_THAT_EXISTS');
+
+ // ---- S9. pkg023i. The public list reader cannot replace the legacy table read until a card can render
+ // the time it shows. The three fields are already public on the detail; the description stays out.
+ const viewer=await actor('pkg023f-viewer');
+ const asViewer=async()=>ok(viewer.client.rpc('rpc_list_open_tasks_v3',{}));
+ const beforeItem=(await asViewer()).items[0];
+ assert.ok(beforeItem,'PKG023I_NO_OPEN_TASK_TO_READ');
+ for(const key of ['taskTimezone','taskCountryCode','verifiedIdentityRequired'])assert.equal(key in beforeItem,false,key);
+ psql(['-f','supabase/candidates/pkg023i_open_tasks_timezone.sql'],'PKG023I_CANDIDATE_FAILED');
+ const afterItem=(await asViewer()).items[0];
+ assert.equal(Object.keys(afterItem).length,Object.keys(beforeItem).length+3);
+ // The values are the row's own, not a default, and the description is still not in the list.
+ const row=rows(`select task_timezone,task_country_code,verified_identity_required from public.needs where id=${q(afterItem.id)}::uuid`)[0];
+ assert.equal(afterItem.taskTimezone,row.task_timezone);
+ assert.equal(afterItem.taskCountryCode,row.task_country_code);
+ assert.equal(afterItem.verifiedIdentityRequired,row.verified_identity_required);
+ assert.ok(afterItem.taskTimezone,'a card needs a real zone, not null');
+ for(const key of ['description','opis','requesterAccountId','exactAddress'])assert.equal(key in afterItem,false,key);
+ assert.deepEqual(certificate(),certified);
+ pass(report,'THE_BOUNDED_MARKETPLACE_READER_CARRIES_THE_ZONE_A_CARD_NEEDS_AND_STILL_NO_DESCRIPTION');
 });

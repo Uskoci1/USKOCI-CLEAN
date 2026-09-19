@@ -7,7 +7,7 @@ on:
     branches:
       - work/pre-v3-engine-integration-20260911
     paths:
-      - 'supabase/candidates/pkg023[fgh]_*.sql'
+      - 'supabase/candidates/pkg023[fghi]_*.sql'
       - 'supabase/proofs/pkg023f_closure_recert/**'
       - 'supabase/operations/dev-alpha/ledger/**'
       - '.github/workflows/pkg023f-closure-recertification-proof.yml'
@@ -45,7 +45,7 @@ jobs:
             echo "PACKAGE=PKG-023f"
             echo "CANDIDATE_SHA=$GITHUB_SHA"
             echo "TREE_SHA=$(git rev-parse 'HEAD^{tree}')"
-            sha256sum supabase/candidates/pkg023[fgh]_*.sql supabase/candidates/pkg023[abd]_*.sql supabase/proofs/pkg023f_closure_recert/*.mjs supabase/proofs/pkg023f_closure_recert/*.sql supabase/operations/dev-alpha/ledger/*
+            sha256sum supabase/candidates/pkg023[fghi]_*.sql supabase/candidates/pkg023[abd]_*.sql supabase/proofs/pkg023f_closure_recert/*.mjs supabase/proofs/pkg023f_closure_recert/*.sql supabase/operations/dev-alpha/ledger/*
           } | tee "$PRE_V3_ARTIFACT_DIR/pkg023f-source-binding.txt"
 
       - name: Set up Supabase CLI
@@ -121,7 +121,7 @@ jobs:
           set -euo pipefail
           node supabase/proofs/pkg023f_closure_recert/pkg023f_closure_recert_proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/pkg023f-proof.log"
           grep -F 'PASS PKG023F_CLOSURE_RECERTIFICATION' "$PRE_V3_ARTIFACT_DIR/pkg023f-proof.log"
-          test "$(node -e "const r=require('$PRE_V3_ARTIFACT_DIR/pkg023f-closure-recertification-report.json');process.stdout.write(r.result+':'+r.checks.length)")" = "PASS:11"
+          test "$(node -e "const r=require('$PRE_V3_ARTIFACT_DIR/pkg023f-closure-recertification-report.json');process.stdout.write(r.result+':'+r.checks.length)")" = "PASS:12"
 
       - name: Stop disposable database
         if: always()
