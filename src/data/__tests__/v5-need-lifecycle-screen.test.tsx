@@ -60,6 +60,13 @@ it('reviews consequences, persists the frozen identity first and deduplicates re
   expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(1); expect(action('Moji zadaci')).toBeDefined(); expect(mockReplace).not.toHaveBeenCalled();
   await tap('Moji zadaci'); expect(mockStorage.removeItem).toHaveBeenCalledTimes(1); expect(mockReplace).toHaveBeenCalledWith('/potrebe');
 });
+it('serves the owner of the Task whatever mode the app is in', async () => {
+  // The Need it is handed came from the owner-only read and the server checks ownership again; the
+  // mode the app happens to be in says nothing about whose Task this is.
+  mockIntent = 'uskocer'; await render();
+  await tap('Obriši nacrt'); await tap('Obriši nacrt');
+  expect(mockService.deleteDraftNeed).toHaveBeenCalledWith(N, 3, '');
+});
 it('keeps cancellation separate from deleting a published Task', async () => {
   need = { ...need, stanje: 'OBJAVLJENA' }; await render();
   expect(tree.root.findAllByProps({ label: 'Obriši nacrt' })).toHaveLength(0);

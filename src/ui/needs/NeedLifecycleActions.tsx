@@ -33,9 +33,14 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   const scope = useRef<object | null>(null), controller = useRef<Controller | null>(null);
   const latch = useRef(false), latest = useRef(p); latest.current = p;
   const foreground = () => !['background', 'inactive'].includes(AppState.currentState);
+  // Whose Task this is was settled before this mounted: the Need comes from the owner-only read, a
+  // restored command is stored under this account, and the server checks ownership on every
+  // command. The mode the app is in was a fourth condition here and answered a different question
+  // (owner decision 1, 2026-09-19). It stays in the guard only as the staleness identity it shares
+  // with every other screen.
   const current = (owner: object | null) => owner !== null && scope.current === owner && foreground()
     && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
-    && ulogaSada() === intent && intent === 'narucilac';
+    && ulogaSada() === intent;
   const install = (owner: object, command: NeedLifecycleCommand, restoring: boolean) => {
     const engine = createNeedLifecycleController({ account: { accountId, accountRevision }, command,
       restoreUnknownOutcome: restoring,
@@ -112,7 +117,6 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   };
   const phase = view.state?.phase;
   const busy = view.loading || phase === 'SUBMITTING' || phase === 'RECONCILING';
-  if (intent !== 'narucilac') return null;
   // With no current row and no retained command there is no lifecycle UI to show.
   // The initial loading pass still runs so a retained command can be recovered.
   if (!p.need && !view.loading && !view.state && !view.error) return null;
