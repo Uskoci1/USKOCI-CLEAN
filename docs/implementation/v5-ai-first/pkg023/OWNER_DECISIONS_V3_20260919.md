@@ -185,6 +185,52 @@ other because the first hid the second:
   updated to the category they now receive, and a redeploy. An Edge function and a deploy are outside
   what was approved, so the item stops here with this evidence.
 
+## The Edge fix — "EDGE FIX — ODOBRENO" (owner, 2026-09-19)
+
+The owner approved the fix of the logging defect, its tests, a deploy to canonical DEV as v41, a
+readback and a PKG-010 rerun; and ruled that no part of a raw provider response may be logged, that
+a truncation limit or a mask is not a fix, and that prompt, model, schema and AI behaviour stay as
+they are.
+
+- **Source, `130028de`.** One line of `supabase/functions/uskoci-ai-interview/index.ts` logged
+  `providerError.message`. It now logs `providerFailureClass(providerError)`: one of the function's
+  own 23 thrown names, one of five runtime classes (`OUTPUT_NOT_JSON`, `RUNTIME_TYPE_ERROR`,
+  `RUNTIME_RANGE_ERROR`, `ABORTED`, `TIMED_OUT`), or `UNKNOWN`. A thrown text merely shaped like one
+  of our names is `UNKNOWN`. Nothing else in the function changed.
+- **The exposure was wider than the ten characters first reported.** The proof threw its synthetic
+  failures from its own realm, where they fail `instanceof Error` inside the handler's VM and read as
+  `UNKNOWN`. Thrown with the handler's own constructors, as a runtime does, the old line logged the
+  whole message — in the synthetic case the key, the user's text and the provider output together.
+  In production the runtime's messages are what they are (a parse error's snippet, a fetch error's
+  URL); the principle, not a particular leak, is what was broken.
+- **Tests.** The ten cases assert the exact class; two new cases throw a name-shaped text and a
+  runtime `TypeError`; every case asserts that no fragment of the thrown text reaches a log; a source
+  case keeps the closed list complete against every `new Error(...)` in the function and its two
+  helpers and forbids `.message` / `.stack` in any log call. `supabase/proofs/ai`: 297 of 297. The
+  frozen-source manifest is refrozen and names the three commits of 18.09 it absorbs.
+- **Deploy.** `uskoci-ai-interview` **v41**, ACTIVE, `verify_jwt` true,
+  `ezbr_sha256 48491ea3210c8861b01e141f7d15a83aeb0c814eecd66d5b6237fc119a5eb8dc`, deployed through
+  the Supabase connector (no CLI token exists in this environment). Readback against `130028de`:
+  `index.ts`, `needFactsV2.ts` and `aiTestBudget.ts` are byte-identical. **`_shared/geminiTaskStream.ts`
+  differs in one line, 34**, a file this fix did not touch: the connector's transport turned the
+  regex text `\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f` into the characters those escapes
+  denote (15 102 bytes deployed against 15 137 committed). The character class is the same set, and
+  `assistantPrefix` behaves identically for all 63 488 non-surrogate code points, which was run. v40
+  had been deployed with the CLI and was byte-identical in all four files; byte identity returns
+  with the next CLI deploy (`npx supabase functions deploy uskoci-ai-interview --project-ref
+  leqcwgzvjsxugfgzdmth --use-api`), which only the owner can run. The function boots: `OPTIONS`
+  answers 200 with the handler's own CORS header list; no authenticated or paid call was made.
+- **PKG-010 is green** on `130028de`, run 35441972130, every step — the first green since 2026-09-16.
+
+**CodeQL — recorded debt, not touched (owner, 2026-09-19).** The PR check reports six alerts, five
+high and one medium, in code from 2026-09-13; none comes from the V3 slices. The remedy needs a
+secure random source (`expo-crypto`), and no dependency is added for it now. It belongs to a separate
+security / dependency slice.
+
+**The backend part of the third slice is a plan, not a change:**
+`docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`. Nothing in it is
+applied until the owner approves it, and then approves the apply separately.
+
 **Step 2 — no text the app can show names an internal side of a task.** 42 lines in 17 production
 files; a person is told what they did ("Ti · objavio si zadatak", "Ti · uskočio si"), what the other
 person did ("Objavio zadatak", "Uskočio"), or "druga strana" of this Dogovor.

@@ -201,4 +201,12 @@ shells) has given way to one shell, **Početna | Mapa | Dogovori**: the second s
 requester or worker shell, of `IntentTransition` or of `CrossIntentNotice` is historical. The
 instruction that entry and auth keep their own dark palette is lifted for the palette only, and
 that part has not landed: the app still renders the dark auth sheet. The CI invariants above are
-unchanged. The third slice (grid migration, bounded reads) has no approval yet.
+unchanged. Of the third slice, the proof fix and the copy pass are done; its backend part (bounded
+reads, task relation, ~100 m pin) is a plan awaiting approval:
+`docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`.
+
+Edge, 2026-09-19: `uskoci-ai-interview` is **v41** (the provider-failure log carries a class from a
+closed list, never thrown text). Three of its four files are byte-identical to `130028de`; line 34 of
+`_shared/geminiTaskStream.ts` differs in escape representation only, because v41 went through the
+connector and not the CLI. The item below that asks the owner to deploy three prompt changes is
+historical: v40 carried them. PKG-010 is green again (run 35441972130).
