@@ -60,7 +60,7 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
       <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.vremeTekst}</T></View>
     </View>
     <View style={s.foot}>
-      <View style={s.grow}><T variant="meta" tone="muted">Tvoja ponuda</T><T style={s.amount}>{p.cena.prikaz}</T></View>
+      <View style={s.grow}><T variant="meta" tone="muted">Tvoja ponuda · ukupno</T><T style={s.amount}>{p.cena.prikaz}</T></View>
       <T variant="meta" style={s.people}>{needPeopleText(p.pokrivaMesta)}</T>
     </View>
     {stale ? <><T variant="copy" style={s.ink}>Zadatak je izmenjen. Pregledaj aktuelne uslove pre nego što odlučiš o svojoj Prijavi.</T>

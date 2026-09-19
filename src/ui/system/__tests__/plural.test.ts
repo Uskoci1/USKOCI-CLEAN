@@ -24,3 +24,11 @@ describe('counting in Serbian', () => {
     expect(plural(2, 'poruka', 'poruke', 'poruka')).toBe('2 poruke');
   });
 });
+
+describe('a price is for the people an application brings', () => {
+  it('agrees the verb with the count as well as the noun', () => {
+    const { dolaziOsoba } = require('../plural') as typeof import('../plural');
+    expect([1, 2, 4, 5, 11, 12, 21, 22, 25].map(dolaziOsoba)).toEqual(['dolazi 1 osoba', 'dolaze 2 osobe', 'dolaze 4 osobe',
+      'dolazi 5 osoba', 'dolazi 11 osoba', 'dolazi 12 osoba', 'dolazi 21 osoba', 'dolaze 22 osobe', 'dolazi 25 osoba']);
+  });
+});

@@ -14,7 +14,7 @@ The package itself is a proposal and stays outside the repository. What binds th
 | # | Decision | What the forensic review found on `fca3eac` and canonical DEV |
 | --- | --- | --- |
 | 1 | One application with no global role. Stable navigation **Početna \| Mapa \| Dogovori**; the two actions are **Objavi zadatak** and **Uskoči i zaradi**. | The server has no notion of an account intent: no function reads one. The role lives in 49 client files (cache identity, the tab shell, a few display branches). Client work only. |
-| 2 | A task's budget is the total for the whole task. An application's price is the total for the people that application brings. The budget is **advisory**, not a hard cap. | Already the shape of the data: `price_rsd` sits beside `covered_slots` in responses and in `agreement_versions.terms`, nothing multiplies or divides a price, and `rpc_select_response` has no budget rule. Copy only. |
+| 2 | A task's budget is the total for the whole task. An application's price is the total for the people that application brings. The budget is **advisory**, not a hard cap. | True for "Tražim ponude": `price_rsd` sits beside `covered_slots` in responses and in `agreement_versions.terms`, nothing multiplies or divides a price, and `rpc_select_response` has no budget rule, so that side is copy only. **Not true for "Moja cena" with more than one place:** `rpc_submit_response` raises `FIXED_PRICE_MISMATCH` unless every application carries exactly the task's price, whatever number of people it brings. Found while doing the copy on 2026-09-19, after the forensic review had called the whole decision copy-only; see open question 4. |
 | 3 | The entry may be short and light; the final look is chosen on a real phone render. | The 4.38 s scene already plays once per install, signed-out only (`src/hooks/useEntryIntro.ts`). What remains of this decision is the light palette for entry and auth. The mark, the mascot and the photographs are not superseded. |
 | 4 | The exact place stays private; the public pin is within roughly 100 m, as a deterministic grid with no randomness. The owner accepts that in a village one cell may be one house. | Today the grid is 0.01° (about 1.11 × 0.78 km): `private.materialize_resolved_location` rounds to two decimals and `check_need_resolved_location_binding` plus the publication fingerprint enforce it. Three decimals give about 111 × 78 m. This is a forward migration, not part of the first slice. |
 | 5 | A guest does not browse before signing in. Not now. | `anon` can call only `rpc_get_legal_bundle` and `rpc_closure_api_guard`. No change. |
@@ -32,7 +32,7 @@ The package itself is a proposal and stays outside the repository. What binds th
 - The instruction that entry and auth keep their own dark palette is superseded for the palette
   only. The V4.9 mark, mascot, photographs and HOME signature stay preserved.
 
-## Still open — three questions put to the owner on 2026-09-19
+## Still open — four questions put to the owner on 2026-09-19
 
 1. Tasks already published when the grid changes: stay on the old point until their place changes
    (recommended), or be recomputed once.
@@ -41,7 +41,17 @@ The package itself is a proposal and stays outside the repository. What binds th
    (recommended), or expose only the profile.
 3. The worker's own location: stay on the ~1 km grid (recommended) or move to ~100 m as well.
 
-None of the three blocks the first slice.
+4. "Moja cena" on a task that needs more than one person. Today the engine makes each application
+   carry the task's full price, so choosing a team of two and then one more person makes two
+   Dogovori at the full price each. Decision 2 says the task's price is for the whole task. The two
+   cannot both hold. Either a fixed price is offered only on one-person tasks and tasks for more
+   people ask for offers (recommended: no engine change, and every published multi-person task on
+   canonical DEV is already "Tražim ponude"), or the engine lets a partial application name its own
+   total under a fixed-price task, which is a forward migration of `rpc_submit_response`.
+
+None of the four blocks the first slice. Until question 4 is answered the first slice says "ukupno"
+only where it is true: on applications, candidates and Dogovori. It does not call a multi-person
+fixed price "the budget for the whole task".
 
 ## The first slice that "Odobravam implementaciju" authorises
 

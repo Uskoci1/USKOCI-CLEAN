@@ -76,7 +76,7 @@ beforeEach(() => {
   mockStorage.clear();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
-async function offer() { await render(); await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '2'); }
+async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
 async function selection() { mockRole = 'narucilac'; await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
 it('marks only an intentionally opened offer, never the list, comparison or focus refresh', async () => {
@@ -146,17 +146,17 @@ it('sends one exact application after explicit interval review and duplicate tap
   expect(text()).toContain('Prijava je poslata.'); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('keeps offered price total and rejects trailing garbage or overfill', async () => {
-  await offer(); expect(text()).toContain('Ne deli se automatski na osobe');
-  await edit('Cena za ponuđeni obim (RSD)', '4500abc'); await tap('Pošalji ovu Prijavu');
+  await offer(); expect(text()).toContain('ne cena po osobi'); expect(text()).toContain('ukupno ·');
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc'); await tap('Pošalji ovu Prijavu');
   expect(mockSubmit).not.toHaveBeenCalled();
-  await edit('Cena za ponuđeni obim (RSD)', '4500'); await edit('Ljudi', '4'); await tap('Pošalji ovu Prijavu');
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '4'); await tap('Pošalji ovu Prijavu');
   expect(mockSubmit).not.toHaveBeenCalled();
 });
 it('unknown submit requires readback; absence never unlocks changed fields and exact original request retries', async () => {
   mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
   await offer(); const oldSend = press('Pošalji ovu Prijavu'); await tap('Pošalji ovu Prijavu');
   await act(async () => { oldSend(); }); expect(mockSubmit).toHaveBeenCalledTimes(1);
-  await edit('Cena za ponuđeni obim (RSD)', '9999');
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999');
   mockNeed.mockResolvedValue({ ...need(), revizija: 4 }); await tap('Proveri ishod');
   expect(mockApplications).toHaveBeenCalledTimes(2); expect(mockSubmit).toHaveBeenCalledTimes(1);
   await tap('Ponovi istu Prijavu'); expect(mockSubmit.mock.calls[1][0]).toEqual(mockSubmit.mock.calls[0][0]);
@@ -224,7 +224,7 @@ it('same-row callback retained before an explicit refresh cannot select its old 
 it('binds displayed fixed price to the same Need revision and prevents editing that price', async () => {
   mockNeed.mockResolvedValue({ ...need(), rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } });
-  await render(); await edit('Cena za ponuđeni obim (RSD)', '9999'); await tap('Pošalji ovu Prijavu');
+  await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999'); await tap('Pošalji ovu Prijavu');
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 6000, potrebaRevizija: 3, predlozeniPocetak: null, predlozeniKraj: null });
 });
 it('rejects newly elapsed deadline on tap and exposes a fresh read, without dispatch', async () => {

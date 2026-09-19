@@ -42,7 +42,7 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
     <FactGrid>
       <Fact icon={MapPin} label="Mesto" value={a.rezim === 'DALJINSKI' ? 'Na daljinu' : a.putanjaTekst} />
       <Fact icon={Clock} label="Termin" value={a.vremeTekst} />
-      <Fact icon={Wallet} label="Dogovorena cena" value={a.cena.prikaz} money />
+      <Fact icon={Wallet} label="Dogovoreno ukupno" value={a.cena.prikaz} money />
       <Fact icon={Users} label="Ljudi" value={peopleText(a.pokrivenost.popunjeno)} note={a.verzija > 1 ? `verzija ${a.verzija}` : undefined} />
     </FactGrid>
   </View>;
