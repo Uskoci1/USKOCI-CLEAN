@@ -1,6 +1,8 @@
 -- PKG-023b: what I am to a task, read for the tasks on screen (V3 third slice, B).
 --
--- NOT APPLIED ANYWHERE. A candidate for canonical DEV, proven only on a disposable database.
+-- A candidate for canonical DEV/ALPHA leqcwgzvjsxugfgzdmth, proven first on a disposable database
+-- (.github/workflows/pkg023-v3-reads-and-pin-proof.yml). The owner approved applying a, b and d there on
+-- 2026-09-19, in that order, each after a read-only preflight and followed by a readback.
 -- Requires pkg023a (private.my_application_state).
 --
 -- Today the client answers "is this task mine, did I apply to it" by reading the whole of my tasks
@@ -100,6 +102,10 @@ begin
      or not has_function_privilege('authenticated', 'public.rpc_get_my_task_relations(uuid[])', 'EXECUTE') then
     raise exception 'PKG023B_GRANTS_NOT_EXACT';
   end if;
+  -- The bodies that landed are the bodies of this file, and the indexes are valid. The candidate reaches a database as text
+  -- passed through a tool; if that text were altered on the way, nothing is committed.
+  if (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = 'public.rpc_get_my_task_relations(uuid[])'::regprocedure)
+     is distinct from '8bed3339b05eead6a02a3bd73bd9d514' then raise exception 'PKG023B_BODY_NOT_AS_WRITTEN public.rpc_get_my_task_relations'; end if;
 end
 $post$;
 

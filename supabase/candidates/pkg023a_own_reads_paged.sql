@@ -1,7 +1,8 @@
 -- PKG-023a: own reads, bounded and paged (V3 third slice, A + C).
 --
--- NOT APPLIED ANYWHERE. A candidate for canonical DEV, proven only on a disposable database
--- (.github/workflows/pkg023-v3-reads-and-pin-proof.yml). Applying it needs the owner's own word.
+-- A candidate for canonical DEV/ALPHA leqcwgzvjsxugfgzdmth, proven first on a disposable database
+-- (.github/workflows/pkg023-v3-reads-and-pin-proof.yml). The owner approved applying a, b and d there on
+-- 2026-09-19, in that order, each after a read-only preflight and followed by a readback.
 --
 -- Today an account reads all of its tasks (a direct table read), all of its applications
 -- (rpc_list_my_applications) and all of its Dogovori (rpc_list_my_agreements), whole, to show ten rows.
@@ -343,6 +344,18 @@ begin
      or not has_function_privilege('authenticated', 'public.rpc_list_my_agreements_page(text,integer,timestamptz,uuid)', 'EXECUTE') then
     raise exception 'PKG023A_GRANTS_NOT_EXACT';
   end if;
+  -- The bodies that landed are the bodies of this file, and the indexes are valid. The candidate reaches a database as text
+  -- passed through a tool; if that text were altered on the way, nothing is committed.
+  if (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = 'private.my_application_state(text,integer,integer,text,boolean)'::regprocedure)
+     is distinct from '236c6c9c9625e4fb92522c6c3a1bfe03' then raise exception 'PKG023A_BODY_NOT_AS_WRITTEN private.my_application_state'; end if;
+  if (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = 'public.rpc_list_my_needs_page(text,integer,timestamptz,uuid)'::regprocedure)
+     is distinct from 'efb305257be41a978b6204b7d45e8793' then raise exception 'PKG023A_BODY_NOT_AS_WRITTEN public.rpc_list_my_needs_page'; end if;
+  if (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = 'public.rpc_list_my_applications_page(text,integer,timestamptz,uuid)'::regprocedure)
+     is distinct from 'bc4545fdef9b9c3dd26103693ee2605d' then raise exception 'PKG023A_BODY_NOT_AS_WRITTEN public.rpc_list_my_applications_page'; end if;
+  if (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = 'public.rpc_list_my_agreements_page(text,integer,timestamptz,uuid)'::regprocedure)
+     is distinct from 'f834365bd8dd43b1eac6c8213624e1dc' then raise exception 'PKG023A_BODY_NOT_AS_WRITTEN public.rpc_list_my_agreements_page'; end if;
+  if not coalesce((select i.indisvalid and i.indisready from pg_index i where i.indexrelid = to_regclass('public.marketplace_responses_worker_idx')), false) then
+    raise exception 'PKG023A_INDEX_NOT_VALID public.marketplace_responses_worker_idx'; end if;
 end
 $post$;
 

@@ -1,6 +1,8 @@
 -- PKG-023d: the public marketplace read, bounded (V3 third slice, owner's addition 1 of 2026-09-19).
 --
--- NOT APPLIED ANYWHERE. A candidate for canonical DEV, proven only on a disposable database.
+-- A candidate for canonical DEV/ALPHA leqcwgzvjsxugfgzdmth, proven first on a disposable database
+-- (.github/workflows/pkg023-v3-reads-and-pin-proof.yml). The owner approved applying a, b and d there on
+-- 2026-09-19, in that order, each after a read-only preflight and followed by a readback.
 --
 -- Today Mapa and the list under it read EVERY open task: a direct table read of public.needs with
 -- status in (PUBLISHED, SELECTION), ordered by created_at, no limit and no geography. This adds one
@@ -233,6 +235,14 @@ begin
      or not has_function_privilege('authenticated', 'public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)', 'EXECUTE') then
     raise exception 'PKG023D_GRANTS_NOT_EXACT';
   end if;
+  -- The bodies that landed are the bodies of this file, and the indexes are valid. The candidate reaches a database as text
+  -- passed through a tool; if that text were altered on the way, nothing is committed.
+  if (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = 'public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)'::regprocedure)
+     is distinct from '04a8f14a385b468ef1be847c8f4482c0' then raise exception 'PKG023D_BODY_NOT_AS_WRITTEN public.rpc_list_open_tasks_v3'; end if;
+  if not coalesce((select i.indisvalid and i.indisready from pg_index i where i.indexrelid = to_regclass('public.needs_open_geog_idx')), false) then
+    raise exception 'PKG023D_INDEX_NOT_VALID public.needs_open_geog_idx'; end if;
+  if not coalesce((select i.indisvalid and i.indisready from pg_index i where i.indexrelid = to_regclass('public.needs_open_published_idx')), false) then
+    raise exception 'PKG023D_INDEX_NOT_VALID public.needs_open_published_idx'; end if;
 end
 $post$;
 
