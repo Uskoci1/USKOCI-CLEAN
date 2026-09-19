@@ -17,11 +17,21 @@ beforeEach(() => { jest.resetAllMocks(); mockCanBack.mockReturnValue(true); mock
 afterEach(() => act(() => tree.unmount()));
 it('renders top safe area, actual accessible header/back and footer; parent owns bottom inset', () => {
  expect(tree.root.findByType('SafeArea' as never).props.edges).toEqual(['top']);
- expect(tree.root.findByProps({ accessibilityRole: 'header' }).props.children).toBe('Obaveštenja');
+ expect(tree.root.findByProps({ accessibilityRole: 'header' }).props.children).toBe('Podešavanja obaveštenja');
  expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('REQUESTER');
- expect(JSON.stringify(tree.toJSON())).toContain('Meni treba'); act(() => back()()); expect(mockBack).toHaveBeenCalledTimes(1);
+ expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o zadacima koje objavljuješ.'); expect(JSON.stringify(tree.toJSON())).not.toMatch(/Meni treba|Ja mogu/);
+ act(() => back()()); expect(mockBack).toHaveBeenCalledTimes(1);
 });
 it('direct route opens a known Profile fallback', () => { mockCanBack.mockReturnValue(false); act(() => back()()); expect(mockReplace).toHaveBeenCalledWith('/profil'); });
 it('retained back after unmount is inert', () => { const old = back(); act(() => tree.unmount()); old(); expect(mockBack).not.toHaveBeenCalled(); });
 it('account ABA cannot navigate through an old callback', () => { const old = back(); mockOwner = { ...mockOwner, accountRevision: 3 }; old(); expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled(); });
-it('role change invalidates old navigation before another render', () => { const old = back(); mockIntent = 'uskocer'; old(); expect(mockBack).not.toHaveBeenCalled(); });
+// Owner decision 1 (2026-09-19). The server keeps two sets of notification settings for one account.
+// Which set this screen edited used to follow the app's global mode; it is chosen on this screen now.
+it('chooses which of the two server sets to edit here, on the screen, and a flip of the retired app mode changes nothing', () => {
+ const old = back(); mockIntent = 'uskocer'; act(() => { tree.update(<PushSettings />); });
+ expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('REQUESTER');
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('WORKER');
+ expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
+ old(); expect(mockBack).toHaveBeenCalledTimes(1);
+});

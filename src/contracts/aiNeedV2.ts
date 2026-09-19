@@ -5,7 +5,7 @@ import type {
 } from './needFactsV2';
 
 export type AiNeedV2FactStatus = 'NEEDS_CONFIRMATION' | 'INFERRED' | 'CONFIRMED' | 'UNKNOWN';
-export type AiNeedV2FactSource = 'EXPLICIT_USER_ANSWER' | 'CONFIRMED_PROFILE' | 'AI_INFERENCE' | 'SYSTEM';
+export type AiNeedV2FactSource = 'EXPLICIT_USER_ANSWER' | 'CONFIRMED_PROFILE' | 'AI_INFERENCE' | 'SYSTEM' | 'SYSTEM_DERIVED';
 export type AiNeedSafety = 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
 
 export type AiNeedConversationOpened = {
@@ -32,6 +32,18 @@ export type AiNeedTurnStatus = {
   | { state: 'PROCESSING' | 'FAILED'; turnId: string; retryAllowed: boolean; receipt: null }
   | { state: 'SUCCEEDED'; turnId: string; retryAllowed: false; receipt: AiNeedTurnReceipt }
 );
+
+export type AiNeedTurnRecovery = {
+  accountId: string;
+  conversationId: string;
+  clientRequestId: string;
+  conversationStatus: 'OPEN' | 'COMPLETED' | 'ABANDONED';
+  turn: AiNeedTurnStatus;
+  providerDispatched: boolean;
+  cancelled: boolean;
+  canCancel: boolean;
+  authoritative: true;
+};
 
 export type AiNeedConversationAbandoned = {
   conversationId: string;

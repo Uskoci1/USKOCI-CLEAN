@@ -1,5 +1,10 @@
 'use strict';
 
+// Wall-clock assertions must not depend on the machine running them. Until 2026-09-18 nothing
+// rendered in the device zone, so this never showed; the moment agreed times started being shown
+// in the reader's own zone, the same suite passed in CI (UTC) and failed on a Belgrade laptop.
+process.env.TZ = 'UTC';
+
 const expoPreset = require('jest-expo/jest-preset');
 
 // Extend the installed Expo allowlist instead of copying or replacing its

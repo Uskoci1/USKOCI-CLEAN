@@ -4,7 +4,7 @@ import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../../contracts/
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationInput, NeedLocationReview } from '../../contracts/location';
 import { locationSlots, normalizeNeedLocation } from '../../lib/location';
 import { V2Action as Button } from '../v2/V2Action';
-import { v2 } from '../v2/tokens';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { LocationChoice, LocationConfirmation, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
 import { CountryField, selectableCountry, useCountryOptions } from './CountryField';
@@ -23,23 +23,25 @@ function PlaceFields({ title, value, disabled, onChange }: { title: string; valu
     if (text) next[key] = text; else delete next[key];
     onChange(next);
   };
-  return <View style={[s.section, { borderBottomWidth: 1, borderColor: v2.color.line, paddingBottom: v2.space.lg }]}>
-    <T variant="heading">{title}</T>
+  return <View style={s.card}>
+    <T variant="heading" style={{ color: sys.color.ink }}>{title}</T>
     <LocationField label={`${title} — grad ili mesto`} value={value.city ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('city', text)} />
     <LocationDetails label={`${title} — dodatni javni opis`} disabled={disabled} summary={[value.area, value.label].filter(Boolean).join(' · ') || 'Deo grada i opis područja, opciono'}>
     <LocationField label={`${title} — deo grada (opciono)`} value={value.area ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('area', text)} />
     <LocationField label={`${title} — javni opis (opciono)`} value={value.label ?? ''} maxLength={240}
-      hint="Ovo je javno. Unesite samo približno područje, bez adrese, broja stana ili kontakta."
+      hint="Ovo je javno. Unesi samo približno područje, bez adrese, broja stana ili kontakta."
       editable={!disabled} onChangeText={text => field('label', text)} />
     </LocationDetails>
   </View>;
 }
 
-export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: {
+export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, reviewOnly = false }: {
   review: NeedLocationReview; busy: boolean; uncertain: boolean; onSave: (value: NeedLocationInput) => void;
   resolver?: ReturnType<typeof createConfiguredLocationResolver>;
+  /** V5 prepares this value for the one final review; it does not confirm facts. */
+  reviewOnly?: boolean;
 }) {
   const current = review.value.geography;
   const countryOptions = useCountryOptions();
@@ -83,7 +85,7 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: 
     : slot === 'end' ? 'Odredište' : slot === 'serviceArea' ? 'Područje rada' : `Stanica ${Number(slot.split('/')[1]) + 1}`;
   const selectedSlot = activeSlot && slots.includes(activeSlot) ? activeSlot : slots[0];
   function submit() {
-    if (disabled || pendingPoint || !confirmed || !selectableCountry(countryOptions.countries, country)) return;
+    if (disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)) return;
     if (!baseValue) { setInvalid(true); return; }
     const value = normalizeNeedLocation({ ...baseValue, resolvedLocation: mode !== 'REMOTE' && points.length ? {
       version: 1, binding: { taskCountryCode: baseValue.taskCountryCode, geography: baseValue.geography, exactAddress: baseValue.exactAddress }, points,
@@ -92,12 +94,12 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: 
     onSave(value);
   }
 
-  return <View style={{ gap: 24 }}>
+  return <View style={{ gap: 16 }}>
     <View style={s.section}>
-      <T accessibilityRole="header" style={{ ...v2.text.hero, color: v2.color.ink }}>Gde treba uskočiti?</T>
-      <T tone="muted">Unesite mesto gde je potrebna pomoć. GPS dozvola nije potrebna.</T>
+      <T accessibilityRole="header" style={{ ...sys.type.title, color: sys.color.ink }}>Gde treba uskočiti?</T>
+      <T tone="muted">Unesi mesto gde je potrebna pomoć. GPS dozvola nije potrebna.</T>
     </View>
-    {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vratite se na Zadatak.</T> : null}
+    {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na Zadatak.</T> : null}
     <CountryField label="Država Zadatka" value={country} disabled={disabled} options={countryOptions}
       onChange={code => change(() => setCountry(code))} />
     <LocationChoice label="Način rada" value={mode} options={MODES.map(([value, label]) => ({ value, label }))}
@@ -128,23 +130,25 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: 
       </View> : null}
       {mode === 'POINT_TO_POINT' || mode === 'MULTI_STOP' ? <PlaceFields title="Odredište" value={end}
         disabled={disabled} onChange={value => change(() => setEnd(value))} /> : null}
-      <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvorite za pregled.' : 'Tačna adresa i pristup, opciono'}>
+      <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvori za pregled.' : 'Tačna adresa i pristup, opciono'}>
       <PrivateLocationNote />
       <LocationField label="Tačna adresa (privatno, opciono)" value={address} maxLength={1000}
         editable={!disabled} onChangeText={text => change(() => setAddress(text))} />
       <LocationField label="Napomene za pristup (privatno, opciono)" value={notes} maxLength={2000} multiline
         editable={!disabled} onChangeText={text => change(() => setNotes(text), false)} />
       </LocationDetails>
-      <View style={s.section}>
-        <T variant="heading">Potvrdite tačke na mapi</T>
-        <T variant="meta" tone="muted">Promena države, javnog mesta, redosleda stanica ili tačne adrese traži novu potvrdu tačaka.</T>
-        {!baseValue || !slots.length ? <T>Prvo unesite državu i javno mesto za potrebne tačke.</T> : <>
+      <View style={s.card}>
+        <T variant="heading" style={{ color: sys.color.ink }}>{reviewOnly ? 'Mesta na mapi' : 'Potvrdi tačke na mapi'}</T>
+        <T variant="meta" tone="muted">{reviewOnly ? 'Izaberi pravo mesto ako pretraga ponudi više rezultata. Sve podatke prihvataš zajedno tek pri objavi.' : 'Promena države, javnog mesta, redosleda stanica ili tačne adrese traži novu potvrdu tačaka.'}</T>
+        {!baseValue || !slots.length ? <T>Prvo unesi državu i javno mesto za potrebne tačke.</T> : <>
           <T variant="bodyStrong">Potvrđeno tačaka: {points.length} od {slots.length}</T>
           {slots.length > 1 ? <LocationChoice label="Tačka koju uređujete" value={selectedSlot}
             options={slots.map(slot => ({ value: slot, label: `${titleForSlot(slot)}${points.some(point => point.slot === slot) ? ' · potvrđeno' : ''}` }))}
             disabled={disabled || pendingPoint} onChange={slot => { if (!disabled && !pendingPoint) setActiveSlot(slot as LocationSlot); }} /> : null}
           {selectedSlot ? <LocationPointEditor key={`${pinEpoch}:${selectedSlot}`} slot={selectedSlot} title={titleForSlot(selectedSlot)}
             countryCode={baseValue.taskCountryCode}
+            initialQuery={[mode === 'STATIONARY' ? address : '', selectedSlot === 'start' ? start.city : selectedSlot === 'end' ? end.city
+              : selectedSlot === 'serviceArea' ? area.city : waypoints[Number(selectedSlot.split('/')[1])]?.city].filter(Boolean).join(', ')}
             resolver={resolver}
             point={points.find(point => point.slot === selectedSlot)} disabled={disabled}
             scopeKey={`${review.accountId}:${review.conversationId}:${review.revision}:${pinEpoch}:${selectedSlot}`}
@@ -152,16 +156,24 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver }: 
             onConfirm={point => change(() => { setPoints(old => [...old.filter(item => item.slot !== selectedSlot), point]); setPendingPoint(false); }, false)} /> : null}
           {pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
             onPress={() => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } }} /> : null}
-          {points.length < slots.length ? <T variant="meta" tone="muted">Pregled možete sačuvati i dopuniti kasnije. Lokacija je potpuno potvrđena tek kada proverite sve tačke.</T> : null}
+          {points.length < slots.length ? <T variant="meta" tone="muted">Pregled možeš sačuvati i dopuniti kasnije. Lokacija je potpuno potvrđena tek kada proveriš sve tačke.</T> : null}
         </>}
       </View>
     </>}
-    {invalid ? <T accessibilityRole="alert" tone="danger">Unesite mesto za svaku potrebnu tačku. Ruta sa više stanica mora imati odredište ili bar jednu stanicu.</T> : null}
-    <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>
+    {invalid ? <T accessibilityRole="alert" tone="danger">Unesi mesto za svaku potrebnu tačku. Ruta sa više stanica mora imati odredište ili bar jednu stanicu.</T> : null}
+    {!reviewOnly ? <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>
       {mode === 'REMOTE' ? 'Potvrđujem da se Zadatak radi na daljinu.' : 'Proverio/la sam javno mesto i privatne podatke.'}
-    </LocationConfirmation>
-    <Button kind="primary" label={busy ? 'Čuvamo lokaciju…' : 'Potvrdi i sačuvaj mesto'}
-      disabled={disabled || pendingPoint || !confirmed || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
-    <T variant="meta" tone="muted">Čuva se mesto u istom pregledu. Zadatak još nije objavljen.</T>
+    </LocationConfirmation> : null}
+    {/* Typing in the search field near the top invalidates the point, which kills this button three
+        screenfuls below — and the only explanation was a small grey line back up inside the card,
+        with the escape hatch up there too. The reason and the way out stand where the dead button is. */}
+    {pendingPoint ? <View style={{ gap: 8 }}>
+      <T accessibilityLiveRegion="polite" variant="meta" tone="muted">Potvrdi tačku na mapi da bi sačuvao mesto.</T>
+      <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
+        onPress={() => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } }} />
+    </View> : null}
+    <Button kind="primary" label={busy ? 'Pripremam mesto…' : reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'}
+      disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
+    <T variant="meta" tone="muted">{reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.' : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.'}</T>
   </View>;
 }

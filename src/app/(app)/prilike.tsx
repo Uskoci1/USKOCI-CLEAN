@@ -4,17 +4,17 @@ import { router, useFocusEffect } from 'expo-router';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, type MarketplaceItem } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { izvorSada, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { izvorSada, useIzvor } from '../../store/uloga';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 
-export default function Prilike() {
-  const { user, accountRevision } = useSesija(), intent = useUloga();
-  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}:${intent}`} />;
+export default function Prilike({ initialMode = 'list' }: { initialMode?: 'map' | 'list' } = {}) {
+  const { user, accountRevision } = useSesija();
+  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}`} initialMode={initialMode} />;
 }
-function OwnedCollection() {
-  const source = useIzvor(), intent = useUloga(), { user, accountRevision } = useSesija();
+function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
+  const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
-  const [view, setView] = useState(initialMarketplaceView);
+  const [view, setView] = useState(() => ({ ...initialMarketplaceView(), mode: initialMode }));
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
     return () => { if (focus.current === owner) focus.current = null; };
@@ -26,9 +26,16 @@ function OwnedCollection() {
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source]);
   const resource = useFocusedResource(load), scope = focus.current;
+  // Which of these tasks are mine and which I have applied to: labels only, read beside the list so
+  // that a failure here costs the labels and never the list. Since PKG-023b it is one bounded call
+  // for the tasks actually on this page, instead of my whole task list and my whole application
+  // list; the server answers for those ids and says nothing about any other task.
+  const visible = (resource.data ?? []).map(row => row.id).join(',');
+  const loadRelations = useCallback(() => source.odnosiPremaZadacima(visible ? visible.split(',') : []), [source, visible]);
+  const relations = useFocusedResource(loadRelations);
   const latestResource = useRef(resource); latestResource.current = resource;
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
-    && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent && izvorSada() === source
+    && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
   const open = (item: MarketplaceItem) => {
@@ -36,9 +43,11 @@ function OwnedCollection() {
     if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
     navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id: item.id } }));
   };
-  return <MarketplacePresentation owned={false} items={resource.data ?? []} loading={resource.loading} error={!!resource.error}
-    scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
-    onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open}
-    onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}
-    onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/nova')) : undefined} />;
+  // Looking for work, seeing my own tasks and publishing a new one are three things one account
+  // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
+  return <MarketplacePresentation owned={false} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+      scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined}
+      onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
+      onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}
+      onNew={() => navigate(() => router.navigate('/nova'))} />;
 }

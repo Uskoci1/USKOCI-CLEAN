@@ -36,3 +36,16 @@ it('retains a real storage failure and clears its timer so a new attempt can suc
   expect(jest.getTimerCount()).toBe(0);
   await expect(entryIntentClientService.prepare('WORKER')).resolves.toBeUndefined();
 });
+it('passes selection cancellation into the serialized store and rejects an obsolete result', async () => {
+  let active = true;
+  mockPrepare.mockImplementation(async (_input, current) => {
+    expect(current()).toBe(true); active = false; expect(current()).toBe(false); return null;
+  });
+  await expect(entryIntentClientService.prepare('WORKER', () => active)).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
+  expect(jest.getTimerCount()).toBe(0);
+});
+it('denies a retained successful storage result when its screen is no longer current', async () => {
+  let active = true;
+  mockPrepare.mockImplementation(async () => { active = false; return { intent: 'REQUESTER' }; });
+  await expect(entryIntentClientService.prepare('REQUESTER', () => active)).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
+});

@@ -7,27 +7,27 @@ import { failure, positiveInteger, readReceipt, record, sameId, timestamp, uuid 
 
 const NOT_READY_COPY = 'Pitanja o Zadatku još nisu dostupna.';
 const PUBLIC_FLOOR_COPY = 'Pitanja i odgovori su javni: bez telefona, e-pošte, linkova i naloga.';
-const STALE_COPY = 'Zadatak je u međuvremenu izmenjen. Osvežite prikaz.';
+const STALE_COPY = 'Zadatak je u međuvremenu izmenjen. Osveži prikaz.';
 const QA_COPY: Readonly<Record<string, string>> = {
   RU4B_BLOCK_AUTHORITY_NOT_READY: NOT_READY_COPY, RU4B_RATE_POLICY_NOT_READY: NOT_READY_COPY,
   PRESELECTION_QA_POLICY_NOT_READY: NOT_READY_COPY, RU4B_MATERIALITY_NOT_READY: NOT_READY_COPY,
-  EMPTY_CONTENT: 'Unesite tekst.', QUESTION_REQUIRED: 'Unesite pitanje.', ANSWER_REQUIRED: 'Unesite odgovor.',
+  EMPTY_CONTENT: 'Unesi tekst.', QUESTION_REQUIRED: 'Unesi pitanje.', ANSWER_REQUIRED: 'Unesi odgovor.',
   EMAIL_NOT_PUBLIC: PUBLIC_FLOOR_COPY, PHONE_NOT_PUBLIC: PUBLIC_FLOOR_COPY,
   OFF_PLATFORM_LINK_NOT_PUBLIC: PUBLIC_FLOOR_COPY, SOCIAL_HANDLE_NOT_PUBLIC: PUBLIC_FLOOR_COPY,
   STALE_NEED_REVISION: STALE_COPY, QUESTION_STALE_AFTER_NEED_REVISION: STALE_COPY,
   NEED_NOT_FOUND: 'Zadatak nije pronađen.', NEED_NOT_PUBLIC: 'Zadatak više nije javan.',
-  REQUESTER_CANNOT_ASK_OWN_TASK: 'Ne možete postaviti pitanje na sopstveni Zadatak.',
-  ACTIVE_WORKER_REQUIRED: 'Dopunite Radni profil da biste postavili pitanje.',
-  RU4B_MATERIAL_REQUIRES_RU4_EDIT: 'Ovaj odgovor menja Zadatak. Izmenite Zadatak umesto odgovora.',
+  REQUESTER_CANNOT_ASK_OWN_TASK: 'Ne možeš postaviti pitanje na sopstveni Zadatak.',
+  ACTIVE_WORKER_REQUIRED: 'Dopuni Radni profil da postaviš pitanje.',
+  RU4B_MATERIAL_REQUIRES_RU4_EDIT: 'Ovaj odgovor menja Zadatak. Izmeni Zadatak umesto odgovora.',
   QUESTION_NOT_FOUND: 'Pitanje nije pronađeno.', QUESTION_NOT_ANSWERABLE: 'Na ovo pitanje više ne može da se odgovori.',
-  QUESTION_NOT_PENDING: 'Ovo pitanje je već obrađeno.', NOT_NEED_OWNER: 'Ovo nije Vaš Zadatak.',
+  QUESTION_NOT_PENDING: 'Ovo pitanje je već obrađeno.', NOT_NEED_OWNER: 'Ovo nije tvoj Zadatak.',
   RU4B_DISPOSITION_INVALID: 'Radnja nije prepoznata.',
-  IDEMPOTENCY_KEY_REUSED: 'Radnja nije mogla da se ponovi sa istim zahtevom. Pokušajte ponovo.',
-  REQUEST_ID_REQUIRED: 'Radnja trenutno nije mogla da se zabeleži. Pokušajte ponovo.',
-  AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
+  IDEMPOTENCY_KEY_REUSED: 'Radnja nije mogla da se ponovi sa istim zahtevom. Pokušaj ponovo.',
+  REQUEST_ID_REQUIRED: 'Radnja trenutno nije mogla da se zabeleži. Pokušaj ponovo.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
 };
 function invalidRequestId() { return failure('REQUEST_ID_INVALID', QA_COPY.REQUEST_ID_REQUIRED); }
-function invalidInput() { return failure('QA_INVALID_INPUT', 'Ponovo otvorite Zadatak i pregledajte aktuelne podatke.'); }
+function invalidInput() { return failure('QA_INVALID_INPUT', 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.'); }
 function status(value: unknown): value is PreselectionQuestionStatus {
   return value === 'PENDING_ANSWER' || value === 'ANSWERED_PUBLIC' || value === 'IGNORED' || value === 'REPORTED';
 }

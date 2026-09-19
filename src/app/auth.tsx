@@ -1,6 +1,11 @@
 import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
-import { useEffect, useRef, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { AuthSheet } from '../ui/auth/AuthSheet';
+import { PublicLegalModal } from '../ui/legal/LegalDocuments';
+import type { LegalDocumentKind } from '../contracts/legal';
+import { authTheme as authColors } from '../ui/auth/authTheme';
+import { radius, type } from '../theme/tokens';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   BackHandler,
@@ -28,7 +33,7 @@ import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
 import { authClientService } from '../data/authClientService';
 import { useAuthAvailability } from '../hooks/useAuthAvailability';
 import { useAuthFormCommand } from '../hooks/useAuthFormCommand';
-import { EntryWelcome } from '../ui/entry/EntryWelcome';
+import { EntryWelcome, type EntryIntentSelection } from '../ui/entry/EntryWelcome';
 import { entryIntentClientService } from '../data/entryIntentClientService';
 import { sesijaSada } from '../store/sesija';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
@@ -36,26 +41,26 @@ import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 type Rezim = 'LOGIN' | 'SIGNUP';
 type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT';
 
-function MethodButton({
-  title,
-  icon,
-  onPress,
-  disabled,
-}: {
+/** Only ways in that work are drawn, so there is no unavailable state left to draw. */
+function MethodButton({ title, icon, onPress, disabled }: {
   title: string;
   icon: React.ReactNode;
-  onPress: () => void;
+  onPress?: () => void;
   disabled?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [styles.method, pressed && styles.methodPressed]}
+      style={({ pressed }) => [styles.method, pressed && !disabled && styles.methodPressed]}
     >
-      <View style={styles.methodIcon}>{icon}</View>
-      <Text style={styles.methodText}>{title}</Text>
+      <View style={styles.methodIcon} accessible={false} importantForAccessibility="no-hide-descendants">{icon}</View>
+      <View style={styles.methodCopy}>
+        <Text style={styles.methodText}>{title}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -63,7 +68,21 @@ function MethodButton({
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ form?: string }>();
+  const [, refreshEntryFocus] = useState(0);
+  const entryScope = useRef({ focused: true, revision: 0, form: params.form });
+  if (entryScope.current.form !== params.form) {
+    entryScope.current.form = params.form;
+    entryScope.current.revision++;
+  }
+  const entryRevision = entryScope.current.revision;
+  useFocusEffect(useCallback(() => {
+    entryScope.current.focused = true;
+    refreshEntryFocus(value => value + 1);
+    return () => { entryScope.current.focused = false; entryScope.current.revision++; };
+  }, []));
   const [otvoren, setOtvoren] = useState(params.form === 'login' || params.form === 'recovery');
+  const [entrySeen, setEntrySeen] = useState(!otvoren);
+  useEffect(() => { if (!otvoren) setEntrySeen(true); }, [otvoren]);
   const { onLayout: onFormLayout } = useEntrySplashReady({ enabled: otvoren });
   const [rezim, setRezim] = useState<Rezim>('LOGIN');
   const [faza, setFaza] = useState<Faza>(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
@@ -71,7 +90,7 @@ export default function AuthScreen() {
   const [preparedIntent, setPreparedIntent] = useState<{ intent: 'REQUESTER' | 'WORKER'; accountRevision: number } | null>(null);
   const session = sesijaSada();
   const selectedIntent = !session.user && preparedIntent?.accountRevision === session.accountRevision ? preparedIntent.intent : null;
-  const intentLabel = selectedIntent === 'REQUESTER' ? 'Meni treba' : selectedIntent === 'WORKER' ? 'Ja mogu' : null;
+  const intentLabel = selectedIntent === 'REQUESTER' ? 'Objavi zadatak' : selectedIntent === 'WORKER' ? 'Uskoči i zaradi' : null;
 
   const [ime, setIme] = useState('');
   const [prezime, setPrezime] = useState('');
@@ -82,11 +101,17 @@ export default function AuthScreen() {
   const [telefon, setTelefon] = useState('');
   const [otp, setOtp] = useState('');
   const [saglasnost, setSaglasnost] = useState(false);
+  const [legalDocument, setLegalDocument] = useState<LegalDocumentKind | null>(null);
   const [confirmationRequired, setConfirmationRequired] = useState(true);
 
   const commands = useAuthFormCommand();
   const radi = commands.busy;
-  const availability = useAuthAvailability(otvoren);
+  // Gated on `otvoren` alone, this 10-second read only started once the sheet had finished opening,
+  // after the 760ms doorway and after up to 5s of writing the chosen intent — so the worst case
+  // between the tap and a field you could type in was about sixteen seconds of spinner. It now
+  // starts the moment an intent is chosen, so it overlaps the doorway and the write instead of
+  // queueing behind them. Someone who never touches the entry still causes no read.
+  const availability = useAuthAvailability(otvoren || !!preparedIntent);
   const methods = availability.status === 'ready' ? availability.data : null;
   const [greska, setGreska] = useState<string | null>(null);
   const [poruka, setPoruka] = useState<string | null>(null);
@@ -142,14 +167,18 @@ export default function AuthScreen() {
   }
 
   function prijaviGresku(error: unknown) {
-    setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušajte ponovo.');
+    setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušaj ponovo.');
   }
 
-  async function izaberiNameru(intent: 'REQUESTER' | 'WORKER') {
-    await commands.run(() => entryIntentClientService.prepare(intent), () => {
+  async function izaberiNameru(intent: 'REQUESTER' | 'WORKER', selection?: EntryIntentSelection) {
+    const current = () => entryScope.current.focused && entryScope.current.revision === entryRevision &&
+      (selection?.isCurrent() ?? true);
+    if (!current()) return;
+    await commands.run(() => entryIntentClientService.prepare(intent, current), () => {
+      if (!current()) return;
       setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
       setRezim('LOGIN'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
-    }, () => setGreska('Izbor nije sačuvan. Pokušajte ponovo.'));
+    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušaj ponovo.'); });
   }
 
   async function emailAkcija() {
@@ -158,12 +187,12 @@ export default function AuthScreen() {
     await commands.run(async () => {
       setGreska(null);
       setPoruka(null);
-      if (!email.trim() || !lozinka) throw new Error('Unesite email i lozinku.');
+      if (!email.trim() || !lozinka) throw new Error('Unesi email i lozinku.');
       if (rezim === 'LOGIN') {
         await authClientService.signInWithPassword({ email: email.trim(), password: lozinka });
         return true;
       }
-      if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesite ime, prezime i grad.');
+      if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesi ime, prezime i grad.');
       if (lozinka.length < 6) throw new Error('Lozinka mora imati najmanje 6 znakova.');
       if (lozinka !== potvrda) throw new Error('Lozinke se ne poklapaju.');
       if (!saglasnost) throw new Error('Potrebno je prihvatiti Uslove korišćenja i Politiku privatnosti.');
@@ -214,70 +243,72 @@ export default function AuthScreen() {
 
   const naslov =
     faza === 'PHONE'
-      ? rezim === 'SIGNUP' ? 'Napravite nalog telefonom' : 'Prijavite se telefonom'
+      ? rezim === 'SIGNUP' ? 'Napravi nalog telefonom' : 'Prijavi se telefonom'
       : faza === 'OTP'
-        ? 'Unesite kod'
+        ? 'Unesi kod'
         : faza === 'RECOVERY'
-          ? 'Vratite pristup nalogu.'
-          : faza === 'RECOVERY_SENT' ? 'Proverite email'
+          ? 'Vrati pristup nalogu.'
+          : faza === 'RECOVERY_SENT' ? 'Proveri email'
           : faza === 'SIGNUP_NEXT_STEP'
-            ? confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'
+            ? confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'
             : rezim === 'SIGNUP'
-              ? 'Napravite nalog'
-              : 'Prijavite se emailom';
+              ? 'Napravi nalog'
+              : 'Prijavi se emailom';
 
   const podnaslov =
     faza === 'PHONE'
-      ? 'Unesite broj telefona.'
+      ? 'Unesi broj telefona.'
       : faza === 'OTP'
-        ? 'Unesite kod kada stigne na Vaš broj.'
+        ? 'Unesi kod kada stigne na tvoj broj.'
         : faza === 'RECOVERY'
-          ? methods?.passwordRecovery ? 'Unesite email koji koristite za USKOČI.' : 'Ova mogućnost još nije dostupna u aplikaciji.'
+          ? methods?.passwordRecovery ? 'Unesi email koji koristiš za USKOČI.' : 'Ova mogućnost još nije dostupna u aplikaciji.'
           : faza === 'RECOVERY_SENT' ? 'Zahtev za oporavak je prihvaćen.'
           : faza === 'SIGNUP_NEXT_STEP'
-            ? confirmationRequired ? 'Pratite uputstvo za potvrdu registracije.' : 'Vratite se na prijavu.'
+            ? confirmationRequired ? 'Prati uputstvo za potvrdu registracije.' : 'Vrati se na prijavu.'
             : rezim === 'SIGNUP'
-              ? 'Unesite osnovne podatke za nalog.'
-              : 'Unesite email i lozinku.';
+              ? 'Unesi osnovne podatke za nalog.'
+              : 'Unesi email i lozinku.';
 
   const recoveryStage = faza === 'RECOVERY' || faza === 'RECOVERY_SENT';
   const stageComposition = recoveryStage || (rezim === 'SIGNUP' && (faza === 'EMAIL' || faza === 'SIGNUP_NEXT_STEP'));
   const formStyle = [styles.form, stageComposition && authStageForm];
 
-  if (!otvoren) return <EntryWelcome onRequester={() => izaberiNameru('REQUESTER')}
-    onWorker={() => izaberiNameru('WORKER')} onSignIn={() => otvori('LOGIN')} busy={radi} error={greska} />;
   return (
-    <View onLayout={onFormLayout} style={[styles.screen, { paddingTop: insets.top }]}>
-      <StatusBar style="dark" />
+    <><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+    <AuthSheet visible={otvoren} expanded={rezim === 'SIGNUP'} backdrop={entrySeen ? <EntryWelcome
+      onRequester={selection => izaberiNameru('REQUESTER', selection)} onWorker={selection => izaberiNameru('WORKER', selection)}
+      onSignIn={() => otvori('LOGIN')} onSignUp={() => otvori('SIGNUP')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
+    <View onLayout={onFormLayout} style={styles.screen}>
+      <StatusBar style="light" />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={radi}
           onPress={() => commands.changeForm(() => {
             if (faza !== 'EMAIL' || rezim !== 'LOGIN') { setFaza('EMAIL'); setRezim('LOGIN'); }
             else setOtvoren(false);
             setGreska(null); setPoruka(null);
-          })} style={styles.backButton}><ArrowLeft size={22} color="#143D35" /></Pressable>
+          })} style={({ pressed }) => [styles.backButton, pressed && styles.methodPressed]}><ArrowLeft size={22} color={authColors.ink} /></Pressable>
         <View style={styles.headerTitles}>
           {faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? <Text style={styles.headerEyeline}>{intentLabel}</Text> : null}
           <Text style={styles.headerTitle}>{recoveryStage ? 'Oporavak pristupa' : rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
         </View>
       </View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
+      <View style={{ flex: 1, minHeight: 0 }}>
+        <ScrollView key={`${rezim}:${faza}`} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
           <View style={styles.formColumn}>
-            <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Dobro došao.' : naslov}
+            <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Zdravo.' : naslov}
               copy={faza === 'EMAIL' && rezim === 'LOGIN' ? selectedIntent === 'WORKER' ? 'Nastavi do Prijava, Zadataka i Dogovora.' : 'Nastavi do svojih Zadataka i Dogovora.' : podnaslov}
               eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? `${intentLabel.toUpperCase()} · ISTI NALOG` : undefined} />
             {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
 
             {availability.status === 'loading' ? (
               <View accessibilityRole="progressbar" style={formStyle}>
-                <ActivityIndicator color="#5D6E6D" />
+                <ActivityIndicator color={authColors.muted} />
                 <Text style={styles.stateCopy}>Proveravamo dostupne načine prijave…</Text>
               </View>
             ) : availability.status === 'error' ? (
               <View style={formStyle}>
-                <Text style={styles.stateCopy}>Ne možemo da proverimo dostupne načine prijave. Proverite vezu i pokušajte ponovo.</Text>
-                <PrimaryButton title="Pokušajte ponovo" busy={radi} onPress={() => void availability.retry()} />
+                <Text style={styles.stateCopy}>Ne možemo da proverimo dostupne načine prijave. Proveri vezu i pokušaj ponovo.</Text>
+                <PrimaryButton title="Pokušaj ponovo" busy={radi} onPress={() => void availability.retry()} />
               </View>
             ) : null}
 
@@ -293,7 +324,7 @@ export default function AuthScreen() {
                         editable={!radi}
                         autoCapitalize="words"
                         placeholder="Ime"
-                        icon={<User size={21} color="#5D6E6D" />}
+                        icon={<User size={21} color={authColors.muted} />}
                       />
                       <AuthField
                         label="Prezime"
@@ -302,7 +333,7 @@ export default function AuthScreen() {
                         editable={!radi}
                         autoCapitalize="words"
                         placeholder="Prezime"
-                        icon={<User size={21} color="#5D6E6D" />}
+                        icon={<User size={21} color={authColors.muted} />}
                       />
                       <AuthField
                         label="Grad"
@@ -310,8 +341,8 @@ export default function AuthScreen() {
                         onChangeText={(value) => commands.changeForm(() => setGrad(value))}
                         editable={!radi}
                         autoCapitalize="words"
-                        placeholder="Vaš grad"
-                        icon={<MapPin size={21} color="#5D6E6D" />}
+                        placeholder="Tvoj grad"
+                        icon={<MapPin size={21} color={authColors.muted} />}
                       />
                     </>
                   ) : null}
@@ -323,7 +354,7 @@ export default function AuthScreen() {
                     editable={!radi}
                     keyboardType="email-address"
                     placeholder="ime@primer.rs"
-                    icon={<EnvelopeSimple size={21} color="#5D6E6D" />}
+                    icon={<EnvelopeSimple size={21} color={authColors.muted} />}
                   />
                   <AuthField
                     key={`password:${rezim}`}
@@ -331,21 +362,21 @@ export default function AuthScreen() {
                     value={lozinka}
                     onChangeText={(value) => commands.changeForm(() => setLozinka(value))}
                     editable={!radi}
-                    placeholder="Unesite lozinku"
+                    placeholder="Unesi lozinku"
                     secure
-                    icon={<LockKey size={21} color="#5D6E6D" />}
+                    icon={<LockKey size={21} color={authColors.muted} />}
                   />
 
                   {rezim === 'SIGNUP' && methods.emailSignup ? (
                     <>
                       <AuthField
-                        label="Potvrdite lozinku"
+                        label="Potvrdi lozinku"
                         value={potvrda}
                         onChangeText={(value) => commands.changeForm(() => setPotvrda(value))}
                         editable={!radi}
-                        placeholder="Ponovite lozinku"
+                        placeholder="Ponovi lozinku"
                         secure
-                        icon={<LockKey size={21} color="#5D6E6D" />}
+                        icon={<LockKey size={21} color={authColors.muted} />}
                       />
                       <Pressable
                         accessibilityRole="checkbox"
@@ -358,7 +389,11 @@ export default function AuthScreen() {
                           {saglasnost ? <Text style={styles.checkmark}>✓</Text> : null}
                         </View>
                         <Text style={styles.consentText}>
-                          Prihvatam <Text style={styles.legalLink}>Uslove korišćenja</Text> i potvrđujem da sam pročitao/la <Text style={styles.legalLink}>Politiku privatnosti</Text>.
+                          Prihvatam <Text style={styles.legalLink} accessibilityRole="link" onPress={event => {
+                            event.stopPropagation(); if (!radi) setLegalDocument('TERMS');
+                          }}>Uslove korišćenja</Text> i potvrđujem da sam pročitao/la <Text style={styles.legalLink} accessibilityRole="link" onPress={event => {
+                            event.stopPropagation(); if (!radi) setLegalDocument('PRIVACY');
+                          }}>Politiku privatnosti</Text>.
                         </Text>
                       </Pressable>
                     </>
@@ -384,16 +419,25 @@ export default function AuthScreen() {
                   <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
                 ) : null}
                 {rezim === 'SIGNUP' && methods.emailSignup && methods.emailConfirmationRequired ? (
-                  <Text style={styles.smallNote}>Pre prve prijave potrebno je da potvrdite email.</Text>
+                  <Text style={styles.smallNote}>Pre prve prijave potrebno je da potvrdiš email.</Text>
                 ) : null}
-                {methods.phoneOtp ? <View style={styles.methods}>
-                  <MethodButton
-                    title="Telefon"
-                    icon={<Phone size={23} color="#174B43" />}
-                    disabled={radi}
-                    onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
-                  />
-                </View> : null}
+                {/* Owner decision, 2026-09-18: a way in that does not work is not shown. Google and
+                    Apple wait on an OAuth client that server settings alone cannot make ready, and
+                    Telefon appears only when the server says it is on. Three dead buttons under
+                    "Drugi načini prijave" read as an app that is broken, not one that is early. */}
+                {methods.phoneOtp ? (
+                  <View style={styles.methods}>
+                    <Text style={styles.methodHeading}>Drugi načini prijave</Text>
+                    <MethodButton
+                      title="Telefon"
+                      icon={<Phone size={23} color="#174B43" />}
+                      disabled={radi}
+                      onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.smallNote}>Za sada se ulazi email adresom i lozinkom.</Text>
+                )}
 
 
               </>
@@ -402,7 +446,7 @@ export default function AuthScreen() {
             {faza === 'PHONE' && methods?.phoneOtp ? (
               <View style={formStyle}>
                 <Pressable disabled={radi} onPress={nazadNaEmail} style={styles.backRow}>
-                  <ArrowLeft size={16} color="#5D6E6D" />
+                  <ArrowLeft size={16} color={authColors.muted} />
                   <Text style={styles.backText}>Nazad na prijavu</Text>
                 </Pressable>
                 <AuthField
@@ -412,22 +456,22 @@ export default function AuthScreen() {
                   editable={!radi}
                   keyboardType="phone-pad"
                   placeholder="+381 6x xxx xxxx"
-                  icon={<Phone size={21} color="#5D6E6D" />}
+                  icon={<Phone size={21} color={authColors.muted} />}
                 />
-                <Text style={styles.smallNote}>Poslaćemo Vam jednokratni kod.</Text>
-                <PrimaryButton title="Pošaljite kod" onPress={() => void posaljiTelefon()} busy={radi} />
+                <Text style={styles.smallNote}>Poslaćemo ti jednokratni kod.</Text>
+                <PrimaryButton title="Pošalji kod" onPress={() => void posaljiTelefon()} busy={radi} />
               </View>
             ) : null}
 
             {faza === 'OTP' && methods?.phoneOtp ? (
               <View style={formStyle}>
                 <Pressable disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
-                  <ArrowLeft size={16} color="#5D6E6D" />
-                  <Text style={styles.backText}>Promenite broj</Text>
+                  <ArrowLeft size={16} color={authColors.muted} />
+                  <Text style={styles.backText}>Promeni broj</Text>
                 </Pressable>
-                <View style={styles.stateIcon}><Phone size={28} color="#5D6E6D" /></View>
-                <Text style={styles.stateTitle}>Unesite kod</Text>
-                <Text style={styles.stateCopy}>Unesite primljeni kod. Ako ne stigne, možete zatražiti novi.</Text>
+                <View style={styles.stateIcon}><Phone size={28} color={authColors.muted} /></View>
+                <Text style={styles.stateTitle}>Unesi kod</Text>
+                <Text style={styles.stateCopy}>Unesi primljeni kod. Ako ne stigne, možeš zatražiti novi.</Text>
                 <AuthField
                   label="Kod"
                   value={otp}
@@ -435,11 +479,11 @@ export default function AuthScreen() {
                   editable={!radi}
                   keyboardType="number-pad"
                   placeholder="123456"
-                  icon={<LockKey size={21} color="#5D6E6D" />}
+                  icon={<LockKey size={21} color={authColors.muted} />}
                 />
-                <PrimaryButton title="Potvrdite kod" onPress={() => void potvrdiOtp()} busy={radi} />
+                <PrimaryButton title="Potvrdi kod" onPress={() => void potvrdiOtp()} busy={radi} />
                 <Pressable disabled={radi} onPress={() => void posaljiTelefon()} style={styles.linkButton}>
-                  <Text style={styles.linkText}>Pošaljite novi kod</Text>
+                  <Text style={styles.linkText}>Pošalji novi kod</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -453,13 +497,13 @@ export default function AuthScreen() {
 
             {faza === 'RECOVERY' && methods ? (
               <View style={formStyle}>
-                <View style={styles.stateIcon}><LockKey size={28} color="#5D6E6D" /></View>
+                <View style={styles.stateIcon}><LockKey size={28} color={authColors.muted} /></View>
                 {methods.passwordRecovery ? <>
                   <AuthField label="Email" value={email} onChangeText={value => commands.changeForm(() => setEmail(value))}
                     editable={!radi} keyboardType="email-address" placeholder="ime@primer.rs" />
-                  <Text style={styles.stateCopy}>Otvorićete link iz emaila i izabrati novu lozinku. Vaši Zadaci i Dogovori ostaju na istom nalogu.</Text>
-                  <PrimaryButton title="Pošaljite link" busy={radi} onPress={() => void zatraziOporavak()} />
-                </> : <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možete se vratiti na prijavu.</Text>}
+                  <Text style={styles.stateCopy}>Otvorićeš link iz emaila i izabrati novu lozinku. Tvoji Zadaci i Dogovori ostaju na istom nalogu.</Text>
+                  <PrimaryButton title="Pošalji link" busy={radi} onPress={() => void zatraziOporavak()} />
+                </> : <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možeš se vratiti na prijavu.</Text>}
                 <Pressable accessibilityRole="button" disabled={radi} style={styles.linkButton} onPress={nazadNaEmail}>
                   <Text style={styles.linkText}>Nazad na prijavu</Text>
                 </Pressable>
@@ -467,41 +511,41 @@ export default function AuthScreen() {
             ) : null}
 
             {faza === 'RECOVERY_SENT' ? <View style={formStyle}>
-              <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
-              <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićete link za novu lozinku. Proverite i neželjenu poštu.</Text>
+              <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
+              <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićeš link za novu lozinku. Proveri i neželjenu poštu.</Text>
               <Text style={styles.smallNote}>{email.trim()}</Text>
               <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} />
               <Pressable accessibilityRole="button" style={styles.linkButton} onPress={() => commands.changeForm(() => {
                 setFaza('RECOVERY'); setGreska(null); setPoruka(null);
-              })}><Text style={styles.linkText}>Izmenite email ili ponovite zahtev</Text></Pressable>
+              })}><Text style={styles.linkText}>Izmeni email ili ponovi zahtev</Text></Pressable>
             </View> : null}
 
             {faza === 'SIGNUP_NEXT_STEP' ? (
               <View style={formStyle}>
-                <View style={styles.stateIcon}><EnvelopeSimple size={28} color="#5D6E6D" /></View>
-                <Text style={styles.stateTitle}>{confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'}</Text>
+                <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
+                <Text style={styles.stateTitle}>{confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'}</Text>
                 <Text style={styles.stateCopy}>{confirmationRequired
-                  ? 'Ako je registracija prihvaćena, dobićete poruku sa daljim uputstvom. Posle potvrde emaila vratite se na prijavu.'
-                  : 'Nalog još nije prijavljen. Vratite se na prijavu. Ako ste dobili poruku za potvrdu emaila, prvo pratite njeno uputstvo.'}</Text>
+                  ? 'Ako je registracija prihvaćena, dobićeš poruku sa daljim uputstvom. Posle potvrde emaila vrati se na prijavu.'
+                  : 'Nalog još nije prijavljen. Vrati se na prijavu. Ako ti je stigla poruka za potvrdu emaila, prvo prati njeno uputstvo.'}</Text>
                 <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
                 <Pressable disabled={radi} onPress={() => commands.changeForm(() => {
                   setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null);
                 })} style={styles.linkButton}>
-                  <Text style={styles.linkText}>Izmenite email</Text>
+                  <Text style={styles.linkText}>Izmeni email</Text>
                 </Pressable>
               </View>
             ) : null}
             {faza !== 'EMAIL' && greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
             {faza === 'EMAIL' && rezim === 'LOGIN' ? <View style={styles.notice}>
               <Text style={styles.noticeTitle}>Jedan nalog.</Text>
-              <Text style={styles.noticeCopy}>Možete i da tražite pomoć i da uskočite drugima.</Text>
+              <Text style={styles.noticeCopy}>Možeš i da tražiš pomoć i da uskočiš drugima.</Text>
             </View> : null}
           </View>
         </ScrollView>
         {faza === 'EMAIL' && methods?.emailPassword ? <View style={[styles.authFooter, { paddingBottom: Math.max(16, insets.bottom) }]}>
           <View style={styles.footerColumn}>
             <PrimaryButton
-              title={rezim === 'SIGNUP' ? 'Napravite nalog' : 'Prijavite se'}
+              title={rezim === 'SIGNUP' ? 'Napravi nalog' : 'Prijavi se'}
               disabled={rezim === 'SIGNUP' && !methods.emailSignup}
               onPress={() => void emailAkcija()}
               busy={radi}
@@ -514,52 +558,57 @@ export default function AuthScreen() {
             </Pressable> : null}
           </View>
         </View> : null}
-      </KeyboardAvoidingView>
+      </View>
     </View>
+    </AuthSheet>
+    </KeyboardAvoidingView>
+    <PublicLegalModal kind={legalDocument} onClose={() => setLegalDocument(null)} /></>
   );
 }
 
 const styles = StyleSheet.create({
-  authFooter: { borderTopWidth: 1, borderTopColor: '#E8EDEA', backgroundColor: '#FFFFFF', paddingTop: 12, paddingHorizontal: 18 },
+  authFooter: { borderTopWidth: 1, borderTopColor: '#345D50', backgroundColor: authColors.surface, paddingTop: 12, paddingHorizontal: 22 },
   footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center' },
-  screen: { flex: 1, backgroundColor: '#FBFCFB' },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 65, alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingTop: 9, paddingBottom: 12, backgroundColor: '#FAFCFB' },
-  backButton: { width: 44, height: 44, marginLeft: -8, alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
+  backButton: { width: 48, height: 48, borderRadius: radius.control, borderWidth: 1, borderColor: '#527469', backgroundColor: authColors.input, alignItems: 'center', justifyContent: 'center' },
   headerTitles: { flex: 1 },
-  headerEyeline: { color: '#58736A', fontSize: 11, lineHeight: 14.85, marginBottom: 4 },
-  headerTitle: { textAlign: 'left', fontSize: 20, lineHeight: 23.2, letterSpacing: -.55, fontWeight: '700', color: '#143D35' },
-  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 20, paddingTop: 0 },
+  headerEyeline: { ...type.label, fontWeight: '600', letterSpacing: 0.4, color: authColors.accentLight, marginBottom: 3 },
+  headerTitle: { ...type.heading, textAlign: 'left', fontWeight: '600', color: authColors.ink },
+  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 22, paddingTop: 4 },
   formColumn: { width: '100%', maxWidth: 412 },
-  alternateAction: { minHeight: 44, paddingVertical: 9, paddingHorizontal: 2, justifyContent: 'center', alignSelf: 'flex-start' },
-  alternateLabel: { color: '#143D35', fontSize: 14, lineHeight: 18.9, fontWeight: '600' },
-  form: { gap: 16, backgroundColor: '#FFFFFF', borderColor: '#D8E5DD', borderWidth: 1, borderRadius: 22, padding: 18, marginTop: 6 },
+  alternateAction: { minHeight: 48, paddingVertical: 10, paddingHorizontal: 2, justifyContent: 'center', alignSelf: 'center' },
+  alternateLabel: { ...type.tab, color: authColors.accentLight, textAlign: 'center' },
+  form: { gap: 14, backgroundColor: 'transparent', borderWidth: 0, padding: 0, marginTop: 0 },
   feedback: { marginTop: -6 },
-  banner: { marginBottom: 12, borderRadius: 14, padding: 12 },
-  bannerOk: { backgroundColor: '#E6F3EC' },
-  bannerOkText: { color: '#265B40', fontSize: 14, lineHeight: 21 },
-  bannerErrorText: { color: '#A03328', fontSize: 14, lineHeight: 21 },
-  forgot: { minHeight: 48, justifyContent: 'center', marginTop: -6 },
-  forgotText: { color: '#143D35', fontSize: 14, fontWeight: '600', lineHeight: 21 },
-  methods: { marginTop: 16 },
-  method: { minHeight: 56, borderRadius: 16, borderWidth: 1, borderColor: '#DCE3DE', backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
+  banner: { marginBottom: 12, borderRadius: radius.control, padding: 12 },
+  bannerOk: { backgroundColor: authColors.soft },
+  bannerOkText: { ...type.note, color: authColors.ink },
+  bannerErrorText: { ...type.note, color: authColors.error },
+  forgot: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-end', marginTop: -6 },
+  forgotText: { ...type.tab, color: authColors.accentLight },
+  methods: { marginTop: 20, gap: 10 },
+  methodHeading: { ...type.meta, fontWeight: '600', color: authColors.muted, marginBottom: 2 },
+  method: { minHeight: 56, borderRadius: radius.control, borderWidth: 1, borderColor: '#DCE3DE', backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
   methodPressed: { opacity: 0.76 },
-  methodIcon: { width: 24, height: 24 },
-  methodText: { color: '#143D35', fontSize: 16, fontWeight: '600' },
-  consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 8 },
-  checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: '#78938A', borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  checkboxChecked: { backgroundColor: '#143D35' },
-  checkmark: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  consentText: { flex: 1, color: '#52665E', fontSize: 13, lineHeight: 21 },
-  legalLink: { color: '#143D35' },
+  methodIcon: { width: 24, height: 24, flexShrink: 0 },
+  methodCopy: { flex: 1, minWidth: 0, gap: 3 },
+  methodText: { ...type.bodyStrong, color: '#143D35' },
+  consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 12, paddingHorizontal: 12, borderRadius: radius.control, backgroundColor: authColors.input },
+  checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: authColors.muted, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center', backgroundColor: authColors.surface },
+  checkboxChecked: { backgroundColor: authColors.accent },
+  checkmark: { ...type.action, color: authColors.buttonInk },
+  consentText: { ...type.meta, flex: 1, color: authColors.muted },
+  legalLink: { color: authColors.ink, textDecorationLine: 'underline' },
   backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
-  backText: { color: '#143D35', fontSize: 14, fontWeight: '600' },
-  smallNote: { color: '#52665E', fontSize: 13, lineHeight: 20, marginVertical: 12 },
-  stateIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4EDE8' },
-  stateTitle: { color: '#143D35', fontSize: 23, fontWeight: '700', lineHeight: 29 },
-  stateCopy: { color: '#52665E', fontSize: 15, lineHeight: 23 },
+  backText: { ...type.tab, color: authColors.accentLight },
+  smallNote: { ...type.meta, color: authColors.muted, marginVertical: 12 },
+  stateIcon: { width: 56, height: 56, borderRadius: radius.cardCompact, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4EDE8' },
+  stateTitle: { ...type.title, color: authColors.ink },
+  stateCopy: { ...type.copy, color: authColors.muted },
   linkButton: { minHeight: 48, justifyContent: 'center' },
-  linkText: { color: '#143D35', fontSize: 14, fontWeight: '600' },
-  notice: { backgroundColor: '#E9F3EE', padding: 16, borderRadius: 16, marginTop: 16, gap: 6 },
-  noticeTitle: { color: '#2E7A6A', fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  noticeCopy: { color: '#2E7A6A', fontSize: 13, lineHeight: 20 },
+  linkText: { ...type.tab, color: authColors.accentLight },
+  notice: { backgroundColor: authColors.soft, padding: 16, borderRadius: radius.control, marginTop: 16, gap: 6 },
+  noticeTitle: { ...type.tab, color: authColors.ink },
+  noticeCopy: { ...type.meta, color: authColors.muted },
 });

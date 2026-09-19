@@ -72,3 +72,32 @@ it('preserves the server Unicode limit for 2000 astral code points', async () =>
   await expect(createAgreementMessageService(rpc).send({...command(),body:'😀'.repeat(2001)})).rejects.toMatchObject({code:'INVALID_MESSAGE'});
   expect(rpc).toHaveBeenCalledTimes(1);
 });
+it('captures an ordered photo-only command and validates every field of the canonical receipt', async () => {
+  const assetIds = ['44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555'];
+  const input = { ...command(), body: '', photos: { agreementVersion: 7, assetIds } };
+  const frozen = captureAgreementMessage(input); assetIds.reverse();
+  expect(frozen.photos!.assetIds).toEqual([...assetIds].reverse()); expect(Object.isFrozen(frozen.photos!.assetIds)).toBe(true);
+  const receipt = { messageId, agreementId, agreementVersion: 7, clientMessageId: frozen.clientMessageId, body: '', assetIds: [...frozen.photos!.assetIds] };
+  const rpc = jest.fn().mockResolvedValue({ data: receipt, error: null });
+  await expect(createAgreementMessageService(rpc).send(frozen)).resolves.toEqual({ messageId });
+  expect(rpc).toHaveBeenCalledWith('rpc_send_agreement_photo_message_v5', { p_expected_user_id: accountId,
+    p_agreement_id: agreementId, p_expected_version: 7, p_client_message_id: frozen.clientMessageId, p_body: '', p_asset_ids: frozen.photos!.assetIds });
+  for (const patch of [{ body: 'other' }, { agreementVersion: 8 }, { agreementId: messageId }, { clientMessageId: 'another_key' },
+    { assetIds: [...frozen.photos!.assetIds].reverse() }, { extra: 'private' }]) {
+    rpc.mockResolvedValue({ data: { ...receipt, ...patch }, error: null });
+    await expect(createAgreementMessageService(rpc).send(frozen)).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+  }
+});
+it.each([[], ['invalid'], Array(7).fill(messageId), [messageId, messageId]].map(assetIds => ({ assetIds })))(
+  'rejects invalid photo arrays before any new RPC %#', async ({ assetIds }) => {
+  const rpc = jest.fn(); await expect(createAgreementMessageService(rpc).send({ ...command(), body: '', photos: { agreementVersion: 1, assetIds } }))
+    .rejects.toMatchObject({ code: 'INVALID_MESSAGE' }); expect(rpc).not.toHaveBeenCalled();
+});
+it('bounds a lost photo receipt without automatic replay and preserves exact explicit retry', async () => {
+  jest.useFakeTimers(); const input = { ...command(), photos: { agreementVersion: 3, assetIds: [messageId] } };
+  const rpc = jest.fn().mockReturnValue(new Promise(() => {})), service = createAgreementMessageService(rpc);
+  const pending = service.send(input).catch(error => error);
+  await jest.advanceTimersByTimeAsync(15000); expect(await pending).toMatchObject({ code: 'UNAVAILABLE' }); expect(rpc).toHaveBeenCalledTimes(1);
+  rpc.mockResolvedValue({ data: { messageId, agreementId, agreementVersion: 3, clientMessageId: input.clientMessageId, body: input.body.trim(), assetIds: [messageId] }, error: null });
+  await expect(service.send(input)).resolves.toEqual({ messageId }); expect(rpc.mock.calls[0]).toEqual(rpc.mock.calls[1]); jest.useRealTimers();
+});

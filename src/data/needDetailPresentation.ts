@@ -8,6 +8,11 @@ const SCHEDULE: Record<NeedScheduleProjection['kind'], string> = {
   TODAY_FLEXIBLE: 'Danas, fleksibilno', TOMORROW_FLEXIBLE: 'Sutra, fleksibilno', WEEK_FLEXIBLE: 'Ove nedelje, fleksibilno',
 };
 const GEOGRAPHY = { STATIONARY: 'Na jednom mestu', POINT_TO_POINT: 'Od mesta do mesta', MULTI_STOP: 'Više stanica', AREA_BASED: 'Na području', REMOTE: 'Na daljinu' };
+/** The reader's own zone, when the platform will say. */
+function deviceZone(): string | null {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; }
+}
+
 /** Presentation follows the saved task zone. Historical unknown zones are explicitly UTC. */
 export function needScheduleText(schedule: NeedScheduleProjection, timezone?: string): string {
   const zone = timezone ?? 'UTC';
@@ -33,7 +38,10 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   const range = start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${end.text}${shifted ? ` ${end.offset}` : ''}`
     : start ? `Od ${start.text}` : end ? `Do ${end.text}` : null;
   const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilan raspon · ';
-  return range ? `${preference}${range} (${timezone ?? 'UTC · zona nije navedena'})`
+  // A zone the reader is already standing in does not need to be named; a different one does.
+  // Naming it was not the problem — printing an instant in UTC and apologising for it was.
+  const named = timezone && timezone !== deviceZone() ? ` (${timezone})` : timezone ? '' : ' (UTC · zona nije navedena)';
+  return range ? `${preference}${range}${named}`
     : schedule.kind === 'FIXED_WINDOW' ? 'Tačan termin nije potpun' : SCHEDULE[schedule.kind];
 }
 export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {

@@ -19,6 +19,16 @@ const { mockOrder, mockFrom, mockIn } = jest.requireMock('../supabaseClient').__
   mockOrder: jest.Mock; mockFrom: jest.Mock; mockIn: jest.Mock;
 };
 const publicProfile = publicProfileClientService.javniProfil as jest.Mock;
+const publicRow = (change: Record<string, unknown> = {}) => ({
+  id: 'need-1', title: 'Pomoć pri selidbi', status: 'PUBLISHED', starts_at: null,
+  approximate_area: 'Centar', approximate_city: 'Beograd', approximate_lat: 44.8, approximate_lng: 20.4,
+  required_slots: 3, covered_slots: 1, required_skills: ['Selidbe'], required_tools: [], required_vehicles: [],
+  requester_profile_id: 'requester-1', mode: 'OFFERS', requester_price_rsd: null, remaining_search_closed_at: null,
+  description: 'Prenos kutija', category: 'Selidbe', schedule_kind: 'FLEXIBLE', ends_at: null,
+  task_country_code: 'RS', task_timezone: 'Europe/Belgrade', execution_location_mode: null,
+  required_licenses: [], minimum_experience_years: null, verified_identity_required: false,
+  need_geography: null, need_requirement_details: null, ...change,
+});
 
 describe('W03 authoritative discovery read', () => {
   beforeEach(() => { jest.clearAllMocks(); mockOrder.mockReset(); publicProfile.mockReset(); });
@@ -38,19 +48,22 @@ describe('W03 authoritative discovery read', () => {
     expect(publicProfile).not.toHaveBeenCalled();
   });
 
+  it('does not advertise a Task after remaining search is closed', async () => {
+    mockOrder.mockResolvedValue({ data: [publicRow({ remaining_search_closed_at: '2026-09-15T12:00:00Z' })], error: null });
+    await expect(supabaseIzvor.otvorenePrilike()).resolves.toEqual([]);
+    expect(publicProfile).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, '', 'invalid', 1])('fails closed from discovery for unknown closure state %p', async remaining_search_closed_at => {
+    mockOrder.mockResolvedValue({ data: [publicRow({ remaining_search_closed_at })], error: null });
+    await expect(supabaseIzvor.otvorenePrilike()).resolves.toEqual([]);
+    expect(publicProfile).not.toHaveBeenCalled();
+  });
+
   it('recovers on a later read and preserves the public-safe task projection', async () => {
     mockOrder.mockRejectedValueOnce(new Error('offline'));
     await expect(supabaseIzvor.otvorenePrilike()).rejects.toThrow('offline');
-    mockOrder.mockResolvedValueOnce({ data: [{
-      id: 'need-1', title: 'Pomoć pri selidbi', status: 'PUBLISHED', starts_at: null,
-      approximate_area: 'Centar', approximate_city: 'Beograd', approximate_lat: 44.8, approximate_lng: 20.4,
-      required_slots: 3, covered_slots: 1, required_skills: ['Selidbe'], required_tools: [], required_vehicles: [],
-      requester_profile_id: 'requester-1', mode: 'OFFERS', requester_price_rsd: null,
-      description: 'Prenos kutija', category: 'Selidbe', schedule_kind: 'FLEXIBLE', ends_at: null,
-      task_country_code: 'RS', task_timezone: 'Europe/Belgrade', execution_location_mode: null,
-      required_licenses: [], minimum_experience_years: null, verified_identity_required: false,
-      need_geography: null, need_requirement_details: null,
-    }], error: null });
+    mockOrder.mockResolvedValueOnce({ data: [publicRow()], error: null });
     publicProfile.mockResolvedValueOnce(null);
 
     const result = await supabaseIzvor.otvorenePrilike();

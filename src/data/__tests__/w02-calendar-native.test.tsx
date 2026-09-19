@@ -47,6 +47,20 @@ const render = async (onSave = jest.fn(), value = availability()) => {
 };
 afterEach(async () => { await act(async () => tree?.unmount()); jest.clearAllMocks(); mockFontScale = 1; });
 
+it('says that being available now means nothing while the work profile is still a draft', async () => {
+  // The two screens contradicted each other: the work profile said it was a draft and so nothing
+  // would be offered, and this one showed "Dostupan sada" as if it decided something.
+  await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false}
+    onSave={jest.fn()} profileDraft />); });
+  expect(text()).toContain('Radni profil je nacrt');
+  expect(text()).not.toContain('Ručni status');
+
+  await act(async () => tree.unmount());
+  await render();
+  expect(text()).toContain('Ručni status');
+  expect(text()).not.toContain('Radni profil je nacrt');
+});
+
 describe('actual availability editor interactions', () => {
   it('saves Available Now only with explicit Save and preserves existing owned data', async () => {
     const loaded = { ...availability(), rules: [{ id: ruleId, weekdays: [1, 3], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-09-01', endsOn: null, label: 'Redovno', active: true }] };
@@ -176,7 +190,9 @@ describe('actual availability editor interactions', () => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
     await act(async () => tree.update(<AvailabilityForm availability={loaded} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
-    await press(state === 'busy' ? 'Čuvamo dostupnost…' : 'Sačuvaj dostupnost'); expect(onSave).not.toHaveBeenCalled();
+    const label = state === 'busy' ? 'Čuvamo unos…' : 'Sačuvaj dostupnost';
+    expect(button(label).props.disabled).toBe(true);
+    await press(label); expect(onSave).not.toHaveBeenCalled();
   });
 
   it('discard restores the server value without any save', async () => {
@@ -203,13 +219,15 @@ describe('actual agenda screen', () => {
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([]);
     (workerCalendarClientService.readRange as jest.Mock).mockImplementation((from, to) => ({ ok: true, podatak: { from, to, authoritative: true, events: [] } }));
   });
-  it('reads requester calendar with a real local week and does not invent bookings from empty data', async () => {
+  it('reads the calendar with a real local week, invents no bookings from empty data, and always offers the availability editor', async () => {
     await act(async () => { tree = create(<Raspored />); });
     const [from, to] = (workerCalendarClientService.readRange as jest.Mock).mock.calls[0];
     expect(Date.parse(to)).toBeGreaterThan(Date.parse(from));
     expect(text()).toContain('Nema potvrđenih tačnih termina');
     expect(text()).toContain('Fleksibilni termini');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(0);
+    // Owner decision 1 (2026-09-19): when I can work is mine to set whenever I like. The editor used to
+    // be withheld from a person standing in the other app mode.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(1);
   });
   it('does not show empty success or fabricated dates when the calendar receipt fails', async () => {
     (workerCalendarClientService.readRange as jest.Mock).mockReturnValue({ ok: false, poruka: 'Kalendar nije učitan.' });

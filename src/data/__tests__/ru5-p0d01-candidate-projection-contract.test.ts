@@ -34,6 +34,8 @@ describe('RU-5 P0D-01 candidate projection source cutover', () => {
       expect(projections).toContain(`'${canonical}'`);
     }
     expect(r05).toContain('!k.mozeIzabrati');
-    expect(legacyRoute).toContain("k.stanje === 'SELECTED'");
+    expect(legacyRoute).toContain('<Redirect');
+    expect(legacyRoute).not.toContain('ormar');
+    expect(legacyRoute).not.toContain('k.stanje');
   });
 });

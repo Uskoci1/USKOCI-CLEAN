@@ -173,3 +173,20 @@ export function sameNeedLocation(left: NeedLocationInput, right: unknown): boole
 export function sameWorkerLocation(left: WorkerLocationInput, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(normalizeWorkerLocation(right));
 }
+
+/**
+ * How many of a topology's required points are already confirmed.
+ *
+ * Kept here, beside locationSlots and away from any map import, so a caller can ask the question
+ * without pulling the native map into its module graph.
+ */
+export function pointsMissing(geography: unknown, resolved: unknown): { done: number; total: number } {
+  const topology = geography && typeof geography === 'object' ? geography as NeedTaskGeography : null;
+  const slots = topology && typeof topology.mode === 'string' ? locationSlots(topology) : [];
+  const record = resolved && typeof resolved === 'object' ? resolved as { points?: unknown } : null;
+  const points = Array.isArray(record?.points) ? record.points : [];
+  const confirmed = new Set(points
+    .map(point => (point && typeof point === 'object' ? (point as { slot?: unknown }).slot : null))
+    .filter((slot): slot is LocationSlot => typeof slot === 'string' && slots.includes(slot as LocationSlot)));
+  return { done: confirmed.size, total: slots.length };
+}

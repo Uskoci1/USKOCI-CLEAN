@@ -1,7 +1,7 @@
 {
   "historical_source_commit": "9d245f3053c8e79370a73e82b12d4250e3ed94b7",
   "historical_file_count": 85,
-  "historical_inventory_sha256": "7a255831327ba2a20a1784d3282b9a2fd40c4c85fed472ec4f7819b664d701e4",
+  "historical_inventory_sha256": "c819979ba8d19c9f3e1a7bbaee7f16e04e887fc88340971ded80d72d7e510aa5",
   "d03": {
     "forward_file": "20260907110000_clean_d03_message_retry.sql",
     "forward_version": "20260907110000",

@@ -104,14 +104,25 @@ try {
  event();const old=await claim('SEND');await begin(old);await complete(old,'TICKET','old_ticket');due(old.attemptId);const late=await claim('RECEIPT');const otherState=await get(other,otherId,t);const newer=await set(other,otherId,t,otherState.revision);
  await complete(late,'DEVICE_NOT_REGISTERED');assert.equal((await get(other,otherId,t)).revision,newer.revision);assert.equal((await get(other,otherId,t)).active,true);pass();
 
- check('ACTUAL_HANDLER_REAL_DATABASE_SYNTHETIC_EXPO_MINIMAL_PAYLOAD');isolate();const ownState=await get(owner,uid,t);await set(owner,uid,t,ownState.revision);event();let providerCalls=0;
+ check('ACTUAL_HANDLER_REAL_DATABASE_SYNTHETIC_EXPO_MINIMAL_PAYLOAD');isolate();const ownState=await get(owner,uid,t);await set(owner,uid,t,ownState.revision);event();let providerCalls=0;const readinessObservations=[];
  const serviceKey=env.RU5_DEVICE_SERVICE_ROLE_KEY;
  const runtime=loadPushHandler({env:name=>({SUPABASE_SERVICE_ROLE_KEY:serviceKey,SUPABASE_URL:'https://synthetic.supabase.co',EXPO_PUSH_TRANSPORT_ENABLED:'true'}[name]),fetch:async(target,init)=>{
   if(target==='https://exp.host/--/api/v2/push/send'){providerCalls++;const data=JSON.parse(init.body);assert.equal(data.length,1);assert.equal(data[0].to,t);assert.equal(data[0].body,'Imate novo obaveštenje. Otvorite aplikaciju.');assert.deepEqual(data[0].data,{kind:'INBOX'});assert.equal(init.headers.apikey,undefined);return new Response(JSON.stringify({data:[{status:'ok',id:'actual_handler_synthetic_ticket'}]}),{status:200});}
-  const parsed=new URL(target);assert.equal(parsed.origin,'https://synthetic.supabase.co');assert.ok(['/rest/v1/rpc/rpc_claim_push_transport','/rest/v1/rpc/rpc_begin_push_send','/rest/v1/rpc/rpc_complete_push_transport'].includes(parsed.pathname));
+  const parsed=new URL(target);assert.equal(parsed.origin,'https://synthetic.supabase.co');
+  if(parsed.pathname==='/rest/v1/rpc/rpc_record_push_readiness'){
+   // Successor telemetry (SQL 20260912131000, proven against a real database by
+   // pre_v3/push_readiness_proof). The exact107 disposable database here has no readiness
+   // RPC, so this receipt is synthetic and labelled in the report; nothing about
+   // claim/begin/complete is stubbed.
+   const observation=JSON.parse(init.body);assert.deepEqual(Object.keys(observation).sort(),['p_observation','p_sender_version']);
+   assert.equal(observation.p_sender_version,'PRE_V3_PUSH_READINESS_V1');readinessObservations.push(observation.p_observation);
+   return new Response(JSON.stringify({recorded:true,observation:observation.p_observation,observedAt:new Date().toISOString(),authoritative:true}),{status:200});
+  }
+  assert.ok(['/rest/v1/rpc/rpc_claim_push_transport','/rest/v1/rpc/rpc_begin_push_send','/rest/v1/rpc/rpc_complete_push_transport'].includes(parsed.pathname));
   return fetch(new URL(parsed.pathname,url),{...init,redirect:'error'});
  }});
- const response=await runtime.handler(new Request('https://synthetic-worker.test',{method:'POST',headers:{authorization:`Bearer ${serviceKey}`},body:'{"action":"tick"}'}));assert.equal(response.status,200);assert.equal((await response.json()).send,'TICKET_PENDING');assert.equal(providerCalls,1);report.edge_sha256=runtime.sha256;pass();
+ const response=await runtime.handler(new Request('https://synthetic-worker.test',{method:'POST',headers:{authorization:`Bearer ${serviceKey}`},body:'{"action":"tick"}'}));assert.equal(response.status,200);assert.equal((await response.json()).send,'TICKET_PENDING');assert.equal(providerCalls,1);assert.deepEqual(readinessObservations,['TICK_OK']);
+ report.readiness_rpc_stubbed=true;report.readiness_observations=readinessObservations;report.edge_sha256=runtime.sha256;pass();
 
  check('LOGOUT_SESSION_AND_ACCOUNT_RETIREMENT_NO_OTHER_DEVICE_REVOCATION');isolate();
  await ok(owner.rpc('rpc_revoke_push_session',{p_expected_user_id:uid}));assert.equal((await get(owner,uid,t)).active,false);assert.equal((await ok(owner.rpc('rpc_revoke_push_session',{p_expected_user_id:uid}))).revoked,true);

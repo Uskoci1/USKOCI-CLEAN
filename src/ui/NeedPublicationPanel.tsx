@@ -7,13 +7,13 @@ import { T } from './Text';
 const NOT_READY: Record<PublicationNotReadyCode, string> = {
   POLICY_NOT_READY: 'Provera za objavu još nije dostupna. Nacrt je sačuvan.',
   POLICY_CONTENT_NOT_READY: 'Provera za objavu još nije dostupna. Nacrt je sačuvan.',
-  LOCATION_INCOMPLETE: 'Potvrdite sva potrebna mesta izvršenja pre objave.',
+  LOCATION_INCOMPLETE: 'Potvrdi sva potrebna mesta izvršenja pre objave.',
   COUNTRY_NOT_READY: 'Objava u izabranoj državi trenutno nije dostupna.',
   PUBLIC_MEDIA_NOT_READY: 'Fotografije još nisu spremne za objavu.',
-  EVALUATOR_UNAVAILABLE: 'Provera trenutno nije dostupna. Pokušajte ponovo.',
-  EVALUATOR_INVALID_RESPONSE: 'Rezultat provere nije potvrđen. Pokušajte ponovo.',
-  RATE_LIMITED: 'Sačekajte malo pre nove provere.',
-  NEED_CHANGED: 'Zadatak je promenjen. Učitajte trenutno stanje pre nove provere.',
+  EVALUATOR_UNAVAILABLE: 'Provera trenutno nije dostupna. Pokušaj ponovo.',
+  EVALUATOR_INVALID_RESPONSE: 'Rezultat provere nije potvrđen. Pokušaj ponovo.',
+  RATE_LIMITED: 'Sačekaj malo pre nove provere.',
+  NEED_CHANGED: 'Zadatak je promenjen. Učitaj trenutno stanje pre nove provere.',
 };
 type Props = {
   evaluation: PublicationEvaluation | null; busy: boolean; retrying: boolean;
@@ -24,16 +24,16 @@ export function NeedPublicationPanel({ evaluation, busy, retrying, onEvaluate, o
   const decision = evaluation?.kind === 'DECISION' ? evaluation.decision : null;
   const allowed = decision?.authoritative === true && decision.outcome === 'ALLOW' && decision.publishable;
   const copy = evaluation?.kind === 'NOT_READY' ? NOT_READY[evaluation.code]
-    : decision?.outcome === 'CLARIFY' ? 'Za objavu su potrebna dodatna pojašnjenja. Pregledajte i izmenite nacrt.'
+    : decision?.outcome === 'CLARIFY' ? 'Za objavu su potrebna dodatna pojašnjenja. Pregledaj i izmeni nacrt.'
       : decision?.outcome === 'REVIEW' ? 'Provera nije odobrila objavu. Zadatak ostaje sačuvan kao nacrt.'
         : decision?.outcome === 'BLOCK' ? 'Ovaj Zadatak nije odobren za objavu. Nacrt ostaje sačuvan.'
           : allowed ? 'Provera je odobrila ovu verziju Zadatka. Objavu potvrđujete zasebno.'
-            : 'Nacrt je privatan. Proverite da li je spreman za objavu.';
+            : 'Nacrt je privatan. Proveri da li je spreman za objavu.';
   return <Card raised><View style={{ padding: space.base, gap: space.md }}>
     <T variant="heading">Objava Zadatka</T>
     <T accessibilityLiveRegion="polite" tone="muted">{copy}</T>
     {retrying ? <>
-      <T>Prethodna objava nije potvrđena. Provereno je trenutno stanje; možete ponoviti isti zahtev.</T>
+      <T>Prethodna objava nije potvrđena. Provereno je trenutno stanje; možeš ponoviti isti zahtev.</T>
       <Button label="Ponovi isti zahtev za objavu" disabled={busy} onPress={onRetry} />
     </> : <>
       <Button label={busy ? 'Radnja je u toku…' : evaluation ? 'Ponovi proveru za objavu' : 'Proveri za objavu'}

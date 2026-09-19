@@ -132,7 +132,7 @@ function proveriBezbednost(tekst: string): { odluka: OdlukaBezbednosti; poruka: 
     return { odluka: 'REVIEW', poruka: 'Potrebu će pre objave pregledati naš tim.' };
   }
   if (t.trim().length < 12) {
-    return { odluka: 'CLARIFY', poruka: 'Recite mi malo više da bih razumeo šta Vam treba.' };
+    return { odluka: 'CLARIFY', poruka: 'Reci mi malo više da bih razumeo šta ti treba.' };
   }
   return { odluka: 'ALLOW', poruka: null };
 }
@@ -180,13 +180,13 @@ function projektuj(r: Razgovor): NacrtPotrebeProjekcija {
 function pitanjeZa(k: KljucCinjenice): string {
   return {
     naslov: 'Kako biste ukratko nazvali ovaj posao?',
-    opis: 'Ima li još nešto što bi Uskočer trebalo da zna?',
+    opis: 'Ima li još nešto što bi trebalo da zna onaj ko uskoči?',
     kategorija: 'O kakvoj vrsti pomoći je reč?',
-    datum: 'Kog dana Vam treba?',
+    datum: 'Kog dana ti treba?',
     vreme: 'U koliko sati?',
     polaziste: 'Odakle se kreće?',
     odrediste: 'Gde treba doneti?',
-    osoba: 'Koliko ljudi Vam treba?',
+    osoba: 'Koliko ljudi ti treba?',
     vozilo: 'Da li je potrebno vozilo?',
     uslovi: 'Ima li posebnih uslova — sprat, lift, alat?',
   }[k];
@@ -210,7 +210,7 @@ export const lazniAi = {
         {
           id: 'p0',
           odAI: true,
-          telo: 'Recite mi svojim rečima šta Vam treba. Ja ću popuniti detalje sa strane, a Vi ćete ih potvrditi.',
+          telo: 'Reci mi svojim rečima šta ti treba. Ja ću popuniti detalje sa strane, a ti ćeš ih potvrditi.',
           predlozene: [],
         },
       ],
@@ -229,7 +229,7 @@ export const lazniAi = {
     await kasnjenje();
     const r = razgovori.get(razgovorId);
     if (!r) return { ok: false, kod: 'NOT_FOUND', poruka: 'Razgovor ne postoji.' };
-    if (!telo.trim()) return { ok: false, kod: 'EMPTY', poruka: 'Napišite nešto.' };
+    if (!telo.trim()) return { ok: false, kod: 'EMPTY', poruka: 'Napiši nešto.' };
 
     r.brojac += 1;
     r.poruke = [...r.poruke, { id: `u${r.brojac}`, odAI: false, telo, predlozene: [] }];
@@ -274,8 +274,8 @@ export const lazniAi = {
         : sledece
           ? pitanjeZa(sledece)
           : nacrt.cinjenice.some((c) => c.status !== 'POTVRDJENO')
-            ? 'Proverite podatke sa strane i potvrdite ono što je tačno.'
-            : 'Sve je potvrđeno. Možete objaviti Potrebu.';
+            ? 'Proveri podatke sa strane i potvrdi ono što je tačno.'
+            : 'Sve je potvrđeno. Možeš objaviti Potrebu.';
 
     r.brojac += 1;
     r.poruke = [...r.poruke, { id: `a${r.brojac}`, odAI: true, telo: odgovor, predlozene: [] }];
@@ -300,7 +300,7 @@ export const lazniAi = {
 
   async ispraviCinjenicu(cinjenicaId: string, novaVrednost: string): Promise<Ishod<{ novaCinjenicaId: string }>> {
     await kasnjenje();
-    if (!novaVrednost.trim()) return { ok: false, kod: 'EMPTY', poruka: 'Unesite vrednost.' };
+    if (!novaVrednost.trim()) return { ok: false, kod: 'EMPTY', poruka: 'Unesi vrednost.' };
     for (const r of razgovori.values()) {
       const stara = r.zapisi.find((x) => x.id === cinjenicaId);
       if (!stara) continue;
@@ -342,8 +342,8 @@ export const lazniAi = {
       return {
         ok: false,
         kod: 'UNCONFIRMED',
-        naslov: 'Potvrdite podatke',
-        poruka: 'Sve obavezne podatke morate potvrditi pre objave.',
+        naslov: 'Potvrdi podatke',
+        poruka: 'Sve obavezne podatke moraš potvrditi pre objave.',
       };
     }
 

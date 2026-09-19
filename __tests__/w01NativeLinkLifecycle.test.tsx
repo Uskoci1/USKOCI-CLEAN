@@ -11,7 +11,6 @@ const mockCurrent = { isLoaded: true, session: null, user: null, sessionEpoch: 1
   accountRevision: 0, returnTargetRevision: 0 };
 jest.mock('../src/store/sesija', () => ({ useSesija: () => mockCurrent, sesijaSada: () => mockCurrent }));
 jest.mock('../src/store/povratniCilj', () => ({ povratniCilj: { consumeCompleted: jest.fn() } }));
-jest.mock('../src/store/uloga', () => ({ postaviUlogu: jest.fn() }));
 jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: 'GestureHandlerRootView' }));
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null }));
 jest.mock('react-native', () => {

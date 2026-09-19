@@ -1,26 +1,38 @@
-import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useReducedMotion } from 'react-native-reanimated';
+import { ArrowRight, CaretRight, Clock, MapPin, Users } from 'phosphor-react-native';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
+import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
 import { displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
+import { pointsMissing } from '../../lib/location';
 import { V2Icon } from './icons';
-import { v2 } from './tokens';
+import { AiConversationShell } from '../aiFirst/AiConversationShell';
+import { aiFirst as a } from '../aiFirst/tokens';
+
+// The point sheet reaches the native map through the point editor, so it loads only when opened.
+const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
 
 type Props = {
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
   pending: boolean; statusCopy: string | null; showReadback: boolean; readbackDisabled: boolean;
+  /** The sentence that was sent and is waiting for its answer. */
+  sentMessage?: string | null;
   showAbandon: boolean; abandonDisabled: boolean; abandonLabel: string;
   onBack: () => void; onChange: (value: string) => void; onSend: () => void;
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
+  onNewTask?: () => void; newTaskDisabled?: boolean; voice?: ReactNode; streamingText?: string;
+  onPhotos?: () => void; photosDisabled?: boolean;
+  onCancelPending?: () => void; cancelPendingDisabled?: boolean; cancelPendingDispatched?: boolean;
 };
 
 const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Bilo kada',
@@ -58,7 +70,8 @@ function Panel({ title, children, close, reduced }: { title: string; children: R
     <View style={s.scrim}>
       <Press accessibilityRole="button" accessibilityLabel="Zatvori panel" onPress={close} style={{ flex: 1, minHeight: 44 }} />
       <SafeAreaView edges={['bottom']} accessibilityViewIsModal style={s.sheet}>
-        <View style={s.row}><T accessibilityRole="header" style={[s.title, { flex: 1 }]}>{title}</T>
+        <View style={s.handle} />
+        <View style={s.row}><T accessibilityRole="header" variant="title" style={[s.ink, { flex: 1 }]}>{title}</T>
           <V2Action kind="quiet" label="Zatvori" onPress={close} /></View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.sheetContent}>{children}</ScrollView>
       </SafeAreaView>
@@ -66,146 +79,191 @@ function Panel({ title, children, close, reduced }: { title: string; children: R
   </Modal>;
 }
 
-export function IntakeUnavailable({ loading, error, retry, back }: {
-  loading: boolean; error: string; retry?: () => void; back: () => void;
+export function IntakeUnavailable({ loading, error, retry, back, recover }: {
+  loading: boolean; error: string; retry?: () => void; back: () => void; recover?: () => void;
 }) {
   return <SafeAreaView style={s.canvas}><View style={s.unavailable}>
-    <V2Icon name="chat" size={36} color={v2.color.teal} />
-    <T accessibilityRole="header" style={s.title}>{loading ? 'Otvaramo razgovor' : 'Razgovor nije dostupan'}</T>
-    {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={v2.color.teal} />
-      : <><T accessibilityRole="alert" style={[s.body, s.center]}>{error}</T>
-        {retry ? <V2Action kind="primary" label="Učitajte razgovor ponovo" onPress={retry} /> : null}</>}
+    <View style={s.unavailableMark}><V2Icon name="chat" size={30} color={sys.color.green} /></View>
+    <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>{loading ? 'Otvaramo razgovor' : 'Razgovor nije dostupan'}</T>
+    {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.green} />
+      : <><T accessibilityRole="alert" variant="copy" tone="muted" style={s.center}>{error}</T>
+        {recover ? <V2Action kind="primary" label="Otvori prethodni razgovor" onPress={recover} /> : null}
+        {retry ? <V2Action kind="primary" label="Učitaj razgovor ponovo" onPress={retry} /> : null}</>}
     <V2Action kind="quiet" label="Nazad" onPress={back} />
   </View></SafeAreaView>;
 }
 
-/** Presentation only. The owned editor retains command, focus and receipt authority. */
+/**
+ * Presentation only. The owned editor retains command, focus and receipt authority.
+ * The live card follows the V5 anatomy: a kicker with a signal dot, the title, the
+ * place and time as icon rows, then a hairline foot with the price and the people.
+ */
+/** Three ways in, taken from what people actually opened a conversation to ask for. */
+const OPENINGS = ['Treba mi prevoz', 'Treba mi majstor', 'Treba mi pomoć oko selidbe'] as const;
+
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
-  const [panel, setPanel] = useState<'history' | 'options' | null>(null);
+  const [panel, setPanel] = useState<'options' | 'points' | null>(null);
+  // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
+  const [pointAskHidden, setPointAskHidden] = useState(false);
   const reduced = useReducedMotion();
   const summary = publicSummary(conversation.facts);
-  const confirmed = conversation.facts.filter(fact => fact.status === 'CONFIRMED').length;
-  const suggestions = conversation.facts.length - confirmed;
-  const lastAi = [...conversation.messages].reverse().find(message => message.fromAi);
-  const lastUser = [...conversation.messages].reverse().find(message => !message.fromAi);
   const safetyCopy = safetyMessage(conversation.safety);
-  const question = lastAi?.body ?? 'Šta treba da se uradi?';
-  const open = (next: 'history' | 'options') => { Keyboard.dismiss(); setPanel(next); };
-  const review = () => { setPanel(null); props.onReview(); };
   const close = () => setPanel(null);
-  return <SafeAreaView edges={['top']} style={s.canvas}>
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}
-      accessibilityElementsHidden={panel !== null} importantForAccessibility={panel ? 'no-hide-descendants' : 'auto'}>
-      <View style={s.header}>
-        <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={props.onBack} style={s.iconButton}>
-          <V2Icon name="back" /></Press>
-        <View style={{ flex: 1 }}><T style={s.label}>AI pomoć · ti potvrđuješ</T>
-          <T accessibilityRole="header" style={s.title}>{conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}</T></View>
-        <V2Action kind="quiet" label="Opcije" onPress={() => open('options')} />
+  // The map point is the one thing publishing cannot do without and the AI may not propose, so
+  // the conversation asks for it rather than leaving it to be discovered. Read from the facts
+  // the conversation already holds, including the owner-private one; no extra server call.
+  const held = (key: AiNeedV2Fact['key']) => conversation.facts.find(fact => fact.key === key)?.value;
+  const gap = pointsMissing(held('need.task_geography'), held('need.resolved_location'));
+  const needsPoint = conversation.status === 'OPEN' && gap.total > 0 && gap.done < gap.total;
+  // What is still missing belonged only to the review screen, so the one question a person has
+  // during the conversation - am I two answers away or eight - could only be answered by leaving it.
+  // The map point is counted here too: the server's required list cannot contain it, because the AI
+  // is not allowed to propose it, and leaving it out is how "spremno" became a promise that failed.
+  // A required fact stays in the server's list until it is confirmed, so a title the AI has already
+  // proposed — and which this very card is showing as its heading — was listed underneath as still
+  // needed. What the conversation still has to ask for is what has no value at all; confirming what
+  // it proposed is the review screen's job, and the card's heading already shows it.
+  const proposed = new Set(conversation.facts.map(fact => fact.key));
+  const stillNeeded = [...conversation.review.missingRequired.filter(key => !proposed.has(key)).map(factDisplayLabel),
+    ...(needsPoint ? ['tačka na mapi'] : [])];
+  // At the start nothing is filled, so the full list is eight items long — a wall exactly when it
+  // helps least, and it was being cut mid-word to fit two lines. The AI asks for them one at a time
+  // anyway, so the card names the first few and counts the rest.
+  const stillNeededText = stillNeeded.length <= 3 ? stillNeeded.join(' · ')
+    : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
+  // Each turn carries the ids of the facts it proposed, so the sentence it wrote can be shown
+  // beside what it actually took. A private value is named but never printed here: the thread is
+  // the conversation surface, not the place to restate an exact address.
+  const messages = conversation.messages.map(message => {
+    if (!message.fromAi || !message.proposedFactIds.length) return message;
+    const understood = message.proposedFactIds
+      .map(id => conversation.facts.find(fact => fact.id === id))
+      .filter((fact): fact is AiNeedV2Fact => !!fact)
+      .map(fact => ({ key: fact.id, label: factDisplayLabel(fact.key),
+        value: fact.privacyClass === 'PRIVATE' ? 'privatno, vidi samo onaj s kim se dogovoriš' : fact.displayValue }));
+    return understood.length ? { ...message, understood } : message;
+  });
+  return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
+    subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
+    messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
+    sentMessage={props.sentMessage}
+    welcome="Reci šta ti treba."
+    welcomeDetail="Ispričaj svojim rečima — glasom ili kucanjem. Ja hvatam detalje sa strane, ti potvrđuješ šta je tačno."
+    openings={OPENINGS}
+    onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
+    onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
+    // Nothing is pinned until the conversation has said or taken something: an empty card at the
+    // top of a fresh screen states a draft that does not exist yet and buries the invitation.
+    card={compact => !conversation.facts.length && !messages.length ? null : <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
+      accessibilityHint="Detaljan pregled svih podataka pre objave." accessibilityState={{ disabled: !props.canReview }}
+      disabled={!props.canReview} onPress={props.onReview} haptic={props.canReview ? 'select' : 'none'} scaleTo={1}
+      style={[s.taskCard, compact && s.taskCardCompact, !conversation.facts.length && s.taskCardEmpty]}>
+      <View style={s.row}>
+        <View style={[s.dot, busy && s.dotBusy]} />
+        <T variant="label" style={s.kicker}>TVOJ ZADATAK · {busy ? 'USKLAĐUJEM' : 'NACRT'}</T>
+        {props.canReview ? <View style={s.detailLink}><T variant="meta" tone="muted">Detalji</T><CaretRight size={14} color={sys.color.muted} /></View> : null}
       </View>
-      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.content}>
-        <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
-          accessibilityHint="Otvori sve podatke za ljudski pregled i potvrdu."
-          accessibilityState={{ disabled: !props.canReview }} disabled={!props.canReview} onPress={props.onReview}
-          haptic={props.canReview ? 'select' : 'none'} scaleTo={0.995} style={s.taskCard}>
-          <Svg pointerEvents="none" accessible={false} width="100%" height="100%" style={StyleSheet.absoluteFill}>
-            <Defs><LinearGradient id="intakeContext" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0" stopColor={v2.color.context} /><Stop offset="1" stopColor={v2.color.contextEnd} />
-            </LinearGradient></Defs><Rect width="100%" height="100%" fill="url(#intakeContext)" />
-          </Svg>
-          <View style={s.row}><T style={[s.label, { color: v2.color.teal, flex: 1 }]}>
-            {suggestions ? 'Predlog iz razgovora' : confirmed ? 'Potvrđeni podaci' : 'Tvoj zadatak'}
-          </T>{props.canReview ? <V2Icon name="chevron" size={18} /> : null}</View>
-          <T style={s.cardTitle} numberOfLines={2}>{summary.title}</T>
-          {summary.zone ? <T style={s.label} numberOfLines={1}>{summary.zone}</T> : null}
-          {summary.schedule ? <T style={s.label} numberOfLines={2}>{summary.schedule}</T> : null}
-          {summary.price || summary.people ? <View style={[s.row, { flexWrap: 'wrap' }]}>
-            {summary.price ? <T style={[s.body, { fontWeight: '700', flexGrow: 1 }]}>{summary.price}</T> : null}
-            {summary.people ? <T style={s.people}>{summary.people}</T> : null}</View> : null}
-          <T style={s.label}>{conversation.facts.length
-            ? `${confirmed} potvrđeno${suggestions ? ` · ${suggestions} za pregled` : ''}`
-            : 'Popunjava se kroz razgovor. Ti proveravaš podatke.'}</T>
-        </Press>
-        <Animated.View entering={reduced ? undefined : FadeIn.duration(v2.motion.screenMs)} style={s.exchange}>
-          <T style={[s.label, { color: v2.color.teal }]}>AI pomoć</T>
-          <T accessibilityRole="header" style={question.length > 180 ? s.body : s.hero}>{question}</T>
-          {!lastAi && !lastUser ? <T style={s.label}>Opiši svojim rečima. Važne podatke proverićeš pre čuvanja.</T> : null}
-          {lastUser ? <View style={s.answer}><T style={s.label}>Tvoj poslednji odgovor</T>
-            <T style={s.answerText} numberOfLines={4}>{lastUser.body}</T></View> : null}
-          {safetyCopy ? <T accessibilityRole={conversation.safety === 'BLOCK' ? 'alert' : undefined}
-            style={[s.label, conversation.safety === 'BLOCK' ? { color: v2.color.danger } : null]}>{safetyCopy}</T> : null}
-          {busy ? <View accessibilityLiveRegion="polite" style={s.row}>
-            <ActivityIndicator color={v2.color.teal} /><T style={s.label}>Čekamo potvrdu…</T></View> : null}
-          {props.canReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} style={{ alignSelf: 'flex-start' }} /> : null}
-        </Animated.View>
-        {conversation.messages.length ? <V2Action kind="quiet" label={`Razgovor · ${conversation.messages.length}`}
-          icon={<V2Icon name="chat" size={18} />} onPress={() => open('history')} style={{ alignSelf: 'flex-end' }} /> : null}
-      </ScrollView>
-      <SafeAreaView edges={['bottom']} style={s.composerArea}>
-        {props.error ? <T accessibilityRole="alert" style={[s.label, { color: v2.color.danger }]}>{props.error}</T> : null}
-        {props.statusCopy ? <T accessibilityLiveRegion="polite" style={s.label}>{props.statusCopy}</T> : null}
-        {props.showReadback ? <V2Action label="Proverite ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
-        <View style={s.composer}>
-          <TextInput accessibilityLabel="Poruka za AI" value={value} onChangeText={props.onChange}
-            editable={props.canEdit} placeholder="Napiši šta ti treba…" placeholderTextColor={v2.color.muted}
-            multiline maxLength={4000} style={s.input} />
-          <Press accessibilityRole="button" accessibilityLabel={pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
-            accessibilityState={{ disabled: !props.canSubmit }} disabled={!props.canSubmit} onPress={props.onSend}
-            haptic={props.canSubmit ? 'light' : 'none'} style={[s.send, !props.canSubmit ? { opacity: 0.4 } : null]}>
-            <V2Icon name="send" color={v2.color.surface} /></Press>
-        </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
-    {panel ? <Panel title={panel === 'history' ? 'Razgovor' : 'Opcije razgovora'} close={close} reduced={reduced}>
-      {panel === 'history' ? conversation.messages.map(message => <View key={message.id}
-        style={[s.historyMessage, !message.fromAi ? s.answer : null]}>
-        <T style={s.label}>{message.fromAi ? 'AI pomoć' : 'Ti'}</T><T selectable style={s.body}>{message.body}</T>
-      </View>) : <>
-        <T style={s.body}>{conversation.status === 'OPEN'
-          ? 'Povratak čuva razgovor. Možeš da ga nastaviš kasnije.' : 'Ovde možeš da pregledaš sačuvane poruke.'}</T>
-        <V2Action label="Osveži razgovor" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
-        {props.canReview ? <V2Action label={props.reviewLabel} onPress={review} /> : null}
-        {props.showAbandon ? <V2Action kind="destructive" label={props.abandonLabel} disabled={props.abandonDisabled}
-          onPress={() => { close(); props.onAbandon(); }} /> : null}
-      </>}
+      <T style={[s.cardTitle, compact && s.cardTitleCompact, !conversation.facts.length && s.cardTitleEmpty]} numberOfLines={compact ? 1 : 2}>{summary.title}</T>
+      {conversation.status === 'OPEN' ? <T variant="meta" tone="muted" numberOfLines={2}>
+        {stillNeeded.length ? `Još treba: ${stillNeededText}` : 'Sve traženo je uneto — otvori pregled'}
+      </T> : null}
+      {!compact && (summary.zone || summary.schedule) ? <View style={s.metaRows}>
+        {summary.zone ? <View style={s.metaRow}><MapPin size={16} color={sys.color.muted} /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}
+        {summary.schedule ? <View style={s.metaRow}><Clock size={16} color={sys.color.muted} /><T variant="meta" tone="muted" style={s.metaText}>{summary.schedule}</T></View> : null}
+      </View> : null}
+      {compact && summary.zone ? <T variant="meta" tone="muted" numberOfLines={1}>{summary.zone}</T> : null}
+      {!compact && (summary.price || summary.people) ? <View style={s.cardFoot}>
+        {summary.price ? <T style={s.money}>{summary.price}</T> : <View style={s.grow} />}
+        {summary.people ? <View style={s.peopleRow}><Users size={18} color={sys.color.ink} /><T variant="meta" style={s.people}>{summary.people}</T></View> : null}
+      </View> : null}
+    </Press>}
+    actions={<>
+      {/* Only a hard block belongs in the thread. REVIEW and CLARIFY are descriptions of
+          state, not requests, and they live in the options panel with the commands. */}
+      {safetyCopy && conversation.safety === 'BLOCK'
+        ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : null}
+    </>}
+    // A fragment is truthy even when every branch inside it is null, which drew an empty
+    // panel in the thread. The slot is filled only when there is something to act on.
+    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !needsPoint ? undefined : <>
+      {needsPoint && !pointAskHidden ? <>
+        <T variant="note" style={s.muted}>{gap.total > 1
+          ? 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe. Dve tačke, dva dodira.'
+          : 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe.'}</T>
+        <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>
+          <ConversationPointAsk conversationId={conversation.conversationId}
+            onSaved={props.onRefresh} onClose={() => setPointAskHidden(true)} />
+        </Suspense>
+      </> : null}
+      {needsPoint && pointAskHidden
+        ? <V2Action kind="primary" label="Pokaži mesto na mapi" onPress={() => { Keyboard.dismiss(); setPointAskHidden(false); }} /> : null}
+      {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
+      {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
+      {props.onCancelPending ? <>
+        <T variant="note" style={s.muted}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je obrada već počela, rezervisana potrošnja ostaje zadržana.</T>
+        <V2Action kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
+          disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
+      </> : null}
+      {props.showReadback ? <V2Action label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
+    </>}>
+    {panel === 'points' ? <Panel title="Mesto zadatka" close={close} reduced={reduced}>
+      <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>
+        <ConversationPointAsk conversationId={conversation.conversationId}
+          onSaved={props.onRefresh} onClose={close} />
+      </Suspense>
     </Panel> : null}
-  </SafeAreaView>;
+    {panel === 'options' ? <Panel title="Opcije razgovora" close={close} reduced={reduced}>
+      <T variant="copy" tone="muted">{conversation.status === 'OPEN'
+        ? 'Povratak čuva razgovor. Možeš da ga nastaviš kasnije.' : 'Ovde možeš da pregledaš sačuvane poruke.'}</T>
+      {safetyCopy && conversation.safety !== 'BLOCK'
+        ? <T variant="note" style={s.muted}>{safetyCopy}</T> : null}
+      <V2Action label="Osveži razgovor" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
+      {/* Reachable whenever the task has a place, not only while a point is missing, so a point
+          can also be moved without hunting for the long form. */}
+      {conversation.status === 'OPEN' && gap.total > 0
+        ? <V2Action label={needsPoint ? 'Mesto na mapi' : 'Izmeni mesto na mapi'} kind="quiet"
+          onPress={() => { close(); setPointAskHidden(false); setPanel(gap.done < gap.total ? null : 'points'); }} /> : null}
+      {props.canReview ? <V2Action label={props.reviewLabel} onPress={() => { close(); props.onReview(); }} /> : null}
+      {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled}
+        onPress={() => { close(); props.onPhotos?.(); }} /> : null}
+      {props.onNewTask ? <V2Action label="Novi Zadatak" kind="primary" disabled={props.newTaskDisabled}
+        onPress={() => { close(); props.onNewTask?.(); }} /> : null}
+      {props.showAbandon ? <V2Action kind="destructive" label={props.abandonLabel} disabled={props.abandonDisabled}
+        onPress={() => { close(); props.onAbandon(); }} /> : null}
+    </Panel> : null}
+  </AiConversationShell>;
 }
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: v2.color.canvas },
-  body: { ...v2.text.body, color: v2.color.ink }, label: { ...v2.text.label, color: v2.color.muted },
-  title: { ...v2.text.title, color: v2.color.ink },
-  cardTitle: { ...v2.text.title, fontSize: 17, lineHeight: 22, letterSpacing: -0.45, color: v2.color.ink },
-  hero: { ...v2.text.hero, fontSize: 23, lineHeight: 29, letterSpacing: -0.55, color: v2.color.ink }, center: { textAlign: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: v2.space.sm },
-  header: { flexDirection: 'row', alignItems: 'center', gap: v2.space.xs, paddingHorizontal: v2.space.md, paddingVertical: v2.space.sm,
-    backgroundColor: v2.color.header },
-  iconButton: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  content: { flexGrow: 1, paddingHorizontal: v2.space.lg, paddingBottom: v2.space.md, gap: v2.space.xl },
-  taskCard: { backgroundColor: v2.color.context, borderWidth: 1, borderColor: v2.color.contextLine, borderRadius: v2.radius.card,
-    padding: v2.space.lg, gap: v2.space.sm, overflow: 'hidden' },
-  people: { ...v2.text.label, color: v2.color.ink, paddingHorizontal: v2.space.sm, paddingVertical: v2.space.xs,
-    backgroundColor: v2.color.surface, borderRadius: v2.radius.input },
-  exchange: { gap: v2.space.md, flexGrow: 1 },
-  answer: { backgroundColor: v2.color.answer, padding: v2.space.md, gap: v2.space.xs,
-    borderRadius: 16, marginLeft: v2.space.xl },
-  // Native reading size is 15px, one step above the reference's 14px answer.
-  answerText: { ...v2.text.body, fontSize: 15, lineHeight: 23, color: v2.color.ink },
-  composerArea: { backgroundColor: v2.color.surface, borderTopColor: v2.color.line, borderTopWidth: 1,
-    paddingHorizontal: v2.space.lg, paddingTop: v2.space.md, paddingBottom: v2.space.sm, gap: v2.space.sm },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: v2.space.sm, borderWidth: 1, borderColor: v2.color.controlLine,
-    borderRadius: 20, padding: v2.space.sm },
-  input: { flex: 1, ...v2.text.body, fontSize: 15, lineHeight: 21, color: v2.color.ink, minHeight: v2.target.minimum, maxHeight: 112,
-    paddingHorizontal: v2.space.xs, paddingVertical: v2.space.md, textAlignVertical: 'top' },
-  send: { width: v2.target.minimum, height: v2.target.minimum, borderRadius: v2.radius.button,
-    backgroundColor: v2.color.ink, alignItems: 'center', justifyContent: 'center' },
-  scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#143D3566' },
-  sheet: { maxHeight: '85%', borderTopLeftRadius: v2.radius.sheet, borderTopRightRadius: v2.radius.sheet,
-    paddingHorizontal: v2.space.lg, paddingTop: v2.space.md, backgroundColor: v2.color.canvas },
-  sheetContent: { gap: v2.space.md, paddingVertical: v2.space.md },
-  historyMessage: { gap: v2.space.xs, paddingVertical: v2.space.sm },
-  unavailable: { flex: 1, padding: v2.space.xl, gap: v2.space.lg, alignItems: 'center', justifyContent: 'center' },
+  canvas: { flex: 1, backgroundColor: sys.color.surface },
+  ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger }, center: { textAlign: 'center' },
+  grow: { flex: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // A bordered panel over the thread made the conversation look like a form with a header. It is
+  // a quiet summary on the app's own wash now, and the shadow and outline are gone.
+  taskCard: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, paddingVertical: 14, paddingHorizontal: 16, gap: 8, overflow: 'hidden' },
+  // Before the conversation has said anything the card is a label, not a panel.
+  taskCardEmpty: { paddingVertical: 10, gap: 4 },
+  taskCardCompact: { borderRadius: sys.radius.cardCompact, paddingVertical: 10, paddingHorizontal: 14, gap: 4 },
+  dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
+  dotBusy: { backgroundColor: sys.color.orange },
+  kicker: { flex: 1, color: sys.color.green, letterSpacing: 0.9 },
+  detailLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  cardTitle: { ...sys.type.cardTitle, color: sys.color.ink },
+  cardTitleCompact: { ...sys.type.cardTitleCompact },
+  cardTitleEmpty: { ...sys.type.heading, color: sys.color.muted },
+  metaRows: { gap: 5 }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, metaText: { flexShrink: 1 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12, marginTop: 3 },
+  money: { ...sys.type.price, color: sys.color.money },
+  peopleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  people: { color: sys.color.ink, fontWeight: '600' },
+  reviewLink: { backgroundColor: sys.color.greenSoft, borderWidth: 0, minHeight: 51, borderRadius: sys.radius.control, justifyContent: 'flex-start', paddingHorizontal: 14 },
+  scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim },
+  sheet: { maxHeight: '85%', borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
+    paddingHorizontal: 24, paddingTop: 10, backgroundColor: sys.color.surface },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong, marginBottom: 10 },
+  sheetContent: { gap: 12, paddingVertical: 12, paddingBottom: 20 },
+  unavailable: { flex: 1, padding: 24, gap: 16, alignItems: 'center', justifyContent: 'center' },
+  unavailableMark: { width: 60, height: 60, borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
 });

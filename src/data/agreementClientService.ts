@@ -1,7 +1,9 @@
-import type { DogovorProjekcija, UcesnikProjekcija } from '../contracts/projections';
-import type { Ishod, IzmenaKomanda, Izvor } from './ports';
+import { legacyRpcFailure } from './legacyRpcFailure';
+import type { DogovorProjekcija, DogovorRadnje, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
+import { completionErrors, completionFailure } from './agreementCompletion';
+import type { Ishod, IzmenaKomanda, Izvor, PotvrdaZavrsetka } from './ports';
 import { calendarFailure } from './calendarErrors';
-import { failure, positiveInteger, readOwnedResult, record, sameId, uuid, type ReceiptAccount } from './serverReceipt';
+import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
 import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
@@ -12,16 +14,13 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type AgreementService = Pick<
   Izvor,
-  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak'
+  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak' | 'potvrdiZavrsetak'
 >;
 
 function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
   const calendar = calendarFailure(error);
   if (calendar) return calendar;
-  const value = record(error);
-  const name = typeof value?.message === 'string' ? value.message : undefined;
-  const errorCode = typeof value?.code === 'string' ? value.code : undefined;
-  return { ok: false, kod: name || errorCode || code, poruka: name || message };
+  return legacyRpcFailure(error, code, message);
 }
 
 function novac(iznos: number, valuta = 'RSD') {
@@ -49,7 +48,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
   const participants: UcesnikProjekcija[] = [
     {
       id: myId,
-      ime: myName || 'Vi',
+      ime: myName || 'Ti',
       inicijali: (myName || 'VI').slice(0, 2).toUpperCase(),
       uloga: requester ? 'narucilac' : 'uskocer',
       mesta: requester ? null : covered,
@@ -101,17 +100,67 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     problemOtvoren: Boolean(raw.problemOpened),
     ocenaMoguca: status === 'COMPLETED',
     hronologija: [{ vremeTekst: formatTime(raw.createdAt), tekst: 'Dogovor kreiran' }],
+    radnje: agreementActions(raw, uid),
   };
 }
+
+/** PKG-007 / GAP-0033: rpc_confirm_completion returns one authoritative terminal
+ * receipt for both the original confirmation and the already-completed replay. A
+ * void ACK, a foreign Agreement, a non-terminal state or an unreadable instant never
+ * counts as completion. */
+function decodeCompletionReceipt(raw: unknown, dogovorId: string): PotvrdaZavrsetka | null {
+  const receipt = record(raw);
+  if (!receipt || !sameId(receipt.agreementId, dogovorId) || receipt.state !== 'COMPLETED' ||
+    !timestamp(receipt.completedAt) || typeof receipt.idempotentReplay !== 'boolean' || receipt.authoritative !== true) return null;
+  return { zavrsenoIso: receipt.completedAt, ponovljeno: receipt.idempotentReplay };
+}
+
+/** PKG-007: the workspace's own actionState, bound to this Agreement, version and
+ * account, is the only completion authority. The list RPC carries none; anything
+ * missing, foreign, stale or malformed fails closed to null instead of a guess. */
+function agreementActions(raw: Record<string, unknown>, uid: string): DogovorRadnje | null {
+  const actions = decodeActionState(raw.actionState, raw.id, raw.currentVersion, uid);
+  return actions && { mozeOznacitiZavrsetak: actions.canMarkWorkDone, mozePotvrditiZavrsetak: actions.canConfirmCompletion,
+    izmenaNaCekanju: actions.pendingChanges.length > 0, predlogIzmene: pendingChangeSummary(raw, actions, uid) };
+}
+
+/**
+ * The pending proposal, said in words on the Dogovor itself. It blocks both completions, and until
+ * now the Dogovor showed it as one grey sentence with nothing to press, while what it proposed and
+ * who had to answer lived one screen away behind "Izmene i otkazivanje". Same validation as the
+ * Izmene reader; anything unreadable is `null`, never a guess.
+ */
+function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActionState, uid: string): PredlogIzmeneSazetak | null {
+  const proposal = actions.pendingChanges.length === 1 && uuid(raw.id) && positiveInteger(raw.currentVersion)
+    && uuid(raw.requesterAccountId) && uuid(raw.workerAccountId)
+    ? decodePendingProposal(actions.pendingChanges[0], raw.id, raw.currentVersion, raw.requesterAccountId, raw.workerAccountId) : null;
+  const accepted = decodeChangeTerms(raw.terms);
+  if (!proposal || !proposal.termsAvailable || !accepted) return null;
+  const proposed = proposal.terms, mine = sameId(proposal.proposedBy, uid);
+  const window = (terms: AgreementChangeTerms) => acceptedSchedule({ proposed_start_at: terms.startsAt, proposed_end_at: terms.endsAt });
+  const izmene: PredlogIzmeneSazetak['izmene'] = [];
+  if (proposed.priceRsd !== accepted.priceRsd) izmene.push({ polje: 'Cena', sada: novac(accepted.priceRsd).prikaz, predlog: novac(proposed.priceRsd).prikaz });
+  if (proposed.startsAt !== accepted.startsAt || proposed.endsAt !== accepted.endsAt) izmene.push({ polje: 'Termin', sada: window(accepted), predlog: window(proposed) });
+  if ((proposed.scopeNote ?? '') !== (accepted.scopeNote ?? '')) izmene.push({ polje: 'Obim', sada: accepted.scopeNote || 'Nije naveden', predlog: proposed.scopeNote || 'Nije naveden' });
+  return { id: proposal.proposalId, moj: mine, mozeOdgovoriti: !mine && actions.canRespondChange,
+    mozePovuci: mine && actions.canWithdrawChange, razlog: proposal.reason, izmene };
+}
+
+const viewerZone = (): string | undefined => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { return undefined; }
+};
 
 function acceptedSchedule(terms: Record<string, unknown>): string {
   const start = terms.proposed_start_at, end = terms.proposed_end_at;
   if (start == null && end == null) return 'Termin nije potvrđen';
   if ((start != null && (typeof start !== 'string' || calendarInstant(start) === null)) ||
     (end != null && (typeof end !== 'string' || calendarInstant(end) === null))) return 'Termin nije dostupan';
-  // The workspace returns accepted instants but no accepted display timezone.
-  // Keep both endpoints and their precision; never substitute the parent task's time.
-  return needScheduleText({ kind: 'FIXED_WINDOW', startsAt: start as string | null ?? null, endsAt: end as string | null ?? null })
+  // The workspace returns accepted instants but no accepted display timezone, and the answer to
+  // that was UTC — so a Belgrade user read every agreed window two hours early, under a printed
+  // "(UTC · zona nije navedena)". The parent task's zone is still never substituted; the instants
+  // are simply shown in the zone the reader's own phone is in, which is what a time is read in.
+  return needScheduleText({ kind: 'FIXED_WINDOW', startsAt: start as string | null ?? null, endsAt: end as string | null ?? null },
+    viewerZone())
     + (start == null ? ' · početak nije potvrđen' : end == null ? ' · kraj nije potvrđen' : '');
 }
 
@@ -130,11 +179,11 @@ export type AgreementProblemSnapshot = {
 } & ({ state: 'AVAILABLE'; report: { openedAt: string; openedBy: string; narrative: string } }
   | { state: 'ABSENT' | 'LEGACY_UNAVAILABLE'; report: null });
 const problemErrors = {
-  AUTH_REQUIRED: 'Prijavite se da biste nastavili.', NOT_PARTY: 'Nemate pristup ovom Dogovoru.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.', NOT_PARTY: 'Nemaš pristup ovom Dogovoru.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.', EXECUTION_NOT_FOUND: 'Stanje Dogovora nije dostupno.',
   AGREEMENT_NOT_REPORTABLE: 'Problem se može prijaviti samo dok je Dogovor aktivan.',
-  EXECUTION_NOT_REPORTABLE: 'Dogovor je promenjen. Proverite njegovo stanje.',
-  NARRATIVE_REQUIRED: 'Opišite problem.', NARRATIVE_TOO_LONG: 'Opis može imati najviše 4.000 znakova.',
+  EXECUTION_NOT_REPORTABLE: 'Dogovor je promenjen. Proveri njegovo stanje.',
+  NARRATIVE_REQUIRED: 'Opiši problem.', NARRATIVE_TOO_LONG: 'Opis može imati najviše 4.000 znakova.',
 };
 const problemOptions = { errors: problemErrors, fallback: 'PROBLEM_REPORT_UNCONFIRMED', invalid: 'PROBLEM_REPORT_INVALID' };
 const exactKeys = (row: Record<string, unknown>, keys: readonly string[]) =>
@@ -163,7 +212,7 @@ export const agreementProblemService = {
   read(agreementId: string, version: number, participantIds: readonly string[], account: ReceiptAccount): Promise<Ishod<AgreementProblemSnapshot>> {
     if (!uuid(agreementId) || !positiveInteger(version) || participantIds.length !== 2 ||
       !participantIds.every(uuid) || participantIds[0] === participantIds[1] || !participantIds.includes(account.accountId)) {
-      return Promise.resolve(failure('PROBLEM_REPORT_INVALID', 'Prijava problema nije dostupna. Ponovo otvorite Dogovor.'));
+      return Promise.resolve(failure('PROBLEM_REPORT_INVALID', 'Prijava problema nije dostupna. Ponovo otvori Dogovor.'));
     }
     return readOwnedResult({ ...problemOptions, account, fallback: 'PROBLEM_REPORT_READ_FAILED',
       // Existing participant RLS owns access; no raw account or private unrelated fields.
@@ -192,6 +241,265 @@ export const agreementProblemService = {
   },
 };
 
+/** Selective admission from saved M05 commit60a3ce68, with source113 action
+ * snapshot and bounds. PR101 safe errors and legacy message refusal stay intact. */
+export type AgreementChangeTerms = {
+  priceRsd: number; currency: 'RSD'; scopeNote: string | null; startsAt: string | null; endsAt: string | null;
+};
+export type AgreementChangeProposal = {
+  proposalId: string; agreementId: string; baseVersion: number; proposedBy: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED' | 'WITHDRAWN'; reason: string | null;
+  createdAt: string; respondedBy: string | null; respondedAt: string | null;
+} & ({ termsAvailable: true; terms: AgreementChangeTerms } | { termsAvailable: false; terms: null });
+export type AgreementChangeSnapshot = {
+  agreementId: string; agreementVersion: number;
+  agreementStatus: 'CONFIRMED' | 'SUPERSEDED' | 'COMPLETED' | 'CANCELLED';
+  requesterAccountId: string; workerAccountId: string;
+  terms: AgreementChangeTerms | null; proposals: AgreementChangeProposal[];
+  actions: AgreementActionState;
+};
+export type AgreementChangeReceipt = {
+  proposalId: string; accepted: boolean; agreementVersion: number; authoritative: true;
+};
+export type AgreementActionState = {
+  agreementId: string; agreementVersion: number; accountId: string; authoritative: true;
+  canProposeChange: boolean; canRespondChange: boolean; canWithdrawChange: boolean;
+  canMarkWorkDone: boolean; canConfirmCompletion: boolean; canCancel: boolean;
+};
+export type AgreementCommandReadback = { found: false } | { found: true; proposalId: string;
+  agreementId: string; baseVersion: number; proposedBy: string; status: AgreementChangeProposal['status'] };
+const actionKeys = ['canProposeChange', 'canRespondChange', 'canWithdrawChange',
+  'canMarkWorkDone', 'canConfirmCompletion', 'canCancel'] as const;
+type ServerActionState = Record<typeof actionKeys[number], boolean> & { pendingChanges: unknown[] };
+/** One validation for both readers of actionState: authoritative, bound to the exact
+ * Agreement/version/account, every capability boolean, at most one pending change. */
+function decodeActionState(raw: unknown, agreementId: unknown, version: unknown, accountId: string): ServerActionState | null {
+  const actions = record(raw);
+  if (!actions || actions.authoritative !== true || !uuid(agreementId) || !sameId(actions.agreementId, agreementId) ||
+    !positiveInteger(version) || actions.agreementVersion !== version || !sameId(actions.accountId, accountId) ||
+    actionKeys.some(key => typeof actions[key] !== 'boolean') || !Array.isArray(actions.pendingChanges) ||
+    actions.pendingChanges.length > 1) return null;
+  return { canProposeChange: actions.canProposeChange as boolean, canRespondChange: actions.canRespondChange as boolean,
+    canWithdrawChange: actions.canWithdrawChange as boolean, canMarkWorkDone: actions.canMarkWorkDone as boolean,
+    canConfirmCompletion: actions.canConfirmCompletion as boolean, canCancel: actions.canCancel as boolean,
+    pendingChanges: actions.pendingChanges };
+}
+const changeErrors = {
+  AGREEMENT_CAPABILITIES_NOT_READY: 'Radnje Dogovora još nisu spremne. Osveži prikaz kasnije.',
+  AGREEMENT_CHANGE_AFTER_WORK_DONE: 'Rad je označen kao završen. Uslovi se više ne mogu menjati.',
+  AGREEMENT_CHANGE_PENDING: 'Najpre odgovori na postojeći predlog izmene.',
+  AGREEMENT_NOT_FOUND_OR_FORBIDDEN: 'Dogovor nije dostupan.',
+  NOT_PROPOSER: 'Samo autor može da povuče ovaj predlog.',
+  CHANGE_INPUT_TOO_LARGE: 'Predlog prelazi dozvoljenu dužinu.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.', NOT_PARTY: 'Nemaš pristup ovom Dogovoru.',
+  AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.', AGREEMENT_VERSION_NOT_FOUND: 'Verzija Dogovora nije dostupna.',
+  AGREEMENT_NOT_ACTIVE: 'Dogovor više nije aktivan. Osveži njegov status.',
+  VERSION_REQUIRED: 'Ponovo učitaj važeću verziju Dogovora.', VERSION_CONFLICT: 'Dogovor je promenjen. Osveži važeće uslove.',
+  CHANGE_PATCH_REQUIRED: 'Izmeni bar jedno polje Dogovora.',
+  CLIENT_REQUEST_ID_REQUIRED: 'Zahtev nije spreman. Ponovo otvori izmenu.',
+  CHANGE_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj izmeni. Osveži predloge.',
+  UNSUPPORTED_CHANGE_FIELD: 'Predlog sadrži nepodržanu izmenu.', INVALID_PRICE: 'Unesi pozitivan ceo iznos u RSD.',
+  CHANGE_SCOPE_INVALID: 'Proveri opis obima posla.', CHANGE_CURRENCY_INVALID: 'Valuta Dogovora mora biti RSD.',
+  CHANGE_TERMS_INVALID: 'Uslovi predloga nisu dostupni za prihvatanje.',
+  CHANGE_PROPOSAL_NOT_FOUND: 'Predlog izmene nije dostupan.', PROPOSER_CANNOT_RESPOND: 'Na predlog odgovara druga strana.',
+  PROPOSAL_NOT_PENDING: 'Na ovaj predlog više nije moguće odgovoriti.', DECISION_REQUIRED: 'Izaberi odgovor na predlog.',
+  AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj dogovorenog termina.',
+  WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa potvrđenim Dogovorom. Osveži kalendar.',
+  CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.',
+};
+const changeOptions = { errors: changeErrors, fallback: 'AGREEMENT_CHANGE_UNCONFIRMED', invalid: 'AGREEMENT_CHANGE_INVALID' };
+const changeFields = ['cenaIznos', 'cenaValuta', 'pocetakIso', 'krajIso', 'obim'];
+function changePatch(command: IzmenaKomanda): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  if (command.izmena.cenaIznos !== undefined) patch.price_rsd = command.izmena.cenaIznos;
+  if (command.izmena.cenaValuta !== undefined) patch.currency = command.izmena.cenaValuta;
+  if (command.izmena.pocetakIso !== undefined) patch.proposed_start_at = command.izmena.pocetakIso;
+  if (command.izmena.krajIso !== undefined) patch.proposed_end_at = command.izmena.krajIso;
+  if (command.izmena.obim !== undefined) patch.scope_note = command.izmena.obim;
+  return patch;
+}
+// Legacy Izvor and the typed screen boundary share the same physical RPC adapters.
+function proposeChange(command: IzmenaKomanda, patch: Record<string, unknown>) {
+  return supabase.rpc('rpc_propose_agreement_change_v2', {
+    p_agreement_id: command.dogovorId, p_expected_version: command.ocekivanaVerzija,
+    p_patch: patch, p_reason: command.razlog ?? null, p_client_request_id: command.clientRequestId,
+  });
+}
+function respondChange(proposalId: string, accept: boolean) {
+  return supabase.rpc('rpc_respond_agreement_change', { p_proposal_id: proposalId, p_accept: accept });
+}
+function decodeChangeTerms(raw: unknown): AgreementChangeTerms | null {
+  const terms = record(raw);
+  if (!terms || !positiveInteger(terms.price_rsd) ||
+    (terms.scope_note != null && (typeof terms.scope_note !== 'string' || Array.from(terms.scope_note).length > 4000)) ||
+    (Object.prototype.hasOwnProperty.call(terms, 'currency') && terms.currency !== 'RSD')) return null;
+  const start = terms.proposed_start_at ?? null, end = terms.proposed_end_at ?? null;
+  if (start !== null || end !== null) {
+    const s = calendarInstant(start), e = calendarInstant(end);
+    if ((s === undefined) !== (e === undefined) || s === null || e === null || s >= e) return null;
+  }
+  return { priceRsd: terms.price_rsd, currency: 'RSD', scopeNote: terms.scope_note as string | null ?? null,
+    startsAt: start as string | null, endsAt: end as string | null };
+}
+/** The workspace owns both pending rows and capability truth. One bounded
+ * snapshot replaces the saved branch's unbounded history read and triple query.
+ * Malformed historic terms are unavailable, never normalized into new terms. */
+function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: string): AgreementChangeSnapshot | null {
+  const row = record(raw);
+  if (!row || !sameId(row.id, agreementId) || !positiveInteger(row.currentVersion) ||
+    !uuid(row.requesterAccountId) || !uuid(row.workerAccountId) || sameId(row.requesterAccountId, row.workerAccountId) ||
+    (!sameId(row.requesterAccountId, accountId) && !sameId(row.workerAccountId, accountId)) ||
+    !['CONFIRMED', 'SUPERSEDED', 'COMPLETED', 'CANCELLED'].includes(row.agreementStatus as string)) return null;
+  const actions = decodeActionState(row.actionState, agreementId, row.currentVersion, accountId);
+  if (!actions) return null;
+  const proposals: AgreementChangeProposal[] = [];
+  for (const item of actions.pendingChanges) {
+    const proposal = decodePendingProposal(item, agreementId, row.currentVersion, row.requesterAccountId, row.workerAccountId);
+    if (!proposal) return null;
+    proposals.push(proposal);
+  }
+  return { agreementId, agreementVersion: row.currentVersion,
+    agreementStatus: row.agreementStatus as AgreementChangeSnapshot['agreementStatus'],
+    requesterAccountId: row.requesterAccountId, workerAccountId: row.workerAccountId,
+    terms: decodeChangeTerms(row.terms), proposals,
+    actions: { agreementId, agreementVersion: row.currentVersion, accountId, authoritative: true,
+      canProposeChange: actions.canProposeChange, canRespondChange: actions.canRespondChange,
+      canWithdrawChange: actions.canWithdrawChange, canMarkWorkDone: actions.canMarkWorkDone,
+      canConfirmCompletion: actions.canConfirmCompletion, canCancel: actions.canCancel } };
+}
+/** One pending row of actionState, bound to this Agreement, its version and its two parties. */
+function decodePendingProposal(item: unknown, agreementId: string, currentVersion: number,
+  requesterAccountId: string, workerAccountId: string): AgreementChangeProposal | null {
+  const r = record(item);
+  if (!r || !uuid(r.id) || !positiveInteger(r.baseVersion) || r.baseVersion > currentVersion ||
+    (!sameId(r.proposedByAccountId, requesterAccountId) && !sameId(r.proposedByAccountId, workerAccountId)) ||
+    typeof r.createdAt !== 'string' || calendarInstant(r.createdAt) === null || !record(r.proposedTerms) ||
+    (r.reason !== null && (typeof r.reason !== 'string' || Array.from(r.reason).length > 4000))) return null;
+  const terms = decodeChangeTerms(r.proposedTerms);
+  return { proposalId: r.id, agreementId, baseVersion: r.baseVersion, proposedBy: r.proposedByAccountId as string,
+    status: 'PENDING', reason: r.reason as string | null, createdAt: r.createdAt, respondedBy: null, respondedAt: null,
+    ...(terms ? { termsAvailable: true as const, terms } : { termsAvailable: false as const, terms: null }) };
+}
+function changeAccount(account: ReceiptAccount): ReceiptAccount | null {
+  return account && uuid(account.accountId) && Number.isSafeInteger(account.accountRevision) && account.accountRevision >= 0
+    ? { accountId: account.accountId, accountRevision: account.accountRevision } : null;
+}
+async function changeResponse(request: PromiseLike<unknown>): Promise<unknown> {
+  const response = await request, result = record(response), error = record(result?.error);
+  return error?.code === '40001' || error?.code === '40P01'
+    ? { data: null, error: { message: 'CALENDAR_RECHECK_REQUIRED' } } : response;
+}
+
+export const agreementChangeService = {
+  /** Exact existing participant-RLS row, never a newest-row inference. Request
+   * keys are additionally scoped to their author; no proposal body is returned. */
+  readCommand(agreementId: string, key: { clientRequestId: string } | { proposalId: string }, account: ReceiptAccount): Promise<Ishod<AgreementCommandReadback>> {
+    const owner = changeAccount(account), selector = record(key), byId = selector !== null && Object.hasOwn(selector, 'proposalId');
+    const value = byId ? selector?.proposalId : selector?.clientRequestId;
+    if (!owner || !selector || !exactKeys(selector, [byId ? 'proposalId' : 'clientRequestId']) || !uuid(agreementId) || typeof value !== 'string' || (byId ? !uuid(value)
+      : !value.trim() || Array.from(value).length > 200))
+      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Potvrda radnje nije dostupna.'));
+    return readOwnedResult({ ...changeOptions, account: owner, fallback: 'AGREEMENT_CHANGE_READ_FAILED',
+      request: () => {
+        const query = supabase.from('agreement_change_proposals').select('id,agreement_id,base_version,proposed_by_account_id,status').eq('agreement_id', agreementId);
+        return (byId ? query.eq('id', value) : query.eq('proposed_by_account_id', owner.accountId).eq('client_request_id', value)).maybeSingle();
+      },
+      decode: raw => {
+        if (raw === null) return { found: false };
+        const row = record(raw);
+        if (!row || !exactKeys(row, ['id', 'agreement_id', 'base_version', 'proposed_by_account_id', 'status'])
+          || !uuid(row.id) || !sameId(row.agreement_id, agreementId) || !positiveInteger(row.base_version) || !uuid(row.proposed_by_account_id)
+          || (byId ? !sameId(row.id, value) : !sameId(row.proposed_by_account_id, owner.accountId))
+          || !['PENDING', 'ACCEPTED', 'REJECTED', 'SUPERSEDED', 'WITHDRAWN'].includes(row.status as string)) return null;
+        return { found: true, proposalId: row.id, agreementId, baseVersion: row.base_version,
+          proposedBy: row.proposed_by_account_id, status: row.status as AgreementChangeProposal['status'] };
+      },
+    });
+  },
+  /** The existing RPC returns void. Its ACK is not a terminal-state receipt;
+   * callers still read the canonical workspace before displaying CANCELLED. */
+  cancel(agreementId: string, reason: string, account: ReceiptAccount): Promise<Ishod<{ acknowledged: true }>> {
+    const owner = changeAccount(account);
+    if (!owner || !uuid(agreementId) || typeof reason !== 'string' || !reason.trim() || Array.from(reason).length > 4000)
+      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Unesi razlog otkazivanja, do 4.000 znakova.'));
+    return readOwnedResult({ ...changeOptions, account: owner, write: true,
+      request: () => supabase.rpc('rpc_cancel_agreement', { p_agreement_id: agreementId, p_reason: reason.trim() }),
+      decode: raw => raw === null ? { acknowledged: true } : null,
+    });
+  },
+  async read(agreementId: string, account: ReceiptAccount): Promise<Ishod<AgreementChangeSnapshot>> {
+    const owner = changeAccount(account);
+    if (!uuid(agreementId) || !owner) return failure('AGREEMENT_CHANGE_INVALID', 'Dogovor nije dostupan. Ponovo ga otvori.');
+    return readOwnedResult({ ...changeOptions, account: owner, fallback: 'AGREEMENT_CHANGE_READ_FAILED',
+      request: async () => {
+        const result = await supabase.rpc('rpc_get_agreement_workspace', { p_agreement_id: agreementId });
+        if (result.error === null && record(result.data) && !record(record(result.data)?.actionState)) {
+          return { data: null, error: { message: 'AGREEMENT_CAPABILITIES_NOT_READY' } };
+        }
+        return result;
+      },
+      decode: raw => decodeChangeWorkspace(raw, agreementId, owner.accountId),
+    });
+  },
+  async propose(command: IzmenaKomanda, account: ReceiptAccount): Promise<Ishod<{ proposalId: string }>> {
+    const owner = changeAccount(account), raw = record(command), delta = record(raw?.izmena);
+    if (!owner || !raw || !uuid(raw.dogovorId) || !positiveInteger(raw.ocekivanaVerzija) || !delta ||
+      Object.keys(raw).some(key => !['dogovorId', 'ocekivanaVerzija', 'izmena', 'razlog', 'clientRequestId'].includes(key)) ||
+      Object.keys(delta).some(key => !changeFields.includes(key))) return failure('AGREEMENT_CHANGE_INVALID', 'Predlog izmene nije ispravan.');
+    if (typeof raw.clientRequestId !== 'string' || !raw.clientRequestId.trim()) return failure('CLIENT_REQUEST_ID_REQUIRED', changeErrors.CLIENT_REQUEST_ID_REQUIRED);
+    if (Array.from(raw.clientRequestId).length > 200 || (typeof raw.razlog === 'string' && Array.from(raw.razlog).length > 4000)) return failure('CHANGE_INPUT_TOO_LARGE', changeErrors.CHANGE_INPUT_TOO_LARGE);
+    if (raw.razlog !== undefined && typeof raw.razlog !== 'string') return failure('AGREEMENT_CHANGE_INVALID', 'Proveri razlog izmene.');
+    if (delta.cenaIznos !== undefined && !positiveInteger(delta.cenaIznos)) return failure('INVALID_PRICE', changeErrors.INVALID_PRICE);
+    if (delta.cenaValuta !== undefined && delta.cenaValuta !== 'RSD') return failure('CHANGE_CURRENCY_INVALID', changeErrors.CHANGE_CURRENCY_INVALID);
+    if (typeof delta.obim === 'string' && Array.from(delta.obim).length > 4000) return failure('CHANGE_INPUT_TOO_LARGE', changeErrors.CHANGE_INPUT_TOO_LARGE);
+    if (delta.obim !== undefined && typeof delta.obim !== 'string') return failure('CHANGE_SCOPE_INVALID', changeErrors.CHANGE_SCOPE_INVALID);
+    const s = delta.pocetakIso === undefined ? undefined : calendarInstant(delta.pocetakIso);
+    const e = delta.krajIso === undefined ? undefined : calendarInstant(delta.krajIso);
+    if ((s === undefined) !== (e === undefined) || s === null || e === null || (s !== undefined && e !== undefined && s >= e)) return failure('AGREEMENT_CALENDAR_INTERVAL_INVALID', changeErrors.AGREEMENT_CALENDAR_INTERVAL_INVALID);
+    const frozen = { ...command, izmena: { ...command.izmena } }, patch = Object.freeze(changePatch(frozen));
+    if (!Object.keys(patch).length) return failure('CHANGE_PATCH_REQUIRED', changeErrors.CHANGE_PATCH_REQUIRED);
+    return readOwnedResult({ ...changeOptions, account: owner, write: true,
+      request: () => changeResponse(proposeChange(frozen, patch)),
+      decode: data => uuid(data) ? { proposalId: data } : null });
+  },
+  async respond(proposal: AgreementChangeProposal, accept: boolean, account: ReceiptAccount): Promise<Ishod<AgreementChangeReceipt>> {
+    const owner = changeAccount(account);
+    if (!owner || !proposal || !uuid(proposal.proposalId) || !uuid(proposal.agreementId) || !uuid(proposal.proposedBy) ||
+      !positiveInteger(proposal.baseVersion) || typeof accept !== 'boolean' ||
+      !['PENDING', 'ACCEPTED', 'REJECTED', 'SUPERSEDED', 'WITHDRAWN'].includes(proposal.status)) return failure('AGREEMENT_CHANGE_INVALID', 'Predlog nije dostupan. Osveži Dogovor.');
+    if (sameId(proposal.proposedBy, owner.accountId)) return failure('PROPOSER_CANNOT_RESPOND', changeErrors.PROPOSER_CANNOT_RESPOND);
+    if (proposal.status !== 'PENDING' && !(accept && proposal.status === 'ACCEPTED') && !(!accept && proposal.status === 'REJECTED'))
+      return failure('PROPOSAL_NOT_PENDING', changeErrors.PROPOSAL_NOT_PENDING);
+    if (accept && (!proposal.termsAvailable || !proposal.terms || !positiveInteger(proposal.baseVersion + 1)))
+      return failure('CHANGE_TERMS_INVALID', changeErrors.CHANGE_TERMS_INVALID);
+    const proposalId = proposal.proposalId, expectedVersion = proposal.baseVersion + (accept ? 1 : 0);
+    return readOwnedResult({ ...changeOptions, account: owner, write: true,
+      request: () => changeResponse(respondChange(proposalId, accept)),
+      decode: raw => {
+        const row = record(raw);
+        return row && exactKeys(row, ['proposalId', 'accepted', 'agreementVersion', 'authoritative']) &&
+          sameId(row.proposalId, proposalId) && row.accepted === accept && row.agreementVersion === expectedVersion && row.authoritative === true
+          ? row as AgreementChangeReceipt : null;
+      } });
+  },
+  withdraw(proposalId: string, account: ReceiptAccount): Promise<Ishod<{
+    proposalId: string; status: 'WITHDRAWN'; idempotentReplay: boolean; authoritative: true;
+  }>> {
+    const owner = changeAccount(account);
+    if (!owner || !uuid(proposalId)) return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Predlog nije dostupan.'));
+    return readOwnedResult({ ...changeOptions, account: owner, write: true,
+      request: () => changeResponse(supabase.rpc('rpc_withdraw_agreement_change', { p_proposal_id: proposalId })),
+      decode: raw => {
+        const row = record(raw);
+        return row && exactKeys(row, ['proposalId', 'status', 'idempotentReplay', 'authoritative']) &&
+          sameId(row.proposalId, proposalId) && row.status === 'WITHDRAWN' &&
+          typeof row.idempotentReplay === 'boolean' && row.authoritative === true
+          ? { proposalId: row.proposalId, status: 'WITHDRAWN', idempotentReplay: row.idempotentReplay, authoritative: true } : null;
+      } });
+  },
+
+};
+
 /**
  * Canonical production client boundary for Agreement operations migrated so far.
  * Backend authority remains in canonical Agreement RPCs; this service preserves
@@ -201,7 +509,7 @@ export const agreementClientService: AgreementService = {
   async mojiDogovori() {
     const uid = await userId();
     const { data, error } = await supabase.rpc('rpc_list_my_agreements');
-    if (error) throw new Error(error.message || 'AGREEMENT_LIST_FAILED');
+    if (error) throw new Error('AGREEMENT_LIST_FAILED');
     if (!Array.isArray(data)) throw new Error('AGREEMENT_LIST_INVALID_PROJECTION');
     return data.map((row) => mapAgreement(row, uid));
   },
@@ -211,50 +519,31 @@ export const agreementClientService: AgreementService = {
     const { data, error } = await supabase.rpc('rpc_get_agreement_workspace', {
       p_agreement_id: id,
     });
-    if (error) throw new Error(error.message || 'AGREEMENT_READ_FAILED');
+    if (error) throw new Error('AGREEMENT_READ_FAILED');
     if (!data) return null;
     return mapAgreement(data, uid);
   },
 
-  async posaljiPoruku(dogovorId, telo) {
-    const body = telo.trim();
-    if (!body) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
-    const { data, error } = await supabase.rpc('rpc_send_agreement_message', {
-      p_agreement_id: dogovorId,
-      p_body: body,
-    });
-    if (error || !data) return fail(error, 'MESSAGE_SEND_FAILED', 'Poruka nije poslata.');
-    return { ok: true, podatak: { porukaId: data } };
+  async posaljiPoruku(_dogovorId, telo) {
+    if (!telo.trim()) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesi poruku.' };
+    return { ok: false, kod: 'MESSAGE_RETRY_KEY_REQUIRED',
+      poruka: 'Otvori Poruke u Dogovoru i pošalji poruku iz tog prikaza.' };
   },
 
   async predloziIzmenu(k: IzmenaKomanda) {
-    const patch: Record<string, unknown> = {};
-    if (k.izmena.cenaIznos !== undefined) patch.price_rsd = k.izmena.cenaIznos;
-    if (k.izmena.cenaValuta !== undefined) patch.currency = k.izmena.cenaValuta;
-    if (k.izmena.pocetakIso !== undefined) patch.proposed_start_at = k.izmena.pocetakIso;
-    if (k.izmena.krajIso !== undefined) patch.proposed_end_at = k.izmena.krajIso;
-    if (k.izmena.obim !== undefined) patch.scope_note = k.izmena.obim;
+    const patch = changePatch(k);
 
     if (!Object.keys(patch).length) {
-      return { ok: false, kod: 'CHANGE_PATCH_REQUIRED', poruka: 'Izmenite bar jedno polje Dogovora.' };
+      return { ok: false, kod: 'CHANGE_PATCH_REQUIRED', poruka: 'Izmeni bar jedno polje Dogovora.' };
     }
 
-    const { data, error } = await supabase.rpc('rpc_propose_agreement_change_v2', {
-      p_agreement_id: k.dogovorId,
-      p_expected_version: k.ocekivanaVerzija,
-      p_patch: patch,
-      p_reason: k.razlog ?? null,
-      p_client_request_id: k.clientRequestId,
-    });
+    const { data, error } = await proposeChange(k, patch);
     if (error || !data) return fail(error, 'CHANGE_PROPOSAL_FAILED', 'Predlog izmene nije sačuvan.');
     return { ok: true, podatak: { predlogId: data } };
   },
 
   async odgovoriNaIzmenu(predlogId, prihvatam) {
-    const { error } = await supabase.rpc('rpc_respond_agreement_change', {
-      p_proposal_id: predlogId,
-      p_accept: prihvatam,
-    });
+    const { error } = await respondChange(predlogId, prihvatam);
     if (error) return fail(error, 'CHANGE_RESPONSE_FAILED', 'Odgovor na izmenu nije sačuvan.');
     return { ok: true, podatak: null };
   },
@@ -268,7 +557,18 @@ export const agreementClientService: AgreementService = {
     const { data, error } = await supabase.rpc('rpc_mark_work_done', {
       p_agreement_id: dogovorId,
     });
-    if (error || !data) return fail(error, 'COMPLETION_FAILED', 'Završetak nije mogao da se označi.');
+    // PKG-007: the pending-change and completion guards are known denials with their own copy.
+    if (error || !data) return completionFailure(error) ?? fail(error, 'COMPLETION_FAILED', 'Završetak nije mogao da se označi.');
     return { ok: true, podatak: { rokPotvrdeIso: data } };
+  },
+
+  /** PKG-007 / GAP-0033: sole production owner of the requester confirmation. The
+   * server's structured terminal receipt (original or already-completed replay) is
+   * required; the screen still confirms only by reading COMPLETED back. */
+  async potvrdiZavrsetak(dogovorId) {
+    if (!uuid(dogovorId)) return failure('COMPLETION_COMMAND_INVALID', 'Dogovor nije dostupan. Ponovo ga otvori.');
+    return readOwnedResult({ write: true, errors: completionErrors, fallback: 'COMPLETION_UNCONFIRMED', invalid: 'COMPLETION_RECEIPT_INVALID',
+      request: () => supabase.rpc('rpc_confirm_completion', { p_agreement_id: dogovorId }),
+      decode: raw => decodeCompletionReceipt(raw, dogovorId) });
   },
 };

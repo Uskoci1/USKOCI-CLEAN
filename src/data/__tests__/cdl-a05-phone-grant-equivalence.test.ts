@@ -77,11 +77,11 @@ describe('CDL-A05 — canonical phone grant contract', () => {
   });
 
   it.each([
-    ['grant message', 'podeliTelefon', { message: 'GRANT_DENIED', code: '42501' }, { ok: false, kod: 'GRANT_DENIED', poruka: 'GRANT_DENIED' }],
-    ['grant code', 'podeliTelefon', { code: '42501' }, { ok: false, kod: '42501', poruka: 'Broj telefona nije podeljen.' }],
+    ['grant message', 'podeliTelefon', { message: 'GRANT_DENIED', code: '42501' }, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
+    ['grant code', 'podeliTelefon', { code: '42501' }, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
     ['grant fallback', 'podeliTelefon', {}, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
-    ['revoke message', 'opoziviTelefon', { message: 'REVOKE_DENIED', code: '42501' }, { ok: false, kod: 'REVOKE_DENIED', poruka: 'REVOKE_DENIED' }],
-    ['revoke code', 'opoziviTelefon', { code: '42501' }, { ok: false, kod: '42501', poruka: 'Deljenje telefona nije opozvano.' }],
+    ['revoke message', 'opoziviTelefon', { message: 'REVOKE_DENIED', code: '42501' }, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
+    ['revoke code', 'opoziviTelefon', { code: '42501' }, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
     ['revoke fallback', 'opoziviTelefon', {}, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
   ])('preserves active error mapping: %s', async (_label, method, error, expected) => {
     resetRpc({ data: null, error });

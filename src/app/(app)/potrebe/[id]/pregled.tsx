@@ -1,57 +1,49 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../../../contracts/projections';
-import type { PublicationEvaluation, PublishNeedCommand, PublishNeedReceipt } from '../../../../contracts/publication';
 import type { Ishod } from '../../../../data/ports';
 import { aiNeedV2Izvor } from '../../../../data';
-import { publicationClientService, decodePublicationEvaluation } from '../../../../data/publicationClientService';
-import { failure, positiveInteger, sameId, timestamp, uuid } from '../../../../data/serverReceipt';
+import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
 import { ru4Production } from '../../../../data/ru4Production';
+import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } from '../../../../data/remainingSearchCloseAttempt';
+import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
+import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
+import { NeedLifecycleActions } from '../../../../ui/needs/NeedLifecycleActions';
+import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { useIzvor } from '../../../../store/uloga';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
-type Snapshot = { need: PotrebaProjekcija; remainingClosed: boolean; evaluation: PublicationEvaluation | null };
-type Attempt = { command: PublishNeedCommand; needsReadback: boolean };
-// These explicit B07 rejections did not accept this command. Transport failures
-// and unreadable receipts retain the original intent until an owned readback.
-const REJECTED_PUBLICATION = new Set(['AUTH_REQUIRED', 'NEED_NOT_OWNED', 'NEED_NOT_FOUND', 'NEED_NOT_DRAFT',
-  'NEED_REVISION_STALE', 'PUBLICATION_CONTEXT_STALE', 'PUBLICATION_CONTEXT_NOT_READY', 'PUBLICATION_DECISION_STALE',
-  'PUBLICATION_DECISION_CONTEXT_STALE',
-  'PUBLICATION_DECISION_FINGERPRINT_STALE', 'PUBLICATION_DECISION_NOT_ALLOW', 'PUBLICATION_POLICY_STALE',
-  'POLICY_BUNDLE_NOT_READY', 'POLICY_CONTENT_NOT_READY', 'PUBLICATION_LOCATION_INCOMPLETE',
-  'RESPONSE_DEADLINE_INVALID', 'IDEMPOTENCY_KEY_REUSED']);
-const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvorite Zadatak i pregledajte trenutno stanje.');
-function matchesReceipt(receipt: PublishNeedReceipt, command: PublishNeedCommand) {
-  return receipt && sameId(receipt.needId, command.needId) && receipt.status === 'PUBLISHED'
-    && timestamp(receipt.publishedAt) && receipt.responseDeadline === command.responseDeadline
-    && typeof receipt.idempotentReplay === 'boolean';
-}
+type Snapshot = { need: PotrebaProjekcija; remainingClosed: boolean };
+const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvori Zadatak i pregledaj trenutno stanje.');
 
 export default function PregledPotrebe() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = typeof params.id === 'string' ? params.id : '';
   const { user, accountRevision } = useSesija();
-  const intent = useUloga();
-  return <OwnedNeed key={`${id}:${user?.id ?? ''}:${accountRevision}:${intent}`} id={id} />;
+  return <OwnedNeed key={`${id}:${user?.id ?? ''}:${accountRevision}`} id={id} />;
 }
 function OwnedNeed({ id }: { id: string }) {
-  const izvor = useIzvor(), intent = useUloga();
+  const izvor = useIzvor();
   const { user, accountRevision } = useSesija();
   const accountId = user?.id;
-  const identity = useMemo(() => ({}), [id, izvor, intent, accountId, accountRevision]);
+  const identity = useMemo(() => ({}), [id, izvor, accountId, accountRevision]);
   const latestIdentity = useRef(identity); latestIdentity.current = identity;
   const focus = useRef<object | null>(null), life = useRef(0), navigating = useRef(false), dialog = useRef<object | null>(null);
   const foreground = useRef(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const [lifecycle, setLifecycle] = useState(0);
-  const attempt = useRef<Attempt | null>(null);
   const reading = useRef<object | null>(null);
-  const [publishedReceipt, setPublishedReceipt] = useState(false);
+  // An unconfirmed close keeps its command identity for the explicit retry; the
+  // owner remounts on id/account, so the attempt never outlives them.
+  const closeAttempt = useRef<RemainingSearchCloseAttempt | null>(null);
+  const [terminalActive, setTerminalActive] = useState(false);
+  const terminalActiveRef = useRef(false);
+  const setTerminal = useCallback((active: boolean) => { terminalActiveRef.current = active; setTerminalActive(active); }, []);
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; life.current++; navigating.current = false;
     foreground.current = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
@@ -59,11 +51,10 @@ function OwnedNeed({ id }: { id: string }) {
       const active = state === 'active';
       if (active === foreground.current) return;
       foreground.current = active; life.current++; dialog.current = null;
-      if (attempt.current) attempt.current.needsReadback = true;
       setLifecycle(value => value + 1);
     });
     return () => { subscription.remove(); if (focus.current === scope) focus.current = null;
-      life.current++; dialog.current = null; if (attempt.current) attempt.current.needsReadback = true; };
+      life.current++; dialog.current = null; };
   }, [identity]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const owner = focus.current, generation = life.current, invocation = {};
@@ -71,7 +62,7 @@ function OwnedNeed({ id }: { id: string }) {
     const current = () => owner !== null && focus.current === owner && foreground.current && life.current === generation
       && reading.current === invocation
       && latestIdentity.current === identity && sesijaSada().user?.id === accountId
-      && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+      && sesijaSada().accountRevision === accountRevision;
     const load = async (): Promise<Ishod<Snapshot>> => {
       if (!current()) return changed();
       if (!uuid(id)) return failure('NEED_REQUIRED', 'Zadatak nije izabran.');
@@ -83,38 +74,55 @@ function OwnedNeed({ id }: { id: string }) {
       const search = await ru4Production.remainingSearchState(id);
       if (!current()) return changed();
       if (!search || typeof search.closed !== 'boolean') return failure('NEED_INVALID_RESPONSE', 'Pregled Zadatka nije potvrđen.');
-      if (attempt.current) {
-        if (attempt.current.command.expectedRevision !== need.revizija || need.stanje !== 'NACRT') attempt.current = null;
-        else attempt.current.needsReadback = false;
-      }
-      return { ok: true, podatak: { need, remainingClosed: search.closed, evaluation: null } };
+      return { ok: true, podatak: { need, remainingClosed: search.closed } };
     };
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([load(), new Promise<Ishod<Snapshot>>(resolve => {
-        timer = setTimeout(() => resolve(failure('NEED_READ_TIMEOUT', 'Učitavanje traje predugo. Proverite vezu i pokušajte ponovo.')), 15_000);
+        timer = setTimeout(() => resolve(failure('NEED_READ_TIMEOUT', 'Učitavanje traje predugo. Proveri vezu i pokušaj ponovo.')), 15_000);
       })]);
-    } catch { return failure('NEED_READ_FAILED', 'Zadatak trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.'); }
+    } catch { return failure('NEED_READ_FAILED', 'Zadatak trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.'); }
     finally {
       if (timer !== undefined) clearTimeout(timer);
       // SDK reads may finish after the timeout. Retire their side-effect authority.
       if (reading.current === invocation) reading.current = null;
     }
-  }, [id, identity, izvor, accountId, accountRevision, intent, lifecycle]);
+  }, [id, identity, izvor, accountId, accountRevision, lifecycle]);
   const editor = useOwnedEditor(read);
   const potreba = editor.data?.need ?? null;
+  // A draft is told why it cannot be published, by the gate that decides it rather than by a
+  // guess. Read-only: it reports, and the server decides again when publishing is attempted.
+  const [readiness, setReadiness] = useState<NeedPublicationReadiness | null>(null);
   const preostalaPotragaZatvorena = editor.data?.remainingClosed ?? false;
   const ucitava = editor.loading, greska = editor.error, akcijaUToku = editor.busy || editor.uncertain;
   const renderedFocus = focus.current, renderedLife = life.current;
   const latestData = useRef(editor.data); latestData.current = editor.data;
   const current = () => focus.current !== null && focus.current === renderedFocus && foreground.current
     && life.current === renderedLife && latestIdentity.current === identity && latestData.current === editor.data
-    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
-  const canAct = () => current() && intent === 'narucilac' && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
+    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
+  useEffect(() => {
+    setReadiness(null);
+    // Gated on the app's mode, this once never ran for an owner standing in the other mode, so his own draft answered
+    // with the old promise "Sledeće: pregled i objava jednim korakom" - for a draft the publish gate
+    // would have refused. Ownership is the server's business and it checks it.
+    const draft = potreba && potreba.stanje === 'NACRT';
+    if (!draft || !potreba) return;
+    const scope = focus.current, lifeAt = life.current, ownedBy = latestIdentity.current;
+    let alive = true;
+    void needPublicationReadiness.read(potreba.id, potreba.revizija).then(result => {
+      // A late answer must not land on another account, another task or another focus.
+      if (!alive || focus.current !== scope || life.current !== lifeAt || latestIdentity.current !== ownedBy) return;
+      setReadiness(result.ok ? result.podatak : { kind: 'UNKNOWN' });
+    }, () => {});
+    return () => { alive = false; };
+  }, [potreba?.id, potreba?.revizija, potreba?.stanje, identity, lifecycle]);
+  // This screen shows a Zadatak returned by the owner-only read, so whoever sees it owns it; the
+  // server checks that again on every command. No app-wide mode stands in for that any more.
+  const canAct = () => current() && !terminalActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
   const navigate = (action: () => void) => { if (!current() || navigating.current) return;
     dialog.current = null; navigating.current = true; action(); };
   const refresh = () => { if (!current() || editor.busy) return; dialog.current = null;
-    if (attempt.current) attempt.current.needsReadback = true; void editor.refresh(); };
+    void editor.refresh(); };
   const ask = (title: string, description: string, label: string, command: () => Promise<void>) => {
     if (!canAct() || dialog.current) return;
     const confirmation = {}; dialog.current = confirmation;
@@ -124,88 +132,55 @@ function OwnedNeed({ id }: { id: string }) {
         dialog.current = null; void command(); },
     }], { cancelable: true, onDismiss: cancel });
   };
-  const evaluate = async () => {
-    if (!canAct() || !potreba || potreba.stanje !== 'NACRT' || attempt.current) return;
-    const request = { needId: potreba.id, expectedRevision: potreba.revizija };
-    await editor.save(async () => {
-      const result = await publicationClientService.evaluate(request);
-      if (!current()) return changed();
-      if (!result.ok) return result;
-      const evaluation = decodePublicationEvaluation(result.podatak, request);
-      if (evaluation?.kind === 'NOT_READY' && evaluation.code === 'NEED_CHANGED') {
-        return failure('NEED_CHANGED', 'Zadatak je promenjen. Učitajte trenutno stanje pre nove provere.');
-      }
-      return evaluation ? { ok: true, podatak: { ...editor.data!, evaluation } }
-        : failure('PUBLICATION_INVALID_RESPONSE', 'Rezultat provere nije potvrđen. Učitajte Zadatak ponovo.');
-    });
-  };
-  const publish = async (command: PublishNeedCommand) => {
-    if (!canAct() || !potreba || potreba.stanje !== 'NACRT' || command.needId !== potreba.id
-      || command.expectedRevision !== potreba.revizija) return;
-    await editor.save(async () => {
-      attempt.current = { command, needsReadback: true };
-      const result = await publicationClientService.publish(command);
-      if (!current()) return changed();
-      if (!result.ok) {
-        if (REJECTED_PUBLICATION.has(result.kod)) attempt.current = null;
-        return result;
-      }
-      if (!matchesReceipt(result.podatak, command)) return failure('PUBLICATION_INVALID_RESPONSE', 'Objava nije potvrđena. Učitajte trenutno stanje pre novog pokušaja.');
-      attempt.current = null; setPublishedReceipt(true);
-      return read();
-    });
-  };
-  const confirmPublish = () => {
-    if (!canAct() || !potreba || potreba.stanje !== 'NACRT' || attempt.current) return;
-    const evaluation = editor.data?.evaluation;
-    const decision = evaluation?.kind === 'DECISION' ? evaluation.decision : null;
-    if (!decision || decision.needId !== potreba.id || decision.needRevision !== potreba.revizija
-      || !decision.authoritative || decision.outcome !== 'ALLOW' || !decision.publishable) return;
-    ask('Objavi Zadatak?', 'Objavljujete pregledanu verziju Zadatka. Dodatni rok za prijave nije izabran. Tačna lokacija i privatne napomene ostaju privatni.',
-      'Objavi Zadatak', async () => publish({ needId: potreba.id, expectedRevision: potreba.revizija,
-        decisionSequence: decision.decisionSequence, responseDeadline: null, clientRequestId: noviZahtevId('objava'), confirmed: true }));
-  };
-  const retryPublish = () => {
-    const previous = attempt.current;
-    if (!canAct() || !previous || previous.needsReadback) return;
-    ask('Ponovi isti zahtev?', 'Ponavljate prethodni zahtev za objavu iste verzije. Dodatni rok za prijave nije izabran.',
-      'Ponovi isti zahtev', async () => { if (attempt.current === previous) await publish(previous.command); });
-  };
   const zatvoriPreostaluPotragu = () => {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
     ask('Ne traži više nikoga?', `Zatvorićemo potragu za preostalih ${potreba.pokrivenost.preostalo} mesta. Postojeći Dogovori i originalni uslovi Zadatka ostaju nepromenjeni.`,
       'Zatvori potragu', async () => { await editor.save(async () => {
-        const result = await ru4Production.closeRemainingSearch(potreba.id, potreba.revizija, noviZahtevId('zatvori-preostalu-potragu'));
+        const attempt = retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'));
+        closeAttempt.current = attempt;
+        const result = await ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId);
         if (!current()) return changed();
-        return result.ok ? read() : failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitajte trenutno stanje.');
+        if (!result.ok) return failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitaj trenutno stanje.');
+        const after = await read();
+        if (!current()) return changed();
+        if (!after.ok) return after;
+        if (after.podatak.remainingClosed) closeAttempt.current = null;
+        return after.podatak.remainingClosed ? after
+          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Server nije potvrdio zatvaranje preostale potrage. Učitaj trenutno stanje.');
       }); });
   };
+  const openOwnedReview = async (destination: '/nova' | '/pregled-zadatka') => {
+    if (!canAct() || !potreba || potreba.pokrivenost.popunjeno !== 0 || preostalaPotragaZatvorena || potreba.stanje === 'ZATVORENA') return;
+    await editor.save(async () => {
+      const result = await aiNeedV2Izvor.openEditConversation(potreba.id);
+      if (!current()) return changed();
+      if (!result.ok) return result;
+      if (!sameId(result.podatak.needId, potreba.id) || !uuid(result.podatak.conversationId) || !positiveInteger(result.podatak.revision)
+        || result.podatak.authoritative !== true || !['DRAFT', 'PUBLISHED', 'SELECTION'].includes(result.podatak.needStatus)) {
+        return failure('NEED_EDIT_INVALID_RESPONSE', 'Otvaranje izmene nije potvrđeno. Učitaj Zadatak ponovo.');
+      }
+      if (result.podatak.revision !== potreba.revizija || (potreba.stanje === 'NACRT' && result.podatak.needStatus !== 'DRAFT')) {
+        return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitaj trenutno stanje pre otvaranja izmene.');
+      }
+      navigate(() => router.push({ pathname: destination, params: { conversationId: result.podatak.conversationId } }));
+      return { ok: true, podatak: editor.data! };
+    });
+  };
   const otvoriIzmenu = () => {
-    if (!canAct() || !potreba || attempt.current || potreba.pokrivenost.popunjeno !== 0 || preostalaPotragaZatvorena || potreba.stanje === 'ZATVORENA') return;
-    ask(potreba.stanje === 'NACRT' ? 'Izmeni nacrt?' : 'Izmena Zadatka', potreba.stanje === 'NACRT'
-      ? 'Otvorićete sačuvani Zadatak za pregled i ispravke. Posle čuvanja potrebna je nova provera za objavu.'
-      : 'Dok traje izmena, Zadatak privremeno prestaje da prima nove Prijave. Posle čuvanja prolazi ponovnu proveru, a postojeće Prijave će morati da se osveže. Postojeći Dogovori se ne menjaju.',
-      'Nastavite', async () => { await editor.save(async () => {
-        const result = await aiNeedV2Izvor.openEditConversation(potreba.id);
-        if (!current()) return changed();
-        if (!result.ok) return result;
-        if (!sameId(result.podatak.needId, potreba.id) || !uuid(result.podatak.conversationId) || !positiveInteger(result.podatak.revision)
-          || result.podatak.authoritative !== true || !['DRAFT', 'PUBLISHED', 'SELECTION'].includes(result.podatak.needStatus)) {
-          return failure('NEED_EDIT_INVALID_RESPONSE', 'Otvaranje izmene nije potvrđeno. Učitajte Zadatak ponovo.');
-        }
-        if (result.podatak.revision !== potreba.revizija || (potreba.stanje === 'NACRT' && result.podatak.needStatus !== 'DRAFT')) {
-          return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitajte trenutno stanje pre otvaranja izmene.');
-        }
-        navigate(() => router.push({ pathname: '/nova', params: { conversationId: result.podatak.conversationId } }));
-        return { ok: true, podatak: editor.data! };
-      }); });
+    if (!canAct() || !potreba) return;
+    if (potreba.stanje === 'NACRT') { void openOwnedReview('/nova'); return; }
+    ask('Izmena Zadatka', 'Izmene pregledaš pre objave. Prihvatanje nove verzije ponovo pokreće proveru za objavu i postojeće Prijave tada moraju da se osveže.',
+      'Nastavi', async () => openOwnedReview('/nova'));
   };
 
   return <NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
-    error={greska} busy={akcijaUToku} ownerIntent={intent === 'narucilac'} remainingClosed={preostalaPotragaZatvorena}
-    publishedReceipt={publishedReceipt} evaluation={editor.data?.evaluation ?? null}
-    retrying={!!attempt.current && !attempt.current.needsReadback}
-    onBack={() => navigate(() => router.back())} onRefresh={refresh} onEvaluate={() => { void evaluate(); }}
-    onPublish={confirmPublish} onRetry={retryPublish} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
+    photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
+    qaAction={potreba ? <TaskQaEntry disabled={!canAct()}
+      onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } })); }} /> : undefined}
+    lifecycleActions={uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}
+      disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
+    error={greska} busy={akcijaUToku || terminalActive} remainingClosed={preostalaPotragaZatvorena}
+    readiness={readiness}
+    onBack={() => navigate(() => router.back())} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
     onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />;
 }

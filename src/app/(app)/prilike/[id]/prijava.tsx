@@ -3,10 +3,11 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from '../../../../contracts/projections';
 import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../../../data/applicationSelectionClientService';
+import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { useIzvor } from '../../../../store/uloga';
 import { ApplicationSelectionPresentation, SelectionUnavailable, type ApplicationDraft } from '../../../../ui/v2/ApplicationSelectionPresentation';
 
 type Receipt = { prijavaId: string; verzija: number; hash: string };
@@ -15,11 +16,13 @@ type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opport
 export default function Prijava() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
-  const izvor = useIzvor(), router = useRouter(), role = useUloga();
+  const izvor = useIzvor(), router = useRouter();
   const { user, accountRevision } = useSesija();
   // One uncertain intent survives a retained tab, but never an A→B→A transition.
-  const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }),
-    [id, izvor, user?.id, accountRevision, role]);
+  // PKG-006: the same intent also survives remount/cold restore through the durable
+  // per-account/Need command journal; only its own server outcome retires it.
+  const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false,
+    journaling: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
@@ -39,8 +42,29 @@ export default function Prijava() {
       const opportunity = liveOpportunity ?? session.pending?.opportunity;
       const need = liveNeed ?? session.pending?.need;
       const profile = liveProfile ?? session.pending?.profile;
-      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite Zadatak i radni profil.' };
-      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelno stanje.' };
+      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proveri Zadatak i radni profil.' };
+      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
+      session.notice = null;
+      if (!session.pending && user?.id) {
+        // A recreated instance restores only the exact unresolved command of this account and
+        // Need. It is never resent here; the owner replays it explicitly. Corrupt storage is an
+        // explicit exit, never a replay source.
+        try {
+          const stored = await applicationCommandJournal.load(user.id, id);
+          const owned = sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision;
+          if (generation !== session.readRevision || !owned) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
+          if (stored.state === 'CORRUPT') {
+            await applicationCommandJournal.discard(user.id, id);
+            if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
+            session.notice = 'Sačuvani zapis Prijave nije čitljiv, pa je uklonjen. Proveri svoje Prijave.';
+          } else if (stored.state === 'PRESENT' && !session.pending) {
+            const command = stored.record.command;
+            session.pending = { command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
+            session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
+              start: command.predlozeniPocetak, end: command.predlozeniKraj };
+          }
+        } catch { session.notice = 'Sačuvani zahtev nije bilo moguće proveriti. Osveži prikaz.'; }
+      }
       // Displayed terms and command revision come from the same Need read.
       const displayedOpportunity = { ...opportunity, naslov: need.naslov, podrucjeTekst: need.podrucjeTekst, vremeTekst: need.vremeTekst,
         pokrivenost: need.pokrivenost, rezimCene: need.rezimCene, ponudjenaCena: need.ponudjenaCena };
@@ -49,12 +73,12 @@ export default function Prijava() {
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { opportunity: displayedOpportunity, need, profile, applications, receipt: result?.ok ? result.podatak : null } };
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   }, [id, izvor, session]);
   const editor = useOwnedEditor(read), data = editor.data;
   const focusToken = session.focusToken, readRevision = session.readRevision;
-  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision && ulogaSada() === role;
+  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
   const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
   const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
   const back = () => {
@@ -65,31 +89,41 @@ export default function Prijava() {
     else if (id) router.replace({ pathname: '/prilike/[id]', params: { id } });
     else router.replace('/prilike');
   };
-  const submit = () => {
-    if (!current() || !data || !session.draft || session.pending?.inFlight) return;
+  const submit = async () => {
+    const accountId = user?.id;
+    if (!current() || !data || !session.draft || session.pending?.inFlight || session.journaling || !accountId) return;
     const draft = session.draft;
     if (!session.pending) {
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN;
       const people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
       if (!Number.isSafeInteger(price) || price < 1 || price > 2_147_483_647 || !Number.isSafeInteger(people) ||
-          people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesite celu cenu u RSD i broj ljudi koji staje u preostala mesta.'); return; }
-      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proverite aktuelni Zadatak i aktivan radni profil.'); return; }
+          people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesi celu cenu u RSD i broj ljudi koji staje u preostala mesta.'); return; }
+      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proveri aktuelni Zadatak i aktivan radni profil.'); return; }
       const deadline = data.opportunity.rokZaPrijaveIso;
-      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osvežite Zadatak.'); return; }
+      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osveži Zadatak.'); return; }
+      const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
+        radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
+        predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null });
+      // PKG-006: the identity is durable before any I/O. Without it nothing is sent, and the
+      // composer stays editable for a plain retry (no request ever left this device).
+      session.journaling = true;
+      try { await applicationCommandJournal.save({ version: 1, accountId, needId: data.need.id, command }, current); }
+      catch { if (current()) setValidation('Zahtev nije sačuvan na uređaju. Oslobodi prostor i pokušaj ponovo.'); return; }
+      finally { session.journaling = false; }
+      if (!current() || session.pending) return;
+      session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
     }
     void editor.save(async () => {
       setValidation(null);
-      if (!session.pending) session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false,
-        command: Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
-          radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
-          predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null }) };
-      const pending = session.pending;
+      const pending = session.pending!;
       pending.inFlight = true; pending.reconciled = false;
       let result: Ishod<Receipt>;
       try { result = await izvor.podnesiPrijavu(pending.command); }
-      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proverite stanje.' }; }
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proveri stanje.' }; }
       finally { pending.inFlight = false; }
       pending.result = result;
+      // Only this command's own authoritative receipt retires the durable identity.
+      if (result.ok) await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
       if (session.focused && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
     });
@@ -100,6 +134,8 @@ export default function Prijava() {
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   const reset = pending && rejection && !editor.uncertain ? () => {
     if (!current() || editor.busy || pending.inFlight || session.pending !== pending || !pending.result || pending.result.ok) return;
+    // A known server refusal is this command's authoritative outcome; the identity may retire.
+    if (user?.id) void applicationCommandJournal.clear(user.id, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
     session.pending = null;
     session.draft = { ...session.draft!, price: data.opportunity.rezimCene === 'MY_PRICE'
       ? String(data.opportunity.ponudjenaCena?.iznos ?? '') : session.draft!.price };
@@ -108,7 +144,7 @@ export default function Prijava() {
   return <ApplicationSelectionPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = draft; setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
-    error={validation ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovite isti sačuvani zahtev.' : null)}
+    error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' : null)}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     submit={submit} back={back} refresh={refresh} reset={reset}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true; router.replace('/moje-prijave'); }} />;

@@ -67,12 +67,41 @@ describe('CB1 — deleteDraftNeed', () => {
       ['NEED_NOT_DELETABLE_DRAFT', 'nacrt'],
       ['DRAFT_MEDIA_CLEANUP_REQUIRED', 'fotografije'],
       ['DRAFT_HAS_AUTHORITATIVE_HISTORY', 'otkazati'],
-      ['FORBIDDEN', 'Vaš Zadatak'],
+      ['FORBIDDEN', 'tvoj Zadatak'],
     ] as const) {
       resetRpc({ data: null, error: { code: 'P0001', message: name } });
       const result = await needLifecycleClientService.deleteDraftNeed(NEED, 1);
       expect(result).toMatchObject({ ok: false, kod: name });
       if (!result.ok) expect(result.poruka).toContain(fragment);
     }
+  });
+});
+
+describe('P6 audit-backed readback', () => {
+  const command = { action: 'DELETE_DRAFT' as const, needId: NEED, expectedRevision: 1, reason: '' };
+  it('accepts only an authoritative matching audit receipt', async () => {
+    resetRpc({ data: { authoritative: true, action: 'DELETE_DRAFT', state: 'CONFIRMED', receipt: {
+      needId: NEED, revision: 1, deleted: true, idempotentReplay: true,
+    } }, error: null });
+    expect(await needLifecycleClientService.readCommandReceipt(command)).toMatchObject({ ok: true, podatak: { state: 'CONFIRMED' } });
+    expect(mockRpc).toHaveBeenCalledWith('rpc_get_need_lifecycle_receipt', { p_need_id: NEED, p_need_revision: 1, p_action: 'DELETE_DRAFT' });
+  });
+  it('does not manufacture success from null, an empty list, wrong owner target or a mismatched revision', async () => {
+    for (const data of [null, [], { authoritative: true, action: 'DELETE_DRAFT', state: 'CONFIRMED' },
+      { authoritative: true, action: 'DELETE_DRAFT', state: 'CONFIRMED', receipt: { needId: NEED, revision: 2, deleted: true, idempotentReplay: true } },
+      { authoritative: true, action: 'DELETE_DRAFT', state: 'CONFIRMED', receipt: { needId: 'aaaaaaaa-2222-4333-8444-555555555555', revision: 1, deleted: true, idempotentReplay: true } }]) {
+      resetRpc({ data, error: null });
+      expect(await needLifecycleClientService.readCommandReceipt(command)).toMatchObject({ ok: false, kod: 'NEED_RECEIPT_INVALID_RESPONSE' });
+    }
+  });
+  it('preserves NOT_CONFIRMED as an observation, not a denied or completed command', async () => {
+    resetRpc({ data: { authoritative: true, action: 'DELETE_DRAFT', state: 'NOT_CONFIRMED', receipt: null }, error: null });
+    expect(await needLifecycleClientService.readCommandReceipt(command)).toEqual({ ok: true, podatak: { state: 'NOT_CONFIRMED' } });
+  });
+  it('bounds reason input before any write or readback', async () => {
+    resetRpc({ data: null, error: null });
+    expect(await needLifecycleClientService.cancelNeed(NEED, 1, 'x'.repeat(501))).toMatchObject({ ok: false, kod: 'NEED_COMMAND_INVALID_INPUT' });
+    expect(await needLifecycleClientService.deleteDraftNeed(NEED, 1, 'x'.repeat(501))).toMatchObject({ ok: false, kod: 'NEED_COMMAND_INVALID_INPUT' });
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 });

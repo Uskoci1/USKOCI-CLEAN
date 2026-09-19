@@ -1,3 +1,4 @@
+import { legacyRpcFailure } from './legacyRpcFailure';
 import type { Ishod, Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 
@@ -10,19 +11,15 @@ type CommandOverrides = Pick<
   | 'objaviPotrebu'
 >;
 
-function rpcFailure<T>(error: any, fallbackCode: string, fallbackMessage: string): Ishod<T> {
-  return {
-    ok: false,
-    kod: error?.message || error?.code || fallbackCode,
-    poruka: error?.message || fallbackMessage,
-  };
+function rpcFailure<T>(error: unknown, fallbackCode: string, fallbackMessage: string): Ishod<T> {
+  return legacyRpcFailure(error, fallbackCode, fallbackMessage);
 }
 
 export const productionAuthorityOverrides: CommandOverrides = {
   async objaviPotrebu(razgovorId) {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
-      return { ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se pre objave Potrebe.' };
+      return { ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavi se pre objave Potrebe.' };
     }
 
     const { data: requesterProfile, error: profileError } = await supabase
@@ -32,7 +29,7 @@ export const productionAuthorityOverrides: CommandOverrides = {
       .eq('kind', 'REQUESTER')
       .maybeSingle();
     if (profileError || !requesterProfile) {
-      return rpcFailure(profileError, 'REQUESTER_PROFILE_REQUIRED', 'Potreban je profil Naručioca pre objave.');
+      return rpcFailure(profileError, 'REQUESTER_PROFILE_REQUIRED', 'Potreban je profil za objavu zadataka.');
     }
 
     const { data, error } = await supabase.rpc('rpc_ai_publish_need', {

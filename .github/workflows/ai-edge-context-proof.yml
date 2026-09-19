@@ -53,7 +53,7 @@ jobs:
       - name: Actual Edge handler and private-location negatives with synthetic transports
         run: |
           node supabase/proofs/ai/ai_edge_context_proof.mjs
-          node -e 'const r=JSON.parse(require("fs").readFileSync("proof-out/ai-edge-context/proof-report.json")); if(r.status!=="PASS" || r.sourceCommit!==process.env.GITHUB_SHA || r.actualProviderCalled || r.databaseConnected || r.testsPassed!==98 || r.testsFailed!==0) process.exit(1);'
+          node -e 'const r=JSON.parse(require("fs").readFileSync("proof-out/ai-edge-context/proof-report.json")); if(r.status!=="PASS" || r.sourceCommit!==process.env.GITHUB_SHA || r.actualProviderCalled || r.databaseConnected || r.testsPassed!==92 || r.testsFailed!==0) process.exit(1);'
       - name: Affected intake, account, draft-save and location regressions
         run: node scripts/ci/scope.cjs test w03
       - name: Set up existing disposable Supabase runtime

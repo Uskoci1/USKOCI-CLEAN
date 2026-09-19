@@ -1,12 +1,38 @@
+import { historicalSource108Fixture } from '../../supabase/proofs/historical_source108_fixture.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
-import {readP3RetentionPredecessorPlan} from '../../supabase/proofs/legal/p3_retention_schedule_predecessor.mjs';
+import {readP3RetentionPredecessorPlan as readCurrentPlan} from '../../supabase/proofs/legal/p3_retention_schedule_predecessor.mjs';
 import {ownedIntakeSourceBoundary,ownedIntakeForward,retentionForward,pushTransportForward,dispatchLockForward} from './owned-intake-source.mjs';
 import {prepare105,prepareNativeSuccessors,admitNativeSuccessors} from './owned-intake-proof.mjs';
 const require=createRequire(import.meta.url);
 const {classify,makePlan,testArguments}=require('./scope.cjs');
+
+// This historical planner intentionally remains closed to the larger integration source.
+const readP3RetentionPredecessorPlan = (root) => root ? readCurrentPlan(root) : historicalSource108Fixture(readCurrentPlan);
+test('the exact current source147 is admitted through the recorded manifest and keeps the SQL108 historical view', () => {
+  const current = readCurrentPlan();
+  assert.equal(current.source_migration_count, 147);
+  const boundary = ownedIntakeSourceBoundary(current);
+  assert.equal(boundary.fullPlan.source_migration_count, 147);
+  assert.equal(boundary.historicalPlan.source_migration_count, 108);
+  assert.equal(boundary.historicalPlan.proof_boundary, 'SOURCE108_HISTORICAL_VIEW_OF_ADMITTED_SOURCE147');
+  assert.equal(boundary.currentSourceAdmission.unit, 'EXACT_CURRENT_SOURCE147_ADMISSION');
+  assert.equal(boundary.currentSourceAdmission.successors_after_108, 39);
+  assert.equal(boundary.currentSourceAdmission.successors.at(-1).file, current.source_inventory.at(-1).file);
+  assert.equal(boundary.deferredSuccessors.at(-1).file, '20260910214845_clean_dispatch_need_lock_order.sql');
+});
+
+test('a current source that is not exactly the recorded 147 is rejected before any database step', () => {
+  const current = readCurrentPlan();
+  const dropLast = { ...current, source_migration_count: 146, source_inventory: current.source_inventory.slice(0, -1), pending_successors: current.pending_successors.slice(0, -1), pending_successor_count: current.pending_successor_count - 1 };
+  assert.throws(() => ownedIntakeSourceBoundary(dropLast), /CURRENT_SOURCE_COUNT_NOT_ADMITTED/);
+  const mutated = { ...current, source_inventory: current.source_inventory.map((entry, index) => index === 120 ? { ...entry, md5: '0'.repeat(32) } : entry) };
+  assert.throws(() => ownedIntakeSourceBoundary(mutated), /CURRENT_SOURCE_INVENTORY_CHANGED/);
+  const swapped = { ...current, source_inventory: [...current.source_inventory.slice(0, 108), ...current.source_inventory.slice(109), current.source_inventory[108]] };
+  assert.throws(() => ownedIntakeSourceBoundary(swapped), /CURRENT_SOURCE_INVENTORY_CHANGED/);
+});
 
 test('exact admitted108 splits at105 and106 without losing the transport successor',()=>{
   const plan=readP3RetentionPredecessorPlan(),b=ownedIntakeSourceBoundary(plan);

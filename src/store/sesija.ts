@@ -1,9 +1,8 @@
-﻿
+
 import { useSyncExternalStore } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabaseKlijent } from '../data/supabaseClient';
 import { povratniCilj } from './povratniCilj';
-import { postaviUlogu } from './uloga';
 
 type SesijaStanje = {
   isLoaded: boolean;
@@ -48,13 +47,21 @@ export function inicijalizujSesiju() {
   const finishRestore = (session: Session | null) => {
     if (trenutna.sessionEpoch === restoreEpoch) acceptSession(session);
   };
+  // Nothing bounded this read, and the native splash gives up after four seconds, so a stalled
+  // restore handed the person a white field with a spinner and no words, no retry and no way out,
+  // for as long as it hung. Every other read in the app has a bound: 10s for auth availability,
+  // 15s for recovery, 5s for the intent write. A restore that does not answer means "signed out",
+  // which lands on the entry rather than on nothing; a late real session still arrives through
+  // onAuthStateChange, which is registered above and takes precedence.
+  const bound = setTimeout(() => finishRestore(null), 8000);
+  const settle = (session: Session | null) => { clearTimeout(bound); finishRestore(session); };
   try {
     void supabase.auth.getSession().then(
-      ({ data, error }) => finishRestore(error ? null : data.session),
-      () => finishRestore(null),
+      ({ data, error }) => settle(error ? null : data.session),
+      () => settle(null),
     );
   } catch {
-    finishRestore(null);
+    settle(null);
   }
 }
 
@@ -73,8 +80,10 @@ function acceptSession(session: Session | null, signedOut = false) {
     accountRevision: trenutna.accountRevision + (identityChanged ? 1 : 0),
   };
   const epoch = trenutna.sessionEpoch;
+  // A session used to wait here, for up to 1.5 s, until a per-account UI mode had been restored from
+  // storage, and the whole app stayed on the splash until it had. There is no such mode any more
+  // (owner decision 1, 2026-09-19); the account and session fencing above is unchanged.
   if (signedOut || changedAccount) {
-    postaviUlogu('narucilac');
     pendingTargetCleanup = povratniCilj.captureSessionCleanup();
   }
   // Enqueue cleanup before a new account can prepare its own target. Retain
@@ -106,7 +115,6 @@ async function resolveReturnTarget(userId: string, epoch: number) {
     pendingRevision: pending.recordRevision,
   });
   if (!isCurrent() || !completed) return;
-  postaviUlogu(completed.intent.intent === 'WORKER' ? 'uskocer' : 'narucilac');
   // RootLayout may have checked before the asynchronous target was completed.
   trenutna = { ...trenutna, returnTargetRevision: trenutna.returnTargetRevision + 1 };
   obavesti();

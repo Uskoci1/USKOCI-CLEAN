@@ -30,6 +30,7 @@ export type ReceiptAccount = { accountId: string; accountRevision: number };
 
 /** RPC wrapper retains the same server authority and receipt validation. */
 export function readReceipt<T>(options: ReceiptOptions<T> & {
+  account?: ReceiptAccount;
   rpc: string;
   args: Record<string, unknown>;
 }): Promise<Ishod<T>> {
@@ -45,12 +46,12 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
   const owner = sesijaSada();
   const accountId = options.account?.accountId ?? owner.user?.id;
   const accountRevision = options.account?.accountRevision ?? owner.accountRevision;
-  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavite se da biste nastavili.');
+  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
   const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
-  const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvorite Zadatak.');
+  const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori Zadatak.');
   const unconfirmed = () => failure(options.fallback, options.write
-    ? 'Ishod radnje nije potvrđen. Osvežite prikaz pre ponovnog pokušaja; za ponavljanje koristite isti zahtev.'
-    : 'Podaci trenutno nisu dostupni. Proverite vezu i pokušajte ponovo.');
+    ? 'Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja; za ponavljanje koristiš isti zahtev.'
+    : 'Podaci trenutno nisu dostupni. Proveri vezu i pokušaj ponovo.');
   if (!current()) return changed();
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -71,8 +72,8 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     }
     const decoded = options.decode(result.data);
     if (decoded === null) return failure(options.invalid, options.write
-      ? 'Server nije vratio potpunu potvrdu radnje. Osvežite prikaz pre ponovnog pokušaja.'
-      : 'Server je vratio nečitljive podatke. Pokušajte ponovo.');
+      ? 'Server nije vratio potpunu potvrdu radnje. Osveži prikaz pre ponovnog pokušaja.'
+      : 'Server je vratio nečitljive podatke. Pokušaj ponovo.');
     return { ok: true, podatak: decoded };
   } catch {
     return current() ? unconfirmed() : changed();

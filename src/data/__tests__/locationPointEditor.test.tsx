@@ -11,6 +11,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails', locationStyles: { card: {} } }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
+jest.mock('../nativeCurrentLocation', () => ({ captureCurrentLocation: jest.fn() }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return key === 'View' ? 'View' : Reflect.get(target, key); } });
@@ -80,7 +81,7 @@ it('uses the real configured adapter and emits a provider pin only on explicit c
 it.each(['UNAVAILABLE', 'PROVIDER_ACTIVATION_BLOCKED', 'INVALID_QUERY', 'RATE_LIMITED'] as const)('shows the %s state without inventing a candidate', async status => {
   await render({ resolver: configured({ status }), initialQuery: 'Place' });await press('Pronađi na mapi');
   expect(text()).toContain(status === 'UNAVAILABLE' ? 'Predlozi trenutno nisu dostupni' : status === 'INVALID_QUERY'
-    ? 'Unesite mesto i proverite izabranu državu' : status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme' : 'Pretraga mesta još nije aktivirana');
+    ? 'Unesi mesto i proveri izabranu državu' : status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme' : 'Pretraga mesta još nije aktivirana');
   expect(map().props.position).toBeNull();expect(button('Potvrdi tačku: Početak').props.disabled).toBe(true);
   expect(props.onConfirm).not.toHaveBeenCalled();
 });
@@ -158,7 +159,9 @@ it('blur/refocus clears candidates and prevents retained clicks and confirmation
   mockFocused = false;await update();expect(map().props.disabled).toBe(true);
   mockFocused = true;await update();
   await act(async () => { retained(); oldConfirm(); });
-  expect(map().props.position).toBeNull();expect(field('pronađi mesto').props.value).toBe('');expect(props.onConfirm).not.toHaveBeenCalled();
+  // Blur no longer throws the seed away with the candidates: an empty field left the point ask
+  // unusable for the rest of the session. The retained handlers are still dead, which is the point.
+  expect(map().props.position).toBeNull();expect(field('pronađi mesto').props.value).toBe('Place');expect(props.onConfirm).not.toHaveBeenCalled();
 });
 
 it('a temporary disabled state invalidates an in-flight lookup before the editor is enabled again', async () => {
@@ -196,4 +199,75 @@ it('cancelling reverse lookup preserves an explicitly confirmed provider pin and
   expect(map().props.position).toEqual(candidate.position); expect(props.onInvalidate).toHaveBeenCalledTimes(invalidations);
   expect(button('Koristi privatnu adresu: '+candidate.label)).toBeUndefined();
   expect(props.onConfirm).toHaveBeenCalledTimes(1);
+});
+
+describe('autoLocate', () => {
+  it('looks up the seeded query once, without being pressed', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, autoLocate: true, initialQuery: 'Lenke Dunđerski 11, Novi Sad' });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(resolver.search.mock.calls[0][0]).toMatchObject({ text: 'Lenke Dunđerski 11, Novi Sad', countryCode: 'RS' });
+  });
+
+  it('does not look anything up when it is not asked to', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, initialQuery: 'Lenke Dunđerski 11, Novi Sad' });
+    expect(resolver.search).not.toHaveBeenCalled();
+  });
+
+  it('never moves a point the person already confirmed', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, autoLocate: true, initialQuery: 'Novi Sad',
+      point: { slot: 'start', latitudeE6: 45_255_000, longitudeE6: 19_845_000, origin: { kind: 'MANUAL_PIN' } } });
+    expect(resolver.search).not.toHaveBeenCalled();
+  });
+
+  it('does not look up an empty seed', async () => {
+    const resolver = configured();
+    await render({ resolver: resolver as never, autoLocate: true, initialQuery: '   ' });
+    expect(resolver.search).not.toHaveBeenCalled();
+  });
+});
+
+describe('use where I am', () => {
+  const capture = jest.requireMock('../nativeCurrentLocation').captureCurrentLocation as jest.Mock;
+  beforeEach(() => capture.mockReset());
+
+  it('is not offered where it was never asked for, so the long form gains no permission prompt', async () => {
+    await render({ resolver: configured() as never, initialQuery: 'Novi Sad' });
+    expect(buttons().some(node => node.props.label === 'Koristi gde sam')).toBe(false);
+  });
+
+  it('asks for the position only when pressed, and never on opening', async () => {
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    expect(capture).not.toHaveBeenCalled();
+    capture.mockResolvedValue({ kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8, capturedAt: '2026-09-18T10:00:00Z' } });
+    await press('Koristi gde sam');
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(map().props.position).toEqual({ latitude: 45.2551, longitude: 19.8451 });
+  });
+
+  it('places a pin the person still has to confirm, never a confirmed point', async () => {
+    capture.mockResolvedValue({ kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8, capturedAt: '2026-09-18T10:00:00Z' } });
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    await press('Koristi gde sam');
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(props.onInvalidate).toHaveBeenCalled();
+  });
+
+  it('says a refusal plainly and leaves the other ways open', async () => {
+    capture.mockResolvedValue({ kind: 'DENIED' });
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    await press('Koristi gde sam');
+    expect(text()).toContain('Pristup lokaciji nije dozvoljen');
+    expect(buttons().some(node => node.props.label === 'Pronađi na mapi')).toBe(true);
+  });
+
+  it('does not treat an unavailable reading as a position', async () => {
+    capture.mockResolvedValue({ kind: 'UNAVAILABLE' });
+    await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+    await press('Koristi gde sam');
+    expect(text()).toContain('Ne mogu da očitam gde si');
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
 });

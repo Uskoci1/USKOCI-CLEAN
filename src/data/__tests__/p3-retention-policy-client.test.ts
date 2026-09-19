@@ -80,7 +80,7 @@ describe('P3 — readStatus', () => {
     resetRpc({ data: null, error: { code: '28000', message: 'AUTH_REQUIRED' } });
     const result = await retentionPolicyClientService.readStatus();
     expect(result).toMatchObject({ ok: false, kod: 'AUTH_REQUIRED' });
-    if (!result.ok) expect(result.poruka).toContain('Prijavite se');
+    if (!result.ok) expect(result.poruka).toContain('Prijavi se');
   });
 });
 

@@ -1,9 +1,8 @@
 import { Children, type ReactElement } from 'react';
-import { readdirSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join, relative, resolve } from 'path';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TabLayout from '../src/app/(app)/_layout';
-import { useUloga } from '../src/store/uloga';
 
 // Component configuration tests, not rendered Android/Router or device proof.
 jest.mock('expo-router', () => {
@@ -12,7 +11,6 @@ jest.mock('expo-router', () => {
   return { Tabs };
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: jest.fn() }));
-jest.mock('../src/store/uloga', () => ({ useUloga: jest.fn() }));
 jest.mock('../src/ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: () => null }));
 jest.mock('phosphor-react-native', () => ({
   House: () => null, Package: () => null, Plus: () => null, Handshake: () => null,
@@ -21,13 +19,12 @@ jest.mock('phosphor-react-native', () => ({
 
 type ScreenProps = { name: string; options: { href?: string | null; title?: string } };
 const detailRoutes = [
-  'index', 'profil',
+  'potrebe', 'moje-prijave', 'moje-aktivnosti', 'profil',
   'pregled-nacrta', 'profil/radnik', 'potrebe/[id]/kandidati',
   'potrebe/[id]/pregled', 'prilike/[id]', 'prilike/[id]/prijava',
 ];
 
-function configuration(role: 'narucilac' | 'uskocer' = 'narucilac', bottom = 0) {
-  jest.mocked(useUloga).mockReturnValue(role);
+function configuration(bottom = 0) {
   jest.mocked(useSafeAreaInsets).mockReturnValue({ top: 24, left: 0, right: 0, bottom });
   const layout = TabLayout();
   const screens = (Children.toArray(layout.props.children) as ReactElement<ScreenProps>[])
@@ -35,9 +32,8 @@ function configuration(role: 'narucilac' | 'uskocer' = 'narucilac', bottom = 0) 
   return { screens, options: layout.props.screenOptions };
 }
 
-function visibleNames(role: 'narucilac' | 'uskocer') {
-  return configuration(role).screens.filter((screen) => screen.options.href !== null)
-    .map((screen) => screen.name);
+function visible() {
+  return configuration().screens.filter((screen) => screen.options.href !== null);
 }
 
 function routeFiles(directory: string): string[] {
@@ -48,21 +44,34 @@ function routeFiles(directory: string): string[] {
   });
 }
 
-describe('06.09 three-zone intent navigation and system navigation clearance', () => {
-  it('exposes only Requester tasks, creation and agreements in order', () => {
-    expect(visibleNames('narucilac')).toEqual(['potrebe', 'nova', 'dogovori']);
+describe('V3 one-shell navigation and system navigation clearance', () => {
+  // Owner decision 1 (2026-09-19) supersedes the two intent-shaped shells of 2026-09-16: the same
+  // account owns tasks, applies to others and holds Dogovori on both sides, under one set of tabs.
+  it('exposes Početna, the shared map and Dogovori, in that order, for every account', () => {
+    expect(visible().map((screen) => screen.name)).toEqual(['index', 'mapa', 'dogovori']);
+    expect(visible().map((screen) => screen.options.title)).toEqual(['Početna', 'Mapa', 'Dogovori']);
   });
 
-  it('exposes only Worker applications, discovery and agreements in order', () => {
-    expect(visibleNames('uskocer')).toEqual(['moje-prijave', 'prilike', 'dogovori']);
-  });
-
-  it.each(['narucilac', 'uskocer'] as const)('keeps detail routes registered but hidden for %s', (role) => {
-    const { screens } = configuration(role);
+  it('keeps Zadaci, Prijave and every detail route registered and reachable, but not as tabs', () => {
+    const { screens } = configuration();
     for (const name of detailRoutes) {
       const matches = screens.filter((screen) => screen.name === name);
       expect(matches).toHaveLength(1);
       expect(matches[0].options.href).toBeNull();
+    }
+  });
+
+  it('hides the tab bar under the screens that are one task with one way out', () => {
+    // Owner decision, 2026-09-18. A tap along the bottom edge used to leave an unfinished Zadatak,
+    // and the bar was not honest either: these screens are pushed, so no tab was ever current.
+    const { screens } = configuration();
+    const hidden = screens.filter((screen) => (screen.options as { tabBarStyle?: { display?: string } })
+      .tabBarStyle?.display === 'none').map((screen) => screen.name).sort();
+    expect(hidden).toEqual(['fotografije-zadatka', 'mesto-zadatka', 'nova', 'pregled-zadatka']);
+    // The three real tabs keep theirs, and so does every settings screen you can leave freely.
+    for (const name of ['index', 'mapa', 'dogovori', 'potrebe', 'moje-prijave', 'profil', 'podrska/index']) {
+      const screen = screens.find((candidate) => candidate.name === name)!;
+      expect((screen.options as { tabBarStyle?: unknown }).tabBarStyle).toBeUndefined();
     }
   });
 
@@ -81,14 +90,16 @@ describe('06.09 three-zone intent navigation and system navigation clearance', (
   });
 
   it.each([18, 24, 34, 48, 64])('reserves the %s-point bottom inset without shrinking controls', (bottom) => {
-    const style = configuration('narucilac', bottom).options.tabBarStyle;
+    const style = configuration(bottom).options.tabBarStyle;
     expect(style.paddingBottom).toBeGreaterThanOrEqual(bottom);
     expect(style.height - style.paddingBottom).toBe(66);
     expect(style.paddingTop).toBe(8);
   });
 
-  it('does not change the registered route inventory on workspace switching', () => {
-    expect(configuration('narucilac').screens.map((screen) => screen.name))
-      .toEqual(configuration('uskocer').screens.map((screen) => screen.name));
+  it('has no mode to switch: the shell reads no role store and keys nothing on one', () => {
+    // `Tabs key={intent}` remounted every screen under the navigator whenever the mode changed.
+    const source = readFileSync(resolve(__dirname, '../src/app/(app)/_layout.tsx'), 'utf8');
+    expect(source).not.toMatch(/store\/uloga/);
+    expect(source).not.toMatch(/<Tabs\s+key=/);
   });
 });

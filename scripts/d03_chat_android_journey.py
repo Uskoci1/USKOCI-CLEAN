@@ -172,6 +172,17 @@ def switch_account(email,from_intent,to_worker=False):
     open_chat()
 
 
+def return_to_completed_agreement_list():
+    tap(desc='Nazad')
+    assert_shell('requester')
+    # Current V2 defaults to active collaborations. Completion belongs in the
+    # real history filter; the original legacy fixture retains its old list.
+    if CORE106:
+        tap(desc='Istorija')
+    wait_visible(desc=f'Otvorite Dogovor {NEED_TITLE}')
+    shot('D03_terminal_back')
+
+
 def scoped_pending(body):
     observed=read_scoped_outbox(WORKER_USER_ID,AGREEMENT_ID,PACKAGE)
     if observed is None:return None
@@ -283,10 +294,7 @@ try:
     inputs=[node for node in root.iter() if matches(node,desc='Napišite poruku')]
     assert len(inputs)==1 and inputs[0].attrib.get('enabled')=='false'
     no_fake_receipts(root);shot('D03_terminal_read_only')
-    tap(desc='Nazad')
-    assert_shell('requester')
-    wait_visible(desc=f'Otvorite Dogovor {NEED_TITLE}')
-    shot('D03_terminal_back')
+    return_to_completed_agreement_list()
     checkpoint('TERMINAL_COMPOSER_READ_ONLY_BACK_TO_AGREEMENTS')
 
     expected=[worker_message,requester_message,offline_message]

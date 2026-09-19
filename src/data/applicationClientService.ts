@@ -1,3 +1,4 @@
+import { legacyRpcFailure } from './legacyRpcFailure';
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../contracts/projections';
 import type { Ishod, Izvor, PovuciPrijavuKomanda } from './ports';
 import { supabaseKlijent } from './supabaseClient';
@@ -8,12 +9,8 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type ApplicationLifecycleService = Pick<Izvor, 'mojePrijave' | 'povuciPrijavu'>;
 
-function fail<T>(error: any, code: string, message: string): Ishod<T> {
-  return {
-    ok: false,
-    kod: error?.message || error?.code || code,
-    poruka: error?.message || message,
-  };
+function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
+  return legacyRpcFailure(error, code, message);
 }
 
 function formatTime(iso: string | null | undefined) {
@@ -77,7 +74,7 @@ function mapApplication(raw: any): MojaPrijavaProjekcija {
 export const applicationClientService: ApplicationLifecycleService = {
   async mojePrijave() {
     const { data, error } = await supabase.rpc('rpc_list_my_applications');
-    if (error) throw new Error(error.message || 'MY_APPLICATIONS_READ_FAILED');
+    if (error) throw new Error('MY_APPLICATIONS_READ_FAILED');
     if (!Array.isArray(data)) throw new Error('MY_APPLICATIONS_INVALID_PROJECTION');
     return data.map(mapApplication);
   },
@@ -91,15 +88,14 @@ export const applicationClientService: ApplicationLifecycleService = {
       p_reason: k.razlog ?? null,
     });
     if (error) return fail(error, 'WITHDRAW_RESPONSE_FAILED', 'Prijava nije mogla da se povuče.');
-    if (String(data?.status ?? '') !== 'WITHDRAWN') {
+    // The version is the server's to state. It used to fall back to the one this command was sent
+    // with, so a receipt that named no version still read as a confirmed withdrawal at a version
+    // nobody had confirmed, and the next command against this Prijava would have carried it.
+    const version: unknown = data?.version;
+    if (String(data?.status ?? '') !== 'WITHDRAWN'
+      || typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1) {
       return { ok: false, kod: 'WITHDRAW_RESPONSE_INVALID_RESULT', poruka: 'Server nije potvrdio povlačenje Prijave.' };
     }
-    return {
-      ok: true,
-      podatak: {
-        stanje: 'WITHDRAWN',
-        verzija: Number(data?.version ?? k.prijavaVerzija),
-      },
-    };
+    return { ok: true, podatak: { stanje: 'WITHDRAWN', verzija: version } };
   },
 };

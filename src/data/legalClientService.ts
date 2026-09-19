@@ -1,6 +1,8 @@
 import type { LegalAcceptanceReceipt, LegalBundleStatus, LegalDocument } from '../contracts/legal';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { readOwnedResult, record, sameId, timestamp, uuid } from './serverReceipt';
+import { sesijaSada } from '../store/sesija';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -14,14 +16,25 @@ function fail(kod: string, poruka: string): Ishod<never> {
 const LEGAL_COPY: Record<string, string> = {
   LEGAL_DOCUMENTS_NOT_PUBLISHED: 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.',
   LEGAL_ACCEPTANCE_REQUEST_REUSED_FOR_DIFFERENT_BUNDLE:
-    'Uslovi su u međuvremenu ažurirani. Pročitajte ih ponovo pre prihvatanja.',
-  INVALID_CLIENT_REQUEST_ID: 'Prihvatanje trenutno nije moglo da se zabeleži. Pokušajte ponovo.',
-  AUTH_REQUIRED: 'Prijavite se da biste prihvatili uslove.',
+    'Uslovi su u međuvremenu ažurirani. Pročitaj ih ponovo pre prihvatanja.',
+  INVALID_CLIENT_REQUEST_ID: 'Prihvatanje trenutno nije moglo da se zabeleži. Pokušaj ponovo.',
+  AUTH_REQUIRED: 'Prijavi se da prihvatiš uslove.',
+  LEGAL_REVIEW_CHANGED: 'Dokumenti su ažurirani. Pročitaj aktuelnu verziju pre prihvatanja.',
 };
+
+function acceptance(raw: unknown): LegalAcceptanceReceipt | null {
+  const r = record(raw);
+  if (!r || r.accepted !== true || typeof r.idempotentReplay !== 'boolean' || !timestamp(r.acceptedAt) ||
+      typeof r.termsVersion !== 'string' || !r.termsVersion || typeof r.privacyVersion !== 'string' || !r.privacyVersion ||
+      typeof r.termsSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(r.termsSha256) ||
+      typeof r.privacySha256 !== 'string' || !/^[0-9a-f]{64}$/.test(r.privacySha256)) return null;
+  return { accepted: true, idempotentReplay: r.idempotentReplay, acceptedAt: r.acceptedAt,
+    termsVersion: r.termsVersion, privacyVersion: r.privacyVersion, termsSha256: r.termsSha256, privacySha256: r.privacySha256 };
+}
 
 function legalFailure(error: any, fallback: string): Ishod<never> {
   const name = typeof error?.message === 'string' ? error.message : '';
-  return fail(name || error?.code || fallback, LEGAL_COPY[name] ?? 'Radnja trenutno nije mogla da se završi. Pokušajte ponovo.');
+  return fail(name || error?.code || fallback, LEGAL_COPY[name] ?? 'Radnja trenutno nije mogla da se završi. Pokušaj ponovo.');
 }
 
 function mapDocument(raw: any): LegalDocument | null {
@@ -47,6 +60,32 @@ function mapDocument(raw: any): LegalDocument | null {
  * a retry replays the original receipt instead of recording twice.
  */
 export const legalClientService = {
+  acceptReviewedBundle(clientRequestId: string, termsSha256: string, privacySha256: string): Promise<Ishod<LegalAcceptanceReceipt>> {
+    const owner = sesijaSada(), accountId = owner.user?.id;
+    if (!accountId) return Promise.resolve(fail('AUTH_REQUIRED', LEGAL_COPY.AUTH_REQUIRED));
+    if (!uuid(clientRequestId) || !/^[0-9a-f]{64}$/.test(termsSha256) || !/^[0-9a-f]{64}$/.test(privacySha256))
+      return Promise.resolve(fail('LEGAL_REVIEW_CHANGED', LEGAL_COPY.LEGAL_REVIEW_CHANGED));
+    return readOwnedResult({ account: { accountId, accountRevision: owner.accountRevision }, write: true,
+      request: () => supabase.rpc('rpc_accept_reviewed_legal_bundle', { p_client_request_id: clientRequestId, p_terms_sha256: termsSha256, p_privacy_sha256: privacySha256 }),
+      errors: LEGAL_COPY, fallback: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', invalid: 'LEGAL_ACCEPT_INVALID_RESPONSE', decode: raw => {
+        const r = record(raw), receipt = acceptance(raw);
+        return r && sameId(r.accountId, accountId) && sameId(r.clientRequestId, clientRequestId) && r.authoritative === true &&
+          receipt?.termsSha256 === termsSha256 && receipt.privacySha256 === privacySha256 ? receipt : null;
+      } });
+  },
+  readAcceptance(clientRequestId: string): Promise<Ishod<{ found: boolean; receipt: LegalAcceptanceReceipt | null }>> {
+    const owner = sesijaSada(), accountId = owner.user?.id;
+    if (!accountId) return Promise.resolve(fail('AUTH_REQUIRED', LEGAL_COPY.AUTH_REQUIRED));
+    if (!uuid(clientRequestId)) return Promise.resolve(fail('INVALID_CLIENT_REQUEST_ID', LEGAL_COPY.INVALID_CLIENT_REQUEST_ID));
+    return readOwnedResult({ account: { accountId, accountRevision: owner.accountRevision },
+      request: () => supabase.rpc('rpc_read_my_legal_acceptance', { p_client_request_id: clientRequestId }),
+      errors: LEGAL_COPY, fallback: 'LEGAL_ACCEPT_READ_UNAVAILABLE', invalid: 'LEGAL_ACCEPT_INVALID_RESPONSE', decode: raw => {
+        const r = record(raw);
+        if (!r || !sameId(r.accountId, accountId) || !sameId(r.clientRequestId, clientRequestId) || r.authoritative !== true || typeof r.found !== 'boolean') return null;
+        const receipt = r.found ? acceptance(r.receipt) : null;
+        return r.found ? receipt ? { found: true, receipt } : null : r.receipt === null ? { found: false, receipt: null } : null;
+      } });
+  },
   async readBundle(): Promise<Ishod<LegalBundleStatus>> {
     const { data, error } = await supabase.rpc('rpc_get_legal_bundle');
     if (error) return legalFailure(error, 'LEGAL_BUNDLE_READ_FAILED');

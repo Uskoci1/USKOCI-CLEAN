@@ -12,7 +12,7 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSad
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 
 const ok = (value: string): Ishod<string> => ({ ok: true, podatak: value });
-const conflict: Ishod<string> = { ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Učitajte sačuvano stanje.' };
+const conflict: Ishod<string> = { ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Učitaj sačuvano stanje.' };
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: Error) => void;
@@ -68,6 +68,43 @@ describe('owned location editor lifecycle', () => {
     expect(command).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps what is on screen while it re-reads, and after a call that never answered', async () => {
+    const pending = deferred<Ishod<string>>();
+    const read = jest.fn().mockResolvedValueOnce(ok('Knez Mihailova 6'))
+      .mockReturnValueOnce(pending.promise).mockRejectedValueOnce(new Error('offline'));
+    await render(read);
+
+    // Pressing "Osveži" used to empty the screen first and fill it again, which reads as loss.
+    await act(async () => { void snapshot().refresh(); });
+    expect(snapshot()).toMatchObject({ data: 'Knez Mihailova 6', loading: true });
+    await act(async () => pending.resolve(ok('Knez Mihailova 8')));
+    expect(snapshot()).toMatchObject({ data: 'Knez Mihailova 8', loading: false });
+
+    // The phone lost the network mid-read. Nothing said the address changed, only that we could not
+    // check it, so it stays under the error rather than the screen going blank.
+    await act(async () => { await snapshot().refresh(); });
+    expect(snapshot()).toMatchObject({ data: 'Knez Mihailova 8', loading: false });
+    expect(snapshot().error).toContain('Proveri vezu');
+  });
+
+  it('shows what the screen had when it comes back, and forgets only when the account changes', async () => {
+    // Stepping into a sub-screen and back used to empty the editor and read it from the server
+    // again — a round trip and a skeleton for every step in and out.
+    const read = jest.fn().mockResolvedValueOnce(ok('Knez Mihailova 6')).mockResolvedValueOnce(ok('Knez Mihailova 8'));
+    await render(read);
+    mockFocused = false; await act(async () => tree.update(<Probe read={read} />));
+    mockFocused = true; await act(async () => tree.update(<Probe read={read} />));
+    // The value is there before the second read lands, not after it.
+    expect(snapshot().data).toBe('Knez Mihailova 8');
+    expect(read).toHaveBeenCalledTimes(2);
+
+    // A different account is a different person: nothing of the previous one survives the change.
+    mockSession = { user: { id: 'account-b' }, accountRevision: 1, sessionEpoch: 1 };
+    read.mockReturnValueOnce(new Promise(() => undefined));
+    await act(async () => tree.update(<Probe read={read} />));
+    expect(snapshot().data).toBeNull();
+  });
+
   it('discards an older overlapping read even when it resolves last', async () => {
     const old = deferred<Ishod<string>>(), current = deferred<Ishod<string>>();
     const read = jest.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
@@ -116,13 +153,12 @@ describe('owned location editor lifecycle', () => {
     expect(snapshot()).toMatchObject({ data: 'new account A', saved: false, uncertain: false, busy: false, error: null });
   });
 
-  it.each(['account', 'intent', 'route'] as const)('rejects retained save and refresh callbacks after %s changes', async change => {
+  it.each(['account', 'route'] as const)('rejects retained save and refresh callbacks after %s changes', async change => {
     const oldRead = jest.fn().mockResolvedValue(ok('old owned route'));
     const newRead = jest.fn().mockResolvedValue(ok('new owned route'));
     await render(oldRead);
     const retained = snapshot(), command = jest.fn().mockResolvedValue(ok('old command'));
     if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2, sessionEpoch: 2 };
-    if (change === 'intent') mockIntent = 'uskocer';
     const read = change === 'route' ? newRead : oldRead;
     await act(async () => tree.update(<Probe read={read} />));
     const callsBefore = oldRead.mock.calls.length;
@@ -130,6 +166,17 @@ describe('owned location editor lifecycle', () => {
     expect(command).not.toHaveBeenCalled();
     expect(oldRead).toHaveBeenCalledTimes(callsBefore);
     expect(snapshot().data).toBe(change === 'route' ? 'new owned route' : 'old owned route');
+  });
+
+  // Owner decision 1 (2026-09-19): the editor's identity is the account, its revision and the read.
+  // The app's global mode used to be a fourth part of it, so switching sides emptied every editor.
+  it('a flip of the retired app mode does not retire the editor: the retained save still runs', async () => {
+    const read = jest.fn().mockResolvedValue(ok('owned route')); await render(read);
+    const retained = snapshot(), command = jest.fn().mockResolvedValue(ok('saved')), reads = read.mock.calls.length;
+    mockIntent = 'uskocer'; await act(async () => tree.update(<Probe read={read} />));
+    expect(read).toHaveBeenCalledTimes(reads);
+    await act(async () => { await retained.save(command); });
+    expect(command).toHaveBeenCalledTimes(1);
   });
 
   it('keeps current ownership during same-account token refresh', async () => {

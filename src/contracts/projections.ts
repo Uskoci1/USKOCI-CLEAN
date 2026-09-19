@@ -38,6 +38,9 @@ export type StanjePotrebe =
 
 export type RezimCene = 'MY_PRICE' | 'OFFERS';
 
+/** Existing fn_need_urgency result; missing means unobserved, never active. */
+export type NeedUrgencyProjection = { level: 'NORMAL'; expiresAt: null } | { level: 'HITNO'; expiresAt: string };
+
 /** Exact current Need schedule columns; absence never means a guessed interval. */
 export type NeedScheduleProjection = {
   kind: 'FIXED_WINDOW' | 'FLEXIBLE' | 'REMOTE_ANYTIME' | 'TODAY_FLEXIBLE' | 'TOMORROW_FLEXIBLE' | 'WEEK_FLEXIBLE';
@@ -56,6 +59,7 @@ export type NeedDetailProjection = {
 
 export type PotrebaProjekcija = {
   id: string;
+  urgency?: NeedUrgencyProjection;
   /** Tačna revizija. Izbor mora da se veže za nju. */
   revizija: number;
   naslov: string;
@@ -84,6 +88,7 @@ export type PotrebaProjekcija = {
  */
 export type PrilikaProjekcija = {
   id: string;
+  urgency?: NeedUrgencyProjection;
   naslov: string;
   opis?: string;
   detalji?: NeedDetailProjection;
@@ -124,6 +129,9 @@ export type RadnikProfilProjekcija = {
   stanje: StanjeProfila;
   dostupanOdmah: boolean;
   radijusKm: number;
+  /** Present only after authoritative capacity readback; never inferred from a vehicle. */
+  kapacitetTima?: number;
+  capacityRevision?: string;
 };
 
 /**
@@ -277,6 +285,37 @@ export type KontaktProjekcija = {
   readonly emailNijeDeljen: true;
 };
 
+/**
+ * PKG-007: serverske dozvole za završetak Dogovora (actionState iz rpc_get_agreement_workspace),
+ * vezane za ovaj nalog i važeću verziju. Klijent ih nikad ne izvodi iz statusa i uloge.
+ * `null` znači da server nije potvrdio dozvole (lista, stariji ili neispravan odgovor) —
+ * ekran tada ne nudi završetak dok se prikaz ne osveži.
+ */
+export type DogovorRadnje = {
+  /** Uskočer sme da označi završetak: CONFIRMED, bez predloga izmene na čekanju. */
+  mozeOznacitiZavrsetak: boolean;
+  /** Naručilac sme da potvrdi završetak: CONFIRMED ili AWAITING_REQUESTER, bez predloga na čekanju. */
+  mozePotvrditiZavrsetak: boolean;
+  /** Predlog izmene čeka odgovor; server tada odbija oba završetka. */
+  izmenaNaCekanju: boolean;
+  /**
+   * Šta taj predlog menja i ko na njega odgovara. `null` kada predloga nema ili kada njegov sadržaj
+   * nije čitljiv: tada ekran kaže da predlog postoji i vodi na Izmene, a sadržaj ne izmišlja.
+   */
+  predlogIzmene: PredlogIzmeneSazetak | null;
+};
+
+export type PredlogIzmeneSazetak = {
+  id: string;
+  /** Predložio ovaj nalog; tada odgovara druga strana. */
+  moj: boolean;
+  mozeOdgovoriti: boolean;
+  mozePovuci: boolean;
+  razlog: string | null;
+  /** Samo ono što se razlikuje od prihvaćenih uslova, već formatirano za prikaz. */
+  izmene: { polje: 'Cena' | 'Termin' | 'Obim'; sada: string; predlog: string }[];
+};
+
 export type DogovorProjekcija = {
   id: string;
   /** Prihvaćena verzija je autoritativna. */
@@ -303,6 +342,8 @@ export type DogovorProjekcija = {
   ocenaMoguca: boolean;
   /** Hronologija je deo Pregleda, ne treći tab. */
   hronologija: { vremeTekst: string; tekst: string }[];
+  /** PKG-007: serverske dozvole za završetak; `null` = nepotvrđene, završetak se ne nudi. */
+  radnje: DogovorRadnje | null;
 };
 
 /* ------------------------------------------------- AI nacrt Potrebe (R02) */
@@ -374,6 +415,10 @@ export type PorukaRazgovora = {
 
 export type PorukaProjekcija = {
   id: string;
+  /** Authorized immutable metadata, independently bound to this canonical row. */
+  fotografije?: readonly { assetId: string; width: number; height: number; byteSize: number; contentType: 'image/jpeg' }[];
+  /** Exact version persisted with this message; never the current Agreement version. */
+  dogovorVerzija?: number;
   clientMessageId?: string | null;
   posiljalacAccountId?: string;
   posiljalacIme: string;

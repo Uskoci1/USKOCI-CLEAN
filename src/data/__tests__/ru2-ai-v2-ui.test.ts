@@ -6,9 +6,13 @@ import {
   REQUIRED_NEED_FACT_V2_KEYS,
 } from '../../contracts/needFactsV2';
 import {
-  canEditFactInline,
   correctionFromText,
+  factEditorKind,
+  factListItems,
+  factTimestampFields,
+  listCorrectionText,
   sortFacts,
+  timestampCorrectionText,
 } from '../aiNeedV2Ui';
 
 function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
@@ -28,10 +32,13 @@ function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
 }
 
 describe('RU-2 typed R02 → R07 contract', () => {
-  it('keeps 22 canonical facts, with the private resolved fact outside the 21 AI proposals', () => {
+  it('keeps 22 canonical facts with resolved geography, owned photos and unavailable identity outside the 19 AI proposals', () => {
     expect(NEED_FACT_V2_KEYS).toHaveLength(22);
-    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(21);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(19);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.verified_identity_required');
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.resolved_location');
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.public_photo_paths');
+    expect(NEED_FACT_V2_DEFINITIONS['need.public_photo_paths'].manualOnly).toBe(true);
     expect(NEED_FACT_V2_DEFINITIONS['need.resolved_location']).toMatchObject({ privacyClass: 'PRIVATE', manualOnly: true, requiredForDraft: false });
     expect(REQUIRED_NEED_FACT_V2_KEYS).toEqual(expect.arrayContaining([
       'need.title',
@@ -53,10 +60,10 @@ describe('RU-2 typed R02 → R07 contract', () => {
       value: 3,
       displayValue: '3',
     });
-    expect(correctionFromText(fact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN' }), 'da')).toEqual({
+    expect(correctionFromText(fact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN' }), 'ne')).toEqual({
       ok: true,
-      value: true,
-      displayValue: 'Da',
+      value: false,
+      displayValue: 'Ne',
     });
     expect(correctionFromText(fact({ key: 'need.required_tools', valueType: 'TEXT_ARRAY' }), 'bušilica, merdevine')).toEqual({
       ok: true,
@@ -88,10 +95,44 @@ describe('RU-2 typed R02 → R07 contract', () => {
 
   it('does not allow raw inline editing of structured geography', () => {
     const geo = fact({ key: 'need.task_geography', valueType: 'OBJECT', displayValue: 'Novi Sad' });
-    expect(canEditFactInline(geo)).toBe(false);
+    expect(factEditorKind(geo)).toBe('none');
     expect(correctionFromText(geo, 'Beograd')).toEqual({
       ok: false,
-      message: 'Lokaciju izmenite kroz razgovor da bi struktura ostala bezbedna.',
+      message: 'Lokaciju izmeni kroz razgovor da bi struktura ostala bezbedna.',
+    });
+  });
+
+  describe('editors for a moment and for a list', () => {
+    const start = fact({ id: 's', key: 'need.starts_at', valueType: 'TIMESTAMPTZ', value: '2026-10-03T15:00:00.000Z' });
+    const skills = fact({ id: 'k', key: 'need.required_skills', valueType: 'TEXT_ARRAY', value: ['Prevoz, utovar', 'Montaža'] });
+
+    it('gives every value type the editor that fits it, and a structured place none', () => {
+      expect(factEditorKind(fact())).toBe('text');
+      expect(factEditorKind(start)).toBe('timestamp');
+      expect(factEditorKind(skills)).toBe('list');
+      expect(factEditorKind(fact({ key: 'need.task_geography', valueType: 'OBJECT', value: {} }))).toBe('none');
+    });
+
+    it('shows a moment as the date and the minute the review shows, in the same zone', () => {
+      expect(factTimestampFields(start)).toEqual({ date: '2026-10-03', time: '17:00' });
+      expect(factTimestampFields(fact({ key: 'need.starts_at', valueType: 'TIMESTAMPTZ', value: 'nije termin' }))).toEqual({ date: '', time: '' });
+    });
+
+    it('keeps an untouched moment byte for byte and resolves a changed one through the civil parser', () => {
+      const untouched = timestampCorrectionText(start, '2026-10-03', '17:00');
+      expect(untouched).toBe('2026-10-03T15:00:00.000Z');
+      expect(correctionFromText(start, untouched)).toMatchObject({ ok: true, value: '2026-10-03T15:00:00.000Z' });
+      const moved = timestampCorrectionText(start, '2026-10-04', '09:30');
+      expect(moved).toBe('2026-10-04 09:30');
+      expect(correctionFromText(start, moved)).toMatchObject({ ok: true, value: '2026-10-04T07:30:00.000Z' });
+      expect(correctionFromText(start, timestampCorrectionText(start, '2026-10-04', ''))).toMatchObject({ ok: false });
+    });
+
+    it('carries a list item with a comma in it through the editor unchanged', () => {
+      expect(factListItems(skills)).toEqual(['Prevoz, utovar', 'Montaža']);
+      const text = listCorrectionText(['Prevoz, utovar', 'Montaža', 'Bušenje']);
+      expect(correctionFromText(skills, text)).toMatchObject({ ok: true, value: ['Prevoz, utovar', 'Montaža', 'Bušenje'] });
+      expect(correctionFromText(skills, listCorrectionText([]))).toMatchObject({ ok: true, value: [] });
     });
   });
 

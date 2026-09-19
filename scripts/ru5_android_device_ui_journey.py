@@ -766,6 +766,13 @@ def core_capture_application_success(timeout=40):
     raise RuntimeError('Application success notice not visibly observed after bounded physical scrolling')
 
 
+def core_open_selected_agreement():
+    tap(desc='Prijave',prefer='bottom');wait_visible(text=NEED_TITLE)
+    wait_visible(text='Izabrana');shot('W06_worker_selected_state')
+    tap(desc=f'Otvori Dogovor: {NEED_TITLE}');wait_visible(text=NEED_TITLE)
+    shot('DOGOVOR_worker_opened');tap(desc='Nazad')
+
+
 def core_journey():
     from d03_chat_local_rest import validate_local_targets
     validate_local_targets(os.environ)
@@ -800,8 +807,7 @@ def core_journey():
     agreement_id=assert_final_selection(response_id);core_selection_receipt(response_id,agreement_id)
     tap(desc='Otvori Dogovor');wait_visible(text=NEED_TITLE);shot('AGREEMENT_created');tap(desc='Nazad')
     core_switch_account(WORKER_EMAIL,worker=True);shot('AUTH_worker_reauthenticated')
-    tap(desc='Prijave',prefer='bottom');wait_visible(text=NEED_TITLE);wait_visible(text='Izabrani ste');shot('W06_worker_selected_state')
-    tap(desc='Otvorite Dogovor');wait_visible(text=NEED_TITLE);shot('DOGOVOR_worker_opened');tap(desc='Nazad')
+    core_open_selected_agreement()
     assert_core_gates();print('PASS CORE_NATIVE_APPLY_SELECT_MAP same_agreement two_real_auth_accounts',flush=True)
 
 
