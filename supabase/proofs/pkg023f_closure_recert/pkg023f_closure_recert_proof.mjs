@@ -184,8 +184,11 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  const relationsBefore=Number(sql('select cardinality(private.closure_redaction_relations_v5())'));
  applyCandidate();
  const certified=certificate();
- assert.equal(certified.ready,true);assert.equal(certified.binding,true);assert.equal(certified.live,drifted.live);
- assert.equal(certified.source,drifted.live);assert.equal(certified.erasure,drifted.live);assert.equal(certified.ready_constant,drifted.live);
+ assert.equal(certified.ready,true);assert.equal(certified.binding,true);
+ // The candidate changed the erasure program itself, so the digest moved once more: what it certifies is a
+ // third value, neither the last certified one nor the drifted one, and it holds in all three places.
+ assert.notEqual(certified.live,drifted.live);assert.notEqual(certified.live,source147.live);
+ assert.equal(certified.source,certified.live);assert.equal(certified.erasure,certified.live);assert.equal(certified.ready_constant,certified.live);
  const after=surface(),changed=l=>l.replace(/^(function:[a-z_.0-9]+\().*/,'$1');
  // Four bodies of the erasure program and the one certified constant. No table, column, constraint, policy,
  // grant, index or other function may appear here.
