@@ -1,6 +1,12 @@
 # Closure source digest on canonical DEV — forensic review (2026-09-19)
 
-**Status: REVIEW ONLY. Nothing was re-certified.** The owner's order (2026-09-19): "nemoj samo promeniti
+**Status: the review is done and the owner has ruled on it (2026-09-19, evening). His condition changed the
+candidate: the three tables may be classified as `AUDIT_SECURITY_LOGS` and their structured audit metadata,
+token counters and measured usage may stay under that contract, but the free-text operator note must not
+automatically outlive a closure — it is nulled, deleted or replaced by a structured code with no user
+content. `pkg023f` now does that as well, and §6, §7-F1 and §8 below are written against that version.**
+
+**Status of the review itself: REVIEW ONLY. Nothing was re-certified while it was written.** The owner's order (2026-09-19): "nemoj samo promeniti
 očekivani digest da bi `retention_ai_source_ready()` postao true … STOP pre stvarne re-overe i vrati mi
 rezultat na pregled." Everything done on canonical DEV `leqcwgzvjsxugfgzdmth` for this review was a read-only
 catalog or ledger query. The re-certification candidate exists as a file, is proven on a disposable database,
@@ -13,7 +19,7 @@ and is applied nowhere.
 | Why is `retention_ai_source_ready()` false? | Only because the closure source digest no longer equals the certified value. Every other condition of that function is true. | §5 |
 | What moved the digest? | Exactly: 3 new tables, 1 trigger, 5 new columns and 2 constraints, made by 5 `dev_alpha` migrations on 2026-09-17. Nothing else. | §5: with exactly those filtered out, the live digest function yields the certified value `68ae9916…` |
 | Is there anything on DEV that no ledger row explains? | No. Source 147 + the exact ledger texts reproduces the whole DEV surface (3188 objects: bodies, grants, columns, constraints, triggers, policies, indexes). | §3, §4, CI |
-| Do closure, erasure and retention still cover every table and column? | The erasure program is untouched and still covers what it covered. The additions are outside it **and outside the closure dataset catalog**; they hold no user-authored content. What stays after a closure is listed in §6. | §6 |
+| Do closure, erasure and retention still cover every table and column? | As found: no. The erasure program was untouched and the three additions were outside it and outside the closure dataset catalog. Two of them hold an operator's free text about a person. The owner ruled that this text must not survive a closure, so `pkg023f` puts the two lineage relations into the erasure program. | §6, §7-F1 |
 | Is any new private data outside closure/retention behaviour? | Three account-keyed tables of operator and metering data are outside the catalog (F1) and outside the data export (F2). | §6, §7 |
 | What did the drift break? | Since 2026-09-17 05:32 UTC no account closure could start on DEV (`CLOSURE_POLICY_NOT_READY`) and AI retention reports `SOURCE_NOT_READY`. Zero closure requests and zero executions exist, so nobody was affected. It also makes `pkg023c` refuse DEV, by design. | §2 |
 
@@ -122,22 +128,25 @@ changed anywhere since the last certification, the reconstructed value would not
 
 ## 6. Do closure, erasure, retention and export still cover everything?
 
-| Addition | What it holds | Who writes it | Key to a person | Protection | After an account closure |
+| Addition | What it holds | Who writes it | Key to a person | Protection | After an account closure, with `pkg023f` |
 | --- | --- | --- | --- | --- | --- |
-| `private.account_lineage_v5` | lineage class (`OWNER_PERSONAL` … `REAL_USER`), operator `reason` and `source_ref` text, revision, timestamps | service role only (`rpc_admit_account_lineage_service`) | `account_id` → `auth.users` ON DELETE CASCADE | RLS on + forced; no privilege for `anon`, `authenticated`, `service_role` | stays (the auth subject row is retained and erased by UPDATE, so the cascade does not fire) |
-| `private.account_lineage_events_v5` | the same, as an append-only history | same | same | same, plus a trigger that refuses UPDATE and DELETE | stays |
-| `private.ai_test_usage_v5` | operation id, model name, three token counts, timestamp | service role only | same | same | stays |
+| `private.account_lineage_v5` | lineage class (`OWNER_PERSONAL` … `REAL_USER`), operator `reason` and `source_ref` text, revision, timestamps | service role only (`rpc_admit_account_lineage_service`) | `account_id` → `auth.users` ON DELETE CASCADE | RLS on + forced; no privilege for `anon`, `authenticated`, `service_role` | the row stays, keyed by the retained pseudonymous subject; the class, revision and timestamps stay; **`reason` and `source_ref` become `CLOSURE_ERASED_OPERATOR_NOTE` and `CLOSURE_ERASED_SOURCE_REF`** |
+| `private.account_lineage_events_v5` | the same, as an append-only history | same | same | same, plus a trigger that refuses UPDATE and DELETE | the same erasure, through the one exception the trigger learns: the closure's own certified redaction. Every other UPDATE and every DELETE, for anyone, is still refused |
+| `private.ai_test_usage_v5` | operation id, model name, three token counts, timestamp | service role only | same | same | stays: metering, not narrative, and the owner allows it to remain under the audit retention contract |
 | `ai_test_reservations_v5` + 5 columns | settled amount, basis, time; audio **byte count** and transcript **character count** (numbers, never content) | service role only | `account_id` (no FK), as before | as before | stays, as the table did at the last certification |
 
 On canonical DEV today: 5 lineage rows (2 owner, 1 QA, 2 synthetic fixtures), 5 history rows, none with
 e-mail- or phone-like text; 99 usage rows for 2 accounts; 173 reservations for 3 accounts.
 
-- **Erasure program** (`closure_redaction_relations_v5`, `closure_redaction_patch_v5`, 72+ functions): byte for
-  byte what was certified — that is what the reconstruction proves. The additions are not in the redaction
-  list. The reviewed precedent is `ai_test_reservations_v5`, equally keyed by `account_id`, certified outside
-  the list ("unrelated global configuration/budget is absent"), while `ai_test_accounts_v5` is in it and is
-  retired on closure. Nothing in the additions is content a person wrote, so nothing needs redacting; whether
-  the operator's `reason` text should outlive a closure is the owner's call (F1).
+- **Erasure program** (`closure_redaction_relations_v5`, `closure_redaction_patch_v5`, 72+ functions): at the
+  time of the review, byte for byte what was certified — that is what the reconstruction proves — and the
+  additions were not in the redaction list. The reviewed precedent is `ai_test_reservations_v5`, equally
+  keyed by `account_id`, certified outside the list ("unrelated global configuration/budget is absent"),
+  while `ai_test_accounts_v5` is in it and is retired on closure. Nothing in the additions is content a
+  person *wrote*; but two of them hold what an operator wrote *about* a person, and the owner ruled that
+  this must not survive. `pkg023f` therefore adds the two lineage relations to
+  `closure_redaction_relations_v5`, `closure_redaction_scope_v5` and `closure_redaction_patch_v5`, and
+  teaches the append-only trigger the one exception the closure needs.
 - **Closure dataset catalog** (`private.closure_dataset_catalog_v5`, the class of every account-linked table):
   every source migration that added such a table catalogued it; the `dev_alpha` migrations did not. A catalogue
   check over the live schema finds exactly three account-linked tables outside it — the three additions (F1).
@@ -152,7 +161,7 @@ e-mail- or phone-like text; 99 usage rows for 2 accounts; 173 reservations for 3
 
 | # | Finding | Severity | Proposed |
 | --- | --- | --- | --- |
-| F1 | Three account-linked tables are outside the closure dataset catalog. | the gap the certificate exists to catch | the candidate adds them to `AUDIT_SECURITY_LOGS`, the class of their siblings. **Owner: confirm the class, and whether operator `reason` text may outlive a closure.** |
+| F1 | Three account-linked tables are outside the closure dataset catalog, and two of them hold an operator's free text about a person that nothing would ever erase. | the gap the certificate exists to catch | **Ruled by the owner, 2026-09-19:** the class `AUDIT_SECURITY_LOGS` is confirmed; structured audit metadata, token counters and measured usage/charge may stay under the audit retention contract; the free text may not. `pkg023f` catalogues all three and erases `reason` and `source_ref` on closure into fixed codes. Nothing arbitrary a human typed survives a closure without a separate future decision. |
 | F2 | The data export says `measuredProviderCharge: false` for every reservation and omits measured usage and lineage. | truthfulness of an export; DEV only today | a separate candidate after the owner decides what an export must contain. **Not part of the re-certification.** |
 | F3 | `account_lineage_events_v5` has ON DELETE CASCADE from `auth.users` **and** a trigger that refuses DELETE: a HARD delete of a classified auth user (e.g. from the dashboard) would be refused with `ACCOUNT_LINEAGE_HISTORY_IMMUTABLE`. | latent; closure is unaffected — it erases the auth identity by UPDATE, proven end to end in CI | record; no change now. |
 | F4 | `rpc_ai_test_release_unused_reservation_service` and `rpc_ai_test_settle_audio_service` are executable by `anon` and `authenticated` at ACL level: `pkg019c/d` revoked from `PUBLIC` only, and the platform's default privileges grant the API roles by name. **Both bodies refuse** anything but `service_role`; verified on DEV for both roles (`SERVICE_ROLE_REQUIRED`). | hygiene, not an exposure | a two-line forward candidate (`revoke … from anon, authenticated`); needs its own approval; does not move the digest. |
@@ -192,13 +201,23 @@ untouched.
 The numbers differ from DEV's (`67fcd275…` live, `e9da220b…` certified there) because the digest is
 OID-dependent; the candidate and the reconstruction hard-code none.
 
-## 9. What the owner decides
+## 9. Decided
 
-1. Whether `pkg023f` may be applied to canonical DEV (the same procedure as a, b, d: read-only preflight,
-   apply, readback, stop on any mismatch).
-2. F1: is `AUDIT_SECURITY_LOGS` the right class, and may the operator's `reason` / `source_ref` text outlive
-   a closure?
-3. F2 and F4: separate small candidates, or leave as recorded debt.
+1. **`pkg023f` is approved for canonical DEV, conditionally on the F1 change**, with the same procedure as
+   a, b and d: the proof green, PRE-P4 green, a read-only preflight, apply, readback, `retention_ai_source_ready()`
+   true, an end-to-end closure proof in a rolled-back transaction, and a demonstration that a later schema
+   change drops readiness again.
+2. **F1**: decided as above. `AUDIT_SECURITY_LOGS` confirmed; free text does not survive a closure.
+3. **F2 and F4**: each its own small candidate, written and proven, **stopped before any DEV application** —
+   `docs/implementation/v5-ai-first/pkg023/F2_F4_CANDIDATES_20260919.md`.
+4. **F7**: the repository copy is repaired, the live function untouched —
+   `docs/implementation/v5-ai-first/pkg023/F7_SOURCE_REPAIR_20260919.md`.
+5. **F3, F5**: recorded, unchanged. F3 (a HARD auth delete of a classified account would be refused by the
+   append-only trigger) stays true after `pkg023f`: the exception it learns is the closure's certified
+   redaction, an UPDATE, and DELETE is still refused for everyone.
+6. **F6** ends with the re-certification.
 
-After a re-certification: `pkg023c` stops refusing DEV (it still needs its own approval, and backfills no old
-task); the price basis comes after that, and only as section 8 of the plan describes.
+After the re-certification: `pkg023c` stops refusing DEV — it still needs its own approval, it backfills no
+old task, and it must first be regenerated, because it pins the md5 of `closure_redaction_patch_v5`, which
+`pkg023f` changes. The price basis comes after that, and only as section 8 of the plan describes, with the
+old-APK compatibility design first.

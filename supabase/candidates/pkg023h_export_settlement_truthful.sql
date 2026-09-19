@@ -19,7 +19,8 @@
 --      from provider-reported usage (settlement_basis = 'MEASURED'), false otherwise, including a row that
 --      is not settled at all.
 --   2. private.data_export_dataset_catalog: the same three field names are admitted for that key, because
---      the binding refuses a policy field that the catalog does not list.
+--      the binding refuses a policy field that the catalog does not list. The live catalog is the one eight
+--      source migrations have extended, 51 keys, its JSON normalised by jsonb; the anchor is that text.
 --
 -- What it deliberately does NOT do. It exports no new kind of data by itself: an export contains a field
 -- only when the active retention policy's export_delivery lists it, and on canonical DEV there is no policy
@@ -42,7 +43,7 @@ create temporary table pkg023h_predecessor(source_digest text not null, projecti
 
 do $pre$
 declare v_old_row constant text := $a$select 'testAllocations' as key,jsonb_build_object('kind',t.kind,'allocatedMaximumMicrousd',t.max_cost_microusd,'measuredProviderCharge',false,'createdAt',t.created_at) as value from private.ai_test_reservations_v5 t where t.account_id=p_account_id$a$;
-  v_old_fields constant text := $a${"key":"testAllocations","dataClass":"AUDIT_SECURITY_LOGS","fields":["allocatedMaximumMicrousd","createdAt","kind","measuredProviderCharge"]$a$;
+  v_old_fields constant text := $a${"key": "testAllocations", "fields": ["allocatedMaximumMicrousd", "createdAt", "kind", "measuredProviderCharge"]$a$;
   v_snapshot text; v_catalog text;
 begin
   if to_regprocedure('private.data_export_snapshot(uuid,uuid,jsonb,timestamptz)') is null
@@ -74,10 +75,10 @@ begin
     $a$'measuredProviderCharge',coalesce(t.settlement_basis='MEASURED',false),'settledMicrousd',t.settled_microusd,'settlementBasis',t.settlement_basis,'settledAt',t.settled_at,'createdAt',t.created_at) as value from private.ai_test_reservations_v5 t$a$);
 
   def := pg_get_functiondef('private.data_export_dataset_catalog()'::regprocedure);
-  anchor := $a$"fields":["allocatedMaximumMicrousd","createdAt","kind","measuredProviderCharge"]$a$;
+  anchor := $a${"key": "testAllocations", "fields": ["allocatedMaximumMicrousd", "createdAt", "kind", "measuredProviderCharge"]$a$;
   if (length(def) - length(replace(def, anchor, ''))) <> length(anchor) then raise exception 'PKG023H_ANCHOR_NOT_UNIQUE catalog'; end if;
   execute replace(def, anchor,
-    $a$"fields":["allocatedMaximumMicrousd","createdAt","kind","measuredProviderCharge","settledAt","settledMicrousd","settlementBasis"]$a$);
+    $a${"key": "testAllocations", "fields": ["allocatedMaximumMicrousd", "createdAt", "kind", "measuredProviderCharge", "settledAt", "settledMicrousd", "settlementBasis"]$a$);
 end
 $change$;
 
@@ -97,7 +98,7 @@ begin
   if v_fields is distinct from array['allocatedMaximumMicrousd','createdAt','kind','measuredProviderCharge','settledAt','settledMicrousd','settlementBasis']::text[] then
     raise exception 'PKG023H_CATALOG_NOT_AS_REVIEWED';
   end if;
-  if (select count(*) from jsonb_array_elements(v_catalog)) <> 37 then raise exception 'PKG023H_CATALOG_KEY_SET_CHANGED'; end if;
+  if (select count(*) from jsonb_array_elements(v_catalog)) <> 51 then raise exception 'PKG023H_CATALOG_KEY_SET_CHANGED'; end if;
   -- The projection identity must move, so a policy written against the old one has to be written again.
   if private.data_export_projection_sha_v5() is not distinct from (select projection_sha from pkg023h_predecessor) then
     raise exception 'PKG023H_PROJECTION_IDENTITY_DID_NOT_MOVE';

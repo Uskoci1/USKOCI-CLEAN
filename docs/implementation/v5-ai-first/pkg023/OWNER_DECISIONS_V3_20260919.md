@@ -287,3 +287,33 @@ Six points, in the owner's order.
    described anywhere as snapshot-consistent.
 
 Then: stop, and return the complete result.
+
+## After the forensic review — "ODOBRAVAM SLEDEĆI PRAVAC" (owner, 2026-09-19, night)
+
+1. **`pkg023f` — conditionally approved for canonical DEV.** Before it is applied, the F1 retention rule
+   changes: the three new tables may be `AUDIT_SECURITY_LOGS`; structured audit data, AI token counters,
+   measured usage/charge and the structured account/security class may stay under the audit retention
+   contract; **the free-text operator note must not automatically survive an account closure** — at closure
+   it is nulled, deleted, or replaced by a structured reason code that carries no user content. No arbitrary
+   human-entered free text is kept after a closure without a separate future owner decision. Then: the
+   PKG-023f proof 8/8 again, PRE-P4 green, a read-only DEV preflight, apply, readback of the closure digest,
+   `retention_ai_source_ready()` true, an end-to-end closure proof in a rolled-back transaction, and a
+   demonstration that a later schema change drops readiness again.
+2. **F2 — its own small candidate.** The data export may not claim `measuredProviderCharge: false` when rows
+   with measured usage or charge exist. Return what the export contains now, the minimal diff, which
+   measured usage/charge data should enter, and a test that fails before and passes after. Do not export the
+   operator note or internal security metadata just because it exists. **Stop before any DEV application.**
+3. **F4 — its own small least-privilege candidate.** For the two `rpc_ai_test_*_service` functions: confirm
+   every call site read-only first; if only service or privileged callers use them, revoke EXECUTE from anon
+   and authenticated, keep the body guards as defence in depth, prove both roles are denied and that the
+   canonical service caller still works. **Stop before any DEV application.**
+4. **F7 — repository source repair.** Do not change the live DEV function. Repair the broken č/Č in the
+   repository's copy of `public.handle_uskoci_auth_user_created()` from the canonical UTF-8 source in the
+   live ledger/function, and prove the repository no longer produces a false predecessor/hash drift. No
+   database deploy for the sake of this repair.
+5. **Price basis stays on HOLD**, and the old-APK finding is a **BLOCKER** for activating `price_basis`: an
+   old APK can send a wrong total, not only display a wrong price. Nothing is implemented or activated until
+   a safe client compatibility plan exists.
+6. **`pkg023c` stays on HOLD** until `pkg023f` is applied and closure readiness is confirmed again. After the
+   `pkg023f` DEV application: stop and return the complete result before touching `pkg023c`, the price or
+   the client.
