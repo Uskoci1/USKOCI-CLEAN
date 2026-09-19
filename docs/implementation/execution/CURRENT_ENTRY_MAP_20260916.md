@@ -185,3 +185,18 @@ register; composition of the remaining screens needs his eye before they change 
 | `pkg022/PKG022_LOCATION_FUNCTION_AUDIT_20260918.md` | The location path audited as functions |
 | `pkg022/PKG022_MAP_LAYER_AUDIT_20260918.md` | The map layer end to end, and which of its faults were mine |
 | `pkg022/PKG022_DESIGN_MEASURE_AND_REGISTER_20260918.md` | The one measure and the one register: what moved, what was left locked |
+
+---
+
+# State as of 2026-09-19
+
+The owner supplied the V3 3.1 architecture package, answered its eight product questions with
+"sve DA", and after a read-only forensic review of F01–F20 wrote "Odobravam implementaciju".
+`docs/implementation/v5-ai-first/pkg023/OWNER_DECISIONS_V3_20260919.md` records the eight decisions,
+what each supersedes, the three questions still open, and the first slice that approval covers.
+
+Two supersessions matter to anyone reading this map: owner decision 1 of 2026-09-16 (two tab
+shells) gives way to one shell, **Početna | Mapa | Dogovori**, once the second slice lands; and the
+instruction that entry and auth keep their own dark palette is lifted for the palette only. Until
+those slices land, the app still renders the two shells and the dark auth sheet, and the CI
+invariants above are unchanged.
