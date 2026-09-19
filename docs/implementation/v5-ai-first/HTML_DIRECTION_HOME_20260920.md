@@ -78,5 +78,24 @@ including enlarged text. It does not claim rendered layout proof.
 
 Isolated targeted verification: four suites / 67 tests passed (Home, both navigation contracts and
 the unchanged identity tests). `npx tsc --noEmit -p tsconfig.json` passed after normal generated entry
-assets were restored. Source-147 integrity passed. The isolated full suite is still in progress at
-this commit; installation requires its result and artifact verification.
+assets were restored. Source-147 integrity passed. The isolated full suite initially passed 4,495
+tests with one known Windows location timeout; that location group passed 22/22 alone. PRE-P4 run
+`35476540506` then passed all 233 suites / 4,496 tests, TypeScript and source-147 integrity on exact
+source `b1df78e189afbc2777d5b342e4bc7d2bf1410614`. It ran full Jest under the manual source-check
+boundary; separate domain jobs were skipped. The previously observed delayed Jest exit warning
+remained, and the job completed successfully.
+
+### First device evidence and follow-up
+
+Android build `35476231868` succeeded on the same source. Its APK SHA256 is
+`5bb84252feca5d7e1862a73ea74aeff1b6134f2e78892d9884ab4ea009dbbc18`.
+Recovery and icon attestations were bound to that source, tree and artifact. Package `rs.uskoci.dev`,
+versionCode 35, and signing certificate matched the installed development app. A replacement
+installation succeeded without clearing data; the existing authenticated account opened the new
+Home with live data on the connected HONOR / Android 16 phone at font scale 1.15.
+
+Device inspection found the previous cream root-stack background visible around the new inset
+tab bar. The follow-up sets only the authenticated `(app)` stack scene to the current white system
+ground. Entry artwork, auth behavior and root routing are unchanged. TypeScript and four existing
+root/session/navigation suites (53 tests) passed for that follow-up. The correction requires its
+own APK verification; the first installed APK does not prove it.
