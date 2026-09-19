@@ -54,7 +54,13 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     if(url.includes('/rest/v1/ai_structured_facts?'))return json(activeFacts);
     if(url.endsWith('/rest/v1/rpc/rpc_ai_apply_legacy_need_turn_service'))return json({proposedCount:body.p_proposals.length});
     if(url.startsWith('https://generativelanguage.googleapis.com/')||url==='https://api.openai.com/v1/responses'){
-      if(failure==='network')throw new Error('SYNTHETIC_GEMINI_KEY '+userText+' PRIVATE_PROVIDER_OUTPUT');
+      // Thrown with the handler's own realm constructors, as the runtime does in production. An error of
+      // this file's realm fails `instanceof Error` inside the VM, which once hid a logged message as UNKNOWN.
+      const realm=name=>vm.runInContext(name,context);
+      if(failure==='network')throw new (realm('Error'))('SYNTHETIC_GEMINI_KEY '+userText+' PRIVATE_PROVIDER_OUTPUT');
+      // A thrown text shaped exactly like one of our own failure names, and the runtime's own network error.
+      if(failure==='code-shaped')throw new (realm('Error'))('PRIVATE_PROVIDER_OUTPUT');
+      if(failure==='runtime')throw new (realm('TypeError'))('error sending request for url SYNTHETIC_GEMINI_KEY '+userText);
       if(failure==='http')return new Response('PRIVATE_PROVIDER_OUTPUT',{status:429});
       if(failure==='json')return new Response('PRIVATE_PROVIDER_OUTPUT '+userText+' SYNTHETIC_GEMINI_KEY',{status:200});
       const result=providerOutput??(schema==='NEED_FACT_V2'?providerResult:{safety:'ALLOW',assistantMessage:'Potreban je pregled.',facts:[]});
@@ -135,13 +141,35 @@ for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
   });
 }
 
+// What an operator log of a failed provider call may hold beside its category: the class of the failure,
+// from a closed list. Never the thrown text: a JSON parse failure quotes the provider output it choked on,
+// and a runtime network error can quote its request.
+const FAILURE_CLASS={network:'UNKNOWN',http:'PROVIDER_HTTP_FAILED',json:'OUTPUT_NOT_JSON',output:'OUTPUT_NOT_JSON',
+  'code-shaped':'UNKNOWN',runtime:'RUNTIME_TYPE_ERROR'};
+const providerFailureLogs=(failure,httpCategory='GEMINI_GENERATE_FAILED')=>failure==='http'
+  ?[[httpCategory,429],['AI_PROVIDER_FAILED',FAILURE_CLASS.http]]:[['AI_PROVIDER_FAILED',FAILURE_CLASS[failure]]];
+const assertNothingRawLogged=f=>{const text=JSON.stringify(f.logs);
+  for(const fragment of ['SYNTHETIC','PRIVATE','GENERIC','Unexpected','token','url',userText.slice(0,8)])assert.ok(!text.includes(fragment),'raw text reached the log');
+  for(const entry of f.logs)for(const value of entry)assert.ok(typeof value==='number'||/^[A-Z][A-Z0-9_]{2,63}$/.test(value),'a log value is neither a status nor a class');};
+
+test('the closed list of failure classes names every failure this function and its helpers throw, and logs nothing else',()=>{
+  const sources=[entry,resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts')].map(file=>readFileSync(file,'utf8'));
+  const handler=sources[0],listed=new Set(handler.match(/const OWN_FAILURE_NAMES = new Set\(\[([^\]]+)\]\)/)[1].match(/[A-Z][A-Z0-9_]+/g));
+  const thrown=new Set(sources.flatMap(source=>[...source.matchAll(/new Error\(([^)]*)\)/g)].map(match=>match[1])));
+  for(const argument of thrown){assert.match(argument,/^'[A-Z][A-Z0-9_]+'$/,'a failure is thrown with a text that is not a fixed name');assert.ok(listed.has(argument.slice(1,-1)),'a thrown failure name is missing from the closed list');}
+  assert.equal(listed.size,thrown.size);
+  // The one line that logs a failed provider call takes its second value from the classifier and from nowhere else.
+  assert.deepEqual(handler.match(/console\.error\('AI_PROVIDER_FAILED'[^;]*;/g),["console.error('AI_PROVIDER_FAILED', providerFailureClass(providerError));"]);
+  assert.ok(!/console[.](error|warn|log|info)[(][^;]*[.](message|stack)[^A-Za-z]/.test(sources.join(' ')),'a thrown message or stack is passed to a log');
+});
+
 for(const safety of ['ALLOW','BLOCK']){
   test(`approved Gemini V2 ${safety} manual-only proposal rejects whole turn before SQL writer`,async()=>{
     const f=fixture({providerOutput:{safety,assistantMessage:'PRIVATE_RESOLVED_ASSISTANT',facts:[providerResult.facts[0],manualFact]}});
     const response=await f.invoke();assert.equal(response.status,502);
     assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');assert.equal(providerCalls(f).length,1);
     assert.deepEqual(materialWrites(f),[],'no valid subset or empty BLOCK turn may be persisted; claim/failure metadata is not a materializer');
-    assert.deepEqual(f.logs,[['AI_PROVIDER_FAILED']]);
+    assert.deepEqual(f.logs,[['AI_PROVIDER_FAILED','AI_MANUAL_ONLY_FACT_REJECTED']]);assertNothingRawLogged(f);
   });
 }
 
@@ -196,9 +224,16 @@ test('legacy history stays readable without synthesizing a V2 key or licensing i
 for(const failure of ['network','http','json','output'])test(`provider ${failure} failure logs fixed categories only and performs no writer call`,async()=>{
   const f=fixture({failure}),response=await f.invoke();assert.equal(response.status,502);
   assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');
-  const expected=failure==='http'?[['GEMINI_GENERATE_FAILED',429],['AI_PROVIDER_FAILED']]:[['AI_PROVIDER_FAILED']];
-  assert.deepEqual(f.logs,expected);assert.deepEqual(materialWrites(f),[]);
-  assert.ok(!JSON.stringify(f.logs).includes('SYNTHETIC_'));assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_PROVIDER_OUTPUT'));
+  assert.deepEqual(f.logs,providerFailureLogs(failure));assert.deepEqual(materialWrites(f),[]);
+  assertNothingRawLogged(f);
+});
+// The earlier check looked for the whole of 'PRIVATE_PROVIDER_OUTPUT' and so missed the ten characters of it
+// that a JSON parse error quotes. These two throw a text that is itself shaped like a failure name, and the
+// runtime's own network error; neither text may be logged, in whole or in part.
+for(const failure of ['code-shaped','runtime'])test(`a ${failure} provider failure is logged as a class, never as the text that was thrown`,async()=>{
+  const f=fixture({failure}),response=await f.invoke();assert.equal(response.status,502);
+  assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');
+  assert.deepEqual(f.logs,providerFailureLogs(failure));assert.deepEqual(materialWrites(f),[]);assertNothingRawLogged(f);
 });
 
 const providerCalls=f=>f.calls.filter(call=>[
@@ -277,7 +312,6 @@ for(const selected of ['gemini'])for(const failure of ['network','http','json','
     const calls=providerCalls(f);assert.equal(calls.length,1);assert.equal(new URL(calls[0].url).hostname,hostFor[selected]);
     assert.deepEqual(materialWrites(f),[]);
     const httpCategory=selected==='openai'?'OPENAI_RESPONSES_FAILED':'GEMINI_GENERATE_FAILED';
-    assert.deepEqual(f.logs,failure==='http'?[[httpCategory,429],['AI_PROVIDER_FAILED']]:[['AI_PROVIDER_FAILED']]);
-    assert.ok(!JSON.stringify(f.logs).includes('SYNTHETIC_'));assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_PROVIDER_OUTPUT'));
+    assert.deepEqual(f.logs,providerFailureLogs(failure,httpCategory));assertNothingRawLogged(f);
   });
 }

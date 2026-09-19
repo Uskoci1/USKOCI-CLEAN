@@ -4,18 +4,18 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 41811,
-      "sha256": "a0722a4105d3085b1427f90fbd956e3cfb16c9cfd73fb344d1e27790297882fa"
+      "bytes": 44769,
+      "sha256": "faa2354e322463d26997286fa850e2d6b9d17fc26b3f91baae661b377749a2be"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
-      "bytes": 5905,
-      "sha256": "1b5b122ab14c8f1d9d4e7c2df7947015235bd459ca56d36702d2bc250ad8d317"
+      "bytes": 5897,
+      "sha256": "8fa2bd0b7e3af90a0e3c41dcecad9c08e4ed4014440a83dea36eb92e6ef22e7a"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-      "bytes": 22252,
-      "sha256": "cbd7d9ca04dc985ef1065297ff5122febc9ca32a04609819fa89bcd907485623"
+      "bytes": 25643,
+      "sha256": "69c7da8805dc23f21b1a422928f38e9ab792bcb3c77d05d712ce6a47aa39a95c"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",
@@ -39,19 +39,29 @@
     }
   ],
   "refrozen": {
-    "package": "PKG-014B",
-    "date": "2026-09-17",
-    "reason": "Provider usage capture was added on the owner's instruction of 2026-09-17, so the AI test budget can be reported in real tokens instead of bounds. The shared stream helper now parses the usageMetadata the provider already sends and hands the counts to an optional onUsage callback; both handlers record them through a service-only recorder after the turn is already confirmed. No request the provider receives changed, no answer changed, and the budget engine was not altered: the ceiling constant and the reservation writer are untouched and asserted so.",
+    "package": "V3-EDGE-LOG-FIX",
+    "date": "2026-09-19",
+    "reason": "Owner approval of 2026-09-19 (\"EDGE FIX — ODOBRENO\"). Since 169ce727 the handler logged the thrown message beside AI_PROVIDER_FAILED; for a JSON parse failure that message quotes the first characters of the raw provider output, and for any runtime error it is whatever the runtime wrote. The handler now logs the class of the failure from a closed list (its own thrown names, five runtime classes, or UNKNOWN) and nothing of what was thrown. No prompt, model, schema, request, answer or budget behaviour changed. This freeze also absorbs three commits of 2026-09-18 that changed frozen files without refreezing: 632afcea and 169ce727 (index.ts) and e1b2625d (needFactsV2.ts); the deployed v40 was byte-identical to that tree.",
     "changedFiles": [
       {
         "path": "supabase/functions/uskoci-ai-interview/index.ts",
-        "bytesBefore": 40847,
-        "bytesAfter": 41811
+        "bytesBefore": 41811,
+        "bytesAfter": 44769
+      },
+      {
+        "path": "src/contracts/needFactsV2.ts",
+        "bytesBefore": 5905,
+        "bytesAfter": 5897
+      },
+      {
+        "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
+        "bytesBefore": 22252,
+        "bytesAfter": 25643
       }
     ],
     "previousFreeze": {
-      "package": "PKG-014",
-      "date": "2026-09-16"
+      "package": "PKG-014B",
+      "date": "2026-09-17"
     }
   }
 }

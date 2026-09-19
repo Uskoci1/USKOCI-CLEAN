@@ -85,6 +85,23 @@ const exact = (value: unknown, keys: string[]) => object(value) && Object.keys(v
 const isUuid = (value: unknown): value is string => typeof value === 'string' && uuidPattern.test(value);
 const sameUuid = (value: unknown, expected: string) => isUuid(value) && value.toLowerCase() === expected.toLowerCase();
 
+// What an operator log may say about a failed provider call: the class of the failure, from a closed
+// list. Never the thrown text. A JSON parse error quotes the provider output it choked on, a runtime
+// network error quotes its request, and a text that is merely shaped like one of our names proves
+// nothing about where it came from. A name that is not listed is logged as UNKNOWN.
+const OWN_FAILURE_NAMES = new Set(['AI_CLAIM_INVALID', 'AI_CONTEXT_INVALID', 'AI_CONTEXT_TOO_LARGE', 'AI_LEGACY_PERSIST_FAILED',
+  'AI_MANUAL_ONLY_FACT_REJECTED', 'AI_PAYLOAD_EMPTY', 'AI_PAYLOAD_TOO_LARGE', 'AI_REQUEST_CANCELLED', 'AI_STREAM_INCOMPLETE',
+  'AI_STREAM_INVALID', 'AI_STREAM_REJECTED', 'AI_STREAM_STOPPED', 'AI_STREAM_TOO_LARGE', 'AI_STREAM_UNAVAILABLE',
+  'AI_TEST_BUDGET_UNAVAILABLE', 'AI_TRANSPORT_STOPPED', 'AI_TURN_RECEIPT_INVALID', 'AI_V2_FACT_INVALID', 'AI_V2_OUTPUT_INVALID',
+  'ASSISTANT_MESSAGE_INVALID', 'ASSISTANT_MESSAGE_MISSING', 'PROVIDER_HTTP_FAILED', 'PROVIDER_OUTPUT_MISSING']);
+const RUNTIME_FAILURE_CLASSES: Record<string, string> = { SyntaxError: 'OUTPUT_NOT_JSON', TypeError: 'RUNTIME_TYPE_ERROR',
+  RangeError: 'RUNTIME_RANGE_ERROR', AbortError: 'ABORTED', TimeoutError: 'TIMED_OUT' };
+function providerFailureClass(error: unknown): string {
+  const thrown = object(error) ? error : {};
+  if (typeof thrown.message === 'string' && OWN_FAILURE_NAMES.has(thrown.message)) return thrown.message;
+  return typeof thrown.name === 'string' && Object.hasOwn(RUNTIME_FAILURE_CLASSES, thrown.name) ? RUNTIME_FAILURE_CLASSES[thrown.name] : 'UNKNOWN';
+}
+
 /** Bounds both fetch and body consumption. Abort does not prove remote rollback. */
 async function boundedJson(input: string | Request, init: RequestInit = {}, limit = 524288, timeout = 8000, parent?: AbortSignal, omitErrorBody = false) {
   const controller = new AbortController();
@@ -638,10 +655,9 @@ Deno.serve(async (req: Request) => {
         (usage) => { reportedUsage = usage; });
     } catch (providerError) {
       // On 2026-09-18 this line was the only trace of two failures that left the person staring at
-      // "AI jos obradjuje poruku" for over two hours, and it did not say which failure it was. The
-      // thrown names are our own (AI_CONTEXT_TOO_LARGE, PROVIDER_HTTP_FAILED, PROVIDER_OUTPUT_MISSING)
-      // or a runtime error name; neither the key, the prompt nor anything the person wrote is logged.
-      console.error('AI_PROVIDER_FAILED', providerError instanceof Error ? providerError.message : 'UNKNOWN');
+      // "AI jos obradjuje poruku" for over two hours, and it did not say which failure it was. It
+      // says which class of failure it was, from a closed list, and nothing of what was thrown.
+      console.error('AI_PROVIDER_FAILED', providerFailureClass(providerError));
       await retireAttempt();
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
     }
