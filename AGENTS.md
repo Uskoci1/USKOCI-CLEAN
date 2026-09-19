@@ -5,10 +5,15 @@ read `docs/implementation/v5-ai-first/pkg023/PKG023J_HOME_ATTENTION.md`. The own
 ONLY pkg023j, conditional on ready private preconditions. Its exact CI-proven transaction passed both
 private checks before/after creation and was applied as `20260919221214_dev_alpha_pkg023j_home_attention`.
 Canonical DEV ledger is now **165 = 147 frozen source + 18 dev_alpha**, confirmed by readback.
-The aggregate is installed but not wired into the client. F02, paging/reconciliation, final UI and
+The aggregate is installed but not wired into the client. F02, paging, final UI and
 device verification remain open. Other DEV migrations still need a separate explicit owner decision;
 the older general AF-D26 authorization below does not override that newer boundary. No pkg023c or
 price_basis activation is authorized. The historical handoff's counts are not current live counts.
+
+Latest client follow-up: read `docs/implementation/v5-ai-first/APPLICATION_COMMAND_RECONCILIATION_20260920.md`.
+My applications now reconciles a pending command against its exact owned response row, independently
+of the displayed list. It remains unpaged; this does not complete Home wiring, notification paging
+or a device proof. No additional DEV migration was needed or applied for this client correction.
 
 Later local follow-up (2026-09-19): after the mandatory handoff/owner-decision reading below, read
 `docs/implementation/v5-ai-first/CLIENT_RELIABILITY_20260919.md` for the F01/F07/F08 client corrections

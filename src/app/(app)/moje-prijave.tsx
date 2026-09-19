@@ -4,11 +4,12 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { Ishod, PovuciPrijavuKomanda } from '../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../data/applicationSelectionClientService';
-import { readExistingApplicationInterval } from '../../data/myApplicationsClientService';
+import { readApplicationCommandState, readExistingApplicationInterval, type ApplicationCommandState } from '../../data/myApplicationsClientService';
 import { ru4Production, type Ru4RazresiPrijavuInput } from '../../data/ru4Production';
-import { positiveInteger } from '../../data/serverReceipt';
+import { positiveInteger, sameId } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../lib/idempotencija';
+import { calendarInstant } from '../../lib/calendarTime';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { MyApplicationsPresentation, type ApplicationsTab, type OfferEdit } from '../../ui/v2/MyApplicationsPresentation';
@@ -28,19 +29,23 @@ const errors: Readonly<Record<string, string>> = { ...applicationSelectionErrors
 const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ishod radnje nije potvrđen. Proveri sačuvano stanje pre ponavljanja.' });
 const identity = (p: MojaPrijavaProjekcija) => `${p.prijavaId}:${p.potrebaId}:${p.potrebaRevizija}:${p.prijavaRevizija}:${p.prijavaVerzija}:${p.stanje}`;
 const withdrawal = (pending: Pending) => pending.intent.kind === 'withdraw' || pending.intent.command.akcija === 'WITHDRAW';
-function observed(pending: Pending, rows: MojaPrijavaProjekcija[]) {
-  const row = rows.find(p => p.prijavaId === pending.row.prijavaId && p.potrebaId === pending.row.potrebaId);
-  if (!row) return false;
-  // A list can establish withdrawal itself. UPDATE/KEEP also require the
-  // command receipt; a coincidentally similar offer never proves replay.
-  if (withdrawal(pending)) return row.stanje === 'WITHDRAWN' && row.prijavaVerzija >= pending.row.prijavaVerzija;
+function observed(pending: Pending, row: ApplicationCommandState) {
+  if (!sameId(row.applicationId, pending.row.prijavaId) || !sameId(row.needId, pending.row.potrebaId)) return false;
+  // The exact persisted row establishes withdrawal. UPDATE/KEEP also require
+  // the command receipt; a coincidentally similar offer never proves replay.
+  if (withdrawal(pending)) return row.status === 'WITHDRAWN' && row.version >= pending.row.prijavaVerzija;
   const update = pending.intent.kind === 'resolve' && pending.intent.command.akcija === 'UPDATE' ? pending.intent.command : null;
-  return pending.result === 'receipt' && row.prijavaVerzija === pending.row.prijavaVerzija + 1 &&
-    row.prijavaRevizija === pending.row.potrebaRevizija && row.potrebaRevizija === pending.row.potrebaRevizija &&
-    row.cena.iznos === (update ? update.cenaRsd : pending.row.cena.iznos) &&
-    row.pokrivaMesta === (update ? update.pokrivenaMesta : pending.row.pokrivaMesta) &&
-    row.napomena === (update ? update.napomena : pending.row.napomena) &&
-    ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED'].includes(row.stanje);
+  const sameInstant = (actual: string | null, expected: string | null | undefined) => expected === null
+    ? actual === null : actual !== null && calendarInstant(expected) !== null && calendarInstant(actual) === calendarInstant(expected);
+  // A later Need edit/closure changes today's projection, not whether this
+  // version was saved against the reviewed revision. The list still displays
+  // the server's current lifecycle; it cannot settle this command.
+  return pending.result === 'receipt' && row.version === pending.row.prijavaVerzija + 1 &&
+    row.submittedNeedRevision === pending.row.potrebaRevizija &&
+    row.priceRsd === (update ? update.cenaRsd : pending.row.cena.iznos) &&
+    row.coveredSlots === (update ? update.pokrivenaMesta : pending.row.pokrivaMesta) &&
+    row.scopeNote === (update ? update.napomena : pending.row.napomena) &&
+    (!update || sameInstant(row.proposedStartAt, update.predlozeniPocetak) && sameInstant(row.proposedEndAt, update.predlozeniKraj));
 }
 export default function MojePrijave() {
   const izvor = useIzvor(), router = useRouter();
@@ -76,17 +81,22 @@ export default function MojePrijave() {
   const read = useCallback(async (): Promise<Ishod<Loaded>> => {
     const generation = ++session.readRevision, token = session.token; session.reading = true; clearReview();
     const owned = () => session.focused && session.active && token === session.token && generation === session.readRevision && accountCurrent();
+    const pending = session.pending && !session.pending.inFlight ? session.pending : null;
+    if (pending) pending.reconciled = false;
     try {
-      const rows = await boundedApplicationSelectionRead(izvor.mojePrijave());
+      const [rows, named] = await Promise.all([
+        boundedApplicationSelectionRead(izvor.mojePrijave()),
+        pending ? readApplicationCommandState(pending.row) : Promise.resolve(null),
+      ]);
       if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelne Prijave.' };
-      const pending = session.pending;
       let notice: string | null = null;
-      if (pending && !pending.inFlight) {
-        pending.reconciled = true;
-        if (observed(pending, rows)) {
+      if (pending && session.pending === pending && !pending.inFlight && named) {
+        pending.reconciled = named.ok;
+        if (!named.ok) notice = 'Sačuvano stanje ove prijave nije potvrđeno. Proveri ponovo pre nove radnje.';
+        else if (observed(pending, named.podatak)) {
           notice = withdrawal(pending) ? 'Sačuvano stanje: Prijava je povučena.' : 'Prijava je usklađena sa pregledanom verzijom Zadatka.';
           session.pending = null;
-        } else if (pending.result === 'receipt') notice = 'Server je potvrdio radnju. Aktuelna lista još ne potvrđuje očekivano stanje; proveri ponovo.';
+        } else if (pending.result === 'receipt') notice = 'Server je potvrdio radnju. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.';
       }
       return { ok: true, podatak: { rows, notice } };
     } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave nisu učitane. Proveri vezu i pokušaj ponovo.' }; }

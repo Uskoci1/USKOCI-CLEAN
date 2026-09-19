@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-const mockRead = jest.fn(), mockWithdraw = jest.fn(), mockResolve = jest.fn(), mockInterval = jest.fn(), mockAlert = jest.fn();
+const mockRead = jest.fn(), mockWithdraw = jest.fn(), mockResolve = jest.fn(), mockInterval = jest.fn(), mockCommandState = jest.fn(), mockAlert = jest.fn();
 const mockSource = { mojePrijave: mockRead, povuciPrijavu: mockWithdraw };
 const mockRouter = { navigate: jest.fn(), push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true };
 let mockFocused = true, mockRole = 'uskocer';
@@ -33,7 +33,8 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('phosphor-react-native', () => ({ User: 'Icon', Clock: 'Icon', MapPin: 'Icon', Wallet: 'Icon', ArrowLeft: 'Icon' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 jest.mock('../ru4Production', () => ({ ru4Production: { resolveChangedApplication: (...args: any[]) => mockResolve(...args) } }));
-jest.mock('../myApplicationsClientService', () => ({ readExistingApplicationInterval: (...args: any[]) => mockInterval(...args) }));
+jest.mock('../myApplicationsClientService', () => ({ readExistingApplicationInterval: (...args: any[]) => mockInterval(...args),
+  readApplicationCommandState: (...args: any[]) => mockCommandState(...args) }));
 import Screen from '../../app/(app)/moje-prijave';
 const row = (overrides: any = {}) => ({ prijavaId: '10000000-0000-4000-8000-000000000001', potrebaId: '10000000-0000-4000-8000-000000000002',
   potrebaRevizija: 4, prijavaRevizija: 4, prijavaVerzija: 2, stanje: 'SUBMITTED', naslov: 'Unos ormara', opis: 'Dvoje ljudi i trake.',
@@ -41,6 +42,10 @@ const row = (overrides: any = {}) => ({ prijavaId: '10000000-0000-4000-8000-0000
   vremeTekst: '20. septembar · 10–11h', dogovorId: null, promenjenaPotreba: false, mozePovuci: true, traziPaznju: false, ...overrides });
 const stale = () => row({ stanje: 'STALE_REVIEW_REQUIRED', prijavaRevizija: 3, promenjenaPotreba: true, mozePovuci: false, traziPaznju: true });
 const interval = { start: '2026-09-20T10:00:00.123456Z', end: '2026-09-20T11:00:00.654321Z' };
+const commandState = (p = row(), extra = {}) => ({ applicationId: p.prijavaId, needId: p.potrebaId,
+  version: p.prijavaVerzija, submittedNeedRevision: p.prijavaRevizija, status: p.stanje,
+  priceRsd: p.cena.iznos, coveredSlots: p.pokrivaMesta, scopeNote: p.napomena,
+  proposedStartAt: interval.start, proposedEndAt: interval.end, ...extra });
 let mockRows: any[] = [], tree: ReactTestRenderer | undefined;
 const text = () => tree!.root.findAll(n => String(n.type) === 'T').flatMap(n => n.children.filter(c => typeof c === 'string')).join(' ');
 const press = (label: string) => tree!.root.findAll(n => String(n.type) === 'Press' && n.props.accessibilityLabel === label)[0]?.props.onPress;
@@ -60,6 +65,10 @@ beforeEach(() => {
   mockWithdraw.mockImplementation(async () => { mockRows = [row({ stanje: 'WITHDRAWN', mozePovuci: false })]; return { ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }; });
   mockResolve.mockImplementation(async () => { mockRows = [row({ prijavaVerzija: 3 })]; return { ok: true, podatak: { status: 'SUBMITTED', version: 3 } }; });
   mockInterval.mockResolvedValue({ ok: true, podatak: interval });
+  mockCommandState.mockImplementation(async (p: any) => {
+    const found = mockRows.find(r => r.prijavaId === p.prijavaId && r.potrebaId === p.potrebaId);
+    return found ? { ok: true, podatak: commandState(found) } : { ok: false, kod: 'APPLICATION_STATE_UNAVAILABLE', poruka: 'unavailable' };
+  });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.useRealTimers(); });
 it('renders the real empty state and uses the existing discovery route', async () => {
@@ -206,4 +215,72 @@ it('a confirmed command with a different fresh offer shows actual state and allo
   mockResolve.mockImplementationOnce(async () => { mockRows = [row({ prijavaVerzija: 3, cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } })]; return { ok: true, podatak: { status: 'SUBMITTED', version: 3 } }; });
   await review(); await tap('Zadrži prijavu'); expect(text()).not.toContain('Prijava je usklađena'); expect(text()).toContain('6.000 RSD');
   await tap('Pregledaj aktuelnu prijavu'); expect(press('Proveri sačuvano stanje')).toBeUndefined(); expect(mockResolve).toHaveBeenCalledTimes(1);
+});
+
+it('confirms withdrawal from its named row even when the displayed list omits it', async () => {
+  mockWithdraw.mockImplementationOnce(async () => { mockRows = []; return { ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }; });
+  mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ stanje: 'WITHDRAWN' })) });
+  await render(); expect(mockCommandState).not.toHaveBeenCalled();
+  await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
+  expect(mockCommandState).toHaveBeenCalledWith(row());
+  expect(text()).toContain('Sačuvano stanje: Prijava je povučena.');
+  expect(press('Proveri sačuvano stanje')).toBeUndefined();
+});
+it('a missing or unreadable named row cannot be replaced by a matching list row', async () => {
+  mockCommandState.mockResolvedValue({ ok: false, kod: 'APPLICATION_STATE_INVALID', poruka: 'private backend detail' });
+  await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
+  expect(text()).not.toContain('Sačuvano stanje: Prijava je povučena.'); expect(text()).not.toContain('private backend');
+  expect(press('Pregledaj aktuelnu prijavu')).toBeUndefined();
+  expect(press('Ponovi isti zahtev')).toBeUndefined();
+  mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ stanje: 'WITHDRAWN' })) });
+  await tap('Proveri sačuvano stanje'); expect(text()).toContain('Sačuvano stanje: Prijava je povučena.');
+});
+it('an unchanged named row outside the list permits only the identical unknown command retry', async () => {
+  mockWithdraw.mockImplementationOnce(async () => { mockRows = []; return { ok: false, kod: 'NETWORK', poruka: 'unknown' }; });
+  mockCommandState.mockResolvedValue({ ok: true, podatak: commandState() });
+  await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
+  expect(press('Ponovi isti zahtev')).toBeUndefined(); await tap('Proveri sačuvano stanje'); await tap('Ponovi isti zahtev');
+  expect(mockCommandState).toHaveBeenCalled(); expect(mockWithdraw.mock.calls[1][0]).toEqual(mockWithdraw.mock.calls[0][0]);
+});
+it('a named row resembling KEEP without a receipt still requires replay of the same key', async () => {
+  mockResolve.mockResolvedValue({ ok: false, kod: 'NETWORK', poruka: 'unknown' });
+  mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ prijavaVerzija: 3 })) });
+  await review(); await tap('Zadrži prijavu'); mockRows = []; await tap('Proveri sačuvano stanje');
+  expect(text()).not.toContain('Prijava je usklađena'); await tap('Ponovi isti zahtev');
+  expect(mockCommandState).toHaveBeenCalled(); expect(mockResolve.mock.calls[1][0]).toEqual(mockResolve.mock.calls[0][0]);
+});
+it('confirmed KEEP remains saved against its reviewed revision when the task changes again', async () => {
+  mockResolve.mockImplementationOnce(async () => { mockRows = [row({ stanje: 'STALE_REVIEW_REQUIRED', potrebaRevizija: 5, prijavaVerzija: 3, traziPaznju: true })];
+    return { ok: true, podatak: { status: 'SUBMITTED', version: 3 } }; });
+  await review(); await tap('Zadrži prijavu');
+  expect(text()).toContain('Prijava je usklađena sa pregledanom verzijom Zadatka.');
+  expect(text()).toContain('Potrebna nova provera'); expect(press('Proveri sačuvano stanje')).toBeUndefined();
+});
+it('an UPDATE receipt cannot confirm an interval with a different microsecond', async () => {
+  mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ prijavaVerzija: 3 }), { proposedEndAt: '2026-09-20T11:00:00.654322Z' }) });
+  await editing(); await tap('Sačuvaj izmenjenu prijavu');
+  expect(text()).not.toContain('Prijava je usklađena'); expect(press('Pregledaj aktuelnu prijavu')).toBeDefined();
+});
+it('UPDATE readback compares exact instants across timestamp offsets without losing microseconds', async () => {
+  mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ prijavaVerzija: 3 }), {
+    proposedStartAt: '2026-09-20T12:00:00.123456+02:00', proposedEndAt: '2026-09-20T13:00:00.654321+02:00',
+  }) });
+  await editing(); await tap('Sačuvaj izmenjenu prijavu'); expect(text()).toContain('Prijava je usklađena');
+});
+it('a successful named read is retired when the next read fails, keeping retry locked', async () => {
+  mockWithdraw.mockResolvedValue({ ok: false, kod: 'NETWORK', poruka: 'unknown' });
+  await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
+  await tap('Proveri sačuvano stanje'); const oldRetry = press('Ponovi isti zahtev'); expect(oldRetry).toBeDefined();
+  mockCommandState.mockResolvedValue({ ok: false, kod: 'APPLICATION_STATE_UNAVAILABLE' });
+  await tap('Proveri sačuvano stanje'); expect(press('Ponovi isti zahtev')).toBeUndefined();
+  await act(async () => oldRetry()); expect(mockWithdraw).toHaveBeenCalledTimes(1);
+});
+it.each(['blur', 'account', 'background'])('a late named-row confirmation after %s cannot settle the current screen', async change => {
+  const d = deferred(); mockCommandState.mockReturnValueOnce(d.promise);
+  await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
+  if (change === 'blur') { mockFocused = false; await update(); }
+  if (change === 'account') { mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 }; mockRows = [row({ naslov: 'Current account' })]; await update(); }
+  if (change === 'background') await background('background');
+  await act(async () => d.resolve({ ok: true, podatak: commandState(row({ stanje: 'WITHDRAWN' })) }));
+  expect(mockCommandState).toHaveBeenCalled(); expect(text()).not.toContain('Sačuvano stanje: Prijava je povučena.');
 });
