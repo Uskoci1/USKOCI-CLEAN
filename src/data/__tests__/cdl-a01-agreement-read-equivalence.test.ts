@@ -91,13 +91,14 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
     expect(productionComposition).not.toContain('agreementProductionOverrides');
   });
 
-  it('mojiDogovori uses only canonical list RPC and preserves projection mapping', async () => {
-    mockRpc.mockResolvedValue({ data: [rawAgreement], error: null });
+  it('mojiDogovori uses only the canonical paged list RPC and preserves projection mapping', async () => {
+    mockRpc.mockResolvedValue({ data: { items: [rawAgreement], hasMore: false }, error: null });
 
     const result = await agreementClientService.mojiDogovori();
 
     expect(mockGetUser).toHaveBeenCalledTimes(1);
-    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements']]);
+    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements_page',
+      { p_scope: 'ALL', p_limit: 100, p_before_at: null, p_before_id: null }]]);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
       id: 'agr-1',
@@ -148,7 +149,8 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'LIST_DENIED' } });
 
     await expect(agreementClientService.mojiDogovori()).rejects.toThrow('AGREEMENT_LIST_FAILED');
-    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements']]);
+    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements_page',
+      { p_scope: 'ALL', p_limit: 100, p_before_at: null, p_before_id: null }]]);
   });
 
   it('mojiDogovori remains fail-loud on invalid projection', async () => {

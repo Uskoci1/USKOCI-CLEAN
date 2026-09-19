@@ -101,6 +101,11 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     ocenaMoguca: status === 'COMPLETED',
     hronologija: [{ vremeTekst: formatTime(raw.createdAt), tekst: 'Dogovor kreiran' }],
     radnje: agreementActions(raw, uid),
+    // PKG-023a. The workspace read has never carried either of these, so a null here means the
+    // reader did not say, not that there is no term and no pending change.
+    pocinje: typeof raw.startsAt === 'string' ? raw.startsAt : null,
+    izmenaCeka: raw.pendingChange && typeof raw.pendingChange.id === 'string'
+      ? { predlogId: raw.pendingChange.id, mojPredlog: raw.pendingChange.proposedByMe === true } : null,
   };
 }
 
@@ -506,12 +511,30 @@ export const agreementChangeService = {
  * the existing Izvor request, validation, mapping and error semantics exactly.
  */
 export const agreementClientService: AgreementService = {
+  /**
+   * PKG-023a. The paged reader answers what the unpaged one could not: the start instant of the work
+   * and whether a change proposal is waiting for an answer. The pages are a keyset on the Agreement's
+   * own created_at, which nothing rewrites, so the walk cannot repeat or hide a row; twenty pages is a
+   * refusal, never a silent truncation.
+   */
   async mojiDogovori() {
     const uid = await userId();
-    const { data, error } = await supabase.rpc('rpc_list_my_agreements');
-    if (error) throw new Error('AGREEMENT_LIST_FAILED');
-    if (!Array.isArray(data)) throw new Error('AGREEMENT_LIST_INVALID_PROJECTION');
-    return data.map((row) => mapAgreement(row, uid));
+    const rows: any[] = [];
+    let cursor: { at: string; id: string } | null = null;
+    for (let page = 0; ; page++) {
+      if (page >= 20) throw new Error('AGREEMENT_LIST_TOO_MANY_PAGES');
+      const { data, error } = await supabase.rpc('rpc_list_my_agreements_page', {
+        p_scope: 'ALL', p_limit: 100, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
+      });
+      if (error) throw new Error('AGREEMENT_LIST_FAILED');
+      const items = (data as { items?: unknown; hasMore?: unknown } | null)?.items;
+      if (!Array.isArray(items)) throw new Error('AGREEMENT_LIST_INVALID_PROJECTION');
+      rows.push(...items);
+      const last = items[items.length - 1] as { sortAt?: unknown; id?: unknown } | undefined;
+      if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
+      cursor = { at: last.sortAt, id: last.id };
+    }
+    return rows.map((row) => mapAgreement(row, uid));
   },
 
   async dogovor(id) {

@@ -344,6 +344,13 @@ export type DogovorProjekcija = {
   hronologija: { vremeTekst: string; tekst: string }[];
   /** PKG-007: serverske dozvole za završetak; `null` = nepotvrđene, završetak se ne nudi. */
   radnje: DogovorRadnje | null;
+  /**
+   * PKG-023a: početak posla sa Zadatka, ISO ili `null` kad termin nije zakazan. Do sada ga lista
+   * Dogovora nije imala, pa „sledeći" nije moglo da se poređa po vremenu.
+   */
+  pocinje: string | null;
+  /** PKG-023a: predlog izmene koji čeka odgovor; `null` kad nijedan ne čeka. */
+  izmenaCeka: { predlogId: string; mojPredlog: boolean } | null;
 };
 
 /* ------------------------------------------------- AI nacrt Potrebe (R02) */

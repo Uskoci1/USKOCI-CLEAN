@@ -278,6 +278,8 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
             : `Povezivanje aktivirano · ${a.povezivanjeIznos}`,
       },
     ],
+    pocinje: null,
+    izmenaCeka: null,
   };
 }
 

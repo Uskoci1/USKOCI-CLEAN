@@ -67,14 +67,30 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
       {relation ? <T variant="meta" tone="muted">{relation}</T> : null}
     </View>
     {item.problemOtvoren ? <View style={s.problem}><T variant="meta" style={s.problemText}>Prijavljen je problem · pogledaj Dogovor</T></View> : null}
+    {/* Until PKG-023a the list could not know that a change was waiting: a person saw it only after
+        opening the Dogovor. The one who proposed it is waiting for an answer, not for themselves. */}
+    {item.izmenaCeka ? <View style={s.pending}><T variant="meta" style={s.pendingText}>
+      {item.izmenaCeka.mojPredlog ? 'Tvoja izmena čeka odgovor' : 'Izmena čeka tvoj odgovor'}</T></View> : null}
   </Press>;
 }
 
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
   const { items, section, confirmationOnly, loading, error, onOpen } = props;
-  const visible = useMemo(() => items.filter(item => (section === 'all' || (section === 'active' ? isActive(item) : !isActive(item)))
-    && (!confirmationOnly || awaitsMyConfirmation(item))), [items, section, confirmationOnly]);
+  const visible = useMemo(() => {
+    const rows = items.filter(item => (section === 'all' || (section === 'active' ? isActive(item) : !isActive(item)))
+      && (!confirmationOnly || awaitsMyConfirmation(item)));
+    // What is next comes first, and a Dogovor with no term yet is not "next" - it goes after the ones
+    // that have one, in the order the server gave. History keeps the newest-first order it always had.
+    if (section === 'history') return rows;
+    return rows.map((item, index) => ({ item, index })).sort((a, b) => {
+      const left = a.item.pocinje, right = b.item.pocinje;
+      if (left && right && left !== right) return left < right ? -1 : 1;
+      if (left && !right) return -1;
+      if (!left && right) return 1;
+      return a.index - b.index;
+    }).map(row => row.item);
+  }, [items, section, confirmationOnly]);
   const waiting = useMemo(() => items.filter(awaitsMyConfirmation).length, [items]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && waiting ? { ...option, badge: waiting } : option), [waiting]);
   const count = loading || error ? null : visible.length;
@@ -135,4 +151,7 @@ const s = StyleSheet.create({
   initials: { color: sys.color.green, letterSpacing: 0 }, personName: { color: sys.color.ink, flexShrink: 1 },
   problem: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: sys.color.dangerSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
   problemText: { color: sys.color.danger, fontWeight: '600' },
+  // A change waiting for an answer is a task, not a fault: the warm tone, not the red one.
+  pending: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
+  pendingText: { color: sys.color.warn, fontWeight: '600' },
 });

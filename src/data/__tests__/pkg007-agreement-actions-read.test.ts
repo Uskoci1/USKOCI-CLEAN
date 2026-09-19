@@ -89,7 +89,7 @@ describe('PKG-007 — server completion permissions in the Agreement projection'
   });
   it('never fabricates permissions for the Agreement list, which carries no actionState', async () => {
     const { actionState: _omitted, ...row } = raw;
-    mockRpc.mockResolvedValue({ data: [row], error: null });
+    mockRpc.mockResolvedValue({ data: { items: [row], hasMore: false }, error: null });
     const rows = await agreementClientService.mojiDogovori();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: ID, stanje: 'CONFIRMED' });
