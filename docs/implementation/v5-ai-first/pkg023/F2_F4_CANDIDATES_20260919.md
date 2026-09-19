@@ -12,10 +12,13 @@ both are proven on a disposable database in the PKG-023f workflow, and **neither
 An export is built by `private.data_export_snapshot(account, receipt, binding, cutoff)`. Three things decide
 what a person receives:
 
-1. **The row builders** inside that function — one `select` per dataset key, 37 of them, each building a
+1. **The row builders** inside that function — one `select` per dataset key, each building a
    `jsonb_build_object` from the account's own rows.
 2. **The catalog**, `private.data_export_dataset_catalog()` — for each key, the `dataClass` and the exact
-   list of field names that may ever be exported.
+   list of field names that may ever be exported. The live catalog is not the one the export migration first
+   wrote: eight source migrations extended it in turn, each regenerating the literal through `jsonb`, so it
+   now holds **51 keys**, with normalised spacing and key order. The candidate anchors on that text, and its
+   preflight refused the first time precisely because it did not.
 3. **The active retention policy**, `retention_policy_sets.export_delivery.datasets` — per key, `mode`
    `INCLUDE` with a list of fields (which must be a subset of the catalog's) or `EXCLUDE` with a reason
    code. `private.data_export_policy_binding()` returns null unless the policy matches the catalog, the
