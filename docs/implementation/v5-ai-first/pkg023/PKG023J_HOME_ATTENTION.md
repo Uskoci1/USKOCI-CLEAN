@@ -41,6 +41,16 @@ The oracle loads the actual pure `composeHome()` / `hasNeedAttention()` using th
 
 2026-09-19 read-only check: ledger 164, latest version 20260919184627; aggregate absent. Predecessor body pins were inspected. `authenticated` has no private-schema USAGE. Current owner/worker SELECT policies were inspected.
 
-The connector role returned PostgreSQL 42501 for `private.retention_ai_source_ready()`. This is an **unverified preflight**, not a failed certificate and not a passed check. No privilege escalation, grant or wrapper was attempted. The independent closure digest read must also be recorded before any future application approval is acted upon. The candidate additionally requires both ready checks inside its installation transaction.
+The connector role returned PostgreSQL 42501 separately for `private.retention_ai_source_ready()` and `private.closure_source_digest_v5()`. This is an **unverified preflight**, not a failed certificate and not a passed check. No privilege escalation, grant or wrapper was attempted. Both checks require authorized verification before any future application approval is acted upon. The candidate additionally requires both ready checks inside its installation transaction.
 
-CI execution results must be recorded from the actual run; this initial commit does not claim a passing run. Canonical DEV remains untouched. Client paging, per-row pending-command reconciliation, bounded upcoming-Agreement ordering, and final Home UI are follow-up work; adding this RPC alone does not remove existing client scans.
+## Executed proof receipt (2026-09-20 local / 2026-09-19 UTC)
+
+- Initial proof PASS: https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35471929743 at aa180c1fc15b68e4de21b162d0490cdab4ecb7c3.
+- Final, stricter proof PASS: https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35472123196 at 40442c0ce01e7a3f0d163fcdbbc6a4cc538274fb. Eight sections pass, including individual counts, subject references and exact sort instants. The expected pre-install failure and single-function-only surface difference were inspected in downloaded artifacts.
+- Exact candidate SHA-256: `7d0cf923c94552f790f72ff16f8be05597e0101245ada4efccee6285a285a9b5`; normalized function-body MD5: `7371d4cddcebead2cb86d8f795d2ee01`.
+- PRE-P4 integrity PASS on that proof commit: https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35472125706.
+- Local TypeScript exit 0, source migration integrity PASS (147), diff whitespace check PASS. The earlier client packet's 232 suites / 4,461 tests remains a separate working-tree proof; no new client source was edited in this server packet.
+- Fresh canonical read-only recheck: ledger 164, candidate absent, six predecessor pins match, client private-schema usage false. Both private certification reads denied as described above.
+- The pre-existing broad PKG-023 workflow also automatically ran its historical disposable proof, including the old pkg023c test. It did not reach canonical DEV, regenerate pkg023c or authorize its deployment. Its success is not used as this candidate's proof.
+
+Canonical DEV remains untouched. Client paging, per-row pending-command reconciliation, bounded upcoming-Agreement ordering, and final Home UI are follow-up work; adding this RPC alone does not remove existing client scans. The owner has been asked for the required separate pkg023j-only approval, conditional on verified private preconditions; no answer or approval is assumed.
