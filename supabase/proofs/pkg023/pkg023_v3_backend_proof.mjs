@@ -226,9 +226,13 @@ if(present==='true'){
   const without=sql(`begin;drop index public.needs_open_geog_idx;drop index public.needs_open_published_idx;set local enable_seqscan=off;explain ${viewport};rollback;`);
   assert.ok(!/needs_approx_geog_idx/.test(without),'the existing partial index serves the open set after all: '+without);
   notes.viewportPlan=plan;notes.viewportPlanWithoutNewIndexes=without;
-  const ordered=sql(`begin;set local enable_seqscan=off;explain select m.id from public.needs m where m.status in ('PUBLISHED','SELECTION')
-   order by m.published_at desc,m.id desc limit 51;rollback;`);
-  assert.match(ordered,/needs_open_published_idx/,'the list order cannot use its index: '+ordered);
+  // The same question for the list: can its index deliver the order, so that a page is an ordered index
+  // scan that stops at the limit and never a sort of every open task.
+  const ordered=sql(`begin;drop index public.needs_open_geog_idx;set local enable_seqscan=off;set local enable_bitmapscan=off;set local enable_sort=off;
+   explain select m.id from public.needs m where m.status in ('PUBLISHED','SELECTION') order by m.published_at desc,m.id desc limit 51;rollback;`);
+  assert.match(ordered,/Index (Only )?Scan using needs_open_published_idx/,'the list order cannot use its index: '+ordered);
+  assert.ok(!/Sort/.test(ordered),'the list page still sorts: '+ordered);
+  notes.listPlan=ordered;
  });
 
  await section('S5_TASK_RELATIONS_OVERLAY_NO_ORACLE',async()=>{
