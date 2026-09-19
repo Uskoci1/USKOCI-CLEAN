@@ -13,6 +13,8 @@
 //      the operator's free text does NOT survive it while the structured audit metadata does
 //   S5 the history is append-only again the moment the closure is over
 //   S6 the candidate cannot be applied twice, and the guard is as live as before: a later addition drifts
+//   S7 F4: the two service-only functions stop being executable by anon and authenticated (pkg023g)
+//   S8 F2: the export stops claiming that no charge was ever measured (pkg023h)
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -123,7 +125,7 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  // predecessor of pkg019 is byte for byte the function pkg019 was written against.
  report.predecessorPinsThatDifferInTheReplay=substitutions;
  assert.deepEqual(substitutions,[],'PKG023F_PREDECESSOR_PIN_STILL_DIFFERS '+JSON.stringify(substitutions));
- assert.equal(sql("select md5(pg_get_functiondef('public.handle_uskoci_auth_user_created()'::regprocedure))"),'187aa3a262ce940f39ae7faba720963e',
+ assert.equal(sql("select md5(pg_get_functiondef('public.handle_uskoci_auth_user_created()'::regprocedure))"),'734ca70188a3cab8cef2f8b38bcd8ca6',
   'after pkg019 the replayed bootstrap function is the one canonical DEV has');
  pass(report,'EIGHT_DEV_ALPHA_MIGRATIONS_REPLAYED_FROM_THE_EXACT_LEDGER_TEXT_EVERY_PREDECESSOR_PIN_MATCHING_THEN_PKG023_A_B_D');
 
@@ -290,4 +292,46 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  assert.deepEqual(certificate(),certified);
  pass(report,'NOT_APPLICABLE_TWICE_AND_A_LATER_ADDITION_EVEN_TO_A_REVIEWED_TABLE_DRIFTS_AGAIN');
  writeFileSync(out+'/pkg023f-surface-after.txt',after.join('\n')+'\n');
+
+ // ---- S7. F4 (pkg023g). Both functions refuse a non-service caller in their body today; after the candidate
+ // they are not callable by those roles at all, and the caller that exists keeps working.
+ const settledOperation=sql('select operation_id from private.ai_test_reservations_v5 where settled_microusd is not null order by created_at, operation_id limit 1');
+ const release=`select public.rpc_ai_test_release_unused_reservation_service(${q(settledOperation)}::uuid)`;
+ const settle=`select public.rpc_ai_test_settle_audio_service(${q(settledOperation)}::uuid,32000,10)`;
+ const asRole=(role,statement)=>`begin;select set_config('request.jwt.claims',${q('{"role":"ROLE"}')},true);set local role ROLE;${statement};rollback;`
+  .replaceAll('ROLE',role);
+ for(const role of ['anon','authenticated'])for(const statement of [release,settle]){
+  assert.throws(()=>sql(asRole(role,statement)),/SERVICE_ROLE_REQUIRED/,`${role} before pkg023g`);
+ }
+ psql(['-f','supabase/candidates/pkg023g_ai_test_service_least_privilege.sql'],'PKG023G_CANDIDATE_FAILED');
+ for(const role of ['anon','authenticated'])for(const statement of [release,settle]){
+  assert.throws(()=>sql(asRole(role,statement)),/permission denied for function/,`${role} after pkg023g`);
+ }
+ // The canonical caller reaches the body and gets the body's own answer, not a permission error.
+ assert.match(sql(asRole('service_role',release)),/AI_RELEASE_ALREADY_SETTLED|AI_RELEASE_REFUSED_USAGE_EXISTS/);
+ assert.match(sql(asRole('service_role',settle)),/"settled"|SETTLE|settled/);
+ assert.deepEqual(certificate(),certified);
+ pass(report,'F4_ANON_AND_AUTHENTICATED_LOSE_EXECUTE_THE_SERVICE_CALLER_KEEPS_IT_AND_THE_CERTIFICATE_DOES_NOT_MOVE');
+
+ // ---- S8. F2 (pkg023h). The projection is asked for the account that holds the settled reservations.
+ const exportBinding=fields=>`jsonb_build_object('delivery',jsonb_build_object('datasets',jsonb_build_array(jsonb_build_object('key','testAllocations','mode','INCLUDE','fields',${fields}))))`;
+ const exported=fields=>JSON.parse(sql(`select private.data_export_snapshot(${q(holder.id)}::uuid,gen_random_uuid(),${exportBinding(fields)},statement_timestamp())`)).datasets.testAllocations;
+ const OLD_FIELDS=`jsonb_build_array('kind','allocatedMaximumMicrousd','measuredProviderCharge','createdAt')`;
+ const NEW_FIELDS=`jsonb_build_array('kind','allocatedMaximumMicrousd','measuredProviderCharge','createdAt','settlementBasis','settledMicrousd','settledAt')`;
+ const measured=Number(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(holder.id)}::uuid and settlement_basis='MEASURED'`));
+ assert.equal(measured,1);
+ const exportBefore=exported(OLD_FIELDS);
+ assert.ok(exportBefore.length>=20);
+ // The claim that is not true: one of these rows was settled from the provider's own usage metadata.
+ assert.equal(exportBefore.every(row=>row.measuredProviderCharge===false),true,'F2_EXPORT_ALREADY_TRUTHFUL');
+ psql(['-f','supabase/candidates/pkg023h_export_settlement_truthful.sql'],'PKG023H_CANDIDATE_FAILED');
+ const exportAfter=exported(NEW_FIELDS);
+ assert.equal(exportAfter.length,exportBefore.length);
+ assert.equal(exportAfter.filter(row=>row.measuredProviderCharge===true).length,measured);
+ assert.ok(exportAfter.every(row=>(row.measuredProviderCharge===true)===(row.settlementBasis==='MEASURED')));
+ assert.ok(exportAfter.every(row=>row.settlementBasis===null||typeof row.settledMicrousd==='number'));
+ report.exportF2={rows:exportAfter.length,measuredProviderCharge:exportAfter.filter(r=>r.measuredProviderCharge).length,
+  bases:[...new Set(exportAfter.map(r=>r.settlementBasis))].sort()};
+ assert.deepEqual(certificate(),certified);
+ pass(report,'F2_THE_EXPORT_NO_LONGER_CLAIMS_NOTHING_WAS_MEASURED_AND_CARRIES_THE_SETTLEMENT_THAT_EXISTS');
 });
