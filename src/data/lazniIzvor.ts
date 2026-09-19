@@ -21,6 +21,7 @@ import type {
   PotrebaProjekcija,
   PrilikaProjekcija,
 } from '../contracts/projections';
+import { noTaskRelations, taskRelationIndex } from './taskRelation';
 import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
 import { lazniAi, resetujAi } from './lazniAi';
 
@@ -421,6 +422,22 @@ export const lazniIzvor: Izvor = {
         razlogPreporuke: kandidatStanje === 'SELECTABLE' && prviSlobodan ? razlog(k, preostalo) : null,
       } satisfies KandidatProjekcija;
     });
+  },
+
+  /** PKG-023b, from the same rows the demo already holds: one answer per task asked about. */
+  async odnosiPremaZadacima(idovi: readonly string[]) {
+    await kasnjenje();
+    const asked = [...new Set(idovi.filter((id): id is string => typeof id === 'string' && id.length > 0))];
+    if (asked.length === 0) return noTaskRelations;
+    const mine = new Set((await lazniIzvor.mojePotrebe()).map(row => row.id));
+    const applications = await lazniIzvor.mojePrijave();
+    const items = asked.flatMap<unknown>(needId => {
+      if (mine.has(needId)) return [{ needId, relation: 'OWNER', applicationId: null, applicationState: null, agreementId: null }];
+      const application = applications.find(row => row.potrebaId === needId);
+      return application ? [{ needId, relation: 'APPLIED', applicationId: application.prijavaId,
+        applicationState: application.stanje, agreementId: application.dogovorId ?? null }] : [];
+    });
+    return taskRelationIndex(items, asked);
   },
 
   async mojePrijave(): Promise<MojaPrijavaProjekcija[]> {

@@ -5,8 +5,7 @@ import type { PublicProfileState } from '../../../ui/system/PublicProfileSheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useIzvor } from '../../../store/uloga';
-import { readHomeSection } from '../../../data/homeSnapshot';
-import { taskRelation, type TaskRelation } from '../../../data/taskRelation';
+import type { TaskRelation } from '../../../data/taskRelation';
 import { useSesija, sesijaSada } from '../../../store/sesija';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import type { PrilikaProjekcija } from '../../../contracts/projections';
@@ -27,9 +26,11 @@ export default function PrilikaDetaljiEkran() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let cancel: (() => void) | undefined;
     let prilika: PrilikaProjekcija | null;
-    // What I am to this task is read beside the task, from my own tasks and my own applications.
+    // What I am to this task is read beside the task, and since PKG-023b for this task alone.
     // It can fail on its own without taking the task with it; it then reads as UNKNOWN, never NONE.
-    const relationReads = id ? Promise.all([readHomeSection(() => izvor.mojePotrebe()), readHomeSection(() => izvor.mojePrijave())]) : null;
+    const relationRead: Promise<TaskRelation> | null = id
+      ? izvor.odnosiPremaZadacima([id]).then(index => index.relation(id), () => ({ kind: 'UNKNOWN' }))
+      : null;
     try {
       prilika = id ? await Promise.race([izvor.prilika(id), new Promise<never>((_, reject) => {
         cancel = () => reject(new Error('TASK_READ_RETIRED'));
@@ -38,9 +39,8 @@ export default function PrilikaDetaljiEkran() {
       })]) : null;
     } finally { if (timer !== undefined) clearTimeout(timer); if (cancel) readCancellations.current.delete(cancel); }
     if (sesijaSada().sessionEpoch !== epoch || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
-    const [needs, applications] = relationReads ? await relationReads : [{ kind: 'unavailable' as const }, { kind: 'unavailable' as const }];
+    const relation: TaskRelation = relationRead ? await relationRead : { kind: 'UNKNOWN' };
     if (sesijaSada().sessionEpoch !== epoch || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
-    const relation: TaskRelation = id ? taskRelation(id, { needs, applications }) : { kind: 'UNKNOWN' };
     return { prilika, request, relation };
   }, [id, izvor, accountId, epoch]);
   useEffect(() => () => { readCancellations.current.forEach(cancel => cancel()); readCancellations.current.clear(); }, [load]);

@@ -20,6 +20,7 @@ import type {
   PrilikaProjekcija,
   RadnikProfilProjekcija,
 } from '../contracts/projections';
+import type { TaskRelationIndex } from './taskRelation';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
 export type Ishod<T> =
@@ -46,6 +47,12 @@ export interface PotrebeCitanje {
   otvorenePrilike(): Promise<PrilikaProjekcija[]>;
   /** W04 — dosije jedne Prilike. */
   prilika(id: string): Promise<PrilikaProjekcija | null>;
+  /**
+   * PKG-023b — šta sam ja zadacima koji su na ekranu, za najviše 100 njih u jednom pozivu.
+   * Overlay pored javnog čitanja: odgovara samo pozivaocu i nikada nije deo javnog reda.
+   * Neuspeh je UNKNOWN, nikad NONE.
+   */
+  odnosiPremaZadacima(idovi: readonly string[]): Promise<TaskRelationIndex>;
 }
 
 export interface PrijaveCitanje {

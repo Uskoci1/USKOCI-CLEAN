@@ -1,38 +1,75 @@
-import type { MojaPrijavaProjekcija, PotrebaProjekcija } from '../contracts/projections';
-import type { HomeSection } from './homeSnapshot';
-
 /**
  * What this account is to one task (owner decision 1, 2026-09-19).
  *
  * The app used to answer this with the mode it was in: in the requester mode every task was one to
  * look at, in the worker mode every task was one to apply to, and a person had to switch the whole
- * app to do the other. The answer is in data the account already reads: a task is mine if my own
- * tasks contain it, and I have applied if my own applications point at it. Both are account-scoped
- * on the server, so nothing here can name somebody else's task or application.
+ * app to do the other. Then it answered from data the account already read - my tasks and my
+ * applications, both whole lists, for one label on one card.
  *
- * `UNKNOWN` is a read that failed with no positive evidence from the other side. It is never
+ * Since PKG-023b the server answers it directly, for the tasks on screen and no others:
+ * `public.rpc_get_my_task_relations(uuid[])`, at most 100 ids in one call. It is an OVERLAY. It is
+ * never part of a public task result: the marketplace returns the same rows to every viewer, and
+ * this says, separately and only to the caller, which of those rows are the caller's own. It is not
+ * an oracle either: a task that is not mine and one that does not exist are both simply absent, and
+ * the two cases are indistinguishable.
+ *
+ * `UNKNOWN` is what a task gets when the read failed, or when it was never asked about. It is never
  * shown as `NONE`: not knowing whether I have applied is not a licence to offer applying. The
  * server still refuses an application to my own task and a duplicate, whatever this says.
- *
- * There is no per-task reader, so this costs the two whole lists. A bounded
- * "my relation to task X" reader is a READ_CONTRACT item for the third slice.
  */
-export type RelationReads = { needs: HomeSection<PotrebaProjekcija[]>; applications: HomeSection<MojaPrijavaProjekcija[]> };
 export type TaskRelation = { kind: 'OWNER' } | { kind: 'APPLIED'; applicationId: string; agreementId: string | null }
   | { kind: 'NONE' } | { kind: 'UNKNOWN' };
 
-const standing = (row: MojaPrijavaProjekcija) => row.stanje !== 'WITHDRAWN' && row.stanje !== 'CLOSED';
+/** What one task's answer looks like for a whole page of them. */
+export type TaskRelationIndex = {
+  owned: ReadonlySet<string>;
+  applied: ReadonlySet<string>;
+  /** UNKNOWN for a task this index was not asked about; never a guess. */
+  relation: (needId: string) => TaskRelation;
+};
 
-export function taskRelation(needId: string, reads: RelationReads): TaskRelation {
-  if (reads.needs.kind === 'known' && reads.needs.value.some(row => row.id === needId)) return { kind: 'OWNER' };
-  const application = reads.applications.kind === 'known'
-    ? reads.applications.value.find(row => row.potrebaId === needId && standing(row)) : undefined;
-  if (application) return { kind: 'APPLIED', applicationId: application.prijavaId, agreementId: application.dogovorId };
-  return reads.needs.kind === 'known' && reads.applications.kind === 'known' ? { kind: 'NONE' } : { kind: 'UNKNOWN' };
-}
+/**
+ * The application states `private.my_application_state` can return. A state outside this list is a
+ * projection this client does not understand, and an unreadable answer is never a label.
+ */
+const STATES = new Set(['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED', 'SELECTED', 'WITHDRAWN', 'CLOSED']);
+/** A withdrawn or closed application is not a standing one: that task is open to apply to again. */
+const STANDING = new Set(['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED', 'SELECTED']);
 
-/** Labels for a whole list. A side that could not be read labels nothing; it does not guess. */
-export function relationIndex(reads: RelationReads): { owned: ReadonlySet<string>; applied: ReadonlySet<string> } {
-  return { owned: new Set(reads.needs.kind === 'known' ? reads.needs.value.map(row => row.id) : []),
-    applied: new Set(reads.applications.kind === 'known' ? reads.applications.value.filter(standing).map(row => row.potrebaId) : []) };
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+
+/** The empty answer, for a screen with nothing on it. Asking the server for no ids is not a read. */
+export const noTaskRelations: TaskRelationIndex = {
+  owned: new Set(), applied: new Set(), relation: () => ({ kind: 'UNKNOWN' }),
+};
+
+/**
+ * The server's items for the ids that were asked. Anything malformed throws, so that the caller
+ * shows no labels at all rather than a label it cannot stand behind.
+ */
+export function taskRelationIndex(items: readonly unknown[], asked: readonly string[]): TaskRelationIndex {
+  const questions = new Set(asked);
+  const owned = new Set<string>(), applied = new Set<string>();
+  const answers = new Map<string, TaskRelation>();
+  for (const item of items) {
+    const row = item as Record<string, unknown> | null;
+    const needId = row?.needId;
+    if (!text(needId) || !questions.has(needId) || answers.has(needId)) throw new Error('TASK_RELATIONS_INVALID_PROJECTION');
+    if (row?.relation === 'OWNER') {
+      owned.add(needId);
+      answers.set(needId, { kind: 'OWNER' });
+      continue;
+    }
+    if (row?.relation !== 'APPLIED') throw new Error('TASK_RELATIONS_INVALID_PROJECTION');
+    const applicationId = row?.applicationId, state = row?.applicationState, agreementId = row?.agreementId ?? null;
+    if (!text(applicationId) || !text(state) || !STATES.has(state)
+      || (agreementId !== null && !text(agreementId))) throw new Error('TASK_RELATIONS_INVALID_PROJECTION');
+    if (!STANDING.has(state)) {
+      answers.set(needId, { kind: 'NONE' });
+      continue;
+    }
+    applied.add(needId);
+    answers.set(needId, { kind: 'APPLIED', applicationId, agreementId });
+  }
+  return { owned, applied, relation: needId => answers.get(needId) ?? (questions.has(needId) ? { kind: 'NONE' } : { kind: 'UNKNOWN' }) };
 }

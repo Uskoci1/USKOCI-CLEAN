@@ -2,9 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { readHomeSection } from '../../data/homeSnapshot';
 import { initialMarketplaceView, type MarketplaceItem } from '../../data/marketplaceView';
-import { relationIndex } from '../../data/taskRelation';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
@@ -27,14 +25,14 @@ function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
       timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source]);
-  // Which of these tasks are mine and which I have applied to: labels only, read beside the list so
-  // that a failure here costs the labels and never the list. Both reads are account-scoped.
-  const loadRelations = useCallback(async () => {
-    const [needs, applications] = await Promise.all([readHomeSection(() => source.mojePotrebe()), readHomeSection(() => source.mojePrijave())]);
-    return relationIndex({ needs, applications });
-  }, [source]);
-  const relations = useFocusedResource(loadRelations);
   const resource = useFocusedResource(load), scope = focus.current;
+  // Which of these tasks are mine and which I have applied to: labels only, read beside the list so
+  // that a failure here costs the labels and never the list. Since PKG-023b it is one bounded call
+  // for the tasks actually on this page, instead of my whole task list and my whole application
+  // list; the server answers for those ids and says nothing about any other task.
+  const visible = (resource.data ?? []).map(row => row.id).join(',');
+  const loadRelations = useCallback(() => source.odnosiPremaZadacima(visible ? visible.split(',') : []), [source, visible]);
+  const relations = useFocusedResource(loadRelations);
   const latestResource = useRef(resource); latestResource.current = resource;
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source

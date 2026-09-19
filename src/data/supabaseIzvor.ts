@@ -1,4 +1,5 @@
 import { workerCapacityRevision, workerCapacityValue } from '../contracts/workerCapacity';
+import { noTaskRelations, taskRelationIndex } from './taskRelation';
 import { legacyRpcFailure } from './legacyRpcFailure';
 import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
@@ -167,6 +168,26 @@ export const supabaseIzvor: SupabaseIzvor = {
         ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
       };
     });
+  },
+
+  /**
+   * PKG-023b. One bounded call per page of tasks instead of my whole task list and my whole
+   * application list for one label. The server answers only for the ids asked and says nothing
+   * about any other task; a failure throws, so the caller shows no labels rather than wrong ones.
+   */
+  async odnosiPremaZadacima(idovi: readonly string[]) {
+    const asked = [...new Set(idovi.filter((id): id is string => typeof id === 'string' && id.length > 0))];
+    if (asked.length === 0) return noTaskRelations;
+    const items: unknown[] = [];
+    // The server refuses more than a hundred in one call; a screen that shows more asks again.
+    for (let from = 0; from < asked.length; from += 100) {
+      const { data, error } = await supabase.rpc('rpc_get_my_task_relations', { p_need_ids: asked.slice(from, from + 100) });
+      if (error) throw new Error('TASK_RELATIONS_READ_FAILED');
+      const page = (data as { items?: unknown } | null)?.items;
+      if (!Array.isArray(page)) throw new Error('TASK_RELATIONS_INVALID_PROJECTION');
+      items.push(...page);
+    }
+    return taskRelationIndex(items, asked);
   },
 
   async prilika(id: string) {

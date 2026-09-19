@@ -9,9 +9,16 @@ let mockEpoch = 1;
 let mockAccountRevision = 1;
 let mockIntent: 'uskocer' | 'narucilac' = 'uskocer';
 let mockFocused = true;
-const mockLoad = jest.fn(), mockMine = jest.fn(), mockApplied = jest.fn();
-// My relation to the task is read beside it, from my own tasks and my own applications.
-const mockSource = { prilika: mockLoad, mojePotrebe: mockMine, mojePrijave: mockApplied };
+import { taskRelationIndex } from '../taskRelation';
+const mockLoad = jest.fn(), mockRelations = jest.fn();
+// My relation to the task is read beside it, for this task alone (PKG-023b).
+const mockSource = { prilika: mockLoad, odnosiPremaZadacima: mockRelations };
+// The server answers about the ids it was asked and no others, so the double never does either.
+const relatesAs = (...rows: { needId: string }[]) => async (ids: readonly string[]) =>
+  taskRelationIndex(rows.filter(row => ids.includes(row.needId)), ids);
+const owner = (needId: string) => ({ needId, relation: 'OWNER', applicationId: null, applicationState: null, agreementId: null });
+const applicant = (needId: string, applicationState: string, agreementId: string | null = null) =>
+  ({ needId, relation: 'APPLIED', applicationId: 'application-a', applicationState, agreementId });
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockAppListeners = new Set<(value: string) => void>();
 
@@ -62,7 +69,7 @@ const back = () => tree!.root.findByProps({ accessibilityLabel: 'Nazad na Zadatk
 
 beforeEach(() => {
   jest.clearAllMocks(); mockLoad.mockReset(); mockAppListeners.clear();
-  mockMine.mockReset().mockResolvedValue([]); mockApplied.mockReset().mockResolvedValue([]);
+  mockRelations.mockReset().mockImplementation(relatesAs());
   mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockAccountRevision = 1; mockIntent = 'uskocer'; mockFocused = true;
   mockRouter.canGoBack.mockReturnValue(true);
 });
@@ -225,8 +232,9 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('the same account opens its own task and then somebody else\u2019s, with no mode in between: one offers my view, the other an application', async () => {
-    mockMine.mockResolvedValue([{ id: 'task-a' }]); mockLoad.mockResolvedValue(detail());
+    mockRelations.mockImplementation(relatesAs(owner('task-a'))); mockLoad.mockResolvedValue(detail());
     await render();
+    expect(mockRelations).toHaveBeenCalledWith(['task-a']);
     expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(text()).toContain('Ovo je tvoj zadatak.');
     await act(async () => buttons('Otvori svoj zadatak')[0].props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'task-a' } });
@@ -236,18 +244,18 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
 
   it('a task I already applied to offers my application, and my Dogovor once I am chosen; never a second application', async () => {
-    mockApplied.mockResolvedValue([{ prijavaId: 'application-a', potrebaId: 'task-a', stanje: 'SUBMITTED', dogovorId: null }]); mockLoad.mockResolvedValue(detail());
+    mockRelations.mockImplementation(relatesAs(applicant('task-a', 'SUBMITTED'))); mockLoad.mockResolvedValue(detail());
     await render(); expect(buttons('Sastavi prijavu')).toHaveLength(0);
     await act(async () => buttons('Pogledaj svoju prijavu')[0].props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'application-a' } });
     await act(async () => { tree?.unmount(); });
-    mockApplied.mockResolvedValue([{ prijavaId: 'application-a', potrebaId: 'task-a', stanje: 'SELECTED', dogovorId: 'agreement-a' }]); await render();
+    mockRelations.mockImplementation(relatesAs(applicant('task-a', 'SELECTED', 'agreement-a'))); await render();
     await act(async () => buttons('Otvori Dogovor')[0].props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'agreement-a' } });
   });
 
   it('a relation that could not be read never becomes a licence to apply', async () => {
-    mockApplied.mockRejectedValue(new Error('READ_FAILED')); mockLoad.mockResolvedValue(detail());
+    mockRelations.mockRejectedValue(new Error('TASK_RELATIONS_READ_FAILED')); mockLoad.mockResolvedValue(detail());
     await render();
     expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(buttons('Proveri ponovo')).toHaveLength(1);
   });
