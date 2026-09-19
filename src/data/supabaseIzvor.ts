@@ -46,6 +46,33 @@ function fLoc(area: string, city: string) {
   return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
 }
 
+/**
+ * One item of public.rpc_list_open_tasks_v3, shaped like the row the shared public projection reads, so
+ * that the list keeps exactly one way of reading a public task. The reader's allowlist is narrower than
+ * the table on purpose: there is no description here, because a list of two hundred tasks has no business
+ * shipping two hundred descriptions to every viewer, and the detail screen reads the one a person opens.
+ */
+function openTaskRow(item: Record<string, any>) {
+  return {
+    id: item.id, title: item.title, status: item.status, urgent: item.urgent,
+    category: item.category, schedule_kind: item.scheduleKind, starts_at: item.startsAt, ends_at: item.endsAt,
+    execution_location_mode: item.executionLocationMode,
+    approximate_area: item.approximateArea ?? '', approximate_city: item.approximateCity ?? '',
+    approximate_lat: item.pin?.lat ?? null, approximate_lng: item.pin?.lng ?? null,
+    required_slots: item.requiredSlots, covered_slots: item.coveredSlots,
+    required_skills: item.requiredSkills, required_tools: item.requiredTools,
+    required_vehicles: item.requiredVehicles, required_licenses: item.requiredLicenses,
+    minimum_experience_years: item.minimumExperienceYears, verified_identity_required: item.verifiedIdentityRequired,
+    task_country_code: item.taskCountryCode, task_timezone: item.taskTimezone,
+    mode: item.priceMode, requester_price_rsd: item.requesterPriceRsd,
+    requester_profile_id: item.requesterProfileId, response_deadline: item.responseDeadline,
+    remaining_search_closed_at: null,
+    description: '',
+    need_geography: item.publicTopology == null ? null : { public_topology: item.publicTopology },
+    need_requirement_details: item.criticalConditions == null ? null : { critical_conditions: item.criticalConditions },
+  };
+}
+
 function publicTaskContext(raw: Record<string, any>) {
   const { detail: detalji, schedule } = readPublicNeedDetail(raw);
   if (typeof raw.description !== 'string') throw new Error('TASK_DESCRIPTION_INVALID');
@@ -131,24 +158,29 @@ export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
 
   async otvorenePrilike() {
-    const { data, error } = await supabase.from('needs')
-      .select(`
-        id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
-        required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, remaining_search_closed_at,
-        description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
-        required_licenses, minimum_experience_years, verified_identity_required,
-        need_geography(public_topology), need_requirement_details(critical_conditions)
-      `)
-      .in('status', ['PUBLISHED', 'SELECTION'])
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (!data) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
-
-    // Missing/malformed closure state is not permission to advertise a Task.
-    // Only an explicit null means that remaining search is still open.
-    const openData = data.filter((r: any) => r?.remaining_search_closed_at === null);
+    // PKG-023d/i. The list and the map used to read every open task straight from the table, with the
+    // description of each and no bound at all. They now read the server's allowlisted projection, ordered
+    // by the server-owned published_at, in pages of two hundred. The page walk is a keyset, so nothing
+    // repeats and nothing is hidden, and it keeps going until the server says there is no more: the
+    // screen shows what it always showed, and the ceiling below is a refusal, never a silent truncation.
+    const items: any[] = [];
+    let cursor: { at: string; id: string } | null = null;
+    for (let page = 0; ; page++) {
+      if (page >= 25) throw new Error('OPPORTUNITIES_TOO_MANY_PAGES');
+      const { data, error } = await supabase.rpc('rpc_list_open_tasks_v3', {
+        p_limit: 200, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
+      });
+      if (error) throw error;
+      const rows = (data as { items?: unknown; hasMore?: unknown } | null)?.items;
+      if (!Array.isArray(rows)) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
+      items.push(...rows);
+      const last = rows[rows.length - 1] as { sortAt?: unknown; id?: unknown } | undefined;
+      if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
+      cursor = { at: last.sortAt, id: last.id };
+    }
+    // The server already refuses a task whose remaining search is closed, so no client-side filter can
+    // decide it any more; every row here is an open one.
+    const openData = items.map(openTaskRow);
     const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id)), readNeedUrgencies(openData)]);
 
     return openData.map((r: any) => {

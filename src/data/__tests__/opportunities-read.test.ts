@@ -1,12 +1,6 @@
 jest.mock('../supabaseClient', () => {
-  const mockOrder = jest.fn();
-  const mockIn = jest.fn(() => ({ order: mockOrder }));
-  const mockSelect = jest.fn(() => ({ in: mockIn }));
-  const mockFrom = jest.fn(() => ({ select: mockSelect }));
-  return {
-    supabaseKlijent: () => ({ from: mockFrom }),
-    __testMocks: { mockOrder, mockFrom, mockIn },
-  };
+  const mockRpc = jest.fn();
+  return { supabaseKlijent: () => ({ rpc: mockRpc }), __testMocks: { mockRpc } };
 });
 jest.mock('../publicProfileClientService', () => ({
   publicProfileClientService: { javniProfil: jest.fn() },
@@ -15,64 +9,75 @@ jest.mock('../publicProfileClientService', () => ({
 import { supabaseIzvor } from '../supabaseIzvor';
 import { publicProfileClientService } from '../publicProfileClientService';
 
-const { mockOrder, mockFrom, mockIn } = jest.requireMock('../supabaseClient').__testMocks as {
-  mockOrder: jest.Mock; mockFrom: jest.Mock; mockIn: jest.Mock;
-};
+const { mockRpc } = jest.requireMock('../supabaseClient').__testMocks as { mockRpc: jest.Mock };
 const publicProfile = publicProfileClientService.javniProfil as jest.Mock;
-const publicRow = (change: Record<string, unknown> = {}) => ({
-  id: 'need-1', title: 'Pomoć pri selidbi', status: 'PUBLISHED', starts_at: null,
-  approximate_area: 'Centar', approximate_city: 'Beograd', approximate_lat: 44.8, approximate_lng: 20.4,
-  required_slots: 3, covered_slots: 1, required_skills: ['Selidbe'], required_tools: [], required_vehicles: [],
-  requester_profile_id: 'requester-1', mode: 'OFFERS', requester_price_rsd: null, remaining_search_closed_at: null,
-  description: 'Prenos kutija', category: 'Selidbe', schedule_kind: 'FLEXIBLE', ends_at: null,
-  task_country_code: 'RS', task_timezone: 'Europe/Belgrade', execution_location_mode: null,
-  required_licenses: [], minimum_experience_years: null, verified_identity_required: false,
-  need_geography: null, need_requirement_details: null, ...change,
-});
 
-describe('W03 authoritative discovery read', () => {
-  beforeEach(() => { jest.clearAllMocks(); mockOrder.mockReset(); publicProfile.mockReset(); });
+/** One item as public.rpc_list_open_tasks_v3 builds it (pkg023d + pkg023i). */
+const item = (change: Record<string, unknown> = {}) => ({
+  id: 'need-1', sortAt: '2026-09-18T10:00:00Z', publishedAt: '2026-09-18T10:00:00Z',
+  title: 'Pomoć pri selidbi', category: 'Selidbe', status: 'PUBLISHED', urgent: false,
+  scheduleKind: 'FLEXIBLE', startsAt: null, endsAt: null, executionLocationMode: null,
+  approximateCity: 'Beograd', approximateArea: 'Centar',
+  pin: { lat: 44.8, lng: 20.4, precision: 'COARSE_1KM' },
+  requiredSlots: 3, coveredSlots: 1,
+  requiredSkills: ['Selidbe'], requiredTools: [], requiredVehicles: [], requiredLicenses: [],
+  minimumExperienceYears: null, verifiedIdentityRequired: false,
+  taskCountryCode: 'RS', taskTimezone: 'Europe/Belgrade',
+  priceMode: 'OFFERS', requesterPriceRsd: null, requesterProfileId: 'requester-1',
+  responseDeadline: null, acceptsApplications: true, publicTopology: null, criticalConditions: null,
+  ...change,
+});
+const page = (items: unknown[], hasMore = false) => ({ data: { items, hasMore, asOf: '2026-09-19T00:00:00Z' }, error: null });
+
+describe('W03 authoritative discovery read, through the bounded server reader', () => {
+  beforeEach(() => { jest.clearAllMocks(); mockRpc.mockReset(); publicProfile.mockReset(); });
 
   it('propagates a failed read so the screen cannot report no tasks', async () => {
     const failure = { code: '08006', message: 'Connection unavailable' };
-    mockOrder.mockResolvedValue({ data: [], error: failure });
+    mockRpc.mockResolvedValue({ data: null, error: failure });
     await expect(supabaseIzvor.otvorenePrilike()).rejects.toBe(failure);
     expect(publicProfile).not.toHaveBeenCalled();
   });
 
-  it('distinguishes successful empty results from a missing response', async () => {
-    mockOrder.mockResolvedValueOnce({ data: [], error: null });
+  it('distinguishes a successful empty page from a missing response', async () => {
+    mockRpc.mockResolvedValueOnce(page([]));
     await expect(supabaseIzvor.otvorenePrilike()).resolves.toEqual([]);
-    mockOrder.mockResolvedValueOnce({ data: null, error: null });
+    mockRpc.mockResolvedValueOnce({ data: null, error: null });
     await expect(supabaseIzvor.otvorenePrilike()).rejects.toThrow('OPPORTUNITIES_RESPONSE_INVALID');
     expect(publicProfile).not.toHaveBeenCalled();
   });
 
-  it('does not advertise a Task after remaining search is closed', async () => {
-    mockOrder.mockResolvedValue({ data: [publicRow({ remaining_search_closed_at: '2026-09-15T12:00:00Z' })], error: null });
-    await expect(supabaseIzvor.otvorenePrilike()).resolves.toEqual([]);
-    expect(publicProfile).not.toHaveBeenCalled();
+  it('walks the pages by keyset and never repeats a row', async () => {
+    mockRpc
+      .mockResolvedValueOnce(page([item(), item({ id: 'need-2', sortAt: '2026-09-18T09:00:00Z' })], true))
+      .mockResolvedValueOnce(page([item({ id: 'need-3', sortAt: '2026-09-18T08:00:00Z' })]));
+    publicProfile.mockResolvedValue(null);
+    const result = await supabaseIzvor.otvorenePrilike();
+    expect(result.map(row => row.id)).toEqual(['need-1', 'need-2', 'need-3']);
+    expect(mockRpc).toHaveBeenNthCalledWith(1, 'rpc_list_open_tasks_v3', { p_limit: 200, p_before_at: null, p_before_id: null });
+    // The cursor is the last row of the page it just read, so the next page starts strictly after it.
+    expect(mockRpc).toHaveBeenNthCalledWith(2, 'rpc_list_open_tasks_v3',
+      { p_limit: 200, p_before_at: '2026-09-18T09:00:00Z', p_before_id: 'need-2' });
   });
 
-  it.each([undefined, '', 'invalid', 1])('fails closed from discovery for unknown closure state %p', async remaining_search_closed_at => {
-    mockOrder.mockResolvedValue({ data: [publicRow({ remaining_search_closed_at })], error: null });
-    await expect(supabaseIzvor.otvorenePrilike()).resolves.toEqual([]);
-    expect(publicProfile).not.toHaveBeenCalled();
+  it('refuses rather than silently truncating a list that never ends', async () => {
+    mockRpc.mockResolvedValue(page([item()], true));
+    await expect(supabaseIzvor.otvorenePrilike()).rejects.toThrow('OPPORTUNITIES_TOO_MANY_PAGES');
   });
 
-  it('recovers on a later read and preserves the public-safe task projection', async () => {
-    mockOrder.mockRejectedValueOnce(new Error('offline'));
+  it('preserves the public-safe task projection, and the list carries no description', async () => {
+    mockRpc.mockRejectedValueOnce(new Error('offline'));
     await expect(supabaseIzvor.otvorenePrilike()).rejects.toThrow('offline');
-    mockOrder.mockResolvedValueOnce({ data: [publicRow()], error: null });
+    mockRpc.mockResolvedValueOnce(page([item()]));
     publicProfile.mockResolvedValueOnce(null);
 
     const result = await supabaseIzvor.otvorenePrilike();
-    expect(mockFrom).toHaveBeenLastCalledWith('needs');
-    expect(mockIn).toHaveBeenLastCalledWith('status', ['PUBLISHED', 'SELECTION']);
     expect(publicProfile).toHaveBeenCalledWith('requester-1');
     expect(result).toEqual([{
       id: 'need-1', naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
-      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilan termin', opis: 'Prenos kutija',
+      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilan termin',
+      // The description is not in the public list at all; the detail screen reads the one a person opens.
+      opis: '',
       taskCountryCode: 'RS', taskTimezone: 'Europe/Belgrade', schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null },
       detalji: { kategorija: 'Selidbe', geografija: null, rezimLokacije: null,
         zahtevi: { vestine: ['Selidbe'], alati: [], vozila: [], dozvole: [], bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false } },
