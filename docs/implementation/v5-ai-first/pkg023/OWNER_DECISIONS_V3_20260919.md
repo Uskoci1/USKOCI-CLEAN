@@ -40,7 +40,6 @@ The package itself is a proposal and stays outside the repository. What binds th
    to tie several tasks to one house: accept for the first phase and record the risk
    (recommended), or expose only the profile.
 3. The worker's own location: stay on the ~1 km grid (recommended) or move to ~100 m as well.
-
 4. "Moja cena" on a task that needs more than one person. Today the engine makes each application
    carry the task's full price, so choosing a team of two and then one more person makes two
    Dogovori at the full price each. Decision 2 says the task's price is for the whole task. The two
@@ -62,10 +61,12 @@ Client only. No migration, no Edge deploy, no new dependency.
    "Izmeni" used to leave the screen without a word.
 3. A pending change proposal shown on the Dogovor with what it changes and a way to answer it.
 4. The withdrawal receipt no longer fills in a missing server version with the client's own.
-5. "Sačuvaj nacrt" once the required facts are confirmed, through the existing
-   `rpc_save_need_draft_from_review`.
-6. The basis of every price said in words: a task's budget is for the whole task, an application's
-   price is the total for the people it brings.
+5. "Sačuvaj nacrt" when the review can be accepted, by accepting the displayed review and stopping
+   before evaluation (`rpc_accept_ai_task_review`, which is what writes the DRAFT). The standalone
+   `rpc_save_need_draft_from_review` is not the route: it refuses facts not yet CONFIRMED, and
+   confirming them is what acceptance does.
+6. The basis of every price on the applying side said in words: an application's price is the total
+   for the people it brings. The task side waits for open question 4.
 7. Owner actions on a task follow ownership of that task, not the mode the app happens to be in.
 
 The second slice (stable tabs, Početna, the role removed from the cache guards) and the third (the
