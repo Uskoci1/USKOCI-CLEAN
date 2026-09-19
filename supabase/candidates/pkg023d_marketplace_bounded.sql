@@ -160,14 +160,14 @@ begin
       'approximateCity', nullif(btrim(n.approximate_city), ''), 'approximateArea', nullif(btrim(n.approximate_area), ''),
       'pin', case when n.approximate_lat is null or n.approximate_lng is null then null
         else jsonb_build_object('lat', n.approximate_lat, 'lng', n.approximate_lng, 'precision', 'COARSE_1KM') end,
-      'requiredSlots', n.required_slots, 'coveredSlots', n.covered_slots,
+      'requiredSlots', n.required_slots, 'coveredSlots', n.covered_now,
       'requiredSkills', to_jsonb(n.required_skills), 'requiredTools', to_jsonb(n.required_tools),
       'requiredVehicles', to_jsonb(n.required_vehicles), 'requiredLicenses', to_jsonb(n.required_licenses),
       'minimumExperienceYears', n.minimum_experience_years,
       'priceMode', n.mode, 'requesterPriceRsd', n.requester_price_rsd,
       'requesterProfileId', n.requester_profile_id,
       'responseDeadline', n.response_deadline,
-      'acceptsApplications', n.required_slots > n.covered_slots
+      'acceptsApplications', n.required_slots > n.covered_now
         and (n.response_deadline is null or n.response_deadline > statement_timestamp()),
       'publicTopology', (select g.public_topology from public.need_geography g where g.need_id = n.id),
       'criticalConditions', (select to_jsonb(d.critical_conditions) from public.need_requirement_details d where d.need_id = n.id)
@@ -176,7 +176,7 @@ begin
       -- Two branches, one of which is switched off by a parameter-only condition before it reads
       -- anything, so each keeps its own index: the viewport its GiST index, the list its order.
       -- The limit is inside each branch: no branch can read more than p_limit + 1 rows' worth of items.
-      (select m.* from public.needs m
+      (select m.*, public.covered_slots(m) as covered_now from public.needs m
         where p_bbox is not null
           and m.status in ('PUBLISHED','SELECTION')
           and m.published_at is not null
@@ -193,7 +193,7 @@ begin
       order by m.published_at desc, m.id desc
       limit p_limit + 1)
       union all
-      (select m.* from public.needs m
+      (select m.*, public.covered_slots(m) as covered_now from public.needs m
         where p_bbox is null
           and m.status in ('PUBLISHED','SELECTION')
           and m.published_at is not null

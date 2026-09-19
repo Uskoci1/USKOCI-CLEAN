@@ -113,7 +113,8 @@ begin
       'taskCountryCode', n.task_country_code, 'taskTimezone', n.task_timezone,
       'executionLocationMode', n.execution_location_mode,
       'approximateArea', n.approximate_area, 'approximateCity', n.approximate_city,
-      'requiredSlots', n.required_slots, 'coveredSlots', n.covered_slots,
+      -- covered_slots is the existing computed field public.covered_slots(needs), not a column.
+      'requiredSlots', n.required_slots, 'coveredSlots', public.covered_slots(n),
       'requiredSkills', to_jsonb(n.required_skills), 'requiredTools', to_jsonb(n.required_tools),
       'requiredVehicles', to_jsonb(n.required_vehicles), 'requiredLicenses', to_jsonb(n.required_licenses),
       'minimumExperienceYears', n.minimum_experience_years,

@@ -45,7 +45,7 @@
 --   7838967d0edc8a1ca1a497752efc189d  private.need_material_snapshot(uuid)
 --   c6dab63a70732d0cb1fcc657baaa2490  private.need_publication_fingerprint_snapshot(uuid)
 --   be11fb7f7d1b37e9f970545aeac20b98  private.need_publication_location_readiness(uuid)
---   069edd186cc4033fcb0ab19fa4ac78fb  public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)   (pkg023d)
+--   04a8f14a385b468ef1be847c8f4482c0  public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)   (pkg023d)
 begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '120s';
@@ -83,7 +83,7 @@ begin
      is distinct from 'be11fb7f7d1b37e9f970545aeac20b98' then raise exception 'PKG023C_PREDECESSOR_DRIFT private.need_publication_location_readiness'; end if;
   if (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc
        where oid = 'public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)'::regprocedure)
-     is distinct from '069edd186cc4033fcb0ab19fa4ac78fb' then raise exception 'PKG023C_REQUIRES_PKG023D_AS_WRITTEN'; end if;
+     is distinct from '04a8f14a385b468ef1be847c8f4482c0' then raise exception 'PKG023C_REQUIRES_PKG023D_AS_WRITTEN'; end if;
   insert into pkg023c_predecessor values (s, pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure));
 end
 $pre$;
@@ -1240,14 +1240,14 @@ begin
         else jsonb_build_object('lat', n.approximate_lat, 'lng', n.approximate_lng, 'precision', 'COARSE_1KM') end,
       'legacyPin', case when n.approximate_lat is null or n.approximate_lng is null then null
         else jsonb_build_object('lat', n.approximate_lat, 'lng', n.approximate_lng, 'precision', 'COARSE_1KM') end,
-      'requiredSlots', n.required_slots, 'coveredSlots', n.covered_slots,
+      'requiredSlots', n.required_slots, 'coveredSlots', n.covered_now,
       'requiredSkills', to_jsonb(n.required_skills), 'requiredTools', to_jsonb(n.required_tools),
       'requiredVehicles', to_jsonb(n.required_vehicles), 'requiredLicenses', to_jsonb(n.required_licenses),
       'minimumExperienceYears', n.minimum_experience_years,
       'priceMode', n.mode, 'requesterPriceRsd', n.requester_price_rsd,
       'requesterProfileId', n.requester_profile_id,
       'responseDeadline', n.response_deadline,
-      'acceptsApplications', n.required_slots > n.covered_slots
+      'acceptsApplications', n.required_slots > n.covered_now
         and (n.response_deadline is null or n.response_deadline > statement_timestamp()),
       'publicTopology', (select g.public_topology from public.need_geography g where g.need_id = n.id),
       'criticalConditions', (select to_jsonb(d.critical_conditions) from public.need_requirement_details d where d.need_id = n.id)
@@ -1256,7 +1256,7 @@ begin
       -- Two branches, one of which is switched off by a parameter-only condition before it reads
       -- anything, so each keeps its own index: the viewport its GiST index, the list its order.
       -- The limit is inside each branch: no branch can read more than p_limit + 1 rows' worth of items.
-      (select m.* from public.needs m
+      (select m.*, public.covered_slots(m) as covered_now from public.needs m
         where p_bbox is not null
           and m.status in ('PUBLISHED','SELECTION')
           and m.published_at is not null
@@ -1273,7 +1273,7 @@ begin
       order by m.published_at desc, m.id desc
       limit p_limit + 1)
       union all
-      (select m.* from public.needs m
+      (select m.*, public.covered_slots(m) as covered_now from public.needs m
         where p_bbox is null
           and m.status in ('PUBLISHED','SELECTION')
           and m.published_at is not null

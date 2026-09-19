@@ -218,7 +218,10 @@ if(present==='true'){
  });
 
  await section('S5_TASK_RELATIONS_OVERLAY_NO_ORACLE',async()=>{
-  const hiddenDraft=rows(`select id from public.needs where requester_account_id=${q(owner.id)}::uuid and status='DRAFT' limit 1`)[0].id,nowhere=randomUUID();
+  // A draft of the owner's that nobody else can see, made here so the section stands on its own.
+  const hiddenDraft=randomUUID(),nowhere=randomUUID(),ownerProfile=await profile(owner,'REQUESTER');
+  sql(`insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,mode,required_slots,schedule_kind)
+   values(${q(hiddenDraft)}::uuid,${q(owner.id)}::uuid,${q(ownerProfile)}::uuid,'DRAFT','PKG023 hidden draft','proof','PROOF','OFFERS',1,'FLEXIBLE')`);
   const asked=[T1.needId,T2.needId,T3.needId,hiddenDraft,nowhere,legacy.needId];
   const mine=await ok(owner.client.rpc('rpc_get_my_task_relations',{p_need_ids:asked}));
   assert.deepEqual(mine.items.map(x=>[x.needId,x.relation]).sort(),[[T1.needId,'OWNER'],[T2.needId,'OWNER'],[T3.needId,'OWNER'],[hiddenDraft,'OWNER']].sort());
