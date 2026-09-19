@@ -119,8 +119,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          psql "$DB_URL" -X -Atf supabase/proofs/pkg023/pkg023_surface.sql > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-before.txt"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atf supabase/proofs/pkg023/pkg023_surface.sql > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-before.txt"
           wc -l "$PRE_V3_ARTIFACT_DIR/pkg023-surface-before.txt"
+          # A snapshot that is empty proves nothing.
+          test "$(wc -l < "$PRE_V3_ARTIFACT_DIR/pkg023-surface-before.txt")" -gt 1000
           test "$(psql "$DB_URL" -X -Atc "select (select sha256 from private.closure_source_v5 where singleton)=private.closure_source_digest_v5() and private.retention_ai_source_ready()")" = "t"
 
       # A task with a confirmed place, published through the real authority as it is published today.
@@ -152,7 +154,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          psql "$DB_URL" -X -Atf supabase/proofs/pkg023/pkg023_surface.sql > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-after-abd.txt"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atf supabase/proofs/pkg023/pkg023_surface.sql > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-after-abd.txt"
           # Lines may only be ADDED, and only these.
           diff "$PRE_V3_ARTIFACT_DIR/pkg023-surface-before.txt" "$PRE_V3_ARTIFACT_DIR/pkg023-surface-after-abd.txt" > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-diff-abd.txt" || true
           cat "$PRE_V3_ARTIFACT_DIR/pkg023-surface-diff-abd.txt"
@@ -176,7 +178,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          psql "$DB_URL" -X -Atf supabase/proofs/pkg023/pkg023_surface.sql > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-after-c.txt"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atf supabase/proofs/pkg023/pkg023_surface.sql > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-after-c.txt"
           diff "$PRE_V3_ARTIFACT_DIR/pkg023-surface-after-abd.txt" "$PRE_V3_ARTIFACT_DIR/pkg023-surface-after-c.txt" > "$PRE_V3_ARTIFACT_DIR/pkg023-surface-diff-c.txt" || true
           cat "$PRE_V3_ARTIFACT_DIR/pkg023-surface-diff-c.txt"
           # Removed lines are the previous bodies of exactly these functions and nothing else.
