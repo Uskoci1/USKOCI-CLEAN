@@ -209,11 +209,19 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const review = () => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
   // One brand action per state: completion when the server allows it, the review after
   // completion, otherwise the conversation. "Otvori poruke" stays one tap away in every case.
+  // A change proposal waiting for my answer blocks both completions, so answering it is the step.
+  const pendingChange = active && me && radnje?.izmenaNaCekanju ? radnje.predlogIzmene : null;
+  const changeWaits = active && me && !!radnje?.izmenaNaCekanju;
+  const openChanges = () => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); };
   const brand = canComplete ? { label: completeLabel, disabled: !enabled, onPress: () => { void complete(); } }
-    : dogovor.stanje === 'COMPLETED' && me ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
-      : { label: 'Otvori poruke', onPress: openMessages };
+    : pendingChange?.mozeOdgovoriti ? { label: 'Odgovori na predlog', disabled: !enabled, onPress: openChanges }
+      : dogovor.stanje === 'COMPLETED' && me ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
+        : { label: 'Otvori poruke', onPress: openMessages };
   const secondary = brand.label === 'Otvori poruke' ? null : { label: 'Otvori poruke', onPress: openMessages };
-  const nextStep = dogovor.stanje === 'COMPLETED' ? { tone: 'green' as const, title: 'Dogovor je završen', body: me ? 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' : null }
+  const nextStep = changeWaits ? { tone: 'warn' as const,
+    title: pendingChange?.moj ? 'Tvoj predlog izmene čeka odgovor' : pendingChange ? 'Predlog izmene čeka tvoj odgovor' : 'Predlog izmene čeka odgovor',
+    body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' }
+    : dogovor.stanje === 'COMPLETED' ? { tone: 'green' as const, title: 'Dogovor je završen', body: me ? 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' : null }
     : dogovor.stanje === 'CANCELLED' ? { tone: 'muted' as const, title: 'Dogovor je otkazan.', body: null }
       : dogovor.stanje === 'AWAITING_REQUESTER' ? { tone: 'warn' as const, title: worker ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio',
         body: dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` }
@@ -272,7 +280,15 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
               <T variant="meta" tone="muted">Dozvole za završetak nisu potvrđene sa servera. Osveži status Dogovora pre završetka.</T>
               <V2Action label="Osveži dozvole za završetak" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
             </View> : null}
-            {active && me && radnje?.izmenaNaCekanju ? <T variant="meta" tone="muted">Predlog izmene čeka odgovor. Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.</T> : null}
+            {changeWaits ? <View style={s.stack}>
+              {pendingChange?.izmene.map(change => <View key={change.polje} style={s.change}>
+                <T variant="meta" tone="muted">{change.polje}</T>
+                <T variant="body" style={s.ink}>{change.sada} → {change.predlog}</T>
+              </View>)}
+              {pendingChange?.razlog ? <T variant="meta" tone="muted">Razlog: {pendingChange.razlog}</T> : null}
+              {pendingChange?.mozeOdgovoriti ? null
+                : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
+            </View> : null}
           </NextStepCard>
           <AgreementPeople agreement={dogovor} />
           {me && enabled ? <GroupConversationEntry agreementId={id} /> : null}
@@ -319,7 +335,7 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink }, danger: { color: sys.color.danger },
   tabs: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
-  stack: { gap: 8, marginTop: 4 },
+  stack: { gap: 8, marginTop: 4 }, change: { gap: 2 },
   input: { ...sys.type.body, color: sys.color.ink, minHeight: 100, padding: 12, textAlignVertical: 'top', borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, backgroundColor: sys.color.surface },
   event: { flexDirection: 'row', gap: 12 }, eventLine: { width: 2, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, marginVertical: 4 }, eventCopy: { flex: 1, gap: 2 },
 });

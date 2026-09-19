@@ -36,7 +36,7 @@ const base = (patch: Record<string, unknown> = {}, mine: 'narucilac' | 'uskocer'
     { id: mockOther, ime: 'Marko', inicijali: 'MA', uloga: mine === 'narucilac' ? 'uskocer' : 'narucilac', mesta: mine === 'narucilac' ? 1 : null, viSte: false }],
   hronologija: [{ vremeTekst: 'juče', tekst: 'Dogovor je potvrđen' }], kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: false },
   chatDostupan: true, vremeTekst: 'Fleksibilno', putanjaTekst: 'Beograd', problemOtvoren: false, rokPotvrdeIso: null, rezim: 'FIZICKI',
-  radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false }, ...patch });
+  radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null }, ...patch });
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const presses = () => tree.root.findAll(node => String(node.type) === 'Press');
@@ -62,7 +62,7 @@ test('a confirmed Agreement without server permission leads with the conversatio
   expect(texts()).toContain('Dogovor je potvrđen');
 });
 test('when the server allows completion, completion is the brand action and the conversation stays one tap away', async () => {
-  await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false } }));
+  await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
   expect(brand()).toEqual(['Potvrdi završetak']); expect(labels()).toContain('Otvori poruke');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi završetak' }).props.onPress());
   expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledWith(mockAgreementId);
@@ -86,4 +86,29 @@ test('unconfirmed permissions keep completion closed and explain how to refresh,
   await render(base({ radnje: null }));
   expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dozvole za završetak nisu potvrđene sa servera. Osveži status Dogovora pre završetka.');
   expect(labels()).toContain('Osveži dozvole za završetak');
+});
+
+// A pending change blocks both completions. It used to be one grey sentence on this screen with
+// nothing to press, and what it proposed lived behind "Izmene i otkazivanje".
+const proposal = (patch: Record<string, unknown> = {}) => ({ id: 'p1', moj: false, mozeOdgovoriti: true, mozePovuci: false,
+  razlog: 'Ima više stvari nego što je rečeno.', izmene: [{ polje: 'Cena', sada: '3.000 RSD', predlog: '4.500 RSD' }], ...patch });
+test('a change proposal waiting for my answer is the next step, says what it changes, and is the one brand action', async () => {
+  await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true, predlogIzmene: proposal() } }));
+  const copy = texts();
+  expect(copy).toContain('Predlog izmene čeka tvoj odgovor'); expect(copy).toContain('Cena'); expect(copy).toContain('3.000 RSD');
+  expect(copy).toContain('4.500 RSD'); expect(copy).toContain('Ima više stvari nego što je rečeno.');
+  expect(copy).toContain('Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.');
+  expect(brand()).toEqual(['Odgovori na predlog']); expect(labels()).toContain('Otvori poruke');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Odgovori na predlog' }).props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: mockAgreementId } });
+});
+test('my own pending proposal is shown as mine and does not take the brand action from the conversation', async () => {
+  await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true,
+    predlogIzmene: proposal({ moj: true, mozeOdgovoriti: false, mozePovuci: true }) } }));
+  expect(texts()).toContain('Tvoj predlog izmene čeka odgovor'); expect(texts()).toContain('4.500 RSD');
+  expect(brand()).toEqual(['Otvori poruke']); expect(labels()).toContain('Pogledaj predlog');
+});
+test('a pending change whose content cannot be read still says it exists and leads to Izmene, inventing nothing', async () => {
+  await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true, predlogIzmene: null } }));
+  expect(texts()).toContain('Predlog izmene čeka odgovor'); expect(labels()).toContain('Pogledaj predlog'); expect(brand()).toEqual(['Otvori poruke']);
 });

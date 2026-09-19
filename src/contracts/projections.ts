@@ -298,6 +298,22 @@ export type DogovorRadnje = {
   mozePotvrditiZavrsetak: boolean;
   /** Predlog izmene čeka odgovor; server tada odbija oba završetka. */
   izmenaNaCekanju: boolean;
+  /**
+   * Šta taj predlog menja i ko na njega odgovara. `null` kada predloga nema ili kada njegov sadržaj
+   * nije čitljiv: tada ekran kaže da predlog postoji i vodi na Izmene, a sadržaj ne izmišlja.
+   */
+  predlogIzmene: PredlogIzmeneSazetak | null;
+};
+
+export type PredlogIzmeneSazetak = {
+  id: string;
+  /** Predložio ovaj nalog; tada odgovara druga strana. */
+  moj: boolean;
+  mozeOdgovoriti: boolean;
+  mozePovuci: boolean;
+  razlog: string | null;
+  /** Samo ono što se razlikuje od prihvaćenih uslova, već formatirano za prikaz. */
+  izmene: { polje: 'Cena' | 'Termin' | 'Obim'; sada: string; predlog: string }[];
 };
 
 export type DogovorProjekcija = {

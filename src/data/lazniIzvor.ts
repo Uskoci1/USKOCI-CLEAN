@@ -264,6 +264,7 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
       mozeOznacitiZavrsetak: !jaSamNarucilac && z.stanje === 'CONFIRMED',
       mozePotvrditiZavrsetak: jaSamNarucilac && (z.stanje === 'CONFIRMED' || z.stanje === 'AWAITING_REQUESTER'),
       izmenaNaCekanju: false,
+      predlogIzmene: null,
     },
     hronologija: [
       { vremeTekst: 'sada', tekst: 'Dogovor je potvrđen' },

@@ -38,13 +38,34 @@ describe('PKG-007 — server completion permissions in the Agreement projection'
     mockRpc.mockResolvedValue({ data: { ...raw, actionState: { ...actionState, canProposeChange: false, canRespondChange: true,
       canConfirmCompletion: false, pendingChanges: [pending] } }, error: null });
     expect((await agreementClientService.dogovor(ID))?.radnje)
-      .toEqual({ mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true });
+      .toMatchObject({ mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true });
+  });
+  it('says what the pending change changes, who proposed it and who answers it', async () => {
+    const proposed = { ...pending, reason: 'Ima više stvari nego što je rečeno.',
+      proposedTerms: { ...terms, price_rsd: 4500, scope_note: 'I dve komode' } };
+    mockRpc.mockResolvedValue({ data: { ...raw, actionState: { ...actionState, canProposeChange: false, canRespondChange: true,
+      canConfirmCompletion: false, pendingChanges: [proposed] } }, error: null });
+    expect((await agreementClientService.dogovor(ID))?.radnje?.predlogIzmene).toEqual({ id: PID, moj: false,
+      mozeOdgovoriti: true, mozePovuci: false, razlog: 'Ima više stvari nego što je rečeno.',
+      izmene: [{ polje: 'Cena', sada: '3.000 RSD', predlog: '4.500 RSD' }, { polje: 'Obim', sada: 'Nije naveden', predlog: 'I dve komode' }] });
+  });
+  it('marks my own pending proposal as mine, answerable by the other side only', async () => {
+    mockRpc.mockResolvedValue({ data: { ...raw, actionState: { ...actionState, canProposeChange: false, canWithdrawChange: true,
+      canConfirmCompletion: false, pendingChanges: [{ ...pending, proposedByAccountId: A,
+        proposedTerms: { ...terms, price_rsd: 2500 } }] } }, error: null });
+    expect((await agreementClientService.dogovor(ID))?.radnje?.predlogIzmene).toMatchObject({ moj: true,
+      mozeOdgovoriti: false, mozePovuci: true, izmene: [{ polje: 'Cena', sada: '3.000 RSD', predlog: '2.500 RSD' }] });
+  });
+  it('keeps the pending flag and invents no content when the proposal cannot be read', async () => {
+    mockRpc.mockResolvedValue({ data: { ...raw, actionState: { ...actionState, canConfirmCompletion: false,
+      pendingChanges: [{ ...pending, proposedTerms: { price_rsd: 'mnogo' } }] } }, error: null });
+    expect((await agreementClientService.dogovor(ID))?.radnje).toMatchObject({ izmenaNaCekanju: true, predlogIzmene: null });
   });
   it('keeps the worker permission separate from the requester permission', async () => {
     mockGetUser.mockResolvedValue(user(B));
     mockRpc.mockResolvedValue({ data: { ...raw, actionState: { ...actionState, accountId: B, canMarkWorkDone: true, canConfirmCompletion: false } }, error: null });
     expect((await agreementClientService.dogovor(ID))?.radnje)
-      .toEqual({ mozeOznacitiZavrsetak: true, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false });
+      .toEqual({ mozeOznacitiZavrsetak: true, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null });
   });
   it.each([
     ['absent', undefined],

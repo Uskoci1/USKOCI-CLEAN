@@ -1,5 +1,5 @@
 import { legacyRpcFailure } from './legacyRpcFailure';
-import type { DogovorProjekcija, DogovorRadnje, UcesnikProjekcija } from '../contracts/projections';
+import type { DogovorProjekcija, DogovorRadnje, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
 import { completionErrors, completionFailure } from './agreementCompletion';
 import type { Ishod, IzmenaKomanda, Izvor, PotvrdaZavrsetka } from './ports';
 import { calendarFailure } from './calendarErrors';
@@ -121,7 +121,29 @@ function decodeCompletionReceipt(raw: unknown, dogovorId: string): PotvrdaZavrse
 function agreementActions(raw: Record<string, unknown>, uid: string): DogovorRadnje | null {
   const actions = decodeActionState(raw.actionState, raw.id, raw.currentVersion, uid);
   return actions && { mozeOznacitiZavrsetak: actions.canMarkWorkDone, mozePotvrditiZavrsetak: actions.canConfirmCompletion,
-    izmenaNaCekanju: actions.pendingChanges.length > 0 };
+    izmenaNaCekanju: actions.pendingChanges.length > 0, predlogIzmene: pendingChangeSummary(raw, actions, uid) };
+}
+
+/**
+ * The pending proposal, said in words on the Dogovor itself. It blocks both completions, and until
+ * now the Dogovor showed it as one grey sentence with nothing to press, while what it proposed and
+ * who had to answer lived one screen away behind "Izmene i otkazivanje". Same validation as the
+ * Izmene reader; anything unreadable is `null`, never a guess.
+ */
+function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActionState, uid: string): PredlogIzmeneSazetak | null {
+  const proposal = actions.pendingChanges.length === 1 && uuid(raw.id) && positiveInteger(raw.currentVersion)
+    && uuid(raw.requesterAccountId) && uuid(raw.workerAccountId)
+    ? decodePendingProposal(actions.pendingChanges[0], raw.id, raw.currentVersion, raw.requesterAccountId, raw.workerAccountId) : null;
+  const accepted = decodeChangeTerms(raw.terms);
+  if (!proposal || !proposal.termsAvailable || !accepted) return null;
+  const proposed = proposal.terms, mine = sameId(proposal.proposedBy, uid);
+  const window = (terms: AgreementChangeTerms) => acceptedSchedule({ proposed_start_at: terms.startsAt, proposed_end_at: terms.endsAt });
+  const izmene: PredlogIzmeneSazetak['izmene'] = [];
+  if (proposed.priceRsd !== accepted.priceRsd) izmene.push({ polje: 'Cena', sada: novac(accepted.priceRsd).prikaz, predlog: novac(proposed.priceRsd).prikaz });
+  if (proposed.startsAt !== accepted.startsAt || proposed.endsAt !== accepted.endsAt) izmene.push({ polje: 'Termin', sada: window(accepted), predlog: window(proposed) });
+  if ((proposed.scopeNote ?? '') !== (accepted.scopeNote ?? '')) izmene.push({ polje: 'Obim', sada: accepted.scopeNote || 'Nije naveden', predlog: proposed.scopeNote || 'Nije naveden' });
+  return { id: proposal.proposalId, moj: mine, mozeOdgovoriti: !mine && actions.canRespondChange,
+    mozePovuci: mine && actions.canWithdrawChange, razlog: proposal.reason, izmene };
 }
 
 const viewerZone = (): string | undefined => {
@@ -332,15 +354,9 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
   if (!actions) return null;
   const proposals: AgreementChangeProposal[] = [];
   for (const item of actions.pendingChanges) {
-    const r = record(item);
-    if (!r || !uuid(r.id) || !positiveInteger(r.baseVersion) || r.baseVersion > row.currentVersion ||
-      (!sameId(r.proposedByAccountId, row.requesterAccountId) && !sameId(r.proposedByAccountId, row.workerAccountId)) ||
-      typeof r.createdAt !== 'string' || calendarInstant(r.createdAt) === null || !record(r.proposedTerms) ||
-      (r.reason !== null && (typeof r.reason !== 'string' || Array.from(r.reason).length > 4000))) return null;
-    const terms = decodeChangeTerms(r.proposedTerms);
-    proposals.push({ proposalId: r.id, agreementId, baseVersion: r.baseVersion, proposedBy: r.proposedByAccountId as string,
-      status: 'PENDING', reason: r.reason as string | null, createdAt: r.createdAt, respondedBy: null, respondedAt: null,
-      ...(terms ? { termsAvailable: true as const, terms } : { termsAvailable: false as const, terms: null }) });
+    const proposal = decodePendingProposal(item, agreementId, row.currentVersion, row.requesterAccountId, row.workerAccountId);
+    if (!proposal) return null;
+    proposals.push(proposal);
   }
   return { agreementId, agreementVersion: row.currentVersion,
     agreementStatus: row.agreementStatus as AgreementChangeSnapshot['agreementStatus'],
@@ -350,6 +366,19 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
       canProposeChange: actions.canProposeChange, canRespondChange: actions.canRespondChange,
       canWithdrawChange: actions.canWithdrawChange, canMarkWorkDone: actions.canMarkWorkDone,
       canConfirmCompletion: actions.canConfirmCompletion, canCancel: actions.canCancel } };
+}
+/** One pending row of actionState, bound to this Agreement, its version and its two parties. */
+function decodePendingProposal(item: unknown, agreementId: string, currentVersion: number,
+  requesterAccountId: string, workerAccountId: string): AgreementChangeProposal | null {
+  const r = record(item);
+  if (!r || !uuid(r.id) || !positiveInteger(r.baseVersion) || r.baseVersion > currentVersion ||
+    (!sameId(r.proposedByAccountId, requesterAccountId) && !sameId(r.proposedByAccountId, workerAccountId)) ||
+    typeof r.createdAt !== 'string' || calendarInstant(r.createdAt) === null || !record(r.proposedTerms) ||
+    (r.reason !== null && (typeof r.reason !== 'string' || Array.from(r.reason).length > 4000))) return null;
+  const terms = decodeChangeTerms(r.proposedTerms);
+  return { proposalId: r.id, agreementId, baseVersion: r.baseVersion, proposedBy: r.proposedByAccountId as string,
+    status: 'PENDING', reason: r.reason as string | null, createdAt: r.createdAt, respondedBy: null, respondedAt: null,
+    ...(terms ? { termsAvailable: true as const, terms } : { termsAvailable: false as const, terms: null }) };
 }
 function changeAccount(account: ReceiptAccount): ReceiptAccount | null {
   return account && uuid(account.accountId) && Number.isSafeInteger(account.accountRevision) && account.accountRevision >= 0
