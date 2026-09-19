@@ -7,9 +7,12 @@
 //   S1 the drift: the source is no longer ready, an account closure cannot start, and the read-only
 //      reconstruction shows the reviewed additions are the only difference
 //   S2 the candidate refuses every state that was not reviewed, and leaves nothing behind
-//   S3 the candidate certifies the reviewed state and changes exactly one function body and one catalog row
-//   S4 an account with lineage, measured usage and a settled reservation closes end to end afterwards
-//   S5 it cannot be applied twice, and the guard is as live as before: a later addition drifts again
+//   S3 the candidate certifies the reviewed state, changing four program bodies, one constant and one
+//      catalog row, and nothing else
+//   S4 an account with lineage, measured usage and a settled reservation closes end to end afterwards, and
+//      the operator's free text does NOT survive it while the structured audit metadata does
+//   S5 the history is append-only again the moment the closure is over
+//   S6 the candidate cannot be applied twice, and the guard is as live as before: a later addition drifts
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -19,6 +22,8 @@ import {loadClosureWorker} from '../pre_v3/v5_closure_edge_runtime.mjs';
 const CANDIDATE='supabase/candidates/pkg023f_closure_recertification.sql';
 const LEDGER='supabase/operations/dev-alpha/ledger';
 const ADDITIONS=['private.account_lineage_v5','private.account_lineage_events_v5','private.ai_test_usage_v5'];
+// Stands for what an operator would really type about a person. Not one character of it may outlive a closure.
+const OPERATOR_NOTE_FRAGMENT='operator note about this person';
 const sha256=x=>createHash('sha256').update(x).digest('hex');
 const psql=(args,label)=>{try{return execFileSync('psql',[env.RU5_DEVICE_DB_URL,'-X','-q','-v','ON_ERROR_STOP=1',...args],{encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:120000});}
  catch(e){const error=new Error(label+': '+String(e.stderr??e.message).slice(-1500));error.stderr=String(e.stderr??'');throw error;}};
@@ -136,8 +141,10 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  for(const needle of ['columns_needle_in_schema','constraints_needle_in_schema','relkind_needle_in_schema','relkind_needle_in_program','trigger_state_needle_in_program'])assert.equal(r[needle],1,needle);
  assert.equal(r.control_digest,drifted.live);assert.equal(r.reconstructed_digest,source147.live);assert.equal(r.ready,false);
  const closing=await actor('pkg023f-closing');
+ // An operator's note in the shape of the real thing: free text a person typed about a person.
  await ok(service.rpc('rpc_admit_account_lineage_service',{p_account_id:closing.id,p_lineage:'SYNTHETIC_ACCEPTANCE_FIXTURE',
-  p_reason:'PKG023f disposable closure proof',p_source_ref:'pkg023f_closure_recert_proof',p_expected_revision:0}));
+  p_reason:`${OPERATOR_NOTE_FRAGMENT} - admitted by the disposable proof`,p_source_ref:`${OPERATOR_NOTE_FRAGMENT}/source`,p_expected_revision:0}));
+ const lineageBefore=rows(`select admitted_at from private.account_lineage_v5 where account_id=${q(closing.id)}::uuid`)[0];
  const operation=randomUUID();
  sql(`begin;insert into private.ai_test_accounts_v5(account_id) values(${q(closing.id)}::uuid);
   insert into private.ai_test_reservations_v5(operation_id,account_id,kind,max_cost_microusd,settled_microusd,settlement_basis,settled_at)
@@ -171,13 +178,26 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
 
  // ---- S3. the candidate certifies the reviewed state, and nothing else changes
  const catalogBefore=rows(`select data_class,relations from private.closure_dataset_catalog_v5 order by data_class`);
+ const relationsBefore=Number(sql('select cardinality(private.closure_redaction_relations_v5())'));
  applyCandidate();
  const certified=certificate();
  assert.equal(certified.ready,true);assert.equal(certified.binding,true);assert.equal(certified.live,drifted.live);
  assert.equal(certified.source,drifted.live);assert.equal(certified.erasure,drifted.live);assert.equal(certified.ready_constant,drifted.live);
  const after=surface(),changed=l=>l.replace(/^(function:[a-z_.0-9]+\().*/,'$1');
- assert.deepEqual(after.filter(l=>!replayed.includes(l)).map(changed),['function:private.retention_ai_source_ready(']);
- assert.deepEqual(replayed.filter(l=>!after.includes(l)).map(changed),['function:private.retention_ai_source_ready(']);
+ // Four bodies of the erasure program and the one certified constant. No table, column, constraint, policy,
+ // grant, index or other function may appear here.
+ const EXPECTED=['function:private.account_lineage_events_append_only(','function:private.closure_redaction_patch_v5(',
+  'function:private.closure_redaction_relations_v5(','function:private.closure_redaction_scope_v5(','function:private.retention_ai_source_ready('];
+ assert.deepEqual(after.filter(l=>!replayed.includes(l)).map(changed).sort(),EXPECTED);
+ assert.deepEqual(replayed.filter(l=>!after.includes(l)).map(changed).sort(),EXPECTED);
+ // The erasure program now walks the two lineage relations, and only those two are new.
+ assert.equal(Number(sql('select cardinality(private.closure_redaction_relations_v5())')),relationsBefore+2);
+ for(const relation of ['private.account_lineage_v5','private.account_lineage_events_v5']){
+  assert.equal(sql(`select ${q(relation)}=any(private.closure_redaction_relations_v5())`),'t',relation);
+  assert.equal(sql(`select private.closure_redaction_scope_v5(${q(relation)})`),'t.account_id=$1',relation);
+ }
+ // private.ai_test_usage_v5 is metering, not narrative: catalogued, never redacted.
+ assert.equal(sql("select 'private.ai_test_usage_v5'=any(private.closure_redaction_relations_v5())"),'f');
  const catalogAfter=rows(`select data_class,relations from private.closure_dataset_catalog_v5 order by data_class`);
  for(const before of catalogBefore){
   const now=catalogAfter.find(c=>c.data_class===before.data_class);
@@ -189,7 +209,7 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  assert.deepEqual(rows(`select n.nspname||'.'||c.relname relation from pg_class c join pg_namespace n on n.oid=c.relnamespace
   where n.nspname in('public','private') and c.relkind in('r','p') and (n.nspname||'.'||c.relname)=any(${q('{'+ADDITIONS.join(',')+'}')}::text[])
   and not exists(select 1 from private.closure_dataset_catalog_v5 k where (n.nspname||'.'||c.relname)=any(k.relations))`),[]);
- pass(report,'CANDIDATE_CERTIFIES_THE_REVIEWED_STATE_ONE_FUNCTION_CONSTANT_AND_ONE_CATALOG_ROW_NOTHING_ELSE');
+ pass(report,'CANDIDATE_CERTIFIES_THE_REVIEWED_STATE_FOUR_PROGRAM_BODIES_ONE_CONSTANT_ONE_CATALOG_ROW_NOTHING_ELSE');
 
  // ---- S4. an account with lineage, usage and a reservation closes end to end
  const before=accountRows(closing.id);assert.equal(before.length,4);
@@ -209,6 +229,7 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  assert.equal(next.kind,'RELATIONAL_REDACT');
  if(next.state==='PENDING')await ok(service.rpc('rpc_dispatch_account_closure_action_service',actionArgs(next)));
  const total=Number(sql('select cardinality(private.closure_redaction_relations_v5())'));let finished=false;
+ assert.equal(total,relationsBefore+2);
  for(let i=0;i<total+25;i++){const step=await ok(service.rpc('rpc_redact_account_closure_step_service',actionArgs(next)));if(step.state==='VERIFIED'){finished=true;break;}}
  assert.ok(finished,'PKG023F_RELATIONAL_ERASURE_DID_NOT_FINISH');
  let closed=null;const kinds=[];
@@ -220,13 +241,42 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  assert.equal(sql(`select deleted_at is not null from auth.users where id=${q(closing.id)}::uuid`),'t');
  assert.equal(sql(`select email='' and full_name='' from public.app_accounts where id=${q(closing.id)}::uuid`),'t');
  assert.equal(sql(`select retired_at is not null from private.ai_test_accounts_v5 where account_id=${q(closing.id)}::uuid`),'t');
- // What stays, exactly as the review says: the operator's lineage record and the metering rows, keyed by the
- // retained pseudonymous subject id. None of them holds anything the person wrote.
- assert.deepEqual(accountRows(closing.id),before);
- report.afterClosure={authSubjectRetainedAndErased:true,testAdmissionRetired:true,lineageRowsKept:2,usageRowsKept:1,reservationRowsKept:1,workerSteps:kinds};
- pass(report,'ACCOUNT_WITH_LINEAGE_USAGE_AND_RESERVATION_CLOSES_END_TO_END_AND_THE_REVIEWED_ROWS_STAY_AS_DOCUMENTED');
+ // What stays and what does not (the owner's F1 condition): every row is still there, keyed by the retained
+ // pseudonymous subject id, and the structured audit metadata is untouched - but the operator's free text is
+ // gone, replaced by a fixed code that carries no content.
+ const afterRows=accountRows(closing.id);
+ assert.equal(afterRows.length,before.length);
+ const kind=k=>afterRows.filter(r=>r.kind===k),kindBefore=k=>before.filter(r=>r.kind===k);
+ assert.deepEqual(kind('usage'),kindBefore('usage'));
+ assert.deepEqual(kind('reservation'),kindBefore('reservation'));
+ assert.deepEqual(rows(`select reason,source_ref from private.account_lineage_v5 where account_id=${q(closing.id)}::uuid
+  union all select reason,source_ref from private.account_lineage_events_v5 where account_id=${q(closing.id)}::uuid`),
+  [{reason:'CLOSURE_ERASED_OPERATOR_NOTE',source_ref:'CLOSURE_ERASED_SOURCE_REF'},
+   {reason:'CLOSURE_ERASED_OPERATOR_NOTE',source_ref:'CLOSURE_ERASED_SOURCE_REF'}]);
+ // Not a substring of what the operator typed survives anywhere in those two tables.
+ assert.equal(sql(`select count(*) from (select reason,source_ref from private.account_lineage_v5 where account_id=${q(closing.id)}::uuid
+  union all select reason,source_ref from private.account_lineage_events_v5 where account_id=${q(closing.id)}::uuid) x
+  where x.reason||' '||x.source_ref like '%${OPERATOR_NOTE_FRAGMENT}%'`),'0');
+ // The class, the revision, the history's own from/to and the timestamps are the audit metadata that stays.
+ assert.deepEqual(rows(`select lineage,revision from private.account_lineage_v5 where account_id=${q(closing.id)}::uuid`),
+  [{lineage:'SYNTHETIC_ACCEPTANCE_FIXTURE',revision:1}]);
+ assert.deepEqual(rows(`select from_lineage,to_lineage,revision from private.account_lineage_events_v5 where account_id=${q(closing.id)}::uuid`),
+  [{from_lineage:null,to_lineage:'SYNTHETIC_ACCEPTANCE_FIXTURE',revision:1}]);
+ assert.equal(sql(`select bool_and(admitted_at=${q(lineageBefore.admitted_at)}::timestamptz) from private.account_lineage_v5 where account_id=${q(closing.id)}::uuid`),'t');
+ report.afterClosure={authSubjectRetainedAndErased:true,testAdmissionRetired:true,lineageRowsKept:2,usageRowsKept:1,reservationRowsKept:1,
+  operatorFreeTextErased:true,structuredClassKept:'SYNTHETIC_ACCEPTANCE_FIXTURE',workerSteps:kinds};
+ pass(report,'CLOSES_END_TO_END_THE_OPERATOR_FREE_TEXT_IS_ERASED_AND_THE_STRUCTURED_AUDIT_METADATA_STAYS');
 
- // ---- S5. once only, and the guard is as live as it was
+ // ---- S5. the history is append-only again the moment the closure is over
+ for(const statement of [`update private.account_lineage_events_v5 set reason='PKG023F_MUST_NOT_LAND' where account_id=${q(closing.id)}::uuid`,
+  `delete from private.account_lineage_events_v5 where account_id=${q(closing.id)}::uuid`,
+  `update private.account_lineage_events_v5 set to_lineage='REAL_USER' where account_id=${q(closing.id)}::uuid`]){
+  assert.throws(()=>sql(statement),/ACCOUNT_LINEAGE_HISTORY_IMMUTABLE/,statement);
+ }
+ assert.deepEqual(accountRows(closing.id),afterRows);
+ pass(report,'THE_HISTORY_IS_APPEND_ONLY_AGAIN_OUTSIDE_THE_CLOSURE_NO_UPDATE_AND_NO_DELETE_FOR_ANYONE');
+
+ // ---- S6. once only, and the guard is as live as it was
  refuses('PKG023F_NOTHING_TO_RECERTIFY','A_SECOND_APPLICATION');
  assert.deepEqual(certificate(),certified);
  assert.equal(sql(`begin;create table private.pkg023f_later_addition(id integer);select private.retention_ai_source_ready()::text||':'||(private.closure_erasure_binding_v5() is null)::text;rollback;`),'false:true');

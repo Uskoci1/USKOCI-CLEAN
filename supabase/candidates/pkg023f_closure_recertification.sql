@@ -1,8 +1,9 @@
--- PKG-023f: re-certify the closure source after the reviewed dev_alpha additions of 2026-09-17.
+-- PKG-023f: erase the operator's free text on closure, then re-certify the closure source.
 --
--- A CANDIDATE. NOT APPLIED ANYWHERE. The owner asked for a forensic review first and a separate approval
--- before any re-certification on canonical DEV/ALPHA leqcwgzvjsxugfgzdmth (2026-09-19). The review is
--- docs/implementation/v5-ai-first/pkg023/CLOSURE_FORENSIC_REVIEW_20260919.md.
+-- A CANDIDATE. The owner approved applying it to canonical DEV/ALPHA leqcwgzvjsxugfgzdmth on 2026-09-19,
+-- conditionally: "slobodna tekstualna operator_note NE sme automatski da preživi account closure; pri
+-- closure-u je null/delete ili zameni strukturisanim reason code-om koji ne sadrži korisnički sadržaj."
+-- The review it belongs to is docs/implementation/v5-ai-first/pkg023/CLOSURE_FORENSIC_REVIEW_20260919.md.
 --
 -- What is wrong today. private.retention_ai_source_ready() compares private.closure_source_digest_v5() with
 -- the value written at the last certification. Since 2026-09-17 the two differ on canonical DEV, because
@@ -25,7 +26,8 @@
 --   4. the reviewed additions have exactly the shape that was reviewed (every column, constraint, trigger,
 --      trigger body and RLS flag of the three tables; the five columns and two constraints of the
 --      reservations table), and no API role holds any privilege on the three tables;
---   5. THE RECONSTRUCTION: the live text of the digest functions, evaluated with exactly those additions
+--   5. the four bodies it is about to patch are the bodies it was written against;
+--   6. THE RECONSTRUCTION: the live text of the digest functions, evaluated with exactly those additions
 --      filtered out of its input, yields the certified value. So the reviewed additions are the ONLY
 --      difference the digest can see between the last certified state and now. One unreviewed column,
 --      constraint, trigger, table, grant, owner or function body anywhere else, and this refuses.
@@ -35,15 +37,29 @@
 --      class their siblings private.ai_test_accounts_v5 and private.ai_test_reservations_v5 already have.
 --      Every earlier source migration that added an account-linked table catalogued it; the dev_alpha
 --      migrations did not. The catalog is data, not part of the digest.
---   b. the certified value, in its three places: private.closure_source_v5, private.closure_erasure_source_v5
+--   b. THE ERASURE PROGRAM LEARNS THE TWO LINEAGE RELATIONS (the owner's F1 condition). PKG-015 records, for
+--      every account, a lineage class with an operator's `reason` and `source_ref` - free text a person
+--      typed about a person. The class, the revision and the timestamps are structured audit metadata and
+--      stay under the audit retention contract; the free text does not. On closure both columns become fixed
+--      codes, CLOSURE_ERASED_OPERATOR_NOTE and CLOSURE_ERASED_SOURCE_REF, which carry no content at all.
+--      Three bodies gain the two relations (relations, scope, patch) and the append-only trigger learns one
+--      exception: the closure's own certified redaction, which private.closure_redaction_allowed_v5 admits
+--      row by row inside the erasure transaction, and nothing else. DELETE stays refused for everyone, so an
+--      account's history can never be dropped, only stripped of its narrative.
+--      private.ai_test_usage_v5 is NOT added: token counters, measured usage and a model name are the
+--      metering the owner allows to remain, and there is no free text in them.
+--   c. the certified value, in its three places: private.closure_source_v5, private.closure_erasure_source_v5
 --      and the constant inside private.retention_ai_source_ready() (the $rebind$ pattern of source migration
 --      20260913081147). Nothing else of that function changes.
--- It changes no table, column, constraint, trigger, policy, grant or any other function, and the erasure
--- program (private.closure_redaction_relations_v5, private.closure_redaction_patch_v5) is untouched: the
--- review found no user-authored content in the additions. See the review for what stays after a closure.
+-- It changes no table, no column, no constraint, no policy and no grant, and no function beyond the four
+-- named above and the one constant.
 --
 -- The same bytes run on the disposable proof database and on canonical DEV: no digest is hard-coded, because
 -- the digest contains role and type OIDs and is different in every database by construction.
+--
+-- Note for whoever holds pkg023c: it pins the md5 of closure_redaction_patch_v5. This changes that body, so
+-- pkg023c must be regenerated from the new live definitions before it can be applied. That is the preflight
+-- working, not a defect.
 begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
@@ -51,7 +67,7 @@ set local statement_timeout = '60s';
 -- reconstruction evaluates their text here and must print the same names. Every object below is qualified.
 set local search_path to pg_catalog;
 
-create temporary table pkg023f_predecessor(certified text not null, drifted text not null) on commit drop;
+create temporary table pkg023f_predecessor(certified text not null, drifted text not null, relations integer not null) on commit drop;
 
 do $pre$
 declare
@@ -122,7 +138,19 @@ begin
     raise exception 'PKG023F_REVIEWED_ADDITIONS_ARE_REACHABLE_BY_AN_API_ROLE';
   end if;
 
-  -- 5. The reconstruction. The live text of the three digest functions, with the reviewed additions
+  -- 5. The four bodies this is about to patch are the bodies it was written against.
+  if (select md5(prosrc) from pg_proc where oid = 'private.closure_redaction_relations_v5()'::regprocedure) is distinct from 'e2d711fccd5b9aa9a598853f4083f6f9'
+     or (select md5(prosrc) from pg_proc where oid = 'private.closure_redaction_scope_v5(text)'::regprocedure) is distinct from 'cb3b1f3bddcd79eb07e9ffcc0d98b58a'
+     or (select md5(prosrc) from pg_proc where oid = 'private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)'::regprocedure) is distinct from '727fe2de07adc99d1140db9c1996a46f'
+     or (select md5(prosrc) from pg_proc where oid = 'private.account_lineage_events_append_only()'::regprocedure) is distinct from '7826cee0bd3e2fced23f19212ffd8147' then
+    raise exception 'PKG023F_A_BODY_TO_PATCH_IS_NOT_THE_REVIEWED_ONE';
+  end if;
+  if (select count(*) from unnest(private.closure_redaction_relations_v5()) r
+       where r in ('private.account_lineage_v5','private.account_lineage_events_v5')) <> 0 then
+    raise exception 'PKG023F_ALREADY_APPLIED';
+  end if;
+
+  -- 6. The reconstruction. The live text of the three digest functions, with the reviewed additions
   --    filtered out of the input. Each filter must land exactly once, or it filtered nothing.
   select regexp_replace(prosrc, ';[[:space:]]*$', '') into strict v_schema from pg_proc where oid = 'private.closure_schema_digest_v5_139()'::regprocedure;
   select regexp_replace(prosrc, ';[[:space:]]*$', '') into strict v_program from pg_proc where oid = 'private.closure_erasure_program_digest_v5()'::regprocedure;
@@ -154,7 +182,7 @@ begin
     raise exception 'PKG023F_UNREVIEWED_CHANGE: without the reviewed additions the digest is %, the certified value is %', v_reconstructed, v_certified;
   end if;
 
-  insert into pkg023f_predecessor values (v_certified, v_live);
+  insert into pkg023f_predecessor values (v_certified, v_live, cardinality(private.closure_redaction_relations_v5()));
 end
 $pre$;
 
@@ -177,32 +205,138 @@ begin
 end
 $catalog$;
 
--- b. The certified value, in its three places.
+-- b. The erasure program learns the two lineage relations. Each patch is an insertion at an anchor that
+--    must occur exactly once in the live definition, so a body that is not the reviewed one cannot be edited.
+do $program$
+declare def text; anchor text;
+begin
+  def := pg_get_functiondef('private.closure_redaction_relations_v5()'::regprocedure);
+  anchor := $a$'private.group_message_visibility_v5','private.ai_test_accounts_v5'$a$;
+  if (length(def) - length(replace(def, anchor, ''))) <> length(anchor) then raise exception 'PKG023F_ANCHOR_NOT_UNIQUE relations'; end if;
+  execute replace(def, anchor, $a$'private.account_lineage_events_v5','private.account_lineage_v5',$a$ || anchor);
+
+  def := pg_get_functiondef('private.closure_redaction_scope_v5(text)'::regprocedure);
+  anchor := $a$,'private.support_read_markers_v5') then 't.account_id=$1'$a$;
+  if (length(def) - length(replace(def, anchor, ''))) <> length(anchor) then raise exception 'PKG023F_ANCHOR_NOT_UNIQUE scope'; end if;
+  execute replace(def, anchor, $a$,'private.support_read_markers_v5','private.account_lineage_v5','private.account_lineage_events_v5') then 't.account_id=$1'$a$);
+
+  def := pg_get_functiondef('private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)'::regprocedure);
+  anchor := $a$ if p='{}'::jsonb or t@>p then return null;end if;$a$;
+  if (length(def) - length(replace(def, anchor, ''))) <> length(anchor) then raise exception 'PKG023F_ANCHOR_NOT_UNIQUE patch'; end if;
+  execute replace(def, anchor, $a$ -- An operator's note about a person is not audit metadata the subject must live with. The
+ -- lineage class, its revision and its timestamps stay; the free text becomes a fixed code.
+ if r in('private.account_lineage_v5','private.account_lineage_events_v5') then
+  p:=p||jsonb_build_object('reason','CLOSURE_ERASED_OPERATOR_NOTE','source_ref','CLOSURE_ERASED_SOURCE_REF');
+ end if;
+$a$ || anchor);
+end
+$program$;
+
+-- The history stays append-only for everyone. The single exception is the closure's own certified
+-- redaction of that free text, admitted row by row, inside the erasure transaction, by the same
+-- validator every other guarded relation uses. DELETE is never admitted, for anyone.
+create or replace function private.account_lineage_events_append_only()
+returns trigger
+language plpgsql
+set search_path to 'pg_catalog'
+as $function$
+begin
+  if tg_op = 'UPDATE'
+     and private.closure_redaction_allowed_v5(tg_relid, 'UPDATE', to_jsonb(old), to_jsonb(new)) then
+    return new;
+  end if;
+  raise exception 'ACCOUNT_LINEAGE_HISTORY_IMMUTABLE' using errcode = '55000';
+end
+$function$;
+
+do $verify$
+declare v_row uuid;
+begin
+  if cardinality(private.closure_redaction_relations_v5()) <> (select relations from pkg023f_predecessor) + 2
+     or (select count(*) from unnest(private.closure_redaction_relations_v5()) r
+          where r in ('private.account_lineage_v5','private.account_lineage_events_v5')) <> 2 then
+    raise exception 'PKG023F_RELATIONS_NOT_AS_REVIEWED';
+  end if;
+  if private.closure_redaction_scope_v5('private.account_lineage_v5') is distinct from 't.account_id=$1'
+     or private.closure_redaction_scope_v5('private.account_lineage_events_v5') is distinct from 't.account_id=$1' then
+    raise exception 'PKG023F_SCOPE_NOT_AS_REVIEWED';
+  end if;
+  -- What the patch does, on a fabricated row: exactly the two free-text columns, and nothing else.
+  if private.closure_redaction_patch_v5('private.account_lineage_v5',
+       jsonb_build_object('account_id', gen_random_uuid(), 'lineage', 'REAL_USER', 'reason', 'an operator note',
+         'source_ref', 'a source reference', 'revision', 2, 'admitted_at', statement_timestamp(), 'updated_at', statement_timestamp()),
+       gen_random_uuid(), gen_random_uuid())
+     is distinct from jsonb_build_object('operation', 'UPDATE', 'patch',
+       jsonb_build_object('reason', 'CLOSURE_ERASED_OPERATOR_NOTE', 'source_ref', 'CLOSURE_ERASED_SOURCE_REF')) then
+    raise exception 'PKG023F_PATCH_NOT_AS_REVIEWED lineage';
+  end if;
+  if private.closure_redaction_patch_v5('private.account_lineage_events_v5',
+       jsonb_build_object('id', gen_random_uuid(), 'account_id', gen_random_uuid(), 'from_lineage', 'OPERATOR',
+         'to_lineage', 'REAL_USER', 'reason', 'an operator note', 'source_ref', 'a source reference',
+         'revision', 2, 'recorded_at', statement_timestamp()),
+       gen_random_uuid(), gen_random_uuid())
+     is distinct from jsonb_build_object('operation', 'UPDATE', 'patch',
+       jsonb_build_object('reason', 'CLOSURE_ERASED_OPERATOR_NOTE', 'source_ref', 'CLOSURE_ERASED_SOURCE_REF')) then
+    raise exception 'PKG023F_PATCH_NOT_AS_REVIEWED events';
+  end if;
+  -- A row that already carries the codes is skipped, so the step terminates instead of looping.
+  if private.closure_redaction_patch_v5('private.account_lineage_events_v5',
+       jsonb_build_object('id', gen_random_uuid(), 'account_id', gen_random_uuid(), 'from_lineage', null,
+         'to_lineage', 'REAL_USER', 'reason', 'CLOSURE_ERASED_OPERATOR_NOTE', 'source_ref', 'CLOSURE_ERASED_SOURCE_REF',
+         'revision', 1, 'recorded_at', statement_timestamp()),
+       gen_random_uuid(), gen_random_uuid()) is not null then
+    raise exception 'PKG023F_PATCH_DOES_NOT_TERMINATE';
+  end if;
+  -- Outside a closure the history is still immutable. Both attempts run in their own subtransaction and
+  -- are rolled back by the exception they must raise; if one of them lands, this migration does not commit.
+  select id into v_row from private.account_lineage_events_v5 order by recorded_at, id limit 1;
+  if v_row is not null then
+    begin
+      update private.account_lineage_events_v5 set reason = 'PKG023F_MUST_NOT_LAND' where id = v_row;
+      raise exception 'PKG023F_APPEND_ONLY_NOT_ENFORCED update';
+    exception when sqlstate '55000' then null;
+    end;
+    begin
+      delete from private.account_lineage_events_v5 where id = v_row;
+      raise exception 'PKG023F_APPEND_ONLY_NOT_ENFORCED delete';
+    exception when sqlstate '55000' then null;
+    end;
+    if not exists (select 1 from private.account_lineage_events_v5 where id = v_row and reason <> 'PKG023F_MUST_NOT_LAND') then
+      raise exception 'PKG023F_APPEND_ONLY_NOT_ENFORCED aftermath';
+    end if;
+  end if;
+end
+$verify$;
+
+-- c. The certified value, in its three places, for the state this transaction now holds.
 do $rebind$
-declare v_certified text; v_drifted text; v_def text;
+declare v_certified text; v_drifted text; v_new text; v_def text;
 begin
   select certified, drifted into strict v_certified, v_drifted from pkg023f_predecessor;
-  -- The catalog is data; if the digest moved, something here is not what was reviewed.
-  if private.closure_source_digest_v5() is distinct from v_drifted then raise exception 'PKG023F_DIGEST_MOVED_DURING_RECERTIFICATION'; end if;
+  v_new := private.closure_source_digest_v5();
+  if v_new is null then raise exception 'PKG023F_SOURCE_DIGEST_UNAVAILABLE'; end if;
+  -- The erasure program changed, so the digest must have moved again. If it did not, the change did not
+  -- land where the certificate can see it, and certifying would be a lie.
+  if v_new = v_drifted or v_new = v_certified then raise exception 'PKG023F_PROGRAM_CHANGE_NOT_IN_THE_DIGEST'; end if;
   v_def := pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure);
-  update private.closure_source_v5 set sha256 = v_drifted where singleton and sha256 = v_certified;
+  update private.closure_source_v5 set sha256 = v_new where singleton and sha256 = v_certified;
   if not found then raise exception 'PKG023F_CERTIFIED_VALUES_DISAGREE'; end if;
-  update private.closure_erasure_source_v5 set sha256 = v_drifted where singleton and sha256 = v_certified;
+  update private.closure_erasure_source_v5 set sha256 = v_new where singleton and sha256 = v_certified;
   if not found then raise exception 'PKG023F_CERTIFIED_VALUES_DISAGREE'; end if;
-  execute replace(v_def, v_certified, v_drifted);
+  execute replace(v_def, v_certified, v_new);
 end
 $rebind$;
 
 do $post$
-declare v_certified text; v_drifted text; v_ready text;
+declare v_certified text; v_live text; v_ready text;
 begin
-  select certified, drifted into strict v_certified, v_drifted from pkg023f_predecessor;
+  select certified into strict v_certified from pkg023f_predecessor;
+  v_live := private.closure_source_digest_v5();
   select prosrc into strict v_ready from pg_proc where oid = 'private.retention_ai_source_ready()'::regprocedure;
-  if private.closure_source_digest_v5() is distinct from v_drifted
-     or (select sha256 from private.closure_source_v5 where singleton) is distinct from v_drifted
-     or (select sha256 from private.closure_erasure_source_v5 where singleton) is distinct from v_drifted
+  if (select sha256 from private.closure_source_v5 where singleton) is distinct from v_live
+     or (select sha256 from private.closure_erasure_source_v5 where singleton) is distinct from v_live
      or position(v_certified in v_ready) > 0
-     or (length(v_ready) - length(replace(v_ready, v_drifted, ''))) <> length(v_drifted) then
+     or (length(v_ready) - length(replace(v_ready, v_live, ''))) <> length(v_live) then
     raise exception 'PKG023F_REBIND_INCOMPLETE';
   end if;
   -- Nothing of the readiness function changed except the one constant.
@@ -211,8 +345,12 @@ begin
   end if;
   if private.retention_ai_source_ready() is distinct from true then raise exception 'PKG023F_SOURCE_NOT_READY'; end if;
   if private.closure_erasure_binding_v5() is null then raise exception 'PKG023F_ERASURE_BINDING_NOT_READY'; end if;
+  if private.closure_erasure_binding_v5()->>'sourceSha256' is distinct from v_live then raise exception 'PKG023F_ERASURE_BINDING_NOT_READY'; end if;
   if has_function_privilege('anon', 'private.retention_ai_source_ready()', 'EXECUTE')
-     or has_function_privilege('authenticated', 'private.retention_ai_source_ready()', 'EXECUTE') then
+     or has_function_privilege('authenticated', 'private.retention_ai_source_ready()', 'EXECUTE')
+     or has_function_privilege('anon', 'private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)', 'EXECUTE')
+     or has_function_privilege('authenticated', 'private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)', 'EXECUTE')
+     or has_function_privilege('service_role', 'private.closure_redaction_relations_v5()', 'EXECUTE') then
     raise exception 'PKG023F_GRANTS_NOT_EXACT';
   end if;
 end
