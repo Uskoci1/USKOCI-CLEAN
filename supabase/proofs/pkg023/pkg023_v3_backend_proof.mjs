@@ -216,11 +216,16 @@ if(present==='true'){
   // Index. The new partial GiST index serves the viewport; the existing one, partial on PUBLISHED alone, cannot.
   const viewport=`select m.id from public.needs m where m.status in ('PUBLISHED','SELECTION') and m.approx_geog OPERATOR(extensions.&&)
    extensions.ST_MakeEnvelope(19.89,43.89,20.11,44.11,4326)::extensions.geography`;
-  const plan=sql(`begin;set local enable_seqscan=off;explain ${viewport};rollback;`);
+  // Two partial indexes match the open set. On a table of a few rows the planner rightly prefers the
+  // small btree and filters; the question here is whether the GiST index CAN carry the viewport
+  // condition, so the btree is set aside inside a transaction that rolls back.
+  notes.viewportPlanAsPlannedToday=sql(`begin;set local enable_seqscan=off;explain ${viewport};rollback;`);
+  const plan=sql(`begin;drop index public.needs_open_published_idx;set local enable_seqscan=off;explain ${viewport};rollback;`);
   assert.match(plan,/needs_open_geog_idx/,'the viewport query cannot use the new index: '+plan);
-  const without=sql(`begin;drop index public.needs_open_geog_idx;set local enable_seqscan=off;explain ${viewport};rollback;`);
+  assert.match(plan,/Index Cond: \(approx_geog && /,'the viewport condition is not an index condition: '+plan);
+  const without=sql(`begin;drop index public.needs_open_geog_idx;drop index public.needs_open_published_idx;set local enable_seqscan=off;explain ${viewport};rollback;`);
   assert.ok(!/needs_approx_geog_idx/.test(without),'the existing partial index serves the open set after all: '+without);
-  notes.viewportPlan=plan;notes.viewportPlanWithoutNewIndex=without;
+  notes.viewportPlan=plan;notes.viewportPlanWithoutNewIndexes=without;
   const ordered=sql(`begin;set local enable_seqscan=off;explain select m.id from public.needs m where m.status in ('PUBLISHED','SELECTION')
    order by m.published_at desc,m.id desc limit 51;rollback;`);
   assert.match(ordered,/needs_open_published_idx/,'the list order cannot use its index: '+ordered);
