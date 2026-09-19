@@ -150,12 +150,25 @@ function compare(raw, actor) {
   assert.equal(counts.activeAgreements, home.agreements.value.rows.length + home.agreements.value.more);
   assert.equal(counts.activities, home.activities.value.rows.length + home.activities.value.more);
   assert.equal(counts.activities, counts.ownActiveTasks + counts.activeApplications);
+  assert.equal(counts.ownActiveTasks, needs.filter(n => n.stanje !== 'ZATVORENA').length);
+  assert.equal(counts.activeApplications, applications.filter(a => ['SUBMITTED','VIEWED','SHORTLISTED','STALE_REVIEW_REQUIRED'].includes(a.stanje)).length);
   for (const row of raw.actual.items) {
     assert.deepEqual(Object.keys(row).sort(), ['reason','subjectId','taskId','agreementId','applicationId','taskTitle','applicationCount','sortAt'].sort());
     assert.equal(row.taskTitle, 'Task ' + row.taskId);
     assert.ok(row.sortAt === null || Number.isFinite(Date.parse(row.sortAt)));
-    if (row.reason === 'TASK_APPLICATIONS') assert.equal(row.applicationCount, raw.needs.items.find(n => n.id === row.taskId).applicationCount);
-    else assert.equal(row.applicationCount, null);
+    if (row.reason === 'TASK_APPLICATIONS') {
+      const n = raw.needs.items.find(n => n.id === row.taskId);
+      assert.equal(row.applicationCount, n.applicationCount); assert.equal(row.sortAt, n.sortAt);
+      assert.equal(row.subjectId, n.id); assert.equal(row.applicationId, null); assert.equal(row.agreementId, null);
+    } else if (row.reason.startsWith('APPLICATION_')) {
+      const a = raw.applications.find(a => a.applicationId === row.applicationId);
+      assert.equal(row.applicationCount, null); assert.equal(row.sortAt, a.submittedAt);
+      assert.equal(row.subjectId, a.applicationId); assert.equal(row.taskId, a.needId); assert.equal(row.agreementId, null);
+    } else {
+      const a = raw.agreements.items.find(a => a.id === row.agreementId);
+      assert.equal(row.applicationCount, null); assert.equal(row.sortAt, a.sortAt);
+      assert.equal(row.subjectId, a.id); assert.equal(row.applicationId, null);
+    }
   }
   return raw.actual;
 }
