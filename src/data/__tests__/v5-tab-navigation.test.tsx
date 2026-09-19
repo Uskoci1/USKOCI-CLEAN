@@ -10,6 +10,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 jest.mock('phosphor-react-native', () => ({ House: 'Icon', Handshake: 'Icon' }));
 jest.mock('../../ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: 'Mark' }));
 import Tabs from '../../app/(app)/_layout';
+import { Press } from '../../ui/Press';
 let tree: ReactTestRenderer;
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
@@ -50,4 +51,27 @@ it('keeps every earlier destination registered and reachable by its URL, only no
   const hidden = (name: string) => screens.find(screen => screen.props.name === name)?.props.options.href;
   for (const name of ['potrebe', 'moje-prijave', 'prilike', 'nova', 'pregled-nacrta', 'pregled-zadatka', 'moje-aktivnosti',
     'profil', 'potrebe/[id]/pregled', 'potrebe/[id]/kandidati', 'prilike/[id]', 'prilike/[id]/prijava']) expect(hidden(name)).toBeNull();
+});
+
+it('the new tab surface preserves navigator press/long-press handlers and exposes the selected tab', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  const renderButton = tree.root.findByType('Tabs' as React.ElementType).props.screenOptions.tabBarButton;
+  const onPress = jest.fn(), onLongPress = jest.fn();
+  const button = renderButton({ children: 'Mapa', onPress, onLongPress, 'aria-label': 'Mapa', 'aria-selected': true, testID: 'map-tab' });
+  expect(button.type).toBe(Press);
+  expect(button.props.accessibilityRole).toBe('tab');
+  expect(button.props.accessibilityLabel).toBe('Mapa');
+  expect(button.props.accessibilityState).toEqual({ selected: true });
+  const event = { nativeEvent: {} };
+  button.props.onPress(event); button.props.onLongPress(event);
+  expect(onPress).toHaveBeenCalledWith(event); expect(onLongPress).toHaveBeenCalledWith(event);
+  expect(renderButton({ children: 'Mapa', 'aria-selected': false }).props.accessibilityState).toEqual({ selected: false });
+});
+
+it('the publishing, review and location flows still hide the tabs', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  const screens = tree.root.findAllByType('Screen' as React.ElementType);
+  for (const name of ['nova', 'pregled-zadatka', 'mesto-zadatka']) {
+    expect(screens.find(screen => screen.props.name === name)?.props.options.tabBarStyle.display).toBe('none');
+  }
 });
