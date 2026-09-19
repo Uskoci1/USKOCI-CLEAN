@@ -228,9 +228,10 @@ program, moves the digest again and must re-bind it the same way, from a predece
 Function-only and plain-index candidates do not. **`pkg023c` stays on HOLD and must be regenerated before it
 can be applied**: it pins the md5 of `private.closure_redaction_patch_v5`, which `pkg023f` changed. The exact
 text of every `dev_alpha` ledger row, four of which were in no file, is in
-`supabase/operations/dev-alpha/ledger/`. Two further candidates are written, proven and **applied nowhere**:
-`pkg023g` (least privilege for two AI-test service functions) and `pkg023h` (the data export stops claiming
-that no charge was ever measured) — `F2_F4_CANDIDATES_20260919.md`.
+`supabase/operations/dev-alpha/ledger/`. `pkg023g` (least privilege for two AI-test service functions) and `pkg023h` (the data export
+stops claiming that no charge was ever measured) were applied the same day — ledger `20260919170238` and
+`20260919170413`, receipts in `F2_F4_CANDIDATES_20260919.md`. The DEV ledger is **163 rows: 147 source + 16
+`dev_alpha`**.
 
 Edge, 2026-09-19: `uskoci-ai-interview` is **v41** (the provider-failure log carries a class from a
 closed list, never thrown text). Three of its four files are byte-identical to `130028de`; line 34 of

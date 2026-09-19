@@ -1,7 +1,8 @@
 # F2 and F4 — two small candidates, neither applied (2026-09-19)
 
-The owner ordered each as its own small candidate with a stop before any DEV application. Both are written,
-both are proven on a disposable database in the PKG-023f workflow, and **neither is applied anywhere**.
+The owner ordered each as its own small candidate with a stop before any DEV application. Both were written
+and proven on a disposable database in the PKG-023f workflow; on 2026-09-19 the owner approved applying
+them, and **both are now on canonical DEV**. The receipts are at the end of this file.
 
 ---
 
@@ -151,3 +152,45 @@ what a signed-out person reads — and neither was part of this finding. `public
 ---
 
 **Both candidates stop here. Neither may be applied to canonical DEV without the owner's separate word.**
+
+---
+
+# Receipts — both applied to canonical DEV, 2026-09-19
+
+Preflight first, read-only: ledger 161, `retention_ai_source_ready()` true and the closure certificate
+matching, both F4 bodies at their pinned md5 with `anon`, `authenticated` and `service_role` in each ACL,
+both F2 bodies at their pinned md5, the export catalog at 51 keys with the four old `testAllocations`
+fields, and zero retention policy sets.
+
+| | `pkg023g` (F4) | `pkg023h` (F2) |
+| --- | --- | --- |
+| ledger row | `20260919170238 dev_alpha_pkg023g_ai_test_service_least_privilege` | `20260919170413 dev_alpha_pkg023h_export_settlement_truthful` |
+| recorded text | 6 051 characters, sha256 `e763611138a47b91db8e8cd02935c080641ba4a35341eef40a0d6361c241e916` | 8 562 characters, sha256 `eae4f340d63320c1f9187530a9674599f1f6553188b45e292d31b41925a7f169` |
+| byte-identical to the candidate file | yes | yes |
+| what moved | both ACLs are now `{postgres=X/postgres,service_role=X/postgres}` | the catalog's `testAllocations` fields are the seven; the projection identity moved from `205479f7…` to `62021c68…` |
+| what did not | both bodies, their `SECURITY DEFINER` envelope and `search_path`; the closure source digest | every other function, the closure source digest `9205c7df…`, `retention_ai_source_ready()` still true |
+
+**F4, proven on DEV in a rolled-back transaction:** as `anon`, both functions now answer
+`42501 permission denied for function`; as `authenticated`, the same; the canonical caller reaches the body
+and gets the body's own answer (`AI_RELEASE_ALREADY_SETTLED`, `AI_AUDIO_SETTLE_NOT_STT`). Before the
+candidate the same two roles reached the body and were stopped by its guard, which is why nothing that
+works today could break.
+
+**F2, proven on DEV by asking the projection itself** for the account that holds the measured rows, through
+a synthetic binding: **117 allocation rows, 77 of which now say `measuredProviderCharge: true`, and those
+are exactly the 77 whose `settlementBasis` is `MEASURED`** — the flag agrees with the basis on every single
+row. The bases carried are `MEASURED`, `AUDIO_DURATION_AT_PUBLISHED_RATE`, `FAILED_NO_USAGE` and null for a
+hold that was never settled. One real row, as a person would now receive it:
+
+```json
+{"kind": "LLM", "allocatedMaximumMicrousd": 250000, "settledMicrousd": 1527,
+ "settlementBasis": "MEASURED", "measuredProviderCharge": true,
+ "settledAt": "2026-09-17T11:29:19Z", "createdAt": "2026-09-17T09:04:54Z"}
+```
+
+Before this, all 117 of those rows claimed that nothing had ever been measured.
+
+**Still not exported, and still the owner's decision:** the measured token counts of
+`private.ai_test_usage_v5`, the measured audio byte and transcript character counts, and anything from the
+lineage tables. The recommendation of 2026-09-19 is to leave all three out until the production retention
+policy and privacy document are written, because that is where the field list is authored anyway.
