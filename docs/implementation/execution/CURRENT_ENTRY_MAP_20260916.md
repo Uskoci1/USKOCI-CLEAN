@@ -214,18 +214,23 @@ Agreement carries the whole amount — and **not implemented**: the installed AP
 amount as if it were the task's price and would write a wrong Agreement, so the plan's section 8 has the
 compatibility design that must come first.
 
-**Read before any schema change on canonical DEV:** `private.closure_source_digest_v5()` has not
-matched its certified value, and `private.retention_ai_source_ready()` has been false, since the
-`dev_alpha` migrations of 2026-09-17 changed tables without re-binding it; until it is re-certified **no
-account closure can start on DEV**. The drift was forensically reviewed on 2026-09-19:
-`docs/implementation/v5-ai-first/pkg023/CLOSURE_FORENSIC_REVIEW_20260919.md`. The reviewed additions are
-proven to be the only change the digest can see, and
-`supabase/candidates/pkg023f_closure_recertification.sql` re-binds only if it can prove that again inside
-its own transaction. **It is applied nowhere; the owner reviews it first.** Function-only and plain-index
-candidates do not move the digest. Anything that adds a column, a constraint or a trigger function does,
-and must wait for that re-certification; `pkg023c` refuses to run on DEV for exactly this reason. The exact
-text of every `dev_alpha` ledger row, four of which were in no file, is now in
-`supabase/operations/dev-alpha/ledger/`.
+**The closure source digest on canonical DEV was forensically reviewed and re-certified on 2026-09-19**
+(`docs/implementation/v5-ai-first/pkg023/CLOSURE_FORENSIC_REVIEW_20260919.md`). It had not matched its
+certified value since the `dev_alpha` migrations of 2026-09-17 changed tables without re-binding, so no
+account closure could start. `dev_alpha_pkg023f_closure_recertification` (ledger `20260919164420`, 161 rows)
+proved that the reviewed additions were the only change the digest could see, put the two PKG-015 lineage
+relations into the erasure program — **an operator's free text about a person no longer survives an account
+closure; the class, the revision and the timestamps do** — catalogued the three account-linked tables as
+`AUDIT_SECURITY_LOGS`, and re-bound the certificate. `retention_ai_source_ready()` is true again.
+
+Any later change that adds a table, a column, a constraint or a trigger function, or touches the erasure
+program, moves the digest again and must re-bind it the same way, from a predecessor it proves is ready.
+Function-only and plain-index candidates do not. **`pkg023c` stays on HOLD and must be regenerated before it
+can be applied**: it pins the md5 of `private.closure_redaction_patch_v5`, which `pkg023f` changed. The exact
+text of every `dev_alpha` ledger row, four of which were in no file, is in
+`supabase/operations/dev-alpha/ledger/`. Two further candidates are written, proven and **applied nowhere**:
+`pkg023g` (least privilege for two AI-test service functions) and `pkg023h` (the data export stops claiming
+that no charge was ever measured) — `F2_F4_CANDIDATES_20260919.md`.
 
 Edge, 2026-09-19: `uskoci-ai-interview` is **v41** (the provider-failure log carries a class from a
 closed list, never thrown text). Three of its four files are byte-identical to `130028de`; line 34 of

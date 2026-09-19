@@ -86,8 +86,10 @@ changed by one byte.
   migrations from the exact ledger text on a source-147 database. It used to need one substitution — the
   predecessor md5 `pkg019` pins — and reported it. It now asserts **`substitutions` is empty**: every pinned
   predecessor md5 in every ledger text is the md5 the replay actually has. It also asserts that after
-  `pkg019` the replayed function is `187aa3a262ce940f39ae7faba720963e`, which is the body canonical DEV
+  `pkg019` the replayed function is `734ca70188a3cab8cef2f8b38bcd8ca6` as its definition md5 (prosrc `187aa3a262ce940f39ae7faba720963e`), which is what canonical DEV
   carries today.
 - PRE-P4 integrity runs the whole pre_v3 proof chain over the repaired inventory.
 
-CI result: RESULT_PLACEHOLDER
+CI result: **PKG-023f run 35455415211 on `3dbbff3b`, 11 of 11 green, `predecessorPinsThatDifferInTheReplay`
+is `[]`** — no pin had to be substituted, which is the proof asked for. **PRE-P4 integrity green on the same
+commit** (run 35455419735), so the whole pre_v3 chain accepts the repaired inventory.

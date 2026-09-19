@@ -435,13 +435,17 @@ The candidates had been re-proven self-verifying on a disposable database in run
   SECURITY DEFINER function" list with the other 152 — intended, they are own-row readers. Nothing new for
   `anon`. The four `anon` entries that exist are older (F4 of the forensic review).
 
-## 15. The closure source digest — reviewed, NOT re-certified
+## 15. The closure source digest — reviewed, and re-certified on 2026-09-19
 
-`CLOSURE_FORENSIC_REVIEW_20260919.md` is the review. In one paragraph: the exact text of `pkg015b`, `pkg019c`
-and `pkg019d` (and of every other `dev_alpha` row) was reconstructed from the ledger and is in the repository;
-source 147 plus those texts reproduces the whole canonical DEV surface, with nothing unledgered; a read-only
-query on DEV shows that the digest **without** the reviewed additions is exactly the certified value
-(`68ae9916…`), so they are the only change the digest can see; every other readiness condition is true; the
-additions hold no user-authored content. `supabase/candidates/pkg023f_closure_recertification.sql` re-binds
-only if it can prove all of that again inside its own transaction. **It waits for the owner. Until it is
-applied, `pkg023c` and any price basis stay on HOLD, and no account closure can start on DEV.**
+`CLOSURE_FORENSIC_REVIEW_20260919.md` is the review; its section 10 is the receipt. In one paragraph: the
+exact text of every `dev_alpha` row was reconstructed from the ledger and is in the repository; source 147
+plus those texts reproduces the whole canonical DEV surface, with nothing unledgered; a read-only query
+showed that the digest **without** the reviewed additions was exactly the certified value, so they were the
+only change the digest could see; the additions hold no user-authored content, but two of them hold what an
+operator wrote *about* a person, and on the owner's condition that free text no longer survives a closure.
+`pkg023f` was applied on 2026-09-19 (ledger `20260919164420`), byte-identical to its candidate: it put the
+two lineage relations into the erasure program, catalogued the three tables, and re-bound the certificate.
+`retention_ai_source_ready()` is true again and an account can be closed on DEV.
+
+**`pkg023c` still needs its own approval, and must first be regenerated**: it pins the md5 of
+`private.closure_redaction_patch_v5`, which `pkg023f` changed.

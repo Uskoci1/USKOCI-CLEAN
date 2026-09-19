@@ -185,21 +185,25 @@ It changes no table, column, constraint, trigger, policy, grant or other functio
 untouched.
 
 **Proof on a disposable database** — `.github/workflows/pkg023f-closure-recertification-proof.yml`,
-`supabase/proofs/pkg023f_closure_recert/pkg023f_closure_recert_proof.mjs`: **run 35450504406 on `d58d4e3a`, every step green, 8 of 8 checks.**
+`supabase/proofs/pkg023f_closure_recert/pkg023f_closure_recert_proof.mjs`: **run 35455415211 on `3dbbff3b`,
+11 of 11 checks green**, with PRE-P4 integrity green on the same commit (run 35455419735).
 
 | Check | What it showed |
 | --- | --- |
-| source 147 | certified and ready; its readiness function is DEV's, constant aside (masked md5 `397094d2…`) |
-| replay | all 13 ledger texts match the manifest's sha256; the eight schema-bearing `dev_alpha` texts ran from the ledger text, then `pkg023` a, b, d. **One** pinned predecessor md5 had to be substituted, and is reported: `pkg019` pins `f4a758af…`, the replay has `11bd51c6…` (F7). `pkg019b` and `pkg019c` refuse a database that is not in DEV's state, so disposable rows reproduce it (twenty worst-case holds with one measured usage; two stale failed speech holds) |
-| the whole surface | replay 3188 objects, canonical DEV 3188 objects, **none only in the replay, none only on DEV** (the two environmental functions of §4 aside) |
-| the drift | not ready, no erasure binding, the three certified places still hold the old value; the read-only reconstruction gives control = live and reconstructed = certified; an account cannot start a closure (`ready: false`, `CLOSURE_POLICY_NOT_READY`) |
-| refusals — each change made, refused, undone, and the certificate never moved | an unreviewed table, an unreviewed column on `needs`, RLS switched off on another table, a disabled trigger → `PKG023F_UNREVIEWED_CHANGE`; a column added to a reviewed table, the append-only trigger disabled → `PKG023F_REVIEWED_ADDITIONS_CHANGED_SHAPE`; a reviewed table granted to an API role → `PKG023F_REVIEWED_ADDITIONS_ARE_REACHABLE_BY_AN_API_ROLE`; the two certified tables disagreeing → `PKG023F_CERTIFIED_VALUES_DISAGREE` |
-| certification | ready, erasure binding present, the live digest in all three places and unchanged by the candidate; the surface differs in exactly one line, `private.retention_ai_source_ready()`; the catalog differs in exactly one row, `AUDIT_SECURITY_LOGS` plus the three tables; no account-linked table is outside the catalog |
-| a closure afterwards, end to end, through the real closure worker | an account with a lineage row and its history row, a measured usage row and a settled reservation: review `ready`, start, relational erasure verified, auth identity erased with the subject retained, `CLOSED`, no exception. The account's name and e-mail are empty, its test admission is retired, and **the four reviewed rows are exactly as they were** — which is what §6 says stays. The ON DELETE CASCADE did not fire and the append-only trigger was never asked to delete (F3) |
+| source 147 | certified and ready; its readiness function is DEV's, constant aside |
+| replay | all 13 ledger texts match the manifest's sha256; the eight schema-bearing `dev_alpha` texts ran from the exact ledger text and, since the F7 repair, **no predecessor pin had to be substituted at all**; then `pkg023` a, b, d |
+| the whole surface | replay 3188 objects, canonical DEV 3188 objects, none only in the replay, none only on DEV |
+| the drift | not ready, no erasure binding, the three certified places still hold the old value; the read-only reconstruction gives control = live and reconstructed = certified; an account cannot start a closure |
+| refusals — each change made, refused, undone, certificate never moved | an unreviewed table, an unreviewed column on `needs`, RLS switched off elsewhere, a disabled trigger → `PKG023F_UNREVIEWED_CHANGE`; a column added to a reviewed table, the append-only trigger disabled → `PKG023F_REVIEWED_ADDITIONS_CHANGED_SHAPE`; a reviewed table granted to an API role → `PKG023F_REVIEWED_ADDITIONS_ARE_REACHABLE_BY_AN_API_ROLE`; the two certified tables disagreeing → `PKG023F_CERTIFIED_VALUES_DISAGREE` |
+| certification | ready, erasure binding present, the digest in all three places; the surface differs in exactly the five function bodies and the catalog in exactly one row; no account-linked table is outside the catalog |
+| a closure afterwards, end to end, through the real closure worker | an account with a lineage row, its history row, a measured usage row and a settled reservation: review ready, start, relational erasure verified, auth identity erased with the subject retained, `CLOSED`, no exception. **The operator's free text is gone** — not one character of it survives in either table — while the class, the revision, the history's from/to, the timestamps and the metering rows are exactly as they were |
+| the history afterwards | an ordinary UPDATE, a DELETE and a class rewrite are all refused with `ACCOUNT_LINEAGE_HISTORY_IMMUTABLE` |
 | once only, guard still live | a second application → `PKG023F_NOTHING_TO_RECERTIFY`; afterwards a new table, or a new column even on a reviewed table, makes the source not ready again |
+| F4 (`pkg023g`) | anon and authenticated reach the body before and are denied at the door after; the service caller still works |
+| F2 (`pkg023h`) | 22 exported allocation rows; before, every one claims nothing was measured; after, exactly the one `MEASURED` row says so, and the bases carried are `MEASURED`, `CONSERVATIVE_ESTIMATE_UNMEASURED`, `FAILED_NO_USAGE` |
 
-The numbers differ from DEV's (`67fcd275…` live, `e9da220b…` certified there) because the digest is
-OID-dependent; the candidate and the reconstruction hard-code none.
+The digest values differ from DEV's because the digest is OID-dependent; the candidate and the
+reconstruction hard-code none.
 
 ## 9. Decided
 
@@ -221,3 +225,55 @@ After the re-certification: `pkg023c` stops refusing DEV — it still needs its 
 old task, and it must first be regenerated, because it pins the md5 of `closure_redaction_patch_v5`, which
 `pkg023f` changes. The price basis comes after that, and only as section 8 of the plan describes, with the
 old-APK compatibility design first.
+
+## 10. Receipt — `pkg023f` on canonical DEV, 2026-09-19
+
+Gates first: the proof 11/11 and PRE-P4 integrity green on `3dbbff3b`, then a read-only preflight in which
+every value was what the candidate was written against — ledger 160, live digest `ac50680b…`, the certified
+`68ae9916…` in all three places, ready false, binding null, zero closure executions, the four bodies at
+their pinned md5, the reviewed additions at shape `00715283…`, 71 redaction relations with neither lineage
+table among them.
+
+| | |
+| --- | --- |
+| ledger row | `20260919164420 dev_alpha_pkg023f_closure_recertification`, ledger 161 |
+| recorded text | 25 971 characters, sha256 `8f56a1d5ff01f77814287a2f5a2db65bb492eb825e35dcb4247b46cebfac8f6f` — **byte-identical to the candidate file** |
+| the digest now | `9205c7dfa7c537a64bb848d62251c62b58e6c021d2e28f93691c5d54582012d5`, and the same value in `closure_source_v5`, `closure_erasure_source_v5` and the constant inside `retention_ai_source_ready()` |
+| readiness | `private.retention_ai_source_ready()` = **true**; `closure_erasure_binding_v5()` present, adapter `OWNER_AF_D22_EVENT_ERASURE_V1`, its `sourceSha256` equal to the digest |
+| the erasure program | 71 → **73** redaction relations, the two new ones being `private.account_lineage_v5` and `private.account_lineage_events_v5`, each scoped `t.account_id=$1`; `private.ai_test_usage_v5` deliberately not among them |
+| the catalog | `AUDIT_SECURITY_LOGS` now carries the three tables beside `ai_test_accounts_v5` and `ai_test_reservations_v5`; no account-linked table is outside the catalog |
+| everything else | the surface is still 3188 objects and **the md5 of every object except those five function bodies is unchanged** (`1a8ccb55561d4f75d493d2ecb7bc1b60`, computed before and after). No table, column, constraint, policy, grant or index moved, and the five kept their definer flag, volatility, `search_path` and ACL |
+| data | untouched: 5 lineage rows, 5 history rows, none carrying an erased code, because no closure has run |
+
+**The closure, end to end, in a transaction that was rolled back.** A synthetic subject was created inside
+the transaction (a fresh `auth.users` row and a session; the bootstrap trigger made its account and two
+profiles), an operator's note was written about it through the real service RPC, and then the real closure
+RPCs ran as that person and as the service role:
+
+| Step | Result |
+| --- | --- |
+| review | `ready=true`, no blockers, adapter `OWNER_AF_D22_EVENT_ERASURE_V1` — which was impossible on this database an hour earlier |
+| start | `EXECUTING`, actions `RELATIONAL_REDACT` and `AUTH_IDENTITY_ERASE` |
+| relational erasure | `VERIFIED`, **73 of 73 steps** |
+| the operator's note | `reason=CLOSURE_ERASED_OPERATOR_NOTE`, `source_ref=CLOSURE_ERASED_SOURCE_REF`, in the row and in the history; **zero** occurrences of the note's text survive in either table |
+| what stays | class `SYNTHETIC_ACCEPTANCE_FIXTURE`, revision 1, `admitted_at`, and the history's `(none)->SYNTHETIC_ACCEPTANCE_FIXTURE rev 1` |
+| the person's own content | `app_accounts` email, full name and city empty; both profiles `CLOSED` |
+| everyone else | 0 of the 5 real lineage rows touched |
+| the auth identity | `AUTH_IDENTITY_ERASE` stayed `PENDING`: only the Edge worker can run it, which is why the true end-to-end closure, up to `CLOSED`, is proven in CI with real Auth, Storage and the worker |
+
+Then the transaction was rolled back. Verified afterwards on DEV: no synthetic user, zero closure
+executions, zero closure requests, 5 accounts, 5 lineage rows, none erased — and the certificate still
+reads ready with the digest matching.
+
+**The guard is as live as it was.** Each of these was made in its own subtransaction and undone:
+
+| Change | `retention_ai_source_ready()` | closure binding |
+| --- | --- | --- |
+| nothing (control) | true | present |
+| a new private table | **false** | null |
+| a new column on a reviewed table | **false** | null |
+| the erasure program tampered with | **false** | null |
+| an ordinary UPDATE of the history outside a closure | refused, `ACCOUNT_LINEAGE_HISTORY_IMMUTABLE`; the history stayed as it was | — |
+
+`pkg023c` must now be regenerated before it can be applied: it pins the md5 of
+`private.closure_redaction_patch_v5`, which this changed. That is its preflight working.
