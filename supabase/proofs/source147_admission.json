@@ -6,7 +6,7 @@
   "source_migration_count": 147,
   "historical_boundary_count": 108,
   "historical_last_file": "20260910214845_clean_dispatch_need_lock_order.sql",
-  "inventory_sha256": "e768cd57fc5d5fb72fb1cbfcb07fa31886d7960bd828d77e1c9ba78df6968be9",
+  "inventory_sha256": "d2b058a6d58b715e98c295659b49b41de5770415e7e59b2835814f3128c593ae",
   "successors_after_108": [
     {
       "version": "20260911174500",

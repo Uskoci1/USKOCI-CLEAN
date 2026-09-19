@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 
 const LAST = '20260910214845_clean_dispatch_need_lock_order.sql';
-const INVENTORY_SHA256 = '5e8b987de52bf700937cc536f063eca105398bd4c98e86dc4de6cae20f400130';
+const INVENTORY_SHA256 = 'db1b81dcc0fae685a9840924271df9729d27b9d51fc282f06d66671130355b47';
 
 export function historicalSource108Fixture(run) {
   const root = mkdtempSync(join(tmpdir(), 'uskoci-frozen108-'));

@@ -2,8 +2,8 @@
 //
 // It reproduces, on a source-147 database, what happened to canonical DEV on 2026-09-17, from the exact
 // text the DEV ledger recorded, and then proves what the re-certification candidate does and refuses:
-//   R  the dev_alpha migrations are replayed from the ledger text (sha256 against the ledger manifest); a pinned
-//      predecessor md5 that the replay cannot have is substituted, and every substitution is reported
+//   R  the dev_alpha migrations are replayed from the exact ledger text (sha256 against the ledger manifest),
+//      every pinned predecessor md5 matching what the replay has - the substitution below must stay empty
 //   S1 the drift: the source is no longer ready, an account closure cannot start, and the read-only
 //      reconstruction shows the reviewed additions are the only difference
 //   S2 the candidate refuses every state that was not reviewed, and leaves nothing behind
@@ -30,9 +30,10 @@ const psql=(args,label)=>{try{return execFileSync('psql',[env.RU5_DEVICE_DB_URL,
 // The ledger texts carry no transaction of their own (the tool that applied them wrapped each in one), and
 // several rely on ON COMMIT DROP tables and SET LOCAL, so each runs in a single transaction, as it did on DEV.
 // Several ledger texts refuse to run unless a predecessor function has the md5(pg_get_functiondef) it had on
-// canonical DEV. Where the replay's predecessor has another md5, the text cannot run byte for byte: the pin, and
-// nothing else, is replaced by the replay's own value, and the substitution is reported. Whether the END state
-// is canonical DEV's is proven separately, by comparing the whole surface.
+// canonical DEV. Since the mojibake in the 2026-08-25 source file was repaired, a source-147 replay has exactly
+// those bodies and no pin has to be touched. The mechanism stays as the detector: if a replay's predecessor ever
+// differs again, the pin - and nothing else - is replaced by the replay's own value and the difference is
+// reported, never hidden. The assertion below requires the list to be empty.
 const PINS={
  '20260917104027_dev_alpha_pkg019_profile_bootstrap_truthful.sql':[['f4a758af24314b204978eef26fa13929','public.handle_uskoci_auth_user_created()']],
  '20260917112919_dev_alpha_pkg019b_ai_test_reservation_settlement.sql':[['0cee88305ac38bc78f2c341583aa5d0e','public.rpc_ai_test_record_usage_service(uuid,text,integer,integer,integer)'],
@@ -117,12 +118,14 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
  replay('20260917181212_dev_alpha_pkg015b_gap0042_world_boundary.sql');
  replay('20260917230145_dev_alpha_pkg021_need_timestamp_fact_iso8601.sql');
  for(const c of ['pkg023a_own_reads_paged','pkg023b_task_relations','pkg023d_marketplace_bounded'])psql(['-f',`supabase/candidates/${c}.sql`],'PKG023F_PKG023_REPLAY_FAILED '+c);
- // The one expected difference: the repository's file for the 2026-08-25 bootstrap trigger function is a
- // reconstruction whose Serbian letters are mis-encoded, so the replay's predecessor of pkg019 is not byte for
- // byte the function canonical DEV had. pkg019 replaces that function whole, so the end state is the same.
+ // No pin may differ any more. The 2026-08-25 file now carries the canonical UTF-8 text that canonical DEV
+ // actually ran, proven by the two md5 values in docs/.../F7_SOURCE_REPAIR_20260919.md, so the replay's
+ // predecessor of pkg019 is byte for byte the function pkg019 was written against.
  report.predecessorPinsThatDifferInTheReplay=substitutions;
- assert.deepEqual(substitutions.map(s=>s.predecessor),['public.handle_uskoci_auth_user_created()'],'PKG023F_UNEXPECTED_PREDECESSOR_DIFFERENCE '+JSON.stringify(substitutions));
- pass(report,'EIGHT_DEV_ALPHA_MIGRATIONS_REPLAYED_FROM_THE_LEDGER_TEXT_ONE_PREDECESSOR_PIN_SUBSTITUTED_AND_REPORTED_THEN_PKG023_A_B_D');
+ assert.deepEqual(substitutions,[],'PKG023F_PREDECESSOR_PIN_STILL_DIFFERS '+JSON.stringify(substitutions));
+ assert.equal(sql("select md5(pg_get_functiondef('public.handle_uskoci_auth_user_created()'::regprocedure))"),'187aa3a262ce940f39ae7faba720963e',
+  'after pkg019 the replayed bootstrap function is the one canonical DEV has');
+ pass(report,'EIGHT_DEV_ALPHA_MIGRATIONS_REPLAYED_FROM_THE_EXACT_LEDGER_TEXT_EVERY_PREDECESSOR_PIN_MATCHING_THEN_PKG023_A_B_D');
 
  // The replayed database has the surface canonical DEV has: same objects, same bodies, same grants.
  const replayed=surface(),dev=readFileSync('supabase/proofs/pkg023f_closure_recert/evidence/dev_surface_20260919_after_pkg023abd.txt','utf8').split('\n').filter(Boolean);
