@@ -8,11 +8,12 @@ import { hasNeedAttention } from './marketplaceView';
  * the same account's own tasks, its applications to other people's, and its Dogovori on either
  * side stand next to each other, and each row says what the person is to that thing.
  *
- * There is no server aggregate behind this. `rpc_list_my_applications` and
- * `rpc_list_my_agreements` take no limit or cursor, so every bound here is a bound on what is
- * shown, not on what is fetched; the list of Dogovori carries no start instant, so "next" cannot
- * be ordered by time, and no `actionState`, so a pending change proposal cannot be raised here.
- * Those are READ_CONTRACT items for the third slice, recorded in the V3 decision record.
+ * There is no server aggregate behind this. `rpc_list_my_applications` takes no limit or cursor, so
+ * every bound here is a bound on what is shown, not on what is fetched. Since PKG-023a the Dogovori do
+ * carry the start of the work, so "next" is ordered by time; a pending change proposal is raised on the
+ * Dogovori list itself, where the person acts on it. What is still missing is a server aggregate for
+ * "what needs me": this scans every application and Dogovor, which is why the reads behind it cannot be
+ * a first page. That one remains a READ_CONTRACT item, recorded in the V3 decision record.
  */
 export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable' };
 export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>; applications: HomeSection<MojaPrijavaProjekcija[]>;
@@ -100,7 +101,18 @@ export function composeHome(reads: HomeReads): HomeSnapshot {
       target: { kind: 'CANDIDATES' as const, needId: row.id } })),
   ];
 
-  const activeAgreements = (agreements ?? []).filter(activeAgreement).map(agreementRow);
+  // Since PKG-023a a Dogovor carries the start of the work, so the two the home shows are the two that
+  // come soonest; the ones with no term yet keep the order the server gave, behind them.
+  const activeAgreements = (agreements ?? []).filter(activeAgreement)
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => {
+      const left = a.row.pocinje, right = b.row.pocinje;
+      if (left && right && left !== right) return left < right ? -1 : 1;
+      if (left && !right) return -1;
+      if (!left && right) return 1;
+      return a.index - b.index;
+    })
+    .map(entry => agreementRow(entry.row));
   const activityRows = interleave((needs ?? []).filter(row => row.stanje !== 'ZATVORENA').map(needRow),
     (applications ?? []).filter(activeApplication).map(applicationRow));
   const preview = { rows: activityRows.slice(0, HOME_ACTIVITY_LIMIT), more: Math.max(0, activityRows.length - HOME_ACTIVITY_LIMIT) };

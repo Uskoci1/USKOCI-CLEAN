@@ -123,3 +123,19 @@ describe('Moje aktivnosti v1 — the things I am part of, filtered by what I am 
     expect(mixed).toEqual({ kind: 'partial', missing: ['needs'], value: [expect.objectContaining({ id: 'application:wait' }), expect.objectContaining({ id: 'application:won' })] });
   });
 });
+
+describe('what comes next (PKG-023a)', () => {
+  it('shows the two Dogovori that start soonest, and keeps the ones with no term behind them', () => {
+    const rows = [
+      agreement('later', 'narucilac', { pocinje: '2026-09-25T09:00:00Z' }),
+      agreement('undated', 'uskocer', { pocinje: null }),
+      agreement('soonest', 'uskocer', { pocinje: '2026-09-20T07:00:00Z' }),
+    ];
+    const home = composeHome({ needs: { kind: "known", value: [] }, applications: { kind: "known", value: [] },
+      agreements: { kind: 'known', value: rows } });
+    expect(home.agreements.kind).toBe('known');
+    if (home.agreements.kind !== 'known') return;
+    expect(home.agreements.value.rows.map(row => row.id)).toEqual(['agreement:soonest', 'agreement:later']);
+    expect(home.agreements.value.more).toBe(1);
+  });
+});
