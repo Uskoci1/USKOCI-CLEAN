@@ -72,9 +72,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
           request.current = { id: stored.clientRequestId, body: null };
       }
       // Opening the screen used to open a row: 38 of 62 conversations had no message in them, one
-      // for every time someone looked and left. Nothing exists until the first word (owner decision,
-      // 2026-09-18), so until then this is a local screen with nothing behind it. `conversationId`
-      // is empty, which is what every write on this screen already checks before it does anything.
+      // for every time someone looked and left. Merely viewing still creates nothing.
+      // The first send, or an explicit permitted speech gesture, opens the owned conversation.
       if (!conversation.current) return { ok: true, podatak: { conversation: BLANK, turn: null, recovery: null } };
       const id = conversation.current;
       const pending = request.current;
@@ -120,7 +119,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const isCurrent = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const canAct = () => isCurrent() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!stanje;
-  const navigate = (action: () => void) => { if (!isCurrent() || navigating.current) return; navigating.current = true; action(); };
+  const navigate = (action: () => void) => { if (!isCurrent() || navigating.current) return;
+    navigating.current = true; voice.controller.cancel('navigation'); action(); };
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'));
   const pending = request.current;
   const knownRetry = !!pending?.body && turn?.clientRequestId === pending.id && turn.retryAllowed;
@@ -181,11 +181,24 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     if (!next || next.length > 4000) return false;
     draftText.current = next; setUnos(next); return true;
   };
-  const voice = useHoldToTalk({ conversationId: writable ? razgovorId : null,
+  const voice = useHoldToTalk({
+    conversationId: () => writable && !navigating.current ? conversation.current ?? '' : null,
+    prepareConversation: async ({ signal, isCurrent: speechCurrent }) => {
+      if (!canAct() || !canSubmit || request.current || signal.aborted || !speechCurrent()) return null;
+      if (conversation.current) return null; // Existing conversations bypass preparation.
+      // Reuse the first-send key. Preparation has no AI turn, draft journal or provider call.
+      const opened = await aiNeedV2Izvor.openConversation(openRequestId);
+      if (!isCurrent() || navigating.current || signal.aborted || !speechCurrent() || !opened.ok) return null;
+      return { conversationId: opened.podatak.conversationId, adopt: () => {
+        if (!isCurrent() || navigating.current || signal.aborted || !speechCurrent()) return false;
+        conversation.current = opened.podatak.conversationId;
+        return true;
+      } };
+    },
     onTranscript: input => input.isCurrent() && keepTranscript(input.text) });
   const voiceBusy = voice.state.phase !== 'IDLE';
   const posalji = async () => {
-    if (voiceBusy) return;
+    if (voice.controller.getSnapshot().phase !== 'IDLE') return;
     await submitTurn(request.current?.body ?? unos.trim());
   };
   const noviZadatak = () => {
@@ -194,7 +207,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     // fresh owned opener; it does not delete or reopen the terminal conversation.
     navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }));
   };
-  const osvezi = () => { if (!isCurrent() || navigating.current || radi || editor.loading) return; void editor.refresh(); };
+  const osvezi = () => { if (!isCurrent() || navigating.current || radi || editor.loading) return;
+    voice.controller.cancel('navigation'); void editor.refresh(); };
   const napusti = () => {
     if (!canAct() || !razgovorId || stanje?.status !== 'OPEN' || stanje.review.boundNeedId) return;
     const submit = () => {

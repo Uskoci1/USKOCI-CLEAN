@@ -44,9 +44,11 @@ export function createAgreementMessageService(rpc: Rpc): AgreementMessagePort {
           p_client_message_id: command.clientMessageId, p_body: command.body,
           ...(command.photos ? { p_expected_version: command.photos.agreementVersion, p_asset_ids: [...command.photos.assetIds] } : {}),
         });
-        response = command.photos ? await Promise.race([Promise.resolve(request), new Promise<never>((_, reject) => {
+        // A missing receipt is an unknown outcome for either kind of message.
+        // The outbox keeps the captured intent for readback or an idempotent retry.
+        response = await Promise.race([Promise.resolve(request), new Promise<never>((_, reject) => {
           timer = setTimeout(() => reject(new Error('MESSAGE_RECEIPT_TIMEOUT')), 15000);
-        })]) : await request;
+        })]);
       } catch { return fail('UNAVAILABLE'); }
       finally { if (timer !== undefined) clearTimeout(timer); }
       if (!object(response)) return fail('INVALID_RESPONSE');

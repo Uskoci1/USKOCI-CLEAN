@@ -11,6 +11,18 @@ let mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accoun
 let mockParams: { conversationId?: string | string[]; entryKey?: string | string[] } = {}, mockCounter = 0;
 let mockReduced = false;
 let mockVoicePhase: VoicePhase = 'IDLE';
+let mockRealVoice = false;
+let mockAppState = 'active';
+const mockAppListeners = new Set<(state: string) => void>();
+const mockPermission = jest.fn(), mockCapture = {
+  start: jest.fn(), stopCapture: jest.fn(), finalize: jest.fn(), dispose: jest.fn(),
+};
+const mockCreateCapture = jest.fn();
+jest.mock('../../features/voice/nativeSpeechAdapter', () => ({
+  createNativeSpeechAdapter: () => ({ requestPermission: (...args: unknown[]) => mockPermission(...args),
+    createCapture: (...args: unknown[]) => mockCreateCapture(...args) }),
+}));
+jest.mock('../supabaseClient', () => ({ supabaseKonfigurisan: () => false }));
 const mockVoiceCancel = jest.fn(), mockVoiceOptions = jest.fn();
 const mockCancel = jest.fn(), mockRecover = jest.fn();
 const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn(), mockAlert = jest.fn();
@@ -24,11 +36,16 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSad
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => `aaaaaaaa-aaaa-4aaa-8aaa-${String(++mockCounter).padStart(12, '0')}` }));
 jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options: unknown) => {
-  mockVoiceOptions(options); return { controller: { cancel: mockVoiceCancel },
+  mockVoiceOptions(options);
+  if (mockRealVoice) return jest.requireActual('../../features/voice/useHoldToTalk').useHoldToTalk(options);
+  return { controller: { cancel: mockVoiceCancel, getSnapshot: () => ({ phase: mockVoicePhase }) },
     state: { phase: mockVoicePhase } }; } }));
 jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'Alert') return { alert: (...args: unknown[]) => mockAlert(...args) };
+  if (key === 'AppState') return { currentState: mockAppState, addEventListener: (_name: string, listener: (state: string) => void) => {
+    mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
+  } };
   if (key === 'Keyboard') return { dismiss: jest.fn(), addListener: jest.fn(() => ({ remove: jest.fn() })) };
   if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 1, fontScale: 1 });
   return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
@@ -99,6 +116,11 @@ beforeEach(async () => {
   mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockParams = {}; mockCounter = 0;
   mockReduced = false;
   mockVoicePhase = 'IDLE';
+  mockRealVoice = false; mockAppState = 'active'; mockAppListeners.clear();
+  mockPermission.mockReset().mockResolvedValue('granted');
+  mockCreateCapture.mockReset().mockReturnValue(mockCapture);
+  mockCapture.start.mockReset().mockResolvedValue(undefined);
+  mockCapture.finalize.mockReset().mockResolvedValue({ kind: 'final', text: 'Treba prevesti ormar.' });
   mockRouter.canGoBack.mockReturnValue(true); mockOpen.mockImplementation((requestId: string) => Promise.resolve(ok({ conversationId: id, clientRequestId: requestId })));
   mockLoad.mockResolvedValue(conversation()); mockSend.mockResolvedValue(unknown());
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'ABSENT', true)));
@@ -110,6 +132,86 @@ beforeEach(async () => {
   mockAbandon.mockResolvedValue(ok({ conversationId: id, status: 'ABANDONED', authoritative: true }));
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+const voiceController = () => tree.root.findByType('VoiceComposer' as React.ElementType).props.controller;
+it('starts the first speech gesture through the real hook/controller; only edited Send dispatches AI', async () => {
+  mockRealVoice = true; await render();
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockPermission).not.toHaveBeenCalled();
+  const controller = voiceController();
+  await act(async () => { expect(controller.begin('first-speech', 'accessible')).toBe(true); });
+  expect(controller.getSnapshot().phase).toBe('LISTENING');
+  expect(mockPermission.mock.invocationCallOrder[0]).toBeLessThan(mockOpen.mock.invocationCallOrder[0]);
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  expect(mockCreateCapture.mock.calls[0][0].session).toMatchObject({ conversationId: id, accountRevision: 1,
+    accountId: mockSession.user.id });
+  expect(mockSend).not.toHaveBeenCalled(); expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  await act(async () => controller.release('first-speech'));
+  expect(input().value).toBe('Treba prevesti ormar.');
+  expect(mockSend).not.toHaveBeenCalled();
+  await type('Treba prevesti ormar u petak.'); await act(async () => submit().onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  expect(mockSend.mock.calls[0].slice(0, 2)).toEqual([id, 'Treba prevesti ormar u petak.']);
+});
+it('denied microphone permission does not open a conversation or start a provider', async () => {
+  mockRealVoice = true; mockPermission.mockResolvedValue('denied'); await render();
+  await act(async () => { voiceController().begin('denied'); });
+  expect(voiceController().getSnapshot()).toMatchObject({ phase: 'IDLE', error: 'MIC_PERMISSION_DENIED' });
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockCreateCapture).not.toHaveBeenCalled();
+});
+it('preparation failure keeps the draft and same open key for an explicit retry', async () => {
+  mockRealVoice = true; mockOpen.mockResolvedValueOnce(unknown()); await render();
+  const controller = voiceController(); await type('Već ukucano.');
+  await act(async () => { controller.begin('failed-open'); });
+  expect(controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: 'VOICE_PREPARATION_FAILED' });
+  expect(input().value).toBe('Već ukucano.');
+  expect(mockCreateCapture).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  await act(async () => { controller.begin('retry-open'); });
+  expect(mockOpen.mock.calls[1]).toEqual(mockOpen.mock.calls[0]);
+  expect(controller.getSnapshot().phase).toBe('LISTENING');
+});
+it('a pending preparation rejects duplicate gestures and a retained Send handler', async () => {
+  mockRealVoice = true; const opened = deferred(); mockOpen.mockReturnValueOnce(opened.promise); await render();
+  const controller = voiceController(); await type(); const send = submit().onPress;
+  await act(async () => { controller.begin('first'); });
+  await act(async () => { expect(controller.begin('duplicate')).toBe(false); void send(); });
+  expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).not.toHaveBeenCalled();
+  await act(async () => controller.release('first'));
+  await act(async () => opened.resolve(ok({ conversationId: id, clientRequestId: mockOpen.mock.calls[0][0] })));
+  expect(mockCreateCapture).not.toHaveBeenCalled(); expect(input().value).toBe('Treba preneti ormar sutra.');
+});
+it.each(['release', 'blur-refocus', 'account-ABA', 'background', 'back'] as const)(
+  'a late first-speech opener after %s never starts capture', async reason => {
+    mockRealVoice = true; const opened = deferred(); mockOpen.mockReturnValueOnce(opened.promise); await render();
+    const controller = voiceController();
+    await act(async () => { controller.begin('old-gesture'); });
+    expect(controller.getSnapshot().phase).toBe('PREPARING');
+    const key = mockOpen.mock.calls[0][0];
+    if (reason === 'release') await act(async () => controller.release('old-gesture'));
+    if (reason === 'blur-refocus') { await blur(); await focus(); }
+    if (reason === 'account-ABA') { mockSession = { ...mockSession, accountRevision: 3 }; await update(); }
+    if (reason === 'background') await act(async () => { mockAppState = 'background'; mockAppListeners.forEach(listener => listener('background')); });
+    if (reason === 'back') await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
+    await act(async () => opened.resolve(ok({ conversationId: id, clientRequestId: key })));
+    expect(mockCreateCapture).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+    expect(controller.getSnapshot().phase).toBe('IDLE');
+    if (reason === 'release') {
+      await act(async () => { voiceController().begin('new-gesture'); });
+      expect(mockOpen.mock.calls[1][0]).toBe(key);
+      expect(voiceController().getSnapshot().phase).toBe('LISTENING');
+    }
+  });
+it('first-speech preparation has a deadline; a late response cannot restart it', async () => {
+  jest.useFakeTimers();
+  try {
+    mockRealVoice = true; const opened = deferred(); mockOpen.mockReturnValueOnce(opened.promise); await render();
+    const controller = voiceController();
+    await act(async () => { controller.begin('slow-open'); });
+    await act(async () => { await jest.advanceTimersByTimeAsync(30000); });
+    expect(controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: 'VOICE_PREPARATION_FAILED' });
+    await act(async () => opened.resolve(ok({ conversationId: id, clientRequestId: mockOpen.mock.calls[0][0] })));
+    expect(mockCreateCapture).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  } finally { jest.useRealTimers(); }
+});
 
 it('speech fills the visible editable draft; only explicit Send writes an AI intent with the edited text', async () => {
   await render(); await type('Već ukucano.');
@@ -272,9 +374,9 @@ it('explicit abandonment uses the actual authority and becomes closed only after
   await act(async () => mockAlert.mock.calls[0][2][1].onPress());
   expect(mockAbandon).toHaveBeenCalledWith(id); expect(text()).toContain('Razgovor je napušten.'); expect(input().editable).toBe(false);
 });
-it.each(['PERMISSION_PENDING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
+it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
   mockVoicePhase = phase; await resume();
-  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBe(id);
+  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId()).toBe(id);
   await options(); await act(async () => button('Napusti razgovor').onPress());
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   mockAbandon.mockImplementation(async () => {
@@ -282,7 +384,7 @@ it.each(['PERMISSION_PENDING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)(
     return ok({ conversationId: id, status: 'ABANDONED', authoritative: true });
   });
   await act(async () => mockAlert.mock.calls[0][2][1].onPress());
-  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBeNull();
+  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId()).toBeNull();
   expect(tree.root.findAllByType('VoiceComposer' as React.ElementType)).toHaveLength(0);
   expect(mockSend).not.toHaveBeenCalled();
 });
@@ -290,7 +392,7 @@ it.each(['COMPLETED', 'ABANDONED', 'BLOCK'])('does not retain a microphone scope
   await resume();
   mockLoad.mockResolvedValue(conversation(state === 'BLOCK' ? { safety: 'BLOCK' } : { status: state as 'COMPLETED' | 'ABANDONED' }));
   await blur(); await focus();
-  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId).toBeNull();
+  expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId()).toBeNull();
   expect(mockSend).not.toHaveBeenCalled();
 });
 it.each(['COMPLETED', 'ABANDONED'] as const)('keeps actual %s conversations read-only', async status => {

@@ -2,6 +2,8 @@ import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import type { Notification, NotificationHandler } from 'expo-notifications';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { pendingRoute } from '../../store/pendingRoute';
 import { PushRuntime } from '../../ui/notifications/PushRuntime';
 const mockPush = jest.fn(), mockCold = jest.fn(), mockClear = jest.fn(), mockSession = jest.fn(), mockRotate = jest.fn(), mockRevoke = jest.fn(), mockNative = jest.fn();
@@ -82,6 +84,16 @@ const notification = (content: Record<string, unknown> = {}) => ({ date: 1, requ
 const hidden = { shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false };
 const visible = { shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false };
 const present = (value: unknown = notification()) => mockHandler!.handleNotification(value as Notification);
+
+it.each(['android', 'ios'] as const)('presents the actual transport body on %s without relaxing payload privacy', async platform => {
+ jest.replaceProperty(Platform, 'OS', platform); await mount();
+ const transport = readFileSync(join(process.cwd(), 'supabase/functions/uskoci-push-transport/index.ts'), 'utf8');
+ const body = /title: 'USKOČI', body: '([^']+)'/.exec(transport)?.[1];
+ expect(body).toBeDefined();
+ expect(await present(notification({ body }))).toEqual(visible);
+ expect(await present(notification({ body, data: { kind: 'INBOX', privateText: 'not allowed' } }))).toEqual(hidden);
+ expect(await present(notification({ body: body + ' Private detail' }))).toEqual(hidden);
+});
 
 it.each(['android', 'ios'] as const)('foreground public copy is immediate local presentation only on %s; a later tap still opens Inbox once', async platform => {
  jest.replaceProperty(Platform, 'OS', platform); await mount();

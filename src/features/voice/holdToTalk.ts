@@ -17,7 +17,7 @@ export type VoiceErrorCode =
   | 'MIC_UNAVAILABLE' | 'CAPTURE_FAILED' | 'CAPTURE_TIMEOUT' | 'AUDIO_INTERRUPTED'
   | 'FINALIZATION_FAILED' | 'FINALIZATION_TIMEOUT' | 'FINAL_TRANSCRIPT_MISSING'
   | 'TRANSCRIPT_INVALID' | 'TRANSCRIPT_TOO_LONG' | 'AI_SPEAKING'
-  | 'DRAFT_NOT_ACCEPTED';
+  | 'DRAFT_NOT_ACCEPTED' | 'VOICE_PREPARATION_FAILED';
 
 export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   VOICE_NOT_CONFIGURED: 'Govorni unos još nije povezan. Možeš da nastaviš kucanjem.',
@@ -34,6 +34,7 @@ export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   TRANSCRIPT_TOO_LONG: 'Govorni unos prelazi 4.000 znakova. Sačuvan je prethodni deo; skrati ili podeli poruku.',
   AI_SPEAKING: 'Sačekaj da se čitanje odgovora završi pre govornog unosa.',
   DRAFT_NOT_ACCEPTED: 'Završni tekst je sačuvan. Otvori ga za izmenu pre slanja; ako je poruka puna, najpre je skrati.',
+  VOICE_PREPARATION_FAILED: 'Govorni unos nije pripremljen. Proveri vezu i pokušaj ponovo ili nastavi kucanjem.',
 };
 
 export type SpeechEvent =
@@ -71,7 +72,7 @@ export type VoiceTranscript = Readonly<{
 }>;
 
 export type VoiceCancelReason = 'gesture' | 'navigation' | 'background' | 'account' | 'interruption' | 'dispose';
-export type VoicePhase = 'IDLE' | 'PERMISSION_PENDING' | 'STARTING' | 'LISTENING' | 'FINALIZING';
+export type VoicePhase = 'IDLE' | 'PERMISSION_PENDING' | 'PREPARING' | 'STARTING' | 'LISTENING' | 'FINALIZING';
 export type VoiceSnapshot = Readonly<{
   phase: VoicePhase;
   session: VoiceSession | null;
@@ -84,7 +85,11 @@ export type VoiceSnapshot = Readonly<{
 
 export type HoldToTalkOptions = {
   adapter: NativeSpeechAdapter | null;
+  /** An empty conversation id is allowed only during explicit first-gesture preparation. */
   getScope: () => VoiceScope | null;
+  /** No AI turn or audio I/O. Adoption is synchronous and runs only for the still-held gesture. */
+  prepareConversation?: (input: { signal: AbortSignal; isCurrent: () => boolean }) =>
+    Promise<{ conversationId: string; adopt: () => boolean } | null>;
   isAiSpeaking?: () => boolean;
   /** Synchronous handoff to the visible editable composer. Never dispatches an AI/message command. */
   onTranscript: (input: VoiceTranscript & { isCurrent: () => boolean }) => boolean;
@@ -185,7 +190,7 @@ export class HoldToTalkController {
     this.contextChanged();
     if (this.disposed || !this.foreground || this.active || !gestureId) return false;
     const scope = this.options.getScope();
-    if (!scope) return false;
+    if (!scope || (!scope.conversationId && !this.options.prepareConversation)) return false;
     if (!this.options.adapter) { this.update({ error: 'VOICE_NOT_CONFIGURED' }); return false; }
     if (this.options.isAiSpeaking?.()) { this.update({ error: 'AI_SPEAKING' }); return false; }
     const session: ActiveSession = {
@@ -206,6 +211,25 @@ export class HoldToTalkController {
       if (!this.current(session) || !session.held) { this.contextChanged(); return; }
       if (permission !== 'granted') {
         this.fail(session, permission === 'denied' ? 'MIC_PERMISSION_DENIED' : 'MIC_UNAVAILABLE'); return;
+      }
+      if (!session.identity.conversationId) {
+        this.update({ phase: 'PREPARING' });
+        this.deadline(session, this.options.limits.permissionMs, 'VOICE_PREPARATION_FAILED');
+        let prepared: Awaited<ReturnType<NonNullable<HoldToTalkOptions['prepareConversation']>>>;
+        try {
+          prepared = await this.options.prepareConversation!({ signal: session.abort.signal,
+            isCurrent: () => this.current(session) && session.held });
+        } catch { if (this.current(session)) this.fail(session, 'VOICE_PREPARATION_FAILED'); else this.contextChanged(); return; }
+        // The opener may finish after release, navigation, timeout or a newer gesture.
+        // Never let such a receipt acquire a microphone or a provider connection.
+        if (!this.current(session) || !session.held) { this.contextChanged(); return; }
+        if (!prepared?.conversationId || !prepared.adopt()) { this.fail(session, 'VOICE_PREPARATION_FAILED'); return; }
+        // Publish the id and update identity in the same synchronous step: a render
+        // must never observe the new conversation with the old gesture identity.
+        const next = { ...session.identity, conversationId: prepared.conversationId };
+        if (!sameScope(this.options.getScope(), next)) { this.cancel('account'); return; }
+        session.identity = Object.freeze(next);
+        this.update({ session: session.identity });
       }
       if (this.options.isAiSpeaking?.()) { this.fail(session, 'AI_SPEAKING'); return; }
       this.update({ phase: 'STARTING' });

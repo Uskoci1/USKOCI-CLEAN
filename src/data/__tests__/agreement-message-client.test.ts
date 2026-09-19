@@ -7,6 +7,27 @@ const agreementId = '22222222-2222-4222-8222-222222222222';
 const messageId = '33333333-3333-4333-8333-333333333333';
 const command = (): AgreementMessageCommand => ({ accountId, agreementId, clientMessageId:'poruka_same_intent_123', body:'  Stižem uskoro.  ' });
 
+it('bounds a stalled text send as an unknown outcome and keeps the same intent for recovery', async () => {
+  jest.useFakeTimers();
+  let release!: (value: { data: string; error: null }) => void;
+  const rpc = jest.fn().mockImplementationOnce(() => new Promise(done => { release = done; }))
+    .mockResolvedValue({ data: messageId, error: null });
+  const service = createAgreementMessageService(rpc), intent = captureAgreementMessage(command());
+  let outcome: unknown = null;
+  const pending = service.send(intent).then(value => { outcome = value; }, error => { outcome = error; });
+  try {
+    await jest.advanceTimersByTimeAsync(15000);
+    expect(outcome).toMatchObject({ code: 'UNAVAILABLE', message: 'UNAVAILABLE' });
+    await expect(service.send(intent)).resolves.toEqual({ messageId });
+    expect(rpc.mock.calls[1]).toEqual(rpc.mock.calls[0]);
+    release({ data: messageId, error: null }); await pending;
+    expect(outcome).toMatchObject({ code: 'UNAVAILABLE' });
+    expect(jest.getTimerCount()).toBe(0);
+  } finally {
+    release({ data: messageId, error: null }); await pending; jest.useRealTimers();
+  }
+});
+
 it('captures an immutable trimmed intent without dispatch or caller ownership', () => {
   const input = { ...command() }; const captured = captureAgreementMessage(input);
   input.body = 'Changed'; input.accountId = messageId;

@@ -45,3 +45,17 @@ it('screen reader sees explicit Stop, not an instruction to release a held finge
   expect(JSON.stringify(tree.toJSON())).toContain('Zaustavi, pregledaj tekst i izaberi Pošalji.');
   expect(tree.root.findAllByProps({label:'Govor bez držanja'})).toHaveLength(0);
 });
+it('keeps first-speech preparation cancellable and accessible', async () => {
+  mockReader = true; const c = controller();
+  await act(async () => { tree = create(<VoiceComposer controller={c as unknown as HoldToTalkController}
+    state={idle} disabled={false} onKeepText={jest.fn()} />); });
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pokreni govorni unos' }).props.onPress());
+  await act(async () => { tree.update(<VoiceComposer controller={c as unknown as HoldToTalkController}
+    state={{ ...idle, phase: 'PREPARING' }} disabled={true} onKeepText={jest.fn()} />); });
+  const pending = tree.root.findByProps({ accessibilityLabel: 'Pripremam govorni unos…' });
+  expect(pending.props.disabled).toBe(false);
+  await act(async () => pending.props.onPress());
+  expect(c.release).toHaveBeenCalledWith('GESTURE_SYNTHETIC');
+  await act(async () => tree.root.findByProps({ label: 'Otkaži govor' }).props.onPress());
+  expect(c.cancel).toHaveBeenCalledWith('gesture');
+});
