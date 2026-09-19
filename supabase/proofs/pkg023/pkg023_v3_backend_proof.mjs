@@ -91,7 +91,10 @@ if(present==='true'){
   assert.equal(Number(old.approximate_lat),45.25);assert.equal(Number(old.approximate_lng),19.83);
   // V3 client: the bounded reader.
   const v3=await ok(worker.client.rpc('rpc_list_open_tasks_v3',{p_bbox:{west:19.7,south:45.1,east:19.95,north:45.4},p_limit:200}));
-  const item=v3.items.find(x=>x.id===T1.needId);assert.ok(item,'the new task is not in its viewport');
+  assert.equal(sql(`select status from public.needs where id=${q(T3.needId)}::uuid`),'PUBLISHED');
+  assert.deepEqual(rows(`select approximate_lat::text a,public_lat::text p from public.needs where id=${q(T3.needId)}::uuid`)[0],{a:'45.25',p:'45.251'});
+  const item=v3.items.find(x=>x.id===T3.needId);assert.ok(item,'the new task is not in its viewport');
+  assert.ok(!v3.items.some(x=>x.id===T1.needId),'a task that is full is still advertised');
   assert.deepEqual(item.pin,{lat:45.251,lng:19.831,precision:'FINE_100M'});
   assert.deepEqual(item.legacyPin,{lat:45.25,lng:19.83,precision:'COARSE_1KM'});
   // No client is handed the exact coordinate to draw with.
@@ -106,8 +109,8 @@ if(present==='true'){
     alter table public.needs enable trigger needs_guard_write;set constraints all immediate;rollback;`),/LOCATION_BINDING_CHANGED/,tamper);
   }
   // Immutable after publication, through the existing guard.
-  await refused(owner.client.from('needs').update({public_lat:45.0,public_lng:19.0}).eq('id',T1.needId).select('id').single());
-  assert.equal(needRow(T1.needId).doc.public_lat,45.251);
+  await refused(owner.client.from('needs').update({public_lat:45.0,public_lng:19.0}).eq('id',T3.needId).select('id').single());
+  assert.equal(needRow(T3.needId).doc.public_lat,45.251);
   // A client can write the columns of its own DRAFT through the table grant. Without a confirmed
   // record there is nothing for the point to be the projection of, and the deferred binding refuses it.
   resetTurns(owner);const cid=await conversation(owner,{title:'PKG023 remote draft'}),r=await review(owner,cid,remote()),c=await accept(owner,r);
@@ -161,12 +164,15 @@ if(present==='true'){
      execution_location_mode,approximate_city,approximate_lat,approximate_lng,published_at,urgent)
     values(${q(id)}::uuid,${q(pager.id)}::uuid,${q(pid)}::uuid,'PUBLISHED',${q('PKG023 far task '+i)},'proof',${q(i%2?'PKG023_ODD':'PKG023_EVEN')},
      ${q(i%2?'MY_PRICE':'OFFERS')},1,'FLEXIBLE','STATIONARY','Kragujevac',${44+i/100},${20+i/100},statement_timestamp()-make_interval(mins=>${10+i}),false);commit;`);}
+  const remoteTask=randomUUID();sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);
+   insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,mode,required_slots,schedule_kind,execution_location_mode,published_at)
+   values(${q(remoteTask)}::uuid,${q(pager.id)}::uuid,${q(pid)}::uuid,'PUBLISHED','PKG023 remote task','proof','PKG023_REMOTE','OFFERS',1,'FLEXIBLE','REMOTE',statement_timestamp()-interval '1 hour');commit;`);
   const far={west:19.9,south:43.9,east:20.1,north:44.1};
   const read=(client,limit,cursor,filters={},bbox=far)=>ok(client.rpc('rpc_list_open_tasks_v3',{p_bbox:bbox,p_filters:filters,p_limit:limit,
    p_before_at:cursor?.at??null,p_before_id:cursor?.id??null}));
   // Geographic scope: exactly the five, newest first, and nothing of the viewport around Novi Sad.
   const all=await read(worker.client,200);assert.deepEqual(ids(all),seeded);assert.equal(all.hasMore,false);
-  assert.ok(!ids(all).includes(T1.needId));
+  assert.ok(!ids(all).includes(T3.needId)&&!ids(all).includes(remoteTask));
   // Stable paging: a task published between two pages neither repeats nor hides a row.
   let inserted;const pages=await walk((limit,cursor)=>read(worker.client,limit,cursor),2,async()=>{
    inserted=randomUUID();sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);
@@ -175,7 +181,7 @@ if(present==='true'){
     values(${q(inserted)}::uuid,${q(pager.id)}::uuid,${q(pid)}::uuid,'PUBLISHED','PKG023 far task between pages','proof','PKG023_EVEN','OFFERS',1,'FLEXIBLE',
      'STATIONARY','Kragujevac',44.02,20.02,statement_timestamp());commit;`);
    // A change to a row that is not its sort key, between pages, moves nothing.
-   sql(`begin;alter table public.needs disable trigger needs_guard_write;update public.needs set covered_slots=0,updated_at=statement_timestamp() where id=${q(seeded[4])}::uuid;
+   sql(`begin;alter table public.needs disable trigger needs_guard_write;update public.needs set description='changed between two pages',updated_at=statement_timestamp() where id=${q(seeded[4])}::uuid;
     alter table public.needs enable trigger needs_guard_write;commit;`);
   });
   assert.equal(pages.length,3);assertExactlyOnce(flat(pages),seeded,'marketplace');
@@ -194,8 +200,10 @@ if(present==='true'){
   assert.deepEqual(ids(await read(worker.client,200,null,{priceMode:'OFFERS'})),[inserted,seeded[0],seeded[2],seeded[4]]);
   assert.deepEqual(ids(await read(worker.client,200,null,{urgentOnly:true})),[]);
   const list=await ok(worker.client.rpc('rpc_list_open_tasks_v3',{p_limit:200})),remoteOnly=await ok(worker.client.rpc('rpc_list_open_tasks_v3',{p_filters:{remote:'ONLY'},p_limit:200}));
-  assert.ok(seeded.every(id=>ids(list).includes(id))&&ids(list).includes(T1.needId),'the list is not every open task');
-  assert.ok(remoteOnly.items.length>0&&remoteOnly.items.every(x=>x.executionLocationMode==='REMOTE'&&x.pin===null));
+  assert.ok(seeded.every(id=>ids(list).includes(id))&&ids(list).includes(T3.needId)&&ids(list).includes(remoteTask),'the list is not every open task');
+  assert.ok(ids(remoteOnly).includes(remoteTask)&&remoteOnly.items.every(x=>x.executionLocationMode==='REMOTE'&&x.pin===null));
+  const noRemote=await ok(worker.client.rpc('rpc_list_open_tasks_v3',{p_filters:{remote:'EXCLUDE'},p_limit:200}));
+  assert.ok(!ids(noRemote).includes(remoteTask)&&ids(noRemote).includes(T3.needId));
   // Public-safe allowlist: the exact set of fields, nothing about the account behind the profile.
   assert.deepEqual(Object.keys(all.items[0]).sort(),['acceptsApplications','approximateArea','approximateCity','category','coveredSlots','criticalConditions',
    'endsAt','executionLocationMode','id','legacyPin','minimumExperienceYears','pin','priceMode','publicTopology','publishedAt','requesterPriceRsd',
@@ -244,16 +252,16 @@ if(present==='true'){
  await section('S6_OWN_READS_PAGED_KEYSET_IMMUTABLE_KEYS_SCOPES_PENDING_CHANGE',async()=>{
   const page=(client,fn)=>(limit,cursor,scope='ALL')=>ok(client.rpc(fn,{p_scope:scope,p_limit:limit,p_before_at:cursor?.at??null,p_before_id:cursor?.id??null}));
   // -- my tasks -----------------------------------------------------------------------------------
-  const pid=await profile(pager,'REQUESTER'),drafts=[];
+  const lister=await actor('pkg023-lister'),pid=await profile(lister,'REQUESTER'),drafts=[];
   for(let i=0;i<7;i++){const id=randomUUID();drafts.push(id);
    sql(`insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,mode,required_slots,schedule_kind,created_at)
-    values(${q(id)}::uuid,${q(pager.id)}::uuid,${q(pid)}::uuid,'DRAFT',${q('PKG023 draft '+i)},'proof','PROOF','OFFERS',1,'FLEXIBLE',statement_timestamp()-make_interval(mins=>${100+i}))`);}
-  const needs=page(pager.client,'rpc_list_my_needs_page');let late;
+    values(${q(id)}::uuid,${q(lister.id)}::uuid,${q(pid)}::uuid,'DRAFT',${q('PKG023 draft '+i)},'proof','PROOF','OFFERS',1,'FLEXIBLE',statement_timestamp()-make_interval(mins=>${100+i}))`);}
+  const needs=page(lister.client,'rpc_list_my_needs_page');let late;
   const needPages=await walk((l,c)=>needs(l,c,'ACTIVE'),3,async first=>{
    assert.deepEqual(ids(first),drafts.slice(0,3));
    late=randomUUID();sql(`insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,mode,required_slots,schedule_kind)
-    values(${q(late)}::uuid,${q(pager.id)}::uuid,${q(pid)}::uuid,'DRAFT','PKG023 draft between pages','proof','PROOF','OFFERS',1,'FLEXIBLE')`);
-   await ok(pager.client.from('needs').update({title:'PKG023 draft 5 renamed between pages'}).eq('id',drafts[5]).select('id'));
+    values(${q(late)}::uuid,${q(lister.id)}::uuid,${q(pid)}::uuid,'DRAFT','PKG023 draft between pages','proof','PROOF','OFFERS',1,'FLEXIBLE')`);
+   await ok(lister.client.from('needs').update({title:'PKG023 draft 5 renamed between pages'}).eq('id',drafts[5]).select('id'));
   });
   const openBefore=(await needs(100,null,'ACTIVE')).items.map(x=>x.id).filter(id=>!drafts.includes(id)&&id!==late);
   assertExactlyOnce(flat(needPages).filter(id=>drafts.includes(id)),drafts,'my tasks');
@@ -273,7 +281,7 @@ if(present==='true'){
   // What happens if the sort key of a row changes between two pages. No server function rewrites
   // needs.created_at; the owner of a DRAFT can, through the table grant. The proof records which.
   const firstTwo=await needs(2,null,'ACTIVE'),unseen=(await needs(100,null,'ACTIVE')).items.map(x=>x.id).find(id=>!ids(firstTwo).includes(id)&&drafts.includes(id));
-  const moved=await pager.client.from('needs').update({created_at:new Date(Date.now()+3600000).toISOString()}).eq('id',unseen).select('id');
+  const moved=await lister.client.from('needs').update({created_at:new Date(Date.now()+3600000).toISOString()}).eq('id',unseen).select('id');
   notes.ownerCanRewriteCreatedAtOfOwnDraft=!moved.error&&moved.data.length===1;
   if(notes.ownerCanRewriteCreatedAtOfOwnDraft){
    const last=firstTwo.items.at(-1),rest=await walk((l,c)=>needs(l,c??{at:last.sortAt,id:last.id},'ACTIVE'),100);
