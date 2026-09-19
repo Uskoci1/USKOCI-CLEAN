@@ -201,20 +201,31 @@ shells) has given way to one shell, **Početna | Mapa | Dogovori**: the second s
 requester or worker shell, of `IntentTransition` or of `CrossIntentNotice` is historical. The
 instruction that entry and auth keep their own dark palette is lifted for the palette only, and
 that part has not landed: the app still renders the dark auth sheet. The CI invariants above are
-unchanged. Of the third slice, the proof fix and the copy pass are done. Its backend part exists as
-four candidates, `supabase/candidates/pkg023{a,b,d,c}_*.sql`, **applied nowhere** and proven only on a
-disposable database by `.github/workflows/pkg023-v3-reads-and-pin-proof.yml`; the plan, its second
-version, is `docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`. The owner
-re-opened the price model on 2026-09-19 (TOTAL / PER_PERSON / OFFERS); that is investigated in the
-plan and not implemented.
+unchanged. Of the third slice, the proof fix and the copy pass are done. Of its backend part,
+**`pkg023a`, `pkg023b` and `pkg023d` were applied to canonical DEV on 2026-09-19** on the owner's word
+(ledger `20260919141813`, `20260919142333`, `20260919142713`; the DEV ledger is now **160 rows: 147
+source + 13 `dev_alpha`**), each byte-identical to its candidate and followed by a readback; they add six
+functions and three plain indexes and change nothing that existed, so the installed APK is untouched. The
+client does not call them yet. **`pkg023c` is NOT applied and is on HOLD**, and no old task is backfilled.
+The plan, its third version with the receipts, is
+`docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`. The price model
+(TOTAL / PER_PERSON / OFFERS) is decided in part — TOTAL means one application covers every place and one
+Agreement carries the whole amount — and **not implemented**: the installed APK would show a per-person
+amount as if it were the task's price and would write a wrong Agreement, so the plan's section 8 has the
+compatibility design that must come first.
 
 **Read before any schema change on canonical DEV:** `private.closure_source_digest_v5()` has not
-matched its pin, and `private.retention_ai_source_ready()` has been false, since the `dev_alpha`
-migrations of 2026-09-17 changed tables without re-binding it. Function-only and plain-index
-candidates do not move the digest. Anything that adds a column, a constraint or a trigger function
-does, must re-bind it, and cannot honestly do so until that drift has been reviewed and
-re-certified. `pkg023c` refuses to run on DEV for exactly this reason. The SQL of three live DEV
-migrations (`pkg015b`, `pkg019c`, `pkg019d`) is in the live ledger and in no candidate file.
+matched its certified value, and `private.retention_ai_source_ready()` has been false, since the
+`dev_alpha` migrations of 2026-09-17 changed tables without re-binding it; until it is re-certified **no
+account closure can start on DEV**. The drift was forensically reviewed on 2026-09-19:
+`docs/implementation/v5-ai-first/pkg023/CLOSURE_FORENSIC_REVIEW_20260919.md`. The reviewed additions are
+proven to be the only change the digest can see, and
+`supabase/candidates/pkg023f_closure_recertification.sql` re-binds only if it can prove that again inside
+its own transaction. **It is applied nowhere; the owner reviews it first.** Function-only and plain-index
+candidates do not move the digest. Anything that adds a column, a constraint or a trigger function does,
+and must wait for that re-certification; `pkg023c` refuses to run on DEV for exactly this reason. The exact
+text of every `dev_alpha` ledger row, four of which were in no file, is now in
+`supabase/operations/dev-alpha/ledger/`.
 
 Edge, 2026-09-19: `uskoci-ai-interview` is **v41** (the provider-failure log carries a class from a
 closed list, never thrown text). Three of its four files are byte-identical to `130028de`; line 34 of

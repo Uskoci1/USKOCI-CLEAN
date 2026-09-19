@@ -238,12 +238,52 @@ high and one medium, in code from 2026-09-13; none comes from the V3 slices. The
 secure random source (`expo-crypto`), and no dependency is added for it now. It belongs to a separate
 security / dependency slice.
 
-**The backend part of the third slice is a plan, not a change:**
-`docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`. Nothing in it is
-applied until the owner approves it, and then approves the apply separately.
+**The backend part of the third slice was a plan, not a change,** until the evening of 2026-09-19:
+`docs/implementation/v5-ai-first/pkg023/V3_SLICE3_MIGRATION_PLAN_20260919.md`. What the owner then
+approved, and what he did not, is the next section.
 
 **Step 2 — no text the app can show names an internal side of a task.** 42 lines in 17 production
 files; a person is told what they did ("Ti · objavio si zadatak", "Ti · uskočio si"), what the other
 person did ("Objavio zadatak", "Uskočio"), or "druga strana" of this Dogovor.
 `src/data/__tests__/v3-copy-no-internal-sides.test.ts` scans every production module. Texts the
 server composes (inbox event titles) were not read for this and are not covered by that scan.
+
+## The third slice, backend — "PKG023 A / B / D — DEV PRIMENA ODOBRENA" (owner, 2026-09-19, evening)
+
+Six points, in the owner's order.
+
+1. **`pkg023a`, `pkg023b`, `pkg023d` — apply to canonical DEV, approved.** Order set by the owner: read-only
+   preflight; a; proof and readback; b; proof and readback; d; proof and readback; stop before the next one if
+   any predecessor, grant, function body, schema state or fingerprint is not what was proven; **do not apply
+   c**. Done exactly so; nothing differed, nothing stopped. Ledger `20260919141813`, `20260919142333`,
+   `20260919142713`, each byte-identical to its candidate file. The receipts — ledger, objects, grants,
+   runtime, and that the old readers and the installed APK's contract are unchanged — are section 14 of the
+   plan. The client does not call the new readers yet; that is later work with its own approval.
+2. **Closure source digest — a forensic review, not a re-certification.** "Nemoj samo promeniti očekivani
+   digest da bi `retention_ai_source_ready()` postao true." Reconstruct the exact live text of `pkg015b`,
+   `pkg019c`, `pkg019d` from the ledger; compare with the live state; list every change since the last
+   confirmed closure baseline; confirm closure and retention still cover every relevant table and column;
+   check that no new table or private data is outside them; write a forward-only candidate; keep a
+   reproducible proof in the repository; **stop before the re-certification**. Done:
+   `CLOSURE_FORENSIC_REVIEW_20260919.md`, `supabase/operations/dev-alpha/ledger/`,
+   `supabase/proofs/pkg023f_closure_recert/`, `supabase/candidates/pkg023f_closure_recertification.sql`.
+   **The candidate is applied nowhere.** A new closure digest on DEV needs the owner's separate word.
+3. **Price basis — TOTAL is decided.** TOTAL is the price of the whole task. One selected application or
+   team must cover all `people_needed`, and one Agreement carries the whole TOTAL amount. No proportional
+   split, no rounding. A requester who wants to hire people independently uses PER_PERSON. OFFERS stays.
+   Existing NULL / legacy price semantics are not reinterpreted.
+4. **Before any PER_PERSON work, the installed APK was checked, read-only.** Result: for 6 people at 3000 per
+   person it would show "3.000 RSD" on the card and "Budžet: 3.000 RSD" in the detail, lock the composer's
+   "Ukupna cena za ljude koje dovodiš" to 3000, and send 3000 for three people — which today's server accepts
+   and copies into the Agreement. The owner does not accept the display, and the write is worse. The
+   recommended compatibility plan is in section 8 of the plan: a per-person amount never enters the legacy
+   price columns (an old APK sees "Tražim ponude"), the server accepts an application on a task with a basis
+   only from a client that acknowledges the basis, and publishing with a basis stays switched off until the
+   new APK is the installed one. **No price work is implemented.**
+5. **`pkg023c` stays on HOLD** until the closure source digest has been forensically reviewed **and** properly
+   re-certified. No old task is backfilled.
+6. **Paging is LIVE pagination.** `asOf` is not a snapshot, and for `needs.created_at` a change of the sort
+   value can move a row between refresh cycles. It is documented so in section 3 of the plan and is not
+   described anywhere as snapshot-consistent.
+
+Then: stop, and return the complete result.

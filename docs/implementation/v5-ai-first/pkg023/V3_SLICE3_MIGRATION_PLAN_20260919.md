@@ -1,6 +1,16 @@
-# V3 third slice, backend part — migration PLAN, second version (2026-09-19)
+# V3 third slice, backend part — migration PLAN, third version (2026-09-19)
 
-**Status: NOTHING IS APPLIED TO CANONICAL DEV.** The owner approved the first version of this plan
+**Status, evening of 2026-09-19: `pkg023a`, `pkg023b` and `pkg023d` ARE APPLIED to canonical DEV**, on the
+owner's word ("PKG023 A / B / D — DEV PRIMENA ODOBRENA"), in that order, each after a read-only preflight and
+followed by a readback; the receipts are section 14. **`pkg023c` is NOT applied and stays on HOLD.** The
+closure source digest was forensically reviewed and a re-certification candidate was written and proven on a
+disposable database; **it is NOT applied** and waits for the owner's review (section 15 and
+`CLOSURE_FORENSIC_REVIEW_20260919.md`). No price change exists anywhere; section 8 carries the owner's TOTAL
+decision and the read-only finding about the installed APK.
+
+What follows below this block is the second version, corrected where today's facts changed it.
+
+**Status of the second version, earlier the same day: NOTHING WAS APPLIED TO CANONICAL DEV.** The owner approved the first version of this plan
 "u osnovi" and approved writing the candidate SQL and its proofs on an isolated database, asked for
 four additions and a paging proof, and then, mid-work, re-opened the price model. This version carries
 all of that. The candidates exist in `supabase/candidates/pkg023*.sql` and are proven only by
@@ -44,16 +54,19 @@ Related, also unrecorded until now: the SQL of three live DEV migrations — `pk
 
 `supabase/migrations/` is the frozen source-147 inventory. A DEV change is a candidate file with a
 preflight that checks the md5 of every live body it replaces, applied as `dev_alpha_pkgNNN_*`, proven
-on a disposable database first. The DEV ledger is 157 rows: 147 source + 10 `dev_alpha`.
+on a disposable database first. The DEV ledger was 157 rows (147 source + 10 `dev_alpha`) before this slice and is
+**160 rows (147 + 13) after it**. The exact text of all 13 `dev_alpha` rows, byte for byte as the database recorded it,
+is now in the repository: `supabase/operations/dev-alpha/ledger/` with `LEDGER_MANIFEST.json`.
 
 ## 2. The candidates
 
 | Candidate | Covers | Touches existing objects | Closure digest | DEV |
 | --- | --- | --- | --- | --- |
-| `pkg023a_own_reads_paged.sql` | A + C | no | unchanged, self-asserted | ready for the owner's word |
-| `pkg023b_task_relations.sql` | B | no | unchanged, self-asserted | ready for the owner's word |
-| `pkg023d_marketplace_bounded.sql` | owner addition 1, and 3 | no | unchanged, self-asserted | ready for the owner's word |
-| `pkg023c_public_pin_100m.sql` | D, owner addition 4 | 9 bodies + 2 columns | re-bound from a ready predecessor | **HOLD** (section 0) |
+| `pkg023a_own_reads_paged.sql` | A + C | no | unchanged, self-asserted | **APPLIED 2026-09-19**, ledger `20260919141813` |
+| `pkg023b_task_relations.sql` | B | no | unchanged, self-asserted | **APPLIED 2026-09-19**, ledger `20260919142333` |
+| `pkg023d_marketplace_bounded.sql` | owner addition 1, and 3 | no | unchanged, self-asserted | **APPLIED 2026-09-19**, ledger `20260919142713` |
+| `pkg023c_public_pin_100m.sql` | D, owner addition 4 | 9 bodies + 2 columns | re-bound from a ready predecessor | **HOLD** (section 0); no old task is backfilled |
+| `pkg023f_closure_recertification.sql` | the 17.09 closure drift | one constant, one catalog row | re-bound only if the reviewed additions are the only change | **NOT APPLIED — owner reviews first** (section 15) |
 | ~~`pkg023e_price_gate.sql`~~ | ~~owner addition 2~~ | — | — | **withdrawn before it was committed** (section 8) |
 
 ## 3. A + C — own reads, paged
@@ -70,6 +83,15 @@ together or not at all, else `INVALID_PAGE`; `p_scope` ∈ `ALL | ACTIVE | HISTO
 returns `{ items, hasMore, asOf }`, each item carrying `sortAt` and `id`. Execute: `authenticated` only.
 
 ### The paging claim, stated exactly
+
+**This is LIVE pagination, not snapshot-consistent paging** (owner's note, 2026-09-19). Every page is read from
+the data as it is at that moment. `asOf` says when; it is not a snapshot and nothing is read "as of" it. What
+the keyset guarantees is narrower and is exactly this: while the sort value of a row does not change, a row
+inserted or removed between two pages neither repeats nor hides another row. For `needs.created_at`
+specifically the sort value CAN change (the owner of a DRAFT can rewrite it), and **a change of the sort value
+can move that row between refresh cycles**: a not-yet-seen row moved later is missing from the rest of that
+walk and appears on the next fresh first page; a seen row moved earlier would be seen twice in that walk. The
+client must treat every refresh as a new walk from the first page and must key rows by `id`.
 
 "A row inserted between two pages neither repeats nor hides a row" is true **because the sort key is
 immutable and the comparison is a strict keyset**, and for no other reason. `asOf` is when that page
@@ -203,9 +225,12 @@ which is the ambiguity the owner noticed.
    `mode = 'MY_PRICE'`. **`NULL` = the existing meaning, exactly as today.** No backfill, no existing row
    reinterpreted. `mode` keeps its two values, because the installed client rejects any third.
 2. `rpc_submit_response`, by basis: `NULL` → today's equality, untouched; `PER_PERSON` → `price =
-   requester_price_rsd × covered_slots`; `TOTAL` → **owner decision needed** between (a) the application
-   must cover every remaining slot and carry the total, or (b) a proportional share, which then requires
-   the total to divide evenly by `required_slots` at publication. (a) is the smaller and has no rounding.
+   per-person amount × covered_slots`; `TOTAL` → **decided by the owner on 2026-09-19 ("PRICE BASIS — TOTAL
+   ODLUKA"): TOTAL is the price of the whole task. ONE selected application or team must cover ALL
+   `people_needed`, and ONE Agreement carries the whole TOTAL amount. There is no proportional split and no
+   rounding. A requester who wants to hire people independently uses PER_PERSON. OFFERS stays. Existing
+   NULL / legacy price semantics are not reinterpreted.** So under `TOTAL` an application with
+   `covered_slots < required_slots` is refused, and its price must equal the total.
 3. The application content hash gains `priceBasis` only where it is not null (old hashes unchanged).
    `rpc_select_response` needs **no change**: the terms already carry that application's total.
 4. The fingerprint, the material snapshot and the publication context gain `priceBasis` only where it is
@@ -222,9 +247,54 @@ which is the ambiguity the owner noticed.
 About twelve function bodies, one column, one Edge deploy, client work. **It moves the closure digest, so
 it shares `pkg023c`'s prerequisite (section 0).**
 
-**Installed APK.** It sees `mode = MY_PRICE` and a price, without the basis. A one-slot application to a
-`PER_PERSON` task works (3000 × 1 is what it sends). A multi-slot one is refused with
-`FIXED_PRICE_MISMATCH`: a refusal, never a wrong Agreement. It would display "3000" with no "po osobi".
+**Installed APK — read-only check, 2026-09-19 (owner: "PRE IMPLEMENTACIJE PER_PERSON PROVERI STARI APK").**
+The paragraph that stood here said the old APK "would display 3000 with no po osobi". The owner does not
+accept that, and the source shows it is worse than a display problem. For `people_needed = 6`,
+`price_basis = PER_PERSON`, `requester_price_rsd = 3000`, `mode = MY_PRICE`, the installed client would:
+
+| Screen | Source | What the person sees |
+| --- | --- | --- |
+| list / map card | `src/ui/v2/TaskCard.tsx` (`price`, `needPeopleText`) | **"3.000 RSD"** beside "6 osoba" — reads as the task's price |
+| task detail | `src/ui/v2/PublicNeedPresentation.tsx` | **"Budžet: 3.000 RSD"**, "Potrebno: 6 osoba" — reads as the total budget |
+| application composer | `src/ui/v2/ApplicationSelectionPresentation.tsx` | field **"Ukupna cena za ljude koje dovodiš (RSD)"**, LOCKED to 3000; footer **"3000 RSD ukupno · dolaze 3 osobe"** |
+| what it sends | `rpc_submit_response(p_price_rsd = 3000, p_covered_slots = 3)` | today's equality accepts it; `rpc_select_response` copies 3000 into the Agreement: **three people for 3000 instead of 9000** |
+
+There is no client-version mechanism in the backend or the client (none found: no minimum version, no version
+header, no forced update). RLS cannot tell an old APK from a new one.
+
+**The safest compatibility plan (recommended; nothing implemented):**
+
+1. **A PER_PERSON amount is never written into the legacy price columns.** A PER_PERSON task is stored, for
+   every reader that does not know the basis, as `mode = 'OFFERS'`, `requester_price_rsd = NULL`; the amount
+   lives only in new columns (`price_basis = 'PER_PERSON'`, `price_per_person_rsd`). The old APK then shows
+   **"Tražim ponude"** on the card, in the detail and in the composer. It can never show "3.000 RSD" as if it
+   were the task's total, because it never receives that number.
+2. **The server, not the client, decides the amount, and only for a client that showed the basis.**
+   `rpc_submit_response` gains one optional argument, `p_acknowledged_price_basis` (default NULL; the old APK's
+   call still resolves to the function). For a task whose `price_basis` is not NULL the call is refused unless
+   the argument equals the task's basis; then `PER_PERSON` requires `price = per-person × covered_slots` and
+   `TOTAL` requires all slots and the total. An old APK can therefore never create an application on such a
+   task — it gets a refusal and its generic failure text — and no Agreement with a wrong amount can exist.
+   Legacy (NULL basis) tasks behave exactly as today, for both APK generations.
+3. **TOTAL needs the same handshake**: the old composer would let one person apply for one of six places at the
+   full, locked total. The legacy columns may keep the total (it IS the total, so "18.000 RSD · 6 osoba" is
+   true), but the application is refused without the acknowledgement.
+4. **Rollout gate: publishing with a basis stays switched off** (the AI does not ask, the review editor does
+   not offer it, and the server refuses a non-NULL basis at publication) until the new APK is the one installed
+   on every test phone and the owner says so. This is the owner's "odložiti dok novi APK ne bude authority",
+   kept as the switch, with 1–3 as the guarantee that a forgotten old APK can neither mislead nor write.
+
+Considered and not recommended: **hiding PER_PERSON tasks from the legacy reader** — the legacy reader is a
+direct table read under RLS; RLS cannot know the client version, so this needs either header sniffing in a
+policy (spoofable, brittle) or moving visibility into a SECURITY DEFINER reader that restates the rules
+(`pkg023d` deliberately restates none); detail screens and dispatch notifications on an old APK would end in
+"Zadatak nije dostupan". **A minimum app version**: no such mechanism exists; building one (server gate, client
+gate, store of versions) is larger than the price feature and belongs to the production release work.
+
+This costs one more column than the earlier sketch (`price_per_person_rsd`) and one optional argument; the
+rest of the list above (fingerprint, facts, Edge, client) is unchanged. It moves the closure digest, so it
+still comes after the re-certification and after `pkg023c`'s prerequisite is met. **NOTHING OF THIS IS
+IMPLEMENTED.**
 
 **Open inside this model:** `private.dispatch_cheap_candidate_admitted` and
 `private.match_detail_without_calendar` compare the task price with the worker's `minimum_fee_rsd`. Under
@@ -312,6 +382,14 @@ differs from the md5 it was written against.
 
 ## 13. Open points and new findings
 
+- **New on 2026-09-19 (evening):** the closure forensic review's findings F1–F7
+  (`CLOSURE_FORENSIC_REVIEW_20260919.md`): three account-linked tables outside the closure dataset catalog; the
+  data export still says `measuredProviderCharge: false` and knows nothing of measured usage or lineage; an
+  append-only trigger that would refuse the cascade of a HARD auth delete (closure does a soft one); two
+  service functions whose ACL includes `anon` and `authenticated` although their bodies refuse both; policies
+  are outside the digest; no account closure could start on DEV since 2026-09-17; and the repository's
+  2026-08-25 file of the auth bootstrap function is mis-encoded, so it never was byte for byte what DEV ran.
+
 - The closure digest drift on DEV since 2026-09-17, and the three DEV migrations whose SQL is not in the
   repo (section 0).
 - `needs.created_at` is writable by the owner of a DRAFT, and the **legacy public list is ordered by it**:
@@ -320,3 +398,50 @@ differs from the md5 it was written against.
 - The legacy public list makes one public-profile call per distinct requester; bounded pages bound that too.
 - `rpc_confirm_need_edit` (the legacy scalar edit) takes `approximate_lat/lng` from the client. `pkg023c`
   never takes `public_*` from a client.
+
+## 14. Receipts — `pkg023a`, `pkg023b`, `pkg023d` on canonical DEV, 2026-09-19
+
+Order, as the owner set it: read-only preflight → a → readback → b → readback → d → readback. Nothing differed
+from what had been proven, so nothing stopped. `pkg023c` was not applied.
+
+**Preflight (read-only).** Ledger 157 rows, newest `20260917230145`; whole domain surface 3179 objects, md5
+`482837025aa1aae0b611010279b3222c`; closure digest `ac50680b…`; prerequisites present; no `pkg023` object.
+The candidates had been re-proven self-verifying on a disposable database in run 35448018164 on `3e883a50`.
+
+| | a | b | d |
+| --- | --- | --- | --- |
+| ledger row | `20260919141813 dev_alpha_pkg023a_own_reads_paged` | `20260919142333 dev_alpha_pkg023b_task_relations` | `20260919142713 dev_alpha_pkg023d_marketplace_bounded` |
+| ledger rows after | 158 | 159 | 160 |
+| recorded text = repo file | sha256 `7e0e518c…`, 20908 chars, identical | sha256 `a0f7f99f…`, 5338 chars, identical | sha256 `f7bc5fe3…`, 14990 chars, identical |
+| created | `private.my_application_state` (`236c6c9c…`), `rpc_list_my_needs_page` (`efb30525…`, INVOKER), `rpc_list_my_applications_page` (`bc4545fd…`), `rpc_list_my_agreements_page` (`f834365b…`), index `marketplace_responses_worker_idx` | `rpc_get_my_task_relations(uuid[])` (`8bed3339…`, DEFINER) | `rpc_list_open_tasks_v3` (`04a8f14a…`, INVOKER), indexes `needs_open_geog_idx` (GiST) and `needs_open_published_idx`, both valid and ready |
+| grants | public functions `{postgres, authenticated}`; the private one `{postgres}` | `{postgres, authenticated}` | `{postgres, authenticated}` |
+| everything else | surface md5 without the `pkg023` objects still `48283702…` | still `48283702…` | still `48283702…`; whole surface 3188 objects, md5 `f04811bd…` |
+| closure digest | unchanged `ac50680b…` | unchanged | unchanged |
+| old readers / old APK contract | `rpc_list_my_applications()` `6ce809c2…`, `rpc_list_my_agreements()` `f4c56eca…`, same ACL | same | `needs` policies (6, same md5), table ACL and the legacy open-set read (5 rows, same fingerprint) unchanged; old GiST index unchanged |
+
+**Runtime, in rolled-back transactions, with a user id that is no account (no real account was impersonated):**
+
+- a — three empty pages `{items: [], hasMore: false, asOf}`; `INVALID_PAGE` for limit 0, limit 101 and a half
+  cursor; `INVALID_SCOPE`; `AUTH_REQUIRED` (28000) without a user id; `anon` denied (42501) on all three.
+- b — nine ids (published, unpublished, non-existent) → `{items: []}`: no oracle; `INVALID_INPUT` for an empty,
+  NULL, NULL-containing or 101-element array, 100 accepted; `AUTH_REQUIRED`; `anon` denied.
+- d — with RLS bypassed by the table owner and a synthetic user id: 5 open tasks, the 28 allowlisted keys and
+  no account id, address, description or exact coordinate; pins `COARSE_1KM` or none; the same ids as the
+  legacy open read; one task in a viewport over Serbia, none over Iceland; pages of two do not overlap. As the
+  `authenticated` role with a stranger's id: the V3 reader and the legacy read see the same one task (the
+  reader cannot widen RLS). `INVALID_BBOX` (13° × 6°), `INVALID_FILTER` (unknown key, `remote: ONLY` in a
+  viewport, a bad timestamp), `INVALID_PAGE` (201), `AUTH_REQUIRED`, `anon` denied.
+- Security advisors after d: the three new DEFINER readers appear in the "signed-in users can execute a
+  SECURITY DEFINER function" list with the other 152 — intended, they are own-row readers. Nothing new for
+  `anon`. The four `anon` entries that exist are older (F4 of the forensic review).
+
+## 15. The closure source digest — reviewed, NOT re-certified
+
+`CLOSURE_FORENSIC_REVIEW_20260919.md` is the review. In one paragraph: the exact text of `pkg015b`, `pkg019c`
+and `pkg019d` (and of every other `dev_alpha` row) was reconstructed from the ledger and is in the repository;
+source 147 plus those texts reproduces the whole canonical DEV surface, with nothing unledgered; a read-only
+query on DEV shows that the digest **without** the reviewed additions is exactly the certified value
+(`68ae9916…`), so they are the only change the digest can see; every other readiness condition is true; the
+additions hold no user-authored content. `supabase/candidates/pkg023f_closure_recertification.sql` re-binds
+only if it can prove all of that again inside its own transaction. **It waits for the owner. Until it is
+applied, `pkg023c` and any price basis stay on HOLD, and no account closure can start on DEV.**
