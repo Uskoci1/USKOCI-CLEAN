@@ -42,3 +42,5 @@ docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md text eol=lf
 docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md text eol=lf
 docs/implementation/IMPLEMENTATION_CONTINUITY.md text eol=lf
 docs/implementation/NEXT_AI_HANDOFF* text eol=lf
+# Exact text of the dev_alpha rows of the canonical DEV migration ledger; sha256 is verified against the ledger manifest.
+supabase/operations/dev-alpha/ledger/** text eol=lf
