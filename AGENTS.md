@@ -1,5 +1,10 @@
 # USKOČI — repository entry map
 
+**Start here (2026-09-19): `docs/implementation/NEXT_AI_HANDOFF_20260919_2100.md`.** It is the current
+handoff: where the work stopped, every file touched and what each one is for, the owner's standing rules,
+the six migrations applied to canonical DEV that day, and the next piece of work stated exactly. It
+supersedes `NEXT_AI_HANDOFF_20260911_0504.md` and its manifest, which record a SAFE STOP that was lifted.
+
 Current entry (PKG-012, 2026-09-16): read `docs/implementation/execution/CURRENT_ENTRY_MAP_20260916.md`
 first. It names the one current authority chain (reconciliation, Execution Ledger, owner
 decisions, PKG-011B design system) and marks every older checkpoint historical.
