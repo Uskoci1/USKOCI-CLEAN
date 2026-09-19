@@ -4,6 +4,7 @@ import { CaretRight, User } from 'phosphor-react-native';
 import type { HomeRow, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import { InboxBell } from '../InboxBell';
 import { Press } from '../Press';
+import { Appear, useAppear } from '../system/Appear';
 import { CanonicalMark } from '../referenceEntry/ReferenceEntryHero';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -61,6 +62,12 @@ const Skeleton = () => <View accessibilityLabel="Učitavanje" style={s.skeletonB
 
 export function HomePresentation(p: HomePresentationProps) {
   const home = p.home;
+  // A row that was already here when the screen opened has nothing to tell you by sliding in; only a
+  // genuinely new one moves, and each list remembers what it has already shown.
+  const waiting = useAppear(), agreements = useAppear(), activities = useAppear();
+  waiting.settle((home?.attention ?? []).map(item => item.id));
+  if (home?.agreements.kind === 'known') agreements.settle(home.agreements.value.rows.map(row => row.id));
+  if (home && home.activities.kind !== 'unavailable') activities.settle(home.activities.value.rows.map(row => row.id));
   const nothingYet = !!home && !home.partial && !home.attention.length
     && home.agreements.kind === 'known' && !home.agreements.value.rows.length
     && home.activities.kind === 'known' && !home.activities.value.rows.length;
@@ -85,7 +92,8 @@ export function HomePresentation(p: HomePresentationProps) {
 
       {home?.attention.length ? <View style={s.attention}>
         <T accessibilityRole="header" variant="label" style={s.attentionLabel}>ČEKA TE</T>
-        {home.attention.map(item => <Row key={item.id} row={item} onOpen={p.onOpen} />)}
+        {home.attention.map((item, index) => <Appear key={item.id} index={index} animate={waiting.isNew(item.id)}>
+          <Row row={item} onOpen={p.onOpen} /></Appear>)}
         {home.attentionMore > 0 ? <T variant="note" tone="muted" style={s.more}>I još {home.attentionMore} u tvojim aktivnostima i Dogovorima.</T> : null}
       </View> : null}
 
@@ -94,14 +102,16 @@ export function HomePresentation(p: HomePresentationProps) {
       {home && !nothingYet ? <Section title="Dogovori" action="Svi Dogovori" onAction={p.onAllAgreements}>
         {home.agreements.kind === 'unavailable' ? <Unavailable what="Dogovori" onRefresh={p.onRefresh} />
           : home.agreements.value.rows.length ? <>
-            {home.agreements.value.rows.map(row => <Row key={row.id} row={row} onOpen={p.onOpen} />)}
+            {home.agreements.value.rows.map((row, index) => <Appear key={row.id} index={index} animate={agreements.isNew(row.id)}>
+              <Row row={row} onOpen={p.onOpen} /></Appear>)}
             {home.agreements.value.more > 0 ? <T variant="note" tone="muted" style={s.more}>Još {home.agreements.value.more} aktivnih u listi Dogovora.</T> : null}
           </> : <T variant="note" tone="muted" style={s.more}>Nemaš aktivan Dogovor.</T>}
       </Section> : null}
 
       {home && !nothingYet ? <Section title="Moje aktivnosti" action="Vidi sve" onAction={p.onAllActivities}>
         {home.activities.kind === 'unavailable' ? <Unavailable what="Tvoji zadaci i prijave" onRefresh={p.onRefresh} /> : <>
-          {home.activities.value.rows.map(row => <Row key={row.id} row={row} onOpen={p.onOpen} />)}
+          {home.activities.value.rows.map((row, index) => <Appear key={row.id} index={index} animate={activities.isNew(row.id)}>
+            <Row row={row} onOpen={p.onOpen} /></Appear>)}
           {!home.activities.value.rows.length && home.activities.kind === 'known' ? <T variant="note" tone="muted" style={s.more}>Nemaš aktivan zadatak ni prijavu.</T> : null}
           {home.activities.value.more > 0 ? <T variant="note" tone="muted" style={s.more}>Još {home.activities.value.more} u svim aktivnostima.</T> : null}
           {home.activities.kind === 'partial' ? <Unavailable onRefresh={p.onRefresh}
