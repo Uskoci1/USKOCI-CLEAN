@@ -5,7 +5,7 @@ import type { Ishod } from './ports';
 const COPY: Readonly<Record<string, string>> = Object.freeze({
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
   NOT_OWNER: 'Ova radnja nije dostupna na ovom nalogu.',
-  NOT_WORKER: 'Ovu radnju može da izvrši samo Uskočer iz Dogovora.',
+  NOT_WORKER: 'Ovu radnju može da izvrši samo onaj ko je uskočio u ovaj Dogovor.',
   NOT_PARTY: 'Ova radnja je dostupna samo učesnicima Dogovora.',
   FORBIDDEN: 'Ova radnja nije dostupna na ovom nalogu.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.',
@@ -35,7 +35,7 @@ const COPY: Readonly<Record<string, string>> = Object.freeze({
   NO_ACTIVE_GRANT: 'Dozvola za prikaz više nije aktivna. Osveži Dogovor.',
   GRANT_NOT_OWNABLE: 'Podatak može da podeli samo njegov vlasnik.',
   GRANT_NOT_TO_COUNTERPARTY: 'Dozvola ne pripada drugom učesniku Dogovora.',
-  REQUESTER_PROFILE_REQUIRED: 'Potreban je profil Naručioca pre objave.',
+  REQUESTER_PROFILE_REQUIRED: 'Potreban je profil za objavu zadataka.',
   POLICY_BUNDLE_NOT_READY: 'Objava trenutno nije dostupna.',
   PACKAGE_4_NOT_READY: 'Objava trenutno nije dostupna.',
   AI_PUBLISH_BLOCKED: 'Objava trenutno nije dozvoljena.',

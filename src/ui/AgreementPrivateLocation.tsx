@@ -96,8 +96,8 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
   return <View style={{ paddingVertical: space.md, gap: space.md }}>
     <T variant="bodyStrong">Privatna lokacija</T>
     <T variant="meta" tone="muted">{accountId === requesterId
-      ? granted ? 'Lokacija je podeljena sa Uskočerom u ovom Dogovoru.' : 'Podeli potvrđenu adresu ili tačke na mapi sa Uskočerom.'
-      : granted ? 'Naručilac je dozvolio prikaz lokacije u ovom Dogovoru.' : 'Naručilac još nije podelio lokaciju ili dozvola više ne važi.'}</T>
+      ? granted ? 'Lokacija je podeljena u ovom Dogovoru.' : 'Podeli potvrđenu adresu ili tačke na mapi sa osobom koja dolazi.'
+      : granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : 'Lokacija još nije podeljena sa tobom ili dozvola više ne važi.'}</T>
     {editor.loading ? <T variant="meta" tone="muted">Proveravamo dozvolu…</T> : null}
     {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
     {accountId === requesterId ? <Button label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}

@@ -8,7 +8,7 @@ import { sesijaSada } from '../store/sesija';
 export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
   OWN_NEED: 'Ne možeš da se prijaviš na svoj Zadatak.',
-  NOT_REQUESTER: 'Ove Prijave su dostupne Naručiocu Zadatka.',
+  NOT_REQUESTER: 'Ove prijave vidi samo onaj ko je objavio zadatak.',
   NEED_NOT_FOUND: 'Zadatak više nije dostupan.',
   NEED_NOT_OPEN: 'Zadatak više ne prima prijave i izbore.',
   NEED_REMAINING_SEARCH_CLOSED: 'Zadatak više ne prima nove prijave. Osveži Zadatak.',

@@ -70,14 +70,14 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           </DisclosureRow>
         </DisclosureGroup>
         <View style={s.section}>
-          <SectionTitle>Naručilac</SectionTitle>
+          <SectionTitle>Ko objavljuje</SectionTitle>
           <View style={[card, s.requesterCard]}>
             <View style={s.requester}>
               <View style={s.avatar}><T variant="heading" style={s.initial}>{(need.narucilacIme || 'N').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T></View>
               <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>{need.narucilacIme || 'Ime trenutno nije dostupno'}</T>
                 {need.narucilacOcena !== null ? <T variant="note" tone="muted">{`Ocena ${need.narucilacOcena}`}</T> : null}</View>
             </View>
-            {onRequesterProfile ? <V2Action label="Javni profil naručioca" kind="quiet" disabled={busy} onPress={onRequesterProfile} style={s.quietLeft} /> : null}
+            {onRequesterProfile ? <V2Action label="Pogledaj javni profil" kind="quiet" disabled={busy} onPress={onRequesterProfile} style={s.quietLeft} /> : null}
           </View>
         </View>
       </> : null}
@@ -98,7 +98,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
               : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
     </View> : null}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
-      photo={publicPhoto} roleLabel="Naručilac" /> : null}
+      photo={publicPhoto} roleLabel="Objavio zadatak" /> : null}
   </SafeAreaView>;
 }
 

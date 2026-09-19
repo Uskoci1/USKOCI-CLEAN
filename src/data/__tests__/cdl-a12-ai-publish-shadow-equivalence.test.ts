@@ -98,7 +98,7 @@ describe('CDL-A12 — legacy AI publish single owner after shadow deletion', () 
     expect(noProfile).toEqual({
       ok: false,
       kod: 'REQUESTER_PROFILE_REQUIRED',
-      poruka: 'Potreban je profil Naručioca pre objave.',
+      poruka: 'Potreban je profil za objavu zadataka.',
     });
     expect(mockRpc).not.toHaveBeenCalled();
   });

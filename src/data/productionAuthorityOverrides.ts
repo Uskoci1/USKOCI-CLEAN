@@ -29,7 +29,7 @@ export const productionAuthorityOverrides: CommandOverrides = {
       .eq('kind', 'REQUESTER')
       .maybeSingle();
     if (profileError || !requesterProfile) {
-      return rpcFailure(profileError, 'REQUESTER_PROFILE_REQUIRED', 'Potreban je profil Naručioca pre objave.');
+      return rpcFailure(profileError, 'REQUESTER_PROFILE_REQUIRED', 'Potreban je profil za objavu zadataka.');
     }
 
     const { data, error } = await supabase.rpc('rpc_ai_publish_need', {

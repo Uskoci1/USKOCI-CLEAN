@@ -46,7 +46,7 @@ type Kandidat = Omit<
 const KANDIDATI: Kandidat[] = [
   { prijavaId: 'p-marko', radnikProfilId: 'radnik-marko', verzija: 2, hash: 'h-marko-2', ime: 'Marko Ilić', inicijali: 'MI', ocenaTekst: '5,0', recenzijeTekst: '11 recenzija', cena: rsd(5200), pokrivaMesta: 2, dolazakTekst: 'Sutra · 17:00', prevozTekst: 'Kombi' },
   { prijavaId: 'p-jelena', radnikProfilId: 'radnik-jelena', verzija: 1, hash: 'h-jelena-1', ime: 'Jelena Marković', inicijali: 'JM', ocenaTekst: '4,9', recenzijeTekst: '32 recenzije', cena: rsd(4800), pokrivaMesta: 2, dolazakTekst: 'Sutra · 16:30', prevozTekst: 'Kombi' },
-  { prijavaId: 'p-nikola', radnikProfilId: 'radnik-nikola', verzija: 1, hash: 'h-nikola-1', ime: 'Nikola Petrović', inicijali: 'NP', ocenaTekst: '—', recenzijeTekst: 'Nov Uskočer', cena: rsd(4500), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Kombi' },
+  { prijavaId: 'p-nikola', radnikProfilId: 'radnik-nikola', verzija: 1, hash: 'h-nikola-1', ime: 'Nikola Petrović', inicijali: 'NP', ocenaTekst: '—', recenzijeTekst: 'Nov na USKOČI', cena: rsd(4500), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Kombi' },
   { prijavaId: 'p-ivana', radnikProfilId: 'radnik-ivana', verzija: 1, hash: 'h-ivana-1', ime: 'Ivana Kostić', inicijali: 'IK', ocenaTekst: '4,9', recenzijeTekst: '27 recenzija', cena: rsd(2300), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Bez vozila' },
   { prijavaId: 'p-ana', radnikProfilId: 'radnik-ana', verzija: 1, hash: 'h-ana-1', ime: 'Ana Vasić', inicijali: 'AV', ocenaTekst: '4,8', recenzijeTekst: '19 recenzija', cena: rsd(4600), pokrivaMesta: 1, dolazakTekst: 'Sutra · 16:00', prevozTekst: 'Automobil' },
 ];
@@ -108,7 +108,7 @@ const POCETNO: Stanje = {
   brojac: 0,
   profil: {
     id: 'moj-profil-1',
-    ime: 'Uskočer (Ti)',
+    ime: 'Ti',
     grad: 'Beograd',
     biografija: 'Ja sam majstor',
     vestine: [],
@@ -500,7 +500,7 @@ export const lazniIzvor: Izvor = {
       radnikProfilId: stanje.profil.id,
       verzija: 1,
       hash,
-      ime: "Uskočer (Ti)",
+      ime: "Ti",
       inicijali: "VI",
       ocenaTekst: "Novo",
       recenzijeTekst: "Nema ocena",
@@ -565,7 +565,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'STALE_REVIEW_REQUIRED',
         naslov: 'Prijava je izmenjena',
-        poruka: 'Uskočer je izmenio prijavu posle tvog pregleda. Proveri je ponovo.',
+        poruka: 'Prijava je izmenjena posle tvog pregleda. Proveri je ponovo.',
       };
     }
 

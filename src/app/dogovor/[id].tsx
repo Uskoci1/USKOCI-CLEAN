@@ -222,11 +222,11 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' }
     : dogovor.stanje === 'COMPLETED' ? { tone: 'green' as const, title: 'Dogovor je završen', body: me ? 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' : null }
     : dogovor.stanje === 'CANCELLED' ? { tone: 'muted' as const, title: 'Dogovor je otkazan.', body: null }
-      : dogovor.stanje === 'AWAITING_REQUESTER' ? { tone: 'warn' as const, title: worker ? 'Čeka se Naručilac' : 'Uskočer je označio da je završio',
+      : dogovor.stanje === 'AWAITING_REQUESTER' ? { tone: 'warn' as const, title: worker ? 'Čeka se potvrda druge strane' : 'Završetak je označen i čeka tvoju potvrdu',
         body: dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` }
-        : { tone: 'green' as const, title: worker ? 'Kada završi, označi završetak' : 'Potvrdi završetak kada je posao obavljen',
-          body: !me ? null : worker ? 'Kada završi, označi završetak. Naručilac tada ima 48h da potvrdi ili prijavi problem.'
-            : 'Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.' };
+        : { tone: 'green' as const, title: worker ? 'Kada završiš, označi završetak' : 'Potvrdi završetak kada je posao obavljen',
+          body: !me ? null : worker ? 'Kada završiš, označi završetak. Druga strana tada ima 48h da potvrdi ili prijavi problem.'
+            : 'Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.' };
   const problemPanel = report ? <WorkspaceCard tone="warn">
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
     <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijava je tvoja.' : 'Prijavila je druga strana.'}</T>
@@ -234,13 +234,13 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     <T variant="body" style={s.ink}>{report.narrative}</T>
     <T variant="meta" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
     {problemAttempt && problemAttempt !== report.narrative ? <T variant="meta" tone="muted">Sačuvan je prvi opis prijave. Tvoj novi opis nije dodat. Za dopunu koristiš Poruke.</T> : null}
-    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
+    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijava sama ne određuje krivicu ili dug.</T> : null}
   </WorkspaceCard> : dogovor.problemOtvoren ? <WorkspaceCard tone="warn">
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
     <T variant="meta" tone="muted">{dogovor.problemReportState === 'LEGACY_UNAVAILABLE'
       ? 'Detalji starije prijave nisu dostupni u ovom prikazu. Postojeća prijava ostaje sačuvana.'
       : 'Detalji prijave trenutno nisu učitani. Osveži status Dogovora da pokušate ponovo.'}</T>
-    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak. Prijava sama ne određuje krivicu ili dug.</T> : null}
+    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijava sama ne određuje krivicu ili dug.</T> : null}
     {dogovor.problemReportState === 'UNAVAILABLE' ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} /> : null}
   </WorkspaceCard> : active && me ? <WorkspaceCard>
     {!problemOpen ? <>
@@ -294,7 +294,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
           {me ? <WorkspaceRows>
             <WorkspaceRow label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
               onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />
-            {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow label="Dobrovoljna lokacija Uskočera" hint="Jedna tačka, samo uz pristanak" disabled={!enabled}
+            {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow label={worker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'} hint="Jedna tačka, samo uz pristanak" disabled={!enabled}
               onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
             {other ? <WorkspaceRow label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
               onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)

@@ -98,7 +98,7 @@ function mapCandidate(raw: any): KandidatProjekcija {
   const profile = raw.publicProfile;
   const ime = typeof profile?.displayName === 'string' && profile.displayName.trim()
     ? profile.displayName.trim()
-    : 'Uskočer';
+    : 'Ime nije dostupno';
   const trust = profile?.trust;
   const rating = typeof trust?.ratingAverage === 'number' && Number.isFinite(trust.ratingAverage) && trust.ratingAverage >= 0 && trust.ratingAverage <= 5 ? trust.ratingAverage : null;
   const reviews = Number.isInteger(trust?.reviewCount) && trust.reviewCount >= 0 ? trust.reviewCount : null;

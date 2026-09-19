@@ -51,7 +51,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
      <V2Action label={showPeople?'Sakrij učesnike':'Učesnici razgovora'} kind="quiet" onPress={()=>{if(current())setShowPeople(x=>!x);}}/>
      {showPeople?<View style={s.stack}>{group.members.map(member=><View key={member.accountId} style={s.member}>
       <View style={s.avatar}><ProfilePhoto profileId={member.profileId} size={44} fallback={<T style={s.initial}>{member.displayName.slice(0,1).toLocaleUpperCase('sr-Latn-RS')}</T>}/></View>
-      <View style={s.memberText}><T style={s.copy}>{member.displayName}</T><T style={s.meta}>{member.role==='REQUESTER'?'Naručilac':'Učesnik'}</T></View>
+      <View style={s.memberText}><T style={s.copy}>{member.displayName}</T><T style={s.meta}>{member.role==='REQUESTER'?'Objavio zadatak':'Učesnik'}</T></View>
      </View>)}{group.members.length===0?<T style={s.meta}>Prikazana je ranije dostupna istorija.</T>:null}</View>:null}
      {group.role==='REQUESTER'&&showPeople?<View style={s.privatePanel}><T style={s.heading}>Tvoji pojedinačni Dogovori</T><T style={s.meta}>Ovo upravljanje vidiš samo vi.</T>
       {(group.management??[]).map(item=><View key={item.agreementId} style={s.stack}><T style={s.copy}>{group.members.find(m=>m.accountId===item.accountId)?.displayName??'Učesnik'} · {status(item.executionState??item.status)}</T>

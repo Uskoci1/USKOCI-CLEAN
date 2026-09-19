@@ -57,7 +57,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);
     if(!live(token))return 'UNKNOWN';
     setIntent(null);setAbsent(false);setClassification(null);setMaterial(false);setTarget(null);setText('');
-    setReceipt(c.receipt.status==='PENDING_ANSWER'?'Pitanje je poslato. Javno se prikazuje kada naručilac odgovori.':c.receipt.status==='ANSWERED_PUBLIC'?'Odgovor je objavljen.':c.receipt.status==='IGNORED'?'Pitanje je sklonjeno iz neodgovorenih.':'Prijava pitanja je zabeležena. To ne znači da je pregled već završen.');
+    setReceipt(c.receipt.status==='PENDING_ANSWER'?'Pitanje je poslato. Javno se prikazuje kada stigne odgovor.':c.receipt.status==='ANSWERED_PUBLIC'?'Odgovor je objavljen.':c.receipt.status==='IGNORED'?'Pitanje je sklonjeno iz neodgovorenih.':'Prijava pitanja je zabeležena. To ne znači da je pregled već završen.');
     return 'FOUND';
   }
   async function consumeAi(i:Exclude<QaIntent,{type:'DISPOSITION'}>,s:QaSubmissionStatus,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
@@ -184,7 +184,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   const historical=rows.filter(q=>q.needRevision!==context?.needRevision);
   const renderQuestion=(q:Question,history=false)=><SettingsPanel key={q.questionId}>
     <T variant="label" tone="muted">{history?`Ranija verzija zadatka · ${q.needRevision}`:'Anonimno pitanje'}</T><T variant="bodyStrong">{q.questionText}</T>
-    {q.answerText!==null?<><T variant="label" tone="muted">Odgovor naručioca{q.edited?' · izmenjen':''}</T><T>{q.answerText}</T></>:null}
+    {q.answerText!==null?<><T variant="label" tone="muted">Odgovor{q.edited?' · izmenjen':''}</T><T>{q.answerText}</T></>:null}
     {'status'in q&&q.status==='IGNORED'?<T tone="muted">Sklonjeno iz neodgovorenih</T>:null}
     {'status'in q&&q.status==='REPORTED'?<T tone="muted">Prijava zabeležena</T>:null}
     {!history&&context?.mode==='OWNER'&&'status'in q&&(q.status==='PENDING_ANSWER'||q.status==='ANSWERED_PUBLIC')?<>
@@ -195,7 +195,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
 
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
     <SettingsScreen title="Pitanja o zadatku" onBack={()=>{if(live(focus.current))onBack();}}>
-      <SettingsIntro kicker="PRE DOGOVORA" title={context?.title??'Razjasni zadatak.'}>Pitanja su anonimna. Javno se prikazuju pitanja sa odgovorom naručioca. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
+      <SettingsIntro kicker="PRE DOGOVORA" title={context?.title??'Razjasni zadatak.'}>Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
       {busy?<ActivityIndicator color={sys.color.green} accessibilityLabel="Proveravamo pitanja"/>:null}
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
@@ -206,7 +206,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
         {classification?.canCancel?<SettingsAction label="Odustani od ovog slanja" kind="quiet" disabled={busy} onPress={()=>void cancel()}/>:null}
       </SettingsPanel>:null}
       {context?.mode==='PUBLIC'&&!context.canAsk?<SettingsPanel soft><T>{!context.activeWorker?'Za postavljanje pitanja potreban je aktivan Radni profil.':context.ratePolicyState==='NOT_READY'?'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.':'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}</T></SettingsPanel>:null}
-      {!intent&&(target||context?.canAsk)?<SettingsPanel soft><T variant="heading">{target?'Odgovor naručioca':'Tvoje pitanje'}</T>
+      {!intent&&(target||context?.canAsk)?<SettingsPanel soft><T variant="heading">{target?'Tvoj odgovor':'Tvoje pitanje'}</T>
         {target?<T>{target.questionText}</T>:null}
         {target?<T tone="muted">Odgovor razjašnjava postojeće uslove. Za promenu uslova vrati se na zadatak i izmeni ga kroz pregled i objavu.</T>:null}
         <TextInput accessibilityLabel={target?'Tekst odgovora':'Tekst pitanja'} value={text} onChangeText={setText} editable={!busy} multiline textAlignVertical="top" style={input}/>

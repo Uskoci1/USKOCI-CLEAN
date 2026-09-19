@@ -54,8 +54,8 @@ test('a confirmed Agreement without server permission leads with the conversatio
   expect(brand()).toEqual(['Otvori poruke']); expect(labels().filter(label => label === 'Otvori poruke')).toHaveLength(1);
   const copy = texts();
   expect(copy).toContain('Dogovoreno'); expect(copy).toContain('Sledeći korak'); expect(copy).toContain('Potvrdi završetak kada je posao obavljen');
-  expect(copy).toContain('Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga Uskočer označi.');
-  expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Dobrovoljna lokacija Uskočera', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
+  expect(copy).toContain('Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.');
+  expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Trenutna lokacija osobe koja dolazi', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
   // The timeline is progressive disclosure: collapsed until the user asks for it.
   expect(copy).not.toContain('Dogovor je potvrđen');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Tok Dogovora' }).props.onPress());
@@ -70,12 +70,12 @@ test('when the server allows completion, completion is the brand action and the 
 test('a worker awaiting the requester sees the wait and the deadline; no completion action is offered', async () => {
   await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer'));
   const copy = texts();
-  expect(copy).toContain('Čeka se Naručilac'); expect(copy).toContain('Bez odgovora se Dogovor zatvara sam.'); expect(copy).toContain('Čeka se potvrda završetka');
+  expect(copy).toContain('Čeka se potvrda druge strane'); expect(copy).toContain('Bez odgovora se Dogovor zatvara sam.'); expect(copy).toContain('Čeka se potvrda završetka');
   expect(brand()).toEqual(['Otvori poruke']); expect(labels()).not.toContain('Završio sam');
 });
 test('a completed Agreement leads with the review; a cancelled one offers only the conversation', async () => {
   await render(base({ stanje: 'COMPLETED' }));
-  expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Dogovor je završen'); expect(labels()).not.toContain('Dobrovoljna lokacija Uskočera');
+  expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Dogovor je završen'); expect(labels()).not.toContain('Trenutna lokacija osobe koja dolazi'); expect(labels()).not.toContain('Podeli svoju trenutnu lokaciju');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju' }).props.onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: mockAgreementId } });
   await act(async () => tree.unmount());

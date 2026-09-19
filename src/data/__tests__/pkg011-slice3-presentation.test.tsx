@@ -74,7 +74,7 @@ test('the public Task leads with status, title, price and people, offers the req
   expect(copy).toContain('Traži ponude'); expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('Popunjeno 0 od 2 mesta');
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
   expect(brand()).toEqual(['Sastavi prijavu']);
-  await act(async () => byLabel('Javni profil naručioca').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
+  await act(async () => byLabel('Pogledaj javni profil').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Sastavi prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
   expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false });
 });

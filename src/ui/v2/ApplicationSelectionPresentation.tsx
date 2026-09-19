@@ -148,12 +148,12 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
         <TextInput accessibilityLabel="Kratka napomena" multiline maxLength={4000} value={draft.note} editable={!disabled} style={[s.input, s.multiline]}
           onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
       </Field>
-      <T variant="meta" tone="muted">Napiši ono što pomaže Naručiocu da razume tvoju ponudu.</T>
+      <T variant="meta" tone="muted">Napiši ono što pomaže da se tvoja ponuda razume.</T>
     </View>
     <ErrorMessage error={error} />
     {error && !pending ? <V2Action label="Osveži Zadatak" onPress={refresh} disabled={busy} /> : null}
     {pending && !confirmed ? <T variant="meta" tone="muted">Sačuvana je ista ponuda za proveru ishoda. Ponavljanje koristi njen prvobitni termin, cenu i broj ljudi.</T> : null}
-    {confirmed ? <View style={[s.card, s.cardSuccess]}><T variant="title" style={s.ink}>Prijava je poslata.</T><T variant="body" tone="muted">Naručilac može da izabere ovu konkretnu ponudu. Izbor odmah sklapa Dogovor.</T></View> : null}
+    {confirmed ? <View style={[s.card, s.cardSuccess]}><T variant="title" style={s.ink}>Prijava je poslata.</T><T variant="body" tone="muted">Onaj ko je objavio zadatak može da izabere ovu konkretnu ponudu. Izbor odmah sklapa Dogovor.</T></View> : null}
     {reset ? <V2Action label="Pregledaj uslove i uredi novu ponudu" onPress={reset} disabled={busy} /> : null}
     {editingTime && !disabled ? <IntervalEditor draft={draft} timezone={need.taskTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
       close={() => setEditingTime(false)} accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
@@ -184,7 +184,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
       ListEmptyComponent={<View style={s.card}><T variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
       renderItem={({ item: k }) => compare ? <View style={s.comparison}>
         <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{k.ime}</T><T variant="meta" style={{ color: candidateTone(k) }}>{candidateState(k)}</T>
-        <T variant="meta" tone="muted" numberOfLines={1}>{k.ocenaTekst === '—' ? 'Nov Uskočer' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
+        <T variant="meta" tone="muted" numberOfLines={1}>{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
         <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
         <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{peopleText(k.pokrivaMesta)}</T></View>
         <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T><T variant="meta" style={s.ink}>{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
@@ -195,7 +195,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
             a price and a monogram: no face, no rating, nothing they said they can do. */}
         <View style={s.row}><View style={s.avatar}><ProfilePhoto profileId={k.radnikProfilId} size={44} initial={k.inicijali} /></View>
           <View style={s.grow}><T variant="heading" style={s.ink}>{k.ime}</T>
-            <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Nov Uskočer' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
+            <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
             <T variant="meta" tone="muted">{k.pokrivaMesta} {k.pokrivaMesta === 1 ? 'osoba · dolazi samostalno' : 'osobe · dolazi tim'}</T></View>
           <View style={s.stateChip}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View></View>
         <View style={s.row}><T style={[s.price, s.grow]}>{k.cena.prikaz}</T><T variant="meta" tone="muted">ukupno · {dolaziOsoba(k.pokrivaMesta)}</T></View>
@@ -268,11 +268,11 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     </View>
     {review || pending ? <View style={s.warnCard}><T variant="title" style={s.ink}>Jedan izbor sklapa Dogovor.</T><T variant="body" style={s.ink}>
       Izborom prihvataš ovu ponudu: {candidate.cena.prikaz} ukupno, {dolaziOsoba(candidate.pokrivaMesta)}. Dogovor odmah važi za obe strane.</T>
-      <T variant="meta" tone="muted">Tvoji paralelni zadaci ostaju odvojeni. Termin Uskočera ponovo se proverava pri izboru.</T></View> : null}
+      <T variant="meta" tone="muted">Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.</T></View> : null}
     {confirmed ? <T variant="title" style={s.ink}>Dogovor je sklopljen.</T> : candidate.stanje === 'SELECTED' && !pending ? <T variant="body" style={s.ink}>Ova ponuda je izabrana.</T>
       : !candidate.mozeIzabrati && !pending ? <T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T> : null}
     <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
-    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Uskočer" />
+    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Prijavio se" />
   </SelectionFrame>;
 }
 const s = StyleSheet.create({

@@ -255,7 +255,7 @@ describe('D03 actual route and scoped resource integration', () => {
       { accountId: mockAccount, accountRevision: 0 });
     expect(texts()).toContain('Problem je prijavljen'); expect(texts()).toContain(narrative);
     expect(texts()).toContain('Prijava je tvoja.');
-    expect(texts()).toContain('Automatski završetak je zaustavljen. Naručilac i dalje može potvrditi završetak.');
+    expect(texts()).toContain('Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi.');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Prijavi problem' })).toHaveLength(0);
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
   });
@@ -607,7 +607,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     expect(button('Završio sam').props.disabled).toBe(true);
     mockRead.mockResolvedValue({ ...asWorker, stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z', radnje: none });
     await act(async () => button('Osveži status Dogovora').props.onPress());
-    expect(texts()).toContain('Čeka se Naručilac');
+    expect(texts()).toContain('Čeka se potvrda druge strane');
     absent('Završio sam');
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledTimes(1);
   });

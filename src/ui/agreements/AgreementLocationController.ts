@@ -43,7 +43,7 @@ export class AgreementLocationController {
   }
   private confirm(state:'COMMITTED'|'CANCELLED'){
     this.update({phase:'CONFIRMED',message:state==='CANCELLED'?'Prvobitni zahtev je zaustavljen.'
-      :this.state.journal?.kind==='SHARE'?'Jedna lokacija je podeljena u ovom Dogovoru.':'Molba za lokaciju je poslata. Uskočer sam bira da li želi da je podeli.'});
+      :this.state.journal?.kind==='SHARE'?'Jedna lokacija je podeljena u ovom Dogovoru.':'Molba za lokaciju je poslata. Druga strana sama bira da li želi da je podeli.'});
   }
   refresh=()=>this.state.phase==='ERROR'?this.load():this.run(async()=>{if(this.state.journal)await this.recover();else{this.update({phase:'LOADING',context:null});await this.readContext();}});
   acknowledge=()=>this.run(async()=>{if(this.state.phase!=='CONFIRMED')return;

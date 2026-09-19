@@ -45,7 +45,7 @@ afterEach(async()=>{await act(async()=>tree?.unmount());tree=undefined;expect(mo
 it('requester asks without GPS and sees optional worker consent copy before any action',async()=>{
  mockIntent='narucilac';mockService.read.mockResolvedValue(ok(context('REQUESTER')));await render();expect(text()).toContain('podeljena dobrovoljno');
  expect(mockCapture).not.toHaveBeenCalled();expect(tree!.root.findAllByProps({label:'Podeli jednu trenutnu lokaciju'})).toHaveLength(0);
- await tap('Zatraži lokaciju Uskočera');expect(mockCapture).not.toHaveBeenCalled();expect(mockService.write).toHaveBeenCalledTimes(1);expect(mockService.write.mock.calls[0][1]).toBeNull();
+ await tap('Zatraži trenutnu lokaciju');expect(mockCapture).not.toHaveBeenCalled();expect(mockService.write).toHaveBeenCalledTimes(1);expect(mockService.write.mock.calls[0][1]).toBeNull();
 });
 it('offers one explicit share, deduplicates retained taps, then exposes only read/cancel for unknown outcome',async()=>{
  await render();const gate=deferred<unknown>();mockCapture.mockReturnValue(gate.promise);const share=action('Podeli jednu trenutnu lokaciju').onPress;
@@ -63,7 +63,7 @@ it('renders a static disabled last-shared map with explicit capture and server t
 it('closed server context reveals no action or old point',async()=>{
  mockService.read.mockResolvedValue(ok({...context(),canShare:false}));await render();expect(text()).toContain('aktivnog fizičkog Dogovora');
  expect(tree!.root.findAllByType('PinMap' as never)).toHaveLength(0);expect(tree!.root.findAllByProps({label:'Podeli jednu trenutnu lokaciju'})).toHaveLength(0);
- expect(tree!.root.findAllByProps({label:'Zatraži lokaciju Uskočera'})).toHaveLength(0);
+ expect(tree!.root.findAllByProps({label:'Zatraži trenutnu lokaciju'})).toHaveLength(0);
 });
 it('restart reads unknown original request and a committed cancellation race is shown as shared',async()=>{
  mockStorage.getItem.mockResolvedValue(JSON.stringify(journal));await render();expect(mockCapture).not.toHaveBeenCalled();expect(mockService.write).not.toHaveBeenCalled();
