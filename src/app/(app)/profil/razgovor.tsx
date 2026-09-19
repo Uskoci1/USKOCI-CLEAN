@@ -9,7 +9,7 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { workerAvailabilityPatch } from '../../../lib/workerAiAvailabilityPatch';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { ulogaSada, useUloga } from '../../../store/uloga';
+
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { VoiceComposer } from '../../../ui/aiFirst/VoiceComposer';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
@@ -24,13 +24,13 @@ type Panel='chat'|'review'|'manual'|'availability';
 type Attempt={id:string;text:string|null};
 const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitaj svoj radni profil.'});
 export default function WorkerConversationRoute(){
-  const session=useSesija(),intent=useUloga(),params=useLocalSearchParams<{conversationId?:string|string[]}>();
+  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[]}>();
   const cid=typeof params.conversationId==='string'?params.conversationId:undefined;
-  return <OwnedWorkerConversation key={`${session.user?.id}:${session.accountRevision}:${intent}:${cid??''}`}
+  return <OwnedWorkerConversation key={`${session.user?.id}:${session.accountRevision}:${cid??''}`}
     initialId={cid} invalid={params.conversationId!==undefined&&(!cid||!uuid(cid))}/>;
 }
 function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:boolean}){
-  const {user,accountRevision}=useSesija(),accountId=user?.id,intent=useUloga();
+  const {user,accountRevision}=useSesija(),accountId=user?.id;
   const cid=useRef<string|null>(initialId??null),[openKey]=useState(noviUuidZahtevId);
   const focus=useRef<object|null>(null),active=useRef(!AppState.currentState||AppState.currentState==='active');
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
@@ -46,8 +46,8 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     active.current=state==='active';setForeground(active.current);abort.current?.abort();setStream('');
     if(active.current){setResuming(true);void refreshRef.current().finally(()=>{if(active.current)setResuming(false);});}
   });return()=>{subscription.remove();active.current=false;abort.current?.abort();};},[]);
-  const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision&&ulogaSada()===intent,
-    [accountId,accountRevision,intent]);
+  const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision,
+    [accountId,accountRevision]);
   const read=useCallback(async():Promise<Ishod<WorkerAiSnapshot>>=>{
     const scope=focus.current;if(invalid||!scope||!owns()||!active.current)return unavailable();
     // Restore before opening a conversation or sending anything. Storage holds

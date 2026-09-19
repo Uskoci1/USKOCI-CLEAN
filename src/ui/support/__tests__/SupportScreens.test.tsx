@@ -41,7 +41,7 @@ function detail(): SupportDetail { return { accountId: A, case: { id: C, caseNum
   decisions: [{ id: D, caseId: C, caseRevision: 2, outcome: 'REJECTED', reasonCode: 'REVIEWED', explanation: 'Pregledana odluka', effect: 'NONE', evidenceIds: [], priorDecisionId: null, createdAt: time, reviewType: 'INITIAL' }],
   appeals: [], evidence: [], nextAfterSequence: '2', authoritative: true }; }
 let tree: ReactTestRenderer, screen: 'NEW' | 'DETAIL' | 'INBOX' = 'NEW', reference: SupportReference | null | 'INVALID' = null, routeKey = true;
-const element = () => <React.Fragment key={routeKey ? `${mockSession.user.id}:${mockSession.accountRevision}:${mockIntent}` : 'MOUNTED'}>
+const element = () => <React.Fragment key={routeKey ? `${mockSession.user.id}:${mockSession.accountRevision}` : 'MOUNTED'}>
   {screen === 'NEW' ? <SupportNewScreen reference={reference} /> : screen === 'DETAIL' ? <SupportDetailScreen caseId={C} /> : <SupportInboxScreen />}
 </React.Fragment>;
 const render = async () => { await act(async () => { tree = create(element()); }); };
@@ -119,13 +119,20 @@ it('restores only opaque unknown state after remount and does not replay the pre
   expect(text()).toContain('Potvrda još nije pronađena'); expect(mockService.submit).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('Action' as React.ElementType).some(n => /Ponovi|Ponovo pošalji/.test(n.props.label))).toBe(false);
 });
-it.each(['blur', 'background', 'account ABA', 'intent'] as const)('clears private form and fences retained submit on %s', async change => {
+it.each(['blur', 'background', 'account ABA'] as const)('clears private form and fences retained submit on %s', async change => {
   await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Privatni RAM tekst'); const retained = action('Pošalji privatni zahtev').onPress;
   if (change === 'blur') { mockFocused = false; await update(); }
   else if (change === 'background') await act(async () => { mockAppState = 'background'; mockListeners.forEach(fn => fn('background')); });
-  else { if (change === 'account ABA') mockSession = { user: { id: A }, accountRevision: 3 }; else mockIntent = 'uskocer'; await update(); }
+  else { mockSession = { user: { id: A }, accountRevision: 3 }; await update(); }
   await act(async () => retained()); expect(mockService.submit).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Opis zahteva' }).every(n => n.props.value === '')).toBe(true);
+});
+// Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
+it('a flip of the retired app mode keeps the private form and lets the retained submit go out', async () => {
+  await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Privatni RAM tekst'); const retained = action('Pošalji privatni zahtev').onPress;
+  mockIntent = 'uskocer'; await update();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Opis zahteva' }).some(n => n.props.value === 'Privatni RAM tekst')).toBe(true);
+  await act(async () => retained()); expect(mockService.submit).toHaveBeenCalledTimes(1);
 });
 it.each(['account', 'account ABA', 'blur/focus', 'context'] as const)('a reused mounted screen resets every local draft on %s without relying on its route key', async change => {
   routeKey = false; reference = { kind: 'AGREEMENT', id: C, revision: 2 }; await render();

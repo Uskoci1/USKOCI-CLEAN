@@ -26,26 +26,27 @@ const agreement = (id: string, state: DogovorProjekcija['stanje'], requester = t
   kontakt: { mojTelefonPodeljen: false, njihovTelefon: 'PRIVATE_PHONE', lokacijaPostoji: true, tacnaLokacija: 'PRIVATE_ADDRESS', emailNijeDeljen: true },
   chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null,
 });
-let rows: DogovorProjekcija[], loading: boolean, error: boolean, requester: boolean, tree: ReactTestRenderer;
+let rows: DogovorProjekcija[], loading: boolean, error: boolean, tree: ReactTestRenderer;
 const open = jest.fn(), refresh = jest.fn(), tasks = jest.fn();
 function Screen() {
   const [section, setSection] = useState<AgreementCollectionSection>('active'), [confirmationOnly, setConfirmationOnly] = useState(false);
-  return <AgreementCollectionPresentation items={rows} loading={loading} error={error} requester={requester}
+  return <AgreementCollectionPresentation items={rows} loading={loading} error={error}
     section={section} confirmationOnly={confirmationOnly} onSection={setSection} onConfirmationOnly={setConfirmationOnly}
-    onOpen={open} onRefresh={refresh} onTasks={tasks} onCalendar={() => {}} onProfile={() => {}} />;
+    onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />;
 }
 const render = async () => act(async () => { tree = create(<Screen />); });
 const tap = async (label: string) => act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onPress());
 const titles = () => tree.root.findAllByType('Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label?.startsWith('Otvori Dogovor'));
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {}); loading = error = false; requester = false;
+  jest.spyOn(console, 'error').mockImplementation(() => {}); loading = error = false;
   rows = [agreement('confirmed', 'CONFIRMED'), agreement('waiting-mine', 'AWAITING_REQUESTER'), agreement('waiting-other', 'AWAITING_REQUESTER', false), agreement('done', 'COMPLETED'), agreement('cancelled', 'CANCELLED')];
   open.mockClear(); refresh.mockClear(); tasks.mockClear();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('active and history preserve both actual participant roles; attention means my requester confirmation', async () => {
-  await render(); expect(titles()).toHaveLength(3); expect(texts()).toContain('radi za tebe'); expect(texts()).toContain('naručuje');
+  await render(); expect(titles()).toHaveLength(3); // One list holds both sides of one account, and each row says which side from its own participants.
+  expect(texts()).toContain('Objavio si'); expect(texts()).toContain('Uskočio si');
   await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
   await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
   await tap('Svi'); expect(titles()).toHaveLength(5);
@@ -62,6 +63,6 @@ test.each(['loading', 'error'])('%s hides stale private rows and error retry use
 });
 test('empty history still offers a real task route, with no invented review or unread controls', async () => {
   rows = []; await render(); await tap('Istorija'); expect(texts()).toContain('Još nemaš Dogovor');
-  await act(async () => tree.root.findByProps({ label: 'Pogledaj Zadatke' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
+  await act(async () => tree.root.findByProps({ label: 'Idi na Početnu' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
   expect(texts()).not.toMatch(/Oceni|nepročitan/);
 });

@@ -7,7 +7,7 @@ import { applicationCommandJournal } from '../../../../data/applicationCommandJo
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { useIzvor } from '../../../../store/uloga';
 import { ApplicationSelectionPresentation, SelectionUnavailable, type ApplicationDraft } from '../../../../ui/v2/ApplicationSelectionPresentation';
 
 type Receipt = { prijavaId: string; verzija: number; hash: string };
@@ -16,13 +16,13 @@ type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opport
 export default function Prijava() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
-  const izvor = useIzvor(), router = useRouter(), role = useUloga();
+  const izvor = useIzvor(), router = useRouter();
   const { user, accountRevision } = useSesija();
   // One uncertain intent survives a retained tab, but never an A→B→A transition.
   // PKG-006: the same intent also survives remount/cold restore through the durable
   // per-account/Need command journal; only its own server outcome retires it.
   const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false,
-    journaling: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision, role]);
+    journaling: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
@@ -51,7 +51,7 @@ export default function Prijava() {
         // explicit exit, never a replay source.
         try {
           const stored = await applicationCommandJournal.load(user.id, id);
-          const owned = sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision && ulogaSada() === role;
+          const owned = sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision;
           if (generation !== session.readRevision || !owned) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
           if (stored.state === 'CORRUPT') {
             await applicationCommandJournal.discard(user.id, id);
@@ -78,7 +78,7 @@ export default function Prijava() {
   }, [id, izvor, session]);
   const editor = useOwnedEditor(read), data = editor.data;
   const focusToken = session.focusToken, readRevision = session.readRevision;
-  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision && ulogaSada() === role;
+  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
   const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
   const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
   const back = () => {

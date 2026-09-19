@@ -2,13 +2,13 @@ import { memo, useEffect, useRef, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, MapPin } from 'phosphor-react-native';
-import type { MojaPrijavaProjekcija, Uloga } from '../../contracts/projections';
+import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import { needPeopleText, needScheduleText } from '../../data/needDetailPresentation';
 import { Appear, useAppear } from '../system/Appear';
-import { ScreenHeader } from '../system/ScreenHeader';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, card, intentLabel, sys } from '../system/tokens';
+import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { V2Icon } from './icons';
@@ -38,8 +38,6 @@ type Props = {
   onAgreement: (p: MojaPrijavaProjekcija) => void; onRetry: () => void; onReset: () => void;
   /** The task the application belongs to. Without it a worker who applied cannot get back to it. */
   onTask: (p: MojaPrijavaProjekcija) => void;
-  /** Which intent the user is in; shown in the header eyebrow. */
-  intent?: Uloga;
   /** An application arrived at from a notification, brought into view once. */
   focusId?: string | null;
 };
@@ -108,7 +106,7 @@ export function MyApplicationsPresentation(props: Props) {
             <V2Action label="Istraži zadatke" onPress={props.onExplore} style={brandAction} /></View>}
   </View>;
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <ScreenHeader eyebrow={intentLabel(props.intent ?? 'uskocer')} title="Prijave" onProfile={props.onProfile} />
+    <DetailTopBar eyebrow="Moje aktivnosti" title="Moje prijave" onBack={props.onBack} />
     {!props.unavailable && !props.loading ? <Segmented scroll style={s.tabs} value={props.tab} onChange={props.onTab}
       options={[{ key: 'all', label: 'Sve', badge: badge('all') }, { key: 'attention', label: 'Čeka te', badge: badge('attention') },
         { key: 'active', label: 'Aktivne', badge: badge('active') }, { key: 'finished', label: 'Završene', badge: badge('finished') }] as const} /> : null}

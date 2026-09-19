@@ -5,7 +5,7 @@ import type { RadnikProfilProjekcija } from '../../../contracts/projections';
 import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../../store/uloga';
+import { useIzvor } from '../../../store/uloga';
 import { T } from '../../../ui/Text';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
@@ -23,14 +23,14 @@ async function bounded<T>(request: () => Promise<T>, milliseconds: number): Prom
   finally { if (timer !== undefined) clearTimeout(timer); }
 }
 export default function ProfilRadnikEkran() {
-  const session = useSesija(), intent = useUloga();
-  return <OwnedWorkerProfile key={`${session.user?.id}:${session.accountRevision}:${intent}`}
+  const session = useSesija();
+  return <OwnedWorkerProfile key={`${session.user?.id}:${session.accountRevision}`}
     accountId={session.user?.id} accountRevision={session.accountRevision} />;
 }
 function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string; accountRevision: number }) {
-  const izvor = useIzvor(), intent = useUloga();
+  const izvor = useIzvor();
   const owns = useCallback(() => !!accountId && sesijaSada().user?.id === accountId &&
-    sesijaSada().accountRevision === accountRevision && ulogaSada() === intent, [accountId, accountRevision, intent]);
+    sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
   const lifecycle = useRef({ focus: null as object | null, active: !AppState.currentState || AppState.currentState === 'active', generation: 0 });
   const [foreground, setForeground] = useState(lifecycle.current.active), [resumeRequired, setResumeRequired] = useState(false);
   const [focusEpoch, setFocusEpoch] = useState(0);

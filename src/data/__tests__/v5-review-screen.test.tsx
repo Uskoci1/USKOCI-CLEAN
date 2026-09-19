@@ -212,14 +212,13 @@ it('shows publication only after the current owned Need revision and published s
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
-it.each(['blur', 'account ABA', 'account switch', 'intent', 'route'] as const)('rejects retained publish and late callbacks after %s', async change => {
+it.each(['blur', 'account ABA', 'account switch', 'route'] as const)('rejects retained publish and late callbacks after %s', async change => {
   const held = deferred(); mockAccept.mockReturnValueOnce(held.promise); await render(); const retained = publish().onPress;
   await act(async () => { void retained(); });
   if (change === 'blur') await blur();
   else {
     if (change === 'account ABA') mockSession = { user: { id: OWNER }, accountRevision: 3 };
     if (change === 'account switch') mockSession = { user: { id: OTHER }, accountRevision: 2 };
-    if (change === 'intent') mockIntent = 'uskocer';
     if (change === 'route') mockParams = { conversationId: OTHER };
     await update();
   }
@@ -593,4 +592,12 @@ it('does not offer a draft while the review cannot be accepted, or when it edits
   await act(async () => tree.unmount());
   mockPrepare.mockResolvedValue(ok({ ...review(), location: location('Liman'), draftId: NEED, draftRevision: 1 })); await render();
   expect(tree.root.findAllByProps({ label: 'Sačuvaj nacrt' })).toHaveLength(0);
+});
+// Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
+it('a flip of the retired app mode retires nothing: a publish in flight still lands on this review', async () => {
+  const held = deferred(); mockAccept.mockReturnValueOnce(held.promise); await render(); const retained = publish().onPress;
+  await act(async () => { void retained(); }); mockIntent = 'uskocer'; await update();
+  const reads = mockRead.mock.calls.length;
+  await act(async () => { held.resolve(ok(command('PUBLISHED'))); });
+  expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockRead.mock.calls.length).toBeGreaterThan(reads);
 });

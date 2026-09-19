@@ -2,27 +2,25 @@ import { useCallback, useMemo } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarBlank, Check, Clock, MapPin } from 'phosphor-react-native';
-import type { DogovorProjekcija, Uloga } from '../../contracts/projections';
+import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { dogovora } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, card, intentLabel, sys } from '../system/tokens';
+import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { agreementStateText, peopleText } from './AgreementPresentation';
 import { V2Action } from './V2Action';
 
 export type AgreementCollectionSection = 'active' | 'history' | 'all';
 type Props = {
-  items: readonly DogovorProjekcija[]; loading: boolean; refreshing?: boolean; error: boolean; requester: boolean;
+  items: readonly DogovorProjekcija[]; loading: boolean; refreshing?: boolean; error: boolean;
   section: AgreementCollectionSection; confirmationOnly: boolean;
   onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void;
   onRefresh: () => void; onOpen: (agreement: DogovorProjekcija) => void;
-  onCalendar: () => void; onProfile: () => void; onTasks: () => void;
-  /** Which intent the user is in; shown in the header. The collection itself always holds both roles. */
-  intent?: Uloga;
+  onCalendar: () => void; onProfile: () => void; onHome: () => void;
 };
 const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'history', label: 'Istorija' }, { key: 'all', label: 'Svi' }] as const;
 const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER';
@@ -42,7 +40,9 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
   const status = settled || item.stanje === 'AWAITING_REQUESTER' ? agreementStateText(item.stanje) : null;
   const tone = item.stanje === 'CANCELLED' ? sys.color.muted : item.stanje === 'AWAITING_REQUESTER' ? sys.color.warn : sys.color.green;
   const dot = item.stanje === 'CANCELLED' ? sys.color.lineStrong : item.stanje === 'AWAITING_REQUESTER' ? sys.color.orange : sys.color.green;
-  const relation = mine?.uloga === 'narucilac' ? 'radi za tebe' : mine?.uloga === 'uskocer' ? 'naručuje' : '';
+  // What I am to this Dogovor is read from this Dogovor's own participants (owner's wording,
+  // 2026-09-19). One list holds both sides of one account; nothing about the app says which.
+  const relation = mine?.uloga === 'narucilac' ? 'Objavio si' : mine?.uloga === 'uskocer' ? 'Uskočio si' : '';
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${item.naslov}`} onPress={onOpen}
     haptic="select" scaleTo={0.986} style={[card, attention && s.attentionCard, settled && s.settledCard]}>
     {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
@@ -86,19 +86,17 @@ export function AgreementCollectionPresentation(props: Props) {
     {loading ? <><SkeletonList count={3} rows={2} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Dogovore…</T></>
       : error ? <View style={s.state}><T style={s.stateTitle}>Dogovore trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
         <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledaj sve saradnje iz obe uloge.</T>
+        : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledaj sve svoje saradnje, i one koje si objavio i one u koje si uskočio.</T>
           <V2Action label="Prikaži sve Dogovore" onPress={() => { props.onSection('all'); props.onConfirmationOnly(false); }} /></View>
-          : <View style={s.state}><T style={s.stateTitle}>Još nemaš Dogovor</T><T style={s.stateBody}>{props.requester
-            ? 'Kada izabereš nekoga iz Prijava, Dogovor se pojavljuje ovde.'
-            : 'Kada tvoja Prijava bude izabrana, Dogovor se pojavljuje ovde.'}</T>
-            <V2Action label="Pogledaj Zadatke" onPress={props.onTasks} style={brandAction} /></View>}
+          : <View style={s.state}><T style={s.stateTitle}>Još nemaš Dogovor</T><T style={s.stateBody}>Kada izabereš nekoga za svoj zadatak, ili kada tvoja prijava bude izabrana, Dogovor se pojavljuje ovde.</T>
+            <V2Action label="Idi na Početnu" onPress={props.onHome} style={brandAction} /></View>}
   </View>;
   return <SafeAreaView edges={['top']} style={s.screen}>
     {/* The heading that used to sit here said "Aktivni dogovori" beside a segment already reading
         "Aktivni", over an empty state that says it better still. The count belongs with what it
         counts. The segment keeps this row to itself so no section is ever cut through the middle. */}
-    <ScreenHeader eyebrow={props.intent ? intentLabel(props.intent) : 'Obe uloge'} title="Dogovori" onProfile={props.onProfile}
-      right={!props.requester ? <HeaderIconButton label="Radni raspored (JA MOGU)" icon={CalendarBlank} onPress={props.onCalendar} /> : undefined} />
+    <ScreenHeader eyebrow="Tvoje saradnje" title="Dogovori" onProfile={props.onProfile}
+      right={<HeaderIconButton label="Kalendar obaveza" icon={CalendarBlank} onPress={props.onCalendar} />} />
     <View style={s.controls}>
       <Segmented options={sections} value={section} onChange={props.onSection} />
       {waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}

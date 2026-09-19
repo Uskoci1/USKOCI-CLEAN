@@ -81,11 +81,18 @@ it('marks only truly viewable rows and retains SafeArea/whole-screen keyboard av
  expect(mockService.markRead).toHaveBeenCalledWith(G,[M],{accountId:A,accountRevision:1});
  expect(tree!.root.findByType('KeyboardAvoidingView' as never).parent!.type).toBe('SafeAreaView');expect(tree!.root.findByType('TextInput' as never).props.multiline).toBe(true);
 });
-it.each(['blur','account','ABA','role','background'])('fences retained send/read-marker callbacks and late responses after %s',async kind=>{
+it.each(['blur','account','ABA','background'])('fences retained send/read-marker callbacks and late responses after %s',async kind=>{
  await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=action('Pošalji poruku grupi').onPress,visible=tree!.root.findByType('List' as never).props.onViewableItemsChanged;
  await act(async()=>old());await act(async()=>{if(kind==='blur')mockFocused=false;else if(kind==='account')mockSession={user:{id:B},accountRevision:2};else if(kind==='ABA')mockSession={user:{id:A},accountRevision:3};
- else if(kind==='role')mockIntent='narucilac';else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
+ else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
  await act(async()=>{gate.resolve();old();visible({viewableItems:[{item:message,isViewable:true}]});});expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
+});
+// Owner decision 1 (2026-09-19): the app has no global mode, and a Dogovor works the same for both of its
+// sides from the relation it carries itself. 'role' used to be a row of the table above.
+it('a flip of the retired app mode retires nothing: the retained send still goes out to this group',async()=>{
+ await render();await change('Prvobitna poruka');const old=action('Pošalji poruku grupi').onPress;
+ await act(async()=>{mockIntent='narucilac';tree!.update(page());});
+ await act(async()=>old());expect(mockService.send).toHaveBeenCalledTimes(1);
 });
 it('entry becomes reachable only after authoritative group context and routes exact Agreement identity',async()=>{
  entry=true;await render();await tap('Grupni razgovor · 1 nepročitanih');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]/grupa',params:{id:ID}});

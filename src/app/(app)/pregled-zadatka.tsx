@@ -15,7 +15,7 @@ import { uuid } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { ulogaSada, useUloga } from '../../store/uloga';
+
 import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { V2Action } from '../../ui/v2/V2Action';
@@ -49,7 +49,7 @@ export default function ReviewedTaskRoute() {
 }
 
 function ReviewedTask({ conversationId }: { conversationId: string | null }) {
-  const { user, accountRevision } = useSesija(), intent = useUloga();
+  const { user, accountRevision } = useSesija();
   const accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
@@ -65,11 +65,11 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const resolver = useMemo(() => createProductionLocationResolver(), [accountId, accountRevision, conversationId]);
   useFocusEffect(useCallback(() => { const scope = {}; focus.current = scope; navigating.current = false;
     return () => { if (focus.current === scope) focus.current = null; setEdit(null); setLocationEditor(null); setDeadlineEditor(false); resolver.cancel(); };
-  }, [accountId, accountRevision, intent, resolver]));
+  }, [accountId, accountRevision, resolver]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const scope = focus.current;
     const current = () => scope !== null && scope === focus.current && !!accountId
-      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     if (!conversationId || !current()) return changed();
     const latest = pending.current
       ? await aiTaskReviewClientService.read(pending.current.review.reviewId)
@@ -112,13 +112,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     if (locationConflict) setLocationEditor(null);
     pending.current = null;
     return { ok: true, podatak: { review: prepared.podatak, command: null, publishedReadback: false, locationConflict } };
-  }, [conversationId, accountId, accountRevision, intent]);
+  }, [conversationId, accountId, accountRevision]);
   const editor = useOwnedEditor(read);
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
   const view = useMemo(() => ({}), [snapshot, edit, locationEditor, deadlineEditor]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
-    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const canAct = () => current() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain;
   const navigate = (fn: () => void) => { if (!current() || navigating.current) return; navigating.current = true; fn(); };
   const back = () => navigate(() => conversationId

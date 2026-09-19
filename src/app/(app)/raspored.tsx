@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowRight, CaretRight, Clock } from 'phosphor-react-native'
 import { workerCalendarClientService } from '../../data/workerCalendarClientService';
 import { agreementClientService } from '../../data/agreementClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { useUloga } from '../../store/uloga';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
@@ -14,7 +13,6 @@ import { CalendarAction as Button, CalendarText as T, calendarStyles as s } from
 import { deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, shiftDate, weekDates, weekdays } from '../../ui/calendar/calendarPresentation';
 
 export default function Raspored() {
-  const worker = useUloga() === 'uskocer';
   const { fontScale } = useWindowDimensions();
   const [selected, setSelected] = useState(() => deviceDate(new Date()));
   const days = useMemo(() => weekDates(selected), [selected]);
@@ -28,12 +26,12 @@ export default function Raspored() {
   const visible = events.filter(event => overlapsInterval(event.startsAt, event.endsAt, dayRange.from, dayRange.to));
   const refresh = () => { void calendar.refresh(); void agreements.refresh(); };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar eyebrow="JA MOGU · radni raspored" title="Raspored"
+    <DetailTopBar eyebrow="Kako mogu da uskočim" title="Kalendar obaveza"
       onBack={() => router.canGoBack() ? router.back() : router.replace('/dogovori')} />
     <ScrollView contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={calendar.loading} onRefresh={refresh} tintColor={sys.color.green} />}>
       <View style={{ gap: 14 }}>
         <View style={s.row}><View style={{ flex: 1, minWidth: 160, gap: 4 }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T>
-          <T variant="meta" tone="muted">Potvrđeni termini kada radiš kao Uskočer</T></View>
+          <T variant="meta" tone="muted">Potvrđeni termini poslova u koje si uskočio</T></View>
           <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
             onPress={() => setSelected(shiftDate(selected, -7))}><ArrowLeft size={20} color={sys.color.ink} /></Press>
           <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
@@ -51,12 +49,13 @@ export default function Raspored() {
         })}</ScrollView>
         <Button label="Danas" kind="quiet" onPress={() => setSelected(deviceDate(new Date()))} style={{ alignSelf: 'flex-start' }} />
       </View>
-      {worker ? <Press accessibilityRole="button" accessibilityLabel="Uredi dostupnost za rad" onPress={() => router.navigate('/profil/dostupnost')} style={[s.note, s.row]}>
+      <Press accessibilityRole="button" accessibilityLabel="Uredi dostupnost za rad" onPress={() => router.navigate('/profil/dostupnost')} style={[s.note, s.row]}>
         <Clock size={22} color={sys.color.green} /><View style={{ flex: 1, gap: 4 }}><T variant="bodyStrong">Moja dostupnost za rad</T>
           <T variant="meta" tone="muted">Redovna nedelja i posebni datumi</T></View><CaretRight size={20} color={sys.color.ink} />
-      </Press> : <View style={s.note}><T variant="bodyStrong">Ovo je raspored za JA MOGU</T>
-        <T variant="meta" tone="muted">Prikazuje samo potvrđene termine u kojima radiš kao Uskočer. Dogovore koje si napravio kao naručilac vidiš u Dogovorima.</T>
-      </View>}
+      </Press>
+      {/* The engine blocks a person only by the work they agreed to do (owner decision 6). What they
+          asked others to do is theirs to see in Dogovori, and is said here rather than hidden. */}
+      <T variant="meta" tone="muted">Ovde su termini u kojima ti radiš. Dogovore za svoje zadatke vidiš u Dogovorima; oni te ovde ne blokiraju.</T>
       <View style={{ gap: 16 }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
         {calendar.loading ? <ActivityIndicator accessibilityLabel="Učitavanje rasporeda" color={sys.color.green} /> : null}
         {error ? <View style={s.note}><T accessibilityRole="alert" tone="danger">{error}</T><Button label="Pokušaj ponovo" onPress={refresh} /></View> : null}

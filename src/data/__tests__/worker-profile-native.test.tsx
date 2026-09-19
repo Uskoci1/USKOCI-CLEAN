@@ -142,13 +142,20 @@ it('availability is a truthful read-only summary and links to its revision-bound
   click('Redovna dostupnost'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/dostupnost');
   expect(mockWrite).not.toHaveBeenCalled();
 });
-it.each(['account', 'intent'])('retires retained callbacks and late reads across %s changes', async change => {
+it.each(['account'])('retires retained callbacks and late reads across %s changes', async change => {
   await render(); input('Ime na radnom profilu', 'Unos starog naloga'); const oldSave = control('Sačuvaj izmene').props.onPress;
   let late!: (value: unknown) => void; mockRead.mockImplementationOnce(() => new Promise(resolve => { late = resolve; }));
-  if (change === 'account') mockRevision += 2; else mockIntent = 'narucilac';
+  if (change === 'account') mockRevision += 2;
   await act(async () => tree.update(<Profile />)); act(() => oldSave()); expect(mockWrite).not.toHaveBeenCalled();
   await act(async () => late({ ...profile, ime: 'Aktuelni nalog' }));
   expect(control('Ime na radnom profilu').props.value).toBe('Aktuelni nalog'); expect(texts()).not.toContain('Unos starog naloga');
+});
+// Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
+it('a flip of the retired app mode keeps the typed draft and lets the retained save run', async () => {
+  await render(); input('Ime na radnom profilu', 'Unos koji ostaje'); const oldSave = control('Sačuvaj izmene').props.onPress;
+  mockIntent = 'narucilac'; await act(async () => tree.update(<Profile />));
+  expect(control('Ime na radnom profilu').props.value).toBe('Unos koji ostaje');
+  await act(async () => oldSave()); expect(mockWrite).toHaveBeenCalledTimes(1);
 });
 it('blur retains draft and new-item input, while old callbacks cannot run after refocus', async () => {
   await render(); input('Ime na radnom profilu', 'Sačuvani lokalni unos'); input('Nova stavka: Veštine i usluge', 'Krečenje');

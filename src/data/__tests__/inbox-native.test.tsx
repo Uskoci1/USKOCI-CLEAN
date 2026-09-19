@@ -50,7 +50,8 @@ test.each([
   mockIntent=intent;mockModel.open.mockResolvedValue(target);
   mockState.page.items=[{...item,eventType,role:target.role}];mockState.page.unreadCount=1;await render();
   await act(async()=>press(`Nepročitano. ${item.title}. ${item.body}`).props.onPress());
-  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/pitanja-zadatka',params:{needId:'actual-need'}}]]);
+  // The link says whose task the questions are about, so the way back needs no app-wide mode.
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/pitanja-zadatka',params:{needId:'actual-need',own:target.kind==='OWN_NEED'?'1':'0'}}]]);
 });
 test('an event about the Zadatak itself still opens the Zadatak',async()=>{
   mockModel.open.mockResolvedValue({kind:'OWN_NEED',id:'actual-need',role:'REQUESTER'});
@@ -58,22 +59,21 @@ test('an event about the Zadatak itself still opens the Zadatak',async()=>{
   await act(async()=>press(`Nepročitano. ${item.title}. ${item.body}`).props.onPress());
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/pregled',params:{id:'actual-need'}}]]);
 });
-test('an event of the other intent asks first; one confirm switches the intent and opens only the resolved target',async()=>{
-  mockState.page.items=[item];mockState.page.unreadCount=1;await render();
+// Owner decision 1 (2026-09-19): a notification opens the thing it is about. It used to stop at a sheet
+// that asked to switch the whole app into "the other intent" first, and one confirm did both.
+test.each(['narucilac','uskocer'])('a Dogovor I work on opens directly, with no sheet and no mode change, whatever the app last was (%s)',async last=>{
+  mockIntent=last;mockState.page.items=[item];mockState.page.unreadCount=1;await render();
   await openItem();
-  expect(mockModel.open).toHaveBeenCalledWith(item);expect(mockRole).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(text()).toContain('Prelaziš u JA MOGU');expect(text()).toContain('Sada si u MENI TREBA');
-  await act(async()=>press('Pređi i otvori').props.onPress());
-  expect(mockRole).toHaveBeenCalledWith('uskocer');expect(mockRole).toHaveBeenCalledTimes(1);
+  expect(mockModel.open).toHaveBeenCalledWith(item);expect(mockRole).not.toHaveBeenCalled();
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/dogovor/[id]',params:{id:'actual-agreement'}}]]);
-  expect(text()).not.toContain('Prelazite u');
+  expect(text()).not.toContain('Prelaziš u');expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
 });
-test('staying keeps the intent and opens nothing; hardware back does the same',async()=>{
-  mockState.page.items=[item];await render();
-  await openItem();await act(async()=>press('Ostani u MENI TREBA').props.onPress());
-  expect(mockRole).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();expect(text()).not.toContain('Prelazite u');
-  await openItem();await act(async()=>tree.root.findByType('Modal' as React.ElementType).props.onRequestClose());
-  expect(mockRole).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
+test.each(['narucilac','uskocer'])('a notification about my own task opens my view of that task directly (%s)',async last=>{
+  mockIntent=last;mockModel.open.mockResolvedValue({kind:'OWN_NEED',id:'actual-need',role:'REQUESTER'});
+  mockState.page.items=[{...item,eventType:'NEED_REVISED',role:'REQUESTER'}];mockState.page.unreadCount=1;await render();
+  await act(async()=>press(`Nepročitano. ${item.title}. ${item.body}`).props.onPress());
+  expect(mockRole).not.toHaveBeenCalled();expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/pregled',params:{id:'actual-need'}}]]);
 });
 test('an event of the current intent opens directly without touching the saved intent',async()=>{
   mockIntent='uskocer';mockState.page.items=[item];await render();
@@ -89,8 +89,8 @@ test('retired ownership suppresses late target and retained settings actions',as
   expect(text()).not.toContain('Prelazite u');
   await act(async()=>press('Podesi obaveštenja').props.onPress());expect(mockRole).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
 });
-test('ownership retired while the sheet is open rejects the confirm',async()=>{
-  mockState.page.items=[item];await render();await openItem();
-  mockModel.canNavigate.mockReturnValue(false);await act(async()=>press('Pređi i otvori').props.onPress());
+test('ownership retired before the target resolves opens nothing, and there is no sheet left to confirm',async()=>{
+  mockState.page.items=[item];mockModel.canNavigate.mockReturnValue(false);await render();await openItem();
   expect(mockRole).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({label:'Pređi i otvori'})).toHaveLength(0);
 });

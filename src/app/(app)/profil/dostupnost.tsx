@@ -6,7 +6,6 @@ import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { workerAvailabilityClientService } from '../../../data/workerAvailabilityClientService';
 import { ownProfileClientService } from '../../../data/ownProfileClientService';
 import { useSesija } from '../../../store/sesija';
-import { useUloga } from '../../../store/uloga';
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
 import { CalendarAction as Button, CalendarText as T, CalendarScreen, calendarStyles } from '../../../ui/calendar/CalendarControls';
 
@@ -22,7 +21,7 @@ function OwnedAvailability() {
   const profile = useFocusedResource(useCallback(() => ownProfileClientService.read(accountId ?? '', 'uskocer'),
     [accountId, accountRevision]));
   const profileDraft = profile.data?.stanje === 'DRAFT';
-  return <CalendarScreen eyebrow="Ja mogu" title="Dostupnost za rad" back={back} loading={editor.loading} scroll={false}>
+  return <CalendarScreen eyebrow="Kako mogu da uskočim" title="Dostupnost za rad" back={back} loading={editor.loading} scroll={false}>
     {editor.error ? <View style={[calendarStyles.note, { marginHorizontal: 20, marginTop: 12 }]}><T accessibilityRole="alert" tone="danger">{editor.error}</T>
       <Button label="Učitaj sačuvano stanje" kind="secondary" disabled={editor.busy} onPress={() => void editor.refresh()} />
     </View> : null}
@@ -35,10 +34,7 @@ function OwnedAvailability() {
     {!editor.error ? <Button label="Osveži dostupnost" kind="quiet" disabled={editor.busy} onPress={() => void editor.refresh()} style={{ marginHorizontal: 20 }} /> : null}
   </CalendarScreen>;
 }
+/** When a person can work is theirs to set whenever they like; it used to be reachable in one mode only. */
 export default function Dostupnost() {
-  const worker = useUloga() === 'uskocer';
-  if (!worker) return <CalendarScreen eyebrow="Ja mogu" title="Dostupnost za rad" back={back}>
-    <T>Dostupnost se uređuje u nameri „Ja mogu“.</T><Button label="Otvori Profil" onPress={() => router.replace('/profil')} />
-  </CalendarScreen>;
   return <OwnedAvailability />;
 }

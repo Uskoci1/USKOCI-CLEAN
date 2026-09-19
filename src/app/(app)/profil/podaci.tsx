@@ -16,7 +16,7 @@ function OwnedPersonalProfile() {
   const read = useCallback(() => requesterProfileClientService.read(), []);
   const editor = useOwnedEditor(read);
   return <SettingsScreen title="Ime na profilu" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
-    <T tone="muted">Ovo ime vide ljudi sa kojima dogovaraš pomoć kroz MENI TREBA.</T>
+    <T tone="muted">Ovo ime vide ljudi sa kojima dogovaraš pomoć za svoje zadatke.</T>
     {editor.loading ? <T>Učitavam podatke…</T> : null}
     {editor.error ? <T accessibilityRole="alert" tone="danger">{editor.error}</T> : null}
     {editor.data ? <IdentityForm key={editor.data.revision} value={editor.data} busy={editor.busy} uncertain={editor.uncertain}

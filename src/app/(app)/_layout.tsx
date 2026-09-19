@@ -1,8 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Handshake, PaperPlaneTilt } from 'phosphor-react-native';
-import { useUloga } from '../../store/uloga';
+import { House, Handshake } from 'phosphor-react-native';
 import { sys } from '../../ui/system/tokens';
 import { CanonicalMark } from '../../ui/referenceEntry/ReferenceEntryHero';
 
@@ -15,9 +14,12 @@ function CenterMark({ focused }: { focused: boolean }) {
 }
 
 /**
- * One account, two intents, three visible zones (owner decision 1, 2026-09-16):
- * MENI TREBA = Zadaci | Mapa | Dogovori, JA MOGU = Prijave | Mapa | Dogovori.
- * Hidden routes retain their URLs and stay reachable in both intents.
+ * One shell for one account: Početna | Mapa | Dogovori (owner decision 1, 2026-09-19, which
+ * supersedes the two intent-shaped shells of 2026-09-16). The same person may own tasks, have
+ * applied to other people's and hold Dogovori on both sides at once, so what they are to a thing is
+ * said on that thing and never chosen for the whole app. There is no mode here to read, and nothing
+ * keys the navigator: `Tabs key={intent}` used to remount every screen beneath it on a switch.
+ * Zadaci and Prijave keep their routes and their screens; they are reached from Početna now.
  */
 /**
  * Around thirty screens live in this navigator with `href: null` — the whole profile family, the
@@ -38,11 +40,9 @@ const PUSHED = { animation: 'shift' as const,
 const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
 
 export default function TabLayout() {
-  const intent = useUloga();
-  const requester = intent === 'narucilac';
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(18, insets.bottom);
-  return <Tabs key={intent} initialRouteName={requester ? 'potrebe' : 'moje-prijave'} backBehavior="history"
+  return <Tabs initialRouteName="index" backBehavior="history"
     // Around thirty screens are registered here with `href: null` — the whole profile family, the
     // review, the location and photo steps, support. With `animation: 'none'` not one of them had a
     // push transition: they replaced each other instantly, which is why moving through the app felt
@@ -54,14 +54,12 @@ export default function TabLayout() {
       tabBarItemStyle: { paddingVertical: 6 },
       tabBarStyle: { backgroundColor: sys.color.surface, borderTopColor: sys.color.line,
         borderTopWidth: 1, height: 66 + bottomPadding, paddingTop: 8, paddingBottom: bottomPadding } }}>
-    <Tabs.Screen name="index" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="potrebe" options={{ href: requester ? undefined : null, title: 'Zadaci',
-      tabBarAccessibilityLabel: 'Zadaci',
-      tabBarIcon: ({ color, focused }) => <Package size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+    <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna',
+      tabBarIcon: ({ color, focused }) => <House size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+    <Tabs.Screen name="potrebe" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
-    <Tabs.Screen name="moje-prijave" options={{ href: requester ? null : undefined, title: 'Prijave',
-      tabBarAccessibilityLabel: 'Prijave',
-      tabBarIcon: ({ color, focused }) => <PaperPlaneTilt size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+    <Tabs.Screen name="moje-prijave" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="prilike" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa', tabBarIcon: ({ focused }) => <CenterMark focused={focused} /> }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori',

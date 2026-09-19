@@ -62,7 +62,7 @@ test('blur rejects actions and returning focus rereads and clears the navigation
 });
 test('background and an unfinished foreground refresh reject old actions', async () => {
   await render(); const old = props(); mockApp.currentState = 'background';
-  await act(async () => { mockListeners.forEach(listener => listener('background')); old.onTasks(); });
+  await act(async () => { mockListeners.forEach(listener => listener('background')); old.onHome(); });
   expect(tree.root.findAllByType('Agreements' as React.ElementType)).toHaveLength(0);
   expect(mockNavigate).not.toHaveBeenCalled(); const pending = deferred(); mockRead.mockReturnValueOnce(pending.promise);
   mockApp.currentState = 'active'; await act(async () => mockListeners.forEach(listener => listener('active')));
@@ -84,9 +84,10 @@ test('bounded read rejects a late result; explicit retry recovers without exposi
   await act(async () => late.resolve([{ id: 'late-private' }])); expect(props().items).toEqual([]);
   await act(async () => props().onRefresh()); expect(props().error).toBe(false); expect(props().items[0].id).toBe('owned');
 });
-test('intent change resets filters while retaining actual owned-read authority', async () => {
+test('there is no mode to change: what used to reset the list on a switch now leaves its section and its callbacks alone', async () => {
+  // Owner decision 1 (2026-09-19). One list holds both sides of one account, so nothing about the
+  // app can change "which side" it is, and a Dogovor opened from either side resets nothing here.
   await render(); const old = props(); await act(async () => old.onSection('history')); mockIntent = 'uskocer'; await update();
-  expect(props().section).toBe('active'); expect(props().requester).toBe(false);
-  await act(async () => old.onTasks()); expect(mockNavigate).not.toHaveBeenCalled();
-  await act(async () => props().onTasks()); expect(mockNavigate).toHaveBeenCalledWith('/prilike');
+  expect(props().section).toBe('history'); expect('requester' in props()).toBe(false); expect('intent' in props()).toBe(false);
+  await act(async () => props().onHome()); expect(mockNavigate).toHaveBeenCalledWith('/');
 });

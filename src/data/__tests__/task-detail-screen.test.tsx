@@ -9,8 +9,9 @@ let mockEpoch = 1;
 let mockAccountRevision = 1;
 let mockIntent: 'uskocer' | 'narucilac' = 'uskocer';
 let mockFocused = true;
-const mockLoad = jest.fn();
-const mockSource = { prilika: mockLoad };
+const mockLoad = jest.fn(), mockMine = jest.fn(), mockApplied = jest.fn();
+// My relation to the task is read beside it, from my own tasks and my own applications.
+const mockSource = { prilika: mockLoad, mojePotrebe: mockMine, mojePrijave: mockApplied };
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockAppListeners = new Set<(value: string) => void>();
 
@@ -61,6 +62,7 @@ const back = () => tree!.root.findByProps({ accessibilityLabel: 'Nazad na Zadatk
 
 beforeEach(() => {
   jest.clearAllMocks(); mockLoad.mockReset(); mockAppListeners.clear();
+  mockMine.mockReset().mockResolvedValue([]); mockApplied.mockReset().mockResolvedValue([]);
   mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockAccountRevision = 1; mockIntent = 'uskocer'; mockFocused = true;
   mockRouter.canGoBack.mockReturnValue(true);
 });
@@ -210,15 +212,44 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(mockLoad).toHaveBeenCalledTimes(2);
   });
 
-  it('drops cache and application action when intent changes during a read', async () => {
-    const late = deferred<PrilikaProjekcija>();
-    mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(late.promise).mockRejectedValueOnce(new Error('offline'));
+  // Owner decision 1 (2026-09-19). Whether I may apply used to be decided by the mode of the app: in
+  // the requester mode an open task told the person to go and change the mode in Profil. It is decided
+  // by what I am to this task, read from my own tasks and my own applications.
+  it('a flip of the retired app mode changes nothing: the task stays, and the application action still opens the composer', async () => {
+    mockLoad.mockResolvedValue(detail());
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
-    await act(async () => mockAppListeners.forEach(listener => listener('active')));
     mockIntent = 'narucilac'; await update();
-    await act(async () => { oldPress(); late.resolve(detail()); });
-    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    await act(async () => oldPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/prilike/[id]/prijava', params: { id: 'task-a' } });
+  });
+
+  it('the same account opens its own task and then somebody else\u2019s, with no mode in between: one offers my view, the other an application', async () => {
+    mockMine.mockResolvedValue([{ id: 'task-a' }]); mockLoad.mockResolvedValue(detail());
+    await render();
+    expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(text()).toContain('Ovo je tvoj zadatak.');
+    await act(async () => buttons('Otvori svoj zadatak')[0].props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'task-a' } });
+    await act(async () => { tree?.unmount(); });
+    mockId = 'task-b'; mockLoad.mockResolvedValue(detail('task-b')); await render();
+    expect(text()).not.toContain('Ovo je tvoj zadatak.'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+  });
+
+  it('a task I already applied to offers my application, and my Dogovor once I am chosen; never a second application', async () => {
+    mockApplied.mockResolvedValue([{ prijavaId: 'application-a', potrebaId: 'task-a', stanje: 'SUBMITTED', dogovorId: null }]); mockLoad.mockResolvedValue(detail());
+    await render(); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    await act(async () => buttons('Pogledaj svoju prijavu')[0].props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'application-a' } });
+    await act(async () => { tree?.unmount(); });
+    mockApplied.mockResolvedValue([{ prijavaId: 'application-a', potrebaId: 'task-a', stanje: 'SELECTED', dogovorId: 'agreement-a' }]); await render();
+    await act(async () => buttons('Otvori Dogovor')[0].props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'agreement-a' } });
+  });
+
+  it('a relation that could not be read never becomes a licence to apply', async () => {
+    mockApplied.mockRejectedValue(new Error('READ_FAILED')); mockLoad.mockResolvedValue(detail());
+    await render();
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(buttons('Proveri ponovo')).toHaveLength(1);
   });
 
   it('invalidates reads and actions on blur and rereads on focus', async () => {
@@ -245,7 +276,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockId = ['task-a', 'task-b']; mockRouter.canGoBack.mockReturnValue(false); await render();
     expect(mockLoad).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak nije dostupan');
     await act(async () => { back(); back(); });
-    expect(mockRouter.replace.mock.calls).toEqual([['/prilike']]);
+    expect(mockRouter.replace.mock.calls).toEqual([['/mapa']]);
   });
 
   it('keeps Back available while loading', async () => {

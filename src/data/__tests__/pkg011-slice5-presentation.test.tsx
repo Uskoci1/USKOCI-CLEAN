@@ -25,10 +25,10 @@ beforeEach(() => { change.mockClear(); navigate.mockClear(); });
 function Screen({ value, status = 'DRAFT', disabled = false }: { value: WorkerDraft; status?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null; disabled?: boolean }) {
   return <WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={value} change={change} disabled={disabled} status={status} navigate={navigate} /></WorkerProfileFrame>;
 }
-test('the frame names the intent; the form leads with who you are, keeps every field label as its spoken name and puts tools behind a row', async () => {
+test('the frame says what the screen is for and names no app mode; the form leads with who you are, keeps every field label as its spoken name and puts tools behind a row', async () => {
   await act(async () => { tree = create(<Screen value={draft()} />); });
   const copy = texts();
-  expect(copy).toContain('Ja mogu'); expect(copy).toContain('Radni profil'); expect(copy).toContain('MM'); expect(copy).toContain('Marko Marić');
+  expect(copy).toContain('Kako mogu da uskočim'); expect(copy).toContain('Veštine, alat i tim'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('MM'); expect(copy).toContain('Marko Marić');
   expect(copy).toContain('Radni profil je još nacrt'); expect(copy).toContain('zadaci ti se ne nude'); expect(copy).toContain('Selidbe'); expect(copy).toContain('Montaža');
   expect(inputs()).toEqual(expect.arrayContaining(['Ime na radnom profilu', 'Koliko ljudi možeš da obezbediš', 'Nova stavka: Veštine i usluge', 'Grad ili mesto rada', 'Radijus rada (km)']));
   expect(inputs()).not.toContain('Nova stavka: Alat i oprema');

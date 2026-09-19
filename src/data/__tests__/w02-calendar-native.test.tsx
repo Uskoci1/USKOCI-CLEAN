@@ -219,13 +219,15 @@ describe('actual agenda screen', () => {
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([]);
     (workerCalendarClientService.readRange as jest.Mock).mockImplementation((from, to) => ({ ok: true, podatak: { from, to, authoritative: true, events: [] } }));
   });
-  it('reads requester calendar with a real local week and does not invent bookings from empty data', async () => {
+  it('reads the calendar with a real local week, invents no bookings from empty data, and always offers the availability editor', async () => {
     await act(async () => { tree = create(<Raspored />); });
     const [from, to] = (workerCalendarClientService.readRange as jest.Mock).mock.calls[0];
     expect(Date.parse(to)).toBeGreaterThan(Date.parse(from));
     expect(text()).toContain('Nema potvrđenih tačnih termina');
     expect(text()).toContain('Fleksibilni termini');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(0);
+    // Owner decision 1 (2026-09-19): when I can work is mine to set whenever I like. The editor used to
+    // be withheld from a person standing in the other app mode.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(1);
   });
   it('does not show empty success or fabricated dates when the calendar receipt fails', async () => {
     (workerCalendarClientService.readRange as jest.Mock).mockReturnValue({ ok: false, poruka: 'Kalendar nije učitan.' });

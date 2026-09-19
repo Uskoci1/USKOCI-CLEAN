@@ -78,5 +78,3 @@ export const brandAction: ViewStyle = { backgroundColor: sys.color.orange, borde
 /** 44px icon control in a quiet well (V5 head icon button). */
 export const iconButton: ViewStyle = { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
 
-export const intentLabel = (intent: 'narucilac' | 'uskocer') => intent === 'narucilac' ? 'Meni treba' : 'Ja mogu';
-export const intentTitle = (intent: 'narucilac' | 'uskocer') => intent === 'narucilac' ? 'MENI TREBA' : 'JA MOGU';

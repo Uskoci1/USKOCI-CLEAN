@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSesija } from '../../../store/sesija';
-import { useUloga } from '../../../store/uloga';
+
 import { SupportInboxScreen } from '../../../ui/support/SupportInboxScreen';
 
 function OperatorScope() {
@@ -8,6 +8,6 @@ function OperatorScope() {
   return <SupportInboxScreen key={mode} mode={mode} onMode={setMode} />;
 }
 export default function SupportOperatorRoute() {
-  const session = useSesija(), intent = useUloga();
-  return <OperatorScope key={`${session.user?.id}:${session.accountRevision}:${intent}`} />;
+  const session = useSesija();
+  return <OperatorScope key={`${session.user?.id}:${session.accountRevision}`} />;
 }

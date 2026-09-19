@@ -1,5 +1,4 @@
 import { povratniCilj } from '../povratniCilj';
-import { postaviUlogu, ulogaSada, resetujUlogu } from '../uloga';
 
 jest.mock('@react-native-async-storage/async-storage', () => {
   let store: Record<string, string> = {};
@@ -11,9 +10,11 @@ jest.mock('@react-native-async-storage/async-storage', () => {
   };
 });
 
-describe('Auth Runtime & Role Continuity', () => {
+// Owner decision 1 (2026-09-19). What a person chose before signing in is a destination, kept by
+// `povratniCilj` and handed back once to the account that completed it. It used to be applied to a
+// global app mode as well; that mode is gone and the destination is all that is carried.
+describe('Auth runtime: the chosen destination survives signing in', () => {
   beforeEach(async () => {
-    resetujUlogu();
     await povratniCilj.clear();
   });
 
@@ -30,13 +31,8 @@ describe('Auth Runtime & Role Continuity', () => {
       draftKey: 'conversation-123',
     });
 
-    if (pending) {
-      await povratniCilj.markCompleted('user-1', pending.intent);
-      if (pending.intent.intent === 'WORKER') postaviUlogu('uskocer');
-      else postaviUlogu('narucilac');
-    }
+    if (pending) await povratniCilj.markCompleted('user-1', pending.intent);
 
-    expect(ulogaSada()).toBe('narucilac');
     const completed = await povratniCilj.snapshot();
     expect(completed?.status).toBe('COMPLETED');
     expect(completed?.completedByUserId).toBe('user-1');
@@ -63,20 +59,18 @@ describe('Auth Runtime & Role Continuity', () => {
     expect(await povratniCilj.snapshot()).toBeNull();
   });
 
-  it('WORKER intent -> Auth -> Worker workspace without losing Requester capability', async () => {
+  it('"Uskoči i zaradi" before Auth is carried as a destination, and sets no mode that could cost the account its own tasks', async () => {
     await povratniCilj.prepare({ intent: 'WORKER' });
 
     const pending = await povratniCilj.snapshot();
     expect(pending?.status).toBe('PENDING');
 
-    if (pending) {
-      await povratniCilj.markCompleted('user-1', pending.intent);
-      if (pending.intent.intent === 'WORKER') postaviUlogu('uskocer');
-      else postaviUlogu('narucilac');
-    }
+    if (pending) await povratniCilj.markCompleted('user-1', pending.intent);
 
-    expect(ulogaSada()).toBe('uskocer');
-    postaviUlogu('narucilac');
-    expect(ulogaSada()).toBe('narucilac');
+    const consumed = await povratniCilj.consumeCompleted('user-1');
+    expect(consumed?.intent.intent).toBe('WORKER');
+    // The store has nothing left to set: the destination is the whole of what was chosen.
+    expect(Object.keys(require('../uloga')).sort()).toEqual(['izvorSada', 'postaviIzvor', 'useIzvor']);
+    expect(await povratniCilj.snapshot()).toBeNull();
   });
 });

@@ -1,55 +1,27 @@
 import { useSyncExternalStore } from 'react';
-import type { Uloga } from '../contracts/projections';
 import { izvor as defaultIzvor } from '../data';
 import type { Izvor } from '../data/ports';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createAccountIntentPreference } from './accountIntentPreference';
 
-const preference = createAccountIntentPreference(AsyncStorage);
+/**
+ * The data source the app reads through. This file also used to hold the app's global mode
+ * ("uloga": MENI TREBA / JA MOGU), a per-account preference that chose the tab shell, stood in the
+ * cache identity of every screen and gated what a person could do. Owner decision 1 of 2026-09-19
+ * removed it: one account owns tasks, applies to others and holds Dogovori on both sides at once,
+ * and what it is to a thing is read from that thing. The file keeps its name because forty
+ * modules import the source from here; `src/store/__tests__/v3-no-global-mode.test.ts` keeps the
+ * mode from coming back.
+ */
 let trenutniIzvor: Izvor = defaultIzvor;
 const pretplatnici = new Set<() => void>();
-
-function obavesti() {
-  pretplatnici.forEach((f) => f());
-}
-
-preference.subscribe(obavesti);
-
-export function postaviUlogu(u: Uloga) { preference.select(u); }
-
-/** Session runtime binds identity; UI reset must not overwrite the saved choice. */
-export function vezujUloguZaNalog(accountId: string | null): Promise<void> {
-  return preference.bind(accountId);
-}
-
-export function promeniProstor() {
-  postaviUlogu(preference.current() === 'narucilac' ? 'uskocer' : 'narucilac');
-}
 
 export function postaviIzvor(i: Izvor) {
   if (trenutniIzvor === i) return;
   trenutniIzvor = i;
-  obavesti();
-}
-
-/** Trenutna namera za slojeve van Reacta. */
-export function ulogaSada(): Uloga {
-  return preference.current();
+  pretplatnici.forEach((f) => f());
 }
 
 export function izvorSada(): Izvor {
   return trenutniIzvor;
-}
-
-export function useUloga(): Uloga {
-  return useSyncExternalStore(
-    (f) => {
-      pretplatnici.add(f);
-      return () => pretplatnici.delete(f);
-    },
-    ulogaSada,
-    ulogaSada,
-  );
 }
 
 export function useIzvor(): Izvor {
@@ -61,9 +33,4 @@ export function useIzvor(): Izvor {
     izvorSada,
     izvorSada,
   );
-}
-
-/** Samo za testove. */
-export function resetujUlogu() {
-  void preference.bind(null);
 }

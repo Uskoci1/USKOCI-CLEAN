@@ -22,7 +22,6 @@ import type {
   PrilikaProjekcija,
 } from '../contracts/projections';
 import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
-import { ulogaSada } from '../store/uloga';
 import { lazniAi, resetujAi } from './lazniAi';
 
 const rsd = (iznos: number): Novac => ({
@@ -219,7 +218,9 @@ function kontaktZa(dogovorId: string): KontaktProjekcija {
 function dogovorIz(a: Alokacija): DogovorProjekcija {
   const k = KANDIDATI.find((c) => c.prijavaId === a.prijavaId)!;
   const z = zavrsetakZa(a.dogovorId);
-  const jaSamNarucilac = ulogaSada() === 'narucilac';
+  // Every Dogovor in this test double comes from the double's own user choosing a candidate for the
+  // double's own task, so that user is its requester. It used to follow the app's global mode.
+  const jaSamNarucilac = true;
   return {
     id: a.dogovorId,
     verzija: stanje.dogovorVerzija[a.dogovorId] ?? 1,

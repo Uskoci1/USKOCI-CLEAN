@@ -4,11 +4,11 @@ import { router, useFocusEffect } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { izvorSada, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { izvorSada, useIzvor } from '../../store/uloga';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
 export default function Dogovori() {
-  const { user, accountRevision } = useSesija(), intent = useUloga();
+  const { user, accountRevision } = useSesija();
   const foreground = useRef({ active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', generation: 0 });
   const [, render] = useState(0);
   useEffect(() => {
@@ -22,11 +22,11 @@ export default function Dogovori() {
   }, []);
   // Retire private rows and callbacks synchronously, including a batched
   // background→foreground transition; returning creates a fresh owned read.
-  return foreground.current.active ? <OwnedAgreements key={`${user?.id ?? ''}:${accountRevision}:${intent}:${foreground.current.generation}`}
+  return foreground.current.active ? <OwnedAgreements key={`${user?.id ?? ''}:${accountRevision}:${foreground.current.generation}`}
     foreground={foreground.current} /> : null;
 }
 function OwnedAgreements({ foreground }: { foreground: { active: boolean; generation: number } }) {
-  const source = useIzvor(), intent = useUloga(), { user, accountRevision } = useSesija();
+  const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const readGeneration = useRef(0), foregroundGeneration = foreground.generation;
   const [section, setSection] = useState<AgreementCollectionSection>('active');
@@ -49,7 +49,7 @@ function OwnedAgreements({ foreground }: { foreground: { active: boolean; genera
   const latest = useRef(resource); latest.current = resource;
   const current = () => foreground.active && foreground.generation === foregroundGeneration && renderedReadGeneration === readGeneration.current
     && !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
-    && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent && izvorSada() === source
+    && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const navigate = (action: () => void) => {
     if (current() && !navigating.current) { navigating.current = true; action(); }
@@ -60,11 +60,11 @@ function OwnedAgreements({ foreground }: { foreground: { active: boolean; genera
     navigate(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: agreement.id } }));
   };
   return <AgreementCollectionPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    section={section} confirmationOnly={confirmationOnly} requester={intent === 'narucilac'} intent={intent}
+    section={section} confirmationOnly={confirmationOnly}
     onSection={value => { if (current()) setSection(value); }}
     onConfirmationOnly={value => { if (current()) setConfirmationOnly(value); }}
     onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={() => navigate(() => router.navigate('/profil'))}
-    onTasks={() => navigate(() => router.navigate(intent === 'narucilac' ? '/potrebe' : '/prilike'))} />;
+    onHome={() => navigate(() => router.navigate('/'))} />;
 }

@@ -12,11 +12,14 @@ describe('retired context-free candidate deep link', () => {
     mockSession = { isLoaded: false, session: signedIn ? {} : null, intentReady: false };
     expect(render().toJSON()).toBeNull();
   });
-  it('waits for the restored account intent before routing to its workspace', () => {
+  it('routes as soon as Auth is loaded: there is no app mode to restore first', () => {
+    // Owner decision 1 (2026-09-19). The route used to hold the person on a blank screen, for up to
+    // 1.5 s, until a per-account UI mode had been restored. `intentReady: false` is what an older
+    // store would still report, and it no longer holds anything up.
     mockSession = { isLoaded: true, session: {}, intentReady: false };
-    expect(render().toJSON()).toBeNull();
+    expect(render().root.findByType('RetiredRedirect' as never).props.href).toBe('/');
   });
-  it('routes an authenticated user to their normal workspace, not a guessed Need', () => {
+  it('routes an authenticated user to Početna, not a guessed Need', () => {
     mockSession = { isLoaded: true, session: {}, intentReady: true };
     expect(render().root.findByType('RetiredRedirect' as never).props.href).toBe('/');
   });

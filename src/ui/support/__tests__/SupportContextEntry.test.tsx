@@ -42,16 +42,21 @@ it('serializes duplicate taps and blocks the retained callback even before navig
   await act(async () => { retained(); retained(); }); expect(mockFind).toHaveBeenCalledTimes(1);
   await act(async () => held.resolve(ok(C))); await act(async () => retained()); expect(mockFind).toHaveBeenCalledTimes(1); expect(mockPush).toHaveBeenCalledTimes(1);
 });
-it.each(['blur', 'account', 'ABA', 'intent', 'parent guard', 'disabled', 'background'] as const)('drops a late context read after %s', async change => {
+it.each(['blur', 'account', 'ABA', 'parent guard', 'disabled', 'background'] as const)('drops a late context read after %s', async change => {
   const held = deferred(); mockFind.mockReturnValue(held.promise); await render(); const retained = press(); await act(async () => retained());
   if (change === 'blur') { mockFocused = false; await update(); }
   else if (change === 'account') { mockSession = { user: { id: B }, accountRevision: 2 }; await update(); }
   else if (change === 'ABA') { mockSession = { user: { id: A }, accountRevision: 3 }; await update(); }
-  else if (change === 'intent') { mockIntent = 'uskocer'; await update(); }
   else if (change === 'parent guard') allowed = false;
   else if (change === 'disabled') { disabled = true; await update(); }
   else await act(async () => { mockAppState = 'background'; mockListeners.forEach(fn => fn('background')); });
   await act(async () => { retained(); held.resolve(ok(C)); }); expect(mockPush).not.toHaveBeenCalled(); expect(mockFind).toHaveBeenCalledTimes(1);
+});
+// Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
+it('a flip of the retired app mode drops nothing: the context read in flight still opens support', async () => {
+  const held = deferred(); mockFind.mockReturnValue(held.promise); await render(); const retained = press(); await act(async () => retained());
+  mockIntent = 'uskocer'; await update();
+  await act(async () => { held.resolve(ok(C)); }); expect(mockPush).toHaveBeenCalledTimes(1); expect(mockFind).toHaveBeenCalledTimes(1);
 });
 it('two background cycles release only their own listener and never reuse a previous foreground read', async () => {
   const held = deferred(); await render();

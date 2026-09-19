@@ -10,7 +10,6 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { saveDataExportFile } from '../../../lib/dataExportFile';
 import { noviZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { ulogaSada, useUloga } from '../../../store/uloga';
 import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 
@@ -24,12 +23,12 @@ type Snapshot = { status: DataExportStatus; preparation: DataExportPreparation |
 const changed = () => failure('EXPORT_SCOPE_CHANGED', 'Ponovo otvori izvoz podataka.');
 
 export default function IzvozPodataka() {
-  const { user, accountRevision } = useSesija(); const intent = useUloga();
-  return <OwnedExport key={`${user?.id ?? ''}:${accountRevision}:${intent}`} />;
+  const { user, accountRevision } = useSesija();
+  return <OwnedExport key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function OwnedExport() {
-  const { user, accountRevision } = useSesija(); const accountId = user?.id, intent = useUloga();
-  const identity = useMemo(() => ({}), [accountId, accountRevision, intent]);
+  const { user, accountRevision } = useSesija(); const accountId = user?.id;
+  const identity = useMemo(() => ({}), [accountId, accountRevision]);
   const latestIdentity = useRef(identity); latestIdentity.current = identity;
   const focus = useRef<object | null>(null), navigating = useRef(false), dialog = useRef<object | null>(null);
   const download = useRef<AbortController | null>(null), pendingKey = useRef<string | null>(null);
@@ -44,17 +43,17 @@ function OwnedExport() {
       download.current?.abort(); download.current = null; };
   }, [identity]));
   const owned = () => focus.current !== null && latestIdentity.current === identity && !!accountId
-    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const scope = focus.current;
     const result = await exports.readStatus();
     if (!scope || focus.current !== scope || latestIdentity.current !== identity || sesijaSada().user?.id !== accountId
-      || sesijaSada().accountRevision !== accountRevision || ulogaSada() !== intent) return changed();
+      || sesijaSada().accountRevision !== accountRevision) return changed();
     if (!result.ok) return result;
     requireFileReadback(false);
     if (pendingKey.current && result.podatak.request?.clientRequestId === pendingKey.current) pendingKey.current = null;
     return { ok: true, podatak: { status: result.podatak, preparation: null } };
-  }, [identity, accountId, accountRevision, intent]);
+  }, [identity, accountId, accountRevision]);
   const editor = useOwnedEditor(read), status = editor.data?.status, request = status?.request;
   const latestData = useRef(editor.data); latestData.current = editor.data;
   const renderedFocus = focus.current;

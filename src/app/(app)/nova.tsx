@@ -10,7 +10,7 @@ import { uuid } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { ulogaSada, useUloga } from '../../store/uloga';
+
 
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
@@ -21,12 +21,12 @@ type PendingTurn = { id: string; body: string | null };
 
 export default function NovaPotrebaV2() {
   const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[] }>();
-  const { user, accountRevision } = useSesija(), intent = useUloga();
+  const { user, accountRevision } = useSesija();
   const resumeId = typeof params.conversationId === 'string' ? params.conversationId : undefined;
   const entryKey = typeof params.entryKey === 'string' ? params.entryKey : undefined;
   const invalidRoute = (params.conversationId !== undefined && (!resumeId || !uuid(resumeId)))
     || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)));
-  return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${intent}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
+  return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
     resumeId={resumeId} invalidRoute={invalidRoute} />;
 }
 
@@ -36,7 +36,7 @@ const BLANK: AiNeedV2Conversation = { conversationId: '', schemaVersion: 'NEED_F
   review: { conversationId: '', schemaVersion: 'NEED_FACT_V2', boundNeedId: null, canSaveDraft: false, missingRequired: [], facts: [] } };
 
 function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRoute: boolean }) {
-  const { user, accountRevision } = useSesija(), accountId = user?.id, intent = useUloga();
+  const { user, accountRevision } = useSesija(), accountId = user?.id;
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
   const request = useRef<PendingTurn | null>(null), abandoning = useRef(false);
@@ -50,11 +50,11 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     const scope = {}; focus.current = scope; navigating.current = false;
     return () => { if (focus.current === scope) focus.current = null;
       streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); };
-  }, [accountId, accountRevision, intent]));
+  }, [accountId, accountRevision]));
   const read = useCallback(async (): Promise<Ishod<IntakeSnapshot>> => {
     const scope = focus.current;
     const current = () => scope !== null && scope === focus.current && !!accountId
-      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const unavailable = (): Ishod<never> => ({ ok: false, kod: 'AI_INTAKE_UNAVAILABLE',
       poruka: 'Razgovor trenutno nije dostupan. Proveri vezu i učitaj ga ponovo.' });
     if (invalidRoute || !current()) return unavailable();
@@ -102,7 +102,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       }
       return { ok: true, podatak: { conversation: next, turn, recovery } };
     } catch { return unavailable(); }
-  }, [accountId, accountRevision, intent, invalidRoute, openRequestId, resumeId]);
+  }, [accountId, accountRevision, invalidRoute, openRequestId, resumeId]);
   const editor = useOwnedEditor(read);
   // The two controls offered at the worst moment - "Proveri ishod" and "Osveži razgovor" - used to
   // unmount the whole thread and, if the re-read then failed, leave "Razgovor nije dostupan" where
@@ -118,7 +118,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   currentView.current = view;
   const renderedFocus = focus.current;
   const isCurrent = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
-    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const canAct = () => isCurrent() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!stanje;
   const navigate = (action: () => void) => { if (!isCurrent() || navigating.current) return; navigating.current = true; action(); };
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'));

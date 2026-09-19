@@ -23,30 +23,20 @@ const need = (patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ i
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, vremeTekst: 'Sutra', podrucjeTekst: 'Novi Sad, Liman', uslovi: ['Trake'], brojPrijava: 3, rezimCene: 'MY_PRICE',
   ponudjenaCena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, ...patch });
 const noop = () => {};
-function Screen({ value, loading = false, error = null, remainingClosed = false, ownerIntent = true, onSwitchIntent }: {
+function Screen({ value, loading = false, error = null, remainingClosed = false }: {
   value: PotrebaProjekcija | null; loading?: boolean; error?: string | null; remainingClosed?: boolean;
-  ownerIntent?: boolean; onSwitchIntent?: () => void }) {
-  return <NeedPresentation need={value} loading={loading} error={error} busy={false} ownerIntent={ownerIntent} remainingClosed={remainingClosed}
-    onSwitchIntent={onSwitchIntent}
+  }) {
+  return <NeedPresentation need={value} loading={loading} error={error} busy={false} remainingClosed={remainingClosed}
     onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} />;
 }
 
-test('a draft seen from JA MOGU offers the way across, not directions to the Profile', async () => {
-  // It used to end with "Pređi u MENI TREBA iz Profila" — directions to a screen, where the step
-  // itself belongs (owner decision, 2026-09-18).
-  const switchIntent = jest.fn();
-  await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })}
-    ownerIntent={false} onSwitchIntent={switchIntent} />); });
-  expect(texts()).toContain('Ovo radiš kao naručilac');
-  expect(texts()).not.toContain('iz Profila');
-  await act(async () => byLabel('Pređi u MENI TREBA').props.onPress());
-  expect(switchIntent).toHaveBeenCalledTimes(1);
-
-  // Without a way across, the screen states the fact and offers nothing it cannot do.
-  await act(async () => tree.unmount());
-  await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} ownerIntent={false} />); });
-  expect(texts()).toContain('Ovo je tvoj nacrt kao naručioca');
-  expect(labels()).not.toContain('Pređi u MENI TREBA');
+test('my own draft is mine to act on from wherever I opened it: no way across is needed and none is drawn', async () => {
+  // Owner decision 1 (2026-09-19) supersedes the owner decision of 2026-09-18 here. A draft opened
+  // while the app stood in the other mode used to be read-only, with a notice offering to switch the
+  // whole app. The screen is the view of the owner, read through the owner-only read, so it simply acts.
+  await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
+  expect(texts()).not.toMatch(/Ovo radiš kao|JA MOGU|MENI TREBA|iz Profila/);
+  expect(labels()).not.toContain('Pređi u MENI TREBA'); expect(labels()).toContain('Izmeni nacrt');
 });
 test('a published Task leads with its state, price and people, shows the applications row with a count, and has one brand action: the applications', async () => {
   await act(async () => { tree = create(<Screen value={need()} />); });

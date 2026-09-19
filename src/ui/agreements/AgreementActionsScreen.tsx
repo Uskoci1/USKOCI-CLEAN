@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import type { AgreementChangeTerms } from '../../data/agreementClientService';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { useUloga, ulogaSada } from '../../store/uloga';
+
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { calendarInstant } from '../../lib/calendarTime';
 import { needScheduleText } from '../../data/needDetailPresentation';
@@ -36,7 +36,7 @@ function Terms({ title, terms }: { title: string; terms: AgreementChangeTerms | 
 const actionLabel = (command: AgreementActionCommand) => command.kind === 'PROPOSE' ? 'Pošalji predlog izmene'
   : command.kind === 'CANCEL' ? 'Otkaži Dogovor' : command.kind === 'WITHDRAW' ? 'Povuci predlog' : command.accept ? 'Prihvati izmenu' : 'Odbij predlog';
 export function AgreementActionsScreen({ agreementId }: { agreementId: string }) {
-  const { user, accountRevision } = useSesija(), intent = useUloga(), accountId = user?.id ?? '';
+  const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
   const [state, setState] = useState(initial), [form, setForm] = useState<Form | null>(null);
   const [review, setReview] = useState<AgreementActionCommand | null>(null), [error, setError] = useState<string | null>(null), [epoch, setEpoch] = useState(0);
   const owner = useRef<object | null>(null), engine = useRef<AgreementActionsController | null>(null);
@@ -46,7 +46,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
   useFocusEffect(useCallback(() => {
     const scope = {}; owner.current = scope; submitting.current = false; setState(initial); setForm(null); setReview(null); setError(null);
     const current = () => owner.current === scope && !['background','inactive'].includes(AppState.currentState)
-      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const controller = new AgreementActionsController({ agreementId, account: { accountId, accountRevision }, current, storage: AsyncStorage });
     engine.current = controller;
     controller.subscribe(() => { if (current()) setState(controller.snapshot()); }); void controller.load();
@@ -55,11 +55,11 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
       else setEpoch(value => value + 1);
     });
     return () => { listener.remove(); controller.dispose(); if (owner.current === scope) owner.current = null; if (engine.current === controller) engine.current = null; };
-  }, [agreementId, accountId, accountRevision, intent, epoch]));
+  }, [agreementId, accountId, accountRevision, epoch]));
   const renderedOwner = owner.current, controller = engine.current;
   const current = () => renderedOwner !== null && owner.current === renderedOwner && engine.current === controller
     && !['background','inactive'].includes(AppState.currentState) && sesijaSada().user?.id === accountId
-    && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && sesijaSada().accountRevision === accountRevision;
   const busy = state.phase === 'LOADING' || state.phase === 'SENDING', snapshot = state.snapshot;
   const actionCurrent = () => current() && controller?.snapshot() === state;
   const openForm = (kind: Form['kind'], reentry = false) => {

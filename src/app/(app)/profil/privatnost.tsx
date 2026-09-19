@@ -5,7 +5,7 @@ import { Eye, MapPin, DownloadSimple, CaretDown, CaretUp } from 'phosphor-react-
 import { retentionPolicyClientService } from '../../../data/retentionPolicyClientService';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { ulogaSada, useUloga } from '../../../store/uloga';
+
 import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsInfo, SettingsAction, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { Press } from '../../../ui/Press';
@@ -20,18 +20,18 @@ const labels: Readonly<Record<string, string>> = {
 };
 
 export default function Privatnost() {
-  const { user, accountRevision } = useSesija(), intent = useUloga();
-  return <OwnedPrivacy key={`${user?.id ?? ''}:${accountRevision}:${intent}`} />;
+  const { user, accountRevision } = useSesija();
+  return <OwnedPrivacy key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 
 function OwnedPrivacy() {
-  const { user, accountRevision } = useSesija(), accountId = user?.id, intent = useUloga();
+  const { user, accountRevision } = useSesija(), accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; navigating.current = false; setExpandedRule(null);
     return () => { if (focus.current === scope) focus.current = null; };
-  }, [accountId, accountRevision, intent]));
+  }, [accountId, accountRevision]));
   const readPolicy = useCallback(async () => {
     const result = await retentionPolicyClientService.readStatus();
     if (!result.ok) throw new Error('RETENTION_READ_UNAVAILABLE');
@@ -48,7 +48,7 @@ function OwnedPrivacy() {
     && execution.data.policyVersion === policy.data.policyVersion;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && !navigating.current && !!accountId
-    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const navigate = (action: () => void) => { if (!current()) return; navigating.current = true; action(); };
   const refresh = () => { if (!current() || policy.loading || execution.loading) return;
     void policy.refresh(); void execution.refresh(); };

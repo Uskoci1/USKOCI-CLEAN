@@ -7,7 +7,6 @@ import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPub
 import { needGeographyRows, needPeopleText, needRequirementRows } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
-import { CrossIntentNotice } from '../system/CrossIntentNotice';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -20,12 +19,10 @@ import { prijava as prijave } from '../system/plural';
 
 export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
-  ownerIntent: boolean; remainingClosed: boolean;
+  remainingClosed: boolean;
   onBack: () => void; onRefresh: () => void; onReview: () => void; onEdit: () => void; onCloseRemaining: () => void; onCandidates: () => void;
   /** What the publish gate says about a draft, asked of the gate itself. Absent means not asked. */
   readiness?: NeedPublicationReadiness | null;
-  /** Offered when this is the owner's own draft seen from JA MOGU; absent means no way across. */
-  onSwitchIntent?: () => void;
   photos?: ReactNode;
   lifecycleActions?: ReactNode;
   qaAction?: ReactNode;
@@ -69,22 +66,16 @@ function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: {
  * applications for a published Task. Only existing controller callbacks act.
  */
 export function NeedPresentation(props: NeedPresentationProps) {
-  const { need, loading, error, busy, ownerIntent, remainingClosed } = props;
+  const { need, loading, error, busy, remainingClosed } = props;
   const [expanded, setExpanded] = useState<'location' | 'requirements' | null>(null);
-  // A draft is a draft whichever side of the app you are standing on. What changes with the intent
-  // is whether you can act on it here — and that is said out loud instead of quietly showing the
-  // wrong screen, which is how a draft the publish gate refuses ended up promising "pregled i
-  // objava jednim korakom" to an owner who happened to be in JA MOGU.
+  // This is the owner's view of their own Zadatak: the route reads it through the owner-only read,
+  // so there is no "other side of the app" from which it could be seen without the right to act.
   const draft = need?.stanje === 'NACRT';
-  const draftInOtherIntent = draft && !ownerIntent;
   const usable = !!need && !loading && !error;
   const rows = need ? needGeographyRows(need) : [], requirements = need ? needRequirementRows(need) : [];
   // A draft the gate refuses is not sent to a review that will refuse it again: the action leads
   // to the conversation, which is where the missing thing is asked for.
   const blocked = draft ? readinessCopy(props.readiness ?? { kind: 'UNKNOWN' }) : null;
-  const otherIntentCopy = draftInOtherIntent
-    ? { title: 'Ovo je tvoj nacrt kao naručioca', detail: 'U JA MOGU ga vidiš, ali ga ne uređuješ ni objavljuješ.' }
-    : null;
   // `busy` is true while anything on the screen is loading, including the first read, so the one
   // action announced work in progress before anything had been asked for.
   const primaryLabel = busy && !loading ? 'Radnja je u toku…'
@@ -93,7 +84,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const toggle = (key: 'location' | 'requirements') => setExpanded(current => current === key ? null : key);
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
   const price = need ? need.rezimCene === 'OFFERS' ? 'Tražim ponude' : need.ponudjenaCena ? need.ponudjenaCena.prikaz : 'Cena nije navedena' : '';
-  const step = need ? nextStep(need, remainingClosed, otherIntentCopy ?? blocked) : null;
+  const step = need ? nextStep(need, remainingClosed, blocked) : null;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Zadatak" onBack={props.onBack} />
     {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
@@ -107,11 +98,6 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {step ? <NextStrip icon={PaperPlaneTilt} title={step.title} detail={step.detail} tone={step.tone} /> : null}
-        {/* The strip used to end with "Pređi u MENI TREBA iz Profila" — directions to a screen,
-            where the step itself belongs. */}
-        {draftInOtherIntent && props.onSwitchIntent ? <CrossIntentNotice belongsTo="narucilac" disabled={busy}
-          detail="Uređivanje i objava tvog nacrta stoje u MENI TREBA. Prelazak menja donju navigaciju; ostaješ na ovom Zadatku."
-          onSwitch={props.onSwitchIntent} /> : null}
         <View style={s.hero}>
           {need.urgency || need.detalji?.kategorija ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} />{readableCategory(need.detalji?.kategorija) ? <T variant="meta" tone="muted">{readableCategory(need.detalji?.kategorija)}</T> : null}</View> : null}
           <T accessibilityRole="header" style={s.heroTitle}>{need.naslov}</T>
@@ -127,12 +113,12 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {/* The strip at the top already carries the blocking reason; this card repeated it word for
             word further down, so a blocked draft stated its one problem twice in two boxes. It is
             now only what it was for: what to do with a draft that is not blocked. */}
-        {draft && !blocked && ownerIntent ? <View style={[card, s.draftCard]}>
+        {draft && !blocked ? <View style={[card, s.draftCard]}>
           <T variant="heading" style={s.ink}>Spremi zadatak za objavu</T>
           <T variant="copy" tone="muted">Pregledaj podatke, fotografije i rok za prijave. Objavljuješ jednom akcijom na pregledu.</T>
           <V2Action label="Izmeni nacrt" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.quietLeft} />
         </View> : null}
-        {!draft && ownerIntent ? <DisclosureGroup>
+        {!draft ? <DisclosureGroup>
           <Press accessibilityRole="button" accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`} onPress={props.onCandidates} haptic="select" scaleTo={0.99} style={s.row}>
             <View style={s.rowIcon}><PaperPlaneTilt size={20} color={sys.color.green} /></View>
             <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>Prijave za ovaj zadatak</T>
@@ -152,14 +138,14 @@ export function NeedPresentation(props: NeedPresentationProps) {
           </DisclosureRow>
         </DisclosureGroup>
         {remainingClosed ? <View style={[card, s.mutedCard]}><T variant="heading" style={s.ink}>Preostala potraga je zatvorena</T><T variant="note" tone="muted">Originalni Zadatak i postojeći Dogovori ostaju nepromenjeni.</T></View>
-          : ownerIntent && need.pokrivenost.popunjeno > 0 && need.pokrivenost.preostalo > 0
+          : need.pokrivenost.popunjeno > 0 && need.pokrivenost.preostalo > 0
             ? <View style={card}><T variant="copy" tone="muted">Dogovoreno je {need.pokrivenost.popunjeno} od {need.pokrivenost.ukupno}. Ako više niko ne treba, zatvori potragu za preostala mesta.</T>
               <V2Action label="Ne traži više nikoga" kind="quiet" disabled={busy} onPress={props.onCloseRemaining} style={s.quietLeft} /></View> : null}
         <QuietNote>Tačna lokacija i privatne napomene ostaju privatni.</QuietNote>
         {props.lifecycleActions}
         {props.qaAction}
       </ScrollView>}
-    {usable && ownerIntent ? <View style={s.footer}>
+    {usable ? <View style={s.footer}>
       <V2Action label={primaryLabel} disabled={busy} onPress={primaryAction} style={brandAction} />
     </View> : null}
   </SafeAreaView>;

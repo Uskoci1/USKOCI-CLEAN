@@ -1,18 +1,18 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Keyboard, Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import type { Uloga } from '../../contracts/projections';
 import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceView';
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, publicPoint } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, intentLabel, sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { DiscoveryMap } from './DiscoveryMap';
 import { TaskCard } from './TaskCard';
@@ -21,10 +21,10 @@ import { V2Action } from './V2Action';
 export type MarketplacePresentationProps = { owned: boolean; items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onSwitch: () => void; onProfile: () => void; onNew?: () => void;
-  /** Which intent the user is in; the header says it so the context is never implicit. */
-  intent?: Uloga;
-  /** Shown above the list when this screen belongs to the intent the user is not in. */
-  notice?: ReactNode };
+  /** Set when the screen was pushed rather than being a tab: my own tasks are reached from Početna. */
+  onBack?: () => void;
+  /** In discovery: which of the shown tasks are mine and which I have applied to. Labels only. */
+  relations?: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } };
 
 const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'drafts', label: 'Nacrti' }, { key: 'history', label: 'Istorija' }] as const;
 const SECTION_TITLES: Record<MarketplaceView['section'], string> = { active: 'Aktivni zadaci', drafts: 'Nacrti', history: 'Istorija', all: 'Svi zadaci' };
@@ -42,6 +42,9 @@ const keyOf = (item: MarketplaceItem) => item.id;
  */
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const { owned, items, loading, error, view, onOpen } = props, reduced = useReducedMotion();
+  const relations = props.relations;
+  const relationOf = useCallback((item: MarketplaceItem) => owned || !relations ? undefined
+    : relations.owned.has(item.id) ? 'OWNED' as const : relations.applied.has(item.id) ? 'APPLIED' as const : undefined, [owned, relations]);
   const [filterOpen, setFilterOpen] = useState(false), [priceDraft, setPriceDraft] = useState(view.price);
   const [searchOpen, setSearchOpen] = useState(!!view.query);
   const visible = useMemo(() => marketplaceItems(items, view, owned), [items, view, owned]);
@@ -55,18 +58,24 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const toggleMode = (mode: 'list' | 'map') => { Keyboard.dismiss(); change({ mode }); };
   const toggleSearch = () => { Keyboard.dismiss(); if (searchOpen && view.query) change({ query: '', selectedId: null }); setSearchOpen(open => !open); };
   const openFilters = () => { Keyboard.dismiss(); setPriceDraft(view.price); setFilterOpen(true); };
-  const eyebrow = props.intent ? intentLabel(props.intent) : owned ? 'Meni treba' : 'Ja mogu';
+  // What the list is, in the two words the product uses for its two sides. It used to name the
+  // global mode the app was in; there is no such mode any more.
+  const eyebrow = owned ? 'Moje aktivnosti' : 'Uskoči i zaradi', title = owned ? 'Moji zadaci' : 'Pronađi zadatak';
   const sectionTitle = owned ? SECTION_TITLES[view.section] : 'Otvoreni zadaci';
   const count = loading || error ? null : visible.length;
   /** The floating action appears only above cards; an empty set carries its own inline primary, so a screen state never shows two orange actions. */
   const showCards = !loading && !error && visible.length > 0;
   const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
+  const headerControls = <>
+    <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
+    <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
+  </>;
   // A task that arrives while you are looking says so; the ones that were already there do not
   // replay every time the list is pulled. `Appear` holds that distinction.
   const appear = useAppear();
   appear.settle(visible.map(keyOf));
   const renderItem = useCallback(({ item, index }: { item: MarketplaceItem; index: number }) =>
-    <Appear index={index} animate={appear.isNew(keyOf(item))}><TaskCard item={item} onOpen={() => onOpen(item)} /></Appear>, [onOpen, appear]);
+    <Appear index={index} animate={appear.isNew(keyOf(item))}><TaskCard item={item} onOpen={() => onOpen(item)} relation={relationOf(item)} /></Appear>, [onOpen, appear, relationOf]);
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
@@ -95,11 +104,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           Sharing one row left the segment 217dp on a 361dp phone, and three sections need more than
           that as soon as the reader has enlarged their text — "Istorija" was cut through the middle.
           The count is not a control either: it belongs with what it counts, at the top of the list. */}
-      <ScreenHeader eyebrow={eyebrow} title={owned ? 'Zadaci' : 'Prilike'} onProfile={props.onProfile}
-        right={<>
-          <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
-          <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
-        </>} />
+      {props.onBack ? <DetailTopBar eyebrow={eyebrow} title={title} onBack={props.onBack} right={headerControls} />
+        : <ScreenHeader eyebrow={eyebrow} title={title} onProfile={props.onProfile} right={headerControls} />}
       <View style={s.controls}>
         {owned ? <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
           : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
@@ -112,7 +118,6 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         {view.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => change({ query: '', selectedId: null })} haptic="select" style={s.clear}>
           <X size={16} weight="bold" color={sys.color.ink} /></Press> : null}
       </View> : null}
-      {props.notice}
       {view.area ? <View style={s.areaNotice}><T variant="note" tone="muted" style={s.grow}>Izabrana oblast sa mape · isti zadaci u Listi i Mapi</T>
         <V2Action label="Ukloni oblast" kind="quiet" onPress={() => change({ area: null, selectedId: null })} /></View> : null}
       {/* With nothing to show, a map is not a data state: the Mapa tab used to open on the whole
@@ -124,7 +129,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           onSelect={selectedId => change({ selectedId })} onViewport={viewport => change({ viewport })}
           onSearchArea={area => change({ area, selectedId: null })} onList={() => toggleMode('list')} />
         {selected ? <ScrollView style={s.preview} contentContainerStyle={s.previewContent} showsVerticalScrollIndicator={false}>
-          <TaskCard item={selected} compact onOpen={() => onOpen(selected)} />
+          <TaskCard item={selected} compact onOpen={() => onOpen(selected)} relation={relationOf(selected)} />
           <V2Action label="Otvori detalj Zadatka" onPress={() => onOpen(selected)} style={brandAction} />
           <V2Action label="Zatvori pregled pina" kind="quiet" onPress={() => change({ selectedId: null })} />
         </ScrollView> : null}

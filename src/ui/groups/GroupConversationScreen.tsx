@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router,useFocusEffect } from 'expo-router';
 import { useSesija,sesijaSada } from '../../store/sesija';
-import { useUloga,ulogaSada } from '../../store/uloga';
+
 import { groupBody,normalizeGroupBody,type GroupMessage } from '../../data/groupConversationService';
 import { GroupConversationController,initialGroupState } from './GroupConversationController';
 import { ProfilePhoto } from '../media/ContextPhotos';
@@ -15,21 +15,21 @@ import { SupportContextEntry } from '../support/SupportContextEntry';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const status=(value:string)=>({CONFIRMED:'Važeći Dogovor',AWAITING_REQUESTER:'Čeka potvrdu završetka',COMPLETED:'Završen',CANCELLED:'Otkazan'}[value]??'Dogovor');
 export function GroupConversationScreen({agreementId}:{agreementId:string}){
- const {user,accountRevision}=useSesija(),accountId=user?.id??'',intent=useUloga();
+ const {user,accountRevision}=useSesija(),accountId=user?.id??'';
  const [state,setState]=useState(initialGroupState),[epoch,setEpoch]=useState(0),[generation,setGeneration]=useState(0),[draft,setDraft]=useState(''),[showPeople,setShowPeople]=useState(false);
  const owner=useRef<object|null>(null),engine=useRef<GroupConversationController|null>(null),input=useRef('');
  useFocusEffect(useCallback(()=>{
   const scope={};owner.current=scope;setGeneration(x=>x+1);setState(initialGroupState);input.current='';setDraft('');setShowPeople(false);
   const current=()=>owner.current===scope&&!['background','inactive'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId
-   &&sesijaSada().accountRevision===accountRevision&&ulogaSada()===intent;
+   &&sesijaSada().accountRevision===accountRevision;
   const controller=new GroupConversationController({agreementId,account:{accountId,accountRevision},current,storage:AsyncStorage});engine.current=controller;
   controller.subscribe(()=>{if(current()){const next=controller.snapshot();setState(next);if(next.phase==='CONFIRMED'){input.current='';setDraft('');}}});void controller.load();
   const listener=AppState.addEventListener('change',next=>{if(next!=='active'){controller.dispose();owner.current=null;input.current='';setDraft('');setState(initialGroupState);}else setEpoch(x=>x+1);});
   return()=>{listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';};
- },[agreementId,accountId,accountRevision,intent,epoch]));
+ },[agreementId,accountId,accountRevision,epoch]));
  const renderedOwner=owner.current,controller=engine.current;
  const current=()=>renderedOwner!==null&&owner.current===renderedOwner&&engine.current===controller&&controller?.snapshot()===state
-  &&!['background','inactive'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision&&ulogaSada()===intent;
+  &&!['background','inactive'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
  const invoke=(method:'refresh'|'older'|'acknowledge'|'managementNext')=>{if(current())void controller?.[method]();};
  const change=(value:string)=>{if(current()&&(state.phase==='READY'||state.phase==='UNKNOWN')){input.current=value;setDraft(value);}};
  const group=state.context?.group,ready=state.phase==='READY',retry=state.phase==='UNKNOWN'&&state.canRetry;

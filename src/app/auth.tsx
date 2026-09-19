@@ -90,7 +90,7 @@ export default function AuthScreen() {
   const [preparedIntent, setPreparedIntent] = useState<{ intent: 'REQUESTER' | 'WORKER'; accountRevision: number } | null>(null);
   const session = sesijaSada();
   const selectedIntent = !session.user && preparedIntent?.accountRevision === session.accountRevision ? preparedIntent.intent : null;
-  const intentLabel = selectedIntent === 'REQUESTER' ? 'Meni treba' : selectedIntent === 'WORKER' ? 'Ja mogu' : null;
+  const intentLabel = selectedIntent === 'REQUESTER' ? 'Objavi zadatak' : selectedIntent === 'WORKER' ? 'Uskoči i zaradi' : null;
 
   const [ime, setIme] = useState('');
   const [prezime, setPrezime] = useState('');

@@ -224,15 +224,21 @@ it('keeps pending intent across blur and reconciles before enabling another send
   await act(async () => held.resolve(unknown())); await focus(); expect(mockTurn).toHaveBeenCalledWith(id, key);
   expect(mockSend).toHaveBeenCalledTimes(1); expect(input().value).toBe('Treba preneti ormar sutra.');
 });
-it.each(['account ABA', 'intent', 'route'] as const)('rejects retained send callbacks after %s changes', async change => {
+it.each(['account ABA', 'route'] as const)('rejects retained send callbacks after %s changes', async change => {
   await render(); await type(); const retained = submit().onPress, oldInput = input().onChangeText;
   if (change === 'account ABA') mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 3 };
-  if (change === 'intent') mockIntent = 'uskocer';
   if (change === 'route') mockParams = { conversationId: other };
   if (change === 'route') mockLoad.mockResolvedValue(conversation({ conversationId: other }));
   await update(); await act(async () => { oldInput('old private draft'); void retained(); });
   await openKeyboard();
   expect(mockSend).not.toHaveBeenCalled(); expect(input().value).toBe('');
+});
+// Owner decision 1 (2026-09-19): the app has no global mode, so nothing about one can retire an unsent
+// message. This row used to sit in the table above as a reason to drop the send.
+it('a flip of the retired app mode retires nothing: the retained send still goes out, once', async () => {
+  await render(); await type(); const retained = submit().onPress;
+  mockIntent = 'uskocer'; await update(); await act(async () => { void retained(); });
+  expect(mockSend).toHaveBeenCalledTimes(1);
 });
 it('masks old private messages immediately after account ABA and ignores the late read', async () => {
   const held = deferred(); mockLoad.mockReturnValueOnce(held.promise); await resume();

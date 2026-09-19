@@ -4,16 +4,15 @@ import { router, useFocusEffect } from 'expo-router';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, type MarketplaceItem } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { izvorSada, postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../store/uloga';
-import { CrossIntentNotice } from '../../ui/system/CrossIntentNotice';
+import { izvorSada, useIzvor } from '../../store/uloga';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 
 export default function Potrebe() {
-  const { user, accountRevision } = useSesija(), intent = useUloga();
-  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}:${intent}`} />;
+  const { user, accountRevision } = useSesija();
+  return <OwnedCollection key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function OwnedCollection() {
-  const source = useIzvor(), intent = useUloga(), { user, accountRevision } = useSesija();
+  const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [view, setView] = useState(initialMarketplaceView);
   useFocusEffect(useCallback(() => {
@@ -29,7 +28,7 @@ function OwnedCollection() {
   const resource = useFocusedResource(load), scope = focus.current;
   const latestResource = useRef(resource); latestResource.current = resource;
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
-    && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent && izvorSada() === source
+    && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
   const open = (item: MarketplaceItem) => {
@@ -37,15 +36,10 @@ function OwnedCollection() {
     if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
     navigate(() => router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: item.id } }));
   };
-  return <MarketplacePresentation owned={true} intent={intent} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    scopeKey={`${user?.id ?? ''}:${accountRevision}:${intent}`} view={view}
+  return <MarketplacePresentation owned={true} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+    scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
-    onSwitch={() => navigate(() => router.navigate('/prilike'))} onProfile={() => navigate(() => router.navigate('/profil'))}
-    // A link, a notification or a return target can land a worker here, on the requester's own
-    // Zadaci: worker navigation underneath, requester content above, and "+" simply missing with
-    // nothing saying why. The screen says what it is and offers the one step across.
-    notice={intent === 'narucilac' ? undefined : <CrossIntentNotice belongsTo="narucilac"
-      detail="Ovo su Zadaci koje si napravio kao naručilac. Prelazak menja donju navigaciju na Zadaci · Mapa · Dogovori; ostaješ na ovom ekranu."
-      onSwitch={() => { if (current()) postaviUlogu('narucilac'); }} />}
-    onNew={intent === 'narucilac' ? () => navigate(() => router.navigate('/nova')) : undefined} />;
+    onSwitch={() => navigate(() => router.navigate('/mapa'))} onProfile={() => navigate(() => router.navigate('/profil'))}
+    onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
+    onNew={() => navigate(() => router.navigate('/nova'))} />;
 }

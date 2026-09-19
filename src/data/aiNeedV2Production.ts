@@ -43,7 +43,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   CONVERSATION_NOT_OPEN: 'Ovaj razgovor više nije otvoren.',
   CONVERSATION_PURPOSE_MISMATCH: 'Ovaj razgovor ne pripada unosu Zadatka.',
   CONVERSATION_SCHEMA_MISMATCH: 'Ovaj razgovor nije spreman za ovaj unos.',
-  REQUESTER_PROFILE_NOT_READY: 'Profil za MENI TREBA nije spreman.',
+  REQUESTER_PROFILE_NOT_READY: 'Profil za objavu zadataka nije spreman.',
   NEED_REVISION_STALE: 'Zadatak je u međuvremenu promenjen. Ponovo proveri podatke.',
   CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvori razgovor.',
   AI_RATE_LIMITED: 'Zahtevi su trenutno ograničeni. Proveri ishod pre ponovnog pokušaja.',

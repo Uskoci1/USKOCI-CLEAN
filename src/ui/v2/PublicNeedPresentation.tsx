@@ -1,3 +1,4 @@
+import type { TaskRelation } from '../../data/taskRelation';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,12 +20,12 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
  * brand action, "Sastavi prijavu", only while the server accepts applications.
  * Presentation only; the route owns reads, deadline and guards.
  */
-export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, openToOthers, back, retry, apply, photos, qa,
+export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa,
   onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto }: {
   need: PrilikaProjekcija | null; loading: boolean; error: boolean; missing: boolean; stale: boolean; busy: boolean;
   canApply: boolean; canRetry: boolean; back: () => void; retry: () => void; apply: () => void;
-  /** The Task is open, but this account is standing on the requester side of the app. */
-  openToOthers?: boolean;
+  /** What this account is to this task, from its own tasks and applications. Never from an app mode. */
+  relation: TaskRelation; onOwnTask: () => void; onOwnApplication: () => void;
   photos?: ReactNode; qa?: ReactNode;
   /** Owner decision 3: the requester's public profile as a sheet over the existing read. */
   onRequesterProfile?: () => void; requesterProfile?: PublicProfileState; onCloseRequesterProfile?: () => void; publicPhoto?: (profileId: string) => ReactNode;
@@ -82,12 +83,19 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
       </> : null}
     </ScrollView>
     {ready ? <View style={s.footer}>
-      {canApply ? <V2Action label="Sastavi prijavu" onPress={apply} disabled={busy} style={brandAction} />
-        : openToOthers
-          // An intent mismatch is not a property of the Task. Saying "nove prijave nisu dostupne"
-          // about a Task that is wide open states something false about the app's own data.
-          ? <T variant="note" tone="muted" style={s.center}>Ovaj zadatak prima prijave. Prijavljuješ se iz režima JA MOGU — promeni ga u Profilu.</T>
-          : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
+      {/* One action, chosen by what I am to this task. It used to be chosen by the mode the app was
+          in, and an open task told a person in the other mode to go and change it in Profil. */}
+      {relation.kind === 'OWNER' ? <>
+        <T variant="note" tone="muted" style={s.center}>Ovo je tvoj zadatak. Ovako ga vide drugi.</T>
+        <V2Action label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} style={brandAction} /></>
+        : relation.kind === 'APPLIED' ? <>
+          <T variant="note" tone="muted" style={s.center}>{relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Već si se prijavio na ovaj zadatak.'}</T>
+          <V2Action label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} style={brandAction} /></>
+          : relation.kind === 'UNKNOWN' ? <>
+            <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>Nismo uspeli da proverimo da li je zadatak tvoj ili si se već prijavio.</T>
+            <V2Action label="Proveri ponovo" onPress={retry} disabled={busy || !canRetry} /></>
+            : canApply ? <V2Action label="Sastavi prijavu" onPress={apply} disabled={busy} style={brandAction} />
+              : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
     </View> : null}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
       photo={publicPhoto} roleLabel="Naručilac" /> : null}

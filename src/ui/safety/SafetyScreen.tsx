@@ -7,7 +7,7 @@ import { uuid } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { ulogaSada, useUloga } from '../../store/uloga';
+
 import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { sys } from '../system/tokens';
@@ -56,7 +56,7 @@ export function SafetyScreen(p: Context) {
 }
 
 function PrivateReport(context: Context) {
-  const { user, accountRevision } = useSesija(), intent = useUloga(), accountId = user?.id ?? '';
+  const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
   // Only the opaque command ID is persisted. Report content never goes to local
   // storage, public projection, push, bilateral chat, analytics or console.
   const storageKey = `uskoci:safety-command:v1:${accountId}:${context.targetAccountId}:${context.needId ?? ''}:${context.agreementId ?? ''}`;
@@ -74,7 +74,7 @@ function PrivateReport(context: Context) {
   }, []);
   useFocusEffect(useCallback(() => {
     const s = { busy: true, current: () => scope.current === s && !!accountId && sesijaSada().user?.id === accountId &&
-      sesijaSada().accountRevision === accountRevision && ulogaSada() === intent };
+      sesijaSada().accountRevision === accountRevision };
     scope.current = s; setBusy(true); setLoaded(false); setError(null); setReceipt(null); setPending(false); key.current = null; frozen.current = null;
     setCategory(null); setReason(''); setNarrative('');
     void (async () => {
@@ -85,7 +85,7 @@ function PrivateReport(context: Context) {
       finally { if (s.current()) { s.busy = false; setBusy(false); } }
     })();
     return () => { if (scope.current === s) scope.current = null; frozen.current = null; setReason(''); setNarrative(''); setReceipt(null); };
-  }, [accountId, accountRevision, intent, storageKey, readReceipt]));
+  }, [accountId, accountRevision, storageKey, readReceipt]));
   const rendered = scope.current;
   const begin = () => { const s = scope.current; if (!s || s !== rendered || !s.current() || s.busy) return null;
     s.busy = true; setBusy(true); setError(null); return s; };

@@ -2,14 +2,13 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import type { Ishod } from '../data/ports';
 import { sesijaSada, useSesija } from '../store/sesija';
-import { ulogaSada, useUloga } from '../store/uloga';
+
 
 /** A focused editor owns its read, draft and command outcome across account changes. */
 export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
   const { user, accountRevision } = useSesija();
-  const intent = useUloga();
   const accountId = user?.id;
-  const identity = useMemo(() => ({}), [read, accountId, accountRevision, intent]);
+  const identity = useMemo(() => ({}), [read, accountId, accountRevision]);
   const owner = useRef<{ identity: object; current: () => boolean; generation: number;
     writing: boolean; reading: boolean; loaded: boolean; reconcileRequired: boolean } | null>(null);
   const seenIdentity = useRef<object | null>(null);
@@ -66,7 +65,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
     const scope = { identity, generation: 0, writing: false, reading: false, loaded: false, reconcileRequired: false,
       current: () => owner.current === scope &&
       !!accountId && sesijaSada().user?.id === accountId &&
-      sesijaSada().accountRevision === accountRevision && ulogaSada() === intent };
+      sesijaSada().accountRevision === accountRevision };
     owner.current = scope;
     setBusy(false); setSaved(false);
     if (changed) { setUncertain(false); setData(null); }
@@ -80,7 +79,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
       // the moment the screen comes back.
       setBusy(false); setSaved(false); setError(null); redraw(value => value + 1);
     };
-  }, [accountId, accountRevision, intent, refresh, identity]));
+  }, [accountId, accountRevision, refresh, identity]));
 
   async function save(command: () => Promise<Ishod<T>>) {
     const scope = owner.current;

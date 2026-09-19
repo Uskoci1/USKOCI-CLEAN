@@ -5,20 +5,17 @@ import { router, Stack, useFocusEffect } from 'expo-router';
 import { ArrowClockwise, Bell, Check, CaretRight, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText } from 'phosphor-react-native';
 import { SvgXml } from 'react-native-svg';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
-import type { Uloga } from '../contracts/projections';
 import { useInbox } from '../hooks/useInbox';
-import { postaviUlogu, ulogaSada, useUloga } from '../store/uloga';
 import { Press } from '../ui/Press';
-import { IntentTransition, type IntentTransitionRequest } from '../ui/system/IntentTransition';
 import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
 import { Appear, useAppear } from '../ui/system/Appear';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
-import { intentTitle, sys } from '../ui/system/tokens';
+import { sys } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
 
 const filters: {label:string;role:InboxRole|null}[] = [
-  {label:'Sve',role:null},{label:'Meni treba',role:'REQUESTER'},{label:'Ja mogu',role:'WORKER'},
+  {label:'Sve',role:null},{label:'Moji zadaci',role:'REQUESTER'},{label:'Moje prijave',role:'WORKER'},
 ];
 const timestamp = (value: string) => new Date(value).toLocaleString('sr-Latn-RS',
   {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -35,8 +32,6 @@ export default function Obavestenja() {
   appear.settle((state.page?.items ?? []).map(item => item.id));
   const navigate = (action: () => void) => { if (!model.canNavigate() || navigating.current) return; navigating.current=true; action(); };
   const settings = () => navigate(() => router.push('/profil/obavestenja'));
-  const intent = useUloga();
-  const [transition,setTransition] = useState<(IntentTransitionRequest & {go:()=>void})|null>(null);
   async function open(item: InboxItem) {
     const target = await model.open(item);
     if (!target || target.kind==='UNAVAILABLE' || !model.canNavigate()) return;
@@ -45,7 +40,7 @@ export default function Obavestenja() {
     // the question to be found inside it. The event type says what it was about, so the landing does
     // too — for both sides, since answering and being answered are the same screen.
     const questions = item.eventType.startsWith('CLARIFICATION_');
-    const needTarget = (id: string, own: boolean) => questions ? {pathname:'/pitanja-zadatka' as const,params:{needId:id}}
+    const needTarget = (id: string, own: boolean) => questions ? {pathname:'/pitanja-zadatka' as const,params:{needId:id,own:own?'1':'0'}}
       : own ? {pathname:'/potrebe/[id]/pregled' as const,params:{id}} : {pathname:'/prilike/[id]' as const,params:{id}};
     const go = () => { switch (target.kind) {
       case 'AGREEMENT': router.push({pathname:'/dogovor/[id]',params:{id:target.id}}); break;
@@ -54,14 +49,11 @@ export default function Obavestenja() {
       case 'OWN_NEED': router.push(needTarget(target.id,true)); break;
       case 'OPPORTUNITY': router.push(needTarget(target.id,false)); break;
     } };
-    const targetIntent: Uloga = target.role==='WORKER'?'uskocer':'narucilac';
-    // Owner decision 2 (2026-09-16): an item of the other intent asks first; nothing switches silently.
-    if (targetIntent===ulogaSada()) { navigate(go); return; }
-    setTransition({ target: targetIntent, confirmLabel: 'Pređi i otvori', go,
-      reason: `Ova stavka pripada nameri ${intentTitle(targetIntent)}. Otvaranje prelazi u tu nameru i menja donju navigaciju.` });
+    // The destination is the thing the event is about, and what the person is to that thing is said
+    // on its own screen (owner decision 1, 2026-09-19). There used to be a sheet here asking to
+    // switch the whole app into the other mode before an item of "the other intent" could open.
+    navigate(go);
   }
-  const confirmTransition = () => { const pending = transition; setTransition(null);
-    if (pending && model.canNavigate()) navigate(() => { postaviUlogu(pending.target); pending.go(); }); };
   return <SafeAreaView style={styles.screen}>
     <Stack.Screen options={{headerShown:false}}/>
     <DetailTopBar eyebrow="Poruke i važne promene" title="Obaveštenja"
@@ -123,7 +115,7 @@ export default function Obavestenja() {
           <T style={[styles.body,{color:sys.color.ink,fontWeight:item.readAt?'400':'700'}]}>{item.title}</T>
           <T style={styles.meta}>{item.body}</T>
           <T style={[styles.meta,{fontSize:11,marginTop:3}]}>
-            {item.role==='WORKER'?'Ja mogu':'Meni treba'} · {timestamp(item.occurredAt)}{!item.readAt?' · Novo':''}
+            {item.role==='WORKER'?'Moje prijave':'Moji zadaci'} · {timestamp(item.occurredAt)}{!item.readAt?' · Novo':''}
           </T>
         </View>
         <CaretRight size={17} color={sys.color.muted}/>
@@ -132,7 +124,6 @@ export default function Obavestenja() {
         onPress={()=>void model.more()} style={styles.loadMore}>
         {state.paging?<ActivityIndicator color={sys.color.green}/>:<T style={styles.filterText}>Učitaj starija obaveštenja</T>}
       </Press>:null}/>
-    <IntentTransition request={transition} current={intent} onConfirm={confirmTransition} onCancel={()=>setTransition(null)}/>
   </SafeAreaView>;
 }
 

@@ -2,18 +2,18 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync(require.resolve('../../app/(app)/prilike.tsx'), 'utf8');
 
-/** Owner decision 2 (2026-09-16): no silent MENI TREBA ↔ JA MOGU switch from "+" or "Moji". */
-test('public discovery keeps the explicit new-task and owned-tasks entries in both intents, but a worker is asked before any intent switch', () => {
-  expect(source).toContain("import { izvorSada, postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../store/uloga';");
-  expect(source).toContain("import { IntentTransition, type IntentTransitionRequest } from '../../ui/system/IntentTransition';");
-  expect(source).toContain("if (intent === 'narucilac') navigate(() => router.navigate('/potrebe'));");
-  expect(source).toContain("if (intent === 'narucilac') navigate(() => router.navigate('/nova'));");
-  expect(source).toContain("else ask({ target: 'narucilac', confirmLabel: 'Pređi na moje Zadatke', go: () => router.replace('/potrebe'),");
-  expect(source).toContain("else ask({ target: 'narucilac', confirmLabel: 'Pređi i napravi Zadatak', go: () => router.replace('/nova'),");
-  // The one store writer runs only inside the confirmed transition, guarded by the same ownership check as navigation.
-  expect(source.match(/postaviUlogu\(/g)).toHaveLength(1);
-  expect(source).toContain("if (pending) navigate(() => { postaviUlogu(pending.target); pending.go(); });");
-  expect(source).toContain('<IntentTransition request={transition} current={intent} onConfirm={confirmTransition} onCancel={() => setTransition(null)} />');
-  expect(source).not.toContain("onNew={intent === 'narucilac'");
-  expect(source).not.toContain("else { postaviUlogu('narucilac');");
+/**
+ * Owner decision 1 (2026-09-19) supersedes owner decision 2 of 2026-09-16 here. That decision said
+ * "+" and "Moji" must never switch MENI TREBA ↔ JA MOGU silently, so a worker was asked first. There
+ * is no mode left to switch: looking for work, opening my own tasks and publishing a new one are
+ * three things one account does from the same screen, and each simply goes where it says.
+ */
+test('public discovery opens a new task and my own tasks directly, for every account, with no mode to read, ask about or set', () => {
+  expect(source).toContain("import { izvorSada, useIzvor } from '../../store/uloga';");
+  expect(source).toContain("onSwitch={() => navigate(() => router.navigate('/potrebe'))}");
+  expect(source).toContain("onNew={() => navigate(() => router.navigate('/nova'))}");
+  // Navigation is still fenced by the account, its revision, the source and the foreground.
+  expect(source).toContain('sesijaSada().accountRevision === accountRevision && izvorSada() === source');
+  for (const retired of ['postaviUlogu', 'useUloga', 'ulogaSada', 'IntentTransition', "intent === 'narucilac'", 'ask('])
+    expect(source).not.toContain(retired);
 });

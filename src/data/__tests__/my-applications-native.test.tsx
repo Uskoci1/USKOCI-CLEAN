@@ -30,7 +30,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'Bell' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
-jest.mock('phosphor-react-native', () => ({ User: 'Icon', Clock: 'Icon', MapPin: 'Icon', Wallet: 'Icon' }));
+jest.mock('phosphor-react-native', () => ({ User: 'Icon', Clock: 'Icon', MapPin: 'Icon', Wallet: 'Icon', ArrowLeft: 'Icon' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 jest.mock('../ru4Production', () => ({ ru4Production: { resolveChangedApplication: (...args: any[]) => mockResolve(...args) } }));
 jest.mock('../myApplicationsClientService', () => ({ readExistingApplicationInterval: (...args: any[]) => mockInterval(...args) }));
@@ -63,7 +63,7 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.useRealTimers(); });
 it('renders the real empty state and uses the existing discovery route', async () => {
-  mockRows = []; await render(); expect(text()).toContain('Tvoja sledeća prilika.'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/prilike');
+  mockRows = []; await render(); expect(text()).toContain('Tvoja sledeća prilika.'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/mapa');
 });
 it('filters actual attention, active and finished rows without changing their status', async () => {
   mockRows = [row(), stale(), row({ prijavaId: 'closed', naslov: 'Završena ponuda', stanje: 'CLOSED', mozePovuci: false })];
@@ -133,14 +133,18 @@ it('stale WITHDRAW uses its actual revision-resolution authority', async () => {
   mockResolve.mockResolvedValue({ ok: true, podatak: { status: 'WITHDRAWN', version: 2 } }); await review(); await tap('Povuci izmenjenu prijavu'); await act(async () => confirm()());
   expect(mockWithdraw).not.toHaveBeenCalled(); expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'WITHDRAW', ocekivanaVerzija: 2, ocekivanaPotrebaRevizija: 4 });
 });
-it.each(['blur', 'account', 'intent', 'background', 'refresh'])('retires an open withdrawal confirmation after %s', async change => {
+it.each(['blur', 'account', 'background', 'refresh'])('retires an open withdrawal confirmation after %s', async change => {
   await render(); await tap('Povuci prijavu: Unos ormara'); const old = confirm();
   if (change === 'blur') { mockFocused = false; await update(); mockFocused = true; await update(); }
   if (change === 'account') { mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 }; await update(); }
-  if (change === 'intent') { mockRole = 'narucilac'; await update(); }
   if (change === 'background') { await background('background'); expect(text()).not.toContain('Unos ormara'); await background('active'); }
   if (change === 'refresh') { await act(async () => tree!.root.findByType('FlatList' as any).props.onRefresh()); }
   await act(async () => old()); expect(mockWithdraw).not.toHaveBeenCalled();
+});
+// Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
+it('a flip of the retired app mode leaves an open withdrawal confirmation standing', async () => {
+  await render(); await tap('Povuci prijavu: Unos ormara'); const old = confirm();
+  mockRole = 'narucilac'; await update(); await act(async () => old()); expect(mockWithdraw).toHaveBeenCalledTimes(1);
 });
 it('retires retained review actions when that review is closed and reopened', async () => {
   await review(); const old = press('Zadrži prijavu'); await tap('Zatvori pregled izmena'); await tap('Pregledaj izmene: Unos ormara'); await act(async () => old()); expect(mockResolve).not.toHaveBeenCalled();

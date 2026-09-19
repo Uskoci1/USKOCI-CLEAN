@@ -79,7 +79,7 @@ export default function PodrucjeRada() {
   const read = useCallback(() => workerLocationClientService.read(), []);
   const editor = useOwnedEditor(read);
   const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
-  return <LocationScreen eyebrow="Ja mogu" title="Područje rada" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
+  return <LocationScreen eyebrow="Kako mogu da uskočim" title="Područje rada" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
     {editor.saved ? <T accessibilityRole="alert" tone="success">Područje rada je sačuvano.</T> : null}
     {editor.data ? <WorkerLocationForm key={editor.data.revision} location={editor.data} busy={editor.busy} uncertain={editor.uncertain}
       onSave={value => { const location = editor.data; if (!location) return;

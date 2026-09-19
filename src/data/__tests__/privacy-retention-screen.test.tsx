@@ -109,13 +109,17 @@ it('opens existing export once after an explicit double tap', async () => {
   await render(); const open = button('Otvori izvoz').onPress;
   await act(async () => { open(); open(); }); expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
 });
-it.each(['account', 'incarnation', 'intent', 'blur'])('retires retained navigation after %s changes', async change => {
+it.each(['account', 'incarnation', 'blur'])('retires retained navigation after %s changes', async change => {
   await render(); const open = button('Otvori izvoz').onPress;
   if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2 };
   else if (change === 'incarnation') mockSession = { user: { id: 'account-a' }, accountRevision: 3 };
-  else if (change === 'intent') mockIntent = 'uskocer';
   else { mockFocused = false; await update(); mockFocused = true; await update(); }
   await act(async () => open()); expect(mockRouter.navigate).not.toHaveBeenCalled();
+});
+// Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
+it('a flip of the retired app mode retires nothing: retained navigation still opens the export', async () => {
+  await render(); const open = button('Otvori izvoz').onPress; mockIntent = 'uskocer';
+  await act(async () => open()); expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
 });
 it.each(['account', 'blur'])('discards late schedule success after %s changes', async change => {
   const old = deferred(); mockPolicy.mockReturnValueOnce(old.promise); await render();

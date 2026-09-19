@@ -15,7 +15,7 @@ import { NeedLifecycleActions } from '../../../../ui/needs/NeedLifecycleActions'
 import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
-import { postaviUlogu, ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { useIzvor } from '../../../../store/uloga';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
@@ -26,21 +26,20 @@ export default function PregledPotrebe() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = typeof params.id === 'string' ? params.id : '';
   const { user, accountRevision } = useSesija();
-  const intent = useUloga();
-  return <OwnedNeed key={`${id}:${user?.id ?? ''}:${accountRevision}:${intent}`} id={id} />;
+  return <OwnedNeed key={`${id}:${user?.id ?? ''}:${accountRevision}`} id={id} />;
 }
 function OwnedNeed({ id }: { id: string }) {
-  const izvor = useIzvor(), intent = useUloga();
+  const izvor = useIzvor();
   const { user, accountRevision } = useSesija();
   const accountId = user?.id;
-  const identity = useMemo(() => ({}), [id, izvor, intent, accountId, accountRevision]);
+  const identity = useMemo(() => ({}), [id, izvor, accountId, accountRevision]);
   const latestIdentity = useRef(identity); latestIdentity.current = identity;
   const focus = useRef<object | null>(null), life = useRef(0), navigating = useRef(false), dialog = useRef<object | null>(null);
   const foreground = useRef(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const [lifecycle, setLifecycle] = useState(0);
   const reading = useRef<object | null>(null);
   // An unconfirmed close keeps its command identity for the explicit retry; the
-  // owner remounts on id/account/intent, so the attempt never outlives them.
+  // owner remounts on id/account, so the attempt never outlives them.
   const closeAttempt = useRef<RemainingSearchCloseAttempt | null>(null);
   const [terminalActive, setTerminalActive] = useState(false);
   const terminalActiveRef = useRef(false);
@@ -63,7 +62,7 @@ function OwnedNeed({ id }: { id: string }) {
     const current = () => owner !== null && focus.current === owner && foreground.current && life.current === generation
       && reading.current === invocation
       && latestIdentity.current === identity && sesijaSada().user?.id === accountId
-      && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+      && sesijaSada().accountRevision === accountRevision;
     const load = async (): Promise<Ishod<Snapshot>> => {
       if (!current()) return changed();
       if (!uuid(id)) return failure('NEED_REQUIRED', 'Zadatak nije izabran.');
@@ -88,7 +87,7 @@ function OwnedNeed({ id }: { id: string }) {
       // SDK reads may finish after the timeout. Retire their side-effect authority.
       if (reading.current === invocation) reading.current = null;
     }
-  }, [id, identity, izvor, accountId, accountRevision, intent, lifecycle]);
+  }, [id, identity, izvor, accountId, accountRevision, lifecycle]);
   const editor = useOwnedEditor(read);
   const potreba = editor.data?.need ?? null;
   // A draft is told why it cannot be published, by the gate that decides it rather than by a
@@ -100,10 +99,10 @@ function OwnedNeed({ id }: { id: string }) {
   const latestData = useRef(editor.data); latestData.current = editor.data;
   const current = () => focus.current !== null && focus.current === renderedFocus && foreground.current
     && life.current === renderedLife && latestIdentity.current === identity && latestData.current === editor.data
-    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   useEffect(() => {
     setReadiness(null);
-    // Gated on intent, this never ran while the owner was in JA MOGU, so his own draft answered
+    // Gated on the app's mode, this once never ran for an owner standing in the other mode, so his own draft answered
     // with the old promise "Sledeće: pregled i objava jednim korakom" - for a draft the publish gate
     // would have refused. Ownership is the server's business and it checks it.
     const draft = potreba && potreba.stanje === 'NACRT';
@@ -116,8 +115,10 @@ function OwnedNeed({ id }: { id: string }) {
       setReadiness(result.ok ? result.podatak : { kind: 'UNKNOWN' });
     }, () => {});
     return () => { alive = false; };
-  }, [potreba?.id, potreba?.revizija, potreba?.stanje, intent, identity, lifecycle]);
-  const canAct = () => current() && intent === 'narucilac' && !terminalActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
+  }, [potreba?.id, potreba?.revizija, potreba?.stanje, identity, lifecycle]);
+  // This screen shows a Zadatak returned by the owner-only read, so whoever sees it owns it; the
+  // server checks that again on every command. No app-wide mode stands in for that any more.
+  const canAct = () => current() && !terminalActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
   const navigate = (action: () => void) => { if (!current() || navigating.current) return;
     dialog.current = null; navigating.current = true; action(); };
   const refresh = () => { if (!current() || editor.busy) return; dialog.current = null;
@@ -173,13 +174,12 @@ function OwnedNeed({ id }: { id: string }) {
   };
 
   return <NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
-    photos={potreba ? <NeedPhotos needId={potreba.id} owned={intent === 'narucilac'} /> : undefined}
-    qaAction={potreba && intent === 'narucilac' ? <TaskQaEntry disabled={!canAct()}
-      onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id } })); }} /> : undefined}
-    lifecycleActions={intent === 'narucilac' && uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}
+    photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
+    qaAction={potreba ? <TaskQaEntry disabled={!canAct()}
+      onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } })); }} /> : undefined}
+    lifecycleActions={uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}
       disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
-    error={greska} busy={akcijaUToku || terminalActive} ownerIntent={intent === 'narucilac'} remainingClosed={preostalaPotragaZatvorena}
-    onSwitchIntent={() => { if (current()) postaviUlogu('narucilac'); }}
+    error={greska} busy={akcijaUToku || terminalActive} remainingClosed={preostalaPotragaZatvorena}
     readiness={readiness}
     onBack={() => navigate(() => router.back())} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
     onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />;

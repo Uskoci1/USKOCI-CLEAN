@@ -10,7 +10,7 @@ import { positiveInteger } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { useIzvor } from '../../store/uloga';
 import { MyApplicationsPresentation, type ApplicationsTab, type OfferEdit } from '../../ui/v2/MyApplicationsPresentation';
 
 type Intent = { kind: 'withdraw'; command: PovuciPrijavuKomanda } | { kind: 'resolve'; command: Ru4RazresiPrijavuInput };
@@ -43,7 +43,7 @@ function observed(pending: Pending, rows: MojaPrijavaProjekcija[]) {
     ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED'].includes(row.stanje);
 }
 export default function MojePrijave() {
-  const izvor = useIzvor(), router = useRouter(), role = useUloga();
+  const izvor = useIzvor(), router = useRouter();
   // "Zadatak je izmenjen — proveri svoju prijavu" used to land on the list and stop there, leaving
   // the person to find which of their applications it meant. The notification knows; it now says.
   const params = useLocalSearchParams<{ prijavaId?: string | string[] }>();
@@ -55,10 +55,10 @@ export default function MojePrijave() {
   const session = useMemo(() => ({ focused: false, active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
     token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: 'all' as ApplicationsTab,
     expanded: null as string | null, draft: null as OfferEdit | null, pending: null as Pending | null, message: null as string | null }),
-  [izvor, user?.id, accountRevision, role]);
+  [izvor, user?.id, accountRevision]);
   const [, render] = useState(0), [resume, setResume] = useState(0);
   const accountCurrent = useCallback(() => !!user?.id && sesijaSada().user?.id === user.id &&
-    sesijaSada().accountRevision === accountRevision && ulogaSada() === role, [user?.id, accountRevision, role]);
+    sesijaSada().accountRevision === accountRevision, [user?.id, accountRevision]);
   const clearReview = useCallback(() => { session.expanded = null; session.draft = null; session.editRevision++; session.editingLoading = false; session.message = null; }, [session]);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.token++; clearReview(); render(v => v + 1);
@@ -181,17 +181,17 @@ export default function MojePrijave() {
     } catch { if (current() && generation === session.editRevision) session.message = 'Termin nije učitan. Osveži Prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };
-  const navigate = (path: '/prilike' | '/profil') => { if (current()) router.navigate(path); };
+  const navigate = (path: '/mapa' | '/profil') => { if (current()) router.navigate(path); };
   const pending = session.pending, visible = current();
-  return <MyApplicationsPresentation intent={role} rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
+  return <MyApplicationsPresentation rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
     unavailable={!data} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
     focusId={visible ? focusId : null}
     expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}
     editingLoading={session.editingLoading} pending={!!pending} canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
     canReset={!!pending?.reconciled && !editor.uncertain && (pending.result === 'rejected' || pending.result === 'receipt')}
-    onRefresh={refresh} onExplore={() => navigate('/prilike')} onProfile={() => navigate('/profil')}
-    onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace('/prilike'); } }}
+    onRefresh={refresh} onExplore={() => navigate('/mapa')} onProfile={() => navigate('/profil')}
+    onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace('/'); } }}
     onReview={p => { if (rowCurrent(p) && idle()) { clearReview(); session.expanded = p.prijavaId; render(v => v + 1); } }}
     onClose={() => { if (current() && !session.pending) { clearReview(); render(v => v + 1); } }} onEdit={p => void edit(p)}
     onChange={draft => { if (current() && idle() && editRevision === session.editRevision && session.draft) { session.draft = { ...session.draft, price: draft.price, people: draft.people, note: draft.note }; session.editRevision++; session.message = null; render(v => v + 1); } }}

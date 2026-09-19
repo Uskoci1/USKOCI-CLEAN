@@ -7,7 +7,7 @@ import { legalClientService } from '../../../data/legalClientService';
 import { processorMapClientService } from '../../../data/processorMapClientService';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { ulogaSada, useUloga } from '../../../store/uloga';
+
 import { LegalDocumentRows } from '../../../ui/legal/LegalDocuments';
 import { LegalReviewController, legalHttpsUrl, reviewedDocuments, sessionLegalIntentJournal } from '../../../ui/legal/legalReview';
 import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsScreen, SettingsText as T } from '../../../ui/settings/SettingsPresentation';
@@ -15,15 +15,15 @@ import { sys } from '../../../ui/system/tokens';
 
 const roles: Record<ProcessorLegalRole, string> = { PROCESSOR: 'Obrađivač', SUBPROCESSOR: 'Podobrađivač', INDEPENDENT_CONTROLLER: 'Samostalni rukovalac' };
 export default function PravnaDokumenta() {
-  const { user, accountRevision } = useSesija(), role = useUloga();
-  return <OwnedLegal key={`${user?.id ?? ''}:${accountRevision}:${role}`} />;
+  const { user, accountRevision } = useSesija();
+  return <OwnedLegal key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function OwnedLegal() {
-  const { user, accountRevision } = useSesija(), role = useUloga(), accountId = user?.id;
+  const { user, accountRevision } = useSesija(), accountId = user?.id;
   const focus = useRef<object | null>(null), opening = useRef(false), leaving = useRef(false);
   const [linkError, setLinkError] = useState<string | null>(null);
   const owner = useCallback(() => !!accountId && sesijaSada().user?.id === accountId &&
-    sesijaSada().accountRevision === accountRevision && ulogaSada() === role, [accountId, accountRevision, role]);
+    sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
   const controller = useMemo(() => new LegalReviewController({ isOwner: owner, newId: noviUuidZahtevId,
     intentJournal: sessionLegalIntentJournal(`${accountId ?? ''}:${accountRevision}`),
     readBundle: () => legalClientService.readBundle(), readProcessors: () => processorMapClientService.readStatus(),

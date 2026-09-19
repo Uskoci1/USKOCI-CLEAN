@@ -7,7 +7,7 @@ import { applicationSelectionErrors, boundedApplicationSelectionRead, readSelect
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { useIzvor } from '../../../../store/uloga';
 import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable } from '../../../../ui/v2/ApplicationSelectionPresentation';
 type Receipt = { dogovorId: string };
 type Pending = { command: IzborKomanda; need: PotrebaProjekcija; candidate: KandidatProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
@@ -16,9 +16,9 @@ type Viewed = { state: 'PENDING' | 'CONFIRMED' | 'UNCONFIRMED' };
 export default function Kandidati() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
-  const izvor = useIzvor(), router = useRouter(), role = useUloga();
+  const izvor = useIzvor(), router = useRouter();
   const { user, accountRevision } = useSesija();
-  const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }), [id, izvor, user?.id, accountRevision, role]);
+  const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [opened, setOpened] = useState<{ data: Loaded; candidate: KandidatProjekcija } | null>(null);
   useFocusEffect(useCallback(() => {
@@ -47,7 +47,7 @@ export default function Kandidati() {
   const pending = session.pending;
   const candidate = pending?.candidate ?? (opened?.data === data ? opened.candidate : null);
   const focusToken = session.focusToken, readRevision = session.readRevision;
-  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision && ulogaSada() === role;
+  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
   const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
   const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
   const back = () => {

@@ -89,8 +89,8 @@ it('keeps email functional and shows no way in that does not work', async () => 
   expect(input('ime@primer.rs')).toBeDefined(); expect(button('Prijavi se')).toBeDefined();
   expect(button('Napravi nalog').props.accessibilityRole).toBe('button');
   expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
-  expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
-  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+  expect(text()).not.toContain('OBJAVI ZADATAK · ISTI NALOG');
+  expect(text()).not.toContain('USKOČI I ZARADI · ISTI NALOG');
   for (const provider of ['Google', 'Apple', 'Telefon']) {
     expect(host('Pressable').find(node => node.props.accessibilityLabel === provider)).toBeUndefined();
   }
@@ -273,7 +273,7 @@ it.each([['onRequester', 'REQUESTER'], ['onWorker', 'WORKER']])('prepares %s onc
   expect(text()).not.toContain('ISTI NALOG');
   await act(async () => pending.resolve());
   expect(input('ime@primer.rs')).toBeDefined();
-  expect(text()).toContain(intent === 'REQUESTER' ? 'MENI TREBA · ISTI NALOG' : 'JA MOGU · ISTI NALOG');
+  expect(text()).toContain(intent === 'REQUESTER' ? 'OBJAVI ZADATAK · ISTI NALOG' : 'USKOČI I ZARADI · ISTI NALOG');
   expect(text()).toContain(intent === 'REQUESTER' ? 'Nastavi do svojih Zadataka i Dogovora.' : 'Nastavi do Prijava, Zadataka i Dogovora.');
 });
 
@@ -331,29 +331,29 @@ it('keeps prepared intent through signup and recovery but clears it for explicit
   await act(async () => { tree = create(<AuthScreen />); });
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onWorker());
   await press('Napravi nalog');
-  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+  expect(text()).not.toContain('USKOČI I ZARADI · ISTI NALOG');
   await press('Već imaš nalog? Prijavi se');
-  expect(text()).toContain('JA MOGU · ISTI NALOG');
+  expect(text()).toContain('USKOČI I ZARADI · ISTI NALOG');
   await press('Zaboravili ste lozinku?');
   expect(text()).toContain('BEZBEDAN POVRATAK');
   await press('Nazad na prijavu');
-  expect(text()).toContain('JA MOGU · ISTI NALOG');
+  expect(text()).toContain('USKOČI I ZARADI · ISTI NALOG');
   await act(async () => host('Pressable').find(node => node.props.accessibilityLabel === 'Nazad')!.props.onPress());
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignIn());
   expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
-  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+  expect(text()).not.toContain('USKOČI I ZARADI · ISTI NALOG');
 });
 
 it('does not carry a prepared label across an account incarnation change', async () => {
   await act(async () => { tree = create(<AuthScreen />); });
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onRequester());
-  expect(text()).toContain('MENI TREBA · ISTI NALOG');
+  expect(text()).toContain('OBJAVI ZADATAK · ISTI NALOG');
   mockSession = { user: { id: 'other-account' }, accountRevision: 1 };
   await act(async () => tree.update(<AuthScreen />));
-  expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
+  expect(text()).not.toContain('OBJAVI ZADATAK · ISTI NALOG');
   mockSession = { user: null, accountRevision: 2 };
   await act(async () => tree.update(<AuthScreen />));
-  expect(text()).not.toContain('MENI TREBA · ISTI NALOG');
+  expect(text()).not.toContain('OBJAVI ZADATAK · ISTI NALOG');
 });
 
 it('does not accept a late prepare or show its label after signed-out account ABA', async () => {
@@ -364,7 +364,7 @@ it('does not accept a late prepare or show its label after signed-out account AB
   await act(async () => pending.resolve());
   expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
   expect(host('TextInput')).toHaveLength(0);
-  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+  expect(text()).not.toContain('USKOČI I ZARADI · ISTI NALOG');
 });
 
 it('uses neutral presentation for a new direct Auth destination after a prepared selection', async () => {
@@ -373,7 +373,7 @@ it('uses neutral presentation for a new direct Auth destination after a prepared
   mockParams = { form: 'login' };
   await act(async () => tree.update(<AuthScreen />));
   expect(text()).toContain('JEDAN NALOG · OBE MOGUĆNOSTI');
-  expect(text()).not.toContain('JA MOGU · ISTI NALOG');
+  expect(text()).not.toContain('USKOČI I ZARADI · ISTI NALOG');
   expect(mockPrepare).toHaveBeenCalledTimes(1);
 });
 

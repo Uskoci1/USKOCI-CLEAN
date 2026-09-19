@@ -21,23 +21,21 @@ import { AgreementCollectionPresentation } from '../../ui/v2/AgreementCollection
 
 let tree: ReactTestRenderer | undefined;
 const calendar = jest.fn();
-async function render(requester: boolean) {
+async function render() {
   await act(async () => { tree = create(<AgreementCollectionPresentation items={[]} loading={false} error={false}
-    requester={requester} section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
-    onRefresh={() => {}} onOpen={() => {}} onCalendar={calendar} onProfile={() => {}} onTasks={() => {}} />); });
+    section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
+    onRefresh={() => {}} onOpen={() => {}} onCalendar={calendar} onProfile={() => {}} onHome={() => {}} />); });
 }
 
 afterEach(async () => { if (tree) await act(async () => tree?.unmount()); tree = undefined; calendar.mockClear(); });
 
-describe('PKG-005 Worker-only calendar navigation', () => {
-  it('does not present the Worker calendar as a requester Dogovori action', async () => {
-    await render(true);
+// Owner decisions 1 and 6 (2026-09-19): one list of Dogovori for both sides, and the calendar of what
+// I agreed to do is mine to open whenever I like. It used to be offered in one app mode only.
+describe('PKG-005 calendar navigation from Dogovori', () => {
+  it('offers the calendar to every account, names no app mode, and uses the existing callback', async () => {
+    await render();
     expect(tree!.root.findAllByProps({ accessibilityLabel: 'Radni raspored (JA MOGU)' })).toHaveLength(0);
-  });
-
-  it('offers the Worker calendar from Dogovori only in JA MOGU and uses the existing callback', async () => {
-    await render(false);
-    const button = tree!.root.findByProps({ accessibilityLabel: 'Radni raspored (JA MOGU)' });
+    const button = tree!.root.findByProps({ accessibilityLabel: 'Kalendar obaveza' });
     await act(async () => button.props.onPress());
     expect(calendar).toHaveBeenCalledTimes(1);
   });

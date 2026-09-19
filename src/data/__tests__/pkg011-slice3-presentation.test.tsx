@@ -34,15 +34,15 @@ const application = (id: string, stanje: MojaPrijavaProjekcija['stanje'], patch:
   dogovorId: stanje === 'SELECTED' ? 'agreement' : null, promenjenaPotreba: false, mozePovuci: stanje === 'SUBMITTED', traziPaznju: stanje === 'STALE_REVIEW_REQUIRED', ...patch });
 const noop = () => {};
 function Applications({ rows, loading = false }: { rows: MojaPrijavaProjekcija[]; loading?: boolean }) {
-  return <MyApplicationsPresentation intent="uskocer" rows={rows} loading={loading} unavailable={false} message={null} notice={null} tab="all" onTab={noop}
+  return <MyApplicationsPresentation rows={rows} loading={loading} unavailable={false} message={null} notice={null} tab="all" onTab={noop}
     expanded={null} draft={null} busy={false} editingLoading={false} pending={false} canRetry={false} canReset={false}
     onRefresh={noop} onExplore={noop} onProfile={noop} onBack={noop} onReview={noop} onClose={noop} onEdit={noop} onChange={noop} onCancelEdit={noop}
     onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} />;
 }
-test('Prijave names the intent, offers tabs with counts as real tabs, and gives each application the actions its state allows', async () => {
+test('Moje prijave names no app mode, offers tabs with counts as real tabs, and gives each application the actions its state allows', async () => {
   await act(async () => { tree = create(<Applications rows={[application('a', 'SUBMITTED'), application('b', 'SELECTED'), application('c', 'STALE_REVIEW_REQUIRED')]} />); });
   const copy = texts();
-  expect(copy).toContain('Ja mogu'); expect(copy).toContain('Prijave');
+  expect(copy).toContain('Moje aktivnosti'); expect(copy).toContain('Moje prijave'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
   for (const tab of ['Sve', 'Čeka te', 'Aktivne', 'Završene']) expect(byLabel(tab).props.accessibilityRole).toBe('tab');
   expect(byLabel('Sve').props.accessibilityState).toEqual({ selected: true });
   expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Potrebna nova provera'); expect(copy).toContain('6.000 RSD');
@@ -60,12 +60,14 @@ test('Prijave loading shows placeholders and a spoken status; the empty state ha
 const need: PrilikaProjekcija = { id: 'need', naslov: 'Selidba stana', statusTekst: 'Traži ponude', primaNovePrijave: true, rokZaPrijaveIso: null, podrucjeTekst: 'Beograd, Vračar',
   vremeTekst: 'Sutra ujutru', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, uslovi: ['Kombi'], narucilacProfilId: 'profile-1', narucilacIme: 'Ana', narucilacOcena: '4,8',
   priblizno: { lat: 44.8, lng: 20.47 }, rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 9000, valuta: 'RSD', prikaz: '9.000 RSD' }, opis: 'Dva sprata bez lifta.' };
-const open = jest.fn(), close = jest.fn(), apply = jest.fn();
-function Detail({ canApply = true, profile = null }: { canApply?: boolean; profile?: { loading: boolean; data: any } | null }) {
+const open = jest.fn(), close = jest.fn(), apply = jest.fn(), ownTask = jest.fn(), ownApplication = jest.fn();
+function Detail({ canApply = true, profile = null, relation = { kind: 'NONE' } }: { canApply?: boolean; profile?: { loading: boolean; data: any } | null;
+  relation?: import('../taskRelation').TaskRelation }) {
   return <PublicNeedPresentation need={need} loading={false} error={false} missing={false} stale={false} busy={false} canApply={canApply} canRetry
+    relation={relation} onOwnTask={ownTask} onOwnApplication={ownApplication}
     back={noop} retry={noop} apply={apply} onRequesterProfile={open} requesterProfile={profile} onCloseRequesterProfile={close} />;
 }
-beforeEach(() => { open.mockClear(); close.mockClear(); apply.mockClear(); });
+beforeEach(() => { for (const mock of [open, close, apply, ownTask, ownApplication]) mock.mockClear(); });
 test('the public Task leads with status, title, price and people, offers the requester profile, and has exactly one brand action while applications are open', async () => {
   await act(async () => { tree = create(<Detail />); });
   const copy = texts();
@@ -85,4 +87,26 @@ test('closed applications remove the brand action and say so; the requester prof
   expect(copy).toContain('Ana Anić'); expect(copy).toContain('Beograd'); expect(copy).toContain('4.8'); expect(copy).toContain('3 recenzije'); expect(copy).toContain('Volim red.');
   expect(copy).not.toContain('Identitet je potvrđen');
   await act(async () => byLabel('Zatvori javni profil').props.onPress()); expect(close).toHaveBeenCalledTimes(1);
+});
+
+// Owner decision 1 (2026-09-19): the one action on a task somebody else can see is chosen by what I
+// am to that task. It used to be chosen by the mode of the app, and an open task told a person
+// standing in the other mode to go and change it in Profil.
+test('my own task offers my view of it, never an application to myself', async () => {
+  await act(async () => { tree = create(<Detail relation={{ kind: 'OWNER' }} />); });
+  expect(texts()).toContain('Ovo je tvoj zadatak.'); expect(labels()).not.toContain('Sastavi prijavu');
+  await act(async () => byLabel('Otvori svoj zadatak').props.onPress()); expect(ownTask).toHaveBeenCalledTimes(1); expect(apply).not.toHaveBeenCalled();
+});
+test('a task I applied to offers my application, and my Dogovor once I am chosen', async () => {
+  await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: null }} />); });
+  expect(texts()).toContain('Već si se prijavio na ovaj zadatak.'); expect(labels()).not.toContain('Sastavi prijavu');
+  await act(async () => byLabel('Pogledaj svoju prijavu').props.onPress()); expect(ownApplication).toHaveBeenCalledTimes(1);
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: 'g1' }} />); });
+  expect(labels()).toContain('Otvori Dogovor');
+});
+test('a relation that could not be read is never treated as not applied: no application is offered, only the check again', async () => {
+  await act(async () => { tree = create(<Detail relation={{ kind: 'UNKNOWN' }} />); });
+  expect(labels()).not.toContain('Sastavi prijavu'); expect(labels()).toContain('Proveri ponovo');
+  expect(texts()).not.toMatch(/JA MOGU|MENI TREBA|Profilu/);
 });

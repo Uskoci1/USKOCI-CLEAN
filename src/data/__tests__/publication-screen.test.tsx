@@ -151,10 +151,12 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 8, needStatus: 'DRAFT', authoritative: true }));
     await tap('Pregledaj za objavu'); expect(mockRouter.push).toHaveBeenCalledTimes(1);
   });
-  it('gates the owner review by requester intent and validates route before reads', async () => {
+  it('validates the route before reads, and offers the owner review to the owner whatever the app last was', async () => {
+    // Owner decision 1 (2026-09-19). The review used to be withheld from an owner standing in the
+    // other app mode. Ownership is settled by the owner-only read and by the server, not by a mode.
     mockId = 'invalid'; await render(); expect(mockNeed).not.toHaveBeenCalled();
     mockId = NEED; mockIntent = 'radnik'; await update();
-    expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
   });
   it('preserves partial-search closure with one confirmed command and actual reread', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
@@ -218,7 +220,8 @@ describe('V2 saved Need presentation', () => {
     mockFocused = false; await update(); mockFocused = true; await update();
     await act(async () => retained()); expect(mockRouter.push).not.toHaveBeenCalled();
     await act(async () => press('Otvori pitanja i odgovore').props.onPress());
-    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pitanja-zadatka', params: { needId: NEED } });
+    // The link says these are the questions of my own task, so the way back needs no app mode.
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pitanja-zadatka', params: { needId: NEED, own: '1' } });
     expect(mockPublish).not.toHaveBeenCalled();
   });
 });

@@ -1,25 +1,25 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { composeHome, readHomeSection, type HomeReads, type HomeTarget } from '../../data/homeSnapshot';
+import { composeActivities, readHomeSection, type ActivityFilter, type HomeReads, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import { HomePresentation } from '../../ui/home/HomePresentation';
+import { ActivitiesPresentation } from '../../ui/home/ActivitiesPresentation';
 
 /**
- * Početna: the root of the one shell (owner decision 1, 2026-09-19). This route used to be a
- * redirect that read a global mode and sent the person to Zadaci or to Prijave. It now answers
- * "what waits for me" for the whole account at once, from the three reads that already exist, and
- * offers the two things a person can start. It reads no mode and sets none.
+ * Moje aktivnosti v1 (second V3 slice, 2026-09-19): the same three reads as Početna, as one list
+ * with two filters. There is no paging because the two list RPCs offer none; that is a
+ * READ_CONTRACT item for the third slice, and nothing here invents a cursor.
  */
-export default function Pocetna() {
+export default function MojeAktivnosti() {
   const { user, accountRevision } = useSesija();
-  return <Home key={`${user?.id ?? ''}:${accountRevision}`} />;
+  return <Activities key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
-function Home() {
+function Activities() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const [filter, setFilter] = useState<ActivityFilter>({ relation: 'ALL', period: 'ACTIVE' });
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
     return () => { if (focus.current === owner) focus.current = null; };
@@ -27,12 +27,11 @@ function Home() {
   const load = useCallback(async (): Promise<HomeReads> => {
     const [needs, applications, agreements] = await Promise.all([
       readHomeSection(() => source.mojePotrebe()), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori())]);
-    // Three failures out of three is a failed read, not an account with nothing in it.
-    if ([needs, applications, agreements].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
+    if (needs.kind === 'unavailable' && applications.kind === 'unavailable') throw new Error('ACTIVITIES_READ_FAILED');
     return { needs, applications, agreements };
   }, [source]);
   const resource = useFocusedResource(load), scope = focus.current;
-  const home = useMemo(() => resource.data ? composeHome(resource.data) : null, [resource.data]);
+  const page = useMemo(() => resource.data ? composeActivities(resource.data, filter) : null, [resource.data, filter]);
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
@@ -43,10 +42,8 @@ function Home() {
     else if (target.kind === 'AGREEMENT') router.navigate({ pathname: '/dogovor/[id]', params: { id: target.agreementId } });
     else router.navigate({ pathname: '/moje-prijave', params: { prijavaId: target.applicationId } });
   });
-  return <HomePresentation home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/mapa'))}
-    onProfile={() => navigate(() => router.navigate('/profil'))} onOpen={open}
-    onAllAgreements={() => navigate(() => router.navigate('/dogovori'))}
-    onAllActivities={() => navigate(() => router.navigate('/moje-aktivnosti'))}
+  return <ActivitiesPresentation page={page} filter={filter} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+    onFilter={next => { if (current()) setFilter(next); }} onOpen={open}
+    onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
     onRefresh={() => { if (current()) void resource.refresh(true); }} />;
 }

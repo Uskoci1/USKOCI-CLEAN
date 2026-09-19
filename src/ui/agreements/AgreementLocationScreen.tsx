@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router,useFocusEffect } from 'expo-router';
 import { useSesija,sesijaSada } from '../../store/sesija';
-import { useUloga,ulogaSada } from '../../store/uloga';
+
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
@@ -13,24 +13,24 @@ import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { AgreementLocationController,initialLocationState } from './AgreementLocationController';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS');
 export function AgreementLocationScreen({agreementId}:{agreementId:string}){
-  const {user,accountRevision}=useSesija(),accountId=user?.id??'',intent=useUloga();
+  const {user,accountRevision}=useSesija(),accountId=user?.id??'';
   const [state,setState]=useState(initialLocationState),[epoch,setEpoch]=useState(0);
   const owner=useRef<object|null>(null),engine=useRef<AgreementLocationController|null>(null);
   useFocusEffect(useCallback(()=>{
     const scope={};owner.current=scope;setState(initialLocationState);
     const current=()=>owner.current===scope&&!['background','inactive'].includes(AppState.currentState)
-      &&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision&&ulogaSada()===intent;
+      &&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
     const controller=new AgreementLocationController({agreementId,account:{accountId,accountRevision},current,storage:AsyncStorage});engine.current=controller;
     controller.subscribe(()=>{if(current())setState(controller.snapshot());});void controller.load();
     const listener=AppState.addEventListener('change',next=>{
       if(next!=='active'){controller.dispose();owner.current=null;setState(initialLocationState);}else setEpoch(value=>value+1);
     });
     return()=>{listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;};
-  },[agreementId,accountId,accountRevision,intent,epoch]));
+  },[agreementId,accountId,accountRevision,epoch]));
   const renderedOwner=owner.current,controller=engine.current;
   const current=()=>renderedOwner!==null&&owner.current===renderedOwner&&engine.current===controller
     &&controller?.snapshot()===state&&!['background','inactive'].includes(AppState.currentState)
-    &&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision&&ulogaSada()===intent;
+    &&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
   const run=(action:'refresh'|'acknowledge'|'cancelUnknown'|'stopCapture')=>{if(current())void controller?.[action]();};
   const point=state.context?.point,ready=state.phase==='READY';
   return <SafeAreaView edges={['top','bottom']} style={s.screen}><ScrollView contentContainerStyle={s.content}>

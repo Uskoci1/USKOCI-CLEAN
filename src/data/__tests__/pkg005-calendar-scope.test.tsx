@@ -46,26 +46,19 @@ async function render() {
   await act(async () => { tree = create(<Raspored />); });
 }
 
-describe('PKG-005 Worker calendar scope', () => {
-  it('keeps direct access in requester intent but explicitly labels the dataset as JA MOGU / Worker-only', async () => {
+// Owner decisions 1 and 6 (2026-09-19). The calendar holds the work I agreed to do; it is mine to open
+// and its availability editor is mine to use whenever I like. It used to explain itself as "the JA
+// MOGU schedule" and hide the editor from a person standing in the other app mode.
+describe('PKG-005 calendar scope', () => {
+  it.each(['narucilac', 'uskocer'])('reads the same calendar, offers the availability editor and names no app mode, whatever the app last was (%s)', async last => {
+    mockIntent = last;
     await render();
     expect(mockReadRange).toHaveBeenCalledTimes(1);
-    expect(text()).toContain('JA MOGU · radni raspored');
-    expect(text()).toContain('Potvrđeni termini kada radiš kao Uskočer');
-    expect(text()).toContain('Ovo je raspored za JA MOGU');
-    expect(text()).toContain('Dogovore koje si napravio kao naručilac vidiš u Dogovorima');
-    expect(text()).not.toContain('Tvoji Dogovori, u obe namere');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(0);
-  });
-
-  it('keeps the same Worker calendar authority in JA MOGU and exposes the availability editor only there', async () => {
-    mockIntent = 'uskocer';
-    await render();
-    expect(mockReadRange).toHaveBeenCalledTimes(1);
-    expect(text()).toContain('JA MOGU · radni raspored');
-    expect(text()).toContain('Potvrđeni termini kada radiš kao Uskočer');
+    expect(text()).toContain('Kalendar obaveza');
+    expect(text()).toContain('Potvrđeni termini poslova u koje si uskočio');
     expect(text()).toContain('Moja dostupnost za rad');
-    expect(text()).not.toContain('Ovo je raspored za JA MOGU');
+    expect(text()).toContain('Dogovore za svoje zadatke vidiš u Dogovorima; oni te ovde ne blokiraju.');
+    expect(text()).not.toMatch(/JA MOGU|MENI TREBA/);
     expect(tree.root.findByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toBeTruthy();
   });
 });

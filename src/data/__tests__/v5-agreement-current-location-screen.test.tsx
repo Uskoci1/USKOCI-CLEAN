@@ -71,15 +71,23 @@ it('restart reads unknown original request and a committed cancellation race is 
  mockService.write.mockResolvedValue(ok({state:'COMMITTED'}));await tap('Zaustavi zahtev ako još nije poslat');expect(text()).toContain('Jedna lokacija je podeljena');
  expect(text()).not.toContain('zahtev je zaustavljen');expect(mockStorage.removeItem).not.toHaveBeenCalled();expect(mockCapture).not.toHaveBeenCalled();
 });
-it.each(['blur','account','ABA','role','background'])('retires capture and rejects late sensor/retained callbacks after %s',async change=>{
+it.each(['blur','account','ABA','background'])('retires capture and rejects late sensor/retained callbacks after %s',async change=>{
  await render();const gate=deferred<unknown>();mockCapture.mockReturnValue(gate.promise);const old=action('Podeli jednu trenutnu lokaciju').onPress;
  await act(async()=>old());const signal=mockCapture.mock.calls[0][0];expect(signal.aborted).toBe(false);
  await act(async()=>{if(change==='blur')mockFocused=false;else if(change==='account')mockSession={user:{id:B},accountRevision:2};
-  else if(change==='ABA')mockSession={user:{id:A},accountRevision:3};else if(change==='role')mockIntent='narucilac';
+  else if(change==='ABA')mockSession={user:{id:A},accountRevision:3};
   else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
  expect(signal.aborted).toBe(true);const calls=mockCapture.mock.calls.length;
  const {sharedAt:_sharedAt,...sensor}=point;await act(async()=>{gate.resolve({kind:'POINT',point:sensor});old();});
  expect(mockCapture).toHaveBeenCalledTimes(calls);expect(mockService.write).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(mockStorage.removeItem).not.toHaveBeenCalled();
+});
+// Owner decision 1 (2026-09-19): the app has no global mode, and a Dogovor works the same for both of its
+// sides from the relation it carries itself. 'role' used to be a row of the table above.
+it('a flip of the retired app mode retires nothing: a capture in flight is not aborted',async()=>{
+ await render();const gate=deferred<unknown>();mockCapture.mockReturnValue(gate.promise);const old=action('Podeli jednu trenutnu lokaciju').onPress;
+ await act(async()=>old());const signal=mockCapture.mock.calls[0][0];
+ await act(async()=>{mockIntent='narucilac';tree!.update(page());});
+ expect(signal.aborted).toBe(false);
 });
 it('has a deterministic back fallback and removes its AppState observation on unmount',async()=>{
  await render();expect(mockListeners.size).toBe(1);await tap('Nazad');expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});

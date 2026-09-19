@@ -8,14 +8,13 @@ import { palette } from '../theme/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { pendingRoute } from '../store/pendingRoute';
-import { postaviUlogu } from '../store/uloga';
 import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
 import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 export default function RootLayout() {
-  const { isLoaded, intentReady, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
+  const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();
   const segments = useSegments();
   const pathname = usePathname();
@@ -26,7 +25,7 @@ export default function RootLayout() {
   const naAuth = segments[0] === 'auth';
   const naOporavku = segments[0] === 'oporavak';
   const { onLayout: onRouteLayout } = useEntrySplashReady({
-    enabled: isLoaded && intentReady !== false && routeResolved && (naOporavku || (!!session && !naAuth)),
+    enabled: isLoaded && routeResolved && (naOporavku || (!!session && !naAuth)),
   });
 
   // Protected-route authority: unauthenticated users never remain inside the
@@ -38,7 +37,7 @@ export default function RootLayout() {
     return () => clearTimeout(timer);
   }, []);
   useEffect(() => {
-    if (!isLoaded || !routeResolved || (session && intentReady === false)) return;
+    if (!isLoaded || !routeResolved) return;
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
       sesijaSada().user?.id !== session?.user.id) return;
     if (!session && !naAuth && !naOporavku) {
@@ -51,22 +50,17 @@ export default function RootLayout() {
     if (session && naAuth) {
       router.replace('/');
     }
-  }, [isLoaded, intentReady, routeResolved, session, sessionEpoch, naAuth, naOporavku, pathname, router]);
+  }, [isLoaded, routeResolved, session, sessionEpoch, naAuth, naOporavku, pathname, router]);
 
   // Consume a completed pre-auth intent exactly once after a real session has
   // been restored/created. The store itself guards which user completed it.
   useEffect(() => {
-    if (!isLoaded || !routeResolved || !session || naOporavku || intentReady === false) return;
+    if (!isLoaded || !routeResolved || !session || naOporavku) return;
     let aktivan = true;
     const isCurrent = () => aktivan && sesijaSada().sessionEpoch === sessionEpoch &&
       sesijaSada().user?.id === session.user.id;
     void povratniCilj.consumeCompleted(session.user.id, isCurrent).then((record) => {
       if (!isCurrent()) return;
-      if (record) {
-        if (record.intent.intent === 'WORKER') postaviUlogu('uskocer');
-        else postaviUlogu('narucilac');
-      }
-
       // Where they were going wins over where the app would otherwise drop them. A person who was
       // sent to sign in by a link or a push is finishing that journey, not starting a new one.
       const resumed = pendingRoute.take();
@@ -78,7 +72,9 @@ export default function RootLayout() {
 
       const target = record.intent.returnTarget;
       if (!target || target.kind === 'NONE') {
-        router.replace(record.intent.intent === 'WORKER' ? '/prilike' : '/nova');
+        // What the person chose before signing in is where they go, not what the app becomes:
+        // "Uskoči i zaradi" opens the map, "Objavi zadatak" opens a new task.
+        router.replace(record.intent.intent === 'WORKER' ? '/mapa' : '/nova');
         return;
       }
       if (target.kind === 'REQUESTER_DRAFT') {
@@ -92,9 +88,9 @@ export default function RootLayout() {
     return () => {
       aktivan = false;
     };
-  }, [isLoaded, intentReady, routeResolved, session, sessionEpoch, returnTargetRevision, naOporavku, router]);
+  }, [isLoaded, routeResolved, session, sessionEpoch, returnTargetRevision, naOporavku, router]);
 
-  if (!isLoaded || (session && intentReady === false)) {
+  if (!isLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', alignItems: 'center' }}>
         {/* Same original mark and nominal size as the padded native splash. */}

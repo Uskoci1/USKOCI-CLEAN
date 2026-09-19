@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { supportCaseClientService } from '../../data/supportCaseClientService';
 import type { SupportReference } from '../../data/supportCaseTypes';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { ulogaSada, useUloga } from '../../store/uloga';
+
 import { SettingsAction, SettingsPanel, SettingsText as T } from '../settings/SettingsPresentation';
 
 /** An explicit read opens an owned existing case or a new unsent form.
@@ -12,10 +12,10 @@ import { SettingsAction, SettingsPanel, SettingsText as T } from '../settings/Se
 export function SupportContextEntry({ reference, label = 'Otvori podršku', disabled = false, canAct = () => true,
   navigate = action => action(), previewText }: { reference: SupportReference; label?: string; disabled?: boolean; previewText?: string;
     canAct?: () => boolean; navigate?: (action: () => void) => void }) {
-  const { user, accountRevision } = useSesija(), accountId = user?.id ?? '', intent = useUloga();
+  const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState(false), [, setEpoch] = useState(0), selectedRef = useRef(false); selectedRef.current = selected;
-  const selection = useRef<{ focus: object; view: object; accountId: string; accountRevision: number; intent: typeof intent } | null>(null);
+  const selection = useRef<{ focus: object; view: object; accountId: string; accountRevision: number } | null>(null);
   const focus = useRef<object | null>(null), lock = useRef<object | null>(null);
   const view = useMemo(() => ({}), [reference.kind, reference.id, reference.revision, disabled, previewText]);
   const latestView = useRef(view); latestView.current = view;
@@ -26,19 +26,19 @@ export function SupportContextEntry({ reference, label = 'Otvori podršku', disa
       else { focus.current = {}; lock.current = null; setBusy(false); setEpoch(x => x + 1); }
     });
     return () => { listener.remove(); focus.current = null; lock.current = null; selection.current = null; setSelected(false); };
-  }, [accountId, accountRevision, intent, view]));
+  }, [accountId, accountRevision, view]));
   const renderedFocus = focus.current;
   const selectedForView = selected && selection.current?.focus === renderedFocus && selection.current?.view === view
-    && selection.current?.accountId === accountId && selection.current?.accountRevision === accountRevision && selection.current?.intent === intent;
+    && selection.current?.accountId === accountId && selection.current?.accountRevision === accountRevision;
   const previewValid = previewText === undefined || typeof previewText === 'string' && previewText.trim().length > 0 && Array.from(previewText).length <= 6000;
   const canSelect = () => renderedFocus !== null && focus.current === renderedFocus && latestView.current === view && !disabled && previewValid
     && !['background', 'inactive'].includes(AppState.currentState) && canAct()
-    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const open = async () => {
     const token = renderedFocus;
     const ownLease = () => token !== null && focus.current === token && latestView.current === view
       && !['background', 'inactive'].includes(AppState.currentState)
-      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const current = () => ownLease() && !disabled && canAct();
     if (!accountId || !current() || lock.current || !previewValid || previewText !== undefined && (!selectedForView || !selectedRef.current)) return;
     const operation = {}; lock.current = operation; setBusy(true); setError(null);
@@ -61,7 +61,7 @@ export function SupportContextEntry({ reference, label = 'Otvori podršku', disa
   return <>
     {!selectedForView ? <SettingsAction label={busy ? 'Proveravamo prethodni zahtev…' : label} kind="quiet" disabled={disabled || busy || !previewValid}
       onPress={() => { if (!canSelect() || lock.current) return; if (previewText !== undefined && renderedFocus) {
-        selection.current = { focus: renderedFocus, view, accountId, accountRevision, intent }; setSelected(true);
+        selection.current = { focus: renderedFocus, view, accountId, accountRevision }; setSelected(true);
       } else void open(); }} /> : null}
     {selectedForView && previewText !== undefined ? <SettingsPanel soft><T variant="heading">Izabrana poruka za privatnu podršku</T>
       <T selectable>{previewText}</T><T variant="meta" tone="muted">Uz privatni zahtev prilažeš samo ovu poruku. Ostatak razgovora se ne kopira i druga strana ne dobija zahtev.</T>

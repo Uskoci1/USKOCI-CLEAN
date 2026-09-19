@@ -7,7 +7,7 @@ import type { NeedLifecycleCommand } from '../../contracts/needLifecycle';
 import { createNeedLifecycleController, type NeedLifecycleState } from '../../data/needLifecycleController';
 import { positiveInteger, uuid } from '../../data/serverReceipt';
 import { sesijaSada, useSesija } from '../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../store/uloga';
+import { useIzvor } from '../../store/uloga';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
@@ -25,7 +25,7 @@ const label = (action: Action) => action === 'DELETE_DRAFT' ? 'Obriši nacrt' : 
  * may make that row disappear before the client receives its terminal reply. */
 export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId?: string; disabled: boolean;
   onActiveChange: (active: boolean) => void; onRefresh: () => void }) {
-  const { user, accountRevision } = useSesija(), intent = useUloga(), source = useIzvor();
+  const { user, accountRevision } = useSesija(), source = useIzvor();
   const accountId = user?.id ?? '', needId = p.need?.id ?? p.needId ?? '';
   const storageKey = `uskoci:need-lifecycle:v5:${accountId}:${needId}`;
   const [view, setView] = useState<ViewState>(initial), [reload, setReload] = useState(0);
@@ -39,8 +39,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   // (owner decision 1, 2026-09-19). It stays in the guard only as the staleness identity it shares
   // with every other screen.
   const current = (owner: object | null) => owner !== null && scope.current === owner && foreground()
-    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
-    && ulogaSada() === intent;
+    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const install = (owner: object, command: NeedLifecycleCommand, restoring: boolean) => {
     const engine = createNeedLifecycleController({ account: { accountId, accountRevision }, command,
       restoreUnknownOutcome: restoring,
@@ -77,7 +76,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   // The scope owns every async continuation; render-time callbacks are intentionally
   // not dependencies that could retire a command on its own state update.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId, accountRevision, intent, needId, source, storageKey, reload]));
+  }, [accountId, accountRevision, needId, source, storageKey, reload]));
   const active = view.loading || view.review !== null || view.command !== null || view.error !== null;
   useEffect(() => { p.onActiveChange(active); return () => p.onActiveChange(false); }, [active, p.onActiveChange]);
   const owner = scope.current;

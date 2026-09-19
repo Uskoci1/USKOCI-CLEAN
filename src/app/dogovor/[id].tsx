@@ -11,7 +11,7 @@ import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
 import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, stateTone } from '../../ui/agreements/AgreementWorkspace';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
-import { useIzvor, useUloga, ulogaSada } from '../../store/uloga';
+import { useIzvor } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
@@ -54,12 +54,12 @@ function AgreementStatus({ loading = false, error = false, retry }: { loading?: 
 }
 export default function Dogovor() {
   const { id } = useLocalSearchParams<{ id: string | string[] }>();
-  const session = useSesija(), intent = useUloga(), accountId = session.user?.id;
+  const session = useSesija(), accountId = session.user?.id;
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
-  return <DogovorContent key={`${accountId}:${session.accountRevision}:${intent}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision} />;
+  return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision} />;
 }
 function DogovorContent({ id, accountId, accountRevision }: { id: string; accountId: string; accountRevision: number }) {
-  const izvor = useIzvor(), intent = useUloga();
+  const izvor = useIzvor();
   const [tab, setTab] = useState<AgreementTab>('pregled');
   const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
@@ -68,10 +68,9 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   useFocusEffect(useCallback(() => {
     const focus = {}; formFocus.current = focus;
     return () => { if (formFocus.current === focus) formFocus.current = null; };
-  }, [accountId, accountRevision, intent]));
+  }, [accountId, accountRevision]));
   const renderedFormFocus = formFocus.current;
-  const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
-    && ulogaSada() === intent, [accountId, accountRevision, intent]);
+  const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
   const read = useCallback(async (): Promise<Ishod<ProblemWorkspace | null>> => {
     if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
     try {

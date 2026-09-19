@@ -3,12 +3,12 @@ import { router } from 'expo-router';
 import { safetyClientService } from '../../../data/safetyClientService';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useSesija } from '../../../store/sesija';
-import { useUloga } from '../../../store/uloga';
+
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction } from '../../../ui/settings/SettingsPresentation';
 
 export default function BlockedAccounts() {
-  const { user, accountRevision } = useSesija(), intent = useUloga();
-  return <OwnedBlocks key={`${user?.id}:${accountRevision}:${intent}`} />;
+  const { user, accountRevision } = useSesija();
+  return <OwnedBlocks key={`${user?.id}:${accountRevision}`} />;
 }
 function OwnedBlocks() {
   const [cursor, setCursor] = useState<string | null>(null);

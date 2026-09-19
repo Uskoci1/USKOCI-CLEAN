@@ -7,20 +7,20 @@ import type { AgreementMessageCommand } from '../contracts/agreementMessages';
 import { pickPreparedPhoto, photoSelectionMessage, type PhotoSource, type PreparedPhoto } from '../features/media/nativePhotoPicker';
 import { noviUuidZahtevId } from '../lib/idempotencija';
 import { sesijaSada, useSesija } from '../store/sesija';
-import { ulogaSada, useUloga } from '../store/uloga';
+
 
 type Item = { ref: AgreementUploadRef; receipt: AgreementPhotoUpload | null };
 type State = { loaded: boolean; busy: boolean; items: readonly Item[]; saved: readonly AgreementPhotoUpload[]; message: string | null };
 export function useAgreementPhotos(accountId: string, agreementId: string, agreementVersion: number | null, writable: boolean,
   outbox: { getSnapshot(): Pick<OutboxSnapshot, 'capturing' | 'entries'> }) {
-  const { accountRevision } = useSesija(), intent = useUloga();
+  const { accountRevision } = useSesija();
   const live = useRef({ agreementVersion, writable, outbox }); live.current = { agreementVersion, writable, outbox };
-  const identity = useMemo(() => ({ accountId, accountRevision, agreementId, intent }), [accountId, accountRevision, agreementId, intent]);
+  const identity = useMemo(() => ({ accountId, accountRevision, agreementId }), [accountId, accountRevision, agreementId]);
   const focus = useRef<object | null>(null), operation = useRef<object | null>(null), navigate = useRef(false);
   const prepared = useRef(new Map<string, PreparedPhoto>()), abort = useRef<AbortController | null>(null);
   const [state, setState] = useState<State>({ loaded: false, busy: false, items: [], saved: [], message: null });
   const latest = useRef(state); latest.current = state;
-  const owns = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+  const owns = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const apply = (patch: Partial<State>) => setState(old => { const next = { ...old, ...patch }; latest.current = next; return next; });
   async function read(current: () => boolean) {
     if (!current()) return;

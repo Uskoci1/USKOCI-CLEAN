@@ -22,7 +22,8 @@ describe('PKG-003 one New Task entry, after the manual branch was retired', () =
     expect(potrebe).not.toContain('novi-zadatak');
     // The worker list already asked for the intent switch first, and still does.
     expect(prilike).toContain("router.navigate('/nova')");
-    expect(prilike).toContain("router.replace('/nova')");
+    // There is no mode to switch before a new task any more (owner decision 1, 2026-09-19): one entry, one route.
+    expect(prilike).not.toContain("router.replace('/nova')");
   });
 
   it('leaves no chooser, no manual screen and no second Need-fact writer in the client', () => {

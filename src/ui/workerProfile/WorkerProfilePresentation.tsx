@@ -13,7 +13,7 @@ import type { WorkerDraft } from './workerProfileDraft';
 /** Frame of the worker profile: back, intent eyebrow, title, keyboard-safe body, sticky footer. */
 export function WorkerProfileFrame({ back, children, footer }: { back: () => void; children: ReactNode; footer?: ReactNode }) {
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <DetailTopBar backLabel="Nazad na profil" eyebrow="Ja mogu" title="Radni profil" onBack={back} />
+    <DetailTopBar backLabel="Nazad na profil" eyebrow="Kako mogu da uskočim" title="Veštine, alat i tim" onBack={back} />
     <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
       {footer ? <View style={s.footer}>{footer}</View> : null}

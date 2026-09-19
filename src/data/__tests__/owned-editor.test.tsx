@@ -153,13 +153,12 @@ describe('owned location editor lifecycle', () => {
     expect(snapshot()).toMatchObject({ data: 'new account A', saved: false, uncertain: false, busy: false, error: null });
   });
 
-  it.each(['account', 'intent', 'route'] as const)('rejects retained save and refresh callbacks after %s changes', async change => {
+  it.each(['account', 'route'] as const)('rejects retained save and refresh callbacks after %s changes', async change => {
     const oldRead = jest.fn().mockResolvedValue(ok('old owned route'));
     const newRead = jest.fn().mockResolvedValue(ok('new owned route'));
     await render(oldRead);
     const retained = snapshot(), command = jest.fn().mockResolvedValue(ok('old command'));
     if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2, sessionEpoch: 2 };
-    if (change === 'intent') mockIntent = 'uskocer';
     const read = change === 'route' ? newRead : oldRead;
     await act(async () => tree.update(<Probe read={read} />));
     const callsBefore = oldRead.mock.calls.length;
@@ -167,6 +166,17 @@ describe('owned location editor lifecycle', () => {
     expect(command).not.toHaveBeenCalled();
     expect(oldRead).toHaveBeenCalledTimes(callsBefore);
     expect(snapshot().data).toBe(change === 'route' ? 'new owned route' : 'old owned route');
+  });
+
+  // Owner decision 1 (2026-09-19): the editor's identity is the account, its revision and the read.
+  // The app's global mode used to be a fourth part of it, so switching sides emptied every editor.
+  it('a flip of the retired app mode does not retire the editor: the retained save still runs', async () => {
+    const read = jest.fn().mockResolvedValue(ok('owned route')); await render(read);
+    const retained = snapshot(), command = jest.fn().mockResolvedValue(ok('saved')), reads = read.mock.calls.length;
+    mockIntent = 'uskocer'; await act(async () => tree.update(<Probe read={read} />));
+    expect(read).toHaveBeenCalledTimes(reads);
+    await act(async () => { await retained.save(command); });
+    expect(command).toHaveBeenCalledTimes(1);
   });
 
   it('keeps current ownership during same-account token refresh', async () => {

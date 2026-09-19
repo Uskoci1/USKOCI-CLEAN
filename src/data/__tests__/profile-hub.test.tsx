@@ -8,7 +8,9 @@ const mockPostaviUlogu = jest.fn();
 const mockSignOut = jest.fn();
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockRefresh = jest.fn();
-let mockResource = { data: { ime: 'Ana Petrović', grad: 'Novi Sad' } as { ime: string | null; grad: string | null } | null,
+type Row = { ime: string | null; grad: string | null; profileId?: string; stanje?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null };
+const identity: Row = { ime: 'Ana Petrović', grad: 'Novi Sad' };
+let mockResource = { data: { identity, capability: null } as { identity: Row | null; capability: Row | null } | null,
   loading: false, error: false, refresh: mockRefresh };
 
 jest.mock('react-native', () => {
@@ -41,14 +43,16 @@ const visibleText = () => tree.root.findAll(node => String(node.type) === 'T').f
 beforeEach(() => {
   jest.clearAllMocks();
   mockAccountId = 'account-a'; mockAccountRevision = 1; mockIntent = 'narucilac';
-  mockResource = { data: { ime: 'Ana Petrović', grad: 'Novi Sad' }, loading: false, error: false, refresh: mockRefresh };
+  mockResource = { data: { identity, capability: null }, loading: false, error: false, refresh: mockRefresh };
   mockRouter.canGoBack.mockReturnValue(true);
   mockSignOut.mockResolvedValue(undefined);
 });
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 
 describe('real profile hub', () => {
-  it.each(['narucilac', 'uskocer'] as const)('keeps the existing notification entry in the grouped %s hub', async intent => {
+  // Owner decision 1 (2026-09-19): one hub for one account. `mockIntent` stays in these tables as the
+  // value the retired app mode last had; the hub must be the same hub whichever it was.
+  it.each(['narucilac', 'uskocer'] as const)('keeps the existing notification entry in the one hub, whatever the app last was (%s)', async intent => {
     mockIntent = intent; await render();
     const open = tree.root.findByProps({ label: 'Podešavanja obaveštenja' }).props.onPress;
     await act(async () => { open(); open(); });
@@ -56,14 +60,14 @@ describe('real profile hub', () => {
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
-  it.each([['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Kalendar Dogovora', '/raspored']])
-    ('preserves the actual Worker %s destination', async (label, route) => {
-      mockIntent = 'uskocer'; await render();
+  it.each([['Veštine, alat i tim', '/profil/radnik'], ['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Kalendar obaveza', '/raspored']])
+    ('offers %s to every account, without entering any mode first', async (label, route) => {
+      mockIntent = 'narucilac'; await render();
       await act(async () => tree.root.findByProps({ label }).props.onPress());
       expect(mockRouter.navigate.mock.calls).toEqual([[route]]);
     });
 
-  it.each(['narucilac', 'uskocer'] as const)('opens privacy once for the current %s intent', async intent => {
+  it.each(['narucilac', 'uskocer'] as const)('opens privacy once, whatever the app last was (%s)', async intent => {
     mockIntent = intent;
     await render();
     const open = tree.root.findByProps({ label: 'Privatnost i podaci' }).props.onPress;
@@ -71,7 +75,7 @@ describe('real profile hub', () => {
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/privatnost']]);
   });
 
-  it.each(['narucilac', 'uskocer'] as const)('opens export once for the current %s intent', async intent => {
+  it.each(['narucilac', 'uskocer'] as const)('opens export once, whatever the app last was (%s)', async intent => {
     mockIntent = intent;
     await render();
     const open = tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress;
@@ -98,7 +102,7 @@ describe('real profile hub', () => {
   });
 
   it('keeps missing identity distinct from loading and failed reads', async () => {
-    mockResource.data = null;
+    mockResource.data = { identity: null, capability: null };
     await render();
     expect(visibleText()).toContain('Ime još nije uneto');
     mockResource = { ...mockResource, error: true };
@@ -111,32 +115,39 @@ describe('real profile hub', () => {
     expect(visibleText()).toContain('Učitavamo profil');
   });
 
-  it('double-tap switches intent once and enters real Worker discovery', async () => {
+  it('has no mode switch: nothing on the hub names, reads or sets one', async () => {
     await render();
-    const onPress = tree.root.findByProps({ accessibilityLabel: 'Pređi na JA MOGU' }).props.onPress;
-    await act(async () => { onPress(); onPress(); });
-    expect(mockPostaviUlogu.mock.calls).toEqual([['uskocer']]);
-    expect(mockRouter.replace.mock.calls).toEqual([['/prilike']]);
+    expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Pređi na JA MOGU' })).toHaveLength(0);
+    expect(visibleText()).not.toMatch(/JA MOGU|MENI TREBA/);
+    expect(mockPostaviUlogu).not.toHaveBeenCalled();
   });
 
-  it('Worker hub opens the real editor and Back restores source or intent root', async () => {
-    mockIntent = 'uskocer';
+  it('says in every state whether tasks can be offered to me: not set up, a draft, active, suspended', async () => {
+    await render(); expect(visibleText()).toContain('Još nisi podesio kako možeš da uskočiš.');
+    for (const [stanje, copy] of [['DRAFT', 'Profil je nacrt'], ['ACTIVE', 'Ime, grad i veštine'], ['SUSPENDED', 'Profil je obustavljen']] as const) {
+      mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje } } };
+      await act(async () => tree.update(<Profil />)); expect(visibleText()).toContain(copy);
+    }
+  });
+
+  it('opens the capability editor from the one hub, and with no history Back goes to Početna', async () => {
     await render();
-    await act(async () => press('Uredi radni profil'));
+    await act(async () => tree.root.findByProps({ label: 'Veštine, alat i tim' }).props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/radnik');
     await act(async () => tree.unmount());
     mockRouter.canGoBack.mockReturnValue(false);
     await render();
     await act(async () => press('Nazad'));
-    expect(mockRouter.replace).toHaveBeenCalledWith('/moje-prijave');
+    expect(mockRouter.replace).toHaveBeenCalledWith('/');
   });
 
   it('does not let a stale press act on a newly signed-in account', async () => {
     await render();
     mockAccountId = 'account-b';
-    await act(async () => { press('Pređi na JA MOGU'); logout(); });
+    await act(async () => { tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress(); logout(); });
     expect(mockSignOut).not.toHaveBeenCalled();
-    expect(mockPostaviUlogu).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
@@ -176,9 +187,9 @@ describe('real profile hub', () => {
     await render();
     mockAccountId = 'account-b'; mockAccountRevision = 2;
     mockAccountId = 'account-a'; mockAccountRevision = 3;
-    await act(async () => { press('Pređi na JA MOGU'); logout(); });
+    await act(async () => { tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress(); logout(); });
     expect(mockSignOut).not.toHaveBeenCalled();
-    expect(mockPostaviUlogu).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
