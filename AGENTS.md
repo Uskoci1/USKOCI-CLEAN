@@ -1,5 +1,19 @@
 # USKOČI — repository entry map
 
+Latest follow-up (2026-09-20 local): after the three mandatory handoff/owner-decision/AGENTS reads,
+read `docs/implementation/v5-ai-first/pkg023/PKG023J_HOME_ATTENTION.md`. The owner separately approved
+ONLY pkg023j, conditional on ready private preconditions. Its exact CI-proven transaction passed both
+private checks before/after creation and was applied as `20260919221214_dev_alpha_pkg023j_home_attention`.
+Canonical DEV ledger is now **165 = 147 frozen source + 18 dev_alpha**, confirmed by readback.
+The aggregate is installed but not wired into the client. F02, paging/reconciliation, final UI and
+device verification remain open. Other DEV migrations still need a separate explicit owner decision;
+the older general AF-D26 authorization below does not override that newer boundary. No pkg023c or
+price_basis activation is authorized. The historical handoff's counts are not current live counts.
+
+Later local follow-up (2026-09-19): after the mandatory handoff/owner-decision reading below, read
+`docs/implementation/v5-ai-first/CLIENT_RELIABILITY_20260919.md` for the F01/F07/F08 client corrections
+and their exact verification scope. They do not authorize canonical DEV writes or close pkg023j.
+
 **Start here (2026-09-19): `docs/implementation/NEXT_AI_HANDOFF_20260919_2100.md`.** It is the current
 handoff: where the work stopped, every file touched and what each one is for, the owner's standing rules,
 the six migrations applied to canonical DEV that day, and the next piece of work stated exactly. It

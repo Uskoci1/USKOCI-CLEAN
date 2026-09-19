@@ -1,6 +1,8 @@
-# PKG-023j: bounded Home attention, candidate only
+# PKG-023j: bounded Home attention
 
 Date: 2026-09-19. Owner authorization: design, implement, prove in disposable CI, read-only canonical DEV preflight. **Applying to canonical DEV requires a separate explicit owner decision.** No client switches to this absent RPC in this packet.
+
+**Latest status, 2026-09-20 local:** the owner gave that separate pkg023j-only approval, conditional on verified private preconditions. The exact candidate was applied successfully as `20260919221214_dev_alpha_pkg023j_home_attention`; canonical DEV is now 165 rows. The client is not wired yet. The initial candidate text and its historical approval comments are preserved byte-for-byte; the sections below retain the preparation evidence.
 
 ## Problem and contract
 
@@ -53,4 +55,14 @@ The connector role returned PostgreSQL 42501 separately for `private.retention_a
 - Fresh canonical read-only recheck: ledger 164, candidate absent, six predecessor pins match, client private-schema usage false. Both private certification reads denied as described above.
 - The pre-existing broad PKG-023 workflow also automatically ran its historical disposable proof, including the old pkg023c test. It did not reach canonical DEV, regenerate pkg023c or authorize its deployment. Its success is not used as this candidate's proof.
 
-Canonical DEV remains untouched. Client paging, per-row pending-command reconciliation, bounded upcoming-Agreement ordering, and final Home UI are follow-up work; adding this RPC alone does not remove existing client scans. The owner has been asked for the required separate pkg023j-only approval, conditional on verified private preconditions; no answer or approval is assumed.
+At the end of that preparation packet canonical DEV was untouched and separate approval was requested. The owner then explicitly approved only pkg023j with confirmed preconditions.
+
+## Approved canonical DEV application
+
+The migration tool executed the **unchanged, hash-verified candidate** in its authorized context. The candidate asserts retention readiness and bound closure source **before creating the function**, then checks readiness/binding and unchanged digest again before commit. A false predicate would abort the transaction. The tool returned success; the earlier separately denied SELECT calls remain recorded as denied, not retrospectively successful. No private grants, role switch, helper wrapper, candidate rewrite or extra migration was used to obtain this evidence.
+
+Readback: ledger 165; version `20260919221214`; name `dev_alpha_pkg023j_home_attention`; one recorded statement, 8,912 characters and SHA-256 `7d0cf923c94552f790f72ff16f8be05597e0101245ada4efccee6285a285a9b5`; installed function MD5 `7371d4cddcebead2cb86d8f795d2ee01`; SECURITY DEFINER, STABLE, fixed `pg_catalog`; authenticated execute true, anon/service_role execute false, authenticated private-schema USAGE false.
+
+Exact recorded SQL and the application receipt are in `supabase/operations/dev-alpha/ledger/20260919221214_dev_alpha_pkg023j_home_attention.sql` and its `.receipt.json` sibling. The old LEDGER_MANIFEST.json is an older 160-row snapshot; it is not silently rewritten as current. The source147 inventory is unchanged. No DEV test identity, paid provider call, production resource, pkg023c or price_basis activation occurred.
+
+Client paging, per-row pending-command reconciliation, bounded upcoming-Agreement ordering, and final Home UI remain follow-up work; installing this RPC alone does not remove existing client scans. No further approval is needed for this completed application. Any different future DEV migration still needs its own explicit approval.
