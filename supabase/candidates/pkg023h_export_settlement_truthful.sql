@@ -92,8 +92,8 @@ begin
     raise exception 'PKG023H_SNAPSHOT_NOT_AS_REVIEWED';
   end if;
   v_catalog := private.data_export_dataset_catalog();
-  select array_agg(value#>>'{}' order by value#>>'{}') into v_fields
-    from jsonb_array_elements(v_catalog) e, jsonb_array_elements(e.value->'fields') value
+  select array_agg(f.field#>>'{}' order by f.field#>>'{}') into v_fields
+    from jsonb_array_elements(v_catalog) e, jsonb_array_elements(e.value->'fields') as f(field)
    where e.value->>'key' = 'testAllocations';
   if v_fields is distinct from array['allocatedMaximumMicrousd','createdAt','kind','measuredProviderCharge','settledAt','settledMicrousd','settlementBasis']::text[] then
     raise exception 'PKG023H_CATALOG_NOT_AS_REVIEWED';
