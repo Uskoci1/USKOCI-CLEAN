@@ -153,8 +153,40 @@ application or my Dogovor, and a relation that could not be read is never a lice
 2. The relation of one task costs two whole lists. A per-task reader needs a server read.
 3. The Dogovor list row has no start instant and no `actionState`, so Početna orders Dogovori as
    the server returns them and cannot show a pending change proposal; only the Dogovor itself can.
-4. "Naručilac" and "Uskočer" still appear in the copy of the Dogovor workspace, the application
-   composer and candidates, the public profile sheet, Q&A and the group conversation (10 files). It
-   names a side of one Dogovor, not a mode, and was outside this slice; it wants one copy pass.
-5. Eight test files still declare a `mockIntent`/`mockRole` variable that nothing reads any more.
-   Inert; to be removed with the copy pass, which touches the same files.
+4. ~~"Naručilac" and "Uskočer" in user-facing copy.~~ Done in the first part of the third slice.
+5. ~~Eight test files with an inert `mockIntent`/`mockRole`.~~ Done in the same part.
+
+## The third slice, first part — steps 1 and 2 only (owner, 2026-09-19)
+
+Asked how far "Prihvatiću tvoje predloge" reaches, the owner chose "Samo koraci 1 i 2": no database
+change, no Edge function, no deploy. Steps 3 (bounded reads) and 4 (the ~100 m grid) are forward
+migrations on canonical DEV and wait for a separate word with an exact plan.
+
+**Step 1 — PKG-010 had been red on every head since 2026-09-17.** Two layers, found one after the
+other because the first hid the second:
+
+- `supabase/proofs/pre_v3/v5_self_reported_identity_proof.mjs` still asserted the Gemini wire from
+  before `dda5513f` (2026-09-16): its loopback provider stub read
+  `generationConfig.responseFormat.text`, threw inside `fetch`, and the handler reported a provider
+  failure (`ACTUAL_EDIT_EDGE_502_AI_PROVIDER_FAILED`). The stub now asserts the documented
+  `responseMimeType` / `responseSchema` wire; the proof passes with 11 checks (run 35439383767).
+- With the chain through, the next step ran for the first time since 18.09 and ten cases of
+  `supabase/proofs/ai/ai_edge_context.test.mjs` fail. **These tests are right and were not changed.**
+  `169ce727` (2026-09-18) made the handler log a cause beside `AI_PROVIDER_FAILED`, as
+  `providerError.message`. For our own thrown names that is a closed vocabulary. For a runtime error
+  it is not: when the provider answers with something that is not JSON, the log line is
+  `Unexpected token 'P', "PRIVATE_PR"... is not valid JSON` — the first ten characters of the raw
+  provider output, which is what "logs fixed categories only" exists to forbid. The same line is in
+  the deployed `uskoci-ai-interview` v40 on canonical DEV (deployed 2026-09-18 20:55 UTC, read back
+  on 2026-09-19). Function logs are visible to project members only and the snippet is ten
+  characters, so the exposure is small; the rule is still broken and PKG-010 stays red until it is
+  fixed. The fix is three lines in the Edge function (log the message only when it matches our own
+  `^[A-Z][A-Z0-9_]+$` names or is an HTTP status, otherwise the error's `name`), the ten expectations
+  updated to the category they now receive, and a redeploy. An Edge function and a deploy are outside
+  what was approved, so the item stops here with this evidence.
+
+**Step 2 — no text the app can show names an internal side of a task.** 42 lines in 17 production
+files; a person is told what they did ("Ti · objavio si zadatak", "Ti · uskočio si"), what the other
+person did ("Objavio zadatak", "Uskočio"), or "druga strana" of this Dogovor.
+`src/data/__tests__/v3-copy-no-internal-sides.test.ts` scans every production module. Texts the
+server composes (inbox event titles) were not read for this and are not covered by that scan.
