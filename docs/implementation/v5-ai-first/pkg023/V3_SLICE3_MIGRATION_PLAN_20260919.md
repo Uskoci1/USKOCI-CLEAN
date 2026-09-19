@@ -449,3 +449,42 @@ two lineage relations into the erasure program, catalogued the three tables, and
 
 **`pkg023c` still needs its own approval, and must first be regenerated**: it pins the md5 of
 `private.closure_redaction_patch_v5`, which `pkg023f` changed.
+
+## 16. The client side — what is wired, and what the rest waits for (2026-09-19)
+
+**Done: the relation overlay (B).** Discovery and the task detail used to answer "my task / I applied" by
+reading my whole task list and my whole application list, for one label on one card. They now ask
+`rpc_get_my_task_relations` for the ids on the page, at most a hundred per call. The port gained
+`odnosiPremaZadacima`; the Supabase source calls it in chunks and refuses an answer it cannot stand behind
+(an id nobody asked about, a repeated answer, an unknown relation or state, a missing application id); the
+demo source answers from the rows it already holds. The rules the old code had are kept and now tested
+against the server's own shape, which `supabase/proofs/pkg023/pkg023_v3_backend_proof.mjs` pins with
+`deepEqual`: a task the server did not name is NONE **only if it was asked about**, a task nobody asked
+about is UNKNOWN, a failed read is UNKNOWN and never a licence to apply, and a withdrawn or closed
+application leaves the task open to apply to again. 232 suites / 4447 tests.
+
+**Blocked, with the fix written: the bounded marketplace (D).** The list and the map cannot move to
+`rpc_list_open_tasks_v3` yet. The client's shared public projection reads three fields the reader does not
+carry — `task_timezone`, `task_country_code`, `verified_identity_required` — and without the zone
+`needScheduleText` falls back to UTC, so a task at 15:00 in Belgrade would be shown to everyone as 13:00.
+`supabase/candidates/pkg023i_open_tasks_timezone.sql` adds exactly those three, all of them already public
+on the task detail any signed-in viewer can open, and **keeps the description out**: the list would ship
+fifty descriptions to every viewer of every page, while the marketplace search matches title, area and
+conditions and the detail screen reads the description for one task when a person opens it. It is proven as
+S9 of the PKG-023f run and **applied nowhere**.
+
+**Not done, and not a quick win: the paged own-lists (A + C).** Three findings from reading the consumers:
+
+1. `moje-prijave` is not a list screen but a command-reconciliation screen: a pending withdrawal is
+   reconciled against *the list that comes back*. Paging it without moving that reconciliation onto the row
+   it names would make a pending command on page two read as unreconciled. That is a correctness change in
+   an idempotency path, not a rendering change.
+2. `Početna` and `Moje aktivnosti` do not want a page at all. They want "what needs me", and they compute it
+   by scanning every application and every Dogovor for `traziPaznju` and a stale review. A first page would
+   silently miss the fourth thing that needs a person, which is exactly the thing that must not be missed.
+   What that screen needs is a small server aggregate, not a cursor — already recorded in `homeSnapshot.ts`
+   and in the decision record as a READ_CONTRACT item.
+3. `Dogovori` and `Raspored` are the two lists where a cursor is honest and cheap, because they only show
+   rows; they are the place to start when this is taken up.
+
+So the paged readers on DEV are used by nothing yet, deliberately. Nothing was truncated to look finished.

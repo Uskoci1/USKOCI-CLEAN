@@ -338,13 +338,18 @@ await prove('PKG023F_CLOSURE_RECERTIFICATION','pkg023f-closure-recertification-r
 
  // ---- S9. pkg023i. The public list reader cannot replace the legacy table read until a card can render
  // the time it shows. The three fields are already public on the detail; the description stays out.
+ // A task published through the real authority, so the reader has a row to answer with.
+ const {publishedTask}=await import('../pkg023/pkg023_flow.mjs');
+ const taskOwner=await actor('pkg023f-task-owner');
+ const published=await publishedTask(taskOwner,{facts:{title:'PKG023f task for the bounded reader'}});
  const viewer=await actor('pkg023f-viewer');
  const asViewer=async()=>ok(viewer.client.rpc('rpc_list_open_tasks_v3',{}));
- const beforeItem=(await asViewer()).items[0];
+ const beforeItem=((await asViewer()).items??[]).find(row=>row.id===published.needId);
  assert.ok(beforeItem,'PKG023I_NO_OPEN_TASK_TO_READ');
  for(const key of ['taskTimezone','taskCountryCode','verifiedIdentityRequired'])assert.equal(key in beforeItem,false,key);
  psql(['-f','supabase/candidates/pkg023i_open_tasks_timezone.sql'],'PKG023I_CANDIDATE_FAILED');
- const afterItem=(await asViewer()).items[0];
+ const afterItem=(await asViewer()).items.find(row=>row.id===published.needId);
+ assert.ok(afterItem,'PKG023I_TASK_DISAPPEARED_FROM_THE_READER');
  assert.equal(Object.keys(afterItem).length,Object.keys(beforeItem).length+3);
  // The values are the row's own, not a default, and the description is still not in the list.
  const row=rows(`select task_timezone,task_country_code,verified_identity_required from public.needs where id=${q(afterItem.id)}::uuid`)[0];
