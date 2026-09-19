@@ -27,7 +27,6 @@ jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: (opti
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockState,
   sesijaSada: () => ({ ...mockState, user: mockState.session?.user }) }));
 jest.mock('../../store/povratniCilj', () => ({ povratniCilj: { consumeCompleted: () => Promise.resolve(null) } }));
-jest.mock('../../store/uloga', () => ({ postaviUlogu: jest.fn() }));
 jest.mock('../../ui/entry/BrandAssets', () => ({ BrandMark: 'BrandMark' }));
 import RootLayout from '../../app/_layout';
 

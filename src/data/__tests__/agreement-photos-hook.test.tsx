@@ -10,7 +10,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: async (
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: mockRevision }),
   sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: mockRevision }) }));
-jest.mock('../../store/uloga', () => ({ useUloga: () => 'narucilac', ulogaSada: () => 'narucilac' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
 jest.mock('../../features/media/nativePhotoPicker', () => ({ pickPreparedPhoto: (...args: unknown[]) => mockPick(...args), photoSelectionMessage: () => 'Izbor nije pripremljen.' }));

@@ -13,7 +13,6 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native');re
  return Reflect.get(target,key);}});});
 jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchParams:()=>mockParams,useFocusEffect:(fn:()=>void)=>require('react').useEffect(()=>mockFocused?fn():undefined,[fn,mockFocused])}));
 jest.mock('../../store/sesija',()=>({useSesija:()=>({user:{id:mockAccount},accountRevision:mockRevision}),sesijaSada:()=>({user:{id:mockAccount},accountRevision:mockRevision})}));
-jest.mock('../../store/uloga',()=>({useUloga:()=> 'uskocer',ulogaSada:()=> 'uskocer'}));
 jest.mock('../supabaseClient',()=>({supabaseKlijent:jest.fn()}));
 jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mockApi;}}));
 jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));

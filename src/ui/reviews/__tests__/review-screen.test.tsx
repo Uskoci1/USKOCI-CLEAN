@@ -16,7 +16,6 @@ jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchPar
  useFocusEffect:(fn:()=>void)=>require('react').useEffect(()=>mockFocused?fn():undefined,[fn,mockFocused])}));
 jest.mock('../../../store/sesija',()=>({useSesija:()=>({user:mockAccount?{id:mockAccount}:null,accountRevision:mockRevision}),
  sesijaSada:()=>({user:mockAccount?{id:mockAccount}:null,accountRevision:mockRevision})}));
-jest.mock('../../../store/uloga',()=>({useUloga:()=> 'narucilac',ulogaSada:()=> 'narucilac'}));
 jest.mock('../../../lib/idempotencija',()=>({noviUuidZahtevId:()=> 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'}));
 jest.mock('../../../data/supabaseClient',()=>({supabaseKlijent:()=>{throw new Error('Unexpected direct RPC in review presentation test');}}));
 jest.mock('../../Text',()=>({T:'T'}));

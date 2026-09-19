@@ -12,7 +12,6 @@ jest.mock('../safetyClientService', () => ({ safetyClientService: {
   report: (...args: unknown[]) => mockSafety.report(...args), readReportCommand: (...args: unknown[]) => mockSafety.readReportCommand(...args),
 }, SAFETY_CATEGORIES: ['HARASSMENT','FRAUD','UNSAFE_WORK','DISCRIMINATION','OTHER'] }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
-jest.mock('../../store/uloga', () => ({ useUloga: () => 'narucilac', ulogaSada: () => 'narucilac' }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true },
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));

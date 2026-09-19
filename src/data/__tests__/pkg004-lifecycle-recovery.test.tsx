@@ -26,8 +26,6 @@ jest.mock('../../store/uloga', () => {
   const mojePotrebe = jest.fn();
   const source = { mojePotrebe };
   return {
-    useUloga: () => 'narucilac',
-    ulogaSada: () => 'narucilac',
     useIzvor: () => source,
     __testMocks: { mojePotrebe },
   };
