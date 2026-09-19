@@ -57,6 +57,13 @@ it.each(['CLARIFY', 'REVIEW', 'BLOCK'] as const)('%s remains a typed stored eval
   expect(mockRpc.mock.calls.some(x => x[0] === 'rpc_publish_accepted_ai_task_review')).toBe(false);
 });
 
+it('saving a draft accepts the exact displayed review and stops: no evaluator, no publish', async () => {
+  await expect(service.acceptAsDraft({ review: review(), clientRequestId: KEY })).resolves.toEqual({ ok: true, podatak: accepted() });
+  expect(mockRpc.mock.calls.map(x => x[0])).toEqual(['rpc_accept_ai_task_review']);
+  expect(mockRpc.mock.calls[0][1]).toEqual({ p_review_id: REVIEW, p_displayed_content_digest: 'a'.repeat(64), p_client_request_id: KEY });
+  expect(mockInvoke).not.toHaveBeenCalled();
+});
+
 it('lost acceptance response is recovered from durable latest review after app restart without accepting again', async () => {
   const implementation = mockRpc.getMockImplementation()!;
   mockRpc.mockImplementation(async (name: string, ...args: unknown[]) => {

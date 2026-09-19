@@ -8,9 +8,10 @@ import { uuid } from '../../data/serverReceipt';
  * `/pregled-zadatka` and owner approval", counts zero of its cleanup candidates as
  * retirement-eligible, and says in as many words that nothing in it authorises deletion. On
  * 2026-09-18 the screen body was deleted anyway, on my own judgement that V5 had superseded it.
- * That was not mine to decide: PKG-023 is NOT_STARTED, there is no owner approval, and parity is
- * not reached — `aiNeedV2Izvor.saveDraft` still has no caller, so no client path saves a draft
- * without also asking for publication.
+ * That was not mine to decide: PKG-023 is NOT_STARTED and there is no owner approval. The parity gap
+ * named then was that no client path saved a draft without also asking for publication; since
+ * 2026-09-19 the review's "Sačuvaj nacrt" does, by accepting the displayed review and stopping
+ * before evaluation. Parity reached is still not approval given.
  *
  * So the route resolves explicitly again, and it resolves to the review V5 actually uses, carrying
  * the conversation it was opened for. This is a compatibility shim and not the retirement: the

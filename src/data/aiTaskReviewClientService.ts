@@ -204,6 +204,13 @@ async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): 
   if (stored.state !== 'EVALUATED' || stored.evaluation?.kind !== 'DECISION' || stored.evaluation.decision.outcome !== 'ALLOW') return { ok: true, podatak: stored };
   return rpc(s, 'rpc_publish_accepted_ai_task_review', { p_review_id: stored.reviewId, p_client_request_id: stored.clientRequestId }, raw => decodeCommandForReview(raw, read.podatak.review), true);
 }
+async function acceptFor(s: ReceiptAccount, command: Readonly<{ review: AiTaskReviewEnvelope; clientRequestId: string }>): Promise<Ishod<AiTaskPublicationCommand>> {
+  if (!uuid(command?.clientRequestId) || !decodeAiTaskReview(command.review, s.accountId)) return invalid();
+  const frozenReview = { ...command.review };
+  return rpc(s, 'rpc_accept_ai_task_review', { p_review_id: command.review.reviewId,
+    p_displayed_content_digest: command.review.displayedContentDigest, p_client_request_id: command.clientRequestId },
+    raw => decodeCommandForReview(raw, frozenReview), true);
+}
 export const aiTaskReviewClientService = {
   prepare(request: AiTaskReviewPrepare): Promise<Ishod<AiTaskReviewEnvelope>> {
     const s = scope(); if (!s) return Promise.resolve(failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED));
@@ -229,13 +236,18 @@ export const aiTaskReviewClientService = {
   },
   async acceptAndPublish(command: Readonly<{ review: AiTaskReviewEnvelope; clientRequestId: string }>): Promise<Ishod<AiTaskPublicationCommand>> {
     const s = scope(); if (!s) return failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED);
-    if (!uuid(command?.clientRequestId) || !decodeAiTaskReview(command.review, s.accountId)) return invalid();
-    const reviewId = command.review.reviewId, digest = command.review.displayedContentDigest, requestId = command.clientRequestId;
-    const frozenReview = { ...command.review };
-    const accepted = await rpc(s, 'rpc_accept_ai_task_review', { p_review_id: reviewId,
-      p_displayed_content_digest: digest, p_client_request_id: requestId }, raw => decodeCommandForReview(raw, frozenReview), true);
-    if (!accepted.ok) return accepted;
-    return resumeFor(s, accepted.podatak);
+    const accepted = await acceptFor(s, command);
+    return accepted.ok ? resumeFor(s, accepted.podatak) : accepted;
+  },
+  /**
+   * "Sačuvaj nacrt": the first half of publishing and nothing after it. Accepting the displayed
+   * review is what writes the private DRAFT Zadatak on the server; the evaluator and the publish
+   * are separate steps that `resume` runs later, from the same stored command, when the person
+   * asks for them. No second writer and no second meaning of "draft".
+   */
+  async acceptAsDraft(command: Readonly<{ review: AiTaskReviewEnvelope; clientRequestId: string }>): Promise<Ishod<AiTaskPublicationCommand>> {
+    const s = scope(); if (!s) return failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED);
+    return acceptFor(s, command);
   },
   resume(command: AiTaskPublicationCommand): Promise<Ishod<AiTaskPublicationCommand>> {
     const s = scope(); return !s ? Promise.resolve(failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED)) : !decodeAiTaskPublicationCommand(command) ? invalid() : resumeFor(s, command);

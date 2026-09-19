@@ -9,13 +9,13 @@ const NEED = '55555555-5555-4555-8555-555555555555';
 let mockSession = { user: { id: OWNER }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true, mockCounter = 0;
 let mockParams: { conversationId?: string | string[] } = { conversationId: CONVERSATION };
 const mockLatest = jest.fn(), mockRead = jest.fn(), mockPrepare = jest.fn(), mockAccept = jest.fn(), mockResume = jest.fn();
-const mockNeed = jest.fn(), mockCorrect = jest.fn(), mockOpenEdit = jest.fn(), mockAlert = jest.fn();
+const mockNeed = jest.fn(), mockCorrect = jest.fn(), mockOpenEdit = jest.fn(), mockAlert = jest.fn(), mockDraft = jest.fn();
 const mockLocationRead = jest.fn(), mockLocationSave = jest.fn(), mockCancelResolver = jest.fn();
 const mockRouter = { replace: jest.fn() };
 jest.mock('../aiTaskReviewClientService', () => ({ aiTaskReviewClientService: {
   readLatest: (...args: unknown[]) => mockLatest(...args), read: (...args: unknown[]) => mockRead(...args),
   prepare: (...args: unknown[]) => mockPrepare(...args), acceptAndPublish: (...args: unknown[]) => mockAccept(...args),
-  resume: (...args: unknown[]) => mockResume(...args),
+  resume: (...args: unknown[]) => mockResume(...args), acceptAsDraft: (...args: unknown[]) => mockDraft(...args),
 } }));
 jest.mock('../index', () => ({ izvor: { potreba: (...args: unknown[]) => mockNeed(...args) },
   aiNeedV2Izvor: { correctFact: (...args: unknown[]) => mockCorrect(...args), openEditConversation: (...args: unknown[]) => mockOpenEdit(...args) } }));
@@ -91,7 +91,7 @@ const blur = async () => { mockFocused = false; await update(); };
 const focus = async () => { mockFocused = true; await update(); };
 beforeEach(() => {
   jest.clearAllMocks();
-  for (const mock of [mockLatest, mockRead, mockPrepare, mockAccept, mockResume, mockNeed, mockCorrect, mockOpenEdit, mockLocationRead, mockLocationSave]) mock.mockReset();
+  for (const mock of [mockLatest, mockRead, mockPrepare, mockAccept, mockResume, mockNeed, mockCorrect, mockOpenEdit, mockLocationRead, mockLocationSave, mockDraft]) mock.mockReset();
   mockSession = { user: { id: OWNER }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockCounter = 0;
   mockParams = { conversationId: CONVERSATION };
   mockLatest.mockResolvedValue(ok(null)); mockRead.mockResolvedValue(ok({ review: review(), command: null }));
@@ -155,7 +155,8 @@ it.each(['ACCEPTED', 'EVALUATING', 'UNKNOWN_OUTCOME'] as const)('restores %s on 
   expect(text()).not.toContain('Zadatak je objavljen.');
   expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(0);
   if (state === 'ACCEPTED') {
-    await act(async () => action('Nastavi istu objavu').onPress());
+    // ACCEPTED is a private draft with nothing after it confirmed; the button says so.
+    await act(async () => action('Objavi ovaj nacrt').onPress());
     expect(mockResume).toHaveBeenCalledWith(command(state)); expect(mockAccept).not.toHaveBeenCalled();
   }
 });
@@ -166,7 +167,7 @@ it('opens the existing saved draft explicitly after a terminal NOT_READY without
   mockOpenEdit.mockResolvedValue(ok({ conversationId: OTHER }));
   await render();
   expect(text()).toContain('privatan nacrt');
-  expect(tree.root.findAllByProps({ label: 'Nastavi istu objavu' })).toHaveLength(0);
+  for (const resumeLabel of ['Nastavi istu objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
   expect(mockOpenEdit).not.toHaveBeenCalled();
   const retained = action('Izmeni zadatak').onPress;
   await act(async () => { void retained(); void retained(); });
@@ -474,7 +475,7 @@ it.each(['ACCEPTED', 'EVALUATED'] as const)('offers exact owned edit for histori
   const stored = state === 'ACCEPTED' ? command(state) : { ...command(state), evaluation: { kind: 'DECISION', decision: { outcome: 'ALLOW' } } };
   mockLatest.mockResolvedValue(ok({ review: identityReview(), command: stored }));
   mockOpenEdit.mockResolvedValue(ok({ conversationId: CONVERSATION })); await render();
-  expect(tree.root.findAllByProps({ label: 'Nastavi istu objavu' })).toHaveLength(0);
+  for (const resumeLabel of ['Nastavi istu objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
   expect(mockCorrect).not.toHaveBeenCalled(); await act(async () => action('Izmeni zadatak').onPress());
   expect(mockOpenEdit).toHaveBeenCalledWith(NEED); expect(mockResume).not.toHaveBeenCalled();
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
@@ -484,7 +485,7 @@ it.each(['EVALUATING', 'UNKNOWN_OUTCOME'] as const)('does not turn historical tr
   mockLatest.mockResolvedValue(ok({ review: identityReview(), command: command(state) })); await render();
   expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ label: identityLabel })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ label: 'Nastavi istu objavu' })).toHaveLength(0);
+  for (const resumeLabel of ['Nastavi istu objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
   expect(mockOpenEdit).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
@@ -569,4 +570,27 @@ it('corrects a list item by item and keeps a word typed but not yet added', asyn
   expect(mockCorrect).toHaveBeenCalledTimes(1);
   expect(mockCorrect.mock.calls[0][0]).toBe('skills');
   expect(mockCorrect.mock.calls[0][1]).toEqual(['Prevoz, utovar', 'Bušenje']);
+});
+
+// "Sačuvaj nacrt": the engine could always keep a reviewed task as a private draft without asking
+// for publication, and no screen let a person ask for that.
+it('saves the reviewed task as a private draft without asking for publication, then offers to publish that draft', async () => {
+  mockPrepare.mockResolvedValue(ok({ ...review(), location: location('Liman') }));
+  mockDraft.mockImplementation(async () => { mockRead.mockResolvedValue(ok({ review: { ...review(), location: location('Liman') }, command: command('ACCEPTED') })); return ok(command('ACCEPTED')); });
+  await render();
+  await act(async () => action('Sačuvaj nacrt').onPress());
+  expect(mockDraft).toHaveBeenCalledTimes(1); expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+  expect(mockDraft.mock.calls[0][0].review.reviewId).toBe(REVIEW);
+  expect(text()).toContain('Sačuvano kao privatan nacrt. Zadatak nije objavljen.');
+  expect(tree.root.findAllByProps({ label: 'Sačuvaj nacrt' })).toHaveLength(0);
+  // Publishing it later is the stored command's resume, which the ACCEPTED restore test above covers.
+  expect(action('Objavi ovaj nacrt').disabled).toBe(false);
+  await act(async () => action('Otvori moje zadatke').onPress()); expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
+});
+it('does not offer a draft while the review cannot be accepted, or when it edits a task that already exists', async () => {
+  mockPrepare.mockResolvedValue(ok({ ...review(), canAccept: false, missingRequired: ['need.category'] }));
+  await render(); expect(tree.root.findAllByProps({ label: 'Sačuvaj nacrt' })).toHaveLength(0);
+  await act(async () => tree.unmount());
+  mockPrepare.mockResolvedValue(ok({ ...review(), location: location('Liman'), draftId: NEED, draftRevision: 1 })); await render();
+  expect(tree.root.findAllByProps({ label: 'Sačuvaj nacrt' })).toHaveLength(0);
 });

@@ -125,16 +125,20 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     ? router.replace({ pathname: '/nova', params: { conversationId } }) : router.replace('/nova'));
   const refresh = () => { if (current() && !editor.busy && !editor.loading && !navigating.current) void editor.refresh(); };
   const unavailableIdentityFact = review?.publicProjection.find(fact => fact.key === 'need.verified_identity_required' && fact.value === true);
-  const publish = async () => {
+  // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one
+  // retained command identity; they differ only in whether evaluation and publication follow now.
+  const accept = async (andPublish: boolean) => {
     if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || edit || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() }; pending.current = accepted;
     await editor.save(async () => {
-      const result = await aiTaskReviewClientService.acceptAndPublish({ review: accepted.review, clientRequestId: accepted.id });
+      const request = { review: accepted.review, clientRequestId: accepted.id };
+      const result = await (andPublish ? aiTaskReviewClientService.acceptAndPublish(request) : aiTaskReviewClientService.acceptAsDraft(request));
       if (!current()) return changed();
       if (!result.ok) return result;
       return read();
     });
   };
+  const publish = () => accept(true);
   const resume = async () => {
     if (!canAct() || !command || !review || unavailableIdentityFact) return;
     await editor.save(async () => {
@@ -238,6 +242,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     : outcome === 'REVIEW' ? 'Zadatak zahteva dodatnu proveru i još nije objavljen. Možeš da ga izmeniš.'
     : outcome === 'BLOCK' ? 'Zadatak nije odobren za objavu. Pregledaj pravila i izmeni zahtev.'
     : evaluation?.kind === 'NOT_READY' ? 'Provera objave trenutno nije spremna. Tvoj zadatak je sačuvan kao privatan nacrt.'
+    // ACCEPTED is exactly "the private draft exists and nothing after it has been confirmed", whether
+    // the person asked for a draft or a publish stopped here.
+    : command?.state === 'ACCEPTED' ? 'Sačuvano kao privatan nacrt. Zadatak nije objavljen.'
     : command ? 'Objava još nije potvrđena. Proveri ishod pre novog pokušaja.' : null;
   const disabled = editor.busy || editor.loading || editor.uncertain;
   const EMPTY_VALUE = new Set(['—', 'Nema navedenih stavki', 'Bez fotografija', '']);
@@ -368,7 +375,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
           : command ? <>
             <V2Action label="Proveri objavu" disabled={editor.busy || editor.loading} onPress={refresh} />
             {!unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW')) ?
-              <V2Action label="Nastavi istu objavu" disabled={disabled} onPress={resume} /> : null}
+              <V2Action label={command.state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi istu objavu'} disabled={disabled} onPress={resume} /> : null}
+            {command.state === 'ACCEPTED' ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
+              onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : null}
             {((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (outcome && outcome !== 'ALLOW')))
               || (!!unavailableIdentityFact && command.authoritative && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')))
               ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
@@ -380,6 +389,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? (revising
               ? 'Klikom potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'
               : 'Klikom prihvataš ovu prikazanu verziju i tražiš objavu.')}</T>
+            {/* A new task only: accepting an edit of an existing one confirms that edit, which is not a draft. */}
+            {!revising && review.canAccept && !unavailableIdentityFact ? <V2Action label="Sačuvaj nacrt" kind="quiet"
+              disabled={disabled || !!edit || !!locationEditor || deadlineEditor} onPress={() => { void accept(false); }} /> : null}
           </> : null}
       </View>
     </KeyboardAvoidingView>
