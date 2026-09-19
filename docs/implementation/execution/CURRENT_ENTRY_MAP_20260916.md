@@ -193,7 +193,7 @@ register; composition of the remaining screens needs his eye before they change 
 The owner supplied the V3 3.1 architecture package, answered its eight product questions with
 "sve DA", and after a read-only forensic review of F01–F20 wrote "Odobravam implementaciju".
 `docs/implementation/v5-ai-first/pkg023/OWNER_DECISIONS_V3_20260919.md` records the eight decisions,
-what each supersedes, the three questions still open, and the first slice that approval covers.
+what each supersedes, the four questions and the owner's answers to them, and what each slice covers.
 
 Two supersessions matter to anyone reading this map. Owner decision 1 of 2026-09-16 (two tab
 shells) has given way to one shell, **Početna | Mapa | Dogovori**: the second slice landed on

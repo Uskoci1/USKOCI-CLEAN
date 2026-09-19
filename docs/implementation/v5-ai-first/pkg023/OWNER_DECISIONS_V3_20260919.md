@@ -32,7 +32,7 @@ The package itself is a proposal and stays outside the repository. What binds th
 - The instruction that entry and auth keep their own dark palette is superseded for the palette
   only. The V4.9 mark, mascot, photographs and HOME signature stay preserved.
 
-## Still open — four questions put to the owner on 2026-09-19
+## The four questions put to the owner on 2026-09-19 — answered the same day
 
 1. Tasks already published when the grid changes: stay on the old point until their place changes
    (recommended), or be recomputed once.
@@ -48,9 +48,18 @@ The package itself is a proposal and stays outside the repository. What binds th
    canonical DEV is already "Tražim ponude"), or the engine lets a partial application name its own
    total under a fixed-price task, which is a forward migration of `rpc_submit_response`.
 
-None of the four blocks the first slice. Until question 4 is answered the first slice says "ukupno"
-only where it is true: on applications, candidates and Dogovori. It does not call a multi-person
-fixed price "the budget for the whole task".
+**Answered 2026-09-19.** After the second slice's report repeated the four questions, each with its
+recommendation, the owner wrote "Prihvatiću tvoje predloge". The recommended answer stands for each:
+
+1. Tasks already published stay on the old point until their place changes. Nothing is recomputed.
+2. The requester's account id stays in the public task row for the first phase. The risk is
+   recorded here: with a ~100 m pin, several tasks of one account can be tied to one house.
+3. The worker's own location stays on the ~1 km grid.
+4. A fixed price ("Moja cena") is offered only on a task for one person; a task for more people asks
+   for offers. No engine change: `rpc_submit_response` keeps FIXED_PRICE_MISMATCH as it is.
+
+These are answers, not an approval to build. The third slice still needs the owner's own word, and
+its two backend parts are forward migrations on canonical DEV.
 
 ## Recorded for a later slice — a place said in the AI conversation (owner, 2026-09-19)
 
