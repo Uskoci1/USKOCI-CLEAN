@@ -4,7 +4,7 @@ import { journalFor, type AgreementActionCommand } from '../../ui/agreements/agr
 import type { AgreementChangeSnapshot, AgreementChangeProposal } from '../agreementClientService';
 const A='10000000-0000-4000-8000-000000000001',B='10000000-0000-4000-8000-000000000002';
 const ID='20000000-0000-4000-8000-000000000001',PID='30000000-0000-4000-8000-000000000001',KEY='40000000-0000-4000-8000-000000000001';
-let mockSession={user:{id:A},accountRevision:1},mockIntent='narucilac',mockFocused=true,mockForeground='active';
+let mockSession={user:{id:A},accountRevision:1},mockFocused=true,mockForeground='active';
 const mockListeners=new Set<(value:string)=>void>(),mockStorage={getItem:jest.fn(),setItem:jest.fn(),removeItem:jest.fn()};
 const mockService={read:jest.fn(),readCommand:jest.fn(),propose:jest.fn(),respond:jest.fn(),withdraw:jest.fn(),cancel:jest.fn()};
 const mockUuid=jest.fn(),mockBack=jest.fn(),mockReplace=jest.fn();
@@ -14,7 +14,6 @@ jest.mock('../agreementClientService',()=>({agreementChangeService:{
  withdraw:(...args:unknown[])=>mockService.withdraw(...args),cancel:(...args:unknown[])=>mockService.cancel(...args)}}));
 jest.mock('../supabaseClient',()=>({supabaseKlijent:()=>({})}));
 jest.mock('../../store/sesija',()=>({useSesija:()=>mockSession,sesijaSada:()=>mockSession}));
-jest.mock('../../store/uloga',()=>({useUloga:()=>mockIntent,ulogaSada:()=>mockIntent}));
 jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=>mockUuid()}));
 jest.mock('@react-native-async-storage/async-storage',()=>({__esModule:true,default:{
  getItem:(...args:unknown[])=>mockStorage.getItem(...args),setItem:(...args:unknown[])=>mockStorage.setItem(...args),removeItem:(...args:unknown[])=>mockStorage.removeItem(...args)}}));
@@ -48,7 +47,7 @@ const text=()=>JSON.stringify(tree.toJSON());
 function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return {promise,resolve};}
 beforeEach(()=>{
  jest.clearAllMocks();for(const group of [mockService,mockStorage])for(const fn of Object.values(group))fn.mockReset();
- mockSession={user:{id:A},accountRevision:1};mockIntent='narucilac';mockFocused=true;mockForeground='active';snapshot=initial();mockUuid.mockReturnValue(KEY);
+ mockSession={user:{id:A},accountRevision:1};mockFocused=true;mockForeground='active';snapshot=initial();mockUuid.mockReturnValue(KEY);
  mockStorage.getItem.mockResolvedValue(null);mockStorage.setItem.mockResolvedValue(undefined);mockStorage.removeItem.mockResolvedValue(undefined);
  mockService.read.mockImplementation(()=>Promise.resolve(ok(snapshot)));mockService.readCommand.mockResolvedValue(ok({found:false}));
  for(const name of ['propose','respond','withdraw','cancel'] as const)mockService[name].mockResolvedValue(unknown);

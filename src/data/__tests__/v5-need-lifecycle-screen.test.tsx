@@ -2,7 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { PotrebaProjekcija } from '../../contracts/projections';
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', N = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-let mockSession = { user: { id: A }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
+let mockSession = { user: { id: A }, accountRevision: 1 }, mockFocused = true;
 let mockForeground = 'active';
 const mockListeners = new Set<(state: string) => void>();
 const mockStorage = { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() };
@@ -18,7 +18,7 @@ jest.mock('../needLifecycleClientService', () => ({ needLifecycleClientService: 
 } }));
 jest.mock('../supabaseClient', () => ({ supabase: {} }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
-jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent, useIzvor: () => mockSource }));
+jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('expo-router', () => ({ router: { replace: (...args: unknown[]) => mockReplace(...args), push: (...args: unknown[]) => mockPush(...args) },
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
@@ -43,7 +43,7 @@ const refresh = async () => { await act(async () => tree.update(page())); };
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 beforeEach(() => {
   jest.clearAllMocks(); for (const group of [mockStorage, mockService, mockSource]) for (const fn of Object.values(group)) fn.mockReset();
-  mockSession = { user: { id: A }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockForeground = 'active'; disabled = false;
+  mockSession = { user: { id: A }, accountRevision: 1 }; mockFocused = true; mockForeground = 'active'; disabled = false;
   need = { id: N, revizija: 3, stanje: 'NACRT', naslov: 'Pregledani zadatak', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2 } } as PotrebaProjekcija;
   mockStorage.getItem.mockResolvedValue(null); mockStorage.setItem.mockResolvedValue(undefined); mockStorage.removeItem.mockResolvedValue(undefined);
   mockService.deleteDraftNeed.mockResolvedValue(success); mockService.cancelNeed.mockResolvedValue({ ok: true, podatak: { needId: N, revision: 3, status: 'CANCELLED', affectedResponses: 2, idempotentReplay: false } });
@@ -60,10 +60,10 @@ it('reviews consequences, persists the frozen identity first and deduplicates re
   expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(1); expect(action('Moji zadaci')).toBeDefined(); expect(mockReplace).not.toHaveBeenCalled();
   await tap('Moji zadaci'); expect(mockStorage.removeItem).toHaveBeenCalledTimes(1); expect(mockReplace).toHaveBeenCalledWith('/potrebe');
 });
-it('serves the owner of the Task whatever mode the app is in', async () => {
-  // The Need it is handed came from the owner-only read and the server checks ownership again; the
-  // mode the app happens to be in says nothing about whose Task this is.
-  mockIntent = 'uskocer'; await render();
+it('serves the owner of the Task: ownership is the whole condition, and there is no app mode beside it', async () => {
+  // The Need it is handed came from the owner-only read and the server checks ownership again; nothing
+  // else is consulted (owner decision 1, 2026-09-19: the app has no mode).
+  await render();
   await tap('Obriši nacrt'); await tap('Obriši nacrt');
   expect(mockService.deleteDraftNeed).toHaveBeenCalledWith(N, 3, '');
 });

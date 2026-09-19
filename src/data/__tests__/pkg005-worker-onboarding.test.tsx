@@ -3,7 +3,6 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockAccountId = '10000000-0000-4000-8000-000000000001';
 let mockAccountRevision = 1;
-let mockIntent = 'uskocer';
 const readProfile = jest.fn();
 const writeProfile = jest.fn();
 const mockNavigate = jest.fn();
@@ -28,8 +27,6 @@ jest.mock('../../store/sesija', () => ({
 }));
 jest.mock('../../store/uloga', () => ({
   useIzvor: () => mockSource,
-  useUloga: () => mockIntent,
-  ulogaSada: () => mockIntent,
 }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/tokens', () => ({ v2: { text: { body: {}, label: {} }, color: { teal: '#0a0', muted: '#777', danger: '#a00', orange: '#f80' } } }));
@@ -57,7 +54,7 @@ async function render() { await act(async () => { tree = create(<Profile />); })
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockAccountId = '10000000-0000-4000-8000-000000000001'; mockAccountRevision = 1; mockIntent = 'uskocer';
+  mockAccountId = '10000000-0000-4000-8000-000000000001'; mockAccountRevision = 1;
   readProfile.mockReset(); writeProfile.mockReset().mockResolvedValue({ ok: true, podatak: null });
 });
 afterEach(async () => { if (tree) await act(async () => tree?.unmount()); tree = undefined; });

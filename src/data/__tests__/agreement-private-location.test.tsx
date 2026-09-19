@@ -4,12 +4,12 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import type { ExactLocationReveal, LocationGrantState } from '../../contracts/contact';
 const ownerId = 'owner', workerId = 'worker';
 let mockSession = { user: { id: workerId }, accountRevision: 1 };
-let mockIntent = 'narucilac', mockFocused = true;
+let mockFocused = true;
 let mockAppStateListener: (state: string) => void = () => {};
 const mockRead = jest.fn(), mockReveal = jest.fn(), mockGrant = jest.fn(), mockRevoke = jest.fn();
 const mockSource = { lokacijskaDozvola: mockRead, otkrijTacnuLokaciju: mockReveal, podeliTacnuLokaciju: mockGrant, opoziviTacnuLokaciju: mockRevoke };
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
-jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
+jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource}));
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => {
@@ -48,7 +48,7 @@ const content = () => JSON.stringify(tree.toJSON());
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; }
 beforeEach(() => {
   jest.clearAllMocks(); for (const mock of [mockRead, mockReveal, mockGrant, mockRevoke]) mock.mockReset();
-  mockSession = { user: { id: workerId }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true;
+  mockSession = { user: { id: workerId }, accountRevision: 1 }; mockFocused = true;
   agreement = { id: 'agreement', verzija: 1, stanje: 'CONFIRMED', rezim: 'FIZICKI', kontakt: { lokacijaPostoji: true },
     ucesnici: [{ id: ownerId, uloga: 'narucilac', viSte: false }, { id: workerId, uloga: 'uskocer', viSte: true }] } as DogovorProjekcija;
   mockRead.mockImplementation(async () => ({ ok: true, podatak: state() }));
@@ -131,8 +131,7 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('Prikaži privatnu lokaciju');
   });
   it('lets the actual requester grant coordinate-only data, blocks duplicates and unknown-write replay until readback', async () => {
-    mockSession = { user: { id: ownerId }, accountRevision: 1 }; mockIntent = 'uskocer';
-    agreement.ucesnici = agreement.ucesnici.map(party => ({ ...party, viSte: party.id === ownerId }));
+    mockSession = { user: { id: ownerId }, accountRevision: 1 };     agreement.ucesnici = agreement.ucesnici.map(party => ({ ...party, viSte: party.id === ownerId }));
     mockRead.mockImplementation(async () => ({ ok: true, podatak: state(false) }));
     const pending = deferred<unknown>(); mockGrant.mockReturnValueOnce(pending.promise); await render();
     const old = button('Podeli lokaciju').props.onPress;

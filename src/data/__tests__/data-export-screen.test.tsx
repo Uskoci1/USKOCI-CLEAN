@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const ID = '11111111-1111-4111-8111-111111111111', GENERATION = '22222222-2222-4222-8222-222222222222';
-let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
+let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockFocused = true;
 const mockStatus = jest.fn(), mockRequest = jest.fn(), mockPrepare = jest.fn(), mockCancel = jest.fn(), mockRevoke = jest.fn(), mockDownload = jest.fn(), mockSaveFile = jest.fn();
 const mockAlert = jest.fn(), mockRouter = { back: jest.fn() };
 jest.mock('../dataExportClientService', () => ({ dataExportClientService: { readStatus: (...a: unknown[]) => mockStatus(...a),
@@ -11,7 +11,6 @@ jest.mock('../../lib/dataExportFile', () => ({ saveDataExportFile: (...a: unknow
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
-jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('unexpected transport'); } }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'Alert') return { alert: mockAlert }; return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
@@ -37,15 +36,15 @@ const texts = () => tree.root.findAll(node => node.type === 'T' as React.Element
 const confirm = () => mockAlert.mock.calls.at(-1)[2][1].onPress;
 beforeEach(() => {
   jest.clearAllMocks(); for (const mock of [mockStatus, mockRequest, mockPrepare, mockCancel, mockRevoke, mockDownload, mockSaveFile]) mock.mockReset();
-  mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true;
+  mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockFocused = true;
   mockStatus.mockResolvedValue(ok(status())); mockRequest.mockImplementation(async key => ok({ receiptId: ID, clientRequestId: key, status: 'REQUESTED', requestedAt: '2026-09-10T10:00:00Z', idempotentReplay: false }));
   mockPrepare.mockResolvedValue(ok({ receiptId: ID, kind: 'NOT_READY', code: 'POLICY_NOT_READY' }));
   mockCancel.mockResolvedValue(ok({ receiptId: ID, status: 'CANCELLED' })); mockRevoke.mockResolvedValue(ok({ receiptId: ID, revoked: true }));
   mockDownload.mockImplementation(async () => ok(file())); mockSaveFile.mockResolvedValue({ status: 'SAVED', fileName: 'safe.json' });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
-it.each(['narucilac', 'uskocer'])('reads actual account status for %s without requesting or preparing on mount', async intent => {
-  mockIntent = intent; await render(); expect(mockStatus).toHaveBeenCalledTimes(1); expect(button('Zatraži izvoz')).toBeTruthy();
+it('reads actual account status without requesting or preparing on mount', async () => {
+  await render(); expect(mockStatus).toHaveBeenCalledTimes(1); expect(button('Zatraži izvoz')).toBeTruthy();
   expect(mockRequest).not.toHaveBeenCalled(); expect(mockPrepare).not.toHaveBeenCalled(); expect(mockDownload).not.toHaveBeenCalled();
 });
 it('keeps one actual primary action outside scrolling content and cancellation secondary', async () => {

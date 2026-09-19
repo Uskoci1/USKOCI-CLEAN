@@ -6,7 +6,7 @@ const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mock
   izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockLinkQuery = jest.fn();
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
-let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocused = true, mockRole = 'uskocer';
+let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocused = true;
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -25,7 +25,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' }, useReducedMotion: () => true, FadeIn: { duration: () => ({}) } }));
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
-jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, useUloga: () => mockRole, ulogaSada: () => mockRole }));
+jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource}));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
@@ -64,7 +64,7 @@ const render = async (component = Composer) => { screen = component; await act(a
 const update = async () => { await act(async () => { tree!.update(React.createElement(screen)); }); };
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>(r => { resolve = r; }); return { promise, resolve }; };
 beforeEach(() => {
-  jest.clearAllMocks(); mockFocused = true; mockRole = 'uskocer'; mockId = '10000000-0000-4000-8000-000000000001';
+  jest.clearAllMocks(); mockFocused = true; mockId = '10000000-0000-4000-8000-000000000001';
   mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 }; mockRouter.canGoBack.mockReturnValue(true);
   mockNeed.mockResolvedValue(need()); mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: null });
   mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE' });
@@ -77,10 +77,10 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
-async function selection() { mockRole = 'narucilac'; await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
+async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
 it('marks only an intentionally opened offer, never the list, comparison or focus refresh', async () => {
-  mockRole = 'narucilac'; mockCandidates.mockResolvedValue([k(), { ...k(), prijavaId: agreement, ime: 'Ana' }]);
+  mockCandidates.mockResolvedValue([k(), { ...k(), prijavaId: agreement, ime: 'Ana' }]);
   await render(Candidates); expect(mockViewed).not.toHaveBeenCalled();
   await tap('Uporedi'); expect(mockViewed).not.toHaveBeenCalled();
   await tap('Prikaži ponude'); expect(mockViewed).not.toHaveBeenCalled();
@@ -93,8 +93,7 @@ it('marks only an intentionally opened offer, never the list, comparison or focu
   expect(mockViewed).toHaveBeenCalledTimes(1);
 });
 it('deduplicates pending double opens without blocking offer reading or selecting', async () => {
-  const d = deferred(); mockViewed.mockReturnValueOnce(d.promise); mockRole = 'narucilac';
-  await render(Candidates); const open = press('Pogledaj ponudu: Milan');
+  const d = deferred(); mockViewed.mockReturnValueOnce(d.promise);   await render(Candidates); const open = press('Pogledaj ponudu: Milan');
   await act(async () => { open(); open(); });
   expect(mockViewed.mock.calls).toEqual([[k().prijavaId]]);
   expect(text()).toContain('Dolazimo sa trakama.');
@@ -106,8 +105,7 @@ it('deduplicates pending double opens without blocking offer reading or selectin
   expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
 });
 it('shows safe unconfirmed view status and repeats only on another explicit exact offer opening', async () => {
-  mockViewed.mockRejectedValueOnce(new Error('PRIVATE_SQL_DETAILS')); mockRole = 'narucilac';
-  await render(Candidates); await tap('Pogledaj ponudu: Milan');
+  mockViewed.mockRejectedValueOnce(new Error('PRIVATE_SQL_DETAILS'));   await render(Candidates); await tap('Pogledaj ponudu: Milan');
   expect(text()).toContain('oznaka viđenosti nije potvrđena'); expect(text()).not.toContain('PRIVATE_SQL_DETAILS');
   await update(); expect(mockViewed).toHaveBeenCalledTimes(1);
   await tap('Nazad na zadatak'); mockFocused = false; await update(); mockFocused = true; await update();
@@ -117,7 +115,7 @@ it('shows safe unconfirmed view status and repeats only on another explicit exac
   expect(text()).not.toContain('oznaka viđenosti nije potvrđena'); expect(mockSelect).not.toHaveBeenCalled();
 });
 it('rejects a stale open handler after blur/refocus and an account incarnation change', async () => {
-  mockRole = 'narucilac'; await render(Candidates); const old = press('Pogledaj ponudu: Milan');
+  await render(Candidates); const old = press('Pogledaj ponudu: Milan');
   mockFocused = false; await update(); await act(async () => old());
   mockFocused = true; await update(); await act(async () => old());
   expect(mockViewed).not.toHaveBeenCalled();
@@ -126,8 +124,7 @@ it('rejects a stale open handler after blur/refocus and an account incarnation c
   await act(async () => current()); expect(mockViewed).not.toHaveBeenCalled();
 });
 it('does not surface an old view failure or select after an account switch', async () => {
-  const d = deferred(); mockViewed.mockReturnValueOnce(d.promise); mockRole = 'narucilac';
-  await render(Candidates); await tap('Pogledaj ponudu: Milan');
+  const d = deferred(); mockViewed.mockReturnValueOnce(d.promise);   await render(Candidates); await tap('Pogledaj ponudu: Milan');
   mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 }; await update();
   await act(async () => d.resolve({ ok: false, kod: 'UNKNOWN', poruka: 'PRIVATE_SQL_DETAILS' }));
   expect(text()).not.toContain('PRIVATE_SQL_DETAILS'); expect(text()).not.toContain('oznaka viđenosti nije potvrđena');
@@ -178,7 +175,7 @@ it('old-account completion and retained callbacks cannot send or navigate after 
   expect(text()).not.toContain('Prijava je poslata.');
 });
 it('shows specific candidate evidence, then confirms once and opens the exact existing Agreement route', async () => {
-  mockRole = 'narucilac'; await render(Candidates);
+  await render(Candidates);
   expect(press('Izaberi ovu Prijavu')).toBeUndefined(); expect(mockSelect).not.toHaveBeenCalled();
   await tap('Pogledaj ponudu: Milan'); expect(text()).toContain('Nošenje · Trake · Kombi');
   expect(text()).toContain('Sačuvana samoizjava'); await tap('Pregledaj povezivanje');
@@ -188,12 +185,11 @@ it('shows specific candidate evidence, then confirms once and opens the exact ex
   await tap('Otvori Dogovor'); expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: agreement } });
 });
 it('stale candidate/Need read pair does not expose selection', async () => {
-  mockCandidates.mockResolvedValue([{ ...k(), potrebaRevizija: 2 }]); mockRole = 'narucilac'; await render(Candidates);
+  mockCandidates.mockResolvedValue([{ ...k(), potrebaRevizija: 2 }]); await render(Candidates);
   expect(text()).toContain('Zadatak se upravo promenio'); expect(press('Pogledaj ponudu: Milan')).toBeUndefined(); expect(mockSelect).not.toHaveBeenCalled();
 });
 it('shows a legitimate STALE offer beside a current offer and permits choosing only the current one', async () => {
-  mockRole = 'narucilac';
-  mockCandidates.mockResolvedValue([
+    mockCandidates.mockResolvedValue([
     { ...k(), prijavaId: agreement, ime: 'Ranija ponuda', stanje: 'STALE', mozeIzabrati: false, verzija: 1, potrebaRevizija: 3 }, k(),
   ]);
   await render(Candidates);
@@ -247,7 +243,7 @@ it('a retained reset callback cannot discard a later successful selection receip
   expect(press('Otvori Dogovor')).toBeDefined(); expect(mockCandidates).toHaveBeenCalledTimes(2);
 });
 it('passes all received candidates to native virtualization with a bounded initial viewport', async () => {
-  mockRole = 'narucilac'; mockCandidates.mockResolvedValue(Array.from({ length: 600 }, (_, index) => ({ ...k(), prijavaId: `application-${index}`, ime: `Osoba ${index}` })));
+  mockCandidates.mockResolvedValue(Array.from({ length: 600 }, (_, index) => ({ ...k(), prijavaId: `application-${index}`, ime: `Osoba ${index}` })));
   await render(Candidates);
   const list = tree!.root.findAll(node => String(node.type) === 'FlatList')[0];
   expect(list.props.data).toHaveLength(600); expect(list.props.initialNumToRender).toBe(8);
@@ -262,14 +258,14 @@ it('owned readback can replay only the frozen request when Need visibility close
 });
 
 it('reopens an already selected application using its exact owned Agreement link', async () => {
-  mockRole = 'narucilac'; mockCandidates.mockResolvedValue([{ ...k(), stanje: 'SELECTED', mozeIzabrati: false }]);
+  mockCandidates.mockResolvedValue([{ ...k(), stanje: 'SELECTED', mozeIzabrati: false }]);
   mockLinkQuery.mockResolvedValue({ data: { need_id: mockId, response_id: k().prijavaId, status: 'SELECTED', agreements: { id: agreement, need_id: mockId, selected_response_id: k().prijavaId } }, error: null });
   await render(Candidates); await tap('Pogledaj ponudu: Milan'); expect(mockLinkQuery).toHaveBeenCalledTimes(1);
   await tap('Otvori Dogovor'); expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: agreement } });
   expect(mockSelect).not.toHaveBeenCalled();
 });
 it('missing selected link remains read-only and can be explicitly reread', async () => {
-  mockRole = 'narucilac'; mockCandidates.mockResolvedValue([{ ...k(), stanje: 'SELECTED', mozeIzabrati: false }]);
+  mockCandidates.mockResolvedValue([{ ...k(), stanje: 'SELECTED', mozeIzabrati: false }]);
   await render(Candidates); await tap('Pogledaj ponudu: Milan'); expect(press('Otvori Dogovor')).toBeUndefined();
   expect(text()).toContain('Veza sa Dogovorom trenutno nije dostupna');
   mockLinkQuery.mockResolvedValue({ data: { need_id: mockId, response_id: k().prijavaId, status: 'SELECTED', agreements: { id: agreement, need_id: mockId, selected_response_id: k().prijavaId } }, error: null });
@@ -281,7 +277,7 @@ it.each(['application', 'candidates'] as const)('bounds %s context read at 15 se
   try {
     const late = deferred();
     if (surface === 'application') mockTask.mockReturnValueOnce(late.promise);
-    else { mockRole = 'narucilac'; mockNeed.mockReturnValueOnce(late.promise); }
+    else { mockNeed.mockReturnValueOnce(late.promise); }
     await render(surface === 'application' ? Composer : Candidates);
     expect(text()).toContain('Učitavamo aktuelne podatke');
     await act(async () => { await jest.advanceTimersByTimeAsync(15001); });

@@ -3,7 +3,6 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { LegalBundleStatus } from '../../../contracts/legal';
 const mockRead = jest.fn(), mockProcessors = jest.fn(), mockAccept = jest.fn(), mockOutcome = jest.fn(), mockOpen = jest.fn(), mockBack = jest.fn();
 let mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' } as { id: string } | null, accountRevision: 1 };
-let mockRole = 'narucilac';
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
   return new Proxy(actual, { get(target, key) { if (key === 'Linking') return { openURL: (...args: unknown[]) => mockOpen(...args) };
@@ -13,7 +12,6 @@ jest.mock('expo-router', () => ({ router: { back: () => mockBack(), canGoBack: (
   useFocusEffect: (callback: () => unknown) => require('react').useEffect(callback, [callback]) }));
 jest.mock('phosphor-react-native', () => ({ FileText: 'Icon', ShieldCheck: 'Icon' }));
 jest.mock('../../../store/sesija', () => ({ sesijaSada: () => mockOwner, useSesija: () => mockOwner }));
-jest.mock('../../../store/uloga', () => ({ ulogaSada: () => mockRole, useUloga: () => mockRole }));
 jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
 jest.mock('../../../data/legalClientService', () => ({ legalClientService: {
   readBundle: (...args: unknown[]) => mockRead(...args), acceptReviewedBundle: (...args: unknown[]) => mockAccept(...args), readAcceptance: (...args: unknown[]) => mockOutcome(...args),
@@ -36,7 +34,7 @@ const hosts = (type: string) => tree.root.findAll(node => node.type === type);
 const renderedCopy = () => tree.root.findAll(node => typeof node.type === 'string').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const action = (label: string) => hosts('SettingsAction').find(node => node.props.label === label)!;
 beforeEach(() => {
-  jest.clearAllMocks(); mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 }; mockRole = 'narucilac';
+  jest.clearAllMocks(); mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
   mockRead.mockResolvedValue(ok(bundle())); mockProcessors.mockResolvedValue(ok({ ready: false, reason: 'PROCESSOR_MAP_NOT_PUBLISHED', missingProviders: [] }));
   mockAccept.mockResolvedValue(ok(receipt)); mockOutcome.mockResolvedValue(ok({ found: true, receipt })); mockOpen.mockResolvedValue(undefined);
 });
