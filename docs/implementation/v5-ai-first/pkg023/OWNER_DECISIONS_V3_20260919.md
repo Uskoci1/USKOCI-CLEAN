@@ -52,6 +52,32 @@ None of the four blocks the first slice. Until question 4 is answered the first 
 only where it is true: on applications, candidates and Dogovori. It does not call a multi-person
 fixed price "the budget for the whole task".
 
+## Recorded for a later slice — a place said in the AI conversation (owner, 2026-09-19)
+
+Recorded on the owner's instruction while the second slice was in progress. **Not part of the second
+slice and not to be implemented until an AI/location slice is approved.**
+
+When a person says a concrete enough place in the AI conversation, by text or by voice — for example
+"Bulevar oslobođenja 78, Novi Sad":
+
+1. the address is taken from the conversation;
+2. the geocoder finds a candidate place;
+3. if the result is unambiguous enough, the same AI flow shows the address with a small map preview
+   and pin;
+4. the person confirms the place deliberately, by a tap or by a clear spoken confirmation;
+5. if there are several possible results, or the person is not satisfied, the flow shows the
+   candidates or "Izaberi na mapi";
+6. the full-screen map is for a precise choice or for moving the pin when that is needed;
+7. after "Potvrdi mesto" the person returns to the same AI conversation with its context kept;
+8. for a point-to-point task the same holds separately for the start and for the destination;
+9. the AI and the geocoder may propose a place, and may never mark it confirmed without the
+   person's explicit confirmation;
+10. the exact place stays private; the public projection uses the approved approximate place.
+
+The voice flow stays hold and speak → release → editable transcript → Pošalji. The one exception is
+a clearly defined local confirmation such as "Da, to je ta lokacija", which may confirm a candidate
+already on screen, if that can be bound safely to the exact location slot and revision.
+
 ## The first slice that "Odobravam implementaciju" authorises
 
 Client only. No migration, no Edge deploy, no new dependency.
@@ -71,3 +97,55 @@ Client only. No migration, no Edge deploy, no new dependency.
 
 The second slice (stable tabs, Početna, the role removed from the cache guards) and the third (the
 grid migration and bounded reads) each need their own word from the owner.
+
+## The second slice — "ODOBRENJE ZA DRUGI ZAHVAT" (owner, 2026-09-19)
+
+Client only, again: no migration, no Edge function, no dependency, no RPC signature touched.
+
+**What the global mode was.** A client-only value (`src/store/uloga.ts`, persisted per account by
+`accountIntentPreference.ts`). The server has never had a notion of it: no function, policy or
+column reads it. It had 180 references in 50 production files, in five kinds:
+
+| Kind | Where | What became of it |
+| --- | --- | --- |
+| A. a term in a staleness guard | `useFocusedResource`, `useOwnedEditor`, `useAgreementOutbox`, `useAgreementPhotos` and about thirty screens | Removed. Account id, `accountRevision`, session epoch, source, focus and app state still fence every read and write, and `forget()` is unchanged. |
+| B. shell and navigation | `(app)/_layout`, `(app)/index`, root `_layout`, `sesija.ts`, `obavestenja`, `prilike`, `profil`, `potrebe`, `potrebe/[id]/pregled` | Replaced by one static shell and by destinations. A notification or a deep link opens its object; nothing is switched first. |
+| C. presentation and permission | `dostupnost`, `raspored`, `dogovori`, `profil`, `pitanja-zadatka`, `prilike/[id]`, the v2 presentations | Replaced by the relation to the object: ownership from my own tasks, application from my own applications, the side from the Dogovor's own participants. |
+| D. fake source | `lazniIzvor.ts` | A constant. The fake source is reachable only under its explicit flag or Jest. |
+| E. server-side role filter | `rpc_list_inbox`, `rpc_mark_inbox_read`, the two notification preference sets | **Kept.** These are a filter the person chooses and two real server-side sets, not a mode. The inbox filter is local to that screen ("Sve", "Moji zadaci", "Moje prijave"); the settings screen chooses the set locally. |
+
+Nothing sets a mode, waits for one and sets it back. `accountIntentPreference.ts`,
+`CrossIntentNotice.tsx` and `IntentTransition.tsx` are deleted. A record an older build left under
+`uskoci:account-intent:v1:*` is neither read nor rewritten. `src/store/__tests__/v3-no-global-mode.test.ts`
+fails if any of this returns.
+
+**The shell.** `Početna | Mapa | Dogovori`, static, not keyed, `backBehavior="history"` so Back
+returns to where the person came from. Every earlier destination still answers its URL, only no
+longer as a tab: `/potrebe`, `/moje-prijave`, `/prilike`, `/pregled-nacrta`, `/mesto-zadatka`
+inside the shell, and `/prijave` beside it.
+
+**Početna v1** is composed in `src/data/homeSnapshot.ts` from three reads that already existed —
+`mojePotrebe`, `mojePrijave`, `mojiDogovori` — and the inbox bell's own unread count. Each read is
+bounded at 15 s and fails on its own: a section that did not load says so and offers the read again,
+and three failed reads are a failed screen, never an empty account. No total is shown that was not
+counted; a row only navigates, to the exact task, candidates list, application or Dogovor.
+
+**Moje aktivnosti** is the same three reads with the filters Sve / Objavio sam / Prijavio sam se and
+Aktivno / Istorija. **Dogovori** is one list for both sides, each row saying "Objavio si" or
+"Uskočio si". **Mapa** and the list under it label "Tvoj zadatak" and "Prijava poslata" from
+`src/data/taskRelation.ts`; a task I own offers my view of it, one I applied to offers my
+application or my Dogovor, and a relation that could not be read is never a licence to apply.
+**Profil** is one hub: identity and "Kako mogu da uskočim" side by side, no switch.
+
+### What the second slice had to leave, with the evidence — input to the third
+
+1. `mojePotrebe`, `mojePrijave` and `mojiDogovori` return whole lists. Početna and the relation
+   labels read all of it to show five rows. A bounded, paged read needs a new RPC (READ_CONTRACT).
+2. The relation of one task costs two whole lists. A per-task reader needs a server read.
+3. The Dogovor list row has no start instant and no `actionState`, so Početna orders Dogovori as
+   the server returns them and cannot show a pending change proposal; only the Dogovor itself can.
+4. "Naručilac" and "Uskočer" still appear in the copy of the Dogovor workspace, the application
+   composer and candidates, the public profile sheet, Q&A and the group conversation (10 files). It
+   names a side of one Dogovor, not a mode, and was outside this slice; it wants one copy pass.
+5. Eight test files still declare a `mockIntent`/`mockRole` variable that nothing reads any more.
+   Inert; to be removed with the copy pass, which touches the same files.

@@ -195,8 +195,10 @@ The owner supplied the V3 3.1 architecture package, answered its eight product q
 `docs/implementation/v5-ai-first/pkg023/OWNER_DECISIONS_V3_20260919.md` records the eight decisions,
 what each supersedes, the three questions still open, and the first slice that approval covers.
 
-Two supersessions matter to anyone reading this map: owner decision 1 of 2026-09-16 (two tab
-shells) gives way to one shell, **Početna | Mapa | Dogovori**, once the second slice lands; and the
-instruction that entry and auth keep their own dark palette is lifted for the palette only. Until
-those slices land, the app still renders the two shells and the dark auth sheet, and the CI
-invariants above are unchanged.
+Two supersessions matter to anyone reading this map. Owner decision 1 of 2026-09-16 (two tab
+shells) has given way to one shell, **Početna | Mapa | Dogovori**: the second slice landed on
+2026-09-19 and removed the client-only global mode altogether, so every mention above of a
+requester or worker shell, of `IntentTransition` or of `CrossIntentNotice` is historical. The
+instruction that entry and auth keep their own dark palette is lifted for the palette only, and
+that part has not landed: the app still renders the dark auth sheet. The CI invariants above are
+unchanged. The third slice (grid migration, bounded reads) has no approval yet.
