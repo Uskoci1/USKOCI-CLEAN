@@ -88,15 +88,14 @@ export const applicationClientService: ApplicationLifecycleService = {
       p_reason: k.razlog ?? null,
     });
     if (error) return fail(error, 'WITHDRAW_RESPONSE_FAILED', 'Prijava nije mogla da se povuče.');
-    if (String(data?.status ?? '') !== 'WITHDRAWN') {
+    // The version is the server's to state. It used to fall back to the one this command was sent
+    // with, so a receipt that named no version still read as a confirmed withdrawal at a version
+    // nobody had confirmed, and the next command against this Prijava would have carried it.
+    const version: unknown = data?.version;
+    if (String(data?.status ?? '') !== 'WITHDRAWN'
+      || typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1) {
       return { ok: false, kod: 'WITHDRAW_RESPONSE_INVALID_RESULT', poruka: 'Server nije potvrdio povlačenje Prijave.' };
     }
-    return {
-      ok: true,
-      podatak: {
-        stanje: 'WITHDRAWN',
-        verzija: Number(data?.version ?? k.prijavaVerzija),
-      },
-    };
+    return { ok: true, podatak: { stanje: 'WITHDRAWN', verzija: version } };
   },
 };
