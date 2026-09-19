@@ -105,8 +105,10 @@ if(present==='true'){
 
   // Both projections are bound to the record: neither can be moved away from it.
   for(const tamper of ['public_lat=45.999','approximate_lat=45.99']){
-   assert.throws(()=>sql(`begin;alter table public.needs disable trigger needs_guard_write;update public.needs set ${tamper} where id=${q(T1.needId)}::uuid;
-    alter table public.needs enable trigger needs_guard_write;set constraints all immediate;rollback;`),/LOCATION_BINDING_CHANGED/,tamper);
+   // The write guard is set aside so that the binding alone is what answers; the binding is a deferred
+   // constraint trigger, made immediate here so that it answers inside this statement. All of it rolls back.
+   assert.throws(()=>sql(`begin;alter table public.needs disable trigger needs_guard_write;set constraints all immediate;
+    update public.needs set ${tamper} where id=${q(T1.needId)}::uuid;rollback;`),/LOCATION_BINDING_CHANGED/,tamper);
   }
   // Immutable after publication, through the existing guard.
   await refused(owner.client.from('needs').update({public_lat:45.0,public_lng:19.0}).eq('id',T3.needId).select('id').single());
@@ -181,8 +183,7 @@ if(present==='true'){
     values(${q(inserted)}::uuid,${q(pager.id)}::uuid,${q(pid)}::uuid,'PUBLISHED','PKG023 far task between pages','proof','PKG023_EVEN','OFFERS',1,'FLEXIBLE',
      'STATIONARY','Kragujevac',44.02,20.02,statement_timestamp());commit;`);
    // A change to a row that is not its sort key, between pages, moves nothing.
-   sql(`begin;alter table public.needs disable trigger needs_guard_write;update public.needs set description='changed between two pages',updated_at=statement_timestamp() where id=${q(seeded[4])}::uuid;
-    alter table public.needs enable trigger needs_guard_write;commit;`);
+   sql(`update public.needs set updated_at=statement_timestamp()+interval '1 second' where id=${q(seeded[4])}::uuid`);
   });
   assert.equal(pages.length,3);assertExactlyOnce(flat(pages),seeded,'marketplace');
   assert.deepEqual(ids(await read(worker.client,1)),[inserted],'a fresh first page does not start with the newest task');
