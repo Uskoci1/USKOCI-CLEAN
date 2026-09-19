@@ -58,9 +58,11 @@ async function actualEditTurn(report,a,cid,label){
  const factPrefix='Aktuelne server-side činjenice: ',factStart=prompt.indexOf(factPrefix),factEnd=prompt.indexOf(' Sastavite lep, kratak',factStart);
  assert.ok(factStart>=0&&factEnd>factStart);const facts=JSON.parse(prompt.slice(factStart+factPrefix.length,factEnd));
  assert.ok(Array.isArray(facts));assert.ok(facts.every(f=>f.key!=='need.verified_identity_required'));
- assert.equal(request.generationConfig.responseFormat.text.mimeType,'application/json');
- assert.ok(!request.generationConfig.responseFormat.text.schema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
- for(const legacy of ['temperature','topP','topK','responseMimeType','responseSchema'])assert.equal(Object.hasOwn(request.generationConfig,legacy),false);
+ // The provider wire since dda5513f (2026-09-16): structured output travels in the documented
+ // responseMimeType/responseSchema fields; the earlier responseFormat wrapper is rejected by the API.
+ assert.equal(request.generationConfig.responseMimeType,'application/json');
+ assert.ok(!request.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
+ for(const legacy of ['temperature','topP','topK','responseFormat'])assert.equal(Object.hasOwn(request.generationConfig,legacy),false);
  assert.deepEqual(request.generationConfig.thinkingConfig,{thinkingLevel:'low'});
  assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(key)}::uuid and kind='LLM' and max_cost_microusd=250000`),'1');
  assert.equal((await ok(a.client.rpc('rpc_ai_recover_need_turn_v2',{p_conversation_id:cid,p_client_request_id:key}))).providerDispatched,true);
