@@ -58,8 +58,8 @@ must occur exactly once in the live definition or the candidate refuses:
 + 'settledMicrousd',t.settled_microusd,'settlementBasis',t.settlement_basis,'settledAt',t.settled_at,
 + 'createdAt',t.created_at
 
-- "fields":["allocatedMaximumMicrousd","createdAt","kind","measuredProviderCharge"]
-+ "fields":["allocatedMaximumMicrousd","createdAt","kind","measuredProviderCharge","settledAt","settledMicrousd","settlementBasis"]
+- {"key": "testAllocations", "fields": ["allocatedMaximumMicrousd", "createdAt", "kind", "measuredProviderCharge"]
++ {"key": "testAllocations", "fields": ["allocatedMaximumMicrousd", "createdAt", "kind", "measuredProviderCharge", "settledAt", "settledMicrousd", "settlementBasis"]
 ```
 
 `measuredProviderCharge` then means what it says: true only where the amount came from provider-reported
