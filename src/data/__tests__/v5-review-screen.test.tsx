@@ -25,6 +25,8 @@ jest.mock('../locationClientService', () => ({ needLocationClientService: {
 jest.mock('../productionLocationResolver', () => ({ createProductionLocationResolver: () => ({ cancel: mockCancelResolver }) }));
 jest.mock('../../ui/location/NeedLocationForm', () => ({ NeedLocationForm: 'LocationForm' }));
 jest.mock('../../ui/aiFirst/ResponseDeadlineEditor', () => ({ ResponseDeadlineEditor: 'DeadlineEditor' }));
+jest.mock('../../ui/calendar/CalendarControls', () => ({ CivilField: 'CivilField' }));
+jest.mock('phosphor-react-native', () => new Proxy({}, { get: (_target, key) => key === '__esModule' ? false : String(key) }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto', mediaAssetId: () => null }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
@@ -526,4 +528,45 @@ describe('the review reads as a task', () => {
     await act(async () => { opener.props.onPress(); });
     expect(text()).not.toContain('Nije navedeno');
   });
+});
+
+// "Izmeni" on a moment or a list used to call back() and leave the review without a word, because
+// the only editor was a text box. These pin the two editors that replaced that exit.
+function scheduledReview(): AiTaskReviewEnvelope {
+  const base = review();
+  return { ...base, publicProjection: [...base.publicProjection,
+    { id: 'start', key: 'need.starts_at', value: '2026-10-03T15:00:00.000Z', displayValue: 'subota u 17', privacyClass: 'PUBLIC',
+      source: 'AI_INFERENCE', status: 'NEEDS_CONFIRMATION' },
+    { id: 'skills', key: 'need.required_skills', value: ['Prevoz, utovar', 'Montaža'], displayValue: 'prevoz i montaža', privacyClass: 'PUBLIC',
+      source: 'AI_INFERENCE', status: 'NEEDS_CONFIRMATION' }] };
+}
+const rowEdit = (label: string) => tree.root.findByProps({ accessibilityLabel: `Izmeni: ${label}` }).props;
+const field = (label: string) => tree.root.findByProps({ label }).props;
+it('corrects a moment with the pickers, in place, and sends the resolved instant', async () => {
+  mockPrepare.mockResolvedValue(ok(scheduledReview())); mockCorrect.mockResolvedValue(ok({})); await render();
+  await act(async () => rowEdit('Početak').onPress());
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(field('Početak: datum').value).toBe('2026-10-03'); expect(field('Početak: vreme').value).toBe('17:00');
+  await act(async () => field('Početak: datum').onChange('2026-10-04'));
+  await act(async () => field('Početak: vreme').onChange('09:30:00'));
+  await act(async () => action('Sačuvaj ispravku').onPress());
+  expect(mockCorrect).toHaveBeenCalledTimes(1);
+  expect(mockCorrect).toHaveBeenCalledWith('start', '2026-10-04T07:30:00.000Z', '2026-10-04 09:30');
+});
+it('saving a moment nobody moved sends the stored instant byte for byte', async () => {
+  mockPrepare.mockResolvedValue(ok(scheduledReview())); mockCorrect.mockResolvedValue(ok({})); await render();
+  await act(async () => rowEdit('Početak').onPress());
+  await act(async () => action('Sačuvaj ispravku').onPress());
+  expect(mockCorrect).toHaveBeenCalledWith('start', '2026-10-03T15:00:00.000Z', '2026-10-03T15:00:00.000Z');
+});
+it('corrects a list item by item and keeps a word typed but not yet added', async () => {
+  mockPrepare.mockResolvedValue(ok(scheduledReview())); mockCorrect.mockResolvedValue(ok({})); await render();
+  await act(async () => rowEdit('Veštine').onPress());
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Ukloni: Montaža' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nova stavka: Veštine' }).props.onChangeText('  Bušenje '));
+  await act(async () => action('Sačuvaj ispravku').onPress());
+  expect(mockCorrect).toHaveBeenCalledTimes(1);
+  expect(mockCorrect.mock.calls[0][0]).toBe('skills');
+  expect(mockCorrect.mock.calls[0][1]).toEqual(['Prevoz, utovar', 'Bušenje']);
 });

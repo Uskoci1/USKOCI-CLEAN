@@ -6,7 +6,8 @@ import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
 import { aiNeedV2Izvor, izvor } from '../../data';
-import { correctionFromText, factCorrectionValue, factLabel, factReviewValue, canEditFactInline } from '../../data/aiNeedV2Ui';
+import { correctionFromText, factCorrectionValue, factEditorKind, factLabel, factListItems, factReviewValue,
+  factTimestampFields, listCorrectionText, timestampCorrectionText } from '../../data/aiNeedV2Ui';
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { IDENTITY_VERIFICATION_UNAVAILABLE_COPY, NEED_FACT_V2_DEFINITIONS } from '../../contracts/needFactsV2';
 import type { Ishod } from '../../data/ports';
@@ -26,11 +27,13 @@ import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
+import { FactListEditor, FactTimestampEditor } from '../../ui/aiFirst/FactValueEditors';
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { AuthorizedPhoto, mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 
 type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean };
-type Edit = { fact: AiNeedV2Fact; text: string; error: string | null };
+/** `text` is always what `correctionFromText` reads; a picker or a list field only writes it. */
+type Edit = { fact: AiNeedV2Fact; text: string; error: string | null; date?: string; time?: string; items?: string[] };
 const changed = (): Ishod<never> => ({ ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled za trenutni nalog.' });
 function displayFact(fact: AiTaskReviewFact): AiNeedV2Fact {
   const definition = NEED_FACT_V2_DEFINITIONS[fact.key];
@@ -266,13 +269,24 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         {!command && fact.id ? <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${factLabel(fact.key)}`}
           disabled={disabled || !!edit || !!locationEditor || deadlineEditor} style={s.editButton} onPress={() => {
             if (!canAct() || edit || locationEditor || deadlineEditor) return;
-            if (['need.task_country_code', 'need.task_geography', 'need.exact_address', 'need.access_notes', 'need.resolved_location'].includes(fact.key)) { void openLocation(); return; }
-            if (!canEditFactInline(shown)) { back(); return; }
-            setEdit({ fact: shown, text: factCorrectionValue(shown), error: null });
+            // A place is structured and has its own editor; every other fact is corrected right here.
+            // "Izmeni" on a moment or a list used to leave the review without a word.
+            const kind = factEditorKind(shown);
+            if (kind === 'none' || ['need.task_country_code', 'need.task_geography', 'need.exact_address', 'need.access_notes', 'need.resolved_location'].includes(fact.key)) { void openLocation(); return; }
+            setEdit({ fact: shown, text: factCorrectionValue(shown), error: null,
+              ...(kind === 'timestamp' ? factTimestampFields(shown) : {}), ...(kind === 'list' ? { items: factListItems(shown) } : {}) });
           }}><T style={s.editLabel}>Izmeni</T></Press> : null}</View>
       {editing ? <>
-        <TextInput accessibilityLabel={`Nova vrednost: ${factLabel(fact.key)}`} value={edit.text} multiline
-          onChangeText={text => { if (canAct()) setEdit({ ...edit, text, error: null }); }} editable={!disabled} style={s.input} />
+        {factEditorKind(edit.fact) === 'timestamp' ? <FactTimestampEditor label={factLabel(fact.key)} date={edit.date ?? ''} time={edit.time ?? ''}
+          disabled={disabled} onChange={(date, time) => { if (canAct()) setEdit({ ...edit, date, time, error: null,
+            text: timestampCorrectionText(edit.fact, date, time) }); }} />
+        : factEditorKind(edit.fact) === 'list' ? <FactListEditor label={factLabel(fact.key)} items={edit.items ?? []} disabled={disabled}
+          onChange={(items, typed) => { if (!canAct()) return;
+            const pending = typed.trim();
+            setEdit({ ...edit, items, error: null,
+              text: listCorrectionText(pending && !items.includes(pending) ? [...items, pending] : items) }); }} />
+        : <TextInput accessibilityLabel={`Nova vrednost: ${factLabel(fact.key)}`} value={edit.text} multiline
+          onChangeText={text => { if (canAct()) setEdit({ ...edit, text, error: null }); }} editable={!disabled} style={s.input} />}
         {edit.error ? <T accessibilityRole="alert" style={s.error}>{edit.error}</T> : null}
         <V2Action label="Sačuvaj ispravku" disabled={disabled} onPress={saveEdit} />
         <V2Action label="Odustani od ispravke" kind="quiet" disabled={disabled} onPress={() => setEdit(null)} />

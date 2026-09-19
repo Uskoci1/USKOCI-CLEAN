@@ -51,14 +51,18 @@ export function sortFacts(facts: AiNeedV2Fact[]): AiNeedV2Fact[] {
   return [...facts].sort((a, b) => (order.get(a.key) ?? 999) - (order.get(b.key) ?? 999));
 }
 
-export function canEditFactInline(fact: AiNeedV2Fact): boolean {
-  // A timestamp and a list have no editor here, only a text box: correcting a date meant retyping
-  // `2026-09-15T10:00:00Z` by hand, and correcting a list meant editing `["Prevoz","utovar"]` as
-  // JSON. Both were kept in those shapes deliberately, so that a comma inside an item and the exact
-  // precision of an instant survive the round trip — which is right, and is also why neither should
-  // be offered as a text box. Until there is a picker and a chip field, these are corrected the way
-  // they were given: by saying so in the conversation.
-  return fact.valueType !== 'OBJECT' && fact.valueType !== 'TIMESTAMPTZ' && fact.valueType !== 'TEXT_ARRAY';
+/**
+ * Which editor a fact opens. A moment and a list used to have none: the only control was a text
+ * box, so correcting a date meant retyping `2026-09-15T10:00:00Z` and correcting a list meant
+ * editing `["Prevoz","utovar"]` as JSON. Rather than offer that, "Izmeni" on those seven facts left
+ * the review without a word. They keep their exact shapes — a comma inside an item and the
+ * precision of an instant still survive the round trip — and get a picker and a list field that
+ * write those shapes for the person. A structured place stays with the location editor.
+ */
+export type FactEditorKind = 'text' | 'timestamp' | 'list' | 'none';
+export function factEditorKind(fact: AiNeedV2Fact): FactEditorKind {
+  return fact.valueType === 'OBJECT' ? 'none' : fact.valueType === 'TIMESTAMPTZ' ? 'timestamp'
+    : fact.valueType === 'TEXT_ARRAY' ? 'list' : 'text';
 }
 
 const PRICE_LABELS: Record<string, string> = { MY_PRICE: 'Moja cena', OFFERS: 'Ponude', FASTEST: 'Najbrže (raniji način)' };
@@ -135,6 +139,37 @@ export function factCorrectionValue(fact: AiNeedV2Fact): string {
   if (fact.valueType === 'TIMESTAMPTZ') return typeof fact.value === 'string' && calendarInstant(fact.value) !== null ? fact.value : '';
   if (fact.key === 'need.price_mode' || fact.key === 'need.schedule_kind') return factReviewValue(fact);
   return typeof fact.value === 'string' ? fact.value : '';
+}
+
+/** The date and the minute of a moment, in the zone the review shows it in. */
+export function factTimestampFields(fact: AiNeedV2Fact): { date: string; time: string } {
+  const instant = calendarInstant(fact.value);
+  if (instant === null) return { date: '', time: '' };
+  try {
+    const milliseconds = instant >= 0 ? instant / 1000n : (instant - 999n) / 1000n;
+    const parts = zonedParts(new Date(Number(milliseconds)), REVIEW_TIMEZONE);
+    return { date: parts.date, time: parts.time.slice(0, 5) };
+  } catch { return { date: '', time: '' }; }
+}
+
+/**
+ * What the picker hands to `correctionFromText`. A moment nobody moved goes back byte for byte, so
+ * opening the editor and saving cannot shave the seconds or the offset off a stored instant; a
+ * moved one goes through the civil parser, which owns the zone and the DST rules.
+ */
+export function timestampCorrectionText(fact: AiNeedV2Fact, date: string, time: string): string {
+  const original = factTimestampFields(fact);
+  if (date === original.date && time === original.time && typeof fact.value === 'string') return fact.value;
+  return `${date} ${time}`.trim();
+}
+
+export function factListItems(fact: AiNeedV2Fact): string[] {
+  return capabilityTerms(fact.value) ?? [];
+}
+
+/** JSON, so an item with a comma in it stays one item. An empty list is a valid correction. */
+export function listCorrectionText(items: readonly string[]): string {
+  return JSON.stringify(items);
 }
 
 export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorrection {
