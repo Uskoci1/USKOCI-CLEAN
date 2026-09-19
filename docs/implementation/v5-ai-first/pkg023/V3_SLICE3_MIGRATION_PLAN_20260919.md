@@ -463,15 +463,23 @@ against the server's own shape, which `supabase/proofs/pkg023/pkg023_v3_backend_
 about is UNKNOWN, a failed read is UNKNOWN and never a licence to apply, and a withdrawn or closed
 application leaves the task open to apply to again. 232 suites / 4447 tests.
 
-**Blocked, with the fix written: the bounded marketplace (D).** The list and the map cannot move to
-`rpc_list_open_tasks_v3` yet. The client's shared public projection reads three fields the reader does not
-carry — `task_timezone`, `task_country_code`, `verified_identity_required` — and without the zone
-`needScheduleText` falls back to UTC, so a task at 15:00 in Belgrade would be shown to everyone as 13:00.
-`supabase/candidates/pkg023i_open_tasks_timezone.sql` adds exactly those three, all of them already public
-on the task detail any signed-in viewer can open, and **keeps the description out**: the list would ship
-fifty descriptions to every viewer of every page, while the marketplace search matches title, area and
-conditions and the detail screen reads the description for one task when a person opens it. It is proven as
-S9 of the PKG-023f run and **applied nowhere**.
+**Done: the bounded marketplace (D).** `pkg023i` was applied on 2026-09-19 (ledger `20260919184627`,
+5 309 characters, sha256 `3555f03e…`, byte-identical to its candidate): the reader carries `task_timezone`,
+`task_country_code` and `verified_identity_required`, because without the zone `needScheduleText` falls back
+to UTC and a task at 15:00 in Belgrade would have been shown to everyone as 13:00. The description stays
+out: a list of two hundred tasks has no business shipping two hundred descriptions to every viewer, the
+marketplace search matches title, area and conditions, and the detail screen reads the one a person opens.
+
+The list and the map now walk `rpc_list_open_tasks_v3` in pages of two hundred, by keyset on the
+server-owned `published_at`, until the server says there is no more; twenty-five pages is a refusal, never a
+silent truncation. The client no longer decides whether a task whose remaining search is closed may be
+advertised — the server already refuses it. Verified against the live reader on canonical DEV: 31 keys,
+`taskTimezone: "Europe/Belgrade"`, a `COARSE_1KM` pin, and no description, account id or address.
+
+**Done: the Dogovori (C).** `mojiDogovori` walks `rpc_list_my_agreements_page`, and the projection gained
+the two facts the list could never show — `pocinje`, the start of the work, and `izmenaCeka`, a change
+proposal waiting for an answer. Active Dogovori are ordered by the soonest start, history stays newest
+first, and the two the home shows are the two that come soonest.
 
 **Not done, and not a quick win: the paged own-lists (A + C).** Three findings from reading the consumers:
 
