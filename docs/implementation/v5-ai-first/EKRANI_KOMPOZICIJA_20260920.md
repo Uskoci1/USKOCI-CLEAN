@@ -26,8 +26,11 @@ Izvor je `src/ui/system/tokens.ts`. Ništa se ne upisuje ručno.
 
 **Pravila:**
 
-1. **Jedna narandžasta radnja po ekranu.** Ako ih ima pet, narandžasta ne znači ništa. Radnja u
-   redu liste nikad nije narandžasta — red se otvara, ne izvršava.
+1. **Narandžasta znači „ovo traži tebe" — kao radnja ili kao oznaka pažnje. Nikad kao ukras.**
+   Jedna narandžasta **radnja** po ekranu; ako ih ima pet, ne znači ništa. Radnja u redu liste nikad
+   nije narandžasta — red se otvara, ne izvršava. Kao pažnja sme: tačka, ivica kartice koja te čeka,
+   brojač pristiglih prijava. Ali **statična kutija sa uputstvom nije ni jedno ni drugo** — nju ne
+   bojimo.
 2. **Narandžasta nije boja slova.** Na beloj podlozi daje kontrast 2.4, što je kvar oka a ne stil.
    Tekst na narandžastoj je uvek `onOrange`.
 3. **Krem palete nema.** Od 2026-09-20 je ostala samo u `src/ui/Text.tsx`, i to namerno: ona nosi
@@ -171,6 +174,19 @@ koji mu odgovaraju dva ekrana dalje prikazani fotografijom. Sada nosi svoju foto
 (`publicPhoto`, isti autorizovani put koji već koristi list javnog profila), ceo blok je pritisak
 koji otvara javni profil, a zeleni red teksta ispod njega je nestao.
 
+### `src/ui/v2/NeedPresentation.tsx` — tvoj zadatak
+
+Kutija „Spremi zadatak za objavu" bila je obojena `orangeSoft`, a traka na vrhu već kaže da je
+nacrt i podnožje već nosi korak u narandžastoj. Tri narandžaste stvari na jednom ekranu, nijedna od
+njih korak. Kutija je sada obična kartica; nosi ono što je samo njeno — put ka izmeni nacrta.
+
+### `src/ui/v2/IntakePresentation.tsx` — opcije razgovora
+
+List „Opcije razgovora" počinjao je sa „Osveži razgovor", a jedino jako dugme u njemu bilo je
+**„Novi Zadatak"**. Dakle, najglasnije što se nudi čoveku usred opisivanja zadatka bilo je da ga
+napusti i počne drugi. Pregled je taj koji završava ovaj posao — sada je prvi i jak; počinjanje
+iznova je obična tiha stavka pri dnu, pored odustajanja.
+
 ### `__mocks__/phosphor-react-native.js`
 
 Ikonice su bile ručno izlistane u 37 test fajlova, pa se nijednom ekranu nije mogla dodati ikonica
@@ -194,13 +210,24 @@ Brojalica nad kodom je gruba i tri puta je slagala. Zapisano je da se ne ponovi:
 Zaključak: jezik kartice u aplikaciji **već postoji i tačan je**. Problem nije bio da ga nema, nego
 da su pojedini ekrani odlutali od njega — i to baš oni na kojima se donosi odluka.
 
-## 9. Otvoreno — traži odgovor sa servera, ne pogađanje
+## 9. Otvoreno — tri rupe u podacima, ne u ekranima
 
-**Lice u Dogovoru.** U `AgreementCollectionPresentation` i `AgreementPresentation` osoba sa kojom
-si se dogovorio i dalje je slovo u krugu — i to je jedini deo aplikacije gde je to ostalo na
-vidnom mestu. Nije popravljeno jer `UcesnikProjekcija` nosi samo `id`, a `ProfilePhoto` traži
-**profilni** id; ako je to id naloga, fotografija se ne sme ni pokušati. Pitanje za server:
-da li projekcija učesnika Dogovora izlaže javni profilni id.
+Sve tri su provereno u kodu, ne pretpostavljene. Nijedna se ne može zatvoriti izmenom ekrana.
+
+**1. Lice u Dogovoru.** `AgreementCollectionPresentation` i `AgreementPresentation` prikazuju slovo
+u krugu. `UcesnikProjekcija.id` je **`requesterAccountId` / `workerAccountId`** —
+`src/data/agreementClientService.ts:39-41`. To je id **naloga**, a `ProfilePhoto` traži id
+**profila**. Čitanje sa pogrešnim id-em se ne sme ni pokušati. Potrebno: da čitanje Dogovora vrati
+javni profilni id obe strane.
+
+**2. Tvoj zadatak nema tačku.** `PrilikaProjekcija` (kako zadatak vidi stranac) nosi
+`priblizno: {lat,lng}`, pa je javni detalj dobio mapu. `PotrebaProjekcija` (kako ga vidiš **ti**)
+nema koordinate uopšte: `NeedTaskGeographyPoint` ima samo `label`, `city`, `area`. Posledica je
+naopaka — stranac vidi tvoj zadatak na mapi, ti ne vidiš svoj.
+
+**3. Slika na kartici u listi.** `MarketplaceItem` nema nijedno polje za fotografiju, pa kartica u
+listi i na mapi ne može da prikaže sliku ni kad zadatak ima fotografije. Potrebno: jedna sličica po
+zadatku u ograničenom čitanju liste.
 
 ## 10. Redosled za ostatak
 

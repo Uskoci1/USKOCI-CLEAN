@@ -160,7 +160,10 @@ const s = StyleSheet.create({
   heroTitle: { ...sys.type.hero, color: sys.color.ink },
   section: { gap: 8 },
   description: { color: sys.color.ink, lineHeight: 26 },
-  draftCard: { borderColor: sys.color.lineStrong, backgroundColor: sys.color.orangeSoft, gap: 8 }, mutedCard: { backgroundColor: sys.color.wash, gap: 6 },
+  // Orange is the one action and the one mark of attention. This box is neither: the strip at the
+  // top already says the Task is a draft, and the footer already carries the step in orange. Tinting
+  // a static instruction as well left three orange things on one screen, none of them the step.
+  draftCard: { gap: 8 }, mutedCard: { backgroundColor: sys.color.wash, gap: 6 },
   row: { minHeight: 64, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 }, rowDivider: { borderTopWidth: 1, borderColor: sys.color.line },

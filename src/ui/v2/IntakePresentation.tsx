@@ -218,16 +218,21 @@ export function IntakePresentation(props: Props) {
         ? 'Povratak čuva razgovor. Možeš da ga nastaviš kasnije.' : 'Ovde možeš da pregledaš sačuvane poruke.'}</T>
       {safetyCopy && conversation.safety !== 'BLOCK'
         ? <T variant="note" style={s.muted}>{safetyCopy}</T> : null}
-      <V2Action label="Osveži razgovor" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
+      {/* The sheet used to lead with "Osveži razgovor" and give its one strong control to
+          "Novi Zadatak" — so the loudest thing offered to a person in the middle of describing a
+          task was to abandon it and start another. The review is what finishes this one, so it
+          goes first and it is the strong one; starting over is an ordinary choice near the end,
+          beside abandoning. */}
+      {props.canReview ? <V2Action label={props.reviewLabel} kind="primary" onPress={() => { close(); props.onReview(); }} /> : null}
+      {props.onPhotos ? <V2Action label="Fotografije zadatka" disabled={props.photosDisabled}
+        onPress={() => { close(); props.onPhotos?.(); }} /> : null}
       {/* Reachable whenever the task has a place, not only while a point is missing, so a point
           can also be moved without hunting for the long form. */}
       {conversation.status === 'OPEN' && gap.total > 0
-        ? <V2Action label={needsPoint ? 'Mesto na mapi' : 'Izmeni mesto na mapi'} kind="quiet"
+        ? <V2Action label={needsPoint ? 'Mesto na mapi' : 'Izmeni mesto na mapi'}
           onPress={() => { close(); setPointAskHidden(false); setPanel(gap.done < gap.total ? null : 'points'); }} /> : null}
-      {props.canReview ? <V2Action label={props.reviewLabel} onPress={() => { close(); props.onReview(); }} /> : null}
-      {props.onPhotos ? <V2Action label="Fotografije zadatka" kind="quiet" disabled={props.photosDisabled}
-        onPress={() => { close(); props.onPhotos?.(); }} /> : null}
-      {props.onNewTask ? <V2Action label="Novi Zadatak" kind="primary" disabled={props.newTaskDisabled}
+      <V2Action label="Osveži razgovor" kind="quiet" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
+      {props.onNewTask ? <V2Action label="Novi Zadatak" kind="quiet" disabled={props.newTaskDisabled}
         onPress={() => { close(); props.onNewTask?.(); }} /> : null}
       {props.showAbandon ? <V2Action kind="destructive" label={props.abandonLabel} disabled={props.abandonDisabled}
         onPress={() => { close(); props.onAbandon(); }} /> : null}
@@ -258,7 +263,6 @@ const s = StyleSheet.create({
   money: { ...sys.type.price, color: sys.color.money },
   peopleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   people: { color: sys.color.ink, fontWeight: '600' },
-  reviewLink: { backgroundColor: sys.color.greenSoft, borderWidth: 0, minHeight: 51, borderRadius: sys.radius.control, justifyContent: 'flex-start', paddingHorizontal: 14 },
   scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim },
   sheet: { maxHeight: '85%', borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
     paddingHorizontal: 24, paddingTop: 10, backgroundColor: sys.color.surface },
