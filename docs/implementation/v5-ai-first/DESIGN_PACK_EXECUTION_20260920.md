@@ -16,7 +16,7 @@ not supersede the owner's direct instructions or authorize purchases, dependenci
 
 | Tool/material | Observed status | Intended use |
 |---|---|---|
-| Figma MCP | Callable; authenticated `whoami` confirms one Pro plan with Full seat. No project design file or frames created in this task yet. | Editable exploration, shared components, variables, states and reviewed frame screenshots. |
+| Figma MCP | Authenticated Full seat; a real design file now contains six editable empty-state explorations and six 360-width QA copies. See the checkpoint below. | Editable exploration, shared components, variables, states and reviewed frame screenshots. |
 | Mobbin MCP | No callable tool in the current inventory. No search results or reference board claimed. | Exact mobile patterns once connected through the owner's account; never fabricate results or bypass access. |
 | Code Connect | Mapping tools available; no mappings created. | Bind selected Figma components to inspected native APIs after component selection. |
 | Reanimated / Gesture Handler | Installed: 4.5.1 / ~2.32.0; used by existing native code. | Existing press, transition, gesture and reduced-motion behavior first. |
@@ -27,7 +27,41 @@ not supersede the owner's direct instructions or authorize purchases, dependenci
 | Rive / Lottie | Not introduced. | Consider a specific useful graphic animation only after compatibility, license and owner dependency decisions. |
 
 These are observed project/tool facts, not a new verification of every vendor's public pricing or
-capabilities. Figma access alone does not prove the design has been produced or linked to the app.
+capabilities. The new design frames are not yet implemented in the app or linked by Code Connect.
+
+## First actual Figma checkpoint
+
+File: https://www.figma.com/design/ATgMxtsCfMLPo8rq5N489u?node-id=4-40
+
+| Direction | Home frame | AI frame | Narrow Home / AI |
+|---|---|---|---|
+| A: clear and quick | `14:3` | `14:4` | `19:3` / `19:469` |
+| B: warm and local | `14:6` | `14:7` | `19:12` / `19:479` |
+| C: calm and concise | `14:9` | `14:10` | `19:22` / `19:489` |
+
+All six source frames use editable text, Auto Layout and component instances. Source-derived
+foundations contain 44 variables across primitive/semantic collections (one mode each), seven Roboto
+text styles for the Android system-font baseline and one soft effect style. Original brand vector
+geometry was exported from the existing TS data; icons came from the installed Phosphor package.
+No library was added to the application. Figma's available community libraries were inspected; no
+USKOCI task/composer/token/style assets were found. No external Mobbin board is claimed.
+
+Rendered screenshots were inspected and corrected for text sizing, action widths, variant text
+inheritance and repetitive questions. All six 390-width frames and six 360-width copies pass a
+readback check for Roboto text and children overflowing their Auto Layout parent. The B Home and C
+AI narrow renders were visually inspected individually. These checks do not establish full native
+accessibility, keyboard or speech behavior.
+
+Initial design recommendation: Home B plus AI C. Empty-account and empty-intake states were used
+explicitly; no real account details were uploaded. A complete state and interaction design remains
+open: known/missing facts, expanded summary, keyboard, long conversation, errors, permissions,
+dictation events and reduced-motion specification. There is no complete interactive prototype yet.
+The APK installed on the owner's device still corresponds to application source `149502bb`; these
+Figma explorations do not silently change it. Code Connect mapping remains unimplemented.
+
+Durable local state: the task workspace's `work/uskoci-figma-state.json`; user-facing evidence and
+review are under `outputs/USKOCI_FIGMA_DOKAZ_20260920.json` and
+`outputs/USKOCI_FIGMA_PRVI_KRUG_20260920.md`.
 
 ## Next bounded design round
 
