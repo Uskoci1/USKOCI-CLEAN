@@ -20,9 +20,10 @@ prices an application by the basis), `pkg025c` (the bounded marketplace reader r
 `pkg025d` (the `need.price_basis` fact key, its TOTAL/PER_PERSON rule, and the write in both review
 writers). Canonical DEV ledger is now **171 = 147 frozen source + 24 dev_alpha**, digest `67730f62`
 live = certified, `retention_ai_source_ready()` true, confirmed by readback. All 18 tasks keep a null
-basis, so nothing existing changed. **Still open:** the Edge function is edited to ask "ukupno ili po
-osobi" but is NOT deployed — only the owner's CLI route deploys it, and until then the AI never
-proposes the fact. No device pass, and the house disposable-database proof was not run. The material
+basis, so nothing existing changed. The Edge function was deployed by the owner the same day
+(version 42, all four assets byte-identical on readback, `OPTIONS` 200, `verify_jwt` unchanged), so
+the AI can now ask "ukupno ili po osobi". **Still open:** no device pass, and the house
+disposable-database proof was not run. The material
 list / fingerprint / edit-history step remains its own package; it is not a precondition, for the
 reason recorded in that document.
 

@@ -242,24 +242,45 @@ one took `price_basis=<expr>,` and the other `,price_basis` plus `,<expr>`.
 `PER_PERSON` is accepted, `"PO OSOBI"` raises `V2_PRICE_BASIS_INVALID`, and an invented key still
 raises `V2_FACT_KEY_INVALID` - so admitting one fact did not make the registry permissive.
 
+### Edge deployed by the owner, 2026-09-20, and byte-verified
+
+The owner ran the CLI route himself from the worktree holding the edited source. Version **42**,
+ACTIVE, `verify_jwt` true and unchanged, four assets uploaded.
+
+Read back and compared against the files on disk: **all four are byte-identical**, including
+`src/contracts/needFactsV2.ts`, which is the same contract the app compiles. The known trap did not
+occur - zero literal backslash-u sequences in either text file, with the real characters intact. The
+CLI route is byte-exact, exactly as the PKG-014 and V3 notes predicted; the connector is not.
+
+The deployed bytes carry the new behaviour: the `PRICE_BASES` set, the case in
+`valueMatchesContract`, the instruction asking "ukupno za ceo zadatak ili po osobi", and the
+`need.price_basis` entry in the contract the model's key enum is derived from.
+
+It boots: `OPTIONS` answers **200** with the handler's own header list
+(`authorization, apikey, content-type, x-client-info` / `POST, OPTIONS`). No authenticated or paid
+call was made.
+
+One correction worth keeping. The first comparison reported `geminiTaskStream.ts` as differing by
++265 bytes and looked like the old mangling. It was not: 266 lines, 265 line breaks, one byte each.
+That file is CRLF on disk and was uploaded as CRLF, while the other three are LF, and the check had
+normalised the local side. The deployed bytes were right and the comparison was wrong.
+
 ### What is not proven
 - It sits on the publication path, and the house proof for that (disposable database, real accounts,
   fail-before/pass-after) was **not run** - it needs a disposable database this session cannot make.
   What stands in its place is the preflight, the pinned preconditions, the postconditions that would
   have aborted the transaction, and the live validator check above.
-- The Edge function is edited but **not deployed**. Deploy by the owner's CLI route, not the
-  connector, which has previously resolved literal escape sequences in source text. Until then the
-  AI never proposes the fact, which is why the migration had to go first.
-- No device pass. Nobody has yet seen a multi-person task with a fixed price ask which it is.
+- **No device pass.** Nobody has yet seen a multi-person task with a fixed price ask which it is,
+  and that is now the only thing between this feature and being real. Everything it needs is live.
+- The AI has never actually been asked to produce this fact, because that costs a provider call.
 
 ## The steps still to come, each with its own review
 2. The application content hash, the publication fingerprint, the material snapshot and
    `guard_need_write`'s material list gain `price_basis` **only where it is not null**, so no old
    hash or fingerprint changes. Not a precondition for pkg025d - see the guard reading above - but
    it is what makes an edit history record that the basis changed.
-6. Deploy the Edge function by the owner's CLI route:
-   `npx supabase functions deploy uskoci-ai-interview --project-ref leqcwgzvjsxugfgzdmth --use-api`
-   run from the worktree holding the edited source, not the main checkout.
+6. DONE (2026-09-20): Edge deployed by the owner, version 42, byte-verified.
+7. The only step left: a device pass on a multi-person task with a fixed price.
 7. A device pass on the one thing none of this has been seen doing: a task for several people, a
    fixed price, the AI asking which it is, and the amount reading correctly on the card, the detail
    and the application.
