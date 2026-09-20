@@ -6,6 +6,7 @@ import { ArrowRight, CaretRight, ChatCircle, Clock, MapPin, Users } from 'phosph
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
+import { needPriceBasisNote, type PriceBasis } from '../../data/needDetailPresentation';
 import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
 import { displayDate, zonedParts } from '../calendar/calendarPresentation';
@@ -53,6 +54,7 @@ function publicSummary(facts: AiNeedV2Fact[]) {
   const value = (key: AiNeedV2Fact['key']) => facts.find(fact => fact.key === key && fact.privacyClass === 'PUBLIC')?.value;
   const title = value('need.title'), geography = value('need.task_geography') as NeedTaskGeography | undefined;
   const mode = value('need.price_mode'), amount = value('need.price_rsd'), people = value('need.people_needed');
+  const basis = value('need.price_basis');
   const schedule = value('need.schedule_kind');
   const zone = geography?.mode === 'REMOTE' ? 'Na daljinu' : [geography?.start?.city ?? geography?.serviceArea?.city,
     geography?.start?.area ?? geography?.serviceArea?.area].filter(item => typeof item === 'string' && item.trim()).join(' · ');
@@ -60,6 +62,12 @@ function publicSummary(facts: AiNeedV2Fact[]) {
     schedule: schedule === 'FIXED_WINDOW' ? fixedRange(value('need.starts_at'), value('need.ends_at'))
       : typeof schedule === 'string' ? schedules[schedule] : undefined,
     price: mode === 'OFFERS' ? 'Tražim ponude' : mode === 'MY_PRICE' && typeof amount === 'number' ? `${amount.toLocaleString('sr-Latn-RS')} RSD` : null,
+    // The big number alone said 5.000 for a three-person task costing 15.000. The number stays the
+    // card's signature; what it is FOR goes quietly under it.
+    priceNote: mode === 'MY_PRICE' && typeof amount === 'number'
+      ? needPriceBasisNote({ osnovaCene: basis as PriceBasis, ponudjenaCena: { iznos: amount },
+          pokrivenost: typeof people === 'number' ? { ukupno: people } : undefined })
+      : null,
     people: typeof people === 'number' ? `${people} ${people % 100 >= 11 && people % 100 <= 14 ? 'osoba'
       : people % 10 >= 2 && people % 10 <= 4 ? 'osobe' : 'osoba'}` : null };
 }
@@ -173,7 +181,10 @@ export function IntakePresentation(props: Props) {
       </View> : null}
       {compact && summary.zone ? <T variant="meta" tone="muted" numberOfLines={1}>{summary.zone}</T> : null}
       {!compact && (summary.price || summary.people) ? <View style={s.cardFoot}>
-        {summary.price ? <T style={s.money}>{summary.price}</T> : <View style={s.grow} />}
+        {summary.price ? <View style={s.priceBlock}>
+          <T style={s.money}>{summary.price}</T>
+          {summary.priceNote ? <T variant="meta" tone="muted" numberOfLines={1}>{summary.priceNote}</T> : null}
+        </View> : <View style={s.grow} />}
         {summary.people ? <View style={s.peopleRow}><Users size={18} color={sys.color.ink} /><T variant="meta" style={s.people}>{summary.people}</T></View> : null}
       </View> : null}
     </Press>}
@@ -259,6 +270,7 @@ const s = StyleSheet.create({
   cardTitleEmpty: { ...sys.type.heading, color: sys.color.muted },
   metaRows: { gap: 5 }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, metaText: { flexShrink: 1 },
   cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12, marginTop: 3 },
+  priceBlock: { flexShrink: 1, gap: 2 },
   money: { ...sys.type.price, color: sys.color.money },
   peopleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   people: { color: sys.color.ink, fontWeight: '600' },

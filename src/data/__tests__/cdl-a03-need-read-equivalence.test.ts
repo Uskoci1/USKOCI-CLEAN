@@ -46,7 +46,7 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { needClientService } from '../needClientService';
-import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText, needPriceText, readableTitle } from '../needDetailPresentation';
+import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText, needPriceBasisNote, needPriceText, readableTitle } from '../needDetailPresentation';
 
 const mocks = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
@@ -240,6 +240,32 @@ describe('V2 saved Need detail uses the existing public relations', () => {
       .toBe('3.000 RSD po osobi');
 
     expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(18000), osnovaCene: 'TOTAL', ...six })).toBe('18.000 RSD ukupno');
+  });
+  // The draft card in the interview is built around one big green number, so the combined string
+  // does not fit it. The owner saw that card read 5.000 for a three-person task costing 15.000 and
+  // refused it. The note is what goes under the number instead, and it must never contradict the
+  // sentence above, which is why the two live in one file.
+  it('states what a price is for under a big number, without repeating the number', () => {
+    const three = { pokrivenost: { ukupno: 3 } };
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000 }, ...three }))
+      .toBe('po osobi · ukupno 15.000 RSD');
+    expect(needPriceBasisNote({ osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 15000 }, ...three }))
+      .toBe('ukupno za ceo zadatak');
+
+    // Nothing to disambiguate: one person, an unknown headcount, or no basis at all. A task written
+    // before 2026-09-20 has no basis and its card must look exactly as it always has.
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000 }, pokrivenost: { ukupno: 1 } })).toBe('po osobi');
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000 } })).toBe('po osobi');
+    expect(needPriceBasisNote({ osnovaCene: null, ponudjenaCena: { iznos: 5000 }, ...three })).toBeNull();
+    expect(needPriceBasisNote({ ponudjenaCena: { iznos: 5000 }, ...three })).toBeNull();
+
+    // It never states a total it cannot compute.
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: Number.NaN }, ...three })).toBe('po osobi');
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ...three })).toBe('po osobi');
+
+    // The note and the sentence agree about the same price.
+    const input = { rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 5000, prikaz: '5.000 RSD' }, osnovaCene: 'PER_PERSON' as const, ...three };
+    expect(needPriceText(input, { withTotal: true })).toBe(`${input.ponudjenaCena.prikaz} ${needPriceBasisNote(input)}`);
   });
   it('shows a title without the quotation marks the interview wrapped it in, and keeps the stored value', async () => {
     // Six of seventeen tasks on canonical DEV are stored as `"Hitno prenošenje troseda"`. The repair

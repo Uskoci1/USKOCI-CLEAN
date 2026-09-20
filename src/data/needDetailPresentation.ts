@@ -95,6 +95,29 @@ export function needPriceText(input: {
   return amount;
 }
 
+/**
+ * The qualifier that belongs under a price, when the number by itself would mislead.
+ *
+ * Some surfaces — the draft card in the interview above all — are built around one big number, and
+ * `needPriceText`'s combined string does not fit that shape: "5.000 RSD po osobi · ukupno 15.000 RSD"
+ * in that size is no longer a signature, it is a sentence. But dropping the qualifier is what the
+ * owner refused on the first device run: the card read 5.000 for a three-person task that actually
+ * costs 15.000, and the number a person pays is the one they must see before publishing.
+ *
+ * So the number stays big and this goes quietly underneath it. It lives beside needPriceText so the
+ * two cannot drift into saying different things about the same price.
+ */
+export function needPriceBasisNote(input: {
+  osnovaCene?: PriceBasis; ponudjenaCena?: { iznos: number }; pokrivenost?: { ukupno: number };
+}): string | null {
+  if (input.osnovaCene === 'TOTAL') return 'ukupno za ceo zadatak';
+  if (input.osnovaCene !== 'PER_PERSON') return null;
+  const people = input.pokrivenost?.ukupno ?? 0;
+  const amount = input.ponudjenaCena?.iznos;
+  if (people < 2 || typeof amount !== 'number' || !Number.isFinite(amount)) return 'po osobi';
+  return `po osobi · ukupno ${(amount * people).toLocaleString('sr-Latn-RS')} RSD`;
+}
+
 export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {
   const geo = need.detalji?.geografija;
   if (!geo) return [{ label: 'Približno područje', value: need.podrucjeTekst }];
