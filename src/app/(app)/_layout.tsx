@@ -30,6 +30,13 @@ const PUSHED = { animation: 'shift' as const,
  * bar under them made a tap anywhere along the bottom edge an exit from an unfinished Zadatak, and
  * it was not even honest about where you were: the screens are pushed, so no tab was current.
  */
+// A screen that carries its own bottom action does not also carry the navigator's bar. On a phone
+// the public Task stacked the two: an orange "Otvori svoj zadatak" and then Početna│Mapa│Dogovori
+// underneath it, together eating about 180dp, and the description was cut mid-sentence between
+// them. The owner's 2026-09-18 decision named four screens for this — the ones where a tap along
+// the bottom edge abandoned an unfinished Zadatak. The four spine details added on 2026-09-20 are
+// the same shape: each ends in one sticky action, and none of them is a tab, so no tab was ever
+// current while they were open.
 const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
 
 export default function TabLayout() {
@@ -92,9 +99,9 @@ export default function TabLayout() {
     <Tabs.Screen name="fotografije-zadatka" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="pitanja-zadatka" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="oceni-dogovor" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="potrebe/[id]/kandidati" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="prilike/[id]" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="prilike/[id]/prijava" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="potrebe/[id]/kandidati" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="prilike/[id]" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="prilike/[id]/prijava" options={{ href: null, ...FULL }} />
   </Tabs>;
 }

@@ -74,7 +74,11 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     const { screens } = configuration();
     const hidden = screens.filter((screen) => (screen.options as { tabBarStyle?: { display?: string } })
       .tabBarStyle?.display === 'none').map((screen) => screen.name).sort();
-    expect(hidden).toEqual(['fotografije-zadatka', 'mesto-zadatka', 'nova', 'pregled-zadatka']);
+    // 2026-09-20: the four spine details join them, for the same reason stated one screen later —
+    // each already ends in its own sticky action, and on a phone that action and the tab bar stood
+    // on top of each other and cut the task description in half.
+    expect(hidden).toEqual(['fotografije-zadatka', 'mesto-zadatka', 'nova', 'potrebe/[id]/kandidati',
+      'potrebe/[id]/pregled', 'pregled-zadatka', 'prilike/[id]', 'prilike/[id]/prijava']);
     // The three real tabs keep theirs, and so does every settings screen you can leave freely.
     for (const name of ['index', 'mapa', 'dogovori', 'potrebe', 'moje-prijave', 'profil', 'podrska/index']) {
       const screen = screens.find((candidate) => candidate.name === name)!;
