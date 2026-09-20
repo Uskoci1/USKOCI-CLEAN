@@ -1,7 +1,23 @@
 # PKG-025a — a task can say what its price is for
 
-**Status: CANDIDATE. NOT APPLIED. It changes the schema and re-binds the closure certificate, so it
-waits for a separate word from the owner.**
+**Status: APPLIED to canonical DEV `leqcwgzvjsxugfgzdmth` on 2026-09-20** as
+`dev_alpha_pkg025a_price_basis_column`.
+
+### Readback
+
+| | |
+| --- | --- |
+| `needs.price_basis` | `text`, nullable, no default |
+| rows with a basis | **0** — nothing was backfilled |
+| the rule | `CHECK (price_basis IS NULL OR (price_basis = ANY (ARRAY['TOTAL','PER_PERSON']) AND mode = 'MY_PRICE'))` |
+| `needs` | 41 columns, 16 CHECK constraints |
+| digest | moved `9205c7df…` → **`f61a57c0…`**, and the pin matches it in all three places |
+| `private.retention_ai_source_ready()` | **true** |
+| ledger | **167 = 147 frozen source + 20 dev_alpha** |
+
+**The stored statement's sha256 is `66509ce4cb73310b59c177710c73ce4dd9fa95336ef87ba6308026c0ce20bb39`,
+identical to the file's.** Byte for byte, as with pkg024a, which is what writing the candidate without
+a single escape character buys.
 
 Candidate: `supabase/candidates/pkg025a_price_basis_column.sql` · sha256
 `66509ce4cb73310b59c177710c73ce4dd9fa95336ef87ba6308026c0ce20bb39` · 9785 bytes · **no escape
