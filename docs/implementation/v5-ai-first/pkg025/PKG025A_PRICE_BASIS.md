@@ -189,13 +189,37 @@ the Edge function is redeployed. Counts updated deliberately, with the reason in
 
 Local proof: typecheck clean, **234 suites / 4519 tests** (was 4508; +11 for the basis in the review).
 
-### What is not proven
+### Preflight, measured read-only on canonical DEV 2026-09-20
 
-- **The candidate has not been applied and not preflighted against DEV.** The Supabase connector
-  needs re-authorization, so the predecessor md5s and anchor uniqueness in the file are the ones read
-  on 2026-09-20 and have not been re-measured. Every one of them is pinned as a precondition, so a
-  drifted body aborts the transaction rather than editing the wrong text - but that is the
-  transaction refusing, not a preflight passing.
+The earlier note in this file said the connector needed re-authorization and the candidate could not
+be preflighted. That was a misreading: the `plugin:supabase` duplicate needs auth, the Supabase
+connector actually in use is connected. The preflight was run and every precondition holds.
+
+| measured | value |
+| --- | --- |
+| `validate_need_v2_fact_pre_fastest_retirement` | md5 `e12a5ba0...`, 6730 chars - as pinned |
+| `rpc_save_need_draft_from_review` | md5 `a334717a...`, 10543 chars - as pinned |
+| `rpc_confirm_need_edit_from_review` | md5 `2126c674...`, 13555 chars - as pinned |
+| `price_basis` in any of the three | 0 |
+| each of the four anchors | exactly 1 |
+| `v_facts` in scope in both writers | 32 uses each |
+| registry rows / `need.price_basis` rows | 22 / 0 |
+| `need.price_mode.target_owner` | `needs.mode` |
+| digest live = certified, readiness | `67730f62...`, true |
+| ledger | 170 |
+
+Two things worth recording. The registry holds **22** V2 rows and `NEED_FACT_V2_KEYS` holds 22 keys:
+server and client count the same facts, and this step takes both to 23 - the client mirror is a real
+mirror, not a hopeful copy. And the digest is `67730f62...`, not the `f61a57c0...` left after
+pkg025b: `dev_alpha_pkg026_ai_test_cap_optional` landed between pkg025b and pkg025c, moved the schema
+digest and re-bound it properly. It touches none of the three bodies here.
+
+The validator reading also confirms the shape: it takes `value_type` from the registry and raises
+`V2_FACT_KEY_INVALID` when the row is absent, so the registry row is what admits the key; for `ENUM`
+it requires a JSON string and leaves it trimmed and non-null in `v_text`, which is the variable the
+new arm tests. The arm is byte-for-byte the shape of its `need.price_mode` neighbour.
+
+### What is not proven
 - It sits on the publication path, and the house proof for that (disposable database, real accounts,
   fail-before/pass-after) cannot be run from here.
 - The Edge function is edited but **not deployed**. Deploy by the owner's CLI route, not the
