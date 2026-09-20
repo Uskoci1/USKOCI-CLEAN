@@ -69,8 +69,15 @@ test('owned active/draft/attention filters use actual rows and full long title r
 });
 test('requester creation stays reachable from both discovery list and map, while worker discovery has no creation action', async () => {
  await render(); expect(press('Dodaj zadatak')).toBeTruthy(); await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
- await tap('Mapa'); expect(press('Dodaj zadatak')).toBeTruthy(); await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(2);
- await act(async () => tree.unmount()); allowNew = false; await render(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
+ // On the map it is reachable but it is no longer the floating button: on a phone that button sat
+ // on top of a task pin near Belgrade, hiding one of the very things a person opened the map to
+ // find. It is a labelled action in the legend strip under the map, which is chrome, not content.
+ await tap('Mapa');
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
+ await click('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(2);
+ await act(async () => tree.unmount()); allowNew = false; await render();
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
+ expect(tree.root.findAllByProps({ label: 'Dodaj zadatak' })).toHaveLength(0);
 });
 test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {
  mockReduced = true; await render(); await tap('Filteri'); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');

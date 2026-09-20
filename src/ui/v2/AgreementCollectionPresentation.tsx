@@ -42,7 +42,13 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
   const dot = item.stanje === 'CANCELLED' ? sys.color.lineStrong : item.stanje === 'AWAITING_REQUESTER' ? sys.color.orange : sys.color.green;
   // What I am to this Dogovor is read from this Dogovor's own participants (owner's wording,
   // 2026-09-19). One list holds both sides of one account; nothing about the app says which.
-  const relation = mine?.uloga === 'narucilac' ? 'Objavio si' : mine?.uloga === 'uskocer' ? 'Uskočio si' : '';
+  //
+  // On a phone this row read "Milos SLJIVIC   Uskočio si": the other person's name, and then a
+  // sentence about me, with nothing between them to say the subject had changed. Početna avoids it
+  // by putting the relation first — "Uskočio si · Milos" — but here the avatar and the name come
+  // first and cannot move. So the row says what the OTHER side did, third person, exactly as the
+  // Dogovor itself already does in AgreementPeople. First person for my own acts, third for theirs.
+  const relation = other?.uloga === 'narucilac' ? 'Objavio zadatak' : other?.uloga === 'uskocer' ? 'Uskočio' : '';
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${item.naslov}`} onPress={onOpen}
     haptic="select" scaleTo={0.986} style={[card, attention && s.attentionCard, settled && s.settledCard]}>
     {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />

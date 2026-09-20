@@ -45,7 +45,12 @@ beforeEach(() => {
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('active and history preserve both actual participant roles; attention means my requester confirmation', async () => {
   await render(); expect(titles()).toHaveLength(3); // One list holds both sides of one account, and each row says which side from its own participants.
-  expect(texts()).toContain('Objavio si'); expect(texts()).toContain('Uskočio si');
+  // The row carries the other person's photo and name, so the sentence beside it is about THEM,
+  // third person — the same words the Dogovor itself uses in AgreementPeople. It used to read
+  // "Milos SLJIVIC   Uskočio si": their name, then a sentence about me, with nothing to mark that
+  // the subject had changed. Početna keeps the first person because it puts the relation first.
+  expect(texts()).toContain('Objavio zadatak'); expect(texts()).toContain('Uskočio');
+  expect(texts()).not.toContain('Uskočio si'); expect(texts()).not.toContain('Objavio si');
   await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
   await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
   await tap('Svi'); expect(titles()).toHaveLength(5);

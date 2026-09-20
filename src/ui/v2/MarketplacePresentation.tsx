@@ -65,6 +65,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const count = loading || error ? null : visible.length;
   /** The floating action appears only above cards; an empty set carries its own inline primary, so a screen state never shows two orange actions. */
   const showCards = !loading && !error && visible.length > 0;
+  // On a phone the orange "+" sat on top of a task pin near Belgrade. A map is the content a person
+  // came to read, and a button parked on it hides one of the very things being looked for. Creation
+  // stays reachable from the map — that is a tested decision, not an accident — so it moves off the
+  // map surface and into the legend strip below it, which is chrome rather than content.
+  const mapShown = !owned && view.mode === 'map' && !loading && !error;
   const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
   const headerControls = <>
     <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
@@ -134,7 +139,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           <V2Action label="Zatvori pregled pina" kind="quiet" onPress={() => change({ selectedId: null })} />
         </ScrollView> : null}
         <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{zadataka(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
-          {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}</View>
+          {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}
+          {props.onNew ? <V2Action label="Dodaj zadatak" kind="quiet" compact
+            onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} /> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
@@ -142,7 +149,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           {count === null ? <T variant="note" tone="muted">Učitavamo…</T>
             : <T variant="note" tone="muted" numberOfLines={1}>{zadataka(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
         </View>} />}
-      {props.onNew && showCards ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
+      {props.onNew && showCards && !mapShown ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
         onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>
         <Plus size={26} weight="bold" color={sys.color.onOrange} /></Press> : null}
     </View>

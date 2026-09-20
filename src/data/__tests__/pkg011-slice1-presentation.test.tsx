@@ -87,7 +87,8 @@ test('agreements are one list for both sides, keep the accepted facts, say the s
   const copy = texts();
   expect(copy).toContain('Tvoje saradnje'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('Dogovori'); expect(copy).toContain('2.500 RSD'); expect(copy).toContain('1 osoba');
   expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
-  expect(copy).toContain('Mila'); expect(copy).toContain('Objavio si');
+  // Mila is the other side of this Dogovor, so the row says what Mila did, not what I did.
+  expect(copy).toContain('Mila'); expect(copy).toContain('Uskočio'); expect(copy).not.toContain('Objavio si');
   expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).toContain('Kalendar obaveza');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Agreements rows={rows} />); });
