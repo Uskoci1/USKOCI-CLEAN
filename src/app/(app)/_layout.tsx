@@ -1,17 +1,10 @@
 import { Tabs } from 'expo-router';
-import { View } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { House, Handshake } from 'phosphor-react-native';
+import { House, Handshake, MapPin } from 'phosphor-react-native';
 import { sys } from '../../ui/system/tokens';
-import { CanonicalMark } from '../../ui/referenceEntry/ReferenceEntryHero';
-
-/** The brand mark carries the center zone; focus is shown by the orange ring (shape, not color alone). */
-function CenterMark({ focused }: { focused: boolean }) {
-  return <View style={{ width: 52, height: 40, borderRadius: sys.radius.pill, backgroundColor: sys.color.ink,
-    borderWidth: 2, borderColor: focused ? sys.color.orange : sys.color.ink, alignItems: 'center', justifyContent: 'center' }}>
-    <CanonicalMark size={34} />
-  </View>;
-}
+import { Press } from '../../ui/Press';
+import { T } from '../../ui/Text';
 
 /**
  * One shell for one account: Početna | Mapa | Dogovori (owner decision 1, 2026-09-19, which
@@ -41,19 +34,28 @@ const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const bottomPadding = Math.max(18, insets.bottom);
-  return <Tabs initialRouteName="index" backBehavior="history"
+  const { fontScale } = useWindowDimensions();
+  return <Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
     // Around thirty screens are registered here with `href: null` — the whole profile family, the
     // review, the location and photo steps, support. With `animation: 'none'` not one of them had a
     // push transition: they replaced each other instantly, which is why moving through the app felt
     // like redrawing rather than going somewhere. Switching between the three tabs stays instant,
     // which is what a tab bar is for; only pushes move.
     screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
-      tabBarActiveTintColor: sys.color.ink, tabBarInactiveTintColor: sys.color.muted,
-      tabBarLabelStyle: { ...sys.type.label, letterSpacing: 0.2, marginTop: 3 },
-      tabBarItemStyle: { paddingVertical: 6 },
-      tabBarStyle: { backgroundColor: sys.color.surface, borderTopColor: sys.color.line,
-        borderTopWidth: 1, height: 66 + bottomPadding, paddingTop: 8, paddingBottom: bottomPadding } }}>
+      tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted,
+      tabBarActiveBackgroundColor: sys.color.greenSoft, tabBarAllowFontScaling: true,
+      tabBarLabelPosition: 'below-icon',
+      tabBarLabel: ({ children, color }) => <T variant="label" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}
+        style={{ color, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
+      tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label, 'aria-selected': selected }) =>
+        <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: selected === true }}
+          onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hitSlop={0}
+          style={[style, { borderRadius: sys.radius.cardCompact }]}>{children}</Press>,
+      tabBarItemStyle: { borderRadius: sys.radius.cardCompact, overflow: 'hidden' },
+      tabBarStyle: { backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
+        borderRadius: sys.radius.card, elevation: 0, shadowOpacity: 0,
+        height: 66 + Math.ceil(Math.max(0, fontScale - 1) * 32), padding: 4,
+        marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna',
       tabBarIcon: ({ color, focused }) => <House size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...PUSHED }} />
@@ -61,7 +63,8 @@ export default function TabLayout() {
     <Tabs.Screen name="moje-prijave" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="prilike" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa', tabBarIcon: ({ focused }) => <CenterMark focused={focused} /> }} />
+    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa',
+      tabBarIcon: ({ color, focused }) => <MapPin size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori',
       tabBarIcon: ({ color, focused }) => <Handshake size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="profil" options={{ href: null, ...PUSHED }} />

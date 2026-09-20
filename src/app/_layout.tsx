@@ -12,6 +12,7 @@ import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
 import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
+import { sys } from '../ui/system/tokens';
 
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
@@ -122,7 +123,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth" options={{ animation: 'none' }} />
           </Stack.Protected>
           <Stack.Protected guard={!!session}>
-            <Stack.Screen name="(app)" />
+            <Stack.Screen name="(app)" options={{ contentStyle: { backgroundColor: sys.color.ground } }} />
             <Stack.Screen name="dogovor/[id]" />
             <Stack.Screen name="obavestenja" />
             <Stack.Screen name="prijave" />
