@@ -188,6 +188,14 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
     case 'BOOLEAN': {
       const normalized = text.toLocaleLowerCase('sr-Latn-RS');
       if (['da', 'yes', 'true', '1'].includes(normalized)) {
+        // AF-D23: this build has no document or selfie check, and the decision says never to show a
+        // verified identity without actual verification. The condition is refused at the moment a
+        // person says it, in the conversation, rather than accepted here and taken back two screens
+        // later at the review — which is where the other two layers live: `pregled-zadatka` greys
+        // publication with this reason and offers to drop the condition, and a resumed publication
+        // command fails IDENTITY_VERIFICATION_UNAVAILABLE. Those two exist for drafts that already
+        // carry the fact; they are not a reason to stop refusing it here. Guarded by the four
+        // AF-D23 cases in src/data/__tests__/aiNeedV2Ui.test.ts.
         if (fact.key === 'need.verified_identity_required') return { ok: false,
           message: 'Provera identiteta nije dostupna u ovoj test verziji. Izaberi „Ne“ da nastaviš bez tog uslova.' };
         return { ok: true, value: true, displayValue: 'Da' };
