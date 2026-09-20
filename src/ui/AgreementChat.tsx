@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { PaperPlaneTilt } from 'phosphor-react-native';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { V2Icon } from './v2/icons';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
@@ -167,7 +167,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
             accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'}
             style={[s.send, canSend && s.sendReady]}>
-            <V2Icon name="send" size={22} color={canSend ? sys.color.surface : sys.color.muted} />
+            <PaperPlaneTilt size={22} color={canSend ? sys.color.surface : sys.color.muted}  weight="fill" />
           </Press>
         </View>
       </View>

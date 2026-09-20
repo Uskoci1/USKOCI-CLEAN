@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
+import { ArrowLeft } from 'phosphor-react-native';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { JavniProfilProjekcija } from '../../contracts/projections';
 import { useReducedMotion } from './motion';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { V2Icon } from '../v2/icons';
 import { V2Action } from '../v2/V2Action';
 import { sys } from './tokens';
 
@@ -27,7 +27,7 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel }
   return <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={onClose}>
     <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
       <View style={s.topBar}>
-        <Press accessibilityRole="button" accessibilityLabel="Zatvori javni profil" haptic="select" onPress={onClose} style={s.close}><V2Icon name="back" /></Press>
+        <Press accessibilityRole="button" accessibilityLabel="Zatvori javni profil" haptic="select" onPress={onClose} style={s.close}><ArrowLeft /></Press>
         <View style={s.topCopy}>{roleLabel ? <T variant="meta" style={s.eyebrow}>{roleLabel}</T> : null}<T accessibilityRole="header" variant="title" style={s.ink}>Javni profil</T></View>
       </View>
       <ScrollView contentContainerStyle={s.content}>

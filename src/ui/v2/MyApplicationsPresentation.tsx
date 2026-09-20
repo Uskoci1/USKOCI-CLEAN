@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Clock, MapPin } from 'phosphor-react-native';
+import { CaretRight, Clock, MapPin, PaperPlaneTilt } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import { needPeopleText, needScheduleText } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
@@ -12,7 +12,6 @@ import { SkeletonList } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
-import { V2Icon } from './icons';
 
 export type ApplicationsTab = 'all' | 'attention' | 'active' | 'finished';
 export type OfferEdit = { price: string; people: string; note: string; start: string | null; end: string | null };
@@ -109,7 +108,7 @@ export function MyApplicationsPresentation(props: Props) {
         <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} disabled={props.busy} style={brandAction} /><V2Action label="Nazad" onPress={props.onBack} kind="quiet" /></View>
         : props.rows.length ? <View style={s.state}><T style={s.stateTitle}>Nema prijava u ovom prikazu</T><T variant="copy" tone="muted">Ostale Prijave su sačuvane u svojim statusima.</T>
           <V2Action label="Prikaži sve prijave" onPress={() => props.onTab('all')} /></View>
-          : <View style={s.state}><View style={s.emptyArt}><V2Icon name="send" size={44} color={sys.color.green} /></View>
+          : <View style={s.state}><View style={s.emptyArt}><PaperPlaneTilt size={44} color={sys.color.green}  weight="fill" /></View>
             <T variant="label" style={s.eyebrow}>Tvoje ponude</T>
             <T style={s.stateTitle}>Tvoja sledeća prilika.</T><T variant="copy" tone="muted">Kada se prijaviš na Zadatak, ovde pratiš svoju ponudu i svaki sledeći korak.</T>
             <V2Action label="Istraži zadatke" onPress={props.onExplore} style={brandAction} /></View>}

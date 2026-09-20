@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CalendarBlank, CaretRight, Clock, Star, Users } from 'phosphor-react-native';
+import { CalendarBlank, CaretRight, Clock, PaperPlaneTilt, Star, Users } from 'phosphor-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -16,7 +16,6 @@ import { dolaziOsoba } from '../system/plural';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
-import { V2Icon } from './icons';
 
 export type ApplicationDraft = { price: string; people: string; note: string; start: string | null; end: string | null };
 export function applicationInterval(start: string | null | undefined, end: string | null | undefined, timezone?: string): string | null {
@@ -66,7 +65,7 @@ export function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekc
   </View>;
 }
 function BrandAction({ label, onPress, disabled, send }: { label: string; onPress: () => void; disabled?: boolean; send?: boolean }) {
-  return <V2Action label={label} onPress={onPress} disabled={disabled} icon={send ? <V2Icon name="send" size={20} color={sys.color.onOrange} /> : undefined} style={brandAction} />;
+  return <V2Action label={label} onPress={onPress} disabled={disabled} icon={send ? <PaperPlaneTilt size={20} color={sys.color.onOrange}  weight="fill" /> : undefined} style={brandAction} />;
 }
 function ErrorMessage({ error }: { error?: string | null }) {
   return error ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View> : null;

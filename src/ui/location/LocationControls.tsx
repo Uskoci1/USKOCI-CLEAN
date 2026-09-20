@@ -1,11 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretDown, Check, LockKey } from 'phosphor-react-native';
+import { CaretDown, CaretRight, Check, LockKey } from 'phosphor-react-native';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { card, sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
-import { V2Icon } from '../v2/icons';
 import { Press } from '../Press';
 import { T } from '../Text';
 
@@ -34,7 +33,7 @@ export function LocationDetails({ label, summary, children, disabled = false }: 
         <T variant="bodyStrong" style={{ color: sys.color.ink }}>{label}</T>
         {!open && summary ? <T variant="meta" tone="muted">{summary}</T> : null}
       </View>
-      <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><V2Icon name="chevron" size={18} color={sys.color.muted} /></View>
+      <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><CaretRight size={18} color={sys.color.muted}  /></View>
     </Press>
     {open ? children : null}
   </View>;

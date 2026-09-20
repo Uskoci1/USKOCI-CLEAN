@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
-import { ArrowRight, CaretRight, Clock, MapPin, Users } from 'phosphor-react-native';
+import { ArrowRight, CaretRight, ChatCircle, Clock, MapPin, Users } from 'phosphor-react-native';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
@@ -14,7 +14,6 @@ import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { pointsMissing } from '../../lib/location';
-import { V2Icon } from './icons';
 import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import { aiFirst as a } from '../aiFirst/tokens';
 
@@ -83,7 +82,7 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
   loading: boolean; error: string; retry?: () => void; back: () => void; recover?: () => void;
 }) {
   return <SafeAreaView style={s.canvas}><View style={s.unavailable}>
-    <View style={s.unavailableMark}><V2Icon name="chat" size={30} color={sys.color.green} /></View>
+    <View style={s.unavailableMark}><ChatCircle size={30} color={sys.color.green}  /></View>
     <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>{loading ? 'Otvaramo razgovor' : 'Razgovor nije dostupan'}</T>
     {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.green} />
       : <><T accessibilityRole="alert" variant="copy" tone="muted" style={s.center}>{error}</T>

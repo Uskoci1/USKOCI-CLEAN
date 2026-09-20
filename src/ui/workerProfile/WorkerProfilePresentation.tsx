@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { CaretRight } from 'phosphor-react-native';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
@@ -7,7 +8,6 @@ import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { card, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
-import { V2Icon } from '../v2/icons';
 import type { WorkerDraft } from './workerProfileDraft';
 
 /** Frame of the worker profile: back, intent eyebrow, title, keyboard-safe body, sticky footer. */
@@ -58,7 +58,7 @@ function Terms({ label, values, pending, setPending, change, disabled, inputRef 
 function Row({ label, hint, expanded, onPress }: { label: string; hint: string; expanded: boolean; onPress: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded }} haptic="select" scaleTo={0.99} onPress={onPress} style={s.row}>
     <View style={s.grow}><T variant="bodyStrong" style={s.ink}>{label}</T><T variant="meta" tone="muted">{hint}</T></View>
-    <View style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }}><V2Icon name="chevron" size={18} color={sys.color.muted} /></View>
+    <View style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }}><CaretRight size={18} color={sys.color.muted}  /></View>
   </Press>;
 }
 export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'capacity'; token: number };
