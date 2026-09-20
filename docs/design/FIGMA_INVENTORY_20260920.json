@@ -1,0 +1,126 @@
+{
+  "checkedAt": "2026-09-20",
+  "fileKey": "ATgMxtsCfMLPo8rq5N489u",
+  "foundation": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"pages\":[{\"id\":\"0:1\",\"name\":\"00 Brief\"},{\"id\":\"4:34\",\"name\":\"01 Foundations\"},{\"id\":\"4:35\",\"name\":\"02 Brand\"},{\"id\":\"4:36\",\"name\":\"03 Actions\"},{\"id\":\"4:37\",\"name\":\"04 Task summary\"},{\"id\":\"4:38\",\"name\":\"05 Composer\"},{\"id\":\"4:39\",\"name\":\"06 Navigation\"},{\"id\":\"4:40\",\"name\":\"07 Exploration\"},{\"id\":\"19:2\",\"name\":\"08 Narrow QA\"}],\"collections\":[{\"id\":\"VariableCollectionId:2:2\",\"name\":\"U / Primitives\",\"modes\":[{\"name\":\"Value\",\"modeId\":\"2:0\"}],\"variableIds\":[\"VariableID:3:2\",\"VariableID:3:4\",\"VariableID:3:6\",\"VariableID:3:8\",\"VariableID:3:10\",\"VariableID:3:12\",\"VariableID:3:14\",\"VariableID:3:16\",\"VariableID:3:18\",\"VariableID:3:20\",\"VariableID:4:2\",\"VariableID:4:4\",\"VariableID:4:6\",\"VariableID:4:8\",\"VariableID:4:10\",\"VariableID:4:12\",\"VariableID:4:14\",\"VariableID:4:16\",\"VariableID:4:18\",\"VariableID:4:20\",\"VariableID:4:22\",\"VariableID:4:24\"]},{\"id\":\"VariableCollectionId:2:3\",\"name\":\"U / Semantic\",\"modes\":[{\"name\":\"Light\",\"modeId\":\"2:1\"}],\"variableIds\":[\"VariableID:3:3\",\"VariableID:3:5\",\"VariableID:3:7\",\"VariableID:3:9\",\"VariableID:3:11\",\"VariableID:3:13\",\"VariableID:3:15\",\"VariableID:3:17\",\"VariableID:3:19\",\"VariableID:3:21\",\"VariableID:4:3\",\"VariableID:4:5\",\"VariableID:4:7\",\"VariableID:4:9\",\"VariableID:4:11\",\"VariableID:4:13\",\"VariableID:4:15\",\"VariableID:4:17\",\"VariableID:4:19\",\"VariableID:4:21\",\"VariableID:4:23\",\"VariableID:4:25\"]}],\"styles\":[{\"id\":\"S:5a80af85ef18fe39f38679581f89d2f8e0f109cc,\",\"name\":\"U / Android / display\",\"font\":{\"family\":\"Roboto\",\"style\":\"Bold\",\"variationSettings\":{\"wght\":700,\"wdth\":100}},\"fontSize\":32,\"lineHeight\":{\"unit\":\"PIXELS\",\"value\":37}},{\"id\":\"S:becabcdce2d3e270f16185b9a86d69bd24c18786,\",\"name\":\"U / Android / title\",\"font\":{\"family\":\"Roboto\",\"style\":\"Bold\",\"variationSettings\":{\"wght\":700,\"wdth\":100}},\"fontSize\":21,\"lineHeight\":{\"unit\":\"PIXELS\",\"value\":26}},{\"id\":\"S:ab76097a75462aac9b0047e74b87269c34598c71,\",\"name\":\"U / Android / heading\",\"font\":{\"family\":\"Roboto\",\"style\":\"Bold\",\"variationSettings\":{\"wght\":700,\"wdth\":100}},\"fontSize\":18,\"lineHeight\":{\"unit\":\"PIXELS\",\"value\":24}},{\"id\":\"S:2685d7b3c937ca635167933dca5858da4d8629b2,\",\"name\":\"U / Android / body\",\"font\":{\"family\":\"Roboto\",\"style\":\"Regular\",\"variationSettings\":{\"wght\":400,\"wdth\":100}},\"fontSize\":16,\"lineHeight\":{\"unit\":\"PIXELS\",\"value\":24}},{\"id\":\"S:c41c510fef7f44e022dc238016b815b8554124d2,\",\"name\":\"U / Android / bodyStrong\",\"font\":{\"family\":\"Roboto\",\"style\":\"SemiBold\",\"variationSettings\":{\"wght\":600,\"wdth\":100}},\"fontSize\":16,\"lineHeight\":{\"unit\":\"PIXELS\",\"value\":24}},{\"id\":\"S:04b6c3370fbe882a2f421f8face05f1d0976917c,\",\"name\":\"U / Android / note\",\"font\":{\"family\":\"Roboto\",\"style\":\"Regular\",\"variationSettings\":{\"wght\":400,\"wdth\":100}},\"fontSize\":14,\"lineHeight\":{\"unit\":\"PIXELS\",\"value\":20}},{\"id\":\"S:e1ac2b5b38c694bec1e880882b6b262ea27d8931,\",\"name\":\"U / Android / meta\",\"font\":{\"family\":\"Roboto\",\"style\":\"Medium\",\"variationSettings\":{\"wght\":500,\"wdth\":100}},\"fontSize\":13,\"lineHeight\":{\"unit\":\"PIXELS\",\"value\":18}}]}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  "pages": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"0:1\",\"name\":\"00 Brief\"},\"top\":[{\"id\":\"5:2\",\"name\":\"USKOČI / Design brief\",\"type\":\"FRAME\",\"width\":900,\"height\":512}],\"components\":[],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":1}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"4:34\",\"name\":\"01 Foundations\"},\"top\":[{\"id\":\"6:2\",\"name\":\"Foundations / Type and rhythm\",\"type\":\"FRAME\",\"width\":900,\"height\":455},{\"id\":\"7:29\",\"name\":\"Foundations / Palette\",\"type\":\"FRAME\",\"width\":900,\"height\":762}],\"components\":[],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":13}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"4:35\",\"name\":\"02 Brand\"},\"top\":[{\"id\":\"7:2\",\"name\":\"U / BrandLockup\",\"type\":\"COMPONENT\",\"width\":132,\"height\":42.900001525878906},{\"id\":\"7:28\",\"name\":\"Source\",\"type\":\"TEXT\",\"width\":350,\"height\":20},{\"id\":\"10:2\",\"name\":\"U / Home header\",\"type\":\"COMPONENT\",\"width\":350,\"height\":48},{\"id\":\"12:41\",\"name\":\"U / AI header\",\"type\":\"COMPONENT\",\"width\":350,\"height\":48}],\"components\":[{\"id\":\"7:2\",\"name\":\"U / BrandLockup\",\"type\":\"COMPONENT\"},{\"id\":\"10:2\",\"name\":\"U / Home header\",\"type\":\"COMPONENT\"},{\"id\":\"12:41\",\"name\":\"U / AI header\",\"type\":\"COMPONENT\"}],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":10}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"4:36\",\"name\":\"03 Actions\"},\"top\":[{\"id\":\"9:43\",\"name\":\"U / Action\",\"type\":\"COMPONENT_SET\",\"width\":398,\"height\":344},{\"id\":\"13:19\",\"name\":\"U / Intent tile\",\"type\":\"COMPONENT_SET\",\"width\":410,\"height\":218}],\"components\":[{\"id\":\"9:43\",\"name\":\"U / Action\",\"type\":\"COMPONENT_SET\",\"variants\":[{\"id\":\"9:35\",\"name\":\"Tone=Primary, State=Default\"},{\"id\":\"9:37\",\"name\":\"Tone=Secondary, State=Default\"},{\"id\":\"9:39\",\"name\":\"Tone=Primary, State=Disabled\"},{\"id\":\"9:41\",\"name\":\"Tone=Primary, State=Pressed\"}]},{\"id\":\"9:35\",\"name\":\"Tone=Primary, State=Default\",\"type\":\"COMPONENT\"},{\"id\":\"9:37\",\"name\":\"Tone=Secondary, State=Default\",\"type\":\"COMPONENT\"},{\"id\":\"9:39\",\"name\":\"Tone=Primary, State=Disabled\",\"type\":\"COMPONENT\"},{\"id\":\"9:41\",\"name\":\"Tone=Primary, State=Pressed\",\"type\":\"COMPONENT\"},{\"id\":\"13:19\",\"name\":\"U / Intent tile\",\"type\":\"COMPONENT_SET\",\"variants\":[{\"id\":\"13:13\",\"name\":\"Tone=Primary\"},{\"id\":\"13:16\",\"name\":\"Tone=Secondary\"}]},{\"id\":\"13:13\",\"name\":\"Tone=Primary\",\"type\":\"COMPONENT\"},{\"id\":\"13:16\",\"name\":\"Tone=Secondary\",\"type\":\"COMPONENT\"}],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":0}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"4:37\",\"name\":\"04 Task summary\"},\"top\":[{\"id\":\"10:44\",\"name\":\"U / Task summary\",\"type\":\"COMPONENT_SET\",\"width\":398,\"height\":236},{\"id\":\"15:2\",\"name\":\"U / Activities / Empty\",\"type\":\"COMPONENT\",\"width\":350,\"height\":124}],\"components\":[{\"id\":\"10:44\",\"name\":\"U / Task summary\",\"type\":\"COMPONENT_SET\",\"variants\":[{\"id\":\"10:38\",\"name\":\"View=Expanded, Content=Empty\"},{\"id\":\"10:42\",\"name\":\"View=Collapsed, Content=Empty\"}]},{\"id\":\"10:38\",\"name\":\"View=Expanded, Content=Empty\",\"type\":\"COMPONENT\"},{\"id\":\"10:42\",\"name\":\"View=Collapsed, Content=Empty\",\"type\":\"COMPONENT\"},{\"id\":\"15:2\",\"name\":\"U / Activities / Empty\",\"type\":\"COMPONENT\"}],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":0}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"4:38\",\"name\":\"05 Composer\"},\"top\":[{\"id\":\"13:2\",\"name\":\"U / Composer / Empty\",\"type\":\"COMPONENT\",\"width\":350,\"height\":156}],\"components\":[{\"id\":\"13:2\",\"name\":\"U / Composer / Empty\",\"type\":\"COMPONENT\"}],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":3}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"4:39\",\"name\":\"06 Navigation\"},\"top\":[{\"id\":\"9:2\",\"name\":\"U / Icon / House\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:5\",\"name\":\"U / Icon / Bell\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:8\",\"name\":\"U / Icon / User\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:11\",\"name\":\"U / Icon / MapPin\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:14\",\"name\":\"U / Icon / Handshake\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:17\",\"name\":\"U / Icon / Microphone\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:20\",\"name\":\"U / Icon / ArrowLeft\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:23\",\"name\":\"U / Icon / ArrowRight\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:26\",\"name\":\"U / Icon / PaperPlaneTilt\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:29\",\"name\":\"U / Icon / Plus\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"9:32\",\"name\":\"U / Icon / CaretRight\",\"type\":\"COMPONENT\",\"width\":24,\"height\":24},{\"id\":\"11:2\",\"name\":\"U / Navigation / Home selected\",\"type\":\"COMPONENT\",\"width\":350,\"height\":68}],\"components\":[{\"id\":\"9:2\",\"name\":\"U / Icon / House\",\"type\":\"COMPONENT\"},{\"id\":\"9:5\",\"name\":\"U / Icon / Bell\",\"type\":\"COMPONENT\"},{\"id\":\"9:8\",\"name\":\"U / Icon / User\",\"type\":\"COMPONENT\"},{\"id\":\"9:11\",\"name\":\"U / Icon / MapPin\",\"type\":\"COMPONENT\"},{\"id\":\"9:14\",\"name\":\"U / Icon / Handshake\",\"type\":\"COMPONENT\"},{\"id\":\"9:17\",\"name\":\"U / Icon / Microphone\",\"type\":\"COMPONENT\"},{\"id\":\"9:20\",\"name\":\"U / Icon / ArrowLeft\",\"type\":\"COMPONENT\"},{\"id\":\"9:23\",\"name\":\"U / Icon / ArrowRight\",\"type\":\"COMPONENT\"},{\"id\":\"9:26\",\"name\":\"U / Icon / PaperPlaneTilt\",\"type\":\"COMPONENT\"},{\"id\":\"9:29\",\"name\":\"U / Icon / Plus\",\"type\":\"COMPONENT\"},{\"id\":\"9:32\",\"name\":\"U / Icon / CaretRight\",\"type\":\"COMPONENT\"},{\"id\":\"11:2\",\"name\":\"U / Navigation / Home selected\",\"type\":\"COMPONENT\"}],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":17}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"4:40\",\"name\":\"07 Exploration\"},\"top\":[{\"id\":\"14:2\",\"name\":\"Direction 0\",\"type\":\"TEXT\",\"width\":390,\"height\":26},{\"id\":\"14:3\",\"name\":\"A / Home / Empty\",\"type\":\"FRAME\",\"width\":390,\"height\":844},{\"id\":\"14:4\",\"name\":\"A / AI / Empty\",\"type\":\"FRAME\",\"width\":390,\"height\":844},{\"id\":\"14:5\",\"name\":\"Direction 1\",\"type\":\"TEXT\",\"width\":390,\"height\":26},{\"id\":\"14:6\",\"name\":\"B / Home / Empty\",\"type\":\"FRAME\",\"width\":390,\"height\":844},{\"id\":\"14:7\",\"name\":\"B / AI / Empty\",\"type\":\"FRAME\",\"width\":390,\"height\":844},{\"id\":\"14:8\",\"name\":\"Direction 2\",\"type\":\"TEXT\",\"width\":390,\"height\":26},{\"id\":\"14:9\",\"name\":\"C / Home / Empty\",\"type\":\"FRAME\",\"width\":390,\"height\":844},{\"id\":\"14:10\",\"name\":\"C / AI / Empty\",\"type\":\"FRAME\",\"width\":390,\"height\":844}],\"components\":[],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":70}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"page\":{\"id\":\"19:2\",\"name\":\"08 Narrow QA\"},\"top\":[{\"id\":\"19:3\",\"name\":\"A / Home / 360\",\"type\":\"FRAME\",\"width\":360,\"height\":844},{\"id\":\"19:12\",\"name\":\"B / Home / 360\",\"type\":\"FRAME\",\"width\":360,\"height\":844},{\"id\":\"19:22\",\"name\":\"C / Home / 360\",\"type\":\"FRAME\",\"width\":360,\"height\":844},{\"id\":\"19:469\",\"name\":\"A / AI / 360\",\"type\":\"FRAME\",\"width\":360,\"height\":844},{\"id\":\"19:479\",\"name\":\"B / AI / 360\",\"type\":\"FRAME\",\"width\":360,\"height\":844},{\"id\":\"19:489\",\"name\":\"C / AI / 360\",\"type\":\"FRAME\",\"width\":360,\"height\":844}],\"components\":[],\"reactions\":[],\"fonts\":[\"Roboto\"],\"frameCount\":70}"
+          }
+        ],
+        "isError": false
+      }
+    }
+  ]
+}

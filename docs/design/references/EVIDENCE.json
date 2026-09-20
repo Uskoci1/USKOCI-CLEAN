@@ -1,0 +1,559 @@
+[
+  {
+    "id": "R01",
+    "source": "Airbnb home via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      1,
+      2,
+      15
+    ],
+    "url": "https://www.banani.co/references/screens/airbnb-home-screen",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "Search context, category rail and large photographic listing appear before most facts.",
+    "why": "Location is explicit before browsing.",
+    "weaknesses": "Photo-first hierarchy is weak for tasks without photos.",
+    "do_not_copy": "Lodging imagery, favourites badge, category artwork or full arrangement.",
+    "translation": "Let the task scope and real timing lead; location remains easy to change.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R02",
+    "source": "Things 3 Today via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      1,
+      12
+    ],
+    "url": "https://www.banani.co/references/screens/things-today",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "A dated focus view uses readable task rows and selective small secondary indicators.",
+    "why": "The next obligation is scannable without repeated containers.",
+    "weaknesses": "Checkbox completion is not a marketplace lifecycle.",
+    "do_not_copy": "Its star branding or immediate one-tap task completion.",
+    "translation": "Home attention can use concise reason-led rows opening the authoritative subject.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R03",
+    "source": "Airbnb 2025 product release",
+    "publisher": "Airbnb",
+    "reference_type": "real product documented flow",
+    "surfaces": [
+      1,
+      11,
+      15
+    ],
+    "url": "https://news.airbnb.com/airbnb-2025-summer-release",
+    "method": "Official release text read; not live-app tested",
+    "observed": "The release describes coordinated discovery, trips, profiles and messaging across service types.",
+    "why": "A shared account can retain context across different intentions.",
+    "weaknesses": "Travel categories and booking rules differ.",
+    "do_not_copy": "Trip taxonomy, proprietary illustrations or booking/payment behavior.",
+    "translation": "Use one account with two entry intentions and a shared work history.",
+    "confidence": "MEDIUM",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R04",
+    "source": "Apple Tab Bars",
+    "publisher": "Apple",
+    "reference_type": "guideline",
+    "surfaces": [
+      1,
+      15
+    ],
+    "url": "https://developer.apple.com/design/human-interface-guidelines/tab-bars",
+    "method": "Official article text read",
+    "observed": "Tabs name stable destinations; action initiation has a different role.",
+    "why": "Stable labels reduce orientation cost.",
+    "weaknesses": "Platform-specific presentation needs Android adaptation.",
+    "do_not_copy": "Exact glass geometry or treating create as a destination.",
+    "translation": "Keep destination identity while experimenting with composition and contextual create actions.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R05",
+    "source": "Apple Onboarding",
+    "publisher": "Apple",
+    "reference_type": "guideline",
+    "surfaces": [
+      1,
+      5,
+      6,
+      15
+    ],
+    "url": "https://developer.apple.com/design/human-interface-guidelines/onboarding",
+    "method": "Browser article read",
+    "observed": "Contextual teaching and postponing nonessential setup reduce the initial burden.",
+    "why": "People learn while doing a meaningful task.",
+    "weaknesses": "Required USKOČI checks still apply.",
+    "do_not_copy": "Long compulsory tutorial or removing necessary consent.",
+    "translation": "Introduce only the next useful capability; let publishing and earning lead to relevant setup.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R06",
+    "source": "Airbnb map via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      4
+    ],
+    "url": "https://www.banani.co/references/screens/airbnb-home-screen-map",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "Price-labelled map pins, search/filter controls and category rail were visible.",
+    "why": "Some useful facts are available before opening a listing.",
+    "weaknesses": "Top controls are dense; selected-preview behavior was not observed.",
+    "do_not_copy": "Per-night price meaning, artwork or assumed selected-sheet interaction.",
+    "translation": "Use truthful task labels and fewer controls; investigate selected-pin continuity separately.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R07",
+    "source": "Apple Maps",
+    "publisher": "Apple",
+    "reference_type": "guideline",
+    "surfaces": [
+      4
+    ],
+    "url": "https://developer.apple.com/design/human-interface-guidelines/maps",
+    "method": "Official article text read",
+    "observed": "Selection, readable annotations and keeping map content understandable are explicit concerns.",
+    "why": "Spatial context survives the act of choosing.",
+    "weaknesses": "MapKit-specific APIs do not prescribe our provider.",
+    "do_not_copy": "Exact pin style or private-location precision.",
+    "translation": "Coordinate pin and preview selection while preserving public-location privacy and visible context.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R08",
+    "source": "Apple Sheets",
+    "publisher": "Apple",
+    "reference_type": "guideline",
+    "surfaces": [
+      3,
+      4,
+      5,
+      9,
+      10,
+      14
+    ],
+    "url": "https://developer.apple.com/design/human-interface-guidelines/sheets",
+    "method": "Browser article read",
+    "observed": "A scoped sheet needs understandable dismissal; stacking sheets confuses return context.",
+    "why": "Users can distinguish committing an edit from leaving it.",
+    "weaknesses": "A prolonged interview needs more room than a small sheet.",
+    "do_not_copy": "Nested sheet chains, single Done-only exit, exact platform shape.",
+    "translation": "Use one focused edit surface; preserve draft and make cancellation truthful.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R09",
+    "source": "Material 3 bottom sheets",
+    "publisher": "Google",
+    "reference_type": "guideline",
+    "surfaces": [
+      4,
+      5,
+      14
+    ],
+    "url": "https://m3.material.io/components/bottom-sheets/overview",
+    "method": "Browser rendered overview read",
+    "observed": "Standard and modal sheets have different interaction roles; the drag target is accessible.",
+    "why": "Choice of modality determines whether the map remains usable.",
+    "weaknesses": "Its stock geometry is not USKOČI art direction.",
+    "do_not_copy": "Mechanical 28dp radius or a sheet as the whole product.",
+    "translation": "Define whether map context stays interactive; give handle and dismissal adequate targets.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R10",
+    "source": "Airbnb listing via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      2,
+      3
+    ],
+    "url": "https://www.banani.co/references/screens/airbnb-listing-screen",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "The listing groups title, place, capacity and reputation beneath a large photo.",
+    "why": "Decisive facts are grouped before detailed description.",
+    "weaknesses": "Hero photo consumes too much space for a text-led task.",
+    "do_not_copy": "Photo dependency, lodging metrics or ornamental trust claims.",
+    "translation": "Create a readable task brief with real place, time, amount and relevant person evidence.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R11",
+    "source": "Taskrabbit hiring",
+    "publisher": "Taskrabbit",
+    "reference_type": "real product documented flow",
+    "surfaces": [
+      3,
+      5,
+      7,
+      9
+    ],
+    "url": "https://support.taskrabbit.com/hc/en-us/articles/46260422073755-How-Do-I-Hire-a-Tasker",
+    "method": "Official help article read",
+    "observed": "Category and place lead to skills/reviews, availability, details and confirmation.",
+    "why": "Capability and availability precede commitment.",
+    "weaknesses": "Its one-person invitation model differs from USKOČI.",
+    "do_not_copy": "Single-worker restriction, exact steps, rates or payment policy.",
+    "translation": "Expose capability and actual offer terms while retaining our multi-person task semantics.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R12",
+    "source": "Things 3 compact task editing",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      5
+    ],
+    "url": "https://www.banani.co/references/screens/things-new-task-filled",
+    "method": "Browser screenshot, upper viewport including keyboard edge",
+    "observed": "An expanded item edits title/notes while the list context remains visible.",
+    "why": "Editing focuses attention without a large preliminary form.",
+    "weaknesses": "A personal to-do does not require marketplace publication review.",
+    "do_not_copy": "Silent save/completion rules or keyboard assumptions.",
+    "translation": "Use direct local fact correction followed by explicit whole-task review.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R13",
+    "source": "Apple Text fields",
+    "publisher": "Apple",
+    "reference_type": "guideline",
+    "surfaces": [
+      5,
+      6,
+      9
+    ],
+    "url": "https://developer.apple.com/design/human-interface-guidelines/text-fields",
+    "method": "Official article text read",
+    "observed": "Persistent labels, appropriate field size and logical focus support input.",
+    "why": "People retain field meaning after typing.",
+    "weaknesses": "Does not decide the interview strategy.",
+    "do_not_copy": "Placeholder-only labels or fixed-height multiline input.",
+    "translation": "Clear units and labels; long Serbian input stays editable above the keyboard.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R14",
+    "source": "ChatGPT focused input via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      6,
+      11
+    ],
+    "url": "https://www.banani.co/references/screens/chat-gpt-chat-focused",
+    "method": "Browser screenshot with keyboard edge",
+    "observed": "Suggestions sit above a compact composer; microphone and voice controls are distinct.",
+    "why": "Input remains the immediate next action.",
+    "weaknesses": "This is a historical screen; full voice is outside first release.",
+    "do_not_copy": "Model chooser, branding, voice button implying unsupported conversation.",
+    "translation": "Keep text and dictation modes clear and preserve unsent text while switching.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R15",
+    "source": "ChatGPT response via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      6,
+      11
+    ],
+    "url": "https://www.banani.co/references/screens/chat-gpt-chat-response",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "Speaker labels and open text blocks separate request and response.",
+    "why": "Long answers remain readable without nested panels.",
+    "weaknesses": "A snapshot does not prove streaming or error behavior.",
+    "do_not_copy": "General chatbot chrome or long replies when a short question suffices.",
+    "translation": "Let interview dialogue breathe; show extracted facts only when useful.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R16",
+    "source": "Nova assistant concept",
+    "publisher": "VP0",
+    "reference_type": "concept",
+    "surfaces": [
+      6,
+      11
+    ],
+    "url": "https://vp0.com/content/nova-ai-assistant",
+    "method": "Browser opened preview; inspected upper conversation and AX contents",
+    "observed": "Bubble conversation, quick suggestions and a composer appear in a static assistant concept.",
+    "why": "Prompt suggestions can reduce first-message effort.",
+    "weaknesses": "Preview claims reminder completion without demonstrated operations; no live backend tested.",
+    "do_not_copy": "Decorative emoji bot, dark glow, unverified success language or source code.",
+    "translation": "Use optional starters only when draft is empty; never claim a saved result before confirmation.",
+    "confidence": "MEDIUM",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R17",
+    "source": "Google conversation design",
+    "publisher": "Google",
+    "reference_type": "guideline",
+    "surfaces": [
+      5,
+      6
+    ],
+    "url": "https://design.google/library/conversation-design-intro",
+    "method": "Official article text read",
+    "observed": "Conversation design considers context, ambiguity and when simpler input is preferable.",
+    "why": "Questions can resolve only the information still missing.",
+    "weaknesses": "Voice examples do not authorize speech output in our first release.",
+    "do_not_copy": "Chat for every numeric choice or repetitive requests for known facts.",
+    "translation": "Ask one useful question and offer direct correction of structured facts.",
+    "confidence": "MEDIUM",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R18",
+    "source": "Airbnb person profile via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      7,
+      8,
+      13
+    ],
+    "url": "https://www.banani.co/references/screens/airbnb-explore-profile",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "Identity and reputation totals share a compact evidence block above further profile content.",
+    "why": "Basic identity and supporting evidence can be read together.",
+    "weaknesses": "Large enclosing card and travel metrics are not a worker skill profile.",
+    "do_not_copy": "Invented years, verification or ratings.",
+    "translation": "Place real reputation near identity, then skills and availability.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R19",
+    "source": "Airbnb profile visibility",
+    "publisher": "Airbnb",
+    "reference_type": "real product documented flow",
+    "surfaces": [
+      7,
+      8
+    ],
+    "url": "https://www.airbnb.com/help/article/3811",
+    "method": "Official help article read",
+    "observed": "Public profile information is distinct from private account information and viewing context.",
+    "why": "Identity can support trust without disclosing everything.",
+    "weaknesses": "Its host/guest model is not a new USKOČI role switch.",
+    "do_not_copy": "Private details or irrelevant travel history.",
+    "translation": "Build public evidence from permitted fields; keep account/security controls separate.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R20",
+    "source": "Airtasker making an offer",
+    "publisher": "Airtasker",
+    "reference_type": "real product documented flow",
+    "surfaces": [
+      9
+    ],
+    "url": "https://support.airtasker.com/hc/en-gb/articles/205056530-How-do-I-make-an-offer",
+    "method": "Official help article read",
+    "observed": "An offer explains amount, included work and suitability.",
+    "why": "The decision has comparable terms rather than only a greeting.",
+    "weaknesses": "Airtasker fees/escrow are outside our approved product model.",
+    "do_not_copy": "Payment assurance, bidding mechanics or their policy.",
+    "translation": "Show actual offered amount, timing and message with a final review.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R21",
+    "source": "Airbnb reservation detail via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      10
+    ],
+    "url": "https://www.banani.co/references/screens/airbnb-reservation-details",
+    "method": "Browser screenshot, upper viewport only",
+    "observed": "A specific stay heading and property photo precede check-in/out details.",
+    "why": "The detail identifies the exact commitment.",
+    "weaknesses": "Large media delays the next consequential action; lower controls not inspected.",
+    "do_not_copy": "Travel hero treatment, cancellation or payment assumptions.",
+    "translation": "Lead with exact task, participants and current next action; accepted terms remain readable.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R22",
+    "source": "Airbnb reviews via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      7,
+      8,
+      13
+    ],
+    "url": "https://www.banani.co/references/screens/airbnb-details-reviews",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "Rating, distribution, review count and sorting are separate signals.",
+    "why": "A count gives context to an average.",
+    "weaknesses": "Laurel badge and huge number overstate confidence for a new marketplace.",
+    "do_not_copy": "Guest-favourite award, fabricated distribution or unimplemented metrics.",
+    "translation": "Use only backend-supported reputation, explicit no-review state and readable contrast.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R23",
+    "source": "Taskrabbit availability",
+    "publisher": "Taskrabbit",
+    "reference_type": "real product documented flow",
+    "surfaces": [
+      7,
+      14
+    ],
+    "url": "https://support.taskrabbit.com/hc/en-gb/articles/46260534523163-How-Do-I-Set-My-Availability",
+    "method": "Official help article read",
+    "observed": "Calendar days contain editable time blocks; invitation availability is a separate switch.",
+    "why": "Working intervals and accepting invitations are different decisions.",
+    "weaknesses": "Its hour limits and calendar rules differ.",
+    "do_not_copy": "Specific limits or changes to our eligibility rules.",
+    "translation": "Explain saved intervals separately from current willingness to accept work.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R24",
+    "source": "Airbnb date selection via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      5,
+      14
+    ],
+    "url": "https://www.banani.co/references/screens/airbnb-booking-calendar",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "Selected range has visible endpoints, summary and clear-dates action.",
+    "why": "Users can see the result of a range choice before leaving.",
+    "weaknesses": "Overnight ranges are not recurring work availability.",
+    "do_not_copy": "Night counts or unavailable-date policies.",
+    "translation": "Give a human-readable time summary and reversible editing of the actual schedule.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R25",
+    "source": "Things 3 upcoming via Banani",
+    "publisher": "Banani",
+    "reference_type": "real product screenshot",
+    "surfaces": [
+      12,
+      14
+    ],
+    "url": "https://www.banani.co/references/screens/things-upcoming",
+    "method": "Browser screenshot, upper viewport",
+    "observed": "Date groups and relative day labels organize upcoming items with separators.",
+    "why": "Time is scannable without a calendar grid.",
+    "weaknesses": "Large empty gaps are wasteful for dense work schedules.",
+    "do_not_copy": "Day imagery or interpreting no tasks as available.",
+    "translation": "Offer a compact agenda view; distinguish unknown availability from free time.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R26",
+    "source": "Apple Notifications",
+    "publisher": "Apple",
+    "reference_type": "guideline",
+    "surfaces": [
+      12
+    ],
+    "url": "https://developer.apple.com/design/human-interface-guidelines/notifications/",
+    "method": "Official search excerpt read; limited coverage",
+    "observed": "Concise context-sensitive notification text is emphasized.",
+    "why": "An event can explain why it matters at a glance.",
+    "weaknesses": "Excerpt-only evidence does not establish a full inbox or deep-link flow.",
+    "do_not_copy": "Assumed authorization, payload privacy or untested grouping rules.",
+    "translation": "Explain the event and open its exact subject while preserving access checks.",
+    "confidence": "LOW",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R27",
+    "source": "WCAG non-text contrast",
+    "publisher": "W3C",
+    "reference_type": "guideline",
+    "surfaces": [
+      13
+    ],
+    "url": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html",
+    "method": "Official explanation read",
+    "observed": "Meaningful graphical controls require discernible contrast against adjacent colors.",
+    "why": "Rating choice can remain perceptible without guessing pale shapes.",
+    "weaknesses": "Not every decorative border is an interactive component.",
+    "do_not_copy": "Color-only selected stars.",
+    "translation": "Use readable shape/edge plus selection state and accessible labels.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R28",
+    "source": "Apple navigation presentation",
+    "publisher": "Apple",
+    "reference_type": "guideline",
+    "surfaces": [
+      15
+    ],
+    "url": "https://developer.apple.com/videos/play/wwdc2022/10001/",
+    "method": "Transcript portion read; video not watched",
+    "observed": "Persistent destinations, hierarchical movement and focused modal tasks serve different purposes.",
+    "why": "Back behavior follows the type of transition.",
+    "weaknesses": "An older iOS presentation is not an Android visual specification.",
+    "do_not_copy": "Hiding destinations during routine browsing or copying platform decoration.",
+    "translation": "Model destination, drill-down and temporary editor distinctly; verify native Back.",
+    "confidence": "MEDIUM",
+    "date": "2026-09-20"
+  },
+  {
+    "id": "R29",
+    "source": "Material 3 navigation bar",
+    "publisher": "Google",
+    "reference_type": "guideline",
+    "surfaces": [
+      1,
+      15
+    ],
+    "url": "https://m3.material.io/components/navigation-bar/overview",
+    "method": "Browser rendered overview read",
+    "observed": "Navigation destinations stay consistent; the flexible bar adapts to compact and medium windows.",
+    "why": "Destination continuity supports orientation across views.",
+    "weaknesses": "Native ergonomics do not prescribe our brand shape or exact arrangement.",
+    "do_not_copy": "A dated baseline bar, automatic pill styling or role-based destination changes.",
+    "translation": "Compare stable labelled destinations at compact widths and under Android system navigation.",
+    "confidence": "HIGH",
+    "date": "2026-09-20"
+  }
+]
