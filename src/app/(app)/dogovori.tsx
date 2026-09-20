@@ -28,11 +28,17 @@ export default function Dogovori() {
 function OwnedAgreements({ foreground }: { foreground: { active: boolean; generation: number } }) {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const [scope, setScope] = useState<object | null>(null);
   const readGeneration = useRef(0), foregroundGeneration = foreground.generation;
   const [section, setSection] = useState<AgreementCollectionSection>('active');
   const [confirmationOnly, setConfirmationOnly] = useState(false);
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
+    // Publish the focus token as state, exactly as Početna does. A ref written inside an effect
+    // re-renders nothing, so a screen that read it during render kept the token of its FIRST
+    // visit: come back to the screen and the guard compared an old token against a new one and
+    // refused every press, silently, for the rest of that screen's life.
+    setScope(owner);
     return () => { if (focus.current === owner) focus.current = null; };
   }, [source]));
   const load = useCallback(async () => {
@@ -44,7 +50,7 @@ function OwnedAgreements({ foreground }: { foreground: { active: boolean; genera
       })]);
     } finally { if (timer) clearTimeout(timer); }
   }, [source]);
-  const resource = useFocusedResource(load), scope = focus.current;
+  const resource = useFocusedResource(load);
   const renderedReadGeneration = readGeneration.current;
   const latest = useRef(resource); latest.current = resource;
   const current = () => foreground.active && foreground.generation === foregroundGeneration && renderedReadGeneration === readGeneration.current

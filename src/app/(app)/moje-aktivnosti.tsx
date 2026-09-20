@@ -19,9 +19,15 @@ export default function MojeAktivnosti() {
 function Activities() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const [scope, setScope] = useState<object | null>(null);
   const [filter, setFilter] = useState<ActivityFilter>({ relation: 'ALL', period: 'ACTIVE' });
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
+    // Publish the focus token as state, exactly as Početna does. A ref written inside an effect
+    // re-renders nothing, so a screen that read it during render kept the token of its FIRST
+    // visit: come back to the screen and the guard compared an old token against a new one and
+    // refused every press, silently, for the rest of that screen's life.
+    setScope(owner);
     return () => { if (focus.current === owner) focus.current = null; };
   }, []));
   const load = useCallback(async (): Promise<HomeReads> => {
@@ -30,7 +36,7 @@ function Activities() {
     if (needs.kind === 'unavailable' && applications.kind === 'unavailable') throw new Error('ACTIVITIES_READ_FAILED');
     return { needs, applications, agreements };
   }, [source]);
-  const resource = useFocusedResource(load), scope = focus.current;
+  const resource = useFocusedResource(load);
   const page = useMemo(() => resource.data ? composeActivities(resource.data, filter) : null, [resource.data, filter]);
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source

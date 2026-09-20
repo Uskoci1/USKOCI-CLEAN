@@ -14,9 +14,15 @@ export default function Prilike({ initialMode = 'list' }: { initialMode?: 'map' 
 function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const [scope, setScope] = useState<object | null>(null);
   const [view, setView] = useState(() => ({ ...initialMarketplaceView(), mode: initialMode }));
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
+    // Publish the focus token as state, exactly as Početna does. A ref written inside an effect
+    // re-renders nothing, so a screen that read it during render kept the token of its FIRST
+    // visit: come back to the screen and the guard compared an old token against a new one and
+    // refused every press, silently, for the rest of that screen's life.
+    setScope(owner);
     return () => { if (focus.current === owner) focus.current = null; };
   }, []));
   const load = useCallback(async () => {
@@ -25,7 +31,7 @@ function OwnedCollection({ initialMode }: { initialMode: 'map' | 'list' }) {
       timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source]);
-  const resource = useFocusedResource(load), scope = focus.current;
+  const resource = useFocusedResource(load);
   // Which of these tasks are mine and which I have applied to: labels only, read beside the list so
   // that a failure here costs the labels and never the list. Since PKG-023b it is one bounded call
   // for the tasks actually on this page, instead of my whole task list and my whole application
