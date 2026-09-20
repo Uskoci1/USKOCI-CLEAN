@@ -219,19 +219,47 @@ The validator reading also confirms the shape: it takes `value_type` from the re
 it requires a JSON string and leaves it trimmed and non-null in `v_text`, which is the variable the
 new arm tests. The arm is byte-for-byte the shape of its `need.price_mode` neighbour.
 
+### Applied to canonical DEV, 2026-09-20
+
+Owner authorization: "primeni pkg025d". Applied as `dev_alpha_pkg025d_price_basis_fact`, stored as a
+single statement whose sha256 is `6b1d64f8...` - byte-for-byte the file, so nothing was mangled in
+transit. The candidate carries no backslash at all, which is why.
+
+| readback | before | after |
+| --- | --- | --- |
+| `validate_need_v2_fact_pre_fastest_retirement` | 6730 chars | 6886 (+156), rule once |
+| `rpc_confirm_need_edit_from_review` | 13555 | 13664 (+109), `price_basis` twice, key once |
+| `rpc_save_need_draft_from_review` | 10543 | 10652 (+109), `price_basis` twice, key once |
+| registry rows (V2) | 22 | **23**, matching the client's 23 keys |
+| tasks with a basis | 0 of 17 | **0 of 18** - nothing existing changed |
+| digest live = certified | `67730f62` | `67730f62` unmoved, readiness true |
+| ledger | 170 | **171** |
+
+Both writers grew by exactly the same 109 characters, which is arithmetic rather than coincidence:
+one took `price_basis=<expr>,` and the other `,price_basis` plus `,<expr>`.
+
+**The rule was proven live, not just read.** Calling the validator through its real entry point:
+`PER_PERSON` is accepted, `"PO OSOBI"` raises `V2_PRICE_BASIS_INVALID`, and an invented key still
+raises `V2_FACT_KEY_INVALID` - so admitting one fact did not make the registry permissive.
+
 ### What is not proven
 - It sits on the publication path, and the house proof for that (disposable database, real accounts,
-  fail-before/pass-after) cannot be run from here.
+  fail-before/pass-after) was **not run** - it needs a disposable database this session cannot make.
+  What stands in its place is the preflight, the pinned preconditions, the postconditions that would
+  have aborted the transaction, and the live validator check above.
 - The Edge function is edited but **not deployed**. Deploy by the owner's CLI route, not the
-  connector, which has previously resolved literal escape sequences in source text.
-- No device pass.
+  connector, which has previously resolved literal escape sequences in source text. Until then the
+  AI never proposes the fact, which is why the migration had to go first.
+- No device pass. Nobody has yet seen a multi-person task with a fixed price ask which it is.
 
 ## The steps still to come, each with its own review
 2. The application content hash, the publication fingerprint, the material snapshot and
    `guard_need_write`'s material list gain `price_basis` **only where it is not null**, so no old
    hash or fingerprint changes. Not a precondition for pkg025d - see the guard reading above - but
    it is what makes an edit history record that the basis changed.
-6. Apply pkg025d to canonical DEV, and deploy the Edge function by the owner's CLI route.
+6. Deploy the Edge function by the owner's CLI route:
+   `npx supabase functions deploy uskoci-ai-interview --project-ref leqcwgzvjsxugfgzdmth --use-api`
+   run from the worktree holding the edited source, not the main checkout.
 7. A device pass on the one thing none of this has been seen doing: a task for several people, a
    fixed price, the AI asking which it is, and the amount reading correctly on the card, the detail
    and the application.

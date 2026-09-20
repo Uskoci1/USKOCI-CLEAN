@@ -11,15 +11,32 @@ composition below; original brand/entry assets remain. This first Home/tab surfa
 the other screens, aggregate wiring or end-to-end device verification. Skills are implementation
 guidance; they do not override the owner's latest visual direction.
 
+Price basis (2026-09-20, owner-approved and applied): a task can say what its price is FOR, and an
+application is priced by it. Read `docs/implementation/v5-ai-first/pkg025/PKG025A_PRICE_BASIS.md`.
+The owner authorized this chain explicitly on 2026-09-20 ("sve dozvoljavam", "Cena", "ajde kreni",
+"primeni pkg025d"), which **supersedes** the earlier sentence below withholding `price_basis`.
+Applied to canonical DEV: `pkg025a` (the column and its CHECK), `pkg025b` (`rpc_submit_response`
+prices an application by the basis), `pkg025c` (the bounded marketplace reader returns it), and
+`pkg025d` (the `need.price_basis` fact key, its TOTAL/PER_PERSON rule, and the write in both review
+writers). Canonical DEV ledger is now **171 = 147 frozen source + 24 dev_alpha**, digest `67730f62`
+live = certified, `retention_ai_source_ready()` true, confirmed by readback. All 18 tasks keep a null
+basis, so nothing existing changed. **Still open:** the Edge function is edited to ask "ukupno ili po
+osobi" but is NOT deployed — only the owner's CLI route deploys it, and until then the AI never
+proposes the fact. No device pass, and the house disposable-database proof was not run. The material
+list / fingerprint / edit-history step remains its own package; it is not a precondition, for the
+reason recorded in that document.
+
 Latest follow-up (2026-09-20 local): after the three mandatory handoff/owner-decision/AGENTS reads,
 read `docs/implementation/v5-ai-first/pkg023/PKG023J_HOME_ATTENTION.md`. The owner separately approved
 ONLY pkg023j, conditional on ready private preconditions. Its exact CI-proven transaction passed both
 private checks before/after creation and was applied as `20260919221214_dev_alpha_pkg023j_home_attention`.
-Canonical DEV ledger is now **165 = 147 frozen source + 18 dev_alpha**, confirmed by readback.
-The aggregate is installed but not wired into the client. F02, paging, final UI and
-device verification remain open. Other DEV migrations still need a separate explicit owner decision;
-the older general AF-D26 authorization below does not override that newer boundary. No pkg023c or
-price_basis activation is authorized. The historical handoff's counts are not current live counts.
+Canonical DEV ledger was **165 = 147 frozen source + 18 dev_alpha** at that moment; see the price
+paragraph above for the current count. The aggregate is installed but not wired into the client. F02,
+paging, final UI and device verification remain open. Other DEV migrations still need a separate
+explicit owner decision; the older general AF-D26 authorization below does not override that newer
+boundary. **No pkg023c activation is authorized.** The sentence that also withheld `price_basis` is
+**superseded** by the owner's explicit approvals of 2026-09-20 recorded above — do not read it as a
+current block. The historical handoff's counts are not current live counts.
 
 Latest client follow-up: read `docs/implementation/v5-ai-first/APPLICATION_COMMAND_RECONCILIATION_20260920.md`.
 My applications now reconciles a pending command against its exact owned response row, independently

@@ -2,9 +2,11 @@
 --
 -- Status, decisions and evidence: docs/implementation/v5-ai-first/pkg025/PKG025A_PRICE_BASIS.md
 --
--- A CANDIDATE. NOT APPLIED. It edits the publication path, which is the one flow this product
--- cannot afford to break, and the house has an executable proof for exactly that which cannot be
--- run from here. See "What is not proven" at the end.
+-- Applied to canonical DEV on the owner's explicit 2026-09-20 authorization ("primeni pkg025d"),
+-- after a read-only preflight in which every precondition below was measured to hold. It edits the
+-- publication path, which is the one flow this product cannot afford to break, so every predecessor
+-- body, anchor count and registry fact is pinned: a drifted source aborts the whole transaction
+-- rather than editing the wrong text. The house's disposable-database proof was NOT run.
 --
 -- Where the chain stands. pkg025a gave a task a price_basis, pkg025b prices an application by it,
 -- pkg025c carries it to the screen. Nobody can WRITE one: a review is a set of confirmed facts, and
@@ -23,9 +25,11 @@
 -- edit instead of three. `case when v_mode = 'MY_PRICE' then ... end` yields null for OFFERS, which
 -- is what the table's CHECK requires: a basis is only meaningful when the requester named a price.
 --
--- What this does NOT do. The Edge prompt still never asks "ukupno ili po osobi", so the AI will not
--- propose the fact; a person reaching it through the review editor is the next step and a separate
--- review. rpc_ai_open_need_edit_conversation_v2 does not seed it yet, for the same reason.
+-- What this does NOT do. The Edge function is edited to ask "ukupno ili po osobi" but is NOT yet
+-- deployed, so until the owner's CLI deploy the AI still never proposes the fact and every task
+-- keeps a null basis. That ordering is deliberate: the key must exist on the server BEFORE the AI
+-- can name it, or the interview would raise V2_FACT_KEY_INVALID on a fact nobody admitted.
+-- rpc_ai_open_need_edit_conversation_v2 does not seed it yet, which is its own step.
 --
 -- Live predecessors, read from canonical DEV leqcwgzvjsxugfgzdmth on 2026-09-20:
 --   private.validate_need_v2_fact_pre_fastest_retirement  md5 e12a5ba0be1e0879f130fb4d5bed9d2b, 6730 chars
