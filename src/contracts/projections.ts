@@ -69,6 +69,8 @@ export type PotrebaProjekcija = {
   vremeTekst: string;
   /** Javno bezbedna geografija. Tačna adresa NIJE ovde. */
   podrucjeTekst: string;
+  /** Gruba tacka sa same potrebe, ~1km. Isti par koji javni citac salje kao `pin`. */
+  priblizno?: { lat: number; lng: number } | null;
   taskCountryCode?: string;
   taskTimezone?: string;
   schedule?: NeedScheduleProjection;

@@ -214,16 +214,25 @@ da su pojedini ekrani odlutali od njega — i to baš oni na kojima se donosi od
 
 Sve tri su provereno u kodu, ne pretpostavljene. Nijedna se ne može zatvoriti izmenom ekrana.
 
-**1. Lice u Dogovoru.** `AgreementCollectionPresentation` i `AgreementPresentation` prikazuju slovo
+**1. Lice u Dogovoru — kandidat napisan, NIJE primenjen.** `supabase/candidates/pkg024a_agreement_profile_ids.sql`,
+zapis: `docs/implementation/v5-ai-first/pkg024/PKG024A_AGREEMENT_PROFILE_IDS.md`. Dva ključa u dve
+funkcije koje **već spajaju** `app_profiles` po tim istim kolonama. Preduslovi provereni read-only
+na živom DEV-u; izvršni CI dokaz nije pokrenut; primena čeka posebnu vlasnikovu odluku. `AgreementCollectionPresentation` i `AgreementPresentation` prikazuju slovo
 u krugu. `UcesnikProjekcija.id` je **`requesterAccountId` / `workerAccountId`** —
 `src/data/agreementClientService.ts:39-41`. To je id **naloga**, a `ProfilePhoto` traži id
 **profila**. Čitanje sa pogrešnim id-em se ne sme ni pokušati. Potrebno: da čitanje Dogovora vrati
 javni profilni id obe strane.
 
-**2. Tvoj zadatak nema tačku.** `PrilikaProjekcija` (kako zadatak vidi stranac) nosi
-`priblizno: {lat,lng}`, pa je javni detalj dobio mapu. `PotrebaProjekcija` (kako ga vidiš **ti**)
-nema koordinate uopšte: `NeedTaskGeographyPoint` ima samo `label`, `city`, `area`. Posledica je
-naopaka — stranac vidi tvoj zadatak na mapi, ti ne vidiš svoj.
+**2. Tvoj zadatak nema tačku — ~~rupa~~ REŠENO 2026-09-20, bez migracije.**
+Prvi nalaz je bio pogrešan: gledao sam `NeedTaskGeographyPoint` (koji zaista nosi samo `label`,
+`city`, `area`) i zaključio da tačke nema. Tačka je **na samoj tabeli `needs`** —
+`approximate_lat numeric(6,2)` i `approximate_lng numeric(7,2)` — a vlasnik tu tabelu ionako čita
+direktno, pod RLS-om. Javni čitač te iste dve kolone prosleđuje **svakom** prijavljenom korisniku
+kao `pin`, i tip kolone **jeste** grubost: dve decimale, oko kilometra. Vlasnikovo čitanje ih
+jednostavno nije tražilo.
+
+Ispravka je klijentska: dve kolone u `NEED_SELECT`, `priblizno` u projekciji, ista mapa na
+vlasnikovom ekranu. Nijedna migracija.
 
 **3. Slika na kartici u listi.** `MarketplaceItem` nema nijedno polje za fotografiju, pa kartica u
 listi i na mapi ne može da prikaže sliku ni kad zadatak ima fotografije. Potrebno: jedna sličica po

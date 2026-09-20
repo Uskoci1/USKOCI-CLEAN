@@ -102,6 +102,14 @@ function mapNeed(raw: any): PotrebaProjekcija {
     schedule,
     detalji,
     podrucjeTekst: detalji.rezimLokacije === 'REMOTE' ? 'Na daljinu' : podrucje(raw.approximate_area, raw.approximate_city),
+    // The same two columns the public reader hands to every signed-in viewer as `pin`, and their
+    // type is the coarseness: numeric(6,2)/(7,2), about a kilometre. Asking for them here only
+    // means the owner can see their own Task where a stranger already sees it — on a map.
+    priblizno: typeof raw.approximate_lat === 'number' && typeof raw.approximate_lng === 'number'
+      ? { lat: raw.approximate_lat, lng: raw.approximate_lng }
+      : raw.approximate_lat !== null && raw.approximate_lng !== null
+        && Number.isFinite(Number(raw.approximate_lat)) && Number.isFinite(Number(raw.approximate_lng))
+        ? { lat: Number(raw.approximate_lat), lng: Number(raw.approximate_lng) } : null,
     uslovi: [
       ...(raw.required_skills ?? []),
       ...(raw.required_tools ?? []),
@@ -123,7 +131,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
 const NEED_SELECT = `
   id, revision, title, description, category, status, urgent, schedule_kind, starts_at, ends_at,
   task_country_code, task_timezone, execution_location_mode,
-  approximate_area, approximate_city,
+  approximate_area, approximate_city, approximate_lat, approximate_lng,
   required_slots, required_skills, required_tools, required_vehicles, required_licenses,
   minimum_experience_years, verified_identity_required,
   covered_slots, mode, requester_price_rsd,

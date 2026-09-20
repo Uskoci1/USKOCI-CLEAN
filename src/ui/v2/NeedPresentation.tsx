@@ -24,6 +24,8 @@ export type NeedPresentationProps = {
   /** What the publish gate says about a draft, asked of the gate itself. Absent means not asked. */
   readiness?: NeedPublicationReadiness | null;
   photos?: ReactNode;
+  /** Where the job is, as an approximate pin. The map owns a focus lifetime, so the route builds it. */
+  map?: ReactNode;
   lifecycleActions?: ReactNode;
   qaAction?: ReactNode;
 };
@@ -109,6 +111,10 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <Fact icon={Users} label="Potrebno" value={needPeopleText(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} dogovoreno`} />
         </FactGrid>
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
+        {/* A stranger saw this Task on a map before its owner did: the public projection carried the
+            point and the owner's own read never asked for it. Same coarse pair, same map. */}
+        {!remote && props.map ? <View style={s.section}><SectionTitle>Gde je</SectionTitle>{props.map}
+          <T variant="note" tone="muted">Ovako drugi vide mesto. Tačna adresa se deli tek u Dogovoru.</T></View> : null}
         {props.photos}
         {/* The strip at the top already carries the blocking reason; this card repeated it word for
             word further down, so a blocked draft stated its one problem twice in two boxes. It is

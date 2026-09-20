@@ -220,6 +220,23 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     for (const key of ['category', 'ends_at', 'schedule_kind', 'task_country_code', 'task_timezone', 'need_geography(public_topology)', 'need_requirement_details(critical_conditions)']) expect(selection).toContain(key);
     expect(selection).not.toMatch(/need_sensitive|exact_address|resolved_location|exact_lat|requester_account_id/);
   });
+  it('reads the coarse point the owner never asked for, and never a precise one', async () => {
+    // The public reader hands `approximate_lat/lng` to every signed-in viewer as `pin`; the owner's
+    // own read did not select them, so a stranger saw the Task on a map and its owner did not. The
+    // column type is the coarseness — numeric(6,2)/(7,2), about a kilometre — so there is nothing
+    // to round here, and nothing precise is reachable from this query at all.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: 45.25, approximate_lng: 19.83 } });
+    expect((await needClientService.potreba(rawNeed.id))!.priblizno).toEqual({ lat: 45.25, lng: 19.83 });
+    const selection = String(mocks.mockSelect.mock.calls[0][0]);
+    expect(selection).toContain('approximate_lat'); expect(selection).toContain('approximate_lng');
+    expect(selection).not.toMatch(/exact_lat|exact_lng|resolved_location/);
+
+    // PostgREST may hand a numeric back as a string; a task without a point stays without one.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: '45.25', approximate_lng: '19.83' } });
+    expect((await needClientService.potreba(rawNeed.id))!.priblizno).toEqual({ lat: 45.25, lng: 19.83 });
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: null, approximate_lng: null } });
+    expect((await needClientService.potreba(rawNeed.id))!.priblizno).toBeNull();
+  });
   it('preserves every requirement group without treating a requirement as earned verification', async () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, required_licenses: ['B', 'B'],
       minimum_experience_years: 0, verified_identity_required: true, need_requirement_details: { critical_conditions: ['Bez lifta', 'Pristup sa dvorišta'] } } });
