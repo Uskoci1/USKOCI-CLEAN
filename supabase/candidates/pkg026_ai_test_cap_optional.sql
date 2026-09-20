@@ -1,5 +1,5 @@
 -- PKG-026. Owner requested removal of the internal reservation blocker on 2026-09-20.
--- Candidate: prove on a disposable database before requesting the separate DEV migration approval.
+-- Apply only for the owner's explicit 2026-09-20 removal request, after disposable proof and live pins.
 -- Reservations remain an audit/idempotency record, never a claim of provider billing.
 -- No historical reservation is erased, released, reclassified or reported as zero spend.
 begin;
@@ -89,11 +89,34 @@ update private.ai_test_budget_v5 set reservation_cap_enforced=false where single
 -- the column addition and constraint replacement each have to move its digest independently.
 do $rebind$
 declare old_digest text; intermediate_digest text; new_digest text; def text;
+        schema_sql text; source_sql text; anchor text; reconstructed text; control_digest text;
 begin
   select certified,intermediate into strict old_digest,intermediate_digest from pkg026_before;
   new_digest:=private.closure_source_digest_v5();
   if new_digest is null or intermediate_digest is null or intermediate_digest=old_digest
      or new_digest in (old_digest,intermediate_digest) then raise exception 'PKG026_SOURCE_CHANGE_NOT_BOUND'; end if;
+  -- Reconstruct the certified predecessor from the current catalog, excluding ONLY our new column
+  -- and substituting ONLY the previous counter constraint. A concurrent unrelated schema/program
+  -- change must not be swept into this certificate. Same method as PKG-023f's drift reconstruction.
+  select regexp_replace(prosrc,';[[:space:]]*$','') into strict schema_sql
+    from pg_proc where oid='private.closure_schema_digest_v5_139()'::regprocedure;
+  select regexp_replace(prosrc,';[[:space:]]*$','') into strict source_sql
+    from pg_proc where oid='private.closure_source_digest_v5()'::regprocedure;
+  execute source_sql into control_digest;
+  if control_digest is distinct from new_digest then raise exception 'PKG026_RECONSTRUCTION_CONTROL'; end if;
+  anchor:='where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped)';
+  if (length(schema_sql)-length(replace(schema_sql,anchor,''))) <> length(anchor) then raise exception 'PKG026_SCHEMA_COLUMN_ANCHOR'; end if;
+  schema_sql:=replace(schema_sql,anchor,
+    $r$where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped and not (c.oid='private.ai_test_budget_v5'::regclass and a.attname='reservation_cap_enforced'))$r$);
+  anchor:='pg_get_constraintdef(x.oid) order by x.conname';
+  if (length(schema_sql)-length(replace(schema_sql,anchor,''))) <> length(anchor) then raise exception 'PKG026_SCHEMA_CONSTRAINT_ANCHOR'; end if;
+  schema_sql:=replace(schema_sql,anchor,
+    $r$case when c.oid='private.ai_test_budget_v5'::regclass and x.conname='ai_test_budget_v5_reserved_microusd_check'
+      then 'CHECK (((reserved_microusd >= 0) AND (reserved_microusd <= 5000000)))' else pg_get_constraintdef(x.oid) end order by x.conname$r$);
+  anchor:='private.closure_schema_digest_v5_139()';
+  if (length(source_sql)-length(replace(source_sql,anchor,''))) <> length(anchor) then raise exception 'PKG026_SOURCE_SCHEMA_ANCHOR'; end if;
+  execute replace(source_sql,anchor,'('||schema_sql||')') into reconstructed;
+  if reconstructed is distinct from old_digest then raise exception 'PKG026_UNREVIEWED_CONCURRENT_DRIFT'; end if;
   def:=pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure);
   if (length(def)-length(replace(def,old_digest,''))) <> length(old_digest) then raise exception 'PKG026_CERTIFICATE_ANCHOR'; end if;
   update private.closure_source_v5 set sha256=new_digest where singleton and sha256=old_digest;
