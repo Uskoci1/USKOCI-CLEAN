@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+Latest AI operational change (2026-09-20 18:30 UTC): read
+`docs/implementation/v5-ai-first/PKG026_AI_CAP_20260920.md` for the owner's explicit removal of the
+internal USD 5 reservation blocker. PKG-026 was proven in disposable CI and applied to canonical DEV
+as `20260920182952_dev_alpha_pkg026_ai_test_cap_optional`; ledger readback is 169. The cap is disabled,
+while historical reservations, existing usage accounting, admitted-account and replay protections remain.
+No paid provider test was made. Do not reset reservations or treat missing usage as zero cost.
+Newer pkg024/pkg025 changes already present on DEV belong to parallel work, not this task.
+
 
 ## DESIGN — current owner instruction, 2026-09-20
 

@@ -1,0 +1,54 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "scope": "DEV_ALPHA",
+  "ownerAuthorization": "2026-09-20 explicit request to remove the AI reservation blocker so private testing can continue; provider charging without the internal USD 5 cap explained before application",
+  "proofCommit": "79a7766e7135db656d020e36bab872c17cf52a39",
+  "proofUrl": "https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35529008832",
+  "proofChecks": 8,
+  "exactCandidateSha256": "5c3129e356827887fa1b2a649669bee48372b9386a67649b78d3fa81940acb43",
+  "privateReadiness": "Standalone SELECT permission denied; exact candidate asserted readiness, predecessor reconstruction and binding before committing successfully.",
+  "paidProviderCalled": false,
+  "phoneInferenceVerified": false,
+  "pins": [
+    {
+      "md5": "3cadd9345025fd962fc64cab085f29f7",
+      "function": "rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)",
+      "anon_can_execute": false,
+      "service_can_execute": true,
+      "authenticated_can_execute": false
+    },
+    {
+      "md5": "13dfb835abb6610c8181de7d2426eb33",
+      "function": "rpc_ai_test_budget_report_service()",
+      "anon_can_execute": false,
+      "service_can_execute": true,
+      "authenticated_can_execute": false
+    }
+  ],
+  "budget": {
+    "enabled": true,
+    "singleton": true,
+    "ceiling_microusd": 5000000,
+    "price_valid_until": "2027-01-01T00:00:00+00:00",
+    "reserved_microusd": 4777326,
+    "reservation_cap_enforced": false
+  },
+  "migration": {
+    "name": "dev_alpha_pkg026_ai_test_cap_optional",
+    "sha256": "5c3129e356827887fa1b2a649669bee48372b9386a67649b78d3fa81940acb43",
+    "version": "20260920182952"
+  },
+  "checked_at": "2026-09-20T18:30:11.138011+00:00",
+  "certificates": {
+    "source": "67730f62a46c6359ed8dab01e2e26d5247682569ffb93d3e137791fc6b977ef0",
+    "erasure": "67730f62a46c6359ed8dab01e2e26d5247682569ffb93d3e137791fc6b977ef0",
+    "readiness": "67730f62a46c6359ed8dab01e2e26d5247682569ffb93d3e137791fc6b977ef0"
+  },
+  "ledger_count": 169,
+  "reservations": {
+    "count": 218,
+    "accounted": 4777326,
+    "unsettled": 18
+  }
+}
+
