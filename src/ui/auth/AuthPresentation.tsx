@@ -1,39 +1,45 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { BrandMark } from '../entry/BrandAssets';
+import { authTheme as c } from './authTheme';
+import { radius, type } from '../../theme/tokens';
 
-/** Executable SPOJ V2, including final .lineage/.v2 overrides; route supplies real owned Auth state. */
+/** V5 premium auth presentation; route supplies real owned Auth state. */
 export function AuthIntro({ title, copy, eyebrow = 'JEDAN NALOG · OBE MOGUĆNOSTI', composition = 'hero' }: {
   title: string; copy: string; eyebrow?: string; composition?: 'hero' | 'stage';
 }) {
   const stage = composition === 'stage';
   return <View>
-    <View style={styles.badge}>
-      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={58} height={58}><Defs><LinearGradient id="auth-badge" x1="25%" y1="6.7%" x2="75%" y2="93.3%"><Stop offset="0" stopColor="#EDF6F1" /><Stop offset="1" stopColor="#E4F1E9" /></LinearGradient></Defs><Rect width={58} height={58} rx={19} fill="url(#auth-badge)" stroke="#D4E6DC" /></Svg>
+    {stage ? <>
+    <View style={styles.badge} accessible={false} importantForAccessibility="no-hide-descendants">
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={58} height={58}><Defs><LinearGradient id="auth-badge" x1="25%" y1="6.7%" x2="75%" y2="93.3%"><Stop offset="0" stopColor="#EDF6F1" /><Stop offset="1" stopColor="#E4F1E9" /></LinearGradient></Defs><Rect width={58} height={58} rx={radius.cardCompact} fill="url(#auth-badge)" stroke="#D4E6DC" /></Svg>
       <BrandMark size={35} />
     </View>
+    </> : <View style={styles.identityRow}><BrandMark size={30} /><Text style={styles.inlineEyebrow}>{eyebrow}</Text></View>}
     <View style={stage ? styles.stage : styles.hero}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      {stage ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       <Text accessibilityRole="header" style={[styles.title, stage && styles.stageTitle]}>{title}</Text>
       <Text style={[styles.copy, stage && styles.stageCopy]}>{copy}</Text>
     </View>
   </View>;
 }
 const styles = StyleSheet.create({
-  hero: { paddingTop: 8, paddingBottom: 16 },
-  // .lineage .fp-stage is more specific than the later generic .v2 .fp-title.
-  stage: { marginTop: 8, paddingTop: 2, paddingBottom: 4, marginBottom: 25 },
-  stageTitle: { fontSize: 27, lineHeight: 30.51, letterSpacing: -.75, marginBottom: 10 },
-  stageCopy: { color: '#63766F', fontSize: 14, lineHeight: 23.1, marginBottom: 20 },
-  badge: { width: 58, height: 58, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginBottom: 21 },
-  eyebrow: { color: '#2E7A6A', fontSize: 10, lineHeight: 15, fontWeight: '700', letterSpacing: 1, marginBottom: 7 },
-  title: { color: '#143D35', fontSize: 31, lineHeight: 34.72, letterSpacing: -1, fontWeight: '700', marginBottom: 9 },
-  copy: { color: '#5D7067', fontSize: 15, lineHeight: 22.5 },
+  identityRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, minHeight: 36 },
+  inlineEyebrow: { flex: 1, ...type.label, fontWeight: '600', letterSpacing: 0.4, color: c.accentLight },
+  hero: { paddingTop: 4, paddingBottom: 20 },
+  stage: { marginTop: 4, paddingTop: 2, paddingBottom: 4, marginBottom: 16 },
+  stageTitle: { ...type.pageTitle, marginBottom: 10 },
+  stageCopy: { ...type.copy, color: c.muted, marginBottom: 8 },
+  badge: { width: 58, height: 58, borderRadius: radius.cardCompact, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  // 11px was under the 12px floor the scale sets for anything that carries meaning.
+  eyebrow: { ...type.label, fontWeight: '600', letterSpacing: 0.4, color: c.accentLight, marginBottom: 8 },
+  title: { ...type.hero, color: c.ink, marginBottom: 9 },
+  copy: { ...type.copy, color: c.muted },
 });
 
-/** Exact final .lineage .fp-panel.flat composition; fields keep their native controls. */
+/** Forms stay open and readable against the sheet, including larger text. */
 export const authStageForm = StyleSheet.create({
   form: { backgroundColor: 'transparent', borderWidth: 0, borderRadius: 0,
-    borderBottomWidth: 1, borderColor: '#DFE9E3', paddingHorizontal: 0, paddingTop: 5,
+    borderBottomWidth: 1, borderColor: '#345D50', paddingHorizontal: 0, paddingTop: 5,
     paddingBottom: 17, marginTop: 0, marginBottom: 17 },
 }).form;

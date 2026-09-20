@@ -1,39 +1,81 @@
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clock, MapPin, Users } from 'phosphor-react-native';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { hasNeedAttention, isOwnedNeed } from '../../data/marketplaceView';
-import { needPeopleText, needScheduleText } from '../../data/needDetailPresentation';
+import { needPeopleText, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
+import { card, cardCompact, sys } from '../system/tokens';
 import { T } from '../Text';
-import { v2 } from './tokens';
-const STATUS = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
-/** Shared V2 cCard anatomy; each caller supplies its existing authorized projection. */
-export function TaskCard({ item, onOpen, compact = false, disabled = false }: { item: MarketplaceItem; onOpen: () => void; compact?: boolean; disabled?: boolean }) {
-  const own = isOwnedNeed(item), attention = own && hasNeedAttention(item);
-  const status = own ? attention ? `${item.brojPrijava} prijava · pogledaj` : STATUS[item.stanje] : item.statusTekst;
+import { NeedUrgencyBadge } from './NeedUrgencyBadge';
+
+const STATUS = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' } as const;
+const prijave = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'prijava' : n % 10 >= 2 && n % 10 <= 4 ? 'prijave' : 'prijava'}`;
+
+/**
+ * Need/Opportunity card with the V5 live-card anatomy: title, where, when, then a
+ * hairline foot with the price and the people. A status line appears only when it
+ * says something the list section does not: new applications to look at, a private
+ * draft, a filled or closed Task. Each caller supplies its own authorized
+ * projection; nothing here invents a rating, a thumbnail or a state.
+ */
+function TaskCardBase({ item, onOpen, compact = false, disabled = false, relation }: { item: MarketplaceItem; onOpen: () => void; compact?: boolean; disabled?: boolean;
+  /** What this account is to a task found in discovery, from its own tasks and applications. Absent = nothing known. */
+  relation?: 'OWNED' | 'APPLIED' }) {
+  const own = isOwnedNeed(item), attention = own && hasNeedAttention(item), draft = own && item.stanje === 'NACRT';
+  const settled = own && (item.stanje === 'DELIMICNO_POPUNJENA' || item.stanje === 'POPUNJENA' || item.stanje === 'ZATVORENA');
+  // A sent application is a paper plane in words, never the tick of something finished.
+  const status = attention ? `${prijave(item.brojPrijava)} · pogledaj` : draft ? STATUS.NACRT : settled ? STATUS[item.stanje]
+    : relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Prijava poslata' : null;
+  const quiet = draft || (own && item.stanje === 'ZATVORENA');
+  const tone = attention ? sys.color.warn : quiet ? sys.color.muted : sys.color.green;
+  const dot = attention ? sys.color.orange : quiet ? sys.color.lineStrong : sys.color.green;
+  const urgent = item.urgency?.level === 'HITNO';
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
-  return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvorite Zadatak' : 'Otvorite priliku'} ${item.naslov}`}
-    accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986} style={[s.card, compact && s.compact]}>
-    <T style={s.status}>{status}</T><T style={s.title}>{item.naslov}</T>
-    <View style={s.meta}>{item.detalji?.rezimLokacije !== 'REMOTE' ? <MapPin size={15} color={v2.color.teal} /> : null}<T style={s.metaText}>{item.detalji?.rezimLokacije === 'REMOTE' ? 'Na daljinu' : item.podrucjeTekst}</T></View>
-    <View style={s.meta}><Clock size={15} color={v2.color.teal} /><T style={s.metaText}>{schedule}</T></View>
-    <View style={s.bottom}><T style={s.price}>{item.rezimCene === 'OFFERS' ? 'Tražim ponude' : item.ponudjenaCena?.prikaz ?? 'Cena nije navedena'}</T>
-      <View accessible accessibilityLabel={`${item.pokrivenost.popunjeno} od ${needPeopleText(item.pokrivenost.ukupno)} dogovoreno`} style={s.coverage}>
-        <Users size={17} color={v2.color.ink} /><T style={s.small}>{item.pokrivenost.popunjeno} / {item.pokrivenost.ukupno}</T>
-      </View>
+  const remote = item.detalji?.rezimLokacije === 'REMOTE';
+  const offers = item.rezimCene === 'OFFERS';
+  // A card has no room for the arithmetic, so it names the unit and leaves the total to the detail.
+  const price = needPriceText(item);
+  return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${readableTitle(item.naslov)}`}
+    accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986}
+    style={[compact ? cardCompact : card, attention && s.attentionCard, disabled && s.disabled]}>
+    {status || urgent ? <View style={s.top}>
+      {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} /><T variant="label" style={[s.status, { color: tone }]}>{status}</T></View> : <View style={s.grow} />}
+      <NeedUrgencyBadge urgency={item.urgency} />
+    </View> : null}
+    <T style={s.title}>{readableTitle(item.naslov)}</T>
+    <View style={s.facts}>
+      <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{remote ? 'Na daljinu' : item.podrucjeTekst}</T></View>
+      <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{schedule}</T></View>
     </View>
-    {!compact && item.uslovi.length ? <View style={s.tags}>{item.uslovi.slice(0, 2).map((value, index) => <View key={index} style={s.tag}>
-      <T numberOfLines={2} style={s.small}>{value}</T></View>)}{item.uslovi.length > 2 ? <T style={s.small}>+{item.uslovi.length - 2} uslova</T> : null}</View> : null}
+    <View style={s.foot}>
+      <T style={[s.price, offers && s.offers]}>{price}</T>
+      {draft ? <T variant="meta" style={s.next}>Nastavi uređivanje</T>
+        : <View accessible accessibilityLabel={`${item.pokrivenost.popunjeno} od ${needPeopleText(item.pokrivenost.ukupno)} dogovoreno`} style={s.people}>
+          <Users size={18} color={sys.color.ink} />
+          <T variant="meta" style={s.peopleText}>{own ? `${item.pokrivenost.popunjeno} / ${item.pokrivenost.ukupno}` : needPeopleText(item.pokrivenost.ukupno)}</T>
+        </View>}
+    </View>
   </Press>;
 }
+export const TaskCard = memo(TaskCardBase);
+
 const s = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: '#E6ECE8', borderRadius: 18, backgroundColor: v2.color.surface, padding: 18, gap: 9 },
-  compact: { backgroundColor: v2.color.context, padding: 16 }, status: { ...v2.text.label, color: v2.color.teal, fontWeight: '700' },
-  title: { fontSize: 21, lineHeight: 26, fontWeight: '700', letterSpacing: -0.45, color: v2.color.ink, marginTop: 3, marginBottom: 3 },
-  meta: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 }, metaText: { ...v2.text.label, color: v2.color.muted, flex: 1 },
-  bottom: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 9 },
-  price: { fontSize: 23, lineHeight: 29, color: v2.color.ink, fontWeight: '700', letterSpacing: -0.45, flex: 1 },
-  coverage: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, backgroundColor: v2.color.soft, padding: 7 },
-  small: { ...v2.text.label, color: v2.color.muted }, tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 2 },
-  tag: { backgroundColor: '#F2F5F2', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 4, maxWidth: '100%' },
+  attentionCard: { borderColor: sys.color.orange },
+  disabled: { opacity: 0.55 },
+  grow: { flex: 1 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
+  dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
+  status: { flexShrink: 1, letterSpacing: 0.3 },
+  title: { ...sys.type.cardTitle, color: sys.color.ink },
+  facts: { gap: 6, marginTop: 9 },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  factText: { flex: 1 },
+  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderTopColor: sys.color.line },
+  price: { ...sys.type.price, color: sys.color.money, flexShrink: 1 },
+  offers: { ...sys.type.bodyStrong, color: sys.color.ink },
+  people: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  peopleText: { color: sys.color.ink, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  next: { color: sys.color.green, fontWeight: '600' },
 });

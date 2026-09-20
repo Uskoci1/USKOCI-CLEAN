@@ -5,10 +5,11 @@ import { Eye, MapPin, DownloadSimple, CaretDown, CaretUp } from 'phosphor-react-
 import { retentionPolicyClientService } from '../../../data/retentionPolicyClientService';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { ulogaSada, useUloga } from '../../../store/uloga';
-import { v2 } from '../../../ui/v2/tokens';
+
+import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsInfo, SettingsAction, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { Press } from '../../../ui/Press';
+import { ClosureEntry } from '../../../ui/closure/ClosureDialog';
 
 const labels: Readonly<Record<string, string>> = {
   ACCOUNT_IDENTITY: 'Nalog i identitet', PROFILE_DATA: 'Podaci profila', NEED_PUBLIC: 'Javni podaci Zadatka',
@@ -19,18 +20,18 @@ const labels: Readonly<Record<string, string>> = {
 };
 
 export default function Privatnost() {
-  const { user, accountRevision } = useSesija(), intent = useUloga();
-  return <OwnedPrivacy key={`${user?.id ?? ''}:${accountRevision}:${intent}`} />;
+  const { user, accountRevision } = useSesija();
+  return <OwnedPrivacy key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 
 function OwnedPrivacy() {
-  const { user, accountRevision } = useSesija(), accountId = user?.id, intent = useUloga();
+  const { user, accountRevision } = useSesija(), accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; navigating.current = false; setExpandedRule(null);
     return () => { if (focus.current === scope) focus.current = null; };
-  }, [accountId, accountRevision, intent]));
+  }, [accountId, accountRevision]));
   const readPolicy = useCallback(async () => {
     const result = await retentionPolicyClientService.readStatus();
     if (!result.ok) throw new Error('RETENTION_READ_UNAVAILABLE');
@@ -47,48 +48,48 @@ function OwnedPrivacy() {
     && execution.data.policyVersion === policy.data.policyVersion;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && !navigating.current && !!accountId
-    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && ulogaSada() === intent;
+    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const navigate = (action: () => void) => { if (!current()) return; navigating.current = true; action(); };
   const refresh = () => { if (!current() || policy.loading || execution.loading) return;
     void policy.refresh(); void execution.refresh(); };
   return <SettingsScreen title="Privatnost i podaci"
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/profil'))}>
     <SettingsIntro kicker="KONTROLA PODATAKA" title="Šta je javno, šta je privatno, šta je tvoje.">
-      Podaci za saradnju imaju različitu vidljivost. Rokove čuvanja možete pregledati ispod.
+      Podaci za saradnju imaju različitu vidljivost. Rokove čuvanja možeš pregledati ispod.
     </SettingsIntro>
     <SettingsPanel>
-      <SettingsInfo title="Javni podaci Zadatka" icon={<Eye size={22} color={v2.color.teal} />}>
+      <SettingsInfo title="Javni podaci Zadatka" icon={<Eye size={22} color={sys.color.green} />}>
         Opis objavljenog Zadatka i njegova približna lokacija dostupni su drugim korisnicima.
       </SettingsInfo>
-      <SettingsInfo title="Lokacija i kontakt" last icon={<MapPin size={22} color={v2.color.teal} />}>
+      <SettingsInfo title="Lokacija i kontakt" last icon={<MapPin size={22} color={sys.color.green} />}>
         Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup. Zadaci na daljinu nemaju adresu ni pin.
       </SettingsInfo>
     </SettingsPanel>
     <SettingsPanel soft>
-      <SettingsInfo title="Izvoz mojih podataka" last icon={<DownloadSimple size={22} color={v2.color.teal} />}>
-        Pregledajte zahtev, pripremu i dostupnost svoje kopije.
+      <SettingsInfo title="Izvoz mojih podataka" last icon={<DownloadSimple size={22} color={sys.color.green} />}>
+        Pogledaj zahtev, pripremu i dostupnost svoje kopije.
       </SettingsInfo>
-      <SettingsAction label="Otvorite izvoz" kind="secondary" onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
-      <SettingsInfo title="Zatvaranje naloga" last>Zatvaranje naloga trenutno nije dostupno u aplikaciji.</SettingsInfo>
+      <SettingsAction label="Otvori izvoz" kind="secondary" onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
+      <ClosureEntry />
     </SettingsPanel>
 
     <View style={{ marginTop: 20, gap: 12 }}>
       <T variant="heading" accessibilityRole="header">Rokovi čuvanja</T>
       {policy.loading ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo rokove čuvanja" style={{ flexDirection: 'row', gap: 8 }}>
-        <ActivityIndicator color={v2.color.teal} /><T tone="muted">Učitavamo rokove čuvanja…</T>
-      </View> : policy.error ? <T accessibilityRole="alert">Rokovi čuvanja trenutno nisu dostupni. Pokušajte ponovo.</T>
+        <ActivityIndicator color={sys.color.green} /><T tone="muted">Učitavamo rokove čuvanja…</T>
+      </View> : policy.error ? <T accessibilityRole="alert">Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.</T>
         : publishedPolicy ? <>
           <T variant="meta" tone="muted">Verzija: {publishedPolicy.policyVersion}</T>
           <SettingsPanel>
             {publishedPolicy.rules.map(rule => {
               const key = `${publishedPolicy.policyVersion}:${rule.dataClass}`, expanded = expandedRule === key;
               const title = labels[rule.dataClass] ?? rule.purpose;
-              return <View key={key} style={{ borderBottomWidth: 1, borderBottomColor: v2.color.line }}>
+              return <View key={key} style={{ borderBottomWidth: 1, borderBottomColor: sys.color.line }}>
                 <Press accessibilityRole="button" accessibilityLabel={`Rokovi: ${title}`} accessibilityState={{ expanded }}
                   onPress={() => { if (current()) setExpandedRule(expanded ? null : key); }} haptic="select"
                   style={{ minHeight: 56, paddingVertical: 14, gap: 12, flexDirection: 'row', alignItems: 'center' }}>
                   <T variant="bodyStrong" style={{ flex: 1 }}>{title}</T>
-                  {expanded ? <CaretUp size={18} color={v2.color.teal} /> : <CaretDown size={18} color={v2.color.teal} />}
+                  {expanded ? <CaretUp size={18} color={sys.color.green} /> : <CaretDown size={18} color={sys.color.green} />}
                 </Press>
                 {expanded ? <View style={{ paddingBottom: 16, gap: 8 }}>
                   <T variant="meta">Svrha: {rule.purpose}</T>
@@ -110,7 +111,7 @@ function OwnedPrivacy() {
                 : <T variant="meta" tone="muted">Automatsko brisanje napuštenih AI razgovora trenutno nije dostupno.</T>}
         </View>
       </View>
-      <SettingsAction label="Osvežite stanje" kind="quiet" disabled={policy.loading || execution.loading} onPress={refresh} />
+      <SettingsAction label="Osveži stanje" kind="quiet" disabled={policy.loading || execution.loading} onPress={refresh} />
     </View>
   </SettingsScreen>;
 }

@@ -4,7 +4,7 @@
 // decision, and that ALLOW stays refused by the RU-3 service gate. No policy
 // bundle is activated on any live target; no rule text is seeded.
 import assert from 'node:assert/strict';
-import { replayPendingDomain } from '../legal/pending_domain_replay.mjs';
+import { replayPendingDomain, readAdmittedSuccessorDelta } from '../legal/pending_domain_replay.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
@@ -153,7 +153,7 @@ try{
   }
 
   current='ADMITTED_SUCCESSOR_DOMAIN_INTEGRATION';
-  report.successor_replay=await replayPendingDomain({plan,sql,db,url,snapshot:async()=>({
+  report.successor_replay=await replayPendingDomain({plan,sql,db,url,admittedDelta:readAdmittedSuccessorDelta('supabase/proofs/policy/d0140a_bundle_registration_successor_delta.json'),snapshot:async()=>({
     tables: (manifest.new_tables ?? ['private.publication_policy_bundles','private.publication_policy_rule_refs']).map(table=>[table,tableHash(table)]),
     security: sql(`select coalesce(jsonb_agg(to_jsonb(p) order by n.nspname,p.proname,p.oid),'[]'::jsonb)::text
       from pg_proc p join pg_namespace n on n.oid=p.pronamespace
@@ -171,6 +171,7 @@ try{
   assert.equal(report.migration_history_count,plan.source_migration_count);
   report.result='PASS';
 }catch(error){
+  if(error?.divergence)report.successor_divergence=error.divergence;
   report.result='FAIL';report.failed_check=current;
   report.failure=error?.code==='ERR_ASSERTION'?`ASSERTION:${String(error.message).slice(0,200)}`:String(error.message).slice(0,200);
   process.exitCode=1;

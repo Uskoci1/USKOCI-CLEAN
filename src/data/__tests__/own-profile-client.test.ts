@@ -1,3 +1,6 @@
+jest.mock('../../store/sesija', () => ({ sesijaSada: jest.fn() }));
+import { sesijaSada } from '../../store/sesija';
+const session = sesijaSada as jest.Mock;
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
   const mockFrom = jest.fn();
@@ -29,16 +32,16 @@ function configure(result: unknown = {
   return { eq, select, maybeSingle };
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => { jest.clearAllMocks(); session.mockReturnValue({ user: { id: 'account-a' }, accountRevision: 1 }); });
 
 describe('own profile identity boundary', () => {
   it('reads only the authenticated account and intended profile kind, excluding trust/private fields', async () => {
     const { eq, select } = configure();
     expect(await ownProfileClientService.read('account-a', 'narucilac')).toEqual({
-      accountId: 'account-a', profileId: 'profile-a', kind: 'REQUESTER', ime: 'Ana Petrović', grad: 'Novi Sad',
+      accountId: 'account-a', profileId: 'profile-a', kind: 'REQUESTER', ime: 'Ana Petrović', grad: 'Novi Sad', stanje: null,
     });
     expect(mockFrom).toHaveBeenCalledWith('app_profiles');
-    expect(select).toHaveBeenCalledWith('id,account_id,kind,display_name,city');
+    expect(select).toHaveBeenCalledWith('id,account_id,kind,display_name,city,profile_status');
     expect(eq.mock.calls).toEqual([['account_id', 'account-a'], ['kind', 'REQUESTER']]);
   });
 
@@ -47,7 +50,7 @@ describe('own profile identity boundary', () => {
       id: 'worker-a', account_id: 'account-a', kind: 'WORKER', display_name: '   ', city: null,
     }, error: null });
     expect(await ownProfileClientService.read('account-a', 'uskocer')).toEqual({
-      accountId: 'account-a', profileId: 'worker-a', kind: 'WORKER', ime: null, grad: null,
+      accountId: 'account-a', profileId: 'worker-a', kind: 'WORKER', ime: null, grad: null, stanje: null,
     });
     expect(eq).toHaveBeenCalledWith('kind', 'WORKER');
   });
@@ -100,4 +103,29 @@ describe('own profile identity boundary', () => {
     await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
     expect(model.snapshot().data).toBeNull();
   });
+});
+
+describe('own-profile service generation fencing independent of the screen', () => {
+  it.each(['account-b', 'account-a'])('rejects a late response after an account transition ending in %s', async accountId => {
+    const { maybeSingle } = configure(); let resolve!: (x: unknown) => void;
+    maybeSingle.mockImplementation(() => new Promise(done => { resolve = done; }));
+    const request = ownProfileClientService.read('account-a', 'narucilac');
+    await Promise.resolve();
+    session.mockReturnValue({ user: { id: accountId }, accountRevision: 3 });
+    resolve({ data: { id: 'profile-a', account_id: 'account-a', kind: 'REQUESTER', display_name: 'PRIVATE OLD NAME', city: 'OLD CITY' }, error: null });
+    await expect(request).rejects.toThrow('PROFILE_ACCOUNT_CHANGED');
+  });
+  it('does not query a private profile when getUser was in flight during A to B to A', async () => {
+    configure(); let resolve!: (x: unknown) => void;
+    mockGetUser.mockImplementation(() => new Promise(done => { resolve = done; }));
+    const request = ownProfileClientService.read('account-a', 'narucilac');
+    session.mockReturnValue({ user: { id: 'account-a' }, accountRevision: 3 });
+    resolve({ data: { user: { id: 'account-a' } }, error: null });
+    await expect(request).rejects.toThrow('PROFILE_ACCOUNT_CHANGED'); expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+it('never leaks rejected provider/database exceptions from the own identity service', async () => {
+  configure(); mockGetUser.mockRejectedValue(new Error('RAW PRIVATE TOKEN'));
+  await expect(ownProfileClientService.read('account-a', 'narucilac')).rejects.toThrow('OWN_PROFILE_READ_FAILED');
 });

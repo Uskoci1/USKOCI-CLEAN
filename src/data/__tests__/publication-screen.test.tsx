@@ -1,6 +1,5 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import type { PublicationOutcome } from '../../contracts/publication';
 
 const NEED = '22222222-3333-4444-8555-666666666666';
 const ACCOUNT = '11111111-2222-4333-8444-555555555555';
@@ -16,6 +15,11 @@ const mockAppListeners = new Set<(state: string) => void>();
 const mockAppState = { currentState: 'active', addEventListener: (_: string, fn: (state: string) => void) => {
   mockAppListeners.add(fn); return { remove: () => mockAppListeners.delete(fn) };
 } };
+// A fresh installation has no pending terminal command. Publication itself is
+// exercised by v5-review-screen; this suite verifies the saved-Task bridge.
+jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
+  getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined),
+} }));
 jest.mock('../../data', () => ({ aiNeedV2Izvor: { openEditConversation: (...args: unknown[]) => mockEdit(...args) } }));
 jest.mock('../ru4Production', () => ({ ru4Production: {
   remainingSearchState: (...args: unknown[]) => mockSearch(...args), closeRemainingSearch: (...args: unknown[]) => mockClose(...args),
@@ -38,7 +42,6 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretRight: 'Icon', Clock: 'Icon', MapPin: 'Icon', PencilSimple: 'Icon', UserMinus: 'Icon', Users: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
@@ -48,13 +51,6 @@ function need(revizija = 7, stanje = 'NACRT') {
   return { id: NEED, revizija, stanje, naslov: 'Pregledani Zadatak', opis: 'Opis', podrucjeTekst: 'Novi Sad',
     vremeTekst: 'Po dogovoru', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, uslovi: [], brojPrijava: 0 };
 }
-function evaluation(outcome: PublicationOutcome = 'ALLOW', needRevision = 7) {
-  return { kind: 'DECISION', decision: { decisionId: '33333333-4444-4555-8666-777777777777', decisionSequence: 23,
-    needId: NEED, needRevision, canonicalFingerprint: 'a'.repeat(64), policyBundleId: '44444444-5555-4666-8777-888888888888',
-    policyVersion: 3, jurisdiction: 'RS', outcome, decisionAt: '2026-09-10T14:40:32.123456Z', ruleIds: ['RS_PUBLICATION_1'],
-    safeReasonCodes: [], publishable: outcome === 'ALLOW', authoritative: true } };
-}
-const receipt = () => ({ needId: NEED, status: 'PUBLISHED', publishedAt: '2026-09-10T14:40:33.123456Z', responseDeadline: null, idempotentReplay: false });
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 function deferred<T = unknown>() {
   let resolve!: (value: T) => void;
@@ -71,7 +67,6 @@ const texts = () => tree.root.findAll(node => node.type === 'T' as React.Element
 const tap = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
 const confirmation = () => mockAlert.mock.calls[mockAlert.mock.calls.length - 1][2][1].onPress;
 const confirm = async () => { const action = confirmation(); await act(async () => { action(); }); };
-const allow = async () => { await tap('Proveri za objavu'); await tap('Objavi Zadatak'); };
 const readback = async () => { await act(async () => { await press('Pokušaj ponovo').props.onPress(); }); };
 async function appState(state: string) { await act(async () => { mockAppState.currentState = state;
   [...mockAppListeners].forEach(listener => listener(state)); }); }
@@ -81,202 +76,101 @@ beforeEach(() => {
   mockId = NEED; mockIntent = 'narucilac'; mockFocused = true; mockAppState.currentState = 'active'; mockAppListeners.clear();
   mockSession = { user: { id: ACCOUNT }, accountRevision: 1 };
   mockNeed.mockResolvedValue(need()); mockSearch.mockResolvedValue({ closed: false, closedAt: null });
-  mockEvaluate.mockResolvedValue(ok(evaluation())); mockPublish.mockResolvedValue(ok(receipt()));
   mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true })); mockClose.mockResolvedValue(ok(null));
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
-describe('R04 explicit canonical publication', () => {
-  it.each(['Need', 'remaining search'] as const)('bounds a hanging %s read, keeps retry/back usable, and retires its late result', async source => {
+describe('V5 saved Task enters the same single acceptance review', () => {
+  it('opens the authoritative owned review without a provider call, publication or extra confirmation', async () => {
+    await render(); expect(mockEdit).not.toHaveBeenCalled();
+    await tap('Pregledaj za objavu');
+    expect(mockEdit).toHaveBeenCalledWith(NEED);
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: CONVERSATION } });
+    expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
+  });
+  it('keeps manual conversation editing available without a separate draft confirmation', async () => {
+    await render(); await tap('Izmeni nacrt');
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+    expect(mockAlert).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
+  });
+  it('serializes retained double taps and navigates only after an exact server receipt', async () => {
+    const pending = deferred(); mockEdit.mockReturnValueOnce(pending.promise); await render();
+    const action = button('Pregledaj za objavu').props.onPress;
+    await act(async () => { action(); action(); });
+    expect(mockEdit).toHaveBeenCalledTimes(1); expect(mockRouter.push).not.toHaveBeenCalled();
+    await act(async () => pending.resolve(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true })));
+    expect(mockRouter.push).toHaveBeenCalledTimes(1); expect(mockPublish).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['foreign Task', { needId: OTHER }], ['missing conversation', { conversationId: null }],
+    ['invalid conversation', { conversationId: 'not-a-uuid' }], ['missing authority', { authoritative: false }],
+    ['unsupported status', { needStatus: 'CANCELLED' }], ['invalid revision', { revision: 0 }],
+  ])('rejects %s in a successful-looking open receipt', async (_, patch) => {
+    mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true, ...patch }));
+    await render(); await tap('Pregledaj za objavu');
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).toContain('Otvaranje izmene nije potvrđeno'); expect(mockPublish).not.toHaveBeenCalled();
+  });
+  it.each([{ revision: 8 }, { needStatus: 'PUBLISHED' }])('requires a fresh read if Task revision or draft status changed: %j', async patch => {
+    mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true, ...patch }));
+    await render(); await tap('Pregledaj za objavu');
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).toContain('Zadatak je promenjen');
+  });
+  it.each(['account before render', 'account incarnation', 'blur and return', 'background and return', 'route'])('retires a retained review callback after %s', async reason => {
+    await render(); const retained = button('Pregledaj za objavu').props.onPress;
+    if (reason === 'account before render') mockSession = { user: { id: OTHER }, accountRevision: 2 };
+    else if (reason === 'account incarnation') mockSession = { user: { id: ACCOUNT }, accountRevision: 3 };
+    else if (reason === 'blur and return') { mockFocused = false; await update(); mockFocused = true; await update(); }
+    else if (reason === 'background and return') { await appState('background'); await appState('active'); }
+    else { mockId = OTHER; mockNeed.mockResolvedValue({ ...need(), id: OTHER }); await update(); }
+    await act(async () => retained()); expect(mockEdit).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+  it.each(['account', 'blur', 'background'] as const)('ignores a late server-opened review after %s changes', async reason => {
+    const pending = deferred(); mockEdit.mockReturnValueOnce(pending.promise); await render(); await tap('Pregledaj za objavu');
+    if (reason === 'account') { mockSession = { user: { id: OTHER }, accountRevision: 2 }; await update(); }
+    else if (reason === 'blur') { mockFocused = false; await update(); } else await appState('background');
+    await act(async () => pending.resolve(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true })));
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
+  });
+  it.each(['rejected', 'thrown'])('requires readback after an unknown open outcome: %s', async kind => {
+    if (kind === 'rejected') mockEdit.mockResolvedValueOnce({ ok: false, kod: 'UNKNOWN', poruka: 'Otvaranje nije potvrđeno.' });
+    else mockEdit.mockRejectedValueOnce(new Error('private SQL secret'));
+    await render(); await tap('Pregledaj za objavu');
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).not.toContain('private SQL');
+    expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(0);
+    await readback(); await tap('Pregledaj za objavu'); expect(mockEdit).toHaveBeenCalledTimes(2);
+  });
+  it.each(['Need', 'remaining search'] as const)('bounds a hanging %s read and retires its late result', async source => {
     jest.useFakeTimers(); const pending = deferred();
     if (source === 'Need') mockNeed.mockReturnValueOnce(pending.promise); else mockSearch.mockReturnValueOnce(pending.promise);
     await render(); await act(async () => { jest.advanceTimersByTime(15_000); });
     expect(texts()).toContain('Učitavanje traje predugo');
-    expect(press('Nazad').props.onPress).toEqual(expect.any(Function));
-    expect(tree.root.findAllByProps({ label: 'Proveri za objavu' })).toHaveLength(0);
     mockNeed.mockResolvedValue({ ...need(8), naslov: 'Sveže učitani Zadatak' }); await readback();
     await act(async () => pending.resolve(source === 'Need' ? { ...need(), naslov: 'Zastareli Zadatak' } : { closed: true }));
     expect(texts()).toContain('Sveže učitani Zadatak'); expect(texts()).not.toContain('Zastareli Zadatak');
-    mockEvaluate.mockResolvedValue(ok(evaluation('ALLOW', 8))); await tap('Proveri za objavu');
-    expect(mockEvaluate).toHaveBeenCalledWith({ needId: NEED, expectedRevision: 8 });
-    await act(async () => press('Nazad').props.onPress()); expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 8, needStatus: 'DRAFT', authoritative: true }));
+    await tap('Pregledaj za objavu'); expect(mockRouter.push).toHaveBeenCalledTimes(1);
   });
-  it('does not query on mount and presents policy NOT_READY as a nondecision with an explicit retry', async () => {
-    mockEvaluate.mockResolvedValue(ok({ kind: 'NOT_READY', needId: NEED, needRevision: 7, authoritativeDecision: false, code: 'POLICY_NOT_READY' }));
-    await render(); expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
-    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
-    await tap('Proveri za objavu');
-    expect(mockEvaluate).toHaveBeenCalledWith({ needId: NEED, expectedRevision: 7 });
-    expect(texts()).toContain('Provera za objavu još nije dostupna. Nacrt je sačuvan.');
-    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
-    await tap('Ponovi proveru za objavu'); expect(mockEvaluate).toHaveBeenCalledTimes(2);
+  it('validates the route before reads, and offers the owner review to the owner whatever the app last was', async () => {
+    // Owner decision 1 (2026-09-19). The review used to be withheld from an owner standing in the
+    // other app mode. Ownership is settled by the owner-only read and by the server, not by a mode.
+    mockId = 'invalid'; await render(); expect(mockNeed).not.toHaveBeenCalled();
+    mockId = NEED; mockIntent = 'radnik'; await update();
+    expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
   });
-
-  it.each<PublicationOutcome>(['CLARIFY', 'REVIEW', 'BLOCK'])('shows %s without a publish affordance or invented provider explanation', async outcome => {
-    mockEvaluate.mockResolvedValue(ok(evaluation(outcome))); await render(); await tap('Proveri za objavu');
-    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
-    expect(button('Izmeni nacrt').props.disabled).toBe(false); expect(mockPublish).not.toHaveBeenCalled();
-  });
-
-  it('offers an owned readback when the evaluator reports NEED_CHANGED, instead of repeatedly evaluating the stale revision', async () => {
-    mockEvaluate.mockResolvedValue(ok({ kind: 'NOT_READY', needId: NEED, needRevision: 7, authoritativeDecision: false, code: 'NEED_CHANGED' }));
-    await render(); await tap('Proveri za objavu'); expect(texts()).toContain('Učitajte trenutno stanje pre nove provere');
-    mockNeed.mockResolvedValue(need(8)); await readback(); mockEvaluate.mockResolvedValue(ok(evaluation('ALLOW', 8)));
-    await tap('Proveri za objavu'); expect(mockEvaluate).toHaveBeenLastCalledWith({ needId: NEED, expectedRevision: 8 });
-  });
-
-  it.each([
-    ['mismatched revision', { needRevision: 8 }], ['foreign need', { needId: OTHER }],
-    ['unconfirmed decision', { authoritative: false }], ['false ALLOW', { publishable: false }],
-    ['private provider text', { explanation: 'private database details' }],
-  ])('rejects %s even when a service result is marked ok', async (_, change) => {
-    const result = evaluation(); mockEvaluate.mockResolvedValue(ok({ ...result, decision: { ...result.decision, ...change } }));
-    await render(); await tap('Proveri za objavu');
-    expect(texts()).toContain('Rezultat provere nije potvrđen'); expect(texts()).not.toContain('private database');
-    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0); expect(mockPublish).not.toHaveBeenCalled();
-  });
-
-  it('requires a separate native confirmation, serializes double taps, and reads a real published projection', async () => {
-    const pending = deferred(); mockPublish.mockReturnValueOnce(pending.promise);
-    await render(); await allow();
-    expect(mockPublish).not.toHaveBeenCalled(); expect(mockAlert.mock.calls[0][1]).toContain('Dodatni rok za prijave nije izabran');
-    const action = confirmation(); await act(async () => { action(); action(); });
-    expect(mockPublish).toHaveBeenCalledTimes(1); expect(mockPublish.mock.calls[0][0]).toEqual({ needId: NEED, expectedRevision: 7,
-      decisionSequence: 23, responseDeadline: null, clientRequestId: expect.any(String), confirmed: true });
-    expect(texts()).not.toContain('Server je potvrdio objavu');
-    mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA'));
-    await act(async () => pending.resolve(ok(receipt())));
-    expect(mockNeed).toHaveBeenCalledTimes(2); expect(texts()).toContain('Objavljena');
-    expect(texts()).toContain('ponovo učitano stanje'); expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
-  });
-
-  it.each(['account before render', 'account incarnation', 'blur and return', 'background and return', 'route'])(
-    'retires a retained native confirmation after %s', async reason => {
-      await render(); await allow(); const retained = confirmation();
-      if (reason === 'account before render') mockSession = { user: { id: OTHER }, accountRevision: 2 };
-      else if (reason === 'account incarnation') mockSession = { user: { id: ACCOUNT }, accountRevision: 3 };
-      else if (reason === 'blur and return') { mockFocused = false; await update(); mockFocused = true; await update(); }
-      else if (reason === 'background and return') { await appState('background'); await appState('active'); }
-      else { mockId = OTHER; mockNeed.mockResolvedValue({ ...need(), id: OTHER }); await update(); }
-      await act(async () => retained()); expect(mockPublish).not.toHaveBeenCalled();
-    });
-
-  it('clears a prior ALLOW on background even when the same revision is read on return', async () => {
-    await render(); await tap('Proveri za objavu'); await appState('inactive'); await appState('active');
-    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
-    expect(mockEvaluate).toHaveBeenCalledTimes(1); expect(mockNeed).toHaveBeenCalledTimes(2);
-  });
-
-  it.each(['account', 'blur'] as const)('ignores a late evaluation after %s changes', async reason => {
-    const pending = deferred(); mockEvaluate.mockReturnValueOnce(pending.promise);
-    await render(); await act(async () => { void button('Proveri za objavu').props.onPress(); });
-    if (reason === 'account') mockSession = { user: { id: OTHER }, accountRevision: 2 }; else mockFocused = false;
-    await update(); await act(async () => pending.resolve(ok(evaluation())));
-    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0); expect(mockPublish).not.toHaveBeenCalled();
-  });
-
-  it.each(['rejected', 'thrown', 'malformed receipt'] as const)('reads back after %s and retries the identical intent and key', async reason => {
-    if (reason === 'rejected') mockPublish.mockResolvedValueOnce({ ok: false, kod: 'UNCONFIRMED', poruka: 'Objava nije potvrđena.' });
-    else if (reason === 'thrown') mockPublish.mockRejectedValueOnce(new Error('secret server detail'));
-    else mockPublish.mockResolvedValueOnce(ok({ ...receipt(), needId: OTHER }));
-    await render(); await allow(); await confirm(); const command = mockPublish.mock.calls[0][0];
-    expect(texts()).not.toContain('Server je potvrdio objavu'); expect(texts()).not.toContain('secret server detail');
-    expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev za objavu' })).toHaveLength(0);
-    await readback(); await tap('Ponovi isti zahtev za objavu'); expect(mockPublish).toHaveBeenCalledTimes(1);
-    mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA')); await confirm();
-    expect(mockPublish).toHaveBeenCalledTimes(2); expect(mockPublish.mock.calls[1][0]).toEqual(command);
-    expect(mockEvaluate).toHaveBeenCalledTimes(1);
-  });
-
-  it('drops a previous unknown intent after a changed revision and creates a new key only after fresh evaluation and confirmation', async () => {
-    mockPublish.mockResolvedValueOnce({ ok: false, kod: 'UNKNOWN', poruka: 'Objava nije potvrđena.' });
-    await render(); await allow(); await confirm(); const oldCommand = mockPublish.mock.calls[0][0];
-    mockNeed.mockResolvedValue(need(8)); await readback();
-    expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev za objavu' })).toHaveLength(0);
-    mockEvaluate.mockResolvedValue(ok(evaluation('ALLOW', 8))); await allow();
-    mockNeed.mockResolvedValue(need(8, 'OBJAVLJENA')); await confirm();
-    expect(mockPublish.mock.calls[1][0].expectedRevision).toBe(8);
-    expect(mockPublish.mock.calls[1][0].clientRequestId).not.toBe(oldCommand.clientRequestId);
-  });
-
-  it.each(['PUBLICATION_POLICY_STALE', 'PUBLICATION_CONTEXT_STALE', 'PUBLICATION_CONTEXT_NOT_READY', 'PUBLICATION_DECISION_NOT_ALLOW', 'PUBLICATION_DECISION_CONTEXT_STALE'])(
-    'requires readback and a new explicit evaluation after the definitive server rejection %s', async kod => {
-      mockPublish.mockResolvedValueOnce({ ok: false, kod, poruka: 'Potrebna je nova provera pre objave.' });
-      await render(); await allow(); await confirm(); const oldCommand = mockPublish.mock.calls[0][0];
-      expect(tree.root.findAllByProps({ label: 'Proveri za objavu' })).toHaveLength(0);
-      await readback(); expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev za objavu' })).toHaveLength(0);
-      const fresh = evaluation(); fresh.decision.decisionSequence = 24; mockEvaluate.mockResolvedValue(ok(fresh));
-      await allow(); expect(mockPublish).toHaveBeenCalledTimes(1); mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA')); await confirm();
-      expect(mockPublish.mock.calls[1][0].decisionSequence).toBe(24);
-      expect(mockPublish.mock.calls[1][0].clientRequestId).not.toBe(oldCommand.clientRequestId);
-    });
-
-  it('reports an accepted publication receipt with refresh needed when the fresh read fails, without manufacturing a card', async () => {
-    await render(); await allow(); mockNeed.mockRejectedValueOnce(new Error('private SQL failure')); await confirm();
-    expect(texts()).toContain('Objava je potvrđena. Trenutni prikaz treba osvežiti.');
-    expect(texts()).not.toContain('Pregledani Zadatak'); expect(texts()).not.toContain('Objavljena');
-    expect(texts()).not.toContain('private SQL'); mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA'));
-    await readback(); expect(texts()).toContain('Objavljena'); expect(mockPublish).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not claim a fresh projection while the post-receipt read is pending', async () => {
-    const pending = deferred(); await render(); await allow(); mockNeed.mockReturnValueOnce(pending.promise); await confirm();
-    expect(texts()).toContain('Objava je potvrđena. Učitavamo trenutno stanje');
-    expect(texts()).not.toContain('Prikazujemo ponovo učitano');
-    await act(async () => pending.resolve(need(7, 'OBJAVLJENA'))); expect(texts()).toContain('Prikazujemo ponovo učitano');
-  });
-
-  it.each(['account', 'blur'] as const)('does not expose a late publication receipt after %s changes', async reason => {
-    const pending = deferred(); mockPublish.mockReturnValueOnce(pending.promise); await render(); await allow(); await confirm();
-    if (reason === 'account') mockSession = { user: { id: OTHER }, accountRevision: 2 }; else mockFocused = false;
-    await update(); await act(async () => pending.resolve(ok(receipt())));
-    expect(texts()).not.toContain('Objava je potvrđena'); expect(texts()).not.toContain('Server je potvrdio objavu');
-  });
-
-  it('uses the existing DRAFT edit path only after an actual accepted open-edit receipt', async () => {
-    await render(); await tap('Izmeni nacrt'); expect(mockEdit).not.toHaveBeenCalled(); await confirm();
-    expect(mockEdit).toHaveBeenCalledWith(NEED);
-    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
-  });
-
-  it('does not open an invented edit route from a malformed receipt', async () => {
-    mockEdit.mockResolvedValueOnce(ok({ needId: OTHER, conversationId: CONVERSATION, revision: 7 }));
-    await render(); await tap('Izmeni nacrt'); await confirm(); expect(mockRouter.push).not.toHaveBeenCalled();
-    expect(texts()).toContain('Otvaranje izmene nije potvrđeno');
-  });
-
-  it('does not silently navigate into a server-opened newer revision from an old confirmation', async () => {
-    mockEdit.mockResolvedValueOnce(ok({ needId: NEED, conversationId: CONVERSATION, revision: 8, needStatus: 'DRAFT', authoritative: true }));
-    await render(); await tap('Izmeni nacrt'); await confirm(); expect(mockRouter.push).not.toHaveBeenCalled();
-    expect(texts()).toContain('Zadatak je promenjen. Učitajte trenutno stanje');
-  });
-
-  it('gates publication by requester intent and rejects stale read retry callbacks after blur', async () => {
-    mockNeed.mockRejectedValueOnce(new Error('offline')); await render(); const retry = press('Pokušaj ponovo').props.onPress;
-    mockFocused = false; await update(); mockFocused = true; await update();
-    await act(async () => retry()); expect(mockNeed).toHaveBeenCalledTimes(2);
-    mockIntent = 'radnik'; await update(); expect(tree.root.findAllByProps({ label: 'Proveri za objavu' })).toHaveLength(0);
-  });
-
-  it('preserves published remaining-search closure with one confirmed command and an authoritative reread', async () => {
+  it('preserves partial-search closure with one confirmed command and actual reread', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await act(async () => press('Ne traži više nikoga').props.onPress());
-    expect(mockClose).not.toHaveBeenCalled(); mockSearch.mockResolvedValue({ closed: true });
+    await render(); await tap('Ne traži više nikoga'); expect(mockClose).not.toHaveBeenCalled(); mockSearch.mockResolvedValue({ closed: true });
     const action = confirmation(); await act(async () => { action(); action(); });
-    expect(mockClose).toHaveBeenCalledTimes(1); expect(mockClose).toHaveBeenCalledWith(NEED, 7, expect.any(String));
-    expect(mockNeed).toHaveBeenCalledTimes(2);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Ne traži više nikoga' })).toHaveLength(0);
+    expect(mockClose).toHaveBeenCalledTimes(1); expect(mockClose).toHaveBeenCalledWith(NEED, 7, expect.any(String)); expect(mockNeed).toHaveBeenCalledTimes(2);
   });
-
   it.each(['edit', 'remaining search'] as const)('retires retained published %s confirmation on blur', async action => {
     mockNeed.mockResolvedValue(action === 'edit' ? need(7, 'OBJAVLJENA')
       : { ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await act(async () => press(action === 'edit' ? 'Izmeni Zadatak' : 'Ne traži više nikoga').props.onPress());
+    await render(); await tap(action === 'edit' ? 'Izmeni Zadatak' : 'Ne traži više nikoga');
     const retained = confirmation(); mockFocused = false; await update(); mockFocused = true; await update();
     await act(async () => retained()); expect(mockEdit).not.toHaveBeenCalled(); expect(mockClose).not.toHaveBeenCalled();
   });
 });
-
 
 describe('V2 saved Need presentation', () => {
   it('shows authoritative detail values and every location/requirement on explicit disclosure', async () => {
@@ -299,14 +193,14 @@ describe('V2 saved Need presentation', () => {
     expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
     expect(texts()).not.toContain('Revizija 7');
   });
-  it('keeps one primary publication action outside the scroll with bottom safe area', async () => {
-    await render(); const action = button('Proveri za objavu');
+  it('keeps one primary review action outside the scroll with bottom safe area', async () => {
+    await render(); const action = button('Pregledaj za objavu');
     let parent = action.parent;
     while (parent) { expect(parent.type).not.toBe('ScrollView'); parent = parent.parent; }
     expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom']);
-    expect(tree.root.findAllByProps({ label: 'Proveri za objavu' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
     expect(tree.root.findAllByProps({ label: 'Pogledaj prijave' })).toHaveLength(0);
-    expect(texts()).not.toContain('HITNO'); expect(texts()).not.toContain('Pitanja i odgovori');
+    expect(texts()).not.toContain('HITNO'); expect(texts()).toContain('Otvori pitanja i odgovore');
   });
   it('does not display a raw transport secret attached outside the public projection', async () => {
     mockNeed.mockResolvedValue({ ...need(), need_sensitive: { exact_address: 'SECRET address', exact_lat: 45.123456 }, resolved_location: 'SECRET pin' });
@@ -319,5 +213,14 @@ describe('V2 saved Need presentation', () => {
     expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
     await tap('Pogledaj prijave');
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: NEED } });
+  });
+  it('opens Task-scoped questions with the loaded identity and rejects a callback after blur', async () => {
+    await render(); const retained = press('Otvori pitanja i odgovore').props.onPress;
+    mockFocused = false; await update(); mockFocused = true; await update();
+    await act(async () => retained()); expect(mockRouter.push).not.toHaveBeenCalled();
+    await act(async () => press('Otvori pitanja i odgovore').props.onPress());
+    // The link says these are the questions of my own task, so the way back needs no app mode.
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pitanja-zadatka', params: { needId: NEED, own: '1' } });
+    expect(mockPublish).not.toHaveBeenCalled();
   });
 });

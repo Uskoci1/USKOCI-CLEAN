@@ -82,7 +82,7 @@ describe('CDL-A10 — canonical AI command owner after shadow deletion', () => {
 
   it('preserves fail-fast message validation before Edge', async () => {
     const blank = await aiCommandOverrides.posaljiKorisnikovuPoruku!('conv-1', '   ');
-    expect(blank).toEqual({ ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' });
+    expect(blank).toEqual({ ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesi poruku.' });
     expect(mockInvoke).not.toHaveBeenCalled();
 
     const tooLong = await aiCommandOverrides.posaljiKorisnikovuPoruku!('conv-1', 'x'.repeat(4001));
@@ -106,6 +106,15 @@ describe('CDL-A10 — canonical AI command owner after shadow deletion', () => {
     });
   });
 
+  it('does not read or display arbitrary Edge error bodies', async () => {
+    const json = jest.fn().mockResolvedValue({ code: 'PRIVATE', message: 'https://private.example/token' });
+    mockInvoke.mockResolvedValue({ data: null, error: { context: { json }, message: 'secret-value' } });
+    const result = await aiCommandOverrides.posaljiKorisnikovuPoruku!('conv-1', 'Poruka');
+    expect(json).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: false, kod: 'AI_EDGE_FAILED' });
+    expect(JSON.stringify(result)).not.toMatch(/private.example|secret-value|PRIVATE/);
+  });
+
   it('preserves fact correction trim and exact RPC contract', async () => {
     mockRpc.mockResolvedValue({ data: 'fact-new-1', error: null });
 
@@ -121,11 +130,11 @@ describe('CDL-A10 — canonical AI command owner after shadow deletion', () => {
 
   it('preserves fact correction validation and server failure mapping', async () => {
     const blank = await aiCommandOverrides.ispraviCinjenicu!('fact-1', '   ');
-    expect(blank).toEqual({ ok: false, kod: 'FACT_VALUE_REQUIRED', poruka: 'Unesite vrednost.' });
+    expect(blank).toEqual({ ok: false, kod: 'FACT_VALUE_REQUIRED', poruka: 'Unesi vrednost.' });
     expect(mockRpc).not.toHaveBeenCalled();
 
     mockRpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'NOT_OWNER' } });
     const denied = await aiCommandOverrides.ispraviCinjenicu!('fact-1', 'Nova vrednost');
-    expect(denied).toEqual({ ok: false, kod: '42501', poruka: 'NOT_OWNER' });
+    expect(denied).toEqual({ ok: false, kod: 'NOT_OWNER', poruka: 'Ova radnja nije dostupna na ovom nalogu.' });
   });
 });

@@ -2,7 +2,7 @@
   "historical_source_commit": "b0a915dba28d914203a50fc38d353a433d61e7d1",
   "historical_file_count": 87,
   "historical_live_head": "20260907135905",
-  "historical_inventory_sha256": "52561c1019777c5517128e2b06e45ef79f83bdea6d2149e9fd107500e7351cf4",
+  "historical_inventory_sha256": "e75f4f24684433a1b0ad0821a6b41f83eb10e77cf2eccaa2d07eb3376716a89a",
   "d03": {
     "manifest": "supabase/proofs/notifications/d03_message_retry_files.json",
     "forward_file": "20260907110000_clean_d03_message_retry.sql",

@@ -6,6 +6,7 @@ import { countryCode, timeZone } from '../lib/market';
 import { normalizeTaskGeography } from '../lib/location';
 import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
+import { readNeedUrgencies } from './needUrgencyClientService';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -101,6 +102,14 @@ function mapNeed(raw: any): PotrebaProjekcija {
     schedule,
     detalji,
     podrucjeTekst: detalji.rezimLokacije === 'REMOTE' ? 'Na daljinu' : podrucje(raw.approximate_area, raw.approximate_city),
+    // The same two columns the public reader hands to every signed-in viewer as `pin`, and their
+    // type is the coarseness: numeric(6,2)/(7,2), about a kilometre. Asking for them here only
+    // means the owner can see their own Task where a stranger already sees it — on a map.
+    priblizno: typeof raw.approximate_lat === 'number' && typeof raw.approximate_lng === 'number'
+      ? { lat: raw.approximate_lat, lng: raw.approximate_lng }
+      : raw.approximate_lat !== null && raw.approximate_lng !== null
+        && Number.isFinite(Number(raw.approximate_lat)) && Number.isFinite(Number(raw.approximate_lng))
+        ? { lat: Number(raw.approximate_lat), lng: Number(raw.approximate_lng) } : null,
     uslovi: [
       ...(raw.required_skills ?? []),
       ...(raw.required_tools ?? []),
@@ -108,6 +117,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
     ],
     brojPrijava,
     rezimCene: mode,
+    osnovaCene: raw.price_basis === 'TOTAL' || raw.price_basis === 'PER_PERSON' ? raw.price_basis : null,
     ponudjenaCena:
       cena === null || cena === undefined
         ? undefined
@@ -120,12 +130,12 @@ function mapNeed(raw: any): PotrebaProjekcija {
 }
 
 const NEED_SELECT = `
-  id, revision, title, description, category, status, schedule_kind, starts_at, ends_at,
+  id, revision, title, description, category, status, urgent, schedule_kind, starts_at, ends_at,
   task_country_code, task_timezone, execution_location_mode,
-  approximate_area, approximate_city,
+  approximate_area, approximate_city, approximate_lat, approximate_lng,
   required_slots, required_skills, required_tools, required_vehicles, required_licenses,
   minimum_experience_years, verified_identity_required,
-  covered_slots, mode, requester_price_rsd,
+  covered_slots, mode, requester_price_rsd, price_basis,
   marketplace_responses(id), need_geography(public_topology), need_requirement_details(critical_conditions)
 `;
 
@@ -149,7 +159,8 @@ export const needClientService: NeedReadService = {
 
     if (error) throw new Error(error.message || 'NEED_LIST_FAILED');
     if (!Array.isArray(data)) throw new Error('NEED_LIST_INVALID_PROJECTION');
-    return data.map(mapNeed);
+    const urgency = await readNeedUrgencies(data);
+    return data.map(row => ({ ...mapNeed(row), urgency: urgency.get(row.id) }));
   },
 
   async potreba(id) {
@@ -163,6 +174,8 @@ export const needClientService: NeedReadService = {
       .maybeSingle();
 
     if (error) throw new Error(error.message || 'NEED_READ_FAILED');
-    return data ? mapNeed(data) : null;
+    if (!data) return null;
+    const urgency = await readNeedUrgencies([data]);
+    return { ...mapNeed(data), urgency: urgency.get(data.id) };
   },
 };

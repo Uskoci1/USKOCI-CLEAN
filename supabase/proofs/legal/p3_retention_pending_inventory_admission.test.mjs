@@ -104,9 +104,14 @@ test('runtime proof still replays successors instead of weakening to source-only
   const proof = readFileSync('supabase/proofs/legal/p3_retention_schedule_proof.mjs', 'utf8');
   const workflow = readFileSync('.github/workflows/p3-retention-schedule-proof.yml', 'utf8');
   assert.match(proof, /for\s*\(\s*const\s+successor\s+of\s+plan\.pending_successors\s*\)/);
-  assert.match(proof, /retention_projection_unchanged\s*:\s*true/);
-  assert.match(proof, /retention_original_columns_unchanged\s*:\s*true/);
-  assert.match(proof, /retention_functions_and_grants_unchanged\s*:\s*true/);
+  // PKG-013: the same keys are compared through the shared helper; a flag is true unless a
+  // recorded delta with attributed successors admits exactly that key.
+  assert.match(proof, /assertDomainSnapshotAfterSuccessors\(\{before:retentionBeforeSnapshot,after:retentionAfterSnapshot,plan,label:'RETENTION_STATE_CHANGED_BY_SUCCESSOR'/);
+  assert.match(proof, /admittedDelta:readAdmittedSuccessorDelta\('supabase\/proofs\/legal\/p3_retention_schedule_successor_delta.json'\)/);
+  assert.match(proof, /retention_projection_unchanged:\s*!retentionChanged\('retentionStatus'\)/);
+  assert.match(proof, /retention_original_columns_unchanged:\s*!retentionChanged\('originalColumns'\)/);
+  assert.match(proof, /retention_functions_and_grants_unchanged:\s*!retentionChanged\('functions'\)/);
+  assert.match(proof, /retention_security_unchanged:\s*!retentionChanged\('security'\)/);
   assert.match(workflow, /r\.successor_replay\.count\s*!==\s*r\.predecessor_plan\.pending_successor_count/);
   assert.match(workflow, /r\.migration_history_count\s*!==\s*r\.predecessor_plan\.source_migration_count/);
 });
@@ -123,9 +128,11 @@ test('runtime replay admits only SQL104 nullable export_delivery and preserves a
   assert.match(proof, /attname:'export_delivery',type:'jsonb',attnotnull:false,atthasdef:false/);
   assert.match(proof, /where export_delivery is not null/);
   assert.match(proof, /to_jsonb\(x\)-'export_delivery'/);
-  assert.match(proof, /\[tableHash\(tables\[0\]\),policyOriginalColumnsHash,tableHash\(tables\[2\]\)\],tableBefore/);
-  for (const guard of ['RETENTION_ORIGINAL_COLUMNS_CHANGED_BY_SUCCESSOR', 'RETENTION_TABLE_SECURITY_CHANGED_BY_SUCCESSOR',
-    'RETENTION_FUNCTIONS_OR_GRANTS_CHANGED_BY_SUCCESSOR', 'RETENTION_STATUS_CHANGED_BY_SUCCESSOR']) assert.ok(proof.includes(guard));
+  assert.match(proof, /originalColumns:tableBefore,security:securityBefore,functions:functionsBefore/);
+  assert.match(proof, /originalColumns:\[tableHash\(tables\[0\]\),policyOriginalColumnsHash,tableHash\(tables\[2\]\)\],security:tableSecurity\(\)/);
+  assert.match(proof, /retentionStatus:retentionBefore/);
+  assert.match(proof, /retentionStatus:retentionAfterStatus/);
+  assert.ok(proof.includes('RETENTION_STATE_CHANGED_BY_SUCCESSOR'));
   assert.doesNotMatch(proof, /retention_rows_unchanged\s*:\s*true/);
   assert.match(proof, /additive_extension:\s*\{\s*file:deliveryFile,sha256:delivery.sha256/);
 });

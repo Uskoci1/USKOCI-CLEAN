@@ -1,5 +1,6 @@
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { correctionFromText, factCorrectionValue, factReviewValue } from '../aiNeedV2Ui';
+import { AI_PROPOSABLE_NEED_FACT_V2_KEYS, NEED_FACT_V2_DEFINITIONS } from '../../contracts/needFactsV2';
 
 const priceModeFact: AiNeedV2Fact = {
   id: 'price-mode-proof',
@@ -31,11 +32,11 @@ describe('Need V2 price-mode retirement', () => {
   it('rejects retired FASTEST and former najbrže aliases', () => {
     expect(correctionFromText(priceModeFact, 'FASTEST')).toEqual({
       ok: false,
-      message: 'Koristite: moja cena ili ponude.',
+      message: 'Koristiš: moja cena ili ponude.',
     });
     expect(correctionFromText(priceModeFact, 'najbrže')).toEqual({
       ok: false,
-      message: 'Koristite: moja cena ili ponude.',
+      message: 'Koristiš: moja cena ili ponude.',
     });
   });
 });
@@ -60,10 +61,10 @@ describe('authoritative fact review and correction values', () => {
     expect(correctionFromText(fact, factCorrectionValue(fact))).toMatchObject({ ok: true, value });
     expect(factReviewValue(fact)).not.toBe(fact.displayValue);
   });
-  it.each([true, false])('renders and round-trips actual boolean %s', value => {
+  it.each([true, false])('renders historical identity requirement %s without silently changing its value', value => {
     const fact = typedFact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN', value });
     expect(factReviewValue(fact)).toBe(value ? 'Da' : 'Ne');
-    expect(correctionFromText(fact, factCorrectionValue(fact))).toMatchObject({ ok: true, value });
+    expect(factCorrectionValue(fact)).toBe(value ? 'Da' : 'Ne');
   });
   it('keeps number input parseable while showing the known RSD unit', () => {
     const fact = typedFact({ key: 'need.price_rsd', valueType: 'INTEGER', value: 500 });
@@ -116,5 +117,90 @@ describe('authoritative fact review and correction values', () => {
     const rendered = factReviewValue(typedFact({ key: 'need.resolved_location', valueType: 'OBJECT', privacyClass: 'PRIVATE', value }));
     for (const fragment of ['1 od 1', 'RS', 'Novi Sad', 'Privatna 42', '45.255123', '19.845123', 'Ulaz A', 'Drugi sprat']) expect(rendered).toContain(fragment);
     expect(rendered).not.toContain('secret-hint');
+  });
+});
+
+describe('PKG-003 deterministic manual task time correction', () => {
+  const start = typedFact({ key: 'need.starts_at', valueType: 'TIMESTAMPTZ', value: '2026-09-15T10:00:00Z' });
+
+  it('resolves a plain civil time in the explicit review zone rather than the host/device timezone', () => {
+    expect(correctionFromText(start, '2026-09-15 12:00')).toEqual({
+      ok: true,
+      value: '2026-09-15T10:00:00.000Z',
+      displayValue: '2026-09-15 12:00',
+    });
+  });
+
+  it('rejects impossible civil dates instead of Date.parse normalization', () => {
+    expect(correctionFromText(start, '2026-02-30 12:00')).toMatchObject({ ok: false });
+  });
+
+  it('rejects a DST gap and repeated wall clock in Europe/Belgrade', () => {
+    const gap = correctionFromText(start, '2026-03-29 02:30');
+    const repeated = correctionFromText(start, '2026-10-25 02:30');
+    expect(gap).toMatchObject({ ok: false });
+    expect(repeated).toMatchObject({ ok: false });
+    if (!gap.ok) expect(gap.message).toContain('ne postoji');
+    if (!repeated.ok) expect(repeated.message).toContain('ponavlja');
+  });
+
+  it('preserves an exact valid ISO offset and microseconds byte-for-byte', () => {
+    const exact = '2026-09-15T12:00:45.123456+02:00';
+    expect(correctionFromText(start, exact)).toEqual({ ok: true, value: exact, displayValue: exact });
+  });
+
+  it.each(['09/15/2026 12:00', 'September 15 2026 12:00', '2026-09-15T12:00'])('rejects ambiguous/free-form time %s', input => {
+    expect(correctionFromText(start, input)).toMatchObject({ ok: false });
+  });
+});
+
+describe('AF-D23 unavailable external identity requirement', () => {
+  const identity = typedFact({ key: 'need.verified_identity_required', valueType: 'BOOLEAN', value: true });
+  it.each(['Da', 'yes', 'true', '1'])('rejects explicit true alias %s with a truthful explanation', text => {
+    expect(correctionFromText(identity, text)).toEqual({ ok: false, message: expect.stringContaining('nije dostupna') });
+  });
+  it.each(['Ne', 'no', 'false', '0'])('permits explicit false alias %s for historical correction', text => {
+    expect(correctionFromText(identity, text)).toMatchObject({ ok: true, value: false });
+  });
+  it('retains the typed historical key while removing it from provider proposals', () => {
+    expect(NEED_FACT_V2_DEFINITIONS['need.verified_identity_required']).toMatchObject({ valueType: 'BOOLEAN', requiredForDraft: false, manualOnly: true });
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.verified_identity_required');
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.required_vehicles');
+  });
+});
+
+describe('PKG-025d price basis in the review', () => {
+  const basis = (value: unknown) => typedFact({ key: 'need.price_basis', valueType: 'ENUM', requiredForDraft: false, value });
+
+  it('names the basis in words rather than showing the stored enum or the model summary', () => {
+    expect(factReviewValue(basis('PER_PERSON'))).toBe('Po osobi');
+    expect(factReviewValue(basis('TOTAL'))).toBe('Ukupno za ceo zadatak');
+    expect(factReviewValue(basis('TOTAL'))).not.toBe(basis('TOTAL').displayValue);
+  });
+
+  it.each(['TOTAL', 'PER_PERSON'])('round-trips %s through the correction editor unchanged', value => {
+    const fact = basis(value);
+    expect(correctionFromText(fact, factCorrectionValue(fact))).toMatchObject({ ok: true, value });
+  });
+
+  it.each([['ukupno', 'TOTAL'], ['Po Osobi', 'PER_PERSON'], ['per_person', 'PER_PERSON']])(
+    'accepts %s as %s', (text, value) => {
+      expect(correctionFromText(basis('TOTAL'), text)).toMatchObject({ ok: true, value });
+    });
+
+  // Without this the ENUM falls through to "accept any text": the word reaches the server, which
+  // refuses it with V2_PRICE_BASIS_INVALID, and the person is told nothing useful. The refusal
+  // belongs where the typing happened.
+  it.each(['po komadu', 'PO_OSOBI_MOZDA', 'total price'])('refuses %s here rather than on the server', text => {
+    expect(correctionFromText(basis('TOTAL'), text)).toEqual({ ok: false, message: 'Koristiš: ukupno ili po osobi.' });
+  });
+
+  it('leaves an empty field to the general rule, which already says the better thing', () => {
+    expect(correctionFromText(basis('TOTAL'), '   ')).toEqual({ ok: false, message: 'Unesi vrednost.' });
+  });
+
+  it('says so plainly when the stored basis is not one this app knows', () => {
+    expect(factReviewValue(basis('PER_HOUR'))).toBe('Osnova cene nije dostupna');
+    expect(factReviewValue(basis(7))).toBe('Osnova cene nije dostupna');
   });
 });

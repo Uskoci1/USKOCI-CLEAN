@@ -8,6 +8,11 @@ const SCHEDULE: Record<NeedScheduleProjection['kind'], string> = {
   TODAY_FLEXIBLE: 'Danas, fleksibilno', TOMORROW_FLEXIBLE: 'Sutra, fleksibilno', WEEK_FLEXIBLE: 'Ove nedelje, fleksibilno',
 };
 const GEOGRAPHY = { STATIONARY: 'Na jednom mestu', POINT_TO_POINT: 'Od mesta do mesta', MULTI_STOP: 'Više stanica', AREA_BASED: 'Na području', REMOTE: 'Na daljinu' };
+/** The reader's own zone, when the platform will say. */
+function deviceZone(): string | null {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; }
+}
+
 /** Presentation follows the saved task zone. Historical unknown zones are explicitly UTC. */
 export function needScheduleText(schedule: NeedScheduleProjection, timezone?: string): string {
   const zone = timezone ?? 'UTC';
@@ -24,18 +29,95 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
       const second = parsed >= 0n ? parsed / 1_000_000n : (parsed - 999_999n) / 1_000_000n;
       const offsetMinutes = Number((wall - second * 1_000_000n) / 60_000_000n);
       const offset = `UTC${offsetMinutes < 0 ? '−' : '+'}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
-      return { text: `${displayDate(parts.date)} ${parts.date.slice(0, 4)} · ${time}`, offset };
+      return { text: `${displayDate(parts.date)} ${parts.date.slice(0, 4)} · ${time}`, offset, date: parts.date, time };
     } catch { return null; }
   };
   const start = instant(schedule.startsAt), end = instant(schedule.endsAt);
   // Repeated civil times across a DST change need both offsets to remain exact.
   const shifted = start && end && start.offset !== end.offset;
-  const range = start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${end.text}${shifted ? ` ${end.offset}` : ''}`
+  // A window that begins and ends on one day named that day twice: "20. sep 2026 · 06:38:53 –
+  // 20. sep 2026 · 09:38:53". The second date says nothing the first did not. The exact instant is
+  // kept to the microsecond, because for a Dogovor that is the thing being agreed.
+  const sameDay = !!start && !!end && start.date === end.date;
+  const endText = sameDay ? end!.time : end?.text;
+  const range = start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
     : start ? `Od ${start.text}` : end ? `Do ${end.text}` : null;
   const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilan raspon · ';
-  return range ? `${preference}${range} (${timezone ?? 'UTC · zona nije navedena'})`
+  // A zone the reader is already standing in does not need to be named; a different one does.
+  // Naming it was not the problem — printing an instant in UTC and apologising for it was.
+  const named = timezone && timezone !== deviceZone() ? ` (${timezone})` : timezone ? '' : ' (UTC · zona nije navedena)';
+  return range ? `${preference}${range}${named}`
     : schedule.kind === 'FIXED_WINDOW' ? 'Tačan termin nije potpun' : SCHEDULE[schedule.kind];
 }
+/**
+ * A task title as a person should read it.
+ *
+ * Six of seventeen tasks on canonical DEV are stored with their title inside quotation marks —
+ * `"Hitno prenosenje troseda"` — because that is how the interview wrote them. The stored value is
+ * the server's and stays exactly as it is: cdl-a03-need-read-equivalence requires the projection to
+ * carry it unchanged, and the real repair belongs in the prompt that writes it. This is the same
+ * display-only tidy the category already gets, and it removes only a PAIR of wrapping quotes, so a
+ * title that genuinely quotes something keeps it.
+ */
+export function readableTitle(value: string | null | undefined): string {
+  if (typeof value !== 'string') return '';
+  const text = value.trim().replace(/\s+/g, ' ');
+  const pairs: [string, string][] = [['"', '"'], ['„', '“'], ['“', '”'], ["'", "'"]];
+  for (const [open, close] of pairs) {
+    if (text.length > 1 && text.startsWith(open) && text.endsWith(close)) return text.slice(1, -1).trim();
+  }
+  return text;
+}
+
+export type PriceBasis = "TOTAL" | "PER_PERSON" | null | undefined;
+
+/**
+ * What a task's price says, in words, once a task can say what its price is FOR (pkg025a-c).
+ *
+ * A null basis is every task written before 2026-09-20 and every task written since without one:
+ * it reads exactly as it always has, because nothing about it has changed. PER_PERSON names the
+ * unit, and on a screen with room it also names what the whole task would cost, which is the number
+ * the owner said a person actually wants: "3.000 RSD po osobi - 6 osoba - ukupno 18.000 RSD".
+ */
+export function needPriceText(input: {
+  rezimCene?: string; ponudjenaCena?: { iznos: number; prikaz: string }; osnovaCene?: PriceBasis;
+  pokrivenost?: { ukupno: number };
+}, options?: { withTotal?: boolean }): string {
+  if (input.rezimCene === 'OFFERS') return 'Tražim ponude';
+  if (!input.ponudjenaCena) return 'Cena nije navedena';
+  const amount = input.ponudjenaCena.prikaz;
+  if (input.osnovaCene === 'PER_PERSON') {
+    const people = input.pokrivenost?.ukupno ?? 0;
+    if (!options?.withTotal || people < 2 || !Number.isFinite(input.ponudjenaCena.iznos)) return `${amount} po osobi`;
+    return `${amount} po osobi · ukupno ${(input.ponudjenaCena.iznos * people).toLocaleString('sr-Latn-RS')} RSD`;
+  }
+  if (input.osnovaCene === 'TOTAL') return `${amount} ukupno`;
+  return amount;
+}
+
+/**
+ * The qualifier that belongs under a price, when the number by itself would mislead.
+ *
+ * Some surfaces — the draft card in the interview above all — are built around one big number, and
+ * `needPriceText`'s combined string does not fit that shape: "5.000 RSD po osobi · ukupno 15.000 RSD"
+ * in that size is no longer a signature, it is a sentence. But dropping the qualifier is what the
+ * owner refused on the first device run: the card read 5.000 for a three-person task that actually
+ * costs 15.000, and the number a person pays is the one they must see before publishing.
+ *
+ * So the number stays big and this goes quietly underneath it. It lives beside needPriceText so the
+ * two cannot drift into saying different things about the same price.
+ */
+export function needPriceBasisNote(input: {
+  osnovaCene?: PriceBasis; ponudjenaCena?: { iznos: number }; pokrivenost?: { ukupno: number };
+}): string | null {
+  if (input.osnovaCene === 'TOTAL') return 'ukupno za ceo zadatak';
+  if (input.osnovaCene !== 'PER_PERSON') return null;
+  const people = input.pokrivenost?.ukupno ?? 0;
+  const amount = input.ponudjenaCena?.iznos;
+  if (people < 2 || typeof amount !== 'number' || !Number.isFinite(amount)) return 'po osobi';
+  return `po osobi · ukupno ${(amount * people).toLocaleString('sr-Latn-RS')} RSD`;
+}
+
 export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {
   const geo = need.detalji?.geografija;
   if (!geo) return [{ label: 'Približno područje', value: need.podrucjeTekst }];

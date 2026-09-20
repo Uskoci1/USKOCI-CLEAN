@@ -28,7 +28,6 @@ jest.mock('../../data/supabaseClient', () => ({
 
 let store: typeof import('../sesija');
 let targets: typeof import('../povratniCilj');
-let roles: typeof import('../uloga');
 let restore: ReturnType<typeof deferred<{ data: { session: Session | null }; error: Error | null }>>;
 const session = (id: string, token = id): Session => ({
   access_token: 'access-' + token, refresh_token: 'refresh-' + token, expires_in: 3600, token_type: 'bearer',
@@ -50,7 +49,6 @@ beforeEach(() => {
     return { data: { subscription: { unsubscribe: jest.fn() } } };
   });
   targets = require('../povratniCilj');
-  roles = require('../uloga');
   store = require('../sesija');
 });
 afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
@@ -63,14 +61,11 @@ describe('actual session store ownership', () => {
     expect(store.sesijaSada().accountRevision).toBe(0);
     emit('SIGNED_IN', session('account-a'));
     expect(store.sesijaSada().accountRevision).toBe(1);
-    roles.postaviUlogu('uskocer');
     emit('TOKEN_REFRESHED', session('account-a', 'refreshed'));
     expect(store.sesijaSada().accountRevision).toBe(1);
-    expect(roles.ulogaSada()).toBe('uskocer');
     emit('SIGNED_IN', session('account-b'));
     emit('SIGNED_IN', session('account-a', 'new-login'));
     expect(store.sesijaSada().accountRevision).toBe(3);
-    expect(roles.ulogaSada()).toBe('narucilac');
     emit('SIGNED_OUT', null);
     expect(store.sesijaSada().accountRevision).toBe(4);
     emit('SIGNED_OUT', null);
@@ -113,14 +108,16 @@ describe('actual session store ownership', () => {
     const returned = emit('SIGNED_IN', session('account-a'));
     expect(returned).toBeUndefined();
     await runDeferredWork();
-    expect(roles.ulogaSada()).toBe('uskocer');
     expect(store.sesijaSada().returnTargetRevision).toBe(1);
     expect(await targets.povratniCilj.consumeCompleted('account-a')).toMatchObject({
       completedByUserId: 'account-a', intent: { intent: 'WORKER', returnTarget: { kind: 'NEED', needId: 'need-1' } },
     });
   });
 
-  it('does not let A set intent or complete a target after B signs in during its snapshot', async () => {
+  // Owner decision 1 (2026-09-19): these used to read the app's global mode as the witness that A's
+  // choice had not leaked into B. The mode is gone; the witness is the return target itself, which
+  // is what actually carries a person somewhere.
+  it('does not let A complete a target after B signs in during its snapshot', async () => {
     await targets.povratniCilj.prepare({ intent: 'WORKER' });
     const pending = await targets.povratniCilj.snapshot();
     const snapshot = deferred<AuthReturnTargetRecordV2 | null>();
@@ -134,11 +131,11 @@ describe('actual session store ownership', () => {
     await runDeferredWork();
     expect(store.sesijaSada().user?.id).toBe('account-b');
     expect(complete.mock.calls.some(([account]) => account === 'account-a')).toBe(false);
-    expect(roles.ulogaSada()).toBe('narucilac');
+    expect(store.sesijaSada().returnTargetRevision).toBe(0);
     expect(await targets.povratniCilj.snapshot()).toBeNull();
   });
 
-  it('does not apply A intent after its completion resolves during B session', async () => {
+  it('does not hand the completion of A to the session of B when it resolves late', async () => {
     await targets.povratniCilj.prepare({ intent: 'WORKER' });
     const pending = await targets.povratniCilj.snapshot();
     const completion = deferred<AuthReturnTargetRecordV2 | null>();
@@ -149,11 +146,11 @@ describe('actual session store ownership', () => {
     emit('SIGNED_IN', session('account-b'));
     completion.resolve({ ...pending!, status: 'COMPLETED', completedByUserId: 'account-a' });
     await runDeferredWork();
-    expect(roles.ulogaSada()).toBe('narucilac');
+    expect(store.sesijaSada().returnTargetRevision).toBe(0);
     expect(store.sesijaSada().user?.id).toBe('account-b');
   });
 
-  it('logout immediately resets role and invalidates A work even if the same account signs in again', async () => {
+  it('logout invalidates the pending target of A, and a late snapshot from before it cannot complete it for the new login', async () => {
     await targets.povratniCilj.prepare({ intent: 'WORKER' });
     const pending = await targets.povratniCilj.snapshot();
     const snapshot = deferred<AuthReturnTargetRecordV2 | null>();
@@ -161,14 +158,12 @@ describe('actual session store ownership', () => {
     store.inicijalizujSesiju();
     emit('SIGNED_IN', session('account-a'));
     await runDeferredWork();
-    roles.postaviUlogu('uskocer');
     emit('SIGNED_OUT', null);
-    expect(roles.ulogaSada()).toBe('narucilac');
     emit('SIGNED_IN', session('account-a', 'new-login'));
     snapshot.resolve(pending);
     await runDeferredWork();
-    expect(roles.ulogaSada()).toBe('narucilac');
     expect(await targets.povratniCilj.snapshot()).toBeNull();
+    expect(await targets.povratniCilj.consumeCompleted('account-a')).toBeNull();
   });
 
   it('keeps Auth usable and a failed pending intent retryable after local storage failure', async () => {
@@ -178,10 +173,10 @@ describe('actual session store ownership', () => {
     emit('SIGNED_IN', session('account-a'));
     await runDeferredWork();
     expect(store.sesijaSada()).toMatchObject({ isLoaded: true, user: { id: 'account-a' } });
-    expect(roles.ulogaSada()).toBe('narucilac');
+    expect(store.sesijaSada().returnTargetRevision).toBe(0);
     emit('SIGNED_IN', session('account-a'));
     await runDeferredWork();
-    expect(roles.ulogaSada()).toBe('uskocer');
+    expect(store.sesijaSada().returnTargetRevision).toBe(1);
   });
 
   it('never adopts A pending target for B when previous-account cleanup fails', async () => {
@@ -195,7 +190,7 @@ describe('actual session store ownership', () => {
     emit('TOKEN_REFRESHED', session('account-b', 'refreshed'));
     await runDeferredWork();
     expect(store.sesijaSada()).toMatchObject({ isLoaded: true, user: { id: 'account-b' } });
-    expect(roles.ulogaSada()).toBe('narucilac');
+    expect(store.sesijaSada().returnTargetRevision).toBe(0);
     expect((await targets.povratniCilj.snapshot())?.status).toBe('PENDING');
     expect(await targets.povratniCilj.consumeCompleted('account-b')).toBeNull();
   });
@@ -211,7 +206,6 @@ describe('actual session store ownership', () => {
     await targets.povratniCilj.prepare({ intent: 'WORKER', returnTarget: { kind: 'NEED', needId: 'b-need' } });
     emit('SIGNED_IN', session('account-b'));
     await runDeferredWork();
-    expect(roles.ulogaSada()).toBe('uskocer');
     expect(await targets.povratniCilj.consumeCompleted('account-b')).toMatchObject({
       completedByUserId: 'account-b', intent: { returnTarget: { kind: 'NEED', needId: 'b-need' } },
     });
@@ -227,7 +221,27 @@ describe('actual session store ownership', () => {
     await runDeferredWork();
     emit('SIGNED_IN', session('account-b'));
     await runDeferredWork();
-    expect(roles.ulogaSada()).toBe('narucilac');
+    expect(store.sesijaSada().returnTargetRevision).toBe(0);
     expect(await targets.povratniCilj.snapshot()).toBeNull();
   });
+});
+
+// Owner decision 1 (2026-09-19). A restored session used to stay hidden, for up to 1.5 s, until a
+// per-account UI mode had been read from storage, and an explicit choice before signing in overwrote
+// that stored mode. There is no mode: the session is revealed when it is accepted, and a record an
+// older build left in storage is neither read nor rewritten.
+it('reveals a restored session as soon as it is accepted; an old stored app mode is not waited for', async () => {
+  mockRecords['uskoci:account-intent:v1:account-a'] = JSON.stringify({ version: 1, accountId: 'account-a', role: 'uskocer' });
+  store.inicijalizujSesiju(); emit('INITIAL_SESSION', session('account-a'));
+  expect(store.sesijaSada()).toMatchObject({ isLoaded: true, user: { id: 'account-a' } });
+  expect('intentReady' in store.sesijaSada()).toBe(false);
+});
+it('an explicit choice before signing in is carried as a destination and leaves any old stored app mode untouched', async () => {
+  const stored = JSON.stringify({ version: 1, accountId: 'account-a', role: 'uskocer' });
+  mockRecords['uskoci:account-intent:v1:account-a'] = stored;
+  await targets.povratniCilj.prepare({ intent: 'REQUESTER' });
+  store.inicijalizujSesiju(); emit('SIGNED_IN', session('account-a')); await runDeferredWork();
+  expect(store.sesijaSada().returnTargetRevision).toBe(1);
+  expect(await targets.povratniCilj.consumeCompleted('account-a')).toMatchObject({ completedByUserId: 'account-a', intent: { intent: 'REQUESTER' } });
+  expect(mockRecords['uskoci:account-intent:v1:account-a']).toBe(stored);
 });

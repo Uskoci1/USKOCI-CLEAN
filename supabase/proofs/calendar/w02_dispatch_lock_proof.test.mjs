@@ -16,7 +16,7 @@ const observed = (waiter,holder) => ({waiter_pid:waiter,holder_pid:holder,wait_e
 function receipt() {
   const first = observed(12,13), second = observed(13,12);
   const edges = [first,second].map((edge,index)=>({...edge,mode:'ShareLock',transaction_id:400+index}));
-  return {unit:'W02_DISPATCH_NEED_LOCK_ORDER',source_sha:sha,result:'PASS',source_migration_count:108,registry_history_count:105,
+  return {unit:'W02_DISPATCH_NEED_LOCK_ORDER',source_sha:sha,result:'PASS',source_migration_count:147,registry_history_count:105,
     applied_authority:'REGISTRY105_PLUS_UNRECORDED_DISPATCH108',actual_postgres_major:17,
     observed_predecessor_body_md5:{'private.dispatch_tick(integer,timestamptz)':'6bbd8765aa833b3c27209c82da99e5e4',
       'private.expire_lifecycle(timestamptz)':'fa0ae36b9d1c63ebe4b8f9a7c3b1e26d'},

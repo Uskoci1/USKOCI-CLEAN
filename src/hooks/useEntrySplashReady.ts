@@ -1,30 +1,63 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { releaseEntrySplash } from '../bootstrap/entrySplashBootstrap';
 
 export type EntrySplashReadiness = 'pending' | 'ready' | 'skip';
 
-/** A laid-out presentation releases the startup cover; it never controls Auth. */
+/** Entry requires prepared source artwork; this never controls Auth. */
 export function useEntrySplashReady({ enabled = true, waitForScene = false }: {
   enabled?: boolean; waitForScene?: boolean;
 } = {}) {
   const [laidOut, setLaidOut] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [sceneWaitExpired, setSceneWaitExpired] = useState(false);
   const [readiness, setReadiness] = useState<EntrySplashReadiness>('pending');
-  const onSceneReady = useCallback(() => setSceneReady(true), []);
+  const mounted = useRef(true), skipLatched = useRef(false), sceneAcknowledged = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const onSceneReady = useCallback(() => {
+    if (!mounted.current || skipLatched.current) return;
+    sceneAcknowledged.current = true;
+    setSceneReady(true);
+  }, []);
   const onLayout = useCallback((event: LayoutChangeEvent) => {
     if (event.nativeEvent.layout.width > 0 && event.nativeEvent.layout.height > 0) setLaidOut(true);
   }, []);
 
   useEffect(() => {
-    if (!enabled || !laidOut || (waitForScene && !sceneReady)) return;
+    if (!enabled || !laidOut || !waitForScene || sceneReady || skipLatched.current) return;
+    const timeout = setTimeout(() => {
+      if (!mounted.current || sceneAcknowledged.current) return;
+      skipLatched.current = true;
+      setReadiness('skip'); setSceneWaitExpired(true);
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [enabled, laidOut, waitForScene, sceneReady]);
+
+  useEffect(() => {
+    if (!enabled || !laidOut) return;
+    if (waitForScene && !sceneReady) {
+      if (!sceneWaitExpired) return;
+      // This effect follows the React commit selecting static welcome. If the
+      // UI observer failed, skip motion explicitly and give that static view a
+      // draw opportunity before release. Never relabel this fallback as ready.
+      let active = true;
+      let frame = requestAnimationFrame(() => {
+        if (!active) return;
+        frame = requestAnimationFrame(() => {
+          if (active) void releaseEntrySplash().catch(() => {});
+        });
+      });
+      return () => { active = false; cancelAnimationFrame(frame); };
+    }
+    if (skipLatched.current) return;
     let active = true;
     let settled = false;
     let frame: number | undefined;
     const settle = (value: EntrySplashReadiness) => {
       if (!active || settled) return;
       settled = true;
+      if (value === 'skip') skipLatched.current = true;
       clearTimeout(timeout);
       if (frame !== undefined) cancelAnimationFrame(frame);
       setReadiness(value);
@@ -38,8 +71,9 @@ export function useEntrySplashReady({ enabled = true, waitForScene = false }: {
         SplashScreen.setOptions({ duration: 0, fade: false });
         await releaseEntrySplash();
         if (!active || settled) return;
-        // The first callback precedes a draw. Start only in the following frame,
-        // after the laid-out native view had a chance to be presented.
+        // Entry holds the first nonempty source sample throughout this request.
+        // SDK57 acknowledgement is not an overlay-removal fence. The clock also
+        // waits for later UI frames before resuming the unchanged remaining time.
         frame = requestAnimationFrame(() => {
           if (!active || settled) return;
           frame = requestAnimationFrame(() => settle('ready'));
@@ -54,7 +88,7 @@ export function useEntrySplashReady({ enabled = true, waitForScene = false }: {
       clearTimeout(timeout);
       if (frame !== undefined) cancelAnimationFrame(frame);
     };
-  }, [enabled, laidOut, sceneReady, waitForScene]);
+  }, [enabled, laidOut, sceneReady, waitForScene, sceneWaitExpired]);
 
   return { readiness, onLayout, onSceneReady };
 }

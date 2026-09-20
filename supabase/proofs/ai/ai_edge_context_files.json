@@ -4,18 +4,18 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 38731,
-      "sha256": "9b274ae5523b7973b7c13e55b83195db622712c694602d6f3e6900a8c23c15fb"
+      "bytes": 46023,
+      "sha256": "a0a8ff1fc5a5e327e9a3979a7fad540902f367d2476ba80c583611dda9a633a1"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
-      "bytes": 5523,
-      "sha256": "fb4b145a1f9aebe5d8b72339125153c6401ec8323f4a0107946766ab28f0218c"
+      "bytes": 7029,
+      "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-      "bytes": 21688,
-      "sha256": "a829f98706c7cb487cfc0fada045b549fe4e72476aa0f23c1d0eef1ad6ea09c2"
+      "bytes": 25643,
+      "sha256": "69c7da8805dc23f21b1a422928f38e9ab792bcb3c77d05d712ce6a47aa39a95c"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",
@@ -25,17 +25,38 @@
     {
       "path": ".github/workflows/ai-edge-context-proof.yml",
       "bytes": 4051,
-      "sha256": "f18c0b6192d76ca520ea7563052a1608aea20630be65e987d9e66fab43c36c9b"
+      "sha256": "6a0f554e7f6744477e5c25d56e75c0c8787e3300ac0f5135f594ed4675bde4a5"
     },
     {
       "path": "supabase/proofs/ai/owned_intake_edge_runtime.mjs",
-      "bytes": 2133,
-      "sha256": "e62f2989137ea30d2ba7a88b11949b54403ba4b7ce43e4a5b7dac774eb30bf4c"
+      "bytes": 2866,
+      "sha256": "105ea42d0778ae53826c4866718d0cc50c3e9f580469f9a885364ed55613e3ea"
     },
     {
       "path": "supabase/proofs/ai/owned_intake_edge.test.mjs",
-      "bytes": 11113,
-      "sha256": "61c1d2e0de69a60acf9732ca923b2364e6a1a5eafe20f8e0431483121f4c82ac"
+      "bytes": 13990,
+      "sha256": "724afe1412c9b82fd1a8c7bcc80c524dce4394999f7f3fbdbbd0c134b82491af"
     }
-  ]
+  ],
+  "refrozen": {
+    "package": "PKG-025d-PRICE-BASIS",
+    "date": "2026-09-20",
+    "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
+    "changedFiles": [
+      {
+        "path": "supabase/functions/uskoci-ai-interview/index.ts",
+        "bytesBefore": 44769,
+        "bytesAfter": 46023
+      },
+      {
+        "path": "src/contracts/needFactsV2.ts",
+        "bytesBefore": 5897,
+        "bytesAfter": 7029
+      }
+    ],
+    "previousFreeze": {
+      "package": "V3-EDGE-LOG-FIX",
+      "date": "2026-09-19"
+    }
+  }
 }

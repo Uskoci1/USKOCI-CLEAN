@@ -70,7 +70,7 @@ describe('CDL-A06 — canonical problem-report contract', () => {
     expect(result).toEqual({
       ok: false,
       kod: 'NARRATIVE_REQUIRED',
-      poruka: 'Opišite problem.',
+      poruka: 'Opiši problem.',
     });
   });
 

@@ -46,7 +46,7 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { needClientService } from '../needClientService';
-import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText } from '../needDetailPresentation';
+import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText, needPriceBasisNote, needPriceText, readableTitle } from '../needDetailPresentation';
 
 const mocks = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
@@ -219,6 +219,101 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     const selection = String(mocks.mockSelect.mock.calls[0][0]);
     for (const key of ['category', 'ends_at', 'schedule_kind', 'task_country_code', 'task_timezone', 'need_geography(public_topology)', 'need_requirement_details(critical_conditions)']) expect(selection).toContain(key);
     expect(selection).not.toMatch(/need_sensitive|exact_address|resolved_location|exact_lat|requester_account_id/);
+  });
+  it('says what a price is for, and says nothing new about a task that never declared one', () => {
+    const money = (iznos: number) => ({ iznos, valuta: 'RSD' as const, prikaz: `${iznos.toLocaleString('sr-Latn-RS')} RSD` });
+    const six = { pokrivenost: { ukupno: 6 } };
+
+    // A null basis is every task that exists today. It must read exactly as it always has.
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: null, ...six })).toBe('3.000 RSD');
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), ...six }, { withTotal: true })).toBe('3.000 RSD');
+    expect(needPriceText({ rezimCene: 'OFFERS', ...six })).toBe('Tražim ponude');
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ...six })).toBe('Cena nije navedena');
+
+    // The owner's own example, 2026-09-19: six people, 3000 per person, 18000 for the task.
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: 'PER_PERSON', ...six }))
+      .toBe('3.000 RSD po osobi');
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: 'PER_PERSON', ...six }, { withTotal: true }))
+      .toBe('3.000 RSD po osobi · ukupno 18.000 RSD');
+    // For one person a per-person price IS the total, so the arithmetic is not spelled out.
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: 'PER_PERSON', pokrivenost: { ukupno: 1 } }, { withTotal: true }))
+      .toBe('3.000 RSD po osobi');
+
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(18000), osnovaCene: 'TOTAL', ...six })).toBe('18.000 RSD ukupno');
+  });
+  // The draft card in the interview is built around one big green number, so the combined string
+  // does not fit it. The owner saw that card read 5.000 for a three-person task costing 15.000 and
+  // refused it. The note is what goes under the number instead, and it must never contradict the
+  // sentence above, which is why the two live in one file.
+  it('states what a price is for under a big number, without repeating the number', () => {
+    const three = { pokrivenost: { ukupno: 3 } };
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000 }, ...three }))
+      .toBe('po osobi · ukupno 15.000 RSD');
+    expect(needPriceBasisNote({ osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 15000 }, ...three }))
+      .toBe('ukupno za ceo zadatak');
+
+    // Nothing to disambiguate: one person, an unknown headcount, or no basis at all. A task written
+    // before 2026-09-20 has no basis and its card must look exactly as it always has.
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000 }, pokrivenost: { ukupno: 1 } })).toBe('po osobi');
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000 } })).toBe('po osobi');
+    expect(needPriceBasisNote({ osnovaCene: null, ponudjenaCena: { iznos: 5000 }, ...three })).toBeNull();
+    expect(needPriceBasisNote({ ponudjenaCena: { iznos: 5000 }, ...three })).toBeNull();
+
+    // It never states a total it cannot compute.
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: Number.NaN }, ...three })).toBe('po osobi');
+    expect(needPriceBasisNote({ osnovaCene: 'PER_PERSON', ...three })).toBe('po osobi');
+
+    // The note and the sentence agree about the same price.
+    const input = { rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 5000, prikaz: '5.000 RSD' }, osnovaCene: 'PER_PERSON' as const, ...three };
+    expect(needPriceText(input, { withTotal: true })).toBe(`${input.ponudjenaCena.prikaz} ${needPriceBasisNote(input)}`);
+  });
+  it('shows a title without the quotation marks the interview wrapped it in, and keeps the stored value', async () => {
+    // Six of seventeen tasks on canonical DEV are stored as `"Hitno prenošenje troseda"`. The repair
+    // belongs in the prompt that writes them; until then the screens tidy it the way the category is
+    // already tidied. Only a matched pair goes, so a title that genuinely quotes something keeps it.
+    expect(readableTitle('"Hitno prenošenje troseda"')).toBe('Hitno prenošenje troseda');
+    expect(readableTitle('„Hitno prenošenje troseda“')).toBe('Hitno prenošenje troseda');
+    expect(readableTitle('  Prevoz   i   montaža  ')).toBe('Prevoz i montaža');
+    expect(readableTitle('Prevoz "Sahara" tehnikom')).toBe('Prevoz "Sahara" tehnikom');
+    expect(readableTitle('Citat na kraju"')).toBe('Citat na kraju"');
+    expect(readableTitle(null)).toBe('');
+
+    // The projection itself is untouched: the stored value is the server's.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, title: '"Hitno prenošenje troseda"' } });
+    expect((await needClientService.potreba(rawNeed.id))!.naslov).toBe('"Hitno prenošenje troseda"');
+  });
+  it('names one day once, and keeps the exact instant it was given', async () => {
+    // On a phone this read "20. sep 2026 · 06:38:53 – 20. sep 2026 · 09:38:53". The second date says
+    // nothing the first did not. The seconds stay: for a Dogovor the exact instant is the thing
+    // being agreed, and my-applications-native pins it to the microsecond.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, task_timezone: 'Europe/Belgrade',
+      starts_at: '2026-09-20T04:38:53.000000Z', ends_at: '2026-09-20T07:38:53.000000Z' } });
+    const sameDay = (await needClientService.potreba(rawNeed.id))!.vremeTekst;
+    expect(sameDay).toContain('06:38:53'); expect(sameDay).toContain('09:38:53');
+    expect(sameDay.split('2026').length - 1).toBe(1);
+
+    // Across two days both are named, because then the second one is the news.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, task_timezone: 'Europe/Belgrade',
+      starts_at: '2026-09-20T20:00:00.000000Z', ends_at: '2026-09-21T04:00:00.000000Z' } });
+    const across = (await needClientService.potreba(rawNeed.id))!.vremeTekst;
+    expect(across.split('2026').length - 1).toBe(2);
+  });
+  it('reads the coarse point the owner never asked for, and never a precise one', async () => {
+    // The public reader hands `approximate_lat/lng` to every signed-in viewer as `pin`; the owner's
+    // own read did not select them, so a stranger saw the Task on a map and its owner did not. The
+    // column type is the coarseness — numeric(6,2)/(7,2), about a kilometre — so there is nothing
+    // to round here, and nothing precise is reachable from this query at all.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: 45.25, approximate_lng: 19.83 } });
+    expect((await needClientService.potreba(rawNeed.id))!.priblizno).toEqual({ lat: 45.25, lng: 19.83 });
+    const selection = String(mocks.mockSelect.mock.calls[0][0]);
+    expect(selection).toContain('approximate_lat'); expect(selection).toContain('approximate_lng');
+    expect(selection).not.toMatch(/exact_lat|exact_lng|resolved_location/);
+
+    // PostgREST may hand a numeric back as a string; a task without a point stays without one.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: '45.25', approximate_lng: '19.83' } });
+    expect((await needClientService.potreba(rawNeed.id))!.priblizno).toEqual({ lat: 45.25, lng: 19.83 });
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: null, approximate_lng: null } });
+    expect((await needClientService.potreba(rawNeed.id))!.priblizno).toBeNull();
   });
   it('preserves every requirement group without treating a requirement as earned verification', async () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, required_licenses: ['B', 'B'],

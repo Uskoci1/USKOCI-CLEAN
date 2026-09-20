@@ -38,6 +38,9 @@ export type StanjePotrebe =
 
 export type RezimCene = 'MY_PRICE' | 'OFFERS';
 
+/** Existing fn_need_urgency result; missing means unobserved, never active. */
+export type NeedUrgencyProjection = { level: 'NORMAL'; expiresAt: null } | { level: 'HITNO'; expiresAt: string };
+
 /** Exact current Need schedule columns; absence never means a guessed interval. */
 export type NeedScheduleProjection = {
   kind: 'FIXED_WINDOW' | 'FLEXIBLE' | 'REMOTE_ANYTIME' | 'TODAY_FLEXIBLE' | 'TOMORROW_FLEXIBLE' | 'WEEK_FLEXIBLE';
@@ -56,6 +59,7 @@ export type NeedDetailProjection = {
 
 export type PotrebaProjekcija = {
   id: string;
+  urgency?: NeedUrgencyProjection;
   /** Tačna revizija. Izbor mora da se veže za nju. */
   revizija: number;
   naslov: string;
@@ -65,12 +69,16 @@ export type PotrebaProjekcija = {
   vremeTekst: string;
   /** Javno bezbedna geografija. Tačna adresa NIJE ovde. */
   podrucjeTekst: string;
+  /** Gruba tacka sa same potrebe, ~1km. Isti par koji javni citac salje kao `pin`. */
+  priblizno?: { lat: number; lng: number } | null;
   taskCountryCode?: string;
   taskTimezone?: string;
   schedule?: NeedScheduleProjection;
   uslovi: string[];
   brojPrijava: number;
   rezimCene?: RezimCene;
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto. null/undefined = postojece znacenje. */
+  osnovaCene?: "TOTAL" | "PER_PERSON" | null;
   ponudjenaCena?: Novac;
   /** Missing only for earlier saved/mock projections; never infer missing topology. */
   detalji?: NeedDetailProjection;
@@ -84,6 +92,7 @@ export type PotrebaProjekcija = {
  */
 export type PrilikaProjekcija = {
   id: string;
+  urgency?: NeedUrgencyProjection;
   naslov: string;
   opis?: string;
   detalji?: NeedDetailProjection;
@@ -106,6 +115,8 @@ export type PrilikaProjekcija = {
   /** Približna tačka za mapu. Tačna lokacija se otkriva tek po pravilima Dogovora. */
   priblizno: { lat: number; lng: number } | null;
   rezimCene?: RezimCene;
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto. null/undefined = postojece znacenje. */
+  osnovaCene?: "TOTAL" | "PER_PERSON" | null;
   ponudjenaCena?: Novac;
 };
 
@@ -124,6 +135,9 @@ export type RadnikProfilProjekcija = {
   stanje: StanjeProfila;
   dostupanOdmah: boolean;
   radijusKm: number;
+  /** Present only after authoritative capacity readback; never inferred from a vehicle. */
+  kapacitetTima?: number;
+  capacityRevision?: string;
 };
 
 /**
@@ -244,7 +258,10 @@ export type StanjeDogovora =
   | 'CANCELLED';
 
 export type UcesnikProjekcija = {
+  /** Id NALOGA. Ne sme se koristiti za citanje fotografije. */
   id: string;
+  /** Javni profilni id te strane, iz pkg024a. null = server ga nije poslao; tada NEMA fotografije. */
+  profilId: string | null;
   ime: string;
   inicijali: string;
   uloga: Uloga;
@@ -277,6 +294,37 @@ export type KontaktProjekcija = {
   readonly emailNijeDeljen: true;
 };
 
+/**
+ * PKG-007: serverske dozvole za završetak Dogovora (actionState iz rpc_get_agreement_workspace),
+ * vezane za ovaj nalog i važeću verziju. Klijent ih nikad ne izvodi iz statusa i uloge.
+ * `null` znači da server nije potvrdio dozvole (lista, stariji ili neispravan odgovor) —
+ * ekran tada ne nudi završetak dok se prikaz ne osveži.
+ */
+export type DogovorRadnje = {
+  /** Uskočer sme da označi završetak: CONFIRMED, bez predloga izmene na čekanju. */
+  mozeOznacitiZavrsetak: boolean;
+  /** Naručilac sme da potvrdi završetak: CONFIRMED ili AWAITING_REQUESTER, bez predloga na čekanju. */
+  mozePotvrditiZavrsetak: boolean;
+  /** Predlog izmene čeka odgovor; server tada odbija oba završetka. */
+  izmenaNaCekanju: boolean;
+  /**
+   * Šta taj predlog menja i ko na njega odgovara. `null` kada predloga nema ili kada njegov sadržaj
+   * nije čitljiv: tada ekran kaže da predlog postoji i vodi na Izmene, a sadržaj ne izmišlja.
+   */
+  predlogIzmene: PredlogIzmeneSazetak | null;
+};
+
+export type PredlogIzmeneSazetak = {
+  id: string;
+  /** Predložio ovaj nalog; tada odgovara druga strana. */
+  moj: boolean;
+  mozeOdgovoriti: boolean;
+  mozePovuci: boolean;
+  razlog: string | null;
+  /** Samo ono što se razlikuje od prihvaćenih uslova, već formatirano za prikaz. */
+  izmene: { polje: 'Cena' | 'Termin' | 'Obim'; sada: string; predlog: string }[];
+};
+
 export type DogovorProjekcija = {
   id: string;
   /** Prihvaćena verzija je autoritativna. */
@@ -303,6 +351,15 @@ export type DogovorProjekcija = {
   ocenaMoguca: boolean;
   /** Hronologija je deo Pregleda, ne treći tab. */
   hronologija: { vremeTekst: string; tekst: string }[];
+  /** PKG-007: serverske dozvole za završetak; `null` = nepotvrđene, završetak se ne nudi. */
+  radnje: DogovorRadnje | null;
+  /**
+   * PKG-023a: početak posla sa Zadatka, ISO ili `null` kad termin nije zakazan. Do sada ga lista
+   * Dogovora nije imala, pa „sledeći" nije moglo da se poređa po vremenu.
+   */
+  pocinje: string | null;
+  /** PKG-023a: predlog izmene koji čeka odgovor; `null` kad nijedan ne čeka. */
+  izmenaCeka: { predlogId: string; mojPredlog: boolean } | null;
 };
 
 /* ------------------------------------------------- AI nacrt Potrebe (R02) */
@@ -374,6 +431,10 @@ export type PorukaRazgovora = {
 
 export type PorukaProjekcija = {
   id: string;
+  /** Authorized immutable metadata, independently bound to this canonical row. */
+  fotografije?: readonly { assetId: string; width: number; height: number; byteSize: number; contentType: 'image/jpeg' }[];
+  /** Exact version persisted with this message; never the current Agreement version. */
+  dogovorVerzija?: number;
   clientMessageId?: string | null;
   posiljalacAccountId?: string;
   posiljalacIme: string;

@@ -1,3 +1,4 @@
+import { historicalSource108Fixture } from '../historical_source108_fixture.mjs';
 import assert from 'node:assert/strict';
 import {ownedIntakeForward} from '../../../scripts/ci/owned-intake-source.mjs';
 import {copyFileSync,mkdirSync,mkdtempSync,readFileSync,readdirSync,renameSync,rmSync,writeFileSync} from 'node:fs';
@@ -6,8 +7,33 @@ import {basename,dirname,join,resolve,sep} from 'node:path';
 import {test} from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
-import {readP3RetentionPredecessorPlan} from './p3_retention_schedule_predecessor.mjs';
+import {readP3RetentionPredecessorPlan as readCurrentPlan} from './p3_retention_schedule_predecessor.mjs';
 import {retentionExecutionBoundary,retentionExecutionForward} from './p3_retention_execution_source_boundary.mjs';
+
+// This historical planner intentionally remains closed to the larger integration source.
+const readP3RetentionPredecessorPlan = (root) => root ? readCurrentPlan(root) : historicalSource108Fixture(readCurrentPlan);
+test('the exact current source147 is admitted through the recorded manifest and keeps the SQL108 historical view', () => {
+  const current = readCurrentPlan();
+  assert.equal(current.source_migration_count, 147);
+  const boundary = retentionExecutionBoundary(current);
+  assert.equal(boundary.fullPlan.source_migration_count, 147);
+  assert.equal(boundary.historicalPlan.source_migration_count, 108);
+  assert.equal(boundary.historicalPlan.proof_boundary, 'SOURCE108_HISTORICAL_VIEW_OF_ADMITTED_SOURCE147');
+  assert.equal(boundary.currentSourceAdmission.unit, 'EXACT_CURRENT_SOURCE147_ADMISSION');
+  assert.equal(boundary.currentSourceAdmission.successors_after_108, 39);
+  assert.equal(boundary.currentSourceAdmission.successors.at(-1).file, current.source_inventory.at(-1).file);
+  assert.equal(boundary.deferredSuccessors.at(-1).file, '20260910214845_clean_dispatch_need_lock_order.sql');
+});
+
+test('a current source that is not exactly the recorded 147 is rejected before any database step', () => {
+  const current = readCurrentPlan();
+  const dropLast = { ...current, source_migration_count: 146, source_inventory: current.source_inventory.slice(0, -1), pending_successors: current.pending_successors.slice(0, -1), pending_successor_count: current.pending_successor_count - 1 };
+  assert.throws(() => retentionExecutionBoundary(dropLast), /CURRENT_SOURCE_COUNT_NOT_ADMITTED/);
+  const mutated = { ...current, source_inventory: current.source_inventory.map((entry, index) => index === 120 ? { ...entry, md5: '0'.repeat(32) } : entry) };
+  assert.throws(() => retentionExecutionBoundary(mutated), /CURRENT_SOURCE_INVENTORY_CHANGED/);
+  const swapped = { ...current, source_inventory: [...current.source_inventory.slice(0, 108), ...current.source_inventory.slice(109), current.source_inventory[108]] };
+  assert.throws(() => retentionExecutionBoundary(swapped), /CURRENT_SOURCE_INVENTORY_CHANGED/);
+});
 
 test('exact full source108 is admitted before unchanged original registry assertions at104',()=>{
   const plan=readP3RetentionPredecessorPlan(),boundary=retentionExecutionBoundary(plan);
@@ -35,16 +61,16 @@ test('missing, extra, unknown, reordered or altered suffix identities fail befor
   }
 });
 
-for(const mutation of ['missing','changed','unknown'])test('full admission rejects '+mutation+' SQL105 before any original registry write',()=>{
+for(const mutation of ['missing','changed','unknown'])test('full admission rejects '+mutation+' SQL105 before any original registry write',()=>historicalSource108Fixture(sourceRoot => {
   const root=mkdtempSync(join(tmpdir(),'p3-execution-admission-'));
   assert.ok(root.startsWith(resolve(tmpdir())+sep)&&basename(root).startsWith('p3-execution-admission-'));
   try{
     const predecessor='supabase/proofs/legal/p3_retention_schedule_predecessor_files.json';
-    const admitted=JSON.parse(readFileSync(predecessor,'utf8'));
+    const admitted=JSON.parse(readFileSync(join(sourceRoot,predecessor),'utf8'));
     const paths=[predecessor,'supabase/proofs/legal/p3_retention_schedule_files.json',
       admitted.d03.manifest,admitted.ai_draft.manifest,'supabase/migrations/MIGRATION_PROVENANCE.json',
-      ...readdirSync('supabase/migrations').filter(x=>x.endsWith('.sql')).map(x=>'supabase/migrations/'+x)];
-    for(const path of paths){const target=join(root,path);mkdirSync(dirname(target),{recursive:true});copyFileSync(path,target);}
+      ...readdirSync(join(sourceRoot,'supabase/migrations')).filter(x=>x.endsWith('.sql')).map(x=>'supabase/migrations/'+x)];
+    for(const path of paths){const target=join(root,path);mkdirSync(dirname(target),{recursive:true});copyFileSync(join(sourceRoot,path),target);}
     assert.equal(retentionExecutionBoundary(readP3RetentionPredecessorPlan(root)).fullPlan.source_migration_count,108);
     const target=join(root,'supabase/migrations',retentionExecutionForward);
     if(mutation==='missing')rmSync(target);
@@ -52,7 +78,7 @@ for(const mutation of ['missing','changed','unknown'])test('full admission rejec
     if(mutation==='unknown')renameSync(target,join(dirname(target),'20260910162956_unknown.sql'));
     assert.throws(()=>retentionExecutionBoundary(readP3RetentionPredecessorPlan(root)),/SOURCE_PROVENANCE_INVENTORY_MISMATCH|PENDING_MD5_CHANGED/);
   }finally{rmSync(root,{recursive:true,force:true});}
-});
+}));
 
 // Execute the actual proof helper, replacing only local SQL transport/time.
 const proofSource=readFileSync('supabase/proofs/legal/p3_retention_execution_proof.mjs','utf8');

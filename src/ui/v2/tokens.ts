@@ -1,19 +1,40 @@
-/** Executable USKOCI_SPOJ_V2.html: final :root plus .phone.lineage/.phone.v2
- * overrides, checked against renders/after/06_ai.png (canvas pixel #FBFCFB).
- * Scoped presentation values while legacy surfaces migrate; no global override. */
+import { space, type } from '../../theme/tokens';
+import { sys } from '../system/tokens';
+
+/**
+ * The last screens still speaking the older V2 palette, brought into the one system.
+ *
+ * These values came from the executable USKOCI_SPOJ_V2.html and were right for that moment. They
+ * are not right beside PKG-011: teal #2E7A6A where the app now says green #176B55, ink #143D35
+ * where it says #183A30, orange #FF7908 where it says #FF850F. Three colours that are almost the
+ * app's colours, on the review screens the owner looks at most.
+ *
+ * Mapped by role rather than by nearest number, which is what a scale is for. The one visible
+ * consequence is deliberate: a task title on the review used a 25px step of its own, and the
+ * system calls a detail screen's real title `hero`. It is now that, and reads as the title it is.
+ */
 export const v2 = {
-  color: { teal: '#2E7A6A', orange: '#FF7908', ink: '#143D35', ground: '#F5F7F6', canvas: '#FBFCFB',
-    header: '#FAFCFB', surface: '#FFFFFF', soft: '#E9F3EE', line: '#DFE7E2', muted: '#52665E',
-    context: '#EFF6F2', contextEnd: '#F7FAF8', contextLine: '#E2EBE5', answer: '#EAF3ED',
-    controlLine: '#AFC9BB', danger: '#943A30', warm: '#FFF0E2' },
-  radius: { input: 11, button: 13, card: 18, sheet: 24 },
-  space: { xs: 4, sm: 8, md: 12, lg: 18, xl: 24 },
-  text: {
-    body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const },
-    label: { fontSize: 12, lineHeight: 17, fontWeight: '400' as const },
-    title: { fontSize: 20, lineHeight: 26, fontWeight: '700' as const },
-    hero: { fontSize: 25, lineHeight: 31, fontWeight: '700' as const },
+  color: {
+    canvas: sys.color.surface,
+    surface: sys.color.surface,
+    header: sys.color.surface,
+    ground: sys.color.wash,
+    teal: sys.color.green,
+    orange: sys.color.orange,
+    ink: sys.color.ink,
+    muted: sys.color.muted,
+    line: sys.color.line,
+    controlLine: sys.color.lineStrong,
+    soft: sys.color.greenSoft,
+    context: sys.color.wash,
+    contextEnd: sys.color.surface,
+    contextLine: sys.color.line,
+    answer: sys.color.greenSoft,
+    danger: sys.color.danger,
+    warm: sys.color.orangeSoft,
   },
+  space: { xs: space.xs, sm: space.sm, md: space.md, lg: space.lg, xl: space.xl },
+  text: { body: type.body, label: type.label, title: type.title, hero: type.hero },
   target: { minimum: 44, primary: 50 },
   motion: { screenMs: 190, translateY: 5 },
 } as const;

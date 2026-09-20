@@ -1,5 +1,5 @@
 import {
-  AgreementMessageError, type AgreementMessageCommand, type AgreementMessageErrorCode, type AgreementMessagePort,
+  AgreementMessageError, validMessagePhotos, type AgreementMessageCommand, type AgreementMessageErrorCode, type AgreementMessagePort,
 } from '../contracts/agreementMessages';
 import { supabaseKlijent } from './supabaseClient';
 
@@ -26,22 +26,31 @@ export function captureAgreementMessage(input: AgreementMessageCommand): Agreeme
     || typeof input.body !== 'string') return fail('INVALID_MESSAGE');
   const body = input.body.trim();
   // PostgreSQL char_length counts Unicode code points, not JavaScript UTF-16 units.
-  if (!body || Array.from(body).length > 2000 || body.includes('\0') || !wellFormedUnicode(body)) return fail('INVALID_MESSAGE');
+  if ((!body && !input.photos) || Array.from(body).length > 2000 || body.includes('\0') || !wellFormedUnicode(body)
+    || (input.photos !== undefined && !validMessagePhotos(input.photos))) return fail('INVALID_MESSAGE');
   return Object.freeze({ accountId: input.accountId, agreementId: input.agreementId,
-    clientMessageId: input.clientMessageId, body });
+    clientMessageId: input.clientMessageId, body, ...(input.photos ? { photos: Object.freeze({ agreementVersion: input.photos.agreementVersion,
+      assetIds: Object.freeze([...input.photos.assetIds]) }) } : {}) });
 }
 
 export function createAgreementMessageService(rpc: Rpc): AgreementMessagePort {
   return {
     async send(input) {
       const command = captureAgreementMessage(input);
-      let response;
+      let response, timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        response = await rpc('rpc_send_agreement_message_v2', {
+        const request = rpc(command.photos ? 'rpc_send_agreement_photo_message_v5' : 'rpc_send_agreement_message_v2', {
           p_expected_user_id: command.accountId, p_agreement_id: command.agreementId,
           p_client_message_id: command.clientMessageId, p_body: command.body,
+          ...(command.photos ? { p_expected_version: command.photos.agreementVersion, p_asset_ids: [...command.photos.assetIds] } : {}),
         });
+        // A missing receipt is an unknown outcome for either kind of message.
+        // The outbox keeps the captured intent for readback or an idempotent retry.
+        response = await Promise.race([Promise.resolve(request), new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('MESSAGE_RECEIPT_TIMEOUT')), 15000);
+        })]);
       } catch { return fail('UNAVAILABLE'); }
+      finally { if (timer !== undefined) clearTimeout(timer); }
       if (!object(response)) return fail('INVALID_RESPONSE');
       if (response.error) {
         const error = object(response.error) ? response.error : {};
@@ -51,6 +60,14 @@ export function createAgreementMessageService(rpc: Rpc): AgreementMessagePort {
         if (error.message === 'CHAT_NOT_AVAILABLE') return fail('READ_ONLY');
         if (error.code === '22001' || error.code === '22023' || error.message === 'MESSAGE_REQUIRED') return fail('INVALID_MESSAGE');
         return fail('UNAVAILABLE');
+      }
+      if (command.photos) {
+        const receipt = response.data;
+        if (!object(receipt) || Object.keys(receipt).length !== 6 || typeof receipt.messageId !== 'string' || !exactUuid(receipt.messageId)
+          || receipt.agreementId !== command.agreementId || receipt.agreementVersion !== command.photos.agreementVersion
+          || receipt.clientMessageId !== command.clientMessageId || receipt.body !== command.body || !Array.isArray(receipt.assetIds)
+          || receipt.assetIds.length !== command.photos.assetIds.length || receipt.assetIds.some((id, i) => id !== command.photos!.assetIds[i])) return fail('INVALID_RESPONSE');
+        return { messageId: receipt.messageId };
       }
       if (typeof response.data !== 'string' || !exactUuid(response.data)) return fail('INVALID_RESPONSE');
       return { messageId: response.data };

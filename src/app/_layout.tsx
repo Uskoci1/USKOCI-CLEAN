@@ -2,14 +2,15 @@ import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { palette } from '../theme/tokens';
+import { sys } from '../ui/system/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
-import { postaviUlogu } from '../store/uloga';
+import { pendingRoute } from '../store/pendingRoute';
 import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
+import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 export default function RootLayout() {
@@ -29,11 +30,20 @@ export default function RootLayout() {
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
+  // Two and a half seconds of nothing is where a person decides the app is frozen.
+  const [slowStart, setSlowStart] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlowStart(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
   useEffect(() => {
     if (!isLoaded || !routeResolved) return;
     if (sesijaSada().sessionEpoch !== sessionEpoch ||
       sesijaSada().user?.id !== session?.user.id) return;
     if (!session && !naAuth && !naOporavku) {
+      // The path was used to choose the form and then thrown away, so a tapped Dogovor became the
+      // tab home after signing in. Remember it; the consumer below hands it back exactly once.
+      pendingRoute.remember(pathname);
       router.replace(pathname === '/' ? '/auth' : { pathname: '/auth', params: { form: 'login' } });
       return;
     }
@@ -50,13 +60,21 @@ export default function RootLayout() {
     const isCurrent = () => aktivan && sesijaSada().sessionEpoch === sessionEpoch &&
       sesijaSada().user?.id === session.user.id;
     void povratniCilj.consumeCompleted(session.user.id, isCurrent).then((record) => {
-      if (!isCurrent() || !record) return;
-      if (record.intent.intent === 'WORKER') postaviUlogu('uskocer');
-      else postaviUlogu('narucilac');
+      if (!isCurrent()) return;
+      // Where they were going wins over where the app would otherwise drop them. A person who was
+      // sent to sign in by a link or a push is finishing that journey, not starting a new one.
+      const resumed = pendingRoute.take();
+      if (resumed) {
+        router.replace(resumed as Parameters<typeof router.replace>[0]);
+        return;
+      }
+      if (!record) return;
 
       const target = record.intent.returnTarget;
       if (!target || target.kind === 'NONE') {
-        router.replace(record.intent.intent === 'WORKER' ? '/prilike' : '/nova');
+        // What the person chose before signing in is where they go, not what the app becomes:
+        // "Uskoči i zaradi" opens the map, "Objavi zadatak" opens a new task.
+        router.replace(record.intent.intent === 'WORKER' ? '/mapa' : '/nova');
         return;
       }
       if (target.kind === 'REQUESTER_DRAFT') {
@@ -74,25 +92,29 @@ export default function RootLayout() {
 
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: sys.color.surface, justifyContent: 'center', alignItems: 'center' }}>
         {/* Same original mark and nominal size as the padded native splash. */}
         <BrandMark size={126} />
-        <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={palette.ink}
-          style={{ position: 'absolute', alignSelf: 'center', top: '65%' }} />
+        <View style={{ position: 'absolute', alignSelf: 'center', top: '65%', alignItems: 'center', gap: 10 }}>
+          <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={sys.color.ink} />
+          {/* A wordless white field says nothing about whether anything is happening. The restore
+              is bounded at 8s, so this sentence is never the last thing on screen for long. */}
+          {slowStart ? <T variant="copy" tone="muted">Otvaramo aplikaciju…</T> : null}
+        </View>
       </View>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView onLayout={onRouteLayout} style={{ flex: 1, backgroundColor: palette.ground }}>
+      <GestureHandlerRootView onLayout={onRouteLayout} style={{ flex: 1, backgroundColor: sys.color.surface }}>
         <StatusBar style="dark" />
         <Stack
           key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
           initialRouteName={session ? '(app)' : 'auth'}
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: palette.ground },
+            contentStyle: { backgroundColor: sys.color.surface },
             animation: 'slide_from_right',
           }}
         >
@@ -100,7 +122,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth" options={{ animation: 'none' }} />
           </Stack.Protected>
           <Stack.Protected guard={!!session}>
-            <Stack.Screen name="(app)" />
+            <Stack.Screen name="(app)" options={{ contentStyle: { backgroundColor: sys.color.ground } }} />
             <Stack.Screen name="dogovor/[id]" />
             <Stack.Screen name="obavestenja" />
             <Stack.Screen name="prijave" />

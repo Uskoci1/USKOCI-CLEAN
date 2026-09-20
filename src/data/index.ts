@@ -26,7 +26,7 @@ import { Izvor } from './ports';
 const uTestu = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 const izricitLazni = process.env.EXPO_PUBLIC_USE_FAKE_SOURCE === '1';
 
-export const koristiLazniIzvor = uTestu || izricitLazni;
+const koristiLazniIzvor = uTestu || izricitLazni;
 
 if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
   throw new Error(
@@ -71,6 +71,7 @@ const produkcijskiIzvor: Izvor = {
 export const izvor: Izvor = koristiLazniIzvor ? lazniIzvor : produkcijskiIzvor;
 
 // RU-2 R02→R07 is deliberately a separate typed boundary while legacy AI
-// remains available for older clients. New mobile surfaces use only this V2
+// read compatibility remains. Legacy opener/message stubs cannot issue writes.
+// New mobile surfaces use only this V2
 // source and therefore cannot accidentally call rpc_ai_publish_need.
 export const aiNeedV2Izvor = aiNeedV2Production;

@@ -6,35 +6,40 @@ import { supabaseKlijent } from './supabaseClient';
 import { sesijaSada } from '../store/sesija';
 
 export const applicationSelectionErrors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste nastavili.',
-  OWN_NEED: 'Ne možete da se prijavite na svoj Zadatak.',
-  NOT_REQUESTER: 'Ove Prijave su dostupne Naručiocu Zadatka.',
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  OWN_NEED: 'Ne možeš da se prijaviš na svoj Zadatak.',
+  NOT_REQUESTER: 'Ove prijave vidi samo onaj ko je objavio zadatak.',
   NEED_NOT_FOUND: 'Zadatak više nije dostupan.',
   NEED_NOT_OPEN: 'Zadatak više ne prima prijave i izbore.',
+  NEED_REMAINING_SEARCH_CLOSED: 'Zadatak više ne prima nove prijave. Osveži Zadatak.',
   RESPONSE_WINDOW_EXPIRED: 'Rok za prijave je istekao.',
-  STALE_REVIEW_REQUIRED: 'Zadatak ili Prijava su promenjeni. Pregledajte aktuelne podatke pre novog izbora.',
-  NEED_REVISION_MISMATCH: 'Zadatak je promenjen. Pregledajte aktuelne uslove pre nove prijave.',
+  STALE_REVIEW_REQUIRED: 'Zadatak ili Prijava su promenjeni. Pregledaj aktuelne podatke pre novog izbora.',
+  NEED_REVISION_MISMATCH: 'Zadatak je promenjen. Pregledaj aktuelne uslove pre nove prijave.',
   RESPONSE_NOT_SELECTABLE: 'Ova Prijava više nije dostupna za izbor.',
   RESPONSE_NOT_FOUND: 'Prijava više nije dostupna.',
-  RESPONSE_ALREADY_SELECTED: 'Ova Prijava je već izabrana. Otvorite svoje Dogovore.',
-  PROFILE_NOT_OWNED_BY_ACCOUNT: 'Ponovo otvorite svoj radni profil pre prijave.',
+  RESPONSE_ALREADY_SELECTED: 'Ova Prijava je već izabrana. Otvori svoje Dogovore.',
+  PROFILE_NOT_OWNED_BY_ACCOUNT: 'Ponovo otvori svoj radni profil pre prijave.',
   NEED_FULL: 'Sva mesta na ovom Zadatku su popunjena.',
   NEED_REMAINING_CAPACITY_EXCEEDED: 'Broj ljudi premašuje preostala mesta na Zadatku.',
-  INVALID_COVERED_SLOTS: 'Unesite ceo broj ljudi koje obezbeđujete.',
-  INVALID_PRICE: 'Unesite ceo pozitivan iznos u RSD.',
-  FIXED_PRICE_NOT_READY: 'Cena Zadatka trenutno nije spremna. Ponovo otvorite Zadatak.',
-  FIXED_PRICE_MISMATCH: 'Cena Zadatka je promenjena. Pregledajte aktuelnu cenu pre nove Prijave.',
+  INVALID_COVERED_SLOTS: 'Unesi ceo broj ljudi koje obezbeđuješ.',
+  INVALID_PRICE: 'Unesi ceo pozitivan iznos u RSD.',
+  FIXED_PRICE_NOT_READY: 'Cena Zadatka trenutno nije spremna. Ponovo otvori Zadatak.',
+  FIXED_PRICE_MISMATCH: 'Cena Zadatka je promenjena. Pregledaj aktuelnu cenu pre nove Prijave.',
+  // pkg025b. A task whose price is the price of the WHOLE task is taken by one application that
+  // covers all of it. Hiring people separately is what a per-person price is for.
+  TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog Zadatka važi za ceo posao, pa prijava mora da pokrije sva mesta.',
+  UNKNOWN_PRICE_BASIS: 'Način obračuna cene na ovom Zadatku nije podržan u ovoj verziji aplikacije.',
   INVALID_PROPOSED_INTERVAL: 'Kraj predloženog termina mora biti posle početka.',
   WORKER_PROFILE_NOT_READY: 'Radni profil još ne ispunjava uslove za ovu Prijavu.',
   WORKER_NOT_ELIGIBLE: 'Radni profil ili dostupnost ne ispunjavaju uslove Zadatka.',
-  WORKER_NO_LONGER_ELIGIBLE: 'Radni profil ili dostupnost su promenjeni. Pregledajte Prijave ponovo.',
+  WORKER_NO_LONGER_ELIGIBLE: 'Radni profil ili dostupnost su promenjeni. Pregledaj Prijave ponovo.',
   TEAM_CAPACITY_EXCEEDED: 'Broj ljudi u Prijavi premašuje kapacitet radnog profila.',
   OVERFILL: 'Prijava pokriva više ljudi nego što je još potrebno.',
-  CONNECTION_POLICY_NOT_READY: 'Povezivanje trenutno nije dostupno. Pokušajte kasnije.',
-  IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev je već vezan za drugu ponudu. Proverite sačuvano stanje.',
-  WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa potvrđenim Dogovorom. Osvežite kalendar i izaberite drugi termin.',
-  CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osvežite podatke pre ponovnog pokušaja.',
-  AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proverite tačan početak i kraj predloženog termina.',
+  CONNECTION_POLICY_NOT_READY: 'Povezivanje trenutno nije dostupno. Pokušaj kasnije.',
+  IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev je već vezan za drugu ponudu. Proveri sačuvano stanje.',
+  WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa potvrđenim Dogovorom. Osveži kalendar i izaberi drugi termin.',
+  CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.',
+  AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj predloženog termina.',
 };
 const hash = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const key = (value: string) => value.trim().length >= 8 && value.trim().length <= 200;
@@ -43,7 +48,7 @@ function interval(start: string | null, end: string | null) {
   const from = calendarInstant(start), to = calendarInstant(end);
   return from !== null && to !== null && from < to;
 }
-const invalid = () => failure('APPLICATION_COMMAND_INVALID', 'Proverite cenu, broj ljudi i termin svoje ponude.');
+const invalid = () => failure('APPLICATION_COMMAND_INVALID', 'Proveri cenu, broj ljudi i termin svoje ponude.');
 /** Bounds the two composed screen reads, including legacy SDK readers. The
  * caller's existing focus/account/generation guard owns the result. A deadline
  * stops waiting; it does not claim cancellation of an already issued request. */
@@ -93,7 +98,7 @@ export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | '
   izaberiPrijavu(k: IzborKomanda) {
     if (!uuid(k.potrebaId) || !uuid(k.prijavaId) || !positiveInteger(k.potrebaRevizija) ||
         !positiveInteger(k.prijavaVerzija) || !positiveInteger(k.mesta) || !hash(k.prijavaHash) || !key(k.clientRequestId)) {
-      return Promise.resolve(failure('SELECTION_COMMAND_INVALID', 'Ponovo otvorite konkretnu Prijavu pre izbora.'));
+      return Promise.resolve(failure('SELECTION_COMMAND_INVALID', 'Ponovo otvori konkretnu Prijavu pre izbora.'));
     }
     return command('rpc_select_response', { p_need_id: k.potrebaId, p_need_revision: k.potrebaRevizija,
       p_response_id: k.prijavaId, p_response_version: k.prijavaVerzija, p_content_hash: k.prijavaHash,
@@ -104,9 +109,9 @@ export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | '
 /** Existing requester/participant SELECT policies remain the authority. A null
  * link means no visible matching Agreement; it never proves the selection absent. */
 export function readSelectedAgreement(potrebaId: string, prijavaId: string): Promise<Ishod<{ dogovorId: string | null }>> {
-  if (!uuid(potrebaId) || !uuid(prijavaId)) return Promise.resolve(failure('SELECTION_LINK_INVALID', 'Ponovo otvorite konkretnu Prijavu.'));
+  if (!uuid(potrebaId) || !uuid(prijavaId)) return Promise.resolve(failure('SELECTION_LINK_INVALID', 'Ponovo otvori konkretnu Prijavu.'));
   const owner = sesijaSada();
-  if (!owner.user?.id) return Promise.resolve(failure('AUTH_REQUIRED', 'Prijavite se da biste otvorili Dogovor.'));
+  if (!owner.user?.id) return Promise.resolve(failure('AUTH_REQUIRED', 'Prijavi se da otvoriš Dogovor.'));
   const account = { accountId: owner.user.id, accountRevision: owner.accountRevision };
   return readOwnedResult({ account, errors: {}, fallback: 'SELECTION_LINK_UNAVAILABLE', invalid: 'SELECTION_LINK_INVALID',
     request: () => supabaseKlijent().from('need_selections')

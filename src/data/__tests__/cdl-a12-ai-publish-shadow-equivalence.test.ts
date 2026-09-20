@@ -82,14 +82,14 @@ describe('CDL-A12 — legacy AI publish single owner after shadow deletion', () 
     expect(result).toEqual({
       ok: false,
       kod: 'PACKAGE_4_NOT_READY',
-      poruka: 'PACKAGE_4_NOT_READY',
+      poruka: 'Objava trenutno nije dostupna.',
     });
   });
 
   it('preserves fail-closed auth/profile boundaries before the RPC', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
     const unauth = await productionAuthorityOverrides.objaviPotrebu('conv-1');
-    expect(unauth).toEqual({ ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se pre objave Potrebe.' });
+    expect(unauth).toEqual({ ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavi se pre objave Potrebe.' });
     expect(mockRpc).not.toHaveBeenCalled();
 
     mockGetUser.mockResolvedValue({ data: { user: { id: 'acct-1' } }, error: null });
@@ -98,7 +98,7 @@ describe('CDL-A12 — legacy AI publish single owner after shadow deletion', () 
     expect(noProfile).toEqual({
       ok: false,
       kod: 'REQUESTER_PROFILE_REQUIRED',
-      poruka: 'Potreban je profil Naručioca pre objave.',
+      poruka: 'Potreban je profil za objavu zadataka.',
     });
     expect(mockRpc).not.toHaveBeenCalled();
   });

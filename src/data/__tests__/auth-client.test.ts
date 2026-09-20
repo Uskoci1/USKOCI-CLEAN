@@ -34,11 +34,22 @@ describe('central Auth client boundary', () => {
         firstName: 'Ana', lastName: 'Petrović', city: 'Novi Sad' });
       expect(mockAuth.signUp.mock.calls).toEqual([[{
         email: 'ana@example.test', password: 'password',
-        options: { data: { first_name: 'Ana', last_name: 'Petrović', city: 'Novi Sad' } },
+        options: { data: { first_name: 'Ana', last_name: 'Petrović', full_name: 'Ana Petrović', city: 'Novi Sad' } },
       }]]);
       expect(result).toEqual({ hasSession: !!session });
     },
   );
+
+  it('supplies the trigger display name from explicit Unicode names, never from email', async () => {
+    mockAuth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    await authClientService.signUp({ email: 'private-prefix@example.test', password: '  untouched  ',
+      firstName: '  Đorđe ', lastName: ' Ćurčić  ', city: 'Žabalj' });
+    expect(mockAuth.signUp.mock.calls[0][0]).toEqual({
+      email: 'private-prefix@example.test', password: '  untouched  ', options: { data: {
+        first_name: '  Đorđe ', last_name: ' Ćurčić  ', full_name: 'Đorđe Ćurčić', city: 'Žabalj',
+      } },
+    });
+  });
 
   it('keeps existing phone OTP options and explicitly verifies an sms token', async () => {
     await authClientService.sendPhoneOtp({ phone: '+381601234567' });
@@ -77,9 +88,14 @@ describe('central Auth client boundary', () => {
     expect(mockAuth.resetPasswordForEmail).not.toHaveBeenCalled();
   });
 
-  it.each(['signInWithPassword', 'signUp', 'signInWithOtp', 'verifyOtp'] as const)(
-    'preserves the %s error used by the existing presentation', async method => {
-      const error = new Error('Existing Auth message');
+  it.each([
+    ['signInWithPassword', 'Prijava nije uspela.'],
+    ['signUp', 'Registracija trenutno nije uspela.'],
+    ['signInWithOtp', 'Kod trenutno nije moguće poslati.'],
+    ['verifyOtp', 'Kod nije potvrđen.'],
+  ] as const)(
+    'sanitizes the %s SDK/provider error before presentation while keeping bounded operation-specific copy', async (method, expected) => {
+      const error = { message: 'Existing Auth message https://private/token?secret', status: 400, code: 'provider_internal' };
       mockAuth[method].mockResolvedValue({ data: null, error });
       const commands = {
         signInWithPassword: () => authClientService.signInWithPassword({ email: 'a', password: 'b' }),
@@ -87,7 +103,11 @@ describe('central Auth client boundary', () => {
         signInWithOtp: () => authClientService.sendPhoneOtp({ phone: 'a' }),
         verifyOtp: () => authClientService.verifyPhoneOtp({ phone: 'a', token: 'b' }),
       };
-      await expect(commands[method]()).rejects.toBe(error);
+      await expect(commands[method]()).rejects.toThrow(expected);
+      try { await commands[method](); } catch (sanitized) {
+        expect((sanitized as Error).message).not.toContain('Existing Auth message');
+        expect((sanitized as Error).message).not.toContain('private/token');
+      }
     },
   );
 

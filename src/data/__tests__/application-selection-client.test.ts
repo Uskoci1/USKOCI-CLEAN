@@ -37,6 +37,12 @@ it.each([{ cenaRsd: 1.2 }, { pokrivenaMesta: 0 }, { predlozeniKraj: null }, { pr
   expect(await client.podnesiPrijavu({ ...submit(), ...delta })).toMatchObject({ ok: false, kod: 'APPLICATION_COMMAND_INVALID' });
   expect(mockRpc).not.toHaveBeenCalled();
 });
+it('maps the closed remaining search rejection to a known refusal instead of an unconfirmed outcome', async () => {
+  mockRpc.mockResolvedValueOnce({ data: null, error: { message: 'NEED_REMAINING_SEARCH_CLOSED', details: 'private trigger detail' } });
+  const result = await client.podnesiPrijavu(submit());
+  expect(result).toMatchObject({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED' });
+  expect(JSON.stringify(result)).not.toContain('private trigger detail');
+});
 it('keeps flexible null/null distinct from an exact interval', async () => {
   mockRpc.mockResolvedValue({ data: receipt(), error: null });
   await client.podnesiPrijavu({ ...submit(), predlozeniPocetak: null, predlozeniKraj: null });

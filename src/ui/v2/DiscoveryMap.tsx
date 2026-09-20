@@ -10,6 +10,9 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
 import { v2 } from './tokens';
+import { sys } from '../system/tokens';
+import { displaysUrgent } from '../../lib/needUrgency';
+import { useUrgencyClock } from './NeedUrgencyBadge';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 
 type Owner = { key: string; active: boolean; epoch: number };
@@ -53,12 +56,21 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     }
   };
   const selected = props.items.find(item => item.id === props.selectedId), point = selected && publicPoint(selected);
+  const urgencyNow = useUrgencyClock(props.items.map(item => item.urgency));
+  const urgentIds = props.items.filter(item => displaysUrgent(item.urgency, urgencyNow)).map(item => item.id);
   const changeZoom = (delta: number) => { if (owns() && load.current === 'ready' && viewport) camera.current?.zoomTo(Math.min(18, Math.max(0, viewport.zoom + delta)), { duration: reduced ? 0 : v2.motion.screenMs }); };
   return <View style={s.container}>
     <Map style={s.map} mapStyle={RESOLVED_PIN_MAP_STYLE} androidView="texture" attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
       onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
-      onRegionDidChange={event => { if (!owns() || load.current !== 'ready') return; const value = publicViewport(event.nativeEvent); setViewport(value); if (value) latest.current.props.onViewport(value); }}>
+      // The region the camera settles into on first load arrives BEFORE the map reports itself
+      // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
+      // phone that left "Pretraži ovu oblast" and both zoom buttons dead, with no reason beside
+      // them, on every fresh open of the map until the person happened to drag it. The control now
+      // comes alive as soon as the map says where it is; persisting that position upward still
+      // waits for ready, so a neutral world overview never becomes the remembered viewport.
+      onRegionDidChange={event => { if (!owns()) return; const value = publicViewport(event.nativeEvent); setViewport(value);
+        if (value && load.current === 'ready') latest.current.props.onViewport(value); }}>
       <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={48} clusterMaxZoom={16}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
@@ -66,13 +78,13 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
           layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': v2.color.surface }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': v2.color.ink,
+          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], v2.color.danger, v2.color.ink],
             'circle-stroke-width': 3, 'circle-stroke-color': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], v2.color.orange, v2.color.surface] }} />
         <Layer id="need-pin-centers" type="circle" filter={['!', ['has', 'point_count']]}
           paint={{ 'circle-radius': 5, 'circle-color': v2.color.surface }} />
       </GeoJSONSource>
       {point && selected ? <ViewAnnotation id="selected-need" lngLat={[point.lng, point.lat]} anchor="center">
-        <View collapsable={false} accessible accessibilityLabel={`${selected.naslov}, približna lokacija`} style={s.selectedPin}>
+        <View collapsable={false} accessible accessibilityLabel={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${selected.naslov}, približna lokacija`} style={[s.selectedPin, displaysUrgent(selected.urgency, urgencyNow) && { backgroundColor: v2.color.danger }]}>
           <MapPin size={23} color={v2.color.surface} />
         </View>
       </ViewAnnotation> : null}
@@ -82,7 +94,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       <View style={s.zoom}>{[['Uvećaj mapu', '+', 1], ['Umanji mapu', '−', -1]].map(([label, text, delta]) => <Press key={String(label)} accessibilityRole="button" accessibilityLabel={String(label)}
         accessibilityState={{ disabled: !viewport }} disabled={!viewport} haptic="select" onPress={() => changeZoom(Number(delta))} style={s.zoomButton}><T style={s.zoomText}>{text}</T></Press>)}</View>
     </> : <View style={s.feedback}>{status === 'loading' ? <><ActivityIndicator color={v2.color.teal} /><T style={v2.text.body}>Učitavamo mapu…</T></>
-      : <><T accessibilityRole="alert" style={v2.text.title}>Mapa nije učitana</T><T style={v2.text.body}>Proverite vezu. Zadaci i filteri ostaju u Listi.</T>
+      : <><T accessibilityRole="alert" style={v2.text.title}>Mapa nije učitana</T><T style={v2.text.body}>Proveri vezu. Zadaci i filteri ostaju u Listi.</T>
         <V2Action label="Pokušaj ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
         <V2Action label="Pogledaj listu" onPress={props.onList} /></>}</View>}
     <View style={s.attribution}><T style={s.credit} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
@@ -102,10 +114,10 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
 }
 const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: v2.color.soft }, map: { flex: 1 },
   area: { position: 'absolute', top: 12, left: 16, right: 76 }, zoom: { position: 'absolute', top: 12, right: 12, gap: 6 },
-  zoomButton: { minWidth: 44, minHeight: 44, borderRadius: 13, justifyContent: 'center', alignItems: 'center', backgroundColor: v2.color.surface },
-  zoomText: { fontSize: 25, color: v2.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: 15, borderBottomLeftRadius: 5,
+  zoomButton: { minWidth: 44, minHeight: 44, borderRadius: sys.radius.chip, justifyContent: 'center', alignItems: 'center', backgroundColor: v2.color.surface },
+  zoomText: { ...sys.type.cardTitle, color: v2.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: sys.radius.chip, borderBottomLeftRadius: 5,
     borderWidth: 3, borderColor: v2.color.orange, backgroundColor: v2.color.ink, alignItems: 'center', justifyContent: 'center' },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: v2.color.canvas },
   attribution: { position: 'absolute', bottom: 4, left: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: v2.color.surface, padding: 4 },
-  credit: { ...v2.text.label, fontSize: 10, color: v2.color.muted },
+  credit: { ...v2.text.label, color: v2.color.muted },
 });

@@ -1,7 +1,8 @@
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Press, type HapticKind } from './Press';
 import { T } from './Text';
-import { palette, radius, space, touch } from '../theme/tokens';
+import { radius, space, touch } from '../theme/tokens';
+import { sys } from './system/tokens';
 
 type Kind = 'primary' | 'secondary' | 'quiet' | 'danger';
 
@@ -34,9 +35,12 @@ export function Button({
   haptic = 'light',
   style,
 }: Props) {
+  // Six screens still use this button — the location and publication family. It draws from `sys`
+  // like the rest of the app, so those screens carry the same orange, the same ink and the same
+  // hairline as every card beside them instead of the older cream set they used to mix in.
   const skin = {
-    primary: { bg: palette.orange, border: 'transparent', tone: 'onOrange' as const },
-    secondary: { bg: 'transparent', border: palette.ink, tone: 'ink' as const },
+    primary: { bg: sys.color.orange, border: 'transparent', tone: 'onOrange' as const },
+    secondary: { bg: 'transparent', border: sys.color.ink, tone: 'ink' as const },
     quiet: { bg: 'transparent', border: 'transparent', tone: 'muted' as const },
     danger: { bg: 'transparent', border: 'transparent', tone: 'danger' as const },
   }[kind];
@@ -53,7 +57,7 @@ export function Button({
         {
           minHeight: touch.min,
           paddingHorizontal: space.base,
-          borderRadius: radius.md,
+          borderRadius: radius.primary,
           backgroundColor: skin.bg,
           borderWidth: kind === 'secondary' ? 1.5 : 0,
           borderColor: skin.border,
@@ -94,10 +98,10 @@ export function Card({
     <View
       style={[
         {
-          backgroundColor: raised ? palette.raised : palette.surface,
-          borderRadius: radius.lg,
+          backgroundColor: sys.color.surface,
+          borderRadius: radius.card,
           borderWidth: 1,
-          borderColor: palette.line100,
+          borderColor: sys.color.cardLine,
           overflow: 'hidden',
         },
         style,

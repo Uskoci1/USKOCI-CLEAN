@@ -164,4 +164,22 @@ describe('RU-5 P0C-03 — canonical My Applications client', () => {
       poruka: 'Server nije potvrdio povlačenje Prijave.',
     });
   });
+
+  it('never fills a missing server version with the version the client sent', async () => {
+    for (const version of [undefined, null, 0, -1, 2.5, '2', Number.MAX_SAFE_INTEGER + 1]) {
+      mockRpc.mockResolvedValueOnce({ data: { status: 'WITHDRAWN', version, authoritative: true }, error: null });
+      const result = await applicationClientService.povuciPrijavu({
+        prijavaId: 'response-1',
+        potrebaRevizija: 3,
+        prijavaVerzija: 2,
+        clientRequestId: 'withdraw-request-version',
+        razlog: null,
+      });
+      expect(result).toEqual({
+        ok: false,
+        kod: 'WITHDRAW_RESPONSE_INVALID_RESULT',
+        poruka: 'Server nije potvrdio povlačenje Prijave.',
+      });
+    }
+  });
 });

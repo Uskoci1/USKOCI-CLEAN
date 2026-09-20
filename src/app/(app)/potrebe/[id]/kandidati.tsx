@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { ProfilePhoto } from '../../../../ui/media/ContextPhotos';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod, IzborKomanda } from '../../../../data/ports';
@@ -6,17 +7,18 @@ import { applicationSelectionErrors, boundedApplicationSelectionRead, readSelect
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
-import { ulogaSada, useIzvor, useUloga } from '../../../../store/uloga';
+import { useIzvor } from '../../../../store/uloga';
 import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable } from '../../../../ui/v2/ApplicationSelectionPresentation';
 type Receipt = { dogovorId: string };
 type Pending = { command: IzborKomanda; need: PotrebaProjekcija; candidate: KandidatProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
 type Loaded = { need: PotrebaProjekcija; candidates: KandidatProjekcija[]; receipt: Receipt | null };
+type Viewed = { state: 'PENDING' | 'CONFIRMED' | 'UNCONFIRMED' };
 export default function Kandidati() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
-  const izvor = useIzvor(), router = useRouter(), role = useUloga();
+  const izvor = useIzvor(), router = useRouter();
   const { user, accountRevision } = useSesija();
-  const session = useMemo(() => ({ pending: null as Pending | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }), [id, izvor, user?.id, accountRevision, role]);
+  const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [opened, setOpened] = useState<{ data: Loaded; candidate: KandidatProjekcija } | null>(null);
   useFocusEffect(useCallback(() => {
@@ -33,19 +35,19 @@ export default function Kandidati() {
       // RPC needRevision is the current Need revision for every row, including
       // STALE. Its separate responseNeedRevision is the older submitted snapshot.
       // Never combine independent reads from different current Need revisions.
-      if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Zadatak se upravo promenio. Učitajte Prijave ponovo.' };
-      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte aktuelno stanje.' };
+      if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Zadatak se upravo promenio. Učitaj Prijave ponovo.' };
+      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { need, candidates, receipt: result?.ok ? result.podatak : null } };
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   }, [id, izvor, session]);
   const editor = useOwnedEditor(read), data = editor.data;
   const pending = session.pending;
   const candidate = pending?.candidate ?? (opened?.data === data ? opened.candidate : null);
   const focusToken = session.focusToken, readRevision = session.readRevision;
-  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision && ulogaSada() === role;
+  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
   const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
   const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
   const back = () => {
@@ -66,22 +68,43 @@ export default function Kandidati() {
       request.inFlight = true; request.reconciled = false;
       let result: Ishod<Receipt>;
       try { result = await izvor.izaberiPrijavu(request.command); }
-      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod izbora nije potvrđen. Proverite stanje.' }; }
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod izbora nije potvrđen. Proveri stanje.' }; }
       finally { request.inFlight = false; }
       request.result = result;
       if (session.focused && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
     });
   };
+  const openOffer = (k: KandidatProjekcija) => {
+    if (!current() || session.navigated || session.reading || editor.busy || editor.loading || !data ||
+        !data.candidates.includes(k)) return;
+    setOpened({ data, candidate: k });
+    const previous = session.viewed.get(k.prijavaId);
+    if (previous && previous.state !== 'UNCONFIRMED') return;
+    const attempt: Viewed = { state: 'PENDING' };
+    session.viewed.set(k.prijavaId, attempt);
+    // Only this explicit offer-opening action writes viewed state. Reopening an
+    // unconfirmed offer may repeat its exact idempotent target; reads never do.
+    void (async () => {
+      try {
+        const result = await izvor.oznaciPrijavuVidjenom(k.prijavaId);
+        attempt.state = result.ok ? 'CONFIRMED' : 'UNCONFIRMED';
+      } catch { attempt.state = 'UNCONFIRMED'; }
+      // The result remains scoped to this original account/session object.
+      // A late result cannot navigate, change selection, or update another view.
+      if (current() && session.viewed.get(k.prijavaId) === attempt) render(value => value + 1);
+    })();
+  };
   if (!data) return <SelectionUnavailable loading={editor.loading} message={editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
   if (!candidate) return <CandidateListPresentation need={data.need} candidates={data.candidates} back={back} refresh={refresh}
-    open={k => { if (current() && !editor.busy) setOpened({ data, candidate: k }); }} />;
+    open={openOffer} />;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
+    publicPhoto={profileId => <ProfilePhoto profileId={profileId} initial={null} />}
     readAgreement={async () => {
-      if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite Prijavu.' };
+      if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
       const result = await readSelectedAgreement(data.need.id, candidate.prijavaId);
-      return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite Prijavu.' };
+      return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
     }} openLinkedAgreement={agreementId => {
       if (!current() || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } });
@@ -92,7 +115,9 @@ export default function Kandidati() {
       return current() ? profile : null;
     }}
     choose={choose} busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} refresh={refresh}
-    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora ponovite isti zahtev.' : null)}
+    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora ponovi isti zahtev.'
+      : session.viewed.get(candidate.prijavaId)?.state === 'UNCONFIRMED'
+        ? 'Ponuda je otvorena, ali oznaka viđenosti nije potvrđena. Vrati se na Prijave i ponovo otvori ovu ponudu da pokušaš još jednom.' : null)}
     confirmed={!!data.receipt} openAgreement={() => {
       if (!current() || !data.receipt || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: data.receipt.dogovorId } });

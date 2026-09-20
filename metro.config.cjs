@@ -1,5 +1,14 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const { createHash } = require('node:crypto');
+const { resolve } = require('node:path');
 const config = getDefaultConfig(__dirname);
+
+// Shared/hoisted node_modules can give sibling checkouts the same transform
+// key, although Expo Router embeds a different app root in _ctx.android.js.
+// Keep Expo's version and cache stores; isolate transforms by the absolute
+// project path used by Babel (not its realpath, which can collapse aliases).
+const projectCacheId = createHash('sha256').update(resolve(config.projectRoot)).digest('hex');
+config.cacheVersion = `${config.cacheVersion}:uskoci-project-${projectCacheId}`;
 
 // Metro can read thousands of warm-cache entries concurrently even with one
 // transform worker. Bound Windows disk opens without replacing Expo's cache,

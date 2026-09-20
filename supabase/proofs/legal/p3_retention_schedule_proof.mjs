@@ -11,6 +11,7 @@ import {createClient} from '@supabase/supabase-js';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {readP3RetentionPredecessorPlan} from './p3_retention_schedule_predecessor.mjs';
 import {retentionExecutionBoundary} from './p3_retention_execution_source_boundary.mjs';
+import {assertDomainSnapshotAfterSuccessors,readAdmittedSuccessorDelta} from './pending_domain_replay.mjs';
 
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;
 assertLocalDeviceProofTargets(url,db);
@@ -264,21 +265,27 @@ try{
     appliedSuccessors.push(successor);
   }
   sql("notify pgrst,'reload schema'");
-  assert.deepEqual(await ok(status(requester)),retentionBefore,'RETENTION_STATUS_CHANGED_BY_SUCCESSOR');
   assert.deepEqual(deliveryColumn(),expectedDeliveryColumn,'P2_RETENTION_EXTENSION_COLUMN_CHANGED');
   assert.equal(sql('select count(*) from private.retention_policy_sets where export_delivery is not null'),'0','P2_RETENTION_POLICY_SEEDED');
   // Compare every original column and every original row. Only SQL104's exact
   // admitted, separately checked NULL field is removed from the after-side.
   const policyOriginalColumnsHash = sql(`select md5(coalesce(jsonb_agg(to_jsonb(x)-'export_delivery'
     order by (to_jsonb(x)-'export_delivery')::text),'[]'::jsonb)::text) from private.retention_policy_sets x`);
-  assert.deepEqual([tableHash(tables[0]),policyOriginalColumnsHash,tableHash(tables[2])],tableBefore,'RETENTION_ORIGINAL_COLUMNS_CHANGED_BY_SUCCESSOR');
-  assert.deepEqual(tableSecurity(),securityBefore,'RETENTION_TABLE_SECURITY_CHANGED_BY_SUCCESSOR');
-  assert.deepEqual(rows(`select p.proname,p.proacl,p.proconfig,md5(p.prosrc) body
+  // PKG-013: the same strict comparison through the shared helper; an intentional later
+  // successor is admitted only by a recorded delta with provenance.
+  const retentionAfterStatus=await ok(status(requester));
+  const retentionBeforeSnapshot={retentionStatus:retentionBefore,originalColumns:tableBefore,security:securityBefore,functions:functionsBefore};
+  const retentionAfterSnapshot={retentionStatus:retentionAfterStatus,originalColumns:[tableHash(tables[0]),policyOriginalColumnsHash,tableHash(tables[2])],security:tableSecurity(),
+    functions:rows(`select p.proname,p.proacl,p.proconfig,md5(p.prosrc) body
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
-    and p.proname in ('rpc_get_retention_policy_status','rpc_publish_retention_policy') order by 1`),functionsBefore,
-    'RETENTION_FUNCTIONS_OR_GRANTS_CHANGED_BY_SUCCESSOR');
+    and p.proname in ('rpc_get_retention_policy_status','rpc_publish_retention_policy') order by 1`)};
+  const retentionVerdict=assertDomainSnapshotAfterSuccessors({before:retentionBeforeSnapshot,after:retentionAfterSnapshot,plan,label:'RETENTION_STATE_CHANGED_BY_SUCCESSOR',
+    admittedDelta:readAdmittedSuccessorDelta('supabase/proofs/legal/p3_retention_schedule_successor_delta.json')});
+  const retentionChanged=key=>retentionVerdict.admitted_changed_keys.includes(key);
   report.successor_replay = { applied: appliedSuccessors, count: appliedSuccessors.length,
-    retention_projection_unchanged: true, retention_original_columns_unchanged: true, retention_functions_and_grants_unchanged: true,
+    retention_projection_unchanged: !retentionChanged('retentionStatus'), retention_original_columns_unchanged: !retentionChanged('originalColumns'),
+    retention_functions_and_grants_unchanged: !retentionChanged('functions'), retention_security_unchanged: !retentionChanged('security'),
+    domain_state_matches_admitted_source: true, admitted_successor_delta: retentionVerdict,
     additive_extension: { file:deliveryFile,sha256:delivery.sha256,table:'private.retention_policy_sets',column:'export_delivery',
       absent_before:true,type:'jsonb',nullable:true,has_default:false,all_values_null:true } };
 
@@ -296,6 +303,7 @@ try{
   }
   report.result='PASS';
 }catch(error){
+  if(error?.divergence)report.successor_divergence=error.divergence;
   report.result='FAIL';report.failed_check=current;
   report.failure=error?.code==='ERR_ASSERTION'?`ASSERTION:${String(error.message).slice(0,200)}`:String(error.message).slice(0,200);
   process.exitCode=1;

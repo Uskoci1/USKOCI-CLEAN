@@ -1,3 +1,5 @@
+import { workerCapacityRevision, workerCapacityValue } from '../contracts/workerCapacity';
+import { workerCapacityClientService } from './workerCapacityClientService';
 import type { AzurirajProfilKomanda, Ishod, Izvor } from './ports';
 import { sesijaSada } from '../store/sesija';
 import { capabilityTerms } from '../lib/capabilityTerms';
@@ -7,19 +9,19 @@ import { supabaseKlijent } from './supabaseClient';
 type WorkerProfileClientService = Pick<Izvor, 'azurirajRadnikProfil'>;
 const inFlight = new Set<string>();
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste izmenili profil.',
-  DISPLAY_NAME_REQUIRED: 'Unesite ime pre završetka profila.',
-  CITY_REQUIRED: 'Unesite mesto rada pre završetka profila.',
-  SKILL_REQUIRED: 'Unesite bar jednu veštinu pre završetka profila.',
+  AUTH_REQUIRED: 'Prijavi se da izmeniš profil.',
+  DISPLAY_NAME_REQUIRED: 'Unesi ime pre završetka profila.',
+  CITY_REQUIRED: 'Unesi mesto rada pre završetka profila.',
+  SKILL_REQUIRED: 'Unesi bar jednu veštinu pre završetka profila.',
   PROFILE_NOT_ACTIVATABLE: 'Profil trenutno ne može da se aktivira.',
-  PROFILE_NOT_FOUND: 'Profil nije pronađen. Osvežite prikaz.',
-  NOT_WORKER_PROFILE_OWNER: 'Nalog je promenjen. Ponovo otvorite profil.',
-  V2_FACT_TYPE_INVALID: 'Unesite najviše 50 stavki u svaku listu.',
+  PROFILE_NOT_FOUND: 'Profil nije pronađen. Osveži prikaz.',
+  NOT_WORKER_PROFILE_OWNER: 'Nalog je promenjen. Ponovo otvori profil.',
+  V2_FACT_TYPE_INVALID: 'Unesi najviše 50 stavki u svaku listu.',
   V2_FACT_ARRAY_ITEM_INVALID: 'Svaka stavka mora imati tekst do 500 znakova.',
-  V2_FACT_VALUE_REQUIRED: 'Unesite ispravne podatke profila.',
+  V2_FACT_VALUE_REQUIRED: 'Unesi ispravne podatke profila.',
 };
 const RESOURCE_FIELDS = { vestine: 'skills', alati: 'tools', vozila: 'vehicles', licence: 'licenses' } as const;
-const TEXT_FIELDS = { ime: 'display_name', grad: 'city', biografija: 'bio' } as const;
+const TEXT_FIELDS = { ime: 'display_name', biografija: 'bio' } as const;
 
 function profileRow(raw: unknown, account: string, expectedId?: string): { id: string } | null {
   const row = record(raw);
@@ -28,7 +30,8 @@ function profileRow(raw: unknown, account: string, expectedId?: string): { id: s
   return { id: row.id };
 }
 
-/** Existing profile writer and activation RPC, now using the same owned-result
+/** Profile capabilities/identity only; location and availability writes are refused.
+ * Existing activation RPC and the same owned-result
  * fence as location/calendar/availability. Captured owner filters also protect
  * REST writes if the SDK token changes while the request is being prepared. */
 export const workerProfileClientService: WorkerProfileClientService = {
@@ -39,8 +42,20 @@ export const workerProfileClientService: WorkerProfileClientService = {
     const lock = `${account.accountId}:${account.accountRevision}`;
     if (inFlight.has(lock)) return failure('PROFILE_BUSY', 'Prethodno čuvanje profila se još obrađuje.');
     const input = record(k);
-    if (!input || Object.keys(input).some(key => !['ime','grad','biografija','vestine','alati','vozila','licence','dostupanOdmah','radijusKm','zavrsi'].includes(key))) {
+    if (!input || Object.keys(input).some(key => !['ime','grad','biografija','vestine','alati','vozila','licence','dostupanOdmah','radijusKm','kapacitetTima','capacityRevision','zavrsi'].includes(key))) {
       return failure('PROFILE_INPUT_INVALID', 'Podaci profila nisu ispravni.');
+    }
+    // Geography and availability have their own revision-bound canonical RPCs.
+    // Reject old callers explicitly; never silently drop or rewrite their input.
+    if (input.grad !== undefined || input.radijusKm !== undefined) {
+      return failure('PROFILE_LOCATION_REQUIRES_REVIEW', 'Mesto i radijus menjaju se u podešavanju područja rada.');
+    }
+    if (input.dostupanOdmah !== undefined) {
+      return failure('PROFILE_AVAILABILITY_REQUIRES_REVIEW', 'Dostupnost menjajte kroz podešavanje dostupnosti.');
+    }
+    const capacityEdit = input.kapacitetTima !== undefined || input.capacityRevision !== undefined;
+    if (capacityEdit && (!workerCapacityValue(input.kapacitetTima) || !workerCapacityRevision(input.capacityRevision))) {
+      return failure('WORKER_CAPACITY_INPUT_INVALID', 'Unesi ceo broj od 1 do 50 ljudi i učitaj aktuelni profil.');
     }
     const patch: Record<string, unknown> = {};
     for (const [field, column] of Object.entries(TEXT_FIELDS)) {
@@ -51,18 +66,8 @@ export const workerProfileClientService: WorkerProfileClientService = {
     for (const [field, column] of Object.entries(RESOURCE_FIELDS)) {
       if (input[field] === undefined) continue;
       const terms = capabilityTerms(input[field]);
-      if (!terms) return failure('PROFILE_CAPABILITY_INPUT_INVALID', 'Unesite do 50 nepraznih stavki, do 500 znakova po stavci.');
+      if (!terms) return failure('PROFILE_CAPABILITY_INPUT_INVALID', 'Unesi do 50 nepraznih stavki, do 500 znakova po stavci.');
       patch[column] = terms;
-    }
-    if (input.dostupanOdmah !== undefined) {
-      if (typeof input.dostupanOdmah !== 'boolean') return failure('PROFILE_INPUT_INVALID', 'Dostupnost nije ispravna.');
-      patch.available_now = input.dostupanOdmah;
-    }
-    if (input.radijusKm !== undefined) {
-      if (typeof input.radijusKm !== 'number' || !Number.isInteger(input.radijusKm) || input.radijusKm < 1 || input.radijusKm > 200) {
-        return failure('PROFILE_INPUT_INVALID', 'Radijus mora biti ceo broj od 1 do 200 km.');
-      }
-      patch.radius_km = input.radijusKm;
     }
     if (input.zavrsi !== undefined && typeof input.zavrsi !== 'boolean') return failure('PROFILE_INPUT_INVALID', 'Radnja profila nije ispravna.');
     const activate = input.zavrsi === true;
@@ -70,7 +75,7 @@ export const workerProfileClientService: WorkerProfileClientService = {
     async function run<T>(options: Omit<ReceiptOptions<T>, 'errors'> & { request: () => PromiseLike<unknown> }): Promise<Ishod<T>> {
       const result = await readOwnedResult({ ...options, errors: COPY, account });
       if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') {
-        return failure(result.kod, 'Nalog je promenjen. Ponovo otvorite profil.');
+        return failure(result.kod, 'Nalog je promenjen. Ponovo otvori profil.');
       }
       return result;
     }
@@ -94,8 +99,8 @@ export const workerProfileClientService: WorkerProfileClientService = {
       if (!profileId) {
         const inserted = await run({
           request: () => supabase.from('app_profiles').insert({
-            account_id: account.accountId, kind: 'WORKER', display_name: '', city: '', bio: '',
-            skills: [], tools: [], vehicles: [], available_now: false, radius_km: 15,
+            account_id: account.accountId, kind: 'WORKER', display_name: '', bio: '',
+            skills: [], tools: [], vehicles: [],
             ...patch, profile_status: 'DRAFT',
           }).select('id,account_id,kind').single(),
           fallback: 'PROFILE_CREATE_FAILED', invalid: 'PROFILE_INVALID_RESPONSE', write: true,
@@ -113,6 +118,12 @@ export const workerProfileClientService: WorkerProfileClientService = {
         });
         if (!updated.ok) return updated;
       }
+      if (capacityEdit) {
+        const result = await workerCapacityClientService.save({ teamCapacity: input.kapacitetTima as number,
+          expectedRevision: input.capacityRevision as string }, account);
+        if (!result.ok) return result;
+        if (!sameId(result.podatak.capacity.profileId, profileId)) return failure('PROFILE_INVALID_RESPONSE', 'Ponovo učitaj radni profil.');
+      }
       if (activate) {
         const result = await run({ request: () => supabase.rpc('rpc_complete_worker_profile', { p_profile_id: profileId }),
           fallback: 'PROFILE_ACTIVATION_FAILED', invalid: 'PROFILE_INVALID_RESPONSE', write: true, decode: raw => raw === null ? true : null });
@@ -121,9 +132,9 @@ export const workerProfileClientService: WorkerProfileClientService = {
       return { ok: true, podatak: null };
     } catch {
       if (sesijaSada().user?.id !== account.accountId || sesijaSada().accountRevision !== account.accountRevision) {
-        return failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvorite profil.');
+        return failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori profil.');
       }
-      return failure('PROFILE_UPDATE_FAILED', 'Ishod čuvanja nije potvrđen. Osvežite profil pre ponovnog pokušaja.');
+      return failure('PROFILE_UPDATE_FAILED', 'Ishod čuvanja nije potvrđen. Osveži profil pre ponovnog pokušaja.');
     } finally {
       inFlight.delete(lock);
     }

@@ -1,8 +1,15 @@
 import Svg, { G, Path } from 'react-native-svg';
 import { v2 } from './tokens';
 
-/** Exact paths/tones from SPOJ V2 assets/icons/{back,send,chat,chevron}.svg.
- * No substitute icon family or redrawn brand geometry. */
+/**
+ * Exact paths/tones from SPOJ V2 assets/icons/{back,send,chat,chevron}.svg.
+ *
+ * NO LONGER DRAWN ANYWHERE. On 2026-09-20 the owner decided these four move to Phosphor, which the
+ * app already used in forty files: the same back arrow was being drawn two different ways depending
+ * on which screen you were on. `back` → ArrowLeft, `send` → PaperPlaneTilt, `chat` → ChatCircle,
+ * `chevron` → CaretRight. The file is kept, not deleted, because the geometry is an original
+ * supplied asset and the decision to stop showing it is not a decision to lose it.
+ */
 export type V2IconName = 'back' | 'send' | 'chat' | 'chevron';
 export function V2Icon({ name, size = 22, color = v2.color.ink }: { name: V2IconName; size?: number; color?: string }) {
   return <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}

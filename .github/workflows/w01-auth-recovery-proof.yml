@@ -85,7 +85,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@07976c6290703d34c16d382cb36445f98bb43b1f
+      - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1: cmdline-tools 20.0; v3.2.0's 11.0 fails on the new Google TV licence
+        with:
+          # The legacy 'tools' package no longer exists in the SDK repository; the runner image
+          # already carries build-tools and platforms with accepted licences.
+          packages: platform-tools
       - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
         with:
           version: 2.116.0

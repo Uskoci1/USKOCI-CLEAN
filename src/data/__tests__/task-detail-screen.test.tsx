@@ -1,4 +1,7 @@
 import React from 'react';
+// The public Task now shows the requester's photograph in the card that opens their profile, so
+// this suite renders `publicPhoto` on every pass instead of only when the profile sheet is open.
+jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos', ProfilePhoto: 'ProfilePhoto' }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 
@@ -8,8 +11,16 @@ let mockEpoch = 1;
 let mockAccountRevision = 1;
 let mockIntent: 'uskocer' | 'narucilac' = 'uskocer';
 let mockFocused = true;
-const mockLoad = jest.fn();
-const mockSource = { prilika: mockLoad };
+import { taskRelationIndex } from '../taskRelation';
+const mockLoad = jest.fn(), mockRelations = jest.fn();
+// My relation to the task is read beside it, for this task alone (PKG-023b).
+const mockSource = { prilika: mockLoad, odnosiPremaZadacima: mockRelations };
+// The server answers about the ids it was asked and no others, so the double never does either.
+const relatesAs = (...rows: { needId: string }[]) => async (ids: readonly string[]) =>
+  taskRelationIndex(rows.filter(row => ids.includes(row.needId)), ids);
+const owner = (needId: string) => ({ needId, relation: 'OWNER', applicationId: null, applicationState: null, agreementId: null });
+const applicant = (needId: string, applicationState: string, agreementId: string | null = null) =>
+  ({ needId, relation: 'APPLIED', applicationId: 'application-a', applicationState, agreementId });
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockAppListeners = new Set<(value: string) => void>();
 
@@ -23,7 +34,6 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon' }));
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]),
@@ -60,6 +70,7 @@ const back = () => tree!.root.findByProps({ accessibilityLabel: 'Nazad na Zadatk
 
 beforeEach(() => {
   jest.clearAllMocks(); mockLoad.mockReset(); mockAppListeners.clear();
+  mockRelations.mockReset().mockImplementation(relatesAs());
   mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockAccountRevision = 1; mockIntent = 'uskocer'; mockFocused = true;
   mockRouter.canGoBack.mockReturnValue(true);
 });
@@ -72,11 +83,30 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await render();
     expect(text()).toContain('Zadatak trenutno nije moguće učitati'); expect(text()).not.toContain('secret');
     expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    const press = buttons('Pokušajte ponovo')[0].props.onPress;
+    const press = buttons('Pokušaj ponovo')[0].props.onPress;
     await act(async () => { press(); press(); }); expect(mockLoad).toHaveBeenCalledTimes(2);
     expect(text()).toContain('Učitavamo zadatak');
     await act(async () => retry.resolve(detail()));
     expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+  });
+
+  it('shows where the job is as an approximate pin, and shows no map when there is no point', async () => {
+    // Until 2026-09-20 the place was four words of text on the screen where a person decides
+    // whether a job is near enough to take. The point is deliberately coarse; the exact address
+    // belongs to the Dogovor, so `coarse` must stay on and the pin must not be draggable.
+    mockLoad.mockResolvedValue({ ...detail(), priblizno: { lat: 45.2671, lng: 19.8335 } });
+    await render();
+    expect(text()).toContain('Gde je');
+    expect(text()).toContain('Približno područje. Tačna adresa se deli tek u Dogovoru.');
+    const map = tree!.root.findByProps({ coarse: true });
+    expect(map.props.position).toEqual({ latitude: 45.2671, longitude: 19.8335 });
+    expect(map.props.disabled).toBe(true);
+
+    await act(async () => { tree!.unmount(); }); tree = undefined;
+    mockLoad.mockResolvedValue(detail());
+    await render();
+    expect(text()).not.toContain('Gde je');
+    expect(tree!.root.findAllByProps({ coarse: true })).toHaveLength(0);
   });
 
   it('opens the real composer once and never submits directly', async () => {
@@ -95,7 +125,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(text()).toContain('Zadatak task-a'); expect(text()).toContain('Poslednji učitani podaci');
     await act(async () => refresh.reject(new Error('offline')));
     expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    await act(async () => buttons('Pokušajte ponovo')[0].props.onPress());
+    await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).not.toContain('Poslednji učitani podaci'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
   });
 
@@ -103,7 +133,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockLoad.mockResolvedValueOnce(detail()).mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('offline'));
     await render(); await act(async () => mockAppListeners.forEach(listener => listener('active')));
     expect(text()).toContain('Zadatak nije dostupan'); expect(text()).not.toContain('Zadatak task-a');
-    await act(async () => buttons('Pokušajte ponovo')[0].props.onPress());
+    await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
   });
 
@@ -209,15 +239,45 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(mockLoad).toHaveBeenCalledTimes(2);
   });
 
-  it('drops cache and application action when intent changes during a read', async () => {
-    const late = deferred<PrilikaProjekcija>();
-    mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(late.promise).mockRejectedValueOnce(new Error('offline'));
+  // Owner decision 1 (2026-09-19). Whether I may apply used to be decided by the mode of the app: in
+  // the requester mode an open task told the person to go and change the mode in Profil. It is decided
+  // by what I am to this task, read from my own tasks and my own applications.
+  it('a flip of the retired app mode changes nothing: the task stays, and the application action still opens the composer', async () => {
+    mockLoad.mockResolvedValue(detail());
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
-    await act(async () => mockAppListeners.forEach(listener => listener('active')));
     mockIntent = 'narucilac'; await update();
-    await act(async () => { oldPress(); late.resolve(detail()); });
-    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    await act(async () => oldPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/prilike/[id]/prijava', params: { id: 'task-a' } });
+  });
+
+  it('the same account opens its own task and then somebody else\u2019s, with no mode in between: one offers my view, the other an application', async () => {
+    mockRelations.mockImplementation(relatesAs(owner('task-a'))); mockLoad.mockResolvedValue(detail());
+    await render();
+    expect(mockRelations).toHaveBeenCalledWith(['task-a']);
+    expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(text()).toContain('Ovo je tvoj zadatak.');
+    await act(async () => buttons('Otvori svoj zadatak')[0].props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'task-a' } });
+    await act(async () => { tree?.unmount(); });
+    mockId = 'task-b'; mockLoad.mockResolvedValue(detail('task-b')); await render();
+    expect(text()).not.toContain('Ovo je tvoj zadatak.'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+  });
+
+  it('a task I already applied to offers my application, and my Dogovor once I am chosen; never a second application', async () => {
+    mockRelations.mockImplementation(relatesAs(applicant('task-a', 'SUBMITTED'))); mockLoad.mockResolvedValue(detail());
+    await render(); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    await act(async () => buttons('Pogledaj svoju prijavu')[0].props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'application-a' } });
+    await act(async () => { tree?.unmount(); });
+    mockRelations.mockImplementation(relatesAs(applicant('task-a', 'SELECTED', 'agreement-a'))); await render();
+    await act(async () => buttons('Otvori Dogovor')[0].props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'agreement-a' } });
+  });
+
+  it('a relation that could not be read never becomes a licence to apply', async () => {
+    mockRelations.mockRejectedValue(new Error('TASK_RELATIONS_READ_FAILED')); mockLoad.mockResolvedValue(detail());
+    await render();
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(buttons('Proveri ponovo')).toHaveLength(1);
   });
 
   it('invalidates reads and actions on blur and rereads on focus', async () => {
@@ -244,7 +304,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockId = ['task-a', 'task-b']; mockRouter.canGoBack.mockReturnValue(false); await render();
     expect(mockLoad).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak nije dostupan');
     await act(async () => { back(); back(); });
-    expect(mockRouter.replace.mock.calls).toEqual([['/prilike']]);
+    expect(mockRouter.replace.mock.calls).toEqual([['/mapa']]);
   });
 
   it('keeps Back available while loading', async () => {
@@ -261,7 +321,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await render();
     await act(async () => jest.advanceTimersByTime(15_000));
     expect(text()).toContain('Zadatak trenutno nije moguće učitati');
-    await act(async () => buttons('Pokušajte ponovo')[0].props.onPress());
+    await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).toContain('Sveži Zadatak');
     await act(async () => old.resolve({ ...detail(), naslov: 'Istekli Zadatak' }));
     expect(text()).not.toContain('Istekli Zadatak');

@@ -20,10 +20,10 @@ jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({
 const header = (status = 'OPEN') => ({ id: C, account_id: ACCOUNT, purpose: 'NEED_INTAKE',
   status, fact_schema_version: 'NEED_FACT_V2', bound_need_id: NEED });
 const message = () => ({ id: MESSAGE, account_id: ACCOUNT, conversation_id: C, role: 'ASSISTANT',
-  body: 'Proverite podatke.', safety: 'REVIEW', proposed_fact_ids: [], sequence_no: 1 });
+  body: 'Proveri podatke.', safety: 'REVIEW', proposed_fact_ids: [], sequence_no: 1 });
 function fact(key: NeedFactV2Key = 'need.title', value: unknown = 'Montiranje police') {
   const definition = NEED_FACT_V2_DEFINITIONS[key];
-  return { id: FACT, key, value, displayValue: 'Potvrdite podatak', status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER',
+  return { id: FACT, key, value, displayValue: 'Potvrdi podatak', status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER',
     evidence: null, schemaVersion: 'NEED_FACT_V2', valueType: definition.valueType, privacyClass: definition.privacyClass,
     requiredForDraft: definition.requiredForDraft, material: true };
 }

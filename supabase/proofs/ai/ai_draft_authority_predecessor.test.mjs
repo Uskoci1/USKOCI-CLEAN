@@ -1,38 +1,22 @@
 // Pure source admission checks: no database client or provider is created.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { resolve, join } from 'node:path';
+import { readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { historicalPredecessorFixture } from '../historical_predecessor_fixture.mjs';
 import { readAiAuthorityPredecessorPlan } from './ai_draft_authority_predecessor.mjs';
 
-function fixture(run) {
-  const prefix = resolve(tmpdir(), 'uskoci-ai-predecessor-');
-  const root = mkdtempSync(prefix);
-  try {
-    cpSync('supabase/migrations', join(root, 'supabase/migrations'), { recursive: true });
-    mkdirSync(join(root, 'supabase/proofs/ai'), { recursive: true });
-    for (const name of ['ai_draft_authority_files.json', 'ai_draft_authority_predecessor_files.json']) {
-      cpSync(`supabase/proofs/ai/${name}`, join(root, 'supabase/proofs/ai', name));
-    }
-    if (existsSync('supabase/proofs/notifications/d03_message_retry_files.json')) {
-      mkdirSync(join(root, 'supabase/proofs/notifications'), { recursive: true });
-      for (const name of ['d03_message_retry_files.json', 'd03_message_retry_candidate.sql']) {
-        cpSync(`supabase/proofs/notifications/${name}`, join(root, 'supabase/proofs/notifications', name));
-      }
-    }
-    return run(root);
-  } finally {
-    assert.ok(resolve(root).startsWith(prefix) && resolve(root) !== prefix, 'TEMP_CLEANUP_BOUNDARY');
-    rmSync(root, { recursive: true, force: true });
-  }
-}
+const fixture = run => historicalPredecessorFixture('ai', run);
 
-test('current source/provenance derives the complete predecessor and exact optional D03', () => {
-  const plan = readAiAuthorityPredecessorPlan();
+test('exact historical fixture derives the frozen predecessor and optional D03', () => fixture(root => {
+  const plan = readAiAuthorityPredecessorPlan(root);
   assert.equal(plan.source_migration_count, plan.source_inventory.length);
   assert.equal(plan.expected_predecessor_count + 1, plan.source_migration_count);
   assert.equal(plan.expected_predecessor_count, plan.historical_predecessor_count + (plan.d03 ? 1 : 0));
+  assert.equal(plan.historical_predecessor_count, 85);
+}));
+test('historical AI planner rejects the larger current integration source instead of silently admitting it', () => {
+  assert.throws(() => readAiAuthorityPredecessorPlan(), /UNKNOWN_MISSING_OR_CHANGED_PREDECESSOR_SOURCE/);
 });
 test('unknown additional migration refuses source admission before any database operation', () => fixture(root => {
   writeFileSync(join(root, 'supabase/migrations/20990101000000_unadmitted.sql'), 'select 1;\n');

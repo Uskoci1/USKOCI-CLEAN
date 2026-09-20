@@ -21,8 +21,8 @@ import type {
   PotrebaProjekcija,
   PrilikaProjekcija,
 } from '../contracts/projections';
+import { noTaskRelations, taskRelationIndex } from './taskRelation';
 import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
-import { ulogaSada } from '../store/uloga';
 import { lazniAi, resetujAi } from './lazniAi';
 
 const rsd = (iznos: number): Novac => ({
@@ -47,7 +47,7 @@ type Kandidat = Omit<
 const KANDIDATI: Kandidat[] = [
   { prijavaId: 'p-marko', radnikProfilId: 'radnik-marko', verzija: 2, hash: 'h-marko-2', ime: 'Marko Ilić', inicijali: 'MI', ocenaTekst: '5,0', recenzijeTekst: '11 recenzija', cena: rsd(5200), pokrivaMesta: 2, dolazakTekst: 'Sutra · 17:00', prevozTekst: 'Kombi' },
   { prijavaId: 'p-jelena', radnikProfilId: 'radnik-jelena', verzija: 1, hash: 'h-jelena-1', ime: 'Jelena Marković', inicijali: 'JM', ocenaTekst: '4,9', recenzijeTekst: '32 recenzije', cena: rsd(4800), pokrivaMesta: 2, dolazakTekst: 'Sutra · 16:30', prevozTekst: 'Kombi' },
-  { prijavaId: 'p-nikola', radnikProfilId: 'radnik-nikola', verzija: 1, hash: 'h-nikola-1', ime: 'Nikola Petrović', inicijali: 'NP', ocenaTekst: '—', recenzijeTekst: 'Nov Uskočer', cena: rsd(4500), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Kombi' },
+  { prijavaId: 'p-nikola', radnikProfilId: 'radnik-nikola', verzija: 1, hash: 'h-nikola-1', ime: 'Nikola Petrović', inicijali: 'NP', ocenaTekst: '—', recenzijeTekst: 'Nov na USKOČI', cena: rsd(4500), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Kombi' },
   { prijavaId: 'p-ivana', radnikProfilId: 'radnik-ivana', verzija: 1, hash: 'h-ivana-1', ime: 'Ivana Kostić', inicijali: 'IK', ocenaTekst: '4,9', recenzijeTekst: '27 recenzija', cena: rsd(2300), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Bez vozila' },
   { prijavaId: 'p-ana', radnikProfilId: 'radnik-ana', verzija: 1, hash: 'h-ana-1', ime: 'Ana Vasić', inicijali: 'AV', ocenaTekst: '4,8', recenzijeTekst: '19 recenzija', cena: rsd(4600), pokrivaMesta: 1, dolazakTekst: 'Sutra · 16:00', prevozTekst: 'Automobil' },
 ];
@@ -109,7 +109,7 @@ const POCETNO: Stanje = {
   brojac: 0,
   profil: {
     id: 'moj-profil-1',
-    ime: 'Uskočer (Vi)',
+    ime: 'Ti',
     grad: 'Beograd',
     biografija: 'Ja sam majstor',
     vestine: [],
@@ -219,7 +219,9 @@ function kontaktZa(dogovorId: string): KontaktProjekcija {
 function dogovorIz(a: Alokacija): DogovorProjekcija {
   const k = KANDIDATI.find((c) => c.prijavaId === a.prijavaId)!;
   const z = zavrsetakZa(a.dogovorId);
-  const jaSamNarucilac = ulogaSada() === 'narucilac';
+  // Every Dogovor in this test double comes from the double's own user choosing a candidate for the
+  // double's own task, so that user is its requester. It used to follow the app's global mode.
+  const jaSamNarucilac = true;
   return {
     id: a.dogovorId,
     verzija: stanje.dogovorVerzija[a.dogovorId] ?? 1,
@@ -234,7 +236,8 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
     ucesnici: [
       {
         id: 'narucilac',
-        ime: jaSamNarucilac ? 'Vi' : 'Miloš',
+        ime: jaSamNarucilac ? 'Ti' : 'Miloš',
+        profilId: jaSamNarucilac ? 'profil-vi' : 'profil-ms',
         inicijali: jaSamNarucilac ? 'VI' : 'MŠ',
         uloga: 'narucilac',
         mesta: null,
@@ -243,7 +246,8 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
       },
       {
         id: k.prijavaId,
-        ime: jaSamNarucilac ? k.ime : 'Vi',
+        ime: jaSamNarucilac ? k.ime : 'Ti',
+        profilId: jaSamNarucilac ? k.radnikProfilId : 'profil-vi',
         inicijali: jaSamNarucilac ? k.inicijali : 'VI',
         uloga: 'uskocer',
         mesta: a.mesta,
@@ -259,6 +263,13 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
     problemOtvoren: z.problemOtvoren,
     // Ocena tek posle kanonskog završetka — ne pre.
     ocenaMoguca: z.stanje === 'COMPLETED',
+    // PKG-007: isto pravilo kao serverski actionState; lažni izvor ne modelira predloge na čekanju.
+    radnje: {
+      mozeOznacitiZavrsetak: !jaSamNarucilac && z.stanje === 'CONFIRMED',
+      mozePotvrditiZavrsetak: jaSamNarucilac && (z.stanje === 'CONFIRMED' || z.stanje === 'AWAITING_REQUESTER'),
+      izmenaNaCekanju: false,
+      predlogIzmene: null,
+    },
     hronologija: [
       { vremeTekst: 'sada', tekst: 'Dogovor je potvrđen' },
       {
@@ -269,6 +280,8 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
             : `Povezivanje aktivirano · ${a.povezivanjeIznos}`,
       },
     ],
+    pocinje: null,
+    izmenaCeka: null,
   };
 }
 
@@ -415,6 +428,22 @@ export const lazniIzvor: Izvor = {
     });
   },
 
+  /** PKG-023b, from the same rows the demo already holds: one answer per task asked about. */
+  async odnosiPremaZadacima(idovi: readonly string[]) {
+    await kasnjenje();
+    const asked = [...new Set(idovi.filter((id): id is string => typeof id === 'string' && id.length > 0))];
+    if (asked.length === 0) return noTaskRelations;
+    const mine = new Set((await lazniIzvor.mojePotrebe()).map(row => row.id));
+    const applications = await lazniIzvor.mojePrijave();
+    const items = asked.flatMap<unknown>(needId => {
+      if (mine.has(needId)) return [{ needId, relation: 'OWNER', applicationId: null, applicationState: null, agreementId: null }];
+      const application = applications.find(row => row.potrebaId === needId);
+      return application ? [{ needId, relation: 'APPLIED', applicationId: application.prijavaId,
+        applicationState: application.stanje, agreementId: application.dogovorId ?? null }] : [];
+    });
+    return taskRelationIndex(items, asked);
+  },
+
   async mojePrijave(): Promise<MojaPrijavaProjekcija[]> {
     await kasnjenje();
     return KANDIDATI
@@ -472,7 +501,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: "STALE_REVIEW_REQUIRED",
         naslov: "Potreba je izmenjena",
-        poruka: "Potreba je promenjena. Osvežite pregled prilike.",
+        poruka: "Potreba je promenjena. Osveži pregled prilike.",
       };
     }
     if (k.cenaRsd <= 0) {
@@ -492,7 +521,7 @@ export const lazniIzvor: Izvor = {
       radnikProfilId: stanje.profil.id,
       verzija: 1,
       hash,
-      ime: "Uskočer (Vi)",
+      ime: "Ti",
       inicijali: "VI",
       ocenaTekst: "Novo",
       recenzijeTekst: "Nema ocena",
@@ -524,7 +553,7 @@ export const lazniIzvor: Izvor = {
       return { ok: false, kod: 'RESPONSE_ALREADY_SELECTED', poruka: 'Izabrana Prijava se više ne može povući.' };
     }
     if ((stanje.prijavaRevizije[k.prijavaId] ?? stanje.potrebaRevizija) !== k.potrebaRevizija || kandidat.verzija !== k.prijavaVerzija) {
-      return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Prijava ili Potreba su promenjene. Osvežite pregled.' };
+      return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Prijava ili Potreba su promenjene. Osveži pregled.' };
     }
     stanje.povlacenja.set(k.clientRequestId, signature);
     stanje.povucenePrijave.add(k.prijavaId);
@@ -544,7 +573,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'STALE_REVIEW_REQUIRED',
         naslov: 'Potreba je izmenjena',
-        poruka: 'Prijave su ponovo na proveri jer je Potreba promenjena. Pogledajte ih ponovo pre izbora.',
+        poruka: 'Prijave su ponovo na proveri jer je Potreba promenjena. Pogledaj ih ponovo pre izbora.',
       };
     }
 
@@ -557,7 +586,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'STALE_REVIEW_REQUIRED',
         naslov: 'Prijava je izmenjena',
-        poruka: 'Uskočer je izmenio prijavu otkad ste je pogledali. Proverite je ponovo.',
+        poruka: 'Prijava je izmenjena posle tvog pregleda. Proveri je ponovo.',
       };
     }
 
@@ -603,7 +632,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'VERSION_CONFLICT',
         naslov: 'Dogovor je u međuvremenu promenjen',
-        poruka: 'Osvežite Dogovor pa pokušajte ponovo.',
+        poruka: 'Osveži Dogovor pa pokušaj ponovo.',
       };
     }
     return { ok: true, podatak: { predlogId: `pred-${k.dogovorId}-${trenutna}` } };
@@ -627,7 +656,7 @@ export const lazniIzvor: Izvor = {
     const id = `m-${dogovorId}-${lista.length + 1}`;
     stanje.poruke[dogovorId] = [
       ...lista,
-      { id, posiljalacIme: 'Vi', moja: true, telo, vremeTekst: 'sada', procitano: false },
+      { id, posiljalacIme: 'Ti', moja: true, telo, vremeTekst: 'sada', procitano: false },
     ];
     return { ok: true, podatak: { porukaId: id } };
   },
@@ -665,14 +694,15 @@ export const lazniIzvor: Izvor = {
     }
     // Naručilac može da potvrdi i pre nego što Uskočer bilo šta označi.
     const z = zavrsetakZa(dogovorId);
+    const ponovljeno = z.stanje === 'COMPLETED';
     stanje.zavrsetak[dogovorId] = { ...z, stanje: 'COMPLETED', rokPotvrdeMs: null };
-    return { ok: true, podatak: null };
+    return { ok: true, podatak: { zavrsenoIso: new Date(stanje.sadaMs).toISOString(), ponovljeno } };
   },
 
   async prijaviProblem(dogovorId, opis) {
     await kasnjenje();
     if (!opis.trim()) {
-      return { ok: false, kod: 'EMPTY', naslov: 'Opišite problem', poruka: 'Bez opisa ne možemo da pomognemo.' };
+      return { ok: false, kod: 'EMPTY', naslov: 'Opiši problem', poruka: 'Bez opisa ne možemo da pomognemo.' };
     }
     const z = zavrsetakZa(dogovorId);
     if (z.stanje === 'COMPLETED') {

@@ -91,13 +91,14 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
     expect(productionComposition).not.toContain('agreementProductionOverrides');
   });
 
-  it('mojiDogovori uses only canonical list RPC and preserves projection mapping', async () => {
-    mockRpc.mockResolvedValue({ data: [rawAgreement], error: null });
+  it('mojiDogovori uses only the canonical paged list RPC and preserves projection mapping', async () => {
+    mockRpc.mockResolvedValue({ data: { items: [rawAgreement], hasMore: false }, error: null });
 
     const result = await agreementClientService.mojiDogovori();
 
     expect(mockGetUser).toHaveBeenCalledTimes(1);
-    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements']]);
+    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements_page',
+      { p_scope: 'ALL', p_limit: 100, p_before_at: null, p_before_id: null }]]);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
       id: 'agr-1',
@@ -147,8 +148,9 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
   it('mojiDogovori remains fail-loud on backend error', async () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'LIST_DENIED' } });
 
-    await expect(agreementClientService.mojiDogovori()).rejects.toThrow('LIST_DENIED');
-    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements']]);
+    await expect(agreementClientService.mojiDogovori()).rejects.toThrow('AGREEMENT_LIST_FAILED');
+    expect(mockRpc.mock.calls).toEqual([['rpc_list_my_agreements_page',
+      { p_scope: 'ALL', p_limit: 100, p_before_at: null, p_before_id: null }]]);
   });
 
   it('mojiDogovori remains fail-loud on invalid projection', async () => {
@@ -171,7 +173,7 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
   it('dogovor remains fail-loud on backend error', async () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'WORKSPACE_DENIED' } });
 
-    await expect(agreementClientService.dogovor('agr-1')).rejects.toThrow('WORKSPACE_DENIED');
+    await expect(agreementClientService.dogovor('agr-1')).rejects.toThrow('AGREEMENT_READ_FAILED');
   });
 
   it('AUTH_REQUIRED is preserved and prevents RPC execution', async () => {
@@ -187,7 +189,7 @@ it('uses immutable agreed terms rather than the mutable parent task schedule', a
   mockRpc.mockResolvedValue({ data: { ...rawAgreement, startsAt: '2030-01-01T12:00:00Z' }, error: null });
   const result = await agreementClientService.dogovor('agr-1');
   expect(result?.vremeTekst).toContain('2026 · 10:00');
-  expect(result?.vremeTekst).toContain('UTC · zona nije navedena');
+  expect(result?.vremeTekst).not.toContain('zona nije navedena');
   expect(result?.vremeTekst).toContain('kraj nije potvrđen');
   expect(result?.vremeTekst).not.toContain('2030');
 });

@@ -3,10 +3,14 @@
  *
  * R04 "Izmeni Zadatak" used to push a route that does not exist. The live
  * server has owned the edit authority since RU-4 closure; this locks the
- * client contract onto it: open a bound edit conversation, review in R07,
- * confirm with the exact revision the owner saw. The server decides
- * materiality, staleness and the post-Dogovor lock — the client only
- * translates its answers into product language.
+ * client contract onto it: open a bound edit conversation, review it, confirm
+ * with the exact revision the owner saw. The server decides materiality,
+ * staleness and the post-Dogovor lock — the client only translates its
+ * answers into product language.
+ *
+ * R07 was the screen that carried the confirmation in two client steps. V5
+ * replaced it with one review that the server routes by itself, so the second
+ * test below now reads that decision where it is made rather than in a screen.
  */
 
 import { readFileSync } from 'node:fs';
@@ -44,13 +48,23 @@ describe('RU-4 — R04 edit no longer dead-ends', () => {
     expect(screen).not.toContain("'/potrebe/[id]/izmeni'");
     expect(screen).not.toContain('as any');
     expect(screen).toContain('openEditConversation');
-    expect(screen).toContain("pathname: '/nova'");
+    // V5 routes the final draft review directly to its detailed review; manual
+    // editing still opens the same owned conversation. The renderer journeys
+    // in publication-screen.test.tsx exercise both callbacks and exact IDs.
+    expect(screen).toContain("'/nova'");
+    expect(screen).toContain("'/pregled-zadatka'");
   });
 
-  it('R07 confirms an edit through the RU-4 review authority, not the DRAFT creator', () => {
-    const review = readFileSync(join(__dirname, '..', '..', 'app', '(app)', 'pregled-nacrta.tsx'), 'utf8');
-    expect(review).toContain('confirmEdit');
-    expect(review).toContain('review.boundNeedId');
+  it('accepting a bound review confirms an edit through the RU-4 authority, never the DRAFT creator', () => {
+    const migration = readFileSync(join(__dirname, '..', '..', '..', 'supabase', 'migrations',
+      '20260912213702_clean_v5_review_acceptance.sql'), 'utf8');
+    const accept = migration.slice(migration.indexOf('create function public.rpc_accept_ai_task_review'));
+    // One branch, decided by the server from the conversation's own binding: a conversation with no
+    // Need behind it creates a draft, and one that has a Need confirms an edit against the exact
+    // revision the owner reviewed. The client cannot pick the wrong one because it does not pick.
+    expect(accept).toContain('if c.bound_need_id is null then');
+    expect(accept).toContain('rpc_save_need_draft_from_review(c.id');
+    expect(accept).toContain("rpc_confirm_need_edit_from_review_v2(c.bound_need_id,(r.envelope->>'draftRevision')::integer");
   });
 });
 
@@ -134,11 +148,11 @@ describe('RU-4 — confirmEdit', () => {
   it('explains an unchanged review and unconfirmed facts in product language', async () => {
     resetRpc({ data: null, error: { code: '22023', message: 'NO_MATERIAL_CHANGE' } });
     const unchanged = await aiNeedV2Production.confirmEdit(NEED, 3, CONVERSATION, 'ru4-edit-abc12345');
-    expect(unchanged).toMatchObject({ ok: false, kod: 'NO_MATERIAL_CHANGE', poruka: 'Niste promenili nijedan podatak.' });
+    expect(unchanged).toMatchObject({ ok: false, kod: 'NO_MATERIAL_CHANGE', poruka: 'Nisi promenili nijedan podatak.' });
 
     resetRpc({ data: null, error: { code: 'P0001', message: 'EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION' } });
     const unconfirmed = await aiNeedV2Production.confirmEdit(NEED, 3, CONVERSATION, 'ru4-edit-abc12345');
     expect(unconfirmed).toMatchObject({ ok: false, kod: 'EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION' });
-    if (!unconfirmed.ok) expect(unconfirmed.poruka).toContain('Potvrdite');
+    if (!unconfirmed.ok) expect(unconfirmed.poruka).toContain('Potvrdi');
   });
 });

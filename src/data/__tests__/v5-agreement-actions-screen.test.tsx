@@ -1,0 +1,132 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { journalFor, type AgreementActionCommand } from '../../ui/agreements/agreementActionsModel';
+import type { AgreementChangeSnapshot, AgreementChangeProposal } from '../agreementClientService';
+const A='10000000-0000-4000-8000-000000000001',B='10000000-0000-4000-8000-000000000002';
+const ID='20000000-0000-4000-8000-000000000001',PID='30000000-0000-4000-8000-000000000001',KEY='40000000-0000-4000-8000-000000000001';
+let mockSession={user:{id:A},accountRevision:1},mockFocused=true,mockForeground='active';
+const mockListeners=new Set<(value:string)=>void>(),mockStorage={getItem:jest.fn(),setItem:jest.fn(),removeItem:jest.fn()};
+const mockService={read:jest.fn(),readCommand:jest.fn(),propose:jest.fn(),respond:jest.fn(),withdraw:jest.fn(),cancel:jest.fn()};
+const mockUuid=jest.fn(),mockBack=jest.fn(),mockReplace=jest.fn();
+jest.mock('../agreementClientService',()=>({agreementChangeService:{
+ read:(...args:unknown[])=>mockService.read(...args),readCommand:(...args:unknown[])=>mockService.readCommand(...args),
+ propose:(...args:unknown[])=>mockService.propose(...args),respond:(...args:unknown[])=>mockService.respond(...args),
+ withdraw:(...args:unknown[])=>mockService.withdraw(...args),cancel:(...args:unknown[])=>mockService.cancel(...args)}}));
+jest.mock('../supabaseClient',()=>({supabaseKlijent:()=>({})}));
+jest.mock('../../store/sesija',()=>({useSesija:()=>mockSession,sesijaSada:()=>mockSession}));
+jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=>mockUuid()}));
+jest.mock('@react-native-async-storage/async-storage',()=>({__esModule:true,default:{
+ getItem:(...args:unknown[])=>mockStorage.getItem(...args),setItem:(...args:unknown[])=>mockStorage.setItem(...args),removeItem:(...args:unknown[])=>mockStorage.removeItem(...args)}}));
+jest.mock('expo-router',()=>({router:{canGoBack:()=>false,back:()=>mockBack(),replace:(...args:unknown[])=>mockReplace(...args)},
+ useFocusEffect:(effect:()=>void)=>require('react').useEffect(()=>mockFocused?effect():undefined,[effect,mockFocused])}));
+jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
+jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
+ if(['View','TextInput','ScrollView','KeyboardAvoidingView'].includes(String(key)))return String(key);
+ if(key==='AppState')return {get currentState(){return mockForeground;},addEventListener:(_event:string,listener:(value:string)=>void)=>{
+  mockListeners.add(listener);return {remove:()=>mockListeners.delete(listener)};}};
+ return Reflect.get(target,key);
+}});});
+jest.mock('../../ui/Text',()=>({T:'T'}));
+jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
+jest.mock('../../ui/calendar/CalendarControls',()=>({CivilField:'CivilField'}));
+import { AgreementActionsScreen } from '../../ui/agreements/AgreementActionsScreen';
+const terms={priceRsd:3500,currency:'RSD' as const,scopeNote:'Važeći obim',startsAt:null,endsAt:null};
+const proposal:AgreementChangeProposal={proposalId:PID,agreementId:ID,baseVersion:7,proposedBy:B,status:'PENDING',createdAt:'2026-09-13T10:00:00Z',
+ reason:'Dodatni posao',respondedAt:null,respondedBy:null,termsAvailable:true,terms:{...terms,priceRsd:4000}};
+const initial=():AgreementChangeSnapshot=>({agreementId:ID,agreementVersion:7,agreementStatus:'CONFIRMED',requesterAccountId:A,workerAccountId:B,terms,proposals:[],
+ actions:{agreementId:ID,agreementVersion:7,accountId:A,authoritative:true,canProposeChange:true,canRespondChange:false,canWithdrawChange:false,canMarkWorkDone:false,canConfirmCompletion:false,canCancel:true}});
+const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'UNCONFIRMED',poruka:'Ishod nije potvrđen.'};
+const stored=(status='PENDING',proposedBy=A)=>ok({found:true,proposalId:PID,agreementId:ID,baseVersion:7,proposedBy,status});
+let tree:ReactTestRenderer,snapshot:AgreementChangeSnapshot;
+const page=()=> <AgreementActionsScreen agreementId={ID}/>;
+const render=async()=>{await act(async()=>{tree=create(page());});};
+const action=(label:string)=>tree.root.findByProps({label}).props;
+const tap=async(label:string)=>{await act(async()=>action(label).onPress());};
+const type=async(label:string,value:string)=>{await act(async()=>tree.root.findByProps({accessibilityLabel:label}).props.onChangeText(value));};
+const text=()=>JSON.stringify(tree.toJSON());
+function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return {promise,resolve};}
+beforeEach(()=>{
+ jest.clearAllMocks();for(const group of [mockService,mockStorage])for(const fn of Object.values(group))fn.mockReset();
+ mockSession={user:{id:A},accountRevision:1};mockFocused=true;mockForeground='active';snapshot=initial();mockUuid.mockReturnValue(KEY);
+ mockStorage.getItem.mockResolvedValue(null);mockStorage.setItem.mockResolvedValue(undefined);mockStorage.removeItem.mockResolvedValue(undefined);
+ mockService.read.mockImplementation(()=>Promise.resolve(ok(snapshot)));mockService.readCommand.mockResolvedValue(ok({found:false}));
+ for(const name of ['propose','respond','withdraw','cancel'] as const)mockService[name].mockResolvedValue(unknown);
+});
+afterEach(async()=>{await act(async()=>tree?.unmount());mockListeners.clear();});
+it('shows current accepted terms and offers existing authoritative actions without any write on entry',async()=>{
+ await render();expect(text()).toContain('Važeći obim');expect(action('Predloži izmenu uslova')).toBeDefined();expect(action('Otkazivanje Dogovora')).toBeDefined();
+ expect(mockService.propose).not.toHaveBeenCalled();expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
+});
+it('reviews actual entered terms and reason once, persists opaque metadata and deduplicates retained final taps',async()=>{
+ await render();await tap('Predloži izmenu uslova');await type('Predložena cena u RSD','4200');await type('Predloženi obim posla','Novi privatni obim');
+ await type('Razlog predloga — opciono','Privatan razlog');await tap('Pregledaj radnju');
+ expect(text()).toContain('Novi privatni obim');expect(text()).toContain('Uslovi se menjaju tek');expect(mockService.propose).not.toHaveBeenCalled();
+ const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const send=action('Pošalji predlog izmene').onPress;
+ await act(async()=>{send();send();});expect(mockService.propose).not.toHaveBeenCalled();
+ const raw=mockStorage.setItem.mock.calls[0][1];expect(raw).not.toMatch(/Novi privatni|Privatan razlog|4200/);
+ await act(async()=>gate.resolve());expect(mockService.propose).toHaveBeenCalledTimes(1);
+ expect(mockService.propose).toHaveBeenCalledWith({dogovorId:ID,ocekivanaVerzija:7,clientRequestId:KEY,izmena:{cenaIznos:4200,cenaValuta:'RSD',obim:'Novi privatni obim'},razlog:'Privatan razlog'},mockSessionAccount());
+ expect(action('Proveri ishod radnje')).toBeDefined();expect(mockService.readCommand).toHaveBeenCalledTimes(1);
+});
+const mockSessionAccount=()=>({accountId:A,accountRevision:1});
+it('requires a positive bounded price and a real change before review',async()=>{
+ await render();await tap('Predloži izmenu uslova');await tap('Pregledaj radnju');expect(text()).toContain('Izmeni bar jedan');
+ await type('Predložena cena u RSD','-5');await tap('Pregledaj radnju');expect(text()).toContain('pozitivan ceo iznos');
+ expect(mockService.propose).not.toHaveBeenCalled();expect(tree.root.findAllByProps({label:'Pošalji predlog izmene'})).toHaveLength(0);
+});
+it('preserves accepted microsecond precision of an endpoint that was not edited',async()=>{
+ snapshot={...snapshot,terms:{...terms,startsAt:'2026-09-15T10:00:00.123456Z',endsAt:'2026-09-15T15:00:00.654321Z'}};
+ await render();await tap('Predloži izmenu uslova');
+ await act(async()=>tree.root.findByProps({label:'Vreme početka'}).props.onChange('10:30'));
+ await tap('Pregledaj radnju');await tap('Pošalji predlog izmene');
+ expect(mockService.propose).toHaveBeenCalledTimes(1);expect(mockService.propose.mock.calls[0][0].izmena.krajIso).toBe('2026-09-15T15:00:00.654321Z');
+});
+it('retires the final callback immediately after canceling its review, including same-turn retained invocation',async()=>{
+ await render();await tap('Otkazivanje Dogovora');await type('Razlog otkazivanja Dogovora','Privatan razlog');await tap('Pregledaj radnju');
+ const old=action('Otkaži Dogovor').onPress,cancel=action('Odustani od radnje').onPress;
+ await act(async()=>{cancel();old();});expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
+});
+it('cancel reason is required and a transport ACK remains unknown until canonical CANCELLED',async()=>{
+ await render();await tap('Otkazivanje Dogovora');await tap('Pregledaj radnju');expect(text()).toContain('Unesi razlog otkazivanja');
+ await type('Razlog otkazivanja Dogovora','Otkazujem');await tap('Pregledaj radnju');expect(text()).toContain('precizna lokacija se opozivaju');
+ mockService.cancel.mockResolvedValue(ok({acknowledged:true}));await tap('Otkaži Dogovor');expect(action('Proveri ishod radnje')).toBeDefined();
+ expect(text()).not.toContain('Dogovor je otkazan.');snapshot={...snapshot,agreementStatus:'CANCELLED'};
+ await tap('Proveri ishod radnje');expect(text()).toContain('Dogovor je otkazan.');expect(mockService.cancel).toHaveBeenCalledTimes(1);
+});
+it.each([true,false])('reviews the exact other-party proposal before accepting=%s and confirms its immutable persisted status',async accept=>{
+ snapshot={...snapshot,proposals:[proposal],actions:{...snapshot.actions,canProposeChange:false,canRespondChange:true}};
+ await render();await tap(accept?'Pregledaj prihvatanje izmene':'Pregledaj odbijanje predloga');expect(text()).toContain('Dodatni posao');
+ expect(mockService.respond).not.toHaveBeenCalled();mockService.readCommand.mockResolvedValue(stored(accept?'ACCEPTED':'REJECTED',B));
+ await tap(accept?'Prihvati izmenu':'Odbij predlog');expect(mockService.respond).toHaveBeenCalledWith(proposal,accept,mockSessionAccount());
+ expect(action('Prikaži aktuelni Dogovor')).toBeDefined();
+});
+it('withdraws only the author’s pending proposal through its existing writer',async()=>{
+ const own={...proposal,proposedBy:A};snapshot={...snapshot,proposals:[own],actions:{...snapshot.actions,canProposeChange:false,canWithdrawChange:true}};
+ await render();await tap('Pregledaj povlačenje predloga');mockService.readCommand.mockResolvedValue(stored('WITHDRAWN'));
+ await tap('Povuci predlog');expect(mockService.withdraw).toHaveBeenCalledWith(PID,mockSessionAccount());expect(text()).toContain('Predlog izmene je povučen.');
+});
+it('hides unauthorized actions and keeps acceptance unavailable when terms cannot be reviewed',async()=>{
+ snapshot={...snapshot,terms:null,proposals:[{...proposal,terms:null,termsAvailable:false}],actions:{...snapshot.actions,canProposeChange:false,canCancel:false,canRespondChange:true}};
+ await render();expect(tree.root.findAllByProps({label:'Predloži izmenu uslova'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Otkazivanje Dogovora'})).toHaveLength(0);
+ expect(action('Pregledaj prihvatanje izmene').disabled).toBe(true);
+});
+it('restores unknown proposal read-only and demands exact body re-entry under the old key without generating another key',async()=>{
+ const original:AgreementActionCommand={kind:'PROPOSE',value:{dogovorId:ID,ocekivanaVerzija:7,clientRequestId:KEY,izmena:{cenaIznos:4200},razlog:'Isti razlog'}};
+ mockStorage.getItem.mockResolvedValue(JSON.stringify(journalFor(original)));await render();expect(mockService.propose).not.toHaveBeenCalled();
+ await tap('Unesi prvobitni zahtev');expect(mockUuid).not.toHaveBeenCalled();await type('Predložena cena u RSD','4300');await type('Razlog predloga — opciono','Isti razlog');
+ await tap('Pregledaj radnju');expect(text()).toContain('razlikuje od prvobitnog');expect(mockStorage.setItem).not.toHaveBeenCalled();
+ await type('Predložena cena u RSD','4200');await tap('Pregledaj radnju');await tap('Pošalji predlog izmene');
+ expect(mockService.propose.mock.calls[0][0].clientRequestId).toBe(KEY);expect(mockUuid).not.toHaveBeenCalled();
+});
+it.each(['blur','account','background'])('blocks a late %s response and retained final callback from updating another scope',async change=>{
+ await render();await tap('Otkazivanje Dogovora');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj radnju');
+ const gate=deferred<unknown>();mockService.cancel.mockReturnValue(gate.promise);const old=action('Otkaži Dogovor').onPress;
+ await act(async()=>old());
+ await act(async()=>{if(change==='blur')mockFocused=false;else if(change==='account')mockSession={user:{id:B},accountRevision:2};else {mockForeground='background';mockListeners.forEach(fn=>fn('background'));}tree.update(page());});
+ const reads=mockService.read.mock.calls.length;await act(async()=>{gate.resolve(ok({acknowledged:true}));old();});
+ expect(mockService.cancel).toHaveBeenCalledTimes(1);expect(mockService.read).toHaveBeenCalledTimes(reads);expect(mockStorage.removeItem).not.toHaveBeenCalled();
+});
+it('uses whole-screen keyboard avoidance and a scroll container, and has a deterministic back fallback',async()=>{
+ await render();expect(tree.root.findAllByType('KeyboardAvoidingView' as never)).toHaveLength(1);expect(tree.root.findAllByType('ScrollView' as never)).toHaveLength(1);
+ await act(async()=>tree.root.findByProps({accessibilityLabel:'Nazad'}).props.onPress());expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+});

@@ -1,32 +1,87 @@
-export type ResourceState<T> = { data: T | null; loading: boolean; error: boolean };
+export type ResourceState<T> = { data: T | null; loading: boolean; error: boolean;
+  /** A user-asked re-read while what is on screen stays on screen. Never true on a first load. */
+  refreshing: boolean };
+
+/** Coming back to a screen after this long is not "coming back"; it loads as if for the first time. */
+const STALE_MS = 5 * 60_000;
 
 /** A read belongs to one focused account/intent and one request generation. */
 export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () => boolean) {
-  let state: ResourceState<T> = { data: null, loading: true, error: false };
+  let state: ResourceState<T> = { data: null, loading: true, error: false, refreshing: false };
   let active = false;
   let generation = 0;
+  let leftAt = 0;
   const listeners = new Set<() => void>();
+  const empty: ResourceState<T> = { data: null, loading: true, error: false, refreshing: false };
   const publish = (next: ResourceState<T>) => {
     state = next;
     listeners.forEach(listener => listener());
   };
-  async function refresh() {
+  /**
+   * Three ways to read, and the difference between them is only what the person sees while it runs.
+   *
+   * `'load'` is a first read: there is nothing to show, so the screen shows that it is loading.
+   * `'keep'` is a re-read the person asked for: pulling a list down used to delete every card, the
+   * count and the create button and replace them with skeletons, so what is on screen stays and is
+   * marked `refreshing`. `'silent'` is the one that runs when you come back to a screen: it shows
+   * what the screen had and replaces it when the answer lands, with nothing flashing in between.
+   *
+   * The authority rule is unchanged and lives in `isCurrent`: nothing from another account or intent
+   * is ever published, and a change of either builds a new resource that starts empty.
+   */
+  async function refresh(mode: boolean | 'load' | 'keep' | 'silent' = 'load') {
     if (!active || !isCurrent()) return;
+    const how = mode === true ? 'keep' : mode === false ? 'load' : mode;
     const request = ++generation;
-    // Eligibility and private identity from a previous read are not current truth.
-    publish({ data: null, loading: true, error: false });
+    const holding = how !== 'load' && state.data !== null && !state.error;
+    if (!holding) publish(empty);
+    else if (how === 'keep') publish({ ...state, refreshing: true });
     try {
       const data = await load();
-      if (active && request === generation && isCurrent()) publish({ data, loading: false, error: false });
+      if (active && request === generation && isCurrent()) publish({ data, loading: false, error: false, refreshing: false });
     } catch {
-      if (active && request === generation && isCurrent()) publish({ data: null, loading: false, error: true });
+      if (!active || request !== generation || !isCurrent()) return;
+      // A re-read nobody asked for must not turn a screen that was working into an error. What is
+      // on it is the last thing the server actually said; the refresh control can be asked again.
+      publish(holding && how === 'silent' ? { ...state, refreshing: false }
+        : { data: null, loading: false, error: true, refreshing: false });
     }
   }
   return {
     snapshot: () => state,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    start() { active = true; void refresh(); },
-    stop() { active = false; generation++; },
+    /**
+     * Focus. What the screen already had is shown at once and replaced when the new read lands,
+     * because leaving a screen for a moment and coming back is not a reason to forget it. Two taps
+     * between tabs used to cost two round trips and two skeletons.
+     */
+    start() {
+      active = true;
+      if (!isCurrent()) { publish(empty); return; }
+      const recent = state.data !== null && !state.error && Date.now() - leftAt < STALE_MS;
+      void refresh(recent ? 'silent' : 'load');
+    },
+    /**
+     * Blur — another screen in the same app. The read is retired; what it produced stays, because
+     * stepping to the next screen and back is not a reason to forget what you were looking at.
+     */
+    stop() {
+      active = false;
+      generation++;
+      leftAt = Date.now();
+      if (state.refreshing) publish({ ...state, refreshing: false });
+    },
+    /**
+     * The app itself leaves the foreground. Here the wipe is the point: Android photographs the
+     * screen for the recents switcher, and that photograph must not be somebody's private data. The
+     * next focus loads it again from the server.
+     */
+    forget() {
+      active = false;
+      generation++;
+      leftAt = 0;
+      publish(empty);
+    },
     refresh,
   };
 }

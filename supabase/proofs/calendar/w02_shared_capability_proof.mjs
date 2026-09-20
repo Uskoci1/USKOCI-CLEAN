@@ -8,6 +8,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../ru5_device_ui_local_guard.mjs';
+import { ownedIntakeSourceBoundary } from '../../../scripts/ci/owned-intake-source.mjs';
+import { readP3RetentionPredecessorPlan } from '../legal/p3_retention_schedule_predecessor.mjs';
+import { applyPendingSuccessors } from '../legal/pending_domain_replay.mjs';
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL,out=env.W02_CALENDAR_ARTIFACT_DIR;
 assertLocalDeviceProofTargets(url,db);assert.ok(out);
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
@@ -20,15 +23,18 @@ const uid=value=>{assert.match(value,/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{1
 const sql=query=>{try{return execFileSync('psql',[db,'-X','-At','-v','ON_ERROR_STOP=1'],{input:query,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();}
   catch {throw new Error('ISOLATED_SQL_FAILED');}};
 const ok=async promise=>{const result=await promise;assert.equal(result.error,null,'ISOLATED_REQUEST_REFUSED');return result.data;};
-const value=async promise=>{const result=await promise;assert.equal(result.ok,true,'ACTUAL_CLIENT_REFUSED');return result.podatak;};
+const value=async promise=>{const result=await promise;assert.equal(result.ok,true,'ACTUAL_CLIENT_REFUSED:'+(result.ok?'':String(result.kod??'')+':'+String(result.poruka??'').slice(0,120)));return result.podatak;};
 const hash=table=>sql(`select md5(coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]'::jsonb)::text) from ${table} x`);
 let stage='SETUP';
 const begin=name=>{stage=name;};
 const pass=()=>{report.checks.push({name:stage,result:'PASS'});console.log('PASS '+stage);};
 function linked(client,id){
   const state={user:{id},accountRevision:1},cache=new Map();
+  // Every runtime module of the actual client service is admitted by name and fingerprinted;
+  // owned capacity (72cdc8c, 2026-09-11) joined the service after the original list.
   const paths={'./workerProfileClientService':'src/data/workerProfileClientService.ts','./serverReceipt':'src/data/serverReceipt.ts',
-    '../lib/capabilityTerms':'src/lib/capabilityTerms.ts'};
+    '../lib/capabilityTerms':'src/lib/capabilityTerms.ts','../contracts/workerCapacity':'src/contracts/workerCapacity.ts',
+    './workerCapacityClientService':'src/data/workerCapacityClientService.ts'};
   function load(name){
     const path=paths[name];assert.ok(path,'UNEXPECTED_DEPENDENCY');if(cache.has(path))return cache.get(path).exports;
     const source=readFileSync(path,'utf8');report.input_sha256[path]=createHash('sha256').update(source).digest('hex');
@@ -40,6 +46,37 @@ function linked(client,id){
   return {...load('./workerProfileClientService').workerProfileClientService,state};
 }
 try{
+  // PKG-013: the current typed client (owned capacity since 20260911174500) is exercised
+  // against the exact current source, not the historical registry105 + unrecorded dispatch108.
+  // Every later file is applied in order with a registry row; SQL108 is idempotent
+  // (function bodies only) and is recorded on this pass.
+  const boundary=ownedIntakeSourceBoundary(readP3RetentionPredecessorPlan());
+  // Registry rows 1-87 carry the recorded live aliases, not the source file prefixes, so the
+  // remaining work is taken from the admitted plan's pending forward files (88-147) minus
+  // the versions this database already registered.
+  const registered=new Set(sql('select version from supabase_migrations.schema_migrations').split('\n').filter(Boolean));
+  const toHead=boundary.fullPlan.pending_successors.filter(entry=>!registered.has(entry.version));
+  assert.equal(toHead[0]?.file,'20260910172132_clean_w03_owned_ai_intake_authority.sql','W02_SHARED_CAPABILITY_EXPECTS_REGISTRY105');
+  // SQL108 (dispatch lock order) is already applied here, unrecorded, by the dispatch-lock proof,
+  // whose bodies the authority proof re-verified. It asserts its own predecessor bodies, so it
+  // must not run twice: 106 and 107 are applied first, 108 is recorded exactly (bytes, md5,
+  // sha256 and both current bodies checked), then 109-147 are applied in order.
+  const dispatchFile='20260910214845_clean_dispatch_need_lock_order.sql';
+  const lockManifest=JSON.parse(readFileSync('supabase/proofs/calendar/w02_dispatch_lock_files.json','utf8'));
+  const beforeDispatch=toHead.filter(entry=>entry.file<dispatchFile),dispatchEntry=toHead.find(entry=>entry.file===dispatchFile),afterDispatch=toHead.filter(entry=>entry.file>dispatchFile);
+  assert.ok(dispatchEntry,'W02_SHARED_CAPABILITY_EXPECTS_UNRECORDED_DISPATCH108');
+  report.replayed_to_head={history_before:registered.size,count:toHead.length,first:toHead[0]?.file??null,last:toHead.at(-1)?.file??null,
+    applied_authority:'REGISTRY105_PLUS_UNRECORDED_DISPATCH108_THEN_EXACT_SOURCE147',source_migration_count:boundary.fullPlan.source_migration_count,
+    applied:[...beforeDispatch,...afterDispatch].map(entry=>entry.file),recorded_already_applied:[dispatchFile]};
+  applyPendingSuccessors({plan:{source_migration_count:registered.size+beforeDispatch.length,source_inventory:boundary.fullPlan.source_inventory,pending_successors:beforeDispatch},sql,db,url});
+  for(const body of lockManifest.changed_bodies)assert.equal(sql(`select md5(prosrc) from pg_proc where oid=${q(body.signature)}::regprocedure`),body.current_md5,'W02_SHARED_CAPABILITY_DISPATCH108_BODY_MISMATCH');
+  const dispatchBytes=readFileSync('supabase/migrations/'+dispatchFile);
+  assert.equal(createHash('md5').update(dispatchBytes).digest('hex'),dispatchEntry.md5);assert.equal(createHash('sha256').update(dispatchBytes).digest('hex'),lockManifest.sha256);
+  assert.equal(sql(`select count(*) from supabase_migrations.schema_migrations where version=${q(dispatchEntry.version)}`),'0');
+  sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(dispatchEntry.version)},${q(dispatchEntry.name)},array[${q(dispatchBytes.toString('utf8'))}])`);
+  applyPendingSuccessors({plan:{source_migration_count:boundary.fullPlan.source_migration_count,source_inventory:boundary.fullPlan.source_inventory,pending_successors:afterDispatch},sql,db,url});
+  report.replayed_to_head.history_after=Number(sql('select count(*) from supabase_migrations.schema_migrations'));
+  assert.equal(report.replayed_to_head.history_after,147,'W02_SHARED_CAPABILITY_EXPECTS_EXACT_SOURCE147');
   await ok(worker.auth.signUp({email:'w02-resource-'+randomUUID()+'@example.test',password:randomUUID()+'Aa9!'}));
   const accountId=uid((await ok(worker.auth.getUser())).user.id),client=linked(worker,accountId);
   await ok(other.auth.signInWithPassword({email:env.RU5_DEVICE_WORKER_EMAIL,password:env.RU5_DEVICE_PASSWORD}));
@@ -50,8 +87,11 @@ try{
 
   begin('REAL_PROFILE_SAVE_AND_READ_REUSE_EXISTING_COLUMNS');
   assert.equal(profile.profile_status,'DRAFT');
-  await value(client.azurirajRadnikProfil({ime:'W02 synthetic person',grad:'Novi Sad',vestine:['  Selidbe  '],
-    alati:['bušilica'],vozila:[],licence:[],radijusKm:15,zavrsi:false}));
+  // Geography has its own revision-bound writer since 72cdc8c (P01-P03); the current client
+  // refuses grad/radijusKm explicitly (PROFILE_LOCATION_REQUIRES_REVIEW), so the capability
+  // save carries identity and resources only. Location is proven by w02_location_proof.
+  await value(client.azurirajRadnikProfil({ime:'W02 synthetic person',vestine:['  Selidbe  '],
+    alati:['bušilica'],vozila:[],licence:[],zavrsi:false}));
   const saved=await read();assert.deepEqual(saved.skills,['Selidbe']);assert.deepEqual(saved.tools,['bušilica']);
   assert.deepEqual(saved.vehicles,[]);assert.deepEqual(saved.licenses,[]);assert.equal(saved.profile_status,'DRAFT');pass();
 
@@ -122,7 +162,9 @@ try{
   for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`select has_function_privilege(${q(role)},'private.guard_profile_write()','EXECUTE')`),'f');
   for(const [table,digest] of Object.entries(before))assert.equal(hash(table),digest);
   report.calendar_and_snapshots_unchanged=true;pass();report.result='PASS';
-}catch(error){report.result='FAIL';report.failed_stage=stage;report.error_type=error?.code==='ERR_ASSERTION'?'ASSERTION':error?.message==='ISOLATED_SQL_FAILED'?'LOCAL_SQL':'CLIENT_OR_RPC';}
+}catch(error){report.result='FAIL';report.failed_stage=stage;report.error_type=error?.code==='ERR_ASSERTION'?'ASSERTION':error?.message==='ISOLATED_SQL_FAILED'?'LOCAL_SQL':'CLIENT_OR_RPC';
+  // Assertion text only (synthetic fixtures, no credentials); raw SQL/client errors stay out.
+  if(error?.code==='ERR_ASSERTION')report.failure=String(error.message).slice(0,400);}
 finally{
   for(const client of [worker,other])await client.auth.stopAutoRefresh();
   writeFileSync(out+'/shared-capability-proof-report.json',JSON.stringify(report,null,2)+'\n');

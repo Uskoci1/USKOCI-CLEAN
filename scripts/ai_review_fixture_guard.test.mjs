@@ -49,16 +49,19 @@ test('the native fixture passes the actual strict Edge provider parser and prese
     .map(n=>`${String(n).repeat(8)}-1111-4111-8111-111111111111`);
   const json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
   for(const oldInvalidEnvelope of [false,true]) {
-    let completed=null,failed=0;
+    let completed=null,failed=0,dispatched=0,providerCalls=0,reserved=0;
     const turn=state=>({conversationId,clientRequestId,turnId,state,retryAllowed:state==='FAILED',receipt:state==='SUCCEEDED'
       ? {userMessageId,assistantMessageId,proposedCount:proposals.length,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true}:null});
     const runtime=loadOwnedIntakeHandler({env:name=>({SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_ANON_KEY:'synthetic-anon',
-      SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',AI_PROVIDER:'openai',OPENAI_API_KEY:'synthetic-provider',OPENAI_MODEL:'synthetic-model'})[name],
+      SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',AI_PROVIDER:'gemini',GEMINI_API_KEY:'synthetic-provider',
+      GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'})[name],
       fetch:async(input,init={})=>{
         const url=new URL(String(input));
-        if(url.href==='https://api.openai.com/v1/responses') {
+        if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent') {
+          assert.equal(reserved,1,'SYNTHETIC_UNIT_BUDGET_MUST_PRECEDE_PROVIDER');
+          assert.equal(dispatched,1,'SYNTHETIC_UNIT_DISPATCH_MUST_PRECEDE_PROVIDER');providerCalls++;
           const payload=syntheticProviderEnvelope(proposals);
-          if(oldInvalidEnvelope){const output=JSON.parse(payload.output_text);output.facts=proposals;payload.output_text=JSON.stringify(output);}
+          if(oldInvalidEnvelope){const part=payload.candidates[0].content.parts[0];const output=JSON.parse(part.text);output.facts=proposals;part.text=JSON.stringify(output);}
           return json(payload);
         }
         assert.equal(url.origin,'http://127.0.0.1:54321');
@@ -66,13 +69,29 @@ test('the native fixture passes the actual strict Edge provider parser and prese
         if(url.pathname==='/rest/v1/ai_conversations')return json([{id:conversationId,account_id:accountId,fact_schema_version:'NEED_FACT_V2',status:'OPEN'}]);
         if(url.pathname.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn('PROCESSING'),claim:{attemptId,
           leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
+        if(url.pathname.endsWith('/rpc_ai_test_budget_reserve_service')){
+          assert.deepEqual(JSON.parse(init.body),{p_account_id:accountId,p_operation_id:clientRequestId,p_kind:'LLM',p_max_cost_microusd:250000});
+          assert.equal(dispatched,0);assert.equal(providerCalls,0);reserved++;
+          return json({admitted:true,reservationId:turnId,replay:false,code:'AI_TEST_RESERVED'});
+        }
+        // Labelled unit fixture only. The native adapter itself forwards budget
+        // admission to real disposable SQL127 and dispatch to132. It never
+        // invents either approval or resets/enables the ledger.
+        if(url.pathname.endsWith('/rpc_ai_dispatch_need_turn_v2_service')){
+          assert.equal(reserved,1);assert.equal(providerCalls,0);
+          const body=JSON.parse(init.body);assert.equal(body.p_account_id,accountId);assert.equal(body.p_conversation_id,conversationId);
+          assert.equal(body.p_client_request_id,clientRequestId);assert.equal(body.p_attempt_id,attemptId);dispatched++;return json(true);
+        }
         if(url.pathname.endsWith('/rpc_ai_complete_need_turn_v2_service')){completed=JSON.parse(init.body);return json(turn('SUCCEEDED'));}
         if(url.pathname.endsWith('/rpc_ai_fail_need_turn_v2_service')){failed++;return json(turn('FAILED'));}
         assert.fail('UNEXPECTED_SYNTHETIC_ROUTE');
       }});
     const response=await runtime.handler(new Request('http://127.0.0.1:54329/functions/v1/uskoci-ai-interview',{
       method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({conversationId,clientRequestId,text:'Dve osobe i kombi za prenos stvari u Novom Sadu.'})}));
-    if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,1);}
+    assert.equal(reserved,1);assert.equal(dispatched,1);assert.equal(providerCalls,1);
+    // A malformed result after dispatch stays unresolved; it cannot license a
+    // second billable attempt through the old retryable-failure writer.
+    if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,0);}
     else {assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');assert.deepEqual(completed.p_proposals,proposals);assert.equal(failed,0);}
   }
 });
@@ -152,30 +171,36 @@ test('actual publication handler accepts native adapter provider shape and only 
   for(const corrupt of [false,true]) {
     const calls=[],json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
     const runtime=loadPublicationHandler({env:name=>({SUPABASE_URL:PUBLICATION_PROOF_ORIGIN,SUPABASE_ANON_KEY:'synthetic-anon',
-      SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',OPENAI_API_KEY:'synthetic-provider',OPENAI_MODEL:'SYNTHETIC_NATIVE_PUBLICATION_PROOF'})[name],
+      SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',GEMINI_API_KEY:'synthetic-provider',GEMINI_MODEL:'gemini-3.8-flash',
+      AI_PROVIDER:'gemini',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'})[name],
       fetch:async(input,init={})=>{
         const url=new URL(String(input));calls.push(url.pathname);
-        if(url.href==='https://api.openai.com/v1/responses') {
-          const payload=JSON.parse(String(init.body));assert.equal(payload.store,false);
+        if(url.href==='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent') {
+          const payload=JSON.parse(String(init.body));assert.equal(payload.generationConfig.responseMimeType,'application/json');
           for(const forbidden of ['approximateLat','approximateLng',need,user,'canonicalFingerprint','privateMaterialityMarker'])assert.ok(!String(init.body).includes(forbidden));
-          const envelope=syntheticPublicationEnvelope();if(corrupt)envelope.output[0].content[0].text=JSON.stringify({outcome:'ALLOW',ruleIds:['UNKNOWN_RULE'],safeReasonCodes:['TEST_ALLOW']});
+          const envelope=syntheticPublicationEnvelope();if(corrupt)envelope.candidates[0].content.parts[0].text=JSON.stringify({outcome:'ALLOW',ruleIds:['UNKNOWN_RULE'],safeReasonCodes:['TEST_ALLOW']});
           return json(envelope);
         }
         assert.equal(publicationUpstream(url).origin,'http://127.0.0.1:54321');
         if(url.pathname==='/auth/v1/user')return json({id:user,role:'authenticated'});
         if(url.pathname==='/rest/v1/rpc/rpc_get_need_publication_context'){assert.deepEqual(JSON.parse(init.body),{p_need_id:need,p_expected_revision:1});return json(ctx);}
+        if(url.pathname==='/rest/v1/rpc/rpc_ai_test_budget_reserve_service'){
+          const reservation=JSON.parse(init.body);assert.equal(reservation.p_account_id,user);assert.equal(reservation.p_kind,'LLM');
+          assert.equal(reservation.p_max_cost_microusd,250000);
+          return json({admitted:true,reservationId:decision,replay:false,code:'AI_TEST_RESERVED'});
+        }
         assert.equal(url.pathname,'/rest/v1/rpc/rpc_record_need_publication_decision_service');
         const write=JSON.parse(init.body);assert.equal(write.p_outcome,'ALLOW');assert.deepEqual(write.p_service_provenance.evaluationContext,ctx.binding);return json(receipt);
       }});
     const result=await runtime.handler(new Request('http://127.0.0.1:54329/functions/v1/uskoci-publication-evaluate',{method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({needId:need,expectedRevision:1})}));
     const body=await result.json();assert.equal(result.status,200);
-    if(corrupt){assert.equal(body.kind,'NOT_READY');assert.equal(body.code,'EVALUATOR_INVALID_RESPONSE');assert.equal(calls.length,3);}
-    else {assert.deepEqual(body,{kind:'DECISION',decision:receipt});assert.equal(calls.length,4);}
-    assert.equal(Object.keys(runtime.sourceHashes).length,1);
+    if(corrupt){assert.equal(body.kind,'NOT_READY');assert.equal(body.code,'EVALUATOR_INVALID_RESPONSE');assert.equal(calls.length,4);}
+    else {assert.deepEqual(body,{kind:'DECISION',decision:receipt});assert.equal(calls.length,5);}
+    assert.deepEqual(Object.keys(runtime.sourceHashes).sort(),['supabase/functions/_shared/aiTestBudget.ts','supabase/functions/uskoci-publication-evaluate/index.ts']);
   }
 });
 
-test('publication proof transport maps only3 fixed handler paths without altering production TLS guard',()=>{
-  for(const path of ['/auth/v1/user','/rest/v1/rpc/rpc_get_need_publication_context','/rest/v1/rpc/rpc_record_need_publication_decision_service'])assert.equal(publicationUpstream(PUBLICATION_PROOF_ORIGIN+path).href,'http://127.0.0.1:54321'+path);
+test('publication proof transport maps only four fixed handler paths without altering production TLS guard',()=>{
+  for(const path of ['/auth/v1/user','/rest/v1/rpc/rpc_get_need_publication_context','/rest/v1/rpc/rpc_record_need_publication_decision_service','/rest/v1/rpc/rpc_ai_test_budget_reserve_service'])assert.equal(publicationUpstream(PUBLICATION_PROOF_ORIGIN+path).href,'http://127.0.0.1:54321'+path);
   for(const url of ['https://outside.invalid/auth/v1/user',PUBLICATION_PROOF_ORIGIN+'/auth/v1/user?target=remote',PUBLICATION_PROOF_ORIGIN+'/rest/v1/needs',PUBLICATION_PROOF_ORIGIN+'/rest/v1/rpc/rpc_publish_need_canonical'])assert.throws(()=>publicationUpstream(url));
 });

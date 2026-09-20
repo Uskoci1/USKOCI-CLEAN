@@ -8,18 +8,18 @@ const STATUSES: ReadonlySet<string> = new Set(['REQUESTED', 'PROCESSING', 'READY
 const TERMINAL: ReadonlySet<string> = new Set(['READY', 'FAILED', 'EXPIRED']);
 const INVALID = 'DATA_EXPORT_INVALID_RESPONSE';
 const EXPORT_COPY: Readonly<Record<string, string>> = {
-  DATA_EXPORT_REQUEST_ALREADY_OPEN: 'Zahtev za izvoz Vaših podataka je već u toku.',
+  DATA_EXPORT_REQUEST_ALREADY_OPEN: 'Zahtev za izvoz tvojih podataka je već u toku.',
   DATA_EXPORT_REQUEST_NOT_CANCELLABLE: 'Ovaj zahtev više ne može da se otkaže.',
   DATA_EXPORT_REQUEST_NOT_FOUND: 'Zahtev nije pronađen.',
-  INVALID_CLIENT_REQUEST_ID: 'Zahtev trenutno nije mogao da se zabeleži. Pokušajte ponovo.',
+  INVALID_CLIENT_REQUEST_ID: 'Zahtev trenutno nije mogao da se zabeleži. Pokušaj ponovo.',
   INVALID_RECEIPT_ID: 'Zahtev nije pronađen.',
-  AUTH_REQUIRED: 'Prijavite se da biste zatražili izvoz podataka.',
-  DATA_EXPORT_NOT_AVAILABLE: 'Izvoz trenutno nije dostupan. Učitajte trenutno stanje.',
-  DATA_EXPORT_ARTIFACT_STALE: 'Izvoz je promenjen. Učitajte trenutno stanje.',
+  AUTH_REQUIRED: 'Prijavi se da zatražiš izvoz podataka.',
+  DATA_EXPORT_NOT_AVAILABLE: 'Izvoz trenutno nije dostupan. Učitaj trenutno stanje.',
+  DATA_EXPORT_ARTIFACT_STALE: 'Izvoz je promenjen. Učitaj trenutno stanje.',
 };
 
 export { DATA_EXPORT_MAX_BYTES } from '../contracts/dataExport';
-export function decodeDataExportArtifact(raw: unknown): DataExportArtifact | null {
+function decodeDataExportArtifact(raw: unknown): DataExportArtifact | null {
   const value = record(raw);
   if (!value || Object.keys(value).some(key => !['artifactAvailable', 'artifactGeneration', 'artifactExpiresAt', 'byteLength', 'sha256', 'md5'].includes(key))
     || value.artifactAvailable !== true || !uuid(value.artifactGeneration) || !timestamp(value.artifactExpiresAt)
@@ -62,7 +62,7 @@ function intakeOnly(value: Record<string, unknown>): boolean {
 async function exportReceipt<T>(options: Parameters<typeof readReceipt<T>>[0]): Promise<Ishod<T>> {
   const result = await readReceipt(options);
   if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') {
-    return failure(result.kod, 'Nalog je promenjen. Ponovo otvorite stanje izvoza podataka.');
+    return failure(result.kod, 'Nalog je promenjen. Ponovo otvori stanje izvoza podataka.');
   }
   if (!result.ok && result.kod === 'AUTH_REQUIRED') return failure(result.kod, EXPORT_COPY.AUTH_REQUIRED);
   return result;

@@ -1,104 +1,164 @@
-import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Switch, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { CaretRight } from 'phosphor-react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
 import { Press } from '../Press';
+import { DetailTopBar } from '../system/DetailTopBar';
+import { card, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
-import { V2Icon } from '../v2/icons';
-import { v2 } from '../v2/tokens';
 import type { WorkerDraft } from './workerProfileDraft';
 
-const body = { ...v2.text.body, color: v2.color.ink }, caption = { ...v2.text.label, color: v2.color.muted };
-const input = { ...body, borderWidth: 1, borderColor: v2.color.controlLine, borderRadius: v2.radius.input,
-  padding: 12, minHeight: 48, backgroundColor: v2.color.surface };
+/** Frame of the worker profile: back, intent eyebrow, title, keyboard-safe body, sticky footer. */
 export function WorkerProfileFrame({ back, children, footer }: { back: () => void; children: ReactNode; footer?: ReactNode }) {
-  return <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: v2.color.canvas }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 8 }}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad na profil" onPress={back}
-        style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><V2Icon name="back" /></Press>
-      <View><T style={caption}>Veštine, alat i način rada</T><T accessibilityRole="header" style={{ ...v2.text.title, color: v2.color.ink }}>Radni profil</T></View>
-    </View>
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 24 }}>{children}</ScrollView>
-      {footer ? <View style={{ padding: 16, gap: 8, borderTopWidth: 1, borderColor: v2.color.line, backgroundColor: v2.color.surface }}>{footer}</View> : null}
+  return <SafeAreaView edges={['top']} style={s.screen}>
+    <DetailTopBar backLabel="Nazad na profil" eyebrow="Kako mogu da uskočim" title="Veštine, alat i tim" onBack={back} />
+    <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
+      {footer ? <View style={s.footer}>{footer}</View> : null}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
 export function WorkerProfileStatus({ loading, error, retry }: { loading: boolean; error?: string | null; retry: () => void }) {
-  return <View style={{ paddingVertical: 24, gap: 16 }}>{loading ? <ActivityIndicator accessibilityLabel="Učitavanje radnog profila" color={v2.color.teal} /> : <>
-    <T accessibilityRole="alert" style={body}>{error ?? 'Radni profil nije dostupan.'}</T>
+  return <View style={s.card}>{loading ? <><ActivityIndicator accessibilityLabel="Učitavanje radnog profila" color={sys.color.green} /><T variant="meta" tone="muted" style={s.center}>Učitavamo radni profil…</T></> : <>
+    <T accessibilityRole="alert" variant="body" style={s.ink}>{error ?? 'Radni profil nije dostupan.'}</T>
     <V2Action label="Ponovo učitaj profil" onPress={retry} />
   </>}</View>;
 }
-function Field({ label, value, change, disabled, multiline = false, numeric = false, hint }: {
+function Field({ label, value, change, disabled, multiline = false, numeric = false, hint, inputRef }: {
   label: string; value: string; change: (text: string) => void; disabled: boolean; multiline?: boolean; numeric?: boolean; hint?: string;
+  inputRef?: RefObject<TextInput | null>;
 }) {
-  return <View style={{ gap: 8 }}><T style={body}>{label}</T><TextInput accessibilityLabel={label} value={value}
+  return <View style={s.field}><T variant="meta" tone="muted">{label}</T><TextInput ref={inputRef} accessibilityLabel={label} value={value}
     editable={!disabled} onChangeText={text => { if (!disabled) change(text); }} multiline={multiline}
     keyboardType={numeric ? 'number-pad' : 'default'} maxLength={numeric ? 3 : multiline ? 4000 : 160}
-    style={[input, multiline ? { minHeight: 96, textAlignVertical: 'top' } : undefined]} />{hint ? <T style={caption}>{hint}</T> : null}</View>;
+    style={[s.input, multiline && s.multiline, disabled && s.inputLocked]} />{hint ? <T variant="meta" tone="muted">{hint}</T> : null}</View>;
 }
-function Terms({ label, values, pending, setPending, change, disabled }: { label: string; values: string[]; pending: string;
-  setPending: (text: string) => void; change: (terms: string[], clearPending?: boolean) => void; disabled: boolean }) {
+function Terms({ label, values, pending, setPending, change, disabled, inputRef }: { label: string; values: string[]; pending: string;
+  setPending: (text: string) => void; change: (terms: string[], clearPending?: boolean) => void; disabled: boolean; inputRef?: RefObject<TextInput | null> }) {
   const add = () => { const term = pending.replace(/^ +| +$/g, '');
     if (disabled || !term || Array.from(term).length > 500 || values.length >= 50) return;
     change([...values, term], true); };
-  return <View style={{ gap: 8 }}><T style={body}>{label}</T><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-    {values.map((value, index) => <Press key={index} accessibilityRole="button" accessibilityLabel={`Ukloni ${label.toLowerCase()}: ${value}`}
-      disabled={disabled} onPress={() => { if (!disabled) change(values.filter((_, i) => i !== index)); }}
-      style={{ minHeight: 44, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: v2.color.soft }}>
-      <T style={body}>{value} ×</T></Press>)}
-    </View><View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-      <TextInput accessibilityLabel={`Nova stavka: ${label}`} placeholder="Dodajte jednu stavku" placeholderTextColor={v2.color.muted}
+  return <View style={s.field}><T variant="meta" tone="muted">{label}</T>
+    {values.length ? <View style={s.chips}>
+      {values.map((value, index) => <Press key={index} accessibilityRole="button" accessibilityLabel={`Ukloni ${label.toLowerCase()}: ${value}`}
+        disabled={disabled} haptic="select" onPress={() => { if (!disabled) change(values.filter((_, i) => i !== index)); }} style={s.chip}>
+        <T variant="meta" style={s.chipText}>{value}</T><T variant="meta" style={s.chipRemove}>×</T></Press>)}
+    </View> : null}
+    <View style={s.addRow}>
+      <TextInput ref={inputRef} accessibilityLabel={`Nova stavka: ${label}`} placeholder="Dodaj jednu stavku" placeholderTextColor={sys.color.muted}
         value={pending} editable={!disabled && values.length < 50} onChangeText={text => { if (!disabled) setPending(text); }}
-        onSubmitEditing={add} maxLength={500} style={[input, { flex: 1 }]} />
-      <Press accessibilityRole="button" accessibilityLabel={`Dodaj: ${label}`} onPress={add}
+        onSubmitEditing={add} maxLength={500} style={[s.input, s.grow]} />
+      <Press accessibilityRole="button" accessibilityLabel={`Dodaj: ${label}`} onPress={add} haptic="select"
         disabled={disabled || !pending.trim() || values.length >= 50}
-        style={{ minWidth: 60, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}><T style={{ ...body, color: v2.color.teal }}>Dodaj</T></Press>
-    </View><T style={caption}>Dodajte svaku stavku zasebno. {values.length}/50</T></View>;
+        style={[s.addButton, (disabled || !pending.trim() || values.length >= 50) && s.addButtonOff]}><T variant="action" style={{ color: sys.color.green }}>Dodaj</T></Press>
+    </View><T variant="meta" tone="muted">Dodaj svaku stavku zasebno. {values.length}/50</T></View>;
 }
-export function WorkerProfileForm({ draft, change, disabled, status, navigate }: { draft: WorkerDraft; change: (value: WorkerDraft) => void;
-  disabled: boolean; status: StanjeProfila | null; navigate: (path: '/profil/lokacija' | '/profil/dostupnost' | '/raspored') => void }) {
+function Row({ label, hint, expanded, onPress }: { label: string; hint: string; expanded: boolean; onPress: () => void }) {
+  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded }} haptic="select" scaleTo={0.99} onPress={onPress} style={s.row}>
+    <View style={s.grow}><T variant="bodyStrong" style={s.ink}>{label}</T><T variant="meta" tone="muted">{hint}</T></View>
+    <View style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }}><CaretRight size={18} color={sys.color.muted}  /></View>
+  </Press>;
+}
+export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'capacity'; token: number };
+/**
+ * The worker's profile as cards: who you are and what you take on → skills → tools
+ * and vehicles behind a row → work area → introduction behind a row → availability.
+ * Every field keeps its label as the input's spoken name; the route owns saving.
+ */
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, unmet }: { draft: WorkerDraft; change: (value: WorkerDraft) => void;
+  disabled: boolean; status: StanjeProfila | null; navigate: (path: '/profil/lokacija' | '/profil/dostupnost' | '/raspored') => void;
+  focusRequest?: WorkerProfileFocusRequest | null;
+  /** What activation is actually waiting for, named by the same checks that gate it. */
+  unmet?: readonly string[] }) {
   const [resourcesOpen, setResourcesOpen] = useState(false), [bioOpen, setBioOpen] = useState(!!draft.biografija);
+  const nameRef = useRef<TextInput>(null), skillRef = useRef<TextInput>(null), capacityRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (!focusRequest || disabled) return;
+    const selected = focusRequest.target === 'name' ? nameRef.current : focusRequest.target === 'skill' ? skillRef.current : capacityRef.current;
+    (selected as { focus?: () => void } | null)?.focus?.();
+  }, [focusRequest, disabled]);
   const patch = (value: Partial<WorkerDraft>) => { if (!disabled) change({ ...draft, ...value }); };
   const initials = draft.ime.trim().split(/\s+/).slice(0, 2).map(part => part.slice(0, 1)).join('').toUpperCase();
+  const statusText = status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Radni profil je još nacrt';
+  const statusTone = status === 'ACTIVE' ? sys.color.green : status === 'SUSPENDED' ? sys.color.danger : sys.color.warn;
   return <>
-    <View style={{ alignItems: 'center', gap: 8, padding: 24, borderRadius: 24, backgroundColor: v2.color.context, borderWidth: 1, borderColor: v2.color.contextLine }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: v2.color.warm, justifyContent: 'center', alignItems: 'center' }}>
-        <T style={{ ...v2.text.hero, color: v2.color.ink }}>{initials || 'JA'}</T></View>
-      <T style={caption}>JA MOGU</T><T style={{ ...v2.text.hero, color: v2.color.ink }}>{draft.ime.trim() || 'Šta možete da preuzmete?'}</T>
-      <T style={caption}>{status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Dopunite ključne sposobnosti pre prijave'}</T>
+    <View style={[s.card, s.hero]}>
+      <View style={s.avatar}><T variant="title" style={s.initials}>{initials || 'JA'}</T></View>
+      <T variant="title" style={[s.ink, s.center]}>{draft.ime.trim() || 'Šta možeš da preuzmeš?'}</T>
+      <View style={[s.statusChip, { backgroundColor: status === 'ACTIVE' ? sys.color.greenSoft : status === 'SUSPENDED' ? sys.color.dangerSoft : sys.color.warnSoft }]}>
+        <T variant="meta" style={{ color: statusTone, fontWeight: '600' }}>{statusText}</T></View>
+      {/* The old sentence sent people to Dostupnost and then to skills, and activation gates on
+          neither of those two alone: it gates on the name and one skill, on the work area, and on
+          the team capacity — and never on availability at all. Doing what the screen said left the
+          profile a draft with nothing saying why. It now names the checks that are actually open. */}
+      {status !== 'ACTIVE' ? <T variant="meta" tone="muted" style={s.center}>{status === 'SUSPENDED'
+        ? 'Dok traje suspenzija, zadaci ti se ne nude.'
+        : unmet?.length ? `Dok je nacrt, zadaci ti se ne nude. Za aktivaciju još treba: ${unmet.join(' · ')}.`
+          : 'Dok je nacrt, zadaci ti se ne nude. Sačuvaj i aktiviraj profil.'}</T> : null}
+      {status === 'DRAFT' && unmet?.length ? <T variant="meta" tone="muted" style={s.center}>Dostupnost nije uslov za aktivaciju.</T> : null}
     </View>
-    <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} />
-    <Terms label="Veštine i usluge" values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
-      change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} />
-    <Press accessibilityRole="button" accessibilityLabel="Alat i vozila" accessibilityState={{ expanded: resourcesOpen }}
-      onPress={() => setResourcesOpen(value => !value)} style={{ minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderColor: v2.color.line }}>
-      <View style={{ flex: 1 }}><T style={body}>Alat i vozila</T><T style={caption}>{draft.alati.length + draft.vozila.length ? `${draft.alati.length} stavki alata · ${draft.vozila.length} vozila` : 'Dodajte kada je relevantno · opciono'}</T></View>
-      <V2Icon name="chevron" /></Press>
-    {resourcesOpen ? <><Terms label="Alat i oprema" values={draft.alati} pending={draft.newTool} setPending={newTool => patch({ newTool })}
-      change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} />
-      <Terms label="Vozila" values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}
-        change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} /></> : null}
-    <View style={{ gap: 16 }}><T style={{ ...v2.text.title, color: v2.color.ink }}>Područje rada</T>
-      <Field label="Grad ili mesto rada" value={draft.grad} change={grad => patch({ grad })} disabled={disabled} />
-      <Field label="Radijus rada (km)" value={draft.radius} change={radius => patch({ radius })} disabled={disabled} numeric hint="Ceo broj od 1 do 200 km oko područja rada." />
-      <V2Action label="Država i područje na mapi" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/lokacija')} />
+    <View style={s.card}>
+      <T variant="heading" style={s.ink}>Ko si i šta preuzimaš</T>
+      <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
+      <Field label="Koliko ljudi možeš da obezbediš" value={draft.capacity} change={capacity => patch({ capacity })}
+        disabled={disabled || draft.capacityRevision === null} numeric inputRef={capacityRef}
+        hint={draft.capacityRevision === null ? 'Sačuvaj profil i učitaj kapacitet sa servera.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
+      <Terms label="Veštine i usluge" values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
+        change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} inputRef={skillRef} />
     </View>
-    <Press accessibilityRole="button" accessibilityLabel="Kratko predstavljanje" accessibilityState={{ expanded: bioOpen }}
-      onPress={() => setBioOpen(value => !value)} style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ flex: 1 }}><T style={body}>Kratko predstavljanje</T><T style={caption}>Iskustvo koje želite da navedete · opciono</T></View><V2Icon name="chevron" /></Press>
-    {bioOpen ? <Field label="O vašem iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline /> : null}
-    <View style={{ padding: 16, gap: 8, borderRadius: 18, backgroundColor: v2.color.context }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><View style={{ flex: 1 }}><T style={body}>Dostupan sam</T>
-        <T style={caption}>{draft.dostupanOdmah ? 'Uključeno u ovom unosu' : 'Isključeno u ovom unosu'}</T></View>
-        <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={disabled}
-          trackColor={{ true: v2.color.teal, false: v2.color.controlLine }} onValueChange={dostupanOdmah => patch({ dostupanOdmah })} /></View>
-      <T style={caption}>Ovu dostupnost uključujete i isključujete sami, pa čuvate profil. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
+    <View style={s.rows}>
+      <Row label="Alat i vozila" expanded={resourcesOpen} onPress={() => setResourcesOpen(value => !value)}
+        hint={draft.alati.length + draft.vozila.length ? `${draft.alati.length} stavki alata · ${draft.vozila.length} vozila` : 'Dodaj kada je relevantno · opciono'} />
+      {resourcesOpen ? <View style={s.rowBody}><Terms label="Alat i oprema" values={draft.alati} pending={draft.newTool} setPending={newTool => patch({ newTool })}
+        change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} />
+        <Terms label="Vozila" values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}
+          change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} /></View> : null}
+      <View style={s.rowDivider}>
+        <Row label="Kratko predstavljanje" expanded={bioOpen} onPress={() => setBioOpen(value => !value)} hint="Iskustvo koje želiš da navedeš · opciono" />
+        {bioOpen ? <View style={s.rowBody}><Field label="O tvom iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline /></View> : null}
+      </View>
     </View>
-    <V2Action label="Redovna dostupnost" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/dostupnost')} />
-    <V2Action label="Pogledaj raspored" kind="quiet" disabled={disabled} onPress={() => navigate('/raspored')} />
-    <T style={caption}>Veštine, alat i vozila su podaci koje navodite sami. Izmena profila ne prepisuje već poslate Prijave.</T>
+    <View style={s.card}><T variant="heading" style={s.ink}>Područje rada</T>
+      <Field label="Grad ili mesto rada" value={draft.grad} change={() => {}} disabled={true} hint="Menja se kroz područje rada na mapi." />
+      <Field label="Radijus rada (km)" value={draft.radius} change={() => {}} disabled={true} numeric hint="Ceo broj od 1 do 200 km oko područja rada." />
+      <V2Action label="Država i područje na mapi" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/lokacija')} style={s.quietLeft} />
+    </View>
+    <View style={s.card}>
+      <View style={s.switchRow}><View style={s.grow}><T variant="bodyStrong" style={s.ink}>Dostupan sam</T>
+        <T variant="meta" tone="muted">{draft.dostupanOdmah ? 'Uključeno · sačuvano stanje' : 'Isključeno · sačuvano stanje'}</T></View>
+        <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={true}
+          trackColor={{ true: sys.color.green, false: sys.color.lineStrong }} onValueChange={() => {}} /></View>
+      <T variant="meta" tone="muted">Ovu dostupnost menjaš kroz „Redovna dostupnost“, jednim zajedničkim načinom čuvanja. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
+      <V2Action label="Redovna dostupnost" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/dostupnost')} style={s.quietLeft} />
+      <V2Action label="Pogledaj raspored" kind="quiet" disabled={disabled} onPress={() => navigate('/raspored')} style={s.quietLeft} />
+    </View>
+    <T variant="meta" tone="muted" style={s.center}>Veštine, alat i vozila su podaci koje sam navodiš. Izmena profila ne prepisuje već poslate Prijave.</T>
   </>;
 }
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink }, center: { textAlign: 'center' },
+eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
+  content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 28 },
+  footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  card: { ...card, gap: 12 },
+  hero: { alignItems: 'center', gap: 8, borderWidth: 0, backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0, paddingVertical: 8 },
+  avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  initials: { ...sys.type.monogram, color: sys.color.green },
+  statusChip: { borderRadius: sys.radius.badge, paddingHorizontal: 12, paddingVertical: 7 },
+  field: { gap: 6 },
+  input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 11, minHeight: 48, backgroundColor: sys.color.surface },
+  multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft },
+  chipText: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 }, chipRemove: { color: sys.color.green, fontWeight: '700' },
+  addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  addButton: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.green, paddingHorizontal: 12 },
+  addButtonOff: { opacity: 0.45 },
+  rows: { ...card, padding: 0, overflow: 'hidden' },
+  row: { minHeight: 62, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rowDivider: { borderTopWidth: 1, borderColor: sys.color.line }, rowBody: { paddingHorizontal: 18, paddingBottom: 18, gap: 14 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
+});

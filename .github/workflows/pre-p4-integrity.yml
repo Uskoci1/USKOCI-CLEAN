@@ -79,7 +79,7 @@ jobs:
       - name: Verify CI routing and source admission invariants
         run: |
           node --test scripts/ci/*.test.cjs
-          node --test supabase/proofs/legal/pending_source_plan.test.mjs
+          node --test supabase/proofs/legal/pending_source_plan.test.mjs supabase/proofs/legal/pending_domain_replay.test.mjs scripts/ci/owned-intake-source.test.mjs
 
       - name: Verify migration bytes and provenance
         id: migration

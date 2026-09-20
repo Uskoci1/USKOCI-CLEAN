@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { readBuildIdentity } from '../data/buildIdentity';
-import { palette, space, type } from '../theme/tokens';
+import { space, type } from '../theme/tokens';
+import { sys } from './system/tokens';
 
 const targets = {
   canonical: 'Referentni USKOČI projekat', local: 'Lokalno test okruženje',
@@ -30,7 +31,7 @@ export function BuildIdentity() {
 const styles = StyleSheet.create({
   root: { gap: space.sm },
   button: { minHeight: 48, justifyContent: 'center', alignItems: 'center' },
-  label: { color: palette.inkMuted, ...type.meta, textAlign: 'center' },
+  label: { color: sys.color.muted, ...type.meta, textAlign: 'center' },
   details: { gap: space.sm, paddingHorizontal: space.sm },
-  copy: { color: palette.inkMuted, ...type.meta },
+  copy: { color: sys.color.muted, ...type.meta },
 });

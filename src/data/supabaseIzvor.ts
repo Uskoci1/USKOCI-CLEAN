@@ -1,10 +1,14 @@
+import { workerCapacityRevision, workerCapacityValue } from '../contracts/workerCapacity';
+import { noTaskRelations, taskRelationIndex } from './taskRelation';
+import { legacyRpcFailure } from './legacyRpcFailure';
 import { Izvor, Ishod } from './ports';
 import { calendarFailure } from './calendarErrors';
-import { readOwnedResult, record, sameId, uuid } from './serverReceipt';
+import { positiveInteger, readOwnedResult, record, sameId, uuid } from './serverReceipt';
 import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
 import { readPublicNeedDetail } from './needClientService';
 import { needScheduleText } from './needDetailPresentation';
+import { readNeedUrgencies } from './needUrgencyClientService';
 import { supabaseKlijent } from './supabaseClient';
 import type {
   JavniProfilProjekcija,
@@ -19,12 +23,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 function handleRpcError<T>(error: unknown, defaultCode: string, defaultMessage: string): Ishod<T> {
   const calendar = calendarFailure(error);
   if (calendar) return calendar;
-  const value = record(error);
-  return {
-    ok: false,
-    kod: typeof value?.code === 'string' ? value.code : defaultCode,
-    poruka: typeof value?.message === 'string' ? value.message : defaultMessage,
-  };
+  return legacyRpcFailure(error, defaultCode, defaultMessage);
 }
 
 const rsd = (iznos: number): Novac => ({
@@ -47,6 +46,33 @@ function fLoc(area: string, city: string) {
   return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
 }
 
+/**
+ * One item of public.rpc_list_open_tasks_v3, shaped like the row the shared public projection reads, so
+ * that the list keeps exactly one way of reading a public task. The reader's allowlist is narrower than
+ * the table on purpose: there is no description here, because a list of two hundred tasks has no business
+ * shipping two hundred descriptions to every viewer, and the detail screen reads the one a person opens.
+ */
+function openTaskRow(item: Record<string, any>) {
+  return {
+    id: item.id, title: item.title, status: item.status, urgent: item.urgent,
+    category: item.category, schedule_kind: item.scheduleKind, starts_at: item.startsAt, ends_at: item.endsAt,
+    execution_location_mode: item.executionLocationMode,
+    approximate_area: item.approximateArea ?? '', approximate_city: item.approximateCity ?? '',
+    approximate_lat: item.pin?.lat ?? null, approximate_lng: item.pin?.lng ?? null,
+    required_slots: item.requiredSlots, covered_slots: item.coveredSlots,
+    required_skills: item.requiredSkills, required_tools: item.requiredTools,
+    required_vehicles: item.requiredVehicles, required_licenses: item.requiredLicenses,
+    minimum_experience_years: item.minimumExperienceYears, verified_identity_required: item.verifiedIdentityRequired,
+    task_country_code: item.taskCountryCode, task_timezone: item.taskTimezone,
+    mode: item.priceMode, requester_price_rsd: item.requesterPriceRsd, price_basis: item.priceBasis,
+    requester_profile_id: item.requesterProfileId, response_deadline: item.responseDeadline,
+    remaining_search_closed_at: null,
+    description: '',
+    need_geography: item.publicTopology == null ? null : { public_topology: item.publicTopology },
+    need_requirement_details: item.criticalConditions == null ? null : { critical_conditions: item.criticalConditions },
+  };
+}
+
 function publicTaskContext(raw: Record<string, any>) {
   const { detail: detalji, schedule } = readPublicNeedDetail(raw);
   if (typeof raw.description !== 'string') throw new Error('TASK_DESCRIPTION_INVALID');
@@ -58,6 +84,12 @@ function publicTaskContext(raw: Record<string, any>) {
   return { opis: raw.description, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
     taskTimezone: raw.task_timezone ?? undefined, vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
     podrucjeTekst: remote ? 'Na daljinu' : fLoc(raw.approximate_area, raw.approximate_city), priblizno };
+}
+
+function validPublicInstant(value: unknown): value is string {
+  return typeof value === 'string'
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+    && Number.isFinite(Date.parse(value));
 }
 
 function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): string | null {
@@ -104,6 +136,7 @@ type SupabaseIzvor = Omit<
   | 'opoziviTelefon'
   | 'prijaviProblem'
   | 'oznaciZavrsetak'
+  | 'potvrdiZavrsetak'
   | 'otkrijTacnuLokaciju'
   | 'lokacijskaDozvola'
   | 'podeliTacnuLokaciju'
@@ -125,27 +158,36 @@ export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
 
   async otvorenePrilike() {
-    const { data, error } = await supabase.from('needs')
-      .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
-        required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id,
-        description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
-        required_licenses, minimum_experience_years, verified_identity_required,
-        need_geography(public_topology), need_requirement_details(critical_conditions)
-      `)
-      .in('status', ['PUBLISHED', 'SELECTION'])
-      .order('created_at', { ascending: false });
+    // PKG-023d/i. The list and the map used to read every open task straight from the table, with the
+    // description of each and no bound at all. They now read the server's allowlisted projection, ordered
+    // by the server-owned published_at, in pages of two hundred. The page walk is a keyset, so nothing
+    // repeats and nothing is hidden, and it keeps going until the server says there is no more: the
+    // screen shows what it always showed, and the ceiling below is a refusal, never a silent truncation.
+    const items: any[] = [];
+    let cursor: { at: string; id: string } | null = null;
+    for (let page = 0; ; page++) {
+      if (page >= 25) throw new Error('OPPORTUNITIES_TOO_MANY_PAGES');
+      const { data, error } = await supabase.rpc('rpc_list_open_tasks_v3', {
+        p_limit: 200, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
+      });
+      if (error) throw error;
+      const rows = (data as { items?: unknown; hasMore?: unknown } | null)?.items;
+      if (!Array.isArray(rows)) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
+      items.push(...rows);
+      const last = rows[rows.length - 1] as { sortAt?: unknown; id?: unknown } | undefined;
+      if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
+      cursor = { at: last.sortAt, id: last.id };
+    }
+    // The server already refuses a task whose remaining search is closed, so no client-side filter can
+    // decide it any more; every row here is an open one.
+    const openData = items.map(openTaskRow);
+    const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id)), readNeedUrgencies(openData)]);
 
-    if (error) throw error;
-    if (!data) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
-
-    const profiles = await safePublicProfiles(data.map((r: any) => r.requester_profile_id));
-
-    return data.map((r: any) => {
+    return openData.map((r: any) => {
       const narucilac = profiles.get(r.requester_profile_id) ?? null;
       return {
         id: r.id,
+        urgency: urgency.get(r.id),
         naslov: r.title,
         statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
         ...publicTaskContext(r),
@@ -155,17 +197,38 @@ export const supabaseIzvor: SupabaseIzvor = {
         narucilacIme: narucilac?.ime || '',
         narucilacOcena: formatPublicRating(narucilac),
         rezimCene: r.mode,
+        osnovaCene: r.price_basis === 'TOTAL' || r.price_basis === 'PER_PERSON' ? r.price_basis : null,
         ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
       };
     });
   },
 
+  /**
+   * PKG-023b. One bounded call per page of tasks instead of my whole task list and my whole
+   * application list for one label. The server answers only for the ids asked and says nothing
+   * about any other task; a failure throws, so the caller shows no labels rather than wrong ones.
+   */
+  async odnosiPremaZadacima(idovi: readonly string[]) {
+    const asked = [...new Set(idovi.filter((id): id is string => typeof id === 'string' && id.length > 0))];
+    if (asked.length === 0) return noTaskRelations;
+    const items: unknown[] = [];
+    // The server refuses more than a hundred in one call; a screen that shows more asks again.
+    for (let from = 0; from < asked.length; from += 100) {
+      const { data, error } = await supabase.rpc('rpc_get_my_task_relations', { p_need_ids: asked.slice(from, from + 100) });
+      if (error) throw new Error('TASK_RELATIONS_READ_FAILED');
+      const page = (data as { items?: unknown } | null)?.items;
+      if (!Array.isArray(page)) throw new Error('TASK_RELATIONS_INVALID_PROJECTION');
+      items.push(...page);
+    }
+    return taskRelationIndex(items, asked);
+  },
+
   async prilika(id: string) {
     const { data, error } = await supabase.from('needs')
       .select(`
-        id, title, status, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
+        id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline,
+        covered_slots, mode, requester_price_rsd, price_basis, requester_profile_id, response_deadline, remaining_search_closed_at,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
         required_licenses, minimum_experience_years, verified_identity_required,
         need_geography(public_topology), need_requirement_details(critical_conditions)
@@ -181,18 +244,20 @@ export const supabaseIzvor: SupabaseIzvor = {
       throw new Error('TASK_CAPACITY_INVALID');
     }
     const rok = data.response_deadline;
-    if (rok !== null && (typeof rok !== 'string'
-      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(rok)
-      || !Number.isFinite(Date.parse(rok)))) throw new Error('TASK_DEADLINE_INVALID');
+    if (rok !== null && !validPublicInstant(rok)) throw new Error('TASK_DEADLINE_INVALID');
+    const remainingClosedAt = data.remaining_search_closed_at;
+    if (remainingClosedAt !== null && !validPublicInstant(remainingClosedAt)) throw new Error('TASK_REMAINING_SEARCH_STATE_INVALID');
+    const remainingClosed = remainingClosedAt !== null;
 
-    const profiles = await safePublicProfiles([data.requester_profile_id]);
+    const [profiles, urgency] = await Promise.all([safePublicProfiles([data.requester_profile_id]), readNeedUrgencies([data])]);
     const narucilac = profiles.get(data.requester_profile_id) ?? null;
 
     return {
       id: data.id,
+      urgency: urgency.get(data.id),
       naslov: data.title,
-      statusTekst: ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
-      primaNovePrijave: ['PUBLISHED', 'SELECTION'].includes(data.status)
+      statusTekst: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
+      primaNovePrijave: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status)
         && data.required_slots > data.covered_slots && (rok === null || Date.parse(rok) > Date.now()),
       rokZaPrijaveIso: rok,
       ...publicTaskContext(data),
@@ -202,6 +267,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       narucilacIme: narucilac?.ime || '',
       narucilacOcena: formatPublicRating(narucilac),
       rezimCene: data.mode as any,
+      osnovaCene: data.price_basis === 'TOTAL' || data.price_basis === 'PER_PERSON' ? data.price_basis : null,
       ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
     };
   },
@@ -218,7 +284,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
     }
     const { data, error } = await supabase.from('agreement_messages')
-      .select(`id, sender_account_id, client_message_id, body, created_at`)
+      .select(`id, agreement_version, sender_account_id, client_message_id, body, created_at`)
       .eq('agreement_id', dogovorId)
       .order('created_at', { ascending: true })
       .order('id', { ascending: true });
@@ -228,7 +294,7 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (currentError || current?.user?.id !== accountId) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
 
     return data.map((r: any) => {
-      if (!uuid(r?.id) || !uuid(r?.sender_account_id) || typeof r.body !== 'string'
+      if (!uuid(r?.id) || !positiveInteger(r?.agreement_version) || !uuid(r?.sender_account_id) || typeof r.body !== 'string'
         || typeof r.created_at !== 'string' || !Number.isFinite(Date.parse(r.created_at))
         || !(r.client_message_id === null || (typeof r.client_message_id === 'string'
           && /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/.test(r.client_message_id) && !/\s/.test(r.client_message_id)))) {
@@ -236,6 +302,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       }
       return {
         id: r.id,
+        dogovorVerzija: r.agreement_version,
         clientMessageId: r.client_message_id,
         posiljalacAccountId: r.sender_account_id,
         posiljalacIme: r.sender_account_id === accountId ? 'Ja' : 'Sagovornik',
@@ -253,12 +320,6 @@ export const supabaseIzvor: SupabaseIzvor = {
     return { ok: true, podatak: null };
   },
 
-  async potvrdiZavrsetak(dogovorId: string) {
-    const { error } = await supabase.rpc('rpc_confirm_completion', { p_agreement_id: dogovorId });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
-    return { ok: true, podatak: null };
-  },
-
   async mojRadnikProfil() {
     const owner = sesijaSada();
     if (!owner.user) throw new Error('WORKER_PROFILE_AUTH_REQUIRED');
@@ -267,20 +328,19 @@ export const supabaseIzvor: SupabaseIzvor = {
     const auth = await readOwnedResult({ ...options, request: () => supabase.auth.getUser(),
       decode: raw => sameId(record(record(raw)?.user)?.id, account.accountId) ? true : null });
     if (!auth.ok) throw new Error('WORKER_PROFILE_READ_FAILED');
-    const result = await readOwnedResult({ ...options, request: () => supabase.from('app_profiles')
-      .select('id,account_id,kind,display_name,city,bio,skills,tools,vehicles,profile_status,available_now,radius_km')
-      .eq('account_id', account.accountId).eq('kind', 'WORKER').maybeSingle(),
+    const result = await readOwnedResult({ ...options, request: () => supabase.rpc('rpc_get_worker_profile_for_edit', {}),
       decode: raw => {
         if (raw === null) return { profile: null };
         const data = record(raw);
-        if (!data || !uuid(data.id) || !sameId(data.account_id, account.accountId) || data.kind !== 'WORKER' ||
+        if (!data || !uuid(data.id) || !workerCapacityValue(data.team_capacity) || !workerCapacityRevision(data.capacity_revision) || !sameId(data.account_id, account.accountId) || data.kind !== 'WORKER' ||
           !['DRAFT', 'ACTIVE', 'SUSPENDED'].includes(String(data.profile_status)) || typeof data.available_now !== 'boolean' ||
           typeof data.radius_km !== 'number' || !Number.isInteger(data.radius_km) || data.radius_km < 1 || data.radius_km > 200 ||
           !['display_name', 'city', 'bio'].every(key => data[key] === null || typeof data[key] === 'string') ||
           !['skills', 'tools', 'vehicles'].every(key => Array.isArray(data[key]) && data[key].every((item: unknown) => typeof item === 'string'))) return null;
         return { profile: { id: data.id, ime: data.display_name as string ?? '', grad: data.city as string ?? '',
           biografija: data.bio as string ?? '', vestine: data.skills as string[], alati: data.tools as string[], vozila: data.vehicles as string[],
-          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: data.available_now, radijusKm: data.radius_km } };
+          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: data.available_now, radijusKm: data.radius_km,
+          kapacitetTima: data.team_capacity as number, capacityRevision: data.capacity_revision as string } };
       },
     });
     if (!result.ok) throw new Error('WORKER_PROFILE_READ_FAILED');

@@ -16,6 +16,7 @@ const row = () => ({
   approximate_area: 'Centar', approximate_city: 'Novi Sad', approximate_lat: 45.2, approximate_lng: 19.8,
   required_slots: 2, covered_slots: 0, required_skills: ['Alat'], required_tools: [], required_vehicles: [],
   requester_profile_id: 'requester-a', mode: 'MY_PRICE', requester_price_rsd: 5000, response_deadline: null,
+  remaining_search_closed_at: null,
   description: 'Prenos kutija', category: 'Selidbe', schedule_kind: 'FLEXIBLE', ends_at: null,
   task_country_code: 'RS', task_timezone: 'Europe/Belgrade', execution_location_mode: null,
   required_licenses: [], minimum_experience_years: null, verified_identity_required: false,
@@ -72,8 +73,10 @@ describe('W04 public-safe detail read', () => {
     const result = await supabaseIzvor.prilika('task-a');
     expect(from).toHaveBeenCalledWith('needs'); expect(eq).toHaveBeenCalledWith('id', 'task-a');
     expect(select.mock.calls[0][0].split(',').map((field: string) => field.trim())).toEqual([
-      'id', 'title', 'status', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
-      'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'requester_profile_id', 'response_deadline',
+      'id', 'title', 'status', 'urgent', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
+      // price_basis, from pkg025a: what the amount beside it is FOR. It is a rule of the task, the
+      // same class as `mode`, and it names no person and no place.
+      'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'price_basis', 'requester_profile_id', 'response_deadline', 'remaining_search_closed_at',
       'description', 'category', 'schedule_kind', 'ends_at', 'task_country_code', 'task_timezone', 'execution_location_mode',
       'required_licenses', 'minimum_experience_years', 'verified_identity_required',
       'need_geography(public_topology)', 'need_requirement_details(critical_conditions)',
@@ -95,6 +98,22 @@ describe('W04 public-safe detail read', () => {
     await expect(supabaseIzvor.prilika('task-a')).resolves.toMatchObject({ primaNovePrijave: false });
     maybeSingle.mockResolvedValueOnce({ data: { ...row(), status: 'SELECTION', covered_slots: 1 }, error: null });
     await expect(supabaseIzvor.prilika('task-a')).resolves.toMatchObject({ primaNovePrijave: true });
+  });
+
+  it('closes the public CTA when remaining search is closed even with capacity and an open status', async () => {
+    maybeSingle.mockResolvedValue({ data: { ...row(), status: 'SELECTION', covered_slots: 1,
+      remaining_search_closed_at: '2026-09-15T12:00:00Z' }, error: null });
+    await expect(supabaseIzvor.prilika('task-a')).resolves.toMatchObject({
+      primaNovePrijave: false,
+      statusTekst: 'Prijave zatvorene',
+      pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1 },
+    });
+  });
+
+  it.each([undefined, '', 'invalid', '9999', 1])('fails closed for unknown or malformed remaining-search state %p', async remaining_search_closed_at => {
+    maybeSingle.mockResolvedValue({ data: { ...row(), remaining_search_closed_at }, error: null });
+    await expect(supabaseIzvor.prilika('task-a')).rejects.toThrow('TASK_REMAINING_SEARCH_STATE_INVALID');
+    expect(publicProfile).not.toHaveBeenCalled();
   });
 
   it.each([

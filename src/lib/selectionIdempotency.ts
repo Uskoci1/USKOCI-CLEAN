@@ -17,7 +17,7 @@ export type SelectionIntent = {
  * same clientRequestId; a different candidate/version/hash/allocation gets a
  * different key and therefore a different request identity.
  */
-export function selectionIntentKey(intent: SelectionIntent): string {
+function selectionIntentKey(intent: SelectionIntent): string {
   return JSON.stringify([
     intent.potrebaId,
     intent.potrebaRevizija,

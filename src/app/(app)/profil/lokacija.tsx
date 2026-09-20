@@ -42,7 +42,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver 
     onSave(value);
   };
   return <View style={{ gap: 24 }}>
-    <View style={s.section}><T variant="heading" style={{ fontSize: 25, lineHeight: 31 }}>Gde možeš da uskočiš?</T>
+    <View style={s.section}><T variant="title">Gde možeš da uskočiš?</T>
       <T tone="muted">Izaberi područje u kom radiš. Kućna adresa i GPS dozvola nisu potrebni.</T></View>
     <CountryField label="Država rada" value={country} disabled={disabled} options={countryOptions}
       onChange={code => changePlace(() => setCountry(code))} />
@@ -51,7 +51,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver 
     <LocationField label="Radijus rada u kilometrima" value={radius} keyboardType="number-pad" maxLength={3}
       editable={!disabled} hint="Od 1 do 200 km oko sačuvanog područja."
       onChangeText={text => { setRadius(text); setConfirmed(false); setError(false); }} />
-    {country && city.trim() ? <View style={s.section}>
+    {country && city.trim() ? <View style={s.card}>
       <T variant="heading">Približno područje na mapi</T>
       <T variant="meta" tone="muted">Označi centar područja rada. Čuva se približna tačka, zaokružena na oko kilometar, bez kućne adrese.</T>
       <WorkerAreaSearch city={city} countryCode={country} disabled={disabled} resolver={resolver}
@@ -79,7 +79,7 @@ export default function PodrucjeRada() {
   const read = useCallback(() => workerLocationClientService.read(), []);
   const editor = useOwnedEditor(read);
   const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
-  return <LocationScreen title="Područje rada" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
+  return <LocationScreen eyebrow="Kako mogu da uskočim" title="Područje rada" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
     {editor.saved ? <T accessibilityRole="alert" tone="success">Područje rada je sačuvano.</T> : null}
     {editor.data ? <WorkerLocationForm key={editor.data.revision} location={editor.data} busy={editor.busy} uncertain={editor.uncertain}
       onSave={value => { const location = editor.data; if (!location) return;

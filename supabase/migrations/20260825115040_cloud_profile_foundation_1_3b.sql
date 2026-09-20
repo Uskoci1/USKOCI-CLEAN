@@ -138,7 +138,7 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  profile_name text := COALESCE(NULLIF(trim(NEW.raw_user_meta_data->>'full_name'), ''), split_part(COALESCE(NEW.email,''), '@', 1), 'USKO─îI korisnik');
+  profile_name text := COALESCE(NULLIF(trim(NEW.raw_user_meta_data->>'full_name'), ''), split_part(COALESCE(NEW.email,''), '@', 1), 'USKOČI korisnik');
   profile_city text := COALESCE(NULLIF(trim(NEW.raw_user_meta_data->>'city'), ''), 'Novi Sad');
   profile_phone text := COALESCE(NULLIF(trim(NEW.phone), ''), NULLIF(trim(NEW.raw_user_meta_data->>'phone'), ''), '');
   initial_mode text := CASE WHEN NEW.raw_user_meta_data->>'mode' = 'worker' THEN 'worker' ELSE 'requester' END;
@@ -153,11 +153,11 @@ BEGIN
     phone=CASE WHEN public.app_accounts.phone='' THEN EXCLUDED.phone ELSE public.app_accounts.phone END;
 
   INSERT INTO public.app_profiles(account_id,kind,display_name,city,headline,bio,radius_km,available_now)
-  VALUES(NEW.id,'REQUESTER',profile_name,profile_city,'Tra┼╛im pouzdanu pomo─ç uz jasan dogovor.','Novi ─ìlan USKO─îI zajednice.',10,false)
+  VALUES(NEW.id,'REQUESTER',profile_name,profile_city,'Tražim pouzdanu pomoć uz jasan dogovor.','Novi član USKOČI zajednice.',10,false)
   ON CONFLICT(account_id,kind) DO NOTHING;
 
   INSERT INTO public.app_profiles(account_id,kind,display_name,city,headline,bio,skills,radius_km,available_now)
-  VALUES(NEW.id,'WORKER',profile_name,profile_city,'Spreman da usko─ìim kada se dogovor jasno postavi.','Dostupan za poslove koji odgovaraju profilu i kalendaru.',initial_skills,15,false)
+  VALUES(NEW.id,'WORKER',profile_name,profile_city,'Spreman da uskočim kada se dogovor jasno postavi.','Dostupan za poslove koji odgovaraju profilu i kalendaru.',initial_skills,15,false)
   ON CONFLICT(account_id,kind) DO NOTHING;
   RETURN NEW;
 END;

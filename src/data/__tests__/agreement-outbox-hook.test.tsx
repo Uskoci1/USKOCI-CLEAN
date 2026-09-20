@@ -10,7 +10,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: (...arg
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: mockRevision }),
   sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: mockRevision }) }));
-jest.mock('../../store/uloga', () => ({ useUloga: () => 'narucilac', ulogaSada: () => 'narucilac' }));
 jest.mock('../agreementMessageClientService', () => ({ agreementMessageClientService: { send: (...args: unknown[]) => mockSend(...args) } }));
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
 let current: ReturnType<typeof useAgreementOutbox>;

@@ -8,6 +8,7 @@ const mockSegments = ['(app)'];
 const mockConsume = jest.fn();
 const mockRole = jest.fn();
 const mockPushListener = jest.fn((..._args: unknown[]) => ({ remove: jest.fn() }));
+const mockNotificationHandler = jest.fn();
 const mockSession = { user: { id: 'account-a' } } as Session;
 let mockStackMounts = 0;
 let mockRendered: { isLoaded: boolean; session: Session | null; user: Session['user'] | null; sessionEpoch: number; accountRevision: number; returnTargetRevision: number } =
@@ -50,6 +51,7 @@ jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 // Keep the actual PushRuntime in the root render. Only native transports and
 // the separately tested device RPC are isolated from this navigation test.
 jest.mock('expo-notifications', () => ({
+  setNotificationHandler: (...args: unknown[]) => mockNotificationHandler(...args),
   addNotificationResponseReceivedListener: (...args: unknown[]) => mockPushListener(...args),
   addPushTokenListener: () => ({ remove: jest.fn() }),
   getLastNotificationResponseAsync: async () => null,
@@ -63,12 +65,17 @@ jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: 'Gest
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: 'SafeAreaProvider' }));
 jest.mock('../sesija', () => ({ useSesija: () => mockRendered, sesijaSada: () => mockCurrent }));
 jest.mock('../povratniCilj', () => ({ povratniCilj: { consumeCompleted: (...args: unknown[]) => mockConsume(...args) } }));
+// Owner decision 1 (2026-09-19): the app has no global mode. The spy stays so that a root layout which
+// started setting one again would be caught here: a completed choice is a destination and nothing else.
 jest.mock('../uloga', () => ({ postaviUlogu: (role: string) => mockRole(role) }));
 
 import RootLayout from '../../app/_layout';
+import { pendingRoute } from '../pendingRoute';
 
 let tree: ReactTestRenderer;
 beforeEach(() => {
+  // A bounce remembers where the person was going; each test starts with nobody going anywhere.
+  pendingRoute.clear();
   jest.clearAllMocks(); mockPath = '/';
   mockSegments.splice(0, mockSegments.length, '(app)');
   mockStackMounts = 0;
@@ -128,7 +135,7 @@ describe('session-owned root return navigation', () => {
     [{ kind: 'REQUESTER_DRAFT', draftKey: 'draft-1' }, { pathname: '/nova', params: { conversationId: 'draft-1' } }],
     [{ kind: 'NEED', needId: 'need-1' }, { pathname: '/potrebe/[id]/pregled', params: { id: 'need-1' } }],
     [{ kind: 'DOGOVOR', agreementId: 'agreement-1' }, { pathname: '/dogovor/[id]', params: { id: 'agreement-1' } }],
-  ])('rechecks a newly completed intent and keeps its existing typed destination', async (returnTarget, destination) => {
+  ])('rechecks a newly completed intent and opens its typed destination without setting any mode first', async (returnTarget, destination) => {
     mockConsume.mockResolvedValueOnce(null).mockResolvedValue({
       completedByUserId: 'account-a', intent: { intent: 'WORKER', returnTarget },
     });
@@ -138,7 +145,7 @@ describe('session-owned root return navigation', () => {
     mockCurrent = mockRendered;
     await act(async () => tree.update(<RootLayout />));
     expect(mockConsume).toHaveBeenCalledTimes(2);
-    expect(mockRole).toHaveBeenCalledWith('uskocer');
+    expect(mockRole).not.toHaveBeenCalled();
     expect(mockRouter.replace).toHaveBeenCalledWith(destination);
   });
 
@@ -181,10 +188,14 @@ it('bypasses the decorative intro for an unauthenticated deep route', async () =
   await render();
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
 });
-it.each([['WORKER', '/prilike'], ['REQUESTER', '/nova']])('continues the completed %s entry shortcut once', async (intent, destination) => {
+// "Uskoči i zaradi" leads to the map and "Objavi zadatak" to the conversation: two destinations in the one
+// shell, not two modes of it.
+it.each([['WORKER', '/mapa'], ['REQUESTER', '/nova']])('continues the completed %s entry shortcut once, as a destination in the one shell', async (intent, destination) => {
   mockConsume.mockResolvedValueOnce({ intent: { intent, returnTarget: { kind: 'NONE' } } });
   await render();
   expect(mockRouter.replace).toHaveBeenCalledWith(destination);
+  expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  expect(mockRole).not.toHaveBeenCalled();
 });
 
 
@@ -240,9 +251,14 @@ it.each(['auth', 'oporavak', 'unresolved'])('starts push listeners only after %s
   mockPath = destination === 'unresolved' ? '/' : '/' + destination;
   await render();
   expect(mockPushListener).not.toHaveBeenCalled();
+  expect(mockNotificationHandler).not.toHaveBeenCalled();
   mockSegments.splice(0, mockSegments.length, '(app)'); mockPath = '/potrebe';
   await act(async () => tree.update(<RootLayout />));
   expect(mockPushListener).toHaveBeenCalledTimes(1);
+  expect(mockNotificationHandler).toHaveBeenLastCalledWith(expect.objectContaining({ handleNotification: expect.any(Function) }));
+  mockSegments.splice(0, mockSegments.length, 'oporavak'); mockPath = '/oporavak';
+  await act(async () => tree.update(<RootLayout />));
+  expect(mockNotificationHandler).toHaveBeenLastCalledWith(null);
 });
 
 it('consumes the completed intention after a signed-in native app destination resolves', async () => {
@@ -253,5 +269,6 @@ it('consumes the completed intention after a signed-in native app destination re
   mockSegments.push('(app)');
   await act(async () => tree.update(<RootLayout />));
   expect(mockConsume).toHaveBeenCalledTimes(1);
-  expect(mockRouter.replace).toHaveBeenCalledWith('/prilike');
+  expect(mockRouter.replace).toHaveBeenCalledWith('/mapa');
+  expect(mockRole).not.toHaveBeenCalled();
 });

@@ -6,7 +6,7 @@ import { calendarInstant } from '../lib/calendarTime';
 
 const INVALID = 'WORKER_CALENDAR_INVALID_RESPONSE';
 const CALENDAR_COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavite se da biste otvorili svoj kalendar.',
+  AUTH_REQUIRED: 'Prijavi se da otvoriš svoj kalendar.',
   CALENDAR_RANGE_INVALID: 'Izabrani period kalendara nije ispravan.',
 };
 
@@ -45,7 +45,7 @@ function mapEvent(raw: unknown, from: string, to: string): WorkerCalendarEvent |
 async function calendarReceipt(options: Parameters<typeof readReceipt<WorkerCalendarRange>>[0]): Promise<Ishod<WorkerCalendarRange>> {
   const result = await readReceipt(options);
   if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') {
-    return failure(result.kod, 'Nalog je promenjen. Ponovo otvorite kalendar.');
+    return failure(result.kod, 'Nalog je promenjen. Ponovo otvori kalendar.');
   }
   if (!result.ok && result.kod === 'AUTH_REQUIRED') return failure(result.kod, CALENDAR_COPY.AUTH_REQUIRED);
   return result;

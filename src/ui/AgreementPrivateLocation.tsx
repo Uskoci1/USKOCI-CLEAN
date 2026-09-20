@@ -15,7 +15,7 @@ type Props = { agreement: DogovorProjekcija; enabled: boolean };
 type Snapshot = { state: LocationGrantState; revealed: ExactLocationReveal | null };
 const activeGrant = (grant: LocationGrant | undefined) => !!grant && grant.status === 'GRANTED'
   && (grant.expiresAt === null || Date.parse(grant.expiresAt) > Date.now());
-const invalid = (): Ishod<never> => ({ ok: false, kod: 'LOCATION_SCOPE_CHANGED', poruka: 'Dozvola za lokaciju je promenjena. Osvežite prikaz.' });
+const invalid = (): Ishod<never> => ({ ok: false, kod: 'LOCATION_SCOPE_CHANGED', poruka: 'Dozvola za lokaciju je promenjena. Osveži prikaz.' });
 
 /** Unmount the private session on background, account, revision, participant or terminal state changes. */
 export function AgreementPrivateLocation({ agreement, enabled }: Props) {
@@ -96,16 +96,16 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
   return <View style={{ paddingVertical: space.md, gap: space.md }}>
     <T variant="bodyStrong">Privatna lokacija</T>
     <T variant="meta" tone="muted">{accountId === requesterId
-      ? granted ? 'Lokacija je podeljena sa Uskočerom u ovom Dogovoru.' : 'Podelite potvrđenu adresu ili tačke na mapi sa Uskočerom.'
-      : granted ? 'Naručilac je dozvolio prikaz lokacije u ovom Dogovoru.' : 'Naručilac još nije podelio lokaciju ili dozvola više ne važi.'}</T>
+      ? granted ? 'Lokacija je podeljena u ovom Dogovoru.' : 'Podeli potvrđenu adresu ili tačke na mapi sa osobom koja dolazi.'
+      : granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : 'Lokacija još nije podeljena sa tobom ili dozvola više ne važi.'}</T>
     {editor.loading ? <T variant="meta" tone="muted">Proveravamo dozvolu…</T> : null}
     {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
-    {accountId === requesterId ? <Button label={granted ? 'Opozovite deljenje lokacije' : 'Podelite lokaciju'}
+    {accountId === requesterId ? <Button label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
       kind={granted ? 'danger' : 'secondary'} disabled={locked} onPress={() => { void setGrant(!granted); }} />
-      : granted && !privateData ? <Button label="Prikažite privatnu lokaciju" kind="secondary" disabled={locked} onPress={() => { void show(); }} /> : null}
+      : granted && !privateData ? <Button label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} onPress={() => { void show(); }} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
       scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} /> : null}
-    <Button label="Osvežite dozvolu za lokaciju" kind="quiet" disabled={editor.busy} onPress={() => { void editor.refresh(); }} />
+    <Button label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} onPress={() => { void editor.refresh(); }} />
     <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
   </View>;
 }
@@ -125,7 +125,7 @@ function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: st
       {item.address ? <T>{item.address}</T> : null}
       {item.accessNotes ? <T variant="meta">{item.accessNotes}</T> : null}
       <T variant="meta" selectable>{(item.latitudeE6 / 1e6).toFixed(6)}, {(item.longitudeE6 / 1e6).toFixed(6)}</T>
-      {points.length > 1 ? <Button label={`Prikažite na mapi: ${slotLabel(item.slot)}`} kind="quiet"
+      {points.length > 1 ? <Button label={`Prikaži na mapi: ${slotLabel(item.slot)}`} kind="quiet"
         disabled={selected === item.slot} onPress={() => setSelected(item.slot)} /> : null}
     </View>)}
     {position ? <ResolvedPinMap position={position} onChoose={() => {}} disabled scopeKey={`${scope}:${selected ?? 'legacy'}`} /> : null}

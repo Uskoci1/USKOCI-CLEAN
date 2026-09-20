@@ -19,7 +19,6 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretDown: 'Icon', Check: 'Icon', LockKey: 'Icon' }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]) }));
 jest.mock('../locationClientService', () => ({ workerLocationClientService: { read: jest.fn(), save: jest.fn() } }));
@@ -153,7 +152,7 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     await chooseMode('Od mesta do mesta'); await check(); await save();
     expect(onSave).not.toHaveBeenCalled();
-    expect(text()).toContain('Unesite mesto');
+    expect(text()).toContain('Unesi mesto');
     await edit('Odredište — grad ili mesto', 'Beograd');
     await check(); await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd' } } }));
@@ -199,7 +198,7 @@ describe('actual native Need location form', () => {
     const loaded: NeedLocationReview = { ...base, value: { ...base.value, geography, resolvedLocation } };
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByType('ResolvedPinMap' as never).props.position).toEqual({ latitude: 45.251234, longitude: 19.831234 });
-    expect(text()).not.toContain('Prvo unesite državu i javno mesto');
+    expect(text()).not.toContain('Prvo unesi državu i javno mesto');
     act(() => { saveButton().props.onPress(); }); expect(onSave).not.toHaveBeenCalled();
     act(() => { tree.root.findByProps({ label: 'Potvrdi tačku: Polazište' }).props.onPress(); });
     act(() => { confirm().props.onPress(); });
@@ -216,7 +215,8 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     await check();
     await act(async () => tree.update(<NeedLocationForm review={{ ...loaded, editable: state !== 'read-only' }} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
-    const button = tree.root.findAll(node => node.type === 'Button' as React.ElementType).find(node => String(node.props.label).includes('lokaciju') || String(node.props.label).includes('sačuvaj mesto'))!;
+    const button = tree.root.findByProps({ label: state === 'busy' ? 'Pripremam mesto…' : 'Potvrdi i sačuvaj mesto' });
+    expect(button.props.kind).toBe('primary');
     expect(button.props.disabled).toBe(true);
     await act(async () => button.props.onPress());
     expect(onSave).not.toHaveBeenCalled();

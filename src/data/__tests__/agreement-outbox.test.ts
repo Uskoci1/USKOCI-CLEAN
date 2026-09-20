@@ -1,5 +1,6 @@
 import { AgreementMessageError, type AgreementMessagePort } from '../../contracts/agreementMessages';
 import { createAgreementOutbox, type AgreementOutboxOptions } from '../agreementOutbox';
+import { createAgreementMessageService } from '../agreementMessageClientService';
 
 const accountId = '11111111-1111-4111-8111-111111111111';
 const anotherAccount = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -24,6 +25,40 @@ function setup(patch: Partial<AgreementOutboxOptions> = {}) {
 const first = (model: ReturnType<typeof createAgreementOutbox>) => model.getSnapshot().entries[0];
 const stored = (storage: ReturnType<typeof memory>) => JSON.parse([...storage.values.values()][0]);
 afterEach(() => { for (const model of models.splice(0)) model.stop(); });
+it('reconciles a text receipt lost past the real service deadline without sending a duplicate', async () => {
+  jest.useFakeTimers();
+  const receipt = deferred<{ data: string; error: null }>(), rpc = jest.fn(() => receipt.promise);
+  const { model, storage } = setup({ messagePort: createAgreementMessageService(rpc) });
+  try {
+    await model.start(); model.setDraft('Stižem.'); const sending = model.sendDraft();
+    await until(() => rpc.mock.calls.length === 1);
+    await jest.advanceTimersByTimeAsync(15000); await sending;
+    const command = first(model).command;
+    expect(first(model)).toMatchObject({ state: 'unknown', error: 'UNAVAILABLE', persisted: true });
+    expect(stored(storage).entries[0].command).toEqual(command);
+    await model.reconcile([{ senderAccountId: accountId, clientMessageId: command.clientMessageId, messageId, body: command.body }]);
+    expect(first(model)).toMatchObject({ state: 'confirmed', messageId });
+    receipt.resolve({ data: messageId, error: null });
+    await Promise.resolve(); await model.retry(command.clientMessageId);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(first(model)).toMatchObject({ state: 'confirmed', messageId });
+    expect(jest.getTimerCount()).toBe(0);
+  } finally { receipt.resolve({ data: messageId, error: null }); model.stop(); jest.useRealTimers(); }
+});
+it('persists a photo-only command without bytes and requires exact ordered attachment/version recovery after restart', async () => {
+  const { model, storage, options, send } = setup(); send.mockRejectedValue(new AgreementMessageError('UNAVAILABLE'));
+  await model.start(); const selected = { agreementVersion: 3, assetIds: [messageId, anotherMessage] };
+  const sending = model.sendDraft(selected); selected.assetIds.reverse(); await sending;
+  const original = first(model).command; expect(original.body).toBe(''); expect(original.photos).toEqual({ agreementVersion: 3, assetIds: [messageId, anotherMessage] });
+  expect(JSON.stringify(stored(storage))).not.toMatch(/image\/|base64|file:|bytes/);
+  model.stop(); const restarted = createAgreementOutbox({ ...options, storage }); models.push(restarted); await restarted.start();
+  expect(first(restarted).state).toBe('unknown'); expect(send).toHaveBeenCalledTimes(1);
+  const row = { senderAccountId: accountId, clientMessageId: original.clientMessageId, messageId, body: '', photos: { agreementVersion: 4, assetIds: [messageId, anotherMessage] } };
+  await restarted.reconcile([row]); expect(first(restarted).state).toBe('unknown'); expect(restarted.getSnapshot().error).toBe('CONFLICT');
+  await restarted.reconcile([{ ...row, photos: { agreementVersion: 3, assetIds: [anotherMessage, messageId] } }]); expect(first(restarted).state).toBe('unknown');
+  await restarted.reconcile([{ ...row, photos: original.photos }]); expect(first(restarted)).toMatchObject({ state: 'confirmed', messageId });
+  expect(send).toHaveBeenCalledTimes(1);
+});
 
 it('persists the immutable scoped command before invoking the actual injected port', async () => {
   const { model, storage, send } = setup(); await model.start();

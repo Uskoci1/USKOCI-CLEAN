@@ -14,12 +14,12 @@ export function calendarFailure(error: unknown): Ishod<never> | null {
     } catch { /* Malformed details cannot manufacture a calendar diagnosis. */ }
   }
   if (calendarConflict) return { ok: false, kod: 'WORKER_CALENDAR_CONFLICT',
-    poruka: 'Termin se preklapa sa potvrđenim Dogovorom. Osvežite kalendar i izaberite drugi termin.' };
+    poruka: 'Termin se preklapa sa potvrđenim Dogovorom. Osveži kalendar i izaberi drugi termin.' };
   if (value.message === 'AGREEMENT_CALENDAR_INTERVAL_INVALID' || value.message === 'NEED_FIXED_INTERVAL_INVALID') {
     return { ok: false, kod: 'AGREEMENT_CALENDAR_INTERVAL_INVALID',
-      poruka: 'Proverite uneti početak i kraj. Ako tačan termin još nije dogovoren, ostavite ga fleksibilnim.' };
+      poruka: 'Proveri uneti početak i kraj. Ako tačan termin još nije dogovoren, ostavi ga fleksibilnim.' };
   }
   if (value.code === '40001' || value.code === '40P01') return { ok: false, kod: 'CALENDAR_RECHECK_REQUIRED',
-    poruka: 'Raspored se upravo promenio. Osvežite podatke pre ponovnog pokušaja.' };
+    poruka: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.' };
   return null;
 }
