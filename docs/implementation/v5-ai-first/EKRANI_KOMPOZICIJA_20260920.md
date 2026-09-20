@@ -238,7 +238,39 @@ vlasnikovom ekranu. Nijedna migracija.
 listi i na mapi ne može da prikaže sliku ni kad zadatak ima fotografije. Potrebno: jedna sličica po
 zadatku u ograničenom čitanju liste.
 
-## 10. Redosled za ostatak
+## 10. Nalazi sa uređaja (2026-09-20, telefon vlasnika)
+
+Prvi put danas su ekrani viđeni na telefonu umesto čitani iz koda. Dva kvara nijedno čitanje ne bi
+našlo, i oba su popravljena; treći je zapisan jer je u tuđem fajlu.
+
+1. **„Milos SLJIVIC   Uskočio si".** Red Dogovora nosi tuđe ime, pa rečenicu o meni — bez ičega što
+   kaže da se subjekat promenio. Sada red kaže šta je uradio **drugi**, u trećem licu, istim rečima
+   koje Dogovor već koristi unutra. Početna sme prvo lice jer tamo odnos ide **ispred** imena.
+2. **Narandžasto „+" je stajalo na pinu.** Na Mapi je lebdeće dugme za objavu sedelo preko zadatka
+   kod Beograda. Objava mora ostati dostupna sa mape — to je testirana odluka — pa je premeštena u
+   traku ispod mape, koja je hrom, ne sadržaj. Lista zadržava lebdeće dugme; ispod njega nema ničeg.
+3. **Detalj zadatka ima donju navigaciju** (`prilike/[id]`, `prilike/[id]/prijava`,
+   `potrebe/[id]/kandidati`, `potrebe/[id]/pregled` su `PUSHED`, ne `FULL`). Podnožje sa
+   narandžastom radnjom i tab traka stoje jedno na drugom i seku opis na pola rečenice. Pravilo 2A
+   kaže da pun ekran nema donju navigaciju. **Nije popravljeno:** `src/app/(app)/_layout.tsx` je u
+   ovom radnom stablu nekomitovan, drugi agent ga drži.
+
+Šta je na uređaju bilo **ispravno**, pa se ne dira: Početna (dve kartice, jedna narandžasta), mapa
+sa klasterima i 6 zadataka, četiri činjenice sa ikonicama na detalju, i odnos — sopstveni zadatak
+nudi „Otvori svoj zadatak", ne prijavu.
+
+## 11. Dve grane
+
+Rad se 2026-09-20 odvija na dve grane koje su se razdvojile kod `c934abe2`:
+`work/pre-v3-engine-integration-20260911` (ekrani, podaci, kandidati) i
+`work/html-home-native-20260920` (Početna i tabovi po HTML pravcu). Nijedna ne zaostaje; paralelne
+su. APK se zato pravi sa privremene `build/combined-20260920`, koja ih spaja samo radi uređaja.
+
+Spajanje je čisto osim jednog sukoba u dokumentu. Jedna zamka: git je zadržao **oba**
+`import { sys }` u `src/app/_layout.tsx`, po jedan sa svake grane — greška pakovanja koju `tsc`
+prijavi, a koja bi build oborila tek posle dvadeset minuta.
+
+## 12. Redosled za ostatak
 
 Po tome koliko se viđa:
 
