@@ -133,7 +133,12 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   };
   const offset = dragOffset?.token === token ? dragOffset.delta : null;
   return <View style={styles.container}>
-    <View style={styles.frame} onLayout={event => {
+    <View style={styles.frame}
+      // Read-only: the point no longer prints under the map, so the frame carries it for a screen
+      // reader instead of losing it.
+      accessible={disabled && !!pin} accessibilityRole={disabled && pin ? 'image' : undefined}
+      accessibilityLabel={disabled && pin ? `${coarse ? 'Približna tačka na mapi' : 'Tačka na mapi'}. ${coordinateText}` : undefined}
+      onLayout={event => {
       if (!owns()) return;
       const size = pixel([event.nativeEvent.layout.width, event.nativeEvent.layout.height]);
       if (size && size.every(value => value > 0)) {
@@ -173,16 +178,20 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
     </View>
-    {pin ? <View style={{ gap: space.xs }}>
+    {/* Everything below is the picker talking to the person choosing a point: the live coordinate
+        readout, whether the marker is centred, what to do next. A read-only map chooses nothing, and
+        on the public Task these three lines printed as a strip of instrument output under the map —
+        latitude and longitude, "Mapa je centrirana", "Prikazana je izabrana lokacija" — where the
+        screen's own sentence belongs. A screen reader still hears the point: it is on the frame. */}
+    {pin && !disabled ? <View style={{ gap: space.xs }}>
       <T accessible accessibilityRole="text" accessibilityLiveRegion="polite"
         accessibilityLabel={`${coarse ? 'Približna tačka na mapi' : 'Predložena tačka na mapi'}. ${coordinateText}`}
         variant="meta" tone="muted">{coordinateText}</T>
       <T accessibilityLiveRegion="polite" variant="meta" tone="muted">{centeredToken === token && imageToken === token && status === 'ready' && !offset
         ? 'Mapa je centrirana na izabranu tačku.' : 'Proveri položaj oznake na mapi.'}</T>
     </View> : null}
-    {!pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađite područje i dodirnite mapu.</T>
-      : <T variant="meta" tone="muted">{disabled ? 'Prikazana je izabrana lokacija.'
-        : coarse ? 'Prikazana je približna tačka. Dodirni mapu ili prevuci oznaku da predložiš drugu.'
+    {disabled ? null : !pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađite područje i dodirnite mapu.</T>
+      : <T variant="meta" tone="muted">{coarse ? 'Prikazana je približna tačka. Dodirni mapu ili prevuci oznaku da predložiš drugu.'
           : 'Dodirni mapu ili prevuci oznaku da predložiš drugu tačku.'}</T>}
     {!disabled ? <T variant="meta" tone="muted">Izbor na mapi treba potvrditi u obrascu.</T> : null}
     <View style={styles.attribution}>
