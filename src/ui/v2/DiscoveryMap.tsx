@@ -63,7 +63,14 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     <Map style={s.map} mapStyle={RESOLVED_PIN_MAP_STYLE} androidView="texture" attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
       onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
-      onRegionDidChange={event => { if (!owns() || load.current !== 'ready') return; const value = publicViewport(event.nativeEvent); setViewport(value); if (value) latest.current.props.onViewport(value); }}>
+      // The region the camera settles into on first load arrives BEFORE the map reports itself
+      // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
+      // phone that left "Pretraži ovu oblast" and both zoom buttons dead, with no reason beside
+      // them, on every fresh open of the map until the person happened to drag it. The control now
+      // comes alive as soon as the map says where it is; persisting that position upward still
+      // waits for ready, so a neutral world overview never becomes the remembered viewport.
+      onRegionDidChange={event => { if (!owns()) return; const value = publicViewport(event.nativeEvent); setViewport(value);
+        if (value && load.current === 'ready') latest.current.props.onViewport(value); }}>
       <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={48} clusterMaxZoom={16}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>

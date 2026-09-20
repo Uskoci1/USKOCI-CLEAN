@@ -79,6 +79,27 @@ test('observed valid viewport enables explicit area; panning never searches by i
  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, bounds: [-181, -1, 1, 1] } }));
  expect(tree.root.findByProps({ label: 'Pretraži ovu oblast' }).props.disabled).toBe(true);
 });
+test('the region the camera settles into on first load arms the area control without being remembered', async () => {
+ // On a phone this was the whole map's first impression: "Pretraži ovu oblast" and both zoom
+ // buttons dead, with no reason beside them, until the person happened to drag the map. The region
+ // event that the initial camera fit produces arrives before the map reports itself ready, and it
+ // used to be discarded — and nothing else produces a viewport.
+ await render();
+ // The camera fit settles, and the map has not called itself ready yet. The controls are not on
+ // screen during loading, so nothing is visible here — but this is the event that used to be lost.
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
+ // Not remembered: a position seen while the map is still loading must never become the viewport
+ // a person returns to.
+ expect(setViewport).not.toHaveBeenCalled();
+ await ready();
+ // The control appears already armed, instead of dead until the person drags the map.
+ expect(tree.root.findByProps({ label: 'Pretraži ovu oblast' }).props.disabled).toBe(false);
+ await act(async () => tree.root.findByProps({ label: 'Pretraži ovu oblast' }).props.onPress());
+ expect(search).toHaveBeenCalledWith(region.bounds);
+ // And from ready on, where the person moves the map is remembered as before.
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
+ expect(setViewport).toHaveBeenCalledWith(region);
+});
 test('bounded native load failure rejects late ready; explicit retry remounts and saved viewport survives', async () => {
  viewport = region as PublicViewport; await render(); const late = native().props.onDidFinishLoadingMap;
  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ center: [0, 0], zoom: 4 });
