@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { palette } from '../theme/tokens';
+import { sys } from '../ui/system/tokens';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { pendingRoute } from '../store/pendingRoute';
@@ -92,11 +92,11 @@ export default function RootLayout() {
 
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: palette.ground, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: sys.color.surface, justifyContent: 'center', alignItems: 'center' }}>
         {/* Same original mark and nominal size as the padded native splash. */}
         <BrandMark size={126} />
         <View style={{ position: 'absolute', alignSelf: 'center', top: '65%', alignItems: 'center', gap: 10 }}>
-          <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={palette.ink} />
+          <ActivityIndicator accessibilityLabel="Učitavanje" size="small" color={sys.color.ink} />
           {/* A wordless white field says nothing about whether anything is happening. The restore
               is bounded at 8s, so this sentence is never the last thing on screen for long. */}
           {slowStart ? <T variant="copy" tone="muted">Otvaramo aplikaciju…</T> : null}
@@ -107,14 +107,14 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView onLayout={onRouteLayout} style={{ flex: 1, backgroundColor: palette.ground }}>
+      <GestureHandlerRootView onLayout={onRouteLayout} style={{ flex: 1, backgroundColor: sys.color.surface }}>
         <StatusBar style="dark" />
         <Stack
           key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
           initialRouteName={session ? '(app)' : 'auth'}
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: palette.ground },
+            contentStyle: { backgroundColor: sys.color.surface },
             animation: 'slide_from_right',
           }}
         >

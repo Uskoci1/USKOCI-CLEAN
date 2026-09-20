@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type MapRef } from '@maplibre/maplibre-react-native';
-import { palette, radius, space } from '../../theme/tokens';
+import { radius, space } from '../../theme/tokens';
+import { sys } from '../system/tokens';
 import { Button } from '../Button';
 import { T } from '../Text';
 import { displayedPinPosition, RESOLVED_PIN_MAP_STYLE, type ResolvedPinMapProps } from './ResolvedPinMap.types';
@@ -167,7 +168,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         </Marker> : null}
       </Map>
       {status !== 'ready' ? <View style={styles.feedback}>
-        {status === 'loading' ? <><ActivityIndicator color={palette.teal500} accessibilityLabel="Učitavanje mape" /><T>Učitavamo mapu…</T></>
+        {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /><T>Učitavamo mapu…</T></>
           : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proveri vezu. Uneti podaci ostaju u obrascu.</T>
             <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
@@ -212,10 +213,10 @@ export function ResolvedPinMap(props: ResolvedPinMapProps) {
 
 const styles = StyleSheet.create({
   container: { gap: space.sm },
-  frame: { height: 320, borderRadius: radius.card, overflow: 'hidden', backgroundColor: palette.successBg },
+  frame: { height: 320, borderRadius: radius.card, overflow: 'hidden', backgroundColor: sys.color.greenSoft },
   map: { flex: 1 },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: space.lg,
-    gap: space.md, backgroundColor: palette.surface },
+    gap: space.md, backgroundColor: sys.color.surface },
   attribution: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, paddingTop: space.xs },
   marker: { width: 44, height: 48 },
 });
