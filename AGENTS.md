@@ -11,6 +11,16 @@ composition below; original brand/entry assets remain. This first Home/tab surfa
 the other screens, aggregate wiring or end-to-end device verification. Skills are implementation
 guidance; they do not override the owner's latest visual direction.
 
+CodeQL "Insecure randomness" (2026-09-21, owner-accepted as debt): the five `high` alerts have ONE
+source, `src/lib/idempotencija.ts`, and the flagged files contain no `Math.random()` at all. The
+fallback is the path that runs (RN 0.86.3 defines no `randomUUID`, no polyfill is installed), but the
+value is a `clientRequestId` — an idempotency key behind RLS, not a secret — and the one failure mode
+that would matter, a repeated PRNG sequence colliding two keys, is measured absent: 258 of 258
+distinct, 0 shared prefixes, 0 malformed. The owner chose to merge and record rather than take a new
+dependency. Full evidence and what would close it:
+`docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
+for that cause; a new alert is a new decision.
+
 Price basis (2026-09-20, owner-approved and applied): a task can say what its price is FOR, and an
 application is priced by it. Read `docs/implementation/v5-ai-first/pkg025/PKG025A_PRICE_BASIS.md`.
 The owner authorized this chain explicitly on 2026-09-20 ("sve dozvoljavam", "Cena", "ajde kreni",
