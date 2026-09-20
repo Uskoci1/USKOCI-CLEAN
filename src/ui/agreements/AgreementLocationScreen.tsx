@@ -9,6 +9,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
 import { PermissionRecovery } from '../system/PermissionRecovery';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { AgreementLocationController,initialLocationState } from './AgreementLocationController';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS');
@@ -33,9 +34,10 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
     &&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
   const run=(action:'refresh'|'acknowledge'|'cancelUnknown'|'stopCapture')=>{if(current())void controller?.[action]();};
   const point=state.context?.point,ready=state.phase==='READY';
-  return <SafeAreaView edges={['top','bottom']} style={s.screen}><ScrollView contentContainerStyle={s.content}>
-    <V2Action label="Nazad" kind="quiet" onPress={()=>{if(current()){if(router.canGoBack())router.back();else router.replace({pathname:'/dogovor/[id]',params:{id:agreementId}});}}}/>
-    <T accessibilityRole="header" style={s.title}>Trenutna lokacija</T>
+  return <SafeAreaView edges={['top','bottom']} style={s.screen}>
+    <DetailTopBar eyebrow="Dogovor" title="Trenutna lokacija"
+      onBack={()=>{if(current()){if(router.canGoBack())router.back();else router.replace({pathname:'/dogovor/[id]',params:{id:agreementId}});}}}/>
+    <ScrollView contentContainerStyle={s.content}>
     <T style={s.copy}>Jedna tačka, podeljena dobrovoljno u ovom Dogovoru. Prikaz se ne pomera i ne prati putovanje.</T>
     {state.message&&state.message.includes('podešavanjima telefona')?<PermissionRecovery message={state.message}/>
       :state.message?<T accessibilityLiveRegion="polite" style={s.copy}>{state.message}</T>:null}
@@ -62,6 +64,6 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
 }
 /** PKG-011: same controller and copies; ground, cards and type on the shared system. */
 const s=StyleSheet.create({screen:{flex:1,backgroundColor:sys.color.ground},content:{padding:20,paddingBottom:40,gap:16},
-  title:{...sys.type.display,fontSize:26,lineHeight:31,color:sys.color.ink},heading:{...sys.type.heading,color:sys.color.ink},
+  heading:{...sys.type.heading,color:sys.color.ink},
   copy:{...sys.type.body,color:sys.color.muted},
   group:{gap:12,padding:16,borderRadius:sys.radius.card,borderWidth:1,borderColor:sys.color.line,backgroundColor:sys.color.surface}});

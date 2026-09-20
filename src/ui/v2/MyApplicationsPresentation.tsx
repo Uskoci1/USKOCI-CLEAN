@@ -1,9 +1,10 @@
 import { memo, useEffect, useRef, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Clock, MapPin } from 'phosphor-react-native';
+import { CaretRight, Clock, MapPin } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import { needPeopleText, needScheduleText } from '../../data/needDetailPresentation';
+import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { Segmented } from '../system/Segmented';
@@ -51,23 +52,31 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
 }) {
   const stale = p.stanje === 'STALE_REVIEW_REQUIRED';
   return <View style={[card, s.card, stale && s.attentionCard, p.stanje === 'SELECTED' && s.selectedCard]}>
-    <View style={s.statusRow}><View style={[s.dot, { backgroundColor: statusDot(p.stanje) }]} /><T variant="label" style={[s.status, { color: statusTone(p.stanje) }]}>{applicationStatus(p.stanje)}</T></View>
-    <T accessibilityRole="header" style={s.title}>{p.naslov}</T>
-    <View style={s.facts}>
-      <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.podrucjeTekst}</T></View>
-      <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.vremeTekst}</T></View>
-    </View>
-    <View style={s.foot}>
-      <View style={s.grow}><T variant="meta" tone="muted">Tvoja ponuda · ukupno</T><T style={s.amount}>{p.cena.prikaz}</T></View>
-      <T variant="meta" style={s.people}>{needPeopleText(p.pokrivaMesta)}</T>
-    </View>
+    {/* Everything a person reads to recognise the application is one press that opens the Task it
+        belongs to. It used to be a small green line of text under the card, easy to miss and the
+        only way back to the Task a worker had applied to; the actions below stay separate so no
+        touch target sits inside another. */}
+    <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${p.naslov}`} accessibilityState={{ disabled }}
+      onPress={onTask} disabled={disabled} haptic="select" scaleTo={0.99} style={s.head}>
+      <View style={s.statusRow}><View style={[s.dot, { backgroundColor: statusDot(p.stanje) }]} />
+        <T variant="label" style={[s.status, { color: statusTone(p.stanje) }]}>{applicationStatus(p.stanje)}</T>
+        <View style={s.grow} /><CaretRight size={18} color={sys.color.muted} /></View>
+      <T accessibilityRole="header" style={s.title}>{p.naslov}</T>
+      <View style={s.facts}>
+        <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.podrucjeTekst}</T></View>
+        <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.vremeTekst}</T></View>
+      </View>
+      <View style={s.foot}>
+        <View style={s.grow}><T variant="meta" tone="muted">Tvoja ponuda · ukupno</T><T style={s.amount}>{p.cena.prikaz}</T></View>
+        <T variant="meta" style={s.people}>{needPeopleText(p.pokrivaMesta)}</T>
+      </View>
+    </Press>
+    {/* The orange border already says this card wants you. An orange button inside it as well, on
+        every card of the "Čeka te" tab, spends the one colour that is supposed to mean "the step". */}
     {stale ? <><T variant="copy" style={s.ink}>Zadatak je izmenjen. Pregledaj aktuelne uslove pre nego što odlučiš o svojoj Prijavi.</T>
-      {!expanded ? <V2Action label={`Pregledaj izmene: ${p.naslov}`} onPress={onReview} disabled={disabled} style={brandAction} /> : null}</> : null}
+      {!expanded ? <V2Action label={`Pregledaj izmene: ${p.naslov}`} onPress={onReview} disabled={disabled} kind="primary" /> : null}</> : null}
     {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label={`Otvori Dogovor: ${p.naslov}`} onPress={onAgreement} kind="primary" disabled={disabled} /> : null}
     {p.stanje !== 'STALE_REVIEW_REQUIRED' && p.napomena ? <T variant="note" tone="muted">{p.napomena}</T> : null}
-    {/* The list offered the agreement, the changes and the withdrawal — never the task itself, so a
-        worker who had applied could not read it again, or reach its questions, from here. */}
-    <V2Action label={`Otvori zadatak: ${p.naslov}`} onPress={onTask} kind="quiet" disabled={disabled} style={s.quietLeft} />
     {!stale && p.mozePovuci ? <V2Action label={`Povuci prijavu: ${p.naslov}`} onPress={onWithdraw} kind="destructive" disabled={disabled} style={s.quietLeft} /> : null}
     {children}
   </View>;
@@ -141,7 +150,7 @@ export function MyApplicationsPresentation(props: Props) {
               <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
             </View> : <><V2Action label="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} kind="primary" />
               <V2Action label="Izmeni prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
-              <V2Action label="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} kind="destructive" /></>}
+              <V2Action label="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} kind="destructive" style={s.quietLeft} /></>}
             <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" />
           </View> : null}
         </ApplicationCard></Appear>} />
@@ -158,6 +167,7 @@ const s = StyleSheet.create({
   stateTitle: { ...sys.type.title, color: sys.color.ink },
   emptyArt: { width: 84, height: 84, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   card: { gap: 8, marginBottom: 12 },
+  head: { gap: 8 },
   attentionCard: { borderColor: sys.color.orange }, selectedCard: { borderColor: sys.color.green },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0.3 },
   title: { ...sys.type.cardTitle, color: sys.color.ink },

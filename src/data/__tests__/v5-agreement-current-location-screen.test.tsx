@@ -90,6 +90,7 @@ it('a flip of the retired app mode retires nothing: a capture in flight is not a
  expect(signal.aborted).toBe(false);
 });
 it('has a deterministic back fallback and removes its AppState observation on unmount',async()=>{
- await render();expect(mockListeners.size).toBe(1);await tap('Nazad');expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+ await render();expect(mockListeners.size).toBe(1);
+ await act(async()=>tree!.root.findByProps({accessibilityLabel:'Nazad'}).props.onPress());expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
  await act(async()=>tree!.unmount());tree=undefined;expect(mockListeners.size).toBe(0);
 });

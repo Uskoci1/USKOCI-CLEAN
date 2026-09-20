@@ -12,6 +12,7 @@ import { needScheduleText } from '../../data/needDetailPresentation';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { T } from '../Text';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
 import { AgreementActionsController, type AgreementActionsState } from './AgreementActionsController';
@@ -126,8 +127,11 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     startsAt: patch.pocetakIso ?? snapshot.terms.startsAt, endsAt: patch.krajIso ?? snapshot.terms.endsAt }; }
   else if (review?.kind === 'RESPOND' || review?.kind === 'WITHDRAW') proposed = review.proposal.terms;
   return <SafeAreaView edges={['top','bottom']} style={s.screen}><KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-    <View style={s.header}><V2Action label="Nazad" kind="quiet" onPress={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } }); } }} />
-      <T accessibilityRole="header" style={s.heading}>Izmene Dogovora</T></View>
+    {/* The screen drew its own top: a green "Nazad" word beside a heading, while every other
+        pushed screen in the app opens with a back arrow, an eyebrow and a title. The eyebrow says
+        what this belongs to, so the title no longer has to repeat the word Dogovor. */}
+    <DetailTopBar eyebrow="Dogovor" title="Izmene i otkazivanje"
+      onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } }); } }} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
       {busy ? <T accessibilityLiveRegion="polite" style={s.copy}>{state.phase === 'SENDING' ? 'Šaljem pregledanu radnju…' : 'Učitavam važeće uslove i potvrdu…'}</T> : null}
       {error || state.error ? <T accessibilityLiveRegion="polite" style={s.error}>{error || state.error}</T> : null}
@@ -179,8 +183,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
   </KeyboardAvoidingView></SafeAreaView>;
 }
 /** PKG-011: same controller, journal and copies; cards, ground and type on the shared system. */
-const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: sys.color.ground }, header: { paddingHorizontal: 12, paddingVertical: 8, gap: 4, flexDirection: 'row', alignItems: 'center' },
-  content: { padding: 20, paddingBottom: 32, gap: 16 }, heading: { ...sys.type.heading, color: sys.color.ink, flexShrink: 1 },
+const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: sys.color.ground },   content: { padding: 20, paddingBottom: 32, gap: 16 }, heading: { ...sys.type.heading, color: sys.color.ink, flexShrink: 1 },
   copy: { ...sys.type.copy, color: sys.color.muted }, label: { ...sys.type.meta, color: sys.color.ink },
   error: { ...sys.type.copy, color: sys.color.danger },
   group: { gap: 8, padding: 16, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },

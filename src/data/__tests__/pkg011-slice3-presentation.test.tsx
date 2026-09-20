@@ -46,7 +46,11 @@ test('Moje prijave names no app mode, offers tabs with counts as real tabs, and 
   expect(byLabel('Sve').props.accessibilityState).toEqual({ selected: true });
   expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Potrebna nova provera'); expect(copy).toContain('6.000 RSD');
   expect(labels()).toContain('Otvori Dogovor: Unos ormara b'); expect(labels()).toContain('Povuci prijavu: Unos ormara a'); expect(labels()).toContain('Pregledaj izmene: Unos ormara c');
-  expect(brand()).toEqual(['Pregledaj izmene: Unos ormara c']);
+  // Every card is reachable as its own Task, and a list of applications spends no orange: the card
+  // that wants you already carries an orange border, and one orange button per card would be five
+  // of them on the "Čeka te" tab. The screen's one brand action lives in its empty state below.
+  expect(labels()).toContain('Otvori zadatak: Unos ormara a');
+  expect(brand()).toEqual([]);
 });
 test('Prijave loading shows placeholders and a spoken status; the empty state has one brand action', async () => {
   await act(async () => { tree = create(<Applications rows={[application('a', 'SUBMITTED')]} loading />); });

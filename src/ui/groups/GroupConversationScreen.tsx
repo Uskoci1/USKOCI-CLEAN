@@ -9,6 +9,7 @@ import { groupBody,normalizeGroupBody,type GroupMessage } from '../../data/group
 import { GroupConversationController,initialGroupState } from './GroupConversationController';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { T } from '../Text';
+import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
 import { SupportContextEntry } from '../support/SupportContextEntry';
@@ -40,12 +41,12 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
  },[renderedOwner,controller]);
  const viewability=useRef({viewAreaCoveragePercentThreshold:60,minimumViewTime:600}).current;
  const openAgreement=(id:string)=>{if(current())router.push({pathname:'/dogovor/[id]',params:{id}});};
- return <SafeAreaView edges={['top','bottom']} style={s.screen}><KeyboardAvoidingView style={s.screen} behavior={Platform.OS==='ios'?'padding':'height'}>
+ return <SafeAreaView edges={['top','bottom']} style={s.screen}>
+  <DetailTopBar eyebrow="Dogovor" title="Grupni razgovor" backLabel="Nazad na Dogovor" onBack={()=>openAgreement(agreementId)}/>
+  <KeyboardAvoidingView style={s.screen} behavior={Platform.OS==='ios'?'padding':'height'}>
   <FlatList key={generation} data={state.messages} keyExtractor={item=>item.messageId} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled"
    onViewableItemsChanged={onVisible} viewabilityConfig={viewability} refreshing={state.phase==='LOADING'} onRefresh={()=>invoke('refresh')}
    ListHeaderComponent={<View style={s.stack}>
-    <V2Action label="Nazad na Dogovor" kind="quiet" onPress={()=>openAgreement(agreementId)}/>
-    <T accessibilityRole="header" style={s.title}>Grupni razgovor</T>
     {group?<><T style={s.heading}>{group.title}</T><T style={s.copy}>Zajedničke poruke za koordinaciju Zadatka. Cenu, lične uslove i probleme dogovarajte u svom privatnom Dogovoru.</T>
      <T style={s.meta}>{group.unreadCount} nepročitanih · {group.terminal?'Razgovor je završen':group.canSend?'Poruke su dostupne':'Dostupna istorija razgovora'}</T>
      <V2Action label={showPeople?'Sakrij učesnike':'Učesnici razgovora'} kind="quiet" onPress={()=>{if(current())setShowPeople(x=>!x);}}/>
@@ -87,7 +88,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
  </KeyboardAvoidingView></SafeAreaView>;
 }
 /** PKG-011: same controller, viewability and copies; bubbles, cards and type on the shared system. */
-const s=StyleSheet.create({screen:{flex:1,backgroundColor:sys.color.ground},content:{padding:20,paddingBottom:28,gap:12},stack:{gap:12},title:{...sys.type.display,fontSize:26,lineHeight:31,color:sys.color.ink},
+const s=StyleSheet.create({screen:{flex:1,backgroundColor:sys.color.ground},content:{padding:20,paddingBottom:28,gap:12},stack:{gap:12},
  heading:{...sys.type.heading,color:sys.color.ink},copy:{...sys.type.body,color:sys.color.ink},meta:{...sys.type.meta,color:sys.color.muted},
  bubble:{padding:12,borderRadius:sys.radius.card,gap:4,maxWidth:'88%'},mine:{alignSelf:'flex-end',backgroundColor:sys.color.greenSoft,borderBottomRightRadius:6},
  peer:{alignSelf:'flex-start',backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.line,borderBottomLeftRadius:6},

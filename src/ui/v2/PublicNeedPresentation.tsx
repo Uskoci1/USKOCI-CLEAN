@@ -2,9 +2,10 @@ import type { TaskRelation } from '../../data/taskRelation';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
+import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import { needGeographyRows, needPeopleText, needRequirementRows } from '../../data/needDetailPresentation';
+import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, SectionTitle } from '../system/Detail';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
 import { SkeletonCard } from '../system/Skeleton';
@@ -71,14 +72,17 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         </DisclosureGroup>
         <View style={s.section}>
           <SectionTitle>Ko objavljuje</SectionTitle>
-          <View style={[card, s.requesterCard]}>
-            <View style={s.requester}>
-              <View style={s.avatar}><T variant="heading" style={s.initial}>{(need.narucilacIme || 'N').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T></View>
-              <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>{need.narucilacIme || 'Ime trenutno nije dostupno'}</T>
-                {need.narucilacOcena !== null ? <T variant="note" tone="muted">{`Ocena ${need.narucilacOcena}`}</T> : null}</View>
-            </View>
-            {onRequesterProfile ? <V2Action label="Pogledaj javni profil" kind="quiet" disabled={busy} onPress={onRequesterProfile} style={s.quietLeft} /> : null}
-          </View>
+          {/* The person who posted the task was a letter in a circle, while the people who answer
+              it are shown by their photograph two screens away. The whole block is the press that
+              opens their public profile, instead of a green line of text beneath it. */}
+          <Press accessibilityRole="button" accessibilityLabel="Pogledaj javni profil" accessibilityState={{ disabled: busy || !onRequesterProfile }}
+            disabled={busy || !onRequesterProfile} onPress={() => onRequesterProfile?.()} haptic="select" scaleTo={0.99} style={[card, s.requester]}>
+            {publicPhoto ? <View style={s.photo}>{publicPhoto(need.narucilacProfilId)}</View>
+              : <View style={s.avatar}><T variant="heading" style={s.initial}>{(need.narucilacIme || 'N').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T></View>}
+            <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>{need.narucilacIme || 'Ime trenutno nije dostupno'}</T>
+              {need.narucilacOcena !== null ? <T variant="note" tone="muted">{`Ocena ${need.narucilacOcena}`}</T> : null}</View>
+            {onRequesterProfile ? <CaretRight size={20} color={sys.color.muted} /> : null}
+          </Press>
         </View>
       </> : null}
     </ScrollView>
@@ -113,10 +117,9 @@ const s = StyleSheet.create({
   section: { gap: 8 },
   description: { color: sys.color.ink, lineHeight: 26 },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
-  requesterCard: { gap: 10 },
   requester: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  photo: { width: 48, height: 48, borderRadius: sys.radius.pill, overflow: 'hidden' },
   avatar: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   initial: { color: sys.color.green },
-  quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
 });

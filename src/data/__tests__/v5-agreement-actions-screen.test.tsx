@@ -128,5 +128,5 @@ it.each(['blur','account','background'])('blocks a late %s response and retained
 });
 it('uses whole-screen keyboard avoidance and a scroll container, and has a deterministic back fallback',async()=>{
  await render();expect(tree.root.findAllByType('KeyboardAvoidingView' as never)).toHaveLength(1);expect(tree.root.findAllByType('ScrollView' as never)).toHaveLength(1);
- await tap('Nazad');expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+ await act(async()=>tree.root.findByProps({accessibilityLabel:'Nazad'}).props.onPress());expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
 });

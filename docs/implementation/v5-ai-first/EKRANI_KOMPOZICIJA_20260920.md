@@ -140,21 +140,77 @@ Poslednje krem površine prešle na beli sistem. Sistemski splash je beo, naš j
 opet bela — hladno startovanje je treperilo. Četiri ekrana bez sopstvene podloge (grupni razgovor,
 izmene dogovora, lokacija dogovora, lista prijava) stajala su na krem podlozi sa belim karticama.
 
+### `src/ui/v2/MyApplicationsPresentation.tsx` — Moje prijave
+
+Sve što se čita da bi se prepoznala prijava — stanje, naslov, mesto, vreme, tvoja cena — jedan je
+pritisak koji otvara **Zadatak** kojem prijava pripada. Ranije je to bio sitan zeleni red teksta
+ispod kartice, i bio je jedini put nazad do Zadatka na koji si se prijavio. Radnje ispod ostaju
+odvojene, da nijedno dodirno mesto ne stoji unutar drugog.
+
+„Pregledaj izmene" je prestalo da bude narandžasto. Kartica koja te čeka već ima narandžastu
+ivicu; narandžasto dugme unutar nje, na svakoj kartici taba „Čeka te", troši jedinu boju koja
+treba da znači „ovo je korak". Sada je tamno, a jedina narandžasta na ekranu ostaje ona u praznom
+stanju.
+
+### Tri ekrana Dogovora dobila isti vrh
+
+`AgreementActionsScreen`, `AgreementLocationScreen` i `GroupConversationScreen` crtali su svoj vrh:
+zelena reč „Nazad" pored golog naslova od 26px, dok ceo ostatak aplikacije otvara sa strelicom
+nazad, nadnaslovom i naslovom. Sada koriste `DetailTopBar`, nadnaslov je **Dogovor**, pa naslov
+više ne mora da ponavlja tu reč („Izmene Dogovora" → **Izmene i otkazivanje**).
+
+To su tri od četiri ekrana koji su istog dana stajali na krem podlozi — porodica Dogovora je bila
+zapušteni ugao aplikacije.
+
+### `src/ui/v2/PublicNeedPresentation.tsx` — Javni zadatak
+
+Ekran je i pre bio tačan po pravilima: traka stanja, veliki naslov, četiri činjenice sa ikonicama,
+dva reda koja se otvaraju, i **jedna** radnja u podnožju koju bira odnos (`OWNER` / `APPLIED` /
+`UNKNOWN` / prijava). Jedno nije valjalo: onaj **ko objavljuje** bio je slovo u krugu, dok su ljudi
+koji mu odgovaraju dva ekrana dalje prikazani fotografijom. Sada nosi svoju fotografiju
+(`publicPhoto`, isti autorizovani put koji već koristi list javnog profila), ceo blok je pritisak
+koji otvara javni profil, a zeleni red teksta ispod njega je nestao.
+
 ### `__mocks__/phosphor-react-native.js`
 
 Ikonice su bile ručno izlistane u 37 test fajlova, pa se nijednom ekranu nije mogla dodati ikonica
 bez rušenja suite-ova koji ikonice ni ne pominju — i to porukom koja pokazuje na ekran umesto na
 mock. Jedan zajednički mock, kao onaj za reanimated pored njega.
 
-## 8. Redosled za ostatak
+## 8. Tri ispravke sopstvenog merenja
+
+Brojalica nad kodom je gruba i tri puta je slagala. Zapisano je da se ne ponovi:
+
+1. **„Izbor prijava, 96 elemenata"** — nije jedan ekran nego **četiri u jednom fajlu** (tvoja
+   prijava, lista prijava, poređenje, ponuda). Nijedan pojedinačno nije imao 96.
+2. **„`MarketplacePresentation`, tri reda kontrola pre sadržaja"** — netačno. Ima **jedan** stalni
+   red (segment); pretraga i oblast se pojavljuju samo kad ih tražiš. Taj ekran je već
+   disciplinovan — komentar u kodu izričito drži da prazno stanje nosi svoju radnju baš zato da se
+   nikad ne vide dve narandžaste. Isto važi za `TaskCard`: on je već tačno ova anatomija.
+3. **„~32 ekrana crtaju svoje zaglavlje"** (iz starijeg plana) — sada ih je **sedam**, a od toga su
+   `auth`, `oporavak` i razgovor sa AI namerno drugačiji. Preostala četiri su obrađena ili
+   trivijalna.
+
+Zaključak: jezik kartice u aplikaciji **već postoji i tačan je**. Problem nije bio da ga nema, nego
+da su pojedini ekrani odlutali od njega — i to baš oni na kojima se donosi odluka.
+
+## 9. Otvoreno — traži odgovor sa servera, ne pogađanje
+
+**Lice u Dogovoru.** U `AgreementCollectionPresentation` i `AgreementPresentation` osoba sa kojom
+si se dogovorio i dalje je slovo u krugu — i to je jedini deo aplikacije gde je to ostalo na
+vidnom mestu. Nije popravljeno jer `UcesnikProjekcija` nosi samo `id`, a `ProfilePhoto` traži
+**profilni** id; ako je to id naloga, fotografija se ne sme ni pokušati. Pitanje za server:
+da li projekcija učesnika Dogovora izlaže javni profilni id.
+
+## 10. Redosled za ostatak
 
 Po tome koliko se viđa:
 
-1. **Moje prijave** — 50 elemenata, 6 narandžastih mesta u kodu
-2. **Zadaci / Prilike / Mapa** (`MarketplacePresentation`) — 5 narandžastih, tri reda kontrola pre sadržaja
-3. **Javna potreba** i **Potreba** — 4 i 2
-4. **Razgovor sa AI** (`IntakePresentation`) — 4
-5. **Dogovor** — radni prostor, prepiska, izmene, ocena
-6. **Profil i sistemski ekrani**
+1. **Javna potreba** i **Potreba** — ekran na kom se odlučuje o prijavi
+2. **Razgovor sa AI** (`IntakePresentation`)
+3. **Dogovor** — radni prostor, prepiska, ocena, zatvaranje
+4. **Podrška — detalj** (45 elemenata), **Pregled zadatka** (44), **Dostupnost** (43)
+5. **Profil i 13 podekrana**
+6. **Prijava/ulaz** — poslednje ostrvo; tamna površina ostaje namerno
 
 Početna i ljuska se ne diraju dok ih drugi agent prerađuje po HTML pravcu od 2026-09-20.
