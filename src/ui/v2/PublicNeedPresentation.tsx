@@ -31,7 +31,9 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   /** Where the job is, as an approximate pin. The map owns a focus lifetime, so the route builds it. */
   map?: ReactNode;
   /** Owner decision 3: the requester's public profile as a sheet over the existing read. */
-  onRequesterProfile?: () => void; requesterProfile?: PublicProfileState; onCloseRequesterProfile?: () => void; publicPhoto?: (profileId: string) => ReactNode;
+  onRequesterProfile?: () => void; requesterProfile?: PublicProfileState; onCloseRequesterProfile?: () => void;
+  /** The sheet wants a large portrait and the row a small one, so the caller is told which. */
+  publicPhoto?: (profileId: string, size?: number) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState<'location' | 'requirements' | null>(null);
   const rows = expanded === 'location' && need ? needGeographyRows(need) : expanded === 'requirements' && need ? needRequirementRows(need) : [];
@@ -84,7 +86,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
               opens their public profile, instead of a green line of text beneath it. */}
           <Press accessibilityRole="button" accessibilityLabel="Pogledaj javni profil" accessibilityState={{ disabled: busy || !onRequesterProfile }}
             disabled={busy || !onRequesterProfile} onPress={() => onRequesterProfile?.()} haptic="select" scaleTo={0.99} style={[card, s.requester]}>
-            {publicPhoto ? <View style={s.photo}>{publicPhoto(need.narucilacProfilId)}</View>
+            {publicPhoto ? publicPhoto(need.narucilacProfilId, 48)
               : <View style={s.avatar}><T variant="heading" style={s.initial}>{(need.narucilacIme || 'N').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T></View>}
             <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>{need.narucilacIme || 'Ime trenutno nije dostupno'}</T>
               {need.narucilacOcena !== null ? <T variant="note" tone="muted">{`Ocena ${need.narucilacOcena}`}</T> : null}</View>
@@ -125,7 +127,6 @@ const s = StyleSheet.create({
   description: { color: sys.color.ink, lineHeight: 26 },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
   requester: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  photo: { width: 48, height: 48, borderRadius: sys.radius.pill, overflow: 'hidden' },
   avatar: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   initial: { color: sys.color.green },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
