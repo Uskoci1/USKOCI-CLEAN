@@ -88,5 +88,6 @@ export const supportStyles = StyleSheet.create({
   row: { gap: 6, paddingVertical: 16, borderBottomColor: sys.color.line, borderBottomWidth: 1 },
   status: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.chip },
   gap: { gap: 12 }, actions: { gap: 12, marginVertical: 16 },
+  pager: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
   event: { paddingLeft: 16, paddingVertical: 12, borderLeftColor: sys.color.lineStrong, borderLeftWidth: 2, gap: 8 },
 });

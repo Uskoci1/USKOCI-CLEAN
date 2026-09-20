@@ -49,8 +49,13 @@ export function SupportDetailScreen({ caseId }: { caseId: string }) {
           <T variant="meta" tone="muted">Ova odluka o zahtevu sama ne menja Zadatak, Dogovor, novčani iznos ili ocenu.</T>
         </View>)}
       </SettingsPanel> : null}
-      {detail.nextAfterSequence ? <SettingsAction label="Sledeći događaji" kind="quiet" disabled={busy} onPress={() => page(detail.nextAfterSequence!)} /> : null}
-      {cursors.length > 1 ? <SettingsAction label="Prethodni događaji" kind="quiet" disabled={busy} onPress={() => page(cursors[cursors.length - 2], true)} /> : null}
+      {/* Four quiet links used to stack under the history, one per line, and two of them were the
+          same control pointing opposite ways. Paging is one row; what you do with what you have read
+          is the line under it. */}
+      {detail.nextAfterSequence || cursors.length > 1 ? <View style={styles.pager}>
+        {cursors.length > 1 ? <SettingsAction label="Prethodni događaji" kind="quiet" disabled={busy} onPress={() => page(cursors[cursors.length - 2], true)} /> : null}
+        {detail.nextAfterSequence ? <SettingsAction label="Sledeći događaji" kind="quiet" disabled={busy} onPress={() => page(detail.nextAfterSequence!)} /> : null}
+      </View> : null}
       {detail.events.length ? <SettingsAction label="Označi prikazane događaje kao pročitane" kind="quiet" disabled={busy}
         onPress={() => { if (current()) void controller?.markRead(state); }} /> : null}
       <DetailActions key={`${detail.case.id}:${detail.case.revision}`} model={model} detail={detail} />
