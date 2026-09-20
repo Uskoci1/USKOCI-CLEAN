@@ -234,9 +234,22 @@ jednostavno nije tražilo.
 Ispravka je klijentska: dve kolone u `NEED_SELECT`, `priblizno` u projekciji, ista mapa na
 vlasnikovom ekranu. Nijedna migracija.
 
-**3. Slika na kartici u listi.** `MarketplaceItem` nema nijedno polje za fotografiju, pa kartica u
-listi i na mapi ne može da prikaže sliku ni kad zadatak ima fotografije. Potrebno: jedna sličica po
-zadatku u ograničenom čitanju liste.
+**3. Slika na kartici u listi — NIJE mala migracija, kako sam prvo mislio.**
+`MarketplaceItem` nema nijedno polje za fotografiju. Prva zamisao je bila: jedan `coverAssetId` u
+`rpc_list_open_tasks_v3`, kandidat od dvadesetak redova, isto kao pkg024a.
+
+Provera je to oborila. Fotografije zadatka se **ne čitaju kroz Postgres RPC** nego kroz Edge
+funkciju (`mediaClientService.readNeedPhotos` → `gallery('list-need', …)`), i svaka slika ide kroz
+sopstveno ovlašćeno preuzimanje. Znači lista od 50 zadataka ne bi bila „50 slika više" nego **50
+poziva funkcije po stranici**. To je sporije i skuplje od svega što lista sada radi.
+
+Dva poštena puta, oba traže odluku:
+
+1. **Batch u Edge funkciji** — jedan poziv vrati po jednu sličicu za listu id-eva. Nije migracija
+   nego deploy Edge funkcije, sa poznatom zamkom oko escape sekvenci pri deploy-u preko konektora.
+2. **Bez slika u listi** — kartica ostaje tekstualna, a fotografije se vide na detalju, gde se
+   čitaju za jedan zadatak koji je čovek namerno otvorio. To je ono što aplikacija danas radi, i
+   nije slučajno.
 
 ## 10. Nalazi sa uređaja (2026-09-20, telefon vlasnika)
 
