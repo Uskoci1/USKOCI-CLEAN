@@ -109,12 +109,30 @@ The executable CI proof on a disposable database — apply, then assert that an 
 exists. What stands is the preflight, the transaction's own assertions, and the fact that this step
 changes no behaviour at all while every basis is null.
 
-## The steps after this one, each with its own review
+## Step 2 — pkg025b, APPLIED the same day
 
-1. `rpc_submit_response` by basis: `NULL` → today's equality untouched; `PER_PERSON` → price equals
-   the per-person amount times `covered_slots`; `TOTAL` → one application must cover **all**
-   `people_needed` and its price equals the total (owner's decision, 2026-09-19: no proportional
-   split, no rounding).
+`supabase/candidates/pkg025b_submit_response_by_basis.sql`, applied as
+`dev_alpha_pkg025b_submit_response_by_basis`. `public.rpc_submit_response` now prices an application
+by its task's basis: `NULL` keeps today's equality untouched, `PER_PERSON` multiplies the per-person
+amount by what **this** application covers, and `TOTAL` refuses an application that does not cover
+all required slots and then requires the total.
+
+Readback: body md5 `7d8d9673c1de83adfa6667aadc0736e9`, 12936 chars, all three arms present, the
+security envelope and grants unchanged, the digest **unchanged** at `f61a57c0…` (a function body is
+not part of the schema digest, which the transaction asserts), readiness still true, ledger 168. The
+stored statement's sha256 equals the file's.
+
+**The first attempt was refused by its own postcondition** — `PKG025B_BODY_NOT_AS_REVIEWED`, because
+the count of `PER_PERSON` was written as two when the text contains three (the branch, the detail it
+formats, and the comment saying why `TOTAL` is not it). Nothing was applied; the count was corrected
+and the transaction re-run. That is the postcondition doing the job it exists for.
+
+The installed APK is safe without any change: it locks its price field to the task's amount, so
+under `PER_PERSON` covering one slot it sends exactly the right number and is accepted, and every
+other combination is **refused** rather than silently accepted. The client gained the Serbian copy
+for the two new refusals in `applicationSelectionClientService`.
+
+## The steps still to come, each with its own review
 2. The application content hash, the publication fingerprint, the material snapshot and
    `guard_need_write`'s material list gain `price_basis` **only where it is not null**, so no old
    hash or fingerprint changes.

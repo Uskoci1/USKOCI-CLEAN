@@ -25,6 +25,10 @@ export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   INVALID_PRICE: 'Unesi ceo pozitivan iznos u RSD.',
   FIXED_PRICE_NOT_READY: 'Cena Zadatka trenutno nije spremna. Ponovo otvori Zadatak.',
   FIXED_PRICE_MISMATCH: 'Cena Zadatka je promenjena. Pregledaj aktuelnu cenu pre nove Prijave.',
+  // pkg025b. A task whose price is the price of the WHOLE task is taken by one application that
+  // covers all of it. Hiring people separately is what a per-person price is for.
+  TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog Zadatka važi za ceo posao, pa prijava mora da pokrije sva mesta.',
+  UNKNOWN_PRICE_BASIS: 'Način obračuna cene na ovom Zadatku nije podržan u ovoj verziji aplikacije.',
   INVALID_PROPOSED_INTERVAL: 'Kraj predloženog termina mora biti posle početka.',
   WORKER_PROFILE_NOT_READY: 'Radni profil još ne ispunjava uslove za ovu Prijavu.',
   WORKER_NOT_ELIGIBLE: 'Radni profil ili dostupnost ne ispunjavaju uslove Zadatka.',
