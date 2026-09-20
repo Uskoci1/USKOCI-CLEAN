@@ -1,0 +1,62 @@
+# Owner HTML direction — first native surface
+
+The owner's latest instruction on 2026-09-20 explicitly asks for the **new supplied HTML appearance**,
+with the existing app logic connected beneath it. This supersedes older instructions to preserve the
+previous authenticated Home composition. It does not replace the original brand, entry sequence,
+mascot or the authority of the backend. Skills provide implementation guidance, not competing visual
+directions or new approval gates.
+
+## Source evidence
+
+- `C:/Users/user/Downloads/USKOCI_OTVORI (4).html`, SHA256
+  `9bb737d77e9348436875eaa18e387e22568514685f6fe17d34d1cdaf069fff87`.
+- `C:/Users/user/Downloads/USKOCI_ASTRA_DESIGN_PACK_2026-09-19 (2).html`, SHA256
+  `899686f0c7858debd47986b5b75e857b41dd96e393ebd5f62128b0bf31518f16`.
+- The relevant source is `homePage()`, `heroArt()`, the final `.home-page` / `.action-tile` CSS
+  overrides, the large-type layout and the rounded three-item navigation.
+- The HTML was read from the owner's files. Opening its file URL in the in-app browser was denied
+  by browser policy; that denial was not bypassed. Native device verification is tracked separately.
+- The `uskoci-design` skill's old donor path was stale. Its underlying design instructions were found
+  and read at `USKOCI_CANONICAL_WORKSPACE_2026-09-08/donor/CLAUDE 30.08 USKOCI/.claude/skills/design/SKILL.md`.
+  Generic web/logo-generation recipes do not override this native implementation or authorize calls.
+
+## Implemented surface
+
+`HomePresentation` now uses the original `BrandLockup`, the supplied heading and native SVG hero
+geometry, two action tiles, a bordered attention group, upcoming Agreement cards, and activity rows
+with distinct icons. Shared native color/type/radius tokens are retained so the surface belongs to
+the existing white/green/orange system. Secondary text remains readable rather than inheriting the
+HTML's smallest 10–11px text. Copy is not cut off with line limits.
+
+At increased font scale (>=1.3), or widths below 340, the tiles stack and the decorative illustration
+is hidden. Content has no fixed text height. The three real tabs retain the existing navigator,
+history and route registrations, inside the HTML's rounded container. Tabs expose selected state
+and use the existing press feedback instead of the previous unbounded Android ripple. The bar grows
+with text scale and clears the bottom system inset. Publishing, review and location still hide it.
+
+The supplied illustration is static on this frequently visited surface. Existing row-arrival and
+press feedback keep their reduced-motion behavior. No entry/brand animation file was changed.
+
+## Facts and boundaries
+
+The same `composeHome()` snapshot and account/revision/focus guards remain in charge. Rows still
+navigate to the exact task, application or Agreement. The UI imports no prototype runtime, example
+people, invented counts, demo notifications, voice synthesis, payment or price behavior. Both start
+tiles remain usable before reads complete and after a failed refresh. Failed sections do not become
+empty accounts. The attention total is omitted when the snapshot is partial.
+
+The compact date tile uses a calendar icon: the current Home row carries a formatted schedule, not
+a separate accepted display date. The UI does not parse human-readable text or invent a date.
+Two upcoming Agreement rows remain available, preserving the established preview/count contract.
+Attention stays the four existing rules; the prototype's example pending-proposal row does not
+silently add a fifth business rule. F02 candidate selectability and aggregate wiring remain open.
+
+No database, migration, dependency, paid provider, voice, account or task mutation is part of this
+slice. pkg023j remains applied but unwired. Other screens still require their own HTML adaptation.
+
+## Verification checkpoint
+
+Targeted Home/navigation, copy and no-mode checks pass. The additional checks cover a failed refresh,
+navigation event forwarding and tab visibility in full-screen flows. Source-147 integrity passes.
+Type checking and the full-suite result are recorded below when completed. A release APK/device
+result must name its source commit and artifact; the old installed APK is not evidence for this UI.

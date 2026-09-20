@@ -1,5 +1,17 @@
 # USKOČI — definicija UI/UX i funkcije, pre menjanja ekrana
 
+> **ISPRAVKA, 2026-09-19. Odeljak 2 je PREVAZIĐEN i ne sme se primenjivati.**
+>
+> Ovaj dokument je pisan 18.09, dok su postojala dva režima — MENI TREBA i JA MOGU. Vlasnik je
+> **19.09. odlukom 1 ukinuo globalni režim**: nalog je jedan, ljuska je jedna
+> (**Početna │ Mapa │ Dogovori**), i aplikacija se nikad više ne prebacuje između uloga.
+> Pravilo iz odeljka 2 („svaki ekran pripada tačno jednom režimu … ponudi prelaz") **više ne važi
+> ni u jednom obliku**; zamenjeno je odeljkom **2A** ispod. Sve ostalo u dokumentu — anatomija
+> ekrana (3), pet stanja (4), nalazi po porodicama (6) — i dalje važi i meri se isto.
+>
+> Ko god menja ekrane: pročitaj 2A pre svega ostalog. Ekran koji pita „ko si ti" je greška, ne
+> stil.
+
 2026-09-18. Vlasnikov zahtev: *„nije samo do izgleda nego UI/UX i funkcija, funkcionalnost — svašta
 treba da definišemo."* Ovo je taj sloj. Ne popravlja nijedan ekran; postavlja mere po kojima se
 svaki ekran meri, pa tek onda menjamo.
@@ -17,7 +29,9 @@ ljudima koji mogu da ga urade, jedan se izabere, i nastane Dogovor.
 Sve ostalo u aplikaciji postoji da bi taj lanac radio. Ekran koji ne služi tom lancu ili ga usporava
 je kandidat za brisanje, ne za lepši raspored.
 
-## 2. Jedan nalog, dva režima — i pravilo koje nedostaje
+## 2. ~~Jedan nalog, dva režima~~ — PREVAZIĐENO 2026-09-19
+
+*Ostavljeno kao zapis šta je bilo 18.09. Ne primenjivati. Važeće pravilo je 2A.*
 
 Nalog je jedan. Režima su dva: **MENI TREBA** (naručilac) i **JA MOGU** (uskočer).
 
@@ -29,9 +43,42 @@ Danas se to lomi na tri mesta, sva tri viđena na uređaju:
 | Lista `/potrebe` u režimu JA MOGU | Zaglavlje piše „Ja mogu · Zadaci", donja navigacija je radnička, a sadržaj je naručiočev |
 | Nacrt zadatka u režimu JA MOGU | Provera „zašto ne može da se objavi" se **uopšte ne poziva**, pa ekran vrati staro obećanje „Sledeće: pregled i objava jednim korakom" |
 
-**Pravilo koje uvodimo:** svaki ekran pripada tačno jednom režimu ili oba. Ako otvoriš ekran koji
-pripada drugom režimu, ekran ti **na licu mesta nudi prelaz** („Ovo radiš kao naručilac — pređi u
-MENI TREBA") i posle prelaza nastavlja tamo gde si krenuo. Nikad sivo dugme bez izlaza.
+~~**Pravilo koje uvodimo:** svaki ekran pripada tačno jednom režimu ili oba…~~ — **ukinuto 19.09.**
+Ta tri kvara nisu popravljena prelazom između režima nego uklanjanjem režima; posledica se vidi u 2A.
+
+## 2A. Jedan nalog, jedna ljuska, bez režima (vlasnikova odluka 1, 2026-09-19) — VAŽEĆE
+
+Nalog je jedan i **uloge su spojene**. Ista osoba istog trenutka može da objavi zadatak i da uskoči
+na tuđi. Aplikacija nema stanje „ko sam ja sada" i nikad ga neće imati.
+
+**Pravila koja iz toga slede — po njima se meri svaki ekran:**
+
+1. **Ekran nikad ne pita ko si.** Nema prebacivanja, nema „pređi u režim", nema zaglavlja koje kaže
+   „Ja mogu · …". Ako ti se učini da ekranu treba režim, treba mu **odnos prema jednoj stvari**.
+2. **Odnos stoji na redu, ne na ekranu.** Svaki zadatak zna šta si mu ti: **tvoj zadatak**,
+   **poslao si prijavu**, ili ništa od toga. To dolazi sa servera, za zadatke koji su na ekranu
+   (`rpc_get_my_task_relations`, klijentski `odnosiPremaZadacima`), i kod ima tačno četiri odgovora:
+   `OWNER`, `APPLIED`, `NONE`, `UNKNOWN`.
+3. **`UNKNOWN` nije `NONE`.** Ako se odnos nije učitao, ekran **ne nudi prijavu** i ne tvrdi da je
+   zadatak tuđ. Ne znati nije dozvola.
+4. **Jedna ljuska: Početna │ Mapa │ Dogovori.** Ništa drugo nije tab. Pun ekran (razgovor, pregled,
+   nacrt) nema donju navigaciju.
+5. **Dve radnje, obe uvek dostupne**, sa Početne: **OBJAVI ZADATAK** i **USKOČI I ZARADI**. To su
+   jedina dva imena koja korisnik vidi. Reči „Naručilac", „Uskočer", „MENI TREBA", „JA MOGU" ne
+   postoje u tekstu aplikacije — čuva ih test
+   `src/data/__tests__/v3-copy-no-internal-sides.test.ts`.
+6. **Ono što je uradio čovek piše se u prvom licu, ono što je uradio drugi u trećem:** „Ti ·
+   objavio si zadatak", „Ti · uskočio si", a za drugu stranu „Objavio zadatak", „Uskočio". Nikad
+   „naručilac" kao naziv uloge.
+7. **Sivo dugme uvek ima razlog pored sebe** — ali razlog više nikad nije režim. Ako nešto ne može,
+   kaže se šta nedostaje (termin, radni profil, mesto), ne „nisi u tom režimu".
+8. **Lista se ne deli po ulogama.** Početna i Moje aktivnosti mešaju tvoje zadatke i tvoje prijave u
+   jednu listu, a svaki red sam kaže šta je. Zato red mora da nosi odnos; zato postoji pravilo 2.
+
+**Gde je to već sprovedeno** (da se ne izmišlja ponovo): `src/app/(app)/_layout.tsx` (statična
+ljuska), `src/store/uloga.ts` (ostao je samo izvor podataka, režim je obrisan),
+`src/data/taskRelation.ts` (četiri odgovora), `src/data/homeSnapshot.ts` (jedna lista, red nosi
+odnos), `src/ui/home/HomePresentation.tsx` (dve radnje).
 
 ## 3. Anatomija ekrana
 
@@ -81,7 +128,8 @@ Poslednji red je najskuplji propust u aplikaciji. Sivo dugme bez razloga je ćor
 Radi. Ulazna kompozicija je zaključana (V4.9), prijava je posebna tamna površina.
 Neodlučeno: da li tri nedostupna načina prijave (Google/Apple/Telefon) uopšte da se prikazuju.
 
-### 6.2 Naručilac: ideja → razgovor → mesto → pregled → objava
+### 6.2 Objava zadatka: ideja → razgovor → mesto → pregled → objava
+*(Naslov je 19.09. prestao da imenuje ulogu; put je isti.)*
 Ovde je proizvod najtanji, i ovde su brojke najgore:
 
 - **38 od 62 razgovora nema nijednu poruku.** Ekran se otvori i ništa se ne kaže. Danas je zbog toga sklonjena prazna kartica sa vrha i dodata tri početka.
@@ -140,7 +188,8 @@ Stanje posle ispravke:
 
 ## 8. Redosled rada koji predlažem
 
-1. **Ćorsokaci** — sivo dugme dobija razlog; „Novi zadatak" dobija prelaz režima; režim se ne lomi između ekrana.
+1. **Ćorsokaci** — sivo dugme dobija razlog. *(Ispravka 19.09: „prelaz režima" je otpao — režima nema.
+   Ono što ostaje je da razlog nikad nije uloga nego ono što stvarno nedostaje.)*
 2. **Istina na ekranu** — pregled prestaje da seče vrednosti; nacrt prestaje da obećava objavu koju ne može; mašinske reči napolje.
 3. **Razgovor** — jedan ulaz umesto ekrana izbora; red u bazi tek na prvu poruku.
 4. **Radnik** — hub kaže da je profil nacrt; „Dostupan sada" ne laže.

@@ -144,7 +144,7 @@ it — plus, on the owner's condition, made an operator's free text (`account_li
 | `docs/implementation/v5-ai-first/pkg023/CLOSURE_FORENSIC_REVIEW_20260919.md` | the forensic review of the closure digest: what moved it, the reconstruction method, findings F1–F7, and §10 the DEV receipt of `pkg023f` |
 | `docs/implementation/v5-ai-first/pkg023/F2_F4_CANDIDATES_20260919.md` | what the data export contains, the minimal diff, and the least-privilege candidate; both applied, with receipts |
 | `docs/implementation/v5-ai-first/pkg023/F7_SOURCE_REPAIR_20260919.md` | the mojibake repair of the 2026-08-25 migration and the ten derived constants that were re-frozen with it |
-| `docs/implementation/v5-ai-first/pkg023/PKG023_UX_DEFINICIJA_20260918.md` | the screen composition rule the app follows |
+| `docs/implementation/v5-ai-first/pkg023/PKG023_UX_DEFINICIJA_20260918.md` | the screen composition rule the app follows. **Read its section 2A, not section 2.** The document was written on 18.09 while two modes still existed; the owner removed the global mode on 19.09, and section 2 is struck through and superseded. A screen that asks "who are you" is a defect, not a style: the account is one, the shell is one, and the RELATION lives on the row, not on the screen. |
 
 ### 4.3 Today's work — the SQL
 
