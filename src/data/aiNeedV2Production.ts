@@ -202,6 +202,7 @@ function validFactValue(key: AiNeedV2Fact['key'], value: unknown): boolean {
   }
   if (type === 'TIMESTAMPTZ') return timestamp(value);
   if (key === 'need.price_mode') return ['FASTEST', 'MY_PRICE', 'OFFERS'].some(item => item === value);
+  if (key === 'need.price_basis') return ['TOTAL', 'PER_PERSON'].some(item => item === value);
   if (key === 'need.schedule_kind') return ['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'].some(item => item === value);
   const max = key === 'need.title' ? 140 : key === 'need.category' ? 120 : key === 'need.exact_address' ? 1000 : key === 'need.access_notes' ? 2000 : 6000;
   return boundedText(value, max);

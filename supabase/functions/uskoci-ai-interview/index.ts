@@ -32,6 +32,7 @@ const AI_CONTEXT_FACT_KEYS = [...LEGACY_FACT_KEYS, ...AI_PROPOSABLE_NEED_FACT_V2
 const aiContextFactKeySet = new Set<string>(AI_CONTEXT_FACT_KEYS);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRICE_MODES = new Set(['MY_PRICE', 'OFFERS']);
+const PRICE_BASES = new Set(['TOTAL', 'PER_PERSON']);
 const SCHEDULE_KINDS = new Set([
   'FIXED_WINDOW',
   'FLEXIBLE',
@@ -319,6 +320,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
     'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
+    'need.price_basis može biti samo TOTAL ili PER_PERSON i postavlja se isključivo uz need.price_mode MY_PRICE. Kada zadatak traži više od jedne osobe i korisnik je naveo svoju cenu, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak ili po osobi, i postavite činjenicu tek iz odgovora; nemojte pretpostavljati. Ako izabere ukupno, recite mu i da onda jedna prijava pokriva ceo zadatak, a ako želi da angažuje ljude pojedinačno, cena je po osobi. Za jednu osobu ovu činjenicu ne pominjite i ne postavljajte.',
     'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva i starts_at i ends_at, sa krajem posle početka.',
     'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. Objekat sme imati samo mode/start/end/waypoints/serviceArea; lokacijske tačke samo label/city/area. REMOTE nema fizičke tačke. AREA_BASED koristi start ili serviceArea. Tačnu adresu stavljajte isključivo u need.exact_address.',
     'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis.',
@@ -419,6 +421,9 @@ function valueMatchesContract(key: string, value: unknown): boolean {
   if (key === 'need.description') return (value as string).trim().length <= 6000;
   if (key === 'need.category') return (value as string).trim().length <= 120;
   if (key === 'need.price_mode') return PRICE_MODES.has(String(value));
+  // Without this the ENUM falls through to `return true`, the model's word travels all the way to
+  // the server, and the person sees V2_PRICE_BASIS_INVALID instead of the AI correcting itself.
+  if (key === 'need.price_basis') return PRICE_BASES.has(String(value));
   if (key === 'need.price_rsd') return Number(value) >= 1 && Number(value) <= 100000000;
   if (key === 'need.schedule_kind') return SCHEDULE_KINDS.has(String(value));
   if (key === 'need.people_needed') return Number(value) >= 1 && Number(value) <= 50;

@@ -168,3 +168,39 @@ describe('AF-D23 unavailable external identity requirement', () => {
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.required_vehicles');
   });
 });
+
+describe('PKG-025d price basis in the review', () => {
+  const basis = (value: unknown) => typedFact({ key: 'need.price_basis', valueType: 'ENUM', requiredForDraft: false, value });
+
+  it('names the basis in words rather than showing the stored enum or the model summary', () => {
+    expect(factReviewValue(basis('PER_PERSON'))).toBe('Po osobi');
+    expect(factReviewValue(basis('TOTAL'))).toBe('Ukupno za ceo zadatak');
+    expect(factReviewValue(basis('TOTAL'))).not.toBe(basis('TOTAL').displayValue);
+  });
+
+  it.each(['TOTAL', 'PER_PERSON'])('round-trips %s through the correction editor unchanged', value => {
+    const fact = basis(value);
+    expect(correctionFromText(fact, factCorrectionValue(fact))).toMatchObject({ ok: true, value });
+  });
+
+  it.each([['ukupno', 'TOTAL'], ['Po Osobi', 'PER_PERSON'], ['per_person', 'PER_PERSON']])(
+    'accepts %s as %s', (text, value) => {
+      expect(correctionFromText(basis('TOTAL'), text)).toMatchObject({ ok: true, value });
+    });
+
+  // Without this the ENUM falls through to "accept any text": the word reaches the server, which
+  // refuses it with V2_PRICE_BASIS_INVALID, and the person is told nothing useful. The refusal
+  // belongs where the typing happened.
+  it.each(['po komadu', 'PO_OSOBI_MOZDA', 'total price'])('refuses %s here rather than on the server', text => {
+    expect(correctionFromText(basis('TOTAL'), text)).toEqual({ ok: false, message: 'Koristiš: ukupno ili po osobi.' });
+  });
+
+  it('leaves an empty field to the general rule, which already says the better thing', () => {
+    expect(correctionFromText(basis('TOTAL'), '   ')).toEqual({ ok: false, message: 'Unesi vrednost.' });
+  });
+
+  it('says so plainly when the stored basis is not one this app knows', () => {
+    expect(factReviewValue(basis('PER_HOUR'))).toBe('Osnova cene nije dostupna');
+    expect(factReviewValue(basis(7))).toBe('Osnova cene nije dostupna');
+  });
+});

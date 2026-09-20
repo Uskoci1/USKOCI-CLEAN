@@ -132,14 +132,85 @@ under `PER_PERSON` covering one slot it sends exactly the right number and is ac
 other combination is **refused** rather than silently accepted. The client gained the Serbian copy
 for the two new refusals in `applicationSelectionClientService`.
 
+## pkg025d - the interview can state a basis, and the draft keeps it (WRITTEN, NOT APPLIED)
+
+`supabase/candidates/pkg025d_price_basis_fact.sql`. Until this step nobody can WRITE a basis: a
+review is a set of confirmed facts, and there was no fact for it, so the column could only ever be
+null in practice. It adds three things - the registry row `need.price_basis` (ENUM, PUBLIC, not
+required for a draft, `target_owner = needs.price_basis`), the validator's rule (TOTAL or PER_PERSON
+and nothing else), and the write in both `rpc_save_need_draft_from_review` and
+`rpc_confirm_need_edit_from_review`.
+
+The basis is computed where it is written rather than in a new variable, so each writer takes one
+edit instead of three: `case when v_mode='MY_PRICE' then ... end` yields null for OFFERS, which is
+what the table's CHECK requires. Both of the draft writer's lists are appended at their end, so no
+value shifts position.
+
+**Why this does not need the material list first.** Section 8 lists the guard's material list as
+step 2, before the fact. Read on the live guard body, that ordering is not required, and the reason
+is worth writing down rather than assuming:
+
+- `private.guard_need_write` returns early inside `if token = 'CONFIRM_EDIT'`, **before** `material`
+  is ever consulted. The confirm path checks status, revision, the Dogovor lock and cleared
+  publication metadata - none of which a new column touches.
+- The whole-row subtraction `to_jsonb(new) - array['urgent','updated_at']` applies only when
+  `old.status` is terminal, and a confirm edit requires DRAFT/PUBLISHED/SELECTION.
+- `material` is consulted only on the direct-UPDATE path, to refuse editing a live task outside the
+  confirm command. RLS already makes that unreachable: `needs_owner_update` restricts a requester's
+  direct UPDATE to `status = 'DRAFT'` in both `using` and `with check`. On a draft, changing the
+  basis is as permitted as changing the title, because a draft is not yet an offer to anyone.
+
+What step 2 still buys is the **edit history**: `previous_material_snapshot` / `new_material_snapshot`
+will not record that a basis changed between revisions until the column joins the snapshot. That is
+an audit gap, not a safety hole, and it stays in its own step.
+
+### Client and Edge, done in the same pass
+
+The Edge function derives the model's allowed key enum and the registry it hands the model from
+`AI_PROPOSABLE_NEED_FACT_V2_KEYS` in `src/contracts/needFactsV2.ts`. So the contract entry does most
+of step 4 by itself, and what remained was genuinely small:
+
+- `src/contracts/needFactsV2.ts` - the key, not `manualOnly`, so the AI may propose it.
+- `supabase/functions/uskoci-ai-interview/index.ts` - `PRICE_BASES`, a case in
+  `valueMatchesContract`, and one instruction: ask **once**, only when the task needs more than one
+  person and the requester named a price, never assume, and say plainly that choosing "ukupno" means
+  one application covers the whole task.
+- `src/data/aiNeedV2Ui.ts` - the review shows "Po osobi" / "Ukupno za ceo zadatak" instead of the
+  stored enum, and the correction editor accepts those words and **refuses** anything else.
+- `src/data/aiNeedV2Production.ts`, `src/data/aiTaskReviewClientService.ts` - the read decoders.
+
+All four places had the same hole: an ENUM with no case falls through to "accept anything", so a bad
+value travelled to the server and the person was shown `V2_PRICE_BASIS_INVALID`. A refusal belongs
+where the typing happened.
+
+`ru2-ai-v2-ui` pins the key counts (22 -> 23, 19 -> 20 AI-proposable) and **failed on the first run**,
+which is what it is for: a key added to that file silently widens what the AI may write the moment
+the Edge function is redeployed. Counts updated deliberately, with the reason in the test.
+
+Local proof: typecheck clean, **234 suites / 4519 tests** (was 4508; +11 for the basis in the review).
+
+### What is not proven
+
+- **The candidate has not been applied and not preflighted against DEV.** The Supabase connector
+  needs re-authorization, so the predecessor md5s and anchor uniqueness in the file are the ones read
+  on 2026-09-20 and have not been re-measured. Every one of them is pinned as a precondition, so a
+  drifted body aborts the transaction rather than editing the wrong text - but that is the
+  transaction refusing, not a preflight passing.
+- It sits on the publication path, and the house proof for that (disposable database, real accounts,
+  fail-before/pass-after) cannot be run from here.
+- The Edge function is edited but **not deployed**. Deploy by the owner's CLI route, not the
+  connector, which has previously resolved literal escape sequences in source text.
+- No device pass.
+
 ## The steps still to come, each with its own review
 2. The application content hash, the publication fingerprint, the material snapshot and
    `guard_need_write`'s material list gain `price_basis` **only where it is not null**, so no old
-   hash or fingerprint changes.
-3. A new fact key `need.price_basis` in the shared registry, admitted by the validator chain.
-4. Edge: the prompt asks "ukupno ili po osobi" when there is more than one person and a fixed price.
-5. Client: the review editor, `3.000 RSD po osobi · 6 osoba · ukupno 18.000` on the card and the
-   detail, and the composer showing the computed amount read-only.
+   hash or fingerprint changes. Not a precondition for pkg025d - see the guard reading above - but
+   it is what makes an edit history record that the basis changed.
+6. Apply pkg025d to canonical DEV, and deploy the Edge function by the owner's CLI route.
+7. A device pass on the one thing none of this has been seen doing: a task for several people, a
+   fixed price, the AI asking which it is, and the amount reading correctly on the card, the detail
+   and the application.
 
 `rpc_select_response` needs no change at any step: the Agreement terms already carry that
 application's own total.

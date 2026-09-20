@@ -24,6 +24,15 @@ const PRICE_MODE: Record<string, string> = {
   offers: 'OFFERS',
 };
 
+const PRICE_BASIS: Record<string, string> = {
+  ukupno: 'TOTAL',
+  'ukupno za ceo zadatak': 'TOTAL',
+  total: 'TOTAL',
+  'po osobi': 'PER_PERSON',
+  po_osobi: 'PER_PERSON',
+  per_person: 'PER_PERSON',
+};
+
 const SCHEDULE_KIND: Record<string, string> = {
   'tačan termin': 'FIXED_WINDOW',
   'tacan termin': 'FIXED_WINDOW',
@@ -66,6 +75,7 @@ export function factEditorKind(fact: AiNeedV2Fact): FactEditorKind {
 }
 
 const PRICE_LABELS: Record<string, string> = { MY_PRICE: 'Moja cena', OFFERS: 'Ponude', FASTEST: 'Najbrže (raniji način)' };
+const PRICE_BASIS_LABELS: Record<string, string> = { TOTAL: 'Ukupno za ceo zadatak', PER_PERSON: 'Po osobi' };
 const SCHEDULE_LABELS: Record<string, string> = { FIXED_WINDOW: 'Tačan termin', FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Daljinski bilo kada',
   TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };
 const GEOGRAPHY_LABELS: Record<NeedTaskGeography['mode'], string> = { STATIONARY: 'Na jednom mestu', POINT_TO_POINT: 'Od mesta do mesta',
@@ -125,6 +135,7 @@ export function factReviewValue(fact: AiNeedV2Fact): string {
     } catch { return 'Termin nije dostupan'; }
   }
   if (fact.key === 'need.price_mode') return typeof value === 'string' ? PRICE_LABELS[value] ?? 'Način cene nije dostupan' : 'Način cene nije dostupan';
+  if (fact.key === 'need.price_basis') return typeof value === 'string' ? PRICE_BASIS_LABELS[value] ?? 'Osnova cene nije dostupna' : 'Osnova cene nije dostupna';
   if (fact.key === 'need.schedule_kind') return typeof value === 'string' ? SCHEDULE_LABELS[value] ?? 'Vrsta termina nije dostupna' : 'Vrsta termina nije dostupna';
   return typeof value === 'string' ? value : 'Podatak nije dostupan';
 }
@@ -137,7 +148,7 @@ export function factCorrectionValue(fact: AiNeedV2Fact): string {
   if (fact.valueType === 'BOOLEAN') return fact.value === true ? 'Da' : fact.value === false ? 'Ne' : '';
   if (fact.valueType === 'INTEGER') return typeof fact.value === 'number' && Number.isInteger(fact.value) ? String(fact.value) : '';
   if (fact.valueType === 'TIMESTAMPTZ') return typeof fact.value === 'string' && calendarInstant(fact.value) !== null ? fact.value : '';
-  if (fact.key === 'need.price_mode' || fact.key === 'need.schedule_kind') return factReviewValue(fact);
+  if (fact.key === 'need.price_mode' || fact.key === 'need.schedule_kind' || fact.key === 'need.price_basis') return factReviewValue(fact);
   return typeof fact.value === 'string' ? fact.value : '';
 }
 
@@ -241,6 +252,13 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
         const value = PRICE_MODE[normalized] ?? text.toUpperCase();
         if (!['MY_PRICE', 'OFFERS'].includes(value)) {
           return { ok: false, message: 'Koristiš: moja cena ili ponude.' };
+        }
+        return { ok: true, value, displayValue: text };
+      }
+      if (fact.key === 'need.price_basis') {
+        const value = PRICE_BASIS[normalized] ?? text.toUpperCase();
+        if (!['TOTAL', 'PER_PERSON'].includes(value)) {
+          return { ok: false, message: 'Koristiš: ukupno ili po osobi.' };
         }
         return { ok: true, value, displayValue: text };
       }

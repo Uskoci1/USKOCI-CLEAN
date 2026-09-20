@@ -18,6 +18,11 @@ export const NEED_FACT_V2_DEFINITIONS = {
   'need.category': { valueType: 'TEXT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Kategorija' },
   'need.price_mode': { valueType: 'ENUM', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Cena' },
   'need.price_rsd': { valueType: 'INTEGER', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Iznos' },
+  // What the amount above is FOR, once a task can say so (pkg025a–d). Not required for a draft: a
+  // task for one person has nothing to disambiguate, and every task written before 2026-09-20 has
+  // no basis at all and reads exactly as it always has. It matters when the task needs more than
+  // one person and the requester named a price — then TOTAL and PER_PERSON are different offers.
+  'need.price_basis': { valueType: 'ENUM', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Osnova cene' },
   'need.schedule_kind': { valueType: 'ENUM', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Termin' },
   'need.starts_at': { valueType: 'TIMESTAMPTZ', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Početak' },
   'need.ends_at': { valueType: 'TIMESTAMPTZ', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Kraj' },
