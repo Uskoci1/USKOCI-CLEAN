@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { CaretRight, ChatCircle, Clock, MapPin, Users, Wallet } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
+import { ProfilePhoto } from '../media/ContextPhotos';
 import { Fact, FactGrid } from '../system/Detail';
 import { Segmented } from '../system/Segmented';
 import { card, sys } from '../system/tokens';
@@ -51,8 +52,13 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
 /** Both sides of the Dogovor, each with role and seats; you are marked in words. */
 export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija }) {
   return <View style={[card, s.people]}>
+    {/* pkg024a: the read names each side's public profile, so the person you agreed to work with
+        has a face here. Without that id there is nothing to read a photograph by, and the initials
+        stay — an account id must never be handed to the media service in its place. */}
     {agreement.ucesnici.map((person, index) => <View key={person.id} style={[s.person, index ? s.personDivider : null]}>
-      <View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>
+      {person.profilId
+        ? <ProfilePhoto profileId={person.profilId} size={40} fallback={<View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>} />
+        : <View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>}
       <View style={s.grow}>
         <T variant="bodyStrong" style={s.ink}>{person.ime}</T>
         <T variant="note" tone="muted">{person.uloga === 'narucilac' ? (person.viSte ? 'Ti · objavio si zadatak' : 'Objavio zadatak') : person.viSte ? 'Ti · uskočio si' : 'Uskočio'}

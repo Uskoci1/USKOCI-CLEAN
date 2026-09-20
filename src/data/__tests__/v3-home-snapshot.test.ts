@@ -12,8 +12,8 @@ const application = (id: string, patch: Partial<MojaPrijavaProjekcija> = {}): Mo
 const agreement = (id: string, mine: 'narucilac' | 'uskocer', patch: Partial<DogovorProjekcija> = {}): DogovorProjekcija => ({ id, verzija: 1,
   naslov: `Dogovor ${id}`, stanje: 'CONFIRMED', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' }, vremeTekst: 'danas 17h', putanjaTekst: '',
   pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 },
-  ucesnici: [{ id: ME, ime: 'Ja', inicijali: 'JA', uloga: mine, mesta: null, viSte: true, telefon: null },
-    { id: OTHER, ime: 'Jelena', inicijali: 'JE', uloga: mine === 'narucilac' ? 'uskocer' : 'narucilac', mesta: 1, viSte: false, telefon: null }],
+  ucesnici: [{ id: ME, profilId: null, ime: 'Ja', inicijali: 'JA', uloga: mine, mesta: null, viSte: true, telefon: null },
+    { id: OTHER, profilId: null, ime: 'Jelena', inicijali: 'JE', uloga: mine === 'narucilac' ? 'uskocer' : 'narucilac', mesta: 1, viSte: false, telefon: null }],
   rezim: 'FIZICKI', kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true },
   chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null, pocinje: null, izmenaCeka: null, ...patch });
 const known = <T,>(value: T) => ({ kind: 'known' as const, value });

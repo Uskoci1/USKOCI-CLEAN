@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarBlank, Check, Clock, MapPin } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
+import { ProfilePhoto } from '../media/ContextPhotos';
 import { Appear, useAppear } from '../system/Appear';
 import { dogovora } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
@@ -71,7 +72,9 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
         replaced, and on a real phone it pushed "Milos SLJIVIC" onto two lines. This is also the
         shape every other person row in the app already uses. */}
     <View style={s.person}>
-      <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>
+      {other?.profilId
+        ? <ProfilePhoto profileId={other.profilId} size={32} fallback={<View style={s.avatar}><T variant="label" style={s.initials}>{other.inicijali}</T></View>} />
+        : <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>}
       <View style={s.personCopy}>
         <T variant="bodyStrong" style={s.personName} numberOfLines={1}>{other?.ime ?? 'Druga strana'}</T>
         {relation ? <T variant="meta" tone="muted">{relation}</T> : null}

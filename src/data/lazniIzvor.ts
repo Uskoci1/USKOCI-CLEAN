@@ -237,6 +237,7 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
       {
         id: 'narucilac',
         ime: jaSamNarucilac ? 'Ti' : 'Miloš',
+        profilId: jaSamNarucilac ? 'profil-vi' : 'profil-ms',
         inicijali: jaSamNarucilac ? 'VI' : 'MŠ',
         uloga: 'narucilac',
         mesta: null,
@@ -246,6 +247,7 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
       {
         id: k.prijavaId,
         ime: jaSamNarucilac ? k.ime : 'Ti',
+        profilId: jaSamNarucilac ? k.radnikProfilId : 'profil-vi',
         inicijali: jaSamNarucilac ? k.inicijali : 'VI',
         uloga: 'uskocer',
         mesta: a.mesta,

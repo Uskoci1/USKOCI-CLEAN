@@ -45,9 +45,14 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
   const total = Number(raw.requiredSlots ?? 1);
   const covered = Math.max(0, Math.min(total, Number(terms.covered_slots ?? 1)));
 
+  // pkg024a: the read names each side's public profile as well as its account. An account id is
+  // not a profile id, so a missing or malformed key stays null rather than becoming a wrong read.
+  const myProfileId = requester ? raw.requesterProfileId : raw.workerProfileId;
+  const otherProfileId = requester ? raw.workerProfileId : raw.requesterProfileId;
   const participants: UcesnikProjekcija[] = [
     {
       id: myId,
+      profilId: uuid(myProfileId) ? String(myProfileId) : null,
       ime: myName || 'Ti',
       inicijali: (myName || 'VI').slice(0, 2).toUpperCase(),
       uloga: requester ? 'narucilac' : 'uskocer',
@@ -57,6 +62,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     },
     {
       id: otherId,
+      profilId: uuid(otherProfileId) ? String(otherProfileId) : null,
       ime: otherName || 'Druga strana',
       inicijali: (otherName || 'DS').slice(0, 2).toUpperCase(),
       uloga: requester ? 'uskocer' : 'narucilac',

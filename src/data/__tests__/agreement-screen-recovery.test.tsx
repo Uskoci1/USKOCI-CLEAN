@@ -36,6 +36,10 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Card: 'Card' }));
+// The Dogovor shows each side's photograph since pkg024a, and that module reaches supabaseClient,
+// which registers an AppState listener the moment it is required — before this suite's own
+// listener set exists. Every screen suite in this repo stubs the media module for that reason.
+jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto', NeedPhotos: 'NeedPhotos' }));
 jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: 'AgreementChat' }));
 // Keep the real private-location/session boundary; only the native map renderer is external to this route test.
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));

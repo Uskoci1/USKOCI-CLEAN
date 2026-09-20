@@ -254,7 +254,10 @@ export type StanjeDogovora =
   | 'CANCELLED';
 
 export type UcesnikProjekcija = {
+  /** Id NALOGA. Ne sme se koristiti za citanje fotografije. */
   id: string;
+  /** Javni profilni id te strane, iz pkg024a. null = server ga nije poslao; tada NEMA fotografije. */
+  profilId: string | null;
   ime: string;
   inicijali: string;
   uloga: Uloga;
