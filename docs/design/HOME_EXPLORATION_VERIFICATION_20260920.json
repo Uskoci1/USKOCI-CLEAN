@@ -1,0 +1,131 @@
+{
+  "checkedAt": "2026-09-20",
+  "screenCount": 13,
+  "screens": [
+    {
+      "key": "A_empty",
+      "id": "46:9",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 577,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "A_active",
+      "id": "46:184",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 786,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "A_attention",
+      "id": "46:292",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 1200,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "B_empty",
+      "id": "46:435",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 478,
+      "scrollHeight": 516,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "B_active",
+      "id": "46:529",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 634,
+      "scrollHeight": 516,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "B_attention",
+      "id": "46:636",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 1096,
+      "scrollHeight": 516,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "C_empty",
+      "id": "46:781",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 729,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "C_active",
+      "id": "46:893",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 939,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "C_attention",
+      "id": "46:1003",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 1373,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "Q_narrow",
+      "id": "50:1428",
+      "width": 360,
+      "height": 844,
+      "bodyHeight": 654,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "Q_partial",
+      "id": "50:1535",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 800,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "Q_applicants",
+      "id": "50:1633",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 763,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    },
+    {
+      "key": "Q_loading",
+      "id": "50:1736",
+      "width": 390,
+      "height": 844,
+      "bodyHeight": 634,
+      "scrollHeight": 660,
+      "scrollDirection": "VERTICAL"
+    }
+  ],
+  "overflow": [],
+  "forbiddenCopy": [],
+  "unintendedPlaceholderCount": 0,
+  "limits": [
+    "Static Figma only",
+    "No native screen-reader or 200% font-scale proof",
+    "Scrolling configured, not gesture-tested"
+  ]
+}

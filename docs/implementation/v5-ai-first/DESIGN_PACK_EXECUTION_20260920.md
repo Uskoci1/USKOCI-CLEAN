@@ -1,3 +1,5 @@
+> HISTORICAL VISUAL PROPOSAL: superseded on 2026-09-20 by root DESIGN.md and docs/design/. Earlier recommendations are not owner approval. Preserve dated engineering evidence, not the old visual baseline.
+
 # Design pack interpretation and next design round
 
 ## Owner direction and evidence

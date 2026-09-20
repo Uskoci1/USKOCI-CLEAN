@@ -1,0 +1,47 @@
+[
+  {
+    "file": "design-phase0-ai-empty.png",
+    "sha256": "fa2587ce7c9fb2cc64a1b8bf7fed9d9b7a7882cee2f4f201bdb938185561b616",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-ai-keyboard.png",
+    "sha256": "0926a42680d97b8670968ec0c6a56b938c59038315f5f36eca46175a9f427e09",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-current.png",
+    "sha256": "c4c09a507bea133ed0d2d8ad0c18721ed312125b68b76441ba337db5c6b5232e",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-home.png",
+    "sha256": "c636206a27682e706a4684374482d4a947ccc9ac31af8ddd56d2f8e930fddc7a",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-map-selected.png",
+    "sha256": "e7c1f95625c520a3984e09391f386a020900e0fff17ae305e3abeb199849bca8",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-map.png",
+    "sha256": "9ae9f139775c79b8183e20edbde8df37570b5e09d3c3e103877c8faab189a51a",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-profile.png",
+    "sha256": "6b2e0ed67f7c4eb13116f242f8d972ba71f745d9345feb6f8ebd927bf202e570",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-restored.png",
+    "sha256": "cdbe9b9b30cd9fa781c8ee473651efa564c1910f2f3f701b59e96721b5376a64",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  },
+  {
+    "file": "design-phase0-return.png",
+    "sha256": "f10df55f71ebf6d5e22926688ff4d472f61b805e29bbf86fd4ddac5b43a47d63",
+    "scope": "Local private device capture; not uploaded; see CURRENT_UI_TRUTH.md"
+  }
+]

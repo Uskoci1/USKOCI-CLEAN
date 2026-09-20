@@ -1,0 +1,319 @@
+[
+  {
+    "number": 1,
+    "name": "HOME",
+    "problem": "Within two seconds, know how to start either intention and which real obligation needs attention.",
+    "surface": "Home + visible navigation",
+    "priority": "P1",
+    "records": [
+      "R01",
+      "R02",
+      "R03",
+      "R04",
+      "R05",
+      "R29"
+    ],
+    "eligible": 6,
+    "sources": [
+      "Airbnb",
+      "Apple",
+      "Banani",
+      "Google"
+    ],
+    "numeric_minimum": true,
+    "gap": "Discovery hierarchy; personal attention; one-account navigation; empty and active states."
+  },
+  {
+    "number": 2,
+    "name": "TASK_CARD",
+    "problem": "Know enough scope, place, time and actual amount to decide whether to open the task.",
+    "surface": "Task rows / summaries",
+    "priority": "P2",
+    "records": [
+      "R01",
+      "R10"
+    ],
+    "eligible": 2,
+    "sources": [
+      "Banani"
+    ],
+    "numeric_minimum": false,
+    "gap": "Two further real job/service cards with long text, no photo and uncertain price."
+  },
+  {
+    "number": 3,
+    "name": "TASK_DETAIL",
+    "problem": "Understand work, requirements, timing, public location and trust before making an offer.",
+    "surface": "Task detail",
+    "priority": "P1",
+    "records": [
+      "R08",
+      "R10",
+      "R11"
+    ],
+    "eligible": 3,
+    "sources": [
+      "Apple",
+      "Banani",
+      "Taskrabbit"
+    ],
+    "numeric_minimum": false,
+    "gap": "Real service detail and offer-entry transition; changed terms and missing facts."
+  },
+  {
+    "number": 4,
+    "name": "MAP",
+    "problem": "Select an opportunity without losing its location or covering the next action.",
+    "surface": "Map / list / selected preview",
+    "priority": "P1",
+    "records": [
+      "R06",
+      "R07",
+      "R08",
+      "R09"
+    ],
+    "eligible": 4,
+    "sources": [
+      "Apple",
+      "Banani",
+      "Google"
+    ],
+    "numeric_minimum": false,
+    "gap": "Two further real selected-pin/list sequences, including Android; clusters and remote fallback."
+  },
+  {
+    "number": 5,
+    "name": "CREATE_TASK",
+    "problem": "Turn an imprecise need into a reviewed, intentionally published task.",
+    "surface": "Task intake / final brief",
+    "priority": "P1",
+    "records": [
+      "R05",
+      "R08",
+      "R09",
+      "R11",
+      "R12",
+      "R13",
+      "R17",
+      "R24"
+    ],
+    "eligible": 8,
+    "sources": [
+      "Apple",
+      "Banani",
+      "Google",
+      "Taskrabbit"
+    ],
+    "numeric_minimum": true,
+    "gap": "A complete service-request creation sequence; direct correction; restore/offline behavior."
+  },
+  {
+    "number": 6,
+    "name": "AI_INTERVIEW",
+    "problem": "Answer one useful question and correct what was understood without losing the draft.",
+    "surface": "AI task / worker interview",
+    "priority": "P1",
+    "records": [
+      "R05",
+      "R13",
+      "R14",
+      "R15",
+      "R16",
+      "R17"
+    ],
+    "eligible": 6,
+    "sources": [
+      "Apple",
+      "Banani",
+      "Google",
+      "VP0"
+    ],
+    "numeric_minimum": true,
+    "gap": "Complete profile interview + review/save sequence; dictation editing and recovery."
+  },
+  {
+    "number": 7,
+    "name": "WORKER_PROFILE",
+    "problem": "Understand capability, credible evidence, availability and relevance to this task.",
+    "surface": "Public capability profile",
+    "priority": "P2",
+    "records": [
+      "R11",
+      "R18",
+      "R19",
+      "R22",
+      "R23"
+    ],
+    "eligible": 5,
+    "sources": [
+      "Airbnb",
+      "Banani",
+      "Taskrabbit"
+    ],
+    "numeric_minimum": true,
+    "gap": "Another real provider profile with equipment/radius; no-reviews and many-skills states."
+  },
+  {
+    "number": 8,
+    "name": "REQUESTER_PROFILE",
+    "problem": "Understand who posted the task and which supported trust signals exist.",
+    "surface": "Public task-owner identity",
+    "priority": "P2",
+    "records": [
+      "R18",
+      "R19",
+      "R22"
+    ],
+    "eligible": 3,
+    "sources": [
+      "Airbnb",
+      "Banani"
+    ],
+    "numeric_minimum": false,
+    "gap": "Two additional marketplace identity/reputation examples; privacy and sparse profiles."
+  },
+  {
+    "number": 9,
+    "name": "APPLICATION",
+    "problem": "Make and compare a clear offer with accurate amount, timing and included work.",
+    "surface": "Application / selection",
+    "priority": "P1",
+    "records": [
+      "R08",
+      "R11",
+      "R13",
+      "R20"
+    ],
+    "eligible": 4,
+    "sources": [
+      "Airtasker",
+      "Apple",
+      "Taskrabbit"
+    ],
+    "numeric_minimum": false,
+    "gap": "Real mobile submission and comparable-candidate decision flows; stale offer state."
+  },
+  {
+    "number": 10,
+    "name": "AGREEMENT",
+    "problem": "Know the accepted terms, current state and next permitted action.",
+    "surface": "Agreement workspace",
+    "priority": "P1",
+    "records": [
+      "R08",
+      "R21"
+    ],
+    "eligible": 2,
+    "sources": [
+      "Apple",
+      "Banani"
+    ],
+    "numeric_minimum": false,
+    "gap": "Three real service commitment/change/completion/problem flows from two more sources."
+  },
+  {
+    "number": 11,
+    "name": "CHAT",
+    "problem": "Read and send messages while retaining task context and honest delivery state.",
+    "surface": "Agreement / group conversation",
+    "priority": "P1",
+    "records": [
+      "R03",
+      "R14",
+      "R15",
+      "R16"
+    ],
+    "eligible": 4,
+    "sources": [
+      "Airbnb",
+      "Banani",
+      "VP0"
+    ],
+    "numeric_minimum": false,
+    "gap": "Two real marketplace threads with attachments and system actions; failed-send recovery."
+  },
+  {
+    "number": 12,
+    "name": "NOTIFICATIONS",
+    "problem": "Understand what changed and open the correct object.",
+    "surface": "Inbox / preferences",
+    "priority": "P1",
+    "records": [
+      "R02",
+      "R25",
+      "R26"
+    ],
+    "eligible": 2,
+    "sources": [
+      "Banani"
+    ],
+    "numeric_minimum": false,
+    "gap": "Three transactional inbox/unread/deep-link flows; full platform permission guidance."
+  },
+  {
+    "number": 13,
+    "name": "REVIEWS",
+    "problem": "Give an eligible review quickly and understand reputation without invented confidence.",
+    "surface": "Review / reputation",
+    "priority": "P2",
+    "records": [
+      "R18",
+      "R22",
+      "R27"
+    ],
+    "eligible": 3,
+    "sources": [
+      "Banani",
+      "W3C"
+    ],
+    "numeric_minimum": false,
+    "gap": "Three real bilateral rating, tag and no-rating examples from another marketplace."
+  },
+  {
+    "number": 14,
+    "name": "AVAILABILITY",
+    "problem": "See and edit real working intervals, exceptions and invitation readiness.",
+    "surface": "Availability calendar",
+    "priority": "P2",
+    "records": [
+      "R08",
+      "R09",
+      "R23",
+      "R24",
+      "R25"
+    ],
+    "eligible": 5,
+    "sources": [
+      "Apple",
+      "Banani",
+      "Google",
+      "Taskrabbit"
+    ],
+    "numeric_minimum": true,
+    "gap": "Recurring week and exception editing in another service marketplace; saved/unsaved behavior."
+  },
+  {
+    "number": 15,
+    "name": "NAVIGATION",
+    "problem": "Use both intentions in one account and return predictably.",
+    "surface": "Global navigation",
+    "priority": "P1",
+    "records": [
+      "R01",
+      "R03",
+      "R04",
+      "R05",
+      "R28",
+      "R29"
+    ],
+    "eligible": 6,
+    "sources": [
+      "Airbnb",
+      "Apple",
+      "Banani",
+      "Google"
+    ],
+    "numeric_minimum": true,
+    "gap": "A live multi-intent marketplace transition sequence with Back and retained browsing context."
+  }
+]

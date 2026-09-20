@@ -1,5 +1,30 @@
 # USKOČI — repository entry map
 
+Latest AI operational change (2026-09-20 18:30 UTC): read
+`docs/implementation/v5-ai-first/PKG026_AI_CAP_20260920.md` for the owner's explicit removal of the
+internal USD 5 reservation blocker. PKG-026 was proven in disposable CI and applied to canonical DEV
+as `20260920182952_dev_alpha_pkg026_ai_test_cap_optional`; ledger readback is 169. The cap is disabled,
+while historical reservations, existing usage accounting, admitted-account and replay protections remain.
+No paid provider test was made. Do not reset reservations or treat missing usage as zero cost.
+Newer pkg024/pkg025 changes already present on DEV belong to parallel work, not this task.
+
+
+## DESIGN — current owner instruction, 2026-09-20
+
+After the three mandatory reads (NEXT_AI_HANDOFF_20260919_2100.md, OWNER_DECISIONS_V3_20260919.md, this file), read root `DESIGN.md` and `docs/design/CURRENT_UI_TRUTH.md`. This section supersedes older visual-baseline, preserve-HOME and B/Home+C/AI recommendations below, while preserving backend/product authority and separate migration gates.
+
+- Current app code establishes functional truth, not the new visual baseline. Supplied HTML is a starting reference and is itself open to improvement. Existing Figma exploration is not approved by existence.
+- Current phase is research/documentation/reference-board setup only. No production UI, navigation, backend, schema/RPC/RLS or dependency changes. The owner must review this phase before implementation; silence is not approval.
+- Mandatory design authority: `DESIGN.md`; reference access: `docs/design/REFERENCE_SOURCE_STATUS.md`; actual evidence/groups: `docs/design/references/00_REFERENCE_INDEX.md`; Figma status/IDs: `docs/design/FIGMA_REFERENCE_INDEX.md`.
+- Before each major surface: state functional responsibility; inspect at least five relevant examples from three independent sources; create three materially different compositions; compare clarity, speed, ergonomics, trust, accessibility, scalability, feasibility and brand fit. Only then evaluate which old visual element earns retention.
+- Protect server-owned facts, revisions, idempotency, pending/unknown receipts, lifecycle, location privacy, auth and permission boundaries. A visual change must not create new business semantics.
+- No external complete-screen copying, proprietary artwork copying, random dependencies or generic template UI. Use original USKOČI task/map/agreement/AI character beyond its logo and colors. Public reference access is not an asset license.
+- Figma is the primary editable visual workspace. Record approval with node IDs, date, scope and states. The authorized reference board is research, not approved product UI. Keep real account screenshots and drafts out of external tools.
+- Visual QA is mandatory after future implementation: real render → inspect → fix → recapture. Include Android safe areas, keyboard/Back, targets, long Serbian content, accessibility, loading/empty/error/offline and real-data states. Green tests do not prove visual quality.
+- Use `docs/design/SCREEN_INVENTORY.md`, `VISUAL_LEGACY_AUDIT.md`, `UI_DEBT.md` and `DESIGN_SYSTEM_PLAN.md` for scope and next work. Do not silently discard compatibility routes or test fixtures.
+- Work solo for this owner-requested phase. Reports to owner in plain Serbian; repository documents in English.
+
+
 Latest visual clarification (2026-09-20): the supplied HTML is a starting direction, NOT a final
 design or pixel lock. Refine hierarchy, layout, components, states and motion using product judgment;
 preserve original brand/entry assets and actual business semantics. Read
