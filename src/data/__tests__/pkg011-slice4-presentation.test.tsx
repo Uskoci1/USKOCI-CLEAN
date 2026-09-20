@@ -6,7 +6,6 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get(target, key) { return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ Clock: 'Icon', MapPin: 'Icon', Users: 'Icon', Wallet: 'Icon', ArrowLeft: 'Icon', CaretRight: 'Icon', Lightning: 'Icon', PaperPlaneTilt: 'Icon', PencilSimple: 'Icon', ArrowsLeftRight: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));

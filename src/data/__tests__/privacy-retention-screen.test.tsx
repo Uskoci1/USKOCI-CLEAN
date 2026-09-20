@@ -15,7 +15,6 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
   return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowsLeftRight: 'Icon', User: 'Icon', CaretRight: 'Icon', SignOut: 'Icon', MapPin: 'Icon', CalendarBlank: 'Icon', Bell: 'Icon', DownloadSimple: 'Icon', ShieldCheck: 'Icon', Clock: 'Icon', Eye: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));

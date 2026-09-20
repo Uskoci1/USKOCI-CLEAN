@@ -5,7 +5,6 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get(target, key) { return ['View', 'ScrollView'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretRight: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsRow, SettingsScreen, SettingsText } from '../../ui/settings/SettingsPresentation';

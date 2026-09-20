@@ -13,7 +13,6 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowRight: 'Icon', CalendarBlank: 'Icon', PencilSimple: 'Icon', Plus: 'Icon', Trash: 'Icon', CaretRight: 'Icon', CaretDown: 'Icon', CaretUp: 'Icon', Clock: 'Icon' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));

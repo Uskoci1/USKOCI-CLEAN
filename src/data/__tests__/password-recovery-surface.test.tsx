@@ -18,7 +18,6 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CheckCircle: 'Icon', LockKey: 'Icon', Eye: 'Icon', EyeSlash: 'Icon' }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
 let mockIntent: { id: number; link: string } | null = null;
 jest.mock('../../store/passwordRecoveryIntent', () => ({ passwordRecoveryIntent: {

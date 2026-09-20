@@ -10,7 +10,6 @@ jest.mock('react-native', () => {
 });
 jest.mock('expo-router', () => ({ router: { back: () => mockBack(), canGoBack: () => true, replace: jest.fn() },
   useFocusEffect: (callback: () => unknown) => require('react').useEffect(callback, [callback]) }));
-jest.mock('phosphor-react-native', () => ({ FileText: 'Icon', ShieldCheck: 'Icon' }));
 jest.mock('../../../store/sesija', () => ({ sesijaSada: () => mockOwner, useSesija: () => mockOwner }));
 jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
 jest.mock('../../../data/legalClientService', () => ({ legalClientService: {

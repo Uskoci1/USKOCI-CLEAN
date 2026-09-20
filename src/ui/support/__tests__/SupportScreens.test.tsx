@@ -22,7 +22,6 @@ jest.mock('react-native', () => { const rn = jest.requireActual('react-native');
     mockListeners.add(fn); return { remove: () => mockListeners.delete(fn) }; } };
   return ['View', 'TextInput', 'ActivityIndicator', 'KeyboardAvoidingView'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
-jest.mock('phosphor-react-native', () => ({ ChatCircleText: 'Icon', ShieldCheck: 'Icon' }));
 jest.mock('../../settings/SettingsPresentation', () => ({ SettingsAction: 'Action', SettingsGroup: 'Group', SettingsIntro: 'Intro',
   SettingsPanel: 'Panel', SettingsRow: 'Row', SettingsScreen: 'Screen', SettingsText: 'T' }));
 jest.mock('../../media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));

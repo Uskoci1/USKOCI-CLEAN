@@ -59,8 +59,6 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', G: 'SvgGroup',
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowRight: 'Icon', CheckCircle: 'Icon', PaperPlaneTilt: 'Icon',
-  ShieldCheck: 'Icon', Sparkle: 'Icon', Warning: 'Icon', DotsThree: 'Icon', MapPin: 'Icon', Clock: 'Icon', Users: 'Icon', CaretRight: 'Icon', Microphone: 'Icon', StopCircle: 'Icon', Info: 'Icon', Keyboard: 'Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));

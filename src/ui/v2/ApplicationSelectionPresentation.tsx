@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CalendarBlank, CaretRight, Clock, Star, Users } from 'phosphor-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -138,17 +139,21 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
       </View>
       <T variant="meta" tone="muted">{priceLocked ? 'Cena je navedena u Zadatku. ' : ''}Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.</T>
     </View>
-    <View style={s.card}><T variant="meta" style={s.eyebrow}>Termin i poruka</T>
+    {/* One card used to be called "Termin i poruka" and hold both, so the word Termin appeared
+        twice inside it and neither half was a whole thought. Two blocks, one idea each. */}
+    <View style={s.card}><T variant="meta" style={s.eyebrow}>Termin</T>
       <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
         onPress={() => setEditingTime(true)} style={s.term}>
-        <View style={s.grow}><T variant="bodyStrong" style={s.ink}>Termin</T><T variant="meta" tone="muted">{exact ?? fixed ?? need.vremeTekst}</T></View><V2Icon name="chevron" color={sys.color.muted} />
+        <CalendarBlank size={22} color={sys.color.green} />
+        <T variant="bodyStrong" style={[s.ink, s.grow]}>{exact ?? fixed ?? need.vremeTekst}</T>
+        <CaretRight size={20} color={sys.color.muted} />
       </Press>
       {!exact && !fixed ? <T variant="meta" tone="muted">Tačan termin još nije ponuđen. Fleksibilno vreme ne rezerviše tačan interval.</T> : null}
-      <Field label="Kratka napomena">
-        <TextInput accessibilityLabel="Kratka napomena" multiline maxLength={4000} value={draft.note} editable={!disabled} style={[s.input, s.multiline]}
-          onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
-      </Field>
-      <T variant="meta" tone="muted">Napiši ono što pomaže da se tvoja ponuda razume.</T>
+    </View>
+    <View style={s.card}><T variant="meta" style={s.eyebrow}>Poruka uz prijavu</T>
+      <TextInput accessibilityLabel="Kratka napomena" multiline maxLength={4000} value={draft.note} editable={!disabled} style={[s.input, s.multiline]}
+        placeholder="Ono što pomaže da se tvoja ponuda razume." placeholderTextColor={sys.color.muted}
+        onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
     </View>
     <ErrorMessage error={error} />
     {error && !pending ? <V2Action label="Osveži Zadatak" onPress={refresh} disabled={busy} /> : null}
@@ -159,51 +164,87 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
       close={() => setEditingTime(false)} accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
   </SelectionFrame>;
 }
+/** The screen where one offer is accepted showed a monogram, while the list that leads to it shows
+ *  a face. Same person, two screens, two different people as far as the eye is concerned. */
 function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatProjekcija; publicProfile: () => void }) {
-  return <View style={s.row}><View style={s.avatar}><T variant="heading" style={s.initial}>{candidate.inicijali}</T></View><View style={[s.grow, { gap: 3 }]}>
-    <T variant="heading" style={s.ink}>{candidate.ime}</T><T variant="meta" tone="muted">{candidate.pokrivaMesta} {candidate.pokrivaMesta === 1 ? 'osoba · dolazi samostalno' : 'osobe · dolazi tim'}</T>
-    {candidate.ocenaTekst !== '—' ? <T variant="meta" tone="muted">{candidate.ocenaTekst} · {candidate.recenzijeTekst}</T> : null}
-    <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
-  </View></View>;
+  return <View style={s.identity}><ProfilePhoto profileId={candidate.radnikProfilId} size={64} initial={candidate.inicijali} />
+    <View style={[s.grow, { gap: 3 }]}>
+      <T style={s.candidateName}>{candidate.ime}</T>
+      {candidate.ocenaTekst !== '—' ? <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
+        <T variant="meta" tone="muted">{candidate.ocenaTekst} · {candidate.recenzijeTekst}</T></View>
+        : <T variant="meta" tone="muted">Nov na USKOČI</T>}
+      <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
+    </View></View>;
 }
+/**
+ * One candidate as the eye meets it while scanning: the face, the name, how they are rated, how
+ * much, how many people. Nothing else.
+ *
+ * The row used to carry nine lines and its own orange button. Five offers meant five orange
+ * buttons, so the screen where a person makes one decision was a wall of the colour that is
+ * supposed to mean "this is the step". The whole card is the button now, the orange waits for the
+ * offer screen, and the term, the declared skills and the message wait with it — none of them
+ * decides who you open first.
+ *
+ * The state band is the same idea. "Poslata prijava" printed on every row is not information; it
+ * is the ordinary case. So the band appears only when the answer is something else, and then it
+ * is a full line instead of a chip squeezed into 45% of the width.
+ */
+function CandidateRow({ candidate: k, open }: { candidate: KandidatProjekcija; open: () => void }) {
+  return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`} haptic="select" scaleTo={0.985}
+    onPress={open} style={s.candidate}>
+    <View style={s.candidateHead}>
+      <ProfilePhoto profileId={k.radnikProfilId} size={56} initial={k.inicijali} />
+      <View style={s.grow}>
+        <T style={s.candidateName} numberOfLines={1}>{k.ime}</T>
+        {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">Nov na USKOČI</T>
+          : <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
+            <T variant="meta" tone="muted">{k.ocenaTekst} · {k.recenzijeTekst}</T></View>}
+      </View>
+      <CaretRight size={20} color={sys.color.muted} />
+    </View>
+    <View style={s.candidateFoot}>
+      <T style={s.price}>{k.cena.prikaz}</T>
+      <View style={s.inline}><Users size={16} color={sys.color.muted} /><T variant="meta" tone="muted">{peopleText(k.pokrivaMesta)}</T></View>
+    </View>
+    {k.stanje === 'SELECTABLE' ? null
+      : <View style={s.stateBand}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View>}
+  </Press>;
+}
+
+/** Two offers side by side. A comparison only compares if the same three cells line up in both
+ *  columns, so the free-text capabilities line — which is a different length for everyone — moved
+ *  to the offer screen where it can have the room it needs. */
+function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
+  return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`} haptic="select" scaleTo={0.985}
+    onPress={open} style={s.comparison}>
+    <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{k.ime}</T>
+    <T variant="meta" tone="muted" numberOfLines={1}>{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
+    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
+    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{peopleText(k.pokrivaMesta)}</T></View>
+    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T>
+      <T variant="meta" style={s.ink}>{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
+    {k.stanje === 'SELECTABLE' ? null : <T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T>}
+  </Press>;
+}
+
 /** Candidates of one Task: offers as cards, or side by side for a fast decision (owner decision 3, TARG-034). */
 export function CandidateListPresentation({ need, candidates, open, back, refresh }: {
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
 }) {
   const [compare, setCompare] = useState(false);
-  const capabilities = (k: KandidatProjekcija) => [...(k.dokazPrijave.vestine ?? []), ...(k.dokazPrijave.alati ?? []), ...(k.dokazPrijave.vozila ?? [])].join(' · ') || 'Nema dodatno navedenih sposobnosti.';
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} subtitle="Ponude ljudi koji mogu da uskoče" back={compare ? () => setCompare(false) : back} scroll={false}>
     <FlatList key={compare ? 'comparison' : 'offers'} numColumns={compare ? 2 : 1} data={candidates} keyExtractor={k => k.prijavaId} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListHeaderComponent={<View style={s.listHeader}><TaskContext need={need} />
-        <View style={s.row}><T variant="meta" tone="muted" style={s.grow}>{candidates.length} konkretnih ponuda · još {need.pokrivenost.preostalo} ljudi</T>
+        <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{candidates.length} konkretnih ponuda · još {need.pokrivenost.preostalo} ljudi</T>
           {candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind={compare ? 'quiet' : 'secondary'} onPress={() => setCompare(v => !v)} /> : null}</View>
         {compare ? <View style={s.compareIntro}><T variant="meta" style={s.eyebrow}>Konkretne ponude</T><T variant="title" style={s.ink}>Uporedi isti obim, ne samo cenu.</T>
           <T variant="meta" tone="muted">Cena, broj ljudi i termin pripadaju svakoj pojedinačnoj ponudi.</T></View> : null}
       </View>}
       ListEmptyComponent={<View style={s.card}><T variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
-      renderItem={({ item: k }) => compare ? <View style={s.comparison}>
-        <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{k.ime}</T><T variant="meta" style={{ color: candidateTone(k) }}>{candidateState(k)}</T>
-        <T variant="meta" tone="muted" numberOfLines={1}>{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
-        <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
-        <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{peopleText(k.pokrivaMesta)}</T></View>
-        <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T><T variant="meta" style={s.ink}>{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
-        <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Uz ovu prijavu</T><T variant="meta" style={s.ink}>{capabilities(k)}</T></View>
-        <V2Action label={`Otvori prijavu: ${k.ime}`} onPress={() => open(k)} />
-      </View> : <View style={[s.candidate, k.mozeIzabrati && s.candidateSelectable]}>
-        {/* Choosing a person is the decision this screen exists for, and the row offered a name,
-            a price and a monogram: no face, no rating, nothing they said they can do. */}
-        <View style={s.row}><View style={s.avatar}><ProfilePhoto profileId={k.radnikProfilId} size={44} initial={k.inicijali} /></View>
-          <View style={s.grow}><T variant="heading" style={s.ink}>{k.ime}</T>
-            <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
-            <T variant="meta" tone="muted">{k.pokrivaMesta} {k.pokrivaMesta === 1 ? 'osoba · dolazi samostalno' : 'osobe · dolazi tim'}</T></View>
-          <View style={s.stateChip}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View></View>
-        <View style={s.row}><T style={[s.price, s.grow]}>{k.cena.prikaz}</T><T variant="meta" tone="muted">ukupno · {dolaziOsoba(k.pokrivaMesta)}</T></View>
-        <T variant="meta" tone="muted">{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T>
-        <T variant="meta" tone="muted" numberOfLines={2}>{capabilities(k)}</T>
-        {k.napomena ? <T variant="body" style={s.ink}>{k.napomena}</T> : null}
-        <V2Action label={`Pogledaj ponudu: ${k.ime}`} onPress={() => open(k)} kind={k.mozeIzabrati ? 'primary' : 'secondary'} />
-      </View>}
+      renderItem={({ item: k }) => compare ? <CompareCell candidate={k} need={need} open={() => open(k)} />
+        : <CandidateRow candidate={k} open={() => open(k)} />}
       ListFooterComponent={<V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />} />
   </SelectionFrame>;
 }
@@ -256,9 +297,16 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     <TaskContext need={need} />
     <View style={s.card}><CandidateIdentity candidate={candidate} publicProfile={() => { void openProfile(); }} />
       <View style={s.divider} />
-      <T style={s.price}>{candidate.cena.prikaz}</T><T variant="meta" tone="muted">ukupno · {dolaziOsoba(candidate.pokrivaMesta)}</T>
-      <T variant="meta" tone="muted">{applicationInterval(candidate.predlozeniPocetak, candidate.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T>
-      <T variant="bodyStrong" style={{ color: candidateTone(candidate) }}>{candidateState(candidate)}</T></View>
+      <T variant="label" tone="muted" style={s.compareLabel}>Ukupno za {dolaziOsoba(candidate.pokrivaMesta)}</T>
+      <T style={s.priceLarge}>{candidate.cena.prikaz}</T>
+      <View style={s.factRow}>
+        <View style={s.fact}><View style={s.inline}><Users size={16} color={sys.color.muted} /><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T></View>
+          <T variant="bodyStrong" style={s.ink}>{peopleText(candidate.pokrivaMesta)}</T></View>
+        <View style={s.fact}><View style={s.inline}><Clock size={16} color={sys.color.muted} /><T variant="label" tone="muted" style={s.compareLabel}>Termin</T></View>
+          <T variant="bodyStrong" style={s.ink}>{applicationInterval(candidate.predlozeniPocetak, candidate.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
+      </View>
+      {candidate.stanje === 'SELECTABLE' ? null
+        : <View style={s.stateBand}><T variant="bodyStrong" style={{ color: candidateTone(candidate) }}>{candidateState(candidate)}</T></View>}</View>
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Poruka uz prijavu</T><T variant="body" style={s.ink}>{candidate.napomena || 'Nema dodatne poruke.'}</T></View>
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Uslovi uz ovu prijavu</T>
       {evidence.sema === 'APPLICATION_V1_SELF_DECLARED' ? <><T variant="body" style={s.ink}>{[...(evidence.vestine ?? []), ...(evidence.alati ?? []),
@@ -293,13 +341,20 @@ const s = StyleSheet.create({
   amountInput: { ...sys.type.price, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, minHeight: 54, paddingHorizontal: 12, paddingVertical: 10 },
   inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
-  term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderColor: sys.color.line },
+  term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  priceLarge: { ...sys.type.priceLarge, color: sys.color.money },
+  factRow: { flexDirection: 'row', gap: 12, paddingTop: 12, borderTopWidth: 1, borderColor: sys.color.line },
+  fact: { flex: 1, minWidth: 0, gap: 4 },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   summaryRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, fontVariant: ['tabular-nums'] },
   listHeader: { gap: 14, marginBottom: 14 }, compareIntro: { gap: 4 },
-  candidate: { ...card, gap: 8 },
-  candidateSelectable: { borderColor: sys.color.lineStrong },
-  stateChip: { backgroundColor: sys.color.wash, borderRadius: sys.radius.badge, paddingHorizontal: 9, paddingVertical: 5, maxWidth: '45%' },
+  candidate: { ...card, gap: 12, padding: 18 },
+  candidateHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  candidateName: { ...sys.type.cardTitle, color: sys.color.ink },
+  candidateFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stateBand: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 8 },
   price: { ...sys.type.price, color: sys.color.money },
   comparison: { ...card, flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, gap: 8 },
   compareCell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line }, compareLabel: { letterSpacing: 0.2 },

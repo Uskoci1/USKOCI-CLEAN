@@ -16,7 +16,6 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),Re
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
 jest.mock('react-native-svg',()=>({SvgXml:'NativeSvgXml'}));
 jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>false}));
-jest.mock('phosphor-react-native',()=>Object.fromEntries(['ArrowLeft','Bell','Check','CaretRight','GearSix','Handshake','ChatCircle','PaperPlaneTilt','ClipboardText','ArrowsLeftRight'].map(name=>[name,'Icon'])));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},Stack:{Screen:'StackScreen'},useFocusEffect:(effect:()=>void)=>require('react').useEffect(effect,[effect])}));
 jest.mock('../../store/uloga',()=>({postaviUlogu:(role:string)=>mockRole(role),useUloga:()=>mockIntent,ulogaSada:()=>mockIntent}));
 jest.mock('../../hooks/useInbox',()=>({useInbox:()=>({state:mockState,model:mockModel})}));

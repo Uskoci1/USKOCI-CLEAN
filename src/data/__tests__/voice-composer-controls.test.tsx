@@ -7,7 +7,6 @@ jest.mock('react-native',()=>{const actual=jest.requireActual('react-native');re
   if(key==='Alert')return{alert:(...args:unknown[])=>mockAlert(...args)};
   return ['View','Pressable'].includes(String(key))?key:Reflect.get(target,key);
 }});});
-jest.mock('phosphor-react-native',()=>({Microphone:'Mic',StopCircle:'Stop'}));
 jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({VOICE_PROCESSING_NOTICE:'Approved transient Google speech notice.'}));

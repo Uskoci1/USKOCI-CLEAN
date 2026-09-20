@@ -77,7 +77,6 @@ jest.mock('expo-image', () => ({ Image: (props: Record<string, unknown>) => {
   }, []);
   return React.createElement('OriginalImage', { ...props, nativeIdentity: nativeIdentity.current });
 } }));
-jest.mock('phosphor-react-native', () => ({ ArrowRight: 'Icon', ArrowLeft: 'Icon' }));
 jest.mock('../../hooks/useEntryIntro', () => ({ useEntryIntro: () => ({ phase: mockPhase, prepared: mockPhase !== 'loading', finish: mockFinish }) }));
 jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: () => ({ readiness: 'ready', onLayout: mockReadyLayout, onSceneReady: mockSceneReady }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockAccount, useSesija: () => mockAccount }));

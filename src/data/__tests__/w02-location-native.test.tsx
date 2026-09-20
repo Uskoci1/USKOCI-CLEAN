@@ -19,7 +19,6 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', CaretDown: 'Icon', Check: 'Icon', LockKey: 'Icon' }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]) }));
 jest.mock('../locationClientService', () => ({ workerLocationClientService: { read: jest.fn(), save: jest.fn() } }));

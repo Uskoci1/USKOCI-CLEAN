@@ -14,7 +14,6 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('phosphor-react-native', () => ({ ArrowLeft: 'Icon', ArrowRight: 'Icon', CaretRight: 'Icon', Clock: 'Icon' }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: (...args: unknown[]) => mockNavigate(...args) } }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent }));
 jest.mock('../workerCalendarClientService', () => ({ workerCalendarClientService: { readRange: (...args: [string, string]) => mockReadRange(...args) } }));
