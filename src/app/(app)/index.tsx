@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { composeHome, readHomeSection, type HomeReads, type HomeTarget } from '../../data/homeSnapshot';
@@ -20,8 +20,13 @@ export default function Pocetna() {
 function Home() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const [scope, setScope] = useState<object | null>(null);
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
+    // A silent refresh keeps the old snapshot without an immediate render. Publish
+    // this focus token now so current actions do not wait for a network response;
+    // callbacks retained from a previous focus still fail the identity check below.
+    setScope(owner);
     return () => { if (focus.current === owner) focus.current = null; };
   }, []));
   const load = useCallback(async (): Promise<HomeReads> => {
@@ -31,7 +36,7 @@ function Home() {
     if ([needs, applications, agreements].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
     return { needs, applications, agreements };
   }, [source]);
-  const resource = useFocusedResource(load), scope = focus.current;
+  const resource = useFocusedResource(load);
   const home = useMemo(() => resource.data ? composeHome(resource.data) : null, [resource.data]);
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source

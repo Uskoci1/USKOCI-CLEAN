@@ -3,12 +3,13 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 let mockSession = { user: { id: A }, accountRevision: 1 };
+let mockFocused = true;
 const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn() };
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; },
-  useFocusEffect: (effect: () => void) => require('react').useEffect(() => effect(), [effect]) }));
+  useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'AppState') return { currentState: 'active', addEventListener: () => ({ remove: () => undefined }) };
   return ['View', 'ScrollView', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
@@ -37,7 +38,7 @@ const render = async () => { await act(async () => { tree = create(<Pocetna />);
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 
 beforeEach(() => {
-  jest.clearAllMocks(); mockSession = { user: { id: A }, accountRevision: 1 };
+  jest.clearAllMocks(); mockSession = { user: { id: A }, accountRevision: 1 }; mockFocused = true;
   mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijave.mockResolvedValue([]); mockSource.mojiDogovori.mockResolvedValue([]);
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
@@ -112,4 +113,22 @@ it('logout of A and login of B never shows A, and a late answer for A cannot pai
   await act(async () => tree.update(<Pocetna />));
   await act(async () => late.resolve([need('a-private')]));
   expect(text()).not.toContain('Moj a-private'); expect(text()).toContain('Moj b-task');
+});
+
+it('returning Home enables current navigation while its silent refresh waits, without reviving a retired callback', async () => {
+  await render();
+  const retired = action('Uskoči i zaradi').onPress;
+  await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
+  const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
+  try {
+    await act(async () => { mockFocused = true; tree.update(<Pocetna />); });
+    expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(2);
+    await act(async () => retired());
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    await act(async () => action('Uskoči i zaradi').onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith('/mapa');
+  } finally {
+    await act(async () => wait.resolve([]));
+  }
 });

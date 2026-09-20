@@ -1,7 +1,11 @@
 # USKOČI — repository entry map
 
-Latest visual instruction (2026-09-20): the owner explicitly requests the NEW supplied HTML
-appearance. Read `docs/implementation/v5-ai-first/HTML_DIRECTION_HOME_20260920.md` for the exact source
+Latest visual clarification (2026-09-20): the supplied HTML is a starting direction, NOT a final
+design or pixel lock. Refine hierarchy, layout, components, states and motion using product judgment;
+preserve original brand/entry assets and actual business semantics. Read
+`docs/implementation/v5-ai-first/DESIGN_PACK_EXECUTION_20260920.md` for the tools and next design round.
+The owner explicitly requests the new direction. Read
+`docs/implementation/v5-ai-first/HTML_DIRECTION_HOME_20260920.md` for the exact source
 hashes, native adaptation and evidence. This supersedes preserving the previous authenticated Home
 composition below; original brand/entry assets remain. This first Home/tab surface does not complete
 the other screens, aggregate wiring or end-to-end device verification. Skills are implementation
