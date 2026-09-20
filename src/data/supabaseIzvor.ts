@@ -64,7 +64,7 @@ function openTaskRow(item: Record<string, any>) {
     required_vehicles: item.requiredVehicles, required_licenses: item.requiredLicenses,
     minimum_experience_years: item.minimumExperienceYears, verified_identity_required: item.verifiedIdentityRequired,
     task_country_code: item.taskCountryCode, task_timezone: item.taskTimezone,
-    mode: item.priceMode, requester_price_rsd: item.requesterPriceRsd,
+    mode: item.priceMode, requester_price_rsd: item.requesterPriceRsd, price_basis: item.priceBasis,
     requester_profile_id: item.requesterProfileId, response_deadline: item.responseDeadline,
     remaining_search_closed_at: null,
     description: '',
@@ -197,6 +197,7 @@ export const supabaseIzvor: SupabaseIzvor = {
         narucilacIme: narucilac?.ime || '',
         narucilacOcena: formatPublicRating(narucilac),
         rezimCene: r.mode,
+        osnovaCene: r.price_basis === 'TOTAL' || r.price_basis === 'PER_PERSON' ? r.price_basis : null,
         ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
       };
     });
@@ -227,7 +228,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       .select(`
         id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
         required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, requester_profile_id, response_deadline, remaining_search_closed_at,
+        covered_slots, mode, requester_price_rsd, price_basis, requester_profile_id, response_deadline, remaining_search_closed_at,
         description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
         required_licenses, minimum_experience_years, verified_identity_required,
         need_geography(public_topology), need_requirement_details(critical_conditions)
@@ -266,6 +267,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       narucilacIme: narucilac?.ime || '',
       narucilacOcena: formatPublicRating(narucilac),
       rezimCene: data.mode as any,
+      osnovaCene: data.price_basis === 'TOTAL' || data.price_basis === 'PER_PERSON' ? data.price_basis : null,
       ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
     };
   },

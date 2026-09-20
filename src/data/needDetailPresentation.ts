@@ -69,6 +69,32 @@ export function readableTitle(value: string | null | undefined): string {
   return text;
 }
 
+export type PriceBasis = "TOTAL" | "PER_PERSON" | null | undefined;
+
+/**
+ * What a task's price says, in words, once a task can say what its price is FOR (pkg025a-c).
+ *
+ * A null basis is every task written before 2026-09-20 and every task written since without one:
+ * it reads exactly as it always has, because nothing about it has changed. PER_PERSON names the
+ * unit, and on a screen with room it also names what the whole task would cost, which is the number
+ * the owner said a person actually wants: "3.000 RSD po osobi - 6 osoba - ukupno 18.000 RSD".
+ */
+export function needPriceText(input: {
+  rezimCene?: string; ponudjenaCena?: { iznos: number; prikaz: string }; osnovaCene?: PriceBasis;
+  pokrivenost?: { ukupno: number };
+}, options?: { withTotal?: boolean }): string {
+  if (input.rezimCene === 'OFFERS') return 'Tražim ponude';
+  if (!input.ponudjenaCena) return 'Cena nije navedena';
+  const amount = input.ponudjenaCena.prikaz;
+  if (input.osnovaCene === 'PER_PERSON') {
+    const people = input.pokrivenost?.ukupno ?? 0;
+    if (!options?.withTotal || people < 2 || !Number.isFinite(input.ponudjenaCena.iznos)) return `${amount} po osobi`;
+    return `${amount} po osobi · ukupno ${(input.ponudjenaCena.iznos * people).toLocaleString('sr-Latn-RS')} RSD`;
+  }
+  if (input.osnovaCene === 'TOTAL') return `${amount} ukupno`;
+  return amount;
+}
+
 export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {
   const geo = need.detalji?.geografija;
   if (!geo) return [{ label: 'Približno područje', value: need.podrucjeTekst }];

@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PrilikaProjekcija } from '../../contracts/projections';
-import { needGeographyRows, needPeopleText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
+import { needGeographyRows, needPeopleText, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, SectionTitle } from '../system/Detail';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
@@ -39,7 +39,8 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   const rows = expanded === 'location' && need ? needGeographyRows(need) : expanded === 'requirements' && need ? needRequirementRows(need) : [];
   const remote = need?.detalji?.rezimLokacije === 'REMOTE';
   const ready = !!need && !loading && !error && !missing;
-  const price = need ? need.rezimCene === 'OFFERS' ? 'Tražim ponude' : need.ponudjenaCena?.prikaz ?? 'Cena nije navedena' : '';
+  // The detail has the room, so a per-person price also says what the whole task comes to.
+  const price = need ? needPriceText(need, { withTotal: true }) : '';
   return <SafeAreaView edges={['top']} style={s.screen}>
     <DetailTopBar title="Zadatak" onBack={back} backLabel="Nazad na Zadatke" disabled={busy} />
     <ScrollView contentContainerStyle={s.content}>

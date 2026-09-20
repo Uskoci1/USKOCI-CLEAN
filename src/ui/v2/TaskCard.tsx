@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Clock, MapPin, Users } from 'phosphor-react-native';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { hasNeedAttention, isOwnedNeed } from '../../data/marketplaceView';
-import { needPeopleText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
+import { needPeopleText, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { card, cardCompact, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -34,7 +34,8 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
   const remote = item.detalji?.rezimLokacije === 'REMOTE';
   const offers = item.rezimCene === 'OFFERS';
-  const price = offers ? 'Tražim ponude' : item.ponudjenaCena?.prikaz ?? 'Cena nije navedena';
+  // A card has no room for the arithmetic, so it names the unit and leaves the total to the detail.
+  const price = needPriceText(item);
   return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${readableTitle(item.naslov)}`}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986}
     style={[compact ? cardCompact : card, attention && s.attentionCard, disabled && s.disabled]}>

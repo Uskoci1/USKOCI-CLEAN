@@ -74,7 +74,9 @@ describe('W04 public-safe detail read', () => {
     expect(from).toHaveBeenCalledWith('needs'); expect(eq).toHaveBeenCalledWith('id', 'task-a');
     expect(select.mock.calls[0][0].split(',').map((field: string) => field.trim())).toEqual([
       'id', 'title', 'status', 'urgent', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
-      'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'requester_profile_id', 'response_deadline', 'remaining_search_closed_at',
+      // price_basis, from pkg025a: what the amount beside it is FOR. It is a rule of the task, the
+      // same class as `mode`, and it names no person and no place.
+      'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'price_basis', 'requester_profile_id', 'response_deadline', 'remaining_search_closed_at',
       'description', 'category', 'schedule_kind', 'ends_at', 'task_country_code', 'task_timezone', 'execution_location_mode',
       'required_licenses', 'minimum_experience_years', 'verified_identity_required',
       'need_geography(public_topology)', 'need_requirement_details(critical_conditions)',

@@ -77,6 +77,8 @@ export type PotrebaProjekcija = {
   uslovi: string[];
   brojPrijava: number;
   rezimCene?: RezimCene;
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto. null/undefined = postojece znacenje. */
+  osnovaCene?: "TOTAL" | "PER_PERSON" | null;
   ponudjenaCena?: Novac;
   /** Missing only for earlier saved/mock projections; never infer missing topology. */
   detalji?: NeedDetailProjection;
@@ -113,6 +115,8 @@ export type PrilikaProjekcija = {
   /** Približna tačka za mapu. Tačna lokacija se otkriva tek po pravilima Dogovora. */
   priblizno: { lat: number; lng: number } | null;
   rezimCene?: RezimCene;
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto. null/undefined = postojece znacenje. */
+  osnovaCene?: "TOTAL" | "PER_PERSON" | null;
   ponudjenaCena?: Novac;
 };
 

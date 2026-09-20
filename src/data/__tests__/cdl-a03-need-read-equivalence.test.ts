@@ -46,7 +46,7 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { needClientService } from '../needClientService';
-import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText, readableTitle } from '../needDetailPresentation';
+import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText, needPriceText, readableTitle } from '../needDetailPresentation';
 
 const mocks = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
@@ -219,6 +219,27 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     const selection = String(mocks.mockSelect.mock.calls[0][0]);
     for (const key of ['category', 'ends_at', 'schedule_kind', 'task_country_code', 'task_timezone', 'need_geography(public_topology)', 'need_requirement_details(critical_conditions)']) expect(selection).toContain(key);
     expect(selection).not.toMatch(/need_sensitive|exact_address|resolved_location|exact_lat|requester_account_id/);
+  });
+  it('says what a price is for, and says nothing new about a task that never declared one', () => {
+    const money = (iznos: number) => ({ iznos, valuta: 'RSD' as const, prikaz: `${iznos.toLocaleString('sr-Latn-RS')} RSD` });
+    const six = { pokrivenost: { ukupno: 6 } };
+
+    // A null basis is every task that exists today. It must read exactly as it always has.
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: null, ...six })).toBe('3.000 RSD');
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), ...six }, { withTotal: true })).toBe('3.000 RSD');
+    expect(needPriceText({ rezimCene: 'OFFERS', ...six })).toBe('Tražim ponude');
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ...six })).toBe('Cena nije navedena');
+
+    // The owner's own example, 2026-09-19: six people, 3000 per person, 18000 for the task.
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: 'PER_PERSON', ...six }))
+      .toBe('3.000 RSD po osobi');
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: 'PER_PERSON', ...six }, { withTotal: true }))
+      .toBe('3.000 RSD po osobi · ukupno 18.000 RSD');
+    // For one person a per-person price IS the total, so the arithmetic is not spelled out.
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(3000), osnovaCene: 'PER_PERSON', pokrivenost: { ukupno: 1 } }, { withTotal: true }))
+      .toBe('3.000 RSD po osobi');
+
+    expect(needPriceText({ rezimCene: 'MY_PRICE', ponudjenaCena: money(18000), osnovaCene: 'TOTAL', ...six })).toBe('18.000 RSD ukupno');
   });
   it('shows a title without the quotation marks the interview wrapped it in, and keeps the stored value', async () => {
     // Six of seventeen tasks on canonical DEV are stored as `"Hitno prenošenje troseda"`. The repair

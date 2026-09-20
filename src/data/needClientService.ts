@@ -117,6 +117,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
     ],
     brojPrijava,
     rezimCene: mode,
+    osnovaCene: raw.price_basis === 'TOTAL' || raw.price_basis === 'PER_PERSON' ? raw.price_basis : null,
     ponudjenaCena:
       cena === null || cena === undefined
         ? undefined
@@ -134,7 +135,7 @@ const NEED_SELECT = `
   approximate_area, approximate_city, approximate_lat, approximate_lng,
   required_slots, required_skills, required_tools, required_vehicles, required_licenses,
   minimum_experience_years, verified_identity_required,
-  covered_slots, mode, requester_price_rsd,
+  covered_slots, mode, requester_price_rsd, price_basis,
   marketplace_responses(id), need_geography(public_topology), need_requirement_details(critical_conditions)
 `;
 

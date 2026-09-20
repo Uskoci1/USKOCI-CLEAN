@@ -83,7 +83,7 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
         zahtevi: { vestine: ['Selidbe'], alati: [], vozila: [], dozvole: [], bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false } },
       pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 },
       uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacIme: '', narucilacOcena: null,
-      priblizno: { lat: 44.8, lng: 20.4 }, rezimCene: 'OFFERS', ponudjenaCena: undefined,
+      priblizno: { lat: 44.8, lng: 20.4 }, rezimCene: 'OFFERS', osnovaCene: null, ponudjenaCena: undefined,
     }]);
   });
 });

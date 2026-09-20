@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
-import { needGeographyRows, needPeopleText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
+import { needGeographyRows, needPeopleText, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
 import { SkeletonCard } from '../system/Skeleton';
@@ -85,7 +85,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const primaryAction = blocked ? props.onEdit : draft ? props.onReview : props.onCandidates;
   const toggle = (key: 'location' | 'requirements') => setExpanded(current => current === key ? null : key);
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
-  const price = need ? need.rezimCene === 'OFFERS' ? 'Tražim ponude' : need.ponudjenaCena ? need.ponudjenaCena.prikaz : 'Cena nije navedena' : '';
+  // The owner's own task shows the same sentence a stranger sees, totals included.
+  const price = need ? needPriceText(need, { withTotal: true }) : '';
   const step = need ? nextStep(need, remainingClosed, blocked) : null;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Zadatak" onBack={props.onBack} />
