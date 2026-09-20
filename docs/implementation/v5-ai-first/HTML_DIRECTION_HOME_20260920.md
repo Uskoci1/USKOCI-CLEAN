@@ -6,6 +6,10 @@ previous authenticated Home composition. It does not replace the original brand,
 mascot or the authority of the backend. Skills provide implementation guidance, not competing visual
 directions or new approval gates.
 
+The owner subsequently clarified that the HTML is only the starting direction. It is not the final
+design or a pixel lock. Improve composition, density, hierarchy, typography, state coverage and motion
+as the app is completed. Read `DESIGN_PACK_EXECUTION_20260920.md` before expanding this first slice.
+
 ## Source evidence
 
 - `C:/Users/user/Downloads/USKOCI_OTVORI (4).html`, SHA256
@@ -121,3 +125,22 @@ callbacks from the previous focus remain rejected by the same token/account/sour
 Four targeted suites / 54 tests pass, including this failure-before/pass-after proof. No read or
 mutation authority is weakened. Intermediate APK run `35477098597` was cancelled so this functional
 correction can be verified together with the two visual corrections in the next artifact.
+
+### Final artifact and device checkpoint
+
+Exact app source: `149502bb367a7a4f34596ad25d718a24d5d99700`, tree
+`7a49f70f00f6af1183804c97b5326a88ec8f0a7f`. PRE-P4 run `35477300414` passed TypeScript,
+source-147 integrity and all 233 Jest suites / 4,497 tests. Nine domain jobs were skipped, not proved.
+Android build `35477298512` passed. APK SHA256:
+`8bbb32e556350644f067c56ff5d4ea491561e73780d16c8a1ece72760d5db870` (68,529,139 bytes).
+Recovery/icon attestations match the source/tree/run/artifact. The package and certificate matched
+the installed development app. Replacement installation succeeded; a readback of the installed APK
+matched the downloaded CI artifact byte-for-byte. No account storage was read or cleared.
+
+On the HONOR VKP-NX9 / Android 16 device, visual review confirms the white navigation surround and
+the one-line `Dogovori` label at 200% system text. Large text stacks the action tiles and removes
+decorative artwork. Font scale was restored to the owner's 1.15. The sequence Home -> Agreements ->
+Home -> View all opened My activities immediately on return. The deterministic test, rather than
+device timing alone, proves the deliberately pending-read case and rejection of retained callbacks.
+No microphone, paid AI request, message send, task command or review submission was exercised.
+This is a Home/navigation device checkpoint, not proof of every marketplace flow or store readiness.
