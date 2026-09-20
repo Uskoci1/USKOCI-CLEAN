@@ -2,7 +2,7 @@ name: PKG-026 optional AI cap proof
 
 on:
   push:
-    branches: [work/html-home-native-20260920]
+    branches: [work/ai-reservation-unblock-20260920]
     paths:
       - 'supabase/candidates/pkg026_ai_test_cap_optional.sql'
       - 'supabase/proofs/pkg026/**'
