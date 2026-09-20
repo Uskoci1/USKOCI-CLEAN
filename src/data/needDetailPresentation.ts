@@ -49,6 +49,26 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   return range ? `${preference}${range}${named}`
     : schedule.kind === 'FIXED_WINDOW' ? 'Tačan termin nije potpun' : SCHEDULE[schedule.kind];
 }
+/**
+ * A task title as a person should read it.
+ *
+ * Six of seventeen tasks on canonical DEV are stored with their title inside quotation marks —
+ * `"Hitno prenosenje troseda"` — because that is how the interview wrote them. The stored value is
+ * the server's and stays exactly as it is: cdl-a03-need-read-equivalence requires the projection to
+ * carry it unchanged, and the real repair belongs in the prompt that writes it. This is the same
+ * display-only tidy the category already gets, and it removes only a PAIR of wrapping quotes, so a
+ * title that genuinely quotes something keeps it.
+ */
+export function readableTitle(value: string | null | undefined): string {
+  if (typeof value !== 'string') return '';
+  const text = value.trim().replace(/\s+/g, ' ');
+  const pairs: [string, string][] = [['"', '"'], ['„', '“'], ['“', '”'], ["'", "'"]];
+  for (const [open, close] of pairs) {
+    if (text.length > 1 && text.startsWith(open) && text.endsWith(close)) return text.slice(1, -1).trim();
+  }
+  return text;
+}
+
 export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {
   const geo = need.detalji?.geografija;
   if (!geo) return [{ label: 'Približno područje', value: need.podrucjeTekst }];

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
-import { needGeographyRows, needPeopleText, needRequirementRows } from '../../data/needDetailPresentation';
+import { needGeographyRows, needPeopleText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
 import { SkeletonCard } from '../system/Skeleton';
@@ -102,7 +102,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {step ? <NextStrip icon={PaperPlaneTilt} title={step.title} detail={step.detail} tone={step.tone} /> : null}
         <View style={s.hero}>
           {need.urgency || need.detalji?.kategorija ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} />{readableCategory(need.detalji?.kategorija) ? <T variant="meta" tone="muted">{readableCategory(need.detalji?.kategorija)}</T> : null}</View> : null}
-          <T accessibilityRole="header" style={s.heroTitle}>{need.naslov}</T>
+          <T accessibilityRole="header" style={s.heroTitle}>{readableTitle(need.naslov)}</T>
         </View>
         <FactGrid>
           <Fact icon={MapPin} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />

@@ -1,4 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowRight, CalendarBlank, CaretRight, ClipboardText, Handshake, MapPin, PaperPlaneTilt, Plus, User, Users } from 'phosphor-react-native';
 import type { HomeRow, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
@@ -46,13 +47,13 @@ function Row({ row, onOpen, kind = 'activity', last = false }: {
 }) {
   const Icon = kind === 'agreement' ? CalendarBlank : row.target.kind === 'CANDIDATES' ? Users
     : row.target.kind === 'APPLICATION' ? PaperPlaneTilt : row.target.kind === 'AGREEMENT' ? Handshake : ClipboardText;
-  return <Press accessibilityRole="button" accessibilityLabel={`${row.title}. ${row.detail}`} haptic="select" scaleTo={0.99}
+  return <Press accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`} haptic="select" scaleTo={0.99}
     onPress={() => onOpen(row.target)} style={[s.row, kind === 'agreement' && s.agreement, last && s.lastRow]}>
     <View style={[s.rowIcon, kind === 'attention' && s.attentionIcon, kind === 'agreement' && s.calendarIcon]}>
       <Icon size={kind === 'agreement' ? 25 : 22} color={sys.color.green} />
     </View>
     <View style={s.rowCopy}>
-      <T variant="bodyStrong">{row.title}</T>
+      <T variant="bodyStrong">{readableTitle(row.title)}</T>
       <T variant="note" tone="muted">{row.detail}</T>
     </View>
     <CaretRight size={18} color={sys.color.muted} />

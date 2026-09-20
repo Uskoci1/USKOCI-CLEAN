@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { readableTitle } from '../../data/needDetailPresentation';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarBlank, Check, Clock, MapPin } from 'phosphor-react-native';
@@ -50,11 +51,11 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
   // first and cannot move. So the row says what the OTHER side did, third person, exactly as the
   // Dogovor itself already does in AgreementPeople. First person for my own acts, third for theirs.
   const relation = other?.uloga === 'narucilac' ? 'Objavio zadatak' : other?.uloga === 'uskocer' ? 'Uskočio' : '';
-  return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${item.naslov}`} onPress={onOpen}
+  return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${readableTitle(item.naslov)}`} onPress={onOpen}
     haptic="select" scaleTo={0.986} style={[card, attention && s.attentionCard, settled && s.settledCard]}>
     {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
       <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
-    <T style={s.title}>{item.naslov}</T>
+    <T style={s.title}>{readableTitle(item.naslov)}</T>
     <View style={s.facts}>
       <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst}</T></View>
       <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{item.vremeTekst}</T></View>

@@ -46,7 +46,7 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { needClientService } from '../needClientService';
-import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText } from '../needDetailPresentation';
+import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText, readableTitle } from '../needDetailPresentation';
 
 const mocks = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
@@ -219,6 +219,21 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     const selection = String(mocks.mockSelect.mock.calls[0][0]);
     for (const key of ['category', 'ends_at', 'schedule_kind', 'task_country_code', 'task_timezone', 'need_geography(public_topology)', 'need_requirement_details(critical_conditions)']) expect(selection).toContain(key);
     expect(selection).not.toMatch(/need_sensitive|exact_address|resolved_location|exact_lat|requester_account_id/);
+  });
+  it('shows a title without the quotation marks the interview wrapped it in, and keeps the stored value', async () => {
+    // Six of seventeen tasks on canonical DEV are stored as `"Hitno prenošenje troseda"`. The repair
+    // belongs in the prompt that writes them; until then the screens tidy it the way the category is
+    // already tidied. Only a matched pair goes, so a title that genuinely quotes something keeps it.
+    expect(readableTitle('"Hitno prenošenje troseda"')).toBe('Hitno prenošenje troseda');
+    expect(readableTitle('„Hitno prenošenje troseda“')).toBe('Hitno prenošenje troseda');
+    expect(readableTitle('  Prevoz   i   montaža  ')).toBe('Prevoz i montaža');
+    expect(readableTitle('Prevoz "Sahara" tehnikom')).toBe('Prevoz "Sahara" tehnikom');
+    expect(readableTitle('Citat na kraju"')).toBe('Citat na kraju"');
+    expect(readableTitle(null)).toBe('');
+
+    // The projection itself is untouched: the stored value is the server's.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, title: '"Hitno prenošenje troseda"' } });
+    expect((await needClientService.potreba(rawNeed.id))!.naslov).toBe('"Hitno prenošenje troseda"');
   });
   it('names one day once, and keeps the exact instant it was given', async () => {
     // On a phone this read "20. sep 2026 · 06:38:53 – 20. sep 2026 · 09:38:53". The second date says

@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
-import { needPeopleText, needScheduleText } from '../../data/needDetailPresentation';
+import { needPeopleText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
@@ -55,12 +55,12 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
         belongs to. It used to be a small green line of text under the card, easy to miss and the
         only way back to the Task a worker had applied to; the actions below stay separate so no
         touch target sits inside another. */}
-    <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${p.naslov}`} accessibilityState={{ disabled }}
+    <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${readableTitle(p.naslov)}`} accessibilityState={{ disabled }}
       onPress={onTask} disabled={disabled} haptic="select" scaleTo={0.99} style={s.head}>
       <View style={s.statusRow}><View style={[s.dot, { backgroundColor: statusDot(p.stanje) }]} />
         <T variant="label" style={[s.status, { color: statusTone(p.stanje) }]}>{applicationStatus(p.stanje)}</T>
         <View style={s.grow} /><CaretRight size={18} color={sys.color.muted} /></View>
-      <T accessibilityRole="header" style={s.title}>{p.naslov}</T>
+      <T accessibilityRole="header" style={s.title}>{readableTitle(p.naslov)}</T>
       <View style={s.facts}>
         <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.podrucjeTekst}</T></View>
         <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.vremeTekst}</T></View>
@@ -73,10 +73,10 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
     {/* The orange border already says this card wants you. An orange button inside it as well, on
         every card of the "Čeka te" tab, spends the one colour that is supposed to mean "the step". */}
     {stale ? <><T variant="copy" style={s.ink}>Zadatak je izmenjen. Pregledaj aktuelne uslove pre nego što odlučiš o svojoj Prijavi.</T>
-      {!expanded ? <V2Action label={`Pregledaj izmene: ${p.naslov}`} onPress={onReview} disabled={disabled} kind="primary" /> : null}</> : null}
-    {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label={`Otvori Dogovor: ${p.naslov}`} onPress={onAgreement} kind="primary" disabled={disabled} /> : null}
+      {!expanded ? <V2Action label={`Pregledaj izmene: ${readableTitle(p.naslov)}`} onPress={onReview} disabled={disabled} kind="primary" /> : null}</> : null}
+    {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label={`Otvori Dogovor: ${readableTitle(p.naslov)}`} onPress={onAgreement} kind="primary" disabled={disabled} /> : null}
     {p.stanje !== 'STALE_REVIEW_REQUIRED' && p.napomena ? <T variant="note" tone="muted">{p.napomena}</T> : null}
-    {!stale && p.mozePovuci ? <V2Action label={`Povuci prijavu: ${p.naslov}`} onPress={onWithdraw} kind="destructive" disabled={disabled} style={s.quietLeft} /> : null}
+    {!stale && p.mozePovuci ? <V2Action label={`Povuci prijavu: ${readableTitle(p.naslov)}`} onPress={onWithdraw} kind="destructive" disabled={disabled} style={s.quietLeft} /> : null}
     {children}
   </View>;
 });

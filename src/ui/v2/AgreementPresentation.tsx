@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { readableTitle } from '../../data/needDetailPresentation';
 import { StyleSheet, View } from 'react-native';
 import { CaretRight, ChatCircle, Clock, MapPin, Users, Wallet } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
@@ -33,13 +34,13 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
   if (compact) return <Press accessibilityRole="button" accessibilityLabel="Pregled uslova Dogovora" onPress={onOpen} haptic="select" style={s.compact}>
     <View style={s.compactIcon}><ChatCircle size={20} color={sys.color.green} /></View>
     <View style={s.grow}>
-      <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{a.naslov}</T>
+      <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{readableTitle(a.naslov)}</T>
       <T variant="note" tone="muted">{a.cena.prikaz} · {peopleText(a.pokrivenost.popunjeno)} · {states[a.stanje]}</T>
     </View>
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
   return <View style={s.hero}>
-    <T accessibilityRole="header" style={s.title}>{a.naslov}</T>
+    <T accessibilityRole="header" style={s.title}>{readableTitle(a.naslov)}</T>
     <FactGrid>
       <Fact icon={MapPin} label="Mesto" value={a.rezim === 'DALJINSKI' ? 'Na daljinu' : a.putanjaTekst} />
       <Fact icon={Clock} label="Termin" value={a.vremeTekst} />

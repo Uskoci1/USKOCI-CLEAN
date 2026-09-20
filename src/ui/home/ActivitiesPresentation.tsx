@@ -1,4 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight } from 'phosphor-react-native';
 import type { ActivityFilter, ActivityPage, HomeActivityRow, HomeTarget } from '../../data/homeSnapshot';
@@ -38,10 +39,10 @@ export function ActivitiesPresentation({ page, filter, loading, refreshing, erro
       {loading && !page ? <View accessibilityLabel="Učitavanje" style={s.skeletons}>{[0, 1, 2, 3].map(index => <View key={index} style={s.skeleton} />)}</View> : null}
       {(error && !page) || page?.kind === 'unavailable' ? unread(filter.relation === 'OWNED' ? MISSING.needs
         : filter.relation === 'APPLIED' ? MISSING.applications : 'Tvoji zadaci i prijave') : null}
-      {rows.map(row => <Press key={row.id} accessibilityRole="button" accessibilityLabel={`${row.title}. ${row.detail}`} haptic="select" scaleTo={0.99}
+      {rows.map(row => <Press key={row.id} accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`} haptic="select" scaleTo={0.99}
         onPress={() => onOpen(row.target)} style={s.row}>
         <View style={s.copy}>
-          <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{row.title}</T>
+          <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{readableTitle(row.title)}</T>
           <T variant="note" tone="muted" numberOfLines={2}>{row.detail}</T>
         </View>
         <CaretRight size={18} color={sys.color.muted} />

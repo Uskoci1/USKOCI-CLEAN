@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Clock, MapPin, Users } from 'phosphor-react-native';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { hasNeedAttention, isOwnedNeed } from '../../data/marketplaceView';
-import { needPeopleText, needScheduleText } from '../../data/needDetailPresentation';
+import { needPeopleText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { card, cardCompact, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -35,14 +35,14 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
   const remote = item.detalji?.rezimLokacije === 'REMOTE';
   const offers = item.rezimCene === 'OFFERS';
   const price = offers ? 'Tražim ponude' : item.ponudjenaCena?.prikaz ?? 'Cena nije navedena';
-  return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${item.naslov}`}
+  return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${readableTitle(item.naslov)}`}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986}
     style={[compact ? cardCompact : card, attention && s.attentionCard, disabled && s.disabled]}>
     {status || urgent ? <View style={s.top}>
       {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} /><T variant="label" style={[s.status, { color: tone }]}>{status}</T></View> : <View style={s.grow} />}
       <NeedUrgencyBadge urgency={item.urgency} />
     </View> : null}
-    <T style={s.title}>{item.naslov}</T>
+    <T style={s.title}>{readableTitle(item.naslov)}</T>
     <View style={s.facts}>
       <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{remote ? 'Na daljinu' : item.podrucjeTekst}</T></View>
       <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{schedule}</T></View>

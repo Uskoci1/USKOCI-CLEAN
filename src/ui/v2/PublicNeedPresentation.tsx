@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PrilikaProjekcija } from '../../contracts/projections';
-import { needGeographyRows, needPeopleText, needRequirementRows } from '../../data/needDetailPresentation';
+import { needGeographyRows, needPeopleText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, SectionTitle } from '../system/Detail';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
@@ -54,7 +54,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <NextStrip icon={PaperPlaneTilt} title={need.statusTekst} detail={canApply ? 'Prijave su otvorene. Ponudu sastavljaš ispod.' : undefined} tone={canApply ? 'green' : 'muted'} />
         <View style={s.hero}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
-          <T accessibilityRole="header" style={s.heroTitle}>{need.naslov}</T>
+          <T accessibilityRole="header" style={s.heroTitle}>{readableTitle(need.naslov)}</T>
         </View>
         <FactGrid>
           <Fact icon={MapPin} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
