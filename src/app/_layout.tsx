@@ -12,7 +12,6 @@ import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
 import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
-import { sys } from '../ui/system/tokens';
 
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
