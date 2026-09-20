@@ -51,7 +51,7 @@ export function decodeTaskPhotos(raw:unknown,accountId:string,cid:string):TaskPh
     ||new Set(photos.map(a=>a?.assetId)).size!==photos.length)return null;
   return {conversationId:cid,accountId,photos:photos as MediaAsset[],ready:r.ready,authoritative:true};
 }
-export function decodeMediaUploadCancelled(raw:unknown,accountId:string,cid:string,key:string):MediaUploadCancelled|null{
+function decodeMediaUploadCancelled(raw:unknown,accountId:string,cid:string,key:string):MediaUploadCancelled|null{
   const r=record(raw);if(!r||Object.keys(r).length!==8||!sameId(r.accountId,accountId)||!sameId(r.conversationId,cid)||!sameId(r.clientRequestId,key)
     ||!(r.previousState===null||['PROCESSING','STAGED','READY','FAILED'].includes(String(r.previousState)))
     ||(r.previousState===null?r.assetId!==null:!uuid(r.assetId))||r.selected!==false||r.cancelled!==true||r.authoritative!==true)return null;

@@ -23,7 +23,7 @@ export function parseSupportIntent(raw: string, accountId: string): SupportInten
       : !lowerUuid(v.caseId) || !positiveInteger(v.expectedRevision))) throw new Error('SUPPORT_INTENT_INVALID');
   return v as SupportIntent;
 }
-export function sameSupportIntent(a: SupportIntent, b: SupportIntent): boolean {
+function sameSupportIntent(a: SupportIntent, b: SupportIntent): boolean {
   return a.version === b.version && a.accountId === b.accountId && a.clientRequestId === b.clientRequestId
     && a.kind === b.kind && a.caseId === b.caseId && a.expectedRevision === b.expectedRevision && a.inputSha256 === b.inputSha256;
 }

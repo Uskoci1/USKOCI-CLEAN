@@ -19,7 +19,7 @@ const EXPORT_COPY: Readonly<Record<string, string>> = {
 };
 
 export { DATA_EXPORT_MAX_BYTES } from '../contracts/dataExport';
-export function decodeDataExportArtifact(raw: unknown): DataExportArtifact | null {
+function decodeDataExportArtifact(raw: unknown): DataExportArtifact | null {
   const value = record(raw);
   if (!value || Object.keys(value).some(key => !['artifactAvailable', 'artifactGeneration', 'artifactExpiresAt', 'byteLength', 'sha256', 'md5'].includes(key))
     || value.artifactAvailable !== true || !uuid(value.artifactGeneration) || !timestamp(value.artifactExpiresAt)

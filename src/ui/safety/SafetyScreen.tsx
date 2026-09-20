@@ -12,7 +12,7 @@ import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from
 import { Press } from '../Press';
 import { sys } from '../system/tokens';
 
-export const safetyCategoryCopy: Record<SafetyCategory, string> = {
+const safetyCategoryCopy: Record<SafetyCategory, string> = {
   HARASSMENT: 'Uznemiravanje', FRAUD: 'Prevara', UNSAFE_WORK: 'Nebezbedan rad', DISCRIMINATION: 'Diskriminacija', OTHER: 'Drugo',
 };
 type Context = { targetAccountId: string; needId: string | null; agreementId: string | null };

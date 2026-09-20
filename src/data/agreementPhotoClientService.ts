@@ -13,7 +13,7 @@ export type AgreementPhotoMessage = Readonly<{ messageId: string; agreementVersi
   body: string; assetIds: readonly string[]; photos: readonly AgreementPhoto[] }>;
 const exact = (v: Record<string, unknown>, keys: readonly string[]) => Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k));
 const boundedInt = (v: unknown, max: number): v is number => positiveInteger(v) && v <= max;
-export const agreementPhotoErrors = {
+const agreementPhotoErrors = {
   AUTH_REQUIRED: 'Prijavi se da nastaviš.', MEDIA_NOT_FOUND: 'Fotografija nije dostupna.',
   MEDIA_INPUT_INVALID: 'Izaberi fotografiju do 10 MB.', MEDIA_SANITIZATION_FAILED: 'Fotografija nije mogla da se pripremi.',
   MEDIA_VERSION_CONFLICT: 'Uslovi Dogovora su promenjeni. Osveži Dogovor i ukloni stare pripremljene fotografije.',
@@ -21,7 +21,7 @@ export const agreementPhotoErrors = {
   MEDIA_RATE_LIMITED: 'Trenutno je dostignuta zaštitna granica slanja. Pokušaj kasnije.',
   INTERACTION_BLOCKED: 'U ovom Dogovoru nije dozvoljeno novo slanje.', ACCOUNT_CLOSING: 'Zatvaranje naloga ne dopušta novo slanje.',
 };
-export function decodeAgreementPhoto(raw: unknown): AgreementPhoto | null {
+function decodeAgreementPhoto(raw: unknown): AgreementPhoto | null {
   const p = record(raw);
   return p && exact(p, ['assetId', 'width', 'height', 'byteSize', 'contentType']) && uuid(p.assetId)
     && boundedInt(p.width, 1600) && boundedInt(p.height, 1600) && boundedInt(p.byteSize, 5242880) && p.contentType === 'image/jpeg'

@@ -35,7 +35,7 @@ function codes(value: unknown, min: number): value is string[] {
   return Array.isArray(value) && value.length >= min && value.length <= 64 && new Set(value).size === value.length
     && value.every(code => typeof code === 'string' && /^[A-Z][A-Z0-9_-]{0,63}$/.test(code));
 }
-export function decodePublicationDecision(raw: unknown, request: PublicationRequest): PublicationDecision | null {
+function decodePublicationDecision(raw: unknown, request: PublicationRequest): PublicationDecision | null {
   const value = record(raw);
   if (!value || !only(value, ['decisionId', 'decisionSequence', 'needId', 'needRevision', 'canonicalFingerprint', 'policyBundleId', 'policyVersion', 'jurisdiction', 'outcome', 'decisionAt', 'ruleIds', 'safeReasonCodes', 'publishable', 'authoritative'])
     || !uuid(value.decisionId) || !sequence(value.decisionSequence) || !sameId(value.needId, request.needId)

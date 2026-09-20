@@ -4,7 +4,7 @@ import { ChatCircleText, ShieldCheck } from 'phosphor-react-native';
 import { SettingsAction, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { sys } from '../system/tokens';
 
-export const supportLabels = {
+const supportLabels = {
   RECEIVED: 'Zahtev je primljen', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka tvoju dopunu',
   DECIDED: 'Odgovor sa odlukom', CLOSED: 'Predmet je zatvoren',
   SERVICE: 'USKOČI podrška', TASK: 'Pomoć oko zadatka', LEGAL_PRIVACY: 'Sadržaj i privatnost', SAFETY: 'Privatna bezbednosna prijava',

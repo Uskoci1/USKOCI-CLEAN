@@ -2,7 +2,7 @@ import { StyleSheet, View, type DimensionValue } from 'react-native';
 import { card, sys } from './tokens';
 
 /** Static placeholder that matches the final geometry. No shimmer: loading is frequent and motion here would be decoration. */
-export function SkeletonBlock({ width, height, radius = 8 }: { width: DimensionValue; height: number; radius?: number }) {
+function SkeletonBlock({ width, height, radius = 8 }: { width: DimensionValue; height: number; radius?: number }) {
   return <View style={{ width, height, borderRadius: radius, backgroundColor: sys.color.skeleton }} />;
 }
 

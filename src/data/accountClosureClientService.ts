@@ -3,8 +3,8 @@ import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { failure, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
 
-export const CLOSURE_BLOCKERS = ['ACTIVE_AGREEMENT', 'OPEN_TASK', 'ACTIVE_APPLICATION', 'PENDING_WORKFLOW', 'RETENTION_HOLD'] as const;
-export const CLOSURE_NOT_READY_REASONS = ['LEGAL_POLICY_NOT_READY', 'RETENTION_POLICY_NOT_READY', 'CLOSURE_EXECUTION_NOT_READY'] as const;
+const CLOSURE_BLOCKERS = ['ACTIVE_AGREEMENT', 'OPEN_TASK', 'ACTIVE_APPLICATION', 'PENDING_WORKFLOW', 'RETENTION_HOLD'] as const;
+const CLOSURE_NOT_READY_REASONS = ['LEGAL_POLICY_NOT_READY', 'RETENTION_POLICY_NOT_READY', 'CLOSURE_EXECUTION_NOT_READY'] as const;
 export type ClosureBlocker = typeof CLOSURE_BLOCKERS[number];
 export type ClosureNotReadyReason = typeof CLOSURE_NOT_READY_REASONS[number];
 export type ClosurePreparation = {

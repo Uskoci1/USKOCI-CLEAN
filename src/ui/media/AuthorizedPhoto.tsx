@@ -10,7 +10,7 @@ import { aiFirst as a } from '../aiFirst/tokens';
 import { sys } from '../system/tokens';
 
 // Bounded in-memory representation; no signed URL or persistent image cache.
-export function jpegDataUri(bytes: ArrayBuffer): string {
+function jpegDataUri(bytes: ArrayBuffer): string {
   const data = new Uint8Array(bytes), alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
   const chunks: string[] = []; let part = '';
   for (let i = 0; i < data.length; i += 3) {

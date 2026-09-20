@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const AUTH_RETURN_TARGET_STORAGE_VERSION = 2 as const;
+const AUTH_RETURN_TARGET_STORAGE_VERSION = 2 as const;
 export const AUTH_RETURN_TARGET_KEY = 'uskoci.auth.pending-intent.v2';
 
 export type GuestReturnTarget =

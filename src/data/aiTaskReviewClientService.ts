@@ -113,7 +113,7 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     publicProjection: publicProjection as AiTaskReviewFact[], ownerPrivateProjection: ownerPrivateProjection as AiTaskReviewFact[],
     location, missingRequired: r.missingRequired as NeedFactV2Key[], canAccept: r.canAccept, safety: r.safety as AiNeedSafety };
 }
-export function decodeAiTaskPublicationCommand(raw: unknown, reviewId?: string): AiTaskPublicationCommand | null {
+function decodeAiTaskPublicationCommand(raw: unknown, reviewId?: string): AiTaskPublicationCommand | null {
   const c = record(raw);
   if (!c || !only(c, ['reviewId', 'clientRequestId', 'needId', 'needRevision', 'state', 'evaluation', 'published', 'authoritative'])
     || !uuid(c.reviewId) || (reviewId && !sameId(c.reviewId, reviewId)) || !uuid(c.clientRequestId) || !uuid(c.needId) || !positiveInteger(c.needRevision)

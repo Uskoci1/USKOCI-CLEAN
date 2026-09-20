@@ -15,11 +15,11 @@ import { V2Action } from './V2Action';
 
 export type ApplicationsTab = 'all' | 'attention' | 'active' | 'finished';
 export type OfferEdit = { price: string; people: string; note: string; start: string | null; end: string | null };
-export const applicationStatus = (state: MojaPrijavaProjekcija['stanje']) => ({
+const applicationStatus = (state: MojaPrijavaProjekcija['stanje']) => ({
   SUBMITTED: 'Poslata', VIEWED: 'Pregledana', SHORTLISTED: 'U užem izboru', SELECTED: 'Izabrana',
   WITHDRAWN: 'Povučena', CLOSED: 'Zadatak je zatvoren', STALE_REVIEW_REQUIRED: 'Potrebna nova provera',
 })[state];
-export function applicationSection(p: MojaPrijavaProjekcija): Exclude<ApplicationsTab, 'all'> {
+function applicationSection(p: MojaPrijavaProjekcija): Exclude<ApplicationsTab, 'all'> {
   if (p.traziPaznju) return 'attention';
   return ['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(p.stanje) ? 'active' : 'finished';
 }

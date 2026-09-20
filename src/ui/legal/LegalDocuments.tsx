@@ -8,7 +8,7 @@ import { SettingsAction, SettingsGroup, SettingsIntro, SettingsPanel, SettingsRo
 import { sys } from '../system/tokens';
 import { boundedLegalRead, legalHttpsUrl, reviewedDocuments } from './legalReview';
 
-export const legalTitle = (kind: LegalDocumentKind) => kind === 'TERMS' ? 'Uslovi korišćenja' : 'Politika privatnosti';
+const legalTitle = (kind: LegalDocumentKind) => kind === 'TERMS' ? 'Uslovi korišćenja' : 'Politika privatnosti';
 export function LegalDocumentRows({ bundle, onOpen, disabled = false }: {
   bundle: LegalBundleStatus | null; onOpen: (document: LegalDocument) => void; disabled?: boolean;
 }) {

@@ -62,7 +62,7 @@ export function decodeWorkerAiProfile(raw:unknown):WorkerAiProfile|null {
   return {displayName:v.displayName,bio:v.bio,skills,tools,vehicles,licenses,teamCapacity:v.teamCapacity,
     location:{operatingCountryCode:country,city:loc.city,radiusKm:loc.radiusKm,approximatePosition},availability};
 }
-export function decodeWorkerAiTurn(raw:unknown,cid:string,key?:string):WorkerAiTurn|null {
+function decodeWorkerAiTurn(raw:unknown,cid:string,key?:string):WorkerAiTurn|null {
   const v=record(raw);
   if(!v||!exact(v,['turnId','conversationId','clientRequestId','attemptId','state','retryAllowed','authoritative'])
     ||!uuid(v.turnId)||!sameId(v.conversationId,cid)||!uuid(v.clientRequestId)||(key&&!sameId(v.clientRequestId,key))||!uuid(v.attemptId)
@@ -96,7 +96,7 @@ export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):Work
   return {schemaVersion:'WORKER_PROFILE_V1',reviewId:v.reviewId,conversationId:v.conversationId,accountId:v.accountId,profileId:v.profileId,
     revision:v.revision,profile,activate:v.activate,missingRequired:[...v.missingRequired],canAccept:v.canAccept,expiresAt:v.expiresAt,displayedContentDigest:v.displayedContentDigest};
 }
-export function decodeWorkerAiSaved(raw:unknown,review:WorkerAiReview):WorkerAiSaved|null {
+function decodeWorkerAiSaved(raw:unknown,review:WorkerAiReview):WorkerAiSaved|null {
   const v=record(raw);
   if(!v||!exact(v,['reviewId','conversationId','accountId','profileId','profileStatus','saved','authoritative'])
     ||!sameId(v.reviewId,review.reviewId)||!sameId(v.conversationId,review.conversationId)||!sameId(v.accountId,review.accountId)||!sameId(v.profileId,review.profileId)

@@ -205,7 +205,6 @@ const s = StyleSheet.create({
     backgroundColor: a.color.greenSoft, marginLeft: 36 },
   recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: a.color.wash },
   actions: { gap: 10 },
-  processing: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   footer: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, gap: 8, backgroundColor: a.color.surface },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   barCentre: { flex: 1, alignItems: 'center' },

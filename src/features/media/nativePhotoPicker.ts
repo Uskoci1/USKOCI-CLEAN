@@ -73,7 +73,7 @@ export async function pickPreparedPhoto(source: PhotoSource, current: () => bool
 
 /** Exact copy shown when the camera permission is denied; presentation matches it to offer settings recovery. */
 export const PHOTO_PERMISSION_MESSAGE = 'Dozvoli pristup kameri u podešavanjima ili izaberi fotografiju iz galerije.';
-export const isPhotoPermissionDenied = (error: unknown): boolean => error instanceof PhotoSelectionError && error.code === 'PERMISSION';
+const isPhotoPermissionDenied = (error: unknown): boolean => error instanceof PhotoSelectionError && error.code === 'PERMISSION';
 export function photoSelectionMessage(error: unknown): string {
   return isPhotoPermissionDenied(error)
     ? PHOTO_PERMISSION_MESSAGE

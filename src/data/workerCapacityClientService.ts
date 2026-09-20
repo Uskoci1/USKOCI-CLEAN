@@ -3,14 +3,14 @@ import { sesijaSada } from '../store/sesija';
 import { failure, readOwnedResult, record, sameId, uuid, type ReceiptAccount } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
 import type { Ishod } from './ports';
-export const WORKER_CAPACITY_COPY: Readonly<Record<string,string>> = {
+const WORKER_CAPACITY_COPY: Readonly<Record<string,string>> = {
   AUTH_REQUIRED: 'Prijavi se da urediš kapacitet tima.',
   WORKER_PROFILE_REQUIRED: 'Najpre sačuvaj radni profil.',
   WORKER_PROFILE_RESTRICTED: 'Kapacitet ovog profila trenutno ne može da se menja.',
   WORKER_CAPACITY_INPUT_INVALID: 'Unesi ceo broj od 1 do 50 ljudi i učitaj aktuelni profil.',
   WORKER_CAPACITY_VERSION_CONFLICT: 'Kapacitet je promenjen na drugom mestu. Učitaj aktuelni profil.',
 };
-export function decodeWorkerCapacity(raw: unknown, accountId: string): WorkerCapacity | null {
+function decodeWorkerCapacity(raw: unknown, accountId: string): WorkerCapacity | null {
   const row=record(raw);
   return row && sameId(row.accountId,accountId) && uuid(row.profileId) && workerCapacityValue(row.teamCapacity) && workerCapacityRevision(row.revision)
     ? { accountId: row.accountId, profileId: row.profileId, teamCapacity: row.teamCapacity, revision: row.revision } : null;

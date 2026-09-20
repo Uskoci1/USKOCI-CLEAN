@@ -19,7 +19,7 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 
 export type ApplicationDraft = { price: string; people: string; note: string; start: string | null; end: string | null };
-export function applicationInterval(start: string | null | undefined, end: string | null | undefined, timezone?: string): string | null {
+function applicationInterval(start: string | null | undefined, end: string | null | undefined, timezone?: string): string | null {
   const from = calendarInstant(start), to = calendarInstant(end);
   if (from === null || to === null || from >= to) return null;
   try {
@@ -28,7 +28,7 @@ export function applicationInterval(start: string | null | undefined, end: strin
     return `${displayDate(a.date)} · ${a.time.slice(0, 5)}–${a.date === b.date ? '' : `${displayDate(b.date)} · `}${b.time.slice(0, 5)} (${zone})`;
   } catch { return null; }
 }
-export function candidateState(k: KandidatProjekcija): string {
+function candidateState(k: KandidatProjekcija): string {
   return ({ SELECTABLE: 'Poslata prijava', STALE: 'Potrebna nova provera', OVERFILL: 'Više ljudi nego što je preostalo',
     SELECTED: 'Izabrana prijava', WITHDRAWN: 'Povučena prijava', CLOSED: 'Zadatak je zatvoren', FULL: 'Sva mesta su popunjena' })[k.stanje];
 }
@@ -37,7 +37,7 @@ const candidateTone = (k: KandidatProjekcija) => k.stanje === 'SELECTABLE' ? sys
 const peopleText = (n: number) => `${n} ${n === 1 ? 'osoba' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'osobe' : 'osoba'}`;
 
 /** Full-screen frame of the application/selection flow: back, eyebrow, title, keyboard-safe body, sticky footer. */
-export function SelectionFrame({ title, subtitle, back, children, footer, scroll = true }: {
+function SelectionFrame({ title, subtitle, back, children, footer, scroll = true }: {
   title: string; subtitle?: string; back: () => void; children: ReactNode; footer?: ReactNode; scroll?: boolean;
 }) {
   const reduced = useReducedMotion();
@@ -58,7 +58,7 @@ export function SelectionUnavailable({ loading, message, retry, back }: { loadin
   </View></SelectionFrame>;
 }
 /** The Task the offer belongs to, as a compact context card. */
-export function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) {
+function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) {
   return <View style={s.context}><T variant="meta" style={s.eyebrow}>Zadatak</T><T style={s.contextTitle}>{readableTitle(need.naslov)}</T>
     <T variant="meta" tone="muted">{need.podrucjeTekst}</T><T variant="meta" tone="muted">{need.vremeTekst}</T>
     <View style={s.row}><T style={[s.contextPrice, need.rezimCene !== 'MY_PRICE' && s.offers]}>{need.rezimCene === 'MY_PRICE' ? need.ponudjenaCena?.prikaz : 'Tražim ponude'}</T>

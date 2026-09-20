@@ -42,7 +42,7 @@ export async function readHomeSection<T>(read: () => Promise<T>): Promise<HomeSe
   } catch { return { kind: 'unavailable' }; } finally { if (timer) clearTimeout(timer); }
 }
 
-export const HOME_ATTENTION_LIMIT = 3, HOME_AGREEMENT_LIMIT = 2, HOME_ACTIVITY_LIMIT = 5;
+const HOME_ATTENTION_LIMIT = 3, HOME_AGREEMENT_LIMIT = 2, HOME_ACTIVITY_LIMIT = 5;
 
 const activeApplication = (row: MojaPrijavaProjekcija) => ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED'].includes(row.stanje);
 const staleApplication = (row: MojaPrijavaProjekcija) => row.stanje === 'STALE_REVIEW_REQUIRED' || row.promenjenaPotreba;

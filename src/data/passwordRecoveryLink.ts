@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { PasswordRecoveryError } from '../contracts/passwordRecovery';
 
-export const NATIVE_RECOVERY_REDIRECT = 'uskociapp://oporavak';
+const NATIVE_RECOVERY_REDIRECT = 'uskociapp://oporavak';
 
 /** Exact deployment target; no wildcard, caller-selected redirect or Expo Go URL. */
 export function configuredRecoveryRedirect(): string | null {

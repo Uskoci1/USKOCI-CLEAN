@@ -26,7 +26,7 @@ import { Izvor } from './ports';
 const uTestu = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 const izricitLazni = process.env.EXPO_PUBLIC_USE_FAKE_SOURCE === '1';
 
-export const koristiLazniIzvor = uTestu || izricitLazni;
+const koristiLazniIzvor = uTestu || izricitLazni;
 
 if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
   throw new Error(

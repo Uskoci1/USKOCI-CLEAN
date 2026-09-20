@@ -11,7 +11,7 @@ export type GroupJournal={version:1;groupId:string;clientRequestId:string;bodySh
 export type GroupReceipt={accountId:string;groupId:string;clientRequestId:string;messageId:string;sequence:string;bodySha256:string;createdAt:string;idempotentReplay:boolean;authoritative:true};
 const keys=(r:Record<string,unknown>,names:string[])=>Object.keys(r).length===names.length&&names.every(k=>Object.hasOwn(r,k));
 const integer=(n:unknown)=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
-export const groupSequence=(s:unknown,zero=false):s is string=>typeof s==='string'&&(zero?/^(0|[1-9][0-9]{0,15})$/:/^[1-9][0-9]{0,15}$/).test(s)&&Number(s)<=9007199254740990;
+const groupSequence=(s:unknown,zero=false):s is string=>typeof s==='string'&&(zero?/^(0|[1-9][0-9]{0,15})$/:/^[1-9][0-9]{0,15}$/).test(s)&&Number(s)<=9007199254740990;
 export const groupBody=(s:unknown):s is string=>typeof s==='string'&&s===s.trim()&&Array.from(s).length>=1&&Array.from(s).length<=2000;
 export const normalizeGroupBody=(s:string)=>s.trim().normalize('NFC');
 export const groupBodyHash=(s:string)=>agreementPayloadHash(normalizeGroupBody(s));
