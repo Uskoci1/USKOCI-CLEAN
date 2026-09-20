@@ -16,7 +16,8 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('phosphor-react-native', () => new Proxy({}, { get: (_target, key) => key === '__esModule' ? false : String(key) }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
-jest.mock('../../ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: 'Mark' }));
+jest.mock('../../ui/entry/BrandAssets', () => ({ BrandLockup: 'BrandLockup' }));
+jest.mock('../../ui/home/HomeIllustration', () => ({ HomeIllustration: 'HomeIllustration' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
@@ -63,7 +64,7 @@ it('shows one account on both sides at once, each row saying what I am to it, wi
 it('a row only navigates, and to the exact object: my task opens its candidates, my application opens that application', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman', { brojPrijava: 2 })]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
   await render();
-  expect(text()).toContain('ČEKA TE');
+  expect(text()).toContain('Čeka te');
   await act(async () => row('2 prijave').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: 'orman' } });
   await act(async () => tree.unmount()); await render();
@@ -89,6 +90,19 @@ it('three failed reads are a failed screen, not an empty account', async () => {
 it('an empty account is told what will stand here, without zero statistics', async () => {
   await render();
   expect(text()).toContain('Ovde će stajati ono što te čeka'); expect(text()).not.toContain('0');
+});
+
+it('a failed refresh never claims an empty account and keeps both new start tiles available', async () => {
+  mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
+  await render();
+  for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
+  const refresh = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props.onRefresh;
+  await act(async () => refresh());
+  expect(text()).toContain('trenutno nisu učitani');
+  expect(text()).not.toContain('Tvoj prvi korak.');
+  expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
+  await act(async () => action('Uskoči i zaradi').onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledWith('/mapa');
 });
 
 it('logout of A and login of B never shows A, and a late answer for A cannot paint over B', async () => {

@@ -1,5 +1,12 @@
 # USKOČI — repository entry map
 
+Latest visual instruction (2026-09-20): the owner explicitly requests the NEW supplied HTML
+appearance. Read `docs/implementation/v5-ai-first/HTML_DIRECTION_HOME_20260920.md` for the exact source
+hashes, native adaptation and evidence. This supersedes preserving the previous authenticated Home
+composition below; original brand/entry assets remain. This first Home/tab surface does not complete
+the other screens, aggregate wiring or end-to-end device verification. Skills are implementation
+guidance; they do not override the owner's latest visual direction.
+
 Latest follow-up (2026-09-20 local): after the three mandatory handoff/owner-decision/AGENTS reads,
 read `docs/implementation/v5-ai-first/pkg023/PKG023J_HOME_ATTENTION.md`. The owner separately approved
 ONLY pkg023j, conditional on ready private preconditions. Its exact CI-proven transaction passed both
