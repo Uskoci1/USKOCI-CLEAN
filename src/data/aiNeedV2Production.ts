@@ -3,7 +3,7 @@ import type {
   AiNeedEditConfirmed, AiNeedEditOpened, AiNeedMessage, AiNeedSafety,
   AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedTurnRecovery, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
 } from '../contracts/aiNeedV2';
-import { NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
+import { MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { sesijaSada } from '../store/sesija';
@@ -228,8 +228,8 @@ function mapReview(raw: unknown, conversationId: string): (AiNeedV2Review & { st
   const r = exact(raw, ['conversationId', 'schemaVersion', 'status', 'boundNeedId', 'facts', 'missingRequired', 'safety', 'canSaveDraft']);
   if (!r || !sameId(r.conversationId, conversationId) || r.schemaVersion !== NEED_FACT_SCHEMA_V2
     || !STATUS.some(item => item === r.status) || !(r.boundNeedId === null || uuid(r.boundNeedId))
-    || !safety(r.safety) || typeof r.canSaveDraft !== 'boolean' || !Array.isArray(r.facts) || r.facts.length > 22
-    || !Array.isArray(r.missingRequired) || r.missingRequired.length > 22
+    || !safety(r.safety) || typeof r.canSaveDraft !== 'boolean' || !Array.isArray(r.facts) || r.facts.length > MAX_NEED_FACT_V2_PAYLOAD
+    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD
     || !r.missingRequired.every(key => typeof key === 'string' && isNeedFactV2Key(key) && NEED_FACT_V2_DEFINITIONS[key].requiredForDraft)
     || new Set(r.missingRequired).size !== r.missingRequired.length) return null;
   const facts: AiNeedV2Fact[] = [];

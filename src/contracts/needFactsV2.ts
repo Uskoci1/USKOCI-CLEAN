@@ -62,6 +62,17 @@ export const REQUIRED_NEED_FACT_V2_KEYS = NEED_FACT_V2_KEYS.filter(
   (key) => NEED_FACT_V2_DEFINITIONS[key].requiredForDraft,
 );
 
+/**
+ * The most V2 facts any payload may carry: the size of the registry itself.
+ *
+ * Five decoders spelled this `22`, which was the key count on the day they were written. Adding
+ * `need.price_basis` moved the count and left every one of them one short — and these decoders fail
+ * ALL-OR-NOTHING: a single fact they cannot place discards the whole review, not just that fact. So
+ * a maximal task would have gone blank rather than dropped one row. Derived from the list, so the
+ * cap can never again disagree with the thing it is a cap on.
+ */
+export const MAX_NEED_FACT_V2_PAYLOAD = NEED_FACT_V2_KEYS.length;
+
 export type NeedTaskGeographyMode =
   | 'STATIONARY'
   | 'POINT_TO_POINT'

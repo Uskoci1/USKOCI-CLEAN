@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import {
   NEED_FACT_V2_DEFINITIONS,
   NEED_FACT_V2_KEYS,
   AI_PROPOSABLE_NEED_FACT_V2_KEYS,
   REQUIRED_NEED_FACT_V2_KEYS,
+  MAX_NEED_FACT_V2_PAYLOAD,
 } from '../../contracts/needFactsV2';
 import {
   correctionFromText,
@@ -58,6 +61,19 @@ describe('RU-2 typed R02 → R07 contract', () => {
     ]));
     expect(NEED_FACT_V2_DEFINITIONS['need.exact_address'].privacyClass).toBe('PRIVATE');
     expect(NEED_FACT_V2_DEFINITIONS['need.access_notes'].privacyClass).toBe('PRIVATE');
+  });
+
+  // Five decoders capped a fact payload at the literal 22, which was the key count when they were
+  // written. Adding one key left all five a fact short, and they fail all-or-nothing: one fact they
+  // cannot place discards the WHOLE review. A maximal task would have gone blank, not lost a row.
+  it('caps a fact payload at the size of the registry, never at a number written by hand', () => {
+    expect(MAX_NEED_FACT_V2_PAYLOAD).toBe(NEED_FACT_V2_KEYS.length);
+    const decoders = ['aiNeedV2Production.ts', 'aiTaskReviewClientService.ts', 'supportCaseReadDecoders.ts'];
+    const stillHandWritten = decoders.filter(file => {
+      const source = readFileSync(join(__dirname, '..', file), 'utf8');
+      return !source.includes('MAX_NEED_FACT_V2_PAYLOAD') || / > 2[0-9]\b/.test(source);
+    });
+    expect(stillHandWritten).toEqual([]);
   });
 
   it('parses integer, boolean and arrays into typed values', () => {

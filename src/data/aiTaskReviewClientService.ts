@@ -1,6 +1,6 @@
 import type { AiNeedSafety, AiNeedV2FactSource, AiNeedV2FactStatus } from '../contracts/aiNeedV2';
 import type { NeedLocationInput } from '../contracts/location';
-import { isNeedFactV2Key, NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../contracts/needFactsV2';
+import { isNeedFactV2Key, MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../contracts/needFactsV2';
 import type { PublicationEvaluation, PublishNeedReceipt } from '../contracts/publication';
 import { normalizeNeedLocation, normalizeTaskGeography, locationRevision } from '../lib/location';
 import { calendarInstant } from '../lib/calendarTime';
@@ -100,8 +100,8 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     || typeof r.sourceTurnRevision !== 'number' || !Number.isSafeInteger(r.sourceTurnRevision) || r.sourceTurnRevision < 0
     || !timestamp(r.expiresAt) || (r.responseDeadline !== null && !timestamp(r.responseDeadline))
     || typeof r.canAccept !== 'boolean' || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(String(r.safety))
-    || !Array.isArray(r.publicProjection) || !Array.isArray(r.ownerPrivateProjection) || r.publicProjection.length + r.ownerPrivateProjection.length > 22
-    || !Array.isArray(r.missingRequired) || r.missingRequired.length > 22 || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && NEED_FACT_V2_DEFINITIONS[k].requiredForDraft)) return null;
+    || !Array.isArray(r.publicProjection) || !Array.isArray(r.ownerPrivateProjection) || r.publicProjection.length + r.ownerPrivateProjection.length > MAX_NEED_FACT_V2_PAYLOAD
+    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && NEED_FACT_V2_DEFINITIONS[k].requiredForDraft)) return null;
   const publicProjection = r.publicProjection.map(x => fact(x, 'PUBLIC')), ownerPrivateProjection = r.ownerPrivateProjection.map(x => fact(x, 'PRIVATE'));
   const all = [...publicProjection, ...ownerPrivateProjection];
   if (all.some(x => !x) || new Set(all.map(x => x?.key)).size !== all.length || new Set(r.missingRequired).size !== r.missingRequired.length) return null;

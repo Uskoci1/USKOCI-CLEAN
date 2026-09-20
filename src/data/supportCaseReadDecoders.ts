@@ -1,4 +1,4 @@
-import { isNeedFactV2Key, NEED_FACT_V2_DEFINITIONS } from '../contracts/needFactsV2';
+import { isNeedFactV2Key, MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_V2_DEFINITIONS } from '../contracts/needFactsV2';
 import { positiveInteger, record, timestamp } from './serverReceipt';
 import { supportKinds, type SupportDetail, type SupportInbox, type SupportMode, type SupportSnapshot } from './supportCaseTypes';
 import { decodeSupportReference, supportEnvelope, supportKeys as keys, supportSequence as sequence, supportUuid as uuid } from './supportCaseWire';
@@ -23,7 +23,7 @@ function publicPoint(raw: unknown) {
   const r = record(raw); return !!r && keys(r, ['label', 'city', 'area']) && Object.values(r).every(v => nullableText(v, 1000));
 }
 function publicFacts(value: unknown) {
-  if (!Array.isArray(value) || value.length > 22 || !unique(value, 'key')) return false;
+  if (!Array.isArray(value) || value.length > MAX_NEED_FACT_V2_PAYLOAD || !unique(value, 'key')) return false;
   return value.every(raw => {
     const f = record(raw);
     if (!f || !keys(f, ['key', 'value', 'displayValue', 'status']) || typeof f.key !== 'string' || !isNeedFactV2Key(f.key)
