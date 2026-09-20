@@ -1,6 +1,6 @@
 -- PKG-024a: the two Dogovor reads name the public profile of each side, as well as its account.
 --
--- A CANDIDATE. NOT APPLIED ANYWHERE. It waits for an explicit owner decision.
+-- Status, decisions and evidence: docs/implementation/v5-ai-first/pkg024/PKG024A_AGREEMENT_PROFILE_IDS.md
 --
 -- What is missing. Both reads of a Dogovor already join public.app_profiles on the agreement's own
 -- requester_profile_id / worker_profile_id to take a display name from it, and both return the two
@@ -55,7 +55,9 @@ begin
     select prosrc into strict v_body from pg_proc where oid = v_signature::regprocedure;
 
     -- The bodies this edits are the reviewed ones and nothing else.
-    if md5(replace(v_body, E'\r\n', E'\n')) is distinct from
+    -- chr(13)||chr(10) rather than an escaped literal: this text travels through a connector to be
+    -- applied, and a backslash escape is the one thing that has been mangled in transit before.
+    if md5(replace(v_body, chr(13) || chr(10), chr(10))) is distinct from
        (case when v_signature = v_workspace then '287afdd70b8c027fba4d50f9e41245cd'
              else 'f834365bd8dd43b1eac6c8213624e1dc' end) then
       raise exception 'PKG024A_BODY_IS_NOT_THE_REVIEWED_ONE: %', v_signature;
