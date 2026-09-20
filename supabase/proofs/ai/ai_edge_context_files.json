@@ -4,13 +4,13 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 44769,
-      "sha256": "faa2354e322463d26997286fa850e2d6b9d17fc26b3f91baae661b377749a2be"
+      "bytes": 46023,
+      "sha256": "a0a8ff1fc5a5e327e9a3979a7fad540902f367d2476ba80c583611dda9a633a1"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
-      "bytes": 5897,
-      "sha256": "8fa2bd0b7e3af90a0e3c41dcecad9c08e4ed4014440a83dea36eb92e6ef22e7a"
+      "bytes": 7029,
+      "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
@@ -39,29 +39,24 @@
     }
   ],
   "refrozen": {
-    "package": "V3-EDGE-LOG-FIX",
-    "date": "2026-09-19",
-    "reason": "Owner approval of 2026-09-19 (\"EDGE FIX — ODOBRENO\"). Since 169ce727 the handler logged the thrown message beside AI_PROVIDER_FAILED; for a JSON parse failure that message quotes the first characters of the raw provider output, and for any runtime error it is whatever the runtime wrote. The handler now logs the class of the failure from a closed list (its own thrown names, five runtime classes, or UNKNOWN) and nothing of what was thrown. No prompt, model, schema, request, answer or budget behaviour changed. This freeze also absorbs three commits of 2026-09-18 that changed frozen files without refreezing: 632afcea and 169ce727 (index.ts) and e1b2625d (needFactsV2.ts); the deployed v40 was byte-identical to that tree.",
+    "package": "PKG-025d-PRICE-BASIS",
+    "date": "2026-09-20",
+    "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
     "changedFiles": [
       {
         "path": "supabase/functions/uskoci-ai-interview/index.ts",
-        "bytesBefore": 41811,
-        "bytesAfter": 44769
+        "bytesBefore": 44769,
+        "bytesAfter": 46023
       },
       {
         "path": "src/contracts/needFactsV2.ts",
-        "bytesBefore": 5905,
-        "bytesAfter": 5897
-      },
-      {
-        "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-        "bytesBefore": 22252,
-        "bytesAfter": 25643
+        "bytesBefore": 5897,
+        "bytesAfter": 7029
       }
     ],
     "previousFreeze": {
-      "package": "PKG-014B",
-      "date": "2026-09-17"
+      "package": "V3-EDGE-LOG-FIX",
+      "date": "2026-09-19"
     }
   }
 }
