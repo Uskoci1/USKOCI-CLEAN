@@ -67,10 +67,15 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
         an event. The card that is already in front of them says it instead. */}
     {item.stanje === 'COMPLETED' ? <View style={s.statusRow}>
       <T variant="meta" tone="muted">Saradnja je završena — ocena pomaže drugima da izaberu.</T></View> : null}
+    {/* Name over relation, not beside it: "Objavio zadatak" is longer than the "Uskočio si" it
+        replaced, and on a real phone it pushed "Milos SLJIVIC" onto two lines. This is also the
+        shape every other person row in the app already uses. */}
     <View style={s.person}>
       <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>
-      <T variant="bodyStrong" style={s.personName}>{other?.ime ?? 'Druga strana'}</T>
-      {relation ? <T variant="meta" tone="muted">{relation}</T> : null}
+      <View style={s.personCopy}>
+        <T variant="bodyStrong" style={s.personName} numberOfLines={1}>{other?.ime ?? 'Druga strana'}</T>
+        {relation ? <T variant="meta" tone="muted">{relation}</T> : null}
+      </View>
     </View>
     {item.problemOtvoren ? <View style={s.problem}><T variant="meta" style={s.problemText}>Prijavljen je problem · pogledaj Dogovor</T></View> : null}
     {/* Until PKG-023a the list could not know that a change was waiting: a person saw it only after
@@ -154,7 +159,8 @@ const s = StyleSheet.create({
   people: { color: sys.color.ink, fontWeight: '600' },
   person: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   avatar: { width: 32, height: 32, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  initials: { color: sys.color.green, letterSpacing: 0 }, personName: { color: sys.color.ink, flexShrink: 1 },
+  initials: { color: sys.color.green, letterSpacing: 0 },
+  personCopy: { flex: 1, minWidth: 0, gap: 1 }, personName: { color: sys.color.ink },
   problem: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: sys.color.dangerSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
   problemText: { color: sys.color.danger, fontWeight: '600' },
   // A change waiting for an answer is a task, not a fault: the warm tone, not the red one.
