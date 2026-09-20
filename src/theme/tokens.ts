@@ -88,11 +88,12 @@ export const radius = {
   /** Glavna akcija na ekranu. */
   primary: 17,
   /** Zbijena kartica i kvadrat od 56px. */
-  cardCompact: 18,
-  /** Kartica. */
-  card: 22,
-  /** Plahta odozdo i velika površina. */
-  sheet: 28,
+  cardCompact: 20,
+  /** Kartica. Vlasnikov zahtev 2026-09-20: kartica treba da bude okrugla i mekana, ne oštra. */
+  card: 26,
+  /** Plahta odozdo i velika površina. Podignuta zajedno sa karticom: 26 i 28 se skoro slažu,
+   *  a dva ćoška koja se skoro slažu su gora od dva koja se jasno razlikuju. */
+  sheet: 32,
   /** Sve što je krug ili kapsula. */
   pill: 999,
 } as const;

@@ -1,5 +1,6 @@
 import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
 import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
+import { ResolvedPinMap } from '../../../ui/location/ResolvedPinMap';
 import { TaskQaEntry } from '../../../ui/qa/TaskQaEntry';
 import type { PublicProfileState } from '../../../ui/system/PublicProfileSheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -128,6 +129,10 @@ export default function PrilikaDetaljiEkran() {
       navigate(() => router.navigate({ pathname: '/pitanja-zadatka', params: { needId: fresh.id, own: '0' } }));
     }} /> : undefined}
     photos={fresh && !resource.loading && !resource.error ? <NeedPhotos needId={fresh.id} /> : undefined}
+    map={fresh && fresh.priblizno && !resource.loading && !resource.error
+      ? <ResolvedPinMap position={{ latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }} coarse disabled
+        onChoose={() => {}} scopeKey={`${accountId}:${epoch}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
+      : undefined}
     need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
     canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && relation.kind === 'NONE'}

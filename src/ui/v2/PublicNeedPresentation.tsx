@@ -21,13 +21,15 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
  * brand action, "Sastavi prijavu", only while the server accepts applications.
  * Presentation only; the route owns reads, deadline and guards.
  */
-export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa,
+export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa, map,
   onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto }: {
   need: PrilikaProjekcija | null; loading: boolean; error: boolean; missing: boolean; stale: boolean; busy: boolean;
   canApply: boolean; canRetry: boolean; back: () => void; retry: () => void; apply: () => void;
   /** What this account is to this task, from its own tasks and applications. Never from an app mode. */
   relation: TaskRelation; onOwnTask: () => void; onOwnApplication: () => void;
   photos?: ReactNode; qa?: ReactNode;
+  /** Where the job is, as an approximate pin. The map owns a focus lifetime, so the route builds it. */
+  map?: ReactNode;
   /** Owner decision 3: the requester's public profile as a sheet over the existing read. */
   onRequesterProfile?: () => void; requesterProfile?: PublicProfileState; onCloseRequesterProfile?: () => void; publicPhoto?: (profileId: string) => ReactNode;
 }) {
@@ -59,6 +61,11 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           <Fact icon={Users} label="Potrebno" value={needPeopleText(need.pokrivenost.ukupno)} note={`Popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
         </FactGrid>
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
+        {/* The place was four words of text — "Centar, Beograd" — on the screen where a person
+            decides whether the job is near enough to take. The point is approximate by design and
+            the exact address is only ever shared inside a Dogovor. */}
+        {!remote && map ? <View style={s.section}><SectionTitle>Gde je</SectionTitle>{map}
+          <T variant="note" tone="muted">Približno područje. Tačna adresa se deli tek u Dogovoru.</T></View> : null}
         {ready && !stale ? photos : null}
         {ready && !stale ? qa : null}
         <DisclosureGroup>

@@ -90,6 +90,25 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
   });
 
+  it('shows where the job is as an approximate pin, and shows no map when there is no point', async () => {
+    // Until 2026-09-20 the place was four words of text on the screen where a person decides
+    // whether a job is near enough to take. The point is deliberately coarse; the exact address
+    // belongs to the Dogovor, so `coarse` must stay on and the pin must not be draggable.
+    mockLoad.mockResolvedValue({ ...detail(), priblizno: { lat: 45.2671, lng: 19.8335 } });
+    await render();
+    expect(text()).toContain('Gde je');
+    expect(text()).toContain('Približno područje. Tačna adresa se deli tek u Dogovoru.');
+    const map = tree!.root.findByProps({ coarse: true });
+    expect(map.props.position).toEqual({ latitude: 45.2671, longitude: 19.8335 });
+    expect(map.props.disabled).toBe(true);
+
+    await act(async () => { tree!.unmount(); }); tree = undefined;
+    mockLoad.mockResolvedValue(detail());
+    await render();
+    expect(text()).not.toContain('Gde je');
+    expect(tree!.root.findAllByProps({ coarse: true })).toHaveLength(0);
+  });
+
   it('opens the real composer once and never submits directly', async () => {
     mockLoad.mockResolvedValue(detail()); await render();
     const press = buttons('Sastavi prijavu')[0].props.onPress;
