@@ -1,6 +1,6 @@
 # Home exploration outcome — 20 September 2026
 
-Status: PROPOSAL; native implementation awaits visual review. Figma file: ATgMxtsCfMLPo8rq5N489u.
+Status: REJECTED BY OWNER on 20 September 2026. The owner judged the result visually poor, generic and below the requested standard. The recommendation of A below is withdrawn and retained only as historical reasoning. None of these frames is approved for implementation. Figma file: ATgMxtsCfMLPo8rq5N489u.
 
 ## Delivered
 - Page 44:2, **10 Home — new compositions**: three compositions × empty/active/attention = nine specimens, plus four QA specimens (360-width long title, partial read, applicant selection/server attention, loading).
@@ -24,4 +24,3 @@ All four attention rules are represented across the set. Non-stale server attent
 Only design documents and Figma proposals changed. No native app code, dependencies, accounts, DEV records, migrations, secrets or paid provider calls. Earlier Figma pages remain intact. No new Jest/TypeScript/CI pass is claimed for this design-only work.
 
 Next: owner visual review, refine the selected composition and missing component states, then implement the approved Home slice against the existing contracts and verify on the connected phone. Other major surfaces still need their own evidence, three compositions and state coverage.
-

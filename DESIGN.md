@@ -4,6 +4,8 @@ Date: 2026-09-20. **Proposed direction; not approved for implementation.**
 
 This is the current root design authority. The older product-design-truth location points here. Git retains historical visual proposals. New owner instructions override the old role-based navigation, white-screen styling, fixed Home composition and rejected first Figma round.
 
+Owner taste calibration: **Airtasker, Taskrabbit, Wolt, Airbnb and Uber** (20 September). The A/B/C Home proposal was rejected and its recommendation withdrawn. The replacement D/E/F drafts, source limits and unverified behavior are recorded in [HOME_RESTART_DIRECTION_20260920.md](docs/design/HOME_RESTART_DIRECTION_20260920.md). They are not approved. Use the references to rethink composition and content; do not copy competitor assets, ratings, guarantees or product capabilities.
+
 ## 1. Start with the product, not its old screens
 
 **Preserve functional truth. Question visual legacy.**
