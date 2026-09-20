@@ -29,13 +29,18 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
       const second = parsed >= 0n ? parsed / 1_000_000n : (parsed - 999_999n) / 1_000_000n;
       const offsetMinutes = Number((wall - second * 1_000_000n) / 60_000_000n);
       const offset = `UTC${offsetMinutes < 0 ? '−' : '+'}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
-      return { text: `${displayDate(parts.date)} ${parts.date.slice(0, 4)} · ${time}`, offset };
+      return { text: `${displayDate(parts.date)} ${parts.date.slice(0, 4)} · ${time}`, offset, date: parts.date, time };
     } catch { return null; }
   };
   const start = instant(schedule.startsAt), end = instant(schedule.endsAt);
   // Repeated civil times across a DST change need both offsets to remain exact.
   const shifted = start && end && start.offset !== end.offset;
-  const range = start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${end.text}${shifted ? ` ${end.offset}` : ''}`
+  // A window that begins and ends on one day named that day twice: "20. sep 2026 · 06:38:53 –
+  // 20. sep 2026 · 09:38:53". The second date says nothing the first did not. The exact instant is
+  // kept to the microsecond, because for a Dogovor that is the thing being agreed.
+  const sameDay = !!start && !!end && start.date === end.date;
+  const endText = sameDay ? end!.time : end?.text;
+  const range = start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
     : start ? `Od ${start.text}` : end ? `Do ${end.text}` : null;
   const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilan raspon · ';
   // A zone the reader is already standing in does not need to be named; a different one does.

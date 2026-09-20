@@ -220,6 +220,22 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     for (const key of ['category', 'ends_at', 'schedule_kind', 'task_country_code', 'task_timezone', 'need_geography(public_topology)', 'need_requirement_details(critical_conditions)']) expect(selection).toContain(key);
     expect(selection).not.toMatch(/need_sensitive|exact_address|resolved_location|exact_lat|requester_account_id/);
   });
+  it('names one day once, and keeps the exact instant it was given', async () => {
+    // On a phone this read "20. sep 2026 · 06:38:53 – 20. sep 2026 · 09:38:53". The second date says
+    // nothing the first did not. The seconds stay: for a Dogovor the exact instant is the thing
+    // being agreed, and my-applications-native pins it to the microsecond.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, task_timezone: 'Europe/Belgrade',
+      starts_at: '2026-09-20T04:38:53.000000Z', ends_at: '2026-09-20T07:38:53.000000Z' } });
+    const sameDay = (await needClientService.potreba(rawNeed.id))!.vremeTekst;
+    expect(sameDay).toContain('06:38:53'); expect(sameDay).toContain('09:38:53');
+    expect(sameDay.split('2026').length - 1).toBe(1);
+
+    // Across two days both are named, because then the second one is the news.
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, task_timezone: 'Europe/Belgrade',
+      starts_at: '2026-09-20T20:00:00.000000Z', ends_at: '2026-09-21T04:00:00.000000Z' } });
+    const across = (await needClientService.potreba(rawNeed.id))!.vremeTekst;
+    expect(across.split('2026').length - 1).toBe(2);
+  });
   it('reads the coarse point the owner never asked for, and never a precise one', async () => {
     // The public reader hands `approximate_lat/lng` to every signed-in viewer as `pin`; the owner's
     // own read did not select them, so a stranger saw the Task on a map and its owner did not. The
