@@ -1,7 +1,24 @@
 # PKG-024a — the two Dogovor reads name each side's public profile
 
-**Status: CANDIDATE. NOT APPLIED. Waiting for an explicit owner decision.**
+**Status: APPLIED to canonical DEV `leqcwgzvjsxugfgzdmth` on 2026-09-20.**
 Candidate: `supabase/candidates/pkg024a_agreement_profile_ids.sql`
+Ledger row: version `20260920102238`, name `dev_alpha_pkg024a_agreement_profile_ids`.
+
+### Readback
+
+| | |
+| --- | --- |
+| `requesterProfileId` / `workerProfileId` | exactly once in each body |
+| `requesterAccountId` / `workerAccountId` | still exactly once in each body |
+| envelope | `prosecdef`, `stable`, `search_path=pg_catalog` — unchanged in both |
+| grants | `anon` no, `authenticated` yes — unchanged in both |
+| new body md5 | `06a6485e5bf6c12b6d4c22d1668ecf76` · `c5239ccdc2ffe8f54c661fb7cbf2e335` |
+| `private.retention_ai_source_ready()` | still `true` — the closure source digest was not disturbed |
+| ledger | **166 = 147 frozen source + 19 dev_alpha** |
+
+**The stored statement's sha256 is `73338bd165d62df273274311080b5c63c8547cc9a6a5fe31f672a6db17f4236c`,
+identical to the candidate file's.** Byte for byte, nothing was mangled in transit — which is why the
+escape sequence was taken out of the file first.
 
 ## The finding
 
@@ -82,12 +99,13 @@ with real accounts, asserting the client's decoder fails before and passes after
 harness, it needs CI, and it has not been run. Until it has, this document claims only that the
 preconditions hold and the edit lands where it is meant to.
 
-## Client work this unblocks — not done, on purpose
+## Client work — done, once the server was sending it
 
-`UcesnikProjekcija` would gain a `profilId`, `agreementClientService` would carry it from the two
-new keys, and `AgreementPeople` / the Dogovori row would draw `ProfilePhoto` instead of initials.
-None of it is written: a client that reads a key the server does not send is a second bug, so the
-wiring waits for the candidate to be applied.
+`UcesnikProjekcija` carries `profilId`, and its type says in words that `id` is an ACCOUNT id that
+must not be used to read a photograph. `agreementClientService` fills it from the two new keys, and a
+missing or malformed one stays `null` rather than becoming a wrong read. `AgreementPeople` and the
+Dogovori row draw `ProfilePhoto` where there is a profile to draw it by, and keep the initials
+exactly as they were where there is not.
 
 ## Owner decision needed
 
