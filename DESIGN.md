@@ -6,6 +6,8 @@ This is the current root design authority. The older product-design-truth locati
 
 Owner taste calibration: **Airtasker, Taskrabbit, Wolt, Airbnb and Uber** (20 September). The A/B/C Home proposal was rejected and its recommendation withdrawn. The replacement D/E/F drafts, source limits and unverified behavior are recorded in [HOME_RESTART_DIRECTION_20260920.md](docs/design/HOME_RESTART_DIRECTION_20260920.md). They are not approved. Use the references to rethink composition and content; do not copy competitor assets, ratings, guarantees or product capabilities.
 
+Latest Home clarification: the owner confirmed Home as the shared hub for **own tasks, incoming candidates, outgoing applications, agreements and attention**. The public-discovery emphasis of the restart is superseded by this personal-hub requirement. [HOME_PERSONAL_HUB_20260920.md](docs/design/HOME_PERSONAL_HUB_20260920.md) records the revised local prototype and its limits. Functional agreement is not visual approval.
+
 ## 1. Start with the product, not its old screens
 
 **Preserve functional truth. Question visual legacy.**
