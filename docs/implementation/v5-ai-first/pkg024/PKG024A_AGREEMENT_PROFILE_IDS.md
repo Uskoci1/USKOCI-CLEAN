@@ -107,8 +107,12 @@ missing or malformed one stays `null` rather than becoming a wrong read. `Agreem
 Dogovori row draw `ProfilePhoto` where there is a profile to draw it by, and keep the initials
 exactly as they were where there is not.
 
-## Owner decision needed
+## What is still not proven
 
-1. Apply `pkg024a` to canonical DEV? The standing rule is that no migration is applied without a
-   separate explicit approval, and this one has not been given.
-2. If yes: run the CI proof first, then the read-only preflight, then apply, then read back.
+The executable CI proof — applying to a disposable database with real accounts and asserting the
+client's decoder fails before and passes after — has **not** been run. What stands instead is the
+read-only preflight below, the transaction's own fourteen assertions, and the readback at the top.
+That is weaker than the house harness and this document does not pretend otherwise.
+
+The device pass for this change is also outstanding: the photo in the Dogovor has been wired but not
+yet seen on a phone.
