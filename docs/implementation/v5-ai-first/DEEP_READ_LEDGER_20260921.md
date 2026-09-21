@@ -35,7 +35,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 5 | AI interview, review, publication | read 2026-09-21 — see findings |
 | 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
 | 7 | Client data layer, file by file | read 2026-09-21 — all 91 files, each checked against the server functions it calls (7.1–7.59) |
-| 8 | Routes and screens, file by file | in progress — all 48 route files and all 107 `src/ui` files read (8.1–8.26); hooks next |
+| 8 | Routes and screens, file by file | read 2026-09-21 — 48 routes, 107 screen files, 11 hooks, stores, lib, features, contracts (8.1–8.28) |
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
 
@@ -635,7 +635,7 @@ intake and carry one formal line ("Kako biste ukratko nazvali ovaj posao?") that
 
 **Area 7 is complete: all 91 files of `src/data` read in full.**
 
-### Area 8 — Routes and screens (in progress)
+### Area 8 — Routes and screens (complete)
 
 Scope: 48 route files in `src/app` (5,183 lines), 107 screen files in `src/ui` (10,458 lines), the 11 hooks.
 Read so far, in full: both layouts, `+native-intent.tsx`, `auth.tsx`, the sixteen small routes
@@ -926,6 +926,35 @@ tells a person it can. `referenceEntry/ReferenceEntryHero.tsx` and its data file
 imported by no production file — one test mocks them — which matches AGENTS calling that directory an
 older donor; `entry/BrandScene`'s `BrandScene` component is likewise used only by a test. `v2/icons.tsx`
 says of itself that it is no longer drawn and is kept on purpose as a supplied asset.
+
+#### Hooks, stores, lib, features, contracts, bootstrap — read in full
+
+All 11 hooks; `store/{sesija,uloga,pendingRoute,povratniCilj,passwordRecoveryIntent}`; all 16 `lib` files;
+`features/voice/{holdToTalk,nativeSpeechAdapter,speechProtocol,useHoldToTalk}` and
+`features/media/nativePhotoPicker`; the runtime parts of the 23 `contracts` files (the rest are types);
+`bootstrap/*`; `theme/tokens.ts`. With them: `private.need_fact_registry`.
+
+**8.27 — rule, needs an owner decision. Three answers to "in which zone is an agreed time shown".**
+`lib/dogovorenoVreme.ts` pins Europe/Belgrade for a worker's proposed window and argues that a TERM
+"must read the same on both phones". `agreementClientService` shows the accepted Agreement window in the
+reader's own phone zone and argues that this "is what a time is read in". `dogovor/[id].tsx` pins Belgrade
+again for the confirmation deadline, and the Agreement-change screen types and shows the new terms in the
+device zone. Both comments are reasoned; they contradict each other. For two people in Serbia every one
+of them prints the same clock time; for a person abroad the same Dogovor reads two ways on two screens.
+
+**8.28 — note, verified.** The client fact registry (`NEED_FACT_V2_DEFINITIONS`, 23 keys) matches
+`private.need_fact_registry` exactly — every key, value type, required-for-draft flag and privacy class.
+The session store bounds its restore at 8 s and counts every change of identity, so A→B→A is visible to
+every guard. `povratniCilj` keeps NEED, DOGOVOR and REQUESTER_DRAFT return targets that no code ever
+writes — its only writer stores `{ kind: 'NONE' }`, as `pendingRoute.ts` itself says; after signing in the
+entry choice opens `/mapa` or `/nova`, and a remembered route wins over both. Speech is Android-only (the
+native module `UskociVoice`); on iOS the microphone reports "Govorni unos još nije povezan". The token
+travels in a WebSocket header, never the URL; audio is PCM in bounded chunks; nothing spoken is sent to
+the conversation until the person presses Pošalji. The photo picker reads nothing from EXIF, re-encodes
+before upload, and deletes only its own cache copies. Motion tokens exist (`press 120`, springs), and seven
+production files use the animation runtime.
+
+Area 8 is complete: 48 route files, 107 screen files, 11 hooks and the client support code.
 
 ### Area 9 — HITNO, categories, and matching
 
