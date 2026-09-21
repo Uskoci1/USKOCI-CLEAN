@@ -110,6 +110,9 @@ Files read in full since, one section each below: `agreementClientService.ts`, `
 `workerProfileClientService.ts`, `dataExportClientService.ts`, `accountClosureClientService.ts`, `closureExecutionClientService.ts`,
 `mediaClientService.ts`, `legalClientService.ts`, `publicationClientService.ts`, `needLifecycleController.ts`, `needLifecycleClientService.ts`,
 `dataExportDeliveryService.ts`, `preselectionQaClientService.ts`, `qaSubmissionClientService.ts`, `qaRecoveryClientService.ts`,
+`applicationClientService.ts`, `myApplicationsClientService.ts`, `ru4Production.ts`, `applicationCommandJournal.ts`,
+`agreementMessageClientService.ts`, `groupConversationService.ts`, `agreementPhotoClientService.ts`, `agreementCompletion.ts`,
+`agreementCurrentLocationService.ts`, `safetyClientService.ts`, `authClientService.ts`,
 `legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
 caller's constant fallback, never a server string).
 
@@ -509,6 +512,50 @@ every question and every answer is classified by the AI provider before the cano
 reads never call the provider. `preselectionQaClientService.askQuestion`/`answerQuestion` (the direct
 writers) have no caller; its reads and `dispositionQuestion` are used. `private.ru4b_assert_rate_authority_ready`
 raises unconditionally and has no caller left — dead.
+
+#### `applicationClientService.ts` (98), `myApplicationsClientService.ts` (78), `ru4Production.ts` (114) — read in full, with `rpc_list_my_applications`
+
+**7.49 — defect, server, latent. A cancelled Agreement leaves the worker's application "izabrana" forever.**
+`rpc_list_my_applications` maps a response to `SELECTED` when *any* Agreement names it
+(`agreement_id is not null`), whatever that Agreement's status, and sets `attentionRequired` for every
+`SELECTED` row, which also sorts it to the top. `rpc_cancel_agreement` sets the response to `NOT_SELECTED`
+but the Agreement row remains — so after a cancel, "Moje prijave" shows that application as chosen and
+needing attention, at the top, permanently, opening a cancelled Agreement. (The Home is spared:
+`composeActivities` moves a `SELECTED` row whose Agreement is not active into history.) Not reachable
+today: the three Agreements on DEV are all `CONFIRMED`. Every state the server can emit is in the client's
+allowed set, so the list itself never fails on a state.
+
+**7.50 — note.** `ru4Production.resolveChangedApplication` accepts any non-error answer as success and
+falls back to the version it sent when the receipt names none — the pattern `povuciPrijavu`'s own comment
+says was removed there for exactly that reason. Harmless today: both branches of
+`rpc_resolve_stale_response_after_need_edit` always return `version` and `status`.
+
+#### `applicationCommandJournal.ts` (80), `agreementMessageClientService.ts` (81), `groupConversationService.ts` (88) — read in full
+
+**7.51 — note, well built; one stale comment.** The application journal keeps exactly one unresolved
+command per account and task, refuses to replace it with a new key, and retires only the exact command it
+saved. The message service binds each send to the account and a client key and turns a missing receipt
+into "unknown", never "failed"; its closing comment "Inert until the accepted forward contract is live and
+the real screen is bound" is stale — `useAgreementOutbox` binds it to the live chat. The group
+conversation decoders check membership (≤ 51), keyset pages (≤ 50, strictly ordered within the cursor)
+and that `mine` agrees with the sender.
+
+#### `agreementPhotoClientService.ts` (130), `agreementCompletion.ts` (37), `agreementCurrentLocationService.ts` (55) — read in full
+
+**7.52 — note, verified complete.** Every refusal `rpc_mark_work_done` (14 codes) and `rpc_confirm_completion`
+(10) can raise has its own sentence in `completionErrors`, and every refusal of the two live-location
+functions is mapped — the completion path, never exercised by a person, at least says the right thing
+when it refuses. Agreement photos are bound to the exact Agreement version, and a photo message is
+accepted only if its text, version and client key match the chat row it decorates.
+
+#### `safetyClientService.ts` (114) and `authClientService.ts` (96) — read in full
+
+**7.53 — note.** Blocking and private safety reports map every refusal their five functions raise; a
+report's text is never read back to its target, and the block list is keyset-paged by target id. The
+reports land in the safety inbox that has no operator (7.31). Auth never shows a provider message: rate
+limits, outages and each operation's failure get one fixed sentence each; sign-up carries no legal
+acceptance step (there is nothing published to accept, 7.43); logout revokes this device's push
+registration first, then signs out only this device's session.
 
 ### Area 9 — HITNO, categories, and matching
 
