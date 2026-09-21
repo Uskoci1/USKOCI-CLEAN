@@ -19,7 +19,8 @@ the installed candidate-state vocabulary and receipt shape.
 
 Proof: exact replay through PKG-034, before/after scenarios using actual readers and final selection,
 owner/spoof/anonymous controls, total-history preservation, precise surface diff and unchanged closure
-certificate. All synthetic records are inside rolled-back transactions on the disposable database.
+certificate. SQL scenarios use rolled-back transactions. A separate real Auth/PostgREST check uses local
+synthetic accounts and a committed local task, discarded with the disposable stack; no DEV fixtures.
 No existing data, trigger, policy, table, certificate, JWT setting, dependency or provider is changed.
 
 Pending: run and inspect CI proof, client regression tests, read-only DEV preflight and authorized apply.

@@ -85,6 +85,8 @@ jobs:
         run: |
           set -euo pipefail
           node supabase/proofs/pkg035/pkg035_proof.mjs after | tee "$PRE_V3_ARTIFACT_DIR/after.log"
+      - name: Prove computed field through actual local Auth and PostgREST
+        run: node supabase/proofs/pkg035/pkg035_rest.mjs
       - name: Stop disposable database
         if: always()
         shell: bash

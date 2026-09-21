@@ -132,6 +132,7 @@ if(mode==='after'){
  report.after={};
  for(const [label,c,count,state] of cases){
   const s=scenario(label,c);report.after[label]=s;
+  save(); // Keep the failing scenario's observations as evidence, too.
   assert.equal(s.actionable,count,label);assert.equal(s.target.state,state,label);assert.equal(s.target.canSelect,count===1,label);
   assert.equal(s.actionable,s.candidates.filter(x=>x.canSelect).length,label);
   assert.equal(s.home.counts.attention,count?1:0,label);assert.equal(s.home.counts.attentionMore,0,label);

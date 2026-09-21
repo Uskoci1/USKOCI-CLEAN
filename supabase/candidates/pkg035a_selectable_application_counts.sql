@@ -41,7 +41,7 @@ begin
   remaining:=greatest(n.required_slots-public.fn_need_covered_slots(n.id),0);
   for c in
     select r.*, v.need_revision as version_revision, v.content_hash, v.price_rsd as version_price,
-      v.covered_slots as version_slots, v.proposed_start_at, v.proposed_end_at,
+      v.covered_slots as version_slots, v.proposed_start_at as version_start, v.proposed_end_at as version_end,
       p.account_id as profile_account, p.kind, p.profile_status, p.display_name, p.city, p.skills, p.team_capacity,
       exists(select 1 from public.agreements a where a.selected_response_id=r.id) as has_agreement
     from public.marketplace_responses r
@@ -70,12 +70,12 @@ begin
       when c.status in ('SUBMITTED','DELIVERED','VIEWED','SHORTLISTED') then 'SELECTABLE'
       else 'CLOSED' end;
     if candidate_state='SELECTABLE' then
-      s:=coalesce(c.proposed_start_at,case when n.schedule_kind='FIXED_WINDOW' then n.starts_at end);
-      e:=coalesce(c.proposed_end_at,case when n.schedule_kind='FIXED_WINDOW' then n.ends_at end);
-      if (c.proposed_start_at is null)<>(c.proposed_end_at is null)
+      s:=coalesce(c.version_start,case when n.schedule_kind='FIXED_WINDOW' then n.starts_at end);
+      e:=coalesce(c.version_end,case when n.schedule_kind='FIXED_WINDOW' then n.ends_at end);
+      if (c.version_start is null)<>(c.version_end is null)
         or (s is null)<>(e is null)
         or (s is not null and (not isfinite(s) or not isfinite(e) or s>=e))
-        or (c.proposed_start_at is null and n.schedule_kind='FIXED_WINDOW' and (s is null or e is null)) then
+        or (c.version_start is null and n.schedule_kind='FIXED_WINDOW' and (s is null or e is null)) then
         candidate_state:='STALE';
       else
         eligible:=coalesce((private.match_detail_for_calendar_interval(n.id,c.worker_profile_id,s,e)->>'responseAllowed')::boolean,false);
@@ -177,7 +177,7 @@ $patch$;
 do $post$
 declare old record; actual record;
 begin
-  if (select md5(prosrc) from pg_proc where oid='private.need_candidate_states_v5(uuid)'::regprocedure) is distinct from 'dcadbeb34f599c4aad50c499e7fef1c6' then raise exception 'PKG035A_BODY_MISMATCH: private.need_candidate_states_v5(uuid)'; end if;
+  if (select md5(prosrc) from pg_proc where oid='private.need_candidate_states_v5(uuid)'::regprocedure) is distinct from 'b546f94be815edd5c645f734a612aef6' then raise exception 'PKG035A_BODY_MISMATCH: private.need_candidate_states_v5(uuid)'; end if;
   if (select md5(prosrc) from pg_proc where oid='public.selectable_application_count(public.needs)'::regprocedure) is distinct from 'fe53442f8b661d6f33d22a54e2a468a8' then raise exception 'PKG035A_BODY_MISMATCH: public.selectable_application_count(public.needs)'; end if;
   if (select md5(prosrc) from pg_proc where oid='public.rpc_list_need_candidates(uuid)'::regprocedure) is distinct from '15cb0fd9d891a4ce6d4fdc7ea79abcd1' then raise exception 'PKG035A_BODY_MISMATCH: public.rpc_list_need_candidates(uuid)'; end if;
   if (select md5(prosrc) from pg_proc where oid='public.rpc_home_attention()'::regprocedure) is distinct from '239f2477ae58ec92254edfdeda0455e7' then raise exception 'PKG035A_BODY_MISMATCH: public.rpc_home_attention()'; end if;
