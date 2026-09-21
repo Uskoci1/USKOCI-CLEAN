@@ -244,7 +244,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
     ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
     : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravi ga u razgovoru i pregledaj novu verziju.'
-    : outcome === 'REVIEW' ? 'Zadatak zahteva dodatnu proveru i još nije objavljen. Možeš da ga izmeniš.'
+    // Deep read 8.7: support has no operator yet (7.31), so a review request waits; saying so is the honest part.
+    : outcome === 'REVIEW' ? 'Zadatak zahteva ručnu proveru i još nije objavljen. Podrška još nema dežurnog operatera, pa je najbrže da ga izmeniš i ponovo pošalješ.'
     : outcome === 'BLOCK' ? 'Zadatak nije odobren za objavu. Pregledaj pravila i izmeni zahtev.'
     : evaluation?.kind === 'NOT_READY' ? 'Provera objave trenutno nije spremna. Tvoj zadatak je sačuvan kao privatan nacrt.'
     // ACCEPTED is exactly "the private draft exists and nothing after it has been confirmed", whether

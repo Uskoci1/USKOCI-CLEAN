@@ -21,7 +21,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
  const router=useRouter();
  const session=useSesija(),accountId=session.user?.id,accountRevision=session.accountRevision;
  const owner={accountId:accountId??'',accountRevision};const focus=useRef<object|null>(null),active=useRef(AppState.currentState!=='background'&&AppState.currentState!=='inactive'),locked=useRef(false);
- const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[review,setReview]=useState<ClosureExecutionReview|null>(null),[intent,setIntent]=useState<ClosureIntent|null>(null),[state,setState]=useState<ClosureExecutionState|null>(null),[absent,setAbsent]=useState(false);
+ const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[review,setReview]=useState<ClosureExecutionReview|null>(null),[intent,setIntent]=useState<ClosureIntent|null>(null),[state,setState]=useState<ClosureExecutionState|null>(null),[absent,setAbsent]=useState(false),[confirmingStart,setConfirmingStart]=useState(false);
  const live=(token:object|null)=>token!==null&&focus.current===token&&active.current&&!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
  async function readIntent(i:ClosureIntent,token:object){
   if(i.kind==='START'){
@@ -105,7 +105,13 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
    <SettingsAction label="Otvori privatnu podršku" kind="secondary" disabled={busy} onPress={support}/>
   </SettingsPanel>:null}
   {(terminal?state.retainedDatasets:review?.retainedDatasets)?.map(d=><SettingsInfo key={d.dataClass} title={closureClassLabels[d.dataClass]} last>Ograničeno čuvanje: {duration(d.retentionSeconds)} od pokretanja zahteva.</SettingsInfo>)}
-  {!intent&&review?.ready&&!state?<SettingsAction label="Pokreni zatvaranje naloga" kind="destructive" disabled={busy} onPress={start}/>:null}
+  {/* Deep read 8.18: the irreversible start used to be one tap. Now it runs, so it asks once more. */}
+  {!intent&&review?.ready&&!state&&!confirmingStart?<SettingsAction label="Pokreni zatvaranje naloga" kind="destructive" disabled={busy} onPress={()=>setConfirmingStart(true)}/>:null}
+  {!intent&&review?.ready&&!state&&confirmingStart?<SettingsPanel><T variant="bodyStrong">Da li sigurno zatvaraš nalog?</T>
+   <T>Posle ovog koraka nalog se zaključava i podaci se uklanjaju. To ne možeš da poništiš.</T>
+   <SettingsAction label="Da, trajno zatvori nalog" kind="destructive" disabled={busy} onPress={start}/>
+   <SettingsAction label="Odustani" kind="quiet" disabled={busy} onPress={()=>setConfirmingStart(false)}/>
+  </SettingsPanel>:null}
   {intent&&absent&&!state?<SettingsAction label={intent.kind==='START'?'Ponovi isti zahtev za zatvaranje':'Ponovi istu pripremu'} kind="destructive" disabled={busy} onPress={retry}/>:null}
   <SettingsAction label="Proveri stanje zahteva" kind="secondary" disabled={busy} onPress={refresh}/>
   {state?<SettingsAction label="Odjavi se sa ovog uređaja" kind="quiet" disabled={busy} onPress={logout}/>:null}
