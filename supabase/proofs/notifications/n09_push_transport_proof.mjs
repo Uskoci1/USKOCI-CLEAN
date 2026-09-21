@@ -107,7 +107,7 @@ try {
  check('ACTUAL_HANDLER_REAL_DATABASE_SYNTHETIC_EXPO_MINIMAL_PAYLOAD');isolate();const ownState=await get(owner,uid,t);await set(owner,uid,t,ownState.revision);event();let providerCalls=0;const readinessObservations=[];
  const serviceKey=env.RU5_DEVICE_SERVICE_ROLE_KEY;
  const runtime=loadPushHandler({env:name=>({SUPABASE_SERVICE_ROLE_KEY:serviceKey,SUPABASE_URL:'https://synthetic.supabase.co',EXPO_PUSH_TRANSPORT_ENABLED:'true'}[name]),fetch:async(target,init)=>{
-  if(target==='https://exp.host/--/api/v2/push/send'){providerCalls++;const data=JSON.parse(init.body);assert.equal(data.length,1);assert.equal(data[0].to,t);assert.equal(data[0].body,'Imate novo obaveštenje. Otvorite aplikaciju.');assert.deepEqual(data[0].data,{kind:'INBOX'});assert.equal(init.headers.apikey,undefined);return new Response(JSON.stringify({data:[{status:'ok',id:'actual_handler_synthetic_ticket'}]}),{status:200});}
+  if(target==='https://exp.host/--/api/v2/push/send'){providerCalls++;const data=JSON.parse(init.body);assert.equal(data.length,1);assert.equal(data[0].to,t);assert.equal(data[0].body,'Imaš novo obaveštenje. Otvori aplikaciju.');assert.deepEqual(data[0].data,{kind:'INBOX'});assert.equal(init.headers.apikey,undefined);return new Response(JSON.stringify({data:[{status:'ok',id:'actual_handler_synthetic_ticket'}]}),{status:200});}
   const parsed=new URL(target);assert.equal(parsed.origin,'https://synthetic.supabase.co');
   if(parsed.pathname==='/rest/v1/rpc/rpc_record_push_readiness'){
    // Successor telemetry (SQL 20260912131000, proven against a real database by

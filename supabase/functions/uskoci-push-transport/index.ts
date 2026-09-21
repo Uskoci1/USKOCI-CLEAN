@@ -105,7 +105,7 @@ Deno.serve(async req => {
      || begin.attemptId !== claim.attemptId || begin.leaseId !== claim.leaseId || begin.leaseExpiresAt !== claim.leaseExpiresAt || !live(begin.leaseExpiresAt)
      || typeof begin.expoPushToken !== 'string' || begin.expoPushToken.length > 256 || !/^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(begin.expoPushToken)
      || !['NORMAL', 'HIGH'].includes(String(begin.priority))) throw new Invalid();
-    body = [{ to: begin.expoPushToken, title: 'USKOČI', body: 'Imate novo obaveštenje. Otvorite aplikaciju.',
+    body = [{ to: begin.expoPushToken, title: 'USKOČI', body: 'Imaš novo obaveštenje. Otvori aplikaciju.',
      data: { kind: 'INBOX' }, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl: 0 }];
    } else body = { ids: [claim.ticketId] };
    let parsed: { result: Result; ticketId: string | null } = { result: kind === 'SEND' ? 'UNKNOWN' : 'RECEIPT_PENDING', ticketId: null };
