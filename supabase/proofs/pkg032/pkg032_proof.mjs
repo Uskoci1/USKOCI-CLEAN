@@ -81,10 +81,12 @@ if (mode === 'replay') {
   report.bodiesThatDifferFromCanonicalDev = differing;
   assert.deepEqual(differing, [], 'REPLAY_IS_NOT_CANONICAL_DEV ' + JSON.stringify(differing));
   pass('EVERY_BODY_PKG032_READS_OR_PATCHES_IS_CANONICAL_DEVS');
-  const c = certificate(); report.certificateAfterReplay = c;
-  assert.deepEqual({live: c.live, source: c.source, erasure: c.erasure, readyConstant: c.readyConstant, readyMasked: c.readyMasked, ready: c.ready},
-    {live: DEV_CERTIFIED, source: DEV_CERTIFIED, erasure: DEV_CERTIFIED, readyConstant: DEV_CERTIFIED, readyMasked: DEV_READY_MASKED, ready: true});
-  pass('THE_CERTIFICATE_IS_CANONICAL_DEVS_IN_ALL_THREE_PLACES_AND_READY');
+  // The replayed stack certifies its own value: its source digest differs from canonical DEV's in what the harness
+  // substitutes (as PKG-023f recorded), and the readiness function is canonical DEV's with that constant aside.
+  const c = certificate(); report.certificateAfterReplay = c; report.canonicalDevCertified = DEV_CERTIFIED;
+  assert.deepEqual({source: c.source, erasure: c.erasure, readyConstant: c.readyConstant, binding: c.binding, readyMasked: c.readyMasked, ready: c.ready},
+    {source: c.live, erasure: c.live, readyConstant: c.live, binding: c.live, readyMasked: DEV_READY_MASKED, ready: true});
+  pass('THE_CERTIFICATE_IS_BOUND_IN_ALL_THREE_PLACES_READY_AND_THE_READINESS_FUNCTION_IS_CANONICAL_DEVS_CONSTANT_ASIDE');
   save(); process.exit(0);
 }
 
@@ -257,7 +259,8 @@ if (mode === 'closure') {
   const {loadClosureWorker} = await import('../pre_v3/v5_closure_edge_runtime.mjs');
   const env = process.env;
   const cert = certificate(); report.closureCertificate = cert;
-  assert.equal(cert.ready, true); assert.equal(cert.live, cert.source); assert.notEqual(cert.live, DEV_CERTIFIED);
+  assert.equal(cert.ready, true); assert.equal(cert.live, cert.source);
+  assert.notEqual(cert.live, report.certificate?.before?.live, 'the closure runs on the re-bound certificate');
   // A real account (Auth sign-up and its own profiles) works a task for a synthetic requester and cancels it with a
   // reason, through the real API as itself.
   const closing = await rt.actor('pkg032-closing');
