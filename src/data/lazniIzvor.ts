@@ -25,11 +25,12 @@ import { noTaskRelations, taskRelationIndex } from './taskRelation';
 import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
 import { lazniAi, resetujAi } from './lazniAi';
 import { osoba } from '../ui/system/plural';
+import { novac } from '../lib/novac';
 
 const rsd = (iznos: number): Novac => ({
   iznos,
   valuta: 'RSD',
-  prikaz: `${iznos.toLocaleString('sr-Latn-RS')} RSD`,
+  prikaz: novac(iznos),
 });
 
 function pokrivenost(ukupno: number, popunjeno: number) {
@@ -526,7 +527,7 @@ export const lazniIzvor: Izvor = {
       inicijali: "VI",
       ocenaTekst: "Novo",
       recenzijeTekst: "Nema ocena",
-      cena: { iznos: k.cenaRsd, valuta: "RSD", prikaz: `${k.cenaRsd} RSD` },
+      cena: { iznos: k.cenaRsd, valuta: "RSD", prikaz: novac(k.cenaRsd) },
       pokrivaMesta: k.pokrivenaMesta,
       dolazakTekst: k.predlozeniPocetak ? new Date(k.predlozeniPocetak).toLocaleString("sr-Latn-RS") : "Dogovor",
       prevozTekst: "Dogovor",

@@ -17,6 +17,7 @@ import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
 import { AgreementActionsController, type AgreementActionsState } from './AgreementActionsController';
 import { journalFor, normalizeAgreementCommand, validProposal, type AgreementActionCommand } from './agreementActionsModel';
+import { novac } from '../../lib/novac';
 
 type Form = { token: object; kind: 'PROPOSE' | 'CANCEL'; reentry: boolean; key: string;
   price: string; scope: string; reason: string; zone: string; startDate: string; startTime: string; endDate: string; endTime: string;
@@ -30,7 +31,7 @@ const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && ter
   : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt }, deviceZone());
 function Terms({ title, terms }: { title: string; terms: AgreementChangeTerms | null }) {
   return <View style={s.group}><T style={s.heading}>{title}</T>{terms ? <>
-    <T style={s.copy}>Cena: {terms.priceRsd.toLocaleString('sr-Latn-RS')} RSD</T>
+    <T style={s.copy}>Cena: {novac(terms.priceRsd)}</T>
     <T style={s.copy}>{schedule(terms)}</T><T style={s.copy}>Obim: {terms.scopeNote || 'Nije dodat opis'}</T>
   </> : <T style={s.copy}>Uslovi nisu dostupni za pregled.</T>}</View>;
 }

@@ -3,6 +3,7 @@ import type { Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { positiveInteger, readOwnedResult, uuid } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
+import { novac } from '../lib/novac';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -24,7 +25,7 @@ function rsd(iznos: number) {
   return {
     iznos,
     valuta: 'RSD',
-    prikaz: `${iznos.toLocaleString('sr-Latn-RS')} RSD`,
+    prikaz: novac(iznos),
   };
 }
 

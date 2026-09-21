@@ -2,6 +2,7 @@ import type { NeedScheduleProjection, PotrebaProjekcija } from '../contracts/pro
 import { calendarInstant } from '../lib/calendarTime';
 import { locationSlots } from '../lib/location';
 import { displayDate, zonedParts } from '../ui/calendar/calendarPresentation';
+import { novac } from '../lib/novac';
 
 const SCHEDULE: Record<NeedScheduleProjection['kind'], string> = {
   FIXED_WINDOW: 'Tačan termin', FLEXIBLE: 'Fleksibilan termin', REMOTE_ANYTIME: 'Na daljinu, fleksibilno',
@@ -89,7 +90,7 @@ export function needPriceText(input: {
   if (input.osnovaCene === 'PER_PERSON') {
     const people = input.pokrivenost?.ukupno ?? 0;
     if (!options?.withTotal || people < 2 || !Number.isFinite(input.ponudjenaCena.iznos)) return `${amount} po osobi`;
-    return `${amount} po osobi · ukupno ${(input.ponudjenaCena.iznos * people).toLocaleString('sr-Latn-RS')} RSD`;
+    return `${amount} po osobi · ukupno ${novac(input.ponudjenaCena.iznos * people)}`;
   }
   if (input.osnovaCene === 'TOTAL') return `${amount} ukupno`;
   return amount;
@@ -115,7 +116,7 @@ export function needPriceBasisNote(input: {
   const people = input.pokrivenost?.ukupno ?? 0;
   const amount = input.ponudjenaCena?.iznos;
   if (people < 2 || typeof amount !== 'number' || !Number.isFinite(amount)) return 'po osobi';
-  return `po osobi · ukupno ${(amount * people).toLocaleString('sr-Latn-RS')} RSD`;
+  return `po osobi · ukupno ${novac(amount * people)}`;
 }
 
 export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {

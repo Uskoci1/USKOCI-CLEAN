@@ -18,6 +18,7 @@ import { V2Action } from './V2Action';
 import { pointsMissing } from '../../lib/location';
 import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import { aiFirst as a } from '../aiFirst/tokens';
+import { novac } from '../../lib/novac';
 
 // The point sheet reaches the native map through the point editor, so it loads only when opened.
 const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
@@ -62,7 +63,7 @@ function publicSummary(facts: AiNeedV2Fact[]) {
   return { title: typeof title === 'string' ? title : 'Zadatak u nastajanju', zone,
     schedule: schedule === 'FIXED_WINDOW' ? fixedRange(value('need.starts_at'), value('need.ends_at'))
       : typeof schedule === 'string' ? schedules[schedule] : undefined,
-    price: mode === 'OFFERS' ? 'Tražim ponude' : mode === 'MY_PRICE' && typeof amount === 'number' ? `${amount.toLocaleString('sr-Latn-RS')} RSD` : null,
+    price: mode === 'OFFERS' ? 'Tražim ponude' : mode === 'MY_PRICE' && typeof amount === 'number' ? novac(amount) : null,
     // The big number alone said 5.000 for a three-person task costing 15.000. The number stays the
     // card's signature; what it is FOR goes quietly under it.
     priceNote: mode === 'MY_PRICE' && typeof amount === 'number'

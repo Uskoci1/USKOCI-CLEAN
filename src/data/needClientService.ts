@@ -7,6 +7,7 @@ import { normalizeTaskGeography } from '../lib/location';
 import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 import { readNeedUrgencies } from './needUrgencyClientService';
+import { novac } from '../lib/novac';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -124,7 +125,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
         : {
             iznos: Number(cena),
             valuta: 'RSD',
-            prikaz: `${Number(cena).toLocaleString('sr-Latn-RS')} RSD`,
+            prikaz: novac(Number(cena)),
           },
   };
 }

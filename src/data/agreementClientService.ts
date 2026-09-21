@@ -7,6 +7,7 @@ import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, u
 import { calendarInstant } from '../lib/calendarTime';
 import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
+import { novac as novacTekst } from '../lib/novac';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -23,11 +24,12 @@ function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
   return legacyRpcFailure(error, code, message);
 }
 
+/** The money projection: the number, its currency, and the one way this app writes them together. */
 function novac(iznos: number, valuta = 'RSD') {
   return {
     iznos,
     valuta,
-    prikaz: `${iznos.toLocaleString('sr-Latn-RS')} ${valuta}`,
+    prikaz: novacTekst(iznos, valuta),
   };
 }
 

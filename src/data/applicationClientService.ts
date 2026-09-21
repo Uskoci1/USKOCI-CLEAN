@@ -2,6 +2,7 @@ import { legacyRpcFailure } from './legacyRpcFailure';
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../contracts/projections';
 import type { Ishod, Izvor, PovuciPrijavuKomanda } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { novac } from '../lib/novac';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -58,7 +59,7 @@ function mapApplication(raw: any): MojaPrijavaProjekcija {
     cena: {
       iznos: amount,
       valuta: 'RSD',
-      prikaz: `${amount.toLocaleString('sr-Latn-RS')} RSD`,
+      prikaz: novac(amount),
     },
     pokrivaMesta: coveredSlots,
     napomena: String(raw?.scopeNote ?? ''),

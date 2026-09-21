@@ -15,6 +15,7 @@ import type {
   Novac,
   Pokrivenost,
 } from '../contracts/projections';
+import { novac } from '../lib/novac';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_t, prop) => (supabaseKlijent() as never)[prop],
@@ -29,7 +30,7 @@ function handleRpcError<T>(error: unknown, defaultCode: string, defaultMessage: 
 const rsd = (iznos: number): Novac => ({
   iznos,
   valuta: 'RSD',
-  prikaz: `${iznos.toLocaleString('sr-Latn-RS')} RSD`,
+  prikaz: novac(iznos),
 });
 
 function pokrivenost(ukupno: number, popunjeno: number): Pokrivenost {
