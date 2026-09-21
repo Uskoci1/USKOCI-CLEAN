@@ -102,6 +102,10 @@ kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'
 and a server read cannot establish that. Two of those claims turned out to be wrong (7.2, 7.4). A full
 read of all 91 `src/data` files is still owed.
 
+Files read in full since, one section each below: `agreementClientService.ts`, `supabaseIzvor.ts`,
+`legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
+caller's constant fallback, never a server string).
+
 **7.1 — risk. An unmapped refusal is shown as "maybe it happened, retry".** `readOwnedResult` never shows a
 raw server code — an unknown code falls to `unconfirmed()`, deliberately. For a write that message is
 "Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja…". That is right for a timeout and wrong
@@ -134,6 +138,95 @@ covered, not a changed price.
 
 **7.7 — rule.** `PushPreferences.tsx:181` promises "prikazujemo samo da imaš novo obaveštenje"; the sender
 sends "Imate novo obaveštenje. Otvorite aplikaciju." (4.3).
+
+#### `src/data/agreementClientService.ts` — read in full (605 lines)
+
+**7.8 — risk, partly the assistant's own. One agreed instant is now rendered two ways.** `acceptedSchedule`
+shows the Agreement's accepted window in the VIEWER's device zone (`needScheduleText(…, viewerZone())`),
+with a comment explaining that UTC had printed every Belgrade window two hours early. Earlier the same day
+the assistant added `src/lib/dogovorenoVreme.ts`, which pins a worker's proposed start to Europe/Belgrade.
+A proposal becomes the Agreement's accepted window on selection, so the same instant now reads pinned on
+the application screen and device-local on the Agreement. They agree for anyone in Belgrade's offset and
+differ for anyone outside it. Both policies are defensible; applying both to one value is not. The right
+answer is the task's saved timezone for both — which neither payload carries yet.
+
+**7.9 — note, verified not a defect.** `mapAgreement` reads the state from `raw.status` and chat
+availability from `raw.agreementStatus`. Suspected that one might be absent and chat silently hidden.
+Checked both feeding RPCs: `rpc_list_my_agreements_page` and `rpc_get_agreement_workspace` each send both
+keys. Not a defect.
+
+**7.10 — rule, minor.** When the user's own name is missing the avatar falls back to initials `'VI'` —
+formal — while the name beside it falls back to `'Ti'`.
+
+**7.11 — note.** `const amount = Number(terms.price_rsd ?? 0)` shows "0 RSD" for a missing price, where the
+rest of this file fails closed to null. Unreachable today: `rpc_select_response` always writes `price_rsd`.
+
+**7.12 — note.** The Agreement's chronology is always one line, "Dogovor kreiran". Work marked done,
+completion and change decisions never appear in it.
+
+**7.13 — note, well built.** The completion receipt is decoded strictly (own agreement, `COMPLETED`, a real
+instant, authoritative); the paged list refuses at 20 pages instead of truncating silently; action
+capabilities are bound to the exact agreement, version and account and fail closed; the change and
+problem flows each carry their own mapped refusals.
+
+#### `src/data/supabaseIzvor.ts` — read in full (354 lines), with the server functions it leads to
+
+**7.14 — note. Two port methods have no screen behind them.** `supabaseIzvor.otkaziDogovor` and
+`potvrdiCinjenicu` are called only by the fake source and tests. The cancel the app really runs is
+`agreementClientService.ts:439`, from `AgreementActionsScreen` ("Otkazivanje Dogovora"). The bare
+`'Greška.'` fallback in both is therefore never shown. Dead code, not a defect.
+
+**7.15 — defect, server. The cancellation reason the app demands is thrown away.** The app requires
+"Razlog otkazivanja" (1–4,000 characters) and `rpc_cancel_agreement` refuses an empty one
+(`REASON_REQUIRED`). Then the body never writes it: `public.agreements` has 12 columns and none is a
+reason; the event payload is `{agreementId, state}`; the other party reads a fixed "Druga strana je
+otkazala Dogovor." Nobody — not the counterpart, not support — can ever see why. By contrast
+`rpc_close_remaining_search` does store its reason.
+
+**7.16 — risk, server; needs an owner decision. The requester can cancel after the worker says the work
+is done.** `private.agreement_action_state` sets `canCancel` for status `CONFIRMED` and execution
+`CONFIRMED` **or `AWAITING_REQUESTER`**, and `rpc_cancel_agreement` refuses only `COMPLETED`. So once the
+worker taps "gotovo", the requester is offered both "Potvrdi završetak" and "Otkaži Dogovor". Cancelling
+stops the 48-hour auto-completion (it needs status `CONFIRMED`), leaves the worker with no completed job
+and no right to rate (rating requires `COMPLETED`). The worker's only path is the problem flow. Also:
+the cancel does not bump the agreement version, and neither the body nor any of the 8 triggers on
+`agreements`/`agreement_execution` touches a pending change proposal — it stays recorded as pending,
+inert because answering requires `CONFIRMED`. The closure guard does apply (trigger
+`pre_v3_closure_agreement`).
+
+**7.17 — risk, server. The table, not the allowlisted reader, is the privacy boundary for a public
+task.** The list reader `rpc_list_open_tasks_v3` returns a narrow allowlist on purpose. But RLS policy
+`needs_public_discovery` lets every authenticated same-world account `SELECT` any `PUBLISHED`/`SELECTION`
+need, and `authenticated` holds `SELECT` on **all 42 columns** — including `requester_account_id`,
+`remaining_search_closed_by_account_id`, `remaining_search_close_reason` (free text, up to 500
+characters), `public_photo_paths` and `urgent_policy_version`. The app itself reads only the columns it
+shows (`prilika()` names them), so nothing leaks on screen; the exposure is anyone calling the REST API
+with their own session. Measured: 12 needs readable this way; 0 close reasons and 0 closed searches exist,
+and the app never sends a close reason (`ru4Production.closeRemainingSearch` defaults it to `''`), so
+today no free text is exposed. Also: closing the remaining search does not change status, so a closed
+search stays in this policy. Fix shape (not applied): column grants on `needs` for `authenticated`, or a
+detail reader like the list's.
+
+**7.18 — note. The list ignores the server's own "accepts applications".** `rpc_list_open_tasks_v3`
+computes `acceptsApplications` (free slots and a deadline still ahead) and does NOT filter out tasks whose
+response deadline has passed. `openTaskRow` drops that field, and the list labels every row
+`r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude'` — `ACTIVE` is never returned (the reader selects only
+`PUBLISHED`/`SELECTION`), so every row, including a past-deadline one, says "Traži ponude". The detail
+screen is correct: `primaNovePrijave` checks the deadline and `prilike/[id].tsx` re-checks it on a timer
+before allowing an application. Neither checks a past start — that is 5.1.
+
+**7.19 — note. The Agreement conversation.** Every bubble's time is
+`new Date(iso).toLocaleString('sr-Latn-RS')` — the default format, which includes the full date and
+seconds. The other party is labelled "Sagovornik", never by name, although the workspace carries the
+counterpart's name. The read has no limit: all messages of the agreement, ascending. No row ceiling is set
+in the database role configuration; the Supabase API's own row ceiling is a project setting not readable
+from SQL. If one applies, a long conversation would lose its NEWEST messages, silently, because the
+order is ascending. Not reachable with today's data.
+
+**7.20 — note, well built.** `poruke()` binds the read to the account before and after the query and
+validates every row strictly; `prilika()` refuses malformed capacity, deadline and closure instants
+instead of guessing; the open-task walk is keyset-paged and refuses at 25 pages rather than truncating;
+task relations are read in bounded batches of 100 and fail to "no label", never a wrong one.
 
 ### Area 9 — HITNO, categories, and matching
 
