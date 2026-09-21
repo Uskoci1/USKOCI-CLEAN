@@ -38,6 +38,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 8 | Routes and screens, file by file | read 2026-09-21 — 48 routes, 107 screen files, 11 hooks, stores, lib, features, contracts (8.1–8.28) |
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
+| 11 | Edge functions, file by file | read 2026-09-21 — all 18 files, deployed list compared (11.1–11.5) |
 
 ## Findings
 
@@ -955,6 +956,63 @@ before upload, and deletes only its own cache copies. Motion tokens exist (`pres
 production files use the animation runtime.
 
 Area 8 is complete: 48 route files, 107 screen files, 11 hooks and the client support code.
+
+### Area 11 — Edge functions, file by file (complete)
+
+Read in full: all 18 files in `supabase/functions` (3,281 lines) — `uskoci-ai-interview`,
+`uskoci-worker-interview`, `uskoci-qa-classify`, `uskoci-publication-evaluate`, `uskoci-media`,
+`uskoci-location-search`, `uskoci-speech-session/{index,proxy}`, `uskoci-account-closure-worker/{index,closure}`,
+`uskoci-data-export-{worker,download}`, `uskoci-push-transport`, and `_shared/{geminiTaskStream,aiTestBudget,
+data-export,mediaImageSanitizer}`. With them: the deployed list (11 functions, all `verify_jwt = true`,
+matching the 11 in the repository), `rpc_ai_test_budget_reserve_service`, `private.ai_test_budget_v5`,
+`rpc_claim_ai_task_review_evaluation_service`, the review-command and turn-command state counts, and the
+last 24 h of function logs.
+
+**11.1 — defect, the mechanism behind 8.17.** Every AI call is cut at a hard 12 seconds: the shared stream
+(`_shared/geminiTaskStream.ts`, `setTimeout(stop, 12000)`) and the non-streaming path (`boundedJson(…, 12000)`)
+alike. Once a turn is dispatched, no failure moves it out of `PROCESSING`: in `uskoci-ai-interview`,
+`retireAttempt()` returns at once when `dispatchUncertain` is set; `uskoci-worker-interview` calls `fail()`
+only for unparseable output, so a timeout, a provider error, a dropped client or a refused completion all
+leave the turn running; `uskoci-qa-classify` answers 502 without failing on a non-`STOP` finish or invalid
+output. With no sweep (8.17), that turn then blocks its conversation and the account's closure. Measured on
+`private.ai_need_turn_commands`: the 122 successful intake turns took 2.5 s at the median, 4.7 s at p90 and
+11.0 s at worst, claim to completion — the slowest success one second under the ceiling — and 15 of 137
+dispatched turns ended without an answer (12 later cancelled by the person, 3 still stuck). The function
+logs for 13–16 September are no longer retained (the 24-hour window holds no AI failure line), so which
+failure each of those was is not established here; the ceiling, "never fail after dispatch" and "no sweep"
+together are enough for one slow answer to freeze a conversation. Fix shape (Edge and SQL, needs approval):
+a ceiling that fits the answers actually seen, a dispatched-and-failed state for a definite local failure
+(timeout, provider error) that still forbids a second paid call but stops blocking, and the sweep in 8.17.
+
+**11.2 — risk, latent.** The publication evaluator has one 12-second deadline for everything: auth, context,
+downloading up to six photos, and a Gemini call at `MEDIA_RESOLUTION_HIGH`. Its claim moves an accepted
+review to `EVALUATING` with a 60-second lease, and `rpc_claim_ai_task_review_evaluation_service` re-acquires
+only from `ACCEPTED` — so an evaluation that times out after claiming answers "EVALUATOR_UNAVAILABLE" for
+that review forever, and the person has to prepare a new review. Not reached yet: no review is stuck in
+`EVALUATING` (9 published, 2 evaluated, 4 accepted), and no task has ever been published with a photo (0 of 18).
+
+**11.3 — risk, copy.** `uskoci-media` holds a single module-level `busy` flag, shared by every person whose
+request lands on that isolate. While one upload is being sanitized, anyone else's upload gets 429
+`MEDIA_UPLOAD_PENDING`, which the app shows as "Prethodno slanje još nije potvrđeno. Osveži prikaz." — about
+an upload that person never made; for Agreement photos the code is `MEDIA_BUSY`, which the app does not map.
+Serialising ImageMagick's memory is a reasonable reason; the sentence it produces is not true.
+
+**11.4 — note, the gates.** Every paid path is behind environment flags whose values cannot be read from
+here: `USKOCI_GEMINI_PAID_TEST_ENABLED` (all Gemini), `USKOCI_SPEECH_CONTROLLED_TEST_ENABLED` (speech),
+`USKOCI_QA_CLASSIFIER_ENABLED` (questions), `USKOCI_GEMINI_IMAGE_REVIEW_ENABLED` (photos at publication),
+`USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED` (the closure worker — which, per 6.1, nothing invokes either). The
+model is pinned to `gemini-3.8-flash` in four functions and `gemini-3.5-transcribe-live` for speech. The
+test budget's $5 ceiling is not enforced (`reservation_cap_enforced = false`, the owner-requested removal
+recorded in commit 8b14ac54); holds stand at $5.13 against it, and nothing but the flags limits further spend.
+
+**11.5 — note, verified and well built.** Location search keeps its key on the server, uses the fixed EU
+endpoint, rate-limits per person, and refuses the whole answer if any candidate is in another country —
+also for a reverse lookup near a border, which then reads "Predlozi trenutno nisu dostupni". The export
+download buffers the file and re-checks authority before releasing a byte. The closure worker never
+repeats a destructive request and settles each step by a separate read. The speech proxy keeps the Gemini
+key on the server (in the provider's own WebSocket URL form), bounds audio and transcript, and settles cost
+from the audio actually forwarded. The Edge functions' own error sentences are formal ("Prijavite se…",
+"Sačekajte…"), but the app never displays an Edge `message` — it maps codes — so no person reads them.
 
 ### Area 9 — HITNO, categories, and matching
 
