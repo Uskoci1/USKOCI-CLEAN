@@ -231,6 +231,11 @@ and the app never sends a close reason (`ru4Production.closeRemainingSearch` def
 today no free text is exposed. Also: closing the remaining search does not change status, so a closed
 search stays in this policy. Fix shape (not applied): column grants on `needs` for `authenticated`, or a
 detail reader like the list's.
+**Rechecked 2026-09-21, Codex:** current catalog has 41 live columns, all selectable by authenticated;
+7 PUBLISHED/SELECTION tasks, 0 nonempty close reasons, 0 closed searches. Risk remains open. The existing
+invoker list reads whole rows and owner filters need account_id privileges, so a blind column REVOKE can
+break current clients. See `PUBLIC_TASK_PRIVACY_INVESTIGATION_20260921.md` for complete-body evidence and
+the required public/owner/participant REST compatibility proof.
 
 **7.18 — note. The list ignores the server's own "accepts applications".** `rpc_list_open_tasks_v3`
 computes `acceptsApplications` (free slots and a deadline still ahead) and does NOT filter out tasks whose
@@ -1174,6 +1179,14 @@ workers learn it only by opening their list. `rpc_cancel_need`, by contrast, not
 `PENDING_WORKFLOW` only for a running intake turn; `closure_blockers_v5`, which gates the start, also counts
 worker-profile and Q&A turns and a running export. An account whose only running job is a worker-profile
 turn (12.3) is shown as ready, then refused at start with `CLOSURE_BLOCKED`.
+**Precision correction 2026-09-21, Codex:** preparation never reports executable readiness: its legacy
+execution flags are always false, and the actual dialog uses execution review. The proven defect is
+disagreement in blocker lists, not evidence that this screen offered START despite that running AI turn.
+**Applied 2026-09-21: PKG-034**, proof run `35654209245` (25 checks), DEV ledger190. Preparation now uses
+the executor's hard-blocker authority, projected into existing legacy receipt codes. Worker/Q&A jobs,
+media uploads and whole/scoped holds were reproduced before and verified after. 7.41's legacy readiness
+contract and 8.18's other-device recovery remain open. Receipt:
+`supabase/operations/dev-alpha/ledger/20260921_pkg034_application.receipt.json`.
 
 **12.11 — note, verified. Test and real accounts never see each other — and the real side is the owner
 alone.** `rpc_list_open_tasks_v3` is SECURITY INVOKER, so RLS decides: `needs_public_discovery` requires

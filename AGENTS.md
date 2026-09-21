@@ -1,5 +1,14 @@
 # USKOČI — repository entry map
 
+PKG-034 (2026-09-21, **proven and applied**): closure preparation now projects the certified executor's hard
+blockers into the existing five-code receipt contract (12.10). Ledger **190 = 147 + 43 dev_alpha**.
+Run `35654209245` passed 25 checks; exact applied text/body verified. No certificate move, grant change,
+existing-row rewrite or account deletion. Receipt:
+`supabase/operations/dev-alpha/ledger/20260921_pkg034_application.receipt.json`.
+Contract: `docs/implementation/v5-ai-first/pkg034/PKG034_CLOSURE_PREPARATION.md`.
+7.41 legacy readiness flags and 8.18 recovery on another device remain open. Android build run
+`35654417281` was dispatched on `d5e42242`; check its actual result before claiming an APK exists.
+
 PKG-033 (2026-09-21, **proven and applied**): application admission parity for deep read 3.1 / 7.3 / 12.6.
 Canonical DEV ledger is **189 = 147 + 42 dev_alpha**. Receipt:
 `supabase/operations/dev-alpha/ledger/20260921_pkg033_application.receipt.json`.

@@ -53,14 +53,31 @@ The owner already authorized this proven ordinary fix; no certificate move or JW
 Pre-apply impact query: 0 stale-review-required applications; 0 current fixed-price mismatches among
 SUBMITTED/DELIVERED/VIEWED/SHORTLISTED rows; ledger then188. No existing user data was rewritten.
 
+## PKG-034 completed in the screenshot follow-up
+
+- Read preparation, certified blocker authorities and actual ClosureDialog flow in full.
+- Prepared/proved/applied `pkg034a_closure_preparation_blockers.sql`: only preparation body changes;
+  it projects current hard blockers into the existing five-code receipt catalog.
+- Run `35654209245` at `d5e42242` passed 25 checks. Downloaded report/source binding inspected.
+- DEV ledger is now **190 = 147 + 43 dev_alpha**. Migration version `20260921210144`,
+  text SHA-256 `5272abd67a3d051037cf9bd3662b4d30adeb5b0e823303e432e5672328d95fd1`,
+  resulting body MD5 `2024fb850f50193253f5fbb7c016087c`, ACL/config match the proof.
+- Successful candidate asserts unchanged live certificate and readiness. Direct private digest
+  execution remains denied by the connector; never imply independent post-execution of it succeeded.
+- Receipt and package document: `supabase/operations/dev-alpha/ledger/20260921_pkg034_application.receipt.json`,
+  `v5-ai-first/pkg034/PKG034_CLOSURE_PREPARATION.md`.
+- 12.10 blocker disagreement is fixed. Clarified its old claim: preparation itself never said executable
+  READY and the dialog already uses execution review. Do not overstate a reproduced user-facing failure.
+- Android APK run `35654417281` was dispatched from `d5e42242`; it includes client `b4d5a5a9`.
+  Build was in progress at this checkpoint; verify outcome/artifact before claiming ready. No phone touched.
+
 ## Next findings investigated, not implemented
 
-12.10 / 7.41 / remaining 8.18 need more than removing a client label:
+7.41 / remaining 8.18 need more than removing a client label:
 
-- `private.account_closure_preparation(uuid)` md5 `e4bb4c0d3a7d1ebc682c28a01b605cd4` duplicates older blockers,
-  omits worker/Q&A AI turns, and hardcodes execution/auth/media readiness false. It is not in the explicit
-  certified function list; prove any change leaves the digest unchanged. Existing clients insist on those false
-  flags, so any response contract change needs client compatibility considered, not merely SQL replacement.
+- Preparation now uses the current hard blockers (PKG-034), but deliberately retains the legacy false
+  execution/auth/media flags. Existing clients insist on those flags; changing that contract requires
+  compatibility design. It is not in the explicit certified list; PKG-034 proved unchanged digest.
 - Actual start/review use `private.closure_erasure_hard_blockers_v5`, which wraps the certified
   `private.closure_blockers_v5` and deliberately excludes some scoped holds/media/support cases from hard blocking.
   Do not accidentally replace that distinction with the older blocker list.
@@ -75,10 +92,32 @@ SUBMITTED/DELIVERED/VIEWED/SHORTLISTED rows; ledger then188. No existing user da
   therefore needs a proven certificate rebind and the owner's **fresh explicit approval** before DEV application.
   Do not weaken the guard or invent a successful start receipt from discovered execution metadata.
 - Full bodies read: preparation, getter, review, start, read execution, hard blockers, document, progress,
-  restricted predicate, support authentication and API guard. No closure code changed yet.
+  restricted predicate, support authentication and API guard. Only preparation changed in PKG-034.
 
 Other open findings still need work: 7.17 public task column exposure; 7.32 candidate attention counts;
 7.1 RPC refusal audit; AI deadlines 11.1/11.2. Do not mark these fixed from PKG-033.
+7.17 investigation is retained in `v5-ai-first/PUBLIC_TASK_PRIVACY_INVESTIGATION_20260921.md`: 41 current
+columns, whole-row invoker list/computed coverage and owner filters mean a blind grant restriction can
+break current reads. No privacy grants or policies were changed.
+
+### 7.32 next: preserve history, count selectable applications separately
+
+Live full bodies read in the follow-up:
+`rpc_home_attention()` body MD5 `7371d4cddcebead2cb86d8f795d2ee01`;
+`rpc_list_need_candidates(uuid)` body MD5 `0b0d789cd5c4b8adcf0d025d4a5810e7`.
+The home aggregate explicitly retains the historical compatibility count (every visible non-draft response).
+Merely wiring it into Home therefore preserves 7.32. The client currently uses embedded response array length
+for both total count and attention. Preserve history and add a separately named actionable count.
+
+The candidate reader classifies SELECTABLE using profile readiness/capacity, revision, matching, task state
+and remaining capacity. It does not yet mirror PKG-033's new final price assertion at selection; it also calls
+`match_detail`, whereas reconfirmation validates the actual proposed calendar interval. Before treating its
+canSelect flag as the sole counting authority, compare it against the complete selection function.
+No new defect was reproduced from these differences, and no count change was implemented. Do not replace
+the wrong count with a simplistic status filter or an unbounded extra RPC for every task.
+
+Remaining original nine findings: 7.41, 7.17, 7.32, 7.1, 11.1, 11.2. Three were addressed by PKG-033/034.
+This does not include the separately tracked legal/phone decisions or device verification.
 
 ## Pending owner decision and app plan
 
