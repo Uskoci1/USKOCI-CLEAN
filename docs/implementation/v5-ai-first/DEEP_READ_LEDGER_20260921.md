@@ -103,7 +103,8 @@ and a server read cannot establish that. Two of those claims turned out to be wr
 read of all 91 `src/data` files is still owed.
 
 Files read in full since, one section each below: `agreementClientService.ts`, `supabaseIzvor.ts`,
-`aiNeedV2Production.ts`, `aiTaskReviewClientService.ts`, `aiNeedV2Ui.ts`,
+`aiNeedV2Production.ts`, `aiTaskReviewClientService.ts`, `aiNeedV2Ui.ts`, `agreementOutbox.ts`, `index.ts`, `ports.ts`,
+`supportCaseClientService.ts`, `needClientService.ts`, `homeSnapshot.ts`, `marketplaceView.ts`,
 `legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
 caller's constant fallback, never a server string).
 
@@ -295,6 +296,74 @@ client is stricter only on control characters and on Unicode-only whitespace. Me
 facts: 0 with control characters, 0 display values over 1,000, 0 with a null display (the server's
 fallback to raw JSON is never used). Edge caps (12 facts, 1,200-character reply) sit inside the client's
 (12, 1,500). The review safety fallback (`REVIEW` when no assistant message) matches the client's.
+
+#### `src/data/agreementOutbox.ts` (282 lines) and `src/data/index.ts` (77) — read in full
+
+`index.ts` composes the production source by spreading 13 services over `supabaseIzvor`, later ones
+winning; checked that none of them redefines `prilika`, `otvorenePrilike`, `poruke`, `otkaziDogovor`,
+`potvrdiCinjenicu` or `mojRadnikProfil`, so the readings in 7.14–7.19 are the ones that run. The fake
+source is reachable only in tests or with `EXPO_PUBLIC_USE_FAKE_SOURCE=1`; a missing Supabase
+configuration throws instead of falling back.
+
+**7.28 — risk. What the phone keeps after logout, and after an account is closed.** The outbox stores,
+per account and Agreement, every pending message and up to 50 sent ones — their full text — in
+AsyncStorage under `uskoci:agreement-outbox:v1:<account>:<agreement>`. Nothing ever removes that key: not
+when the Agreement ends, not at logout (`signOutLocal` only calls `auth.signOut({scope:'local'})`; the
+session store clears no storage), not after an account closure. The same holds for the other journals
+(application commands, AI turn intents, support and safety drafts) except the few that delete their own
+entry on completion; only the return target is cleared by the auth flow. Another account on the same phone
+cannot read these through the app — every key and every read is bound to the account id — but the text
+stays on the device. The 2026-09-02 draft legal constitution lists, as an Auth proof requirement,
+"logout clears sensitive local intent/workspace state".
+
+**7.29 — note, well built.** The outbox serialises every read-merge-write per key across remounts,
+never replays a send by itself, turns a lost answer into "unknown" instead of "failed", refuses a key
+reused for different text or photos, reconciles against the server's own rows by client key, sender, text
+and photos (never by text alone), and caps pending intents at 50 so failed storage cannot grow memory.
+
+#### `src/data/ports.ts` (251 lines) — read in full; its promises checked against the server
+
+**7.30 — note, verified.** The port comments make four behavioural promises, and each holds on the live
+server: cancelling frees only that one Agreement's slot (M06, `rpc_cancel_agreement`); marking work done
+opens a 48-hour window (M07); an open problem blocks auto-completion (M07, `rpc_tick_auto_completion`);
+a shared phone or location lasts until revoked or until the Agreement ends (OD-12). The last one was
+checked closely because no completion path revokes grants — only cancel, task cancel and the owner's own
+revoke do. It still holds: `rpc_reveal_contact` refuses unless the Agreement is `CONFIRMED`, so after
+completion the grant row stays `GRANTED` but nothing can read it. Stale: `poreklo`'s comment still says
+"'lazni' dok ne odobrimo Supabase".
+
+#### `src/data/supportCaseClientService.ts` (221 lines) — read in full, with the `rpc_support_*` functions
+
+**7.31 — note, product fact. Support has nobody to answer it.** Every refusal the support functions can
+raise is mapped (the one exception, `SUPPORT_HISTORY_IMMUTABLE`, is a table guard no command reaches).
+Submissions are journalled on the device, never replayed, and recovered by one canonical read. But the
+operator is a single row in `private.support_operator_grants_v5`, granted only by the service-role
+function `rpc_support_set_operator_service_v5` — and that table is empty. `rpc_support_capabilities_v5`
+returns `operatorAvailable` meaning "the caller is the operator", so a person is never told nobody is on
+the other side. Measured: 0 operators, 0 cases, 0 events, 0 decisions ever. The screens promise no reply
+time, which is right while this is so. The operator-only "Bezbednosni predmeti" inbox has the same
+empty reader.
+
+#### `src/data/needClientService.ts` (179), `homeSnapshot.ts` (168), `marketplaceView.ts` (68) — read in full
+
+**7.32 — defect, latent. "N prijava · čeka tvoj izbor" counts applications there is nothing to choose
+from.** `brojPrijava` is the length of the embedded `marketplace_responses(id)`, and the requester's RLS
+policy (`responses_requester_read`) returns every response except `DRAFT` — withdrawn, expired,
+not selected and already selected ones included. That one number drives the task's state
+(`PUBLISHED` + any response → "Čeka prijave"), the attention flag (`hasNeedAttention`: open slots and
+count > 0), the Home card "2 prijave · čeka tvoj izbor", the list's "2 prijave · pogledaj" and the task
+screen's "2 prijave za pregled" with its count pill. Two ways to reach it: a worker withdraws from a
+published task; or a three-person task gets two workers selected — then it shows "2 prijave · čeka tvoj
+izbor" while nobody is waiting. Not visible today: the 5 responses on DEV are 3 `SELECTED` on `ACTIVE`
+tasks (which read as "Popunjen" and raise nothing) and 2 `SUBMITTED`. The server aggregate for exactly
+this, `pkg023j`, is installed and not wired (AGENTS.md).
+
+**7.33 — note.** Otherwise the Home is composed carefully: each of the three reads fails alone and says
+so instead of reading as empty; attention is ordered completion to confirm, open problem, changed task
+under my application, then my tasks; Agreements are ordered by start; nothing consults an app-wide mode.
+`needClientService` refuses an unknown status, a malformed category, schedule, country or timezone, and a
+window whose end is not after its start. Its two failure paths throw the raw PostgREST `error.message`;
+whether a screen prints it is for the screen read (Area 8).
 
 ### Area 9 — HITNO, categories, and matching
 
