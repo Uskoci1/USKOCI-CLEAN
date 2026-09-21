@@ -3,6 +3,13 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+PKG-037 (2026-09-22, candidate/proof in progress): publication-only deep-read 11.2 recovery.
+Separate preparation/provider/settlement deadlines, single settlement after a lost ACK, client 55-second
+accepted-review wait and a bounded expired-review branch in the existing sweep. See
+`docs/implementation/v5-ai-first/pkg037/PKG037_PUBLICATION_RECOVERY.md`. Local Edge 47/47 and focused
+client/native 80/80 pass; types clean. Disposable proof must pass before DEV or Edge application.
+No certificate movement or JWT change. Interview/worker/QA finding 11.1 remains separate and open.
+
 PKG-036 (2026-09-22, client-only): first bounded slice of deep-read 7.1. Eleven live lifecycle RPCs and
 ten selected guard/calendar bodies were read; exact MD5s and per-call comparison are under
 `docs/implementation/v5-ai-first/pkg036/`. Task/Agreement refusal copy now survives screen/controller

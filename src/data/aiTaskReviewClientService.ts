@@ -191,7 +191,8 @@ async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): 
   }
   if (stored.state === 'ACCEPTED') {
     const request = { needId: stored.needId, expectedRevision: stored.needRevision, acceptedReviewId: stored.reviewId };
-    const evaluated = await readOwnedResult({ account: s, errors: COPY, write: true, fallback: 'TASK_REVIEW_OUTCOME_UNCONFIRMED', invalid: 'TASK_REVIEW_INVALID_RESPONSE',
+    const evaluated = await readOwnedResult({ account: s, errors: COPY, write: true, timeoutMs: 55_000,
+      fallback: 'TASK_REVIEW_OUTCOME_UNCONFIRMED', invalid: 'TASK_REVIEW_INVALID_RESPONSE',
       decode: raw => decodePublicationEvaluation(raw, request), request: async () => {
         const client = supabaseKlijent(), session = await client.auth.getSession();
         if (!current(s) || session.error || session.data.session?.user.id !== s.accountId) return { data: null, error: { message: 'AUTH_ACCOUNT_CHANGED' } };

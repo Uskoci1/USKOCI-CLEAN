@@ -47,7 +47,7 @@ const storedReceipt = (ctx = ready(), result = evaluation()) => ({ decisionId: D
   policyBundleId: ctx.binding.policyBundleId, policyVersion: ctx.binding.policyVersion, jurisdiction: ctx.binding.jurisdiction,
   ...result, decisionAt: '2026-09-10T14:40:32.123456Z', publishable: result.outcome === 'ALLOW', authoritative: true });
 function fixture(options = {}) {
-  const calls = [], logs = [], envReads = [], timers = new Map();
+  const calls = [], logs = [], envReads = [], timers = new Map(), due = new Map();
   const env = { SUPABASE_URL: 'https://database.test.invalid', SUPABASE_ANON_KEY: 'SYNTHETIC_ANON_KEY',
     SUPABASE_SERVICE_ROLE_KEY: 'SYNTHETIC_SERVICE_SECRET', GEMINI_API_KEY: 'SYNTHETIC_PROVIDER_SECRET', GEMINI_MODEL: 'gemini-3.8-flash',
     AI_PROVIDER:'gemini',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',USKOCI_GEMINI_IMAGE_REVIEW_ENABLED:'true',...options.env };
@@ -55,8 +55,8 @@ function fixture(options = {}) {
   let handler, now = 1_000_000, timerId = 0;
   class FixedDate extends Date { static now() { return now; } }
   const context = vm.createContext({ exports: {}, Request, Response, Headers, URL, TextDecoder, TextEncoder, AbortController, Intl, Date: FixedDate,crypto:webcrypto,btoa,
-    setTimeout: (fn, ms) => { assert.ok([12000,5000].includes(ms)); const id = ++timerId; timers.set(id, fn); return id; },
-    clearTimeout: id => timers.delete(id),
+    setTimeout: (fn, ms) => { assert.ok([12000,15000,30000,5000].includes(ms)); const id = ++timerId; timers.set(id, fn); due.set(id,now+ms); return id; },
+    clearTimeout: id => { timers.delete(id); due.delete(id); },
     console: Object.fromEntries(['log', 'error', 'warn', 'info', 'debug'].map(key => [key, (...args) => logs.push(args)])),
     Deno: { env: { get: key => { envReads.push(key); return env[key]; } }, serve: fn => { handler = fn; } },
     fetch: async (url, init = {}) => {
@@ -102,6 +102,7 @@ function fixture(options = {}) {
       ...(body instanceof ReadableStream ? { duplex: 'half' } : {}), ...rest }));
   };
   return { calls, logs, envReads, timers, invoke, handle: request => handler(request),
+    tick: ms => { now += ms; for (const [id, at] of [...due]) if (at <= now) { due.delete(id); timers.get(id)?.(); } },
     advance: ms => { now += ms; }, expire: () => { for (const fn of [...timers.values()]) fn(); } };
 }
 const kindCalls = (f, kind) => f.calls.filter(call => call.kind === kind);
@@ -206,7 +207,7 @@ test('definitive V5 provider failure stores bounded not-ready result instead of 
   }
 });
 
-test('V5 provider timeout leaves durable claim unresolved and cannot complete a late response', async () => {
+test('V5 provider timeout settles not-ready and cannot complete a late response', async () => {
   let finish;
   const f = fixture({ provider: () => new Promise(resolve => { finish = resolve; }) });
   const response = f.invoke({ body: { needId: NEED, expectedRevision: 7, acceptedReviewId: REVIEW } });
@@ -214,7 +215,63 @@ test('V5 provider timeout leaves durable claim unresolved and cannot complete a 
   assert.equal(typeof finish, 'function'); f.expire();
   assert.equal((await (await response).json()).code, 'EVALUATOR_UNAVAILABLE');
   finish(json(providerResponse())); await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim', 'budget', 'provider']); quiet(f);
+  assert.deepEqual(f.calls.map(x => x.kind), ['auth', 'context', 'reviewClaim', 'budget', 'provider', 'reviewComplete']); quiet(f);
+});
+
+test('PKG037 slow provider gets its own window and persists the result once', async () => {
+  let finish;
+  const f=fixture({provider:()=>new Promise(resolve=>{finish=resolve;})});
+  const pending=f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW}});
+  await reached(f,'provider'); f.tick(13000); finish(json(providerResponse()));
+  assert.equal((await (await pending).json()).kind,'DECISION');
+  assert.equal(kindCalls(f,'provider').length,1);assert.equal(kindCalls(f,'reviewComplete').length,1);quiet(f);
+});
+
+test('PKG037 provider timeout settles not-ready independently and discards late output', async () => {
+  let finish;
+  const f=fixture({provider:()=>new Promise(resolve=>{finish=resolve;})});
+  const pending=f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW}});
+  await reached(f,'provider'); f.expire();
+  assert.equal((await (await pending).json()).code,'EVALUATOR_UNAVAILABLE');
+  assert.equal(kindCalls(f,'reviewComplete').length,1);
+  const completion=kindCalls(f,'reviewComplete')[0];
+  assert.equal(JSON.parse(completion.body).p_not_ready_code,'EVALUATOR_UNAVAILABLE');
+  assert.notEqual(completion.signal,kindCalls(f,'provider')[0].signal);
+  finish(json(providerResponse()));await flush();
+  assert.equal(kindCalls(f,'reviewComplete').length,1);assert.equal(kindCalls(f,'provider').length,1);quiet(f);
+});
+
+test('PKG037 disconnected caller settles the owned claim without replaying provider', async () => {
+  const caller=new AbortController();let finish;
+  const f=fixture({provider:()=>new Promise(resolve=>{finish=resolve;})});
+  const pending=f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW},signal:caller.signal});
+  await reached(f,'provider');caller.abort();await pending;
+  assert.equal(kindCalls(f,'reviewComplete').length,1);
+  assert.equal(JSON.parse(kindCalls(f,'reviewComplete')[0].body).p_not_ready_code,'EVALUATOR_UNAVAILABLE');
+  finish(json(providerResponse()));await flush();assert.equal(kindCalls(f,'provider').length,1);quiet(f);
+});
+
+test('PKG037 thrown provider transport failure settles without leaking exception text', async () => {
+  const f=fixture({provider:()=>{throw new Error('PRIVATE_PROVIDER_SENTINEL');}});
+  const result=await f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW}});
+  assert.equal((await result.json()).code,'EVALUATOR_UNAVAILABLE');
+  assert.equal(kindCalls(f,'reviewComplete').length,1);assert.equal(kindCalls(f,'provider').length,1);quiet(f);
+});
+
+test('PKG037 uncertain completion is not overwritten with a contradictory failure', async () => {
+  const f=fixture({reviewComplete:()=>{throw new Error('LOST_COMPLETION_ACK');}});
+  const result=await f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW}});
+  assert.equal((await result.json()).code,'EVALUATOR_UNAVAILABLE');
+  assert.equal(kindCalls(f,'reviewComplete').length,1);
+  assert.equal(JSON.parse(kindCalls(f,'reviewComplete')[0].body).p_outcome,'ALLOW');quiet(f);
+});
+
+test('PKG037 cleanup itself is bounded when transport does not answer', async () => {
+  const f=fixture({provider:()=>{throw new Error('UPSTREAM_FAILURE');},reviewComplete:()=>new Promise(()=>{})});
+  const pending=f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW}});
+  await reached(f,'reviewComplete');f.expire();
+  assert.equal((await (await pending).json()).code,'EVALUATOR_UNAVAILABLE');
+  assert.equal(kindCalls(f,'reviewComplete').length,1);quiet(f);
 });
 
 for (const outcome of OUTCOMES) test(`${outcome} stores exactly its validated B06 decision without automatic publication`, async () => {
@@ -524,4 +581,11 @@ test('photo gate, unregistered/foreign/hash-altered images stop before budget/pr
    const f=fixture({contextDocument:p.ctx,media:()=>json([p.a]),image:()=>new Response(p.bytes),...change});await rejected(f,'EVALUATOR_UNAVAILABLE');
    assert.equal(kindCalls(f,'budget').length,0);assert.equal(kindCalls(f,'provider').length,0);assert.equal(kindCalls(f,'writer').length,0);
  }
+});
+
+test('PKG037 failed photo fetch after claim settles without budget or provider dispatch',async()=>{
+ const p=photoFixture(),f=fixture({contextDocument:p.ctx,media:()=>json([p.a]),image:()=>json({},404)});
+ const response=await f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW}});
+ assert.equal((await response.json()).code,'EVALUATOR_UNAVAILABLE');
+ assert.deepEqual(kinds(f),['auth','context','reviewClaim','media','image','reviewComplete']);quiet(f);
 });

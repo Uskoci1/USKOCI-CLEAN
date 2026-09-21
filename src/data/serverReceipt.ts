@@ -42,6 +42,8 @@ export function readReceipt<T>(options: ReceiptOptions<T> & {
 export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
   request: () => PromiseLike<unknown>;
   account?: ReceiptAccount;
+  /** Only accepted-review evaluation needs the longer, still bounded wait. */
+  timeoutMs?: 55_000;
 }): Promise<Ishod<T>> {
   const owner = sesijaSada();
   const accountId = options.account?.accountId ?? owner.user?.id;
@@ -58,7 +60,7 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     // No automatic write replay. A timeout bounds the caller, not server execution.
     const response: unknown = await Promise.race([
       Promise.resolve(options.request()),
-      new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('RPC_RECEIPT_TIMEOUT')), 15_000); }),
+      new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('RPC_RECEIPT_TIMEOUT')), options.timeoutMs ?? 15_000); }),
     ]);
     if (!current()) return changed();
     const result = record(response);

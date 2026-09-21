@@ -50,6 +50,39 @@ it('one explicit click accepts exact server digest then publishes only after dur
   expect(mockInvoke).toHaveBeenCalledTimes(1); expect(mockInvoke.mock.calls[0][1].body).toEqual({ needId: NEED, expectedRevision: 1, acceptedReviewId: REVIEW });
 });
 
+it('PKG037 waits for a slow accepted-review evaluation then reads authority before publishing', async () => {
+  jest.useFakeTimers();
+  try {
+    mockInvoke.mockImplementation(() => {
+      stored = { ...accepted(), state: 'EVALUATING' };
+      return new Promise(resolve => setTimeout(() => { stored = evaluated(); resolve(answer(stored.evaluation)); }, 20_000));
+    });
+    let settled = false;
+    const pending = service.acceptAndPublish({ review: review(), clientRequestId: KEY }).then(result => { settled = true; return result; });
+    await jest.advanceTimersByTimeAsync(15_001);
+    expect(settled).toBe(false);
+    await jest.advanceTimersByTimeAsync(5_000);
+    await expect(pending).resolves.toEqual({ ok: true, podatak: published() });
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    expect(mockRpc.mock.calls.filter(x => x[0] === 'rpc_read_ai_task_review')).toHaveLength(2);
+  } finally { jest.clearAllTimers(); jest.useRealTimers(); }
+});
+
+it('PKG037 an unanswered evaluator remains bounded and is not dispatched again from recovery', async () => {
+  jest.useFakeTimers();
+  try {
+    mockInvoke.mockImplementation(() => { stored = { ...accepted(), state: 'EVALUATING' }; return new Promise(() => {}); });
+    let settled = false;
+    const pending = service.acceptAndPublish({ review: review(), clientRequestId: KEY }).then(result => { settled = true; return result; });
+    await jest.advanceTimersByTimeAsync(54_999); expect(settled).toBe(false);
+    await jest.advanceTimersByTimeAsync(1);
+    await expect(pending).resolves.toMatchObject({ ok: true, podatak: { state: 'EVALUATING' } });
+    await expect(service.resume(stored!)).resolves.toMatchObject({ ok: true, podatak: { state: 'EVALUATING' } });
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    expect(mockRpc.mock.calls.some(x => x[0] === 'rpc_publish_accepted_ai_task_review')).toBe(false);
+  } finally { jest.clearAllTimers(); jest.useRealTimers(); }
+});
+
 // Deep read 5.1: the server refuses a fixed time that has begun; the client says it before any paid evaluation.
 it('a fixed time that has already begun is refused before accepting, evaluating or publishing', async () => {
   const fact = (key: string, value: string) => ({ id: null, key, value, displayValue: value, privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' });
