@@ -33,7 +33,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 3 | Application submit, stale resolution, pricing | read 2026-09-21 — see findings |
 | 4 | Notifications: emit → deliver → push, and the Edge workers | read 2026-09-21 — see findings |
 | 5 | AI interview, review, publication | read 2026-09-21 — see findings |
-| 6 | Account, auth, closure, retention, export | pending |
+| 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
 | 7 | Client data layer, file by file | pending |
 | 8 | Routes and screens, file by file | pending |
 | 9 | HITNO | pending |
@@ -91,6 +91,45 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 **1.6 — rule. Copy.** `rpc_mark_work_done`: `'Završetak čeka Vašu potvrdu'` / `'Uskočer je označio Dogovor
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
+
+### Area 6 — Account closure, data export, retention
+
+Read in full: `private.retention_maintenance`, `private.data_export_policy_binding`,
+`public.rpc_request_data_export`, the start of `public.rpc_start_account_closure_execution`,
+`private.closure_account_restricted`, `private.closure_assert_open`. Swept every writer of the closure
+request and execution state. Evaluated both bindings live. NOT exercised: starting a closure would lock a
+real account, so 6.1 is from reading, not from a run.
+
+**6.1 — defect, serious. Asking to delete an account would lock it and never delete it.**
+`closure_account_restricted` is true when the request is in `READY`, `EXECUTING`, `FAILED` or `CLOSED`, and
+`closure_assert_open` raises `ACCOUNT_CLOSING` whenever it is — so the account is restricted from the
+moment it is prepared (`READY`), before execution even starts. `rpc_start_account_closure_execution` moves
+it to `EXECUTING` and does not finish it. Finishing belongs to `rpc_claim_account_closure_action_service`
+and `rpc_finalize_account_closure_service` — service-role functions called only by the
+`uskoci-account-closure-worker` Edge function, which nothing invokes (4.2). The closure binding is live and
+READY (`closure_erasure_binding_v5()` is not null), so a closure WOULD start. Net: the person is locked out
+with `ACCOUNT_CLOSING` on every guarded action, and their data is never erased, unless someone runs the
+worker by hand. Deletion is a right a user exercises; this is the most serious finding so far. Fix is 4.2's
+scheduler — for this worker it is sufficient, because its binding is ready.
+
+**6.2 — defect. A data export is accepted, never delivered, and then blocks asking again.**
+`rpc_request_data_export` never consults `data_export_policy_binding()`. It inserts `REQUESTED` and
+returns it. It also refuses any new request while one is `REQUESTED` or `PROCESSING`
+(`DATA_EXPORT_REQUEST_ALREADY_OPEN`). `data_export_policy_binding()` is NULL today — its first act is to
+look for an active `retention_policy_sets` row and there are none — so no export can be delivered even if
+a worker ran. Live: one request since 2026-09-13 18:48, 7.6 days, never updated; that account can never
+request an export again. The contrast is the fix: `rpc_start_account_closure_execution` checks ITS binding
+before inserting anything and refuses honestly with `CLOSURE_POLICY_NOT_READY`. The export request should
+do the same with its own binding, and say plainly that export is not available yet.
+
+**6.3 — note, verified and deliberate. Retention runs every minute and deletes nothing.**
+`retention_policy_sets`, `retention_policy_rules` and `retention_jobs` are all empty, so each of the 32,321
+ticks finds no job and returns. Correct as built: retention periods need counsel, and this project forbids
+inventing them (AGENTS, RC2, AF-D22). The consequence to know: nothing is ever deleted automatically — data
+accumulates until counsel writes a policy.
+
+**6.4 — refinement of 4.2.** A scheduler would unblock push and account closure (their gates are open) but
+NOT data export: its binding is NULL for want of a counsel-approved retention policy set. Export needs both.
 
 ### Area 5 — AI interview, review, publication
 
