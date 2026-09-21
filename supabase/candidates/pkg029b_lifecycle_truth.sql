@@ -83,9 +83,10 @@ $a$  if v_completed_slots < n.required_slots then
   end if;$a$,
 $b$  -- PKG-029b (deep read 1.1): once the remaining search is closed, required_slots is never reached; the task is
   -- complete when everyone who was selected has completed.
-  if v_completed_slots < case when n.remaining_search_closed_at is null then n.required_slots
+  -- (The CASE is in parentheses: PL/pgSQL ends an IF condition at the first bare THEN.)
+  if v_completed_slots < (case when n.remaining_search_closed_at is null then n.required_slots
        else (select coalesce(sum(s.covered_slots), 0)::integer from public.need_selections s
-              where s.need_id = p_need_id and s.status = 'SELECTED') end
+              where s.need_id = p_need_id and s.status = 'SELECTED') end)
      or v_completed_slots = 0 then
     return false;
   end if;$b$),
