@@ -104,7 +104,9 @@ read of all 91 `src/data` files is still owed.
 
 Files read in full since, one section each below: `agreementClientService.ts`, `supabaseIzvor.ts`,
 `aiNeedV2Production.ts`, `aiTaskReviewClientService.ts`, `aiNeedV2Ui.ts`, `agreementOutbox.ts`, `index.ts`, `ports.ts`,
-`supportCaseClientService.ts`, `needClientService.ts`, `homeSnapshot.ts`, `marketplaceView.ts`,
+`supportCaseClientService.ts`, `needClientService.ts`, `homeSnapshot.ts`, `marketplaceView.ts`, `candidateClientService.ts`,
+`workerAiClientService.ts`, `aiProductionOverrides.ts`, `aiCommandOverrides.ts`, `productionAuthorityOverrides.ts`,
+`applicationSelectionClientService.ts`, `reviewsClientService.ts`, `publicProfileClientService.ts`,
 `legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
 caller's constant fallback, never a server string).
 
@@ -364,6 +366,45 @@ under my application, then my tasks; Agreements are ordered by start; nothing co
 `needClientService` refuses an unknown status, a malformed category, schedule, country or timezone, and a
 window whose end is not after its start. Its two failure paths throw the raw PostgREST `error.message`;
 whether a screen prints it is for the screen read (Area 8).
+
+#### `src/data/candidateClientService.ts` (148) and `workerAiClientService.ts` (176) — read in full
+
+**7.34 — rule. Counts on the candidate card skip Serbian plural.** `recenzijeTekst` is
+`` `${reviews} recenzija` `` or `` `${completed} završenih` ``: "2 recenzija", "3 recenzija", "1 završenih".
+`src/ui/system/plural.ts` exists for exactly this and its guard test does not catch a string template.
+
+**7.35 — note, well built; one mismatch.** The worker profile conversation is decoded as strictly as the
+task one, and its limits were checked against `private.worker_ai_patch` and `worker_ai_document`: the
+server returns the latest 100 messages in ascending order and the client refuses more than 100 or any
+out of order — they agree. One difference: the client measures `displayName` (160) and `bio` (4,000)
+with `string.length`, which counts UTF-16 units, while the server's `length()` counts characters. A bio
+near the limit written with many emoji is accepted by the server and refused by the client decoder,
+which would make the whole profile conversation unreadable. Not measured in data; unlikely.
+
+#### `aiProductionOverrides.ts` (151), `aiCommandOverrides.ts` (58), `productionAuthorityOverrides.ts` (42) — read in full
+
+**7.36 — note, verified safe. The whole V1 AI port is dead, and its server doors are shut.** No screen
+calls `razgovor`, `otvoriRazgovor`, `posaljiKorisnikovuPoruku`, `ispraviCinjenicu`, `objaviPotrebu` or
+`posaljiPoruku`; these three files exist to satisfy the `Izvor` interface. Two of them still reach live
+RPCs, so the server side was read: `rpc_ai_publish_need` raises `PACKAGE_4_NOT_READY` unconditionally;
+`rpc_ai_correct_fact` (V1) writes any text into any fact without the V2 validator — but the trigger
+`guard_ai_fact_schema` refuses a V1 fact in a V2 conversation (`AI_FACT_SCHEMA_MISMATCH`), and the same
+trigger runs `validate_need_v2_fact` on every V2 insert, so no path can store a V2 fact the validator
+would refuse. (That trigger is also why 7.27 found the stored data clean.)
+
+#### `applicationSelectionClientService.ts` (133), `reviewsClientService.ts` (103), `publicProfileClientService.ts` (74) — read in full
+
+**7.37 — rule. "2 ocena".** `accountReputationLabel` prints `` `${reviewCount} ocena` `` — right for 1, 5
+and 11, wrong for 2–4 ("2 ocene"). It also formats with `'sr-RS'` where everything else uses
+`'sr-Latn-RS'` (same digits and comma; no visible difference). Every refusal the three review functions
+raise is mapped; a rating is 1–5 with at most three tags from a catalog the client checks byte-for-byte
+against the server's.
+
+**7.38 — note, well built.** Submit and select validate their command before sending and decode the
+receipt against it (the submitted slots, the need revision, a content hash, the snapshot schema);
+`readSelectedAgreement` binds the link to the selecting account and treats "not visible" as unknown, never
+as absent. The public profile read throws on any inconsistency between review count, average and the
+availability flags instead of showing a guessed rating.
 
 ### Area 9 — HITNO, categories, and matching
 
