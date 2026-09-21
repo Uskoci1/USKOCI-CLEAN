@@ -36,7 +36,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
 | 7 | Client data layer, file by file | pending |
 | 8 | Routes and screens, file by file | pending |
-| 9 | HITNO | pending |
+| 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
 
 ## Findings
@@ -91,6 +91,50 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 **1.6 — rule. Copy.** `rpc_mark_work_done`: `'Završetak čeka Vašu potvrdu'` / `'Uskočer je označio Dogovor
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
+
+### Area 9 — HITNO, categories, and matching
+
+Read in full: `private.urgent_activation_decision`, `private.match_detail_without_calendar`, the
+`private.marketplace_config` rows. Measured: every stored category, the skills on open tasks and active
+worker profiles, `dispatch_rounds` and `opportunity_deliveries`. Computed: `match_detail_without_calendar`
+for every open-task × active-worker pair (it is STABLE and read-only).
+
+**9.1 — note, deliberate. HITNO is switched off, and says why.** `urgent_activation_policy` is
+`enabled: false`, `allowedCategories: []`, `chargesFee: false`, with its own note: *"O-2 blokada: bez
+kanonskog registra kategorija allowlist ostaje prazan i HITNO je ugašeno."* HITNO can only be admitted for
+listed categories, and there is no stable list to put in it. The decision function itself is sound: no
+remote tasks, not once filled, not if the start has passed or is more than `maxMinutesToStart` (default
+360) away — the only function in the database that guards a start time.
+
+**9.2 — defect, root cause. Categories are whatever the model wrote.** 18 tasks carry 10 spellings, several
+of one thing: `transport_selidbe`, `Selidbe i transport`, `Prevoz`, `transport_and_assembly`;
+`Moleraj`, `MOLERSKI_RADOVI`; and `"Fizički poslovi"` stored with the quotation marks inside it. Serbian
+and English, snake_case and SCREAMING_CASE. This is what blocks 9.1, and the display already carries a
+band-aid (`readableCategory` in `NeedPresentation`) that can tidy a spelling but cannot merge synonyms.
+Fix shape: give `need.category` a closed list, the way `need_fact_registry` closes the fact keys.
+
+**9.3 — risk, measured. Matching compares free text exactly, so exclusions leak.** Category is used in one
+place in matching: a worker's `exclusions` overlapping the task's category or required skills is a hard
+block (`PROFILE_EXCLUSION`). Overlap is exact after lowercasing, so a worker who excluded `selidbe` is still
+offered `transport_selidbe`. Positive matching is by skills, also exact: active workers hold `electrician`
+and `plumber` (English), `Ciscenje stana` and `Fizicki poslovi` (no diacritics), `montaža nameštaja` (with)
+— a task needing `čišćenje stana` would not meet a worker with `Ciscenje stana`. Not biting today (10 of 12
+open tasks require no skills), but it will as soon as they do.
+
+**9.4 — note, explained by computation. Why "a new task for you" fired once.** `dispatch_rounds`: 48
+`STOPPED / NO_ELIGIBLE_CANDIDATES`, 1 `EXPIRED`; one opportunity delivery ever. Running the matcher over all
+48 open-task × active-worker pairs: 27 may apply by hand, **0 are eligible for automatic dispatch**.
+Soft blockers: `OUTSIDE_AVAILABILITY` 41, `CURRENT_AVAILABILITY_PAUSED` 33, `OUTSIDE_PREFERRED_RADIUS` 24,
+`SERVICE_NOT_IN_WORK_PROFILE` 8. Hard: `MISSING_REQUIRED_VEHICLE` 13, `OWN_NEED` 12. The matcher is right;
+the workers have not declared availability covering these times. The product consequence is the finding:
+proactive notification of new work depends entirely on workers keeping an availability calendar current,
+and nothing prompts them to. The earlier suspicion that categories broke matching was wrong, and was
+narrowed step by step against the code and the data rather than reported.
+
+**9.5 — note. The matcher is well designed.** Hard gates (active profile, not own task, identity, tools,
+licences, vehicles, experience, exclusions) block even a manual application; soft gates (availability,
+notification preferences, radius, minimum fee, service) block only automatic dispatch, so manual search
+stays open. Scoring weights 30/25/15/15/10/5 with a newcomer fairness term.
 
 ### Area 6 — Account closure, data export, retention
 
