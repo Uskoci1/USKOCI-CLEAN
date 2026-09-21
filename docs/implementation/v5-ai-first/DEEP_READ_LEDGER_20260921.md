@@ -720,6 +720,12 @@ price at the top of the composer (`:64`) also shows the bare amount with no "po 
 screen uses `needPriceText`. Not yet hit — no published task has a basis — but 4 open intake conversations
 already carry `need.price_basis = PER_PERSON`; the first one published with two or more people will show
 it. Client-only fix: lock the price at per-person × people for `PER_PERSON` and say so.
+**Fixed in the client 2026-09-21.** `fixedApplicationPrice` / `fixedApplicationPeople` (beside `needPriceText`)
+state the server's rule once. The composer derives the price from the people for PER_PERSON, fixes the people
+to every place for TOTAL, and derives both again at send time from the same Need read as the revision. The
+task price at the top now uses `needPriceText`. Two composer tests fail on the old code and pass on the new;
+the full suite passes (238 suites, 4538 tests). No device check yet, and no published task has a basis to
+try it on.
 
 **8.11 — note, copy.** `potrebe/[id]/pregled.tsx:136`: "Zatvorićemo potragu za preostalih N mesta" —
 "preostalih 1 mesta" for one. `:142` replaces every refusal of the close with "Potraga nije potvrđeno

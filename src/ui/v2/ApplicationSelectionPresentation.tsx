@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { readableTitle } from '../../data/needDetailPresentation';
+import { fixedApplicationPeople, needPriceText, readableTitle } from '../../data/needDetailPresentation';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarBlank, CaretRight, Clock, PaperPlaneTilt, Star, Users } from 'phosphor-react-native';
@@ -61,7 +61,7 @@ export function SelectionUnavailable({ loading, message, retry, back }: { loadin
 function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) {
   return <View style={s.context}><T variant="meta" style={s.eyebrow}>Zadatak</T><T style={s.contextTitle}>{readableTitle(need.naslov)}</T>
     <T variant="meta" tone="muted">{need.podrucjeTekst}</T><T variant="meta" tone="muted">{need.vremeTekst}</T>
-    <View style={s.row}><T style={[s.contextPrice, need.rezimCene !== 'MY_PRICE' && s.offers]}>{need.rezimCene === 'MY_PRICE' ? need.ponudjenaCena?.prikaz : 'Tražim ponude'}</T>
+    <View style={s.row}><T style={[s.contextPrice, need.rezimCene !== 'MY_PRICE' && s.offers]}>{needPriceText(need)}</T>
       <View style={s.pill}><T variant="meta" style={s.pillText}>{need.pokrivenost.popunjeno} / {need.pokrivenost.ukupno} ljudi</T></View></View>
   </View>;
 }
@@ -117,6 +117,12 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
   const exact = applicationInterval(draft.start, draft.end, need.taskTimezone);
   const fixed = need.schedule?.kind === 'FIXED_WINDOW' ? applicationInterval(need.schedule.startsAt, need.schedule.endsAt, need.taskTimezone) : null;
   const priceLocked = opportunity.rezimCene === 'MY_PRICE';
+  // The rule behind the locked price is said in words, from the same Need read the price came from (8.10).
+  const peopleLocked = fixedApplicationPeople(need) !== null;
+  const priceRule = !priceLocked ? 'Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.'
+    : need.osnovaCene === 'PER_PERSON' ? `Cena je ${need.ponudjenaCena?.prikaz ?? 'navedena'} po osobi, pa se ukupan iznos računa po broju ljudi koje dovodiš.`
+    : peopleLocked ? `Cena važi za ceo Zadatak, pa prijava pokriva sva mesta: ${osoba(need.pokrivenost.ukupno)}.`
+    : 'Cena je navedena u Zadatku. Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.';
   return <SelectionFrame title="Tvoja prijava" back={back} footer={<>
     <View style={s.summaryRow}><T variant="meta" tone="muted">Tvoja ponuda</T><T style={s.summary}>{draft.price || '—'} RSD ukupno · {/^[1-9]\d*$/.test(draft.people) ? dolaziOsoba(Number(draft.people)) : 'broj ljudi nije unet'}</T></View>
     {confirmed ? <BrandAction label="Otvori moje prijave" onPress={openApplications} />
@@ -133,11 +139,11 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
             onChangeText={price => { if (!disabled && !priceLocked) change({ ...draft, price }); }} />
         </Field>
         <Field label="Ljudi">
-          <TextInput accessibilityLabel="Ljudi" keyboardType="number-pad" maxLength={4} value={draft.people} editable={!disabled} style={s.amountInput}
-            onChangeText={people => { if (!disabled) change({ ...draft, people }); }} />
+          <TextInput accessibilityLabel="Ljudi" keyboardType="number-pad" maxLength={4} value={draft.people} editable={!disabled && !peopleLocked}
+            style={[s.amountInput, peopleLocked && s.inputLocked]} onChangeText={people => { if (!disabled && !peopleLocked) change({ ...draft, people }); }} />
         </Field>
       </View>
-      <T variant="meta" tone="muted">{priceLocked ? 'Cena je navedena u Zadatku. ' : ''}Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.</T>
+      <T variant="meta" tone="muted">{priceRule}</T>
     </View>
     {/* One card used to be called "Termin i poruka" and hold both, so the word Termin appeared
         twice inside it and neither half was a whole thought. Two blocks, one idea each. */}

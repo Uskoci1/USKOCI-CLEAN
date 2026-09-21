@@ -222,6 +222,30 @@ it('binds displayed fixed price to the same Need revision and prevents editing t
   await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999'); await tap('Pošalji ovu Prijavu');
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 6000, potrebaRevizija: 3, predlozeniPocetak: null, predlozeniKraj: null });
 });
+// Deep read 8.10: rpc_submit_response prices a PER_PERSON application as amount × people and a TOTAL one
+// as the amount for every place. The composer used to send the bare amount, so only one person could apply.
+it('prices a per-person task by the people this application brings', async () => {
+  const perPerson = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } };
+  mockNeed.mockResolvedValue(perPerson); mockTask.mockResolvedValue({ ...perPerson, primaNovePrijave: true });
+  await render();
+  const field = (label: string) => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label)[0].props;
+  expect(text()).toContain('5.000 RSD po osobi'); expect(text()).toContain('računa po broju ljudi');
+  expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('5000'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').editable).toBe(false);
+  await edit('Ljudi', '2'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('10000');
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '5000'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('10000');
+  await tap('Pošalji ovu Prijavu');
+  expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 10000, pokrivenaMesta: 2, potrebaRevizija: 3 });
+});
+it('covers every place on a task whose price is for the whole task', async () => {
+  const total = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 18000, valuta: 'RSD', prikaz: '18.000 RSD' } };
+  mockNeed.mockResolvedValue(total); mockTask.mockResolvedValue({ ...total, primaNovePrijave: true });
+  await render();
+  const field = (label: string) => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label)[0].props;
+  expect(text()).toContain('18.000 RSD ukupno'); expect(text()).toContain('pokriva sva mesta: 3 osobe');
+  expect(field('Ljudi').value).toBe('3'); expect(field('Ljudi').editable).toBe(false);
+  await tap('Pošalji ovu Prijavu');
+  expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 18000, pokrivenaMesta: 3 });
+});
 it('rejects newly elapsed deadline on tap and exposes a fresh read, without dispatch', async () => {
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: '2020-01-01T00:00:00Z' });
   await offer(); await tap('Pošalji ovu Prijavu'); expect(mockSubmit).not.toHaveBeenCalled();

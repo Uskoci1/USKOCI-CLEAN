@@ -4,6 +4,7 @@ import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, Radni
 import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../../../data/applicationSelectionClientService';
 import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
+import { fixedApplicationPeople, fixedApplicationPrice } from '../../../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
@@ -13,6 +14,14 @@ import { ApplicationSelectionPresentation, SelectionUnavailable, type Applicatio
 type Receipt = { prijavaId: string; verzija: number; hash: string };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
 type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
+/** A price the task names is never typed: it follows the people this application brings (deep read 8.10). */
+function withTaskPrice(draft: ApplicationDraft, need: PotrebaProjekcija): ApplicationDraft {
+  if (need.rezimCene !== 'MY_PRICE') return draft;
+  const fixedPeople = fixedApplicationPeople(need);
+  const people = fixedPeople === null ? draft.people : String(fixedPeople);
+  const price = fixedApplicationPrice(need, /^\d+$/.test(people) ? Number(people) : NaN);
+  return { ...draft, people, price: price === null ? '' : String(price) };
+}
 export default function Prijava() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
@@ -67,9 +76,9 @@ export default function Prijava() {
       }
       // Displayed terms and command revision come from the same Need read.
       const displayedOpportunity = { ...opportunity, naslov: need.naslov, podrucjeTekst: need.podrucjeTekst, vremeTekst: need.vremeTekst,
-        pokrivenost: need.pokrivenost, rezimCene: need.rezimCene, ponudjenaCena: need.ponudjenaCena };
-      if (!session.draft) session.draft = { price: need.rezimCene === 'MY_PRICE' ? String(need.ponudjenaCena?.iznos ?? '') : '', people: '1', note: '', start: null, end: null };
-      else if (!session.pending && need.rezimCene === 'MY_PRICE') session.draft = { ...session.draft, price: String(need.ponudjenaCena?.iznos ?? '') };
+        pokrivenost: need.pokrivenost, rezimCene: need.rezimCene, osnovaCene: need.osnovaCene, ponudjenaCena: need.ponudjenaCena };
+      if (!session.draft) session.draft = withTaskPrice({ price: '', people: '1', note: '', start: null, end: null }, need);
+      else if (!session.pending) session.draft = withTaskPrice(session.draft, need);
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { opportunity: displayedOpportunity, need, profile, applications, receipt: result?.ok ? result.podatak : null } };
@@ -92,7 +101,8 @@ export default function Prijava() {
   const submit = async () => {
     const accountId = user?.id;
     if (!current() || !data || !session.draft || session.pending?.inFlight || session.journaling || !accountId) return;
-    const draft = session.draft;
+    // The price and people sent are derived from the same Need read as the revision, never from a stale draft.
+    const draft = withTaskPrice(session.draft, data.need);
     if (!session.pending) {
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN;
       const people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
@@ -137,12 +147,11 @@ export default function Prijava() {
     // A known server refusal is this command's authoritative outcome; the identity may retire.
     if (user?.id) void applicationCommandJournal.clear(user.id, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
     session.pending = null;
-    session.draft = { ...session.draft!, price: data.opportunity.rezimCene === 'MY_PRICE'
-      ? String(data.opportunity.ponudjenaCena?.iznos ?? '') : session.draft!.price };
+    session.draft = withTaskPrice(session.draft!, data.need);
     setValidation(null); void editor.refresh();
   } : undefined;
   return <ApplicationSelectionPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
-    draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = draft; setValidation(null); render(v => v + 1); } }}
+    draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' : null)}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
