@@ -108,6 +108,8 @@ Files read in full since, one section each below: `agreementClientService.ts`, `
 `workerAiClientService.ts`, `aiProductionOverrides.ts`, `aiCommandOverrides.ts`, `productionAuthorityOverrides.ts`,
 `applicationSelectionClientService.ts`, `reviewsClientService.ts`, `publicProfileClientService.ts`, `contactClientService.ts`,
 `workerProfileClientService.ts`, `dataExportClientService.ts`, `accountClosureClientService.ts`, `closureExecutionClientService.ts`,
+`mediaClientService.ts`, `legalClientService.ts`, `publicationClientService.ts`, `needLifecycleController.ts`, `needLifecycleClientService.ts`,
+`dataExportDeliveryService.ts`, `preselectionQaClientService.ts`, `qaSubmissionClientService.ts`, `qaRecoveryClientService.ts`,
 `legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
 caller's constant fallback, never a server string).
 
@@ -444,6 +446,70 @@ fails for an account that is closing. What the person sees then is for the scree
 itself; lifecycle dates must agree with the status (a cancelled request has a cancel time, a finished one
 a completion time). All eight export refusals are mapped.
 
+#### `mediaClientService.ts` (144), `legalClientService.ts` (129), `publicationClientService.ts` (122), and `src/features/media/nativePhotoPicker.ts` (82) — read in full
+
+**7.43 — note, product fact. No Terms of Use or Privacy Policy exists in the database, and nobody has
+accepted any.** `rpc_get_legal_bundle` looks for an active, published, effective `TERMS` and `PRIVACY`
+row in `private.legal_document_versions`; the table has 0 rows and `account_legal_acceptance_events` has
+0 rows. The app handles it honestly — "Uslovi korišćenja i Politika privatnosti još nisu objavljeni." —
+and the closure preparation reports `LEGAL_POLICY_NOT_READY` from the same read. Consistent with AGENTS.md
+(RC2 received, operator details and legal certification not invented), stated here because it is a hard
+precondition for anyone outside the test circle. `legalClientService.acceptBundle`, the older and weaker
+acceptance path, has no caller; the screen uses `acceptReviewedBundle`, which binds the exact document
+hashes the person read.
+
+**7.44 — note.** Photos are prepared on the phone (at most 1600 px on the long side, JPEG 0.85, ≤ 5 MB)
+and sanitised again by the Edge function; the client decoders require the storage path to be exactly
+`<account>/v5/<asset>/<sha256>.jpg`. One formal string, `MEDIA_DIMENSIONS_TOO_LARGE: 'Smanjite
+fotografiju pre slanja.'`, is unreachable from the app because the picker already resizes. Publication's
+decision decoder requires `publishable` to equal `outcome === 'ALLOW'`, a jurisdiction code and at least
+one rule id — a decision without its reasons is refused.
+
+#### `needLifecycleController.ts` (127) and `needLifecycleClientService.ts` (88) — read in full, with `rpc_cancel_need`
+
+**7.45 — rule, server copy; otherwise well built.** Cancelling a task stops every pending side effect first
+(queued notifications, dispatch rounds, opportunity deliveries, grants), then expires open applications
+and tells each worker — with `'Potreba je otkazana'` / `'Narucilac je otkazao Potrebu za koju ste poslali
+prijavu.'`: the retired word "Potreba", "Narucilac" without its diacritic, and formal "ste". Unlike the
+Agreement cancel (7.15), this one keeps the reason (in the marketplace audit, capped at 500). The client
+matches the server exactly, including the replay receipt reporting `affectedResponses: 0`, and maps every
+refusal; the controller never resubmits by itself and allows "retry the same" only after a read-back has
+shown the first attempt did not land.
+
+#### `dataExportDeliveryService.ts` (125) and the Edge function it calls, `uskoci-data-export-worker/index.ts` (95) — read in full
+
+**7.46 — correction of 4.2, found by reading the client.** 4.2 said nothing runs the data export worker.
+Wrong for this worker: `prepareExport` invokes `uskoci-data-export-worker` with `{action:'prepare',
+receiptId}` under the person's own session; the worker checks the receipt is theirs, then claims,
+uploads, verifies and completes with the service role. Only its `tick` (catch-up and artifact cleanup) is
+internal-only and unscheduled. The closure and push workers do refuse any non-service caller
+(`SERVICE_ROLE_REQUIRED`), so 4.2 stands for them. And the export is stuck for a different reason:
+`private.data_export_policy_binding()` returns null — no export policy is bound — so
+`rpc_claim_data_export` answers `EXPORT_POLICY_NOT_READY` before it touches the request, and the app shows
+"Priprema kopije trenutno nije dostupna" (7.2). Measured: the one request is `REQUESTED` since
+2026-09-13 16:48 UTC, 0 attempts, 0 artifacts ever. Fix shape: bind the export policy (an owner/legal
+decision), not a scheduler. The download path itself is careful: no signed URL, a fixed Edge URL with
+redirects refused, size and hashes from headers checked against the body, bytes zeroed on every exit.
+
+#### `preselectionQaClientService.ts` (123), `qaSubmissionClientService.ts` (50), `qaRecoveryClientService.ts` (33) — read in full, with the `ru4b` and QA functions
+
+**7.47 — defect, server, latent. Questions about a task close exactly while it is still recruiting.**
+After a selection, `rpc_select_response` sets the task to `ACTIVE` when every slot is covered and to
+`SELECTION` when some are still open. Every Q&A function — `rpc_read_preselection_qa_context`,
+`rpc_ru4b_ask_preselection_question`, `rpc_ru4b_answer_preselection_question`,
+`rpc_ru4b_public_preselection_qa`, `rpc_check_preselection_qa_limits_service` — allows `PUBLISHED` and
+`ACTIVE` and refuses `SELECTION`. So on a three-person task with one person chosen — still on the map,
+still taking applications — a worker opening "Pitanja" gets `NEED_NOT_FOUND` ("Zadatak nije dostupan
+ovom nalogu."), the answered questions disappear from public view, and the owner can no longer answer;
+while on a fully staffed `ACTIVE` task, which nobody new can join, questions stay open. It reads as
+`SELECTION` and `ACTIVE` swapped. Not reachable today: no task is in `SELECTION`.
+
+**7.48 — note.** The live question path is `qaSubmissionClientService.submit` → Edge `uskoci-qa-classify`:
+every question and every answer is classified by the AI provider before the canonical writer stores it;
+reads never call the provider. `preselectionQaClientService.askQuestion`/`answerQuestion` (the direct
+writers) have no caller; its reads and `dispositionQuestion` are used. `private.ru4b_assert_rate_authority_ready`
+raises unconditionally and has no caller left — dead.
+
 ### Area 9 — HITNO, categories, and matching
 
 Read in full: `private.urgent_activation_decision`, `private.match_detail_without_calendar`, the
@@ -601,7 +667,9 @@ REQUESTER — `RESPONSE_RECEIVED`, `MESSAGE_RECEIVED`, `COMPLETION_REQUIRED`, th
 — were each suppressed. A person who switches notifications on reasonably expects them on. Fix shape:
 default a missing role row to the account's other role's choice, or create both rows when push is enabled.
 
-**4.2 — defect, systemic. Three deployed Edge workers have nothing that runs them.**
+**4.2 — defect, systemic. Three deployed Edge workers have nothing that runs them.** *(Partly corrected
+by 7.46: the data export worker also has an on-demand path the app calls, and the export is stuck for a
+different reason.)*
 `uskoci-push-transport` (ACTIVE, v11), `uskoci-data-export-worker` (ACTIVE, v12) and
 `uskoci-account-closure-worker` (ACTIVE, v1) each process a queue and must be invoked on a schedule. Nothing
 invokes them: no database function references them; `pg_net` is not installed, so the database cannot call
