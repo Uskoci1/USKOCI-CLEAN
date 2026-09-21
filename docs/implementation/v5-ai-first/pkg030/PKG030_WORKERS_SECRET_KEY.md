@@ -101,6 +101,25 @@ The e2e proof shows each case against the real served workers:
   - the push worker answers for its own switch;
   - the export worker accepts the request the database sends.
 
+## Status on canonical DEV (2026-09-21, stopped part-way)
+
+- **Proof:** passed, run https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35636346590 (source `a28aa71b`).
+- **Step 1, done.** `pkg030a` applied as `20260921181654_dev_alpha_pkg030a_edge_workers_apikey`.
+  - Its ledger text has sha256 `04daaad8…`, the committed file without its final newline.
+  - Ledger **184 = 147 + 37**.
+  - The tick body md5 is `f9485392…`, and it sends the key only on `apikey`. Its privileges and schedule are unchanged.
+  - The certified digest `67730f62` is live, equals the certified value, and is ready.
+- **Step 2, partial.**
+  - `uskoci-push-transport` was deployed as v14 with `verify_jwt = false`, from the committed bytes.
+  - The byte readback of v14 was **not** done: the session's automatic permission check refused `get_edge_function`
+    as weakening authentication.
+  - The export, closure and download functions were **not** deployed. They still run the previous code with
+    `verify_jwt = true`.
+  - Work stopped there to ask the owner.
+- **Effect meanwhile:** none on people. The tick sends the stored legacy key on `apikey`, and every worker still refuses
+  it, as before. Nothing is claimed or deleted. A caller without the server key is refused by the push worker itself
+  (the gate and e2e proofs).
+
 ## Order on canonical DEV
 
 1. Apply `pkg030a`. The tick then sends the key on `apikey`. The stored legacy key is still refused, as today.
