@@ -35,7 +35,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 5 | AI interview, review, publication | read 2026-09-21 — see findings |
 | 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
 | 7 | Client data layer, file by file | read 2026-09-21 — all 91 files, each checked against the server functions it calls (7.1–7.59) |
-| 8 | Routes and screens, file by file | in progress — all 48 route files; `src/ui` under way (8.1–8.23) |
+| 8 | Routes and screens, file by file | in progress — all 48 route files and all 107 `src/ui` files read (8.1–8.26); hooks next |
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
 
@@ -887,6 +887,45 @@ chosen as evidence is shown before it is attached. Group conversation: the body 
 Push preferences: every claim holds against `private.emit_event` — a disabled category suppresses both the
 in-app row and the push, quiet hours apply only to push, and the lock-screen text is the generic line the
 transport sends. The worker AI screen's review lists exactly what the save writes.
+
+#### `src/ui` — the rest: location and maps, media, AI conversation, home, system, settings, auth, entry
+
+Read in full: `location/*` (9 files), `AgreementPrivateLocation.tsx`, `media/*` (3), `aiFirst/*` (5),
+`home/*` (3), `system/*` (11), `settings/SettingsPresentation.tsx`, `legal/legalReview.ts`, `auth/*` (4),
+`entry/*` (7), `referenceEntry/*` (2), `v2/{IntakePresentation,ApplicationSelectionPresentation,
+DiscoveryMap(.web,.types),V2Action,icons,tokens,spojInboxArt}`, `Button`, `Press`, `Text`, `InboxBell`,
+`BuildIdentity`. With them: `supabase/functions/_shared/mediaImageSanitizer.mjs` and its use in
+`uskoci-media`. **All 107 files in `src/ui` are now read.**
+
+**8.24 — note, copy.** Smaller things a person reads:
+"Tvoje prijave trenutno nisu učitani." — Home and Moje aktivnosti build "`${what} trenutno nisu učitani.`"
+and one of the subjects is feminine. The intake's point ask says "Dve tačke, dva dodira." for any task
+with more than one point, and a multi-stop route can have up to twenty-two. The AI conversation's text
+field says "Napiši šta ti treba ili šta da promenim…" on the worker profile too, where the question on
+screen is "Čime se baviš?". More fixed plurals: "{n} konkretnih ponuda · još {n} ljudi" and "{p} / {u}
+ljudi" on the candidate list, "{n} nepročitanih" in the bell's spoken label. The map picker prints the
+raw coordinates under the map ("Geografska širina 44.812345; …") to every sighted user, not only to a
+screen reader. The entry's waiting line "Pripremamo prijavu…" uses "prijava" for signing in, the word the
+rest of the app keeps for an application. And the copy assumes a man throughout — "Objavio zadatak",
+"Uskočio", "Već si se prijavio", "Dostupan sam", "Nov na USKOČI" — while sign-up alone writes
+"pročitao/la"; whether that is a decision is the owner's to make, it is recorded here because it is
+consistent everywhere except one place.
+
+**8.25 — note, accessibility, measured.** `system/tokens.ts` documents nine text/background contrast
+pairs; recomputed from the hex values, all nine hold (12.45, 5.68, 6.42, 5.59, 5.11, 2.44 as the stated
+defect, 5.98, 5.91, 7.84). One pair outside that table fails: the hint under "Objavi zadatak" on the Home
+tile, `#584022` on the orange `#FF850F`, is 3.97:1 — below 4.5 for text that size.
+
+**8.26 — note, verified.** "Fotografije su privatne za ovaj Dogovor; uklanjamo metapodatke" holds: the
+media worker decodes every upload server-side with ImageMagick, auto-orients, then `strip()`s EXIF, GPS,
+XMP, ICC and comments before storing a re-encoded JPEG (1600 px edge, quality 82), and the phone also
+re-encodes with `exif: false` before sending. The worker's area search drops every precise coordinate
+before anything reaches state (two decimals only), and refuses the whole answer if any candidate is in
+another country. The map pin really can be dragged (native projection both ways), as the conversation
+tells a person it can. `referenceEntry/ReferenceEntryHero.tsx` and its data file (about 540 lines) are
+imported by no production file — one test mocks them — which matches AGENTS calling that directory an
+older donor; `entry/BrandScene`'s `BrandScene` component is likewise used only by a test. `v2/icons.tsx`
+says of itself that it is no longer drawn and is kept on purpose as a supplied asset.
 
 ### Area 9 — HITNO, categories, and matching
 
