@@ -113,7 +113,11 @@ const selection = (id, needId, owner, worker, responseId) => `insert into public
   values(${q(id)},${q(needId)},1,${q(owner.id)},${q('pkg029-sel-' + id)},1,'SELECTED',${q(responseId)},${q(worker.id)},${q(worker.worker)});`;
 const agreement = (id, needId, selectionId, responseId, owner, worker, status) => `insert into public.agreements(id,need_id,selection_id,
     selected_response_id,requester_account_id,requester_profile_id,worker_account_id,worker_profile_id,status,current_version)
-  values(${q(id)},${q(needId)},${q(selectionId)},${q(responseId)},${q(owner.id)},${q(owner.requester)},${q(worker.id)},${q(worker.worker)},${q(status)},1);`;
+  values(${q(id)},${q(needId)},${q(selectionId)},${q(responseId)},${q(owner.id)},${q(owner.requester)},${q(worker.id)},${q(worker.worker)},${q(status)},1);
+  -- The worker calendar projection reads the Agreement's current version; every real Agreement has one.
+  insert into public.agreement_versions(agreement_id,version,status,terms,content_hash,created_by_account_id)
+  values(${q(id)},1,'CONFIRMED',jsonb_build_object('price_rsd',3000,'covered_slots',1,'need_revision',1,'response_version',1,
+    'scope_note','','proposed_start_at',null,'proposed_end_at',null),md5(${q(id)}),${q(owner.id)});`;
 const asPerson = id => `set local role authenticated;
   set local request.jwt.claim.sub = ${q(id)}; set local request.jwt.claim.role = 'authenticated';
   set local request.jwt.claims = ${q(JSON.stringify({sub: id, role: 'authenticated'}))};`;
