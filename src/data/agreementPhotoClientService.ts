@@ -19,6 +19,7 @@ const agreementPhotoErrors = {
   MEDIA_VERSION_CONFLICT: 'Uslovi Dogovora su promenjeni. Osveži Dogovor i ukloni stare pripremljene fotografije.',
   MEDIA_COMMAND_CONFLICT: 'Ovaj pokušaj pripada drugoj fotografiji. Proveri sačuvani ishod.',
   MEDIA_RATE_LIMITED: 'Trenutno je dostignuta zaštitna granica slanja. Pokušaj kasnije.',
+  MEDIA_BUSY: 'Slanje fotografije je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.', MEDIA_UPLOAD_PENDING: 'Slanje fotografije je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.',
   INTERACTION_BLOCKED: 'U ovom Dogovoru nije dozvoljeno novo slanje.', ACCOUNT_CLOSING: 'Zatvaranje naloga ne dopušta novo slanje.',
 };
 function decodeAgreementPhoto(raw: unknown): AgreementPhoto | null {

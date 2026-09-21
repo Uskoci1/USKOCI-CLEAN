@@ -361,7 +361,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             {deadlineEditor ? <ResponseDeadlineEditor value={review.responseDeadline} timezone={deadlineTimezone} disabled={disabled}
               apply={value => { void proposeDeadline(value); }} cancel={() => { if (canAct()) setDeadlineEditor(false); }} /> : <>
               <T style={s.body}>{review.responseDeadline ? `Rok: ${new Date(review.responseDeadline).toLocaleString('sr-Latn-RS', { timeZone: deadlineTimezone })} (${deadlineTimezone})`
-                : 'Bez posebnog roka — do popune, zaustavljanja potrage ili isteka zadatka.'}</T>
+                : 'Bez posebnog roka — do popune ili dok ne zaustaviš potragu. Zadatak sa tačnim terminom se zatvara kad termin prođe.'}</T>
               {!command ? <V2Action label="Uredi rok za prijave" kind="quiet" disabled={disabled || !!edit || !!locationEditor}
                 onPress={() => { if (canAct()) setDeadlineEditor(true); }} /> : null}
             </>}</View>

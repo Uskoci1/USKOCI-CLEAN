@@ -5,6 +5,7 @@ import type { AuthAccountScope, AuthClientPort } from '../contracts/auth';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { revokePushBeforeLogout } from './pushDeviceClientService';
+import { forgetAgreementOutboxes } from './agreementOutbox';
 
 function assertCurrentAccount(expected: AuthAccountScope) {
   const current = sesijaSada();
@@ -92,5 +93,11 @@ export const authClientService: AuthClientPort = {
     // Its Auth event, not this command or the screen, owns session cleanup.
     const { error } = await client.auth.signOut({ scope: 'local' });
     if (error) throw error;
+    // The device forgets this account's Agreement message text (deep read 7.28). A storage failure never
+    // blocks a logout that has already happened.
+    try {
+      const storage = require('@react-native-async-storage/async-storage').default;
+      await forgetAgreementOutboxes(expected.accountId, storage);
+    } catch { /* the text stays where it was; the session is gone either way */ }
   },
 };

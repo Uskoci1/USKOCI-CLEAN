@@ -22,7 +22,8 @@ import { AgreementChat } from '../../ui/AgreementChat';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
-import { agreementProblemService, type AgreementProblemSnapshot } from '../../data/agreementClientService';
+import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnapshot } from '../../data/agreementClientService';
+import { knownLegacyRefusal } from '../../data/legacyRpcFailure';
 import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
 
@@ -166,7 +167,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
       problemAttemptRef.current = narrative;
       setProblemAttempt(narrative);
       const receipt = await agreementProblemService.submit(id, narrative, { accountId, accountRevision });
-      if (!receipt.ok) return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Prijava nije potvrđena. Proveri status Dogovora pre ponovnog pokušaja.' };
+      if (!receipt.ok) return knownProblemRefusal(receipt.kod) ? receipt
+        : { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Prijava nije potvrđena. Proveri status Dogovora pre ponovnog pokušaja.' };
       const next = await read();
       if (!next.ok) return next;
       const stored = next.podatak?.problemReport;
@@ -180,7 +182,9 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     if (!enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
     await workspace.save(async () => {
       const result = await bounded(command);
-      if (!result.ok) return { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
+      // A known refusal keeps its own sentence (deep read 8.4: "Podeli svoj broj" said only "nije potvrđena").
+      if (!result.ok) return knownLegacyRefusal(result.kod) ? { ok: false as const, kod: result.kod, poruka: result.poruka }
+        : { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
       return read();
     });
   };

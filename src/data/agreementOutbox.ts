@@ -55,6 +55,21 @@ function serial<T>(key: string, work: () => Promise<T>): Promise<T> {
   return task;
 }
 
+/**
+ * An explicit logout forgets this account's Agreement message text on the device (deep read 7.28): the outbox
+ * kept every pending message and up to fifty sent ones, with their full text, and nothing ever removed them.
+ * Another account could not read them through the app, but the text stayed on the phone.
+ */
+export async function forgetAgreementOutboxes(accountId: string, storage: {
+  getAllKeys(): Promise<readonly string[]>; multiRemove(keys: readonly string[]): Promise<void>;
+}): Promise<number> {
+  if (!uuid(accountId)) return 0;
+  const prefix = `uskoci:agreement-outbox:v1:${accountId}:`;
+  const keys = (await storage.getAllKeys()).filter(key => key.startsWith(prefix));
+  if (keys.length) await storage.multiRemove(keys);
+  return keys.length;
+}
+
 export function createAgreementOutbox(input: AgreementOutboxOptions) {
   const options = { ...input };
   if (!uuid(options.accountId) || !uuid(options.agreementId)) throw new Fault('AUTH_CONTEXT_CHANGED');

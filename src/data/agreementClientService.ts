@@ -199,6 +199,8 @@ const problemErrors = {
   NARRATIVE_REQUIRED: 'Opiši problem.', NARRATIVE_TOO_LONG: 'Opis može imati najviše 4.000 znakova.',
 };
 const problemOptions = { errors: problemErrors, fallback: 'PROBLEM_REPORT_UNCONFIRMED', invalid: 'PROBLEM_REPORT_INVALID' };
+/** A problem report refused for a known reason (deep read 8.8): its own sentence, not "Prijava nije potvrđena". */
+export const knownProblemRefusal = (kod: string) => Object.prototype.hasOwnProperty.call(problemErrors, kod);
 const exactKeys = (row: Record<string, unknown>, keys: readonly string[]) =>
   Object.keys(row).length === keys.length && keys.every(key => Object.prototype.hasOwnProperty.call(row, key));
 

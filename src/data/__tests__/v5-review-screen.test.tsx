@@ -390,7 +390,7 @@ it('restores the server review deadline and allows its explicit removal without 
   mockPrepare.mockResolvedValue(ok(review()));
   await act(async () => form.apply(null));
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
-  expect(text()).toContain('do popune, zaustavljanja potrage ili isteka zadatka');
+  expect(text()).toContain('Zadatak sa tačnim terminom se zatvara kad termin prođe');
   expect(mockAccept).not.toHaveBeenCalled();
 });
 

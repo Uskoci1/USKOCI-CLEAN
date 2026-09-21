@@ -31,7 +31,8 @@ const COPY: Readonly<Record<string, string>> = Object.freeze({
   INVALID_COVERED_SLOTS: 'Proveri broj ljudi u Prijavi.',
   INVALID_PROPOSED_WINDOW: 'Proveri početak i kraj ponuđenog termina.',
   SCOPE_NOTE_TOO_LONG: 'Napomena je predugačka. Skrati je pre slanja.',
-  PHONE_NOT_SET: 'Najpre dodaj broj telefona na nalog.',
+  // Deep read 8.4: no screen can add a number yet, so the sentence must not send the person looking for one.
+  PHONE_NOT_SET: 'Na tvom nalogu nema broja telefona, a upis broja još nije moguć u aplikaciji. Kontakt dogovori kroz poruke.',
   NO_ACTIVE_GRANT: 'Dozvola za prikaz više nije aktivna. Osveži Dogovor.',
   GRANT_NOT_OWNABLE: 'Podatak može da podeli samo njegov vlasnik.',
   GRANT_NOT_TO_COUNTERPARTY: 'Dozvola ne pripada drugom učesniku Dogovora.',
@@ -43,6 +44,11 @@ const COPY: Readonly<Record<string, string>> = Object.freeze({
   FACT_NOT_FOUND: 'Podatak više nije dostupan. Učitaj pregled ponovo.',
   FACT_SUPERSEDED: 'Podatak je izmenjen. Učitaj pregled ponovo.',
 });
+
+/** A refusal the server answered for a known reason: its sentence is the outcome, not an unknown one. */
+export function knownLegacyRefusal(kod: string): boolean {
+  return Object.prototype.hasOwnProperty.call(COPY, kod);
+}
 
 export function legacyRpcFailure<T>(error: unknown, fallbackCode: string, fallbackMessage: string): Ishod<T> {
   let name: unknown;

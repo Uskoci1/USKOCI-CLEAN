@@ -48,7 +48,7 @@ export function SafetyScreen(p: Context) {
         publication review. */}
     <SettingsPanel>
       <T variant="bodyStrong">Treba ti operater?</T>
-      <T variant="note" tone="muted">Privatna prijava ide automatskoj proveri. Ako ti treba čovek, otvori zahtev podršci.</T>
+      <T variant="note" tone="muted">Privatnu prijavu prima podrška, i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje.</T>
       <SettingsAction label="Otvori zahtev podršci" kind="quiet"
         onPress={() => router.push('/podrska/novi')} />
     </SettingsPanel>
