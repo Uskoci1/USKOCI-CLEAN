@@ -48,6 +48,7 @@ Local validation: TypeScript clean; full Jest **240 suites / 4,596 tests passed*
 were run against the previous production screen files (`fe2269d1`) and failed, then pass with the fix. The old
 files were restored to the new working copies in a `finally` block. No device test has been run; the previously
 reported APK does not include these new client changes.
+The client-triggered PKG-004 run `35651612057` and PKG-006 run `35651612168` also completed successfully.
 
 The resumed DEV connection denied execution of the private closure digest function. The owner has been asked
 for the nonsecret live/certified/ready result; no DEV mutation is allowed before the prerequisite is confirmed.

@@ -91,6 +91,5 @@ price-control changes to the existing editor; no visual direction or design expl
 - Local migration integrity refuses the foreign untracked migration, as expected from the frozen inventory.
   Do not delete, edit, commit, or hide it. The CI tracked-source integrity step passed.
 - Foreign file remains `supabase/migrations/20260913090000_clean_v5_fix_application_spam_and_resolution.sql`.
-- PKG-004 run35651612057 succeeded on client commit `b4d5a5a9`. PKG-006 run35651612168 was still executing
-  its full regression when this checkpoint was written; read its final result before claiming it passed.
-
+- PKG-004 run35651612057 and PKG-006 run35651612168 both succeeded on client commit `b4d5a5a9`, including
+  PKG-006's full regression. Their final conclusions were read after completion.
