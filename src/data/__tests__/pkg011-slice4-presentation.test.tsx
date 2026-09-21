@@ -22,6 +22,14 @@ const need = (patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ i
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, vremeTekst: 'Sutra', podrucjeTekst: 'Novi Sad, Liman', uslovi: ['Trake'], brojPrijava: 3, rezimCene: 'MY_PRICE',
   ponudjenaCena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, ...patch });
 const noop = () => {};
+
+test('PKG-035: task detail retains history without promising an unavailable selection', async () => {
+  await act(async () => { tree = create(<Screen value={Object.assign(need({ brojPrijava: 7 }), { brojPrijavaZaIzbor: 0 })} />); });
+  expect(texts()).toContain('Trenutno nema prijava za izbor.');
+  expect(texts()).toContain('Ukupno 7 prijava');
+  expect(texts()).not.toContain('Sledeće: izbor.');
+  expect(labels()).toContain('Otvori prijave, ukupno 7');
+});
 function Screen({ value, loading = false, error = null, remainingClosed = false }: {
   value: PotrebaProjekcija | null; loading?: boolean; error?: string | null; remainingClosed?: boolean;
   }) {
@@ -38,10 +46,10 @@ test('my own draft is mine to act on from wherever I opened it: no way across is
   expect(labels()).not.toContain('Pređi u MENI TREBA'); expect(labels()).toContain('Izmeni nacrt');
 });
 test('a published Task leads with its state, price and people, shows the applications row with a count, and has one brand action: the applications', async () => {
-  await act(async () => { tree = create(<Screen value={need()} />); });
+  await act(async () => { tree = create(<Screen value={need({ brojPrijavaZaIzbor: 3 })} />); });
   const copy = texts();
   expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe');
-  expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za pregled');
+  expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za izbor');
   expect(labels()).toContain('Otvori prijave, ukupno 3'); expect(labels()).toContain('Izmeni Zadatak');
   expect(brand()).toEqual(['Pogledaj prijave']);
   expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false }); expect(byLabel('Svi uslovi')).toBeTruthy();

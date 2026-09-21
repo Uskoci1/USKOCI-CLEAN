@@ -23,4 +23,18 @@ certificate. SQL scenarios use rolled-back transactions. A separate real Auth/Po
 synthetic accounts and a committed local task, discarded with the disposable stack; no DEV fixtures.
 No existing data, trigger, policy, table, certificate, JWT setting, dependency or provider is changed.
 
-Pending: run and inspect CI proof, client regression tests, read-only DEV preflight and authorized apply.
+Client: Home attention, marketplace attention, task card and task detail use the separate selectable
+count; task history retains its total. The mapper rejects missing/invalid server counts rather than
+guessing from history. Null is preserved for viewers who are not the owner. Existing clients continue
+reading the old fields; deploy the server before installing this new client.
+
+Local validation: types clean; 240 suites / 4606 tests pass. Three new Home/detail regressions fail on
+the previous production source and pass after the change. Seven mapper tests cover the computed field,
+invalid data and a non-owner null. The historical PKG-023j replay adapter explicitly keeps its old
+attention-count semantics; it does not claim to prove current eligibility. PKG-035 owns that proof.
+
+The first disposable run reproduced the old defects, applied atomically and kept the certificate, but
+caught a bug in the new classifier: duplicate record field names read the obsolete response interval.
+Explicit version_start/version_end aliases fix it. A complete rerun is required before DEV application.
+
+Pending: inspect final CI proof, read-only DEV preflight and authorized apply. No phone installation.

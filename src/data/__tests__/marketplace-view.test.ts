@@ -15,7 +15,7 @@ test('one result order and filter subset is shared by List and Map; viewport alo
  expect(ids(marketplaceItems(rows, { ...view, area: [19, 45, 20, 46] }, false))).toEqual(['a']);
 });
 test('owned tabs and attention use existing actual state and counts; public filter never infers price', () => {
- const rows = [item('draft', { stanje: 'NACRT', brojPrijava: 5 }), item('active', { stanje: 'OBJAVLJENA', brojPrijava: 1 }), item('closed', { stanje: 'ZATVORENA', brojPrijava: 1 })];
+ const rows = [item('draft', { stanje: 'NACRT', brojPrijava: 5, brojPrijavaZaIzbor: 0 }), item('active', { stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: 1 }), item('closed', { stanje: 'ZATVORENA', brojPrijava: 1, brojPrijavaZaIzbor: 0 })];
  expect(ids(marketplaceItems(rows, initialMarketplaceView(), true))).toEqual(['active']);
  expect(ids(marketplaceItems(rows, { ...initialMarketplaceView(), section: 'drafts' }, true))).toEqual(['draft']);
  expect(ids(marketplaceItems(rows, { ...initialMarketplaceView(), section: 'history' }, true))).toEqual(['closed']);

@@ -89,6 +89,8 @@ export type PotrebaProjekcija = {
   schedule?: NeedScheduleProjection;
   uslovi: string[];
   brojPrijava: number;
+  /** Server-owned selectable count. Absent/null is unknown, never the historical total. */
+  brojPrijavaZaIzbor?: number | null;
   rezimCene?: RezimCene;
   /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto. null/undefined = postojece znacenje. */
   osnovaCene?: "TOTAL" | "PER_PERSON" | null;

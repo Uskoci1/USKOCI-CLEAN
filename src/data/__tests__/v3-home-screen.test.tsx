@@ -63,7 +63,7 @@ it('shows one account on both sides at once, each row saying what I am to it, wi
 });
 
 it('a row only navigates, and to the exact object: my task opens its candidates, my application opens that application', async () => {
-  mockSource.mojePotrebe.mockResolvedValue([need('orman', { brojPrijava: 2 })]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
+  mockSource.mojePotrebe.mockResolvedValue([need('orman', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
   await render();
   expect(text()).toContain('Čeka te');
   await act(async () => row('2 prijave').onPress());

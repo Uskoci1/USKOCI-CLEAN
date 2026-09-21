@@ -19,6 +19,21 @@ const agreement = (id: string, mine: 'narucilac' | 'uskocer', patch: Partial<Dog
 const known = <T,>(value: T) => ({ kind: 'known' as const, value });
 const reads = (patch: Partial<HomeReads> = {}): HomeReads => ({ needs: known([]), applications: known([]), agreements: known([]), ...patch });
 
+test('PKG-035: history stays visible but only selectable applications require attention', () => {
+  const historical = Object.assign(need('history', { brojPrijava: 7 }), { brojPrijavaZaIzbor: 0 });
+  const actionable = Object.assign(need('choice', { brojPrijava: 9 }), { brojPrijavaZaIzbor: 2 });
+  const home = composeHome(reads({ needs: known([historical, actionable]) }));
+  expect(home.attention).toEqual([{ id: 'need:choice:applications', title: '2 prijave',
+    detail: 'Zadatak choice · čeka tvoj izbor', target: { kind: 'CANDIDATES', needId: 'choice' } }]);
+  expect(home.attentionMore).toBe(0);
+  expect(JSON.stringify(home.activities)).toContain('7 prijava');
+});
+
+test('PKG-035: historical totals never substitute for an unknown actionable count', () => {
+  const home = composeHome(reads({ needs: known([need('legacy', { brojPrijava: 7 })]) }));
+  expect(home.attention).toEqual([]);
+});
+
 describe('Početna v1 — composed from the reads that already exist, with no mode', () => {
   it('an account with nothing has no attention, no rows and no invented numbers', () => {
     expect(composeHome(reads())).toEqual({ attention: [], attentionMore: 0, agreements: known({ rows: [], more: 0 }),
@@ -38,7 +53,7 @@ describe('Početna v1 — composed from the reads that already exist, with no mo
 
   it('orders attention by what blocks a person first, bounds it, and counts the rest honestly', () => {
     const home = composeHome(reads({
-      needs: known([need('a', { brojPrijava: 3 }), need('b', { brojPrijava: 1 })]),
+      needs: known([need('a', { brojPrijava: 3, brojPrijavaZaIzbor: 3 }), need('b', { brojPrijava: 1, brojPrijavaZaIzbor: 1 })]),
       applications: known([application('c', { stanje: 'STALE_REVIEW_REQUIRED', promenjenaPotreba: true })]),
       agreements: known([agreement('g', 'narucilac', { stanje: 'AWAITING_REQUESTER' }), agreement('p', 'uskocer', { problemOtvoren: true })]) }));
     expect(home.attention.map(item => item.id)).toEqual(['agreement:g:confirm', 'agreement:p:problem', 'application:c:stale']);

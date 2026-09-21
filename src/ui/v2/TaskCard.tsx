@@ -25,7 +25,7 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
   const own = isOwnedNeed(item), attention = own && hasNeedAttention(item), draft = own && item.stanje === 'NACRT';
   const settled = own && (item.stanje === 'DELIMICNO_POPUNJENA' || item.stanje === 'POPUNJENA' || item.stanje === 'ZATVORENA');
   // A sent application is a paper plane in words, never the tick of something finished.
-  const status = attention ? `${prijave(item.brojPrijava)} · pogledaj` : draft ? STATUS.NACRT : settled ? STATUS[item.stanje]
+  const status = attention ? `${prijave(item.brojPrijavaZaIzbor!)} · pogledaj` : draft ? STATUS.NACRT : settled ? STATUS[item.stanje]
     : relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Prijava poslata' : null;
   const quiet = draft || (own && item.stanje === 'ZATVORENA');
   const tone = attention ? sys.color.warn : quiet ? sys.color.muted : sys.color.green;

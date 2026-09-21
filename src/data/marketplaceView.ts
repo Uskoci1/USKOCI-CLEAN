@@ -31,7 +31,7 @@ export function publicViewport(raw: unknown): PublicViewport | null {
     ? { center: [value.center[0], value.center[1]], zoom: value.zoom, bounds } : null;
 }
 export function hasNeedAttention(item: PotrebaProjekcija): boolean {
-  return item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA' && item.pokrivenost.preostalo > 0 && item.brojPrijava > 0;
+  return item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA' && item.pokrivenost.preostalo > 0 && (item.brojPrijavaZaIzbor ?? 0) > 0;
 }
 /** One presentation subset of one existing read. No matching/eligibility/ranking authority. */
 export function marketplaceItems(items: readonly MarketplaceItem[], view: MarketplaceView, owned: boolean): MarketplaceItem[] {

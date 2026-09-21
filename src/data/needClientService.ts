@@ -20,16 +20,16 @@ function stanje(
   raw: string,
   popunjeno: number,
   ukupno: number,
-  brojPrijava: number,
+  brojPrijavaZaIzbor: number | null,
 ): StanjePotrebe {
   switch (raw) {
     case 'DRAFT':
       return 'NACRT';
     case 'PUBLISHED':
-      return brojPrijava > 0 ? 'CEKA_PRIJAVE' : 'OBJAVLJENA';
+      return (brojPrijavaZaIzbor ?? 0) > 0 ? 'CEKA_PRIJAVE' : 'OBJAVLJENA';
     case 'SELECTION':
       if (popunjeno >= ukupno) return 'POPUNJENA';
-      return popunjeno > 0 ? 'DELIMICNO_POPUNJENA' : 'CEKA_PRIJAVE';
+      return popunjeno > 0 ? 'DELIMICNO_POPUNJENA' : (brojPrijavaZaIzbor ?? 0) > 0 ? 'CEKA_PRIJAVE' : 'OBJAVLJENA';
     case 'ACTIVE':
       return 'POPUNJENA';
     case 'COMPLETED':
@@ -81,6 +81,10 @@ function mapNeed(raw: any): PotrebaProjekcija {
     ? raw.marketplace_responses.length
     : 0;
   const cena = raw.requester_price_rsd;
+  const brojPrijavaZaIzbor = raw.selectable_application_count;
+  if (brojPrijavaZaIzbor !== null && (!Number.isSafeInteger(brojPrijavaZaIzbor) || brojPrijavaZaIzbor < 0)) {
+    throw new Error('NEED_ACTIONABLE_COUNT_INVALID');
+  }
   const mode = raw.mode === 'MY_PRICE' || raw.mode === 'OFFERS' ? raw.mode : undefined;
 
   return {
@@ -88,7 +92,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
     revizija: Number(raw.revision),
     naslov: raw.title ?? '',
     opis: raw.description ?? '',
-    stanje: stanje(String(raw.status), popunjeno, ukupno, brojPrijava),
+    stanje: stanje(String(raw.status), popunjeno, ukupno, brojPrijavaZaIzbor),
     pokrivenost: {
       ukupno,
       popunjeno,
@@ -114,6 +118,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
       ...(raw.required_vehicles ?? []),
     ],
     brojPrijava,
+    brojPrijavaZaIzbor,
     rezimCene: mode,
     osnovaCene: raw.price_basis === 'TOTAL' || raw.price_basis === 'PER_PERSON' ? raw.price_basis : null,
     ponudjenaCena:
@@ -133,7 +138,7 @@ const NEED_SELECT = `
   approximate_area, approximate_city, approximate_lat, approximate_lng,
   required_slots, required_skills, required_tools, required_vehicles, required_licenses,
   minimum_experience_years, verified_identity_required,
-  covered_slots, mode, requester_price_rsd, price_basis,
+  covered_slots, selectable_application_count, mode, requester_price_rsd, price_basis,
   marketplace_responses(id), need_geography(public_topology), need_requirement_details(critical_conditions)
 `;
 

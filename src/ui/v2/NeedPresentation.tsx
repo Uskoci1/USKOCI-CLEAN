@@ -40,7 +40,7 @@ function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: {
       // it knows - that it is a draft - rather than promising a step that may be refused.
       : { title: STATUS.NACRT, detail: 'Otvori pregled da vidiš da li može da se objavi.', tone: 'muted' };
     case 'OBJAVLJENA': case 'CEKA_PRIJAVE':
-      return { title: STATUS[need.stanje], detail: need.brojPrijava ? 'Sledeće: izbor. Izbor odmah formira potvrđen Dogovor.' : 'Sledeće: prijave stižu ovde, izbor formira Dogovor.', tone: 'green' };
+      return { title: STATUS[need.stanje], detail: (need.brojPrijavaZaIzbor ?? 0) > 0 ? 'Sledeće: izbor. Izbor odmah formira potvrđen Dogovor.' : 'Sledeće: prijave stižu ovde, izbor formira Dogovor.', tone: 'green' };
     case 'DELIMICNO_POPUNJENA':
       return { title: STATUS.DELIMICNO_POPUNJENA, detail: remainingClosed ? `${popunjeno} od ${ukupno} dogovoreno · preostala potraga je zatvorena.` : `${popunjeno} od ${ukupno} dogovoreno · potraga za ostalima traje.`, tone: 'green' };
     case 'POPUNJENA': return { title: STATUS.POPUNJENA, detail: 'Sva mesta su dogovorena.', tone: 'green' };
@@ -75,6 +75,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
   // The owner's own task shows the same sentence a stranger sees, totals included.
   const price = need ? needPriceText(need, { withTotal: true }) : '';
   const step = need ? nextStep(need, remainingClosed, blocked) : null;
+  const forSelection = need?.brojPrijavaZaIzbor;
+  const hasSelection = (forSelection ?? 0) > 0;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Zadatak" onBack={props.onBack} />
     {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
@@ -117,8 +119,9 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <Press accessibilityRole="button" accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`} onPress={props.onCandidates} haptic="select" scaleTo={0.99} style={s.row}>
             <View style={s.rowIcon}><PaperPlaneTilt size={20} color={sys.color.green} /></View>
             <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>Prijave za ovaj zadatak</T>
-              <T variant="note" tone={need.brojPrijava ? 'ink' : 'muted'} style={need.brojPrijava ? s.attention : null}>{need.brojPrijava ? `${prijave(need.brojPrijava)} za pregled` : 'Još nema pristiglih ponuda.'}</T></View>
-            {need.brojPrijava ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(need.brojPrijava)}</T></View> : null}
+              <T variant="note" tone={hasSelection ? 'ink' : 'muted'} style={hasSelection ? s.attention : null}>{hasSelection ? `${prijave(forSelection!)} za izbor` : forSelection == null ? 'Broj prijava za izbor trenutno nije dostupan.' : need.brojPrijava ? 'Trenutno nema prijava za izbor.' : 'Još nema pristiglih ponuda.'}</T>
+              {need.brojPrijava > 0 ? <T variant="note" tone="muted">{`Ukupno ${prijave(need.brojPrijava)}`}</T> : null}</View>
+            {hasSelection ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(forSelection)}</T></View> : null}
             <CaretRight size={18} color={sys.color.muted} />
           </Press>
           {need.pokrivenost.popunjeno === 0 && !remainingClosed && need.stanje !== 'ZATVORENA' ? <View style={s.rowDivider}><V2Action label="Izmeni Zadatak" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.rowAction} /></View> : null}

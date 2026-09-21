@@ -86,6 +86,7 @@ const rawNeed = {
   required_tools: ['kolica'],
   required_vehicles: ['automobil'],
   covered_slots: 1,
+  selectable_application_count: 1,
   mode: 'MY_PRICE',
   requester_price_rsd: 2500,
   marketplace_responses: [{ id: 'response-1' }],
@@ -93,6 +94,22 @@ const rawNeed = {
 
 describe('CDL-A03 — canonical Need read contract', () => {
   beforeEach(reset);
+
+  it('PKG-035: reads selectable count in the existing query and preserves the historical total', async () => {
+    mocks.mockOrder.mockResolvedValue({ error: null, data: [{ ...rawNeed, selectable_application_count: 0 }] });
+    const [row] = await needClientService.mojePotrebe();
+    expect(row).toMatchObject({ brojPrijava: 1, brojPrijavaZaIzbor: 0, stanje: 'OBJAVLJENA' });
+    expect(mocks.mockSelect).toHaveBeenCalledTimes(1);
+    expect(mocks.mockSelect.mock.calls[0][0]).toContain('selectable_application_count');
+  });
+  it.each([undefined, -1, 1.5, '2', Number.NaN])('rejects an invalid count instead of substituting history: %p', async count => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, selectable_application_count: count } });
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_ACTIONABLE_COUNT_INVALID');
+  });
+  it('preserves null when the server does not disclose the owner count', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, selectable_application_count: null } });
+    expect((await needClientService.potreba(rawNeed.id))?.brojPrijavaZaIzbor).toBeNull();
+  });
 
   it('transitional Need override is deleted and baseline no longer owns migrated reads', () => {
     const dataDir = join(__dirname, '..');
@@ -130,6 +147,7 @@ describe('CDL-A03 — canonical Need read contract', () => {
         podrucjeTekst: 'Centar, Novi Sad',
         uslovi: ['dostava', 'kolica', 'automobil'],
         brojPrijava: 1,
+        brojPrijavaZaIzbor: 1,
         rezimCene: 'MY_PRICE',
         ponudjenaCena: expect.objectContaining({ iznos: 2500, valuta: 'RSD' }),
       }),

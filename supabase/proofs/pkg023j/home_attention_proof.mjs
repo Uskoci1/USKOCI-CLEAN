@@ -126,7 +126,9 @@ function compare(raw, actor) {
   assert.equal(raw.needs.hasMore, false, 'fixture exceeds oracle page; do not silently truncate');
   assert.equal(raw.agreements.hasMore, false, 'fixture exceeds oracle page; do not silently truncate');
   // Adapter only: server legacy facts -> fields consumed by the real composeHome/hasNeedAttention.
-  const needs = raw.needs.items.map(n => ({id: n.id, naslov: n.title, brojPrijava: n.applicationCount,
+  // This workflow replays the historical PKG-023j contract, before PKG-035 separated history from
+  // eligibility. Adapt its attention count explicitly; current eligibility is proved by PKG-035.
+  const needs = raw.needs.items.map(n => ({id: n.id, naslov: n.title, brojPrijava: n.applicationCount, brojPrijavaZaIzbor: n.applicationCount,
     stanje: n.status === 'DRAFT' ? 'NACRT' : ['COMPLETED','CANCELLED','EXPIRED','ARCHIVED'].includes(n.status) ? 'ZATVORENA' : 'OBJAVLJENA',
     pokrivenost: {preostalo: Math.max(0, n.requiredSlots - Math.max(0, Math.min(n.requiredSlots, n.coveredSlots)))}, vremeTekst: 'Fleksibilno'}));
   const applications = raw.applications.map(a => ({prijavaId: a.applicationId, naslov: a.title, stanje: a.state,

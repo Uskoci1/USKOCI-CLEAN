@@ -97,7 +97,7 @@ export function composeHome(reads: HomeReads): HomeSnapshot {
       detail: staleApplication(row) ? `${row.naslov} · pregledaj izmene pre nego što odlučiš o prijavi` : `${row.naslov} · otvori svoju prijavu`,
       target: { kind: 'APPLICATION' as const, applicationId: row.prijavaId } })),
     ...(needs ?? []).filter(hasNeedAttention).map(row => ({
-      id: `need:${row.id}:applications`, title: prijava(row.brojPrijava), detail: `${row.naslov} · čeka tvoj izbor`,
+      id: `need:${row.id}:applications`, title: prijava(row.brojPrijavaZaIzbor!), detail: `${row.naslov} · čeka tvoj izbor`,
       target: { kind: 'CANDIDATES' as const, needId: row.id } })),
   ];
 
