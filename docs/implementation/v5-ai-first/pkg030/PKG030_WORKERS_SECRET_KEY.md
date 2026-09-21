@@ -158,3 +158,26 @@ permission check then let the readback run.
    - push: `DISABLED` (its switch is off by the owner's decision);
    - export: `TICK_COMPLETED`;
    - closure: `MAINTENANCE_CHECKED` if `USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED=true`, otherwise `DISABLED`.
+
+## Final check (2026-09-21, after the owner stored the secret key)
+
+The owner replaced the Vault value at 19:38 UTC. Read without printing it, the value is an `sb_secret_` key and has
+the shape the tick accepts.
+
+One direct call to each worker was composed inside the database, with the key on `apikey`:
+
+| worker | answer | meaning |
+| --- | --- | --- |
+| `uskoci-push-transport` | 200 `DISABLED` | the key is accepted; the owner's push switch is off, so nothing is sent |
+| `uskoci-data-export-worker` | 200 `TICK_COMPLETED` | the key is accepted |
+| `uskoci-account-closure-worker` | 200 `MAINTENANCE_CHECKED`, 0 checked | the key is accepted, and `USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED` is on |
+
+**The schedule**
+- `uskoci_edge_workers` is active every minute. It ran 120 times in the last two hours with no failure.
+- The tick answers `TICKED`, with every worker `IDLE`, because there is no work:
+  - no push is waiting;
+  - no closure is executing;
+  - the one export request waits for a retention policy, which is not bound.
+- The tick sends only when work exists, so no scheduled call has reached a worker on canonical DEV yet.
+- The disposable e2e proves that path, from cron to tick to worker with the key on `apikey`
+  (run 35636346590). It sends exactly the header the direct calls above used.

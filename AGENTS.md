@@ -55,7 +55,8 @@ never reach the workers. What changed:
   `verify_jwt = false` and check the key themselves.
 - `uskoci-data-export-download` v14 keeps `verify_jwt = true`.
 - All four are byte-identical on readback. Without a key, each worker refuses by itself.
-- **Waiting on the owner:** store the secret key in Vault, then the final check.
+- **Done 2026-09-21:** the owner stored the secret key. Push answers `DISABLED` (its switch is off), export answers
+  `TICK_COMPLETED`, closure answers `MAINTENANCE_CHECKED` (its switch is on), and the minute tick answers `TICKED`.
 
 Contract, status and receipt: `docs/implementation/v5-ai-first/pkg030/PKG030_WORKERS_SECRET_KEY.md`. The PKG-028
 paragraph's key instruction is corrected there.
