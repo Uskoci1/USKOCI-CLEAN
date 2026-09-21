@@ -4,7 +4,8 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PrilikaProjekcija } from '../../contracts/projections';
-import { needGeographyRows, needPeopleText, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
+import { needGeographyRows, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
+import { osoba } from '../system/plural';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, SectionTitle } from '../system/Detail';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
@@ -61,7 +62,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           <Fact icon={MapPin} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
           <Fact icon={Clock} label="Termin" value={need.vremeTekst} />
           <Fact icon={Wallet} label="Budžet" value={price} money={need.rezimCene !== 'OFFERS' && !!need.ponudjenaCena} />
-          <Fact icon={Users} label="Potrebno" value={needPeopleText(need.pokrivenost.ukupno)} note={`Popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
+          <Fact icon={Users} label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`Popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
         </FactGrid>
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
         {/* The place was four words of text — "Centar, Beograd" — on the screen where a person

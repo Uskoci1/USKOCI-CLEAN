@@ -20,6 +20,7 @@ import type {
   StatusCinjenice,
 } from '../contracts/projections';
 import type { Ishod } from './ports';
+import { osoba } from '../ui/system/plural';
 
 type Zapis = {
   id: string;
@@ -87,7 +88,7 @@ function izvuci(tekst: string): Nalaz[] {
 
   for (const [rec, n] of Object.entries(BROJEVI)) {
     if (new RegExp(`\\b${rec}\\b`).test(t)) {
-      nadjeno.push({ kljuc: 'osoba', prikaz: `${n} ${n === 1 ? 'osoba' : 'osobe'}`, izvor: 'KORISNIK' });
+      nadjeno.push({ kljuc: 'osoba', prikaz: osoba(n), izvor: 'KORISNIK' });
       break;
     }
   }

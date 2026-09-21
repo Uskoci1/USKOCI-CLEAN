@@ -7,6 +7,7 @@ import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
 import { needPriceBasisNote, type PriceBasis } from '../../data/needDetailPresentation';
+import { osoba } from '../system/plural';
 import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
 import { displayDate, zonedParts } from '../calendar/calendarPresentation';
@@ -68,8 +69,7 @@ function publicSummary(facts: AiNeedV2Fact[]) {
       ? needPriceBasisNote({ osnovaCene: basis as PriceBasis, ponudjenaCena: { iznos: amount },
           pokrivenost: typeof people === 'number' ? { ukupno: people } : undefined })
       : null,
-    people: typeof people === 'number' ? `${people} ${people % 100 >= 11 && people % 100 <= 14 ? 'osoba'
-      : people % 10 >= 2 && people % 10 <= 4 ? 'osobe' : 'osoba'}` : null };
+    people: typeof people === 'number' ? osoba(people) : null };
 }
 
 function Panel({ title, children, close, reduced }: { title: string; children: ReactNode; close: () => void; reduced: boolean }) {

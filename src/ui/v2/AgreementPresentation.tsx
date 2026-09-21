@@ -8,6 +8,7 @@ import { ProfilePhoto } from '../media/ContextPhotos';
 import { Fact, FactGrid } from '../system/Detail';
 import { Segmented } from '../system/Segmented';
 import { card, sys } from '../system/tokens';
+import { osoba } from '../system/plural';
 import { T } from '../Text';
 
 export type AgreementTab = 'pregled' | 'poruke';
@@ -21,7 +22,6 @@ const states: Record<DogovorProjekcija['stanje'], string> = {
   CONFIRMED: 'Dogovoreno', AWAITING_REQUESTER: 'Čeka se potvrda završetka', COMPLETED: 'Završeno', CANCELLED: 'Otkazano',
 };
 export const agreementStateText = (state: DogovorProjekcija['stanje']) => states[state];
-export const peopleText = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'osoba' : n % 10 >= 2 && n % 10 <= 4 ? 'osobe' : 'osoba'}`;
 
 /**
  * The accepted facts of a Dogovor: the title and a four-fact grid (where, when,
@@ -35,7 +35,7 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
     <View style={s.compactIcon}><ChatCircle size={20} color={sys.color.green} /></View>
     <View style={s.grow}>
       <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{readableTitle(a.naslov)}</T>
-      <T variant="note" tone="muted">{a.cena.prikaz} · {peopleText(a.pokrivenost.popunjeno)} · {states[a.stanje]}</T>
+      <T variant="note" tone="muted">{a.cena.prikaz} · {osoba(a.pokrivenost.popunjeno)} · {states[a.stanje]}</T>
     </View>
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
@@ -45,7 +45,7 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
       <Fact icon={MapPin} label="Mesto" value={a.rezim === 'DALJINSKI' ? 'Na daljinu' : a.putanjaTekst} />
       <Fact icon={Clock} label="Termin" value={a.vremeTekst} />
       <Fact icon={Wallet} label="Dogovoreno ukupno" value={a.cena.prikaz} money />
-      <Fact icon={Users} label="Ljudi" value={peopleText(a.pokrivenost.popunjeno)} note={a.verzija > 1 ? `verzija ${a.verzija}` : undefined} />
+      <Fact icon={Users} label="Ljudi" value={osoba(a.pokrivenost.popunjeno)} note={a.verzija > 1 ? `verzija ${a.verzija}` : undefined} />
     </FactGrid>
   </View>;
 }
@@ -63,7 +63,7 @@ export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija })
       <View style={s.grow}>
         <T variant="bodyStrong" style={s.ink}>{person.ime}</T>
         <T variant="note" tone="muted">{person.uloga === 'narucilac' ? (person.viSte ? 'Ti · objavio si zadatak' : 'Objavio zadatak') : person.viSte ? 'Ti · uskočio si' : 'Uskočio'}
-          {person.mesta !== null ? ` · ${peopleText(person.mesta)}` : ''}</T>
+          {person.mesta !== null ? ` · ${osoba(person.mesta)}` : ''}</T>
       </View>
     </View>)}
   </View>;

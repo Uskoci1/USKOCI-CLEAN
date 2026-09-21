@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
-import { needGeographyRows, needPeopleText, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
+import { needGeographyRows, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
 import { SkeletonCard } from '../system/Skeleton';
@@ -15,7 +15,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
-import { prijava as prijave } from '../system/plural';
+import { osoba, prijava as prijave } from '../system/plural';
 
 export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
@@ -109,7 +109,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <Fact icon={MapPin} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
           <Fact icon={Clock} label="Termin" value={need.vremeTekst} />
           <Fact icon={Wallet} label="Budžet" value={price} money={need.rezimCene !== 'OFFERS' && !!need.ponudjenaCena} />
-          <Fact icon={Users} label="Potrebno" value={needPeopleText(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} dogovoreno`} />
+          <Fact icon={Users} label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} dogovoreno`} />
         </FactGrid>
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
         {/* A stranger saw this Task on a map before its owner did: the public projection carried the

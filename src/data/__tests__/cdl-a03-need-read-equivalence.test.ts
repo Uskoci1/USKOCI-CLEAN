@@ -46,7 +46,8 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { needClientService } from '../needClientService';
-import { needGeographyRows, needRequirementRows, needScheduleText, needPeopleText, needPriceBasisNote, needPriceText, readableTitle } from '../needDetailPresentation';
+import { osoba } from '../../ui/system/plural';
+import { needGeographyRows, needRequirementRows, needScheduleText, needPriceBasisNote, needPriceText, readableTitle } from '../needDetailPresentation';
 
 const mocks = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
@@ -370,7 +371,7 @@ describe('saved Need schedule and people presentation', () => {
     expect(needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: null })).toBe('Tačan termin nije potpun');
   });
   it.each([[1, 'osoba'], [2, 'osobe'], [5, 'osoba'], [11, 'osoba'], [12, 'osoba'], [14, 'osoba'], [22, 'osobe']])('labels %s people', (count, word) => {
-    expect(needPeopleText(count as number)).toBe(`${count} ${word}`);
+    expect(osoba(count as number)).toBe(`${count} ${word}`);
   });
 });
 

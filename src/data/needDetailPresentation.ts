@@ -138,7 +138,3 @@ export function needRequirementRows(need: Pick<PotrebaProjekcija, 'detalji' | 'u
     ...(requirements.iskustvoGodina !== null ? [{ label: 'Najmanje iskustva', value: `${requirements.iskustvoGodina} god.` }] : []),
     ...(requirements.potvrdjenIdentitet ? [{ label: 'Identitet', value: 'Potreban je potvrđen identitet' }] : [])];
 }
-export function needPeopleText(count: number): string {
-  const last = count % 10, lastTwo = count % 100;
-  return `${count} ${lastTwo >= 11 && lastTwo <= 14 ? 'osoba' : last >= 2 && last <= 4 ? 'osobe' : 'osoba'}`;
-}

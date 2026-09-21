@@ -14,7 +14,7 @@ import { Appear, useAppear } from '../system/Appear';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { DetailTopBar } from '../system/DetailTopBar';
-import { dolaziOsoba } from '../system/plural';
+import { dolaziOsoba, osoba } from '../system/plural';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
@@ -35,7 +35,6 @@ function candidateState(k: KandidatProjekcija): string {
 }
 const candidateTone = (k: KandidatProjekcija) => k.stanje === 'SELECTABLE' ? sys.color.green : k.stanje === 'SELECTED' ? sys.color.green
   : k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? sys.color.warn : sys.color.muted;
-const peopleText = (n: number) => `${n} ${n === 1 ? 'osoba' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'osobe' : 'osoba'}`;
 
 /** Full-screen frame of the application/selection flow: back, eyebrow, title, keyboard-safe body, sticky footer. */
 function SelectionFrame({ title, subtitle, back, children, footer, scroll = true }: {
@@ -206,7 +205,7 @@ function CandidateRow({ candidate: k, open }: { candidate: KandidatProjekcija; o
     </View>
     <View style={s.candidateFoot}>
       <T style={s.price}>{k.cena.prikaz}</T>
-      <View style={s.inline}><Users size={16} color={sys.color.muted} /><T variant="meta" tone="muted">{peopleText(k.pokrivaMesta)}</T></View>
+      <View style={s.inline}><Users size={16} color={sys.color.muted} /><T variant="meta" tone="muted">{osoba(k.pokrivaMesta)}</T></View>
     </View>
     {k.stanje === 'SELECTABLE' ? null
       : <View style={s.stateBand}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View>}
@@ -222,7 +221,7 @@ function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekci
     <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{k.ime}</T>
     <T variant="meta" tone="muted" numberOfLines={1}>{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
-    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{peopleText(k.pokrivaMesta)}</T></View>
+    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T>
       <T variant="meta" style={s.ink}>{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
     {k.stanje === 'SELECTABLE' ? null : <T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T>}
@@ -309,7 +308,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       <T style={s.priceLarge}>{candidate.cena.prikaz}</T>
       <View style={s.factRow}>
         <View style={s.fact}><View style={s.inline}><Users size={16} color={sys.color.muted} /><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T></View>
-          <T variant="bodyStrong" style={s.ink}>{peopleText(candidate.pokrivaMesta)}</T></View>
+          <T variant="bodyStrong" style={s.ink}>{osoba(candidate.pokrivaMesta)}</T></View>
         <View style={s.fact}><View style={s.inline}><Clock size={16} color={sys.color.muted} /><T variant="label" tone="muted" style={s.compareLabel}>Termin</T></View>
           <T variant="bodyStrong" style={s.ink}>{applicationInterval(candidate.predlozeniPocetak, candidate.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
       </View>

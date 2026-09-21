@@ -7,13 +7,13 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { Appear, useAppear } from '../system/Appear';
-import { dogovora } from '../system/plural';
+import { dogovora, osoba } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
-import { agreementStateText, peopleText } from './AgreementPresentation';
+import { agreementStateText } from './AgreementPresentation';
 import { V2Action } from './V2Action';
 
 export type AgreementCollectionSection = 'active' | 'history' | 'all';
@@ -62,7 +62,7 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
     </View>
     <View style={s.foot}>
       <T style={s.price}>{item.cena.prikaz}</T>
-      <T variant="meta" style={s.people}>{peopleText(item.pokrivenost.popunjeno)}</T>
+      <T variant="meta" style={s.people}>{osoba(item.pokrivenost.popunjeno)}</T>
     </View>
     {/* The only route to rating a finished collaboration was: open the agreement, find the action.
         Nothing anywhere asked for it, and the person who confirmed the completion is not even sent

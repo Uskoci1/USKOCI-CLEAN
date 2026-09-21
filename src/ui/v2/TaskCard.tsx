@@ -3,14 +3,14 @@ import { StyleSheet, View } from 'react-native';
 import { Clock, MapPin, Users } from 'phosphor-react-native';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { hasNeedAttention, isOwnedNeed } from '../../data/marketplaceView';
-import { needPeopleText, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
+import { needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
+import { osoba, prijava as prijave } from '../system/plural';
 import { Press } from '../Press';
 import { card, cardCompact, sys } from '../system/tokens';
 import { T } from '../Text';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 const STATUS = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' } as const;
-const prijave = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'prijava' : n % 10 >= 2 && n % 10 <= 4 ? 'prijave' : 'prijava'}`;
 
 /**
  * Need/Opportunity card with the V5 live-card anatomy: title, where, when, then a
@@ -51,9 +51,9 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
     <View style={s.foot}>
       <T style={[s.price, offers && s.offers]}>{price}</T>
       {draft ? <T variant="meta" style={s.next}>Nastavi uređivanje</T>
-        : <View accessible accessibilityLabel={`${item.pokrivenost.popunjeno} od ${needPeopleText(item.pokrivenost.ukupno)} dogovoreno`} style={s.people}>
+        : <View accessible accessibilityLabel={`${item.pokrivenost.popunjeno} od ${osoba(item.pokrivenost.ukupno)} dogovoreno`} style={s.people}>
           <Users size={18} color={sys.color.ink} />
-          <T variant="meta" style={s.peopleText}>{own ? `${item.pokrivenost.popunjeno} / ${item.pokrivenost.ukupno}` : needPeopleText(item.pokrivenost.ukupno)}</T>
+          <T variant="meta" style={s.peopleText}>{own ? `${item.pokrivenost.popunjeno} / ${item.pokrivenost.ukupno}` : osoba(item.pokrivenost.ukupno)}</T>
         </View>}
     </View>
   </Press>;

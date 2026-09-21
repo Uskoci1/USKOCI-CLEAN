@@ -24,6 +24,7 @@ import type {
 import { noTaskRelations, taskRelationIndex } from './taskRelation';
 import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
 import { lazniAi, resetujAi } from './lazniAi';
+import { osoba } from '../ui/system/plural';
 
 const rsd = (iznos: number): Novac => ({
   iznos,
@@ -276,7 +277,7 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
         vremeTekst: 'sada',
         tekst:
           a.povezivanjeIznos === 0
-            ? `Povezivanje aktivirano · bez naknade · ${a.mesta} ${a.mesta === 1 ? 'osoba' : 'osobe'}`
+            ? `Povezivanje aktivirano · bez naknade · ${osoba(a.mesta)}`
             : `Povezivanje aktivirano · ${a.povezivanjeIznos}`,
       },
     ],

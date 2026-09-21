@@ -3,7 +3,8 @@ import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
-import { needPeopleText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
+import { needScheduleText, readableTitle } from '../../data/needDetailPresentation';
+import { osoba } from '../system/plural';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
@@ -67,7 +68,7 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
       </View>
       <View style={s.foot}>
         <View style={s.grow}><T variant="meta" tone="muted">Tvoja ponuda · ukupno</T><T style={s.amount}>{p.cena.prikaz}</T></View>
-        <T variant="meta" style={s.people}>{needPeopleText(p.pokrivaMesta)}</T>
+        <T variant="meta" style={s.people}>{osoba(p.pokrivaMesta)}</T>
       </View>
     </Press>
     {/* The orange border already says this card wants you. An orange button inside it as well, on
