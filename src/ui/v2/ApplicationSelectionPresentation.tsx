@@ -10,6 +10,7 @@ import type { Ishod } from '../../data/ports';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
+import { Appear, useAppear } from '../system/Appear';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { DetailTopBar } from '../system/DetailTopBar';
@@ -233,6 +234,11 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
 }) {
   const [compare, setCompare] = useState(false);
+  // A new offer arriving is the news this screen exists to carry, so it is the one thing that moves.
+  // The list that was already there settles silently, and switching to the comparison and back is
+  // not an arrival either — `seen` belongs to this component, not to the FlatList it remounts.
+  const appear = useAppear();
+  appear.settle(candidates.map(k => k.prijavaId));
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} subtitle="Ponude ljudi koji mogu da uskoče" back={compare ? () => setCompare(false) : back} scroll={false}>
     <FlatList key={compare ? 'comparison' : 'offers'} numColumns={compare ? 2 : 1} data={candidates} keyExtractor={k => k.prijavaId} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -243,8 +249,10 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
           <T variant="meta" tone="muted">Cena, broj ljudi i termin pripadaju svakoj pojedinačnoj ponudi.</T></View> : null}
       </View>}
       ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
-      renderItem={({ item: k }) => compare ? <CompareCell candidate={k} need={need} open={() => open(k)} />
-        : <CandidateRow candidate={k} open={() => open(k)} />}
+      renderItem={({ item: k, index }) => <Appear index={index} animate={appear.isNew(k.prijavaId)}>
+        {compare ? <CompareCell candidate={k} need={need} open={() => open(k)} />
+          : <CandidateRow candidate={k} open={() => open(k)} />}
+      </Appear>}
       ListFooterComponent={<V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />} />
   </SelectionFrame>;
 }

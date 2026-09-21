@@ -9,6 +9,7 @@ import { groupBody,normalizeGroupBody,type GroupMessage } from '../../data/group
 import { GroupConversationController,initialGroupState } from './GroupConversationController';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { T } from '../Text';
+import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
@@ -41,6 +42,11 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
  },[renderedOwner,controller]);
  const viewability=useRef({viewAreaCoveragePercentThreshold:60,minimumViewTime:600}).current;
  const openAgreement=(id:string)=>{if(current())router.push({pathname:'/dogovor/[id]',params:{id}});};
+ // In a conversation the arrival IS the message. The history that was already there settles
+ // silently, "Starije poruke" does not replay the thread, and only a message that has just landed
+ // moves — which is the one thing worth telling someone who is watching the screen.
+ const appear=useAppear();
+ appear.settle(state.messages.map(message=>message.messageId));
  return <SafeAreaView edges={['top','bottom']} style={s.screen}>
   <DetailTopBar eyebrow="Dogovor" title="Grupni razgovor" backLabel="Nazad na Dogovor" onBack={()=>openAgreement(agreementId)}/>
   <KeyboardAvoidingView style={s.screen} behavior={Platform.OS==='ios'?'padding':'height'}>
@@ -64,13 +70,13 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
     {state.before?<V2Action label="Starije poruke" disabled={!ready} onPress={()=>invoke('older')}/>:null}
     {ready&&group&&state.messages.length===0?<T style={s.copy}>Još nema poruka u istoriji dostupnoj tvom nalogu.</T>:null}
    </View>}
-   renderItem={({item})=><View style={[s.bubble,item.mine?s.mine:s.peer]}><T style={s.meta}>{item.mine?'Ti':group?.members.find(m=>m.accountId===item.senderAccountId)?.displayName??'Učesnik'}</T>
+   renderItem={({item,index})=><Appear index={index} animate={appear.isNew(item.messageId)}><View style={[s.bubble,item.mine?s.mine:s.peer]}><T style={s.meta}>{item.mine?'Ti':group?.members.find(m=>m.accountId===item.senderAccountId)?.displayName??'Učesnik'}</T>
     <T style={s.copy}>{item.body}</T><T style={s.meta}>{date(item.createdAt)}</T>
     {group ? <SupportContextEntry reference={{ kind:'GROUP_MESSAGE',id:item.messageId,revision:null }} previewText={item.body}
       label="Izaberi ovu poruku za podršku" disabled={!ready}
       canAct={()=>current()&&ready&&state.messages.some(message=>message.messageId===item.messageId)}
       navigate={action=>{if(current()&&ready){owner.current=null;controller?.dispose();input.current='';setDraft('');setState(initialGroupState);action();}}}/>:null}
-   </View>}
+   </View></Appear>}
    ListFooterComponent={<View style={s.stack}>
     {(ready&&group?.canSend)||retry?<View style={s.composer}>
      <T style={s.heading}>{retry?'Prvobitna poruka':'Poruka grupi'}</T>
