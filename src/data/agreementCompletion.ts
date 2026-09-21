@@ -7,6 +7,8 @@ import type { Ishod } from './ports';
  * the Supabase client. */
 export const completionErrors: Readonly<Record<string, string>> = Object.freeze({
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
+  INTERACTION_BLOCKED: 'Ova radnja nije dostupna zbog blokiranja između učesnika. Za pomoć otvori podršku.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.',
   NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan.',
   AGREEMENT_NEED_MISMATCH: 'Dogovor nije dostupan. Osveži prikaz.',

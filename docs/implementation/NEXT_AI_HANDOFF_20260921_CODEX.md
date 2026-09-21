@@ -6,6 +6,14 @@ Branch remains `work/pre-v3-engine-integration-20260911`. No subagents, new depe
 
 ## Latest checkpoint: PKG-035 completed (supersedes the count investigation below)
 
+**2026-09-22 continuation: PKG-036 client slice supersedes the client test/build status below.**
+Read `v5-ai-first/pkg036/PKG036_LIFECYCLE_REFUSALS.md`. Definite lifecycle refusals now survive
+adapter/controller/screen handling; malformed Agreement receipts retain recovery. Types passed and
+the full local assertion report has 241 suites / 4644 passed; the local runner emitted the existing
+open-handle warning and had not exited at the initial checkpoint. CI and build follow-ups are recorded
+in the package doc. No DEV write was made (read-only ledger191); all five remaining finding IDs stay
+open, with 7.1 partially addressed. APK35657828926 lacks this client change. No phone operation.
+
 - DEV ledger **191 = 147 + 44**. PKG-035 applied as `20260921214247_dev_alpha_pkg035a_selectable_application_counts`.
 - Proof `35658331088` at `3eaa5e55` passed 38 checks; exact text/body/ACL readback matches. Receipt
   `supabase/operations/dev-alpha/ledger/20260921_pkg035_application.receipt.json` and package document retain all evidence.

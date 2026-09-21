@@ -132,6 +132,14 @@ can raise 348 distinct codes across 175 client-callable RPCs. The submit/select 
 refusal checked, including `FIXED_PRICE_MISMATCH`, `TOTAL_PRICE_REQUIRES_ALL_SLOTS`, `UNKNOWN_PRICE_BASIS`,
 `OVERFILL`, `TEAM_CAPACITY_EXCEEDED`, `CONNECTION_POLICY_NOT_READY`. A per-call audit of all 175 is owed.
 
+**Partly addressed 2026-09-22: PKG-036.** Eleven live lifecycle RPC bodies and ten selected guard/calendar
+helpers were compared with their client paths. Known task/Agreement refusals now reach their controllers
+and screens; malformed Agreement success receipts have a separate code and remain recoverable instead
+of being misclassified as rejected input. New regression suite failed 30 cases on baseline and passes
+all 34 after; full local assertion report is 241 suites / 4644 tests passed. See
+`pkg036/PKG036_LIFECYCLE_REFUSALS.md` for the matrix, process-exit caveat and exact remaining scope.
+The whole 7.1 audit remains open; historical RPC/code counts were not promoted to current coverage.
+
 **7.2 — correction of 6.2.** The export screen offers "Otkaži zahtev?" on a `REQUESTED` export and says
 "Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen." when preparation is refused, and
 `DATA_EXPORT_REQUEST_ALREADY_OPEN` is mapped. The person is not locked out — they can cancel and ask again.

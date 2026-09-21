@@ -1,5 +1,5 @@
 import type { NeedLifecycleCommand, NeedLifecycleConfirmation } from '../contracts/needLifecycle';
-import { needLifecycleClientService } from './needLifecycleClientService';
+import { knownNeedLifecycleRefusal, needLifecycleClientService } from './needLifecycleClientService';
 import { positiveInteger, uuid, type ReceiptAccount } from './serverReceipt';
 import { sesijaSada } from '../store/sesija';
 
@@ -12,9 +12,6 @@ export type NeedLifecycleState = Readonly<{
 const CHANGED: NeedLifecycleState = Object.freeze({ phase: 'ACCOUNT_CHANGED', confirmation: null,
   error: { kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Zadatak.' }, collectionRefreshRequired: false });
 const UNCERTAIN = { kod: 'UNKNOWN_OUTCOME', poruka: 'Radnja nije potvrđena. Proveri ishod pre ponovnog pokušaja.' };
-const REJECTIONS = new Set(['AUTH_REQUIRED', 'FORBIDDEN', 'NEED_COMMAND_INVALID_INPUT', 'NEED_NOT_FOUND',
-  'NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW', 'NEED_NOT_CANCELLABLE', 'NEED_NOT_DELETABLE_DRAFT',
-  'DRAFT_MEDIA_CLEANUP_REQUIRED', 'DRAFT_HAS_AUTHORITATIVE_HISTORY', 'STALE_REVIEW_REQUIRED']);
 
 /** Presentation-independent terminal command owner. No list inference, state-machine
  * guesses, automatic replay or mutable command replacement. V3 supplies the CTA. */
@@ -96,7 +93,7 @@ export function createNeedLifecycleController(options: {
     } else if (result.kod === 'AUTH_ACCOUNT_CHANGED') {
       disposed = true; state = CHANGED; listeners.clear();
     } else {
-      publish({ ...state, phase: REJECTIONS.has(result.kod) ? 'REJECTED' : 'UNKNOWN_OUTCOME',
+      publish({ ...state, phase: knownNeedLifecycleRefusal(result.kod) ? 'REJECTED' : 'UNKNOWN_OUTCOME',
         error: { kod: result.kod, poruka: result.poruka } });
     }
   }

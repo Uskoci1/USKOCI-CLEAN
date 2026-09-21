@@ -1,15 +1,10 @@
 import type { ReceiptAccount } from '../../data/serverReceipt';
-import { agreementChangeService, type AgreementChangeSnapshot } from '../../data/agreementClientService';
+import { agreementChangeService, knownAgreementChangeRefusal, type AgreementChangeSnapshot } from '../../data/agreementClientService';
 import { journalFor, normalizeAgreementCommand, parseJournal, permits, type AgreementActionCommand, type AgreementActionJournal } from './agreementActionsModel';
 
 export type AgreementActionsState = { phase: 'LOADING' | 'READY' | 'SENDING' | 'UNKNOWN' | 'CONFIRMED' | 'REJECTED' | 'ERROR';
   snapshot: AgreementChangeSnapshot | null; journal: AgreementActionJournal | null; error: string | null;
   message: string | null; canRetry: boolean; needsReentry: boolean };
-const REJECTIONS = new Set(['VERSION_CONFLICT','AGREEMENT_NOT_ACTIVE','CHANGE_REQUEST_ID_REUSED','CHANGE_PATCH_REQUIRED',
-  'AGREEMENT_CHANGE_AFTER_WORK_DONE','AGREEMENT_CHANGE_PENDING','NOT_PROPOSER','NOT_PARTY','PROPOSER_CANNOT_RESPOND',
-  'PROPOSAL_NOT_PENDING','CHANGE_TERMS_INVALID','WORKER_CALENDAR_CONFLICT','CALENDAR_RECHECK_REQUIRED','ALREADY_COMPLETED',
-  'AGREEMENT_WORK_REPORTED_DONE',
-  'AGREEMENT_CHANGE_INVALID','INVALID_PRICE','CHANGE_INPUT_TOO_LARGE','CHANGE_SCOPE_INVALID','AGREEMENT_CALENDAR_INTERVAL_INVALID']);
 const unknown = 'Ishod nije potvrđen. Proveri sačuvano stanje pre ponavljanja.';
 export class AgreementActionsController {
   private state: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
@@ -103,7 +98,7 @@ export class AgreementActionsController {
         : command.kind === 'WITHDRAW' ? await this.service.withdraw(command.proposal.proposalId, this.deps.account)
           : await this.service.cancel(command.agreementId, command.reason, this.deps.account);
     if (!this.current()) return;
-    if (!result.ok && REJECTIONS.has(result.kod)) { this.update({ phase: 'REJECTED', error: result.poruka, canRetry: false }); return; }
+    if (!result.ok && knownAgreementChangeRefusal(result.kod)) { this.update({ phase: 'REJECTED', error: result.poruka, canRetry: false }); return; }
     await this.readOutcome();
   });
   retry = () => this.command ? this.submit(this.command) : Promise.resolve();

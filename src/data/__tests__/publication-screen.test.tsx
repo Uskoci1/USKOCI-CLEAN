@@ -21,7 +21,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
   getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined),
 } }));
 jest.mock('../../data', () => ({ aiNeedV2Izvor: { openEditConversation: (...args: unknown[]) => mockEdit(...args) } }));
-jest.mock('../ru4Production', () => ({ ru4Production: {
+jest.mock('../ru4Production', () => ({ ...jest.requireActual('../ru4Production'), ru4Production: {
   remainingSearchState: (...args: unknown[]) => mockSearch(...args), closeRemainingSearch: (...args: unknown[]) => mockClose(...args),
 } }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('Unexpected transport'); } }));
@@ -162,6 +162,24 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     await render(); await tap('Ne traži više nikoga'); expect(mockClose).not.toHaveBeenCalled(); mockSearch.mockResolvedValue({ closed: true });
     const action = confirmation(); await act(async () => { action(); action(); });
     expect(mockClose).toHaveBeenCalledTimes(1); expect(mockClose).toHaveBeenCalledWith(NEED, 7, expect.any(String)); expect(mockNeed).toHaveBeenCalledTimes(2);
+  });
+  it.each([
+    ['NO_REMAINING_SEARCH', 'Sva mesta su već popunjena. Učitaj aktuelno stanje Zadatka.'],
+    ['STALE_REVIEW_REQUIRED', 'Zadatak je izmenjen. Pregledaj važeće uslove.'],
+    ['ACCOUNT_CLOSING', 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.'],
+  ])('shows the answered remaining-search refusal on the real screen: %s', async (kod, poruka) => {
+    mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    mockClose.mockResolvedValue({ ok: false, kod, poruka });
+    await render(); await tap('Ne traži više nikoga'); await confirm();
+    expect(texts()).toContain(poruka); expect(texts()).not.toContain('Potraga nije potvrđeno zatvorena');
+    expect(mockClose).toHaveBeenCalledTimes(1); expect(mockNeed).toHaveBeenCalledTimes(1);
+  });
+  it('keeps an unknown remaining-search result uncertain instead of echoing arbitrary text', async () => {
+    mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    mockClose.mockResolvedValue({ ok: false, kod: 'UNRECOGNIZED', poruka: 'PRIVATE_SQL' });
+    await render(); await tap('Ne traži više nikoga'); await confirm();
+    expect(texts()).toContain('Potraga nije potvrđeno zatvorena'); expect(texts()).not.toContain('PRIVATE_SQL');
+    expect(mockClose).toHaveBeenCalledTimes(1);
   });
   it.each(['edit', 'remaining search'] as const)('retires retained published %s confirmation on blur', async action => {
     mockNeed.mockResolvedValue(action === 'edit' ? need(7, 'OBJAVLJENA')

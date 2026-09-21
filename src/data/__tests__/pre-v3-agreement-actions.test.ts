@@ -43,7 +43,7 @@ it.each([{...actionState,accountId:B},{...actionState,agreementId:B},{...actionS
  {...actionState,pendingChanges:[{...actionState.pendingChanges[0],createdAt:'not-a-date'}]},
 ])('fails closed on mismatched, malformed or unbounded capability source %#',async actionState=>{
  mockRpc.mockResolvedValue(ok({...workspace,actionState}));
- expect(await agreementChangeService.read(ID,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});
+ expect(await agreementChangeService.read(ID,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID_RECEIPT'});
 });
 it('does not carry private/unrecognized server fields into public projection',async()=>{
  mockRpc.mockResolvedValue(ok({...workspace,serverSecret:'PRIVATE',actionState:{...actionState,serverSecret:'PRIVATE'}}));
@@ -77,14 +77,14 @@ it('retains exact response receipt and accepts idempotent replay on captured bas
  const p=snapshot.podatak.proposals[0];mockRpc.mockResolvedValue(ok({proposalId:PID,accepted:true,agreementVersion:8,authoritative:true}));
  expect(await agreementChangeService.respond(p,true,account)).toMatchObject({ok:true,podatak:{agreementVersion:8}});
  mockRpc.mockResolvedValue(ok({proposalId:PID,accepted:true,agreementVersion:9,authoritative:true}));
- expect(await agreementChangeService.respond(p,true,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});
+ expect(await agreementChangeService.respond(p,true,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID_RECEIPT'});
 });
 it('withdraws only with exact authoritative receipt; repeat stays on same proposal',async()=>{
  for(const replay of [false,true]){mockRpc.mockResolvedValue(ok({proposalId:PID,status:'WITHDRAWN',idempotentReplay:replay,authoritative:true}));
  expect(await agreementChangeService.withdraw(PID,account)).toMatchObject({ok:true,podatak:{idempotentReplay:replay}});}
  expect(mockRpc.mock.calls).toEqual(Array(2).fill(['rpc_withdraw_agreement_change',{p_proposal_id:PID}]));
  mockRpc.mockResolvedValue(ok({proposalId:B,status:'WITHDRAWN',idempotentReplay:true,authoritative:true}));
- expect(await agreementChangeService.withdraw(PID,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});
+ expect(await agreementChangeService.withdraw(PID,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID_RECEIPT'});
 });
 it.each(['A-B','A-B-A'])('fences late read and late write for %s',async change=>{
  let resolve!:(v:unknown)=>void;mockRpc.mockImplementationOnce(()=>new Promise(r=>{resolve=r;}));
@@ -116,7 +116,7 @@ it('represents an absent exact command as absent without inferring success or wr
  expect(mockRpc).not.toHaveBeenCalled();
 });
 it.each([{proposed_by_account_id:B},{agreement_id:B},{base_version:0},{status:'MADE_UP'},{privateBody:'LEAK'}])('refuses malformed or wrong-owned proposal readback %#',async patch=>{
- proposalQuery({...storedProposal,...patch});expect(await agreementChangeService.readCommand(ID,{clientRequestId:'persisted-key'},account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});
+ proposalQuery({...storedProposal,...patch});expect(await agreementChangeService.readCommand(ID,{clientRequestId:'persisted-key'},account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID_RECEIPT'});
 });
 it.each([null,{},[],{proposalId:PID,clientRequestId:'key'},{clientRequestId:' '},{proposalId:'wrong'}])('fails closed for malformed exact selectors without throwing or IO %#',async key=>{
  expect(await agreementChangeService.readCommand(ID,key as never,account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});expect(mockFrom).not.toHaveBeenCalled();
@@ -132,5 +132,5 @@ it('maps cancel void ACK without inventing cancellation state and requires bound
  expect(mockRpc).not.toHaveBeenCalled();mockRpc.mockResolvedValue(ok(null));
  expect(await agreementChangeService.cancel(ID,' Razlog ',account)).toEqual({ok:true,podatak:{acknowledged:true}});
  expect(mockRpc).toHaveBeenCalledWith('rpc_cancel_agreement',{p_agreement_id:ID,p_reason:'Razlog'});
- mockRpc.mockResolvedValue(ok({cancelled:true}));expect(await agreementChangeService.cancel(ID,'Razlog',account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID'});
+ mockRpc.mockResolvedValue(ok({cancelled:true}));expect(await agreementChangeService.cancel(ID,'Razlog',account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID_RECEIPT'});
 });

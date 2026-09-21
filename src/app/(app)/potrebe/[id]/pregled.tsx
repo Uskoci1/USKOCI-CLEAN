@@ -5,7 +5,7 @@ import { STANJA_POTREBE, type PotrebaProjekcija } from '../../../../contracts/pr
 import type { Ishod } from '../../../../data/ports';
 import { aiNeedV2Izvor } from '../../../../data';
 import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
-import { ru4Production } from '../../../../data/ru4Production';
+import { knownRemainingSearchRefusal, ru4Production } from '../../../../data/ru4Production';
 import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } from '../../../../data/remainingSearchCloseAttempt';
 import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
@@ -139,7 +139,8 @@ function OwnedNeed({ id }: { id: string }) {
         closeAttempt.current = attempt;
         const result = await ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId);
         if (!current()) return changed();
-        if (!result.ok) return failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitaj trenutno stanje.');
+        if (!result.ok) return knownRemainingSearchRefusal(result.kod) ? result
+          : failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitaj trenutno stanje.');
         const after = await read();
         if (!current()) return changed();
         if (!after.ok) return after;

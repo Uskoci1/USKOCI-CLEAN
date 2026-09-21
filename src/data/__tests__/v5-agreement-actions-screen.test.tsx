@@ -8,7 +8,7 @@ let mockSession={user:{id:A},accountRevision:1},mockFocused=true,mockForeground=
 const mockListeners=new Set<(value:string)=>void>(),mockStorage={getItem:jest.fn(),setItem:jest.fn(),removeItem:jest.fn()};
 const mockService={read:jest.fn(),readCommand:jest.fn(),propose:jest.fn(),respond:jest.fn(),withdraw:jest.fn(),cancel:jest.fn()};
 const mockUuid=jest.fn(),mockBack=jest.fn(),mockReplace=jest.fn();
-jest.mock('../agreementClientService',()=>({agreementChangeService:{
+jest.mock('../agreementClientService',()=>({...jest.requireActual('../agreementClientService'),agreementChangeService:{
  read:(...args:unknown[])=>mockService.read(...args),readCommand:(...args:unknown[])=>mockService.readCommand(...args),
  propose:(...args:unknown[])=>mockService.propose(...args),respond:(...args:unknown[])=>mockService.respond(...args),
  withdraw:(...args:unknown[])=>mockService.withdraw(...args),cancel:(...args:unknown[])=>mockService.cancel(...args)}}));

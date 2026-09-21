@@ -12,7 +12,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
   getItem: (...args: unknown[]) => mockStorage.getItem(...args), setItem: (...args: unknown[]) => mockStorage.setItem(...args),
   removeItem: (...args: unknown[]) => mockStorage.removeItem(...args),
 } }));
-jest.mock('../needLifecycleClientService', () => ({ needLifecycleClientService: {
+jest.mock('../needLifecycleClientService', () => ({ ...jest.requireActual('../needLifecycleClientService'), needLifecycleClientService: {
   cancelNeed: (...args: unknown[]) => mockService.cancelNeed(...args), deleteDraftNeed: (...args: unknown[]) => mockService.deleteDraftNeed(...args),
   readCommandReceipt: (...args: unknown[]) => mockService.readCommandReceipt(...args),
 } }));

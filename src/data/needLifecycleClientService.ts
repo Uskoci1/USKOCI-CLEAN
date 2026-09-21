@@ -3,6 +3,8 @@ import type { Ishod } from './ports';
 import { failure, positiveInteger, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const LIFECYCLE_COPY: Readonly<Record<string, string>> = {
+  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
+  NEED_COMMAND_INVALID_INPUT: 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.',
   NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW: 'Zadatak već ima Dogovor. Otkazivanje ide kroz Dogovor, ne kroz Zadatak.',
   NEED_NOT_CANCELLABLE: 'Ovaj Zadatak više ne može da se otkaže.',
   NEED_NOT_DELETABLE_DRAFT: 'Samo neobjavljen nacrt može da se obriše.',
@@ -12,6 +14,7 @@ const LIFECYCLE_COPY: Readonly<Record<string, string>> = {
   NEED_NOT_FOUND: 'Zadatak nije pronađen.', FORBIDDEN: 'Ovo nije tvoj Zadatak.',
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
 };
+export const knownNeedLifecycleRefusal = (kod: string) => Object.prototype.hasOwnProperty.call(LIFECYCLE_COPY, kod);
 function invalidInput(needId: string, revision: number, reason: string): Ishod<never> | null {
   return uuid(needId) && positiveInteger(revision) && typeof reason === 'string' && Array.from(reason).length <= 500 ? null
     : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.');

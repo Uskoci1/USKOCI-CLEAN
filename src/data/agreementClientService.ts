@@ -190,6 +190,8 @@ export type AgreementProblemSnapshot = {
   | { state: 'ABSENT' | 'LEGACY_UNAVAILABLE'; report: null });
 const problemErrors = {
   AUTH_REQUIRED: 'Prijavi se da nastaviš.', NOT_PARTY: 'Nemaš pristup ovom Dogovoru.',
+  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
+  NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan. Osveži prikaz.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.', EXECUTION_NOT_FOUND: 'Stanje Dogovora nije dostupno.',
   AGREEMENT_NOT_REPORTABLE: 'Problem se može prijaviti samo dok je Dogovor aktivan.',
   EXECUTION_NOT_REPORTABLE: 'Dogovor je promenjen. Proveri njegovo stanje.',
@@ -297,6 +299,12 @@ function decodeActionState(raw: unknown, agreementId: unknown, version: unknown,
     pendingChanges: actions.pendingChanges };
 }
 const changeErrors = {
+  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
+  INTERACTION_BLOCKED: 'Ova radnja nije dostupna zbog blokiranja između učesnika. Za pomoć otvori podršku.',
+  ALREADY_COMPLETED: 'Dogovor je već završen i ne može da se otkaže. Osveži njegov status.',
+  NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan. Osveži prikaz.',
+  AGREEMENT_NEED_MISMATCH: 'Podaci Dogovora nisu usklađeni. Osveži prikaz; ako problem ostane, otvori podršku.',
+  REASON_REQUIRED: 'Unesi razlog otkazivanja.',
   AGREEMENT_CAPABILITIES_NOT_READY: 'Radnje Dogovora još nisu spremne. Osveži prikaz kasnije.',
   AGREEMENT_CHANGE_AFTER_WORK_DONE: 'Rad je označen kao završen. Uslovi se više ne mogu menjati.',
   AGREEMENT_CHANGE_PENDING: 'Najpre odgovori na postojeći predlog izmene.',
@@ -322,7 +330,11 @@ const changeErrors = {
   // confirms or reports a problem; the server refuses a cancel from a screen that did not know yet.
   AGREEMENT_WORK_REPORTED_DONE: 'Radnik je javio da je posao gotov. Potvrdi završetak ili prijavi problem.',
 };
-const changeOptions = { errors: changeErrors, fallback: 'AGREEMENT_CHANGE_UNCONFIRMED', invalid: 'AGREEMENT_CHANGE_INVALID' };
+// Input refusal and malformed success receipt must never share a code: only the
+// former proves no command was accepted. The controller uses this same allowlist.
+export const knownAgreementChangeRefusal = (kod: string) => kod === 'AGREEMENT_CHANGE_INVALID'
+  || Object.prototype.hasOwnProperty.call(changeErrors, kod);
+const changeOptions = { errors: changeErrors, fallback: 'AGREEMENT_CHANGE_UNCONFIRMED', invalid: 'AGREEMENT_CHANGE_INVALID_RECEIPT' };
 const changeFields = ['cenaIznos', 'cenaValuta', 'pocetakIso', 'krajIso', 'obim'];
 function changePatch(command: IzmenaKomanda): Record<string, unknown> {
   const patch: Record<string, unknown> = {};

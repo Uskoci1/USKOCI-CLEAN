@@ -14,6 +14,24 @@ const isoInstant = (value: unknown): value is string => typeof value === 'string
   && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
   && Number.isFinite(Date.parse(value));
 
+// PKG-036: audited against the live remaining-search writer. Keep the retry-key
+// wording local: a close-search command is not an application/offer command.
+const remainingSearchErrors: Readonly<Record<string, string>> = {
+  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
+  NEED_ID_REVISION_REQUIRED: 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.',
+  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije spreman. Ponovo otvori Zadatak.',
+  IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev već pripada drugoj radnji. Učitaj aktuelno stanje Zadatka.',
+  NEED_NOT_FOUND: 'Zadatak nije dostupan.',
+  NEED_NOT_OWNED: 'Potragu može da zatvori samo onaj ko je objavio Zadatak.',
+  STALE_REVIEW_REQUIRED: 'Zadatak je izmenjen. Pregledaj važeće uslove.',
+  REMAINING_SEARCH_CLOSE_REQUIRES_DOGOVOR: 'Najpre izaberi prijavu i napravi Dogovor. Ako odustaješ od celog Zadatka, otkaži Zadatak.',
+  NEED_REMAINING_SEARCH_NOT_OPEN: 'Ovaj Zadatak više nema otvorenu potragu. Učitaj aktuelno stanje.',
+  REMAINING_SEARCH_CLOSE_REQUIRES_SELECTED_CAPACITY: 'Trenutno nema izabranih ljudi. Pregledaj Dogovore i prijave pre zatvaranja potrage.',
+  NO_REMAINING_SEARCH: 'Sva mesta su već popunjena. Učitaj aktuelno stanje Zadatka.',
+};
+export const knownRemainingSearchRefusal = (kod: string) => Object.prototype.hasOwnProperty.call(remainingSearchErrors, kod);
+
 export type RemainingSearchCloseReceipt = {
   needId: string;
   revision: number;
@@ -63,7 +81,12 @@ export const ru4Production = {
       p_client_request_id: clientRequestId,
       p_reason: reason,
     });
-    if (error) return fail(error, 'REMAINING_SEARCH_CLOSE_FAILED', 'Preostala potraga nije mogla da se zatvori.');
+    if (error) {
+      const code = record(error)?.message;
+      return typeof code === 'string' && knownRemainingSearchRefusal(code)
+        ? failure(code, remainingSearchErrors[code])
+        : failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitaj trenutno stanje.');
+    }
     const receipt = record(data);
     if (!receipt || receipt.authoritative !== true || receipt.remainingSearchClosed !== true
       || !sameId(receipt.needId, needId) || !positiveInteger(receipt.revision) || receipt.revision !== expectedRevision

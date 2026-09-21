@@ -35,6 +35,7 @@ jest.mock('../needLifecycleClientService', () => {
   const cancelNeed = jest.fn();
   const deleteDraftNeed = jest.fn();
   return {
+    ...jest.requireActual('../needLifecycleClientService'),
     needLifecycleClientService: { readCommandReceipt, cancelNeed, deleteDraftNeed },
     __testMocks: { readCommandReceipt, cancelNeed, deleteDraftNeed },
   };
