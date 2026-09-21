@@ -333,19 +333,21 @@ function basisScenario() {
     ${asPerson(owner.id)}
     insert into pkg027_obs select 'edit', public.rpc_ai_open_need_edit_conversation_v2(${q(need)});
     ${asPostgres}
-    do $s$ declare cid uuid; before_snapshot jsonb; after_snapshot jsonb;
+    do $s$ declare cid uuid;
     begin
       cid := (select (v ->> 'conversationId')::uuid from pkg027_obs where k = 'edit');
       insert into pkg027_obs select 'seededBasis', coalesce((select jsonb_build_object('value', fact_value, 'display', display_value,
         'status', status, 'source', source) from public.ai_structured_facts
         where conversation_id = cid and fact_key = 'need.price_basis' and superseded_at is null), 'null'::jsonb);
-      before_snapshot := private.need_full_edit_snapshot(${q(need)});
-      perform set_config('session_replication_role', 'replica', true);
-      update public.needs set price_basis = 'TOTAL' where id = ${q(need)};
-      perform set_config('session_replication_role', 'origin', true);
-      after_snapshot := private.need_full_edit_snapshot(${q(need)});
-      insert into pkg027_obs values ('basisOnlyChangeIsMaterial', to_jsonb(before_snapshot is distinct from after_snapshot));
-    end $s$;`);
+      insert into pkg027_obs values ('snapshotBeforeBasisChange', private.need_full_edit_snapshot(${q(need)}));
+    end $s$;
+    -- Only the SET command (not set_config) may switch replication role for the local postgres role.
+    set local session_replication_role = replica;
+    update public.needs set price_basis = 'TOTAL' where id = ${q(need)};
+    set local session_replication_role = origin;
+    insert into pkg027_obs select 'basisOnlyChangeIsMaterial',
+      to_jsonb((select v from pkg027_obs where k = 'snapshotBeforeBasisChange') is distinct from private.need_full_edit_snapshot(${q(need)}));
+    delete from pkg027_obs where k = 'snapshotBeforeBasisChange';`);
 }
 
 function scenarios() {
