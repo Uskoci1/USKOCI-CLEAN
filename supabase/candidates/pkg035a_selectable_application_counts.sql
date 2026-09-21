@@ -40,7 +40,8 @@ begin
   if not found then return; end if;
   remaining:=greatest(n.required_slots-public.fn_need_covered_slots(n.id),0);
   for c in
-    select r.*, v.need_revision as version_revision, v.content_hash, v.price_rsd as version_price,
+    select r.id,r.worker_profile_id,r.worker_account_id,r.status,r.current_version,r.covered_slots,
+      r.submitted_against_need_revision,v.need_revision as version_revision,v.content_hash,v.price_rsd as version_price,
       v.covered_slots as version_slots, v.proposed_start_at as version_start, v.proposed_end_at as version_end,
       p.account_id as profile_account, p.kind, p.profile_status, p.display_name, p.city, p.skills, p.team_capacity,
       exists(select 1 from public.agreements a where a.selected_response_id=r.id) as has_agreement
@@ -177,7 +178,7 @@ $patch$;
 do $post$
 declare old record; actual record;
 begin
-  if (select md5(prosrc) from pg_proc where oid='private.need_candidate_states_v5(uuid)'::regprocedure) is distinct from 'b546f94be815edd5c645f734a612aef6' then raise exception 'PKG035A_BODY_MISMATCH: private.need_candidate_states_v5(uuid)'; end if;
+  if (select md5(prosrc) from pg_proc where oid='private.need_candidate_states_v5(uuid)'::regprocedure) is distinct from '6d65e304f41f3e130228f58874757f0d' then raise exception 'PKG035A_BODY_MISMATCH: private.need_candidate_states_v5(uuid)'; end if;
   if (select md5(prosrc) from pg_proc where oid='public.selectable_application_count(public.needs)'::regprocedure) is distinct from 'fe53442f8b661d6f33d22a54e2a468a8' then raise exception 'PKG035A_BODY_MISMATCH: public.selectable_application_count(public.needs)'; end if;
   if (select md5(prosrc) from pg_proc where oid='public.rpc_list_need_candidates(uuid)'::regprocedure) is distinct from '15cb0fd9d891a4ce6d4fdc7ea79abcd1' then raise exception 'PKG035A_BODY_MISMATCH: public.rpc_list_need_candidates(uuid)'; end if;
   if (select md5(prosrc) from pg_proc where oid='public.rpc_home_attention()'::regprocedure) is distinct from '239f2477ae58ec92254edfdeda0455e7' then raise exception 'PKG035A_BODY_MISMATCH: public.rpc_home_attention()'; end if;

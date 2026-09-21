@@ -32,9 +32,9 @@ assert.ok(denied.error);
 let extra="begin;set local session_replication_role=replica;";
 for(let i=0;i<8;i++){
  const next=rt.randomUUID(),response=rt.randomUUID();
- extra+="insert into public.needs select (jsonb_populate_record(t,jsonb_build_object('id',"+q(next)+",'title','REST overflow'))).* from public.needs t where t.id="+q(n)+";"+
- "insert into public.marketplace_responses select (jsonb_populate_record(r,jsonb_build_object('id',"+q(response)+",'need_id',"+q(next)+",'status',"+q(i<3?'SUBMITTED':'WITHDRAWN')+"))).* from public.marketplace_responses r where r.id="+q(a)+";"+
- "insert into public.marketplace_response_versions select (jsonb_populate_record(v,jsonb_build_object('response_id',"+q(response)+"))).* from public.marketplace_response_versions v where v.response_id="+q(a)+";";
+ extra+="insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,required_skills,approximate_city,mode,required_slots,schedule_kind,published_at,revision,response_deadline) select "+q(next)+",requester_account_id,requester_profile_id,status,'REST overflow',description,category,required_skills,approximate_city,mode,required_slots,schedule_kind,published_at,revision,response_deadline from public.needs where id="+q(n)+";"+
+ "insert into public.marketplace_responses(id,need_id,worker_account_id,worker_profile_id,response_kind,status,submitted_against_need_revision,current_version,price_rsd,covered_slots) select "+q(response)+","+q(next)+",worker_account_id,worker_profile_id,response_kind,"+q(i<3?'SUBMITTED':'WITHDRAWN')+",submitted_against_need_revision,current_version,price_rsd,covered_slots from public.marketplace_responses where id="+q(a)+";"+
+ "insert into public.marketplace_response_versions(response_id,version,need_revision,price_rsd,covered_slots,content_hash) select "+q(response)+",version,need_revision,price_rsd,covered_slots,content_hash from public.marketplace_response_versions where response_id="+q(a)+";";
 }
 rt.sql(extra+"commit;");
 const home=await rt.ok(owner.client.rpc('rpc_home_attention'));
