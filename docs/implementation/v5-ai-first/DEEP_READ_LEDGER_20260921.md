@@ -103,6 +103,7 @@ and a server read cannot establish that. Two of those claims turned out to be wr
 read of all 91 `src/data` files is still owed.
 
 Files read in full since, one section each below: `agreementClientService.ts`, `supabaseIzvor.ts`,
+`aiNeedV2Production.ts`, `aiTaskReviewClientService.ts`, `aiNeedV2Ui.ts`,
 `legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
 caller's constant fallback, never a server string).
 
@@ -227,6 +228,73 @@ order is ascending. Not reachable with today's data.
 validates every row strictly; `prilika()` refuses malformed capacity, deadline and closure instants
 instead of guessing; the open-task walk is keyset-paged and refuses at 25 pages rather than truncating;
 task relations are read in bounded batches of 100 and fail to "no label", never a wrong one.
+
+#### `src/data/aiNeedV2Production.ts` (434 lines), `aiTaskReviewClientService.ts` (256), `aiNeedV2Ui.ts` (298) — read in full, with every server function they call
+
+Which path is live, read from the call sites: a screen opens, loads, sends, recovers, cancels and
+abandons through `aiNeedV2Production`, and corrects facts through it; it saves and publishes ONLY through
+`aiTaskReviewClientService` (`prepare` → `accept` → evaluator Edge → `publish`). `rpc_accept_ai_task_review`
+does the saving itself: it confirms every current non-location fact, then calls
+`rpc_save_need_draft_from_review` for a new task or `rpc_confirm_need_edit_from_review_v2` for an edit.
+`aiNeedV2Production.saveDraft`, `confirmEdit` and `readTurn` have no caller outside tests.
+
+**7.21 — defect, live path. Three refusals a person causes are shown as "Ishod radnje nije potvrđen".**
+The accept path can refuse with codes raised by the functions it calls, and `aiTaskReviewClientService`'s
+copy table maps none of these three:
+- `NO_MATERIAL_CHANGE` — open "Izmeni" on a task, change nothing, save. `rpc_confirm_need_edit_from_review`
+  compares snapshots and refuses.
+- `MY_PRICE_AMOUNT_REQUIRED` — price mode "Moja cena" with no amount.
+- `FIXED_WINDOW_BOUNDS_REQUIRED` — "Tačan termin" without a start, without an end, or ending before it
+  starts.
+
+`rpc_prepare_ai_task_review` computes `canAccept` from required facts only — it never looks at the price
+mode or the window — so the button is live and the refusal comes after. The person reads "Ishod radnje
+nije potvrđen. Osveži prikaz pre ponovnog pokušaja; za ponavljanje koristiš isti zahtev.", refreshes,
+presses again, and gets the same. Measured: of 77 intake conversations, 1 has "Moja cena" with no
+amount and 1 has "Tačan termin" without both bounds. The right copy already exists — in
+`aiNeedV2Production.ERRORS`, which only the dead `saveDraft`/`confirmEdit` use. Client-only fix: map the
+three codes on the live path. (The orphaned `NO_MATERIAL_CHANGE` copy is also ungrammatical — "Nisi
+promenili nijedan podatak." — and must not be moved as is.)
+
+**7.22 — defect. "5.000" becomes 5.** A number correction runs
+`Number(text.replace(/\s/g,'').replace(',', '.'))`. The dot is the Serbian thousands separator. Measured
+with node: "5.000" → 5, "15.000" → 15, "5,000" → 5, "1.500" → refused as not whole; only "5 000" and
+"5000" are read right. The saved fact is 5 RSD with the display text "5.000". The review shows the value
+("5 RSD"), so it can be caught — but nothing warns. Same parser for number of people and years.
+
+**7.23 — defect. A description longer than 1,000 characters cannot be corrected.** The description may be
+6,000 characters (server validator and both client decoders agree). `correctionFromText` sends the whole
+text as the display value; `correctFact` refuses any display over 1,000 (the column is capped at 1,000
+too) with "Unesi ispravnu vrednost." The text box has no `maxLength`, so nothing tells the person where
+the limit is or why. Fix shape: for TEXT facts send a shortened display, keep the full value.
+
+**7.24 — risk, concrete instance of 7.1. Out-of-range corrections read as "maybe it happened".** The
+client checks only "whole number" and "not empty". The server validator refuses price below 1 or above
+100,000,000, people 0 or above 50, experience above 60, title above 140, category above 120, address
+above 1,000, access notes above 2,000 — as `V2_PRICE_INVALID`, `V2_PEOPLE_INVALID`, … — and none is
+mapped, so "0", "-3" or a 150-character title all end in the unconfirmed message. The same map has two
+names the server never raises: `FACT_SUPERSEDED` (the server raises `SUPERSEDED`) and
+`DRAFT_SAVE_BLOCKED_BY_SAFETY` (the server raises `AI_NEED_DRAFT_BLOCKED`). Also unmapped:
+`CONVERSATION_CLOSED`, `CONVERSATION_NOT_EDITABLE`, `LOCATION_EDITOR_REQUIRED`, `CONFIRMED_PROVENANCE_INVALID`.
+
+**7.25 — rule. Raw internal tokens in a sentence.** When publication is refused for an unconfirmed place,
+`notReadyCopy` prints the evaluator's slot names verbatim: "Lokacija nije potvrđena na mapi (start, end)."
+— or "waypoints/0", "serviceArea". `aiNeedV2Ui.slotLabel` already turns these into "Polazište",
+"Odredište", "Stanica 1", "Područje".
+
+**7.26 — note. Editing a published task takes it off the market.** `rpc_confirm_need_edit_from_review`
+writes the task back to `DRAFT`, deletes its dispatch schedule and returns `requiresReadmission: true`;
+it must be published again, and its applications go stale (3.1). Consistent with V5's re-admission rule;
+worth knowing because nothing in the edit entry point says so.
+
+**7.27 — note, verified not a defect.** The client decoders are all-or-nothing, so any value the server
+stores but a decoder refuses would make a whole conversation unreadable. Checked every fact rule against
+`private.validate_need_v2_fact*` and the `ai_structured_facts` constraints: the 23 registry keys, their
+types, integer ranges, text lengths, list limits (50 × 500), timestamp pattern and enum sets agree; the
+client is stricter only on control characters and on Unicode-only whitespace. Measured on 739 stored
+facts: 0 with control characters, 0 display values over 1,000, 0 with a null display (the server's
+fallback to raw JSON is never used). Edge caps (12 facts, 1,200-character reply) sit inside the client's
+(12, 1,500). The review safety fallback (`REVIEW` when no assistant message) matches the client's.
 
 ### Area 9 — HITNO, categories, and matching
 
