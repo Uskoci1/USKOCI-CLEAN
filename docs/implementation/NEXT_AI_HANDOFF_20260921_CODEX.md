@@ -16,8 +16,11 @@ Branch remains `work/pre-v3-engine-integration-20260911`. No subagents, new depe
   Home/cards/detail use selectable counts; unknown is never replaced with total. Types and full Jest
   **240 suites / 4606 tests passed**. Three regressions demonstrably fail on the former source/pass after.
 - PKG-004 `35657744872`, PKG-007 `35657745051`, historical PKG-023j `35657744862` all succeeded.
-- New APK **35657828926**, source `fe60a385`, includes PKG-035 client; it was still building at this checkpoint.
-  Verify artifact/hash before claiming ready. No device operation or installation performed.
+- New APK **35657828926**, source `fe60a385`, includes PKG-035 client and **succeeded**. Downloaded
+  `artifacts/apk-35657828926/USKOCI-DEV.apk`: SHA-256
+  `2afcefc1044bc9b0c6f74c89ebe90d9c8411cf9616883cd4bb8462122ada4855`, 68,547,827 bytes.
+  Matches checksum and both PASS recovery/icon attestations. Receipt: `v5-ai-first/pkg035/APK_RECEIPT_20260921.json`.
+  No device operation or installation performed. Wait for the owner to be ready before using the phone.
 - Previous APK35654417281 succeeded; downloaded under ignored `artifacts/apk-35654417281`, hash
   `af669ad295a70d8443aead32d3abfc1877e20e2a78bb681de3813e94c39d9675` matches attestations. It lacks PKG-035.
 - Foreign untracked migration remains untouched. Local integrity refuses that extra file; CI tracked source147 passes.

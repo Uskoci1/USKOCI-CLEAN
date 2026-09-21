@@ -402,7 +402,7 @@ calendar interval. Client `62e90e92` reads the count in the existing task query 
 state and the selection badge, retaining the historical total. Types and 240 suites / 4606 tests pass;
 three regressions fail on the old client and pass after. Real local Auth/PostgREST proved owner isolation,
 spoof refusal and 4 actionable tasks out of 9 yielding three rows plus +1. No DEV fixtures/data rewrites or
-certificate move. Receipt: `20260921_pkg035_application.receipt.json`. New APK/device verification pending;
+certificate move. Receipt: `20260921_pkg035_application.receipt.json`. APK `35657828926` built/downloaded/hash-verified; device verification pending;
 wiring the entire Home aggregate remains separate.
 
 **7.33 — note.** Otherwise the Home is composed carefully: each of the three reads fails alone and says

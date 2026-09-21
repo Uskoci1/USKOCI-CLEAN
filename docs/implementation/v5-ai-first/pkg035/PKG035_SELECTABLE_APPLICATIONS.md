@@ -59,7 +59,9 @@ PKG-004 `35657744872`, PKG-007 `35657745051`, historical PKG-023j `35657744862`.
 Local inventory check still refuses the owner's foreign untracked migration; the CI tracked 147-source
 inventory passes. The foreign file is neither changed nor committed.
 
-New APK run `35657828926` was dispatched from `fe60a385` (includes client `62e90e92`). Check its final
-result/hash before installation. Old verified APK `35654417281` has SHA-256
+New APK run `35657828926` succeeded from `fe60a385` (includes client `62e90e92`). Downloaded APK
+SHA-256 `2afcefc1044bc9b0c6f74c89ebe90d9c8411cf9616883cd4bb8462122ada4855` matches its checksum
+and both PASS attestations; see `APK_RECEIPT_20260921.json`. It has not been installed/tested on a phone.
+Old verified APK `35654417281` has SHA-256
 `af669ad295a70d8443aead32d3abfc1877e20e2a78bb681de3813e94c39d9675`, but lacks PKG-035.
 The complete Home aggregate remains unwired; this package fixes actionable facts, not all list reads.

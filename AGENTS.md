@@ -9,7 +9,8 @@ text/body/ACL readback matches. No user-data rewrite, certificate move or JWT ch
 `docs/implementation/v5-ai-first/pkg035/PKG035_SELECTABLE_APPLICATIONS.md`.
 Client `62e90e92` passes types and 240 suites / 4606 tests; three new regressions fail before/pass after.
 Home/cards/detail use the new count; historical totals remain accessible. New APK run `35657828926`
-was dispatched from `fe60a385` and was still building at this checkpoint. No phone installed/tested.
+from `fe60a385` succeeded; downloaded APK hash `2afcefc1…` matches checksum/recovery/icon attestations.
+See `docs/implementation/v5-ai-first/pkg035/APK_RECEIPT_20260921.json`. No phone installed/tested.
 Older APK `35654417281` succeeded and its downloaded hash was verified, but does not contain PKG-035.
 The full Home aggregate is still not wired; this fixes counts without claiming pagination/read reduction.
 Remaining: 7.41, 7.17, 7.1, 11.1, 11.2, plus legal/phone decisions and device verification.
