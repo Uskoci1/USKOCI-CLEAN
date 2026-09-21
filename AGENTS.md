@@ -3,12 +3,16 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
-PKG-037 (2026-09-22, candidate/proof in progress): publication-only deep-read 11.2 recovery.
+PKG-037 (2026-09-22, proven and DEV applied): publication-only deep-read 11.2 recovery.
 Separate preparation/provider/settlement deadlines, single settlement after a lost ACK, client 55-second
 accepted-review wait and a bounded expired-review branch in the existing sweep. See
-`docs/implementation/v5-ai-first/pkg037/PKG037_PUBLICATION_RECOVERY.md`. Local Edge 47/47 and focused
-client/native 80/80 pass; types clean. Disposable proof must pass before DEV or Edge application.
-No certificate movement or JWT change. Interview/worker/QA finding 11.1 remains separate and open.
+`docs/implementation/v5-ai-first/pkg037/PKG037_PUBLICATION_RECOVERY.md`. Local Edge 47/47, focused
+client/native 80/80 and full Jest 241 suites / 4646 tests pass; types clean. Disposable proof35669180188
+passes 18 checks on source2d6f0bc5. DEV ledger192; candidate text/body/ACL readback verified, certificate
+65980fce… unchanged. Publication Edge v14 byte-equals proven source, verify_jwt=true; deployed with the
+already cached CLI after a transient HTTP520. No credential read or paid call. APK35669226055 is building;
+no phone installed/tested. Interview/worker/QA finding 11.1 remains separate and open. Finishing/growth
+gates: `docs/implementation/APP_FINISHING_PLAN_20260922.md`.
 
 PKG-036 (2026-09-22, client-only): first bounded slice of deep-read 7.1. Eleven live lifecycle RPCs and
 ten selected guard/calendar bodies were read; exact MD5s and per-call comparison are under
@@ -20,8 +24,8 @@ No DEV writes; ledger remains
 191 at read-only preflight. No certificate/JWT/dependency/device change. 7.1 remains partial/open.
 APK `35662001128`, source `0c01ac7b`, succeeded; downloaded SHA256 `b883d7a7…` matches checksum and
 both recovery/icon attestations. See the package's `APK_RECEIPT_20260922.json`. Not installed/tested.
-AI deadlines remain unresolved; read `docs/implementation/v5-ai-first/AI_DEADLINE_RECOVERY_INVESTIGATION_20260922.md`
-before changing timers. The current timeout reproducer intentionally leaves the review claim unresolved.
+The baseline AI investigation is `docs/implementation/v5-ai-first/AI_DEADLINE_RECOVERY_INVESTIGATION_20260922.md`.
+PKG-037 supersedes its publication reproducer; interview deadlines remain unresolved.
 
 PKG-035 (2026-09-21, **proven and applied**): deep-read 7.32 now separates historical applications from
 those currently selectable. Candidate list, owner computed field and Home aggregate share the classifier;

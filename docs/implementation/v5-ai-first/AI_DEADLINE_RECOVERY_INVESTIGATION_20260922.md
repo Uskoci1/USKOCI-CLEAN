@@ -72,3 +72,45 @@ function. Do not infer deployed byte equality or widen this finding to all AI op
    movement requires explicit approval. For Edge, verify deployed bytes and preserve JWT configuration.
 
 No particular replacement timeout or new state is approved or implemented by this document.
+
+## Follow-up while PKG-037 is proving (source `2d6f0bc5`)
+
+Publication finding 11.2 is now implemented in the separate PKG-037 candidate/Edge/client package; its
+application state is recorded in that package, not inferred here. This follow-up is read-only for 11.1.
+
+Deployed bundles were fetched and compared against git, not only their entrypoints:
+
+| Bundle | Version / JWT | Comparison |
+| --- | --- | --- |
+| Intake | 44 / true | Entry, facts contract and budget helper byte-equal. Stream helper differs only in CRLF versus LF; normalized content equal. |
+| Worker interview | 15 / true | Entry byte-equal. Stream helper has only the same line-ending difference. Budget helper lacks the two later speech-settlement exports; the existing reservation logic is unchanged. |
+| Q&A | 12 / true | Entry and both client contract/hash dependencies byte-equal. Budget helper lacks the same unused speech exports. |
+
+The deployed stream helper hash is `f29a990a27ab7ce301ed836a00231370b0db1685ef40ba085cca3953751870aa`;
+git LF hash is `f7fec0b75b1cad8f2f034b0da6f8a66f64184b40bcb2c496a4eec47e06b6df5c`.
+Do not call normalized equivalence byte equality. None of these functions was deployed in this follow-up.
+
+Correction to the historical ledger's opening generalization: **not every current AI endpoint has a
+12-second total deadline**. The deployed Q&A entry has a 45-second controller covering the request; its
+`fetchJson` races against that signal and adds no 12-second provider timer. Intake and worker streaming
+do share the 12-second provider helper, and both client streaming paths still stop at 15 seconds.
+Q&A still returns unconfirmed after invalid/non-STOP output without settling the claimed command.
+
+Read live complete failure/status/dispatch bodies:
+
+| Function | `md5(prosrc)` | Relevant behavior |
+| --- | --- | --- |
+| `rpc_ai_fail_need_turn_v2_service` | `17baf5705063e2c65059a9cf43310be8` | Fails only PROCESSING, same attempt, not dispatched, not cancelled. Calling it after dispatch cannot terminate that attempt. |
+| `private.ai_need_turn_status` | `c764f3db154221e66dc43afb336b927f` | FAILED is retryable only if not dispatched and not cancelled; all PROCESSING siblings block successors. |
+| `rpc_fail_worker_ai_turn_service` | `7012758702e5d5d77f96bf2ccf6bf9ca` | Can fail same-attempt PROCESSING before lease expiry, including dispatched; returns the existing turn document. |
+| `private.worker_ai_turn_document` | `82daa0a4586b20b8bd4e4c2e781e1bcd` | Projects an expired PROCESSING lease as UNKNOWN_OUTCOME; retryAllowed is always false. |
+| `rpc_dispatch_worker_ai_turn_service` | `05c6f257e25baec1ea39abbc4246b36f` | Requires current owner/session/attempt/lease/source and one undispatched PROCESSING turn; records dispatch before provider IO. |
+
+Intake completion was also read: it requires `provider_dispatched=true` and returns the existing status
+without applying facts when that precondition is absent. PKG-037's first disposable fixture used an older
+pre-dispatch test sequence and was refused; the fixture now exercises current dispatch and asserts SUCCEEDED.
+
+Next: compare the remaining worker claim/completion/recovery and Q&A dispatch/completion/cancellation
+bodies and ACLs. Then choose a bounded failure settlement preserving dispatch and request identity,
+prove late-result/lost-ACK behavior and align only the affected client deadlines. An existing FAILED
+state may suffice; this read does not authorize a new state, provider replay, refund or certificate change.

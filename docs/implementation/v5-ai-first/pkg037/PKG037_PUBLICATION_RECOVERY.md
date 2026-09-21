@@ -1,7 +1,8 @@
 # PKG-037 — bounded publication evaluation and durable recovery
 
 Date: 2026-09-22. Baseline `5f54a788`. Deep-read **11.2**; interview/worker/QA finding 11.1 remains separate.
-Status: implementation written; local tests passed; disposable proof / DEV application / Edge deployment pending.
+Status: disposable proof passed, SQL applied on canonical DEV, Edge v14 deployed and byte-verified.
+Client APK completion and device verification pending.
 
 ## Problem and behavior
 
@@ -57,6 +58,36 @@ No applied migration is rewritten. Certificate movement and JWT changes are outs
 
 No paid provider call or DEV test account. No phone verification. Deploy only after the disposable proof passes,
 read back exact Edge bytes, preserve `verify_jwt=true`, verify migration ledger text and record receipts.
+
+## Proven and applied
+
+Proof run [35669180188](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35669180188), source `2d6f0bc5`,
+passed all 18 checks. Downloaded report is preserved as `DISPOSABLE_PROOF_RECEIPT_20260922.json`.
+The earlier run `35668792526` refused the fixture's obsolete omission of intake dispatch; the fixture was
+corrected to perform the actual dispatch and assert SUCCEEDED, without weakening any production rule.
+Full local Jest: 241 suites / 4646 tests, exit 0. PKG-007 regression run `35668792540` passed on identical
+production source; the second commit changes only proof and planning documentation.
+
+DEV migration `20260921235240_dev_alpha_pkg037a_publication_review_expiry` applied after fresh body pins.
+Ledger is **192 = source147 + dev_alpha45**. Recorded SQL SHA256
+`cb4f0c605739dbd87a48775648db18bbaf4b6bab7a5d0b593f921cc6afada472` equals the committed candidate without
+its last newline. Live sweep source MD5 is `9d89b9af2e893bc608e7598d175551b7`; owner, ACL, definer and search
+path are unchanged. The transaction asserted live certificate/readiness and unchanged digest before commit;
+certified `65980fce…` reads back unchanged. No separate private-function execution is claimed.
+
+Review counts before/after application remain four ACCEPTED, two EVALUATED, nine PUBLISHED, zero EVALUATING.
+No existing user row was rewritten by application. Both existing cron jobs remain active every minute.
+Receipt: `supabase/operations/dev-alpha/ledger/20260922_pkg037_application.receipt.json`.
+
+The first exact-byte deployment using the already cached Supabase CLI 2.117.0 returned upstream HTTP520;
+readback confirmed unchanged v13. The retry succeeded. **v14 is ACTIVE, verify_jwt=true**, and both files
+read back byte-identical to the proven source: entry `3321cd13…`, budget helper `2ef0c3a1…` (full hashes in
+the receipt). The CLI used exact committed files staged under ignored artifacts; no dependency installed
+or credentials read. APK run35669226055 is building the new client; device verification remains pending.
+
+Unauthenticated POST to the deployed gateway returns HTTP401 without invoking a provider. The existing
+marketplace cron readback shows five successful runs and zero failures in five minutes. There was no real
+expired review to recover; cron health is not a claim that a paid end-to-end publication was exercised.
 
 ## Runtime reference
 

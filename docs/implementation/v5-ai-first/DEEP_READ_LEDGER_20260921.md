@@ -1062,6 +1062,14 @@ only from `ACCEPTED` — so an evaluation that times out after claiming answers 
 that review forever, and the person has to prepare a new review. Not reached yet: no review is stuck in
 `EVALUATING` (9 published, 2 evaluated, 4 accepted), and no task has ever been published with a photo (0 of 18).
 
+**2026-09-22 — PKG-037 proven and applied:** publication preparation/provider/settlement have separate
+bounds; one settlement preserves a lost successful ACK; the existing minute sweep resolves expired
+review claims without provider replay or publication. Disposable proof 35669180188 passes 18 checks,
+including actual local Auth/REST and the exact Edge handler. DEV ledger192 and publication Edge v14
+byte-verified, JWT unchanged; certificate unchanged. Client 55-second accepted-review wait passes local
+tests and is building in APK35669226055; no phone/provider verification. See
+`pkg037/PKG037_PUBLICATION_RECOVERY.md`. This does not close interview/worker/QA finding 11.1.
+
 **11.3 — risk, copy.** `uskoci-media` holds a single module-level `busy` flag, shared by every person whose
 request lands on that isolate. While one upload is being sanitized, anyone else's upload gets 429
 `MEDIA_UPLOAD_PENDING`, which the app shows as "Prethodno slanje još nije potvrđeno. Osveži prikaz." — about
