@@ -1,5 +1,10 @@
 # USKOČI — repository entry map
 
+**Start here (2026-09-21 21:45): `docs/implementation/NEXT_AI_HANDOFF_20260921_2145.md`.** It records the current
+worktree, branch, canonical DEV state (ledger 188, certificate `65980fce…`), the owner's standing rules, everything
+applied on 2026-09-21 (PKG-027 to PKG-032), the exact method for a DEV change, and where the work stopped. It
+supersedes `NEXT_AI_HANDOFF_20260919_2100.md`. The paragraphs below remain the detailed record per package.
+
 Latest visual clarification (2026-09-20): the supplied HTML is a starting direction, NOT a final
 design or pixel lock. Refine hierarchy, layout, components, states and motion using product judgment;
 preserve original brand/entry assets and actual business semantics. Read
@@ -143,8 +148,8 @@ Later local follow-up (2026-09-19): after the mandatory handoff/owner-decision r
 `docs/implementation/v5-ai-first/CLIENT_RELIABILITY_20260919.md` for the F01/F07/F08 client corrections
 and their exact verification scope. They do not authorize canonical DEV writes or close pkg023j.
 
-**Start here (2026-09-19): `docs/implementation/NEXT_AI_HANDOFF_20260919_2100.md`.** It is the current
-handoff: where the work stopped, every file touched and what each one is for, the owner's standing rules,
+**Historical (2026-09-19; superseded by the 2026-09-21 handoff at the top): `docs/implementation/NEXT_AI_HANDOFF_20260919_2100.md`.** It was the
+handoff of that day: where the work stopped, every file touched and what each one is for, the owner's standing rules,
 the six migrations applied to canonical DEV that day, and the next piece of work stated exactly. It
 supersedes `NEXT_AI_HANDOFF_20260911_0504.md` and its manifest, which record a SAFE STOP that was lifted.
 
