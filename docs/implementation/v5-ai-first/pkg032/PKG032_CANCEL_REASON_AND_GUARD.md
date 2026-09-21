@@ -58,8 +58,9 @@ The erasure program itself (the redaction relations and patch) is not touched.
 
 - Workflow: `.github/workflows/pkg032-cancel-reason-guard-proof.yml`.
 - Script: `supabase/proofs/pkg032/pkg032_proof.mjs`.
-- The chain replays source 147 and every dev_alpha row through PKG-031, from the texts canonical DEV recorded. The
-  certificate after the replay equals canonical DEV's in all three places.
+- The chain replays source 147 and every dev_alpha row through PKG-031, from the texts canonical DEV recorded.
+- After the replay, the replay's own certified value is bound in all three places and the source is ready. The
+  readiness function is canonical DEV's apart from its constant.
 
 **Before**
 - The reason is thrown away, and the worker reads a fixed sentence.
