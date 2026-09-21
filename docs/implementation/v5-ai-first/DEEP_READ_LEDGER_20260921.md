@@ -1252,7 +1252,7 @@ READY (`closure_erasure_binding_v5()` is not null), so a closure WOULD start. Ne
 with `ACCOUNT_CLOSING` on every guarded action, and their data is never erased, unless someone runs the
 worker by hand. Deletion is a right a user exercises; this is the most serious finding so far. Fix is 4.2's
 scheduler — for this worker it is sufficient, because its binding is ready.
-**Candidate proven 2026-09-21, not applied: PKG-028a.** On the disposable stack, a confirmed deletion reached CLOSED through the tick alone, in 75 calls (about an hour and a quarter at one a minute). `docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`.
+**Applied 2026-09-21: PKG-028a.** On the disposable stack, a confirmed deletion reached CLOSED through the tick alone, in 75 calls (about an hour and a quarter at one a minute). `docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`.
 
 **6.2 — defect (severity corrected in area 7, see 7.2). A data export is accepted and never delivered.**
 `rpc_request_data_export` never consults `data_export_policy_binding()`. It inserts `REQUESTED` and
@@ -1295,7 +1295,7 @@ three of them advertise work that is already over — 2026-09-18 10:00–13:00, 
 Fix shape (needs owner approval): `expire_lifecycle` also expires a FIXED_WINDOW need in PUBLISHED or
 SELECTION once its `ends_at` (or `starts_at` when there is no end) has passed and nobody is selected; and
 publication refuses a FIXED_WINDOW whose start is already past.
-**Candidate proven 2026-09-21, not applied: PKG-028b.** Expiry at the end of a fixed window; a past start refused at publish; the client says it before the paid check. On canonical DEV the three tasks above would expire, all the owner's own and none with an application. The relative kinds (`TODAY_FLEXIBLE` and the others) have no date and remain open. `docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`.
+**Applied 2026-09-21: PKG-028b.** Expiry at the end of a fixed window; a past start refused at publish; the client says it before the paid check. The first tick after it expired the three tasks above, all the owner's own and none with an application; the queue went from 12 to 9. The relative kinds (`TODAY_FLEXIBLE` and the others) have no date and remain open. `docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`.
 
 Why every task has no deadline, read in `src/app/(app)/pregled-zadatka.tsx`: the deadline is optional and
 null by default; the only way to set one is a `kind="quiet"` "Uredi rok za prijave" button, easy to pass.
@@ -1358,7 +1358,7 @@ The data export is a right a user exercises; a request that is never processed i
 does not keep. Fix shape: a scheduler for the workers — `pg_net` + `pg_cron` calling each with the service
 role, or a platform schedule — plus the `EXPO_PUSH_TRANSPORT_ENABLED` switch (see 4.4), which is a secret and
 could not be read from here.
-**Candidate proven 2026-09-21, not applied: PKG-028a** (run 35602743935). A minute tick calls each worker that has work with the service key the owner stores in Vault. Applying it needs the owner's yes, plus the key and the closure switch. `docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`.
+**Applied to canonical DEV 2026-09-21: PKG-028a** (proof run 35602743935). A minute tick calls each worker that has work with the service key the owner stores in Vault. It sends nothing until the owner stores the key and sets the closure switch. `docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`.
 
 **4.3 — rule. The one push text that would ever reach a phone is formal.** `uskoci-push-transport`
 line 108 sends, for every event, `title: 'USKOČI', body: 'Imate novo obaveštenje. Otvorite aplikaciju.'`.

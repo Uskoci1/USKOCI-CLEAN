@@ -5,8 +5,8 @@ read still holds and which three items should come next. The answer was "kreni".
 - fixing 8.10 in the client;
 - preparing and proving 4.2/6.1 and 5.1 on a disposable database.
 
-It does **not** cover applying anything to canonical DEV. Each candidate here needs the owner's own yes first,
-because both change live behaviour: account deletion starts working, and three of the owner's own tasks close.
+Applying them to canonical DEV was approved separately. The owner answered "kreni" to the written plan whose step 2 is
+"primenim pkg028a i pkg028b na DEV", after being told that three of their own tasks would close.
 
 ## What each candidate fixes
 
@@ -117,7 +117,22 @@ The e2e step also caught a real defect in the first version of the candidate. Th
 `{16,4096}` is not a valid PostgreSQL regular expression, because a repetition count cannot exceed 255. The tick
 would have failed the moment the owner stored a key. The length is now checked apart.
 
-## What canonical DEV would see
+## Applied to canonical DEV (2026-09-21)
+
+Receipt: `supabase/operations/dev-alpha/ledger/20260921_pkg028_application.receipt.json`.
+
+- Ledger **178 = 147 + 31 dev_alpha**. Both recorded texts are the files without their final newline:
+  - 028a: `385dbd8e…`;
+  - 028b: `e695991b…`.
+- The three bodies equal the proof surface. The digest is unchanged, and the source is ready.
+- 028a: pg_net 0.20.4 is installed and the job `uskoci_edge_workers` is active. The tick answers
+  `NOT_CONFIGURED` / `WORKER_KEY` until the owner stores the key.
+- The API check for `net` was not repeated on DEV, because the agent environment's guard refused the outbound
+  request. The disposable proof shows PGRST106.
+- 028b: the 14:49 UTC tick expired the three tasks below and sent no notification. The dispatch queue went from 12
+  to 9.
+
+## What canonical DEV sees
 
 - 028a: the tick answers `NOT_CONFIGURED` until the owner stores the key. Today no deletion is running and no push is
   waiting. The export request of 2026-09-13 is not work while no delivery policy exists (6.2).

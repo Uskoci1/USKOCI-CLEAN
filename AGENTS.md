@@ -21,11 +21,11 @@ dependency. Full evidence and what would close it:
 `docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
 for that cause; a new alert is a new decision.
 
-PKG-028 (2026-09-21, proven, **NOT applied**): `pkg028a` runs the three Edge workers from a minute tick
+PKG-028 (2026-09-21, proven and **applied** on the owner's "kreni" to the written plan; ledger now **178 = 147 + 31**): `pkg028a` runs the three Edge workers from a minute tick
 (pg_net + a Vault key the owner stores), which makes account deletion (6.1), export (4.2) and push actually run.
 `pkg028b` expires fixed-time tasks whose window is over and refuses publishing a past start (5.1). The disposable
-proof passed (run 35602743935). Applying either to canonical DEV needs the owner's explicit yes; the owner must also
-store the key and set `USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED`. Read
+proof passed (run 35602743935). The tick sends nothing until the owner stores the key and sets
+`USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED` (receipt `20260921_pkg028_application.receipt.json`). Read
 `docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`. The client side of 8.10 and 5.1 is in
 git, but not in any installed build.
 
@@ -41,7 +41,7 @@ approved this round with "odobravam sve to". Contract, proof and application:
 - `pkg027e`: the price basis survives an edit.
 
 The push text is deployed as Edge `uskoci-push-transport` v12, byte-identical on readback. Canonical DEV
-ledger is now **176 = 147 frozen source + 29 dev_alpha**. Digest `67730f62` live = certified, and
+ledger was then **176 = 147 frozen source + 29 dev_alpha** (current count: PKG-028 paragraph above). Digest `67730f62` live = certified, and
 `retention_ai_source_ready()` is true. Receipt:
 `supabase/operations/dev-alpha/ledger/20260921_pkg027_application.receipt.json`.
 
