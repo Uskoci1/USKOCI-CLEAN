@@ -97,6 +97,10 @@ function connectedCalendar(client,userId){
     './market':'src/lib/market.ts',
     '../ui/calendar/calendarPresentation':'src/ui/calendar/calendarPresentation.ts',
     '../../lib/calendarTime':'src/lib/calendarTime.ts',
+    // Pure formatting helpers the Agreement service imports since 2026-09-21: money text and the one zone an
+    // agreed time is shown in.
+    '../lib/novac':'src/lib/novac.ts',
+    '../lib/dogovorenoVreme':'src/lib/dogovorenoVreme.ts',
   };
   const cache=new Map();
   const load=name=>{
