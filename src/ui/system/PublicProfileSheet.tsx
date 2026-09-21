@@ -40,7 +40,7 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel }
               {/* `photo` always returned an element, so this ?? never ran and every person without
                   a picture got an empty disc. ProfilePhoto owns the fallback now. */}
               <View style={s.avatar}>{photo ? photo(profile.profilId)
-                : <T variant="title" style={s.initial}>{(profile.ime ?? 'U').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T>}</View>
+                : <T accessible={false} variant="title" style={s.initial}>{(profile.ime ?? 'U').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T>}</View>
               <T accessibilityRole="header" variant="display" style={[s.ink, s.center]}>{profile.ime ?? 'Ime nije dostupno'}</T>
               {profile.grad ? <T variant="meta" tone="muted">{profile.grad}</T> : null}
               {profile.naslov ? <T variant="bodyStrong" style={[s.ink, s.center]}>{profile.naslov}</T> : null}

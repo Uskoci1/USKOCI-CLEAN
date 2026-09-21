@@ -93,7 +93,7 @@ function IntervalEditor({ draft, timezone, close, accept }: {
   return <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={close}>
     <SelectionFrame title="Predlog termina" back={close} footer={<BrandAction label="Potvrdi termin" onPress={apply} />}>
       <View style={s.card}>
-        <T variant="meta" style={s.eyebrow}>Vreme bez izmišljanja</T><T variant="title" style={s.ink}>Ponudite tačan početak i kraj.</T>
+        <T variant="meta" style={s.eyebrow}>Vreme bez izmišljanja</T><T accessibilityRole="header" variant="title" style={s.ink}>Ponudi tačan početak i kraj.</T>
         <T variant="body" tone="muted">Vremenska zona: {timezone}. Ovaj predlog pripada tvojoj Prijavi.</T>
       </View>
       <View style={s.card}>
@@ -158,7 +158,7 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     <ErrorMessage error={error} />
     {error && !pending ? <V2Action label="Osveži Zadatak" onPress={refresh} disabled={busy} /> : null}
     {pending && !confirmed ? <T variant="meta" tone="muted">Sačuvana je ista ponuda za proveru ishoda. Ponavljanje koristi njen prvobitni termin, cenu i broj ljudi.</T> : null}
-    {confirmed ? <View style={[s.card, s.cardSuccess]}><T variant="title" style={s.ink}>Prijava je poslata.</T><T variant="body" tone="muted">Onaj ko je objavio zadatak može da izabere ovu konkretnu ponudu. Izbor odmah sklapa Dogovor.</T></View> : null}
+    {confirmed ? <View style={[s.card, s.cardSuccess]}><T accessibilityRole="alert" variant="title" style={s.ink}>Prijava je poslata.</T><T variant="body" tone="muted">Onaj ko je objavio zadatak može da izabere ovu konkretnu ponudu. Izbor odmah sklapa Dogovor.</T></View> : null}
     {reset ? <V2Action label="Pregledaj uslove i uredi novu ponudu" onPress={reset} disabled={busy} /> : null}
     {editingTime && !disabled ? <IntervalEditor draft={draft} timezone={need.taskTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
       close={() => setEditingTime(false)} accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
@@ -239,10 +239,10 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
       ListHeaderComponent={<View style={s.listHeader}><TaskContext need={need} />
         <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{candidates.length} konkretnih ponuda · još {need.pokrivenost.preostalo} ljudi</T>
           {candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind={compare ? 'quiet' : 'secondary'} onPress={() => setCompare(v => !v)} /> : null}</View>
-        {compare ? <View style={s.compareIntro}><T variant="meta" style={s.eyebrow}>Konkretne ponude</T><T variant="title" style={s.ink}>Uporedi isti obim, ne samo cenu.</T>
+        {compare ? <View style={s.compareIntro}><T variant="meta" style={s.eyebrow}>Konkretne ponude</T><T accessibilityRole="header" variant="title" style={s.ink}>Uporedi isti obim, ne samo cenu.</T>
           <T variant="meta" tone="muted">Cena, broj ljudi i termin pripadaju svakoj pojedinačnoj ponudi.</T></View> : null}
       </View>}
-      ListEmptyComponent={<View style={s.card}><T variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
+      ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
       renderItem={({ item: k }) => compare ? <CompareCell candidate={k} need={need} open={() => open(k)} />
         : <CandidateRow candidate={k} open={() => open(k)} />}
       ListFooterComponent={<V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />} />
@@ -314,10 +314,10 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
         <T variant="meta" tone="muted">Sačuvana samoizjava uz ovu Prijavu. Kasnija izmena radnog profila je ne prepisuje.</T></>
         : <T variant="meta" tone="muted">Za ovu stariju Prijavu sačuvani dokazi o sposobnostima nisu dostupni.</T>}
     </View>
-    {review || pending ? <View style={s.warnCard}><T variant="title" style={s.ink}>Jedan izbor sklapa Dogovor.</T><T variant="body" style={s.ink}>
+    {review || pending ? <View style={s.warnCard}><T accessibilityRole="alert" variant="title" style={s.ink}>Jedan izbor sklapa Dogovor.</T><T variant="body" style={s.ink}>
       Izborom prihvataš ovu ponudu: {candidate.cena.prikaz} ukupno, {dolaziOsoba(candidate.pokrivaMesta)}. Dogovor odmah važi za obe strane.</T>
       <T variant="meta" tone="muted">Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.</T></View> : null}
-    {confirmed ? <T variant="title" style={s.ink}>Dogovor je sklopljen.</T> : candidate.stanje === 'SELECTED' && !pending ? <T variant="body" style={s.ink}>Ova ponuda je izabrana.</T>
+    {confirmed ? <T accessibilityRole="alert" variant="title" style={s.ink}>Dogovor je sklopljen.</T> : candidate.stanje === 'SELECTED' && !pending ? <T variant="body" style={s.ink}>Ova ponuda je izabrana.</T>
       : !candidate.mozeIzabrati && !pending ? <T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T> : null}
     <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
     <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Prijavio se" />

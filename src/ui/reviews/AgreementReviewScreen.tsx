@@ -118,7 +118,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
           {/* A grey button with nothing saying why is a dead end. It waits on one thing. */}
           {enabled && rating < 1 ? <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Izaberi ocenu od 1 do 5 pre slanja.</T> : null}
         </> : context ? <View style={s.card}>
-          <T variant="title" style={s.ink}>Ocena još nije dostupna</T>
+          <T accessibilityRole="header" variant="title" style={s.ink}>Ocena još nije dostupna</T>
           <T variant="body" tone="muted">Možeš oceniti drugu stranu kada Dogovor bude završen.</T>
           <V2Action label="Nazad na Dogovor" onPress={backFromReview} />
         </View> : null}

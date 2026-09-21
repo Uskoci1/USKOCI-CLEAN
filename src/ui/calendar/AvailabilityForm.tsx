@@ -89,7 +89,7 @@ function WindowEditor({ window, timezone, close, accept }: {
     accept(valid.windows[0]);
   };
   return <EditorSheet title="Poseban datum" close={close} footer={<>{error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}<Button label="Primeni izuzetak" onPress={submit} full /><Button label="Odustani od izuzetka" kind="quiet" onPress={close} full /></>}>
-    <T variant="meta" tone="success">Izuzetak od nedelje</T><T variant="title">Promeni dostupnost za poseban termin.</T>
+    <T variant="meta" tone="success">Izuzetak od nedelje</T><T accessibilityRole="header" variant="title">Promeni dostupnost za poseban termin.</T>
     <T tone="muted">Redovni termini ostaju sačuvani. Vremenska zona: {timezone}</T>
     <CivilField label="Početni datum izuzetka" mode="date" value={start.date} onChange={value => { setStart(current => ({ ...current, date: value })); setChangedStart(true); }} />
     <CivilField label="Početak izuzetka" mode="time" value={start.time} onChange={value => { setStart(current => ({ ...current, time: value })); setChangedStart(true); }} />

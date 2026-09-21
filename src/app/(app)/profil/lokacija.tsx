@@ -42,7 +42,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver 
     onSave(value);
   };
   return <View style={{ gap: 24 }}>
-    <View style={s.section}><T variant="title">Gde možeš da uskočiš?</T>
+    <View style={s.section}><T accessibilityRole="header" variant="title">Gde možeš da uskočiš?</T>
       <T tone="muted">Izaberi područje u kom radiš. Kućna adresa i GPS dozvola nisu potrebni.</T></View>
     <CountryField label="Država rada" value={country} disabled={disabled} options={countryOptions}
       onChange={code => changePlace(() => setCountry(code))} />

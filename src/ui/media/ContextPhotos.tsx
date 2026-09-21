@@ -51,7 +51,7 @@ export function ProfilePhoto({ profileId, fallback, size, initial }: { profileId
   const letter = (initial ?? '').trim().slice(0, 1).toLocaleUpperCase('sr-Latn-RS');
   return <View accessibilityLabel={letter ? `Bez fotografije: ${letter}` : 'Bez fotografije'}
     style={[box, { backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }]}>
-    {letter ? <T variant="title" style={{ color: sys.color.green }}>{letter}</T>
+    {letter ? <T accessible={false} variant="title" style={{ color: sys.color.green }}>{letter}</T>
       : <User size={size ? Math.round(size / 2.6) : 34} color={sys.color.green} />}
   </View>;
 }

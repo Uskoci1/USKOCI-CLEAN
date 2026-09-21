@@ -85,8 +85,10 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const statusTone = status === 'ACTIVE' ? sys.color.green : status === 'SUSPENDED' ? sys.color.danger : sys.color.warn;
   return <>
     <View style={[s.card, s.hero]}>
-      <View style={s.avatar}><T variant="title" style={s.initials}>{initials || 'JA'}</T></View>
-      <T variant="title" style={[s.ink, s.center]}>{draft.ime.trim() || 'Šta možeš da preuzmeš?'}</T>
+      {/* The initials are the avatar drawn as text. The name right below says the same thing, so
+          announcing both makes a screen reader repeat itself. */}
+      <View style={s.avatar}><T accessible={false} variant="title" style={s.initials}>{initials || 'JA'}</T></View>
+      <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>{draft.ime.trim() || 'Šta možeš da preuzmeš?'}</T>
       <View style={[s.statusChip, { backgroundColor: status === 'ACTIVE' ? sys.color.greenSoft : status === 'SUSPENDED' ? sys.color.dangerSoft : sys.color.warnSoft }]}>
         <T variant="meta" style={{ color: statusTone, fontWeight: '600' }}>{statusText}</T></View>
       {/* The old sentence sent people to Dostupnost and then to skills, and activation gates on
