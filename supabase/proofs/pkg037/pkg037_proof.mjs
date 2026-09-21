@@ -51,16 +51,21 @@ const person=await rt.actor('pkg037-'+mode),other=await rt.actor('pkg037-other-'
 sql("begin;set local session_replication_role=replica;update public.app_profiles set profile_status='ACTIVE',display_name='Proof person',city='Novi Sad',skills='{ciscenje}',team_capacity=1 where account_id="+q(person.id)+';commit;');
 const read=rid=>ok(person.client.rpc('rpc_read_ai_task_review',{p_review_id:rid}));
 async function acceptedReview(){
+ // Fixture-only: these independent scenarios do not test the intake burst cap.
+ sql("update private.ai_need_turn_commands set attempt_times='{}' where account_id="+q(person.id));
  const cid=await ok(person.client.rpc('rpc_ai_open_need_conversation_v2'));
  const key=randomUUID(),message='Disposable PKG-037 review fixture';
  const t=await ok(service.rpc('rpc_ai_claim_need_turn_v2_service',{p_account_id:person.id,p_conversation_id:cid,p_client_request_id:key,p_user_message:message}));
- await ok(service.rpc('rpc_ai_complete_need_turn_v2_service',{p_account_id:person.id,p_conversation_id:cid,p_client_request_id:key,
+ assert.ok(t.claim?.attemptId);
+ assert.equal(await ok(service.rpc('rpc_ai_dispatch_need_turn_v2_service',{p_account_id:person.id,p_conversation_id:cid,p_client_request_id:key,p_attempt_id:t.claim.attemptId})),true);
+ const completed=await ok(service.rpc('rpc_ai_complete_need_turn_v2_service',{p_account_id:person.id,p_conversation_id:cid,p_client_request_id:key,
   p_attempt_id:t.claim.attemptId,p_user_message:message,p_assistant_message:'Disposable review is ready.',p_safety:'ALLOW',
   p_proposals:syntheticNonlocationFacts.map(([key,value])=>({key,value,displayValue:String(value),evidence:'Disposable synthetic input',confidence:1}))}));
+ assert.equal(completed.state,'SUCCEEDED');
  const location=await ok(person.client.rpc('rpc_get_need_location_review',{p_conversation_id:cid}));
  const review=await ok(person.client.rpc('rpc_prepare_ai_task_review',{p_conversation_id:cid,p_response_deadline:null,
   p_location:{expectedRevision:location.revision,value:locationCases.find(x=>x.id==='remote-exempt').value}}));
- assert.equal(review.canAccept,true);
+ assert.equal(review.canAccept,true,'REVIEW_PREREQUISITES:'+JSON.stringify({missing:review.missingRequired,safety:review.safety}));
  const command=await ok(person.client.rpc('rpc_accept_ai_task_review',{p_review_id:review.reviewId,p_displayed_content_digest:review.displayedContentDigest,p_client_request_id:randomUUID()}));
  const ctx=await ok(person.client.rpc('rpc_get_need_publication_context',{p_need_id:command.needId,p_expected_revision:command.needRevision}));
  assert.equal(ctx.kind,'READY');return{review,command,ctx};
@@ -82,7 +87,12 @@ assert.equal(sql('select status from public.needs where id='+q(x.command.needId)
 assert.equal((await claim(x)).acquired,false);assert.equal(sweep().reviewEvaluationsStopped,0);
 await denied(person.client.rpc('rpc_publish_accepted_ai_task_review',{p_review_id:x.review.reviewId,p_client_request_id:x.command.clientRequestId}),'PUBLICATION_DECISION_NOT_ALLOW');
 await denied(other.client.rpc('rpc_read_ai_task_review',{p_review_id:x.review.reviewId}),'TASK_REVIEW_NOT_FOUND');
+await denied(service.rpc('rpc_complete_ai_task_review_evaluation_service',{p_account_id:person.id,p_review_id:x.review.reviewId,
+ p_attempt_id:ownedClaim.attemptId,p_outcome:'ALLOW',p_rule_ids:['RS-MIN-001'],p_safe_reason_codes:['CLEAR_CONCRETE_TASK'],
+ p_provider_ref:'DISPOSABLE037',p_model_ref:'NO_REAL_PROVIDER',p_not_ready_code:null}),'IDEMPOTENCY_KEY_REUSED');
+assert.deepEqual((await read(x.review.reviewId)).command,after);
 pass('EXPIRED_CLAIM_TERMINAL_SAME_ID_NO_RECLAIM_NO_PUBLISH_FOREIGN_DENIED');
+pass('LATE_COMPLETION_CANNOT_OVERWRITE_SWEEP_RESULT');
 const active=await acceptedReview();await claim(active);
 sql("update private.ai_task_review_commands set lease_expires_at=clock_timestamp()+interval '1 hour' where review_id="+q(active.review.reviewId));
 const untouched=await acceptedReview();
