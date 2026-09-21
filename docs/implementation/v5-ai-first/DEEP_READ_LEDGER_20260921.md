@@ -701,6 +701,61 @@ zatvara sam" — the 48-hour auto-completion runs (1.4). The review deadline is 
 with its raw IANA name ("(Europe/Belgrade)") and seconds. `nova.tsx` no longer creates a conversation on
 open — only the first word or the microphone does (the fix for "38 of 62 empty conversations").
 
+#### `prilike/[id]/prijava.tsx` (151), `potrebe/[id]/pregled.tsx` (189), and the composer `ui/v2/ApplicationSelectionPresentation.tsx`
+
+**8.10 — defect, the assistant's own incomplete work (pkg025). On a "po osobi" task a worker cannot apply
+for more than one person.** Since pkg025b, `rpc_submit_response` requires, for `MY_PRICE` with basis
+`PER_PERSON`, that the application's price equal the per-person amount × the people it covers. The
+application composer was never taught the basis: `prijava.tsx:71-72` fills the price with
+`need.ponudjenaCena.iznos` — the per-person amount — and `ApplicationSelectionPresentation.tsx:119-133`
+locks that field for `MY_PRICE`, under the note "Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena
+po osobi." So a worker bringing two people to a 5,000-per-person task sends 5,000, the server expects
+10,000, refuses with `FIXED_PRICE_MISMATCH`, the screen says "Cena Zadatka je promenjena…", and "uredi
+novu ponudu" puts the same locked 5,000 back. Only a one-person application can ever pass. The task
+price at the top of the composer (`:64`) also shows the bare amount with no "po osobi", while every other
+screen uses `needPriceText`. Not yet hit — no published task has a basis — but 4 open intake conversations
+already carry `need.price_basis = PER_PERSON`; the first one published with two or more people will show
+it. Client-only fix: lock the price at per-person × people for `PER_PERSON` and say so.
+
+**8.11 — note, copy.** `potrebe/[id]/pregled.tsx:136`: "Zatvorićemo potragu za preostalih N mesta" —
+"preostalih 1 mesta" for one. `:142` replaces every refusal of the close with "Potraga nije potvrđeno
+zatvorena." (ungrammatical, and it hides the mapped reason). The edit warning says acceptance "ponovo
+pokreće proveru za objavu" but not that the task leaves the market until republished (7.26).
+
+#### `obavestenja.tsx` (163) and `profil.tsx` (152), with `rpc_list_inbox`
+
+**8.13 — rule. Every notification a person has ever read is formal, and most use the retired words.** The
+Inbox shows `title`/`body` exactly as the emitting function stored them in `notification_deliveries`
+(fallback: "Novo obaveštenje" / "Otvorite za trenutne informacije."). All 7 in-app deliveries on DEV —
+every one shown so far — are formal ("Imate", "Vaša", "Vam", "Otvorite") and two name "Uskočer" /
+"Naručilac". Swept every string literal in all `public`/`private` function bodies for the formal forms and
+the retired words; the notification texts that break the owner's rules are:
+`rpc_select_response` "Vaša prijava je izabrana" / "Otvorite Dogovor za detalje zadatka.";
+`rpc_mark_work_done` "Završetak čeka Vašu potvrdu" / "Uskočer je označio Dogovor kao završen.";
+`rpc_confirm_completion` "Naručilac je potvrdio završetak."; `rpc_submit_agreement_review` "Dobili ste
+ocenu za završen Dogovor."; `rpc_send_agreement_message` and `…_photo_message_v5` "Imate novu poruku u
+Dogovoru."; `pre_v3_application_event` "Imate novu prijavu za Zadatak."; `rpc_mark_response_viewed`
+"Naručilac je pregledao Vašu prijavu."; `dispatch_next_wave` "Nova prilika koja može da Vam odgovara";
+`rpc_report_problem` "Otvorite Dogovor da vidite prijavljeni problem."; `rpc_propose_agreement_change_v2`
+"Pogledajte predlog i odgovorite u Dogovoru."; `rpc_respond_agreement_change` "Pogledajte važeće uslove u
+Dogovoru."; `rpc_ru4b_ask_preselection_question` "Uskočer je postavio anonimno pitanje o Zadatku.";
+`rpc_ru4b_answer_preselection_question` "Naručilac je odgovorio na Vaše pitanje."; `rpc_withdraw_response`
+"Uskocer je povukao prijavu za Vasu Potrebu." (also without diacritics); `rpc_cancel_need` "Potreba je
+otkazana" / "Narucilac je otkazao Potrebu za koju ste poslali prijavu."; `rpc_list_inbox` fallback
+"Otvorite za trenutne informacije.". Five more in `rpc_select_response` are exception hints ("Uskocer je
+izmenio prijavu. Proverite je ponovo." …), which the client never displays. This replaces 1.6, 2.3 and
+7.45 as the single inventory. A copy fix is a server change and reaches only new events — stored
+deliveries keep their text.
+
+**8.14 — note.** The profile hub tells a suspended worker "Profil je obustavljen. Piši podršci." — support
+has no operator (7.31). The Inbox resolves every event to its own screen, questions to the question
+screen, and a filter by role; its "N nepročitanih" and "Pročitaj sve" are server-counted.
+
+**8.12 — note, well built.** The application composer journals the exact command before sending, never
+sends a second key for the same intent, retires it only on its own receipt or a known refusal, and
+restores an unresolved one after a cold start; the owner's task screen asks the publication gate itself
+why a draft cannot be published instead of guessing, and binds every late answer to its focus.
+
 
 Read in full: `private.urgent_activation_decision`, `private.match_detail_without_calendar`, the
 `private.marketplace_config` rows. Measured: every stored category, the skills on open tasks and active
