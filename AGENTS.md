@@ -21,7 +21,15 @@ dependency. Full evidence and what would close it:
 `docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
 for that cause; a new alert is a new decision.
 
-PKG-028 (2026-09-21, proven and **applied** on the owner's "kreni" to the written plan; ledger now **178 = 147 + 31**): `pkg028a` runs the three Edge workers from a minute tick
+PKG-029 (2026-09-21, proven and **applied** on the owner's "dozvoljavam sve" to the written command): ledger now
+**183 = 147 + 36 dev_alpha**. It covers 4.1, 1.2, 12.9, 1.1, 7.49, 12.7, 7.47, 12.5, 6.2, 12.11 and the relative
+schedules ("danas"/"sutra"/"ove nedelje" now expire).
+- **Temporary:** `pkg029e` puts the owner's accounts in the TEST world while testing. Take it out before real users.
+- Contract: `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`, including what is deliberately not in
+  this round (7.15, 3.1/12.6, 7.16, 8.27, 9.2/9.3, 11.1/11.2, 12.8, 12.10, 8.2).
+- The ledger count in the PKG-028 paragraph below is historical.
+
+PKG-028 (2026-09-21, proven and **applied** on the owner's "kreni" to the written plan; ledger was then **178 = 147 + 31**): `pkg028a` runs the three Edge workers from a minute tick
 (pg_net + a Vault key the owner stores), which makes account deletion (6.1), export (4.2) and push actually run.
 `pkg028b` expires fixed-time tasks whose window is over and refuses publishing a past start (5.1). The disposable
 proof passed (run 35602743935). The tick sends nothing until the owner stores the key and sets

@@ -68,11 +68,13 @@ ACTIVE/SELECTION, never reads as finished, and anything keyed on a completed nee
 Fix shape (not applied — a server change, needs owner approval): in `sync_need_completion`, when
 `remaining_search_closed_at is not null`, compare against the slots actually selected rather than
 `required_slots`. Never exercised: no need has ever completed on canonical DEV.
+**Applied 2026-09-21: PKG-029b** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **1.2 — defect, minor. Auto-completion is silent.** When the requester confirms,
 `rpc_confirm_completion` emits `EXECUTION_STATE_CHANGED` to the worker. When 48 hours pass and
 `rpc_tick_auto_completion` completes the same agreement, it emits nothing. The worker is never told their
 job was closed. The two paths to the same end state notify differently.
+**Applied 2026-09-21: PKG-029a** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **1.3 — note. The requester can confirm completion before the worker says done, and while a problem is
 open.** `rpc_confirm_completion` accepts execution state `CONFIRMED` as well as `AWAITING_REQUESTER`, and
@@ -516,6 +518,7 @@ still taking applications — a worker opening "Pitanja" gets `NEED_NOT_FOUND` (
 ovom nalogu."), the answered questions disappear from public view, and the owner can no longer answer;
 while on a fully staffed `ACTIVE` task, which nobody new can join, questions stay open. It reads as
 `SELECTION` and `ACTIVE` swapped. Not reachable today: no task is in `SELECTION`.
+**Applied 2026-09-21: PKG-029c** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **7.48 — note.** The live question path is `qaSubmissionClientService.submit` → Edge `uskoci-qa-classify`:
 every question and every answer is classified by the AI provider before the canonical writer stores it;
@@ -534,6 +537,7 @@ needing attention, at the top, permanently, opening a cancelled Agreement. (The 
 `composeActivities` moves a `SELECTED` row whose Agreement is not active into history.) Not reachable
 today: the three Agreements on DEV are all `CONFIRMED`. Every state the server can emit is in the client's
 allowed set, so the list itself never fails on a state.
+**Applied 2026-09-21: PKG-029b** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **7.50 — note.** `ru4Production.resolveChangedApplication` accepts any non-error answer as success and
 falls back to the version it sent when the receipt names none — the pattern `povuciPrijavu`'s own comment
@@ -1109,6 +1113,7 @@ on the live function (pure, no writes): "Da li može 12.10.2026 posle podne?" �
 15000 - 20000 je ok?" → `PHONE_NOT_PUBLIC`; "Treba 2 radnika od 8 do 16h" → allowed. It guards both the
 worker's question and the owner's answer. Not reached yet: no question was ever asked on DEV
 (`qa_ai_commands` is empty).
+**Applied 2026-09-21: PKG-029c** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **12.6 — defect, addendum to 3.1.** Beyond the price rules, `rpc_resolve_stale_response_after_need_edit`
 (called by `ru4Production.ts:93`) also skips the world check, the profile readiness check (name, city,
@@ -1122,6 +1127,7 @@ DEV (`response_revision_resolution_commands` is empty).
 "danas" would get live-location sharing (allowed only for PHYSICAL/PICKUP_DELIVERY); a physical task marked
 REMOTE_ANYTIME would lose it. `PICKUP_DELIVERY` is never produced. Live: no remote task; the 3 Agreements are
 PHYSICAL and correct.
+**Applied 2026-09-21: PKG-029b** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **12.8 — defect, small. One guard is not null-safe.** `guard_remaining_search_close_fields` raises only
 `if current_setting('uskoci.need_lifecycle', true) <> 'CLOSE_REMAINING_SEARCH'`; with the setting never set
@@ -1132,6 +1138,7 @@ reach is a person stamping their own draft. Every other guard in the schema uses
 **12.9 — risk. Closing the remaining search tells no applicant.** `rpc_close_remaining_search` moves every
 open application of the task, including those awaiting stale review, to `EXPIRED` and emits no event; the
 workers learn it only by opening their list. `rpc_cancel_need`, by contrast, notifies each one.
+**Applied 2026-09-21: PKG-029a** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **12.10 — risk. "Prepare" and "start" disagree about a running job.** `account_closure_preparation` reports
 `PENDING_WORKFLOW` only for a running intake turn; `closure_blockers_v5`, which gates the start, also counts
@@ -1148,6 +1155,7 @@ see them. So a real task published from the owner's phone cannot be answered fro
 real applicant needs a second real person. Two readers skip the world check and answer any signed-in account that knows a task id:
 `rpc_read_preselection_qa_context` (title, revision) and `rpc_ru4b_public_preselection_qa` (answered
 questions).
+**Applied 2026-09-21: PKG-029e** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **12.12 — note, copy and small data points.** `media_write_task_refs` and the edit opener label photos
 "N fotografija" — "2 fotografija", "3 fotografija". The edit opener's display values are raw: "MY_PRICE",
@@ -1265,6 +1273,7 @@ from the server alone, and reading the client disproved it: the screen offers to
 export and then ask again. See 7.2.) The contrast is the fix: `rpc_start_account_closure_execution` checks ITS binding
 before inserting anything and refuses honestly with `CLOSURE_POLICY_NOT_READY`. The export request should
 do the same with its own binding, and say plainly that export is not available yet.
+**Applied 2026-09-21: PKG-029d** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **6.3 — note, verified and deliberate. Retention runs every minute and deletes nothing.**
 `retention_policy_sets`, `retention_policy_rules` and `retention_jobs` are all empty, so each of the 32,321
@@ -1342,6 +1351,7 @@ to. The account that enabled push holds a single row, `WORKER=true`; the three e
 REQUESTER — `RESPONSE_RECEIVED`, `MESSAGE_RECEIVED`, `COMPLETION_REQUIRED`, the ones a requester most needs
 — were each suppressed. A person who switches notifications on reasonably expects them on. Fix shape:
 default a missing role row to the account's other role's choice, or create both rows when push is enabled.
+**Applied 2026-09-21: PKG-029a** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
 
 **4.2 — defect, systemic. Three deployed Edge workers have nothing that runs them.** *(Partly corrected
 by 7.46: the data export worker also has an on-demand path the app calls, and the export is stuck for a
