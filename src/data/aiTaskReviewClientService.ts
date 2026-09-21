@@ -8,6 +8,10 @@ import { countryCode } from '../lib/market';
 import { sesijaSada } from '../store/sesija';
 import type { Ishod } from './ports';
 import { decodePublicationEvaluation } from './publicationClientService';
+import { slotLabel } from './aiNeedV2Ui';
+import { REVIEW_FACT_COPY, reviewStartPassed } from './reviewFactProblem';
+export { reviewFactProblem } from './reviewFactProblem';
+import type { LocationSlot } from '../contracts/needFactsV2';
 import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
 
@@ -54,7 +58,9 @@ const COPY: Readonly<Record<string, string>> = {
   ACCOUNT_CLOSING: 'Nalog se zatvara i ne može da objavi novi zadatak.',
   REQUESTER_PROFILE_NOT_READY: 'Dopuni svoj profil pre objave.',
   RESPONSE_DEADLINE_INVALID: 'Rok za prijave mora biti u budućnosti.',
-  FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.',
+  ...REVIEW_FACT_COPY,
+  // Refusals a person causes on the accept path (deep read 7.21); unmapped they read "Ishod radnje nije potvrđen".
+  NO_MATERIAL_CHANGE: 'Nijedan podatak nije promenjen. Izmeni nešto ili se vrati na Zadatak.',
   PUBLICATION_DECISION_NOT_ALLOW: 'Zadatak još nije odobren za objavu.',
   NEED_REVISION_STALE: 'Zadatak je promenjen. Pregledaj novu verziju.',
   STALE_REVIEW_REQUIRED: 'Zadatak je promenjen. Ponovo otvori uređivanje.',
@@ -69,14 +75,6 @@ const text = (x: unknown, max: number): x is string => typeof x === 'string' && 
 const scope = (): ReceiptAccount | null => { const s = sesijaSada(); return s.user ? { accountId: s.user.id, accountRevision: s.accountRevision } : null; };
 const current = (s: ReceiptAccount) => { const now = sesijaSada(); return now.user?.id === s.accountId && now.accountRevision === s.accountRevision; };
 const invalid = <T>(): Promise<Ishod<T>> => Promise.resolve(failure('TASK_REVIEW_INPUT_INVALID', COPY.TASK_REVIEW_INPUT_INVALID));
-/** A fixed time that has already begun cannot be offered to anyone (deep read 5.1). The server refuses it at
- *  publish; saying so first spares the person a paid publication check that could only end in that refusal. */
-function startPassed(review: AiTaskReviewEnvelope, now = Date.now()): boolean {
-  const fact = (key: NeedFactV2Key) => review.publicProjection.find(f => f.key === key)?.value;
-  if (fact('need.schedule_kind') !== 'FIXED_WINDOW') return false;
-  const start = calendarInstant(fact('need.starts_at'));
-  return start !== null && start <= BigInt(now) * 1000n;
-}
 function validValue(key: NeedFactV2Key, value: unknown): boolean {
   const type = NEED_FACT_V2_DEFINITIONS[key].valueType;
   if (type === 'TEXT_ARRAY') return Array.isArray(value) && value.length <= 100 && value.every(x => text(x, 1000));
@@ -160,8 +158,11 @@ async function readFor(s: ReceiptAccount, reviewId: string): Promise<Ishod<AiTas
 }
 /** A refusal is only useful if it says what to do next. Codes come from
  *  rpc_get_need_publication_context and from the evaluator's own readiness gates. */
-function notReadyCopy(code: string, missing?: readonly string[]): string {
-  const slots = (missing ?? []).length ? ' (' + (missing ?? []).join(', ') + ')' : '';
+function notReadyCopy(code: string, missing?: readonly string[], stationary = false): string {
+  // The evaluator names slots by their internal keys ("start", "waypoints/0"); a person reads "Polazište" (7.25).
+  const names = (missing ?? []).map(slot => /^(?:start|end|serviceArea|waypoints\/\d{1,2})$/.test(slot) ? slotLabel(slot as LocationSlot, stationary) : null)
+    .filter((name): name is string => name !== null);
+  const slots = names.length ? ' (' + names.join(', ') + ')' : '';
   switch (code) {
     case 'LOCATION_INCOMPLETE':
       return 'Lokacija nije potvrđena na mapi' + slots + '. Dodirni lokaciju u pregledu i postavi je, pa objavi.';
@@ -207,7 +208,8 @@ async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): 
       // The server says exactly what is missing. Repeating a generic "reload" left the
       // owner stuck on a real device: reloading can never satisfy a missing location.
       return failure(evaluated.podatak.kind === 'NOT_READY' ? evaluated.podatak.code : 'TASK_REVIEW_OUTCOME_UNCONFIRMED',
-        evaluated.podatak.kind === 'NOT_READY' ? notReadyCopy(evaluated.podatak.code, evaluated.podatak.missingSlots)
+        evaluated.podatak.kind === 'NOT_READY' ? notReadyCopy(evaluated.podatak.code, evaluated.podatak.missingSlots,
+          read.podatak.review.location?.geography?.mode === 'STATIONARY')
           : 'Ishod objave nije potvrđen. Nacrt je sačuvan; učitaj pregled ponovo.');
     }
   }
@@ -246,7 +248,8 @@ export const aiTaskReviewClientService = {
   },
   async acceptAndPublish(command: Readonly<{ review: AiTaskReviewEnvelope; clientRequestId: string }>): Promise<Ishod<AiTaskPublicationCommand>> {
     const s = scope(); if (!s) return failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED);
-    if (Array.isArray(command?.review?.publicProjection) && startPassed(command.review)) {
+    // A fixed time that has already begun: say so before the paid publication check that could only refuse it (5.1).
+    if (Array.isArray(command?.review?.publicProjection) && reviewStartPassed(command.review)) {
       return failure('FIXED_WINDOW_START_PASSED', COPY.FIXED_WINDOW_START_PASSED);
     }
     const accepted = await acceptFor(s, command);

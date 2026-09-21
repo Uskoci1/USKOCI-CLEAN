@@ -5,6 +5,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
+import { reviewFactProblem } from '../../data/reviewFactProblem';
 import { aiNeedV2Izvor, izvor } from '../../data';
 import { correctionFromText, factCorrectionValue, factEditorKind, factLabel, factListItems, factReviewValue,
   factTimestampFields, listCorrectionText, timestampCorrectionText } from '../../data/aiNeedV2Ui';
@@ -228,10 +229,14 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   // saying why the tap does nothing. `canAccept` is false for exactly three server reasons, and the
   // screen adds three of its own; whichever one is in the way now says so, at the top of the review
   // and again under the button.
+  // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
+  // both ends, or one that has already begun (deep read 8.5, 5.1).
+  const factProblem = review && !published && !command ? reviewFactProblem(review) : null;
   const blockReason: string | null = !review || published || command ? null
     : review.safety === 'BLOCK' ? 'Sadržaj ne može da se objavi u ovom obliku. Izmeni ga u razgovoru.'
       : review.missingRequired.length ? `Još nedostaje: ${review.missingRequired.map(factLabel).join(', ')}.`
         : !review.location ? 'Fali mesto na mapi. Otvori „Dodaj mesto" i potvrdi tačku — bez nje niko ne zna gde da dođe.'
+          : factProblem ? factProblem
           : unavailableIdentityFact ? IDENTITY_VERIFICATION_UNAVAILABLE_COPY
             : edit ? 'Sačuvaj ili otkaži izmenu koju si otvorio.'
               : locationEditor ? 'Sačuvaj ili zatvori mesto koje uređuješ.'
@@ -382,9 +387,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
               || (!!unavailableIdentityFact && command.authoritative && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')))
               ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
           </> : review ? <>
-            <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
-              accessibilityState={{ disabled: disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
-              style={[s.publish, (disabled || !review.canAccept || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
+            <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
+              accessibilityState={{ disabled: disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
+              style={[s.publish, (disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
               {editor.busy ? <ActivityIndicator color={a.color.surface} /> : <T style={s.publishLabel}>{acceptLabel}</T>}
             </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? (revising
               ? 'Klikom potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'

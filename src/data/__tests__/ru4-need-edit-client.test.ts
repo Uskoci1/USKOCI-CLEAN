@@ -148,7 +148,7 @@ describe('RU-4 — confirmEdit', () => {
   it('explains an unchanged review and unconfirmed facts in product language', async () => {
     resetRpc({ data: null, error: { code: '22023', message: 'NO_MATERIAL_CHANGE' } });
     const unchanged = await aiNeedV2Production.confirmEdit(NEED, 3, CONVERSATION, 'ru4-edit-abc12345');
-    expect(unchanged).toMatchObject({ ok: false, kod: 'NO_MATERIAL_CHANGE', poruka: 'Nisi promenili nijedan podatak.' });
+    expect(unchanged).toMatchObject({ ok: false, kod: 'NO_MATERIAL_CHANGE', poruka: 'Nijedan podatak nije promenjen.' });
 
     resetRpc({ data: null, error: { code: 'P0001', message: 'EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION' } });
     const unconfirmed = await aiNeedV2Production.confirmEdit(NEED, 3, CONVERSATION, 'ru4-edit-abc12345');

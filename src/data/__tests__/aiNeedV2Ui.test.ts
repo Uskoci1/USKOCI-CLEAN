@@ -204,3 +204,31 @@ describe('PKG-025d price basis in the review', () => {
     expect(factReviewValue(basis(7))).toBe('Osnova cene nije dostupna');
   });
 });
+
+// Deep read 7.22, 7.23, 7.24: Serbian numbers, the server's ranges said before sending, and long text.
+describe('corrections read Serbian numbers and say the server limits first', () => {
+  const integer = (key: string) => typedFact({ key: key as AiNeedV2Fact['key'], valueType: 'INTEGER', value: 1 });
+  it.each([['5.000', 5000], ['15.000', 15000], ['1.500', 1500], ['5 000', 5000], ['5000', 5000], ['1.000.000', 1000000]])('reads %s as %d', (text, value) => {
+    expect(correctionFromText(integer('need.price_rsd'), text)).toEqual({ ok: true, value, displayValue: text });
+  });
+  it.each(['5,000', '5,5', '1.5', '12.34', 'pet'])('refuses %s instead of guessing', text => {
+    expect(correctionFromText(integer('need.price_rsd'), text).ok).toBe(false);
+  });
+  it('says the comma is the problem when there is one', () => {
+    expect(correctionFromText(integer('need.price_rsd'), '5,000')).toEqual({ ok: false, message: 'Upiši ceo broj bez zareza, na primer 5000.' });
+  });
+  it.each([['need.price_rsd', '0'], ['need.price_rsd', '100.000.001'], ['need.people_needed', '0'], ['need.people_needed', '51'],
+    ['need.minimum_experience_years', '61'], ['need.people_needed', '-3']])('%s refuses %s with the server limit', (key, text) => {
+    const result = correctionFromText(integer(key), text);
+    expect(result.ok).toBe(false);
+  });
+  it('keeps a long description whole and shortens only what is displayed', () => {
+    const value = 'a'.repeat(3000), result = correctionFromText(typedFact({ key: 'need.description', valueType: 'TEXT', value: '' }), value);
+    expect(result).toMatchObject({ ok: true, value });
+    if (result.ok) { expect(Array.from(result.displayValue).length).toBe(1000); expect(result.displayValue.endsWith('…')).toBe(true); }
+  });
+  it('refuses text over the server limit for that field', () => {
+    expect(correctionFromText(typedFact({ key: 'need.title', valueType: 'TEXT', value: '' }), 'n'.repeat(141)))
+      .toEqual({ ok: false, message: 'Najviše 140 znakova.' });
+  });
+});

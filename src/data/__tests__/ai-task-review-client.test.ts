@@ -1,4 +1,4 @@
-import { aiTaskReviewClientService as service, decodeAiTaskReview, type AiTaskReviewEnvelope, type AiTaskPublicationCommand } from '../aiTaskReviewClientService';
+import { aiTaskReviewClientService as service, decodeAiTaskReview, reviewFactProblem, type AiTaskReviewEnvelope, type AiTaskPublicationCommand } from '../aiTaskReviewClientService';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -154,4 +154,24 @@ it('bound acceptance response cannot change the reviewed Need identity or revisi
   mockRpc.mockResolvedValue(answer({ ...accepted(), needRevision: 9 }));
   await expect(service.acceptAndPublish({ review: bound, clientRequestId: KEY })).resolves.toMatchObject({ ok: false, kod: 'TASK_REVIEW_INVALID_RESPONSE' });
   expect(mockInvoke).not.toHaveBeenCalled();
+});
+
+// Deep read 8.5: what the server would refuse about the facts, said before the tap.
+describe('reviewFactProblem', () => {
+  const fact = (key: string, value: unknown) => ({ id: null, key, value, displayValue: String(value), privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' });
+  const withFacts = (...facts: ReturnType<typeof fact>[]) => ({ ...review(), publicProjection: facts }) as AiTaskReviewEnvelope;
+  const NOW = Date.parse('2026-09-21T12:00:00Z');
+  it('names a missing amount, a window without both ends, and a start that has passed', () => {
+    expect(reviewFactProblem(withFacts(fact('need.price_mode', 'MY_PRICE')), NOW)).toBe('Unesi iznos ili izaberi prikupljanje ponuda.');
+    expect(reviewFactProblem(withFacts(fact('need.price_mode', 'MY_PRICE'), fact('need.price_rsd', 5000)), NOW)).toBeNull();
+    expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-22T08:00:00Z')), NOW))
+      .toContain('početak i kraj');
+    expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-22T10:00:00Z'),
+      fact('need.ends_at', '2026-09-22T09:00:00Z')), NOW)).toContain('početak i kraj');
+    expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-21T08:00:00Z'),
+      fact('need.ends_at', '2026-09-21T13:00:00Z')), NOW)).toContain('Početak termina je već prošao');
+    expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-22T08:00:00Z'),
+      fact('need.ends_at', '2026-09-22T12:00:00Z')), NOW)).toBeNull();
+    expect(reviewFactProblem(withFacts(fact('need.price_mode', 'OFFERS'), fact('need.schedule_kind', 'FLEXIBLE')), NOW)).toBeNull();
+  });
 });

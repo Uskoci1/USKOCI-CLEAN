@@ -81,7 +81,7 @@ const SCHEDULE_LABELS: Record<string, string> = { FIXED_WINDOW: 'Tačan termin',
 const GEOGRAPHY_LABELS: Record<NeedTaskGeography['mode'], string> = { STATIONARY: 'Na jednom mestu', POINT_TO_POINT: 'Od mesta do mesta',
   MULTI_STOP: 'Više stanica', AREA_BASED: 'Na području', REMOTE: 'Na daljinu' };
 const REVIEW_TIMEZONE = 'Europe/Belgrade';
-function slotLabel(slot: LocationSlot, stationary = false): string {
+export function slotLabel(slot: LocationSlot, stationary = false): string {
   return slot === 'start' ? stationary ? 'Mesto' : 'Polazište' : slot === 'end' ? 'Odredište'
     : slot === 'serviceArea' ? 'Područje' : `Stanica ${Number(slot.split('/')[1]) + 1}`;
 }
@@ -183,17 +183,42 @@ export function listCorrectionText(items: readonly string[]): string {
   return JSON.stringify(items);
 }
 
+/**
+ * The ranges the server's fact validator enforces, said before sending (deep read 7.24): a correction
+ * outside them used to come back as an unmapped refusal and read "Ishod radnje nije potvrđen".
+ */
+const INTEGER_RANGE: Readonly<Record<string, readonly [number, number, string]>> = {
+  'need.price_rsd': [1, 100_000_000, 'Iznos mora biti između 1 i 100.000.000 RSD.'],
+  'need.people_needed': [1, 50, 'Broj ljudi mora biti između 1 i 50.'],
+  'need.minimum_experience_years': [0, 60, 'Iskustvo može biti od 0 do 60 godina.'],
+};
+const TEXT_MAX: Readonly<Record<string, number>> = {
+  'need.title': 140, 'need.category': 120, 'need.description': 6000, 'need.exact_address': 1000, 'need.access_notes': 2000,
+};
+/** The server keeps at most 1,000 characters of a fact's display text; the value itself may be longer (7.23). */
+const DISPLAY_MAX = 1000;
+const displayOf = (text: string) => {
+  const chars = Array.from(text);
+  return chars.length <= DISPLAY_MAX ? text : chars.slice(0, DISPLAY_MAX - 1).join('') + '…';
+};
+
 export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorrection {
   const text = input.trim();
   if (!text) return { ok: false, message: 'Unesi vrednost.' };
 
   switch (fact.valueType) {
     case 'INTEGER': {
-      const normalized = text.replace(/\s/g, '').replace(',', '.');
-      const parsed = Number(normalized);
-      if (!Number.isInteger(parsed)) {
-        return { ok: false, message: 'Unesi ceo broj.' };
+      // Serbian writes thousands with a dot or a space ("5.000", "5 000") and decimals with a comma, so a
+      // dot between groups of three digits is part of a whole number and a comma never is (deep read 7.22:
+      // "5.000" used to be read as 5).
+      const compact = text.replace(/\s/g, ''); // \s also covers the no-break spaces a keyboard may insert
+      if (!/^-?(\d+|\d{1,3}(\.\d{3})+)$/.test(compact)) {
+        return { ok: false, message: compact.includes(',') ? 'Upiši ceo broj bez zareza, na primer 5000.' : 'Unesi ceo broj.' };
       }
+      const parsed = Number(compact.replace(/\./g, ''));
+      if (!Number.isSafeInteger(parsed)) return { ok: false, message: 'Unesi ceo broj.' };
+      const range = INTEGER_RANGE[fact.key];
+      if (range && (parsed < range[0] || parsed > range[1])) return { ok: false, message: range[2] };
       return { ok: true, value: parsed, displayValue: text };
     }
     case 'BOOLEAN': {
@@ -279,7 +304,9 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
         const value = countryCode(text);
         return value ? { ok: true, value, displayValue: value } : { ok: false, message: 'Unesi dvoslovnu oznaku države, npr. RS.' };
       }
-      return { ok: true, value: text, displayValue: text };
+      const max = TEXT_MAX[fact.key];
+      if (max && Array.from(text).length > max) return { ok: false, message: `Najviše ${max.toLocaleString('sr-Latn-RS')} znakova.` };
+      return { ok: true, value: text, displayValue: displayOf(text) };
   }
 }
 
