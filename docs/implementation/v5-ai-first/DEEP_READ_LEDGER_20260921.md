@@ -156,6 +156,7 @@ covered, not a changed price.
 
 **7.7 — rule.** `PushPreferences.tsx:181` promises "prikazujemo samo da imaš novo obaveštenje"; the sender
 sends "Imate novo obaveštenje. Otvorite aplikaciju." (4.3).
+**Status reconciled 2026-09-21:** Applied: PKG-027c + Edge; the deployed push text uses "ti". PKG-030 records byte-identical v14 readback; delivery remains disabled.
 
 #### `src/data/agreementClientService.ts` — read in full (605 lines)
 
@@ -167,6 +168,7 @@ A proposal becomes the Agreement's accepted window on selection, so the same ins
 the application screen and device-local on the Agreement. They agree for anyone in Belgrade's offset and
 differ for anyone outside it. Both policies are defensible; applying both to one value is not. The right
 answer is the task's saved timezone for both — which neither payload carries yet.
+**Status reconciled 2026-09-21:** Fixed in the app: PKG-031; accepted and proposed Agreement times use Serbian time, labelled when the device is in another zone. Device verification pending.
 
 **7.9 — note, verified not a defect.** `mapAgreement` reads the state from `raw.status` and chat
 availability from `raw.agreementStatus`. Suspected that one might be absent and chat silently hidden.
@@ -175,6 +177,7 @@ keys. Not a defect.
 
 **7.10 — rule, minor.** When the user's own name is missing the avatar falls back to initials `'VI'` —
 formal — while the name beside it falls back to `'Ti'`.
+**Status reconciled 2026-09-21:** Fixed in the app: `2afe38f7`; initials fall back to `TI`.
 
 **7.11 — note.** `const amount = Number(terms.price_rsd ?? 0)` shows "0 RSD" for a missing price, where the
 rest of this file fails closed to null. Unreachable today: `rpc_select_response` always writes `price_rsd`.
@@ -200,6 +203,7 @@ problem flows each carry their own mapped refusals.
 reason; the event payload is `{agreementId, state}`; the other party reads a fixed "Druga strana je
 otkazala Dogovor." Nobody — not the counterpart, not support — can ever see why. By contrast
 `rpc_close_remaining_search` does store its reason.
+**Status reconciled 2026-09-21:** Applied: PKG-032a (proof 35643688275; receipt `20260921_pkg032_application.receipt.json`); the cancellation message is kept under existing safety/closure guards, capped at 2,000 characters including its prefix. Blocked/closing pairs get no message; all 4,000 input characters are not guaranteed preserved.
 
 **7.16 — risk, server; needs an owner decision. The requester can cancel after the worker says the work
 is done.** `private.agreement_action_state` sets `canCancel` for status `CONFIRMED` and execution
@@ -211,6 +215,7 @@ the cancel does not bump the agreement version, and neither the body nor any of 
 `agreements`/`agreement_execution` touches a pending change proposal — it stays recorded as pending,
 inert because answering requires `CONFIRMED`. The closure guard does apply (trigger
 `pre_v3_closure_agreement`).
+**Status reconciled 2026-09-21:** Applied: PKG-031a (proof 35640559729; receipt `20260921_pkg031_application.receipt.json`); requester cancellation after done is refused, the worker path stays unchanged, and the app follows the capability.
 
 **7.17 — risk, server. The table, not the allowlisted reader, is the privacy boundary for a public
 task.** The list reader `rpc_list_open_tasks_v3` returns a narrow allowlist on purpose. But RLS policy
@@ -272,18 +277,21 @@ amount and 1 has "Tačan termin" without both bounds. The right copy already exi
 `aiNeedV2Production.ERRORS`, which only the dead `saveDraft`/`confirmEdit` use. Client-only fix: map the
 three codes on the live path. (The orphaned `NO_MATERIAL_CHANGE` copy is also ungrammatical — "Nisi
 promenili nijedan podatak." — and must not be moved as is.)
+**Status reconciled 2026-09-21:** Fixed in the app: `cd93f961`; live review maps all three refusals and explains missing price/window facts.
 
 **7.22 — defect. "5.000" becomes 5.** A number correction runs
 `Number(text.replace(/\s/g,'').replace(',', '.'))`. The dot is the Serbian thousands separator. Measured
 with node: "5.000" → 5, "15.000" → 15, "5,000" → 5, "1.500" → refused as not whole; only "5 000" and
 "5000" are read right. The saved fact is 5 RSD with the display text "5.000". The review shows the value
 ("5 RSD"), so it can be caught — but nothing warns. Same parser for number of people and years.
+**Status reconciled 2026-09-21:** Fixed in the app: `cd93f961`; grouped Serbian whole numbers parse as whole amounts; ambiguous comma input is refused.
 
 **7.23 — defect. A description longer than 1,000 characters cannot be corrected.** The description may be
 6,000 characters (server validator and both client decoders agree). `correctionFromText` sends the whole
 text as the display value; `correctFact` refuses any display over 1,000 (the column is capped at 1,000
 too) with "Unesi ispravnu vrednost." The text box has no `maxLength`, so nothing tells the person where
 the limit is or why. Fix shape: for TEXT facts send a shortened display, keep the full value.
+**Status reconciled 2026-09-21:** Fixed in the app: `cd93f961`; full TEXT values are preserved, only display text is shortened.
 
 **7.24 — risk, concrete instance of 7.1. Out-of-range corrections read as "maybe it happened".** The
 client checks only "whole number" and "not empty". The server validator refuses price below 1 or above
@@ -293,11 +301,13 @@ mapped, so "0", "-3" or a 150-character title all end in the unconfirmed message
 names the server never raises: `FACT_SUPERSEDED` (the server raises `SUPERSEDED`) and
 `DRAFT_SAVE_BLOCKED_BY_SAFETY` (the server raises `AI_NEED_DRAFT_BLOCKED`). Also unmapped:
 `CONVERSATION_CLOSED`, `CONVERSATION_NOT_EDITABLE`, `LOCATION_EDITOR_REQUIRED`, `CONFIRMED_PROVENANCE_INVALID`.
+**Status reconciled 2026-09-21:** Fixed in the app: `cd93f961`; correction ranges checked locally and actual server refusals mapped.
 
 **7.25 — rule. Raw internal tokens in a sentence.** When publication is refused for an unconfirmed place,
 `notReadyCopy` prints the evaluator's slot names verbatim: "Lokacija nije potvrđena na mapi (start, end)."
 — or "waypoints/0", "serviceArea". `aiNeedV2Ui.slotLabel` already turns these into "Polazište",
 "Odredište", "Stanica 1", "Područje".
+**Status reconciled 2026-09-21:** Fixed in the app: `cd93f961`; known location slots become human labels and unknown internal keys are not printed.
 
 **7.26 — note. Editing a published task takes it off the market.** `rpc_confirm_need_edit_from_review`
 writes the task back to `DRAFT`, deletes its dispatch schedule and returns `requiresReadmission: true`;
@@ -334,6 +344,7 @@ once that command is resolved. So the one that matters is the outbox: message te
 the return target is cleared by the auth flow. Another account on the same phone cannot read these through
 the app — every key and every read is bound to the account id — but the text stays on the device. The 2026-09-02 draft legal constitution lists, as an Auth proof requirement,
 "logout clears sensitive local intent/workspace state".
+**Status reconciled 2026-09-21:** Fixed in the app (bounded scope): `e3086650`; explicit successful logout removes this account's Agreement outboxes. Removal is best-effort on storage failure; this does not prove erasure after every session expiry or a write racing logout.
 
 **7.29 — note, well built.** The outbox serialises every read-merge-write per key across remounts,
 never replays a send by itself, turns a lost answer into "unknown" instead of "failed", refuses a key
@@ -389,6 +400,7 @@ whether a screen prints it is for the screen read (Area 8).
 **7.34 — rule. Counts on the candidate card skip Serbian plural.** `recenzijeTekst` is
 `` `${reviews} recenzija` `` or `` `${completed} završenih` ``: "2 recenzija", "3 recenzija", "1 završenih".
 `src/ui/system/plural.ts` exists for exactly this and its guard test does not catch a string template.
+**Status reconciled 2026-09-21:** Fixed in the app: `2afe38f7`; review and completed-job counts use Serbian plurals.
 
 **7.35 — note, well built; one mismatch.** The worker profile conversation is decoded as strictly as the
 task one, and its limits were checked against `private.worker_ai_patch` and `worker_ai_document`: the
@@ -416,6 +428,7 @@ and 11, wrong for 2–4 ("2 ocene"). It also formats with `'sr-RS'` where everyt
 `'sr-Latn-RS'` (same digits and comma; no visible difference). Every refusal the three review functions
 raise is mapped; a rating is 1–5 with at most three tags from a catalog the client checks byte-for-byte
 against the server's.
+**Status reconciled 2026-09-21:** Fixed in the app: `2afe38f7`; rating counts use Serbian plurals and `sr-Latn-RS`.
 
 **7.38 — note, well built.** Submit and select validate their command before sending and decode the
 receipt against it (the submitted slots, the need revision, a content hash, the snapshot schema);
@@ -666,8 +679,10 @@ privatnosti" is ticked. The two links open a modal that reads the legal bundle �
 names, city, email and password; no acceptance event is written (`account_legal_acceptance_events` has
 0 rows). Every account created so far "accepted" documents that did not exist, and the product has no
 record that they did.
+**Status reconciled 2026-09-21:** Partly fixed in the app: PKG-031; honest test-version copy replaces the unrecorded acceptance. Operator data, published texts and recorded acceptance before public launch remain pending.
 
 **8.3 — rule.** `auth.tsx:408` — "Zaboravili ste lozinku?" is formal; everything around it says "ti".
+**Status reconciled 2026-09-21:** Fixed in the app: `2afe38f7`; the recovery link says "Zaboravljena lozinka?".
 
 #### `nova.tsx` (290), `pregled-zadatka.tsx` (415), `dogovor/[id].tsx` (340) — read in full
 
@@ -680,6 +695,7 @@ the contact section offers "Podeli svoj broj", the server refuses, and `dogovor/
 throws away the mapped sentence ("Najpre dodaj broj telefona na nalog.") and shows "Promena nije
 potvrđena. Osveži Dogovor pre novog pokušaja." — which also marks the screen uncertain. The mapped
 sentence would not help either: there is nowhere to add the number.
+**Status reconciled 2026-09-21:** Partly fixed in the app: `e3086650`; known `PHONE_NOT_SET` refusal is shown honestly. The phone editor still requires the owner's answer; SMS verification and public phone display are not implied.
 
 **8.5 — defect, confirms 7.21 on screen.** `pregled-zadatka.tsx` computes its own reasons for a disabled
 publish button (block, missing facts, no place, identity, open editors) and none covers "Moja cena" with no
@@ -687,14 +703,17 @@ amount, "Tačan termin" without both ends, or an edit with no change. The button
 comes back unmapped; `useOwnedEditor` shows "Ishod radnje nije potvrđen…" and marks the screen uncertain,
 so the footer offers only "Učitaj pregled i proveri ishod" — which re-reads the same review and leads back
 to the same button.
+**Status reconciled 2026-09-21:** Fixed in the app: `cd93f961`; missing price/window facts disable publication with an explanation; no-change edits receive a mapped refusal.
 
 **8.6 — defect, truthfulness; ties to 5.1.** With no response deadline the review says "Bez posebnog roka —
 do popune, zaustavljanja potrage ili isteka zadatka." A task without a deadline never expires (5.1): the
 third way it promises does not exist.
+**Status reconciled 2026-09-21:** Fixed in the app: `e3086650` states fixed-window expiry truth; PKG-028b/029 supply server expiry.
 
 **8.7 — risk.** When publication comes back `REVIEW`, the screen offers "Zatraži pregled podrške", which
 opens a support case — and support has no operator (7.31). The one path the product gives for a task held
 for review leads to a queue nobody reads.
+**Status reconciled 2026-09-21:** Mitigated in the app: `1a134cbf` says no operator is on duty and offers editing. Assigning/testing a real operator remains a release prerequisite (7.31); copy does not provide support.
 
 **8.8 — rule, copy.** `nova.tsx:254`: "Odustali ste od odgovora. Podaci su ostali nepromenjeni, a
 rezervisana potrošnja je zadržana." — formal, and "rezervisana potrošnja" is internal cost language a
@@ -702,6 +721,7 @@ person cannot act on. `nova.tsx:228`, when leaving a conversation: "Podaci se č
 pravilima" — no retention rules are published (7.54). `dogovor/[id].tsx:242`: "da pokušate ponovo" —
 formal. `dogovor/[id].tsx:169` does the same as 8.4 for a refused problem report: every refusal becomes
 "Prijava nije potvrđena…", discarding the mapped copy for `NARRATIVE_TOO_LONG` and the others.
+**Status reconciled 2026-09-21:** Fixed in the app: `2afe38f7` corrects copy; `e3086650` preserves mapped problem-report refusals.
 
 **8.9 — note, verified.** The screen's claims hold on the server: "Ovaj opis vide oba učesnika i sačuvan je u
 Porukama" — `rpc_report_problem` inserts the narrative as an Agreement message; "Bez odgovora se Dogovor
@@ -779,6 +799,7 @@ pravna,izvoz,razgovor,fotografija}.tsx`, `fotografije-zadatka.tsx`, `oporavak.ts
 repeats the intake's "Odustali ste od odgovora… rezervisana potrošnja je zadržana" (`:167`) and "Ako je
 obrada već počela, rezervisana potrošnja ostaje zadržana" (`:208`) — internal cost wording on a worker's
 profile screen.
+**Status reconciled 2026-09-21:** Fixed in the app: `2afe38f7`; recovery and interview copy uses "ti" without internal reservation wording.
 
 **8.16 — note, verified.** Every other claim these screens make holds against the code behind them.
 "Izabrane fotografije šaljemo Google Gemini servisu radi provere sadržaja pre objave" — the publication
@@ -847,12 +868,14 @@ above an empty list, with "Proveri stanje zahteva" as the only action. The prepa
 found refusing a closing account is reached only from "Pripremi pregled", which this state does not show,
 so that refusal never surfaces here. Also, latent: `duration()` renders "1 dana", "1 sati", "2 sati" — it
 is used only for retained datasets, which the live erasure adapter sends as `null`.
+**Status reconciled 2026-09-21:** Partly fixed in the app: `1a134cbf` adds a second explicit confirmation; `2afe38f7` fixes duration plurals. Other-device/no-local-intent recovery is not fixed by those commits and remains attached to 7.41/12.10.
 
 **8.19 — defect, truthfulness.** `SafetyScreen.tsx:51`: "Privatna prijava ide automatskoj proveri. Ako ti
 treba čovek, otvori zahtev podršci." There is no automatic check: `rpc_submit_safety_report` inserts the
 report and an audit row, and its trigger opens a `SAFETY` support case — that is all. The same screen says,
 correctly, "Prijavu prima podrška" (`:120`). And the button under the false line opens a second, ordinary
 support case beside the safety case the report already created, in the same inbox with no operator (7.31).
+**Status reconciled 2026-09-21:** Fixed in the app: `e3086650`; copy explains the existing support case without invented automated review.
 
 **8.20 — note, well built, with one dead end.** The Agreement-change controller journals the exact
 command before sending, restores a respond/withdraw from the server's own proposal only when its hash
@@ -887,6 +910,7 @@ JSX text finds: `MarketplacePresentation.tsx:89` "Promeni pretragu ili poništit
 in the plural. And a leftover of the retired "Potreba": the owner's own task detail (`NeedPresentation.tsx:16`)
 labels a Zadatak "Objavljena", "Delimično popunjena", "Popunjena", "Zatvorena" — feminine, for a masculine
 noun — while the card for the same task (`TaskCard.tsx:231`) says "Objavljen", "Popunjen", "Zatvoren".
+**Status reconciled 2026-09-21:** Fixed in the app: `2afe38f7`; JSX copy and task-status grammar corrected at the listed sites.
 
 **8.22 — note, copy, plurals.** Counts glued to a fixed plural read wrong for one: "{n} nepročitanih" in
 the group screen and its entry ("1 nepročitanih"), "{n} stavki alata · {n} vozila" on the worker profile
@@ -961,6 +985,7 @@ reader's own phone zone and argues that this "is what a time is read in". `dogov
 again for the confirmation deadline, and the Agreement-change screen types and shows the new terms in the
 device zone. Both comments are reasoned; they contradict each other. For two people in Serbia every one
 of them prints the same clock time; for a person abroad the same Dogovor reads two ways on two screens.
+**Status reconciled 2026-09-21:** Fixed in the app: PKG-031; the owner chose Serbian time for agreed times and the change form. Device verification pending.
 
 **8.28 — note, verified.** The client fact registry (`NEED_FACT_V2_DEFINITIONS`, 23 keys) matches
 `private.need_fact_registry` exactly — every key, value type, required-for-draft flag and privacy class.
@@ -1017,6 +1042,7 @@ request lands on that isolate. While one upload is being sanitized, anyone else'
 `MEDIA_UPLOAD_PENDING`, which the app shows as "Prethodno slanje još nije potvrđeno. Osveži prikaz." — about
 an upload that person never made; for Agreement photos the code is `MEDIA_BUSY`, which the app does not map.
 Serialising ImageMagick's memory is a reasonable reason; the sentence it produces is not true.
+**Status reconciled 2026-09-21:** Fixed in the app: `e3086650`; busy refusals explain shared capacity without claiming a prior upload by this person.
 
 **11.4 — note, the gates.** Every paid path is behind environment flags whose values cannot be read from
 here: `USKOCI_GEMINI_PAID_TEST_ENABLED` (all Gemini), `USKOCI_SPEECH_CONTROLLED_TEST_ENABLED` (speech),
@@ -1134,6 +1160,7 @@ PHYSICAL and correct.
 the comparison is NULL (measured) and the guard lets the write through. `authenticated` holds column UPDATE
 on the three `remaining_search_*` columns and `needs_owner_update` limits it to the owner's own DRAFT, so the
 reach is a person stamping their own draft. Every other guard in the schema uses `is distinct from` (swept).
+**Status reconciled 2026-09-21:** Applied: PKG-032b (proof 35643688275); null-safe guard, closure re-certified with explicit owner approval to `65980fce…` on DEV (see application receipt).
 
 **12.9 — risk. Closing the remaining search tells no applicant.** `rpc_close_remaining_search` moves every
 open application of the task, including those awaiting stale review, to `EXPIRED` and emits no event; the
@@ -1212,6 +1239,7 @@ of one thing: `transport_selidbe`, `Selidbe i transport`, `Prevoz`, `transport_a
 and English, snake_case and SCREAMING_CASE. This is what blocks 9.1, and the display already carries a
 band-aid (`readableCategory` in `NeedPresentation`) that can tidy a spelling but cannot merge synonyms.
 Fix shape: give `need.category` a closed list, the way `need_fact_registry` closes the fact keys.
+**Status reconciled 2026-09-21:** Applied: PKG-031b (proof 35640559729); owner chose hidden normalized work kinds for matching, not rewriting categories. UI categories are hidden; HITNO stays off and AI can still produce free category text.
 
 **9.3 — risk, measured. Matching compares free text exactly, so exclusions leak.** Category is used in one
 place in matching: a worker's `exclusions` overlapping the task's category or required skills is a hard
@@ -1220,6 +1248,7 @@ offered `transport_selidbe`. Positive matching is by skills, also exact: active 
 and `plumber` (English), `Ciscenje stana` and `Fizicki poslovi` (no diacritics), `montaža nameštaja` (with)
 — a task needing `čišćenje stana` would not meet a worker with `Ciscenje stana`. Not biting today (10 of 12
 open tasks require no skills), but it will as soon as they do.
+**Status reconciled 2026-09-21:** Applied: PKG-031b (proof 35640559729); matching and dispatch normalize skills/exclusions alongside the exact comparison.
 
 **9.4 — note, explained by computation. Why "a new task for you" fired once.** `dispatch_rounds`: 48
 `STOPPED / NO_ELIGIBLE_CANDIDATES`, 1 `EXPIRED`; one opportunity delivery ever. Running the matcher over all
