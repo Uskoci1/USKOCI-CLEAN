@@ -21,6 +21,14 @@ dependency. Full evidence and what would close it:
 `docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
 for that cause; a new alert is a new decision.
 
+PKG-028 (2026-09-21, proven, **NOT applied**): `pkg028a` runs the three Edge workers from a minute tick
+(pg_net + a Vault key the owner stores), which makes account deletion (6.1), export (4.2) and push actually run.
+`pkg028b` expires fixed-time tasks whose window is over and refuses publishing a past start (5.1). The disposable
+proof passed (run 35602743935). Applying either to canonical DEV needs the owner's explicit yes; the owner must also
+store the key and set `USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED`. Read
+`docs/implementation/v5-ai-first/pkg028/PKG028_WORKERS_AND_PAST_TASKS.md`. The client side of 8.10 and 5.1 is in
+git, but not in any installed build.
+
 PKG-027 (2026-09-21, owner-approved and applied): the deep read
 (`docs/implementation/v5-ai-first/DEEP_READ_LEDGER_20260921.md`) found real server defects. The owner
 approved this round with "odobravam sve to". Contract, proof and application:
