@@ -40,7 +40,8 @@ const row = (overrides: any = {}) => ({ prijavaId: '10000000-0000-4000-8000-0000
   cena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' }, pokrivaMesta: 2, napomena: 'Sa trakama.', podrucjeTekst: 'Liman, Novi Sad',
   vremeTekst: '20. septembar · 10–11h', dogovorId: null, promenjenaPotreba: false, mozePovuci: true, traziPaznju: false, ...overrides });
 const stale = () => row({ stanje: 'STALE_REVIEW_REQUIRED', prijavaRevizija: 3, promenjenaPotreba: true, mozePovuci: false, traziPaznju: true });
-const interval = { start: '2026-09-20T10:00:00.123456Z', end: '2026-09-20T11:00:00.654321Z' };
+const pricing = { rezimCene: 'OFFERS', pokrivenost: { ukupno: 3 } };
+const interval = { start: '2026-09-20T10:00:00.123456Z', end: '2026-09-20T11:00:00.654321Z', pricing };
 const commandState = (p = row(), extra = {}) => ({ applicationId: p.prijavaId, needId: p.potrebaId,
   version: p.prijavaVerzija, submittedNeedRevision: p.prijavaRevizija, status: p.stanje,
   priceRsd: p.cena.iznos, coveredSlots: p.pokrivaMesta, scopeNote: p.napomena,
@@ -72,6 +73,42 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.useRealTimers(); });
 it('renders the real empty state and uses the existing discovery route', async () => {
   mockRows = []; await render(); expect(text()).toContain('Tvoja sledeća prilika.'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/mapa');
+});
+
+
+it('reconfirmation calculates the task per-person price for the current headcount and locks manual price edits', async () => {
+  mockInterval.mockResolvedValue({ ok: true, podatak: { ...interval, pricing: {
+    rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000 }, pokrivenost: { ukupno: 3 },
+  } } });
+  await editing();
+  const field = () => tree!.root.findAll(n => String(n.type) === 'TextInput' && n.props.accessibilityLabel === 'Cena ponude (RSD)')[0];
+  expect(field().props.editable).toBe(false); expect(field().props.value).toBe('10000');
+  await edit('Broj ljudi', '3'); expect(field().props.value).toBe('15000');
+  // Even an old retained text callback cannot override the server-bound fixed price.
+  await edit('Cena ponude (RSD)', '1'); expect(field().props.value).toBe('15000');
+  await tap('Sačuvaj izmenjenu prijavu');
+  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 15000, pokrivenaMesta: 3,
+    ocekivanaPotrebaRevizija: 4, predlozeniPocetak: interval.start, predlozeniKraj: interval.end });
+});
+it('reconfirmation of a total-price task covers every place with the task total', async () => {
+  mockInterval.mockResolvedValue({ ok: true, podatak: { ...interval, pricing: {
+    rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 9000 }, pokrivenost: { ukupno: 3 },
+  } } });
+  await editing();
+  const people = tree!.root.findAll(n => String(n.type) === 'TextInput' && n.props.accessibilityLabel === 'Broj ljudi')[0];
+  expect(people.props.editable).toBe(false); expect(people.props.value).toBe('3');
+  await edit('Broj ljudi', '1'); await edit('Cena ponude (RSD)', '1');
+  await tap('Sačuvaj izmenjenu prijavu');
+  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 9000, pokrivenaMesta: 3 });
+});
+it('a definite price refusal leads to review after readback, without treating the result as a network loss', async () => {
+  mockResolve.mockResolvedValueOnce({ ok: false, kod: 'FIXED_PRICE_MISMATCH', poruka: 'hidden backend detail' });
+  await review(); await tap('Zadrži prijavu');
+  expect(text()).toContain('Cena prijave mora da prati cenu i obračun iz zadatka');
+  expect(text()).not.toContain('hidden backend detail'); expect(text()).not.toContain('Ishod radnje nije potvrđen');
+  await tap('Proveri sačuvano stanje'); expect(press('Ponovi isti zahtev')).toBeUndefined();
+  await tap('Pregledaj aktuelnu prijavu'); await tap('Pregledaj izmene: Unos ormara'); await tap('Izmeni prijavu');
+  expect(press('Sačuvaj izmenjenu prijavu')).toBeDefined();
 });
 it('filters actual attention, active and finished rows without changing their status', async () => {
   mockRows = [row(), stale(), row({ prijavaId: 'closed', naslov: 'Završena ponuda', stanje: 'CLOSED', mozePovuci: false })];
@@ -115,17 +152,17 @@ it('updates price, people and note while preserving the exact existing interval 
 });
 it('shows distinct microsecond endpoints with an honest unknown timezone and the existing people plural', async () => {
   mockRows = [stale()]; mockRows[0].pokrivaMesta = 12;
-  mockInterval.mockResolvedValue({ ok: true, podatak: { start: '2026-09-20T10:00:00.000001Z', end: '2026-09-20T10:00:00.000009Z' } });
+  mockInterval.mockResolvedValue({ ok: true, podatak: { start: '2026-09-20T10:00:00.000001Z', end: '2026-09-20T10:00:00.000009Z', pricing } });
   await render(); await tap('Pregledaj izmene: Unos ormara'); await tap('Izmeni prijavu');
   expect(text()).toContain('10:00:00.000001'); expect(text()).toContain('10:00:00.000009');
   expect(text()).not.toContain('zona nije navedena'); expect(text()).toContain('12 osoba'); expect(text()).not.toContain('12 osobe');
 });
 it('does not infer a missing interval as null and refuses editing after an interval read failure', async () => {
   mockInterval.mockResolvedValue({ ok: false, kod: 'CHANGED', poruka: 'private raw error' }); await editing();
-  expect(press('Sačuvaj izmenjenu prijavu')).toBeUndefined(); expect(text()).toContain('Sačuvani termin nije potvrđen'); expect(text()).not.toContain('private raw'); expect(mockResolve).not.toHaveBeenCalled();
+  expect(press('Sačuvaj izmenjenu prijavu')).toBeUndefined(); expect(text()).toContain('Sačuvani termin ili aktuelna cena nisu potvrđeni'); expect(text()).not.toContain('private raw'); expect(mockResolve).not.toHaveBeenCalled();
 });
 it('accepts an explicitly read null interval without inventing a time', async () => {
-  mockInterval.mockResolvedValue({ ok: true, podatak: { start: null, end: null } }); await editing(); await tap('Sačuvaj izmenjenu prijavu');
+  mockInterval.mockResolvedValue({ ok: true, podatak: { start: null, end: null, pricing } }); await editing(); await tap('Sačuvaj izmenjenu prijavu');
   expect(mockResolve.mock.calls[0][0]).toMatchObject({ predlozeniPocetak: null, predlozeniKraj: null, napomena: 'Sa trakama.' });
 });
 it('rejects trailing price garbage and fractional people instead of silently coercing', async () => {

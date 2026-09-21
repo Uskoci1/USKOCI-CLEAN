@@ -4,7 +4,11 @@ import { sesijaSada } from '../store/sesija';
 import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, uuid } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
 
-export type ExistingApplicationInterval = { start: string | null; end: string | null };
+export type ApplicationEditPricing = {
+  rezimCene: 'MY_PRICE' | 'OFFERS'; osnovaCene?: 'TOTAL' | 'PER_PERSON';
+  ponudjenaCena?: { iznos: number }; pokrivenost: { ukupno: number };
+};
+export type ExistingApplicationInterval = { start: string | null; end: string | null; pricing: ApplicationEditPricing };
 export type ApplicationCommandState = {
   applicationId: string; needId: string; version: number; submittedNeedRevision: number;
   status: string; priceRsd: number; coveredSlots: number; scopeNote: string;
@@ -60,7 +64,7 @@ export function readExistingApplicationInterval(p: MojaPrijavaProjekcija) {
   return readOwnedResult<ExistingApplicationInterval>({ account: { accountId, accountRevision: owner.accountRevision },
     errors: {}, fallback: 'APPLICATION_INTERVAL_UNAVAILABLE', invalid: 'APPLICATION_INTERVAL_CHANGED',
     request: () => supabaseKlijent().from('marketplace_responses')
-      .select('id,need_id,worker_account_id,current_version,submitted_against_need_revision,status,proposed_start_at,proposed_end_at,needs!inner(id,revision)')
+      .select('id,need_id,worker_account_id,current_version,submitted_against_need_revision,status,proposed_start_at,proposed_end_at,needs!inner(id,revision,mode,requester_price_rsd,price_basis,required_slots)')
       .eq('id', p.prijavaId).eq('need_id', p.potrebaId).eq('worker_account_id', accountId)
       .eq('current_version', p.prijavaVerzija).eq('needs.revision', p.potrebaRevizija).maybeSingle(),
     decode(raw) {
@@ -70,9 +74,16 @@ export function readExistingApplicationInterval(p: MojaPrijavaProjekcija) {
           row.submitted_against_need_revision !== p.prijavaRevizija || row.status !== 'STALE_REVIEW_REQUIRED' ||
           !sameId(need.id, p.potrebaId) || need.revision !== p.potrebaRevizija) return null;
       const start = row.proposed_start_at, end = row.proposed_end_at;
-      if (start !== null && !timestamp(start) || end !== null && !timestamp(end)) return null;
+      if ((start === null) !== (end === null) || start !== null && !timestamp(start) || end !== null && !timestamp(end)) return null;
       if (start !== null && end !== null && calendarInstant(start)! >= calendarInstant(end)!) return null;
-      return { start, end };
+      // Read the price rule from the SAME current Need revision as the saved interval, never from the old offer.
+      if (need.mode !== 'MY_PRICE' && need.mode !== 'OFFERS' || !positiveInteger(need.required_slots) || need.required_slots > 50 ||
+          need.price_basis !== null && need.price_basis !== 'TOTAL' && need.price_basis !== 'PER_PERSON' ||
+          need.mode === 'OFFERS' && need.price_basis !== null || need.mode === 'MY_PRICE' && !positiveInteger(need.requester_price_rsd)) return null;
+      const pricing: ApplicationEditPricing = { rezimCene: need.mode, pokrivenost: { ukupno: need.required_slots },
+        ...(need.price_basis === null ? {} : { osnovaCene: need.price_basis }),
+        ...(need.mode === 'MY_PRICE' ? { ponudjenaCena: { iznos: need.requester_price_rsd as number } } : {}) };
+      return { start, end, pricing };
     },
   });
 }

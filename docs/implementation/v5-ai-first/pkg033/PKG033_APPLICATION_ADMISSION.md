@@ -30,8 +30,19 @@ The apply phase rejects a tampered pin without changing the surface, applies onc
 and checks that only three functions and one new private helper differ. The after phase checks both admission
 paths, valid fixed and negotiated prices, exact retry replay, snapshots, content hashes, selection and withdrawal.
 
-No CI pass is claimed until its report is downloaded and inspected. The client needs the matching refusal and
-fixed-price editing behavior before these findings can be marked fully closed. No device test has been run.
+No CI pass is claimed until its report is downloaded and inspected. Initial run `35650880508` reproduced all
+eight admission gaps, then exposed an invalid 32-character fixture hash at selection; the fixture now carries
+SHA-256, as the real version writer does. The failed proof did not reach candidate application.
+
+The client now reads the current task price mode/basis, amount and required places together with the existing
+version-bound interval. Missing or inconsistent pricing refuses editing. A per-person price follows headcount;
+a total price locks the offer to all required places. Negotiated offers remain editable. Known server refusals
+reach the screen as definite outcomes and permit fresh review after readback, instead of an unknown network result.
+
+Local validation: TypeScript clean; full Jest **240 suites / 4,596 tests passed**. Both new monetary screen tests
+were run against the previous production screen files (`fe2269d1`) and failed, then pass with the fix. The old
+files were restored to the new working copies in a `finally` block. No device test has been run; the previously
+reported APK does not include these new client changes.
 
 The resumed DEV connection denied execution of the private closure digest function. The owner has been asked
 for the nonsecret live/certified/ready result; no DEV mutation is allowed before the prerequisite is confirmed.

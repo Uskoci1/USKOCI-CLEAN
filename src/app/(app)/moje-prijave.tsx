@@ -7,6 +7,7 @@ import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../
 import { readApplicationCommandState, readExistingApplicationInterval, type ApplicationCommandState } from '../../data/myApplicationsClientService';
 import { ru4Production, type Ru4RazresiPrijavuInput } from '../../data/ru4Production';
 import { positiveInteger, sameId } from '../../data/serverReceipt';
+import { fixedApplicationPeople, fixedApplicationPrice } from '../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../lib/idempotencija';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -18,6 +19,13 @@ type Intent = { kind: 'withdraw'; command: PovuciPrijavuKomanda } | { kind: 'res
 type Pending = { intent: Intent; row: MojaPrijavaProjekcija; inFlight: boolean; reconciled: boolean;
   result: 'receipt' | 'unknown' | 'rejected' | null; code: string | null };
 type Loaded = { rows: MojaPrijavaProjekcija[]; notice: string | null };
+function pricedOffer(draft: OfferEdit): OfferEdit {
+  const fixedPeople = fixedApplicationPeople(draft.pricing);
+  const people = fixedPeople === null ? draft.people : String(fixedPeople);
+  const price = draft.pricing.rezimCene === 'MY_PRICE'
+    ? String(fixedApplicationPrice(draft.pricing, /^\d+$/.test(people) ? Number(people) : NaN) ?? '') : draft.price;
+  return { ...draft, people, price };
+}
 const errors: Readonly<Record<string, string>> = { ...applicationSelectionErrors,
   FORBIDDEN: 'Ova Prijava nije dostupna na ovom nalogu.', RESPONSE_NOT_OWNED: 'Ova Prijava nije dostupna na ovom nalogu.',
   RESPONSE_NOT_WITHDRAWABLE: 'Prijavu sada nije moguće povući. Proveri aktuelno stanje.',
@@ -153,7 +161,7 @@ export default function MojePrijave() {
     if (!rowCurrent(p) || !idle() || editRevision !== session.editRevision) return;
     const stale = p.stanje === 'STALE_REVIEW_REQUIRED';
     if (stale && session.expanded !== p.prijavaId || !stale && (action !== 'WITHDRAW' || !p.mozePovuci)) return;
-    const draft = session.draft;
+    const draft = session.draft ? pricedOffer(session.draft) : null;
     if (action === 'UPDATE') {
       if (!draft) return;
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN, people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
@@ -186,9 +194,9 @@ export default function MojePrijave() {
     try {
       const result = await readExistingApplicationInterval(p);
       if (!rowCurrent(p) || generation !== session.editRevision) return;
-      if (result.ok) session.draft = { price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak };
-      else session.message = 'Sačuvani termin nije potvrđen. Osveži Prijave pre izmene ponude.';
-    } catch { if (current() && generation === session.editRevision) session.message = 'Termin nije učitan. Osveži Prijave pre izmene.'; }
+      if (result.ok) session.draft = pricedOffer({ price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak });
+      else session.message = 'Sačuvani termin ili aktuelna cena nisu potvrđeni. Osveži Prijave pre izmene ponude.';
+    } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osveži Prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };
   const navigate = (path: '/mapa' | '/profil') => { if (current()) router.navigate(path); };
@@ -204,7 +212,7 @@ export default function MojePrijave() {
     onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace('/'); } }}
     onReview={p => { if (rowCurrent(p) && idle()) { clearReview(); session.expanded = p.prijavaId; render(v => v + 1); } }}
     onClose={() => { if (current() && !session.pending) { clearReview(); render(v => v + 1); } }} onEdit={p => void edit(p)}
-    onChange={draft => { if (current() && idle() && editRevision === session.editRevision && session.draft) { session.draft = { ...session.draft, price: draft.price, people: draft.people, note: draft.note }; session.editRevision++; session.message = null; render(v => v + 1); } }}
+    onChange={draft => { if (current() && idle() && editRevision === session.editRevision && session.draft) { session.draft = pricedOffer({ ...session.draft, price: draft.price, people: draft.people, note: draft.note }); session.editRevision++; session.message = null; render(v => v + 1); } }}
     onCancelEdit={() => { if (current() && idle()) { session.draft = null; session.editRevision++; session.message = null; render(v => v + 1); } }}
     onKeep={p => makeIntent(p, 'KEEP')} onUpdate={p => makeIntent(p, 'UPDATE')} onWithdraw={withdraw}
     onAgreement={p => { if (rowCurrent(p) && !session.pending && p.stanje === 'SELECTED' && p.dogovorId) router.push(`/dogovor/${p.dogovorId}` as any); }}

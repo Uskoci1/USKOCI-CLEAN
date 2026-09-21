@@ -7,15 +7,33 @@ let mockAccount: { user: { id: string } | null; accountRevision: number } = { us
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ from: mockFrom }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockAccount }));
 const projection = () => ({ prijavaId: application, potrebaId: need, prijavaVerzija: 2, prijavaRevizija: 3, potrebaRevizija: 4 } as MojaPrijavaProjekcija);
+const needPricing = { mode: 'OFFERS', requester_price_rsd: null, price_basis: null, required_slots: 3 };
+const pricing = { rezimCene: 'OFFERS', pokrivenost: { ukupno: 3 } };
 const raw = () => ({ id: application, need_id: need, worker_account_id: owner, current_version: 2, submitted_against_need_revision: 3,
-  status: 'STALE_REVIEW_REQUIRED', proposed_start_at: '2026-09-20T10:00:00.123456Z', proposed_end_at: '2026-09-20T11:00:00.654321Z', needs: { id: need, revision: 4 } });
+  status: 'STALE_REVIEW_REQUIRED', proposed_start_at: '2026-09-20T10:00:00.123456Z', proposed_end_at: '2026-09-20T11:00:00.654321Z', needs: { id: need, revision: 4, ...needPricing } });
 beforeEach(() => {
   jest.clearAllMocks(); mockAccount = { user: { id: owner }, accountRevision: 1 }; mockFrom.mockReturnValue(mockBuilder); mockSelect.mockReturnValue(mockBuilder); mockEq.mockReturnValue(mockBuilder);
   mockSingle.mockResolvedValue({ data: raw(), error: null });
 });
 afterEach(() => jest.useRealTimers());
+
+
+it.each([null, 'PER_PERSON', 'TOTAL'])('reads the fixed price basis %s from the reviewed task revision', async basis => {
+  mockSingle.mockResolvedValue({ data: { ...raw(), needs: { ...raw().needs, mode: 'MY_PRICE', requester_price_rsd: 5000, price_basis: basis } }, error: null });
+  await expect(readExistingApplicationInterval(projection())).resolves.toMatchObject({ ok: true, podatak: { pricing: {
+    rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 5000 }, pokrivenost: { ukupno: 3 }, ...(basis ? { osnovaCene: basis } : {}),
+  } } });
+});
+it.each([
+  { price_basis: undefined }, { price_basis: 'UNKNOWN' }, { mode: 'MY_PRICE', requester_price_rsd: null },
+  { mode: 'MY_PRICE', requester_price_rsd: '5000' }, { mode: 'UNKNOWN' }, { required_slots: 0 },
+  { required_slots: 51 }, { mode: 'OFFERS', price_basis: 'TOTAL' },
+])('refuses missing or inconsistent price facts instead of offering a free price editor %#', async patch => {
+  mockSingle.mockResolvedValue({ data: { ...raw(), needs: { ...raw().needs, ...patch } }, error: null });
+  await expect(readExistingApplicationInterval(projection())).resolves.toMatchObject({ ok: false, kod: 'APPLICATION_INTERVAL_CHANGED' });
+});
 it('uses the existing owner response policy and exact current Need/version filters, retaining microseconds', async () => {
-  await expect(readExistingApplicationInterval(projection())).resolves.toEqual({ ok: true, podatak: { start: raw().proposed_start_at, end: raw().proposed_end_at } });
+  await expect(readExistingApplicationInterval(projection())).resolves.toEqual({ ok: true, podatak: { start: raw().proposed_start_at, end: raw().proposed_end_at, pricing } });
   expect(mockFrom).toHaveBeenCalledWith('marketplace_responses');
   expect(mockEq.mock.calls).toEqual([['id', application], ['need_id', need], ['worker_account_id', owner], ['current_version', 2], ['needs.revision', 4]]);
   expect(mockSelect.mock.calls[0][0]).not.toMatch(/account_profiles|exact_lat|contact|phone/);
@@ -32,7 +50,7 @@ it.each([
 });
 it('preserves an explicitly stored null interval', async () => {
   mockSingle.mockResolvedValue({ data: { ...raw(), proposed_start_at: null, proposed_end_at: null }, error: null });
-  await expect(readExistingApplicationInterval(projection())).resolves.toEqual({ ok: true, podatak: { start: null, end: null } });
+  await expect(readExistingApplicationInterval(projection())).resolves.toEqual({ ok: true, podatak: { start: null, end: null, pricing } });
 });
 it('does not expose backend error text or infer null from an inaccessible row', async () => {
   mockSingle.mockResolvedValueOnce({ data: null, error: { message: 'private SQL account detail' } });

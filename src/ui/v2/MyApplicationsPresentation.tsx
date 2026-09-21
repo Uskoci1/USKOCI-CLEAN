@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
+import type { ApplicationEditPricing } from '../../data/myApplicationsClientService';
 import { needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { osoba } from '../system/plural';
 import { Press } from '../Press';
@@ -15,7 +16,7 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 
 export type ApplicationsTab = 'all' | 'attention' | 'active' | 'finished';
-export type OfferEdit = { price: string; people: string; note: string; start: string | null; end: string | null };
+export type OfferEdit = { price: string; people: string; note: string; start: string | null; end: string | null; pricing: ApplicationEditPricing };
 const applicationStatus = (state: MojaPrijavaProjekcija['stanje']) => ({
   SUBMITTED: 'Poslata', VIEWED: 'Pregledana', SHORTLISTED: 'U užem izboru', SELECTED: 'Izabrana',
   WITHDRAWN: 'Povučena', CLOSED: 'Zadatak je zatvoren', STALE_REVIEW_REQUIRED: 'Potrebna nova provera',
@@ -140,9 +141,11 @@ export function MyApplicationsPresentation(props: Props) {
             {p.napomena ? <T variant="body" style={s.ink}>Tvoja napomena: {p.napomena}</T> : null}
             {props.editingLoading ? <ActivityIndicator accessibilityLabel="Učitavanje sačuvanog termina" color={sys.color.green} /> : null}
             {props.draft ? <View style={s.fields}>
-              <T accessibilityRole="header" variant="heading" style={s.ink}>Izmeni svoju ponudu</T><T variant="note" tone="muted">Cena važi za ceo ponuđeni obim.</T>
-              <T variant="meta" tone="muted">Cena (RSD)</T><TextInput accessibilityLabel="Cena ponude (RSD)" value={props.draft.price} keyboardType="number-pad" editable={!disabled} onChangeText={price => props.onChange({ ...props.draft!, price })} style={s.input} />
-              <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T><TextInput accessibilityLabel="Broj ljudi" value={props.draft.people} keyboardType="number-pad" editable={!disabled} onChangeText={people => props.onChange({ ...props.draft!, people })} style={s.input} />
+              <T accessibilityRole="header" variant="heading" style={s.ink}>Izmeni svoju ponudu</T><T variant="note" tone="muted">{props.draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
+                : props.draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
+                : props.draft.pricing.osnovaCene === 'TOTAL' ? 'Ukupna cena važi za ceo zadatak. Prijava pokriva sva mesta.' : 'Cena je određena u zadatku.'}</T>
+              <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T><TextInput accessibilityLabel="Cena ponude (RSD)" value={props.draft.price} keyboardType="number-pad" editable={!disabled && props.draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...props.draft!, price })} style={s.input} />
+              <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T><TextInput accessibilityLabel="Broj ljudi" value={props.draft.people} keyboardType="number-pad" editable={!disabled && !(props.draft.pricing.rezimCene === 'MY_PRICE' && props.draft.pricing.osnovaCene === 'TOTAL')} onChangeText={people => props.onChange({ ...props.draft!, people })} style={s.input} />
               <T variant="meta" tone="muted">Napomena</T><TextInput accessibilityLabel="Napomena uz ponudu" value={props.draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...props.draft!, note })} style={[s.input, s.multiline]} />
               <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {props.draft.start || props.draft.end
                 ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: props.draft.start, endsAt: props.draft.end }, deviceZone()) : 'Nije naveden u Prijavi.'}</T>
