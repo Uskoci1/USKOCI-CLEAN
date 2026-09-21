@@ -1,6 +1,6 @@
 # PKG-033 — application admission after a task edit
 
-Status: **proven on the disposable database; not applied to DEV**. Client fix committed in `b4d5a5a9`.
+Status: **proven on the disposable database and applied to DEV**. Client fix committed in `b4d5a5a9`.
 
 Run [35651463755](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35651463755) passed **41/41 checks** on
 `0ea4d914`. The downloaded report and source binding were inspected; the candidate hash matches the tested file.
@@ -50,11 +50,25 @@ files were restored to the new working copies in a `finally` block. No device te
 reported APK does not include these new client changes.
 The client-triggered PKG-004 run `35651612057` and PKG-006 run `35651612168` also completed successfully.
 
-The resumed DEV connection denied execution of the private closure digest function. The owner has been asked
-for the nonsecret live/certified/ready result; no DEV mutation is allowed before the prerequisite is confirmed.
-The migration rechecks it inside its own transaction as well.
+## Applied 2026-09-21
 
-Read-only DEV impact check after the proof: ledger remains **188**; no `STALE_REVIEW_REQUIRED` application and
+The owner supplied the SQL Editor result from canonical DEV: live = certified =
+`65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591`, ready = true.
+Fresh read-only preflight confirmed ledger 188, all three predecessor body pins, and no existing helper/package.
+The committed LF candidate (without its final newline) was applied as
+`20260921204631_dev_alpha_pkg033a_application_admission_parity`.
+Ledger is **189 = 147 + 42 dev_alpha**. Recorded text SHA-256 is
+`ce97b71655fe18168119c8776d108251205d3b7cbcf0a06cd87c9351f0f1b181`, exactly the tested text.
+All four normalized `prosrc` MD5 values, owners, ACLs and function settings match the proof.
+
+The candidate asserts live = certified and readiness before changes, then unchanged digest and readiness
+afterward, inside the successfully committed transaction. No certificate was moved. A separate post-apply
+execution of the private digest through the connector still returned SQLSTATE 42501. No role or grant was
+changed; the successful transactional assertion is the postcondition evidence.
+Receipt: `supabase/operations/dev-alpha/ledger/20260921_pkg033_application.receipt.json`.
+`PROOF_SUMMARY_20260921.json` remains the historical pre-application proof snapshot.
+
+Read-only DEV impact check before application: ledger was **188**; no `STALE_REVIEW_REQUIRED` application and
 no application with a selectable status/current-version fixed-price mismatch was present. This is not an
 end-to-end device test and does not establish that every historical application is valid.
 

@@ -1,12 +1,15 @@
 # USKOČI — repository entry map
 
-PKG-033 (2026-09-21, **proven; not applied**): application admission parity for deep read 3.1 / 7.3 / 12.6.
-See `docs/implementation/v5-ai-first/pkg033/PKG033_APPLICATION_ADMISSION.md` for scope and proof. The candidate
-does not move the closure certificate. The resumed connector cannot execute the private preflight controls;
-the owner has been asked for their nonsecret result. Do not mark this package applied or its proof passed
-without the actual receipt/report. Proof run `35651463755` passed 41 checks; client `b4d5a5a9` passes 240 suites /
-4596 tests and types. Resume details: `docs/implementation/NEXT_AI_HANDOFF_20260921_CODEX.md`.
-Existing untracked foreign migration remains excluded.
+PKG-033 (2026-09-21, **proven and applied**): application admission parity for deep read 3.1 / 7.3 / 12.6.
+Canonical DEV ledger is **189 = 147 + 42 dev_alpha**. Receipt:
+`supabase/operations/dev-alpha/ledger/20260921_pkg033_application.receipt.json`.
+Proof run `35651463755` passed 41 checks; the recorded migration text SHA-256 and all four resulting body
+pins match the proof. The owner supplied the missing nonsecret closure preflight; the candidate asserted
+the unchanged, ready certificate before committing. Direct private readback still returns 42501; do not
+claim it was separately measured afterward. Client `b4d5a5a9` passes 240 suites / 4596 tests and types;
+it has not been built into a new APK or tested on a phone. Scope:
+`docs/implementation/v5-ai-first/pkg033/PKG033_APPLICATION_ADMISSION.md`.
+Resume: `docs/implementation/NEXT_AI_HANDOFF_20260921_CODEX.md`. The foreign migration remains excluded.
 
 **Start here (2026-09-21 21:45): `docs/implementation/NEXT_AI_HANDOFF_20260921_2145.md`.** It records the current
 worktree, branch, canonical DEV state (ledger 188, certificate `65980fce…`), the owner's standing rules, everything

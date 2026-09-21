@@ -17,7 +17,7 @@ Branch remains `work/pre-v3-engine-integration-20260911`. No subagents, new depe
   refusal mapping. TypeScript and full Jest 240 suites/4596 tests passed; two monetary regression tests fail on
   the former production screen and pass after. No new APK has been built for these changes.
 
-## PKG-033 is NOT applied to DEV
+## PKG-033 applied to DEV, 2026-09-21
 
 Read `v5-ai-first/pkg033/PKG033_APPLICATION_ADMISSION.md` and `PROOF_SUMMARY_20260921.json`.
 Candidate file `supabase/candidates/pkg033a_application_admission_parity.sql` has:
@@ -30,7 +30,7 @@ trigger, existing ACL or certificate change. It checks pre/post bodies and certi
 reconstructed the exact 41 recorded DEV changes and matched every patched predecessor body to current DEV.
 The disposable certificate (`8248a4e5…`) remained unchanged and ready; never substitute it for DEV's `65980fce…`.
 
-**Pending prerequisite:** the current Supabase connector returned SQLSTATE 42501 for execution of
+**Resolved prerequisite:** the current Supabase connector returned SQLSTATE 42501 for execution of
 `private.closure_source_digest_v5()`. Do not escalate role, grant yourself rights, or route around this denial.
 A text question asked the owner to run the following in canonical DEV SQL Editor and return only the nonsecret result:
 
@@ -40,14 +40,18 @@ select private.closure_source_digest_v5() as live,
        private.retention_ai_source_ready() as ready;
 ```
 
-No answer had arrived when this checkpoint was written. The owner already authorizes proven ordinary fixes;
-this asks for a missing measurement, not a new blanket authorization. Until it is established, no DEV mutation.
-Once confirmed, re-read live predecessors and ledger, follow the original handoff's apply/sha256/receipt method,
-verify the post bodies and unchanged certificate, write the applied receipt and update this status. Expected
-next ledger would be 189 only if no other approved change has intervened. Do not assume current HEAD pins still match.
+The owner supplied a canonical-project SQL Editor screenshot: both hashes equal
+`65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591`, ready = true.
+Fresh live predecessor pins, missing helper/package and ledger188 were confirmed, then the tested candidate
+was applied from the committed blob as `20260921204631_dev_alpha_pkg033a_application_admission_parity`.
+Ledger is now **189 = 147 + 42**. Exact migration text hash above and all four `prosrc` body MD5 pins match
+the disposable proof. The successful candidate asserted unchanged live certificate and readiness before commit.
+A separate direct private post-read remains denied (42501); no privilege escalation or grant change was made.
+Receipt: `supabase/operations/dev-alpha/ledger/20260921_pkg033_application.receipt.json`.
+The owner already authorized this proven ordinary fix; no certificate move or JWT change occurred.
 
-Last read-only impact query: 0 stale-review-required applications; 0 current fixed-price mismatches among
-SUBMITTED/DELIVERED/VIEWED/SHORTLISTED rows; ledger still188. No existing user data was changed.
+Pre-apply impact query: 0 stale-review-required applications; 0 current fixed-price mismatches among
+SUBMITTED/DELIVERED/VIEWED/SHORTLISTED rows; ledger then188. No existing user data was rewritten.
 
 ## Next findings investigated, not implemented
 
