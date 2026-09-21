@@ -21,7 +21,23 @@ dependency. Full evidence and what would close it:
 `docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
 for that cause; a new alert is a new decision.
 
-PKG-029 (2026-09-21, proven and **applied** on the owner's "dozvoljavam sve" to the written command): ledger now
+PKG-030 (2026-09-21, proven and **applied**; owner "kreni" to option A, then "odobravam sve"): ledger now
+**184 = 147 + 37 dev_alpha**.
+
+On DEV the Edge `SUPABASE_SERVICE_ROLE_KEY` is a secret key (`sb_secret_`), so the legacy key the owner stored could
+never reach the workers. What changed:
+- The workers now take the server key on `apikey`.
+- The tick (`pkg030a`) sends it there.
+- `uskoci-push-transport` v14, `uskoci-data-export-worker` v14 and `uskoci-account-closure-worker` v3 run with
+  `verify_jwt = false` and check the key themselves.
+- `uskoci-data-export-download` v14 keeps `verify_jwt = true`.
+- All four are byte-identical on readback. Without a key, each worker refuses by itself.
+- **Waiting on the owner:** store the secret key in Vault, then the final check.
+
+Contract, status and receipt: `docs/implementation/v5-ai-first/pkg030/PKG030_WORKERS_SECRET_KEY.md`. The PKG-028
+paragraph's key instruction is corrected there.
+
+PKG-029 (2026-09-21, proven and **applied** on the owner's "dozvoljavam sve" to the written command): ledger then
 **183 = 147 + 36 dev_alpha**. It covers 4.1, 1.2, 12.9, 1.1, 7.49, 12.7, 7.47, 12.5, 6.2, 12.11 and the relative
 schedules ("danas"/"sutra"/"ove nedelje" now expire).
 - **Temporary:** `pkg029e` puts the owner's accounts in the TEST world while testing. Take it out before real users.

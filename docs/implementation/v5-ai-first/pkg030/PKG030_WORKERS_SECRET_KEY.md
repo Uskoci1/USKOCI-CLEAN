@@ -120,6 +120,30 @@ The e2e proof shows each case against the real served workers:
   it, as before. Nothing is claimed or deleted. A caller without the server key is refused by the push worker itself
   (the gate and e2e proofs).
 
+**Resumed the same day.** The owner answered "odobravam sve" to the list whose item 9 was this exact change. The
+permission check then let the readback run.
+
+- **Step 2, done.** Every file was read back and byte-compared with the committed tree, and all are identical.
+
+  | function | version | `verify_jwt` |
+  | --- | --- | --- |
+  | `uskoci-push-transport` | v14 | false |
+  | `uskoci-data-export-worker` | v14 | false |
+  | `uskoci-account-closure-worker` | v3 | false |
+  | `uskoci-data-export-download` | v14 | true |
+
+- **Step 3, done.** Calls were composed inside the database, and the stored key was never printed.
+
+  | call | push | export | closure |
+  | --- | --- | --- | --- |
+  | no key | 403 `FORBIDDEN` | 401 `AUTH_REQUIRED` | 401 `AUTH_REQUIRED` |
+  | stored legacy key on `apikey` | 403 | 401 | 401 |
+
+  Each answer is the worker's own refusal. The gateway check is off, the key check holds, and the answers are exactly
+  those of the e2e proof. The tick body md5 on DEV (`f9485392…`) equals the proof's.
+- **Receipt:** `supabase/operations/dev-alpha/ledger/20260921_pkg030_application.receipt.json`.
+- **Waiting on the owner:** step 4, the secret key in Vault. Step 5 follows it.
+
 ## Order on canonical DEV
 
 1. Apply `pkg030a`. The tick then sends the key on `apikey`. The stored legacy key is still refused, as today.
