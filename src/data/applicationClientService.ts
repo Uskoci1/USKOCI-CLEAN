@@ -3,6 +3,7 @@ import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../contracts/proj
 import type { Ishod, Izvor, PovuciPrijavuKomanda } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { novac } from '../lib/novac';
+import { dogovorenoVreme } from '../lib/dogovorenoVreme';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -14,9 +15,6 @@ function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
   return legacyRpcFailure(error, code, message);
 }
 
-function formatTime(iso: string | null | undefined) {
-  return iso ? new Date(iso).toLocaleString('sr-Latn-RS') : 'Fleksibilno';
-}
 
 function formatLocation(area: string | null | undefined, city: string | null | undefined) {
   return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
@@ -64,7 +62,7 @@ function mapApplication(raw: any): MojaPrijavaProjekcija {
     pokrivaMesta: coveredSlots,
     napomena: String(raw?.scopeNote ?? ''),
     podrucjeTekst: formatLocation(raw?.approximateArea, raw?.approximateCity),
-    vremeTekst: formatTime(raw?.startsAt),
+    vremeTekst: dogovorenoVreme(raw?.startsAt, 'Fleksibilno'),
     dogovorId: raw?.agreementId ? String(raw.agreementId) : null,
     promenjenaPotreba: raw?.requiresStaleReview === true,
     mozePovuci: raw?.canWithdraw === true,

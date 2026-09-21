@@ -4,6 +4,7 @@ import { supabaseKlijent } from './supabaseClient';
 import { positiveInteger, readOwnedResult, uuid } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
 import { novac } from '../lib/novac';
+import { dogovorenoVreme } from '../lib/dogovorenoVreme';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -35,18 +36,6 @@ function inicijali(ime: string) {
   return delovi.slice(0, 2).map((d) => d[0] ?? '').join('').toUpperCase() || '?';
 }
 
-function vreme(raw: unknown) {
-  if (typeof raw !== 'string' || !raw) return 'Po dogovoru';
-  const datum = new Date(raw);
-  if (Number.isNaN(datum.getTime())) return 'Po dogovoru';
-  return datum.toLocaleString('sr-Latn-RS', {
-    timeZone: 'Europe/Belgrade',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function dokaz(raw: any): DokazPrijave {
   const schema = raw?.schema;
@@ -122,7 +111,7 @@ function mapCandidate(raw: any): KandidatProjekcija {
     cena: rsd(raw.priceRsd),
     pokrivaMesta: raw.coveredSlots,
     preostaloMesta: raw.remainingSlots,
-    dolazakTekst: vreme(raw.proposedStartAt),
+    dolazakTekst: dogovorenoVreme(raw.proposedStartAt),
     prevozTekst: vozila === null ? 'Nije dokazano' : vozila.length ? vozila.join(', ') : 'Bez navedenog vozila',
     napomena: typeof raw.scopeNote === 'string' ? raw.scopeNote : '',
     stanje: raw.state,
