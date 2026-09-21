@@ -62,11 +62,27 @@ Legacy non-screen Agreement proposal/response adapters are not promoted to the t
 - Focused adapter/controller/native-renderer regression: **8 suites / 217 tests passed**.
 - Real saved-task renderer checks three answered refusals and one unknown failure without raw text exposure.
 - TypeScript passed. Full local Jest report: **241 suites / 4644 tests passed**, zero failed (143.311 s).
-  Jest emitted its existing open-handle warning and the local runner had not exited at this checkpoint;
-  a completed assertion report is not presented as a clean process exit. CI will be checked separately.
+  Jest emitted its existing open-handle warning, then exited **0**. A later runner cleanup found no
+  matching processes; no process was stopped. CI is checked separately.
 - Existing receipt tests were updated only for the deliberate invalid-receipt code split. Their malformed,
   foreign, version-bound and authority assertions remain. Test mocks retain actual classification helpers.
 - No new dependency and no device operation. A build must contain this change before it can be phone-tested.
+
+CI source `0c01ac7b023c8910e9a947b491b18c66f3fbb01f`, tree `079114340b93dddba1726bd385995bec2fbd7cba`:
+PKG-004 run `35661988323` and PKG-007 run `35661988415` both succeeded. Downloaded receipts bind the same
+commit/tree; PKG-007's TypeScript and full regression steps passed. See `CLIENT_PROOF_RECEIPT_20260922.json`.
+
+The local migration integrity command exits 1 solely for the pre-existing, excluded untracked
+`20260913090000_clean_v5_fix_application_spam_and_resolution.sql`. It was not changed, removed or committed.
+Do not describe the local inventory check as passing; this package contains no migration.
+
+## Android artifact
+
+Build `35662001128` succeeded from the same source commit/tree. Downloaded `USKOCI-DEV.apk` is
+68,550,371 bytes, SHA256 `b883d7a7805370a7a1f2eb701f8f87d4c504982a24666362e36edd58a32a7d80`.
+Its checksum file, recovery attestation and icon attestation match that hash and source. Both attestations
+report PASS. `APK_RECEIPT_20260922.json` retains the binding. This supersedes the prior PKG-035 APK for
+testing these changes. **Not installed or tested on a phone.** No public release is claimed.
 
 ## Remaining work
 

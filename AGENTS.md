@@ -1,13 +1,20 @@
 # USKOČI — repository entry map
 
+Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
+the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
+
 PKG-036 (2026-09-22, client-only): first bounded slice of deep-read 7.1. Eleven live lifecycle RPCs and
 ten selected guard/calendar bodies were read; exact MD5s and per-call comparison are under
 `docs/implementation/v5-ai-first/pkg036/`. Task/Agreement refusal copy now survives screen/controller
 handling. `AGREEMENT_CHANGE_INVALID_RECEIPT` is separate from rejected input and still requires recovery.
-New regressions: 30 failed on former source, 34 pass after. Types clean; full local assertion report
-241 suites / 4644 passed (runner open-handle caveat in the package doc). No DEV writes; ledger remains
+New regressions: 30 failed on former source, 34 pass after. Types clean; full local Jest
+241 suites / 4644 passed and exited 0. CI PKG-004 `35661988323` and PKG-007 `35661988415` passed.
+No DEV writes; ledger remains
 191 at read-only preflight. No certificate/JWT/dependency/device change. 7.1 remains partial/open.
-The previously verified APK35657828926 does not contain PKG-036; no new APK is claimed here.
+APK `35662001128`, source `0c01ac7b`, succeeded; downloaded SHA256 `b883d7a7…` matches checksum and
+both recovery/icon attestations. See the package's `APK_RECEIPT_20260922.json`. Not installed/tested.
+AI deadlines remain unresolved; read `docs/implementation/v5-ai-first/AI_DEADLINE_RECOVERY_INVESTIGATION_20260922.md`
+before changing timers. The current timeout reproducer intentionally leaves the review claim unresolved.
 
 PKG-035 (2026-09-21, **proven and applied**): deep-read 7.32 now separates historical applications from
 those currently selectable. Candidate list, owner computed field and Home aggregate share the classifier;

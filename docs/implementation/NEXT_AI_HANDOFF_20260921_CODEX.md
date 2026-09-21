@@ -9,10 +9,14 @@ Branch remains `work/pre-v3-engine-integration-20260911`. No subagents, new depe
 **2026-09-22 continuation: PKG-036 client slice supersedes the client test/build status below.**
 Read `v5-ai-first/pkg036/PKG036_LIFECYCLE_REFUSALS.md`. Definite lifecycle refusals now survive
 adapter/controller/screen handling; malformed Agreement receipts retain recovery. Types passed and
-the full local assertion report has 241 suites / 4644 passed; the local runner emitted the existing
-open-handle warning and had not exited at the initial checkpoint. CI and build follow-ups are recorded
-in the package doc. No DEV write was made (read-only ledger191); all five remaining finding IDs stay
-open, with 7.1 partially addressed. APK35657828926 lacks this client change. No phone operation.
+the full local Jest report has 241 suites / 4644 passed, exit 0 (existing open-handle warning).
+CI PKG-004 `35661988323` and PKG-007 `35661988415` succeeded with matching downloaded source receipts.
+APK `35662001128`, source `0c01ac7b`, succeeded; downloaded SHA256 `b883d7a7…` matches checksum and
+recovery/icon attestations. See `v5-ai-first/pkg036/APK_RECEIPT_20260922.json`. No phone operation.
+No DEV write was made (read-only ledger191); all five remaining finding IDs stay open, with 7.1 partially
+addressed. Current status index: `USKOCI_CURRENT_STATUS.md`. Read the new AI deadline investigation before
+working on 11.1/11.2; it distinguishes the active accepted-review client path, the shared aborted completion
+signal and the live 60-second claim fence. No AI fix or deployment was made. Phone-field decision is pending.
 
 - DEV ledger **191 = 147 + 44**. PKG-035 applied as `20260921214247_dev_alpha_pkg035a_selectable_application_counts`.
 - Proof `35658331088` at `3eaa5e55` passed 38 checks; exact text/body/ACL readback matches. Receipt
