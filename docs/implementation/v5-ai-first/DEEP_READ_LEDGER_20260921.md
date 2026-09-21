@@ -811,7 +811,7 @@ worker screen offers "Novi razgovor" for an expired turn (`worker_ai_turn_docume
 `UNKNOWN_OUTCOME`), but its abandon does not touch `worker_ai_turns` — of the five functions that update
 that table, none is the abandon — so the blocker survives the escape the screen offers. Cancel needs the
 original request key, which the client only has from its own journal. Why the Edge worker died after
-dispatch is not established here. Fix shape (server, needs approval): a sweep that marks a dispatched turn
+dispatch is not established here; the mechanism that lets any post-dispatch failure do this is 11.1. Fix shape (server, needs approval): a sweep that marks a dispatched turn
 `FAILED` once its lease has been expired for, say, ten minutes — same "never retried" meaning, but it stops
 blocking successors and closure; and let the worker abandon fail its open turn the way the intake one does.
 
