@@ -39,6 +39,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
 | 11 | Edge functions, file by file | read 2026-09-21 — all 18 files, deployed list compared (11.1–11.5) |
+| 12 | Server functions, all of them | read 2026-09-21 — all 480 (`public` 235, `private` 245) in full, plus grants (12.1–12.16) |
 
 ## Findings
 
@@ -1013,6 +1014,142 @@ repeats a destructive request and settles each step by a separate read. The spee
 key on the server (in the provider's own WebSocket URL form), bounds audio and transcript, and settles cost
 from the audio actually forwarded. The Edge functions' own error sentences are formal ("Prijavite se…",
 "Sačekajte…"), but the app never displays an Edge `message` — it maps codes — so no person reads them.
+
+### Area 12 — Server functions, all of them (complete)
+
+Read in full: every function in `public` (235) and `private` (245), from `pg_get_functiondef` on the live
+server, in 24 consecutive batches ordered by name, with the live rows each claim below depends on. Findings
+already recorded elsewhere are not repeated: the stale-application price door (3.1), the Q&A status set
+(7.47), the notification copy inventory (8.13), stuck AI turns (8.17, 11.1), HITNO and matching (9.x).
+
+**12.1 — defect, measured. A task stops looking for workers by itself after about two hours, for good.**
+`private.dispatch_tick` retries a task with no eligible worker after 5, 5, 5, 8, 16, 32 and 60 minutes and
+deletes it from `private.dispatch_schedule` at the eighth failed attempt (about 131 minutes after the first). Only three things ever put a task back in
+that queue: a change to the task (`enqueue_on_need_change`), a withdrawn application
+(`rpc_withdraw_response`) and a cancelled Agreement (`rpc_cancel_agreement`) — verified by sweeping every
+body for `enqueue_dispatch(` and `insert into private.dispatch_schedule`. Nothing a worker does — declaring
+availability, widening the radius, activating a profile — re-queues anything. Live: 12 open tasks, 0 rows
+in the queue. So none of the 12 will ever be offered to anyone again automatically, whatever the workers
+change; 9.4's "depends on workers keeping availability current" is true only for the first two hours.
+Also, the error branch of the same loop retries every 10 minutes with no limit (the give-up at 8 is only in
+the "no candidates" branch). Fix shape (needs approval): re-queue open tasks when a worker's matching
+inputs change, or let the tick revisit given-up tasks on a slow cadence.
+
+**12.2 — defect, the assistant's own incomplete work (pkg025). Editing a task loses or refuses its price
+basis.** `rpc_ai_open_need_edit_conversation_v2` seeds the edit conversation from the live task with one
+`case` per registry key; of the 23 keys only `need.price_basis` has no branch (`need.resolved_location` is
+cloned separately after the loop — verified against `need_fact_registry`). The edit writer
+`rpc_confirm_need_edit_from_review` then sets `price_basis` from the fact, or NULL when the fact is absent.
+So an edit of a "po osobi" task that the AI does not re-ask about silently turns it back into the old
+null-basis rule. The opposite case is refused: `price_basis` is in none of the "material" definitions —
+`need_material_snapshot`, `need_full_edit_snapshot`, `need_publication_fingerprint_snapshot` (and so
+`need_edit_base_marker`), nor `guard_need_write`'s list — so an edit whose only change is TOTAL ↔ PER_PERSON
+is refused with `NO_MATERIAL_CHANGE` (which the live path shows as "Ishod radnje nije potvrđen", 7.21), and
+the publication decision is blind to the basis. Also `rpc_list_my_needs_page` — the owner's own task list —
+returns no `priceBasis`; only the marketplace reader does. Not hit yet: all 18 tasks have a null basis.
+
+**12.3 — defect, the specific cause of the stuck worker-profile turn in 8.17.**
+`rpc_fail_worker_ai_turn_service` fails a turn only `if t.state='PROCESSING' and t.lease_expires_at>=
+clock_timestamp()` — only while the 60-second lease is still running. After the lease the call does nothing;
+`rpc_complete_worker_ai_turn_service` raises `WORKER_AI_TURN_STALE` without changing the state; and
+`rpc_claim_worker_ai_turn_service`, `rpc_patch_worker_ai`, `rpc_prepare_worker_ai_review` and
+`rpc_save_worker_ai_review` all refuse while a `PROCESSING` row exists. `rpc_open_worker_ai` reopens the
+newest OPEN session, so the person lands in the frozen conversation every time. Live: the QA account's turn
+of 2026-09-16 20:47:59 (lease to 20:48:59) is still `PROCESSING`, conversation OPEN, last message the
+person's, no reply. The intake side has the opposite, sensible rule (complete after the lease → `FAILED`).
+
+**12.4 — defect, invented public text.** `handle_uskoci_auth_user_created` writes a headline and a bio the
+person never wrote into both profiles at sign-up. The current body uses neutral sentences; every live
+profile still carries the older ones — all five worker profiles "Spreman da uskočim kada se dogovor jasno
+postavi." / "Dostupan za poslove koji odgovaraju profilu i kalendaru." (masculine), all five requester
+profiles "Tražim pouzdanu pomoć uz jasan dogovor." / "Novi član USKOČI zajednice.". `rpc_get_public_profile`
+returns the worker's headline and bio, `publicProfileClientService.ts:42` maps the headline and
+`PublicProfileSheet.tsx:46` shows it — so every requester reads a sentence about each worker that the worker
+did not write. `worker_ai_initial` hands the invented bio to the profile AI as the person's own. A missing
+name becomes "USKOČI korisnik", which satisfies `rpc_complete_worker_profile`'s two-character rule, so a
+worker can go ACTIVE under that name. Fix shape: empty defaults, and a one-time clean of the stored text
+(both need approval).
+
+**12.5 — defect. The Q&A contact filter reads dates and price ranges as phone numbers.**
+`private.ru4b_public_floor_reason` refuses `\+?[0-9][0-9 ()/.\-]{6,}[0-9]` as `PHONE_NOT_PUBLIC`. Measured
+on the live function (pure, no writes): "Da li može 12.10.2026 posle podne?" → `PHONE_NOT_PUBLIC`; "Cena
+15000 - 20000 je ok?" → `PHONE_NOT_PUBLIC`; "Treba 2 radnika od 8 do 16h" → allowed. It guards both the
+worker's question and the owner's answer. Not reached yet: no question was ever asked on DEV
+(`qa_ai_commands` is empty).
+
+**12.6 — defect, addendum to 3.1.** Beyond the price rules, `rpc_resolve_stale_response_after_need_edit`
+(called by `ru4Production.ts:93`) also skips the world check, the profile readiness check (name, city,
+skills) and the application evidence snapshot — so a re-confirmed application shows as `LEGACY_UNPROVEN` in
+`rpc_list_need_candidates` — and its WITHDRAW notifies no one, unlike `rpc_withdraw_response`. Never used on
+DEV (`response_revision_resolution_commands` is empty).
+
+**12.7 — defect, latent. Remote or physical is decided from the schedule, not the place.**
+`rpc_select_response` creates `agreement_execution.mode = 'REMOTE'` only when `schedule_kind =
+'REMOTE_ANYTIME'`, otherwise `'PHYSICAL'`, ignoring `execution_location_mode`. A remote task scheduled
+"danas" would get live-location sharing (allowed only for PHYSICAL/PICKUP_DELIVERY); a physical task marked
+REMOTE_ANYTIME would lose it. `PICKUP_DELIVERY` is never produced. Live: no remote task; the 3 Agreements are
+PHYSICAL and correct.
+
+**12.8 — defect, small. One guard is not null-safe.** `guard_remaining_search_close_fields` raises only
+`if current_setting('uskoci.need_lifecycle', true) <> 'CLOSE_REMAINING_SEARCH'`; with the setting never set
+the comparison is NULL (measured) and the guard lets the write through. `authenticated` holds column UPDATE
+on the three `remaining_search_*` columns and `needs_owner_update` limits it to the owner's own DRAFT, so the
+reach is a person stamping their own draft. Every other guard in the schema uses `is distinct from` (swept).
+
+**12.9 — risk. Closing the remaining search tells no applicant.** `rpc_close_remaining_search` moves every
+open application of the task, including those awaiting stale review, to `EXPIRED` and emits no event; the
+workers learn it only by opening their list. `rpc_cancel_need`, by contrast, notifies each one.
+
+**12.10 — risk. "Prepare" and "start" disagree about a running job.** `account_closure_preparation` reports
+`PENDING_WORKFLOW` only for a running intake turn; `closure_blockers_v5`, which gates the start, also counts
+worker-profile and Q&A turns and a running export. An account whose only running job is a worker-profile
+turn (12.3) is shown as ready, then refused at start with `CLOSURE_BLOCKED`.
+
+**12.11 — note, verified. Test and real accounts never see each other — and the real side is the owner
+alone.** `rpc_list_open_tasks_v3` is SECURITY INVOKER, so RLS decides: `needs_public_discovery` requires
+`private.viewer_same_world`, and `rpc_submit_response` re-checks `accounts_same_world`. The REAL world today
+is the owner's two accounts: personal (worker profile ACTIVE) and business (worker profile DRAFT, so it
+cannot apply). Live: 8 of the 12 open tasks belong to the owner's personal account, and no account that can
+see them is able to apply — the three ACTIVE test workers (QA and fixtures) are in the TEST world and never
+see them. So a real task published from the owner's phone cannot be answered from the QA account; the first
+real applicant needs a second real person. Two readers skip the world check and answer any signed-in account that knows a task id:
+`rpc_read_preselection_qa_context` (title, revision) and `rpc_ru4b_public_preselection_qa` (answered
+questions).
+
+**12.12 — note, copy and small data points.** `media_write_task_refs` and the edit opener label photos
+"N fotografija" — "2 fotografija", "3 fotografija". The edit opener's display values are raw: "MY_PRICE",
+"FIXED_WINDOW", an ISO timestamp, "STATIONARY". `data_export_snapshot` still exports `app_accounts.active_mode`
+as `activeMode` — the removed global mode; every account holds "requester". The sign-up trigger still writes
+it. `match_detail_without_calendar` compares the task price with a worker's minimum fee without the basis or
+the number of people, and counts a task with no required skills as a service match for every worker (+30).
+
+**12.13 — note, verified and good. The grants are tight.** Of 235 `public` functions, `anon` can execute 3
+(`my_cloud_profile_bundle`, invoker, returns nothing without a user; the pre-request hook
+`rpc_closure_api_guard`; `rpc_get_legal_bundle`), `authenticated` 159. All 52 `*_service` functions and every
+function taking `p_account_id` are closed to both — except `rpc_get_account_reputation`, a read. `authenticated`
+has no USAGE on schema `private`; its one EXECUTE there is `viewer_same_world`, used inside the discovery
+policy. Several service functions have no internal role check and rely on these grants alone
+(`rpc_ai_claim_need_turn_v2_service`, `rpc_claim_qa_classification_service`, `rpc_set_retention_hold` …) —
+correct today, one widened grant from wrong.
+
+**12.14 — note, dead or switched off.** `rpc_ai_publish_need` (always `PACKAGE_4_NOT_READY`), `rpc_publish_need`,
+`rpc_ai_propose_fact` and `rpc_propose_agreement_change` (v1) are retired stubs; `ru4b_assert_rate_authority_ready`
+always raises and has no caller; `identity_admitted` is constant false, so "verified identity" tasks cannot be
+created; `urgent_activation_policy` is off (9.1). `guard_profile_write` forces `account_type = INDIVIDUAL` with
+no path to change it.
+
+**12.15 — note, limits worth knowing.** Title 140, description 6,000, price 1–100,000,000 RSD, 1–50 people;
+worker AI and intake AI 6 turns a minute; Q&A 500/1,000 characters, 10 questions a day, 3 per task, 60 s
+apart; support 5 cases a day (privacy requests exempt); push at most 10 devices per account, never two
+accounts on one token; reviews 1–5 with up to 3 of 6 fixed tags; the requester has 48 h to confirm "gotovo".
+
+**12.16 — note, well built.** Every command is idempotent by (account, request id, input hash) and refuses a
+reused key with different content; every multi-row write takes locks in one documented order (task →
+agreement → response); publication re-proves the whole provenance chain (newest decision, fingerprint,
+current policy bundle, rule snapshot) at the moment of publishing; push is at-most-once — a send that may
+have happened is never resent; closure erasure deletes storage before relational redaction and identity last.
+
+Area 12 is complete: 480 functions.
 
 ### Area 9 — HITNO, categories, and matching
 
