@@ -50,6 +50,16 @@ it('one explicit click accepts exact server digest then publishes only after dur
   expect(mockInvoke).toHaveBeenCalledTimes(1); expect(mockInvoke.mock.calls[0][1].body).toEqual({ needId: NEED, expectedRevision: 1, acceptedReviewId: REVIEW });
 });
 
+// Deep read 5.1: the server refuses a fixed time that has begun; the client says it before any paid evaluation.
+it('a fixed time that has already begun is refused before accepting, evaluating or publishing', async () => {
+  const fact = (key: string, value: string) => ({ id: null, key, value, displayValue: value, privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' });
+  const at = (start: string) => ({ ...review(), publicProjection: [fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', start)] }) as AiTaskReviewEnvelope;
+  await expect(service.acceptAndPublish({ review: at('2020-01-01T08:00:00Z'), clientRequestId: KEY }))
+    .resolves.toMatchObject({ ok: false, kod: 'FIXED_WINDOW_START_PASSED', poruka: expect.stringContaining('Početak termina je već prošao') });
+  expect(mockRpc).not.toHaveBeenCalled(); expect(mockInvoke).not.toHaveBeenCalled();
+  await expect(service.acceptAndPublish({ review: at('2999-01-01T08:00:00Z'), clientRequestId: KEY })).resolves.toEqual({ ok: true, podatak: published() });
+});
+
 it.each(['CLARIFY', 'REVIEW', 'BLOCK'] as const)('%s remains a typed stored evaluation without a second confirmation or automatic publish', async outcome => {
   mockInvoke.mockImplementation(async () => { stored = evaluated(outcome); return answer(stored.evaluation); });
   const result = await service.acceptAndPublish({ review: review(), clientRequestId: KEY });

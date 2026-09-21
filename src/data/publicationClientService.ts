@@ -23,6 +23,7 @@ const COPY: Readonly<Record<string, string>> = {
   POLICY_CONTENT_NOT_READY: 'Provera pravila trenutno nije dostupna. Nacrt je sačuvan.',
   PUBLICATION_LOCATION_INCOMPLETE: 'Potvrdi sve potrebne tačke lokacije pre objave.',
   RESPONSE_DEADLINE_INVALID: 'Rok za prijave mora biti u budućnosti.',
+  FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin, pa objavi Zadatak.',
   IDEMPOTENCY_KEY_REUSED: 'Zahtev se razlikuje od prethodnog pokušaja. Učitaj trenutno stanje.',
 };
 const NOT_READY = new Set<PublicationNotReadyCode>(['POLICY_NOT_READY', 'POLICY_CONTENT_NOT_READY', 'LOCATION_INCOMPLETE', 'COUNTRY_NOT_READY', 'PUBLIC_MEDIA_NOT_READY', 'EVALUATOR_UNAVAILABLE', 'EVALUATOR_INVALID_RESPONSE', 'RATE_LIMITED', 'NEED_CHANGED']);

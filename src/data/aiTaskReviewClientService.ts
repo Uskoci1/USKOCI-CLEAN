@@ -54,6 +54,7 @@ const COPY: Readonly<Record<string, string>> = {
   ACCOUNT_CLOSING: 'Nalog se zatvara i ne može da objavi novi zadatak.',
   REQUESTER_PROFILE_NOT_READY: 'Dopuni svoj profil pre objave.',
   RESPONSE_DEADLINE_INVALID: 'Rok za prijave mora biti u budućnosti.',
+  FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.',
   PUBLICATION_DECISION_NOT_ALLOW: 'Zadatak još nije odobren za objavu.',
   NEED_REVISION_STALE: 'Zadatak je promenjen. Pregledaj novu verziju.',
   STALE_REVIEW_REQUIRED: 'Zadatak je promenjen. Ponovo otvori uređivanje.',
@@ -68,6 +69,14 @@ const text = (x: unknown, max: number): x is string => typeof x === 'string' && 
 const scope = (): ReceiptAccount | null => { const s = sesijaSada(); return s.user ? { accountId: s.user.id, accountRevision: s.accountRevision } : null; };
 const current = (s: ReceiptAccount) => { const now = sesijaSada(); return now.user?.id === s.accountId && now.accountRevision === s.accountRevision; };
 const invalid = <T>(): Promise<Ishod<T>> => Promise.resolve(failure('TASK_REVIEW_INPUT_INVALID', COPY.TASK_REVIEW_INPUT_INVALID));
+/** A fixed time that has already begun cannot be offered to anyone (deep read 5.1). The server refuses it at
+ *  publish; saying so first spares the person a paid publication check that could only end in that refusal. */
+function startPassed(review: AiTaskReviewEnvelope, now = Date.now()): boolean {
+  const fact = (key: NeedFactV2Key) => review.publicProjection.find(f => f.key === key)?.value;
+  if (fact('need.schedule_kind') !== 'FIXED_WINDOW') return false;
+  const start = calendarInstant(fact('need.starts_at'));
+  return start !== null && start <= BigInt(now) * 1000n;
+}
 function validValue(key: NeedFactV2Key, value: unknown): boolean {
   const type = NEED_FACT_V2_DEFINITIONS[key].valueType;
   if (type === 'TEXT_ARRAY') return Array.isArray(value) && value.length <= 100 && value.every(x => text(x, 1000));
@@ -237,6 +246,9 @@ export const aiTaskReviewClientService = {
   },
   async acceptAndPublish(command: Readonly<{ review: AiTaskReviewEnvelope; clientRequestId: string }>): Promise<Ishod<AiTaskPublicationCommand>> {
     const s = scope(); if (!s) return failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED);
+    if (Array.isArray(command?.review?.publicProjection) && startPassed(command.review)) {
+      return failure('FIXED_WINDOW_START_PASSED', COPY.FIXED_WINDOW_START_PASSED);
+    }
     const accepted = await acceptFor(s, command);
     return accepted.ok ? resumeFor(s, accepted.podatak) : accepted;
   },
