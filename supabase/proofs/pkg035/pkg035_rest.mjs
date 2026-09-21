@@ -5,11 +5,12 @@ import * as rt from '../pre_v3/closure_runtime.mjs';
 assert.equal(process.env.RU5_DEVICE_SUPABASE_URL,'http://127.0.0.1:54321');
 assert.equal(process.env.DB_URL,'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
 const owner=await rt.actor('pkg035-owner'), other=await rt.actor('pkg035-other');
-const n=rt.randomUUID(),rp=rt.randomUUID(),wp=rt.randomUUID(),a=rt.randomUUID(),q=rt.q;
+const n=rt.randomUUID(),a=rt.randomUUID(),q=rt.q;
+// Auth already created both profiles. Use those identities rather than duplicating them.
+const rp=rt.rows("select id from public.app_profiles where account_id="+q(owner.id)+" and kind='REQUESTER'")[0].id;
+const wp=rt.rows("select id from public.app_profiles where account_id="+q(other.id)+" and kind='WORKER'")[0].id;
 rt.sql("begin;set local session_replication_role=replica;"+
- "insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,team_capacity,available_now) values("+
- q(rp)+","+q(owner.id)+",'REQUESTER','Proof owner','Novi Sad','ACTIVE','{}',1,false),("+
- q(wp)+","+q(other.id)+",'WORKER','Proof worker','Novi Sad','ACTIVE','{ciscenje}',3,true);"+
+ "update public.app_profiles set display_name='Proof person',city='Novi Sad',profile_status='ACTIVE',skills='{ciscenje}',team_capacity=3,available_now=true where id in ("+q(rp)+","+q(wp)+");"+
  "insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,required_skills,approximate_city,mode,required_slots,schedule_kind,published_at,revision,response_deadline) values("+
  q(n)+","+q(owner.id)+","+q(rp)+",'PUBLISHED','REST proof','Disposable fixture','PROOF','{}','Novi Sad','OFFERS',3,'FLEXIBLE',now(),1,now()+interval '1 day');"+
  "insert into public.marketplace_responses(id,need_id,worker_account_id,worker_profile_id,response_kind,status,submitted_against_need_revision,current_version,price_rsd,covered_slots) values("+
@@ -27,9 +28,23 @@ const spoof=await rt.ok(other.client.rpc('selectable_application_count',{n:{id:n
 assert.equal(spoof,null);
 const denied=await rt.make().rpc('selectable_application_count',{n:{id:n}});
 assert.ok(denied.error);
+// Four actionable tasks and five historical-only tasks: show three and +1, not nine and +6.
+let extra="begin;set local session_replication_role=replica;";
+for(let i=0;i<8;i++){
+ const next=rt.randomUUID(),response=rt.randomUUID();
+ extra+="insert into public.needs select (jsonb_populate_record(t,jsonb_build_object('id',"+q(next)+",'title','REST overflow'))).* from public.needs t where t.id="+q(n)+";"+
+ "insert into public.marketplace_responses select (jsonb_populate_record(r,jsonb_build_object('id',"+q(response)+",'need_id',"+q(next)+",'status',"+q(i<3?'SUBMITTED':'WITHDRAWN')+"))).* from public.marketplace_responses r where r.id="+q(a)+";"+
+ "insert into public.marketplace_response_versions select (jsonb_populate_record(v,jsonb_build_object('response_id',"+q(response)+"))).* from public.marketplace_response_versions v where v.response_id="+q(a)+";";
+}
+rt.sql(extra+"commit;");
+const home=await rt.ok(owner.client.rpc('rpc_home_attention'));
+assert.equal(home.counts.attention,4);assert.equal(home.items.length,3);assert.equal(home.counts.attentionMore,1);
+assert.equal(home.counts.ownActiveTasks,9);assert.equal(home.counts.activitiesMore,4);
+assert.ok(home.items.every(x=>x.applicationCount===1));
 const reportPath=process.env.PRE_V3_ARTIFACT_DIR+'/pkg035-report.json';
 const report=JSON.parse(readFileSync(reportPath,'utf8'));
 report.rest={computedField:true,ownerCount:1,foreignCount:null,spoofedOwnerCount:null,anonymousDenied:true,syntheticLocalAuthOnly:true};
+report.rest.homeCounts=home.counts;
 report.checks.push({mode:'rest',name:'REAL_POSTGREST_COMPUTED_FIELD_CANDIDATES_AND_AUTHORITY',result:'PASS'});
 writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n');
 console.log('PASS REAL_POSTGREST_COMPUTED_FIELD_CANDIDATES_AND_AUTHORITY');
