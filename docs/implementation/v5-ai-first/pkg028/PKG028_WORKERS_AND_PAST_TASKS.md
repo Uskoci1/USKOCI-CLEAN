@@ -36,6 +36,32 @@ the value the Edge functions receive. That key is a secret. It is never put in a
 After step 1, the first ticks show on canonical DEV exactly what each worker answered, in `net._http_response`. A
 403 or 401 means the key is not the one the Edge functions have.
 
+### Correction, 2026-09-21: step 1 names the wrong key
+
+The owner stored the legacy `service_role` key. Read without printing it, the stored value is a JWT with role
+`service_role`, ref `leqcwgzvjsxugfgzdmth`, and the same issue time as the project's legacy `anon` key. So it is the
+genuine legacy key, and the legacy keys are not disabled. One direct call to each worker still failed:
+
+| worker | answer |
+| --- | --- |
+| `uskoci-push-transport` | 403 `FORBIDDEN` |
+| `uskoci-data-export-worker` | 401 `AUTH_REQUIRED` (Auth then saw the service JWT: "missing sub claim") |
+| `uskoci-account-closure-worker` | 403 `SERVICE_ROLE_REQUIRED` |
+
+On this project the Edge runtime's `SUPABASE_SERVICE_ROLE_KEY` is the new secret key, not the legacy JWT:
+- `uskoci-ai-interview` sends `SUPABASE_SERVICE_ROLE_KEY` as its `apikey`;
+- the gateway logs record those calls with an apikey prefix `sb_secret_` and no JWT.
+
+All three workers compare the caller's key with that value, so the legacy key can never match.
+
+The secret key cannot simply be stored instead. With `verify_jwt` on, the gateway parses `Authorization: Bearer
+sb_secret_…` as a JWT and refuses it before the worker runs. Supabase's own guidance for `pg_net` callers is the
+secret key on the `apikey` header, with `verify_jwt` off and the check in the function. The legacy keys are
+retired at the end of 2026.
+
+The workers stay inert. No worker ran and nothing was claimed. The fix needs the owner's choice, recorded when it
+is made.
+
 ## Why this shape
 
 - **Nothing moves the certified closure source.**
