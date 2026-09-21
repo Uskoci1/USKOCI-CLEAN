@@ -106,7 +106,8 @@ Files read in full since, one section each below: `agreementClientService.ts`, `
 `aiNeedV2Production.ts`, `aiTaskReviewClientService.ts`, `aiNeedV2Ui.ts`, `agreementOutbox.ts`, `index.ts`, `ports.ts`,
 `supportCaseClientService.ts`, `needClientService.ts`, `homeSnapshot.ts`, `marketplaceView.ts`, `candidateClientService.ts`,
 `workerAiClientService.ts`, `aiProductionOverrides.ts`, `aiCommandOverrides.ts`, `productionAuthorityOverrides.ts`,
-`applicationSelectionClientService.ts`, `reviewsClientService.ts`, `publicProfileClientService.ts`,
+`applicationSelectionClientService.ts`, `reviewsClientService.ts`, `publicProfileClientService.ts`, `contactClientService.ts`,
+`workerProfileClientService.ts`, `dataExportClientService.ts`, `accountClosureClientService.ts`, `closureExecutionClientService.ts`,
 `legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
 caller's constant fallback, never a server string).
 
@@ -405,6 +406,43 @@ receipt against it (the submitted slots, the need revision, a content hash, the 
 `readSelectedAgreement` binds the link to the selecting account and treats "not visible" as unknown, never
 as absent. The public profile read throws on any inconsistency between review count, average and the
 availability flags instead of showing a guessed rating.
+
+#### `contactClientService.ts` (143), `workerProfileClientService.ts` (142), and the screen that calls the latter, `src/app/(app)/profil/radnik.tsx` (182) — read in full
+
+**7.39 — note. The worker profile screen replaces every refusal with one sentence.** `radnik.tsx:106`
+does `if (!result.ok) return failed();`, so whatever `azurirajRadnikProfil` says — "Unesi ime pre
+završetka profila.", "Unesi mesto rada…", "Unesi bar jednu veštinu…", "Prethodno čuvanje profila se još
+obrađuje." — the person reads "Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što probaš
+ponovo." Today this costs little: the screen checks the same three things `rpc_complete_worker_profile`
+checks (name ≥ 2, city ≥ 2, ≥ 1 skill) before it offers "Proveri i aktiviraj profil", so those refusals
+should not arise. Measured: 4 active worker profiles, 1 draft; the draft has a name and a city and no
+skill — which the screen asks for by name ("Dopuni osnovne podatke"). One active profile has no skill
+left: activation required one, and nothing stops removing it afterwards. The service's formal "Dostupnost
+menjajte…" is unreachable — the screen's command builder never sends availability.
+
+**7.40 — note, well built.** Phone and location grants go through `rpc_set_contact_grant`; the location
+reveal decoder refuses a reveal that names the viewer as owner, an expired grant, an address that does not
+match the confirmed points, or a start pin that is not the confirmed start point. All eleven location
+refusals are mapped; phone refusals go through the shared legacy table, which has `PHONE_NOT_SET` and
+`AGREEMENT_NOT_ACTIVE`.
+
+#### `dataExportClientService.ts` (147), `accountClosureClientService.ts` (103), `closureExecutionClientService.ts` (66) — read in full, with `private.account_closure_preparation` and `rpc_get_account_closure`
+
+**7.41 — risk. Two closure services, two answers.** The preparation path and its server counterpart agree
+with each other and say closure cannot run: `private.account_closure_preparation` appends
+`CLOSURE_EXECUTION_NOT_READY` unconditionally and hard-codes `executionReady: false` (its comment: "There
+is intentionally NO operator flag to bypass missing code"), and `accountClosureClientService` refuses any
+receipt without that reason. The execution path (`rpc_review_account_closure_execution`,
+`rpc_start_account_closure_execution`, adapter `OWNER_AF_D22_EVENT_ERASURE_V1`) is a second authority that
+can report `ready: true` and start (6.1). Both are wired into one screen, `ClosureDialog.tsx`. Also, once
+an execution starts, `rpc_get_account_closure` returns `restricted: true`, and the preparation decoder
+refuses anything but `restricted: false` and states `BLOCKED`/`NOT_READY` — so `accountClosureClientService.read`
+fails for an account that is closing. What the person sees then is for the screen read (Area 8).
+
+**7.42 — note, well built.** The export client admits only intake and a validated artifact descriptor
+(size, sha256, md5, expiry, generation); a server "download available" flag cannot switch on delivery by
+itself; lifecycle dates must agree with the status (a cancelled request has a cancel time, a finished one
+a completion time). All eight export refusals are mapped.
 
 ### Area 9 — HITNO, categories, and matching
 
