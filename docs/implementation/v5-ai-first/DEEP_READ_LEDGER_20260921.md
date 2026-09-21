@@ -751,6 +751,27 @@ deliveries keep their text.
 has no operator (7.31). The Inbox resolves every event to its own screen, questions to the question
 screen, and a filter by role; its "N nepročitanih" and "Pročitaj sve" are server-counted.
 
+#### The remaining route files — read in full
+
+`index.tsx`, `dogovori.tsx`, `prilike.tsx`, `mapa.tsx`, `potrebe.tsx`, `moje-aktivnosti.tsx`, `moje-prijave.tsx`,
+`potrebe/[id]/kandidati.tsx`, `raspored.tsx`, `profil/{obavestenja,podaci,dostupnost,lokacija,privatnost,
+pravna,izvoz,razgovor,fotografija}.tsx`, `fotografije-zadatka.tsx`, `oporavak.tsx`.
+
+**8.15 — rule, copy.** `oporavak.tsx:78`: "Postavite novu lozinku za nalog:" — formal. `profil/razgovor.tsx`
+repeats the intake's "Odustali ste od odgovora… rezervisana potrošnja je zadržana" (`:167`) and "Ako je
+obrada već počela, rezervisana potrošnja ostaje zadržana" (`:208`) — internal cost wording on a worker's
+profile screen.
+
+**8.16 — note, verified.** Every other claim these screens make holds against the code behind them.
+"Izabrane fotografije šaljemo Google Gemini servisu radi provere sadržaja pre objave" — the publication
+evaluator sends each JPEG as `inlineData` to Gemini, and when image review is off it refuses a task with
+photos as `PUBLIC_MEDIA_NOT_READY` rather than publishing unchecked ones. The worker-profile conversation
+reuses the latest open one instead of creating a row per visit (`rpc_open_worker_ai`). The export screen
+matches 7.46 exactly: "Pripremi kopiju" answers "Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje
+zabeležen." The privacy and legal screens say "not published" where nothing is published (7.54). The
+calendar shows only work the person agreed to do, and says so. One person has two names — the requester
+profile's ("Ime na profilu") and the worker profile's — edited on different screens.
+
 **8.12 — note, well built.** The application composer journals the exact command before sending, never
 sends a second key for the same intent, retires it only on its own receipt or a known refusal, and
 restores an unresolved one after a cold start; the owner's task screen asks the publication gate itself
