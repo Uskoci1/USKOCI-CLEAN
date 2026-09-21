@@ -190,3 +190,15 @@ export function pointsMissing(geography: unknown, resolved: unknown): { done: nu
     .filter((slot): slot is LocationSlot => typeof slot === 'string' && slots.includes(slot as LocationSlot)));
   return { done: confirmed.size, total: slots.length };
 }
+
+/**
+ * The approximate place of a Task, as one line.
+ *
+ * Three client services each wrote this out: `formatLocation` in the application service,
+ * `podrucje` in the need service, `fLoc` in the Supabase source. All three said exactly the same
+ * thing, which is the only reason no screen disagreed with another — three copies that happened to
+ * still match. The wording, including what is shown when there is no place, is one decision.
+ */
+export function podrucjeTekst(area: string | null | undefined, city: string | null | undefined): string {
+  return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
+}

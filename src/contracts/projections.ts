@@ -28,13 +28,26 @@ export type Pokrivenost = {
 
 /* ---------------------------------------------------------------- Potreba */
 
-export type StanjePotrebe =
-  | 'NACRT'
-  | 'OBJAVLJENA'
-  | 'CEKA_PRIJAVE'
-  | 'DELIMICNO_POPUNJENA'
-  | 'POPUNJENA'
-  | 'ZATVORENA';
+/**
+ * The states a Task can be in, as a list a running program can ask about.
+ *
+ * The type alone was not enough: a route that needed to check "is this a state I know?" built a
+ * Record of all six mapped to Serbian words, and used only `Object.hasOwn` on it. The words were
+ * never read, and they had already drifted from the ones the screen shows — 'Nacrt' where the Task
+ * detail says 'Privatan nacrt'. A list of strings the program can read is what that check wanted.
+ *
+ * The type is derived from the list so the two cannot disagree.
+ */
+export const STANJA_POTREBE = [
+  'NACRT',
+  'OBJAVLJENA',
+  'CEKA_PRIJAVE',
+  'DELIMICNO_POPUNJENA',
+  'POPUNJENA',
+  'ZATVORENA',
+] as const;
+
+export type StanjePotrebe = (typeof STANJA_POTREBE)[number];
 
 export type RezimCene = 'MY_PRICE' | 'OFFERS';
 

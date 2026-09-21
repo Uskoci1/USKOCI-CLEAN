@@ -3,7 +3,7 @@ import type { Izvor } from './ports';
 import { capabilityTerms } from '../lib/capabilityTerms';
 import { calendarInstant } from '../lib/calendarTime';
 import { countryCode, timeZone } from '../lib/market';
-import { normalizeTaskGeography } from '../lib/location';
+import { normalizeTaskGeography, podrucjeTekst } from '../lib/location';
 import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 import { readNeedUrgencies } from './needUrgencyClientService';
@@ -15,9 +15,6 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'potreba'>;
 
-function podrucje(area: string | null | undefined, city: string | null | undefined) {
-  return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
-}
 
 function stanje(
   raw: string,
@@ -102,7 +99,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
     taskCountryCode: raw.task_country_code ?? undefined, taskTimezone: raw.task_timezone ?? undefined,
     schedule,
     detalji,
-    podrucjeTekst: detalji.rezimLokacije === 'REMOTE' ? 'Na daljinu' : podrucje(raw.approximate_area, raw.approximate_city),
+    podrucjeTekst: detalji.rezimLokacije === 'REMOTE' ? 'Na daljinu' : podrucjeTekst(raw.approximate_area, raw.approximate_city),
     // The same two columns the public reader hands to every signed-in viewer as `pin`, and their
     // type is the coarseness: numeric(6,2)/(7,2), about a kilometre. Asking for them here only
     // means the owner can see their own Task where a stranger already sees it — on a map.

@@ -16,6 +16,7 @@ import type {
   Pokrivenost,
 } from '../contracts/projections';
 import { novac } from '../lib/novac';
+import { podrucjeTekst } from '../lib/location';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_t, prop) => (supabaseKlijent() as never)[prop],
@@ -43,9 +44,6 @@ function fTime(iso: string | null): string {
   return new Date(iso).toLocaleString('sr-Latn-RS');
 }
 
-function fLoc(area: string, city: string) {
-  return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
-}
 
 /**
  * One item of public.rpc_list_open_tasks_v3, shaped like the row the shared public projection reads, so
@@ -84,7 +82,7 @@ function publicTaskContext(raw: Record<string, any>) {
     ? { lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) } : null;
   return { opis: raw.description, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
     taskTimezone: raw.task_timezone ?? undefined, vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
-    podrucjeTekst: remote ? 'Na daljinu' : fLoc(raw.approximate_area, raw.approximate_city), priblizno };
+    podrucjeTekst: remote ? 'Na daljinu' : podrucjeTekst(raw.approximate_area, raw.approximate_city), priblizno };
 }
 
 function validPublicInstant(value: unknown): value is string {

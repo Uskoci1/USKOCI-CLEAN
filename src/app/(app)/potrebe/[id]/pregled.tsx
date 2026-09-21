@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import type { PotrebaProjekcija, StanjePotrebe } from '../../../../contracts/projections';
+import { STANJA_POTREBE, type PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod } from '../../../../data/ports';
 import { aiNeedV2Izvor } from '../../../../data';
 import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
@@ -18,8 +18,6 @@ import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 
-const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Nacrt', OBJAVLJENA: 'Objavljena', CEKA_PRIJAVE: 'Čeka prijave',
-  DELIMICNO_POPUNJENA: 'Delimično popunjena', POPUNJENA: 'Popunjena', ZATVORENA: 'Zatvorena' };
 type Snapshot = { need: PotrebaProjekcija; remainingClosed: boolean };
 const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvori Zadatak i pregledaj trenutno stanje.');
 
@@ -69,7 +67,7 @@ function OwnedNeed({ id }: { id: string }) {
       if (!uuid(id)) return failure('NEED_REQUIRED', 'Zadatak nije izabran.');
       const need = await izvor.potreba(id);
       if (!current()) return changed();
-      if (!need || !sameId(need.id, id) || !positiveInteger(need.revizija) || !Object.hasOwn(STATUS, need.stanje)) {
+      if (!need || !sameId(need.id, id) || !positiveInteger(need.revizija) || !STANJA_POTREBE.includes(need.stanje)) {
         return failure('NEED_UNAVAILABLE', 'Zadatak nije pronađen ili više nije dostupan.');
       }
       const search = await ru4Production.remainingSearchState(id);
