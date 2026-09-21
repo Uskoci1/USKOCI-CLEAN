@@ -2,15 +2,23 @@
 // No production connection, DDL, index tuning, legal seed, provider call or retirement.
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {assert,sha,q,sql,rows,login,prove,pass,requester,worker,anon,ok,denied,requesterId,workerId} from './closure_runtime.mjs';
 import {migrationSnapshotQuery} from './history_snapshot.mjs';
 import {partitionHygieneInventory,assertPrivateHygieneTables} from './hygiene_inventory.mjs';
 const base='06d51ecb1438a93a4ecce64692ff868474fca598';
 const source=path=>{const b=readFileSync(path);assert.deepEqual(b,execFileSync('git',['show',sha+':'+path]));return b.toString();};
 const key=(schema,name)=>schema+'.'+name;
+// F7 (2026-09-19, docs/implementation/v5-ai-first/pkg023/F7_SOURCE_REPAIR_20260919.md): the repository's copy of an
+// applied 2026-08-25 migration was re-transcribed to the bytes canonical DEV actually ran (a CP437 round trip had
+// garbled three lines). It differs from the base only because of that repair: it is history, not a candidate. Only
+// its exact repaired bytes are set aside; any other change to it is still refused below.
+const SOURCE_REPAIRS=new Map([['supabase/migrations/20260825115040_cloud_profile_foundation_1_3b.sql','03f836c72c7d587861a6459978470bdf']]);
+const notRepair=path=>{const md5=SOURCE_REPAIRS.get(path);if(!md5)return true;
+ assert.equal(createHash('md5').update(Buffer.from(source(path))).digest('hex'),md5,'SOURCE_REPAIR_BYTES_CHANGED:'+path);return false;};
 await prove('PRE_V3_BOUNDED_HYGIENE','bounded-hygiene-report.json',async report=>{
  await login();const before=rows(migrationSnapshotQuery());assert.equal(before.length,123);report.historyCount=123;
- const files=execFileSync('git',['diff','--name-only',base,sha,'--','supabase/migrations'],{encoding:'utf8'}).trim().split('\n').filter(p=>p.endsWith('.sql'));
+ const files=execFileSync('git',['diff','--name-only',base,sha,'--','supabase/migrations'],{encoding:'utf8'}).trim().split('\n').filter(p=>p.endsWith('.sql')).filter(notRepair);
  assert.ok(files.length>=7&&files.length<=32);const functions=new Set(),tables=new Set();
  const inventory=partitionHygieneInventory({candidates:files.map(file=>({file,bytes:Buffer.from(source(file))})),
   manifest:source('supabase/migrations/MD5_MANIFEST.txt'),
