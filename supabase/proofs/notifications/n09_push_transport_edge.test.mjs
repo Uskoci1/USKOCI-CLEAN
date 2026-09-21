@@ -46,6 +46,10 @@ const completion=h=>h.calls.find(x=>x.url.endsWith('rpc_complete_push_transport'
 test('service-only: client JWT and arbitrary token cannot claim/read secrets or send',async()=>{
  for(const authorization of ['Bearer client-jwt','Bearer service_role','',`Bearer ${secret}extra`]){const h=harness();const r=await h.run(undefined,{authorization});assert.equal(r.response.status,403);assert.equal(h.calls.length,0);assert.deepEqual(h.envReads,['SUPABASE_SERVICE_ROLE_KEY']);}
 });
+test('PKG-030: the server key on apikey is accepted, as the scheduled tick sends it; anything near it is refused',async()=>{
+ const ok=harness({env:{EXPO_PUSH_TRANSPORT_ENABLED:'false'}});const r=await ok.run(undefined,{apikey:secret});assert.equal(r.response.status,200);assert.equal(r.body.kind,'DISABLED');assert.equal(ok.calls.length,0);
+ for(const headers of [{apikey:`${secret}extra`},{apikey:secret.slice(0,-1)},{apikey:'client-publishable'},{apikey:'client-publishable',authorization:'Bearer client-jwt'},{'x-api-key':secret}]){const h=harness();const x=await h.run(undefined,headers);assert.equal(x.response.status,403);assert.equal(h.calls.length,0);}
+});
 test('disabled deployment consumes no work or provider secret',async()=>{const h=harness({env:{EXPO_PUSH_TRANSPORT_ENABLED:'false'}});assert.equal((await h.run()).body.kind,'DISABLED');assert.equal(h.calls.length,0);assert.ok(!h.envReads.includes('EXPO_ACCESS_TOKEN'));});
 test('reject recipients, URL, payload and unexpected input before claim',async()=>{for(const input of [{action:'send'},{action:'tick',to:token},{action:'tick',url:'https://evil.test'},[]]){const h=harness();assert.equal((await h.run(input)).response.status,400);assert.equal(h.calls.length,0);}});
 test('actual send revalidates exact lease then submits constant minimal privacy-safe payload',async()=>{

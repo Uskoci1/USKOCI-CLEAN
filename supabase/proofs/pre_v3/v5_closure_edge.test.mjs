@@ -40,6 +40,15 @@ test('worker is disabled by default and rejects non-service access before any RP
  assert.equal((await runtime.handler(request('SYNTHETIC_USER_SESSION'))).status,403);
  assert.deepEqual(await(await runtime.handler(request(base.SUPABASE_SERVICE_ROLE_KEY))).json(),{kind:'DISABLED'});assert.equal(io,0);
 });
+test('PKG-030: the server key on apikey is accepted without a Bearer; a person or a near key is not',async()=>{
+ const base={SUPABASE_URL:'https://closure.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_ANON_KEY',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE_SECRET'};let io=0;
+ const runtime=loadClosureWorker({env:n=>base[n],fetch:async()=>{io++;throw Error('NO_IO_EXPECTED');}});
+ const request=headers=>new Request('https://edge.test.invalid/closure',{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify({accountId:A,generation:G})});
+ assert.deepEqual(await(await runtime.handler(request({apikey:base.SUPABASE_SERVICE_ROLE_KEY}))).json(),{kind:'DISABLED'});
+ for(const [headers,status] of [[{apikey:base.SUPABASE_SERVICE_ROLE_KEY+'x'},401],[{apikey:base.SUPABASE_ANON_KEY},401],[{},401],
+  [{apikey:base.SUPABASE_ANON_KEY,authorization:'Bearer SYNTHETIC_USER_SESSION'},403]])assert.equal((await runtime.handler(request(headers))).status,status);
+ assert.equal(io,0);
+});
 test('maintenance remains bounded and checks no jobs when the current binding is closed',async()=>{
  const base={SUPABASE_URL:'https://closure.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_ANON_KEY',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE_SECRET',USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED:'true'};let io=0;
  const runtime=loadClosureWorker({env:n=>base[n],fetch:async(url,init)=>{io++;assert.ok(url.endsWith('/rpc/rpc_list_account_closure_work_service'));assert.deepEqual(JSON.parse(init.body),{p_limit:2});return response([]);}});

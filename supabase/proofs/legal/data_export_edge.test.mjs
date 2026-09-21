@@ -73,6 +73,12 @@ test('internal tick requires exact service credential, never a user-supplied act
   const rejected=fixture();assert.equal((await rejected.invoke({action:'tick'})).status,400);assert.equal(count(rejected,'rpc_claim_data_export'),0);
   const f=fixture();assert.deepEqual(await(await f.invoke({action:'tick'},{Authorization:'Bearer SYNTHETIC_SERVICE_SECRET'})).json(),{kind:'TICK_COMPLETED'});assert.equal(count(f,'auth'),0);assert.equal(count(f,'rpc_claim_data_export_cleanup'),1);
 });
+test('PKG-030: the internal tick also takes the service credential on apikey, and a person never becomes internal',async()=>{
+  const f=fixture();const res=await f.invoke({action:'tick'},{Authorization:'',apikey:'SYNTHETIC_SERVICE_SECRET'});assert.deepEqual(await res.json(),{kind:'TICK_COMPLETED'});
+  assert.equal(count(f,'auth'),0);assert.equal(f.calls.find(c=>c.name==='rpc_claim_data_export_cleanup').headers.authorization,'Bearer SYNTHETIC_SERVICE_SECRET');
+  for(const headers of [{Authorization:'',apikey:'SYNTHETIC_SERVICE_SECRETx'},{Authorization:'',apikey:'SYNTHETIC_ANON'}]){const g=fixture();assert.equal((await g.invoke({action:'tick'},headers)).status,401);assert.equal(g.calls.length,0);}
+  const person=fixture();assert.equal((await person.invoke({action:'tick'},{apikey:'SYNTHETIC_ANON'})).status,400);assert.equal(count(person,'rpc_claim_data_export'),0);
+});
 test('cleanup proves missing exact object before recording deleted',async()=>{
   const f=fixture();await f.invoke({action:'cleanup',receiptId:R});assert.equal(JSON.parse(f.calls.find(c=>c.name==='delete').body).prefixes[0],PATH);
   assert.equal(JSON.parse(f.calls.find(c=>c.name==='rpc_complete_data_export_cleanup').body).p_deleted,true);
