@@ -34,7 +34,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 4 | Notifications: emit → deliver → push, and the Edge workers | read 2026-09-21 — see findings |
 | 5 | AI interview, review, publication | read 2026-09-21 — see findings |
 | 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
-| 7 | Client data layer, file by file | PARTIAL 2026-09-21 — server claims checked against the client; full per-file read owed |
+| 7 | Client data layer, file by file | read 2026-09-21 — all 91 files, each checked against the server functions it calls (7.1–7.59) |
 | 8 | Routes and screens, file by file | pending |
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
@@ -92,7 +92,7 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
 
-### Area 7 — Client data layer (PARTIAL — see scope)
+### Area 7 — Client data layer (complete)
 
 **Scope, stated plainly.** Not yet read file by file. What was read in full: `src/data/serverReceipt.ts`
 (the error pipeline every RPC call goes through), the error map of `applicationSelectionClientService.ts`,
@@ -320,11 +320,14 @@ configuration throws instead of falling back.
 per account and Agreement, every pending message and up to 50 sent ones — their full text — in
 AsyncStorage under `uskoci:agreement-outbox:v1:<account>:<agreement>`. Nothing ever removes that key: not
 when the Agreement ends, not at logout (`signOutLocal` only calls `auth.signOut({scope:'local'})`; the
-session store clears no storage), not after an account closure. The same holds for the other journals
-(application commands, AI turn intents, support and safety drafts) except the few that delete their own
-entry on completion; only the return target is cleared by the auth flow. Another account on the same phone
-cannot read these through the app — every key and every read is bound to the account id — but the text
-stays on the device. The 2026-09-02 draft legal constitution lists, as an Auth proof requirement,
+session store clears no storage), not after an account closure. *(Narrowed after reading every journal:)*
+the other journals are deliberate — support, safety, Q&A, AI-turn, location and closure intents store only
+opaque ids and a content hash, and `aiTurnIntentJournal` says outright that unknown outcomes "survive app
+exit/logout" so the same command can be resolved later. The only other one holding personal text is the
+application command journal (the offer's price and note, up to 4,000 characters), and it deletes itself
+once that command is resolved. So the one that matters is the outbox: message text, never removed. Only
+the return target is cleared by the auth flow. Another account on the same phone cannot read these through
+the app — every key and every read is bound to the account id — but the text stays on the device. The 2026-09-02 draft legal constitution lists, as an Auth proof requirement,
 "logout clears sensitive local intent/workspace state".
 
 **7.29 — note, well built.** The outbox serialises every read-merge-write per key across remounts,
@@ -606,6 +609,31 @@ account changed, marks one item read before resolving where it leads, and lets t
 Push device registration, rotation and revocation are revision-bound; logout revokes the session's
 device first with a 4-second bound so a slow network cannot keep a person signed in. Push readiness is
 decoded as a strict state machine and never inferred from a registered token.
+
+#### The remaining 30 files — read in full
+
+`requesterProfileClientService`, `ownProfileClientService`, `workerAvailabilityClientService`,
+`workerCapacityClientService`, `workerCalendarClientService`, `needUrgencyClientService`,
+`responseClientService`, `taskRelation`, `needPublicationReadiness`, `entryIntentClientService`,
+`supabaseClient`, `authAvailabilityClientService`, `marketClientService`, `calendarErrors`, `buildIdentity`,
+`remainingSearchCloseAttempt`, `needDetailPresentation`, `focusedResource`, `nativeCurrentLocation`,
+`passwordRecoveryErrors`, `aiTurnIntentJournal`, `workerAiTurnIntentJournal`, `agreementPhotoJournal`,
+`supportCaseJournal`, `supportCaseTypes`, `supportCaseWire`, `supportCaseReadDecoders`, `serverReceipt`
+(read earlier), and the two fakes `lazniIzvor` (771) and `lazniAi` (355).
+
+**7.59 — note.** Nothing in these contradicts the server. Checked against it: `taskRelation` treats a
+withdrawn or closed application as "may apply again", and the database agrees — the unique index
+`marketplace_responses_one_live_per_worker_need` covers only live statuses. `needPublicationReadiness`
+answers from `rpc_get_need_publication_context` and never becomes the permission to publish.
+`focusedResource` keeps what a screen showed while re-reading and wipes it when the app goes to the
+background, so the recents thumbnail holds no private data. `needUrgencyClientService` issues one
+`fn_need_urgency` call per urgent task (four at a time) — fine at today's volume, a cost at hundreds.
+`needDetailPresentation.readableTitle` strips a pair of quotes that the AI wraps around titles ("six of
+seventeen tasks"); its own comment says the real repair belongs in the interview prompt. The two fakes are
+reachable only under Jest or `EXPO_PUBLIC_USE_FAKE_SOURCE=1` (the APK sets `0`); they model the retired V1
+intake and carry one formal line ("Kako biste ukratko nazvali ovaj posao?") that no user can see.
+
+**Area 7 is complete: all 91 files of `src/data` read in full.**
 
 ### Area 9 — HITNO, categories, and matching
 
