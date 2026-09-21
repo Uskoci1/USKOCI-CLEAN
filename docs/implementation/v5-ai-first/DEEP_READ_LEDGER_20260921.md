@@ -35,7 +35,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 5 | AI interview, review, publication | read 2026-09-21 — see findings |
 | 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
 | 7 | Client data layer, file by file | read 2026-09-21 — all 91 files, each checked against the server functions it calls (7.1–7.59) |
-| 8 | Routes and screens, file by file | in progress — all 48 route files; `src/ui` under way (8.1–8.20) |
+| 8 | Routes and screens, file by file | in progress — all 48 route files; `src/ui` under way (8.1–8.23) |
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
 
@@ -844,6 +844,49 @@ can refuse them again. The location controller stores only opaque coordinates of
 explains that a shared point is past, not live. The review screen shows the saved receipt as final;
 the task-lifecycle panel's copy holds against `rpc_cancel_need` (applications close, Agreements cancel
 separately). The Q&A screen hides answers from an older revision and says so.
+
+#### `src/ui` — support, group conversation, notifications, availability, worker profile, lists and cards
+
+Read in full: `support/*` (9 files), `groups/*` (3), `notifications/{PushPreferences,PushRuntime}.tsx`,
+`calendar/*` (3), `workerProfile/*` (3), `v2/{MarketplacePresentation,TaskCard,NeedUrgencyBadge,
+NeedPresentation,PublicNeedPresentation,MyApplicationsPresentation,AgreementCollectionPresentation,
+AgreementPresentation}.tsx`. With them: `rpc_prepare_worker_ai_review` (its "missing" list is written in
+Serbian labels, so "Dopuni: …" reads as words), `rpc_abandon_worker_ai`, the triggers on
+`ai_conversations`.
+
+**8.21 — rule, copy — the formal and mixed forms the first sweep missed.** The first sweep (8.13, 8.15)
+read only quoted strings; text written directly between JSX tags was never scanned. A second pass over
+JSX text finds: `MarketplacePresentation.tsx:89` "Promeni pretragu ili poništite filtere." — "ti" and
+"Vi" in one sentence, on the empty state every search can reach; `location/ResolvedPinMap.tsx:193`
+"Tačka nije izabrana. Pronađite područje i dodirnite mapu." — formal; `GroupConversationScreen.tsx:63`
+"Ovo upravljanje vidiš samo vi." — "vidiš" with "vi", ungrammatical (meant "ti"); `AvailabilityForm.tsx:134`
+"Promena će se sačuvati tek kada sačuvate dostupnost." — formal, beside "Odustani"/"Ukloni";
+`location/NeedLocationForm.tsx:145` "Tačka koju uređujete" — formal. Plural address to the pair
+("Ovde se dogovarate… između vas dvoje", `AgreementChat.tsx:121`; "Dogovorite zajedničke korake…",
+"dogovarajte u svom privatnom Dogovoru" in the group screen) is grammatical but still speaks to one reader
+in the plural. And a leftover of the retired "Potreba": the owner's own task detail (`NeedPresentation.tsx:16`)
+labels a Zadatak "Objavljena", "Delimično popunjena", "Popunjena", "Zatvorena" — feminine, for a masculine
+noun — while the card for the same task (`TaskCard.tsx:231`) says "Objavljen", "Popunjen", "Zatvoren".
+
+**8.22 — note, copy, plurals.** Counts glued to a fixed plural read wrong for one: "{n} nepročitanih" in
+the group screen and its entry ("1 nepročitanih"), "{n} stavki alata · {n} vozila" on the worker profile
+("1 stavki alata · 1 vozila"), "{n} redovnih termina" on the worker AI card, and the same card's team size,
+"{n} ljudi" for everything but one ("2 ljudi"). `system/plural.ts` already has the helper, `osoba()`
+included, and these four do not use it. The group composer allows 4,000 characters, its
+counter reads "/ 2.000", and past 2,000 the send button just greys out with nothing turning red — the
+limit (`groupBody`, 1–2,000) is right, the field is not. Availability shows raw ISO dates and seconds
+("Od 2026-09-21", "2026-09-21 · 22:00:00 → …") and the raw zone name ("Europe/Belgrade") where the rest of
+the app formats them. A finished Dogovor card always says "ocena pomaže drugima da izaberu", also after
+the person has rated.
+
+**8.23 — note, verified and well built.** Support: a create journals the exact command and retires it
+only on a canonical receipt; the context entry reuses an existing case for the same reference instead of
+opening a second; operator actions render only when the case says this viewer may take them; a message
+chosen as evidence is shown before it is attached. Group conversation: the body is never written to disk
+(four opaque fields are), and a message is marked read only when it was actually on screen for 600 ms.
+Push preferences: every claim holds against `private.emit_event` — a disabled category suppresses both the
+in-app row and the push, quiet hours apply only to push, and the lock-screen text is the generic line the
+transport sends. The worker AI screen's review lists exactly what the save writes.
 
 ### Area 9 — HITNO, categories, and matching
 
