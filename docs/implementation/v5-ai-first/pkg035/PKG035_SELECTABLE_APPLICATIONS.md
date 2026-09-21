@@ -1,6 +1,6 @@
 # PKG-035 — actionable applications are distinct from history
 
-Status: candidate, not applied to canonical DEV. No device verification yet.
+Status: proved and applied to canonical DEV, 2026-09-21. No device verification yet.
 
 Deep read 7.32: Home and task cards used all visible responses as applications waiting for selection.
 Withdrawn, selected, stale and closed responses belong to history, not actionable attention.
@@ -37,4 +37,29 @@ The first disposable run reproduced the old defects, applied atomically and kept
 caught a bug in the new classifier: duplicate record field names read the obsolete response interval.
 Explicit version_start/version_end aliases fix it. A complete rerun is required before DEV application.
 
-Pending: inspect final CI proof, read-only DEV preflight and authorized apply. No phone installation.
+Final run `35658331088` at `3eaa5e55bfdce2ccf29754c1372688010a2226a1` passed **38/38** checks.
+Downloaded report and source binding inspected. Real local Auth/PostgREST verifies the computed query,
+owner isolation, spoofed composite refusal, anonymous refusal and four selectable tasks out of nine:
+three attention rows plus +1. The REST fixture was corrected to reuse Auth-created profiles and omit
+generated geography columns; no product restrictions were relaxed to make that fixture pass.
+
+DEV preflight: ledger 190 = 147 + 43; both new readers absent; all six predecessor/dependency pins
+matched; five historical response rows, three in selected/non-active states. Applied the committed LF text
+without its final newline as `20260921214247_dev_alpha_pkg035a_selectable_application_counts`.
+Ledger after: **191 = 147 + 44**. All four body hashes, owners, definer/volatility/configuration and ACLs
+match the proof. Migration text SHA-256:
+`c0931ffa78e8f5ac7d185343bbadd672675b2c2c08b37181b6af3710f7f781b4`.
+Successful transaction asserts the ready certified source before and unchanged digest/readiness after.
+Direct private digest execution remains unavailable through this connector; no privilege escalation or
+independent post-execution claim. No existing user rows, JWT setting or certificate changed.
+
+Receipt: `supabase/operations/dev-alpha/ledger/20260921_pkg035_application.receipt.json`.
+Compact evidence: `PROOF_SUMMARY_20260921.json`. Related CI on client commit `62e90e92` passed:
+PKG-004 `35657744872`, PKG-007 `35657745051`, historical PKG-023j `35657744862`.
+Local inventory check still refuses the owner's foreign untracked migration; the CI tracked 147-source
+inventory passes. The foreign file is neither changed nor committed.
+
+New APK run `35657828926` was dispatched from `fe60a385` (includes client `62e90e92`). Check its final
+result/hash before installation. Old verified APK `35654417281` has SHA-256
+`af669ad295a70d8443aead32d3abfc1877e20e2a78bb681de3813e94c39d9675`, but lacks PKG-035.
+The complete Home aggregate remains unwired; this package fixes actionable facts, not all list reads.

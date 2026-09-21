@@ -395,6 +395,16 @@ izbor" while nobody is waiting. Not visible today: the 5 responses on DEV are 3 
 tasks (which read as "Popunjen" and raise nothing) and 2 `SUBMITTED`. The server aggregate for exactly
 this, `pkg023j`, is installed and not wired (AGENTS.md).
 
+**Applied 2026-09-21: PKG-035.** DEV ledger 191; proof `35658331088` passed 38 checks. One private
+classifier now owns candidate state, the owner-bound `selectable_application_count` and Home attention.
+It also fixes two reproduced reader/selection disagreements: fixed-price mismatch and the proposal's actual
+calendar interval. Client `62e90e92` reads the count in the existing task query and uses it for attention,
+state and the selection badge, retaining the historical total. Types and 240 suites / 4606 tests pass;
+three regressions fail on the old client and pass after. Real local Auth/PostgREST proved owner isolation,
+spoof refusal and 4 actionable tasks out of 9 yielding three rows plus +1. No DEV fixtures/data rewrites or
+certificate move. Receipt: `20260921_pkg035_application.receipt.json`. New APK/device verification pending;
+wiring the entire Home aggregate remains separate.
+
 **7.33 — note.** Otherwise the Home is composed carefully: each of the three reads fails alone and says
 so instead of reading as empty; attention is ordered completion to confirm, open problem, changed task
 under my application, then my tasks; Agreements are ordered by start; nothing consults an app-wide mode.

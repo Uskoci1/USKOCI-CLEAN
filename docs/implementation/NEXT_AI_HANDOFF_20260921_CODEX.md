@@ -4,6 +4,34 @@ This supplements `NEXT_AI_HANDOFF_20260921_2145.md`; retain all owner boundaries
 Work only in `C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/uskoci-kompletan-audit-2e715e`.
 Branch remains `work/pre-v3-engine-integration-20260911`. No subagents, new dependencies, paid providers or device operations.
 
+## Latest checkpoint: PKG-035 completed (supersedes the count investigation below)
+
+- DEV ledger **191 = 147 + 44**. PKG-035 applied as `20260921214247_dev_alpha_pkg035a_selectable_application_counts`.
+- Proof `35658331088` at `3eaa5e55` passed 38 checks; exact text/body/ACL readback matches. Receipt
+  `supabase/operations/dev-alpha/ledger/20260921_pkg035_application.receipt.json` and package document retain all evidence.
+- 7.32 fixed: private shared classifier -> candidate states, owner computed field and Home aggregate.
+  Actual proposal calendar and PKG-033 price assertion are used. Historical total remains separate.
+  Owner computed field trusts only the ID of a supplied composite; foreign count null, anonymous refused.
+- Client `62e90e92` uses the computed field in the existing task query, no per-task extra client calls.
+  Home/cards/detail use selectable counts; unknown is never replaced with total. Types and full Jest
+  **240 suites / 4606 tests passed**. Three regressions demonstrably fail on the former source/pass after.
+- PKG-004 `35657744872`, PKG-007 `35657745051`, historical PKG-023j `35657744862` all succeeded.
+- New APK **35657828926**, source `fe60a385`, includes PKG-035 client; it was still building at this checkpoint.
+  Verify artifact/hash before claiming ready. No device operation or installation performed.
+- Previous APK35654417281 succeeded; downloaded under ignored `artifacts/apk-35654417281`, hash
+  `af669ad295a70d8443aead32d3abfc1877e20e2a78bb681de3813e94c39d9675` matches attestations. It lacks PKG-035.
+- Foreign untracked migration remains untouched. Local integrity refuses that extra file; CI tracked source147 passes.
+- Remaining original findings: **7.41, 7.17, 7.1, 11.1, 11.2**. Phone/legal/second-device recovery decisions
+  remain separate. Full Home aggregate wiring is still pending; do not claim all Home list scans were removed.
+- Read `serverReceipt.ts` and 7.1 again while waiting: unknown business refusals still share the uncertain
+  outcome fallback. No complete per-call audit or fix has been made; do not mark that finding fixed.
+
+Proof traps learned: alias version interval fields explicitly (the response also has old interval columns);
+the new classifier now explicitly lists columns. Local Auth automatically creates profiles. REST overflow
+fixtures must name writable columns; `needs.approx_geog` is generated. These test failures were corrected
+before application; every final scenario and the actual PostgREST read passed. No migration was rewritten
+after application. The current candidate is frozen as applied.
+
 ## Completed in this continuation
 
 - Read the entire original handoff, AGENTS and deep-read ledger before changes.
