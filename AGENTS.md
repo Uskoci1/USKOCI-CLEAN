@@ -1,5 +1,11 @@
 # USKOČI — repository entry map
 
+PKG-033 (2026-09-21, **candidate only; not applied**): application admission parity for deep read 3.1 / 7.3 / 12.6.
+See `docs/implementation/v5-ai-first/pkg033/PKG033_APPLICATION_ADMISSION.md` for scope and proof. The candidate
+does not move the closure certificate. The resumed connector cannot execute the private preflight controls;
+the owner has been asked for their nonsecret result. Do not mark this package applied or its proof passed
+without the actual receipt/report. Existing untracked foreign migration remains excluded.
+
 **Start here (2026-09-21 21:45): `docs/implementation/NEXT_AI_HANDOFF_20260921_2145.md`.** It records the current
 worktree, branch, canonical DEV state (ledger 188, certificate `65980fce…`), the owner's standing rules, everything
 applied on 2026-09-21 (PKG-027 to PKG-032), the exact method for a DEV change, and where the work stopped. It
