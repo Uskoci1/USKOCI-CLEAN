@@ -194,7 +194,7 @@ begin
       raise exception 'PKG027A_GRANTS_CHANGED: %', s.signature;
     end if;
   end loop;
-  if (select count(*) from pkg027a_before b join pkg027a_patch p on p.signature = b.signature) <> 8
+  if (select count(*) from pkg027a_before b join pkg027a_patch pt on pt.signature = b.signature) <> 8
      or (select count(distinct signature) from pkg027a_patch) <> 6 then
     raise exception 'PKG027A_PATCH_SET_CHANGED';
   end if;

@@ -122,12 +122,12 @@ begin
       raise exception 'PKG027D_GRANTS_CHANGED: %', s.signature;
     end if;
   end loop;
-  if exists (select 1 from public.app_profiles p join pkg027d_invented i
-              on (i.field = 'headline' and i.sentence = p.headline) or (i.field = 'bio' and i.sentence = p.bio)) then
+  if exists (select 1 from public.app_profiles ap join pkg027d_invented i
+              on (i.field = 'headline' and i.sentence = ap.headline) or (i.field = 'bio' and i.sentence = ap.bio)) then
     raise exception 'PKG027D_INVENTED_TEXT_REMAINS';
   end if;
-  if exists (select 1 from pkg027d_untouched u join public.app_profiles p on p.id = u.id
-              where (p.headline, p.bio) is distinct from (u.headline, u.bio)) then
+  if exists (select 1 from pkg027d_untouched u join public.app_profiles ap on ap.id = u.id
+              where (ap.headline, ap.bio) is distinct from (u.headline, u.bio)) then
     raise exception 'PKG027D_PERSON_TEXT_CHANGED';
   end if;
   if (select source_digest from pkg027d_closure) is distinct from private.closure_source_digest_v5()
