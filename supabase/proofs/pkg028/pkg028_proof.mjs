@@ -274,6 +274,15 @@ if (mode === 'after') {
     select private.edge_worker_tick_v5()::text;
     rollback;`, 'FOREIGN').split('\n').filter(l => l.startsWith('{')).pop());
   assert.deepEqual(foreign, {kind: 'NOT_CONFIGURED', missing: 'BASE_URL'});
+  // A key that is not a bearer token's shape is refused before anything is sent (the address here resolves nowhere).
+  for (const [label, bad] of [['short', 'short'], ['space', 'a'.repeat(40) + ' b'], ['long', 'a'.repeat(4097)]]) {
+    const shaped = JSON.parse(sql(`begin;
+      select vault.update_secret((select id from vault.secrets where name='uskoci_edge_base_url'), 'http://supabase_kong_pkg028-nowhere:8000');
+      select vault.create_secret(${q(bad)}, 'uskoci_edge_worker_key');
+      select private.edge_worker_tick_v5()::text;
+      rollback;`, 'KEY_SHAPE ' + label).split('\n').filter(l => l.startsWith('{')).pop());
+    assert.deepEqual(shaped, {kind: 'NOT_CONFIGURED', missing: 'WORKER_KEY'}, label);
+  }
   assert.equal(sql("select count(*) from net.http_request_queue") + '/' + sql("select count(*) from net._http_response"), '0/0',
     'the tick sent something without a key or to a refused address');
   pass('WITHOUT_A_KEY_OR_TO_AN_ADDRESS_THAT_IS_NOT_ALLOWED_THE_TICK_SENDS_NOTHING');

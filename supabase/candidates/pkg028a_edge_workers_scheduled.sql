@@ -78,8 +78,9 @@ begin
   if v_base is null or v_base !~ '^(https://[a-z0-9]{20}\.supabase\.co|http://supabase_kong_[a-z0-9_-]+:8000)$' then
     return jsonb_build_object('kind', 'NOT_CONFIGURED', 'missing', 'BASE_URL');
   end if;
-  -- The same shape every worker accepts as a bearer token. The key itself is never returned or logged.
-  if v_key is null or v_key !~ '^[A-Za-z0-9._~-]{16,4096}$' then
+  -- The same shape every worker accepts as a bearer token (the length is checked apart: a regular expression
+  -- repetition count cannot exceed 255). The key itself is never returned or logged.
+  if v_key is null or length(v_key) not between 16 and 4096 or v_key !~ '^[A-Za-z0-9._~-]+$' then
     return jsonb_build_object('kind', 'NOT_CONFIGURED', 'missing', 'WORKER_KEY');
   end if;
   -- One call a minute per worker, and only when it has work. Every worker finishes or gives up inside
