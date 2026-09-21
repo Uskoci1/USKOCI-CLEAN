@@ -30,7 +30,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | --- | --- | --- |
 | 1 | Agreement completion → confirmation → rating (W09/W10), server | read 2026-09-21 — see findings |
 | 2 | Selection and Povezivanje (`rpc_select_response`) | read 2026-09-21 — see findings |
-| 3 | Application submit and pricing by basis | pending |
+| 3 | Application submit, stale resolution, pricing | read 2026-09-21 — see findings |
 | 4 | Notifications: emit → deliver → push | pending |
 | 5 | AI interview Edge + review + publish | pending |
 | 6 | Account, auth, closure, retention, export | pending |
@@ -91,6 +91,45 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 **1.6 — rule. Copy.** `rpc_mark_work_done`: `'Završetak čeka Vašu potvrdu'` / `'Uskočer je označio Dogovor
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
+
+### Area 3 — Application submit, stale resolution, pricing
+
+Read in full: `rpc_resolve_stale_response_after_need_edit`; the price section of `rpc_submit_response`;
+and a sweep for every function that writes a response's price.
+
+**3.1 — defect. The price rules hold on one door and not the other.** Exactly two functions write a
+response's price (verified by sweeping `pg_proc` for inserts into `marketplace_response_versions` and for
+price assignments; a third hit, `rpc_confirm_need_edit_from_review`, sets the TASK's price and is not a
+response writer):
+
+| rule | `rpc_submit_response` | `rpc_resolve_stale_response_after_need_edit` |
+| --- | --- | --- |
+| price > 0 | yes | yes |
+| MY_PRICE, null basis: price = task price (`FIXED_PRICE_MISMATCH`) | yes | **no** |
+| PER_PERSON: price = per-person × covered | yes | **no** |
+| TOTAL: must cover all slots, price = total | yes | **no** |
+| covered ≤ REMAINING slots | yes | no — checks ≤ `required_slots` |
+| covered ≤ team capacity | yes | no |
+
+The last two are caught later: `rpc_select_response` re-checks `OVERFILL` and `TEAM_CAPACITY_EXCEEDED`.
+The price is NOT: `rpc_select_response` copies `v_ver.price_rsd` straight into the Agreement terms without
+comparing it to the task. So on the stale path the fixed-price guarantee and both basis rules are simply
+absent, and what the worker enters is what the Agreement is made at if the requester selects it.
+
+Reachable through the normal flow: the requester edits a published task → `rpc_confirm_need_edit_from_review`
+bumps the revision → open applications become `STALE_REVIEW_REQUIRED` → the worker chooses `UPDATE` and
+may enter any price > 0, or `KEEP` and retain a price that no longer matches the task's edited fixed price.
+The requester sees the offered price before selecting, so this is not silent — the requester is the last
+check — but it is exactly the check `FIXED_PRICE_MISMATCH` exists so they do not have to make.
+
+**Owned:** pkg025b (2026-09-20) added the PER_PERSON and TOTAL rules to `rpc_submit_response` only. The
+gap existed before — the stale door never enforced the fixed price — but that change made it wider: the
+price-basis feature protects one of the two doors that write the price.
+
+Fix shape (not applied — needs owner approval): move the price rule into one private function both
+writers call, with the same inputs (task mode, basis, requester price, required and remaining slots,
+covered, price), and have `rpc_select_response` re-assert it against the current task before copying the
+price into the terms, so a price that went stale cannot be selected into an Agreement.
 
 ### Area 2 — Selection and Povezivanje
 
