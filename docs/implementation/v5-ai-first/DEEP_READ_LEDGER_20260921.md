@@ -635,7 +635,72 @@ intake and carry one formal line ("Kako biste ukratko nazvali ovaj posao?") that
 
 **Area 7 is complete: all 91 files of `src/data` read in full.**
 
-### Area 9 — HITNO, categories, and matching
+### Area 8 — Routes and screens (in progress)
+
+Scope: 48 route files in `src/app` (5,183 lines), 107 screen files in `src/ui` (10,458 lines), the 11 hooks.
+Read so far, in full: both layouts, `+native-intent.tsx`, `auth.tsx`, the sixteen small routes
+(redirects, support, safety, review, questions, blocked, about, legacy draft review, task place),
+`useOwnedEditor`, `useFocusedResource`.
+
+**8.1 — note, well built.** The root layout sends a signed-out person to sign in and remembers where they
+were going (`pendingRoute`), then takes them there once — a link or push that required signing in is
+finished, not dropped. Every route file in `src/app/(app)` is registered with the tab navigator; the
+three Agreement sub-routes (`izmene`, `grupa`, `lokacija`) are not declared inside `Stack.Protected`, but
+the root redirect still sends a signed-out visitor to `/auth` and each screen's reads require a session.
+`useOwnedEditor` shows the service's own sentence on a refusal and a fixed "Podaci nisu učitani…" on a
+transport failure; `useFocusedResource` exposes only a boolean error, so no raw server message can
+reach a screen through it (this closes the question left in 7.33 for every screen built on it).
+
+**8.2 — defect, legal. Sign-up asks for a consent that is neither backed nor recorded.** Registration
+refuses to proceed until "Prihvatam Uslove korišćenja i potvrđujem da sam pročitao/la Politiku
+privatnosti" is ticked. The two links open a modal that reads the legal bundle — which has 0 documents
+(7.43), so there is nothing to read. And the tick goes nowhere: `authClientService.signUp` sends only
+names, city, email and password; no acceptance event is written (`account_legal_acceptance_events` has
+0 rows). Every account created so far "accepted" documents that did not exist, and the product has no
+record that they did.
+
+**8.3 — rule.** `auth.tsx:408` — "Zaboravili ste lozinku?" is formal; everything around it says "ti".
+
+#### `nova.tsx` (290), `pregled-zadatka.tsx` (415), `dogovor/[id].tsx` (340) — read in full
+
+**8.4 — defect. "Podeli svoj broj" can never succeed, and the screen hides why.** `rpc_set_contact_grant`
+refuses a phone share with `PHONE_NOT_SET` unless `app_accounts.phone` is filled. That column is written
+only from `auth.users.phone` (a phone-OTP sign-in) or a `phone` in sign-up metadata — and the app's
+sign-up sends none. No screen anywhere lets a person add a number (searched `src` for any phone write;
+profile data edits the display name only). Measured: 0 of 5 accounts have a phone. So on every Agreement
+the contact section offers "Podeli svoj broj", the server refuses, and `dogovor/[id].tsx`'s `mutate`
+throws away the mapped sentence ("Najpre dodaj broj telefona na nalog.") and shows "Promena nije
+potvrđena. Osveži Dogovor pre novog pokušaja." — which also marks the screen uncertain. The mapped
+sentence would not help either: there is nowhere to add the number.
+
+**8.5 — defect, confirms 7.21 on screen.** `pregled-zadatka.tsx` computes its own reasons for a disabled
+publish button (block, missing facts, no place, identity, open editors) and none covers "Moja cena" with no
+amount, "Tačan termin" without both ends, or an edit with no change. The button stays live; the refusal
+comes back unmapped; `useOwnedEditor` shows "Ishod radnje nije potvrđen…" and marks the screen uncertain,
+so the footer offers only "Učitaj pregled i proveri ishod" — which re-reads the same review and leads back
+to the same button.
+
+**8.6 — defect, truthfulness; ties to 5.1.** With no response deadline the review says "Bez posebnog roka —
+do popune, zaustavljanja potrage ili isteka zadatka." A task without a deadline never expires (5.1): the
+third way it promises does not exist.
+
+**8.7 — risk.** When publication comes back `REVIEW`, the screen offers "Zatraži pregled podrške", which
+opens a support case — and support has no operator (7.31). The one path the product gives for a task held
+for review leads to a queue nobody reads.
+
+**8.8 — rule, copy.** `nova.tsx:254`: "Odustali ste od odgovora. Podaci su ostali nepromenjeni, a
+rezervisana potrošnja je zadržana." — formal, and "rezervisana potrošnja" is internal cost language a
+person cannot act on. `nova.tsx:228`, when leaving a conversation: "Podaci se čuvaju prema objavljenim
+pravilima" — no retention rules are published (7.54). `dogovor/[id].tsx:242`: "da pokušate ponovo" —
+formal. `dogovor/[id].tsx:169` does the same as 8.4 for a refused problem report: every refusal becomes
+"Prijava nije potvrđena…", discarding the mapped copy for `NARRATIVE_TOO_LONG` and the others.
+
+**8.9 — note, verified.** The screen's claims hold on the server: "Ovaj opis vide oba učesnika i sačuvan je u
+Porukama" — `rpc_report_problem` inserts the narrative as an Agreement message; "Bez odgovora se Dogovor
+zatvara sam" — the 48-hour auto-completion runs (1.4). The review deadline is shown in the device's zone
+with its raw IANA name ("(Europe/Belgrade)") and seconds. `nova.tsx` no longer creates a conversation on
+open — only the first word or the microphone does (the fix for "38 of 62 empty conversations").
+
 
 Read in full: `private.urgent_activation_decision`, `private.match_detail_without_calendar`, the
 `private.marketplace_config` rows. Measured: every stored category, the skills on open tasks and active
