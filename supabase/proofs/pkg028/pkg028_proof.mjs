@@ -112,6 +112,7 @@ const asPostgres = `reset role;
   set local request.jwt.claim.sub = '';
   set local request.jwt.claim.role = '';
   set local request.jwt.claims = '';`;
+// Helper selects inside a scenario print their own rows; the observation is always the last line.
 const scenario = (label, body) => JSON.parse(sql(`begin;
   set local statement_timeout = '120s';
   create temporary table pkg028_obs(k text primary key, v jsonb) on commit drop;
@@ -119,7 +120,8 @@ const scenario = (label, body) => JSON.parse(sql(`begin;
   grant all on pkg028_obs, pkg028_ids to authenticated, anon;
   ${body}
   select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) from pkg028_obs;
-  rollback;`, label));
+  rollback;`, label).split('
+').pop());
 
 // E1. Four published tasks; the minute tick's lifecycle step runs once.
 function expiryScenario() {
