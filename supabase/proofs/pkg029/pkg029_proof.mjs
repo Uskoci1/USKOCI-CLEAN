@@ -328,7 +328,7 @@ if (mode === 'after') {
   assert.equal(s.phone.date, null); assert.equal(s.phone.range, null);
   assert.equal(s.phone.phone, 'PHONE_NOT_PUBLIC'); assert.equal(s.phone.intl, 'PHONE_NOT_PUBLIC');
   pass('12_5_DATES_AND_PRICE_RANGES_PASS_AND_PHONE_NUMBERS_ARE_STILL_REFUSED');
-  assert.equal(s.exportRequest.request, 'DATA_EXPORT_NOT_AVAILABLE');
+  assert.equal(s.exportRequest.request, 'DATA_EXPORT_POLICY_NOT_READY');
   pass('6_2_AN_EXPORT_NOTHING_CAN_DELIVER_IS_REFUSED_HONESTLY');
   assert.equal(s.worlds.ownerWithFixture, true); assert.equal(s.worlds.realWithFixture, false);
   pass('12_11_THE_OWNER_SHARES_THE_TEST_WORLD_AND_A_REAL_PERSON_STILL_DOES_NOT');

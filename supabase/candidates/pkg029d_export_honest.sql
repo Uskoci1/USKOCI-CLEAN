@@ -5,7 +5,7 @@
 -- 6.2: rpc_request_data_export accepted a request although no export can be delivered while
 --      private.data_export_policy_binding() is null (no active retention policy set), and nothing would ever fulfil
 --      it. rpc_start_account_closure_execution refuses honestly in the same situation (CLOSURE_POLICY_NOT_READY);
---      the export request now does the same (DATA_EXPORT_NOT_AVAILABLE). An idempotent replay of a request already
+--      the export request now does the same (DATA_EXPORT_POLICY_NOT_READY). An idempotent replay of a request already
 --      made still answers as before, and the one request already waiting on canonical DEV is left alone: the person
 --      can cancel it from the screen.
 -- Function body only: the certified closure source digest must not move (asserted below).
@@ -22,7 +22,7 @@ create temporary table pkg029d_closure(source_digest text not null) on commit dr
 do $pre$
 declare pin record;
 begin
-  if (select position('DATA_EXPORT_NOT_AVAILABLE' in prosrc) from pg_proc
+  if (select position('DATA_EXPORT_POLICY_NOT_READY' in prosrc) from pg_proc
        where oid = to_regprocedure('public.rpc_request_data_export(text)')) > 0 then
     raise exception 'PKG029D_ALREADY_APPLIED';
   end if;
@@ -59,7 +59,7 @@ $a$,
 $b$  -- PKG-029d (deep read 6.2): without a delivery policy no export can ever be delivered; say so instead of
   -- accepting a request that nothing would fulfil.
   if private.data_export_policy_binding() is null then
-    raise exception 'DATA_EXPORT_NOT_AVAILABLE' using errcode='55000';
+    raise exception 'DATA_EXPORT_POLICY_NOT_READY' using errcode='55000';
   end if;
 
   select * into open_request from public.data_export_requests d

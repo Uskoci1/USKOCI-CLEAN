@@ -11,7 +11,7 @@ const EXPORT_COPY: Readonly<Record<string, string>> = {
   DATA_EXPORT_REQUEST_ALREADY_OPEN: 'Zahtev za izvoz tvojih podataka je već u toku.',
   // PKG-029d (deep read 6.2): without a published retention policy no export can be delivered, and the
   // server now says so instead of accepting a request nothing would fulfil.
-  DATA_EXPORT_NOT_AVAILABLE: 'Izvoz podataka još nije dostupan: pravila čuvanja podataka još nisu objavljena.',
+  DATA_EXPORT_POLICY_NOT_READY: 'Izvoz podataka još nije dostupan: pravila čuvanja podataka još nisu objavljena.',
   DATA_EXPORT_REQUEST_NOT_CANCELLABLE: 'Ovaj zahtev više ne može da se otkaže.',
   DATA_EXPORT_REQUEST_NOT_FOUND: 'Zahtev nije pronađen.',
   INVALID_CLIENT_REQUEST_ID: 'Zahtev trenutno nije mogao da se zabeleži. Pokušaj ponovo.',
