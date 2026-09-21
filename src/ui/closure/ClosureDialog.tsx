@@ -9,13 +9,14 @@ import {noviUuidZahtevId} from '../../lib/idempotencija';
 import {closureIntentJournal,type ClosureIntent} from './closureIntent';
 import {SettingsScreen,SettingsIntro,SettingsPanel,SettingsInfo,SettingsText as T,SettingsAction} from '../settings/SettingsPresentation';
 import { sys } from '../system/tokens';
+import { plural } from '../system/plural';
 export function ClosureEntry(){
  const [open,setOpen]=useState(false);useFocusEffect(useCallback(()=>()=>setOpen(false),[]));
  return <><SettingsInfo title="Zatvaranje naloga" last>Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva.</SettingsInfo>
   <SettingsAction label="Pregledaj zatvaranje" kind="secondary" onPress={()=>setOpen(true)}/>
   {open?<Modal visible presentationStyle="fullScreen" animationType="none" onRequestClose={()=>setOpen(false)}><ClosureDialog onClose={()=>setOpen(false)}/></Modal>:null}</>;
 }
-const duration=(n:number)=>n%86400===0?`${n/86400} dana`:n%3600===0?`${n/3600} sati`:`${n} sekundi`;
+const duration=(n:number)=>n%86400===0?plural(n/86400,'dan','dana','dana'):n%3600===0?plural(n/3600,'sat','sata','sati'):plural(n,'sekunda','sekunde','sekundi');
 export function ClosureDialog({onClose}:{onClose:()=>void}){
  const router=useRouter();
  const session=useSesija(),accountId=session.user?.id,accountRevision=session.accountRevision;

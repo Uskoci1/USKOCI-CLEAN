@@ -53,14 +53,14 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
   <FlatList key={generation} data={state.messages} keyExtractor={item=>item.messageId} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled"
    onViewableItemsChanged={onVisible} viewabilityConfig={viewability} refreshing={state.phase==='LOADING'} onRefresh={()=>invoke('refresh')}
    ListHeaderComponent={<View style={s.stack}>
-    {group?<><T style={s.heading}>{group.title}</T><T style={s.copy}>Zajedničke poruke za koordinaciju Zadatka. Cenu, lične uslove i probleme dogovarajte u svom privatnom Dogovoru.</T>
+    {group?<><T style={s.heading}>{group.title}</T><T style={s.copy}>Zajedničke poruke za koordinaciju Zadatka. Cenu, lične uslove i probleme dogovori u svom privatnom Dogovoru.</T>
      <T style={s.meta}>{group.unreadCount} nepročitanih · {group.terminal?'Razgovor je završen':group.canSend?'Poruke su dostupne':'Dostupna istorija razgovora'}</T>
      <V2Action label={showPeople?'Sakrij učesnike':'Učesnici razgovora'} kind="quiet" onPress={()=>{if(current())setShowPeople(x=>!x);}}/>
      {showPeople?<View style={s.stack}>{group.members.map(member=><View key={member.accountId} style={s.member}>
       <View style={s.avatar}><ProfilePhoto profileId={member.profileId} size={44} fallback={<T style={s.initial}>{member.displayName.slice(0,1).toLocaleUpperCase('sr-Latn-RS')}</T>}/></View>
       <View style={s.memberText}><T style={s.copy}>{member.displayName}</T><T style={s.meta}>{member.role==='REQUESTER'?'Objavio zadatak':'Učesnik'}</T></View>
      </View>)}{group.members.length===0?<T style={s.meta}>Prikazana je ranije dostupna istorija.</T>:null}</View>:null}
-     {group.role==='REQUESTER'&&showPeople?<View style={s.privatePanel}><T style={s.heading}>Tvoji pojedinačni Dogovori</T><T style={s.meta}>Ovo upravljanje vidiš samo vi.</T>
+     {group.role==='REQUESTER'&&showPeople?<View style={s.privatePanel}><T style={s.heading}>Tvoji pojedinačni Dogovori</T><T style={s.meta}>Ovo upravljanje vidiš samo ti.</T>
       {(group.management??[]).map(item=><View key={item.agreementId} style={s.stack}><T style={s.copy}>{group.members.find(m=>m.accountId===item.accountId)?.displayName??'Učesnik'} · {status(item.executionState??item.status)}</T>
        {item.problemOpened?<T style={s.meta}>Privatan problem u Dogovoru</T>:null}<V2Action label="Otvori pojedinačni Dogovor" onPress={()=>openAgreement(item.agreementId)}/></View>)}
       {group.managementNextId?<V2Action label="Još pojedinačnih Dogovora" onPress={()=>invoke('managementNext')}/>:null}
@@ -81,7 +81,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
     {(ready&&group?.canSend)||retry?<View style={s.composer}>
      <T style={s.heading}>{retry?'Prvobitna poruka':'Poruka grupi'}</T>
      <TextInput accessibilityLabel={retry?'Unesi prvobitnu poruku':'Poruka grupi'} multiline value={draft} onChangeText={change} style={s.input}
-      placeholder="Dogovorite zajedničke korake…" placeholderTextColor={sys.color.muted} maxLength={4000}/>
+      placeholder="Dogovori zajedničke korake…" placeholderTextColor={sys.color.muted} maxLength={4000}/>
      <T style={s.meta}>{Array.from(normalizeGroupBody(draft)).length} / 2.000 znakova</T>
      <V2Action label={retry?'Ponovi slanje iste poruke':'Pošalji poruku grupi'} kind="primary" disabled={!groupBody(normalizeGroupBody(draft))}
       onPress={()=>{if(current()){if(retry)void controller?.retry(input.current);else void controller?.send(input.current);}}}/>

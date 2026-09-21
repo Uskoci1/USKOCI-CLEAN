@@ -86,7 +86,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
       : error ? <View style={s.state}><T style={s.stateTitle}>Zadatke trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
         <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : hasFilter ? <View style={s.state}><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promeni pretragu ili poništite filtere.</T>
+        : hasFilter ? <View style={s.state}><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promeni pretragu ili poništi filtere.</T>
           <V2Action label="Poništi filtere" onPress={() => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport })} /></View>
           : owned ? <View style={s.state}><T style={s.stateTitle}>{items.length ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak'}</T>
             <T style={s.stateBody}>{items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}</T>

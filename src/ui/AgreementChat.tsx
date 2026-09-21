@@ -118,7 +118,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {!loading && !error && messages.length === 0 && local.length === 0 &&
           <View style={[s.emptyCopy, { gap: 6, alignItems: 'center' }]}>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>Napiši prvu poruku</T>
-            <T variant="copy" tone="muted" style={s.center}>Dogovor je potvrđen. Ovde se dogovarate oko detalja — sve ostaje između vas dvoje.</T>
+            <T variant="copy" tone="muted" style={s.center}>Dogovor je potvrđen. Ovde dogovaraš detalje sa drugom stranom — poruke vide samo učesnici ovog Dogovora.</T>
           </View>}
         {!error && messages.map(message => <Press key={message.id} accessibilityRole="button"
           accessibilityLabel={`Poruka: ${message.posiljalacIme}`} accessibilityHint="Dugi pritisak nudi prijavu podršci."

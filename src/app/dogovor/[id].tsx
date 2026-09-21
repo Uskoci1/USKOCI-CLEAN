@@ -239,7 +239,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
     <T variant="meta" tone="muted">{dogovor.problemReportState === 'LEGACY_UNAVAILABLE'
       ? 'Detalji starije prijave nisu dostupni u ovom prikazu. Postojeća prijava ostaje sačuvana.'
-      : 'Detalji prijave trenutno nisu učitani. Osveži status Dogovora da pokušate ponovo.'}</T>
+      : 'Detalji prijave trenutno nisu učitani. Osveži status Dogovora da pokušaš ponovo.'}</T>
     {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijava sama ne određuje krivicu ili dug.</T> : null}
     {dogovor.problemReportState === 'UNAVAILABLE' ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} /> : null}
   </WorkspaceCard> : active && me ? <WorkspaceCard>

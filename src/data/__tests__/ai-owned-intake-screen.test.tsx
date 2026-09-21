@@ -658,13 +658,13 @@ it('restored bound-edit dispatched exit explains retained cost and unlocks only 
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
   await render();expect(button('Odustani od odgovora').disabled).toBe(false);
   await openKeyboard();
-  expect(text()).toContain('rezervisana potrošnja ostaje zadržana');expect(input().editable).toBe(false);
+  expect(text()).toContain('taj pokušaj se ipak računa');expect(input().editable).toBe(false);
   const cancelled=recovery(turn(other,'FAILED').podatak,true,true);
   mockCancel.mockResolvedValue(cancelled);mockRecover.mockResolvedValue(cancelled);
   await act(async()=>button('Odustani od odgovora').onPress());
   expect(mockCancel).toHaveBeenCalledWith(id,other);expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();
   await openKeyboard();
-  expect(input().editable).toBe(true);expect(text()).toContain('Odustali ste od odgovora');expect(mockSend).not.toHaveBeenCalled();
+  expect(input().editable).toBe(true);expect(text()).toContain('Odgovor je otkazan i podaci su ostali nepromenjeni');expect(mockSend).not.toHaveBeenCalled();
   await type('Izričita nova poruka');await act(async()=>tree.root.findByProps({accessibilityLabel:'Pošalji poruku'}).props.onPress());
   expect(mockSend).toHaveBeenCalledTimes(1);expect(mockSend.mock.calls[0][2]).not.toBe(other);
 });
@@ -684,7 +684,7 @@ it('completion winning dispatched cancellation shows the actual result without c
   const completed=recovery(turn(other,'SUCCEEDED').podatak,false,true);mockCancel.mockResolvedValue(completed);mockRecover.mockResolvedValue(completed);
   mockLoad.mockResolvedValue(conversation({messages:[{id:other,fromAi:true,body:'Stvarni završen odgovor',safety:'ALLOW',proposedFactIds:[]}]}));
   await act(async()=>button('Odustani od odgovora').onPress());
-  expect(text()).toContain('Stvarni završen odgovor');expect(text()).not.toContain('Odustali ste od odgovora');
+  expect(text()).toContain('Stvarni završen odgovor');expect(text()).not.toContain('Odgovor je otkazan i podaci su ostali nepromenjeni');
   expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();expect(mockSend).not.toHaveBeenCalled();
 });
 it('late dispatched cancellation after blur cannot retire the journal or load another conversation',async()=>{

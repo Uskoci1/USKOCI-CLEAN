@@ -190,7 +190,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
       <T accessibilityLiveRegion="polite" variant="meta" tone="muted">{centeredToken === token && imageToken === token && status === 'ready' && !offset
         ? 'Mapa je centrirana na izabranu tačku.' : 'Proveri položaj oznake na mapi.'}</T>
     </View> : null}
-    {disabled ? null : !pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađite područje i dodirnite mapu.</T>
+    {disabled ? null : !pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađi područje i dodirni mapu.</T>
       : <T variant="meta" tone="muted">{coarse ? 'Prikazana je približna tačka. Dodirni mapu ili prevuci oznaku da predložiš drugu.'
           : 'Dodirni mapu ili prevuci oznaku da predložiš drugu tačku.'}</T>}
     {!disabled ? <T variant="meta" tone="muted">Izbor na mapi treba potvrditi u obrascu.</T> : null}

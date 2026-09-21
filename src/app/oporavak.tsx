@@ -75,7 +75,7 @@ export default function PasswordRecoveryScreen() {
               <Text style={styles.copy}>Proveravamo link za oporavak…</Text>
             </> : null}
             {state.status === 'ready' || state.status === 'saving' ? <>
-              <Text style={styles.copy}>Postavite novu lozinku za nalog:</Text>
+              <Text style={styles.copy}>Postavi novu lozinku za nalog:</Text>
               <Text selectable style={styles.email}>{state.identity.email}</Text>
               <AuthField label="Nova lozinka" value={password} onChangeText={value => { setPassword(value); setValidation(null); }}
                 placeholder="Unesi novu lozinku" secure newPassword editable={!busy} />

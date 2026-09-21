@@ -225,7 +225,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       });
     };
     if (abandoning.current) { submit(); return; }
-    Alert.alert('Napustiti razgovor?', 'Ovaj razgovor više ne možeš da nastaviš. Podaci se čuvaju prema objavljenim pravilima; ovo ih ne briše odmah.',
+    Alert.alert('Napustiti razgovor?', 'Ovaj razgovor više ne možeš da nastaviš. Njegovi podaci se ovim ne brišu.',
       [{ text: 'Nastavi razgovor', style: 'cancel' }, { text: 'Napusti razgovor', style: 'destructive', onPress: submit }]);
   };
 
@@ -251,7 +251,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
           : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkaži ga da ponovo uneseš poruku.'
           : 'Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.'
         : editor.data?.recovery?.cancelled && editor.data.recovery.providerDispatched
-          ? 'Odustali ste od odgovora. Podaci su ostali nepromenjeni, a rezervisana potrošnja je zadržana.'
+          ? 'Odgovor je otkazan i podaci su ostali nepromenjeni. Pokušaj se ipak računa, jer je obrada već bila počela.'
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
           ? 'AI nije primenio prethodnu poruku. Možeš je izmeniti i poslati ponovo.' : null;
 

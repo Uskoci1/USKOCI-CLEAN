@@ -56,7 +56,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
       id: myId,
       profilId: uuid(myProfileId) ? String(myProfileId) : null,
       ime: myName || 'Ti',
-      inicijali: (myName || 'VI').slice(0, 2).toUpperCase(),
+      inicijali: (myName || 'TI').slice(0, 2).toUpperCase(),
       uloga: requester ? 'narucilac' : 'uskocer',
       mesta: requester ? null : covered,
       viSte: true,

@@ -200,7 +200,7 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
 });
 
 it('visibly gates unfinished recovery and never sends a broken reset link', async () => {
-  await render(); await press('Zaboravili ste lozinku?');
+  await render(); await press('Zaboravljena lozinka?');
   expect(text()).toContain('Oporavak lozinke još nije dostupan');
   expect(host('Text').some(node => textOf(node) === 'Oporavak pristupa')).toBe(true);
   const title = host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Vrati pristup nalogu.')!;
@@ -332,7 +332,7 @@ it('keeps prepared intent through signup and recovery but clears it for explicit
   expect(text()).not.toContain('USKOČI I ZARADI · ISTI NALOG');
   await press('Već imaš nalog? Prijavi se');
   expect(text()).toContain('USKOČI I ZARADI · ISTI NALOG');
-  await press('Zaboravili ste lozinku?');
+  await press('Zaboravljena lozinka?');
   expect(text()).toContain('BEZBEDAN POVRATAK');
   await press('Nazad na prijavu');
   expect(text()).toContain('USKOČI I ZARADI · ISTI NALOG');
@@ -379,7 +379,7 @@ it('uses neutral presentation for a new direct Auth destination after a prepared
 it('submits recovery only on user action and reports accepted rather than delivered email', async () => {
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   await render(); await fill('ime@primer.rs', 'ana@example.test');
-  await press('Zaboravili ste lozinku?');
+  await press('Zaboravljena lozinka?');
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
   expect(host('TextInput')).toHaveLength(1);
   await press('Pošalji link');
@@ -392,7 +392,7 @@ it('submits recovery only on user action and reports accepted rather than delive
 it('prevents duplicate recovery sends and keeps a failed request editable', async () => {
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   const waiting = deferred<void>(); mockAuth.requestPasswordRecovery.mockReturnValue(waiting.promise);
-  await render(); await press('Zaboravili ste lozinku?'); await fill('ime@primer.rs', 'ana@example.test');
+  await render(); await press('Zaboravljena lozinka?'); await fill('ime@primer.rs', 'ana@example.test');
   const send = button('Pošalji link').props.onPress;
   await act(async () => { send(); send(); });
   expect(mockAuth.requestPasswordRecovery).toHaveBeenCalledTimes(1);

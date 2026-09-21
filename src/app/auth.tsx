@@ -405,7 +405,7 @@ export default function AuthScreen() {
 
                   {rezim === 'LOGIN' ? (
                     <Pressable accessibilityRole="button" disabled={radi} onPress={() => commands.changeForm(() => { setFaza('RECOVERY'); setLozinka(''); setPotvrda(''); setGreska(null); setPoruka(null); })} style={styles.forgot}>
-                      <Text style={styles.forgotText}>Zaboravili ste lozinku?</Text>
+                      <Text style={styles.forgotText}>Zaboravljena lozinka?</Text>
                     </Pressable>
                   ) : null}
                 </View> : <Text style={styles.stateCopy}>Prijava emailom trenutno nije dostupna.</Text>}

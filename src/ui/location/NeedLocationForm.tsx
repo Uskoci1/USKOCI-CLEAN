@@ -142,7 +142,7 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
         <T variant="meta" tone="muted">{reviewOnly ? 'Izaberi pravo mesto ako pretraga ponudi više rezultata. Sve podatke prihvataš zajedno tek pri objavi.' : 'Promena države, javnog mesta, redosleda stanica ili tačne adrese traži novu potvrdu tačaka.'}</T>
         {!baseValue || !slots.length ? <T>Prvo unesi državu i javno mesto za potrebne tačke.</T> : <>
           <T variant="bodyStrong">Potvrđeno tačaka: {points.length} od {slots.length}</T>
-          {slots.length > 1 ? <LocationChoice label="Tačka koju uređujete" value={selectedSlot}
+          {slots.length > 1 ? <LocationChoice label="Tačka koju uređuješ" value={selectedSlot}
             options={slots.map(slot => ({ value: slot, label: `${titleForSlot(slot)}${points.some(point => point.slot === slot) ? ' · potvrđeno' : ''}` }))}
             disabled={disabled || pendingPoint} onChange={slot => { if (!disabled && !pendingPoint) setActiveSlot(slot as LocationSlot); }} /> : null}
           {selectedSlot ? <LocationPointEditor key={`${pinEpoch}:${selectedSlot}`} slot={selectedSlot} title={titleForSlot(selectedSlot)}

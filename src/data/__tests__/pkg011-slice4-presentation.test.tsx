@@ -40,7 +40,7 @@ test('my own draft is mine to act on from wherever I opened it: no way across is
 test('a published Task leads with its state, price and people, shows the applications row with a count, and has one brand action: the applications', async () => {
   await act(async () => { tree = create(<Screen value={need()} />); });
   const copy = texts();
-  expect(copy).toContain('Objavljena'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe');
+  expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe');
   expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za pregled');
   expect(labels()).toContain('Otvori prijave, ukupno 3'); expect(labels()).toContain('Izmeni Zadatak');
   expect(brand()).toEqual(['Pogledaj prijave']);

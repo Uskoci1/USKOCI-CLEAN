@@ -51,7 +51,7 @@ it('renders actual common message, member names/avatars and keeps individual man
  expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(1);expect(text()).not.toContain('Vaši pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
 });
 it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{
- mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();await tap('Učesnici razgovora');expect(text()).toContain('samo vi');expect(text()).toContain('Čeka potvrdu završetka');
+ mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();await tap('Učesnici razgovora');expect(text()).toContain('samo ti');expect(text()).toContain('Čeka potvrdu završetka');
  await tap('Otvori pojedinačni Dogovor');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
 });
 it('has one send action, latches concurrent retained callbacks and persists no plaintext',async()=>{

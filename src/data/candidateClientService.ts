@@ -5,6 +5,7 @@ import { positiveInteger, readOwnedResult, uuid } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
 import { novac } from '../lib/novac';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
+import { plural } from '../ui/system/plural';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -107,7 +108,8 @@ function mapCandidate(raw: any): KandidatProjekcija {
     ime,
     inicijali: inicijali(ime),
     ocenaTekst: rating === null ? '—' : rating.toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 }),
-    recenzijeTekst: reviews === null ? `${completed} završenih` : `${reviews} recenzija`,
+    recenzijeTekst: reviews === null ? plural(completed, 'završen posao', 'završena posla', 'završenih poslova')
+      : plural(reviews, 'recenzija', 'recenzije', 'recenzija'),
     cena: rsd(raw.priceRsd),
     pokrivaMesta: raw.coveredSlots,
     preostaloMesta: raw.remainingSlots,

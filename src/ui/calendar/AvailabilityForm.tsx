@@ -131,7 +131,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   };
   const deleteItem = (kind: 'rules' | 'windows', id: string) => {
     if (blocked) return;
-    Alert.alert('Ukloniti termin?', 'Promena će se sačuvati tek kada sačuvate dostupnost. Dogovori ostaju nepromenjeni.', [
+    Alert.alert('Ukloniti termin?', 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.', [
       { text: 'Odustani', style: 'cancel' }, { text: 'Ukloni', style: 'destructive', onPress: () => update({ [kind]: draft[kind].filter(item => item.id !== id) }) },
     ]);
   };

@@ -1,6 +1,7 @@
 import type { Ishod } from './ports';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
+import { plural } from '../ui/system/plural';
 import { failure, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
 
 /** Versioned client decoder mirror. Only the server catalog admits submissions. */
@@ -48,7 +49,7 @@ function receipt(raw: unknown, account: string, agreement: string, target: strin
 }
 function bad<T>(code: string): Promise<Ishod<T>> { return Promise.resolve(failure(code, errors[code])); }
 export function accountReputationLabel(value: AccountReputation): string {
-  return value.reviewCount === 0 ? 'Još nema ocena' : `${value.averageRating?.toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} · ${value.reviewCount} ocena`;
+  return value.reviewCount === 0 ? 'Još nema ocena' : `${value.averageRating?.toLocaleString('sr-Latn-RS', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} · ${plural(value.reviewCount, 'ocena', 'ocene', 'ocena')}`;
 }
 /** One own-review receipt and one account aggregate. No optimistic review,
  * inferred reciprocal state, raw table access, or automatic mutation replay. */

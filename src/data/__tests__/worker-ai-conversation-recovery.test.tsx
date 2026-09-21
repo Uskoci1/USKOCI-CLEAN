@@ -132,7 +132,7 @@ it('dispatched unknown exposes explicit exit with cost copy and requires canonic
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));
  mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:true,retryAllowed:false})));
  await render();expect(action('Odustani od odgovora').props.disabled).toBe(false);
- expect(visibleText()).toContain('rezervisana potrošnja ostaje zadržana');expect(shell().props.canEdit).toBe(false);
+ expect(visibleText()).toContain('taj pokušaj se ipak računa');expect(shell().props.canEdit).toBe(false);
  mockApi.cancelTurn.mockImplementationOnce(async()=>{const value=recovery('FAILED',{providerDispatched:true,cancelled:true,canCancel:false,retryAllowed:false});
   mockApi.recoverTurn.mockResolvedValue(ok(value));mockApi.read.mockResolvedValue(ok(snapshot(turn('FAILED'))));return ok(value);});
  await click('Odustani od odgovora');expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);
@@ -154,7 +154,7 @@ it('completion winning the exit race keeps the actual completed profile proposal
  mockApi.cancelTurn.mockImplementationOnce(async()=>{const value=recovery('SUCCEEDED',{providerDispatched:true,canCancel:false,retryAllowed:false});
   mockApi.recoverTurn.mockResolvedValue(ok(value));mockApi.read.mockResolvedValue(ok({...snapshot(turn('SUCCEEDED')),messages:[{id:B,role:'ASSISTANT',body:'Stvarni završen odgovor'}]}));return ok(value);});
  await click('Odustani od odgovora');expect(shell().props.messages).toEqual([{id:B,fromAi:true,body:'Stvarni završen odgovor'}]);
- expect(visibleText()).not.toContain('Odustali ste od odgovora');expect(mockJournal.clear).toHaveBeenCalledWith(intent());
+ expect(visibleText()).not.toContain('Odgovor je otkazan i podaci su ostali nepromenjeni');expect(mockJournal.clear).toHaveBeenCalledWith(intent());
  expect(mockApi.send).not.toHaveBeenCalled();
 });
 it('late dispatched exit after account reincarnation cannot clear the old journal or update the new screen',async()=>{
