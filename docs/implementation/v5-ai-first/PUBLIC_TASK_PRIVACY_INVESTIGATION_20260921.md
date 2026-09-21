@@ -54,3 +54,17 @@ Whichever approach is selected, prove on the disposable API:
 6. New and old-client compatibility is stated; schema cache refreshed; closure digest and authority surface verified.
 
 Do not mark 7.17 closed based on this investigation or on an allowlisted UI SELECT alone.
+
+## Follow-up after PKG-035 (ledger 191)
+
+Read the actual `supabaseIzvor.prilika`, owner query, revision-bound application join and
+`ru4Production.remainingSearchState` again. Public detail still reads `needs` directly; merely making
+the list RPC a definer and removing public discovery would break detail on installed clients.
+The four current SELECT policies are owner, participant, same-world PUBLISHED/SELECTION discovery
+(permissive), plus `rpc_storage_account_open()` (restrictive). No policy was changed.
+
+PKG-035 adds another existing-query dependency: `selectable_application_count(needs)`. It returns a count
+only for the stored owner (foreign null), and its actual PostgREST query was proved in run35658331088.
+Any privacy change must retain that computed field for owners as well as the original coverage field.
+This new field does not fix the broader table grant. Do not conflate per-field owner checks with a
+safe table boundary or silently break older owner/public-detail clients during the rollout.
