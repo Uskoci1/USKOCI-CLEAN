@@ -34,7 +34,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 4 | Notifications: emit → deliver → push, and the Edge workers | read 2026-09-21 — see findings |
 | 5 | AI interview, review, publication | read 2026-09-21 — see findings |
 | 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
-| 7 | Client data layer, file by file | pending |
+| 7 | Client data layer, file by file | PARTIAL 2026-09-21 — server claims checked against the client; full per-file read owed |
 | 8 | Routes and screens, file by file | pending |
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
@@ -92,6 +92,49 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
 
+### Area 7 — Client data layer (PARTIAL — see scope)
+
+**Scope, stated plainly.** Not yet read file by file. What was read in full: `src/data/serverReceipt.ts`
+(the error pipeline every RPC call goes through), the error map of `applicationSelectionClientService.ts`,
+`ru4Production.resolveChangedApplication`, `moje-prijave.tsx` and the edit form in
+`MyApplicationsPresentation.tsx`, the data export screen, `notificationPreferencesClientService` and
+`PushPreferences.tsx`. Chosen because each server finding above made a claim about what a PERSON sees,
+and a server read cannot establish that. Two of those claims turned out to be wrong (7.2, 7.4). A full
+read of all 91 `src/data` files is still owed.
+
+**7.1 — risk. An unmapped refusal is shown as "maybe it happened, retry".** `readOwnedResult` never shows a
+raw server code — an unknown code falls to `unconfirmed()`, deliberately. For a write that message is
+"Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja…". That is right for a timeout and wrong
+for a business refusal: the server did not fail to answer, it answered no, for a known reason. The server
+can raise 348 distinct codes across 175 client-callable RPCs. The submit/select path maps every business
+refusal checked, including `FIXED_PRICE_MISMATCH`, `TOTAL_PRICE_REQUIRES_ALL_SLOTS`, `UNKNOWN_PRICE_BASIS`,
+`OVERFILL`, `TEAM_CAPACITY_EXCEEDED`, `CONNECTION_POLICY_NOT_READY`. A per-call audit of all 175 is owed.
+
+**7.2 — correction of 6.2.** The export screen offers "Otkaži zahtev?" on a `REQUESTED` export and says
+"Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen." when preparation is refused, and
+`DATA_EXPORT_REQUEST_ALREADY_OPEN` is mapped. The person is not locked out — they can cancel and ask again.
+The defect that remains is accepting a request that cannot be fulfilled.
+
+**7.3 — confirmed end to end: 3.1 is reachable from the app.** When a published task is edited, My
+applications offers UPDATE on the now-stale application, with a free editable `TextInput`
+"Cena ponude (RSD)" (`MyApplicationsPresentation.tsx:144`). `moje-prijave.tsx:159-160` checks only that it
+is a positive integer. The first submit locks the price on both client and server; this door is open on
+both.
+
+**7.4 — correction of 6.1.** Preparing sets `NOT_READY` or `BLOCKED`, which are not restricted; the lock
+begins at the explicit "delete" confirmation (`EXECUTING`). The unfinished-deletion defect stands.
+
+**7.5 — confirmed: 4.1 is live in the client.** `PushPreferences({ role })` reads and saves exactly one
+role (`save(scope.accountId, scope.role, …)` at lines 105, 115, 131). Turning push on in one role's screen
+never writes the other role's row, and the server defaults a missing row to off.
+
+**7.6 — note. One refusal message will mislead under the new price basis.** `FIXED_PRICE_MISMATCH` reads
+"Cena Zadatka je promenjena." Under PER_PERSON the usual cause is an amount that is not per-person ×
+covered, not a changed price.
+
+**7.7 — rule.** `PushPreferences.tsx:181` promises "prikazujemo samo da imaš novo obaveštenje"; the sender
+sends "Imate novo obaveštenje. Otvorite aplikaciju." (4.3).
+
 ### Area 9 — HITNO, categories, and matching
 
 Read in full: `private.urgent_activation_decision`, `private.match_detail_without_calendar`, the
@@ -144,11 +187,16 @@ Read in full: `private.retention_maintenance`, `private.data_export_policy_bindi
 request and execution state. Evaluated both bindings live. NOT exercised: starting a closure would lock a
 real account, so 6.1 is from reading, not from a run.
 
-**6.1 — defect, serious. Asking to delete an account would lock it and never delete it.**
+**6.1 — defect, serious. Confirming account deletion would lock the account and never delete it.**
 `closure_account_restricted` is true when the request is in `READY`, `EXECUTING`, `FAILED` or `CLOSED`, and
-`closure_assert_open` raises `ACCOUNT_CLOSING` whenever it is — so the account is restricted from the
-moment it is prepared (`READY`), before execution even starts. `rpc_start_account_closure_execution` moves
-it to `EXECUTING` and does not finish it. Finishing belongs to `rpc_claim_account_closure_action_service`
+`closure_assert_open` raises `ACCOUNT_CLOSING` whenever it is. (Correction, made in area 7 after reading
+`rpc_prepare_account_closure` in full: this entry first said the account is restricted "from the moment it
+is prepared (`READY`)". That was wrong — preparing sets `NOT_READY`, or `BLOCKED` when there are blockers,
+and neither is in the restricted list. The claim came from reading the list of restricted states without
+reading which state preparation actually writes. The lock begins only at the explicit confirmation.)
+`rpc_start_account_closure_execution` — the "yes, delete it" step — moves it to `EXECUTING`, which IS
+restricted, and does not finish it. There is no cancel path from `EXECUTING`; for a deletion that is
+defensible on its own. Finishing belongs to `rpc_claim_account_closure_action_service`
 and `rpc_finalize_account_closure_service` — service-role functions called only by the
 `uskoci-account-closure-worker` Edge function, which nothing invokes (4.2). The closure binding is live and
 READY (`closure_erasure_binding_v5()` is not null), so a closure WOULD start. Net: the person is locked out
@@ -156,13 +204,15 @@ with `ACCOUNT_CLOSING` on every guarded action, and their data is never erased, 
 worker by hand. Deletion is a right a user exercises; this is the most serious finding so far. Fix is 4.2's
 scheduler — for this worker it is sufficient, because its binding is ready.
 
-**6.2 — defect. A data export is accepted, never delivered, and then blocks asking again.**
+**6.2 — defect (severity corrected in area 7, see 7.2). A data export is accepted and never delivered.**
 `rpc_request_data_export` never consults `data_export_policy_binding()`. It inserts `REQUESTED` and
 returns it. It also refuses any new request while one is `REQUESTED` or `PROCESSING`
 (`DATA_EXPORT_REQUEST_ALREADY_OPEN`). `data_export_policy_binding()` is NULL today — its first act is to
 look for an active `retention_policy_sets` row and there are none — so no export can be delivered even if
-a worker ran. Live: one request since 2026-09-13 18:48, 7.6 days, never updated; that account can never
-request an export again. The contrast is the fix: `rpc_start_account_closure_execution` checks ITS binding
+a worker ran. Live: one request since 2026-09-13 18:48, 7.6 days, never updated. (This entry originally
+said that account "can never request an export again". That was a claim about the user's experience made
+from the server alone, and reading the client disproved it: the screen offers to cancel a `REQUESTED`
+export and then ask again. See 7.2.) The contrast is the fix: `rpc_start_account_closure_execution` checks ITS binding
 before inserting anything and refuses honestly with `CLOSURE_POLICY_NOT_READY`. The export request should
 do the same with its own binding, and say plainly that export is not available yet.
 
