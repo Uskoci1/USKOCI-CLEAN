@@ -82,3 +82,20 @@ The erasure program itself (the redaction relations and patch) is not touched.
 - A real account (Auth sign-up) works a task, then cancels it through the API with a reason.
 - It closes end to end with the exact closure worker, called with the server key on `apikey` (PKG-030).
 - Afterwards, not one message anywhere contains the reason.
+
+Passing run: https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35643688275 (source `54eaf5ec`, 17 checks). The
+closure took 75 worker steps.
+
+An earlier run (source `4c44327b`) stopped at the replay because the proof expected canonical DEV's certificate
+value on the disposable stack. The replayed stack certifies its own value, as PKG-023f recorded, so the proof now
+asserts that the value is bound in all three places and that the readiness function is canonical DEV's apart from
+its constant.
+
+## Applied to canonical DEV (2026-09-21)
+
+Receipt: `supabase/operations/dev-alpha/ledger/20260921_pkg032_application.receipt.json`.
+
+- Ledger is **188 = 147 + 41 dev_alpha**. Both texts are byte-identical to the files without their final newline.
+- Before applying, every pin equalled canonical DEV's, and no closure was executing.
+- The certificate moved from `67730f62…` to **`65980fce…`**. The new value is bound in all four places: the source
+  row, the erasure row, the readiness constant and the erasure binding. The source is ready.

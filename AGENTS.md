@@ -21,7 +21,17 @@ dependency. Full evidence and what would close it:
 `docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
 for that cause; a new alert is a new decision.
 
-PKG-031 (2026-09-21, proven and **applied** on the owner's "odobravam sve" to ten numbered proposals): ledger now
+PKG-032 (2026-09-21, proven and **applied**, item 8 of the owner's "odobravam sve"): ledger now **188 = 147 + 41
+dev_alpha**.
+- `pkg032a` keeps the cancellation reason as the canceller's Agreement message (7.15).
+- `pkg032b` makes the remaining-search guard null-safe (12.8). Because that guard is a trigger function, it also
+  re-binds the certified closure source.
+- **The certified digest is now `65980fce…`** in all three places, and the source is ready. Older paragraphs'
+  `67730f62` is historical.
+- A real account closed end to end on the new certificate in the proof.
+- Contract: `docs/implementation/v5-ai-first/pkg032/PKG032_CANCEL_REASON_AND_GUARD.md`.
+
+PKG-031 (2026-09-21, proven and **applied** on the owner's "odobravam sve" to ten numbered proposals): ledger then
 **186 = 147 + 39 dev_alpha**.
 - **Server:**
   - `pkg031a`: the requester cannot cancel after the worker says done (7.16).
