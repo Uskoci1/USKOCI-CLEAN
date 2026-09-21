@@ -93,6 +93,7 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 **1.6 — rule. Copy.** `rpc_mark_work_done`: `'Završetak čeka Vašu potvrdu'` / `'Uskočer je označio Dogovor
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
+**Applied 2026-09-21 (PKG-027c):** these notification texts are now mapped to "ti" and the product's words, including those already stored.
 
 ### Area 7 — Client data layer (complete)
 
@@ -486,6 +487,7 @@ Agreement cancel (7.15), this one keeps the reason (in the marketplace audit, ca
 matches the server exactly, including the replay receipt reporting `affectedResponses: 0`, and maps every
 refusal; the controller never resubmits by itself and allows "retry the same" only after a read-back has
 shown the first attempt did not land.
+**Applied 2026-09-21 (PKG-027c):** the two texts now read "Zadatak je otkazan" / "Zadatak za koji imaš prijavu je otkazan.", including those already stored. The discarded reason on the Agreement cancel (7.15) is not changed.
 
 #### `dataExportDeliveryService.ts` (125) and the Edge function it calls, `uskoci-data-export-worker/index.ts` (95) — read in full
 
@@ -1355,6 +1357,7 @@ The generic body is deliberate — no recipient, payload or URL leaves the serve
 "ti". `src/ui/notifications/PushRuntime.tsx` already recognises both `'Imate …'` and `'Imaš novo obaveštenje.
 Otvori aplikaciju.'`, so the sender can move to the informal wording without breaking recognition of pushes
 already queued.
+**Applied 2026-09-21:** Edge `uskoci-push-transport` v12 sends "Imaš novo obaveštenje. Otvori aplikaciju.", byte-identical to the repo. Push has still never run on DEV (4.2).
 
 **4.4 — note. The sender itself is well built and would work if run.** A master switch
 (`EXPO_PUSH_TRANSPORT_ENABLED === 'true'`; otherwise a tick returns `DISABLED` with no DB or provider I/O),
@@ -1424,3 +1427,4 @@ rows are not charged retroactively nor given fabricated receipts. Every selectio
 `'Vaša prijava je izabrana' / 'Otvorite Dogovor za detalje zadatka.'` and raises hints containing
 `'Uskocer je izmenio prijavu. Proverite je ponovo.'`, `'Uskocer vise nema vazeci spreman profil'`,
 `'Potreba je izmenjena. Pogledajte prijave ponovo.'`. Owner decisions: "ti", never "Uskočer".
+**Applied 2026-09-21 (PKG-027c)** for the notification text. The exception hints are unchanged; the client never displays them.
