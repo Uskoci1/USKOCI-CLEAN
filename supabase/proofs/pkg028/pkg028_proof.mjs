@@ -120,8 +120,7 @@ const scenario = (label, body) => JSON.parse(sql(`begin;
   grant all on pkg028_obs, pkg028_ids to authenticated, anon;
   ${body}
   select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) from pkg028_obs;
-  rollback;`, label).split('
-').pop());
+  rollback;`, label).split(/\r?\n/).pop());
 
 // E1. Four published tasks; the minute tick's lifecycle step runs once.
 function expiryScenario() {
