@@ -32,7 +32,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 2 | Selection and Povezivanje (`rpc_select_response`) | read 2026-09-21 — see findings |
 | 3 | Application submit, stale resolution, pricing | read 2026-09-21 — see findings |
 | 4 | Notifications: emit → deliver → push, and the Edge workers | read 2026-09-21 — see findings |
-| 5 | AI interview Edge + review + publish | pending |
+| 5 | AI interview, review, publication | read 2026-09-21 — see findings |
 | 6 | Account, auth, closure, retention, export | pending |
 | 7 | Client data layer, file by file | pending |
 | 8 | Routes and screens, file by file | pending |
@@ -91,6 +91,58 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 **1.6 — rule. Copy.** `rpc_mark_work_done`: `'Završetak čeka Vašu potvrdu'` / `'Uskočer je označio Dogovor
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
+
+### Area 5 — AI interview, review, publication
+
+Read in full: `rpc_ai_complete_need_turn_v2_service`, `rpc_ai_apply_interview_turn_v2_service`, the
+whole `validate_need_v2_fact*` chain, `rpc_publish_need_canonical`, `private.need_publication_context`,
+`private.expire_lifecycle`. Swept `pg_proc` for every comparison of `starts_at` against the current time.
+
+**5.1 — defect, live now. A job whose time has passed stays published forever.** Nothing rejects a
+past start. `need_publication_context` checks country, location, media and policy — no date.
+`rpc_publish_need_canonical` checks that `response_deadline` is in the future only when one is given, and
+accepts none. The only function in the database that compares `starts_at` to the current time is
+`urgent_activation_decision` (HITNO). And `expire_lifecycle`, run every minute, expires a need only when
+`response_deadline is not null and response_deadline <= now` — it never looks at `starts_at` or `ends_at`.
+So a fixed-time task published without a response deadline is neither refused nor ever expired.
+Live on canonical DEV at 2026-09-21: every FIXED_WINDOW task in PUBLISHED has NO response deadline, and
+three of them advertise work that is already over — 2026-09-18 10:00–13:00, 2026-09-20 06:38–09:38 and
+2026-09-20 13:06–15:06 — still open to applications. The fourth (today 16:00–20:00) becomes the same after
+20:00. This is not an edge case: it is what happens to every fixed-time task.
+Fix shape (needs owner approval): `expire_lifecycle` also expires a FIXED_WINDOW need in PUBLISHED or
+SELECTION once its `ends_at` (or `starts_at` when there is no end) has passed and nobody is selected; and
+publication refuses a FIXED_WINDOW whose start is already past.
+
+Why every task has no deadline, read in `src/app/(app)/pregled-zadatka.tsx`: the deadline is optional and
+null by default; the only way to set one is a `kind="quiet"` "Uredi rok za prijave" button, easy to pass.
+And when it is left empty the screen says, at line 359: **"Bez posebnog roka — do popune, zaustavljanja
+potrage ili isteka zadatka."** It tells the requester the task will expire. The server never expires a task
+that has no deadline. The screen makes a promise the backend does not keep, which is what makes this a
+defect rather than a missing nicety. (The deadline itself is displayed correctly, pinned to the task's own
+timezone at line 358.)
+
+**5.2 — note, verified. The AI is not a hole in the wall.** Every proposal from the Edge is re-checked on
+the server in `rpc_ai_apply_interview_turn_v2_service`: the key must be in `need_fact_registry`, the value
+goes through the full `validate_need_v2_fact` chain, `need.resolved_location` and `need.public_photo_paths`
+are refused outright (`LOCATION_EDITOR_REQUIRED` — the AI can never set an exact place or a photo), at most
+12 proposals, and a `BLOCK` turn may persist none. Every AI fact is written `NEEDS_CONFIRMATION` /
+`AI_INFERENCE`: the model proposes, only a person confirms.
+
+**5.3 — note, verified. The validator chain reaches the price-basis rule.** `validate_need_v2_fact` →
+`_pre_country` → `_pre_location` → `_pre_fastest_retirement`, where `need.price_basis` is checked. Built
+as four wrappers, each migration wrapping the previous instead of editing it; the `pre_X` names mean "the
+version from before X was added", which reads backwards. Works; costs a reader a minute.
+
+**5.4 — note. A turn that arrives after the conversation changed is thrown away, not applied.**
+`rpc_ai_complete_need_turn_v2_service` compares the context hash taken when the turn was dispatched with
+the current one; if a person corrected a fact while the model was thinking, the turn is marked FAILED
+rather than overwriting the correction.
+
+**5.5 — note. The publication gate is the best-built function read so far.** What is published is exactly
+what was evaluated: the canonical fingerprint, private materiality marker, public geography, public media,
+policy bundle, policy version, jurisdiction and every rule's provenance must all match the ALLOW decision,
+and that decision must be the latest for the revision. It re-checks the policy and the deadline against
+`clock_timestamp()` just before writing, and refuses to leave a published need without a dispatch schedule.
 
 ### Area 4 — Notifications: emit → deliver → push, and the Edge workers
 
