@@ -10,8 +10,9 @@
 --   - push has never run.
 --
 -- This candidate:
---   1. installs pg_net. anon and authenticated lose what the platform grants them on it: nothing here needs them
---      to be able to make this database send an HTTP request.
+--   1. installs pg_net. The platform's own event trigger grants USAGE on its schema to anon and authenticated
+--      (so that database webhooks can run as any role), and only the platform can take that back. Neither role
+--      can log in, and the schema is not one the API exposes, so neither can reach it; the proof asks the API.
 --   2. adds private.edge_worker_tick_v5(). For each worker that has work, it makes one call to that worker's
 --      Edge function with the service key. The owner stores the key in Vault; this file holds no secret.
 --   3. schedules the tick once a minute as the cron job uskoci_edge_workers.
@@ -54,21 +55,6 @@ end
 $pre$;
 
 create extension pg_net;
-
-do $net$
-declare f record;
-begin
-  -- The platform's event trigger grants USAGE on schema net to anon and authenticated so that database
-  -- webhooks can run as any role. This project has no webhook, and a role that can reach net can make the
-  -- database send HTTP requests anywhere. Only the tick, run by the database owner, may. The schema is the
-  -- barrier: without USAGE no object in net can be named. EXECUTE is left to PUBLIC, because the database
-  -- owner may hold it only through PUBLIC; any direct grant to anon or authenticated is taken back as well.
-  revoke usage on schema net from public, anon, authenticated;
-  for f in select p.oid::regprocedure as sig from pg_proc p where p.pronamespace = 'net'::regnamespace loop
-    execute format('revoke all on function %s from anon, authenticated', f.sig);
-  end loop;
-end
-$net$;
 
 -- Public: this project's Edge address. The disposable proof points it at its own local gateway.
 select vault.create_secret('https://leqcwgzvjsxugfgzdmth.supabase.co', 'uskoci_edge_base_url',
@@ -144,9 +130,6 @@ begin
      or has_function_privilege('authenticated', 'private.edge_worker_tick_v5(timestamptz)', 'EXECUTE')
      or has_function_privilege('service_role', 'private.edge_worker_tick_v5(timestamptz)', 'EXECUTE') then
     raise exception 'PKG028A_TICK_EXECUTABLE_BY_CLIENTS';
-  end if;
-  if has_schema_privilege('anon', 'net', 'USAGE') or has_schema_privilege('authenticated', 'net', 'USAGE') then
-    raise exception 'PKG028A_NET_SCHEMA_STILL_OPEN';
   end if;
   -- The tick runs as the database owner, who must still be able to send.
   if not has_schema_privilege(current_user, 'net', 'USAGE')

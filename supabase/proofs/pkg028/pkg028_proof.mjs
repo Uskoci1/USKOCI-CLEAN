@@ -239,9 +239,9 @@ if (mode === 'apply') {
     'ownerCanPost', exists (select 1 from pg_proc p where p.pronamespace='net'::regnamespace and p.proname='http_post' and has_function_privilege('postgres',p.oid,'EXECUTE')),
     'schemaAcl', (select nspacl::text from pg_namespace where nspname = 'net'),
     'job', (select to_jsonb(j) - 'jobid' from cron.job j where jobname = 'uskoci_edge_workers'))`));
-  assert.equal(report.pgNet.anonUsage, false); assert.equal(report.pgNet.authenticatedUsage, false);
+  // What the platform grants anon and authenticated on net is recorded as measured; the e2e step asks the API.
   assert.equal(report.pgNet.ownerUsage, true); assert.equal(report.pgNet.ownerCanPost, true);
-  pass('PG_NET_IS_CLOSED_TO_ANON_AND_AUTHENTICATED_AND_OPEN_TO_THE_TICK');
+  pass('THE_TICK_CAN_SEND_AND_THE_PLATFORM_GRANTS_ON_NET_ARE_RECORDED');
   save();
   process.exit(0);
 }
@@ -282,12 +282,10 @@ if (mode === 'after') {
     ${['anon', 'authenticated'].map(role => `set local role ${role};
     do $r$ begin perform private.edge_worker_tick_v5(); insert into pkg028_obs values ('${role}:tick', '"CALLED"');
       exception when others then insert into pkg028_obs values ('${role}:tick', to_jsonb(sqlstate)); end $r$;
-    do $r$ begin perform net.http_post('https://example.com', '{}'::jsonb); insert into pkg028_obs values ('${role}:net', '"CALLED"');
-      exception when others then insert into pkg028_obs values ('${role}:net', to_jsonb(sqlstate)); end $r$;
     reset role;`).join('\n')}`);
   report.reach = reach;
-  for (const k of ['anon:tick', 'anon:net', 'authenticated:tick', 'authenticated:net']) assert.equal(reach[k], '42501', k);
-  pass('ANON_AND_AUTHENTICATED_CAN_REACH_NEITHER_THE_TICK_NOR_PG_NET');
+  for (const k of ['anon:tick', 'authenticated:tick']) assert.equal(reach[k], '42501', k);
+  pass('ANON_AND_AUTHENTICATED_CANNOT_RUN_THE_TICK');
   save();
   process.exit(0);
 }
@@ -307,6 +305,29 @@ if (mode === 'e2e') {
   // Never store a key while the address is canonical DEV's.
   assert.equal(base(), DEV_BASE); setBase(kong); assert.equal(base(), kong);
   pass('THE_TICK_POINTS_AT_THIS_STACKS_OWN_GATEWAY_BEFORE_ANY_KEY_EXISTS');
+
+  // The platform grants anon and authenticated USAGE on net. Neither role can log in, so the API is the only way
+  // either could reach it: ask the API, as anon and as a signed-in person, for net and for the tick.
+  const asker = await rt.actor('pkg028-api');
+  const session = (await asker.client.auth.getSession()).data.session;
+  assert.ok(session?.access_token, 'a signed-in session');
+  const api = async (bearer, path, profile, method = 'POST') => {
+    const r = await fetch(process.env.RU5_DEVICE_SUPABASE_URL + path, {method, headers: {apikey: process.env.RU5_DEVICE_ANON_KEY,
+      Authorization: 'Bearer ' + bearer, 'Content-Type': 'application/json', [method === 'POST' ? 'Content-Profile' : 'Accept-Profile']: profile},
+      body: method === 'POST' ? JSON.stringify({url: 'https://example.com'}) : undefined});
+    const text = await r.text(); let code = null; try { code = JSON.parse(text).code ?? null; } catch {}
+    return {status: r.status, code};
+  };
+  const probes = {};
+  for (const [who, bearer] of [['anon', process.env.RU5_DEVICE_ANON_KEY], ['authenticated', session.access_token]]) {
+    probes[who + ':net.http_post'] = await api(bearer, '/rest/v1/rpc/http_post', 'net');
+    probes[who + ':net._http_response'] = await api(bearer, '/rest/v1/_http_response', 'net', 'GET');
+    probes[who + ':private.edge_worker_tick_v5'] = await api(bearer, '/rest/v1/rpc/edge_worker_tick_v5', 'private');
+  }
+  report.apiProbes = probes;
+  for (const [k, v] of Object.entries(probes)) assert.equal(v.code, 'PGRST106', k + ' reached through the API: ' + JSON.stringify(v));
+  assert.equal(sql('select count(*) from net.http_request_queue') + '/' + sql('select count(*) from net._http_response'), '0/0');
+  pass('THROUGH_THE_API_NEITHER_ANON_NOR_A_SIGNED_IN_PERSON_CAN_NAME_NET_OR_THE_TICK');
 
   const tick = () => JSON.parse(sql('select private.edge_worker_tick_v5()', 'TICK'));
   const answer = async id => {
