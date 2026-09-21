@@ -30,19 +30,6 @@ export type NeedPresentationProps = {
   qaAction?: ReactNode;
 };
 
-/**
- * The category is free text the AI writes, and the canonical project already holds four shapes for
- * three categories: `Dostava`, `Selidbe i transport`, `transport_selidbe`, and one that kept its
- * quotation marks. A person should not read a column name. This tidies it for display only: the
- * projection keeps the server's exact value, which `cdl-a03-need-read-equivalence` requires and
- * which is what a later fix in the interview prompt will correct at the source.
- */
-function readableCategory(value: string | null | undefined): string | null {
-  if (typeof value !== 'string') return null;
-  const cleaned = value.trim().replace(/^["„“']+|["”“']+$/g, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : null;
-}
-
 /** What the state means and what comes next, in one strip. */
 function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: { title: string; detail: string } | null): { title: string; detail?: string; tone: 'green' | 'warn' | 'muted' } {
   const { popunjeno, ukupno } = need.pokrivenost;
@@ -102,7 +89,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {step ? <NextStrip icon={PaperPlaneTilt} title={step.title} detail={step.detail} tone={step.tone} /> : null}
         <View style={s.hero}>
-          {need.urgency || need.detalji?.kategorija ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} />{readableCategory(need.detalji?.kategorija) ? <T variant="meta" tone="muted">{readableCategory(need.detalji?.kategorija)}</T> : null}</View> : null}
+          {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
+          {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <T accessibilityRole="header" style={s.heroTitle}>{readableTitle(need.naslov)}</T>
         </View>
         <FactGrid>

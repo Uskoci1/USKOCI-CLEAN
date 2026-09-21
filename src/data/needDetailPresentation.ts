@@ -46,7 +46,9 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilan raspon · ';
   // A zone the reader is already standing in does not need to be named; a different one does.
   // Naming it was not the problem — printing an instant in UTC and apologising for it was.
-  const named = timezone && timezone !== deviceZone() ? ` (${timezone})` : timezone ? '' : ' (UTC · zona nije navedena)';
+  // Serbian time is named the way the owner's rule says it (2026-09-21, deep read 8.27).
+  const named = timezone && timezone !== deviceZone()
+    ? ` (${timezone === 'Europe/Belgrade' ? 'po vremenu u Srbiji' : timezone})` : timezone ? '' : ' (UTC · zona nije navedena)';
   return range ? `${preference}${range}${named}`
     : schedule.kind === 'FIXED_WINDOW' ? 'Tačan termin nije potpun' : SCHEDULE[schedule.kind];
 }

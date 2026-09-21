@@ -9,6 +9,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { calendarInstant } from '../../lib/calendarTime';
 import { needScheduleText } from '../../data/needDetailPresentation';
+import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { T } from '../Text';
@@ -23,12 +24,10 @@ type Form = { token: object; kind: 'PROPOSE' | 'CANCEL'; reentry: boolean; key: 
   price: string; scope: string; reason: string; zone: string; startDate: string; startTime: string; endDate: string; endTime: string;
   priceChanged: boolean; scopeChanged: boolean; startChanged: boolean; endChanged: boolean };
 const initial: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
-const deviceZone = (): string | undefined => {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { return undefined; }
-};
-/** The same zone the form below types in, so the review and the fields cannot disagree. */
+/** The same zone the form below types in, so the review and the fields cannot disagree: Serbian time
+ * for both parties (owner decision 2026-09-21, deep read 8.27). */
 const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && terms.endsAt === null ? 'Termin nije potvrđen'
-  : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt }, deviceZone());
+  : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt }, DOGOVORENA_ZONA);
 function Terms({ title, terms }: { title: string; terms: AgreementChangeTerms | null }) {
   return <View style={s.group}><T style={s.heading}>{title}</T>{terms ? <>
     <T style={s.copy}>Cena: {novac(terms.priceRsd)}</T>
@@ -68,7 +67,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     if (!actionCurrent() || !snapshot || busy || submitting.current || formRef.current || reviewRef.current) return;
     if (reentry ? !state.journal || !state.canRetry || state.journal.kind !== kind
       : state.phase !== 'READY' || !(kind === 'PROPOSE' ? snapshot.actions.canProposeChange && snapshot.terms : snapshot.actions.canCancel)) return;
-    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', terms = snapshot.terms;
+    const zone = DOGOVORENA_ZONA, terms = snapshot.terms;
     const start = terms?.startsAt ? zonedParts(new Date(terms.startsAt), zone) : { date: '', time: '' };
     const end = terms?.endsAt ? zonedParts(new Date(terms.endsAt), zone) : { date: '', time: '' };
     const next: Form = { token: {}, kind, reentry, key: reentry ? state.journal!.clientRequestId ?? '' : noviUuidZahtevId(),
@@ -145,7 +144,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
         {form.kind === 'PROPOSE' ? <>
           {field('Predložena cena u RSD', form.price, price => edit({ price, priceChanged: true }))}
           {field('Predloženi obim posla', form.scope, scope => edit({ scope, scopeChanged: true }), true)}
-          <T style={s.label}>Vremenska zona za unos: {form.zone}</T>
+          <T style={s.label}>Vreme unosiš po vremenu u Srbiji.</T>
           <CivilField label="Datum početka" mode="date" value={form.startDate} disabled={busy} onChange={startDate => edit({ startDate, startChanged: true })} />
           <CivilField label="Vreme početka" mode="time" value={form.startTime} disabled={busy} onChange={startTime => edit({ startTime, startChanged: true })} />
           <CivilField label="Datum kraja" mode="date" value={form.endDate} disabled={busy} onChange={endDate => edit({ endDate, endChanged: true })} />

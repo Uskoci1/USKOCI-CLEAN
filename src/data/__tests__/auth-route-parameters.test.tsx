@@ -63,19 +63,15 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('opens published-document reading without toggling consent or losing Auth input', async () => {
+it('says the legal documents are not published yet instead of asking to accept them (deep read 8.2)', async () => {
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
   await press('Napravi nalog');
   await fill('ime@primer.rs', 'ana@example.test');
-  const consent = host('Pressable').find(node => node.props.accessibilityRole === 'checkbox')!;
-  const terms = host('Text').find(node => node.props.accessibilityRole === 'link' && textOf(node) === 'Uslove korišćenja')!;
-  const stopPropagation = jest.fn();
-  await act(async () => terms.props.onPress({ stopPropagation }));
-  expect(stopPropagation).toHaveBeenCalledTimes(1);
-  expect(host('LegalModal')[0].props.kind).toBe('TERMS');
-  expect(consent.props.accessibilityState.checked).toBe(false);
-  await act(async () => host('LegalModal')[0].props.onClose());
+  expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(0);
+  expect(host('Text').filter(node => node.props.accessibilityRole === 'link')).toHaveLength(0);
+  expect(host('LegalModal')).toHaveLength(0);
+  expect(textOf(tree.root)).toContain('Ovo je test verzija. Uslovi korišćenja i Politika privatnosti biće objavljeni pre javnog pokretanja.');
   expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
   expect(mockAuth.signUp).not.toHaveBeenCalled();
 });

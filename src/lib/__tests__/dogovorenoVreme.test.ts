@@ -16,14 +16,18 @@ import { dogovorenoVreme } from '../dogovorenoVreme';
  * AND the string, so a run in UTC — which is what CI is — fails if the zone is ever dropped again:
  * 10:00Z would print as 10:00 instead of 12:00.
  */
+// The owner's rule (2026-09-21, deep read 8.27): a phone set to another zone is told the time is Serbian.
+// Jest runs in UTC (jest.config.cjs), so every agreed time here carries the note.
+const NOTE = ' (po vremenu u Srbiji)';
+
 describe('a time that was agreed', () => {
   it('reads in the task market zone, whatever zone the phone is in', () => {
     // Summer: Belgrade is UTC+2.
-    expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15.06. 12:00');
+    expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15.06. 12:00' + NOTE);
     // Winter: UTC+1. The same code must follow the change, not a fixed offset.
-    expect(dogovorenoVreme('2026-01-15T10:00:00Z')).toBe('15.01. 11:00');
+    expect(dogovorenoVreme('2026-01-15T10:00:00Z')).toBe('15.01. 11:00' + NOTE);
     // Across midnight, where a dropped zone also moves the DAY, not just the hour.
-    expect(dogovorenoVreme('2026-09-21T22:30:00Z')).toBe('22.09. 00:30');
+    expect(dogovorenoVreme('2026-09-21T22:30:00Z')).toBe('22.09. 00:30' + NOTE);
   });
 
   it('agrees with an explicitly pinned reference on this machine too', () => {
@@ -31,7 +35,17 @@ describe('a time that was agreed', () => {
     const reference = new Date(iso).toLocaleString('sr-Latn-RS', {
       timeZone: 'Europe/Belgrade', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     });
-    expect(dogovorenoVreme(iso)).toBe(reference);
+    expect(dogovorenoVreme(iso)).toBe(reference + NOTE);
+  });
+
+  it('says nothing extra on a phone that is already in Serbian time', () => {
+    const real = Intl.DateTimeFormat.prototype.resolvedOptions;
+    const phone = jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
+      .mockImplementation(function (this: Intl.DateTimeFormat) { return { ...real.call(this), timeZone: 'Europe/Belgrade' }; });
+    try {
+      expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15.06. 12:00');
+    } finally { phone.mockRestore(); }
+    expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15.06. 12:00' + NOTE);
   });
 
   it('says the caller words rather than inventing a time it does not have', () => {

@@ -50,7 +50,7 @@ describe('V2 complete public task context', () => {
     const result = await supabaseIzvor.prilika('task-a');
     expect(result?.vremeTekst).toContain('12:05:01.123456');
     expect(result?.vremeTekst).toContain('13:35:02.654321');
-    expect(result?.vremeTekst).toContain('Europe/Belgrade');
+    expect(result?.vremeTekst).toContain('po vremenu u Srbiji');
     expect(result?.detalji?.zahtevi).toMatchObject({ dozvole: ['Dozvola'], bitniUslovi: ['Teške kutije'] });
     expect(JSON.stringify(result)).not.toContain('PRIVATE_ADDRESS');
   });

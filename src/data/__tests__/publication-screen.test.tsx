@@ -182,7 +182,8 @@ describe('V2 saved Need presentation', () => {
         zahtevi: { vestine: [], alati: ['Alat, jedan', 'Alat, jedan'], vozila: [], dozvole: ['B kategorija'],
           bitniUslovi: ['Bez lifta'], iskustvoGodina: 3, potvrdjenIdentitet: true } } });
     await render();
-    expect(texts()).toContain('Prevoz'); expect(texts()).toContain('Tražim ponude');
+    // The category is not shown to people (owner decision 2026-09-21); the server reads it only to match.
+    expect(texts()).not.toContain('Prevoz'); expect(texts()).toContain('Tražim ponude');
     expect(texts()).toContain('19:00'); expect(texts()).toContain('Čćšžđ '.repeat(800));
     expect(texts()).not.toContain('Petrovaradin');
     await act(async () => press('Mesto izvršenja').props.onPress());

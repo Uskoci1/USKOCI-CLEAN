@@ -115,6 +115,12 @@ it('storage failure prevents unjournaled mutation; known refusal stays settled u
  const g=fixture();await g.controller.load();g.service.propose.mockResolvedValue({ok:false,kod:'VERSION_CONFLICT',poruka:'Uslovi su promenjeni.'});
  await g.controller.submit(propose);expect(g.controller.snapshot().phase).toBe('REJECTED');await g.controller.retry();expect(g.service.propose).toHaveBeenCalledTimes(1);
 });
+it('a requester cancel refused because the worker said done is settled, with the owner\'s words (PKG-031a)',async()=>{
+ const f=fixture();await f.controller.load();
+ f.service.cancel.mockResolvedValue({ok:false,kod:'AGREEMENT_WORK_REPORTED_DONE',poruka:'Radnik je javio da je posao gotov. Potvrdi završetak ili prijavi problem.'});
+ await f.controller.submit(cancel);expect(f.controller.snapshot().phase).toBe('REJECTED');
+ await f.controller.retry();expect(f.service.cancel).toHaveBeenCalledTimes(1);
+});
 it.each([{authoritative:false},{accountId:B},{canProposeChange:false}])('does not infer proposal capability from an active Agreement %#',async patch=>{
  const f=fixture();f.setSnapshot({...base(),actions:{...base().actions,...patch} as AgreementChangeSnapshot['actions']});await f.controller.load();
  await f.controller.submit(propose);expect(f.storage.setItem).not.toHaveBeenCalled();expect(f.service.propose).not.toHaveBeenCalled();

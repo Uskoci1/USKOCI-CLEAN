@@ -513,7 +513,8 @@ describe('the review reads as a task', () => {
     await render();
     const copy = text();
     expect(copy).toContain('Nije navedeno');
-    expect(copy).toContain('Selidbe i transport');
+    // A filled category is not a row either: people never see it (owner decision 2026-09-21).
+    expect(copy).not.toContain('Selidbe i transport');
     // Two empty facts, one line, and no repetition of the empty marker.
     expect(copy.split('Nije navedeno').length - 1).toBe(1);
   });

@@ -21,7 +21,20 @@ dependency. Full evidence and what would close it:
 `docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
 for that cause; a new alert is a new decision.
 
-PKG-030 (2026-09-21, proven and **applied**; owner "kreni" to option A, then "odobravam sve"): ledger now
+PKG-031 (2026-09-21, proven and **applied** on the owner's "odobravam sve" to ten numbered proposals): ledger now
+**186 = 147 + 39 dev_alpha**.
+- **Server:**
+  - `pkg031a`: the requester cannot cancel after the worker says done (7.16).
+  - `pkg031b`: `private.work_kinds_v5`, the hidden list of eleven kinds of work used only by matching, for
+    exclusions and skills (9.2/9.3). No stored row changed.
+- **App, in git and not yet in an installed build:**
+  - agreed times in Serbian time with "po vremenu u Srbiji" (8.27);
+  - no category shown to people;
+  - sign-up says the legal documents are not published yet, instead of a tick that recorded nothing (8.2);
+  - no "Izmene i otkazivanje" for the requester after done.
+- Contract: `docs/implementation/v5-ai-first/pkg031/PKG031_OWNER_RULES.md`.
+
+PKG-030 (2026-09-21, proven and **applied**; owner "kreni" to option A, then "odobravam sve"): ledger then
 **184 = 147 + 37 dev_alpha**.
 
 On DEV the Edge `SUPABASE_SERVICE_ROLE_KEY` is a secret key (`sb_secret_`), so the legacy key the owner stored could

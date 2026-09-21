@@ -6,6 +6,7 @@ import { calendarFailure } from './calendarErrors';
 import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
 import { needScheduleText } from './needDetailPresentation';
+import { DOGOVORENA_ZONA } from '../lib/dogovorenoVreme';
 import { supabaseKlijent } from './supabaseClient';
 import { novac as novacTekst } from '../lib/novac';
 
@@ -159,21 +160,17 @@ function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActio
     mozePovuci: mine && actions.canWithdrawChange, razlog: proposal.reason, izmene };
 }
 
-const viewerZone = (): string | undefined => {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { return undefined; }
-};
-
 function acceptedSchedule(terms: Record<string, unknown>): string {
   const start = terms.proposed_start_at, end = terms.proposed_end_at;
   if (start == null && end == null) return 'Termin nije potvrđen';
   if ((start != null && (typeof start !== 'string' || calendarInstant(start) === null)) ||
     (end != null && (typeof end !== 'string' || calendarInstant(end) === null))) return 'Termin nije dostupan';
-  // The workspace returns accepted instants but no accepted display timezone, and the answer to
-  // that was UTC — so a Belgrade user read every agreed window two hours early, under a printed
-  // "(UTC · zona nije navedena)". The parent task's zone is still never substituted; the instants
-  // are simply shown in the zone the reader's own phone is in, which is what a time is read in.
+  // The workspace returns accepted instants but no accepted display timezone. They were once shown
+  // in UTC (two hours early in Belgrade), then in each reader's own phone zone, so one Dogovor read
+  // two ways on two phones. The owner's rule (2026-09-21, deep read 8.27): Serbian time for both,
+  // named "po vremenu u Srbiji" on a phone set elsewhere.
   return needScheduleText({ kind: 'FIXED_WINDOW', startsAt: start as string | null ?? null, endsAt: end as string | null ?? null },
-    viewerZone())
+    DOGOVORENA_ZONA)
     + (start == null ? ' · početak nije potvrđen' : end == null ? ' · kraj nije potvrđen' : '');
 }
 
@@ -321,6 +318,9 @@ const changeErrors = {
   AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj dogovorenog termina.',
   WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa potvrđenim Dogovorom. Osveži kalendar.',
   CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.',
+  // PKG-031a (owner decision 2026-09-21, deep read 7.16): after the worker says done, the requester
+  // confirms or reports a problem; the server refuses a cancel from a screen that did not know yet.
+  AGREEMENT_WORK_REPORTED_DONE: 'Radnik je javio da je posao gotov. Potvrdi završetak ili prijavi problem.',
 };
 const changeOptions = { errors: changeErrors, fallback: 'AGREEMENT_CHANGE_UNCONFIRMED', invalid: 'AGREEMENT_CHANGE_INVALID' };
 const changeFields = ['cenaIznos', 'cenaValuta', 'pocetakIso', 'krajIso', 'obim'];

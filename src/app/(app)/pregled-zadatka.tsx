@@ -254,7 +254,10 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     : command ? 'Objava još nije potvrđena. Proveri ishod pre novog pokušaja.' : null;
   const disabled = editor.busy || editor.loading || editor.uncertain;
   const EMPTY_VALUE = new Set(['—', 'Nema navedenih stavki', 'Bez fotografija', '']);
-  const rows = (items: readonly AiTaskReviewFact[]) => {
+  // People never see or choose a category (owner decision 2026-09-21, deep read 9.2). The AI still
+  // writes it for the server, which reads a kind of work from it only to match; it is not a row here.
+  const rows = (all: readonly AiTaskReviewFact[]) => {
+    const items = all.filter(fact => fact.key !== 'need.category');
     const blank = items.filter(fact => edit?.fact.id !== fact.id
       && EMPTY_VALUE.has(factReviewValue(displayFact(fact)).trim()));
     const carried = showEmpty ? items : items.filter(fact => !blank.includes(fact));

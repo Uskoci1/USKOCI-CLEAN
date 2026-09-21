@@ -214,7 +214,7 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     expect(rows.map(row => row.label)).toEqual(['Način izvršenja', 'Polazište', 'Stanica 1', 'Stanica 2', 'Odredište']);
     expect(rows[4].value).toBe('Sremska Kamenica · Odredište');
     expect(result.vremeTekst).toContain('12:00'); expect(result.vremeTekst).toContain('13:00');
-    expect(result.vremeTekst).toContain('Europe/Belgrade');
+    expect(result.vremeTekst).toContain('po vremenu u Srbiji');
     expect(JSON.stringify(result)).not.toMatch(/SECRET|exact_address|resolved_location|exact_lat/);
     expect(mocks.mockFrom.mock.calls).toEqual([['needs']]);
     const selection = String(mocks.mockSelect.mock.calls[0][0]);

@@ -188,7 +188,9 @@ it('uses immutable agreed terms rather than the mutable parent task schedule', a
   resetHappyAuth();
   mockRpc.mockResolvedValue({ data: { ...rawAgreement, startsAt: '2030-01-01T12:00:00Z' }, error: null });
   const result = await agreementClientService.dogovor('agr-1');
-  expect(result?.vremeTekst).toContain('2026 · 10:00');
+  // Serbian time for both parties (owner decision 2026-09-21, deep read 8.27); tests run in UTC, so it is named.
+  expect(result?.vremeTekst).toContain('5. sep 2026 · 12:00');
+  expect(result?.vremeTekst).toContain('po vremenu u Srbiji');
   expect(result?.vremeTekst).not.toContain('zona nije navedena');
   expect(result?.vremeTekst).toContain('kraj nije potvrđen');
   expect(result?.vremeTekst).not.toContain('2030');
@@ -204,7 +206,7 @@ it('does not turn a missing historical agreed interval into a new obligation fro
 it('shows both immutable accepted instants with microseconds across midnight', async () => {
   resetHappyAuth();
   mockRpc.mockResolvedValue({ data: { ...rawAgreement, terms: { ...rawAgreement.terms,
-    proposed_start_at: '2026-09-05T23:55:01.123456Z', proposed_end_at: '2026-09-06T00:25:02.654321Z' } }, error: null });
+    proposed_start_at: '2026-09-05T21:55:01.123456Z', proposed_end_at: '2026-09-05T22:25:02.654321Z' } }, error: null });
   const result = await agreementClientService.dogovor('agr-1');
   expect(result?.vremeTekst).toContain('5. sep 2026 · 23:55:01.123456');
   expect(result?.vremeTekst).toContain('6. sep 2026 · 00:25:02.654321');

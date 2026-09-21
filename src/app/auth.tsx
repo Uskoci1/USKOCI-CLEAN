@@ -1,7 +1,5 @@
 import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
 import { AuthSheet } from '../ui/auth/AuthSheet';
-import { PublicLegalModal } from '../ui/legal/LegalDocuments';
-import type { LegalDocumentKind } from '../contracts/legal';
 import { authTheme as authColors } from '../ui/auth/authTheme';
 import { radius, type } from '../theme/tokens';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -100,8 +98,6 @@ export default function AuthScreen() {
   const [potvrda, setPotvrda] = useState('');
   const [telefon, setTelefon] = useState('');
   const [otp, setOtp] = useState('');
-  const [saglasnost, setSaglasnost] = useState(false);
-  const [legalDocument, setLegalDocument] = useState<LegalDocumentKind | null>(null);
   const [confirmationRequired, setConfirmationRequired] = useState(true);
 
   const commands = useAuthFormCommand();
@@ -195,7 +191,6 @@ export default function AuthScreen() {
       if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesi ime, prezime i grad.');
       if (lozinka.length < 6) throw new Error('Lozinka mora imati najmanje 6 znakova.');
       if (lozinka !== potvrda) throw new Error('Lozinke se ne poklapaju.');
-      if (!saglasnost) throw new Error('Potrebno je prihvatiti Uslove korišćenja i Politiku privatnosti.');
       const result = await authClientService.signUp({
         email: email.trim(), password: lozinka,
         firstName: ime.trim(), lastName: prezime.trim(), city: grad.trim(),
@@ -378,24 +373,14 @@ export default function AuthScreen() {
                         secure
                         icon={<LockKey size={21} color={authColors.muted} />}
                       />
-                      <Pressable
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: saglasnost }}
-                        disabled={radi}
-                        onPress={() => commands.changeForm(() => setSaglasnost((x) => !x))}
-                        style={styles.consent}
-                      >
-                        <View style={[styles.checkbox, saglasnost && styles.checkboxChecked]}>
-                          {saglasnost ? <Text style={styles.checkmark}>✓</Text> : null}
-                        </View>
+                      {/* Deep read 8.2, owner decision 2026-09-21: the tick asked to accept two documents that
+                          are not published yet and recorded nothing. While testing, the screen says so
+                          instead; the recorded acceptance (profil/pravna) takes over once they are published. */}
+                      <View style={styles.consent}>
                         <Text style={styles.consentText}>
-                          Prihvatam <Text style={styles.legalLink} accessibilityRole="link" onPress={event => {
-                            event.stopPropagation(); if (!radi) setLegalDocument('TERMS');
-                          }}>Uslove korišćenja</Text> i potvrđujem da sam pročitao/la <Text style={styles.legalLink} accessibilityRole="link" onPress={event => {
-                            event.stopPropagation(); if (!radi) setLegalDocument('PRIVACY');
-                          }}>Politiku privatnosti</Text>.
+                          Ovo je test verzija. Uslovi korišćenja i Politika privatnosti biće objavljeni pre javnog pokretanja.
                         </Text>
-                      </Pressable>
+                      </View>
                     </>
                   ) : null}
 
@@ -561,8 +546,7 @@ export default function AuthScreen() {
       </View>
     </View>
     </AuthSheet>
-    </KeyboardAvoidingView>
-    <PublicLegalModal kind={legalDocument} onClose={() => setLegalDocument(null)} /></>
+    </KeyboardAvoidingView></>
   );
 }
 
@@ -595,11 +579,7 @@ const styles = StyleSheet.create({
   methodCopy: { flex: 1, minWidth: 0, gap: 3 },
   methodText: { ...type.bodyStrong, color: '#143D35' },
   consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 12, paddingHorizontal: 12, borderRadius: radius.control, backgroundColor: authColors.input },
-  checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: authColors.muted, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center', backgroundColor: authColors.surface },
-  checkboxChecked: { backgroundColor: authColors.accent },
-  checkmark: { ...type.action, color: authColors.buttonInk },
   consentText: { ...type.meta, flex: 1, color: authColors.muted },
-  legalLink: { color: authColors.ink, textDecorationLine: 'underline' },
   backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
   backText: { ...type.tab, color: authColors.accentLight },
   smallNote: { ...type.meta, color: authColors.muted, marginVertical: 12 },

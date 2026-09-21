@@ -118,7 +118,9 @@ it('uses the flatter signup stage while retaining all real fields and the explic
   expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka', 'Potvrdi lozinku']);
   const form = host('View').find(node => node.findAllByType('TextInput' as React.ElementType).length === 6 && StyleSheet.flatten(node.props.style)?.borderBottomWidth === 1)!;
   expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
-  expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(1);
+  // Deep read 8.2: no tick for documents that are not published; the screen says so instead.
+  expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(0);
+  expect(text()).toContain('Ovo je test verzija. Uslovi korišćenja i Politika privatnosti biće objavljeni pre javnog pokretanja.');
   expect(button('Napravi nalog')).toBeDefined();
   expect(text()).not.toContain('Korak 1 od 3');
   expect(mockAuth.signUp).not.toHaveBeenCalled();
@@ -185,7 +187,6 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
   await render(); await press('Napravi nalog');
   for (const [placeholder, value] of [['Ime', 'Ana'], ['Prezime', 'Petrović'], ['Tvoj grad', 'Novi Sad'],
     ['ime@primer.rs', 'ana@example.test'], ['Unesi lozinku', 'password'], ['Ponovi lozinku', 'password']]) await fill(placeholder, value);
-  await act(async () => host('Pressable').find(node => node.props.accessibilityRole === 'checkbox')!.props.onPress());
   const pending = deferred<{ hasSession: boolean }>(); mockAuth.signUp.mockReturnValueOnce(pending.promise);
   const submit = button('Napravi nalog').props.onPress;
   await act(async () => { submit(); submit(); });
@@ -216,7 +217,6 @@ it('does not promise a confirmation email when autoconfirm is enabled but signup
   await render(); await press('Napravi nalog');
   for (const [placeholder, value] of [['Ime', 'Ana'], ['Prezime', 'Petrović'], ['Tvoj grad', 'Novi Sad'],
     ['ime@primer.rs', 'ana@example.test'], ['Unesi lozinku', 'password'], ['Ponovi lozinku', 'password']]) await fill(placeholder, value);
-  await act(async () => host('Pressable').find(node => node.props.accessibilityRole === 'checkbox')!.props.onPress());
   await press('Napravi nalog');
   expect(text()).toContain('Nalog još nije prijavljen.'); expect(text()).not.toContain('dobićete poruku');
   expect(button('Nazad na prijavu')).toBeDefined();

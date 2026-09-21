@@ -296,8 +296,11 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
           <AgreementPeople agreement={dogovor} />
           {me && enabled ? <GroupConversationEntry agreementId={id} /> : null}
           {me ? <WorkspaceRows>
-            <WorkspaceRow label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
-              onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />
+            {/* Once the worker says done, the requester confirms or reports a problem (owner decision 2026-09-21);
+                there is nothing left behind this row for them, so it is not offered. */}
+            {requester && dogovor.stanje === 'AWAITING_REQUESTER' ? null
+              : <WorkspaceRow label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
+                onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />}
             {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow label={worker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'} hint="Jedna tačka, samo uz pristanak" disabled={!enabled}
               onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
             {other ? <WorkspaceRow label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}

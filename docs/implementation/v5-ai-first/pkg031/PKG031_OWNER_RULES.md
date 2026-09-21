@@ -78,3 +78,33 @@ Neither is needed for the owner's rule.
 - The exclusion holds for the same kind and only for it: "moleraj" does not keep out moving.
 - The same skill in other letters matches. Another trade, "electrician", still does not.
 - A control worker passes the dispatch prefilter throughout, so each observation is about skills and exclusions alone.
+
+Passing run: https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35640559729 (source `cbdf527c`, 15 checks).
+
+## Applied to canonical DEV (2026-09-21)
+
+Receipt: `supabase/operations/dev-alpha/ledger/20260921_pkg031_application.receipt.json`.
+
+- Ledger is **186 = 147 + 39 dev_alpha**. The recorded texts are the files without their final newline.
+- Before applying, each pinned body on DEV equalled the one the proof replayed.
+- The certified digest `67730f62` is live, equals the certified value, and is ready.
+- No stored row changed. Every one of the 10 category spellings on DEV now names its kind, and so does every worker's
+  skill list.
+
+## In the app (same day, in git; no installed build yet)
+
+- **Item 1:**
+  - The Agreement screen no longer offers "Izmene i otkazivanje" to the requester after the worker says done.
+  - A cancel refused with `AGREEMENT_WORK_REPORTED_DONE` is a settled refusal, shown with the owner's words.
+- **Item 2:** the accepted Agreement window and the change form use Serbian time
+  (`DOGOVORENA_ZONA`, `src/lib/dogovorenoVreme.ts`).
+  - The change form states "Vreme unosiš po vremenu u Srbiji."
+  - Any agreed time on a phone set to another zone carries "(po vremenu u Srbiji)".
+- **Item 3:** the task card no longer shows a category, and the pre-publication review no longer lists "Kategorija".
+  - The AI still writes it for the server.
+  - The AI's own instructions may still mention a category in conversation. That is an Edge change, left for the
+    owner's CLI deploy.
+- **Item 4 (8.2, owner decision):** sign-up no longer asks the person to accept two documents that are not published
+  and records nothing. It says: "Ovo je test verzija. Uslovi korišćenja i Politika privatnosti biće objavljeni pre
+  javnog pokretanja." The recorded acceptance (`profil/pravna`, `acceptReviewedBundle`) is the path once they are
+  published.

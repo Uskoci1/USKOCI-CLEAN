@@ -11,23 +11,28 @@
  * `applicationClientService`, which called `toLocaleString` with no zone at all. Same instant, two
  * screens, and on a phone set to another zone, two different times for the thing being agreed.
  *
- * A task's own schedule has a better answer than this one: `needScheduleText` uses the timezone
- * saved with the task and names it. An application's proposed window does not carry that timezone
- * in its payload, so this pins the zone the reviewed code already pinned, rather than inventing a
- * third behaviour. When the payload starts carrying the task's timezone, this is the one place that
- * has to change.
+ * The owner's rule (2026-09-21, deep read 8.27): every agreed time is shown in Serbian time, the
+ * same on both phones, and a phone set to another zone is told so with "po vremenu u Srbiji". The
+ * accepted Agreement window and the change form read this constant too, so there is one answer.
  */
-const ZONE = 'Europe/Belgrade';
+export const DOGOVORENA_ZONA = 'Europe/Belgrade';
+
+/** " (po vremenu u Srbiji)" on a phone set to another zone; nothing on a phone already in Serbian time. */
+export function napomenaZone(): string {
+  let zone: string | undefined;
+  try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { zone = undefined; }
+  return zone === DOGOVORENA_ZONA ? '' : ' (po vremenu u Srbiji)';
+}
 
 export function dogovorenoVreme(value: unknown, fallback = 'Po dogovoru'): string {
   if (typeof value !== 'string' || !value) return fallback;
   const instant = new Date(value);
   if (Number.isNaN(instant.getTime())) return fallback;
   return instant.toLocaleString('sr-Latn-RS', {
-    timeZone: ZONE,
+    timeZone: DOGOVORENA_ZONA,
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  }) + napomenaZone();
 }

@@ -73,6 +73,17 @@ test('a worker awaiting the requester sees the wait and the deadline; no complet
   expect(copy).toContain('Čeka se potvrda druge strane'); expect(copy).toContain('Bez odgovora se Dogovor zatvara sam.'); expect(copy).toContain('Čeka se potvrda završetka');
   expect(brand()).toEqual(['Otvori poruke']); expect(labels()).not.toContain('Završio sam');
 });
+test('after the worker says done the requester confirms or reports a problem; changes and cancelling are not offered (owner decision 2026-09-21)', async () => {
+  await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z',
+    radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
+  expect(brand()).toEqual(['Potvrdi završetak']);
+  expect(labels()).toContain('Prijavi problem');
+  expect(labels()).not.toContain('Izmene i otkazivanje Dogovora');
+  // The worker in the same state keeps the row: the owner's rule names the requester only.
+  await act(async () => tree.unmount());
+  await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer'));
+  expect(labels()).toContain('Izmene i otkazivanje Dogovora');
+});
 test('a completed Agreement leads with the review; a cancelled one offers only the conversation', async () => {
   await render(base({ stanje: 'COMPLETED' }));
   expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Dogovor je završen'); expect(labels()).not.toContain('Trenutna lokacija osobe koja dolazi'); expect(labels()).not.toContain('Podeli svoju trenutnu lokaciju');
