@@ -96,11 +96,14 @@ if (mode === 'replay') {
 // ---------------------------------------------------------------------------------------------------------
 // scenarios: synthetic rows inside one transaction that is rolled back
 // ---------------------------------------------------------------------------------------------------------
-const person = () => ({id: randomUUID(), requester: randomUUID()});
+const person = () => ({id: randomUUID()});
+// The sign-up trigger on auth.users writes the account and both profiles; nothing else is written here.
 const insertPerson = p => `insert into auth.users(id,email) values(${q(p.id)},${q(p.id + '@proof.invalid')});
-  insert into public.app_accounts(id,email) values(${q(p.id)},${q(p.id + '@proof.invalid')});
-  insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,available_now)
-    values(${q(p.requester)},${q(p.id)},'REQUESTER','Proof person','Novi Sad','ACTIVE','{}',false);`;
+  insert into public.app_accounts(id,email) values(${q(p.id)},${q(p.id + '@proof.invalid')}) on conflict (id) do nothing;
+  insert into public.app_profiles(account_id,kind,display_name,city,profile_status,skills,available_now)
+    select ${q(p.id)},'REQUESTER','Proof person','Novi Sad','ACTIVE','{}',false
+     where not exists (select 1 from public.app_profiles where account_id=${q(p.id)}::uuid and kind='REQUESTER');`;
+const requesterProfile = p => `(select id from public.app_profiles where account_id=${q(p.id)}::uuid and kind='REQUESTER')`;
 const asPerson = id => `set local role authenticated;
   set local request.jwt.claim.sub = ${q(id)};
   set local request.jwt.claim.role = 'authenticated';
@@ -121,7 +124,7 @@ const scenario = (label, body) => JSON.parse(sql(`begin;
 // E1. Four published tasks; the minute tick's lifecycle step runs once.
 function expiryScenario() {
   const a = person(), ids = {past: randomUUID(), pastNoEnd: randomUUID(), future: randomUUID(), flexible: randomUUID()};
-  const row = (id, title, kind, start, end) => `(${q(id)},${q(a.id)},${q(a.requester)},'PUBLISHED',${q(title)},'Disposable SQL fixture',
+  const row = (id, title, kind, start, end) => `(${q(id)},${q(a.id)},${requesterProfile(a)},'PUBLISHED',${q(title)},'Disposable SQL fixture',
     'PROOF','Novi Sad','Liman','OFFERS',1,${q(kind)},${start},${end},statement_timestamp()-interval '1 day')`;
   return scenario('EXPIRY', `${insertPerson(a)}
     select set_config('uskoci.need_lifecycle','PUBLISH',true);
@@ -141,7 +144,7 @@ function expiryScenario() {
 // E2. Publishing: own draft whose start passed, own draft in the future, and someone else's draft whose start passed.
 function publishScenario() {
   const a = person(), b = person(), ids = {pastOwn: randomUUID(), futureOwn: randomUUID(), pastOther: randomUUID()};
-  const draft = (id, owner, title, start) => `(${q(id)},${q(owner.id)},${q(owner.requester)},'DRAFT',${q(title)},'Disposable SQL fixture',
+  const draft = (id, owner, title, start) => `(${q(id)},${q(owner.id)},${requesterProfile(owner)},'DRAFT',${q(title)},'Disposable SQL fixture',
     'PROOF','Novi Sad','Liman','OFFERS',1,'FIXED_WINDOW',${start},${start}+interval '2 hours')`;
   return scenario('PUBLISH', `${insertPerson(a)}${insertPerson(b)}
     insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,approximate_city,
