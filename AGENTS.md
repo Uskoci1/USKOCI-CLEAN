@@ -53,7 +53,8 @@ ledger was then **176 = 147 frozen source + 29 dev_alpha** (current count: PKG-0
 `retention_ai_source_ready()` is true. Receipt:
 `supabase/operations/dev-alpha/ledger/20260921_pkg027_application.receipt.json`.
 
-**Not approved** by that answer, and each needs its own decision:
+**Not approved** by that answer, and each needs its own decision. *(Historical: 7.47, 12.5, 12.7, 12.9 and 12.11 were
+later approved and applied in PKG-029; 3.1, 11.1, 12.8 and 12.10 remain open.)*
 - the stale-application price door (3.1);
 - Q&A statuses (7.47);
 - the phone filter (12.5);
