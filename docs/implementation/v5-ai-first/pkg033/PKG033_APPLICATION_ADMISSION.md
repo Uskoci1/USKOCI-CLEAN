@@ -1,6 +1,11 @@
 # PKG-033 — application admission after a task edit
 
-Status: candidate and disposable proof prepared; **not applied to DEV**.
+Status: **proven on the disposable database; not applied to DEV**. Client fix committed in `b4d5a5a9`.
+
+Run [35651463755](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35651463755) passed **41/41 checks** on
+`0ea4d914`. The downloaded report and source binding were inspected; the candidate hash matches the tested file.
+`PROOF_SUMMARY_20260921.json` retains the checks, exact surface diff, body pins, disposable certificate and client evidence.
+The disposable certificate stayed `8248a4e5…`; that is the reconstructed database's certificate, **not DEV's**.
 
 Deep-read findings 3.1 / 7.3 / 12.6: the ordinary application checks fixed-price basis, current capacity and a
 ready owned profile, while KEEP/UPDATE after a task edit skips those checks and the capability snapshot.
@@ -30,7 +35,7 @@ The apply phase rejects a tampered pin without changing the surface, applies onc
 and checks that only three functions and one new private helper differ. The after phase checks both admission
 paths, valid fixed and negotiated prices, exact retry replay, snapshots, content hashes, selection and withdrawal.
 
-No CI pass is claimed until its report is downloaded and inspected. Initial run `35650880508` reproduced all
+Initial run `35650880508` reproduced all
 eight admission gaps, then exposed an invalid 32-character fixture hash at selection; the fixture now carries
 SHA-256, as the real version writer does. The failed proof did not reach candidate application.
 
@@ -47,6 +52,10 @@ reported APK does not include these new client changes.
 The resumed DEV connection denied execution of the private closure digest function. The owner has been asked
 for the nonsecret live/certified/ready result; no DEV mutation is allowed before the prerequisite is confirmed.
 The migration rechecks it inside its own transaction as well.
+
+Read-only DEV impact check after the proof: ledger remains **188**; no `STALE_REVIEW_REQUIRED` application and
+no application with a selectable status/current-version fixed-price mismatch was present. This is not an
+end-to-end device test and does not establish that every historical application is valid.
 
 Local source-integrity checker currently refuses the owner's explicitly excluded, untracked foreign migration
 `20260913090000_clean_v5_fix_application_spam_and_resolution.sql`. It has been left untouched and excluded from

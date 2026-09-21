@@ -13,7 +13,7 @@ The handoff, AGENTS and the entire deep-read ledger were read before changes.
 - `npx --no-install jest --json --outputFile=jest-resume-result.json`: 239 suites,
   4566 tests passed. Jest warned that a worker needed forced teardown; no test failed.
 - APK run 35643721833: succeeded at `54eaf5ec`; artifact `USKOCI-DEV-APK`,
-  35,784,644 bytes, not expired (expiry 2026-10-05). No later commits changed `src`,
+  35,784,644 bytes, not expired (expiry 2026-10-05). At the initial resume, no later commits changed `src`,
   app.config.js, package manifests or modules. No device was read or changed here.
 
 ## Not independently established through this connection
@@ -37,3 +37,7 @@ explicit logout only, best-effort on storage failure. Device validation is pendi
 
 The untracked migration `20260913090000_clean_v5_fix_application_spam_and_resolution.sql`
 is untouched and must remain uncommitted.
+
+Later in this continuation, client `b4d5a5a9` changed application reconfirmation. Its full Jest result is
+240 suites/4596 tests, with types clean. The old APK does not contain that change. See
+`pkg033/PKG033_APPLICATION_ADMISSION.md`; its server candidate is proven but not applied to DEV.

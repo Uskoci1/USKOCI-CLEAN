@@ -142,6 +142,7 @@ applications offers UPDATE on the now-stale application, with a free editable `T
 "Cena ponude (RSD)" (`MyApplicationsPresentation.tsx:144`). `moje-prijave.tsx:159-160` checks only that it
 is a positive integer. The first submit locks the price on both client and server; this door is open on
 both.
+**Status 2026-09-21, Codex:** Client fixed in `b4d5a5a9`: the editor reads the current revision-bound price rule, calculates PER_PERSON, locks TOTAL headcount, and maps definite refusals. Full Jest 240/4596 and types pass. Server PKG-033 proof run `35651463755` passes 41 checks, but the candidate is **not yet applied to DEV**; do not close 3.1/12.6 as deployed.
 
 **7.4 — correction of 6.1.** Preparing sets `NOT_READY` or `BLOCKED`, which are not restricted; the lock
 begins at the explicit "delete" confirmation (`EXECUTING`). The unfinished-deletion defect stands.
@@ -153,6 +154,7 @@ never writes the other role's row, and the server defaults a missing row to off.
 **7.6 — note. One refusal message will mislead under the new price basis.** `FIXED_PRICE_MISMATCH` reads
 "Cena Zadatka je promenjena." Under PER_PERSON the usual cause is an amount that is not per-person ×
 covered, not a changed price.
+**Status 2026-09-21, Codex:** Fixed in client `b4d5a5a9`: the message explains that the application must follow the task's current price and basis; it does not assert that the task price changed.
 
 **7.7 — rule.** `PushPreferences.tsx:181` promises "prikazujemo samo da imaš novo obaveštenje"; the sender
 sends "Imate novo obaveštenje. Otvorite aplikaciju." (4.3).
@@ -1146,6 +1148,7 @@ worker's question and the owner's answer. Not reached yet: no question was ever 
 skills) and the application evidence snapshot — so a re-confirmed application shows as `LEGACY_UNPROVEN` in
 `rpc_list_need_candidates` — and its WITHDRAW notifies no one, unlike `rpc_withdraw_response`. Never used on
 DEV (`response_revision_resolution_commands` is empty).
+**Status 2026-09-21, Codex:** PKG-033 prepared and proven (41 checks, run `35651463755`), including profile/world/capacity admission, capability snapshot, canonical hash, withdrawal event and idempotency. **DEV unchanged** pending confirmation of private preflight controls. See `pkg033/PKG033_APPLICATION_ADMISSION.md`.
 
 **12.7 — defect, latent. Remote or physical is decided from the schedule, not the place.**
 `rpc_select_response` creates `agreement_execution.mode = 'REMOTE'` only when `schedule_kind =
