@@ -76,7 +76,7 @@ const response = (a,n,w,c={}) => `
   values(${q(a)},${q(n)},${q(w.id)},${q(w.worker)},'OFFER',${q(c.select?'SUBMITTED':'STALE_REVIEW_REQUIRED')},
     ${c.select?2:1},1,${c.price??10000},${c.covered??2},'Proof scope');
   insert into public.marketplace_response_versions(response_id,version,need_revision,price_rsd,covered_slots,scope_note,content_hash)
-  values(${q(a)},1,${c.select?2:1},${c.price??10000},${c.covered??2},'Proof scope',md5(${q(a)}));`;
+  values(${q(a)},1,${c.select?2:1},${c.price??10000},${c.covered??2},'Proof scope',encode(sha256(convert_to(${q(a)},'UTF8')),'hex'));`;
 const asPerson = id => `set local role authenticated;
   set local request.jwt.claim.sub=${q(id)}; set local request.jwt.claim.role='authenticated';
   set local request.jwt.claims=${q(JSON.stringify({sub:id,role:'authenticated'}))};`;
@@ -103,7 +103,7 @@ function application(label,c={}) {
       values(${q(n)},2,${q(r.id)},'pkg033-existing-selection',${c.selected},'SELECTED',${q(previous)},${q(other.id)},${q(other.worker)});`:'');
   const args = [c.covered??2,c.price??10000,svalue(c.start),svalue(c.end),q('Proof scope')].join(',');
   const call = c.fresh?`public.rpc_submit_response(${q(n)},2,${q(w.worker)},${args},${q(request)})`
-    :c.select?`public.rpc_select_response(${q(n)},2,${q(a)},1,md5(${q(a)}),${q(request)})`
+    :c.select?`public.rpc_select_response(${q(n)},2,${q(a)},1,encode(sha256(convert_to(${q(a)},'UTF8')),'hex'),${q(request)})`
     :`public.rpc_resolve_stale_response_after_need_edit(${q(a)},1,2,${q(request)},${q(c.action??'UPDATE')},${args})`;
   return scenario(label,fixtures,`
     ${asPerson(c.select?r.id:w.id)} ${catching('result',call)}
