@@ -31,7 +31,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 1 | Agreement completion → confirmation → rating (W09/W10), server | read 2026-09-21 — see findings |
 | 2 | Selection and Povezivanje (`rpc_select_response`) | read 2026-09-21 — see findings |
 | 3 | Application submit, stale resolution, pricing | read 2026-09-21 — see findings |
-| 4 | Notifications: emit → deliver → push | pending |
+| 4 | Notifications: emit → deliver → push, and the Edge workers | read 2026-09-21 — see findings |
 | 5 | AI interview Edge + review + publish | pending |
 | 6 | Account, auth, closure, retention, export | pending |
 | 7 | Client data layer, file by file | pending |
@@ -91,6 +91,54 @@ auto-completion loop uses `for update skip locked` and re-checks every condition
 **1.6 — rule. Copy.** `rpc_mark_work_done`: `'Završetak čeka Vašu potvrdu'` / `'Uskočer je označio Dogovor
 kao završen.'`. `rpc_confirm_completion`: `'Naručilac je potvrdio završetak.'`.
 `rpc_submit_agreement_review`: `'Dobili ste ocenu za završen Dogovor.'`.
+
+### Area 4 — Notifications: emit → deliver → push, and the Edge workers
+
+Read in full: `private.emit_event`, `supabase/functions/uskoci-push-transport/index.ts` (155 lines). Swept:
+every push RPC, every function mentioning the push sender, `pg_extension`, `cron.job`, every
+`.github/workflows/*.yml` for `schedule:`, and the deployed Edge list.
+
+**4.1 — defect. Push is OFF by default, per role, so turning it on once turns it on for one role.**
+`emit_event` looks up `notification_preferences where user_id = p_recipient and role_context = p_role`;
+when no row matches it sets `push_enabled := false`. Every one of the 7 PUSH deliveries ever created was
+`SUPPRESSED / PUSH_OFF` for exactly this reason — the recipient had no row for the role the event was sent
+to. The account that enabled push holds a single row, `WORKER=true`; the three events it received AS A
+REQUESTER — `RESPONSE_RECEIVED`, `MESSAGE_RECEIVED`, `COMPLETION_REQUIRED`, the ones a requester most needs
+— were each suppressed. A person who switches notifications on reasonably expects them on. Fix shape:
+default a missing role row to the account's other role's choice, or create both rows when push is enabled.
+
+**4.2 — defect, systemic. Three deployed Edge workers have nothing that runs them.**
+`uskoci-push-transport` (ACTIVE, v11), `uskoci-data-export-worker` (ACTIVE, v12) and
+`uskoci-account-closure-worker` (ACTIVE, v1) each process a queue and must be invoked on a schedule. Nothing
+invokes them: no database function references them; `pg_net` is not installed, so the database cannot call
+Edge at all; the only `cron.job` is `uskoci_marketplace_tick`, which is database-only; and no GitHub workflow
+has a `schedule:` trigger — the workers appear only in proof workflows and CI scope scripts. Evidence in the
+data: `push_runtime_readiness` has never been written (the sender writes it on every tick and probe); one
+data export has sat in `REQUESTED` since 2026-09-13 18:48 — 7.6 days, never updated. No account closure has
+ever been requested, so that worker is unobserved, but it has the same shape and the same missing trigger.
+The data export is a right a user exercises; a request that is never processed is a promise the product
+does not keep. Fix shape: a scheduler for the workers — `pg_net` + `pg_cron` calling each with the service
+role, or a platform schedule — plus the `EXPO_PUSH_TRANSPORT_ENABLED` switch (see 4.4), which is a secret and
+could not be read from here.
+
+**4.3 — rule. The one push text that would ever reach a phone is formal.** `uskoci-push-transport`
+line 108 sends, for every event, `title: 'USKOČI', body: 'Imate novo obaveštenje. Otvorite aplikaciju.'`.
+The generic body is deliberate — no recipient, payload or URL leaves the server — but it breaks the owner's
+"ti". `src/ui/notifications/PushRuntime.tsx` already recognises both `'Imate …'` and `'Imaš novo obaveštenje.
+Otvori aplikaciju.'`, so the sender can move to the informal wording without breaking recognition of pushes
+already queued.
+
+**4.4 — note. The sender itself is well built and would work if run.** A master switch
+(`EXPO_PUSH_TRANSPORT_ENABLED === 'true'`; otherwise a tick returns `DISABLED` with no DB or provider I/O),
+service-role-only, one run at a time, lease-based claim → begin → complete, literal provider URLs with no
+redirects, receipts checked on a later tick, no blind resend on an unknown outcome, and no provider message,
+token or address ever logged or returned.
+
+**4.5 — correction of the assistant's own earlier claims, kept on the record.** On 2026-09-21 the assistant
+said "the sender never ran" from an empty `push_runtime_readiness`, and read `PUSH_OFF` as the user's switch.
+The first was true for a reason it did not know (4.2 — nothing runs it); the second was wrong (4.1 — it is
+the per-role default, and the user's switch was on). Both were claims from a table, made before the code
+was read.
 
 ### Area 3 — Application submit, stale resolution, pricing
 
