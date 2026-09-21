@@ -35,7 +35,7 @@ Areas are read deepest-risk first. The first is the one path never exercised by 
 | 5 | AI interview, review, publication | read 2026-09-21 — see findings |
 | 6 | Account closure, data export, retention | read 2026-09-21 — see findings |
 | 7 | Client data layer, file by file | read 2026-09-21 — all 91 files, each checked against the server functions it calls (7.1–7.59) |
-| 8 | Routes and screens, file by file | pending |
+| 8 | Routes and screens, file by file | in progress — all 48 route files; `src/ui` under way (8.1–8.20) |
 | 9 | HITNO, categories, matching | read 2026-09-21 — see findings |
 | 10 | Proof harnesses | pending |
 
@@ -777,6 +777,75 @@ sends a second key for the same intent, retires it only on its own receipt or a 
 restores an unresolved one after a cold start; the owner's task screen asks the publication gate itself
 why a draft cannot be published instead of guessing, and binds every late answer to its focus.
 
+#### `src/ui` — Agreement changes, location, closure, review, questions, safety, task lifecycle
+
+Read in full: `agreements/{agreementActionsModel,AgreementActionsController}.ts`,
+`agreements/{AgreementActionsScreen,AgreementWorkspace,AgreementLocationScreen}.tsx`,
+`AgreementLocationController.ts`, `closure/{ClosureDialog.tsx,closureIntent.ts}`,
+`reviews/{AgreementReviewScreen,AccountReputation}.tsx`, `qa/{TaskQaScreen,TaskQaEntry}.tsx`,
+`safety/SafetyScreen.tsx`, `needs/NeedLifecycleActions.tsx`. With them, in full: `rpc_cancel_agreement`,
+`rpc_respond_agreement_change`, `rpc_mark_work_done`, `rpc_tick_auto_completion`, `private.marketplace_tick`,
+`private.sync_need_completion`, `private.emit_event`, `rpc_list_inbox`, `rpc_review_account_closure_execution`,
+`private.closure_blockers_v5`, `private.closure_erasure_hard_blockers_v5`, `rpc_submit_safety_report`,
+`private.support_safety_case_v5`, `rpc_cancel_need`, `rpc_ai_claim_need_turn_v2_service`,
+`private.ai_need_turn_status`, `rpc_ai_cancel_need_turn_v2`, `rpc_ai_abandon_need_conversation_v2`,
+`rpc_open_worker_ai`, `private.worker_ai_document`, `private.worker_ai_turn_document`. Re-verified on
+the way, against the bodies: 7.15 (the cancel reason is discarded), 7.16 (cancel stays open after "gotovo"),
+1.2 (auto-completion emits nothing) and 8.13 (every stored notification text) — all hold. The one live
+Agreement in `AWAITING_REQUESTER` has its deadline at 2026-09-22 10:40 UTC and no open problem, so it will
+be the first auto-completion on DEV, and per 1.2 neither side will be told.
+
+**8.17 — defect, measured. AI turns that never finish freeze their conversation and block account
+closure for good.** Four turns are `PROCESSING` with `provider_dispatched = true` and a lease that ran out
+days ago: three task-intake turns (accounts 4 and 5; created 2026-09-13 13:42, 2026-09-16 20:41 and 20:44
+UTC; 90-second leases) and one worker-profile turn (account 4, 2026-09-16 20:47; 60-second lease). Nothing
+moves an expired, dispatched turn out of `PROCESSING`: only the Edge worker completing or failing it, the
+person cancelling that exact request, or — for intake only — abandoning that conversation. The minute tick
+has no sweep. By design (`ai_need_turn_status`: "Expiry/abort is not proof that a provider request did not
+run… every unresolved turn blocks successors") each such turn freezes its conversation. Two consequences
+reach a person. (1) `closure_blockers_v5` counts any `PROCESSING` turn as `PENDING_WORKFLOW`; it is account
+4's only blocker, so closing that account says "Sačekaj završetak započete obrade." — a wait with no end.
+(2) There is no way out from the app: the intake conversations are not listed anywhere to reopen, and the
+worker screen offers "Novi razgovor" for an expired turn (`worker_ai_turn_document` reports
+`UNKNOWN_OUTCOME`), but its abandon does not touch `worker_ai_turns` — of the five functions that update
+that table, none is the abandon — so the blocker survives the escape the screen offers. Cancel needs the
+original request key, which the client only has from its own journal. Why the Edge worker died after
+dispatch is not established here. Fix shape (server, needs approval): a sweep that marks a dispatched turn
+`FAILED` once its lease has been expired for, say, ten minutes — same "never retried" meaning, but it stops
+blocking successors and closure; and let the worker abandon fail its open turn the way the intake one does.
+
+**8.18 — risk. Closure starts on one tap, and a second device is never told it is running.** Answers what
+7.41 left for this area. The dialog's "Pokreni zatvaranje naloga" starts the irreversible erasure on a
+single press — no confirmation dialog, no typed word — and with 6.1 that press locks the account without
+erasing it. Today no account can reach the button: all five have hard blockers (measured: active
+Agreements, open tasks, an active application, and 8.17). The screen knows a closure is running only from
+the local START journal. On the device that started it: "Zahtev je pokrenut.", "Provereni koraci: N od M",
+and a sign-out. On any other device, or after a reinstall, it falls back to the review, which for a
+closing account returns `ready: false` (the account is restricted), `code: null` (a request exists and no
+hard blocker remains) and `blockers: []`; the dialog then prints "Najpre reši obaveze navedene ispod."
+above an empty list, with "Proveri stanje zahteva" as the only action. The preparation reader that 7.41
+found refusing a closing account is reached only from "Pripremi pregled", which this state does not show,
+so that refusal never surfaces here. Also, latent: `duration()` renders "1 dana", "1 sati", "2 sati" — it
+is used only for retained datasets, which the live erasure adapter sends as `null`.
+
+**8.19 — defect, truthfulness.** `SafetyScreen.tsx:51`: "Privatna prijava ide automatskoj proveri. Ako ti
+treba čovek, otvori zahtev podršci." There is no automatic check: `rpc_submit_safety_report` inserts the
+report and an audit row, and its trigger opens a `SAFETY` support case — that is all. The same screen says,
+correctly, "Prijavu prima podrška" (`:120`). And the button under the false line opens a second, ordinary
+support case beside the safety case the report already created, in the same inbox with no operator (7.31).
+
+**8.20 — note, well built, with one dead end.** The Agreement-change controller journals the exact
+command before sending, restores a respond/withdraw from the server's own proposal only when its hash
+matches, and demands the original terms be typed again for a propose or cancel whose body is not on the
+device. Every refusal the four change functions raise is either mapped or resolved by reading the
+agreement back. The dead end: a clear refusal (say `VERSION_CONFLICT`) left unacknowledged comes back
+after a restart as "Ishod nije potvrđen", and the only way out is to retype the same terms so the server
+can refuse them again. The location controller stores only opaque coordinates of its request, and
+explains that a shared point is past, not live. The review screen shows the saved receipt as final;
+the task-lifecycle panel's copy holds against `rpc_cancel_need` (applications close, Agreements cancel
+separately). The Q&A screen hides answers from an older revision and says so.
+
+### Area 9 — HITNO, categories, and matching
 
 Read in full: `private.urgent_activation_decision`, `private.match_detail_without_calendar`, the
 `private.marketplace_config` rows. Measured: every stored category, the skills on open tasks and active
