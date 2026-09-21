@@ -78,8 +78,14 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp/uskoci-ru5-device-ui
-          mkdir -p supabase/functions
-          cp -r "$GITHUB_WORKSPACE/supabase/functions/." supabase/functions/
+          # Only the three workers and the one shared file they import: other functions import app source
+          # outside supabase/functions, which this copied project does not have.
+          mkdir -p supabase/functions/_shared
+          cp "$GITHUB_WORKSPACE/supabase/functions/_shared/data-export.ts" supabase/functions/_shared/
+          for f in uskoci-push-transport uskoci-data-export-worker uskoci-account-closure-worker; do
+            cp -r "$GITHUB_WORKSPACE/supabase/functions/$f" supabase/functions/
+          done
+          ls -R supabase/functions
           # The transport switch stays off; the closure worker's switch is on, as the owner is asked to set it.
           printf 'USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED=true\nEXPO_PUSH_TRANSPORT_ENABLED=false\n' > /tmp/pkg028-functions.env
           nohup supabase functions serve --env-file /tmp/pkg028-functions.env > "$PRE_V3_ARTIFACT_DIR/functions-serve.log" 2>&1 &
