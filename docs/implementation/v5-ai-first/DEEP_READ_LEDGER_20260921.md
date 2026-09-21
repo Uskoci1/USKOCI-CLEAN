@@ -748,6 +748,10 @@ otkazana" / "Narucilac je otkazao Potrebu za koju ste poslali prijavu."; `rpc_li
 izmenio prijavu. Proverite je ponovo." …), which the client never displays. This replaces 1.6, 2.3 and
 7.45 as the single inventory. A copy fix is a server change and reaches only new events — stored
 deliveries keep their text.
+**Applied 2026-09-21: PKG-027c** maps every one of these texts in `private.emit_event` through one copy table,
+rewrote all 14 stored deliveries, and corrected the Inbox fallback; the push text is "Imaš novo obaveštenje.
+Otvori aplikaciju." (Edge `uskoci-push-transport` v12). The five exception hints are unchanged; the client
+does not display them. receipt `supabase/operations/dev-alpha/ledger/20260921_pkg027_application.receipt.json`.
 
 **8.14 — note.** The profile hub tells a suspended worker "Profil je obustavljen. Piši podršci." — support
 has no operator (7.31). The Inbox resolves every event to its own screen, questions to the question
@@ -815,6 +819,8 @@ original request key, which the client only has from its own journal. Why the Ed
 dispatch is not established here; the mechanism that lets any post-dispatch failure do this is 11.1. Fix shape (server, needs approval): a sweep that marks a dispatched turn
 `FAILED` once its lease has been expired for, say, ten minutes — same "never retried" meaning, but it stops
 blocking successors and closure; and let the worker abandon fail its open turn the way the intake one does.
+**Applied 2026-09-21: PKG-027b**, exactly that shape. Within three minutes of the apply, the ticks moved the
+3 stuck intake turns and the 1 stuck worker turn to `FAILED`. receipt `supabase/operations/dev-alpha/ledger/20260921_pkg027_application.receipt.json`.
 
 **8.18 — risk. Closure starts on one tap, and a second device is never told it is running.** Answers what
 7.41 left for this area. The dialog's "Pokreni zatvaranje naloga" starts the irreversible erasure on a
@@ -984,6 +990,8 @@ failure each of those was is not established here; the ceiling, "never fail afte
 together are enough for one slow answer to freeze a conversation. Fix shape (Edge and SQL, needs approval):
 a ceiling that fits the answers actually seen, a dispatched-and-failed state for a definite local failure
 (timeout, provider error) that still forbids a second paid call but stops blocking, and the sweep in 8.17.
+**Only the sweep is done (PKG-027b, applied 2026-09-21).** The 12-second ceiling and a dispatched-and-failed
+state are not changed; they still need their own decision.
 
 **11.2 — risk, latent.** The publication evaluator has one 12-second deadline for everything: auth, context,
 downloading up to six photos, and a Gemini call at `MEDIA_RESOLUTION_HIGH`. Its claim moves an accepted
@@ -1022,18 +1030,25 @@ server, in 24 consecutive batches ordered by name, with the live rows each claim
 already recorded elsewhere are not repeated: the stale-application price door (3.1), the Q&A status set
 (7.47), the notification copy inventory (8.13), stuck AI turns (8.17, 11.1), HITNO and matching (9.x).
 
-**12.1 — defect, measured. A task stops looking for workers by itself after about two hours, for good.**
-`private.dispatch_tick` retries a task with no eligible worker after 5, 5, 5, 8, 16, 32 and 60 minutes and
-deletes it from `private.dispatch_schedule` at the eighth failed attempt (about 131 minutes after the first). Only three things ever put a task back in
+**12.1 — defect, measured. A task stops looking for workers by itself about twenty minutes after it is
+published, for good.** *(Corrected 2026-09-21: the first version said "about two hours", reading only
+`dispatch_tick`; the rounds on DEV show the real mechanism.)* `private.dispatch_next_wave` inserts a
+`dispatch_rounds` row for every check and counts every row — including a check that found nobody
+(`STOPPED / NO_ELIGIBLE_CANDIDATES`) — against the four-wave budget (`waveSizes` 5, 5, 10, 20). So the fifth
+check returns `WAVES_EXHAUSTED` and `private.dispatch_tick` deletes the task from `private.dispatch_schedule`;
+its own give-up after eight attempts is never reached. Measured: each of the 12 open tasks has exactly four
+rounds, all empty, spanning 16–18 minutes after publication, and none since. Only three things ever put a task back in
 that queue: a change to the task (`enqueue_on_need_change`), a withdrawn application
 (`rpc_withdraw_response`) and a cancelled Agreement (`rpc_cancel_agreement`) — verified by sweeping every
 body for `enqueue_dispatch(` and `insert into private.dispatch_schedule`. Nothing a worker does — declaring
 availability, widening the radius, activating a profile — re-queues anything. Live: 12 open tasks, 0 rows
 in the queue. So none of the 12 will ever be offered to anyone again automatically, whatever the workers
-change; 9.4's "depends on workers keeping availability current" is true only for the first two hours.
+change; 9.4's "depends on workers keeping availability current" is true only for the first twenty minutes.
 Also, the error branch of the same loop retries every 10 minutes with no limit (the give-up at 8 is only in
-the "no candidates" branch). Fix shape (needs approval): re-queue open tasks when a worker's matching
-inputs change, or let the tick revisit given-up tasks on a slow cadence.
+the "no candidates" branch). Fix: PKG-027a (approved 2026-09-21) — empty checks no longer count as waves,
+no give-up, at most six hours between checks, and a worker's changes re-queue at once. **Applied
+2026-09-21**; all 12 open tasks are back in the queue. The error branch is unchanged (every 10 minutes,
+no limit). receipt `supabase/operations/dev-alpha/ledger/20260921_pkg027_application.receipt.json`.
 
 **12.2 — defect, the assistant's own incomplete work (pkg025). Editing a task loses or refuses its price
 basis.** `rpc_ai_open_need_edit_conversation_v2` seeds the edit conversation from the live task with one
@@ -1045,8 +1060,12 @@ null-basis rule. The opposite case is refused: `price_basis` is in none of the "
 `need_material_snapshot`, `need_full_edit_snapshot`, `need_publication_fingerprint_snapshot` (and so
 `need_edit_base_marker`), nor `guard_need_write`'s list — so an edit whose only change is TOTAL ↔ PER_PERSON
 is refused with `NO_MATERIAL_CHANGE` (which the live path shows as "Ishod radnje nije potvrđen", 7.21), and
-the publication decision is blind to the basis. Also `rpc_list_my_needs_page` — the owner's own task list —
-returns no `priceBasis`; only the marketplace reader does. Not hit yet: all 18 tasks have a null basis.
+the publication decision is blind to the basis. *(Corrected 2026-09-21: the first version also said the
+owner's own list lacks the basis. `rpc_list_my_needs_page` does omit it, but the app never calls that
+function — it reads its own tasks directly with `price_basis` (`needClientService.ts:118,136`) — so nothing
+is missing on screen.)* Not hit yet: all 18 tasks have a null basis. Fix: PKG-027e (approved 2026-09-21).
+**Applied 2026-09-21.** The edit opens with the task's basis, and the basis counts as a material change. It
+is still not in the publication fingerprint, on purpose (see the PKG-027 contract).
 
 **12.3 — defect, the specific cause of the stuck worker-profile turn in 8.17.**
 `rpc_fail_worker_ai_turn_service` fails a turn only `if t.state='PROCESSING' and t.lease_expires_at>=
@@ -1057,6 +1076,9 @@ clock_timestamp()` — only while the 60-second lease is still running. After th
 newest OPEN session, so the person lands in the frozen conversation every time. Live: the QA account's turn
 of 2026-09-16 20:47:59 (lease to 20:48:59) is still `PROCESSING`, conversation OPEN, last message the
 person's, no reply. The intake side has the opposite, sensible rule (complete after the lease → `FAILED`).
+**Applied 2026-09-21: PKG-027b.** That turn (lease to 20:48:59) is now `FAILED`. The sweep got it within
+three minutes of the apply. `rpc_fail_worker_ai_turn_service` is unchanged on purpose, because the sweep owns
+expired turns.
 
 **12.4 — defect, invented public text.** `handle_uskoci_auth_user_created` writes a headline and a bio the
 person never wrote into both profiles at sign-up. The current body uses neutral sentences; every live
@@ -1069,6 +1091,9 @@ did not write. `worker_ai_initial` hands the invented bio to the profile AI as t
 name becomes "USKOČI korisnik", which satisfies `rpc_complete_worker_profile`'s two-character rule, so a
 worker can go ACTIVE under that name. Fix shape: empty defaults, and a one-time clean of the stored text
 (both need approval).
+**Applied 2026-09-21: PKG-027d.** Sign-up writes empty strings; all 10 DEV profiles had only invented
+sentences, and now have an empty headline and bio. The public profile already returns null for empty. The
+"USKOČI korisnik" name default is not changed.
 
 **12.5 — defect. The Q&A contact filter reads dates and price ranges as phone numbers.**
 `private.ru4b_public_floor_reason` refuses `\+?[0-9][0-9 ()/.\-]{6,}[0-9]` as `PHONE_NOT_PUBLIC`. Measured

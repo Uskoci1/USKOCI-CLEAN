@@ -21,6 +21,33 @@ dependency. Full evidence and what would close it:
 `docs/implementation/evidence/codeql-insecure-randomness-20260921/`. This accepts those six alerts
 for that cause; a new alert is a new decision.
 
+PKG-027 (2026-09-21, owner-approved and applied): the deep read
+(`docs/implementation/v5-ai-first/DEEP_READ_LEDGER_20260921.md`) found real server defects. The owner
+approved this round with "odobravam sve to". Contract, proof and application:
+`docs/implementation/v5-ai-first/pkg027/PKG027_OWNER_APPROVED_FIXES.md`. The disposable proof passed
+(run 35594168645). Five candidates are applied to canonical DEV, each byte-identical to its file:
+- `pkg027a`: a task keeps being offered to workers;
+- `pkg027b`: stuck AI turns are failed by the tick;
+- `pkg027c`: notifications use "ti", including the stored ones;
+- `pkg027d`: no invented profile headline or bio;
+- `pkg027e`: the price basis survives an edit.
+
+The push text is deployed as Edge `uskoci-push-transport` v12, byte-identical on readback. Canonical DEV
+ledger is now **176 = 147 frozen source + 29 dev_alpha**. Digest `67730f62` live = certified, and
+`retention_ai_source_ready()` is true. Receipt:
+`supabase/operations/dev-alpha/ledger/20260921_pkg027_application.receipt.json`.
+
+**Not approved** by that answer, and each needs its own decision:
+- the stale-application price door (3.1);
+- Q&A statuses (7.47);
+- the phone filter (12.5);
+- remote/physical execution mode (12.7);
+- 12.8, 12.9, 12.10;
+- the AI 12-second ceiling (11.1);
+- the owner's real tasks being invisible to test workers (12.11).
+
+No device pass has been done.
+
 Price basis (2026-09-20, owner-approved and applied): a task can say what its price is FOR, and an
 application is priced by it. Read `docs/implementation/v5-ai-first/pkg025/PKG025A_PRICE_BASIS.md`.
 The owner authorized this chain explicitly on 2026-09-20 ("sve dozvoljavam", "Cena", "ajde kreni",
@@ -28,7 +55,8 @@ The owner authorized this chain explicitly on 2026-09-20 ("sve dozvoljavam", "Ce
 Applied to canonical DEV: `pkg025a` (the column and its CHECK), `pkg025b` (`rpc_submit_response`
 prices an application by the basis), `pkg025c` (the bounded marketplace reader returns it), and
 `pkg025d` (the `need.price_basis` fact key, its TOTAL/PER_PERSON rule, and the write in both review
-writers). Canonical DEV ledger is now **171 = 147 frozen source + 24 dev_alpha**, digest `67730f62`
+writers). Canonical DEV ledger was then **171 = 147 frozen source + 24 dev_alpha** (current count:
+PKG-027 paragraph above), digest `67730f62`
 live = certified, `retention_ai_source_ready()` true, confirmed by readback. All 18 tasks keep a null
 basis, so nothing existing changed. The Edge function was deployed by the owner the same day
 (version 42, all four assets byte-identical on readback, `OPTIONS` 200, `verify_jwt` unchanged), so
@@ -41,7 +69,7 @@ Latest follow-up (2026-09-20 local): after the three mandatory handoff/owner-dec
 read `docs/implementation/v5-ai-first/pkg023/PKG023J_HOME_ATTENTION.md`. The owner separately approved
 ONLY pkg023j, conditional on ready private preconditions. Its exact CI-proven transaction passed both
 private checks before/after creation and was applied as `20260919221214_dev_alpha_pkg023j_home_attention`.
-Canonical DEV ledger was **165 = 147 frozen source + 18 dev_alpha** at that moment; see the price
+Canonical DEV ledger was **165 = 147 frozen source + 18 dev_alpha** at that moment; see the PKG-027
 paragraph above for the current count. The aggregate is installed but not wired into the client. F02,
 paging, final UI and device verification remain open. Other DEV migrations still need a separate
 explicit owner decision; the older general AF-D26 authorization below does not override that newer
