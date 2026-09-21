@@ -37,5 +37,5 @@ const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(3,35,29,.52)', justifyContent: 'flex-end', paddingTop: 16 },
   sheet: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', overflow: 'hidden',
     borderTopLeftRadius: 32, borderTopRightRadius: 32, borderWidth: 1, borderBottomWidth: 0,
-    borderColor: '#527469', backgroundColor: c.surface },
+    borderColor: c.line, backgroundColor: c.surface },
 });

@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center' },
   screen: { flex: 1, backgroundColor: 'transparent' },
   header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
-  backButton: { width: 48, height: 48, borderRadius: radius.control, borderWidth: 1, borderColor: '#527469', backgroundColor: authColors.input, alignItems: 'center', justifyContent: 'center' },
+  backButton: { width: 48, height: 48, borderRadius: radius.control, borderWidth: 1, borderColor: authColors.line, backgroundColor: authColors.input, alignItems: 'center', justifyContent: 'center' },
   headerTitles: { flex: 1 },
   headerEyeline: { ...type.label, fontWeight: '600', letterSpacing: 0.4, color: authColors.accentLight, marginBottom: 3 },
   headerTitle: { ...type.heading, textAlign: 'left', fontWeight: '600', color: authColors.ink },

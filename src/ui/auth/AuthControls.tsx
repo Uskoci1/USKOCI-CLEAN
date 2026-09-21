@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
   // Inside the field, so its corner follows the field's rather than being picked to look near it.
   passToggle: { width: 48, minHeight: 56, borderRadius: nested(radius.cardCompact, 4), alignItems: 'center', justifyContent: 'center', marginRight: 3 },
   togglePressed: { backgroundColor: c.soft },
-  primary: { minHeight: 54, borderRadius: radius.primary, borderWidth: 1, borderColor: '#FFAD63', backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 18 },
+  primary: { minHeight: 54, borderRadius: radius.primary, borderWidth: 1, borderColor: c.accentLight, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 18 },
   primaryText: { ...type.action, color: c.buttonInk },
-  primaryPressed: { backgroundColor: '#FFA342' },
+  primaryPressed: { backgroundColor: c.accentPressed },
   disabled: { opacity: 0.45 },
 });
