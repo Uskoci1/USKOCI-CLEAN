@@ -112,7 +112,10 @@ Files read in full since, one section each below: `agreementClientService.ts`, `
 `dataExportDeliveryService.ts`, `preselectionQaClientService.ts`, `qaSubmissionClientService.ts`, `qaRecoveryClientService.ts`,
 `applicationClientService.ts`, `myApplicationsClientService.ts`, `ru4Production.ts`, `applicationCommandJournal.ts`,
 `agreementMessageClientService.ts`, `groupConversationService.ts`, `agreementPhotoClientService.ts`, `agreementCompletion.ts`,
-`agreementCurrentLocationService.ts`, `safetyClientService.ts`, `authClientService.ts`,
+`agreementCurrentLocationService.ts`, `safetyClientService.ts`, `authClientService.ts`, `aiNeedTurnStream.ts`,
+`passwordRecoveryClientService.ts`, `passwordRecoveryLink.ts`, `processorMapClientService.ts`, `retentionPolicyClientService.ts`,
+`locationClientService.ts`, `configuredLocationResolver.ts`, `productionLocationResolver.ts`, `locationResolver.ts`, `inboxModel.ts`,
+`inboxClientService.ts`, `notificationPreferencesClientService.ts`, `pushDeviceClientService.ts`, `pushReadinessClientService.ts`, `nativePushDevice.ts`,
 `legacyRpcFailure.ts` (the fixed 39-code copy table the older adapters share; anything else becomes the
 caller's constant fallback, never a server string).
 
@@ -556,6 +559,53 @@ reports land in the safety inbox that has no operator (7.31). Auth never shows a
 limits, outages and each operation's failure get one fixed sentence each; sign-up carries no legal
 acceptance step (there is nothing published to accept, 7.43); logout revokes this device's push
 registration first, then signs out only this device's session.
+
+#### `aiNeedTurnStream.ts` (113), `passwordRecoveryClientService.ts` (115), `passwordRecoveryLink.ts` (44), `processorMapClientService.ts` (109), `retentionPolicyClientService.ts` (84) — read in full
+
+**7.54 — note, product fact. Every published privacy artefact is empty, and the app says so.** Measured:
+`private.legal_document_versions` 0 rows (7.43), `private.processor_map_sets` 0 and
+`processor_map_entries` 0 while `processor_provider_inventory` holds 4 providers,
+`private.retention_policy_sets` 0 and `retention_policy_rules` 0, and no export policy bound (7.46).
+Each client reader treats "not published" as a normal answer with honest copy and refuses a partial or
+inconsistent map or schedule outright rather than showing part of it. The runtime pieces that do exist —
+the AF-D22 closure erasure binding and the AI-conversation retention adapter — are separate from these
+published statements; a person reading "Privatnost" today is told nothing is published yet, which is true.
+
+**7.55 — note, well built.** The AI stream accepts only an ordered event sequence bound to one turn and
+attempt, caps text at 1,500 characters and the stream at 256 KB, and never shows a provider's text; any
+break becomes "unconfirmed", then the turn is recovered by reading it. Password recovery uses a separate
+transient session that never logs the person in, accepts only the pinned `uskociapp://oporavak` with a
+`type=recovery` fragment, re-checks the user on the server right before writing, and never retries a
+write whose answer was lost. The build pins that redirect and attests it inside the APK. Whether Supabase
+Auth's own redirect allow-list contains it cannot be read from SQL.
+
+#### `locationClientService.ts` (107), `configuredLocationResolver.ts` (178), `productionLocationResolver.ts` (31), `locationResolver.ts` (65) — read in full
+
+**7.56 — note.** Address search goes only through the app's own Edge function `uskoci-location-search`
+(deployed, v13, JWT-verified) with the provider named `locationiq`; the provider key lives only in Edge
+and cannot be read from here. A candidate is a proposal until the person confirms it; the request carries
+the typed text and country only — never the account, access notes or local scope — and refuses
+redirects and a public Nominatim endpoint. `createLocationResolver` (the coarse, provider-less port) has no
+caller left. Location saves are revision-bound and a receipt is accepted only if the saved value equals
+what was sent.
+
+#### `inboxModel.ts` (91), `inboxClientService.ts` (59), `notificationPreferencesClientService.ts` (95), `pushDeviceClientService.ts` (69), `pushReadinessClientService.ts` (48), `nativePushDevice.ts` (28), with `app.config.js` and the APK workflow
+
+**7.57 — note, product fact. The APK the owner installs cannot obtain a push token.** `nativePushDevice`
+asks Expo for a push token, which on Android requires Firebase. `app.config.js` attaches
+`config/firebase/google-services.json` only when the package is `rs.uskoci.preview` (the EAS preview) and
+deletes it for every other package — its own comment: "Preview Firebase has no Android client for
+proof/dev/unknown packages". The `Build Android development APK` workflow — the one this project installs
+with `adb install -r` — rewrites the package to `rs.uskoci.dev`. So on that APK the token request cannot
+succeed and "turn on notifications" cannot register the phone, independently of the missing sender
+schedule (4.2) and the per-role default (4.1). Stated from the configuration; not observed on a device.
+
+**7.58 — note, well built.** The inbox model discards any answer that arrives after the screen, role or
+account changed, marks one item read before resolving where it leads, and lets the server recount after
+"read all". Preferences are saved per role with a revision and the receipt must echo every setting sent.
+Push device registration, rotation and revocation are revision-bound; logout revokes the session's
+device first with a 4-second bound so a slow network cannot keep a person signed in. Push readiness is
+decoded as a strict state machine and never inferred from a registered token.
 
 ### Area 9 — HITNO, categories, and matching
 
