@@ -14,7 +14,9 @@ const allowed=new Set(['src/data/serverReceipt.ts','src/data/needLifecycleClient
  'src/lib/market.ts','src/lib/location.ts','src/lib/capabilityTerms.ts',
  'src/data/locationClientService.ts','src/data/configuredLocationResolver.ts','src/data/publicationClientService.ts',
  'src/data/pushReadinessClientService.ts','src/data/accountClosureClientService.ts','src/data/reviewsClientService.ts','src/data/agreementClientService.ts','src/data/agreementCompletion.ts','src/data/legacyRpcFailure.ts','src/data/calendarErrors.ts',
- 'src/lib/calendarTime.ts','src/data/needDetailPresentation.ts','src/ui/calendar/calendarPresentation.ts']);
+ 'src/lib/calendarTime.ts','src/data/needDetailPresentation.ts','src/ui/calendar/calendarPresentation.ts',
+ // Pure formatting helpers the services import since 2026-09-21: money (novac) and Serbian plurals.
+ 'src/lib/novac.ts','src/ui/system/plural.ts']);
 export function loadPreV3Clients({client,session,sourceSha}) {
  assert.equal(typeof client,'function');assert.equal(typeof session,'function');
  assert.match(sourceSha,/^[a-f0-9]{40}$/);
