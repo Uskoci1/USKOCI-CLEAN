@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T14:13:13Z",
+  "osvezeno": "2026-09-22T14:35:41Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "5faff9c6",
-  "head_poruka": "docs(ux): align functional audit and control table with owner blueprint",
+  "head": "b4c25ad7",
+  "head_poruka": "fix(control): retain snapshot timestamp for shared-state uploads",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -120,7 +120,7 @@
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen.",
    "problem": "",
-   "sledece": "",
+   "sledece": "F04: donja traka čuva oznaku dela kroz unutrašnje ekrane; testovi prolaze, čeka novi APK/telefon.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -129,7 +129,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -177,7 +177,7 @@
      "29"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -219,7 +219,7 @@
      "29"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -263,7 +263,7 @@
      "31"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -309,7 +309,7 @@
      "32"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -355,7 +355,7 @@
      "30"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -401,7 +401,7 @@
      "30"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -445,7 +445,7 @@
      "19"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -487,7 +487,7 @@
      "06"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -531,7 +531,7 @@
      "13"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -576,7 +576,7 @@
      "17"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -619,7 +619,7 @@
      "17"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -663,7 +663,7 @@
      "30"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -708,7 +708,7 @@
      "16"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -750,7 +750,7 @@
      "16"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -789,7 +789,7 @@
      "18"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -836,7 +836,7 @@
      "37"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -883,7 +883,7 @@
      "36"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -928,7 +928,7 @@
      "38"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -971,7 +971,7 @@
      "39"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1009,8 +1009,8 @@
     "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
-   "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Na instaliranom APK-u tekst legende mape se sabija u usku kolonu.",
-   "sledece": "Posle odobrenja funkcionalne analize: popraviti legendu, pa povezati serversko filtriranje uz očuvanje svih podataka i pravila. Audit F02/F06–F07.",
+   "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
+   "sledece": "Prvi paket F01–F04: APK i telefon, zatim serversko filtriranje uz očuvanje svih podataka i pravila. CLIENT_FOUNDATION.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1018,7 +1018,7 @@
      "08"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1062,7 +1062,7 @@
      "10"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1105,7 +1105,7 @@
      "19"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1151,7 +1151,7 @@
      "13"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1194,7 +1194,7 @@
      "12"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1236,7 +1236,7 @@
      "14"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1278,7 +1278,7 @@
      "15"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1325,7 +1325,7 @@
      "15"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1367,7 +1367,7 @@
      "28"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1409,7 +1409,7 @@
      "20"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1453,7 +1453,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1495,7 +1495,7 @@
      "22"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1539,7 +1539,7 @@
      "22"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1585,7 +1585,7 @@
      "26"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1632,7 +1632,7 @@
      "23"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1674,7 +1674,7 @@
      "23"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1721,7 +1721,7 @@
      "34"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1761,7 +1761,7 @@
      "24"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1803,7 +1803,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1845,7 +1845,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -1888,7 +1888,7 @@
      "27"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1923,7 +1923,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -1961,14 +1961,14 @@
    },
    "telefon_dokaz": "",
    "problem": "Vreme obaveštenja ima font 11. Razrešavanje odredišta je grublje od predloženih 24 događaja; poruka ne bira direktno odgovarajući chat.",
-   "sledece": "Posle odobrenja funkcionalne analize: font najmanje 12, pa za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F03/F14/D9.",
+   "sledece": "Posle odobrenja funkcionalne analize: font najmanje 12, pa za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F03/F14/D9. F03: vreme obaveštenja podignuto na najmanje12; čeka novi APK/telefon.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
      "40"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2003,15 +2003,15 @@
     "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Potvrđeno u kodu: greška zaključava i dugme „Proveri stanje“, pa ponovni pokušaj nije moguć. Još nije popravljeno; čeka odobrenje analize.",
-   "sledece": "Posle odobrenja funkcionalne analize: otključati samo oporavak čitanjem uz očuvanje zaštite upisa; dokaz greška → uspešno čitanje. Audit F01.",
+   "problem": "Zaključano dugme za proveru stanja ispravljeno u kodu i dokazano testovima. Provera nove verzije na telefonu još nije završena.",
+   "sledece": "CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. APK i provera na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
      "41"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2058,7 +2058,7 @@
      "41"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2094,7 +2094,7 @@
      "41"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2130,7 +2130,7 @@
      "28"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2171,7 +2171,7 @@
      "02"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2211,7 +2211,7 @@
      "02"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2252,7 +2252,7 @@
      "03"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2294,7 +2294,7 @@
      "43"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2334,7 +2334,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Crvena oznaka servera je posredan signal iz zajedničkog mediaClientService modula. Sam ekran avatara ne poziva nedostajući rpc_cancel_media_upload; koristi upload/read/apply/discard/clear. Ne tvrditi da je avatar pokvaren zbog greške A05; ceo tok još treba proveriti na telefonu.",
-   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16.",
+   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16. F04: donja traka čuva oznaku dela kroz unutrašnje ekrane; testovi prolaze, čeka novi APK/telefon.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2344,7 +2344,7 @@
      "47"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2390,7 +2390,7 @@
      "44"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2434,7 +2434,7 @@
      "44"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2485,7 +2485,7 @@
      "46"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2532,7 +2532,7 @@
      "42"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2579,7 +2579,7 @@
      "43"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2621,7 +2621,7 @@
      "42"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2662,7 +2662,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   },
@@ -2702,7 +2702,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2742,7 +2742,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO"
   },
@@ -2775,7 +2775,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    },
    "ukupno": "PROBLEM"
   }

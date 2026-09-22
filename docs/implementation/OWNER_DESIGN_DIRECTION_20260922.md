@@ -40,6 +40,11 @@ For this design work, do not alter the server, validations or recovery. Do not i
 
 ## Current execution — latest owner instruction
 
+Owner approval on 2026-09-22: "odobram sve to" approves the presented functional analysis,
+disclosed D1-D10 interpretations and execution order. The analysis wait below is historical.
+First bounded package: F01-F04 client foundation; then discovery → detail → offer.
+Keep independent server proposals and proof/approval requirements separate.
+
 First complete a whole-app functional analysis and show it to the owner. For every screen record its job, existing capabilities, missing capabilities, placement (screen/sheet/section/message/notification/confirmation), and verified existing server support versus a new contract. Research official Wolt, Airbnb, Uber, TaskRabbit and Airtasker flows. New screen implementation waits for the owner's approval of that analysis. Finish verification of the already approved bottom-sheet slice only. This ordering supersedes the execution order below; design freedom and engineering boundaries remain.
 
 ### Previous execution order (paused for analysis)

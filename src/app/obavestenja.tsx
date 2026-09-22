@@ -114,7 +114,7 @@ export default function Obavestenja() {
         <View style={{flex:1,gap:5}}>
           <T style={[styles.body,{color:sys.color.ink,fontWeight:item.readAt?'400':'700'}]}>{item.title}</T>
           <T style={styles.meta}>{item.body}</T>
-          <T style={[styles.meta,{fontSize:11,marginTop:3}]}>
+          <T style={[styles.meta,{fontSize:12,marginTop:3}]}>
             {item.role==='WORKER'?'Moje prijave':'Moji zadaci'} · {timestamp(item.occurredAt)}{!item.readAt?' · Novo':''}
           </T>
         </View>

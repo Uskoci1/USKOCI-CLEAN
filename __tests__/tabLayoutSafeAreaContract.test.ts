@@ -38,7 +38,11 @@ function configuration(bottom = 0, fontScale = 1) {
   const layout = TabLayout();
   const screens = (Children.toArray(layout.props.children) as ReactElement<ScreenProps>[])
     .map((screen) => screen.props);
-  return { screens, options: layout.props.screenOptions };
+  const route = { name: 'index', key: 'home' };
+  const options = layout.props.screenOptions({ route, navigation: {
+    getState: () => ({ index: 0, routes: [route], history: [{ type: 'route', key: route.key }] }),
+  } });
+  return { screens, options };
 }
 
 function visible() {

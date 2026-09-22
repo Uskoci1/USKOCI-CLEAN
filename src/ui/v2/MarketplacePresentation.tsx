@@ -144,10 +144,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         <DiscoveryMap items={visible} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
           onSelect={selectedId => change({ selectedId })} onViewport={viewport => change({ viewport })}
           onSearchArea={area => change({ area, selectedId: null })} onList={() => toggleMode('list')} />
-        <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{zadataka(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
-          {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}
+        <View style={s.mapLegend}><T variant="note" tone="muted">{zadataka(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
+          {withoutPins || props.onNew ? <View style={s.mapActions}>
+          {withoutPins ? <V2Action label="Pogledaj listu" kind="quiet" compact onPress={() => toggleMode('list')} /> : null}
           {props.onNew ? <V2Action label="Dodaj zadatak" kind="quiet" compact
-            onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} /> : null}</View>
+            onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} /> : null}</View> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
@@ -207,7 +208,9 @@ const s = StyleSheet.create({
   state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
   stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
   mapArea: { flex: 1, minHeight: 180 },
-  mapLegend: { paddingHorizontal: 20, paddingVertical: 6, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
+  // Give facts the full width: two actions previously squeezed them into a column of letters.
+  mapLegend: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line, gap: 4 },
+  mapActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 4 },
   groupLabel: { color: sys.color.muted, marginTop: 4 },
   options: { gap: 6 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },

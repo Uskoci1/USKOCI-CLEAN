@@ -12,6 +12,16 @@ jest.mock('../../ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: 
 import Tabs from '../../app/(app)/_layout';
 import { Press } from '../../ui/Press';
 let tree: ReactTestRenderer;
+const routes = ['index', 'mapa', 'dogovori', 'profil', 'profil/obavestenja', 'moje-aktivnosti', 'prilike', 'oceni-dogovor'].map(name => ({ name, key: name }));
+function optionsFor(name: string, history: string[]) {
+  const options = tree.root.findByType('Tabs' as React.ElementType).props.screenOptions;
+  const state = { index: routes.findIndex(route => route.name === history[history.length - 1]), routes,
+    history: history.map(key => ({ type: 'route', key })) };
+  return typeof options === 'function' ? options({ route: routes.find(route => route.name === name), navigation: { getState: () => state } }) : options;
+}
+function tabButton(name: string, history: string[]) {
+  return optionsFor(name, history).tabBarButton({ children: name, 'aria-selected': name === history[history.length - 1] });
+}
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 /**
@@ -55,7 +65,7 @@ it('keeps every earlier destination registered and reachable by its URL, only no
 
 it('the new tab surface preserves navigator press/long-press handlers and exposes the selected tab', async () => {
   await act(async () => { tree = create(<Tabs />); });
-  const renderButton = tree.root.findByType('Tabs' as React.ElementType).props.screenOptions.tabBarButton;
+  const renderButton = optionsFor('mapa', ['index', 'mapa']).tabBarButton;
   const onPress = jest.fn(), onLongPress = jest.fn();
   const button = renderButton({ children: 'Mapa', onPress, onLongPress, 'aria-label': 'Mapa', 'aria-selected': true, testID: 'map-tab' });
   expect(button.type).toBe(Press);
@@ -65,7 +75,31 @@ it('the new tab surface preserves navigator press/long-press handlers and expose
   const event = { nativeEvent: {} };
   button.props.onPress(event); button.props.onLongPress(event);
   expect(onPress).toHaveBeenCalledWith(event); expect(onLongPress).toHaveBeenCalledWith(event);
-  expect(renderButton({ children: 'Mapa', 'aria-selected': false }).props.accessibilityState).toEqual({ selected: false });
+  expect(tabButton('index', ['index', 'mapa']).props.accessibilityState).toEqual({ selected: false });
+});
+
+it.each(['index', 'mapa', 'dogovori'])('profile settings preserve the originating %s tab across two inner screens', async origin => {
+  await act(async () => { tree = create(<Tabs />); });
+  const history = [origin, 'profil', 'profil/obavestenja'];
+  const selected = ['index', 'mapa', 'dogovori'].filter(name => tabButton(name, history).props.accessibilityState.selected);
+  expect(selected).toEqual([origin]);
+  expect(optionsFor(origin, history).tabBarIcon({ focused: false }).props.muted).toBe(false);
+});
+
+it('returning through history updates the section and never hijacks the actual tab action', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  expect(tabButton('dogovori', ['index', 'mapa', 'dogovori', 'profil']).props.accessibilityState.selected).toBe(true);
+  expect(tabButton('mapa', ['index', 'mapa', 'profil']).props.accessibilityState.selected).toBe(true);
+  const onPress = jest.fn();
+  optionsFor('mapa', ['index', 'mapa', 'profil']).tabBarButton({ onPress, 'aria-selected': false }).props.onPress();
+  expect(onPress).toHaveBeenCalledTimes(1);
+});
+
+it('an inner link without tab history still has one truthful section fallback', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  expect(tabButton('mapa', ['prilike']).props.accessibilityState.selected).toBe(true);
+  expect(tabButton('dogovori', ['oceni-dogovor']).props.accessibilityState.selected).toBe(true);
+  expect(tabButton('index', ['profil']).props.accessibilityState.selected).toBe(true);
 });
 
 it('the publishing, review and location flows still hide the tabs', async () => {

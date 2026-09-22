@@ -34,6 +34,36 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => tree?.unmount()); jest.useRealTimers(); });
 it('focus reads state without prompting, registering or changing consent', async () => { await mount(); expect(mockNative).toHaveBeenCalledWith(false, expect.any(Function)); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
+it('a failed initial read can be retried without prompting or writing preferences', async () => {
+ mockRead.mockRejectedValueOnce(Error('offline')); await mount();
+ expect(button('Proveri stanje').props.disabled).toBe(false);
+ await act(async () => { button('Proveri stanje').props.onPress(); await flush(); });
+ expect(mockRead).toHaveBeenCalledTimes(2);
+ expect(button('Proveri stanje')).toBeUndefined();
+ expect(button('Uključi push za ovu ulogu').props.disabled).toBe(false);
+ expect(mockNative).toHaveBeenCalledWith(false, expect.any(Function));
+ expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+});
+it('after an uncertain save only readback is available, and repeated retry taps start one read', async () => {
+ await mount(); act(() => control('Dogovor i poruke').props.onPress());
+ mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
+ await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+ expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
+ expect(button('Uključi push za ovu ulogu').props.disabled).toBe(true);
+ expect(control('Početak tihih sati').props.editable).toBe(false);
+ expect(button('Proveri stanje').props.disabled).toBe(false);
+ let done!: (value: unknown) => void;
+ mockRead.mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
+ const retry = button('Proveri stanje').props.onPress;
+ await act(async () => { retry(); retry(); await flush(); });
+ expect(mockRead).toHaveBeenCalledTimes(2);
+ expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
+ await act(async () => { done({ ...preferences, revision: 3, settings: { ...settings, dogovor_enabled: false } }); await flush(); });
+ expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(false);
+ expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
+ expect(button('Uključi push za ovu ulogu').props.disabled).toBe(false);
+ expect(mockSave).toHaveBeenCalledTimes(1); expect(mockSet).not.toHaveBeenCalled();
+});
 it('explicit enable preserves category/quiet fields, registers once and writes role-scoped consent', async () => {
  await mount(); const onPress = button('Uključi push za ovu ulogu').props.onPress;
  await act(async () => { onPress(); onPress(); await flush(); });

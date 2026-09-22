@@ -17,8 +17,8 @@
   "latestUploadFile": "docs/control/stanje.json",
   "latestUploadTimestamp": "2026-09-22T14:13:13Z",
   "latestUploadSha256": "6be0764cab2f59a550d265ce6fd54f50099567ce6ee51a5fc94d0b8102ad6ad6",
-  "latestUpload": "NOT_CONFIRMED_FILECHOOSER_TIMEOUT",
-  "reason": "Supported browser waitForEvent(filechooser) timed out after click and Enter on actual input#fajl; no direct Artifact publish or page WebMCP capability.",
-  "next": "Complete the file selection via the owner UI, then verify the saved timestamp and persistence after reload. No duplicate site or sharing-permission change.",
+  "latestUpload": "CONFIRMED_OWNER_FILE_SELECTION",
+  "reason": "Owner completed file selection; browser showed Učitano with timestamp2026-09-22T14:13:13Z and version5faff9c6. Previous automated filechooser attempts timed out.",
+  "next": "After this client package recompute and upload the next snapshot to the same artifact URL.",
   "generatorFix": "Preserve meta.osvezeno in stanje.json; required by the published newer-snapshot comparison. Full embedded/upload JSON parity verified."
 }

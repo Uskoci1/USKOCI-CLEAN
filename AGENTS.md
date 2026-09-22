@@ -1,5 +1,11 @@
 # USKOČI — repository entry map
 
+Functional analysis approval (2026-09-22, owner: "odobram sve to"): the 48-section analysis,
+D1-D10 interpretations and proposed order are approved. Begin with client foundation F01-F04:
+settings readback affordance, narrow map legend, notification type and primary section indication.
+See docs/implementation/functional-audit-20260922/CLIENT_FOUNDATION.md. This supersedes the
+analysis waiting gate below; backend/guard/certificate/dependency boundaries remain unchanged.
+
 Control table (2026-09-22, owner request): `docs/control/` is the one living table from UX blueprint to phone (62 rows, six lights, blockers, store gates, two-phone test). After every piece of work: refresh `dev_snapshot.json` if DEV changed, edit `redovi.json`, run `node scripts/control/osvezi.mjs`, commit, and republish `docs/control/out/tabla.html` to https://claude.ai/artifact/VxTvL3VpwhYv8cxJCWzD5t. Telefon is green only with phone evidence for the current build. See `docs/control/README.md`.
 
 Latest owner instruction (2026-09-22, after design autonomy): complete and show the whole-app functional

@@ -143,7 +143,7 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
   <T style={{ ...sys.type.title, color: sys.color.ink }}>Kanali obaveštenja</T>
   <T tone="muted">Podešavanja važe samo za ovu ulogu. Promena kategorije ne uključuje push dozvolu na telefonu.</T>
   {busy && <ActivityIndicator accessibilityLabel="Provera push obaveštenja" color={sys.color.green} />}
-  {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja.</T><Button label="Proveri stanje" kind="secondary" onPress={refresh} disabled={locked} /></View>}
+  {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja.</T><Button label="Proveri stanje" kind="secondary" onPress={refresh} disabled={busy} /></View>}
   {snapshot && settings && <View style={busy ? styles.working : undefined}>
    <SettingSwitch label="Obaveštenja u aplikaciji" help="Kontroliše in-app isporuku. Istorija događaja u Inbox-u ostaje odvojena." value={settings.in_app_enabled}
     disabled={locked} onChange={value => edit('in_app_enabled', value)} />
@@ -158,10 +158,10 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
     disabled={locked} onChange={value => edit('quiet_hours_enabled', value)} />
    <View style={styles.timeRow}>
     <View style={styles.timeField}><T variant="meta" tone="muted">Početak</T><TextInput accessibilityLabel="Početak tihih sati" value={settings.quiet_start ?? ''}
-      editable={!busy && settings.quiet_hours_enabled} placeholder="22:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
+      editable={!locked && settings.quiet_hours_enabled} placeholder="22:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
       style={styles.input} onChangeText={value => edit('quiet_start', value.trim() || null)} /></View>
     <View style={styles.timeField}><T variant="meta" tone="muted">Kraj</T><TextInput accessibilityLabel="Kraj tihih sati" value={settings.quiet_end ?? ''}
-      editable={!busy && settings.quiet_hours_enabled} placeholder="07:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
+      editable={!locked && settings.quiet_hours_enabled} placeholder="07:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
       style={styles.input} onChangeText={value => edit('quiet_end', value.trim() || null)} /></View>
    </View>
    {/* A text box asking a person to type an IANA identifier by hand, where one typo silently moves

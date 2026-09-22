@@ -25,6 +25,23 @@ import { T } from '../../ui/Text';
 const PUSH_TRANSITION = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.enter } } };
 
+const PRIMARY = { index: 'tasks', mapa: 'map', dogovori: 'agreements' } as const;
+type Primary = keyof typeof PRIMARY;
+function isPrimary(name: string): name is Primary { return Object.hasOwn(PRIMARY, name); }
+function sectionOf(state: { index: number; routes: readonly { name: string; key: string }[];
+  history?: readonly { type: string; key?: string }[] }): Primary {
+  const current = state.routes[state.index]?.name ?? 'index';
+  if (isPrimary(current)) return current;
+  // Read the navigator's actual history, so Back and different entry points stay consistent.
+  // This affects presentation only: a highlighted parent still dispatches its original tab action.
+  for (const entry of [...(state.history ?? [])].reverse()) {
+    const name = entry.type === 'route' ? state.routes.find(route => route.key === entry.key)?.name : undefined;
+    if (name && isPrimary(name)) return name;
+  }
+  return current === 'prilike' || current.startsWith('prilike/') ? 'mapa'
+    : current === 'oceni-dogovor' ? 'dogovori' : 'index';
+}
+
 /**
  * A full screen has no tab bar (owner decision, 2026-09-18). The conversation, the review before
  * publishing and the map point are one task each with one way out, the back arrow. Leaving the tab
@@ -50,32 +67,32 @@ export default function TabLayout() {
     // push transition: they replaced each other instantly, which is why moving through the app felt
     // like redrawing rather than going somewhere. Switching between the three tabs stays instant,
     // which is what a tab bar is for; only pushes move.
-    screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
+    screenOptions={({ route, navigation }) => {
+      const selected = sectionOf(navigation.getState()) === route.name;
+      return { headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
       tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted,
       tabBarActiveBackgroundColor: sys.color.greenSoft, tabBarAllowFontScaling: true,
       tabBarLabelPosition: 'below-icon',
-      tabBarLabel: ({ children, color }) => <T variant="label" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}
-        style={{ color, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
-      tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label, 'aria-selected': selected }) =>
-        <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: selected === true }}
+      tabBarLabel: ({ children }) => <T variant="label" numberOfLines={2}
+        style={{ color: selected ? sys.color.green : sys.color.muted, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
+      tabBarIcon: () => isPrimary(route.name) ? <FactArt kind={PRIMARY[route.name]} size={30} muted={!selected} /> : null,
+      tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label }) =>
+        <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }}
           onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hitSlop={0}
-          style={[style, { borderRadius: sys.radius.cardCompact }]}>{children}</Press>,
+          style={[style, { borderRadius: sys.radius.cardCompact, backgroundColor: selected ? sys.color.greenSoft : 'transparent' }]}>{children}</Press>,
       tabBarItemStyle: { borderRadius: sys.radius.cardCompact, overflow: 'hidden' },
       tabBarStyle: { backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
         borderRadius: sys.radius.card, elevation: 0, shadowOpacity: 0,
-        height: 66 + Math.ceil(Math.max(0, fontScale - 1) * 32), padding: 4,
-        marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }}>
-    <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna',
-      tabBarIcon: ({ focused }) => <FactArt kind="tasks" size={30} muted={!focused} /> }} />
+        height: 70 + Math.ceil(Math.max(0, fontScale - 1) * 40), padding: 4,
+        marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
+    <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="moje-prijave" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="prilike" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa',
-      tabBarIcon: ({ focused }) => <FactArt kind="map" size={30} muted={!focused} /> }} />
-    <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori',
-      tabBarIcon: ({ focused }) => <FactArt kind="agreements" size={30} muted={!focused} /> }} />
+    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa' }} />
+    <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori' }} />
     <Tabs.Screen name="profil" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...PUSHED }} />

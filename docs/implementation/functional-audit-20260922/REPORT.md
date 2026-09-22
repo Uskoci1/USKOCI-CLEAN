@@ -1,6 +1,7 @@
 # USKOCI functional audit — 2026-09-22
 
-Status: ANALYSIS PRESENTED FOR OWNER APPROVAL. No new screen implementation is authorized by this document.
+Status: OWNER APPROVED the presented analysis and execution order on2026-09-22 ("odobram sve to").
+Client implementation starts with F01-F04; see CLIENT_FOUNDATION.md. Server proposals remain separate.
 
 Execution status has one source: `docs/control/redovi.json` and its generated table. This report and the48-section matrix are a dated analytical snapshot, not a second maintained status tracker. Every one of the62 control rows links to relevant matrix IDs via `funkcionalni_audit`; the mapping covers all48 analytical sections. Verified defects and current partial device evidence were copied into the appropriate control rows. Future work updates the control table per its README. Automatic route/import/test-file/catalog checks show structural evidence; they do not establish successful behavior, passing test execution or enabled server policy.
 
@@ -190,5 +191,9 @@ Control table regenerated:62 rows,25 requiring attention,37 without a recorded p
 Publication: owner authorized the same Claude URL and completed sign-in. A parallel publisher subsequently added an owner-only JSON uploader and published the audit changes. Codex observed the online header5faff9c6 /2026-09-22T14:10:45Z,62 rows,25 attention,37 not accepted,0 complete, the corrected structural-evidence explanation and connecting-fee requirement. No new paid AI chat was started and Codex did not change sharing settings.
 
 The owner's next instruction was to upload docs/control/stanje.json after each refresh. Inspection found that the generator omitted meta.osvezeno, which the new uploader uses to select newer data. The generator now retains the timestamp; generated JSON and the HTML-embedded data are equal. Fresh snapshot2026-09-22T14:13:13Z passed structural/parity checks. Upload through the supported browser filechooser API timed out after both click and Enter activation of the actual input#fajl. No unsupported API or native-control workaround was used. The online audit content is observed, but this latest JSON upload is NOT confirmed. See CONTROL_PUBLICATION.json for exact observed versus pending states.
+
+Follow-up: the owner completed the file selection. The browser displayed the successful upload
+acknowledgement for2026-09-22T14:13:13Z /5faff9c6. The preceding timeout remains historical;
+CONTROL_PUBLICATION.json records the confirmed owner-assisted upload.
 
 The foreign frozen-migration SQL remains untracked and untouched. Concurrent UX_NACRT creation is separate work; it was read, not edited or staged by this audit (Claude committed it during the audit). Current ledger/certificate/worker health was not re-certified by this UI audit. No full semantic-every-function or all-flows-pass claim.

@@ -24,7 +24,7 @@
     "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen."
    },
    "problem": "",
-   "sledece": "",
+   "sledece": "F04: donja traka čuva oznaku dela kroz unutrašnje ekrane; testovi prolaze, čeka novi APK/telefon.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -33,7 +33,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -71,7 +71,7 @@
      "29"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -100,7 +100,7 @@
      "29"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -131,7 +131,7 @@
      "31"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -163,7 +163,7 @@
      "32"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -196,7 +196,7 @@
      "30"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -229,7 +229,7 @@
      "30"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -260,7 +260,7 @@
      "19"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -289,7 +289,7 @@
      "06"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -320,7 +320,7 @@
      "13"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -352,7 +352,7 @@
      "17"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -382,7 +382,7 @@
      "17"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -413,7 +413,7 @@
      "30"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -445,7 +445,7 @@
      "16"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -474,7 +474,7 @@
      "16"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -500,7 +500,7 @@
      "18"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -534,7 +534,7 @@
      "37"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -568,7 +568,7 @@
      "36"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -600,7 +600,7 @@
      "38"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -630,7 +630,7 @@
      "39"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -658,8 +658,8 @@
     "stanje": "DELIMIČNO",
     "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom."
    },
-   "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Na instaliranom APK-u tekst legende mape se sabija u usku kolonu.",
-   "sledece": "Posle odobrenja funkcionalne analize: popraviti legendu, pa povezati serversko filtriranje uz očuvanje svih podataka i pravila. Audit F02/F06–F07.",
+   "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
+   "sledece": "Prvi paket F01–F04: APK i telefon, zatim serversko filtriranje uz očuvanje svih podataka i pravila. CLIENT_FOUNDATION.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -667,7 +667,7 @@
      "08"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -700,7 +700,7 @@
      "10"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -730,7 +730,7 @@
      "19"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -763,7 +763,7 @@
      "13"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -793,7 +793,7 @@
      "12"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -822,7 +822,7 @@
      "14"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -851,7 +851,7 @@
      "15"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -885,7 +885,7 @@
      "15"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -914,7 +914,7 @@
      "28"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -943,7 +943,7 @@
      "20"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -973,7 +973,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1002,7 +1002,7 @@
      "22"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1033,7 +1033,7 @@
      "22"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1066,7 +1066,7 @@
      "26"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1100,7 +1100,7 @@
      "23"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1129,7 +1129,7 @@
      "23"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1163,7 +1163,7 @@
      "34"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1190,7 +1190,7 @@
      "24"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1219,7 +1219,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1248,7 +1248,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1278,7 +1278,7 @@
      "27"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1305,7 +1305,7 @@
      "21"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1330,14 +1330,14 @@
    ],
    "telefon": null,
    "problem": "Vreme obaveštenja ima font 11. Razrešavanje odredišta je grublje od predloženih 24 događaja; poruka ne bira direktno odgovarajući chat.",
-   "sledece": "Posle odobrenja funkcionalne analize: font najmanje 12, pa za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F03/F14/D9.",
+   "sledece": "Posle odobrenja funkcionalne analize: font najmanje 12, pa za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F03/F14/D9. F03: vreme obaveštenja podignuto na najmanje12; čeka novi APK/telefon.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
      "40"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1359,15 +1359,15 @@
     "rpc_set_notification_preferences"
    ],
    "telefon": null,
-   "problem": "Potvrđeno u kodu: greška zaključava i dugme „Proveri stanje“, pa ponovni pokušaj nije moguć. Još nije popravljeno; čeka odobrenje analize.",
-   "sledece": "Posle odobrenja funkcionalne analize: otključati samo oporavak čitanjem uz očuvanje zaštite upisa; dokaz greška → uspešno čitanje. Audit F01.",
+   "problem": "Zaključano dugme za proveru stanja ispravljeno u kodu i dokazano testovima. Provera nove verzije na telefonu još nije završena.",
+   "sledece": "CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. APK i provera na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
      "41"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1401,7 +1401,7 @@
      "41"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1427,7 +1427,7 @@
      "41"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1454,7 +1454,7 @@
      "28"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1485,7 +1485,7 @@
      "02"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1512,7 +1512,7 @@
      "02"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1540,7 +1540,7 @@
      "03"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1569,7 +1569,7 @@
      "43"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1595,7 +1595,7 @@
    ],
    "telefon": null,
    "problem": "Crvena oznaka servera je posredan signal iz zajedničkog mediaClientService modula. Sam ekran avatara ne poziva nedostajući rpc_cancel_media_upload; koristi upload/read/apply/discard/clear. Ne tvrditi da je avatar pokvaren zbog greške A05; ceo tok još treba proveriti na telefonu.",
-   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16.",
+   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16. F04: donja traka čuva oznaku dela kroz unutrašnje ekrane; testovi prolaze, čeka novi APK/telefon.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1605,7 +1605,7 @@
      "47"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1638,7 +1638,7 @@
      "44"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1669,7 +1669,7 @@
      "44"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1707,7 +1707,7 @@
      "46"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1741,7 +1741,7 @@
      "42"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1775,7 +1775,7 @@
      "43"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1804,7 +1804,7 @@
      "42"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1835,7 +1835,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1862,7 +1862,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1889,7 +1889,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   },
   {
@@ -1912,7 +1912,7 @@
      "48"
     ],
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
-    "status": "ANALIZA_ZA_ODOBRENJE"
+    "status": "ANALIZA_ODOBRENA_20260922"
    }
   }
  ],
