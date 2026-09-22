@@ -3,7 +3,8 @@
 Owner follow-up (2026-09-22): the offer composer now opens an explicit review before sending.
 See docs/implementation/functional-audit-20260922/OFFER_REVIEW.md and its receipt. The unchanged
 route owns all validation, journaling and recovery. Types and 242 suites / 4,704 tests pass;
-four new regressions fail on the predecessor. F10 remains partial: authenticated native acceptance,
+four new regressions fail on the predecessor. Both APKs of 50178e6b are attested and downloaded;
+the emulator build is installed and opens to welcome/auth only. F10 remains partial: authenticated native acceptance,
 named post-submit navigation and independent Claude review are pending. Do not bypass sign-in.
 
 Owner follow-up (2026-09-22): continue client work while the owner cannot sign in on the emulator.

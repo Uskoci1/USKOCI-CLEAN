@@ -48,3 +48,23 @@ local fixtures and cannot prove native keyboard, authenticated API behavior, And
 submission. Native acceptance and independent Claude review remain pending while the owner is away.
 Post-submit navigation still opens My Applications; named application focus and candidate message
 previews are remaining parts of F10. Do not mark the entire finding or screen fully accepted.
+
+Next navigation seam verified in source: the submit route's `openApplications` currently replaces
+with `/moje-prijave` after checking current owner, receipt and one-shot navigation. That destination
+already accepts `prijavaId` and focuses a matching row only after its owned read arrives. The next
+small patch can carry the verified receipt ID through that existing parameter; keep those fences
+and prove absent-row, account change and repeated-tap behavior. No such routing change is included
+in this package or its APKs.
+
+## Exact-build native acceptance, when the owner is available
+
+1. Install the attested build with replacement, preserving app data. Sign in normally; do not
+   transfer another session or change an authentication guard to reach this screen.
+2. Open an available task. Compare the review with the entered total, offered people, exact
+   time (including the task timezone) and note. Check that Back/Edit preserves every field.
+3. Check the native footer and content at the device's normal and large text sizes, including
+   a long note and flexible-time task. Verify keyboard dismissal and Android Back separately.
+4. On an owner-authorized real offer, send once; verify the stored terms and the same-command
+   recovery if the acknowledgement is interrupted. A preview callback is never this evidence.
+5. Record APK hash/source, device, task/offer references without personal content, screenshots,
+   observed outcome and independent Claude review before changing the Telefon light.

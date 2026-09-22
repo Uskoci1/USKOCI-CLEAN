@@ -659,7 +659,7 @@
     "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom."
    },
    "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
-   "sledece": "Pretraga je stalno vidljiva, Lista/Mapa jasnije odvojene, stanja proverena lokalno na 320/390 px. Čeka nova APK provera sa nalogom i Claude pregled. Serversko filtriranje ostaje poseban korak (F06/F07). DISCOVERY_SEARCH.md.",
+   "sledece": "Pretraga i jasnije Lista/Mapa kontrole su u proverenim APK-ovima 6d3c7ead. Emulator je instaliran i otvoren do ulaza; provera mape sa nalogom, telefon i Claude pregled čekaju. Serversko filtriranje ostaje poseban korak F06/F07. DISCOVERY_SEARCH_RECEIPT.json. Razlike za sledeći serverski ugovor opisane u DISCOVERY_SEARCH.md (analiza sačuvanog snimka, bez nove promene baze).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -692,7 +692,7 @@
     "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni."
    },
    "problem": "Prikaz sada ima stalnu pretragu i uklanjanje primenjenog filtera cene jednim dodirom. Lokalno provereni primena 2→1, uklanjanje 1→2, prazna pretraga i oporavak; to nije dokaz sa DEV podacima ni telefona. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
-   "sledece": "Proveriti novi APK sa prijavljenim nalogom kada vlasnik bude dostupan. Zatim F07/D7: datum fleksibilnih zadataka, oblast/na daljinu, preostala mesta i sortiranje; sačuvani alarmi posebno. Tipovi i 242 grupe/4700 testova prolaze. DISCOVERY_SEARCH_RECEIPT.json.",
+   "sledece": "Oba APK-a 6d3c7ead su napravljena i otisci provereni; emulator se pokreće. Proveriti sa prijavljenim nalogom kada vlasnik bude dostupan. Zatim F07/D7: datum fleksibilnih zadataka, oblast/na daljinu, preostala mesta i sortiranje; sačuvani alarmi posebno.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -814,8 +814,8 @@
     "rpc_submit_response"
    ],
    "telefon": null,
-   "problem": "Nema završnog pregleda ponude pre slanja; pregled pre izbora kandidata je drugi tok i već postoji.",
-   "sledece": "Posle odobrenja funkcionalne analize: Pregledaj → Pošalji, pa jasan prikaz poslate ponude, uz iste provere cene i oporavak. Audit F10.",
+   "problem": "Završni pregled je dodat u kod: ukupan iznos, broj ljudi, stvarni termin i poruka, pa izričito slanje. Tipovi i 242 grupe/4704 testa prolaze. Još nema prihvatanja ovog toka na telefonu ni nezavisnog Claude pregleda.",
+   "sledece": "Oba APK-a 50178e6b su napravljena i otisci provereni: emulator 35762581551, telefon 35762585376. Emulator instaliran i otvoren do ulaza; telefon nije povezan. Proveriti pregled, povratak, slanje i oporavak sa nalogom; zatim otvoriti baš poslatu prijavu. F10 ostaje delimičan. OFFER_REVIEW_RECEIPT.json. Slika iz pregledača seče donje dugme, iako je po merama unutar ekrana: konačna vizuelna provera ostaje otvorena.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2054,8 +2054,8 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "DELIMIČNO: F01–F04 imaju proverene APK-ove i pokretanje emulatora. Nova stalna pretraga i kontrole prilika prolaze tipove i 242 grupe/4700 testova; prikaz proveren lokalno na 320/390 px. Novi APK-ovi se izrađuju: emulator 35748064511, telefon 35748068544, kod 6d3c7ead. Tokovi sa nalogom, telefon i Claude pregled još čekaju.",
-   "dokaz": "docs/implementation/functional-audit-20260922/DISCOVERY_SEARCH_RECEIPT.json"
+   "sada": "DELIMIČNO: pretraga i pregled ponude u APK-ovima 50178e6b (35762581551 / 35762585376), oba proverena; emulator instaliran i otvoren do ulaza. Tipovi i 242 grupe/4704 testa prolaze. Tokovi sa nalogom, telefon, ceo izgled donjeg dugmeta i Claude pregled još čekaju.",
+   "dokaz": "docs/implementation/functional-audit-20260922/OFFER_REVIEW_RECEIPT.json; DISCOVERY_SEARCH_RECEIPT.json"
   },
   {
    "id": "B21",

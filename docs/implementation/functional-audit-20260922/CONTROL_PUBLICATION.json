@@ -15,15 +15,16 @@
   "lastObservedOnline": "5faff9c6 / 2026-09-22T14:10:45Z, 25 attention / 37 not accepted / 0 complete; corrected fee requirement and structural-evidence explanation visible",
   "uploaderAddedInParallel": true,
   "latestUploadFile": "docs/control/stanje.json",
-  "latestUploadTimestamp": "2026-09-22T15:34:51Z",
-  "latestUploadSha256": "86daf6a64fa8d6ff72abe5b27508138bbb7cb2c6fb3d57baf20cb0e546a7249d",
+  "latestUploadTimestamp": "2026-09-22T17:59:28Z",
+  "latestUploadSha256": "c27476a17fabf32c6e9261e1631800a3332e558be0213194409b477f2cf6d106",
   "latestUpload": "PENDING_FILECHOOSER_TIMEOUT",
-  "reason": "The supported file chooser repeatedly timed out in this turn. Owner is currently unavailable; no upload of this regenerated state is claimed.",
+  "reason": "The supported file chooser failed for the preceding snapshot; visible acknowledgement remains 2026-09-22T14:13:13Z / 5faff9c6. The final regenerated file also remains pending; no upload is claimed.",
   "next": "Owner selects the regenerated docs/control/stanje.json on the same existing artifact page; verify the upload acknowledgement.",
   "generatorFix": "Preserve meta.osvezeno in stanje.json; required by the published newer-snapshot comparison. Full embedded/upload JSON parity verified.",
   "confirmedPriorUpload": {
     "timestamp": "2026-09-22T14:13:13Z",
     "sha256": "6be0764cab2f59a550d265ce6fd54f50099567ce6ee51a5fc94d0b8102ad6ad6",
     "result": "Owner file selection confirmed in browser"
-  }
+  },
+  "lastAttemptedTimestamp": "2026-09-22T17:44:47Z"
 }

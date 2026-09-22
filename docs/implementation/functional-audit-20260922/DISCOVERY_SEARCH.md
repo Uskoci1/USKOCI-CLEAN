@@ -69,3 +69,36 @@ dependencies or auth entry changed. Generated preview bundles do not enter src/a
 Both source-pinned discovery APKs succeeded and their hashes, attestations and ABI were verified.
 The x86_64 build was installed with adb install -r and opened to the welcome/auth entry.
 This proves installation/startup only; no account was entered. See the updated discovery receipt.
+
+## Next contract preflight (analysis only, 2026-09-22)
+
+Compared the full stored `rpc_list_open_tasks_v3` body in DISCOVERY_LIVE.json with
+`supabaseIzvor.otvorenePrilike`, `marketplaceItems`, `publicPoint` and `publicBounds`.
+This is a comparison with the audit snapshot, not a new read or change of canonical DEV.
+Re-read and pin the live definition before any candidate or proof.
+
+- The client currently walks all pages and then applies substring search over title, area and
+  requirements. The stored server whitelist has no text query. Paging first and then running
+  the same client search on one page would omit matching tasks on later pages.
+- Current client area filtering tests the rounded public point against the requested bounds.
+  The stored SQL uses a 0.01-degree margin in its numeric bounds predicates as well as its
+  spatial prefilter. Pushing the same box is therefore not equivalent at the edges. Never
+  upgrade pin precision to make this easier; keep the admitted public geography.
+- Client bounds support a longitude wrap and equal edges. Stored SQL rejects west >= east,
+  south >= north, latitude spans above 3 degrees and longitude spans above 5 degrees.
+  A new reader needs explicit broad-map/wrapped-area behavior, not an automatic failing call.
+- Bbox and remote-only cannot be combined. Model local-area tasks and remote tasks explicitly;
+  a remote task has no map point. Do not silently discard remote results or invent a location.
+- startsFrom/startsTo compare starts_at. Undated flexible schedules do not satisfy these
+  comparisons. Preserve the agreed task timezone and define flexible-time filter semantics.
+- Result order is published_at/id descending. The response has hasMore and asOf, but no
+  total, arbitrary sort or snapshot cursor. Define a deterministic cursor per filter and
+  reject stale-page responses after filter/account changes. Do not label page size as total.
+- acceptsApplications reflects remaining slots and deadline; it does not itself remove those
+  items in the stored SQL. Decide and prove available-results/count parity. Keep the independent
+  application eligibility guard authoritative and retain task relationship/profile hydration.
+
+First executable package should prove predicate parity, order, page boundaries, remote/flexible
+time, empty/error and account/visibility isolation on a disposable database. Any added server
+contract, index or grant is a separate reviewed candidate. No SQL or new client filtering contract
+has been implemented here; the current bounded reader remains unchanged.
