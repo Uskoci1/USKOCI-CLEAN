@@ -5,3 +5,4 @@ screenshots/
 *.log
 jest-*.json
 apk/
+library-inspection/

@@ -1,5 +1,12 @@
 # USKOČI — repository entry map
 
+Latest owner design direction: read docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md before
+each screen. Inter/colors/FactArt/TaskCard are the foundation, V28 is a starting point with design freedom.
+Green titles are explicitly welcomed; the preceding dark-title instruction was withdrawn. Work one
+screen at a time, show it with one sentence of rationale, prove types/tests, build and verify on the phone.
+Claude's independent screen review is required, not presumed complete.
+Only @gorhom/bottom-sheet5.2.14 is newly approved; no blanket package or backend-change approval.
+
 Native connected design slice20260922: ProductDetails now frames task details, applications,
 Agreement overview, AI intake and settings; compact underlined views, larger real-profile identities,
 existing colored FactArt navigation and reduced-motion handling are implemented. Filter attention/price

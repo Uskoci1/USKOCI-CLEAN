@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Keyboard, Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -8,6 +8,7 @@ import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { ProductHeader } from '../product/ProductDetails';
+import { ProductSheet } from '../product/ProductSheet';
 import { zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
@@ -49,6 +50,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const [attentionDraft, setAttentionDraft] = useState(view.attention);
   const [searchOpen, setSearchOpen] = useState(!!view.query);
   const visible = useMemo(() => marketplaceItems(items, view, owned), [items, view, owned]);
+  const draftCount = useMemo(() => loading || error ? null
+    : marketplaceItems(items, { ...view, price: priceDraft, attention: attentionDraft }, owned).length,
+  [items, view, priceDraft, attentionDraft, owned, loading, error]);
   const attentionCount = useMemo(() => owned ? items.filter(item => isOwnedNeed(item) && hasNeedAttention(item) && item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA').length : 0, [items, owned]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount ? { ...option, badge: attentionCount } : option), [attentionCount]);
   const selected = visible.find(item => item.id === view.selectedId && publicPoint(item)) ?? null;
@@ -71,6 +75,14 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // stays reachable from the map — that is a tested decision, not an accident — so it moves off the
   // map surface and into the legend strip below it, which is chrome rather than content.
   const mapShown = !owned && view.mode === 'map' && !loading && !error;
+  const sheetShown = filterOpen || mapShown && !!selected;
+  const openSelected = () => {
+    if (!selected) return;
+    // A tab remains mounted behind its detail route. Remove its native Modal
+    // before navigation so it cannot cover the newly opened task.
+    change({ selectedId: null });
+    onOpen(selected);
+  };
   const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
   const headerControls = <>
     <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
@@ -103,7 +115,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   </View>;
 
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <View accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
+    <View aria-hidden={sheetShown} accessibilityElementsHidden={sheetShown} importantForAccessibility={sheetShown ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {/* Both tabs used this one presentation and both were titled Zadaci, so two different
           screens carried the same name. The discovery view is what the Mapa tab opens. */}
       {/* Underlined views scroll at large text sizes; search and filters keep full touch targets. */}
@@ -132,11 +144,6 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         <DiscoveryMap items={visible} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
           onSelect={selectedId => change({ selectedId })} onViewport={viewport => change({ viewport })}
           onSearchArea={area => change({ area, selectedId: null })} onList={() => toggleMode('list')} />
-        {selected ? <ScrollView style={s.preview} contentContainerStyle={s.previewContent} showsVerticalScrollIndicator={false}>
-          <TaskCard item={selected} compact onOpen={() => onOpen(selected)} relation={relationOf(selected)} />
-          <V2Action label="Otvori detalj Zadatka" onPress={() => onOpen(selected)} style={brandAction} />
-          <V2Action label="Zatvori pregled pina" kind="quiet" onPress={() => change({ selectedId: null })} />
-        </ScrollView> : null}
         <View style={s.mapLegend}><T variant="note" tone="muted" style={s.grow}>{zadataka(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
           {withoutPins || !visible.length ? <V2Action label="Pogledaj listu" kind="quiet" onPress={() => toggleMode('list')} /> : null}
           {props.onNew ? <V2Action label="Dodaj zadatak" kind="quiet" compact
@@ -152,10 +159,13 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>
         <Plus size={26} weight="bold" color={sys.color.onOrange} /></Press> : null}
     </View>
-    <Modal visible={filterOpen} transparent animationType={reduced ? 'none' : 'slide'} onRequestClose={() => setFilterOpen(false)}>
-      <View style={s.scrim}><SafeAreaView edges={['bottom']} style={s.sheet}><ScrollView contentContainerStyle={s.sheetContent} keyboardShouldPersistTaps="handled">
-        <View style={s.handle} />
-        <T accessibilityRole="header" variant="title" style={s.sheetTitle}>Filteri</T>
+    {mapShown && selected && !filterOpen ? <ProductSheet key={selected.id} title="Zadatak na mapi" closeLabel="Zatvori pregled pina"
+      reduced={reduced} onClose={() => change({ selectedId: null })}>{dismiss => <>
+        <TaskCard item={selected} compact onOpen={openSelected} relation={relationOf(selected)} />
+        <V2Action label="Otvori detalj Zadatka" onPress={openSelected} style={brandAction} />
+        <V2Action label="Zatvori pregled pina" kind="quiet" onPress={dismiss} />
+      </>}</ProductSheet> : null}
+    {filterOpen ? <ProductSheet title="Filteri" closeLabel="Zatvori filtere" reduced={reduced} onClose={() => setFilterOpen(false)}>{dismiss => <>
         <T variant="label" style={s.groupLabel}>Način cene</T>
         <View accessibilityRole="radiogroup" style={s.options}>
           {PRICES.map(([value, label]) => <Press key={value} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: priceDraft === value }}
@@ -169,13 +179,13 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           <View style={[s.check, attentionDraft && s.checked]}>{attentionDraft ? <Check size={14} weight="bold" color={sys.color.surface} /> : null}</View>
           <View style={s.grow}><T variant="bodyStrong" style={s.optionText}>Treba moja radnja</T><T variant="note" tone="muted">Zadaci sa prijavama koje možeš da izabereš.</T></View>
         </Press> : null}
-        <V2Action label="Prikaži zadatke" onPress={() => { change({ price: priceDraft, attention: attentionDraft, selectedId: null }); setFilterOpen(false); }} style={brandAction} />
+        <V2Action label={draftCount === null ? 'Prikaži zadatke' : `Prikaži ${zadataka(draftCount)}`} disabled={draftCount === null}
+          onPress={() => { change({ price: priceDraft, attention: attentionDraft, selectedId: null }); dismiss(); }} style={brandAction} />
         <View style={s.sheetRow}>
           <V2Action label="Poništi izbor" kind="quiet" onPress={() => { setPriceDraft('all'); setAttentionDraft(false); }} />
-          <V2Action label="Odustani od filtera" kind="quiet" onPress={() => setFilterOpen(false)} />
+          <V2Action label="Odustani od filtera" kind="quiet" onPress={dismiss} />
         </View>
-      </ScrollView></SafeAreaView></View>
-    </Modal>
+      </>}</ProductSheet> : null}
   </SafeAreaView>;
 }
 
@@ -197,14 +207,7 @@ const s = StyleSheet.create({
   state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
   stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
   mapArea: { flex: 1, minHeight: 180 },
-  preview: { position: 'absolute', left: 12, right: 12, bottom: 40, maxHeight: '70%', backgroundColor: sys.color.surface, borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.line, ...sys.elevation.raised },
-  previewContent: { padding: 14, gap: 10 },
   mapLegend: { paddingHorizontal: 20, paddingVertical: 6, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
-  scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim },
-  sheet: { backgroundColor: sys.color.surface, borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet, maxHeight: '90%' },
-  sheetContent: { padding: 24, paddingTop: 12, gap: 12 },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong, marginBottom: 8 },
-  sheetTitle: { color: sys.color.ink },
   groupLabel: { color: sys.color.muted, marginTop: 4 },
   options: { gap: 6 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },

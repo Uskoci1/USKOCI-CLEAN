@@ -40,9 +40,14 @@ These are source-backed capabilities, followed by our design judgment; they are 
 
 Already installed and reused: Reanimated4.5.1, Gesture Handler~2.32.0, expo-image~57.0.3, react-native-svg15.15.4, Phosphor and Expo controls. Inter and FactArt are the existing approved local foundation.
 
-Candidate additions, not installed or purchased:
+Approved addition: [Gorhom Bottom Sheet](https://gorhom.dev/react-native-bottom-sheet/) 5.2.14,
+explicitly approved by the owner with phone verification. Installed as an exact version; the only
+other new lockfile package is its required @gorhom/portal1.0.14. Existing versions were not upgraded.
+The published package peers explicitly admit Reanimated4 and our Gesture Handler version; native
+behavior still needs its own check. See the sheet follow-up below.
+
+Other candidates, not installed or purchased:
 - [Galeria](https://github.com/nandorojo/galeria): native pinch/double-tap zoom, multi-image viewing and close gesture; MIT. Requires the New Architecture and iOS16.4+ in its current guidance. Check against our AuthorizedPhoto memory-only authorization, cachePolicy=none, account revision and focus cleanup before selection. A generic remote-URL viewer is not a drop-in security match.
-- [Gorhom Bottom Sheet](https://gorhom.dev/react-native-bottom-sheet/): gesture-driven sheets, dynamic sizing and keyboard/scroll integration. Evaluate the exact version against our Reanimated4.5.1/RN0.86; the front page's compatibility text still names Reanimated1–3. Do not infer compatibility from a marketing demo.
 - [React Native Chat](https://github.com/kesha-antonov/react-native-chat): MIT UI candidate, with keyboard-controller among its peers. The available feature list is not independent evidence of maturity in our app. An adapter must preserve clientMessageId/sender/body/photo reconciliation, unknown-send retry, account invalidation, read-only Agreement state and support evidence. Read/delivery ticks, replies and reactions need real server contracts before display.
 - Rive/Lottie graphic assets remain selective additions after the concrete asset/license and runtime are chosen. No paid asset or service was purchased. No Stream migration, new chat service or dependency upgrade was made.
 
@@ -72,3 +77,44 @@ No DEV mutation, JWT change, certificate move or paid AI call occurred.
 3. Implement the missing Agreement subject links through a proved additive server contract.
 4. Continue AI review, worker interview/profile, account and remaining map/filter states using the same visual system.
 5. Keep release, legal/charging decisions, push-device delivery and PKG-045b conditional rollout tracked in APP_FINISHING_PLAN_20260922.md. This visual change does not close them.
+
+## Approved sheet follow-up
+
+User decision: find and narrow relevant tasks without losing the list/map position.
+
+- ProductSheet reuses Gorhom dragging, dynamic sizing and scroll integration inside a native Modal
+  with a GestureHandlerRootView. A capped 85% height allows larger content to scroll. The close button
+  stays 48dp. A damped spring provides settling; system reduced motion removes the transition.
+- The filter sheet commits price/attention together, and computes "Prikaži N zadataka" from the exact
+  same loaded rows, query, area and section that Apply uses. Loading/error never display a fabricated
+  count. Cancel, system back, backdrop and drag completion discard the draft.
+- Selecting a real public map pin opens the same sheet with the actual TaskCard and existing detail
+  callback. This first version is a modal preview above the visible map: dismissing restores the same
+  camera/filter state. Opening detail clears selection before navigating so a retained tab Modal does
+  not cover the next route. It does not introduce simultaneous map interaction through the sheet.
+- Decorative background/handle are not exposed as misleading English sliders. Content is not grouped
+  into a single accessible element; visible Serbian controls remain separate. Browser focus returns
+  to the filter opener after dismissal. Full TalkBack/VoiceOver validation is still separate.
+- No server, authorization, validation, recovery or map-location source changes.
+
+Evidence before APK build:
+- Types passed, exit0. Full Jest242 suites /4691 tests passed, exit0. An earlier run failed only the
+  old Apply label expectation (now contains the real count). The new gesture library uses its official
+  Jest setup; the sheet uses its official mock plus only the close-completion callback. These are
+  rendering/callback tests, not native gesture proof. Jest still emitted an open-worker teardown warning.
+- Twelve focused marketplace checks cover draft cancellation, Android back, drag-completion callback,
+  exact public row, detail dismissal, viewport retention, real zero/nonzero counts, loading/error and
+  reduced motion. Existing engine assertions remain intact.
+- Browser verification on actual components at320/390: controls readable, narrow footer wraps rather
+  than shrinking type, real fixture count2→1 matches the resulting list, reset/reopen and modal closure
+  work. Screenshots: outputs/native-product-review-20260922/screenshots/filter-320.png and filter-390.png.
+  They are local review evidence, excluded from git; fixtures are explicitly labelled and never sent.
+- V28 comparison source: v5-ai-first/v28-reference/v28-02-prilike-lista.png. The task card/illustrations
+  remain the existing foundation. The more compact view controls and temporary filter panel preserve
+  more space for actual tasks; there is no unbound "nearest" sort or fabricated proximity.
+- Earlier APK35729153590 attempt2 built fbe8ea4f successfully; attempt1 failed fetching the Android NDK
+  ZIP, before app compilation. It does not contain the sheet and was not installed as the final update.
+- Exact sheet APK, installed-source attestation and phone gestures: pending; append the device receipt.
+- Latest design autonomy and green-title clarification: OWNER_DESIGN_DIRECTION_20260922.md.
+  Claude review is requested by the owner but not yet completed/verified by this agent. Review these
+  files after this slice is committed; do not edit MarketplacePresentation/ProductSheet concurrently.

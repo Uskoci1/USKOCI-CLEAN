@@ -74,7 +74,7 @@ test('the filter sheet offers price modes as radios and the primary action is th
   await act(async () => roleOf('Filteri').onPress());
   expect(roleOf('Tražim ponude').accessibilityRole).toBe('radio'); expect(roleOf('Svi načini').accessibilityState).toEqual({ checked: true });
   const brand = tree.root.findAllByType('Press' as React.ElementType).filter(node => JSON.stringify(node.props.style).includes(sys.color.orange));
-  expect(brand.map(node => node.props.accessibilityLabel)).toEqual(['Prikaži zadatke']);
+  expect(brand.map(node => node.props.accessibilityLabel)).toEqual(['Prikaži 1 zadatak']);
 });
 
 function Agreements({ rows, loading = false }: { rows: DogovorProjekcija[]; loading?: boolean }) {

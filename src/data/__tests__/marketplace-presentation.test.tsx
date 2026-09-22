@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
+import BottomSheet from '@gorhom/bottom-sheet';
 let mockReduced = false;
 jest.mock('react-native', () => {
  const native = jest.requireActual('react-native'), React = require('react');
@@ -28,7 +29,9 @@ let tree: ReactTestRenderer;
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const action = (label: string) => tree.root.findByProps({ label });
 const tap = async (label: string) => act(async () => press(label).props.onPress());
-const click = async (label: string) => act(async () => action(label).props.onPress());
+const click = async (label: string) => act(async () => (label === 'Prikaži zadatke'
+ ? tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!
+ : action(label)).props.onPress());
 const map = () => tree.root.findByType('DiscoveryMap' as React.ElementType);
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const render = async () => act(async () => { tree = create(<Screen />); });
@@ -55,7 +58,30 @@ test('only a visible real point produces selected preview; actual detail callbac
  await render(); await tap('Mapa'); await act(async () => map().props.onSelect('two')); expect(tree.root.findAllByProps({ label: 'Otvori detalj Zadatka' })).toHaveLength(0);
  await act(async () => map().props.onSelect('unknown')); expect(tree.root.findAllByProps({ label: 'Otvori detalj Zadatka' })).toHaveLength(0);
  await act(async () => map().props.onSelect('one')); await click('Otvori detalj Zadatka'); expect(open).toHaveBeenCalledWith(rows[0]);
- await click('Zatvori pregled pina'); expect(snapshot.selectedId).toBeNull();
+ expect(snapshot.selectedId).toBeNull(); expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+ await act(async () => map().props.onSelect('one')); await click('Zatvori pregled pina'); expect(snapshot.selectedId).toBeNull();
+});
+
+test('drag/backdrop closure discards filter drafts and clears only the selected map preview', async () => {
+ await render(); await tap('Filteri'); await tap('Tražim ponude');
+ expect(action('Prikaži 1 zadatak')).toBeTruthy();
+ await act(async () => tree.root.findByType(BottomSheet).props.onClose());
+ expect(snapshot.price).toBe('all'); expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+ await tap('Filteri'); expect(press('Svi načini').props.accessibilityState.checked).toBe(true);
+ await click('Odustani od filtera'); await tap('Mapa');
+ const viewport = { center: [19.83, 45.25], zoom: 12, bounds: [19, 45, 20, 46] };
+ await act(async () => map().props.onViewport(viewport)); await act(async () => map().props.onSelect('one'));
+ await act(async () => tree.root.findByType(BottomSheet).props.onClose());
+ expect(snapshot).toMatchObject({ selectedId: null, viewport, mode: 'map', price: 'all' });
+ expect(open).not.toHaveBeenCalled();
+});
+
+test('filter count uses the same search and map area as Apply, including zero real matches', async () => {
+ initial.mode = 'map'; initial.area = [19, 45, 20, 46]; initial.query = 'Pomoć';
+ await render(); await tap('Filteri'); expect(action('Prikaži 1 zadatak')).toBeTruthy();
+ await tap('Tražim ponude'); expect(action('Prikaži 0 zadataka')).toBeTruthy();
+ await click('Prikaži zadatke'); expect(snapshot).toMatchObject({ price: 'OFFERS', query: 'Pomoć', area: initial.area });
+ expect(texts()).toContain('Nema zadataka u ovom prikazu');
 });
 test.each(['loading', 'error'])('%s removes stale cards/map; retry is bound', async status => {
  initial.mode = 'map'; loading = status === 'loading'; error = status === 'error'; await render();
@@ -97,5 +123,7 @@ test('requester creation stays reachable from both discovery list and map, while
 });
 test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {
  mockReduced = true; await render(); await tap('Filteri'); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
+ expect(tree.root.findByType(BottomSheet).props.animateOnMount).toBe(false);
+ expect(tree.root.findByType(BottomSheet).props.animationConfigs.duration).toBe(0);
  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
 });

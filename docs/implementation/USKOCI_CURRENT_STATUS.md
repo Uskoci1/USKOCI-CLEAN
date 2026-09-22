@@ -11,6 +11,14 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+- Latest design direction: OWNER_DESIGN_DIRECTION_20260922.md. V28 is a starting point, design autonomy
+  and green titles are explicitly approved. Map/list/filter first, then a screen at a time, with images,
+  exact APK/device checks and independent Claude review. Owner approved only Gorhom Bottom Sheet5.2.14;
+  installed with its required portal dependency, no existing upgrades. ProductSheet serves filters and
+  selected public pins; real filter count, cancellation and map/detail context are tested. Types and
+  full Jest242/4691 pass. First-slice APK35729153590 attempt2 passed, but the newer sheet APK/phone check
+  remains pending. See DESIGN_NATIVE_CONNECTED_SLICES_20260922.md. No DEV changes.
+
 - Native connected design20260922 is implemented: task/offer/Agreement/AI/settings frames, colored
   navigation, full task requirements, larger profile identities and compact views. Filter cancellation
   now correctly discards price and attention drafts. Full Jest242/4689 and types pass; new APK/device

@@ -4,7 +4,7 @@ const { createRoot } = require('react-dom/client');
 import { View, ScrollView } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PublicNeedPresentation } from '../../src/ui/v2/PublicNeedPresentation';
-import { CandidateListPresentation, CandidateSelectionPresentation } from '../../src/ui/v2/ApplicationSelectionPresentation';
+import { ApplicationSelectionPresentation, CandidateListPresentation, CandidateSelectionPresentation, type ApplicationDraft } from '../../src/ui/v2/ApplicationSelectionPresentation';
 import { AgreementHero, AgreementPeople, AgreementTabs } from '../../src/ui/v2/AgreementPresentation';
 import { AiConversationShell } from '../../src/ui/aiFirst/AiConversationShell';
 import { ProductHeader } from '../../src/ui/product/ProductDetails';
@@ -46,10 +46,14 @@ function Review() {
   const [screen, setScreen] = useState(new URLSearchParams(location.search).get('screen') ?? 'task');
   const [candidate, setCandidate] = useState(candidates[0]);
   const [value, setValue] = useState('');
+  const [draft, setDraft] = useState<ApplicationDraft>({ price: '5000', people: '2', note: '', start: null, end: null });
   const [view, setView] = useState(initialMarketplaceView());
   if (screen === 'list') return <MarketplacePresentation owned={false} items={[need, { ...need, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={false} error={false}
     scopeKey="preview-only" view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onSwitch={noop} onProfile={noop} onNew={noop} />;
   if (screen === 'candidates') return <CandidateListPresentation need={need} candidates={candidates} open={c => { setCandidate(c); setScreen('offer'); }} back={() => setScreen('task')} refresh={noop} />;
+  if (screen === 'compose') return <ApplicationSelectionPresentation need={need} opportunity={need} draft={draft} change={setDraft}
+    submit={noop} back={() => setScreen('task')} busy={false} pending={false} uncertain={false} refresh={noop}
+    error={null} confirmed={false} openApplications={noop} canSubmit={false} />;
   if (screen === 'offer') return <CandidateSelectionPresentation need={need} candidate={candidate} back={() => setScreen('candidates')} publicProfile={async () => null} choose={noop} busy={false} pending={false} uncertain={false}
     refresh={noop} error={null} confirmed={false} openAgreement={noop} readAgreement={async () => ({ ok: true, podatak: { dogovorId: null } })} openLinkedAgreement={noop} />;
   if (screen === 'agreement') return <View style={{ flex: 1 }}><ProductHeader title="Dogovor" subtitle="Dogovoreno" back={() => setScreen('task')} />
@@ -59,7 +63,7 @@ function Review() {
     card={() => null} messages={[]} value={value} onChange={setValue} onSend={noop} onBack={() => setScreen('task')} onOptions={noop}
     canEdit canSend={false} pending={false} busy={false} openings={['Treba mi pomoć u stanu', 'Selidba i prevoz']} />;
   return <PublicNeedPresentation need={need} loading={false} error={false} missing={false} stale={false} busy={false} canApply canRetry
-    relation={{ kind: 'NONE' }} back={() => setScreen('list')} retry={noop} apply={() => setScreen('candidates')} onOwnTask={noop} onOwnApplication={noop}
+    relation={{ kind: 'NONE' }} back={() => setScreen('list')} retry={noop} apply={() => setScreen('compose')} onOwnTask={noop} onOwnApplication={noop}
     onRequesterProfile={noop} onCloseRequesterProfile={noop}
     qa={<View style={{ gap: 12 }}><T variant="heading">Pitanja o zadatku</T><T>Da li je ormar rasklopljen?</T><T tone="muted">Da, delovi su spremni za prenos.</T><V2Action label="Pogledaj pitanja" onPress={noop} /></View>} />;
 }
