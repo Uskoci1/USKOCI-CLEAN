@@ -38,4 +38,13 @@ proof validates the unchanged integration, not real provider language quality.
 Intake49 deployed with verify_jwt=true. All four hosted files compare byte-for-byte to the proven
 commit (EDGE_RECEIPT_20260922.json); unauthenticated POST returns401. No database mutation performed.
 No new APK is needed; installed client35698097121 calls the updated server. Owner follow-up requested
-after deployment; actual response quality remains pending at this receipt.
+after deployment. The owner subsequently confirmed that it works and asked for a slightly longer,
+warmer tone with occasional emojis. This is owner feedback, not an exhaustive model-quality evaluation.
+
+## Owner-requested tone refinement
+
+The intake prompt now invites one to three short sentences with a relevant reaction or explanation
+and one next question. Occasional single emojis are permitted, with no forced praise, repeated
+summaries or joking in serious failures. This removes the earlier instruction to usually return
+only the next question. Fact validation, intent handling and all deterministic guards are unchanged.
+No new behavior-mirroring tests: use the existing context/wire regressions. Deployment pending.
