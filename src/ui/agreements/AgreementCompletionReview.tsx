@@ -1,0 +1,59 @@
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { DogovorProjekcija } from '../../contracts/projections';
+import { readableTitle } from '../../data/needDetailPresentation';
+import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
+import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
+import { osoba } from '../system/plural';
+import { brandAction, sys } from '../system/tokens';
+import { T } from '../Text';
+import { V2Action } from '../v2/V2Action';
+
+/** Accepted Agreement facts only. The route owns the review lifetime and command. */
+export function AgreementCompletionReview({ agreement, worker, confirm, back }: {
+  agreement: DogovorProjekcija; worker: boolean; confirm: () => void; back: () => void;
+}) {
+  const reduced = useSystemReducedMotion();
+  const other = agreement.ucesnici.find(person => !person.viSte);
+  return <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={back}>
+    <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+      <ProductHeader title="Pregled završetka" backLabel="Nazad na Dogovor" back={back} />
+      <ScrollView contentContainerStyle={s.content}>
+        <View style={s.intro}>
+          <T accessibilityRole="header" variant="title" style={s.title}>{worker ? 'Javi da si završio' : 'Potvrdi obavljen posao'}</T>
+          <T variant="body" tone="muted">{worker
+            ? 'Druga strana će dobiti zahtev da potvrdi završetak ili prijavi problem. Dogovor zatim čeka potvrdu.'
+            : 'Potvrđuješ da je posao obavljen po prihvaćenim uslovima. Kada završetak bude potvrđen, možeš da oceniš saradnju.'}</T>
+        </View>
+        <View style={s.terms}>
+          <T variant="meta" tone="muted">Prihvaćeni uslovi</T>
+          <T variant="heading" style={s.ink}>{readableTitle(agreement.naslov)}</T>
+          {other ? <T variant="body" tone="muted">{other.ime}</T> : null}
+          <ProductFacts>
+            <ProductFact art="calendar" label="Dogovoreni termin" value={agreement.vremeTekst} />
+            <ProductFact art="users" label="Dogovoreni broj ljudi" value={osoba(agreement.pokrivenost.popunjeno)} />
+            <ProductFact art="money" label="Dogovoreno ukupno" value={agreement.cena.prikaz} prominent />
+          </ProductFacts>
+        </View>
+        {agreement.problemOtvoren ? <View style={s.notice}>
+          <T variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
+          <T variant="body" tone="muted">{worker
+            ? 'Prijava ostaje sačuvana. Automatski završetak je zaustavljen.'
+            : 'Prijava ostaje sačuvana. Ovom potvrdom ipak završavaš Dogovor; ona sama ne određuje krivicu ili dug.'}</T>
+        </View> : null}
+      </ScrollView>
+      <View style={s.footer}>
+        <V2Action label={worker ? 'Da, završio sam' : 'Da, potvrdi završetak'} onPress={confirm} style={brandAction} />
+      </View>
+    </SafeAreaView>
+  </Modal>;
+}
+
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.surface },
+  content: { padding: 20, gap: 24, paddingBottom: 28 },
+  intro: { gap: 12 }, title: { color: sys.color.green }, ink: { color: sys.color.ink },
+  terms: { gap: 8 },
+  notice: { padding: 16, gap: 8, borderRadius: sys.radius.card, backgroundColor: sys.color.warnSoft },
+  footer: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line },
+});

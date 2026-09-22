@@ -10,6 +10,7 @@ import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
 import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows } from '../../ui/agreements/AgreementWorkspace';
+import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
 import { useIzvor } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
@@ -31,6 +32,7 @@ type ProblemWorkspace = DogovorProjekcija & {
   problemReport: AgreementProblemSnapshot['report'];
   problemReportState: AgreementProblemSnapshot['state'] | 'UNAVAILABLE';
 };
+type CompletionReview = { agreement: ProblemWorkspace; focus: object; readEpoch: number };
 async function bounded<T>(operation: () => Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -65,14 +67,22 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);
+  const [completionReview, setCompletionReview] = useState<CompletionReview | null>(null);
+  const completionReviewRef = useRef<CompletionReview | null>(null), completionReadEpoch = useRef(0);
+  const closeCompletionReview = useCallback(() => {
+    completionReviewRef.current = null; setCompletionReview(null);
+  }, []);
   const formFocus = useRef<object | null>(null);
   useFocusEffect(useCallback(() => {
     const focus = {}; formFocus.current = focus;
-    return () => { if (formFocus.current === focus) formFocus.current = null; };
-  }, [accountId, accountRevision]));
+    return () => { if (formFocus.current === focus) { formFocus.current = null; closeCompletionReview(); } };
+  }, [accountId, accountRevision, closeCompletionReview]));
   const renderedFormFocus = formFocus.current;
   const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
   const read = useCallback(async (): Promise<Ishod<ProblemWorkspace | null>> => {
+    // A review belongs to one exact read. Invalidate synchronously, before a refresh
+    // can yield: neither a retained confirm nor a retained opener may reuse its terms.
+    completionReadEpoch.current++; closeCompletionReview();
     if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
     try {
       const data = await bounded(() => izvor.dogovor(id));
@@ -93,8 +103,9 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
       }
       return { ok: true, podatak: { ...data, problemReport: null, problemReportState: 'ABSENT' } };
     } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proveri vezu i pokušaj ponovo.' }; }
-  }, [izvor, id, accountId, accountRevision, ownsAccount]);
+  }, [izvor, id, accountId, accountRevision, ownsAccount, closeCompletionReview]);
   const workspace = useOwnedEditor(read);
+  const renderedCompletionRead = completionReadEpoch.current;
   const activeRef = useRef(!AppState.currentState || AppState.currentState === 'active');
   const freshRef = useRef(activeRef.current), resumeGeneration = useRef(0);
   const [foreground, setForeground] = useState(activeRef.current);
@@ -102,6 +113,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const [resumeEpoch, setResumeEpoch] = useState(0);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
+      closeCompletionReview();
       activeRef.current = state === 'active';
       freshRef.current = false;
       resumeGeneration.current++;
@@ -109,7 +121,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
       setForeground(activeRef.current); setResumeRequired(true);
     });
     return () => { subscription.remove(); activeRef.current = false; freshRef.current = false; resumeGeneration.current++; };
-  }, []);
+  }, [closeCompletionReview]);
   useEffect(() => {
     // Wait for an in-flight mutation, then replace the pre-background snapshot.
     // A retained callback remains fenced throughout the resume read.
@@ -203,6 +215,26 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
       return next;
     });
   };
+  // This is presentation staging only. The existing completion command still
+  // owns every permission, serialization, timeout and readback rule.
+  const openCompletionReview = () => {
+    if (!canComplete || !formCurrent() || completionReviewRef.current ||
+      completionReadEpoch.current !== renderedCompletionRead) return;
+    const review = { agreement: dogovor, focus: renderedFormFocus!, readEpoch: renderedCompletionRead };
+    completionReviewRef.current = review; setCompletionReview(review);
+  };
+  const reviewingCompletion = completionReview !== null && completionReviewRef.current === completionReview &&
+    completionReview.agreement === dogovor && completionReview.focus === formFocus.current &&
+    completionReview.readEpoch === completionReadEpoch.current && canComplete && formCurrent();
+  const confirmCompletionReview = () => {
+    if (!reviewingCompletion || completionReviewRef.current !== completionReview || !formCurrent() ||
+      completionReview!.readEpoch !== completionReadEpoch.current || completionReview!.focus !== formFocus.current) return;
+    // Consume before the async command starts, so two taps cannot reuse this review.
+    closeCompletionReview(); void complete();
+  };
+  const dismissCompletionReview = () => {
+    if (completionReviewRef.current === completionReview) closeCompletionReview();
+  };
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
 
   // ---- presentation (state above is untouched by PKG-011) ----
@@ -215,7 +247,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const pendingChange = active && me && radnje?.izmenaNaCekanju ? radnje.predlogIzmene : null;
   const changeWaits = active && me && !!radnje?.izmenaNaCekanju;
   const openChanges = () => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); };
-  const brand = canComplete ? { label: completeLabel, disabled: !enabled, onPress: () => { void complete(); } }
+  const brand = canComplete ? { label: completeLabel, disabled: !enabled, onPress: openCompletionReview }
     : pendingChange?.mozeOdgovoriti ? { label: 'Odgovori na predlog', disabled: !enabled, onPress: openChanges }
       : dogovor.stanje === 'COMPLETED' && me ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
         : { label: 'Otvori poruke', onPress: openMessages };
@@ -264,6 +296,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   </WorkspaceCard> : null;
 
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    {reviewingCompletion ? <AgreementCompletionReview agreement={completionReview!.agreement} worker={worker}
+      confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ProductHeader back={backToAgreements}

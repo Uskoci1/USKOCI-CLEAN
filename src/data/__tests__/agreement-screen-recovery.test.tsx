@@ -23,7 +23,7 @@ jest.mock('react-native', () => {
     if (key === 'AppState') return { currentState: 'active', addEventListener: (_event: string, listener: (state: string) => void) => {
       mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
     } };
-    return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
+    return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockId }),
@@ -35,6 +35,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => false }));
 jest.mock('../../ui/Button', () => ({ Card: 'Card' }));
 // The Dogovor shows each side's photograph since pkg024a, and that module reaches supabaseClient,
 // which registers an AppState listener the moment it is required — before this suite's own
@@ -63,6 +64,14 @@ let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 async function render() { await act(async () => { tree = create(<Dogovor />); }); }
+async function completionConfirmation(worker = false) {
+  await act(async () => button(worker ? 'Završio sam' : 'Potvrdi završetak').props.onPress());
+  return button(worker ? 'Da, završio sam' : 'Da, potvrdi završetak').props.onPress as () => void;
+}
+async function confirmCompletion(worker = false) {
+  const confirm = await completionConfirmation(worker);
+  await act(async () => confirm());
+}
 beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset(); mockMessages.mockReset();
   mockAccount = ownMessage.posiljalacAccountId; mockId = workspace.id;
@@ -167,7 +176,7 @@ describe('D03 actual route and scoped resource integration', () => {
       ucesnici: workspace.ucesnici.map(party => ({ ...party, uloga: party.viSte ? 'uskocer' : 'narucilac' })) });
     await render();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi završetak' })).toHaveLength(0);
-    await act(async () => button('Završio sam').props.onPress());
+    await confirmCompletion(true);
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
     expect(mockRead).toHaveBeenCalledTimes(2);
@@ -177,7 +186,7 @@ describe('D03 actual route and scoped resource integration', () => {
     mockSource.potvrdiZavrsetak.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
     await render();
     await act(async () => button('Kontakt').props.onPress());
-    const complete = button('Potvrdi završetak').props.onPress;
+    const complete = await completionConfirmation();
     const share = button('Podeli svoj broj').props.onPress;
     await act(async () => { complete(); complete(); share(); });
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
@@ -191,7 +200,7 @@ describe('D03 actual route and scoped resource integration', () => {
   it('an unknown completion remains fenced until explicit successful reconciliation', async () => {
     mockSource.potvrdiZavrsetak.mockResolvedValueOnce({ ok: false, kod: 'TIMEOUT', poruka: 'secret upstream detail' });
     await render();
-    const complete = button('Potvrdi završetak').props.onPress;
+    const complete = await completionConfirmation();
     await act(async () => complete());
     expect(texts()).toContain('Promena nije potvrđena');
     expect(texts()).not.toContain('secret upstream detail');
@@ -204,10 +213,60 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
   });
   it('a retained action cannot submit after an A→B→A auth incarnation change', async () => {
-    await render(); const complete = button('Potvrdi završetak').props.onPress;
+    await render(); const complete = await completionConfirmation();
     mockAccountRevision += 2;
     await act(async () => complete());
     expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+  });
+  it('a dismissed confirmation cannot send or dismiss a newly opened review', async () => {
+    await render();
+    const oldConfirm = await completionConfirmation();
+    const oldBack = button('Nazad na Dogovor').props.onPress;
+    await act(async () => oldBack());
+    await completionConfirmation();
+    await act(async () => { oldConfirm(); oldBack(); });
+    expect(button('Da, potvrdi završetak')).toBeTruthy();
+    expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+  });
+  it('a review is discarded across blur/refocus even when the same Agreement returns', async () => {
+    await render(); const confirm = await completionConfirmation();
+    mockFocused = false; await act(async () => tree.update(<Dogovor />));
+    await act(async () => confirm());
+    expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
+    mockFocused = true; await act(async () => tree.update(<Dogovor />));
+    await act(async () => confirm());
+    expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
+    expect(button('Potvrdi završetak').props.disabled).toBe(false);
+  });
+  it.each(['same read facts', 'new accepted version', 'revoked permission'] as const)(
+    'a new read invalidates review and opener before yielding, including %s', async change => {
+    await render();
+    await act(async () => button('Poruke').props.onPress());
+    const refresh = tree.root.findByType('AgreementChat' as any).props.refreshWorkspace;
+    await act(async () => button('Pregled').props.onPress());
+    const open = button('Potvrdi završetak').props.onPress;
+    const confirm = await completionConfirmation();
+    let resolve!: (data: unknown) => void;
+    mockRead.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+    let read!: Promise<void>;
+    await act(async () => { read = refresh(); confirm(); open(); });
+    expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
+    const next = { ...workspace,
+      ...(change === 'new accepted version' ? { verzija: 2, cena: { prikaz: '4.200 RSD' }, vremeTekst: 'Novi prihvaćeni termin' } : {}),
+      ...(change === 'revoked permission' ? { radnje: { ...workspace.radnje, mozePotvrditiZavrsetak: false } } : {}) };
+    await act(async () => { resolve(next); await read; });
+    await act(async () => { confirm(); open(); });
+    expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
+    if (change === 'revoked permission') expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi završetak' })).toHaveLength(0);
+    else {
+      await completionConfirmation();
+      const modal = tree.root.findByType('Modal' as any);
+      expect(modal.findByProps({ accessibilityLabel: `Dogovoreno ukupno: ${next.cena.prikaz}` })).toBeTruthy();
+      expect(modal.findByProps({ accessibilityLabel: `Dogovoreni termin: ${next.vremeTekst}` })).toBeTruthy();
+    }
   });
   it.each(['CANCELLED', 'COMPLETED'])('a %s Agreement has no completion action', async state => {
     mockRead.mockResolvedValue({ ...workspace, stanje: state }); await render();
@@ -294,7 +353,7 @@ describe('D03 actual route and scoped resource integration', () => {
       mockRead.mockResolvedValue({ ...workspace, stanje: 'COMPLETED', problemOtvoren: true, radnje: null });
       return { ok: true, podatak: { zavrsenoIso: '2026-09-16T10:00:00Z', ponovljeno: false } };
     });
-    await act(async () => button('Potvrdi završetak').props.onPress());
+    await confirmCompletion();
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(texts()).toContain('Dogovor je završen');
     await act(async () => button('Otvori poruke').props.onPress());
@@ -430,7 +489,7 @@ describe('D03 actual route and scoped resource integration', () => {
     mockRead.mockResolvedValueOnce({ ...workspace, kontakt: { ...workspace.kontakt, njihovTelefon: '+38160111222' } });
     await render(); await act(async () => button('Kontakt').props.onPress());
     expect(texts()).toContain('+38160111222');
-    const complete = button('Potvrdi završetak').props.onPress;
+    const complete = await completionConfirmation();
     await act(async () => { mockAppListeners.forEach(listener => listener('background')); complete(); });
     expect(texts()).not.toContain('+38160111222');
     expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
@@ -448,7 +507,7 @@ describe('D03 actual route and scoped resource integration', () => {
     let finish!: (result: unknown) => void;
     mockSource.potvrdiZavrsetak.mockImplementationOnce(() => new Promise(done => { finish = done; }));
     await render();
-    await act(async () => button('Potvrdi završetak').props.onPress());
+    await confirmCompletion();
     await act(async () => mockAppListeners.forEach(listener => listener('background')));
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
     expect(texts()).not.toContain(workspace.naslov);
@@ -487,7 +546,7 @@ describe('D03 actual route and scoped resource integration', () => {
     jest.useFakeTimers();
     let late!: (result: unknown) => void;
     mockSource.potvrdiZavrsetak.mockImplementationOnce(() => new Promise(done => { late = done; }));
-    await render(); const complete = button('Potvrdi završetak').props.onPress;
+    await render(); const complete = await completionConfirmation();
     await act(async () => complete());
     await act(async () => jest.advanceTimersByTime(15_000));
     expect(texts()).toContain('Čuvanje nije potvrđeno');
@@ -560,7 +619,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
   it('an unchanged readback after a valid confirmation receipt stays unconfirmed until explicit reconciliation', async () => {
     mockSource.potvrdiZavrsetak.mockResolvedValueOnce(receipt);
     await render();
-    await act(async () => button('Potvrdi završetak').props.onPress());
+    await confirmCompletion();
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(mockRead).toHaveBeenCalledTimes(2);
     expect(texts()).toContain('Server nije potvrdio završetak');
@@ -580,7 +639,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
       return receipt;
     });
     await render();
-    await act(async () => button('Potvrdi završetak').props.onPress());
+    await confirmCompletion();
     expect(texts()).toContain('Dogovor je završen');
     expect(texts()).not.toContain('Server nije potvrdio završetak');
     expect(button('Oceni saradnju')).toBeTruthy();
@@ -589,7 +648,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
   it('shows the known server denial copy, never the adapter text, and does not read back', async () => {
     mockSource.potvrdiZavrsetak.mockResolvedValueOnce({ ok: false, kod: 'AGREEMENT_CHANGE_PENDING', poruka: 'adapter text' });
     await render();
-    await act(async () => button('Potvrdi završetak').props.onPress());
+    await confirmCompletion();
     expect(texts()).toContain('Najpre odgovori na postojeći predlog izmene.');
     expect(texts()).not.toContain('adapter text');
     expect(mockRead).toHaveBeenCalledTimes(1);
@@ -604,7 +663,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     mockRead.mockResolvedValue(asWorker);
     mockSource.oznaciZavrsetak.mockResolvedValueOnce({ ok: true, podatak: { rokPotvrdeIso: '2026-09-18T10:00:00Z' } });
     await render();
-    await act(async () => button('Završio sam').props.onPress());
+    await confirmCompletion(true);
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(texts()).toContain('Server nije potvrdio završetak');
     expect(button('Završio sam').props.disabled).toBe(true);
@@ -618,7 +677,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     let resolve!: (value: unknown) => void;
     mockSource.potvrdiZavrsetak.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
     await render();
-    act(() => button('Potvrdi završetak').props.onPress());
+    await confirmCompletion();
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
     mockAccountRevision += 2;
     await act(async () => tree.update(<Dogovor />));

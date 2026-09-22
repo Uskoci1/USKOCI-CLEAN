@@ -219,19 +219,26 @@ function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatPr
       <T style={s.candidateName}>{candidate.ime}</T>
       {candidate.ocenaTekst !== '—' ? <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
         <T variant="meta" tone="muted">{candidate.ocenaTekst} · {candidate.recenzijeTekst}</T></View>
-        : <T variant="meta" tone="muted">Nov na USKOČI</T>}
+        : <T variant="meta" tone="muted">Ocena nije dostupna</T>}
       <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
     </View></View>;
 }
 /** Price, offered capacity and proposed time are visible before opening an offer. */
 function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
+  const time = applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst;
+  const message = k.napomena?.trim() ?? '';
+  const messagePreview = Array.from(message).slice(0, 180).join('');
+  // This card is one accessible button: its explicit name replaces child text, so expose the
+  // same offer facts and a bounded message before opening the offer marks it viewed.
+  const hint = `Ukupno ${k.cena.prikaz}; ${osoba(k.pokrivaMesta)}; termin ${time}.${message
+    ? ` Poruka: „${messagePreview}${messagePreview.length < message.length ? '…' : ''}“. Otvori ponudu za celu poruku.` : ''}`;
   return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`} haptic="select" scaleTo={0.985}
-    onPress={open} style={s.candidate}>
+    accessibilityHint={hint} onPress={open} style={s.candidate}>
     <View style={s.candidateHead}>
       <ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
       <View style={s.grow}>
         <T style={s.candidateName}>{k.ime}</T>
-        {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">Nov na USKOČI</T>
+        {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">Ocena nije dostupna</T>
           : <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
             <T variant="meta" tone="muted">{k.ocenaTekst} · {k.recenzijeTekst}</T></View>}
       </View>
@@ -242,8 +249,8 @@ function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekc
       <View style={s.inline}><FactArt kind="users" size={26} /><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     </View>
     <View style={s.inline}><FactArt kind="calendar" size={24} /><T variant="meta" tone="muted" style={s.grow}>
-      {applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
-    {k.napomena?.trim() ? <View style={s.messagePreview}><T variant="note" style={s.ink} numberOfLines={2} ellipsizeMode="tail">{k.napomena.trim()}</T></View> : null}
+      {time}</T></View>
+    {message ? <View style={s.messagePreview}><T variant="note" style={s.ink} numberOfLines={2} ellipsizeMode="tail">{message}</T></View> : null}
     {k.stanje === 'SELECTABLE' ? null
       : <View style={s.stateBand}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View>}
   </Press>;
@@ -257,7 +264,7 @@ function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekci
     onPress={open} style={s.comparison}>
     <View style={s.compareIdentity}><ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
       <T variant="bodyStrong" style={s.ink}>{k.ime}</T>
-      <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T></View>
+      <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Ocena nije dostupna' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T>

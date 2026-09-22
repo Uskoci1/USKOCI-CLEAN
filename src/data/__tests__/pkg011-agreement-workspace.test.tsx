@@ -4,13 +4,14 @@ import { sys } from '../../ui/system/tokens';
 const mockAccount = '10000000-0000-4000-8000-000000000001', mockOther = '10000000-0000-4000-8000-000000000002', mockAgreementId = '20000000-0000-4000-8000-000000000001';
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn(), navigate: jest.fn() };
 const mockRead = jest.fn(), mockMessages = jest.fn();
+let mockReducedMotion = false;
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn() };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'android' };
     if (key === 'AppState') return { currentState: 'active', addEventListener: () => ({ remove: () => {} }) };
-    return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
+    return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockAgreementId }),
@@ -22,6 +23,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReducedMotion }));
 jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: 'AgreementChat' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 0 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 0 }) }));
@@ -47,7 +49,7 @@ async function render(workspace: Record<string, unknown>) {
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([]);
   await act(async () => { tree = create(<Dogovor />); });
 }
-beforeEach(() => { jest.clearAllMocks(); });
+beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 test('a confirmed Agreement without server permission leads with the conversation as the one brand action and names the next step', async () => {
@@ -66,7 +68,34 @@ test('when the server allows completion, completion is the brand action and the 
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
   expect(brand()).toEqual(['Potvrdi završetak']); expect(labels()).toContain('Otvori poruke');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi završetak' }).props.onPress());
+  expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Da, potvrdi završetak' }).props.onPress());
   expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledWith(mockAgreementId);
+});
+test.each([false, true])('completion review uses the accepted facts, sends nothing on Back and respects reduced motion (%s)', async reduced => {
+  mockReducedMotion = reduced;
+  await render(base({ vremeTekst: '26. septembar, 10:00–12:00', cena: { prikaz: '4.200 RSD' },
+    radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi završetak' }).props.onPress());
+  const modal = tree.root.findByType('Modal' as any);
+  expect(modal.props.animationType).toBe(reduced ? 'none' : 'slide');
+  expect(modal.findByProps({ accessibilityLabel: 'Dogovoreni termin: 26. septembar, 10:00–12:00' })).toBeTruthy();
+  expect(modal.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 4.200 RSD' })).toBeTruthy();
+  expect(texts()).toContain('Marko');
+  const retained = tree.root.findByProps({ accessibilityLabel: 'Da, potvrdi završetak' }).props.onPress;
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad na Dogovor' }).props.onPress());
+  await act(async () => retained());
+  expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
+  expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled(); expect(mockSource.oznaciZavrsetak).not.toHaveBeenCalled();
+});
+test('native Back dismisses a worker completion review without marking the work done', async () => {
+  await render(base({ radnje: { mozeOznacitiZavrsetak: true, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null } }, 'uskocer'));
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Završio sam' }).props.onPress());
+  expect(texts()).toContain('Druga strana će dobiti zahtev da potvrdi završetak ili prijavi problem.');
+  expect(labels()).toContain('Da, završio sam');
+  await act(async () => tree.root.findByType('Modal' as any).props.onRequestClose());
+  expect(mockSource.oznaciZavrsetak).not.toHaveBeenCalled();
+  expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
 });
 test('a worker awaiting the requester sees the wait and the deadline; no completion action is offered', async () => {
   await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer'));

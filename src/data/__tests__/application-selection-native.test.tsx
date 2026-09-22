@@ -87,7 +87,23 @@ it('previews the actual offer message without marking it viewed; opening keeps t
   const message = 'Dolazimo nas dvojica. Donosimo trake. Kombi je veliki i može da stane ispred ulaza.';
   mockCandidates.mockResolvedValue([{ ...k(), napomena: message }]);
   await render(Candidates);
+  const hint = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Milan')[0].props.accessibilityHint;
+  expect(hint).toContain('4.500 RSD'); expect(hint).toContain('2 osobe');
+  expect(hint).toContain('10:00–11:00 (Europe/Belgrade)'); expect(hint).toContain(message);
   expect(text()).toContain(message); expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
+  await tap('Pogledaj ponudu: Milan');
+  expect(text()).toContain(message); expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
+});
+
+it('keeps a long accessible message preview bounded and opens the full saved message', async () => {
+  const message = 'Donosimo trake i veliki kombi. 🚚 '.repeat(12);
+  mockCandidates.mockResolvedValue([{ ...k(), napomena: message }]);
+  await render(Candidates);
+  const hint = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Milan')[0].props.accessibilityHint;
+  expect(hint).toContain(message.slice(0, 100)); expect(hint).not.toContain(message.trim());
+  expect(hint.length).toBeLessThan(message.length); expect(hint).toContain('…');
+  expect(hint).toContain('Otvori ponudu za celu poruku.');
+  expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
   await tap('Pogledaj ponudu: Milan');
   expect(text()).toContain(message); expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
 });

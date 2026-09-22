@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PublicNeedPresentation } from '../../src/ui/v2/PublicNeedPresentation';
 import { ApplicationSelectionPresentation, CandidateListPresentation, CandidateSelectionPresentation, type ApplicationDraft } from '../../src/ui/v2/ApplicationSelectionPresentation';
 import { AgreementHero, AgreementPeople, AgreementTabs } from '../../src/ui/v2/AgreementPresentation';
+import { AgreementCompletionReview } from '../../src/ui/agreements/AgreementCompletionReview';
 import { AiConversationShell } from '../../src/ui/aiFirst/AiConversationShell';
 import { ProductHeader } from '../../src/ui/product/ProductDetails';
 import { MarketplacePresentation } from '../../src/ui/v2/MarketplacePresentation';
@@ -63,6 +64,9 @@ function Review() {
   const [value, setValue] = useState('');
   const [draft, setDraft] = useState<ApplicationDraft>({ price: '5000', people: '2', note: '', start: null, end: null });
   const [view, setView] = useState(() => ({ ...initialMarketplaceView(), query: scenario === 'no-results' ? 'nepostojeći posao' : '' }));
+  if (screen === 'done-worker' || screen === 'done-requester') return <AgreementCompletionReview
+    agreement={{ ...agreement, problemOtvoren: scenario === 'problem' }} worker={screen === 'done-worker'}
+    confirm={() => setScreen('agreement')} back={() => setScreen('agreement')} />;
   if (screen === 'list') return <MarketplacePresentation owned={false} items={scenario === 'empty' ? [] : [opportunity, { ...opportunity, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={scenario === 'loading'} error={scenario === 'error'}
     scopeKey="preview-only" view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onSwitch={noop} onProfile={noop} onNew={noop} />;
   if (screen === 'my-applications') return <MyApplicationsPresentation rows={scenario === 'empty' ? [] : myApplications} loading={scenario === 'loading'} unavailable={scenario === 'error'}
