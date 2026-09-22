@@ -45,6 +45,14 @@ begin
   end if;
   select prosrc into strict v_claim from pg_proc where oid = to_regprocedure(v_claim_sig);
   select prosrc into strict v_read from pg_proc where oid = to_regprocedure('public.rpc_read_media_upload(uuid)');
+  -- Not already present, in any form (checked before the drift pins: an applied fence is not drift).
+  if to_regprocedure('public.rpc_cancel_media_upload(uuid,uuid)') is not null
+     or to_regclass('private.owned_media_cancellations') is not null
+     or position('MEDIA_COMMAND_CANCELLED' in v_claim) > 0
+     or exists (select 1 from pg_constraint where conrelid = 'private.owned_media_assets'::regclass
+                  and conname = 'owned_media_assets_cancelled_tombstone_check') then
+    raise exception 'PKG046_ALREADY_APPLIED' using errcode = '55000';
+  end if;
   if md5(v_claim) is distinct from '81962817e4f67b1e2663da0828f0da90' then
     raise exception 'PKG046_PREDECESSOR_DRIFT: %', v_claim_sig using errcode = '55000';
   end if;
@@ -62,14 +70,6 @@ begin
   end if;
   if exists (select 1 from private.owned_media_assets where state = 'CANCELLED') then
     raise exception 'PKG046_PREDECESSOR_DRIFT: unexpected CANCELLED rows' using errcode = '55000';
-  end if;
-  -- Not already present, in any form.
-  if to_regprocedure('public.rpc_cancel_media_upload(uuid,uuid)') is not null
-     or to_regclass('private.owned_media_cancellations') is not null
-     or position('MEDIA_COMMAND_CANCELLED' in v_claim) > 0
-     or exists (select 1 from pg_constraint where conrelid = 'private.owned_media_assets'::regclass
-                  and conname = 'owned_media_assets_cancelled_tombstone_check') then
-    raise exception 'PKG046_ALREADY_APPLIED' using errcode = '55000';
   end if;
   -- The claim ACL is snapshotted; CREATE OR REPLACE below must not move it.
   perform set_config('pkg046.claim_acl',
