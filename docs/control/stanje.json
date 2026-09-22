@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T15:31:24Z",
+  "osvezeno": "2026-09-22T15:34:51Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "3d2d8edb",
-  "head_poruka": "docs(ui): record verified APKs and emulator startup",
+  "head": "6d3c7ead",
+  "head_poruka": "docs(control): retain compact tracker formatting",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -2983,7 +2983,7 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "DELIMIČNO: F01–F04 imaju proverene APK-ove i pokretanje emulatora. Nova stalna pretraga i kontrole prilika prolaze tipove i 242 grupe/4700 testova; prikaz proveravan lokalno na 320/390 px. Nova APK izrada, tokovi sa nalogom, telefon i Claude pregled još čekaju.",
+   "sada": "DELIMIČNO: F01–F04 imaju proverene APK-ove i pokretanje emulatora. Nova stalna pretraga i kontrole prilika prolaze tipove i 242 grupe/4700 testova; prikaz proveren lokalno na 320/390 px. Novi APK-ovi se izrađuju: emulator 35748064511, telefon 35748068544, kod 6d3c7ead. Tokovi sa nalogom, telefon i Claude pregled još čekaju.",
    "dokaz": "docs/implementation/functional-audit-20260922/DISCOVERY_SEARCH_RECEIPT.json"
   },
   {
@@ -3249,6 +3249,22 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35748068544,
+   "ime": "Build Android development APK",
+   "sha": "6d3c7ead",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-22T15:32:25Z"
+  },
+  {
+   "id": 35748064511,
+   "ime": "Build Android development APK",
+   "sha": "6d3c7ead",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-22T15:32:23Z"
+  },
+  {
    "id": 35742822042,
    "ime": "Build Android development APK",
    "sha": "213fcf9a",
@@ -3327,22 +3343,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-22T09:40:36Z"
-  },
-  {
-   "id": 35711729035,
-   "ime": "PKG-023f closure source re-certification proof",
-   "sha": "cf9c66f2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T09:40:36Z"
-  },
-  {
-   "id": 35710468643,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "92f75b11",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T09:27:18Z"
   }
  ]
 }

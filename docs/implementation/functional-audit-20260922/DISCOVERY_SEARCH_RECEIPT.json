@@ -37,14 +37,20 @@
       "error"
     ],
     "screenshots": "INSPECTED_INLINE_NOT_SAVED",
-    "serverConnected": false
+    "serverConnected": false,
+    "newControlMeasuredHeightPx": 48
   },
   "nativeAuthenticatedAcceptance": "PENDING_OWNER_UNAVAILABLE",
   "claudeReview": "PENDING",
-  "apkStatus": "PENDING_BUILD",
+  "apkStatus": "BUILDING",
   "serverChanged": false,
   "dependenciesChanged": false,
   "credentialsHandled": false,
   "authBypassed": false,
-  "providerCalled": false
+  "providerCalled": false,
+  "sourceCommit": "6d3c7ead02815f2b0c75ed3bde01b685a2878df9",
+  "apkRuns": {
+    "emulator": "35748064511",
+    "phone": "35748068544"
+  }
 }

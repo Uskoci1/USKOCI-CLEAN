@@ -2054,7 +2054,7 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "DELIMIČNO: F01–F04 imaju proverene APK-ove i pokretanje emulatora. Nova stalna pretraga i kontrole prilika prolaze tipove i 242 grupe/4700 testova; prikaz proveravan lokalno na 320/390 px. Nova APK izrada, tokovi sa nalogom, telefon i Claude pregled još čekaju.",
+   "sada": "DELIMIČNO: F01–F04 imaju proverene APK-ove i pokretanje emulatora. Nova stalna pretraga i kontrole prilika prolaze tipove i 242 grupe/4700 testova; prikaz proveren lokalno na 320/390 px. Novi APK-ovi se izrađuju: emulator 35748064511, telefon 35748068544, kod 6d3c7ead. Tokovi sa nalogom, telefon i Claude pregled još čekaju.",
    "dokaz": "docs/implementation/functional-audit-20260922/DISCOVERY_SEARCH_RECEIPT.json"
   },
   {
